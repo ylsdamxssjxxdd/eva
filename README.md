@@ -1,15 +1,15 @@
-# eva
+# 机体
 最直观的大模型应用软件(qt5+llama.cpp)
 
-eva关联: &nbsp;&nbsp;&nbsp;&nbsp;驾驶员(用户)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;素体(模型)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;拘束装置(软件)
+对eva观众: &nbsp;&nbsp;&nbsp;&nbsp;驾驶员(用户)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;素体(模型)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;拘束装置(机体)
 ## 特点
 只需要一个模型文件和本软件就能和大模型进行交互
 
 最低支持x86平台32位windows7，也可以自行编译其他平台和系统
 
-良好的汉化
+非常良好的汉化
 ## 快速开始
-1. 下载eva
+1. 下载软件
 
 2. 下载模型文件
 
@@ -27,3 +27,7 @@ eva关联: &nbsp;&nbsp;&nbsp;&nbsp;驾驶员(用户)&nbsp;&nbsp;&nbsp;&nbsp;&nbs
 git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
 cd eva
 ```
+
+## 运行原理
+
+## 名词解释
