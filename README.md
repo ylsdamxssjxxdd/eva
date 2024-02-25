@@ -1,7 +1,7 @@
 # eva
 最直观的大模型应用软件(qt5+llama.cpp)
 
-eva关联: &nbsp;&nbsp;驾驶员(用户)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;素体(模型)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;拘束装置(软件)
+eva关联: &nbsp;&nbsp;&nbsp;&nbsp;驾驶员(用户)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;素体(模型)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;拘束装置(软件)
 ## 特点
 只需要一个模型文件和本软件就能和大模型进行交互
 
