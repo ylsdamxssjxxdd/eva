@@ -23,5 +23,7 @@ eva关联: 驾驶员(用户)-素体(模型)-拘束装置(软件)
 
 ## 源码编译
 1. 克隆源代码
-
-``` git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git```
+```bash
+git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
+cd eva
+```
