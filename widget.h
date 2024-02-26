@@ -170,7 +170,7 @@ public:
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox;
+    QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*llm_checkbox;
     QLabel *extra_label;//附加指令
     QTextEdit *extra_TextEdit;
     QString ui_extra_prompt;
@@ -295,7 +295,7 @@ public slots:
 //自用的槽
 private slots:
     void unlockLoad();
-    void api_testhandleTimeout();//api模式下测试时延迟发送
+    void send_testhandleTimeout();//api模式下测试时延迟发送
     void keepConnection();//持续检测ip是否通畅
     void keep_onConnected();//检测ip是否通畅
     void keep_onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
@@ -311,6 +311,9 @@ private slots:
     void cmd_change();//选用系统终端工具
     void search_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具
+    void positron_change();//选用阳电子炮工具
+    void llm_change();//选用大模型工具
+    bool toolcheckbox_checked();//判断是否挂载了工具
 
     void prompt_template_change();//提示词模板下拉框响应
     void complete_change();//补完按钮响应

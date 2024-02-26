@@ -195,14 +195,14 @@ void xBot::run()
         else{ga_n = 1;ga_w = 512;}
 
         int o1 = stream();
-        while(o1)//如果解码失败返回的结果是1,则n_past+1并重新解码,直到解码完成
+        while(o1)//如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码完成
         {
             n_past++;//置入一个空的记忆来缓解
             batch_count--;//空的不算数
             emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
             o1 = stream();
             fail++;
-            qDebug()<<fail<<o1<<n_past;
+            qDebug()<<"fail times"<<fail<<"return "<<o1;
         }
         //qDebug()<<batch_count<<batch_time;
         //qDebug()<<singl_count<<singl_time;
@@ -244,10 +244,11 @@ int xBot::stream()
             {
                 while(n_past + (int) embd.size() > gpt_params_.n_ctx)
                 {
-                    const int n_left    = n_past - gpt_params_.n_keep - 1;//gpt_params_.n_keep需要保留的字符
+                    const int n_left    = n_past - gpt_params_.n_keep ;//gpt_params_.n_keep需要保留的字符
                     const int n_discard = n_left/2;
-                    llama_kv_cache_seq_rm   (ctx, 0, gpt_params_.n_keep + 1            , gpt_params_.n_keep + n_discard + 1);
-                    llama_kv_cache_seq_shift(ctx, 0, gpt_params_.n_keep + 1 + n_discard, n_past, -n_discard);//导致批解码失败的元首
+                    llama_kv_cache_seq_rm(ctx, 0, gpt_params_.n_keep           , gpt_params_.n_keep + n_discard);
+                    llama_kv_cache_seq_add(ctx, 0, gpt_params_.n_keep + n_discard, n_past, -n_discard);
+                    //llama_kv_cache_seq_shift(ctx, 0, gpt_params_.n_keep + 1 + n_discard, n_past, -n_discard);//导致批解码失败的元首
                     n_past -= n_discard;
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
                     if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
@@ -263,9 +264,9 @@ int xBot::stream()
                     const int ib = (ga_n*ga_i)/ga_w;
                     const int bd = (ga_w/ga_n)*(ga_n - 1);
                     const int dd = (ga_w/ga_n) - ib*bd - ga_w;
-                    llama_kv_cache_seq_shift(ctx, 0, ga_i,                n_past,              ib*bd);
-                    llama_kv_cache_seq_div  (ctx, 0, ga_i + ib*bd,        ga_i + ib*bd + ga_w, ga_n);
-                    llama_kv_cache_seq_shift(ctx, 0, ga_i + ib*bd + ga_w, n_past + ib*bd,      dd);
+                    llama_kv_cache_seq_add(ctx, 0, ga_i,                n_past,              ib*bd);
+                    llama_kv_cache_seq_div(ctx, 0, ga_i + ib*bd,        ga_i + ib*bd + ga_w, ga_n);
+                    llama_kv_cache_seq_add(ctx, 0, ga_i + ib*bd + ga_w, n_past + ib*bd,      dd);
                     n_past -= bd;
                     ga_i += ga_w/ga_n;
                     //qDebug()<<n_past<<bd<<ga_i;
@@ -404,10 +405,11 @@ int xBot::stream()
                 //qDebug() << batch_count << batch_time << singl_count << singl_time;
                 return 0;
             }
-            else if(QString::fromUtf8(sstr.c_str()).contains("[PAD"))//千问的空白字符不输出
+            else if(QString::fromUtf8(sstr.c_str()).contains("[PAD"))//千问的空白字符输出空
             {
                 emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr));
                 emit bot2ui_state("bot:" + wordsObj["sample token add next decode"].toString());
+                emit bot2ui_output("");
             }
             else
             {

@@ -14,10 +14,10 @@
 # }
 #
 #
-# 3.关掉server的日志
+# 2.关掉server的日志
 # option(LLAMA_SERVER_VERBOSE "Build verbose logging option for Server" OFF)
 #
-# 4.编译出server后手动更新到资源文件中
+# 3.编译出server后手动更新到资源文件中
 #
 ######################################基础配置######################################
 cmake_minimum_required(VERSION 3.27)
@@ -31,7 +31,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 #原项目编译选项
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                           "build 32 bit"                 OFF)#编译32位的cmake标志
 
@@ -107,6 +107,8 @@ xbot.cpp
 xbot.h
 xnet.cpp
 xnet.h
+xserver.cpp
+xserver.h
 xtool.cpp
 xtool.h
 xconfig.h
@@ -129,6 +131,7 @@ find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)
+add_subdirectory(llama.cpp/examples/main)
 add_subdirectory(llama.cpp/examples/llava)
 add_subdirectory(llama.cpp/examples/server)
 # 链接相关库,生成可执行文件

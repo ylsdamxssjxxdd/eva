@@ -2,7 +2,9 @@
 
 xTool::xTool()
 {
-    ;
+    positron_p = new QTimer(this);//持续检测延迟
+    connect(positron_p, SIGNAL(timeout()), this, SLOT(positronPower()));
+    connect(this,&xTool::positron_starter,this,&xTool::positronPower);
 }
 xTool::~xTool()
 {
@@ -58,13 +60,41 @@ void xTool::run()
     {
         emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
+    else if(func_arg_list.front() == "positron")
+    {
+        emit tool2ui_state("tool:" + QString("positron(") + func_arg_list.last() + ")");
+
+        //阳电子步枪开始充能
+        emit positron_starter();
+        //positron_p->start(1000);
+    }
+    else if(func_arg_list.front() == "llm")
+    {
+        emit tool2ui_pushover(wordsObj["not set tool"].toString());
+    }
     else
     {
         //没有该工具
         emit tool2ui_pushover(wordsObj["not load tool"].toString());
     }
     
-    
+}
+//阳电子步枪发射
+void xTool::positronShoot()
+{
+    QString result;
+    qsrand(QTime::currentTime().msec());// 设置随机数种子
+    int randomValue = (qrand() % 3);//0-2随机数
+    if(randomValue==0){result = wordsObj["positron_result1"].toString();}
+    else if(randomValue==1){result = wordsObj["positron_result2"].toString();}
+    else if(randomValue==2)//使徒逃窜
+    {
+        int randomValue2 = (qrand() % 360);//0-359随机数
+        result = wordsObj["positron_result3"].toString() + " " + QString::number(randomValue2) + wordsObj["degree"].toString();
+    }
+    qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + result;
+    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,1);
+    emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + result);
 }
 
 void xTool::recv_func_arg(QStringList func_arg_list_)
@@ -89,4 +119,21 @@ void xTool::getWords()
     QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
     QJsonObject jsonObj = doc.object();
     wordsObj = jsonObj["words"].toObject();
+}
+//阳电子步枪充能,数到3就发射
+void xTool::positronPower()
+{
+    if(positron_power<3)
+    {
+        positron_power ++;
+        emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + QString::number(positron_power),0);
+        //阳电子步枪继续充能
+        positron_p->start(1000);
+    }
+    else
+    {
+        positron_power = 0;
+        positron_p->stop();
+        positronShoot();
+    }
 }

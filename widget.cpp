@@ -104,6 +104,10 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe"].toString()});
     tool_map.insert("search", {wordsObj["search"].toString(),"search",wordsObj["search_func_describe"].toString()});
     tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe"].toString()});
+    tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe"].toString()});
+    tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe"].toString()});
+    
+
 }
 
 Widget::~Widget()
@@ -495,12 +499,11 @@ void Widget::recv_pushover()
         if(is_api)
         {
             //待修复是net中maneger的问题
-            QTimer::singleShot(100, this, SLOT(api_testhandleTimeout()));//api模式不能立即发送
-            //on_send_clicked();
+            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));//api模式不能立即发送
         }
         else
         {
-            on_send_clicked();
+            QTimer::singleShot(10, this, SLOT(send_testhandleTimeout()));//对话模式也不能立即发送
         }
     }
     else if(is_query)//继续回答
@@ -508,12 +511,11 @@ void Widget::recv_pushover()
         if(is_api)
         {
             //待修复是net中maneger的问题
-            QTimer::singleShot(100, this, SLOT(api_testhandleTimeout()));//api模式不能立即发送
-            //on_send_clicked();
+            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));//api模式不能立即发送
         }
         else
         {
-            on_send_clicked();
+            QTimer::singleShot(10, this, SLOT(send_testhandleTimeout()));//对话模式也不能立即发送
         }
     }
     else
@@ -777,7 +779,7 @@ void Widget::set_date()
 void Widget::calculator_change()
 {
     
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked())
+    if(toolcheckbox_checked())
     {
         is_load_tool = true;
     }
@@ -788,7 +790,7 @@ void Widget::calculator_change()
 void Widget::cmd_change()
 {
     
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked())
+    if(toolcheckbox_checked())
     {
         is_load_tool = true;
     }
@@ -799,7 +801,7 @@ void Widget::cmd_change()
 void Widget::search_change()
 {
     
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked())
+    if(toolcheckbox_checked())
     {
         is_load_tool = true;
     }
@@ -810,12 +812,45 @@ void Widget::search_change()
 void Widget::knowledge_change()
 {
     
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked())
+    if(toolcheckbox_checked())
     {
         is_load_tool = true;
     }
     else{is_load_tool = false;}
     extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::positron_change()
+{
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::llm_change()
+{
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+//判断是否挂载了工具
+bool Widget::toolcheckbox_checked()
+{
+    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || llm_checkbox->isChecked())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+    
 }
 
 void Widget::modeChange()

@@ -557,10 +557,19 @@ void Widget::set_DateDialog()
     layout_H45->addWidget(knowledge_checkbox);
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
+    QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
+    positron_checkbox = new QCheckBox(wordsObj["positron"].toString());
+    llm_checkbox = new QCheckBox(wordsObj["llm"].toString());
+    layout_H46->addWidget(positron_checkbox);
+    layout_H46->addWidget(llm_checkbox);
+    tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
+
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
     connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);
     connect(search_checkbox, &QCheckBox::stateChanged, this, &Widget::search_change);
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
+    connect(positron_checkbox, &QCheckBox::stateChanged, this, &Widget::positron_change);
+    connect(llm_checkbox, &QCheckBox::stateChanged, this, &Widget::llm_change);
 
     //附加指令
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器
@@ -1042,6 +1051,8 @@ QString Widget::create_extra_prompt()
         if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
         if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe + "\n";}
         if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + "\n";}
+        if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe + "\n";}
+        if(llm_checkbox->isChecked()){extra_prompt_ += tool_map["llm"].func_describe + "\n";}
         //尾
         extra_prompt_ += wordsObj["tail_extra_prompt_zh"].toString();
     }
@@ -1093,10 +1104,10 @@ QStringList Widget::matchJSON(QString text)
                 qDebug() << "action:" << action<< "action_input:" << action_input;
                 reflash_state("ui:" + wordsObj["json detect"].toString() + " action:" + action + " action_input:" + action_input,0);
             } else {
-                qDebug() << "JSON document is not an object";
+                reflash_state("ui:" + wordsObj["no json detect"].toString() + " JSON document is not an object",0);
             }
         } else {
-            qDebug() << "Invalid JSON...";
+            reflash_state("ui:" + wordsObj["no json detect"].toString() + " Invalid JSON...",0);
         }
     } else {
         reflash_state("ui:" + wordsObj["no json detect"].toString(),0);
@@ -1348,7 +1359,7 @@ void Widget::onError(QAbstractSocket::SocketError socketError) {
     api_dialog->setDisabled(0);
     api_dialog->close();
 }
-void Widget::api_testhandleTimeout()
+void Widget::send_testhandleTimeout()
 {
     on_send_clicked();
 }

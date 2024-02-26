@@ -8,7 +8,8 @@
 #include <QFile>
 #include <QElapsedTimer>
 #include <QProcess>
-
+#include <QTime>
+#include <QTimer>
 class xTool : public QThread
 {
     Q_OBJECT
@@ -22,13 +23,17 @@ public:
     void run() override;
 public:
     QStringList func_arg_list;
-
+    QTimer *positron_p;//阳电子步枪充能定时器
+    void positronShoot();//阳电子步枪发射
+    int positron_power=0;//阳电子步枪充能值
 public slots:
     void recv_func_arg(QStringList func_arg_list);
-
+    void positronPower();//阳电子步枪充能
+    
 signals:
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state,int state_num=0);//发送的状态信号
+    void positron_starter();
 
 };
 
