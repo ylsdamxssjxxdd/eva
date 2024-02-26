@@ -2,6 +2,7 @@
 #include "xbot.h"
 #include "xnet.h"
 #include "xtool.h"
+#include "xserver.h"
 #include <locale>
 #include <QStyleFactory>
 #ifdef BODY_USE_CUBLAST
@@ -26,6 +27,7 @@ int main(int argc, char *argv[])
     Widget w;//窗口实例
     xBot bot;//模型实例
     xNet net;//请求实例
+    xServer server;//服务实例
     xTool tool;//工具包实例
 
     llama_log_set(bot_log_callback,&bot);//设置回调
