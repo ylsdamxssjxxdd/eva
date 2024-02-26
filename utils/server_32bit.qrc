@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>server_1803_32bit.exe</file>
+    </qresource>
+</RCC>
