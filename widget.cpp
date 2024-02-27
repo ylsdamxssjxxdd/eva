@@ -16,6 +16,7 @@ Widget::Widget(QWidget *parent)
     date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "### Instruction", "### Response",false});
     date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false});
     date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "### " + wordsObj["user"].toString(), "### " + wordsObj["troll"].toString(),false});
+    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "### " + wordsObj["driver"].toString(), "### eva",false});
 
     setApiDialog();//设置api选项
 

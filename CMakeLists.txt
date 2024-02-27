@@ -31,7 +31,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 #原项目编译选项
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                           "build 32 bit"                 OFF)#编译32位的cmake标志
 

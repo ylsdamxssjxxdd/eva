@@ -123,10 +123,16 @@ void xTool::getWords()
 //阳电子步枪充能,数到3就发射
 void xTool::positronPower()
 {
-    if(positron_power<3)
+    if(positron_power<5)
     {
         positron_power ++;
-        emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + QString::number(positron_power),0);
+        QString power_bar;
+        for(int i = 0;i<positron_power;++i)
+        {
+            power_bar += "■";
+        }
+        
+        emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + power_bar,0);
         //阳电子步枪继续充能
         positron_p->start(1000);
     }
