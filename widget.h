@@ -171,7 +171,9 @@ public:
 
     QGroupBox *tool_box;
     QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*llm_checkbox;
-    QLabel *extra_label;//附加指令
+    QLabel *extra_label;//附加指令，行动纲领
+    QPushButton *switch_lan_button;//切换附加指令的语言
+    QString ui_extra_lan="zh";
     QTextEdit *extra_TextEdit;
     QString ui_extra_prompt;
     QString ui_system_prompt;
@@ -313,6 +315,7 @@ private slots:
     void knowledge_change();//选用知识库工具
     void positron_change();//选用阳电子炮工具
     void llm_change();//选用大模型工具
+    void switch_lan_change();//切换行动纲领的语言
     bool toolcheckbox_checked();//判断是否挂载了工具
 
     void prompt_template_change();//提示词模板下拉框响应

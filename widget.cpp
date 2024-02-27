@@ -100,12 +100,12 @@ Widget::Widget(QWidget *parent)
     connect(force_unlockload, SIGNAL(timeout()), this, SLOT(unlockLoad()));
 
     //初始化工具
-    tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe"].toString()});
-    tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe"].toString()});
-    tool_map.insert("search", {wordsObj["search"].toString(),"search",wordsObj["search_func_describe"].toString()});
-    tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe"].toString()});
-    tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe"].toString()});
-    tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe"].toString()});
+    tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
+    tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
+    tool_map.insert("search", {wordsObj["search"].toString(),"search",wordsObj["search_func_describe_zh"].toString(),wordsObj["search_func_describe_en"].toString()});
+    tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe_zh"].toString(),wordsObj["knowledge_func_describe_en"].toString()});
+    tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
+    tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
     
 
 }
@@ -371,7 +371,7 @@ void Widget::on_send_clicked()
                 ui->date->setEnabled(1);ui->set->setEnabled(1);
                 return;
             }
-            emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},1);//传递用户输入,测试模式  
+            emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toString() + ":"},1);//传递用户输入,测试模式  
         }
         else if(is_query)
         {
@@ -392,7 +392,7 @@ void Widget::on_send_clicked()
                 ui->date->setEnabled(1);ui->set->setEnabled(1);
                 return;
             }
-            emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入,测试模式  
+            emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
         }
         else//正常情况!!!
         {
@@ -411,7 +411,7 @@ void Widget::on_send_clicked()
                 is_test = true;
                 input = QString::number(test_count+1) + ". "+test_list_question.at(test_question_index.at(0));
                 
-                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},1);//传递用户输入
+                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n" + wordsObj["answer"].toString() + ":"},1);//传递用户输入
                 this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
                 ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,3);
                 emit ui2bot_help_input();//通知模型准备加入引导问题
@@ -702,6 +702,7 @@ void Widget::on_date_clicked()
     prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     system_TextEdit->setText(ui_system_prompt);
     extra_TextEdit->setText(ui_extra_prompt);
+    switch_lan_button->setText(ui_extra_lan);
 
     date_dialog->exec();
 }
@@ -770,6 +771,7 @@ void Widget::set_date()
     ui_DATES.input_sfx = input_sfx_LineEdit->text();
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = prompt_comboBox->currentText();
+    ui_extra_lan = switch_lan_button->text();
     date_dialog->close();
     emit ui2bot_date(ui_DATES,is_load);
     modeChange();
@@ -839,7 +841,23 @@ void Widget::llm_change()
     else{is_load_tool = false;}
     extra_TextEdit->setText(create_extra_prompt());
 }
-//判断是否挂载了工具
+//切换行动纲领的语言
+void Widget::switch_lan_change()
+{
+    if(switch_lan_button->text()=="zh")
+    {
+        switch_lan_button->setText("en");
+        create_extra_prompt();
+        extra_TextEdit->setText(create_extra_prompt());
+    }
+    else if(switch_lan_button->text()=="en")
+    {
+        switch_lan_button->setText("zh");
+        create_extra_prompt();
+        extra_TextEdit->setText(create_extra_prompt());
+    }
+}
+// 判断是否挂载了工具
 bool Widget::toolcheckbox_checked()
 {
     if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || llm_checkbox->isChecked())

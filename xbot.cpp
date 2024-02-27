@@ -605,6 +605,7 @@ void xBot::reset(bool is_clear_all)
     gpt_params_.antiprompt.push_back("<|im_end|>");//添加chatml格式反提示
     if(is_load_tool)//如果挂载了工具则添加调用工具反提示
     {
+        gpt_params_.antiprompt.push_back("Observation:");
         gpt_params_.antiprompt.push_back(wordsObj["tool_observation"].toString().toStdString());
         gpt_params_.antiprompt.push_back(wordsObj["tool_observation2"].toString().toStdString());
     }

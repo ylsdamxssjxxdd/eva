@@ -4,6 +4,7 @@
 ## 特点
 - 直观
     - 非常良好的汉化；推理过程、采样过程、工作流可视化
+    - 输出区的内容就是模型的全部现实
 - win7
     - 最低支持32位windows7，也具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
 - 单文件
@@ -33,6 +34,8 @@
 2. 克隆源代码
 ```bash
 git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
+```
+```bash
 cd eva
 ```
 ## 待办事项

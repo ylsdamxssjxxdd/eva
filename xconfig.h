@@ -85,7 +85,8 @@ struct ENDPOINT_DATA{
 struct TOOLS{
     QString tool_name;//工具名
     QString func_name;//函数名
-    QString func_describe;//功能描述
+    QString func_describe_zh;//功能描述中
+    QString func_describe_en;//功能描述英
 };
 
 //传递的前缀/输入/后缀

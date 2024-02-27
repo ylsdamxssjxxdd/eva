@@ -575,14 +575,17 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器
     extra_label = new QLabel(wordsObj["extra calling"].toString());
     layout_H55->addWidget(extra_label);
+    switch_lan_button = new QPushButton(ui_extra_lan);
+    switch_lan_button->setMinimumWidth(200);
+    layout_H55->addWidget(switch_lan_button);
     extra_TextEdit = new QTextEdit();
-    layout_H55->addWidget(extra_TextEdit);
+    extra_TextEdit->setMinimumHeight(100);
     tool_layout->addLayout(layout_H55);//将布局添加到总布局
-
+    tool_layout->addWidget(extra_TextEdit);
 
     tool_box->setLayout(tool_layout);
     layout->addWidget(tool_box);
-
+    connect(switch_lan_button, &QPushButton::clicked, this, &Widget::switch_lan_change);
     
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);// 创建 QDialogButtonBox 用于确定和取消按钮
     layout->addWidget(buttonBox);
@@ -714,8 +717,9 @@ void Widget::reflash_output(const QString &result,bool is_while)
     if(is_test && is_while)//现在要知道是模型输出的答案还是预编码完成的结果,要将预编码完成的结果排除
     {
         test_count++;//已经加一了
-        //答对
-        if(result == test_list_answer.at(test_question_index.at(0)))
+        QString result_ = result;
+        //答对，remove(' ')移除答案中的空格
+        if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))//
         {
             test_score++;output_scroll(Qt::green);
             ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,1);
@@ -1043,21 +1047,61 @@ void Widget::change_api_dialog(bool enable)
 //构建附加指令
 QString Widget::create_extra_prompt()
 {
-    QString extra_prompt_ = wordsObj["head_extra_prompt_zh"].toString();
-    if(is_load_tool)
+    QString extra_prompt_;
+    if(switch_lan_button->text()=="zh")
     {
-        //头
-        if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
-        if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
-        if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe + "\n";}
-        if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + "\n";}
-        if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe + "\n";}
-        if(llm_checkbox->isChecked()){extra_prompt_ += tool_map["llm"].func_describe + "\n";}
-        //尾
-        extra_prompt_ += wordsObj["tail_extra_prompt_zh"].toString();
+        extra_prompt_ = wordsObj["head_extra_prompt_zh"].toString();
+        if(is_load_tool)
+        {
+            //头
+            if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_zh + "\n";}
+            if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_zh + "\n";}
+            if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe_zh + "\n";}
+            if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_zh + "\n";}
+            if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_zh + "\n";}
+            if(llm_checkbox->isChecked()){extra_prompt_ += tool_map["llm"].func_describe_zh + "\n";}
+            //中
+            extra_prompt_ +=wordsObj["middle_extra_prompt_zh"].toString();
+            if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
+            if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
+            if(search_checkbox->isChecked()){extra_prompt_ += "\"search\" ";}
+            if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
+            if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
+            if(llm_checkbox->isChecked()){extra_prompt_ +="\"llm\" ";}
+            //尾
+            extra_prompt_ += wordsObj["tail_extra_prompt_zh"].toString();
+        }
+        else{extra_prompt_ = "";}
+        return extra_prompt_;
     }
-    else{extra_prompt_ = "";}
+    else if(switch_lan_button->text()=="en")
+    {
+        extra_prompt_ = wordsObj["head_extra_prompt_en"].toString();
+        if(is_load_tool)
+        {
+            //头
+            if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_en + "\n";}
+            if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_en + "\n";}
+            if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe_en + "\n";}
+            if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_en + "\n";}
+            if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_en + "\n";}
+            if(llm_checkbox->isChecked()){extra_prompt_ += tool_map["llm"].func_describe_en + "\n";}
+            //中
+            extra_prompt_ +=wordsObj["middle_extra_prompt_en"].toString();
+            if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
+            if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
+            if(search_checkbox->isChecked()){extra_prompt_ += "\"search\" ";}
+            if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
+            if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
+            if(llm_checkbox->isChecked()){extra_prompt_ +="\"llm\" ";}
+            //尾
+            extra_prompt_ += wordsObj["tail_extra_prompt_en"].toString();
+        }
+        else{extra_prompt_ = "";}
+        
+    }
     return extra_prompt_;
+    
 }
 
 //输出解析器，提取JSON
