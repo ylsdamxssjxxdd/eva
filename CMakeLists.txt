@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
-option(BODY_32BIT                            "build 32 bit"                                     ON)#编译32位的标志
+option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
 #####################################处理编译选项#####################################
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#告诉源码编译32位标志
