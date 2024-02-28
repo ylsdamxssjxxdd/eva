@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>server_64bit.exe</file>
-    </qresource>
-</RCC>

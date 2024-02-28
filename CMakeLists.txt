@@ -1,5 +1,5 @@
 ######################################基础配置######################################
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.12)
 project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
@@ -8,17 +8,16 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-
-#原项目编译选项
 option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
-
+#####################################处理编译选项#####################################
+if(BODY_32BIT)
+    add_compile_definitions(BODY_USE_32BIT)#告诉源码编译32位标志
+endif()    
 # msvc设置编译选项
 if(MSVC)
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
-        set(TARGET_server server_cuda)
-        set(SERVER_FILE utils/server_cuda.qrc)
         add_compile_definitions(BODY_USE_CUBLAST)#编译body-cuda标志
         set(EXTRA_FILES
             utils/gpuchecker.h
@@ -30,41 +29,20 @@ if(MSVC)
             ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib
         )
     endif()
-    #set(CMAKE_CXX_FLAGS_RELEASE "/MT")#对齐静态编译的标志
-    set(Qt5_DIR D:/Qt/5.15/qt5.15.10-msvc/lib/cmake/Qt5) #动态链接库
-# mingw设置编译选项   
+# mingw设置编译选项
 elseif(MINGW)
-    #find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
-    if(BODY_32BIT)
-        add_compile_definitions(BODY_USE_32BIT)#编译32位的编译器标志
-        set(Qt5_DIR D:/Qt/5.15/qt5.15.10-mingw81_32-static/lib/cmake/Qt5) #静态链接库
-    else()
-        set(Qt5_DIR D:/Qt/5.15/qt5.15.10-mingw81_64-static/lib/cmake/Qt5) #静态链接库   
-    endif()    
-    
-    if (LLAMA_CLBLAST)
-        set(TARGET_server server_clblast)
-        set(SERVER_FILE utils/server_clblast.qrc)
-    elseif(BODY_32BIT)
-        set(TARGET_server server_32bit)
-        set(SERVER_FILE utils/server_32bit.qrc)    
-    else()
-        set(TARGET_server server_64bit)
-        set(SERVER_FILE utils/server_64bit.qrc)
-    endif()
     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-keep-inline-dllexport -O2 -std=gnu++11 -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 endif()
-
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)
 add_subdirectory(llama.cpp/examples/main)
 add_subdirectory(llama.cpp/examples/llava)
-#add_subdirectory(llama.cpp/examples/server)
 #先编译好server并放到utils目录下，等待eva打包进资源文件
-
+set(TARGET_server server)
+set(SERVER_FILE utils/server.qrc)
 option(LLAMA_SERVER_VERBOSE "Build verbose logging option for Server" ON)
 add_executable(${TARGET_server} llama.cpp/examples/server/server.cpp llama.cpp/examples/server/oai.hpp llama.cpp/examples/server/utils.hpp llama.cpp/examples/server/json.hpp llama.cpp/examples/server/httplib.h)
 install(TARGETS ${TARGET_server} RUNTIME)
@@ -74,7 +52,6 @@ if (WIN32)
     TARGET_LINK_LIBRARIES(${TARGET_server} PRIVATE ws2_32)
 endif()
 set_target_properties(${TARGET_server} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")
-
 
 ######################################编译对象######################################
 # 资源文件
@@ -91,7 +68,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-WIN32
+#WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}
@@ -109,8 +86,8 @@ xbot.cpp
 xbot.h
 xnet.cpp
 xnet.h
-xserver.cpp
-xserver.h
+xbert.cpp
+xbert.h
 xtool.cpp
 xtool.h
 xconfig.h

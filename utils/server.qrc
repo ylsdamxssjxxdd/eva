@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>server.exe</file>
+    </qresource>
+</RCC>

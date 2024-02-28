@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>server_clblast.exe</file>
-    </qresource>
-</RCC>

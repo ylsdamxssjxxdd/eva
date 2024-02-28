@@ -13,11 +13,11 @@
     - 本地模型交互，在线模型交互，多模态，agent，RAG，对外api服务，模型评测
 ## 快速开始
 1. 下载软件
-- 本项目release或者网盘
-- https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
+- 本项目release
+- 百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 2. 下载模型
-- https://hf-mirror.com/上搜gguf或者百度网盘
-- https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
+- 前往这个网站挑选gguf文件 https://hf-mirror.com/
+- 百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 3. 装载！
 - 点击装载按钮，选择一个gguf模型文件载入内存
 4. 发送！

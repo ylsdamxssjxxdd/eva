@@ -921,20 +921,21 @@ void Widget::serverControl()
     emit ui2bot_free();
     is_load = false;
 
-#ifdef GGML_USE_CLBLAST
-    QString resourcePath = ":/server_clblast.exe";
-    QString localPath = "server_clblast.exe";
-#elif BODY_USE_CUBLAST
-    QString resourcePath = ":/server_cuda.exe";
-    QString localPath = "server_cuda.exe";
-#elif BODY_USE_32BIT
-    QString resourcePath = ":/server_32bit.exe";
-    QString localPath = "server_32bit.exe";
-#else
-    QString resourcePath = ":/server_64bit.exe";
-    QString localPath = "server_64bit.exe";
-#endif
-
+// #ifdef GGML_USE_CLBLAST
+//     QString resourcePath = ":/server_clblast.exe";
+//     QString localPath = "server_clblast.exe";
+// #elif BODY_USE_CUBLAST
+//     QString resourcePath = ":/server_cuda.exe";
+//     QString localPath = "server_cuda.exe";
+// #elif BODY_USE_32BIT
+//     QString resourcePath = ":/server_32bit.exe";
+//     QString localPath = "server_32bit.exe";
+// #else
+//     QString resourcePath = ":/server_64bit.exe";
+//     QString localPath = "server_64bit.exe";
+// #endif
+    QString resourcePath = ":/server.exe";
+    QString localPath = "server.exe";
 
     // 获取资源文件
     QFile resourceFile(resourcePath);
