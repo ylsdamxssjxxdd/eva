@@ -2,7 +2,7 @@
 #define XCONFIG_H
 
 #include <QDebug>
-#define VERSION "b2134"
+
 //约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
 #define DEFAULT_PREFIX "### User"
@@ -14,11 +14,12 @@
 //推理
 #ifdef BODY_USE_32BIT
     #define DEFAULT_NCTX 256
-    #define DEFAULT_BATCH 128
+    #define DEFAULT_BATCH 32
 #else
     #define DEFAULT_NCTX 2048
     #define DEFAULT_BATCH 256
-#endif
+#endif    
+
 #define DEFAULT_NTHREAD 1
 #define DEFAULT_NGL 0
 //模型
