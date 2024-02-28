@@ -55,7 +55,7 @@
        <item>
         <widget class="QPushButton" name="date">
          <property name="enabled">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <property name="minimumSize">
           <size>
@@ -76,6 +76,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="set">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -95,7 +98,7 @@
           </font>
          </property>
          <property name="text">
-          <string>设置</string>
+          <string/>
          </property>
         </widget>
        </item>

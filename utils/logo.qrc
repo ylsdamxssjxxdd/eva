@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>ui/chinese.json</file>
+        <file>chinese.json</file>
         <file>ui/run.png</file>
         <file>ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png</file>
         <file>ui/QSS-master/QSS_IMG/go-next-symbolic.symbolic.png</file>
@@ -19,8 +19,9 @@
         <file>ui/QSS-master/README.md</file>
         <file>ui/QSS-master/Ubuntu.qss</file>
         <file>ui/pause.png</file>
-	<file>ui/c-eval.png</file>
-	<file>ui/blue_logo.png</file>
+	    <file>ui/c-eval.png</file>
+	    <file>ui/blue_logo.png</file>
+        <file>ui/assimp_tools_icon.ico</file>
         <file>ui/dark_logo.png</file>
         <file>ui/green_logo.png</file>
         <file>ui/ico.rc</file>

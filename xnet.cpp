@@ -265,7 +265,7 @@ void xNet::recv_stop(bool stop)
 
 void xNet::getWords()
 {
-    QFile jfile(":/ui/chinese.json");
+    QFile jfile(":/chinese.json");
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;

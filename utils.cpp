@@ -1241,7 +1241,7 @@ void Widget::updateStatus()
 //拯救中文
 void Widget::getWords()
 {
-    QFile jfile(":/ui/chinese.json");
+    QFile jfile(":/chinese.json");
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;

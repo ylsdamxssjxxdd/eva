@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>server_1999_cuda.exe</file>
+        <file>server_cuda.exe</file>
     </qresource>
 </RCC>

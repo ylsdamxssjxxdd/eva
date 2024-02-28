@@ -22,6 +22,8 @@ Widget::Widget(QWidget *parent)
 
     ui_model_vocab = wordsObj["lode model first"].toString();
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
+    ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));
+
     this->setMouseTracking(true);//开启鼠标跟踪
     ui->state->setMouseTracking(true);//开启鼠标跟踪
     QObject::connect(ui->state,&customPlainTextEdit::creatVersionlog,this,&Widget::recv_creatVersionlog);//传递信号创建了解更多窗口
@@ -920,17 +922,17 @@ void Widget::serverControl()
     is_load = false;
 
 #ifdef GGML_USE_CLBLAST
-    QString resourcePath = ":/server_1803_clblast.exe";
-    QString localPath = "server_1803_clblast.exe";
+    QString resourcePath = ":/server_clblast.exe";
+    QString localPath = "server_clblast.exe";
 #elif BODY_USE_CUBLAST
-    QString resourcePath = ":/server_1999_cuda.exe";
-    QString localPath = "server_1999_cuda.exe";
+    QString resourcePath = ":/server_cuda.exe";
+    QString localPath = "server_cuda.exe";
 #elif BODY_USE_32BIT
-    QString resourcePath = ":/server_1803_32bit.exe";
-    QString localPath = "server_1803_32bit.exe";
+    QString resourcePath = ":/server_32bit.exe";
+    QString localPath = "server_32bit.exe";
 #else
-    QString resourcePath = ":/server_1803.exe";
-    QString localPath = "server_1803.exe";
+    QString resourcePath = ":/server_64bit.exe";
+    QString localPath = "server_64bit.exe";
 #endif
 
 

@@ -913,7 +913,7 @@ void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
 #endif
 void xBot::getWords()
 {
-    QFile jfile(":/ui/chinese.json");
+    QFile jfile(":/chinese.json");
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;

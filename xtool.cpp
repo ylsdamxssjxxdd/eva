@@ -105,7 +105,7 @@ void xTool::recv_func_arg(QStringList func_arg_list_)
 
 void xTool::getWords()
 {
-    QFile jfile(":/ui/chinese.json");
+    QFile jfile(":/chinese.json");
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;
@@ -129,9 +129,8 @@ void xTool::positronPower()
         QString power_bar;
         for(int i = 0;i<positron_power;++i)
         {
-            power_bar += "■";
+            power_bar += wordsObj["cube"].toString();
         }
-        
         emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + power_bar,0);
         //阳电子步枪继续充能
         positron_p->start(1000);
