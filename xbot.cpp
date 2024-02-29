@@ -507,12 +507,13 @@ void xBot::load(std::string &modelpath)
 
     gpt_params_.model = modelpath;
     
-
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    gpt_params_.use_mmap = true;//blast加速支持mmp,但是gpu负载无法分担内存占用
+    //使用mmp后gpu负载无法分担内存占用，这里折中方案，如果不用gpu则开启mmp，否则禁用
+    if(gpt_params_.n_gpu_layers == 0){gpt_params_.use_mmap = true;}
+    else{gpt_params_.use_mmap = false;}
 #endif
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
