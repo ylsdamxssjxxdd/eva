@@ -17,10 +17,6 @@
 ## 快速开始
 1. 下载软件
 - 本项目release或者百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
-- 不知道下载哪个可以先试试64bit版本
-- 32bit版本只能支持1GB以下的模型
-- opencl版本需要有显卡
-- cuda版本需要有nvidia家的显卡
 2. 下载模型
 - 前往这个网站挑选gguf模型文件 https://hf-mirror.com/
 - 百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body

@@ -287,8 +287,8 @@ int xBot::stream()
             emit bot2ui_state("bot:" + wordsObj["decode"].toString() + "·" 
                                 + wordsObj["use kv cache"].toString()  +"("+ QString::number(n_past)+ wordsObj["nums"].toString()+")" 
                                 + wordsObj["and input"].toString()+"("+ QString::number(embd.size())+ wordsObj["nums"].toString()+")" +"token"
-                                + wordsObj["caculate next word probability table"].toString()+ " " 
-                                + wordsObj["batch size"].toString() + QString::number(gpt_params_.n_batch));
+                                + wordsObj["caculate next word probability table"].toString()+ " " );
+                                //+ wordsObj["batch size"].toString() + QString::number(gpt_params_.n_batch));
 
             for (int i = 0; i < (int) embd.size(); i += gpt_params_.n_batch)
             {
@@ -679,7 +679,7 @@ void xBot::preDecode()
     if (!embd.empty())
     {
         //按批处理,直到处理完
-        if(embd.size()>1){bot2ui_state("bot:"+wordsObj["for system calling"].toString() + wordsObj["to predecode"].toString() + "("  + wordsObj["kv cache"].toString()+ QString::number(embd.size()) + wordsObj["nums"].toString() + "token)");}
+        if(embd.size()>1){bot2ui_state("bot:"+wordsObj["for system calling"].toString() + wordsObj["to predecode"].toString());}// + "("  + wordsObj["kv cache"].toString()+ QString::number(embd.size()) + wordsObj["nums"].toString() + "token)");}
         for (int i = 0; i < (int) embd.size(); i += gpt_params_.n_batch)
         {
             int n_eval = (int) embd.size() - i;//待验证

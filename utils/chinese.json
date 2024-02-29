@@ -93,7 +93,7 @@
         "to predecode": "进行预解码",
         "fail": "失败",
         "right click and check model log": "右击查看模型日志",
-        "use kv cache": "用上下文缓存",
+        "use kv cache": "用已缓存",
         "calculator next word probability table": "计算下一个词的概率表",
         "embd no token,please reload": "待解码的embd中没有token,请重新装载",
         "word probability table": "概率表",
