@@ -617,7 +617,7 @@ void Widget::recv_datereset()
 {
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,0);
     //打印约定内容
-    ui_state = "· " + wordsObj["repeat"].toString() + QString::number(ui_SETTINGS.repeat);reflash_state(ui_state,0);
+    //ui_state = "· " + wordsObj["repeat"].toString() + QString::number(ui_SETTINGS.repeat);reflash_state(ui_state,0);
     if(ui_mode == 1){ui_state = "· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ";reflash_state(ui_state,0);}
     else{ui_state = "· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText();reflash_state(ui_state,0);}
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,0);
@@ -631,7 +631,7 @@ void Widget::recv_setreset()
 {
     reflash_state("···········"+ wordsObj["set"].toString() + "···········",0);
     //打印约定内容
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ui_state = "· gpu " + wordsObj["offload"].toString() + QString::number(ui_SETTINGS.ngl);reflash_state(ui_state,0);
 #endif
     ui_state = "· " + wordsObj["ctx"].toString() + wordsObj["length"].toString() +" " + QString::number(ui_SETTINGS.nctx);reflash_state(ui_state,0);
@@ -719,7 +719,7 @@ void Widget::on_set_clicked()
     else if(ui_mode == 2){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_slider->setValue(ui_SETTINGS.ngl);
 #endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
@@ -742,7 +742,7 @@ void Widget::set_set()
     ui_SETTINGS.nthread =nthread_slider->value();
     ui_SETTINGS.nctx = nctx_slider->value();//获取nctx滑块的值
     ui_SETTINGS.batch = batch_slider->value();//获取nctx滑块的值
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ui_SETTINGS.ngl = ngl_slider->value();//获取npl滑块的值
 #endif
 
@@ -762,7 +762,7 @@ void Widget::set_set()
     if(ui_mode!=0){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
     else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
     if(current_server && ui_mode!=2){current_server=false;emit ui2bot_set(ui_SETTINGS,1);}//从服务模式回来强行重载
-    else{emit ui2bot_set(ui_SETTINGS,is_load);}
+    else if(ui_mode!=2){emit ui2bot_set(ui_SETTINGS,is_load);}
     modeChange();
 }
 
@@ -923,19 +923,6 @@ void Widget::serverControl()
     emit ui2bot_free();
     is_load = false;
 
-// #ifdef GGML_USE_CLBLAST
-//     QString resourcePath = ":/server_clblast.exe";
-//     QString localPath = "server_clblast.exe";
-// #elif BODY_USE_CUBLAST
-//     QString resourcePath = ":/server_cuda.exe";
-//     QString localPath = "server_cuda.exe";
-// #elif BODY_USE_32BIT
-//     QString resourcePath = ":/server_32bit.exe";
-//     QString localPath = "server_32bit.exe";
-// #else
-//     QString resourcePath = ":/server_64bit.exe";
-//     QString localPath = "server_64bit.exe";
-// #endif
     QString resourcePath = ":/server.exe";
     QString localPath = "server.exe";
 
@@ -1056,7 +1043,7 @@ void Widget::recv_log(QString log)
     //截获gpu最大负载层数
     if(log.contains("llm_load_print_meta: n_layer"))
     {
-        #if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+        #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
             int maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit ui2bot_maxngl(maxngl);
             ngl_slider->setMaximum(maxngl);
@@ -1143,7 +1130,6 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     ui->vram_bar->setSecondValue(vramp - first_vramp);
     // ui->vram_bar->setValue(vram - (model_vramusage.toFloat()+ctx_vramusage.toFloat())*100/vmem);
     // ui->vram_bar->setSecondValue((model_vramusage.toFloat()+ctx_vramusage.toFloat())*100/vmem);
-    
     
 }
 #endif

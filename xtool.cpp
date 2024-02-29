@@ -19,8 +19,8 @@ void xTool::run()
         QScriptEngine enging;
         QScriptValue result_ = enging.evaluate(func_arg_list.last());
         QString result = QString::number(result_.toNumber());
-        qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + result;
-        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + result,1);
+        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + result;
+        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + result,5);
         emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + result);
     }
     else if(func_arg_list.front() == "cmd")
@@ -40,6 +40,7 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + process->errorString(),5);
             emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + process->errorString());
             qDebug() << QString("cmd ") + wordsObj["return"].toString() + process->errorString();
         } 
@@ -47,6 +48,7 @@ void xTool::run()
         {
             // 获取命令的输出
             QString output = process->readAll();
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + output,5);
             emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + output);
             qDebug() << QString("cmd ") + wordsObj["return"].toString() + output;
         }
@@ -54,10 +56,12 @@ void xTool::run()
     }
     else if(func_arg_list.front() == "search")
     {
+        
         emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
     else if(func_arg_list.front() == "knowledge")
     {
+        
         emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
     else if(func_arg_list.front() == "positron")
@@ -70,6 +74,7 @@ void xTool::run()
     }
     else if(func_arg_list.front() == "llm")
     {
+        
         emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
     else
@@ -93,7 +98,7 @@ void xTool::positronShoot()
         result = wordsObj["positron_result3"].toString() + " " + QString::number(randomValue2) + wordsObj["degree"].toString();
     }
     qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + result;
-    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,1);
+    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,5);
     emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + result);
 }
 

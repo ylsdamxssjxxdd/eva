@@ -49,12 +49,11 @@ xBot::~xBot()
 
 void xBot::run()
 {
-    
+
     //如果还没装载模型,先装载模型
     if(!is_load)
     {
         load(modelpath);
-
     }
     //如果已经装载模型,运行推理
     else
@@ -368,10 +367,11 @@ int xBot::stream()
             //qDebug()<<"bot的历史消息"<<view_embd(ctx,history_tokens);qDebug()<<"第"<<times<<"次输出完毕";times++;
             std::string sstr = llama_token_to_piece(ctx, id);
 
+            //处理不全的utf-8字符
             if(pick_half_utf8.size()>0&&pick_half_utf8.size()<3){pick_half_utf8.push_back(id);sstr = "";}
             if(isIncompleteUTF8(sstr))
             {
-                pick_half_utf8.push_back(id);
+                if(!is_test)pick_half_utf8.push_back(id);
                 sstr = "";
                 emit bot2ui_state("bot:" + wordsObj["incompleteUTF8 detected"].toString(),2);
                 //qDebug()<<QString::fromStdString(str);
@@ -487,7 +487,6 @@ int xBot::stream()
 //----------------------------------------------------------------------
 void xBot::load(std::string &modelpath)
 {
-    
     QElapsedTimer time1;time1.start();
     //qDebug()<<QString::fromStdString(modelpath);
     //如果不是打开软件后第一次装载则释放模型和上下文
@@ -512,7 +511,7 @@ void xBot::load(std::string &modelpath)
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     gpt_params_.use_mmap = true;//blast加速支持mmp,但是gpu负载无法分担内存占用
 #endif
 #ifdef BODY_USE_32BIT
@@ -565,7 +564,7 @@ void xBot::load(std::string &modelpath)
     is_free = false;
     //输出加速支持
     QString device_;
-#ifdef GGML_USE_CLBLAST
+#ifdef BODY_USE_CLBLAST
     device_ +="gpu "+ wordsObj["offload"].toString() + " " + QString::number(gpt_params_.n_gpu_layers) + "\n";
 #endif
 #ifdef BODY_USE_CUBLAST
@@ -768,7 +767,7 @@ void xBot::recv_help_input(bool add)
     
 }
 
-// 接受用户输入,npredict为模型最大输出长度
+// 接受用户输入
 void xBot::recv_input(INPUTS input_,bool is_test_)
 {
     //qDebug()<< npredict_;
@@ -801,7 +800,7 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
     gpt_params_.n_predict = settings.npredict;
     
     bool reload_flag = false;
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //如果gpu负载层数改变则重新加载模型
     if(gpt_params_.n_gpu_layers != settings.ngl && !(gpt_params_.n_gpu_layers==999 && settings.ngl==maxngl))//是999且ngl最大的情况除外
     {

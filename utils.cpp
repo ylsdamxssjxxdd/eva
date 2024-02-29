@@ -357,7 +357,7 @@ void Widget::set_SetDialog()
     decode_box = new QGroupBox(wordsObj["decode set"].toString());//解码设置区域
     QVBoxLayout *decode_layout = new QVBoxLayout();//解码设置垂直布局器
 
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
     ngl_label = new QLabel("gpu " + wordsObj["offload"].toString() + QString::number(ui_SETTINGS.ngl));
@@ -469,7 +469,7 @@ void Widget::set_SetDialog()
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
 #endif
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
 #endif
@@ -690,7 +690,7 @@ void Widget::temp_change()
 //ngl滑块响应
 void Widget::ngl_change()
 {
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_label->setText("gpu "+ wordsObj["offload"].toString() + " " + QString::number(ngl_slider->value()));
 #endif
 }
@@ -808,6 +808,15 @@ void Widget::reflash_state(const QString &state_,int state_num)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
+    else if(state_num==5)//工具橘黄色
+    {
+        format.setForeground(QColor(255, 165, 0));    // 红色设置前景颜色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+        state_scroll();
+        format.clearForeground();//清除前景颜色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+    }
+
 
 
 }
@@ -1049,7 +1058,7 @@ void Widget::change_api_dialog(bool enable)
     nthread_label->setVisible(enable);nthread_slider->setVisible(enable);
     batch_label->setVisible(enable);batch_slider->setVisible(enable);
     mmproj_label->setVisible(enable);mmproj_LineEdit->setVisible(enable);
-#if defined(GGML_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_label->setVisible(enable);ngl_slider->setVisible(enable);
 #else
     lora_label->setVisible(enable);lora_LineEdit->setVisible(enable);

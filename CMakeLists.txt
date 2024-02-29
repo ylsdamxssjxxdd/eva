@@ -3,22 +3,29 @@ cmake_minimum_required(VERSION 3.12)
 project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
+#更新子模块 git submodule update --remote
 ######################################编译选项######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
+# 查找Qt相关库
+find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
 #####################################处理编译选项#####################################
+#这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#告诉源码编译32位标志
-endif()    
+elseif(LLAMA_CUBLAS)
+    add_compile_definitions(BODY_USE_CUBLAST)#编译body-cuda标志
+elseif(LLAMA_CLBLAST)
+    add_compile_definitions(BODY_USE_CLBLAST)#编译body-cuda标志
+endif()           
 # msvc设置编译选项
 if(MSVC)
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
-        add_compile_definitions(BODY_USE_CUBLAST)#编译body-cuda标志
         set(EXTRA_FILES
             utils/gpuchecker.h
             utils/gpuchecker.cpp
@@ -68,7 +75,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}
@@ -105,8 +112,6 @@ utils/qmarkdowntextedit/qmarkdowntextedit.cpp
 utils/qmarkdowntextedit/qownlanguagedata.cpp
 utils/qmarkdowntextedit/qplaintexteditsearchwidget.cpp
 )
-# 查找Qt相关库
-find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
 
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script)

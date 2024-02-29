@@ -16,8 +16,11 @@
     - 本地模型交互，在线模型交互，多模态，agent，RAG，对外api服务，模型评测
 ## 快速开始
 1. 下载软件
-- 本项目release
-- 百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
+- 本项目release或者百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
+- 不知道下载哪个可以先试试64bit版本
+- 32bit版本只能支持1GB以下的模型
+- opencl版本需要有显卡
+- cuda版本需要有nvidia家的显卡
 2. 下载模型
 - 前往这个网站挑选gguf模型文件 https://hf-mirror.com/
 - 百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -33,20 +36,26 @@
 5. 挂载工具
 ## 源码编译
 1. 配置环境
-先在系统环境变量中添加对应的qt5库
+---记得先在系统环境变量中添加对应的qt5库
 - 64bit版本
-    - 我的工具链为mingw81_64+qt5.15.10(静态编译)
+    - 我的工具链为mingw81_64+qt5.15.10(静态库)
+- 32bit版本
+    - 我的工具链为mingw81_32+qt5.15.10(静态库)
+- opencl版本
+    - 我的工具链为mingw81_64+clblast(静态库)+qt5.15.10(静态库) 
+    - 下载opencl-sdk，将其include目录添加到环境变量  https://github.com/KhronosGroup/OpenCL-SDK
+    - 下载clblast，build_shared_lib选项关闭，静态编译并添加到环境变量 https://github.com/CNugteren/CLBlast   
 - cuda版本
     - 我的工具链为msvc2022+qt5.15.10+cuda12
-- 32bit版本
-    - 我的工具链为mingw81_32+qt5.15.10(静态编译)
+    - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - 安装cudnn https://developer.nvidia.com/cudnn
+
 2. 克隆源代码
 ```bash
 git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
 ```
-```bash
-cd eva
-```
+3. 根据需要修改CMakeLists.txt文件中的配置
+
 ## 待办事项
 ## 已知BUG
 ## 运行原理
