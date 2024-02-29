@@ -47,7 +47,8 @@ void xTool::run()
         else 
         {
             // 获取命令的输出
-            QString output = process->readAll();
+            QByteArray byteArray = process->readAll();
+            QString output = QString::fromLocal8Bit(byteArray);
             emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + output,5);
             emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + output);
             qDebug() << QString("cmd ") + wordsObj["return"].toString() + output;
