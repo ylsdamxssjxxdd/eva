@@ -515,6 +515,12 @@ void Widget::set_DateDialog()
     system_label->setToolTip(wordsObj["will predecode"].toString());
     layout_H11->addWidget(system_label);
     system_TextEdit = new QTextEdit();
+    // 设置样式表
+    // system_TextEdit->setStyleSheet("QTextEdit {"
+    //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
+    //                     "border-radius: 5px;"        // 边框圆角为5px
+    //                     "padding: 1px;"              // 内边距为1px
+    //                     "}");
     layout_H11->addWidget(system_TextEdit);
     prompt_layout->addLayout(layout_H11);//将布局添加到总布局
     //输入前缀设置
@@ -579,7 +585,13 @@ void Widget::set_DateDialog()
     switch_lan_button->setMinimumWidth(200);
     layout_H55->addWidget(switch_lan_button);
     extra_TextEdit = new QTextEdit();
-    extra_TextEdit->setMinimumHeight(100);
+    extra_TextEdit->setPlaceholderText(wordsObj["extra calling tooltip"].toString());
+    // 设置样式表
+    // extra_TextEdit->setStyleSheet("QTextEdit {"
+    //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
+    //                     "border-radius: 5px;"        // 边框圆角为5px
+    //                     "padding: 1px;"              // 内边距为1px
+    //                     "}");
     tool_layout->addLayout(layout_H55);//将布局添加到总布局
     tool_layout->addWidget(extra_TextEdit);
 
@@ -619,7 +631,7 @@ void Widget::state_scroll()
     ui->state->appendPlainText(ui_state);
 }
 //向output末尾添加文本并滚动
-void Widget::output_scroll(Qt::GlobalColor color)
+void Widget::output_scroll(QColor color)
 {
     QTextCursor cursor = ui->output->textCursor();
     QTextCharFormat textFormat;
@@ -711,7 +723,7 @@ void Widget::nthread_change()
 }
 
 //更新输出区,is_while表示从流式输出的token
-void Widget::reflash_output(const QString &result,bool is_while)
+void Widget::reflash_output(const QString &result,bool is_while, QColor color)
 {
     ui_output = result;
     if(is_test && is_while)//现在要知道是模型输出的答案还是预编码完成的结果,要将预编码完成的结果排除
@@ -747,7 +759,7 @@ void Widget::reflash_output(const QString &result,bool is_while)
     {
         //正常输出
         ui_output = result;
-        output_scroll();
+        output_scroll(color);
     }
     if(is_while){temp_assistant_history += result;}
     
@@ -805,14 +817,11 @@ void Widget::complete_change()
     //选中则禁止约定输入
     if(complete_btn->isChecked())
     {
-        prompt_comboBox->setStyleSheet("color: transparent;");//设置文本为透明
-        system_TextEdit->setStyleSheet("color: transparent;");//设置文本为透明
-        input_pfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
-        input_sfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
-        prompt_comboBox->setEnabled(0);
-        system_TextEdit->setEnabled(0);
-        input_pfx_LineEdit->setEnabled(0);
-        input_sfx_LineEdit->setEnabled(0);
+        // prompt_comboBox->setStyleSheet("color: transparent;");//设置文本为透明
+        // system_TextEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        // input_pfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        // input_sfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        
         npredict_slider->setEnabled(1);
         nthread_slider->setEnabled(1);
         temp_slider->setEnabled(1);
@@ -820,7 +829,11 @@ void Widget::complete_change()
         nctx_slider->setEnabled(1);
         port_lineEdit->setEnabled(0);
 
-        tool_box->setEnabled(0);
+        // prompt_comboBox->setEnabled(0);
+        // system_TextEdit->setEnabled(0);
+        // input_pfx_LineEdit->setEnabled(0);
+        // input_sfx_LineEdit->setEnabled(0);
+        // tool_box->setEnabled(0);
 
     }
 }
@@ -829,18 +842,18 @@ void Widget::chat_change()
 {
     if(chat_btn->isChecked())
     {
-        prompt_comboBox->setStyleSheet("");//取消文本为透明
-        system_TextEdit->setStyleSheet("");//取消文本为透明
-        input_pfx_LineEdit->setStyleSheet("");//取消文本为透明
-        input_sfx_LineEdit->setStyleSheet("");//取消文本为透明
-        prompt_comboBox->setEnabled(1);
-        if(prompt_comboBox->currentText() == wordsObj["custom set"].toString())
-        {
-            system_TextEdit->setEnabled(1);
-            input_pfx_LineEdit->setEnabled(1);
-            input_sfx_LineEdit->setEnabled(1);
-        }
-        tool_box->setEnabled(1);//挂载工具区域
+        // prompt_comboBox->setStyleSheet("");//取消文本为透明
+        // system_TextEdit->setStyleSheet("");//取消文本为透明
+        // input_pfx_LineEdit->setStyleSheet("");//取消文本为透明
+        // input_sfx_LineEdit->setStyleSheet("");//取消文本为透明
+        // prompt_comboBox->setEnabled(1);
+        // if(prompt_comboBox->currentText() == wordsObj["custom set"].toString())
+        // {
+        //     system_TextEdit->setEnabled(1);
+        //     input_pfx_LineEdit->setEnabled(1);
+        //     input_sfx_LineEdit->setEnabled(1);
+        // }
+        // tool_box->setEnabled(1);//挂载工具区域
 
         temp_slider->setEnabled(1);
         repeat_slider->setEnabled(1);
@@ -858,17 +871,17 @@ void Widget::web_change()
 {
     if(web_btn->isChecked())
     {
-        prompt_comboBox->setStyleSheet("color: transparent;");//设置文本为透明
-        system_TextEdit->setStyleSheet("color: transparent;");//设置文本为透明
-        input_pfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
-        input_sfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        // prompt_comboBox->setStyleSheet("color: transparent;");//设置文本为透明
+        // system_TextEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        // input_pfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
+        // input_sfx_LineEdit->setStyleSheet("color: transparent;");//设置文本为透明
 
-        prompt_comboBox->setEnabled(0);
-        system_TextEdit->setEnabled(0);
-        input_pfx_LineEdit->setEnabled(0);
-        input_sfx_LineEdit->setEnabled(0);
+        // prompt_comboBox->setEnabled(0);
+        // system_TextEdit->setEnabled(0);
+        // input_pfx_LineEdit->setEnabled(0);
+        // input_sfx_LineEdit->setEnabled(0);
 
-        tool_box->setEnabled(0);//挂载工具区域
+        // tool_box->setEnabled(0);//挂载工具区域
 
         temp_slider->setEnabled(0);
         npredict_slider->setEnabled(0);
@@ -1361,8 +1374,8 @@ void Widget::api_addhelpinput()
     ui_assistant_history << wordsObj["A1"].toString();
     ui_user_history << wordsObj["H2"].toString();
     ui_assistant_history << wordsObj["A2"].toString();
-    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H1"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A1"].toString(),0);
-    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H2"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A2"].toString(),0);
+    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H1"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A1"].toString(),0,Qt::black);
+    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H2"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A2"].toString(),0,Qt::black);
 }
 
 // 连接成功
@@ -1382,7 +1395,7 @@ void Widget::onConnected() {
     ui->kv_bar->message = wordsObj["delay"].toString();ui->kv_bar->setToolTip("");
     
     emit ui2net_apis(apis);
-    reflash_output(ui_DATES.system_prompt,0);
+    reflash_output(ui_DATES.system_prompt,0,Qt::black);
     ui->date->setEnabled(1);ui->set->setEnabled(1);
     ui->reset->setEnabled(1);
     ui->send->setEnabled(1);

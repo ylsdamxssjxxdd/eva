@@ -226,7 +226,7 @@ void Widget::on_send_clicked()
             ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
             data.input_prompt = input;data.n_predict=1;
             emit ui2net_data(data);
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
         }
         else if(is_query)
         {
@@ -250,7 +250,7 @@ void Widget::on_send_clicked()
             ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
             data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
         }
         else
         {
@@ -273,7 +273,7 @@ void Widget::on_send_clicked()
                 ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
                 data.input_prompt = input;data.n_predict=1;
                 emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
                 this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " +wordsObj["current api"].toString() + " " + current_api);  
                 ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,3);
                 
@@ -298,7 +298,7 @@ void Widget::on_send_clicked()
                 
                 data.input_prompt = input;data.n_predict=1;
                 emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
                 this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " +wordsObj["current api"].toString() + " " + current_api);  
                 ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,3);
                 
@@ -316,12 +316,12 @@ void Widget::on_send_clicked()
                 ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
                 data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
             }
             else if(ui_mode == 0)
             {
                 ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0);
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             } 
@@ -759,6 +759,8 @@ void Widget::set_set()
     // qDebug()<<ui_SETTINGS.mmprojpath<<checkDir.exists();
     // if (!checkDir.exists()) {ui_SETTINGS.mmprojpath="";ui_state = "ui:mmporj path not exit";reflash_state(ui_state,2);}// 目录不存在
     set_dialog->close();
+    if(ui_mode!=0){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
+    else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
     if(current_server && ui_mode!=2){current_server=false;emit ui2bot_set(ui_SETTINGS,1);}//从服务模式回来强行重载
     else{emit ui2bot_set(ui_SETTINGS,is_load);}
     modeChange();
@@ -769,7 +771,7 @@ void Widget::set_date()
 {
     ui_extra_prompt = extra_TextEdit->toPlainText();
     ui_system_prompt = system_TextEdit->toPlainText();
-    ui_DATES.system_prompt = ui_system_prompt + ui_extra_prompt;//合并附加指令
+    ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;//合并附加指令
     ui_DATES.input_pfx = input_pfx_LineEdit->text();
     ui_DATES.input_sfx = input_sfx_LineEdit->text();
     ui_DATES.is_load_tool = is_load_tool;
@@ -894,7 +896,7 @@ void Widget::modeChange()
         ui->send->setVisible(1);
         ui_change();//因为要重载,所以先根据标签改变ui控件的状态
         //展示预解码的系统指令
-        if(!is_api && ui_mode == 0 && is_load){reflash_output(ui_DATES.system_prompt,0);}
+        if(!is_api && ui_mode == 0 && is_load){reflash_output(ui_DATES.system_prompt,0,Qt::black);}
 
         if(is_api)
         {

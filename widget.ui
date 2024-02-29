@@ -97,6 +97,9 @@
            <pointsize>12</pointsize>
           </font>
          </property>
+         <property name="toolTip">
+          <string>设置</string>
+         </property>
          <property name="text">
           <string/>
          </property>

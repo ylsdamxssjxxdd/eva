@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 
     //------------------连接模型和窗口-------------------
     qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
+    qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
     QObject::connect(&bot,&xBot::bot2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
     QObject::connect(&bot,&xBot::bot2ui_state,&w,&Widget::reflash_state);//窗口状态区更新

@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QColor>
 
 #include "xconfig.h" //ui和bot都要导入的共有配置
 #include "llama.cpp/common/common.h"
@@ -108,7 +109,7 @@ public slots:
 
 signals:
     void bot2ui_state(const QString &state,int state_num=0);//发送的状态信号
-    void bot2ui_output(const QString &result,bool is_while=1);//发送的输出信号,is_while表示从流式输出的token
+    void bot2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号
     void bot2ui_pushover();//推理完成的信号
     void bot2ui_stopover();//完成停止的信号

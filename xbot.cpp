@@ -159,7 +159,9 @@ void xBot::run()
                 //暂时这么解决qwen的pad符号
                 if(!QString::fromStdString(sstr).contains("[PAD")){token_str += llama_token_to_piece(ctx, token);}
             }
-            emit bot2ui_output(QString::fromStdString(token_str),0);
+            //如果是工具输出的结果给过来的话，用绿色，前缀后缀都是空则认为是工具
+            if(input.input_prefix==""&&input.input_suffix==""){emit bot2ui_output(QString::fromStdString(token_str),0,QColor(255, 165, 0));}
+            else{emit bot2ui_output(QString::fromStdString(token_str),0);}
             
         }
 

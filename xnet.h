@@ -12,7 +12,7 @@
 #include <QDebug>
 #include <QEventLoop>
 #include <QFile>
-
+#include <QColor>
 #include "xconfig.h" //ui和bot都要导入的共有配置
 
 class xNet : public QThread
@@ -41,7 +41,7 @@ public slots:
 
 signals:
     void net2ui_state(const QString &state,int state_num=0);//发送的状态信号
-    void net2ui_output(const QString &result,bool is_while=1);//发送的输出信号,is_while表示从流式输出的token
+    void net2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void net2ui_pushover();//推理完成的信号
 };
 
