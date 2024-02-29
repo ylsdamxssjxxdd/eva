@@ -183,7 +183,7 @@ void Widget::load_handleTimeout()
 
 void Widget::encode_play()
 {
-    encode_LineNumber = ui->state->document()->blockCount() - 1;// 获取那一行的行数
+    encode_LineNumber = ui->state->document()->blockCount();// 获取那一行的行数
     encode_pTimer->start(500);//延时多少ms后发出timeout()信号
 }
 void Widget::encode_move()

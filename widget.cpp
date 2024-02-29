@@ -348,6 +348,7 @@ void Widget::on_send_clicked()
         {
             input = "<ylsdamxssjxxdd:predecode>";//告诉bot开始预推理
             ui_need_predecode = false;
+            ui->reset->setEnabled(0);//预解码时不允许重置
             //ui_state = "ui:" + wordsObj["input predecode"].toString();
             //reflash_state(ui_state,3);//
             //encode_play();//开启推理动画
@@ -619,7 +620,7 @@ void Widget::recv_datereset()
     //打印约定内容
     //ui_state = "· " + wordsObj["repeat"].toString() + QString::number(ui_SETTINGS.repeat);reflash_state(ui_state,0);
     if(ui_mode == 1){ui_state = "· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ";reflash_state(ui_state,0);}
-    else{ui_state = "· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText();reflash_state(ui_state,0);}
+    else{ui_state = "· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText();reflash_state(ui_state,0);}
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,0);
     is_datereset = true;
     //ui_state = "ui:"+wordsObj["date"].toString()+wordsObj["success"].toString();reflash_state(ui_state,1);
@@ -634,7 +635,7 @@ void Widget::recv_setreset()
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ui_state = "· gpu " + wordsObj["offload"].toString() + QString::number(ui_SETTINGS.ngl);reflash_state(ui_state,0);
 #endif
-    ui_state = "· " + wordsObj["ctx"].toString() + wordsObj["length"].toString() +" " + QString::number(ui_SETTINGS.nctx);reflash_state(ui_state,0);
+    //ui_state = "· " + wordsObj["ctx"].toString() + wordsObj["length"].toString() +" " + QString::number(ui_SETTINGS.nctx);reflash_state(ui_state,0);
     ui_state = "···········"+ wordsObj["set"].toString() + "···········";reflash_state(ui_state,0);
     if(ui_SETTINGS.lorapath !=""){ui_state = "ui:" + wordsObj["load lora"].toString() + " "+ ui_SETTINGS.lorapath;reflash_state(ui_state,0);}
     if(ui_SETTINGS.mmprojpath !=""){ui_state = "ui:" + wordsObj["load mmproj"].toString() + " "+ ui_SETTINGS.mmprojpath;reflash_state(ui_state,0);}
@@ -771,7 +772,10 @@ void Widget::set_date()
 {
     ui_extra_prompt = extra_TextEdit->toPlainText();
     ui_system_prompt = system_TextEdit->toPlainText();
-    ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;//合并附加指令
+    //合并附加指令
+    if(ui_extra_prompt!=""){ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;}
+    else{ui_DATES.system_prompt = ui_system_prompt;}
+
     ui_DATES.input_pfx = input_pfx_LineEdit->text();
     ui_DATES.input_sfx = input_sfx_LineEdit->text();
     ui_DATES.is_load_tool = is_load_tool;
