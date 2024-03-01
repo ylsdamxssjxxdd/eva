@@ -9,7 +9,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
 # 查找Qt相关库
@@ -81,6 +81,7 @@ ${RESOURCE_FILES}
 ${EXTRA_FILES}
 main.cpp
 utils.cpp
+dialog.cpp
 utils/versionlog.cpp
 widget.cpp
 utils/customplaintextedit.cpp

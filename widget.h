@@ -171,6 +171,7 @@ public:
 
     QGroupBox *tool_box;
     QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*llm_checkbox;
+    //bool ui_calculator_ischecked,ui_cmd_ischecked,ui_search_ischecked,ui_knowledge_ischecked,ui_positron_ischecked,ui_llm_ischecked;
     QLabel *extra_label;//附加指令，行动纲领
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";

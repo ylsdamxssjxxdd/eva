@@ -53,5 +53,13 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
 3. 根据需要修改CMakeLists.txt文件中的配置
 
 ## 待办事项
+按服务模式做法，在隐藏界面增加制作台选项
+- 制作台
+    - 模型训练
+    - 模型下载
+    - 模型转化
+    - 模型量化
+    - 模型评估
+    - 模型微调
 ## 已知BUG
 ## 运行原理

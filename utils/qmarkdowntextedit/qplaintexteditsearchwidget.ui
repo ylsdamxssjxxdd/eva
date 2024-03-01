@@ -67,7 +67,7 @@
      </property>
      <property name="icon">
       <iconset resource="../logo.qrc">
-       <normaloff>:/ui/qmarkdownedit/go-top.png</normaloff>:/ui/qmarkdownedit/go-top.png</iconset>
+       <normaloff>:/ui/qmarkdownedit_image/go-top.png</normaloff>:/ui/qmarkdownedit_image/go-top.png</iconset>
      </property>
      <property name="flat">
       <bool>true</bool>
@@ -94,7 +94,7 @@
      </property>
      <property name="icon">
       <iconset resource="../logo.qrc">
-       <normaloff>:/ui/qmarkdownedit/window-close.png</normaloff>:/ui/qmarkdownedit/window-close.png</iconset>
+       <normaloff>:/ui/qmarkdownedit_image/window-close.png</normaloff>:/ui/qmarkdownedit_image/window-close.png</iconset>
      </property>
      <property name="flat">
       <bool>true</bool>
@@ -111,7 +111,7 @@
      </property>
      <property name="icon">
       <iconset resource="../logo.qrc">
-       <normaloff>:/ui/qmarkdownedit/edit-find-replace.png</normaloff>:/ui/qmarkdownedit/edit-find-replace.png</iconset>
+       <normaloff>:/ui/qmarkdownedit_image/edit-find-replace.png</normaloff>:/ui/qmarkdownedit_image/edit-find-replace.png</iconset>
      </property>
      <property name="checkable">
       <bool>true</bool>
@@ -131,7 +131,7 @@
      </property>
      <property name="icon">
       <iconset resource="../logo.qrc">
-       <normaloff>:/ui/qmarkdownedit/go-bottom.png</normaloff>:/ui/qmarkdownedit/go-bottom.png</iconset>
+       <normaloff>:/ui/qmarkdownedit_image/go-bottom.png</normaloff>:/ui/qmarkdownedit_image/go-bottom.png</iconset>
      </property>
      <property name="flat">
       <bool>true</bool>
@@ -148,7 +148,7 @@
      </property>
      <property name="icon">
       <iconset resource="../logo.qrc">
-       <normaloff>:/ui/qmarkdownedit/format-text-superscript.png</normaloff>:/ui/qmarkdownedit/format-text-superscript.png</iconset>
+       <normaloff>:/ui/qmarkdownedit_image/format-text-superscript.png</normaloff>:/ui/qmarkdownedit_image/format-text-superscript.png</iconset>
      </property>
      <property name="checkable">
       <bool>true</bool>
