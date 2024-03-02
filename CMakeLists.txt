@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.12)
 project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
+# 强制设置构建类型为 Release
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
 # 启用moc rcc uic编译器
@@ -39,7 +41,7 @@ if(MSVC)
 # mingw设置编译选项
 elseif(MINGW)
     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-keep-inline-dllexport -O2 -std=gnu++11 -Wall -Wextra -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 endif()
 #添加llama相关项目,将会强制应用父项目的编译设置
@@ -61,6 +63,8 @@ endif()
 set_target_properties(${TARGET_server} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")
 
 ######################################编译对象######################################
+
+
 # 资源文件
 set(RESOURCE_FILES
 utils/logo.qrc
@@ -113,7 +117,8 @@ utils/qmarkdowntextedit/qmarkdowntextedit.cpp
 utils/qmarkdowntextedit/qownlanguagedata.cpp
 utils/qmarkdowntextedit/qplaintexteditsearchwidget.cpp
 )
-
+#确保server先于eva编译
+add_dependencies(${TARGET} ${TARGET_server})
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)
