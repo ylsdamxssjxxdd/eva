@@ -259,7 +259,7 @@ void Widget::state_scroll()
     //如果预解码完毕则强制见底
     if(ui_state.contains(wordsObj["system calling"].toString() + wordsObj["predecode"].toString()))
     {
-        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());//滚动条滚动到最下面
+        ui->state->verticalScrollBar()->setValue(ui->state->verticalScrollBar()->maximum());//滚动条滚动到最下面
     }
 }
 //向output末尾添加文本并滚动
