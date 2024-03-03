@@ -36,7 +36,6 @@ public:
 public:
     //拯救中文
     QJsonObject wordsObj;
-    void getWords(QString json_file_path);
     //实例相关
     llama_model_params hparams;//模型内部参数
     gpt_params gpt_params_;//控制模型的参数,内含控制采样的参数sparams
@@ -72,7 +71,7 @@ public:
     int stream();//推理循环
 
     //标签相关
-    std::string modelpath = "";//模型路径
+    std::string bot_modelpath = "";//模型路径
     std::string lorapath = "";//lora模型路径
     std::string mmprojpath = "";//mmproj模型路径
     INPUTS input;//用户输入
@@ -94,13 +93,14 @@ public:
 
 
 public slots:
+    void recv_language(QJsonObject wordsObj_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径
     void recv_help_input(bool add);//添加引导题
     void recv_input(INPUTS input_,bool is_test_);//接受用户输入
     void recv_stop();//接受停止信号
     void recv_reset(bool is_clear_all);//接受重置信号
-    void recv_set(SETTINGS settings,bool ui_is_load);//接受设置内容
-    void recv_date(DATES date,bool ui_is_load);//接受约定内容
+    void recv_set(SETTINGS settings,bool require_load);//接受设置内容
+    void recv_date(DATES date);//接受约定内容
     void recv_free();//释放
     void recv_maxngl(int maxngl_);//传递模型最大的ngl值
 #ifdef BODY_USE_CUBLAST

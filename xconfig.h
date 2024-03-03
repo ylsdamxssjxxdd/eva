@@ -106,6 +106,13 @@ enum STATE {
         EVA_,//机体，紫色
         TOOL_,//工具，橘色
 };
+//模式枚举
+enum MODE {
+    CHAT_,//对话模式
+    COMPLETE_,//补完模式
+    SERVER_,//服务模式
+    LINK_,//链接模式
+};
 
 
 //extern QMap<QString, DATE_> date_map;//extern定义后可以多个.cpp访问

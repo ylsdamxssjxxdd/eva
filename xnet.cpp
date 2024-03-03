@@ -255,30 +255,11 @@ void xNet::recv_data(ENDPOINT_DATA data)
 //传递api设置参数
 void xNet::recv_apis(APIS apis_)
 {
-    getWords(":/chinese.json");//拯救中文
     apis = apis_;
 }
 void xNet::recv_stop(bool stop)
 {
     is_stop = stop;
-}
-
-void xNet::getWords(QString json_file_path)
-{
-    QFile jfile(json_file_path);
-    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qDebug() << "Cannot open file for reading.";
-        return;
-    }
-
-    QTextStream in(&jfile);
-    in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
-    QString data = in.readAll();
-    jfile.close();
-
-    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
-    QJsonObject jsonObj = doc.object();
-    wordsObj = jsonObj["words"].toObject();
 }
 
 QString xNet::extractContentFromJson(const QString &jsonString) {

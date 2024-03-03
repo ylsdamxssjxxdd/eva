@@ -19,8 +19,6 @@ public:
     ~xTool();
     //拯救中文
     QJsonObject wordsObj;
-    void getWords(QString json_file_path);
-    bool warmup=true;//需要读取中文
     void run() override;
 public:
     QStringList func_arg_list;

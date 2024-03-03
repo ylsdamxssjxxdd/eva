@@ -105,27 +105,9 @@ void xTool::positronShoot()
 
 void xTool::recv_func_arg(QStringList func_arg_list_)
 {
-    if(warmup){getWords(":/chinese.json");warmup=false;}
     func_arg_list = func_arg_list_;
 }
 
-void xTool::getWords(QString json_file_path)
-{
-    QFile jfile(json_file_path );
-    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qDebug() << "Cannot open file for reading.";
-        return;
-    }
-
-    QTextStream in(&jfile);
-    in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
-    QString data = in.readAll();
-    jfile.close();
-
-    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
-    QJsonObject jsonObj = doc.object();
-    wordsObj = jsonObj["words"].toObject();
-}
 //阳电子步枪充能,数到3就发射
 void xTool::positronPower()
 {

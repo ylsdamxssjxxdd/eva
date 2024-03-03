@@ -95,7 +95,7 @@ public:
     void preLoad();//装载前动作
     bool is_load = false;//模型装载标签
     bool is_run = false;//模型运行标签,方便设置界面的状态
-    int ui_mode = 0;//模型的模式,0对话模式,1补完模式,2服务模式
+    MODE ui_mode = CHAT_;//模型的模式
     bool ui_need_predecode = false;//需要预解码标签
     QString history_lorapath = "";
     QString history_mmprojpath = "";
@@ -244,6 +244,7 @@ public:
 
 //发给模型的信号
 signals:
+    void ui2bot_language(QJsonObject wordsObj_);//传递使用的语言
     void ui2bot_imagepath(QString image_path);//传递图片路径
     void ui2bot_modelpath(QString model_path,bool is_first_load_=false);//传递模型路径
     void ui2bot_loadmodel();//开始装载模型
@@ -251,8 +252,8 @@ signals:
     void ui2bot_push();//开始推理
     void ui2bot_stop();//传递推理停止信号
     void ui2bot_reset(bool is_clear_all);//传递重置信号
-    void ui2bot_date(DATES date,bool ui_is_load);//传递约定内容
-    void ui2bot_set(SETTINGS settings,bool ui_is_load);//传递设置内容
+    void ui2bot_date(DATES date);//传递约定内容
+    void ui2bot_set(SETTINGS settings,bool require_load);//传递设置内容
     void ui2bot_free();//释放
     void ui2bot_help_input(bool add=true);//添加引导题
     void ui2bot_maxngl(int maxngl_);

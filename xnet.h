@@ -27,7 +27,6 @@ public:
     APIS apis;
     ENDPOINT_DATA endpoint_data;//端点参数
     QJsonObject wordsObj;
-    void getWords(QString json_file_path);//拯救中文
     QByteArray createChatBody();//构造请求的数据体,对话模式
     QByteArray createCompleteBody();//构造请求的数据体,补完模式
     bool is_stop = false;//终止标签

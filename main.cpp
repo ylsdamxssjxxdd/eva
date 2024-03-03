@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
 
     QObject::connect(&w, &Widget::ui2bot_date,&bot,&xBot::recv_date);//传递约定内容
     QObject::connect(&w, &Widget::ui2bot_set,&bot,&xBot::recv_set);//传递设置内容
+    QObject::connect(&w, &Widget::ui2bot_language,&bot,&xBot::recv_language);//传递使用的语言
 
     QObject::connect(&bot,&xBot::bot2ui_device,&w,&Widget::recv_device);//传递支持设备信息
     QObject::connect(&bot,&xBot::bot2ui_reload,&w,&Widget::recv_reload);//设置参数改变,重载模型
@@ -88,6 +89,8 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
     QObject::connect(&tool,&xTool::tool2ui_pushover,&w,&Widget::recv_toolpushover);//完成推理
+
+    bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
 
     w.show();//展示窗口
     return a.exec();//事件循环

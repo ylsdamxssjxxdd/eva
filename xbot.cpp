@@ -45,22 +45,19 @@ xBot::~xBot()
     emit bot2ui_state("bot:soul be free");
 }
 
-
-
 void xBot::run()
 {
-
-    //如果还没装载模型,先装载模型
+    //---------------如果还没装载模型,先装载模型--------------------
     if(!is_load)
     {
-        load(modelpath);
+        load(bot_modelpath);
     }
-    //如果已经装载模型,运行推理
+    //--------------------如果已经装载模型则运行推理--------------------
     else
     {
         QElapsedTimer time2;time2.start();
         const size_t history_past = history_tokens->size();//上一次对话的上下文长度
-        //预解码系统指令,受ui控制
+        //--------------------预解码系统指令,受ui控制--------------------
         if(input.input == "<ylsdamxssjxxdd:predecode>")
         {
             if(gpt_params_.prompt != "")
@@ -75,7 +72,7 @@ void xBot::run()
             emit bot2ui_pushover();//推理完成的信号
             return;
         }
-        //预解码图像,受ui控制
+        //--------------------预解码图像,受ui控制--------------------
         else if(input.input=="<ylsdamxssjxxdd:imagedecode>")
         {
             if(is_multi)
@@ -488,11 +485,11 @@ int xBot::stream()
 void xBot::load(std::string &modelpath)
 {
     QElapsedTimer time1;time1.start();
-    //qDebug()<<QString::fromStdString(modelpath);
     //如果不是打开软件后第一次装载则释放模型和上下文
-    if(!is_first_load && !is_free)//如果以及释放则不再释放
+    if(!is_first_load && !is_free)//如果已经释放则不再释放
     {
-        llama_kv_cache_clear(ctx);n_past=0;//清空ctx kv缓存
+        llama_kv_cache_clear(ctx);//清空ctx kv缓存
+        n_past=0;
         llama_free(ctx);
         llama_free_model(model);
         emit bot2ui_kv(0,n_past);//新增,当前没有缓存
@@ -500,12 +497,11 @@ void xBot::load(std::string &modelpath)
     }
     else
     {
-        //初始化一些东西
-        std::mt19937 rng(2023);
-        getWords(":/chinese.json");//拯救中文
+        //如果是第一次装载则初始化一些东西
+        std::mt19937 rng(1996);//随机数种子
     }
 
-    gpt_params_.model = modelpath;
+    gpt_params_.model = modelpath;//传递模型路径
     
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
@@ -535,8 +531,6 @@ void xBot::load(std::string &modelpath)
     {
         if(is_multi){clip_free(ctx_clip);is_multi=false;}//如果之前是多模态则先释放
     }
-    
-    
     
     if (model == NULL)
     {
@@ -732,7 +726,7 @@ QString xBot::viewVocab()
         vocab += "token=" + QString::number(i) + " " + str +"\n";
     }
     //qDebug() << zh_nums;
-    vocab = wordsObj["current model"].toString() + ": " + QString::fromStdString(modelpath) +"\n"+ wordsObj["vocab size"].toString()+  ": " + QString::number(n_vocab) +"\n"+  wordsObj["chinese rate"].toString() +  ": " + QString::number(zh_nums/n_vocab *100.0)+ "%" +"\n\n" + vocab;//新增
+    vocab = wordsObj["current model"].toString() + ": " + QString::fromStdString(bot_modelpath) +"\n"+ wordsObj["vocab size"].toString()+  ": " + QString::number(n_vocab) +"\n"+  wordsObj["chinese rate"].toString() +  ": " + QString::number(zh_nums/n_vocab *100.0)+ "%" +"\n\n" + vocab;//新增
     //qDebug()<<QString::number(time1.nsecsElapsed()/1000000000.0,'f',2);
     return vocab;
 }
@@ -792,18 +786,16 @@ void xBot::recv_reset(bool is_clear_all)
     reset(is_clear_all);//重置上下文等
 }
 
-void xBot::recv_set(SETTINGS settings,bool ui_is_load)
+void xBot::recv_set(SETTINGS settings,bool require_load)
 {
     is_complete = settings.complete_mode;
-
     gpt_params_.sparams.temp = settings.temp;
     gpt_params_.sparams.penalty_repeat = settings.repeat;
     gpt_params_.n_predict = settings.npredict;
-    
-    bool reload_flag = false;
+    bool reload_flag = false;//重载标签
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    //如果gpu负载层数改变则重新加载模型
-    if(gpt_params_.n_gpu_layers != settings.ngl && !(gpt_params_.n_gpu_layers==999 && settings.ngl==maxngl))//是999且ngl最大的情况除外
+    //如果gpu负载层数改变则重新加载模型,但是为999且ngl最大的情况除外
+    if(gpt_params_.n_gpu_layers != settings.ngl && !(gpt_params_.n_gpu_layers==999 && settings.ngl==maxngl))
     {
         gpt_params_.n_gpu_layers = settings.ngl;
         reload_flag = true;
@@ -814,7 +806,6 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
     {
         gpt_params_.n_threads = settings.nthread;
         reload_flag = true;
-        
     }
     //如果ctx改变则重新加载模型
     if(gpt_params_.n_ctx != settings.nctx)
@@ -828,7 +819,6 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
         gpt_params_.n_batch = settings.batch;
         reload_flag = true;
     }
-
     //如果mmprojpath改变则重新加载模型
     if(settings.mmprojpath.toStdString()!=mmprojpath)
     {
@@ -836,8 +826,6 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
         reload_flag = true;
     }
     //如果lora改变则重新加载模型
-
-    //if(settings.lorapath == ""){gpt_params_.lora_adapter.clear();}
     if(settings.lorapath.toStdString()!=lorapath)
     {
         lorapath = settings.lorapath.toStdString();
@@ -849,19 +837,22 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
         else{gpt_params_.lora_adapter.clear();}
         reload_flag = true;
     }
-    if(!ui_is_load){return;}//如果是装载模型前，则传完参数就跑
+    //如果是装载模型前，则传完参数就返回
+    if(!require_load){return;}
     //如果是第一次装载或从网络模式转回来则重新加载模型
     if(!is_load){reload_flag = true;is_first_load=true;}
+
     //如果更换了模型则重载
-    if(modelpath!=settings.modelpath.toStdString())
+    if(bot_modelpath!=settings.modelpath.toStdString())
     {
-        modelpath = settings.modelpath.toStdString();
+        bot_modelpath = settings.modelpath.toStdString();
         reload_flag = true;
     }
-
+    
+    //是否重载
     if(reload_flag)
     {
-        is_load = false;
+        is_load = false;//开放重载标签，允许重载
         emit bot2ui_reload();//bot发信号请求ui触发reload
     }
     else
@@ -872,7 +863,7 @@ void xBot::recv_set(SETTINGS settings,bool ui_is_load)
 }
 
 //接受约定内容
-void xBot::recv_date(DATES date,bool ui_is_load)
+void xBot::recv_date(DATES date)
 {
     if(date.system_prompt == ""){gpt_params_.prompt = "";}
     else{gpt_params_.prompt = date.system_prompt.toStdString() + "\n";}//默认为用户的约定加一个回车
@@ -913,25 +904,6 @@ void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
     vfree = vfree_;//剩余显存
 }
 #endif
-void xBot::getWords(QString json_file_path)
-{
-    QFile jfile(json_file_path);
-    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qDebug() << "Cannot open file for reading.";
-        return;
-    }
-
-    QTextStream in(&jfile);
-    in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
-    QString data = in.readAll();
-    jfile.close();
-
-    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
-    QJsonObject jsonObj = doc.object();
-    wordsObj = jsonObj["words"].toObject();
-}
-
-
 
 //检测是否有不完整的utf8字符
 bool xBot::isIncompleteUTF8(const std::string &text)
@@ -977,4 +949,11 @@ QString xBot::makeHelpInput()
         help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
     }
     return help_input;
+}
+
+//传递使用的语言
+void xBot::recv_language(QJsonObject wordsObj_)
+{
+    qDebug()<<"hello";
+    wordsObj = wordsObj_;
 }

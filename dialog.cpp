@@ -145,7 +145,7 @@ void Widget::set_SetDialog()
     layout_H16->addWidget(nthread_label);
     nthread_slider = new QSlider(Qt::Horizontal);
     nthread_slider->setToolTip(wordsObj["not big better"].toString());
-    nthread_slider->setRange(1,max_thread);
+    
     nthread_slider->setValue(ui_nthread);
     layout_H16->addWidget(nthread_slider);
     decode_layout->addLayout(layout_H16);//将布局添加到总布局

@@ -225,7 +225,7 @@ void Widget::unlockLoad()
     ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_nthread)+"/"+QString::number(max_thread));
     //如果是对话模式则预推理约定
-    if(ui_mode == 0)
+    if(ui_mode == CHAT_)
     {
         history_prompt = ui_DATES.system_prompt;//同步历史约定内容
         ui_need_predecode = true;
@@ -287,7 +287,7 @@ void Widget::output_scroll(QColor color)
 //根据标签改变ui控件的状态
 void Widget::ui_change()
 {
-    if(ui_mode == 1)
+    if(ui_mode == COMPLETE_)
     {
         //补完模式关闭输入区
         ui->input->clear();
@@ -299,7 +299,7 @@ void Widget::ui_change()
         ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
         ui->output->setFocus();//设置输出区为焦点
     }
-    else if(ui_mode == 0)
+    else if(ui_mode == CHAT_)
     {
         //对话模式则清空输出区
         ui->output->clear();
@@ -883,6 +883,7 @@ void Widget::updateStatus()
 //拯救中文
 void Widget::getWords(QString json_file_path)
 {
+    
     QFile jfile(json_file_path);
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
@@ -905,7 +906,7 @@ void Widget::set_api()
     if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,WRONG_);return;}
     ui_state = "ui:"+wordsObj["detecting"].toString()+"api...";reflash_state(ui_state,SIGNAL_);
     emit ui2bot_free();is_load = false;
-    if(ui_mode == 0){ui->output->clear();}
+    if(ui_mode == CHAT_){ui->output->clear();}
     apis.api_ip = api_ip_LineEdit->text();
     apis.api_port = api_port_LineEdit->text();
     apis.api_chat_endpoint = api_chat_LineEdit->text();
@@ -955,7 +956,7 @@ void Widget::onConnected() {
     }
     is_api = true;
     reflash_state("ui:" + wordsObj["eva link"].toString(),EVA_);
-    if(ui_mode == 0){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
+    if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
     ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
     this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);

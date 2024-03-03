@@ -9,8 +9,12 @@ Widget::Widget(QWidget *parent)
 {
     //-------------初始化ui-------------
     ui->setupUi(this);
+
     //-------------初始化语言-------------
-    getWords(":/chinese.json");
+    QLocale locale = QLocale::system(); // 获取系统locale
+    QLocale::Language language = locale.language(); // 获取语言
+    if(locale.languageToString(language) == "English"){getWords(":/english.json");}
+    else{getWords(":/chinese.json");}
     //-------------初始化约定模板-------------
     ui_system_prompt = DEFAULT_PROMPT;ui_DATES.system_prompt = DEFAULT_PROMPT;ui_DATES.input_pfx = DEFAULT_PREFIX;ui_DATES.input_sfx = DEFAULT_SUFFIX;ui_DATES.is_load_tool = false;
     date_map.insert("qwen", ui_DATES);
@@ -58,6 +62,7 @@ Widget::Widget(QWidget *parent)
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
     ui_SETTINGS.nthread = max_thread*0.7;
+    nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateStatus()));
     timer->start(300); // 多少ms更新一次
@@ -108,27 +113,21 @@ void Widget::on_load_clicked()
 {
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
     //用户选择模型位置
-    QString ui_model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH);
-    if(ui_model_path==""){return;}//如果路径没选好就让它等于上一次的路径
+    QString model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH);
+    if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
-
-    //模型路径变化则重置参数
-    ui_SETTINGS.modelpath = ui_model_path;
-
-    //分析显存
+    ui_SETTINGS.modelpath = model_path;//模型路径变化则重置参数
+    //分析显存，如果可用显存比模型大1.2倍则自动将gpu负载设置为999
     emit gpu_reflash();//强制刷新gpu信息
-    //初次加载这个模型的时候，如果可用显存比模型大1GB则自动将gpu负载设置为999
     QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
     int modelsize_MB = fileInfo.size() /1024/1024;
     if(vfree>modelsize_MB*1.2)
     {
-        reflash_state("ui:" +wordsObj["vram enough"].toString(),SUCCESS_);
+        reflash_state("ui:" +wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
         ui_SETTINGS.ngl= 999;
     }
-    else
-    {
-        ui_SETTINGS.ngl= 0;
-    }
+    else{ui_SETTINGS.ngl= 0;}
+    //发送设置参数给bot
     emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
 }
 
@@ -136,14 +135,16 @@ void Widget::on_load_clicked()
 void Widget::preLoad()
 {
     is_load = false;//重置is_load标签
-    if(ui_mode == 0){ui->output->clear();}//清空输出区
-    ui->state->clear();//清空状态区
-    ui->send->setEnabled(0);//禁用发出按钮
+    if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
+
+    ui->send->setEnabled(0);//禁用发送按钮
     ui->reset->setEnabled(0);//禁用重置按钮
-    ui->date->setEnabled(0);ui->set->setEnabled(0);
+    ui->date->setEnabled(0);//禁用约定按钮
+    ui->set->setEnabled(0);//禁用设置按钮
     ui->load->setEnabled(0);//禁用装载按钮
+
     ui->input->setFocus();//设置输入区为焦点
-    ui->output->setStyleSheet("color: transparent;");//设置文本为透明
+    //ui->output->setStyleSheet("color: transparent;");//设置文本为透明
     reflash_state("ui:" + wordsObj["model location"].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
 }
@@ -303,14 +304,14 @@ void Widget::on_send_clicked()
                 emit ui2net_data(data);
                 reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
             }
-            else if(ui_mode == 0)
+            else if(ui_mode == CHAT_)
             {
                 ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
                 reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             } 
-            else if(ui_mode == 1)//直接用output上的文本进行推理
+            else if(ui_mode == COMPLETE_)//直接用output上的文本进行推理
             {
                 input = ui->output->toPlainText().toUtf8().data();
                 data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
@@ -327,7 +328,7 @@ void Widget::on_send_clicked()
     }
     
     //如果是对话模式
-    if(ui_mode ==0)
+    if(ui_mode == CHAT_)
     {
         if(ui_need_predecode)
         {
@@ -459,7 +460,7 @@ void Widget::on_send_clicked()
         emit ui2bot_push();//开始推理
         
     }
-    else if(ui_mode == 1)
+    else if(ui_mode == COMPLETE_)
     {
         input = ui->output->toPlainText().toUtf8().data();//直接用output上的文本进行推理
         emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入
@@ -558,7 +559,7 @@ void Widget::recv_toolpushover(QString tool_result_)
 //停止完毕的后处理
 void Widget::recv_stopover()
 {
-    if(ui_mode == 1){ui->reset->click();}//补完模式终止后需要重置
+    if(ui_mode == COMPLETE_){ui->reset->click();}//补完模式终止后需要重置
 }
 
 //模型达到最大上下文的后处理
@@ -575,7 +576,7 @@ void Widget::recv_resetover()
     if(ui_SETTINGS.ngl ==0){QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}//恢复
     else{QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}//恢复
     //如果是对话模式且约定有变或第一次装载则预推理约定
-    if(ui_mode == 0)
+    if(ui_mode == CHAT_)
     {
         history_prompt = ui_DATES.system_prompt;//同步
         //约定系统指令有变才预推理
@@ -593,7 +594,6 @@ void Widget::recv_resetover()
 //设置参数改变,重载模型
 void Widget::recv_reload()
 {
-    ui_state = "ui:"+wordsObj["set"].toString()+wordsObj["success"].toString();reflash_state(ui_state,SUCCESS_);
     preLoad();//装载前动作
 }
 
@@ -604,7 +604,7 @@ void Widget::recv_datereset()
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,USUAL_);
     //打印约定内容
     //ui_state = "· " + wordsObj["repeat"].toString() + QString::number(ui_SETTINGS.repeat);reflash_state(ui_state,USUAL_);
-    if(ui_mode == 1){ui_state = "· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ";reflash_state(ui_state,USUAL_);}
+    if(ui_mode == COMPLETE_){ui_state = "· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ";reflash_state(ui_state,USUAL_);}
     else{ui_state = "· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText();reflash_state(ui_state,USUAL_);}
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,USUAL_);
     is_datereset = true;
@@ -664,7 +664,7 @@ void Widget::on_reset_clicked()
     this->setWindowTitle(wordsObj["current model"].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
 
     //如果约定没有变则不需要预推理
-    if(ui_mode == 0  && ui_DATES.system_prompt == history_prompt)
+    if(ui_mode == CHAT_ && ui_DATES.system_prompt == history_prompt)
     {
         is_datereset = false;
         emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
@@ -699,10 +699,10 @@ void Widget::on_date_clicked()
 void Widget::on_set_clicked()
 {
     ui_state = "ui:"+wordsObj["clicked"].toString()+wordsObj["set"].toString();reflash_state(ui_state,SIGNAL_);
-    if(ui_mode == 2){server_process->kill();}//要在应用前关闭掉,否则再次启动不了
-    if(ui_mode == 0){chat_btn->setChecked(1),chat_change();}
-    else if(ui_mode == 1){complete_btn->setChecked(1),complete_change();}
-    else if(ui_mode == 2){web_btn->setChecked(1),web_change();}
+    if(ui_mode == SERVER_){server_process->kill();}//要在应用前关闭掉,否则再次启动不了
+    if(ui_mode == CHAT_){chat_btn->setChecked(1),chat_change();}
+    else if(ui_mode == COMPLETE_){complete_btn->setChecked(1),complete_change();}
+    else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
@@ -736,19 +736,19 @@ void Widget::set_set()
     ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();
 
     ui_SETTINGS.complete_mode = complete_btn->isChecked();
-    if(chat_btn->isChecked()){ui_mode=0;}
-    else if(complete_btn->isChecked()){ui_mode=1;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预推理
-    else if(web_btn->isChecked()){ui_mode=2;}
+    if(chat_btn->isChecked()){ui_mode=CHAT_;}
+    else if(complete_btn->isChecked()){ui_mode=COMPLETE_;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预推理
+    else if(web_btn->isChecked()){ui_mode=SERVER_;}
     ui_port = port_lineEdit->text();
     
     // QDir checkDir(ui_SETTINGS.mmprojpath);
     // qDebug()<<ui_SETTINGS.mmprojpath<<checkDir.exists();
     // if (!checkDir.exists()) {ui_SETTINGS.mmprojpath="";ui_state = "ui:mmporj path not exit";reflash_state(ui_state,WRONG_);}// 目录不存在
     set_dialog->close();
-    if(ui_mode!=0){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
+    if(ui_mode!=CHAT_){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
     else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
-    if(current_server && ui_mode!=2){current_server=false;emit ui2bot_set(ui_SETTINGS,1);}//从服务模式回来强行重载
-    else if(ui_mode!=2){emit ui2bot_set(ui_SETTINGS,is_load);}
+    if(current_server && ui_mode!=SERVER_){current_server=false;emit ui2bot_set(ui_SETTINGS,1);}//从服务模式回来强行重载
+    else if(ui_mode!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
     modeChange();
 }
 
@@ -767,7 +767,7 @@ void Widget::set_date()
     ui_template = prompt_comboBox->currentText();
     ui_extra_lan = switch_lan_button->text();
     date_dialog->close();
-    emit ui2bot_date(ui_DATES,is_load);
+    emit ui2bot_date(ui_DATES);
     modeChange();
 
 }
@@ -775,7 +775,7 @@ void Widget::set_date()
 void Widget::modeChange()
 {
     //server.exe接管,不需要告知bot约定
-    if(ui_mode==2)
+    if(ui_mode==SERVER_)
     {
         ui->output->clear();
         ui->load->setEnabled(0);
@@ -792,12 +792,12 @@ void Widget::modeChange()
         ui->send->setVisible(1);
         ui_change();//因为要重载,所以先根据标签改变ui控件的状态
         //展示预解码的系统指令
-        if(!is_api && ui_mode == 0 && is_load){reflash_output(ui_DATES.system_prompt,0,Qt::black);}
+        if(!is_api && ui_mode == CHAT_ && is_load){reflash_output(ui_DATES.system_prompt,0,Qt::black);}
 
         if(is_api)
         {
             ui_user_history.clear();ui_assistant_history.clear();
-            if(ui_mode == 0){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
+            if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
             else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
             ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
             this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
