@@ -59,7 +59,7 @@ public:
 public:
     //拯救中文
     QJsonObject wordsObj;
-    void getWords();
+    void getWords(QString json_file_path);
     QMap<QString, DATES> date_map;//约定模板
     //ui控制相关
     void state_scroll();//向state末尾添加文本并滚动
@@ -154,7 +154,7 @@ public:
     QLabel *system_label;
     QTextEdit *system_TextEdit;
     QRadioButton *complete_btn,*web_btn,*chat_btn;
-    QProcess *process;//用来启动server.exe
+    QProcess *server_process;//用来启动server.exe
     QLabel *port_label;QLineEdit *port_lineEdit;
     QString ui_port = "8080";
     QString ipAddress = "";
@@ -275,7 +275,7 @@ signals:
 public slots:
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
     void reflash_output(const QString &result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
-    void reflash_state(const QString &state_, int state_num=0);//更新状态区,state_num 0一般,1正常,2不正常
+    void reflash_state(const QString &state_string, STATE state=USUAL_);//更新状态区
     void recv_loadover(bool ok_, float load_time_);//完成加载模型
     void recv_pushover();//推理完毕的后处理
     void recv_stopover();//停止完毕的后处理

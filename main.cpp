@@ -23,21 +23,21 @@ int main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例
     QApplication::setStyle(QStyleFactory::create("Fusion"));//现代风格
-
+    //------------------实例化主要部件------------------
     Widget w;//窗口实例
     xBot bot;//模型实例
     xNet net;//请求实例
     xBert bert;//嵌入实例
     xTool tool;//工具包实例
-
     llama_log_set(bot_log_callback,&bot);//设置回调
 #ifdef BODY_USE_CUBLAST
     gpuChecker gpuer;//查看显卡
 #endif
-
-    //------------------连接模型和窗口-------------------
+    //------------------注册信号变量-------------------
     qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
     qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
+    qRegisterMetaType<STATE>("STATE");//注册STATE作为信号传递变量
+    //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
     QObject::connect(&bot,&xBot::bot2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
     QObject::connect(&bot,&xBot::bot2ui_state,&w,&Widget::reflash_state);//窗口状态区更新

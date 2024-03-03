@@ -97,6 +97,16 @@ struct INPUTS{
     QString input_suffix;
 };
 
+//状态区信号枚举
+enum STATE {
+        USUAL_,//一般输出，黑色
+        SIGNAL_,//信号，蓝色
+        SUCCESS_,//成功，绿色
+        WRONG_,//错误，红色
+        EVA_,//机体，紫色
+        TOOL_,//工具，橘色
+};
+
 
 //extern QMap<QString, DATE_> date_map;//extern定义后可以多个.cpp访问
 

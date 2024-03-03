@@ -27,7 +27,7 @@ public:
     APIS apis;
     ENDPOINT_DATA endpoint_data;//端点参数
     QJsonObject wordsObj;
-    void getWords();//拯救中文
+    void getWords(QString json_file_path);//拯救中文
     QByteArray createChatBody();//构造请求的数据体,对话模式
     QByteArray createCompleteBody();//构造请求的数据体,补完模式
     bool is_stop = false;//终止标签
@@ -40,7 +40,7 @@ public slots:
     void recv_stop(bool stop);//传递停止信号
 
 signals:
-    void net2ui_state(const QString &state,int state_num=0);//发送的状态信号
+    void net2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
     void net2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void net2ui_pushover();//推理完成的信号
 };

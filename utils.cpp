@@ -204,7 +204,7 @@ void Widget::load_over_handleTimeout()
 //装载完毕强制预处理
 void Widget::unlockLoad()
 {
-    ui_state = "ui:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toString();reflash_state(ui_state,1);
+    ui_state = "ui:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toString();reflash_state(ui_state,SUCCESS_);
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
     this->setWindowTitle(wordsObj["current model"].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
@@ -366,13 +366,13 @@ void Widget::reflash_output(const QString &result,bool is_while, QColor color)
         if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))//
         {
             test_score++;output_scroll(Qt::green);
-            ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,1);
+            ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
         }
         //答错
         else
         {
             output_scroll(Qt::red);
-            ui_state = "ui:"+ QString::number(test_count) + " " + wordsObj["answer error"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,2);
+            ui_state = "ui:"+ QString::number(test_count) + " " + wordsObj["answer error"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
         test_question_index.removeAt(0);//回答完毕删除开头的第一个问题
@@ -384,7 +384,7 @@ void Widget::reflash_output(const QString &result,bool is_while, QColor color)
         {
             if(!is_api){emit ui2bot_help_input();}
             else{api_addhelpinput();}
-            ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,3);
+            ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
         }
     }
     else
@@ -397,18 +397,18 @@ void Widget::reflash_output(const QString &result,bool is_while, QColor color)
     
 }
 //更新状态区
-void Widget::reflash_state(const QString &state_,int state_num)
+void Widget::reflash_state(const QString &state_string,STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
-    ui_state = state_;
+    ui_state = state_string;
     ui_state.remove("\n");ui_state.remove("\r");//过滤回车和换行符
-    if(state_num==0)//一般黑色
+    if(state==USUAL_)//一般黑色
     {
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll();
     }
-    else if(state_num==1)//正常绿色
+    else if(state==SUCCESS_)//正常绿色
     {
         format.setForeground(QColor(0,200,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -416,7 +416,7 @@ void Widget::reflash_state(const QString &state_,int state_num)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state_num==2)//不正常红色
+    else if(state==WRONG_)//不正常红色
     {
         format.setForeground(QColor(200,0,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -424,7 +424,7 @@ void Widget::reflash_state(const QString &state_,int state_num)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state_num==3)//信号蓝色
+    else if(state==SIGNAL_)//信号蓝色
     {
         format.setForeground(QColor(0,0,200));    // 红色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -432,7 +432,7 @@ void Widget::reflash_state(const QString &state_,int state_num)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state_num==4)//行为紫色
+    else if(state==EVA_)//行为紫色
     {
         format.setForeground(QColor(128,0,128));    // 红色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -440,7 +440,7 @@ void Widget::reflash_state(const QString &state_,int state_num)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state_num==5)//工具橘黄色
+    else if(state==TOOL_)//工具橘黄色
     {
         format.setForeground(QColor(255, 165, 0));    // 红色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -536,13 +536,13 @@ void Widget::onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    ui_state = "ui:server"+wordsObj["oning"].toString()+"...";reflash_state(ui_state,3);
+    ui_state = "ui:server"+wordsObj["oning"].toString()+"...";reflash_state(ui_state,SIGNAL_);
 }
 //第三方程序结束
 void Widget::onProcessFinished()
 {
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-    ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,3);
+    ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
     ui_output = "\nserver"+wordsObj["shut down"].toString();output_scroll();
 }
 
@@ -788,15 +788,15 @@ QStringList Widget::matchJSON(QString text)
                 func_arg_list << action;
                 func_arg_list << action_input;
                 qDebug() << "action:" << action<< "action_input:" << action_input;
-                reflash_state("ui:" + wordsObj["json detect"].toString() + " action:" + action + " action_input:" + action_input,0);
+                reflash_state("ui:" + wordsObj["json detect"].toString() + " action:" + action + " action_input:" + action_input,USUAL_);
             } else {
-                reflash_state("ui:" + wordsObj["no json detect"].toString() + " JSON document is not an object",0);
+                reflash_state("ui:" + wordsObj["no json detect"].toString() + " JSON document is not an object",USUAL_);
             }
         } else {
-            reflash_state("ui:" + wordsObj["no json detect"].toString() + " Invalid JSON...",0);
+            reflash_state("ui:" + wordsObj["no json detect"].toString() + " Invalid JSON...",USUAL_);
         }
     } else {
-        reflash_state("ui:" + wordsObj["no json detect"].toString(),0);
+        reflash_state("ui:" + wordsObj["no json detect"].toString(),USUAL_);
     }
     return func_arg_list;
 }
@@ -881,9 +881,9 @@ void Widget::updateStatus()
     
 }
 //拯救中文
-void Widget::getWords()
+void Widget::getWords(QString json_file_path)
 {
-    QFile jfile(":/chinese.json");
+    QFile jfile(json_file_path);
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;
@@ -902,8 +902,8 @@ void Widget::getWords()
 //应用api设置
 void Widget::set_api()
 {
-    if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,2);return;}
-    ui_state = "ui:"+wordsObj["detecting"].toString()+"api...";reflash_state(ui_state,3);
+    if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,WRONG_);return;}
+    ui_state = "ui:"+wordsObj["detecting"].toString()+"api...";reflash_state(ui_state,SIGNAL_);
     emit ui2bot_free();is_load = false;
     if(ui_mode == 0){ui->output->clear();}
     apis.api_ip = api_ip_LineEdit->text();
@@ -954,10 +954,10 @@ void Widget::onConnected() {
         // Handle successful connection
     }
     is_api = true;
-    reflash_state("ui:" + wordsObj["eva link"].toString(),4);
+    reflash_state("ui:" + wordsObj["eva link"].toString(),EVA_);
     if(ui_mode == 0){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-    ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,0);
+    ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
     this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->kv_bar->message = wordsObj["delay"].toString();ui->kv_bar->setToolTip("");
@@ -976,7 +976,7 @@ void Widget::onConnected() {
 void Widget::onError(QAbstractSocket::SocketError socketError) {
     // Handle the error
     is_api = false;
-    ui_state = "ui:api"+wordsObj["port"].toString()+wordsObj["blocked"].toString();reflash_state(ui_state,2);
+    ui_state = "ui:api"+wordsObj["port"].toString()+wordsObj["blocked"].toString();reflash_state(ui_state,WRONG_);
     this->setWindowTitle(wordsObj["eva"].toString());
     ui->date->setEnabled(0);ui->set->setEnabled(0);
     ui->reset->setEnabled(0);
@@ -1002,4 +1002,33 @@ void Widget::keep_onError(QAbstractSocket::SocketError socketError)
     //qDebug() << socketError;
     if(socketError!=QAbstractSocket::RemoteHostClosedError){ui->kv_bar->setSecondValue(100);}
     
+}
+// 判断是否挂载了工具
+bool Widget::toolcheckbox_checked()
+{
+    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || llm_checkbox->isChecked())
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+    
+}
+//切换额外指令的语言
+void Widget::switch_lan_change()
+{
+    if(switch_lan_button->text()=="zh")
+    {
+        switch_lan_button->setText("en");
+        create_extra_prompt();
+        extra_TextEdit->setText(create_extra_prompt());
+    }
+    else if(switch_lan_button->text()=="en")
+    {
+        switch_lan_button->setText("zh");
+        create_extra_prompt();
+        extra_TextEdit->setText(create_extra_prompt());
+    }
 }

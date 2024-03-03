@@ -3,20 +3,13 @@ cmake_minimum_required(VERSION 3.12)
 project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
-# 强制设置构建类型为 Release
-set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-# 启用moc rcc uic编译器
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
 option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
-# 查找Qt相关库
-find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
-#####################################处理编译选项#####################################
+#####################################处理编译选项####################################
 #这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#告诉源码编译32位标志
@@ -44,26 +37,27 @@ elseif(MINGW)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 endif()
+#####################################llama.cpp相关#####################################
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)
 add_subdirectory(llama.cpp/examples/main)
 add_subdirectory(llama.cpp/examples/llava)
 #先编译好server并放到utils目录下，等待eva打包进资源文件
-set(TARGET_server server)
-set(SERVER_FILE utils/server.qrc)
-option(LLAMA_SERVER_VERBOSE "Build verbose logging option for Server" ON)
-add_executable(${TARGET_server} llama.cpp/examples/server/server.cpp llama.cpp/examples/server/oai.hpp llama.cpp/examples/server/utils.hpp llama.cpp/examples/server/json.hpp llama.cpp/examples/server/httplib.h)
-install(TARGETS ${TARGET_server} RUNTIME)
-target_compile_definitions(${TARGET_server} PRIVATE SERVER_VERBOSE=$<BOOL:${LLAMA_SERVER_VERBOSE}>)
-target_link_libraries(${TARGET_server} PRIVATE common llava ${CMAKE_THREAD_LIBS_INIT})
-if (WIN32)
-    TARGET_LINK_LIBRARIES(${TARGET_server} PRIVATE ws2_32)
-endif()
-set_target_properties(${TARGET_server} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")
+set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
-######################################编译对象######################################
+add_subdirectory(llama.cpp/examples/server)# 添加子目录
+set(SERVER_FILE utils/server.qrc)# 添加到资源文件
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
+######################################eva相关######################################
+# 启用moc rcc uic编译器
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+# 查找Qt相关库
+find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
 
 # 资源文件
 set(RESOURCE_FILES
@@ -117,8 +111,9 @@ utils/qmarkdowntextedit/qmarkdowntextedit.cpp
 utils/qmarkdowntextedit/qownlanguagedata.cpp
 utils/qmarkdowntextedit/qplaintexteditsearchwidget.cpp
 )
+
 #确保server先于eva编译
-add_dependencies(${TARGET} ${TARGET_server})
+add_dependencies(${TARGET} server)
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)

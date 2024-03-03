@@ -10,6 +10,7 @@
 #include <QProcess>
 #include <QTime>
 #include <QTimer>
+#include "xconfig.h"
 class xTool : public QThread
 {
     Q_OBJECT
@@ -18,7 +19,7 @@ public:
     ~xTool();
     //拯救中文
     QJsonObject wordsObj;
-    void getWords();
+    void getWords(QString json_file_path);
     bool warmup=true;//需要读取中文
     void run() override;
 public:
@@ -32,7 +33,7 @@ public slots:
     
 signals:
     void tool2ui_pushover(QString tool_result);
-    void tool2ui_state(const QString &state,int state_num=0);//发送的状态信号
+    void tool2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
     void positron_starter();
 
 };

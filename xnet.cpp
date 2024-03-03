@@ -72,7 +72,7 @@ void xNet::run()
                         
                     }
                 } else {
-                    emit net2ui_state("net:resolve json fail",2);
+                    emit net2ui_state("net:resolve json fail",WRONG_);
                     qDebug() << jsonString;
                     qDebug() << dataList;
                 }
@@ -90,13 +90,13 @@ void xNet::run()
             if (reply->error() == QNetworkReply::NoError) 
             {
                 // 请求完成，所有数据都已正常接收
-                if(endpoint_data.n_predict == 1){emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",1);}
-            else{emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",1);}
+                if(endpoint_data.n_predict == 1){emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);}
+            else{emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);}
             } 
             else 
             {
                 // 请求出错
-                emit net2ui_state("net:" + reply->errorString(),2);
+                emit net2ui_state("net:" + reply->errorString(),WRONG_);
                 //qDebug() << "Error:" << reply->errorString();
             }
             
@@ -150,12 +150,12 @@ void xNet::run()
             if (reply->error() == QNetworkReply::NoError) 
             {
                 // 请求完成，所有数据都已正常接收
-                emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",1);
+                emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
             } 
             else 
             {
                 // 请求出错
-                emit net2ui_state("net:" + reply->errorString(),2);
+                emit net2ui_state("net:" + reply->errorString(),WRONG_);
                 //qDebug() << "Error:" << reply->errorString();
             }
             
@@ -255,7 +255,7 @@ void xNet::recv_data(ENDPOINT_DATA data)
 //传递api设置参数
 void xNet::recv_apis(APIS apis_)
 {
-    getWords();//拯救中文
+    getWords(":/chinese.json");//拯救中文
     apis = apis_;
 }
 void xNet::recv_stop(bool stop)
@@ -263,9 +263,9 @@ void xNet::recv_stop(bool stop)
     is_stop = stop;
 }
 
-void xNet::getWords()
+void xNet::getWords(QString json_file_path)
 {
-    QFile jfile(":/chinese.json");
+    QFile jfile(json_file_path);
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;

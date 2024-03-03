@@ -20,7 +20,7 @@ void xTool::run()
         QScriptValue result_ = enging.evaluate(func_arg_list.last());
         QString result = QString::number(result_.toNumber());
         //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + result;
-        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + result,5);
+        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + result,TOOL_);
         emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + result);
     }
     else if(func_arg_list.front() == "cmd")
@@ -40,7 +40,7 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + process->errorString(),5);
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + process->errorString(),TOOL_);
             emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + process->errorString());
             qDebug() << QString("cmd ") + wordsObj["return"].toString() + process->errorString();
         } 
@@ -49,7 +49,7 @@ void xTool::run()
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + output,5);
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + output,TOOL_);
             emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + output);
             qDebug() << QString("cmd ") + wordsObj["return"].toString() + output;
         }
@@ -99,19 +99,19 @@ void xTool::positronShoot()
         result = wordsObj["positron_result3"].toString() + " " + QString::number(randomValue2) + wordsObj["degree"].toString();
     }
     qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + result;
-    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,5);
+    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,TOOL_);
     emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + result);
 }
 
 void xTool::recv_func_arg(QStringList func_arg_list_)
 {
-    if(warmup){getWords();warmup=false;}
+    if(warmup){getWords(":/chinese.json");warmup=false;}
     func_arg_list = func_arg_list_;
 }
 
-void xTool::getWords()
+void xTool::getWords(QString json_file_path)
 {
-    QFile jfile(":/chinese.json");
+    QFile jfile(json_file_path );
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;
@@ -137,7 +137,7 @@ void xTool::positronPower()
         {
             power_bar += wordsObj["cube"].toString();
         }
-        emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + power_bar,0);
+        emit tool2ui_state("tool:" + wordsObj["positron_powering"].toString() + power_bar,USUAL_);
         //阳电子步枪继续充能
         positron_p->start(1000);
     }

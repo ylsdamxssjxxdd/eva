@@ -1,4 +1,4 @@
-//界面控件
+//设置界面控件和槽函数
 
 #include "widget.h"
 #include "ui_widget.h"
@@ -435,4 +435,73 @@ void Widget::setApiDialog()
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_api);
     connect(buttonBox, &QDialogButtonBox::rejected, api_dialog, &QDialog::reject);
 
+}
+//选用计算器工具
+void Widget::calculator_change()
+{
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_calculator_ischecked = calculator_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+//选用系统终端工具
+void Widget::cmd_change()
+{
+    
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_cmd_ischecked = cmd_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::search_change()
+{
+    
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_search_ischecked = search_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::knowledge_change()
+{
+    
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_knowledge_ischecked = knowledge_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::positron_change()
+{
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_positron_ischecked = positron_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
+}
+
+void Widget::llm_change()
+{
+    if(toolcheckbox_checked())
+    {
+        is_load_tool = true;
+        //ui_llm_ischecked = llm_checkbox->isChecked();
+    }
+    else{is_load_tool = false;}
+    extra_TextEdit->setText(create_extra_prompt());
 }

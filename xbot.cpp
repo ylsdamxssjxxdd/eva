@@ -70,7 +70,7 @@ void xBot::run()
                 float time_ = time2.nsecsElapsed()/1000000000.0;
                 float speed_ = (history_tokens->size() - history_past)/time_;
                 //qDebug() << history_tokens->size() - history_past<<time_;
-                emit bot2ui_state("bot:" + wordsObj["system calling"].toString() + wordsObj["predecode"].toString() + wordsObj["over"].toString() + " "+wordsObj["batch decode"].toString()+ ":"+QString::number(speed_,'f',2)+ " token/s",1);
+                emit bot2ui_state("bot:" + wordsObj["system calling"].toString() + wordsObj["predecode"].toString() + wordsObj["over"].toString() + " "+wordsObj["batch decode"].toString()+ ":"+QString::number(speed_,'f',2)+ " token/s",SUCCESS_);
             }
             emit bot2ui_pushover();//推理完成的信号
             return;
@@ -80,7 +80,7 @@ void xBot::run()
         {
             if(is_multi)
             {
-                emit bot2ui_state("bot:" + wordsObj["use mmproj model predecode image"].toString() + "...",0);
+                emit bot2ui_state("bot:" + wordsObj["use mmproj model predecode image"].toString() + "...",USUAL_);
                 llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.c_str());
                 bool ok_ = llava_eval_image_embed(ctx, image_embed, gpt_params_.n_batch, &n_past);
                 emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量
@@ -89,16 +89,16 @@ void xBot::run()
                 if(ok_)
                 {
                     float time_ = time2.nsecsElapsed()/1000000000.0;
-                    emit bot2ui_state("bot:" + wordsObj["image"].toString() + wordsObj["predecode"].toString() + wordsObj["over"].toString() + " " +wordsObj["use time"].toString() + QString::number(time_,'f',2) + " s " + wordsObj["kv cache"].toString() + "+1024",1);
+                    emit bot2ui_state("bot:" + wordsObj["image"].toString() + wordsObj["predecode"].toString() + wordsObj["over"].toString() + " " +wordsObj["use time"].toString() + QString::number(time_,'f',2) + " s " + wordsObj["kv cache"].toString() + "+1024",SUCCESS_);
                 }
                 else
                 {
-                    emit bot2ui_state("bot:" + wordsObj["image"].toString() + wordsObj["predecode"].toString() + wordsObj["fail"].toString() + " " + wordsObj["remain"].toString() + wordsObj["ctx"].toString() + wordsObj["length"].toString() + "<1024",2);
+                    emit bot2ui_state("bot:" + wordsObj["image"].toString() + wordsObj["predecode"].toString() + wordsObj["fail"].toString() + " " + wordsObj["remain"].toString() + wordsObj["ctx"].toString() + wordsObj["length"].toString() + "<1024",WRONG_);
                 }
             }
             else
             {
-                emit bot2ui_state("bot:" + wordsObj["please"].toString() + wordsObj["load mmproj"].toString(),0);
+                emit bot2ui_state("bot:" + wordsObj["please"].toString() + wordsObj["load mmproj"].toString(),USUAL_);
             }
             emit bot2ui_pushover();//推理完成的信号
             is_stop = false;
@@ -160,7 +160,7 @@ void xBot::run()
             }
             //如果是工具输出的结果给过来的话，用绿色，前缀后缀都是空则认为是工具
             if(input.input_prefix==""&&input.input_suffix==""){emit bot2ui_output(QString::fromStdString(token_str),0,QColor(255, 165, 0));}
-            else{emit bot2ui_output(QString::fromStdString(token_str),0);}
+            else{emit bot2ui_output(QString::fromStdString(token_str),USUAL_);}
             
         }
 
@@ -222,7 +222,7 @@ int xBot::stream()
             pick_half_utf8.clear();
             emit bot2ui_pushover();//推理完成的信号
             emit bot2ui_stopover();//完成停止的信号
-            emit bot2ui_state("bot:"+wordsObj["predict"].toString()+wordsObj["shut down"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s"+" " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",1);
+            emit bot2ui_state("bot:"+wordsObj["predict"].toString()+wordsObj["shut down"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s"+" " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
             return 0;
         }
 
@@ -236,7 +236,7 @@ int xBot::stream()
             {
                 const int skipped_tokens = (int) embd.size() - max_embd_size;
                 embd.resize(max_embd_size);
-                emit bot2ui_state("bot:" + wordsObj["input ctx length over"].toString()+ QString::number(max_embd_size)+ " " + wordsObj["skip"].toString() +QString::number(skipped_tokens)+" token",2);
+                emit bot2ui_state("bot:" + wordsObj["input ctx length over"].toString()+ QString::number(max_embd_size)+ " " + wordsObj["skip"].toString() +QString::number(skipped_tokens)+" token",WRONG_);
             }
 
             
@@ -254,7 +254,7 @@ int xBot::stream()
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
                     if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
                     else{emit bot2ui_arrivemaxctx(0);}
-                    emit bot2ui_state("bot:" + wordsObj["eva overload"].toString() + " " + wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",4);
+                    emit bot2ui_state("bot:" + wordsObj["eva overload"].toString() + " " + wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",EVA_);
                 }
             }
             else
@@ -314,7 +314,7 @@ int xBot::stream()
             if(is_batch){batch_count+=embd.size();batch_time +=time4.nsecsElapsed()/1000000000.0;}
             else{singl_count++;singl_time +=time4.nsecsElapsed()/1000000000.0;}
         }   
-        else{emit bot2ui_state("bot:" +wordsObj["embd no token,please reload"].toString(),2);emit bot2ui_pushover();return 0;}//待推理的embd没有token则退出
+        else{emit bot2ui_state("bot:" +wordsObj["embd no token,please reload"].toString(),WRONG_);emit bot2ui_pushover();return 0;}//待推理的embd没有token则退出
         embd.clear();//清空embd
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
@@ -373,14 +373,14 @@ int xBot::stream()
             {
                 if(!is_test)pick_half_utf8.push_back(id);
                 sstr = "";
-                emit bot2ui_state("bot:" + wordsObj["incompleteUTF8 detected"].toString(),2);
+                emit bot2ui_state("bot:" + wordsObj["incompleteUTF8 detected"].toString(),WRONG_);
                 //qDebug()<<QString::fromStdString(str);
             }
             if(pick_half_utf8.size()==3)
             {
                 sstr = tokens_to_str(ctx,pick_half_utf8.cbegin(),pick_half_utf8.cend());
                 pick_half_utf8.clear();
-                emit bot2ui_state("bot:utf8" + wordsObj["complete"].toString() + " " + QString::fromStdString(sstr),0);
+                emit bot2ui_state("bot:utf8" + wordsObj["complete"].toString() + " " + QString::fromStdString(sstr),USUAL_);
             }
 
             llama_sampling_accept(sparams, ctx, id, true);//记录token的id
@@ -401,7 +401,7 @@ int xBot::stream()
                 emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<end>"].toString());
                 emit bot2ui_state("bot:" + wordsObj["sample token add next decode"].toString());
                 emit bot2ui_state("bot:-----------------------------------------------" );
-                emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["over"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",1);
+                emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["over"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                 //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
                 emit bot2ui_pushover();//推理完成的信号
                 //qDebug() << batch_count << batch_time << singl_count << singl_time;
@@ -448,7 +448,7 @@ int xBot::stream()
                             emit bot2ui_state("bot:"+ wordsObj["detected"].toString() + wordsObj["extra end flag"].toString() + " "  + QString::fromStdString(antiprompt));
                             emit bot2ui_state("bot:-----------------------------------------------" );
                         }
-                        emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",1);
+                        emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                         return 0;
                         
                     }
@@ -477,7 +477,7 @@ int xBot::stream()
     if(!is_test)//测试的时候不输出这个
     {
         emit bot2ui_state("bot:"+ wordsObj["arrivemaxpredict"].toString() + " " + QString::number(gpt_params_.n_predict));
-        emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",1);
+        emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
     }
     return 0;
 }
@@ -502,7 +502,7 @@ void xBot::load(std::string &modelpath)
     {
         //初始化一些东西
         std::mt19937 rng(2023);
-        getWords();//拯救中文
+        getWords(":/chinese.json");//拯救中文
     }
 
     gpt_params_.model = modelpath;
@@ -519,7 +519,7 @@ void xBot::load(std::string &modelpath)
     gpt_params_.use_mmap = false;//32位不能mmp
 #endif
 
-    emit bot2ui_state("bot:" + QString("---------") + wordsObj["eva loadding"].toString()+ "---------",4);
+    emit bot2ui_state("bot:" + QString("---------") + wordsObj["eva loadding"].toString()+ "---------",EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -542,7 +542,7 @@ void xBot::load(std::string &modelpath)
     {
         is_first_load = true;
         emit bot2ui_loadover(false, 0);
-        emit bot2ui_state("bot:" + wordsObj["eva broken"].toString()+ " " +wordsObj["right click and check model log"].toString(),4);
+        emit bot2ui_state("bot:" + wordsObj["eva broken"].toString()+ " " +wordsObj["right click and check model log"].toString(),EVA_);
         return;
     }
 
@@ -577,7 +577,7 @@ void xBot::load(std::string &modelpath)
     emit bot2ui_device(device_);//传递加速支持信息
     emit bot2ui_vocab(viewVocab());//发出模型词表
     emit bot2ui_loadover(true,time1.nsecsElapsed()/1000000000.0);//发出已完成装载信号
-    //emit bot2ui_state("bot:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s " + wordsObj["right click and check model log"].toString(),1);
+    //emit bot2ui_state("bot:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s " + wordsObj["right click and check model log"].toString(),SUCCESS_);
 }
 
 
@@ -591,7 +591,7 @@ void xBot::reset(bool is_clear_all)
     
     //新增
     if(int(llama_tokenize(ctx, gpt_params_.prompt, add_bos, true).size())>gpt_params_.n_ctx -4)//如果约定的系统指令长度太长则不约定
-    {is_datetoolong = true;emit bot2ui_state("bot:" +wordsObj["system calling too long use"].toString()+":You are a helpful assistant.\n",2);}
+    {is_datetoolong = true;emit bot2ui_state("bot:" +wordsObj["system calling too long use"].toString()+":You are a helpful assistant.\n",WRONG_);}
     else{is_datetoolong = false;}
 
     prompt_token.clear();
@@ -652,7 +652,7 @@ void xBot::reset(bool is_clear_all)
             //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
         }
     }
-    emit bot2ui_output(QString::fromStdString(token_str),0);//将约定贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str),USUAL_);//将约定贴到输出区
 
     if(is_resetover)//模型装载后首次重置完成标签
     {
@@ -690,7 +690,7 @@ void xBot::preDecode()
             //推理
             if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0))) //将emd推理到ctx中,返回0表示推理正常
             {
-                emit bot2ui_state("bot:"+wordsObj["decode"].toString() + wordsObj["fail"].toString() ,2);
+                emit bot2ui_state("bot:"+wordsObj["decode"].toString() + wordsObj["fail"].toString() ,WRONG_);
                 return;
             }
 
@@ -700,7 +700,7 @@ void xBot::preDecode()
     }
     else//待推理的embd没有token则退出
     {
-        emit bot2ui_state("bot:" + wordsObj["embd no token,please reload"].toString(),2);//新增
+        emit bot2ui_state("bot:" + wordsObj["embd no token,please reload"].toString(),WRONG_);//新增
         return;
     }
 
@@ -898,7 +898,7 @@ void xBot::recv_free()
         is_free = true;
         is_load = false;
         emit bot2ui_kv(0,0);
-        emit bot2ui_state("bot:" + wordsObj["old model and ctx offloaded"].toString() + " " +QString::number(time2.nsecsElapsed()/1000000000.0,'f',2) + " s ",0);//新增
+        emit bot2ui_state("bot:" + wordsObj["old model and ctx offloaded"].toString() + " " +QString::number(time2.nsecsElapsed()/1000000000.0,'f',2) + " s ",USUAL_);//新增
     }
 
 }
@@ -913,9 +913,9 @@ void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
     vfree = vfree_;//剩余显存
 }
 #endif
-void xBot::getWords()
+void xBot::getWords(QString json_file_path)
 {
-    QFile jfile(":/chinese.json");
+    QFile jfile(json_file_path);
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
         return;

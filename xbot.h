@@ -36,7 +36,7 @@ public:
 public:
     //拯救中文
     QJsonObject wordsObj;
-    void getWords();
+    void getWords(QString json_file_path);
     //实例相关
     llama_model_params hparams;//模型内部参数
     gpt_params gpt_params_;//控制模型的参数,内含控制采样的参数sparams
@@ -108,7 +108,7 @@ public slots:
 #endif
 
 signals:
-    void bot2ui_state(const QString &state,int state_num=0);//发送的状态信号
+    void bot2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
     void bot2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号
     void bot2ui_pushover();//推理完成的信号
