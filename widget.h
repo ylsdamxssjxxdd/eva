@@ -66,12 +66,13 @@ public:
     void output_scroll(QColor color = QColor(0,0,0));
     void ui_change();//根据标签改变ui控件的状态
     QString ui_output,ui_state;
-    int is_stop_scroll=0;//输出区滚动标签
-    QScrollBar *output_scrollBar;
+    bool is_stop_output_scroll = false;//输出区滚动标签
+    bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
     Versionlog *versionlog_;//了解更多
     QStringList questions;//用户右击的问题
+    QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
     //测试相关
     bool is_test  =false;//测试标签
     QElapsedTimer test_time;
@@ -91,7 +92,6 @@ public:
     bool is_query =false;//连续回答标签
 
     //模型控制相关
-
     void preLoad();//装载前动作
     bool is_load = false;//模型装载标签
     bool is_run = false;//模型运行标签,方便设置界面的状态
@@ -112,7 +112,7 @@ public:
     int ui_nthread=1;//使用的线程数
 
     float load_time = 0;
-    QTimer *force_unlockload;//到时间强制解锁
+    QTimer *force_unlockload_pTimer;//到时间强制解锁
 
     void modeChange();
     //设置按钮相关
@@ -181,7 +181,7 @@ public:
     QString create_extra_prompt();//构建附加指令
     QMap<QString, TOOLS> tool_map;//工具包
     bool is_load_tool = false;//是否挂载了工具
-    QStringList matchJSON(QString text);//输出解析器，提取JSON
+    QStringList JSONparser(QString text);//输出解析器，提取JSON
     QString tool_result;
 
     //装载动画相关
@@ -269,7 +269,6 @@ signals:
 //自用信号
 signals:
     void gpu_reflash();//强制刷新gpu信息
-    void load_play_over();//动画播放完毕信号
     void ui2version_log(QString logs);
     void ui2version_vocab(QString vocab_);
 //处理模型信号的槽
@@ -307,8 +306,8 @@ private slots:
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void updateStatus(); //更新cpu内存使用率
     void recv_creatVersionlog();//创建了解更多窗口
-    void scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动,状态区由于是append所以不需要
-    void load_play_finish();//动画播放完毕后处理
+    void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
+    void state_scrollBarValueChanged(int value);//状态区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容
     void calculator_change();//选用计算器工具

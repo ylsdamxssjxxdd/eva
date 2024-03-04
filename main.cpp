@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例
     QApplication::setStyle(QStyleFactory::create("Fusion"));//现代风格
+
     //------------------实例化主要部件------------------
     Widget w;//窗口实例
     xBot bot;//模型实例

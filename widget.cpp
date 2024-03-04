@@ -69,9 +69,11 @@ Widget::Widget(QWidget *parent)
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
     //ui->mem_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_memusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_memusage + "\n" + wordsObj["else unknown"].toString());
     //ui->vram_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_vramusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_vramusage + "\n" + wordsObj["else unknown"].toString());
-    //-------------输出区滚动条控制-------------
+    //-------------输出/状态区滚动条控制-------------
     output_scrollBar =  ui->output->verticalScrollBar();
-    connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::scrollBarValueChanged);
+    connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
+    state_scrollBar =  ui->state->verticalScrollBar();
+    connect(state_scrollBar, &QScrollBar::valueChanged, this, &Widget::state_scrollBarValueChanged);
     //-------------服务的运行程序配置-------------
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
     connect(server_process, &QProcess::started, this, &Widget::onProcessStarted);//连接开始信号
@@ -88,12 +90,7 @@ Widget::Widget(QWidget *parent)
         }
         
     }
-    //-------------配置定时器-------------
-    //apis.api_ip = getFirstNonLoopbackIPv4Address();//测试
-    keeptimer = new QTimer(this);//持续检测延迟
-    connect(keeptimer, SIGNAL(timeout()), this, SLOT(keepConnection()));
-    force_unlockload = new QTimer(this);//强制解锁
-    connect(force_unlockload, SIGNAL(timeout()), this, SLOT(unlockLoad()));
+    
     //-------------初始化工具-------------
     tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
@@ -123,7 +120,7 @@ void Widget::on_load_clicked()
     int modelsize_MB = fileInfo.size() /1024/1024;
     if(vfree>modelsize_MB*1.2)
     {
-        reflash_state("ui:" +wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
+        //reflash_state("ui:" +wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
         ui_SETTINGS.ngl= 999;
     }
     else{ui_SETTINGS.ngl= 0;}
@@ -136,7 +133,7 @@ void Widget::preLoad()
 {
     is_load = false;//重置is_load标签
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
-
+    ui->state->clear();//清空状态区
     ui->send->setEnabled(0);//禁用发送按钮
     ui->reset->setEnabled(0);//禁用重置按钮
     ui->date->setEnabled(0);//禁用约定按钮
@@ -514,7 +511,7 @@ void Widget::recv_pushover()
         if(is_load_tool)
         {
             QStringList func_arg_list;
-            func_arg_list = matchJSON(ui_assistant_history.last());//取巧预解码的系统指令故意不让解析出json
+            func_arg_list = JSONparser(ui_assistant_history.last());//取巧预解码的系统指令故意不让解析出json
             if(func_arg_list.size() == 0)
             {
                 is_run = false;

@@ -499,6 +499,7 @@ void xBot::load(std::string &modelpath)
     {
         //如果是第一次装载则初始化一些东西
         std::mt19937 rng(1996);//随机数种子
+        //llama_backend_init();
     }
 
     gpt_params_.model = modelpath;//传递模型路径
@@ -514,8 +515,11 @@ void xBot::load(std::string &modelpath)
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
 #endif
-
-    emit bot2ui_state("bot:" + QString("---------") + wordsObj["eva loadding"].toString()+ "---------",EVA_);
+    if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
+    
+    //emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
+    emit bot2ui_state("bot:" + wordsObj["eva loadding"].toString(),EVA_);
+    //emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -634,7 +638,7 @@ void xBot::reset(bool is_clear_all)
     embd_inp.clear();
     embd_inp.insert(embd_inp.end(), prompt_token.begin(), prompt_token.end());//预解码的约定词向量
 
-    //记录新增的token,先输出约定内容
+    //先输出约定内容
     std::string token_str;
     if(!is_complete)
     {
@@ -703,6 +707,7 @@ void xBot::preDecode()
         const llama_token token = embd_inp[i];
         history_tokens->push_back(token);
     }
+    
 }
 
 //遍历词表
