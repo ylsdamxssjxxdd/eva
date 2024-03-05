@@ -21,7 +21,7 @@ xBot::xBot()
     log_disable();//禁止llama.cpp输出日志文件
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;//gpu负载层数
-    gpt_params_.prompt = DEFAULT_PROMPT;//约定提示词
+    gpt_params_.prompt = DEFAULT_PROMPT + std::string("\n");//约定提示词
     gpt_params_.model = DEFAULT_MODELPATH;//模型路径
     gpt_params_.n_threads = DEFAULT_NTHREAD;//默认使用一半的线程数
     gpt_params_.n_ctx = DEFAULT_NCTX;//上下文最大长度
@@ -113,13 +113,7 @@ void xBot::run()
 
         if(!is_complete && !is_antiprompt)//前缀,如果已经检测出用户昵称则不加前缀
         {
-            if(is_help_input)//添加引导题
-            {
-                is_help_input = false;
-                QString help_input = makeHelpInput();//构造引导题
-                line_pfx = ::llama_tokenize(ctx, help_input.toStdString() + input.input_prefix.toStdString(), false, true);
-            }
-            else if(is_first_input)
+            if(is_first_input)
             {
                 line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true);//前缀不带开始标志,因为初始化embd_inp时已经添加
             }
@@ -166,6 +160,7 @@ void xBot::run()
         while ((int) embd_inp.size() > n_consumed)
         {
             embd.push_back(embd_inp[n_consumed]);
+            llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);
             ++n_consumed;
         }
         //qDebug()<<"插入后embd"<<view_embd(ctx,embd);
@@ -251,7 +246,9 @@ int xBot::stream()
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
                     if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
                     else{emit bot2ui_arrivemaxctx(0);}
+                    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
                     emit bot2ui_state("bot:" + wordsObj["eva overload"].toString() + " " + wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",EVA_);
+                    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
                 }
             }
             else
@@ -459,8 +456,8 @@ int xBot::stream()
         {
             while ((int) embd_inp.size() > n_consumed)
             {
-                embd.push_back(embd_inp.at(n_consumed));
-                llama_sampling_accept(sparams, ctx, embd_inp.at(n_consumed), false);//记录token的id
+                embd.push_back(embd_inp[n_consumed]);
+                llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);//记录token的id
                 ++n_consumed;
                 if ((int) embd.size() >= gpt_params_.n_batch)
                 {
@@ -517,9 +514,9 @@ void xBot::load(std::string &modelpath)
 #endif
     if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
     
-    //emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
-    emit bot2ui_state("bot:" + wordsObj["eva loadding"].toString(),EVA_);
-    //emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
+    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
+    emit bot2ui_state("bot:        " + wordsObj["eva loadding"].toString(),EVA_);
+    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -540,7 +537,9 @@ void xBot::load(std::string &modelpath)
     {
         is_first_load = true;
         emit bot2ui_loadover(false, 0);
+        emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
         emit bot2ui_state("bot:" + wordsObj["eva broken"].toString()+ " " +wordsObj["right click and check model log"].toString(),EVA_);
+        emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
         return;
     }
 
@@ -555,10 +554,9 @@ void xBot::load(std::string &modelpath)
     emit bot2ui_params(p);
 
     is_load = true;//标记已完成装载
-    is_resetover = false;//模型装载后首次重置完成标签
-    //初始化模型
-    reset(1);
-    is_resetover = true;//模型装载后首次重置完成标签
+    is_first_reset = false;//模型装载后首次重置完成标签,控制是否输出清空的消息
+    reset(1);//初始化模型,1表示清空上下文
+    is_first_reset = true;//模型装载后首次重置完成标签,控制是否输出清空的消息
     is_first_load = false;//标记是否是打开软件后第一次装载
     is_free = false;
     //输出加速支持
@@ -638,39 +636,30 @@ void xBot::reset(bool is_clear_all)
     embd_inp.clear();
     embd_inp.insert(embd_inp.end(), prompt_token.begin(), prompt_token.end());//预解码的约定词向量
 
-    //先输出约定内容
-    std::string token_str;
-    if(!is_complete)
+    if(is_first_reset)//模型装载后首次重置完成标签,控制是否输出清空的消息
     {
-        for (size_t i = 0; i < embd_inp.size(); ++i)
+        if(is_clear_all)
         {
-            const llama_token token = embd_inp[i];
-            history_tokens->push_back(token);
-            token_str += llama_token_to_piece(ctx, token);
-            //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
+            emit bot2ui_state("bot:"+ wordsObj["delete kv cache"].toString() + " "  + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s ");
         }
+        else
+        {
+            emit bot2ui_state("bot:"+ wordsObj["delete kv cache except system calling"].toString() + " "  + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s ");
+        }
+        emit bot2ui_resetover();//模型重置完成的信号
     }
-    emit bot2ui_output(QString::fromStdString(token_str),USUAL_);//将约定贴到输出区
-
-    if(is_resetover)//模型装载后首次重置完成标签
-    {
-        //qDebug()<<"bot:完成重置上下文 " + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s ";
-        if(is_clear_all){emit bot2ui_state("bot:"+ wordsObj["delete kv cache"].toString() + " "  + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s ");}//新增
-        else{emit bot2ui_state("bot:"+ wordsObj["delete kv cache except system calling"].toString() + " "  + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s ");}//新增
-        emit bot2ui_resetover();
-    }//模型重置完成的信号
     
 }
 
-//预解码,将用户的约定先推理一遍
+//预解码,先将用户约定的系统指令推理一遍
 void xBot::preDecode()
 {
-    //将用户的约定先推理一遍
     //view_embd(ctx,embd_inp);//看看到底推理了什么
     //---------------------embd_inp插入到embd中----------------------
     while ((int) embd_inp.size() > n_consumed)
     {
         embd.push_back(embd_inp[n_consumed]);
+        llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);
         ++n_consumed;
     }
 
@@ -707,7 +696,19 @@ void xBot::preDecode()
         const llama_token token = embd_inp[i];
         history_tokens->push_back(token);
     }
-    
+
+    std::string token_str;
+
+    for (size_t i = 0; i < embd_inp.size(); ++i)
+    {
+        const llama_token token = embd_inp[i];
+        history_tokens->push_back(token);
+        token_str += llama_token_to_piece(ctx, token);
+        //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
+    }
+
+    emit bot2ui_output(QString::fromStdString(token_str),USUAL_);//将预解码内容贴到输出区
+    emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 
 //遍历词表
@@ -757,14 +758,6 @@ QString xBot::view_embd(llama_context *ctx_,std::vector<llama_token> embd_)
 void xBot::recv_imagepath(QString image_path)
 {
     gpt_params_.image = image_path.toStdString();
-}
-
-
-//添加引导题
-void xBot::recv_help_input(bool add)
-{
-    if(add){is_help_input = true;}
-    
 }
 
 // 接受用户输入
@@ -940,20 +933,6 @@ bool xBot::isIncompleteUTF8(const std::string &text)
 
     // 如果循环完成没有返回，则没有不完整的UTF-8字符
     return false;
-}
-
-QString xBot::makeHelpInput()
-{
-    QString help_input;
-    QStringList help_list_question,help_list_answer;//引导题和答案
-    for(int i = 1; i < 3;++i)//2个
-    {
-        help_input = help_input + "\n" + QString::fromStdString(gpt_params_.input_prefix);//前缀,用户昵称
-        help_input = help_input + wordsObj[QString("H%1").arg(i)].toString() + "\n";//问题
-        help_input = help_input + "\n" + QString::fromStdString(gpt_params_.input_suffix);//后缀,模型昵称
-        help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
-    }
-    return help_input;
 }
 
 //传递使用的语言

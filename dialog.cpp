@@ -14,7 +14,7 @@
 //4.启动force_unlockload_pTimer,强制解锁
 //5.真正装载完的处理unlockLoad()
 
-// 初始化动画
+// 初始化动画,主要是背景和12条连线
 void Widget::init_move()
 {
     movie_line << "                        ##                        ";//2
@@ -68,10 +68,10 @@ void Widget::init_move()
     connect(load_over_pTimer, SIGNAL(timeout()), this, SLOT(load_over_handleTimeout()));//设置终止信号触发的槽函数
     connect(force_unlockload_pTimer, SIGNAL(timeout()), this, SLOT(unlockLoad()));//新开一个线程
 
-    encode_pTimer = new QTimer(this);//启动后,达到规定时间将发射终止信号
+    decode_pTimer = new QTimer(this);//启动后,达到规定时间将发射终止信号
     keeptimer = new QTimer(this);//持续检测延迟
     connect(keeptimer, SIGNAL(timeout()), this, SLOT(keepConnection()));
-    connect(encode_pTimer, SIGNAL(timeout()), this, SLOT(encode_handleTimeout()));//设置终止信号触发的槽函数
+    connect(decode_pTimer, SIGNAL(timeout()), this, SLOT(decode_handleTimeout()));//设置终止信号触发的槽函数
 }
 
 //设置72个点的字体前景色颜色
@@ -245,7 +245,7 @@ void Widget::unlockLoad()
     ui->reset->setEnabled(1);
     ui->date->setEnabled(1);ui->set->setEnabled(1);
     ui->load->setEnabled(1);
-    ui->output->setStyleSheet("");//取消文本为透明
+    ui->output->setStyleSheet("");//取消文本透明
     ui->input->setFocus();//设置输入区为焦点
 
     //设置特殊文本,显示设备支持情况
@@ -256,7 +256,7 @@ void Widget::unlockLoad()
     ui->state->setCurrentCharFormat(format);//设置光标格式
     ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_nthread)+"/"+QString::number(max_thread));
-    //如果是对话模式则预推理约定
+    //如果是对话模式则预解码约定
     if(ui_mode == CHAT_)
     {
         history_prompt = ui_DATES.system_prompt;//同步历史约定内容
@@ -312,7 +312,7 @@ void Widget::reflash_output(const QString &result,bool is_while, QColor color)
         //每20次题加一次引导题
         if(int(test_count) % 20 == 0)
         {
-            if(!is_api){emit ui2bot_help_input();}
+            if(!is_api){help_input = true;}
             else{api_addhelpinput();}
             ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
         }
@@ -402,9 +402,14 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     }
     else if(state==EVA_)//行为紫色
     {
+        format.setFontWeight(QFont::Bold); // 设置粗体
+        //format.setFontItalic(true);        // 设置斜体
         format.setForeground(QColor(128,0,128));    // 红色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll();//显示
+
+        format.setFontWeight(QFont::Normal); // 取消粗体
+        format.setFontItalic(false);         // 取消斜体
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -447,7 +452,7 @@ void Widget::state_scrollBarValueChanged(int value)
 //-------------------------------------------------------------------------
 //--------------------------------控件状态相关------------------------------
 //-------------------------------------------------------------------------
-//根据标签改变ui控件的状态
+//恢复ui控件的状态
 void Widget::ui_change()
 {
     if(ui_mode == COMPLETE_)
@@ -1072,35 +1077,48 @@ void Widget::setApiDialog()
 //----------------------------------编码动画--------------------------------
 //-------------------------------------------------------------------------
 
-void Widget::encode_play()
+void Widget::decode_play()
 {
-    encode_LineNumber = ui->state->document()->blockCount();// 获取那一行的行数
-    encode_pTimer->start(500);//延时多少ms后发出timeout()信号
+    decode_pTimer->start(100);//延时多少ms后发出timeout()信号
 }
-void Widget::encode_move()
+void Widget::decode_move()
 {
-    //控制光标移动到指定行的末尾
-    QTextBlock block = ui->state->document()->findBlockByLineNumber(encode_LineNumber);
+    //控制光标移动到最后一行的末尾
+    int decode_LineNumber = ui->state->document()->blockCount()-1;// 获取最后一行的行数
+    QTextBlock block = ui->state->document()->findBlockByLineNumber(decode_LineNumber);
     QTextCursor cursor(block);
     cursor.movePosition(QTextCursor::EndOfBlock);
 
-    if(encode_action % 2 == 0)
+    //三帧动画
+    if(decode_action % 6 == 0)
     {
-        cursor.insertText(".");//插入字符
+        cursor.insertText("/");//插入字符
+    }
+    else if(decode_action % 6 == 2)
+    {
+        cursor.insertText("-");//插入字符
+    }
+    else if(decode_action % 6 == 4)
+    {
+        cursor.insertText("\\");//插入字符
     }
     else
     {
         cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
-        cursor.removeSelectedText();//删除选中字符
+        if(cursor.selectedText()=="\\"||cursor.selectedText()=="/"||cursor.selectedText()=="-")
+        {
+            cursor.removeSelectedText();//删除选中字符
+        }
     }
 
-    encode_action ++;
+
+    decode_action ++;
 }
 
-void Widget::encode_handleTimeout()
+void Widget::decode_handleTimeout()
 {
-    if(encode_pTimer->isActive()){encode_pTimer->stop();}//控制超时处理函数只会处理一次
-    encode_move();
-    encode_pTimer->start(500);//延时多少ms后发出timeout()信号
+    if(decode_pTimer->isActive()){decode_pTimer->stop();}//控制超时处理函数只会处理一次
+    decode_move();
+    decode_pTimer->start(100);//延时多少ms后发出timeout()信号
 }
 

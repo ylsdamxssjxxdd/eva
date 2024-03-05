@@ -3,7 +3,6 @@
 
 ## 特点
 - 直观
-    - 非常良好的汉化
     - 推理过程、采样过程、工作流程可视化
     - 输出区的内容就是模型的全部现实
 - win7
@@ -13,7 +12,7 @@
     - 机体没有其它依赖组件，就是一个exe程序
     - 如果是cuda版本则需要安装cuda12版本的工具包 https://developer.nvidia.com/cuda-toolkit-archive
 - 多功能
-    - 本地模型交互，在线模型交互，多模态，agent，RAG，对外api服务，模型评测
+    - 本地模型交互，在线模型交互(待完善)，多模态(待完善)，agent(待完善)，RAG(待完善)，对外api服务，模型评测
 ## 快速开始
 1. 下载软件
 - 本项目release或者百度网盘 https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -63,3 +62,17 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
     - 模型微调
 ## 已知BUG
 ## 运行原理
+- 装载流程
+    - ...
+- 约定流程
+    - ...
+- 设置流程
+    - ...
+- 重置流程
+    - ...
+- 发送流程
+    - ...
+- 预解码流程
+    - ...
+- 工具调用流程
+    - ...

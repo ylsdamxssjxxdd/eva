@@ -75,7 +75,7 @@ public:
     std::string lorapath = "";//lora模型路径
     std::string mmprojpath = "";//mmproj模型路径
     INPUTS input;//用户输入
-    bool is_stop=false,is_load =false,is_first_load = true,is_free = false,is_resetover=false,is_first_input=true;//一些状态控制标签
+    bool is_stop=false,is_load =false,is_first_load = true,is_free = false,is_first_reset=false,is_first_input=true;//一些状态控制标签
     bool is_complete = false;//补完模式标签
     bool is_antiprompt = false;//上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
     bool add_bos;//是否添加开始标志
@@ -83,8 +83,6 @@ public:
     int n_past = 0;//已推理个数
     int n_consumed =0;//已编码字符数
     bool is_test = false;//是否正在测试
-    bool is_help_input = false;//是否添加引导题
-    QString makeHelpInput();//构造引导题
     int fail = 0;
     bool isIncompleteUTF8(const std::string& text);//检测是否有不完整的utf8字符
     float vfree=0;
@@ -95,7 +93,6 @@ public:
 public slots:
     void recv_language(QJsonObject wordsObj_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径
-    void recv_help_input(bool add);//添加引导题
     void recv_input(INPUTS input_,bool is_test_);//接受用户输入
     void recv_stop();//接受停止信号
     void recv_reset(bool is_clear_all);//接受重置信号
@@ -108,6 +105,7 @@ public slots:
 #endif
 
 signals:
+    void bot2ui_predecode(QString bot_predecode_);//传递模型预解码内容
     void bot2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
     void bot2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号

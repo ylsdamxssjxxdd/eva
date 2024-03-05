@@ -87,6 +87,9 @@ public:
     void makeTestIndex();//构建出题索引
     float test_score=0;//答对的个数
     float test_count=0;//回答的次数
+    bool help_input = false;//是否添加引导题
+    QString makeHelpInput();//构建引导题
+
     //连续回答
     QStringList query_list;//待回答列表
     bool is_query =false;//连续回答标签
@@ -100,6 +103,7 @@ public:
     QString history_lorapath = "";
     QString history_mmprojpath = "";
     QString ui_template = "qwen";//模板
+    QString bot_predecode = "";//模型预解码的内容
 
     DATES ui_DATES;//ui的约定
     SETTINGS ui_SETTINGS;//ui的设置
@@ -200,12 +204,11 @@ public:
     int playlineNumber = 0;//动画播放的起始行
 
     //编码动画相关
-    QTimer *encode_pTimer;
-    int encode_LineNumber = 0;//编码的那一行行号
-    int encode_action = 0;//动作计数
-    bool is_encode = false;//编码中标签
-    void encode_move();//下一帧
-    void encode_play();//播放编码中动画
+    QTimer *decode_pTimer;
+    int decode_action = 0;//动作计数
+    bool is_decode = false;//编码中标签
+    void decode_move();//下一帧
+    void decode_play();//播放编码中动画
 
     //系统信息相关
     QString model_memusage="0",ctx_memusage="0";
@@ -273,6 +276,7 @@ signals:
     void ui2version_vocab(QString vocab_);
 //处理模型信号的槽
 public slots:
+    void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
     void reflash_output(const QString &result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
     void reflash_state(const QString &state_string, STATE state=USUAL_);//更新状态区
@@ -335,7 +339,7 @@ private slots:
     void load_handleTimeout();//装载动画时间控制
     void load_begin_handleTimeout();//滑动到最佳动画位置
     void load_over_handleTimeout();//模型装载完毕动画,滑动条向下滚,一定要滚到最下面才会停
-    void encode_handleTimeout();//编码动画时间控制
+    void decode_handleTimeout();//编码动画时间控制
     void on_send_clicked();//用户点击发送按钮响应
     void on_load_clicked();//用户点击装载按钮响应
     void on_reset_clicked();//用户点击遗忘按钮响应

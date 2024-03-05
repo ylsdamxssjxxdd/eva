@@ -382,7 +382,9 @@ void Widget::onConnected() {
         // Handle successful connection
     }
     is_api = true;
-    reflash_state("ui:" + wordsObj["eva link"].toString(),EVA_);
+    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
+    reflash_state("ui:      " + wordsObj["eva link"].toString(),EVA_);
+    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
     if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
     ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
@@ -459,4 +461,17 @@ void Widget::switch_lan_change()
         create_extra_prompt();
         extra_TextEdit->setText(create_extra_prompt());
     }
+}
+
+QString Widget::makeHelpInput()
+{
+    QString help_input;
+    for(int i = 1; i < 3;++i)//2个
+    {
+        help_input = help_input + ui_DATES.input_pfx + ":\n";//前缀,用户昵称
+        help_input = help_input + wordsObj[QString("H%1").arg(i)].toString() + "\n";//问题
+        help_input = help_input + "\n" + ui_DATES.input_sfx + ":\n";//后缀,模型昵称
+        help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
+    }
+    return help_input;
 }
