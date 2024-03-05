@@ -505,7 +505,7 @@ void Widget::recv_pushover()
         }
         else
         {
-            QTimer::singleShot(10, this, SLOT(send_testhandleTimeout()));//对话模式也不能立即发送
+            on_send_clicked();
         }
     }
     else if(is_query)//继续回答
@@ -517,7 +517,7 @@ void Widget::recv_pushover()
         }
         else
         {
-            QTimer::singleShot(10, this, SLOT(send_testhandleTimeout()));//对话模式也不能立即发送
+            on_send_clicked();
         }
     }
     else
@@ -616,7 +616,7 @@ void Widget::recv_datereset()
     if(ui_mode == COMPLETE_){reflash_state("· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ",USUAL_);}
     else{reflash_state("· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);}
     reflash_state("···········"+ wordsObj["date"].toString() + "···········",USUAL_);
-    is_datereset = true;
+    //is_datereset = true;
     ui->reset->click();
 }
 

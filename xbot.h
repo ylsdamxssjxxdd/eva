@@ -96,7 +96,7 @@ public slots:
     void recv_input(INPUTS input_,bool is_test_);//接受用户输入
     void recv_stop();//接受停止信号
     void recv_reset(bool is_clear_all);//接受重置信号
-    void recv_set(SETTINGS settings,bool require_load);//接受设置内容
+    void recv_set(SETTINGS settings,bool can_reload);//接受设置内容
     void recv_date(DATES date);//接受约定内容
     void recv_free();//释放
     void recv_maxngl(int maxngl_);//传递模型最大的ngl值

@@ -256,7 +256,7 @@ signals:
     void ui2bot_stop();//传递推理停止信号
     void ui2bot_reset(bool is_clear_all);//传递重置信号
     void ui2bot_date(DATES date);//传递约定内容
-    void ui2bot_set(SETTINGS settings,bool require_load);//传递设置内容
+    void ui2bot_set(SETTINGS settings,bool can_reload);//传递设置内容
     void ui2bot_free();//释放
     void ui2bot_help_input(bool add=true);//添加引导题
     void ui2bot_maxngl(int maxngl_);

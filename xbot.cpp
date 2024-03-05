@@ -199,7 +199,7 @@ void xBot::run()
         }
         //qDebug()<<batch_count<<batch_time;
         //qDebug()<<singl_count<<singl_time;
-        
+        emit bot2ui_pushover();//推理完成的信号
     }
 }
 
@@ -212,7 +212,6 @@ int xBot::stream()
         {
             is_stop =false;
             pick_half_utf8.clear();
-            emit bot2ui_pushover();//推理完成的信号
             emit bot2ui_stopover();//完成停止的信号
             emit bot2ui_state("bot:"+wordsObj["predict"].toString()+wordsObj["shut down"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s"+" " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
             return 0;
@@ -308,7 +307,7 @@ int xBot::stream()
             if(is_batch){batch_count+=embd.size();batch_time +=time4.nsecsElapsed()/1000000000.0;}
             else{singl_count++;singl_time +=time4.nsecsElapsed()/1000000000.0;}
         }   
-        else{emit bot2ui_state("bot:" +wordsObj["embd no token,please reload"].toString(),WRONG_);emit bot2ui_pushover();return 0;}//待推理的embd没有token则退出
+        else{emit bot2ui_state("bot:" +wordsObj["embd no token,please reload"].toString(),WRONG_);return 0;}//待推理的embd没有token则退出
         embd.clear();//清空embd
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
@@ -397,7 +396,6 @@ int xBot::stream()
                 emit bot2ui_state("bot:-----------------------------------------------" );
                 emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["over"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                 //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
-                emit bot2ui_pushover();//推理完成的信号
                 //qDebug() << batch_count << batch_time << singl_count << singl_time;
                 return 0;
             }
@@ -432,13 +430,11 @@ int xBot::stream()
                         if(list_num==0)
                         {
                             is_antiprompt = true;//下一次预处理不加前缀
-                            emit bot2ui_pushover();//推理完成的信号
                             emit bot2ui_state("bot:" + wordsObj["detected"].toString() + wordsObj["user name"].toString() + " " + QString::fromStdString(antiprompt));
                             emit bot2ui_state("bot:-----------------------------------------------" );
                         }
                         else
                         {
-                            emit bot2ui_pushover();//推理完成的信号
                             emit bot2ui_state("bot:"+ wordsObj["detected"].toString() + wordsObj["extra end flag"].toString() + " "  + QString::fromStdString(antiprompt));
                             emit bot2ui_state("bot:-----------------------------------------------" );
                         }
@@ -467,7 +463,6 @@ int xBot::stream()
         }
     }//这里是推理循环
     //这里是达到最大预测长度的情况
-    emit bot2ui_pushover();//推理完成的信号
     if(!is_test)//测试的时候不输出这个
     {
         emit bot2ui_state("bot:"+ wordsObj["arrivemaxpredict"].toString() + " " + QString::number(gpt_params_.n_predict));
@@ -784,7 +779,7 @@ void xBot::recv_reset(bool is_clear_all)
     reset(is_clear_all);//重置上下文等
 }
 
-void xBot::recv_set(SETTINGS settings,bool require_load)
+void xBot::recv_set(SETTINGS settings,bool can_reload)
 {
     is_complete = settings.complete_mode;
     gpt_params_.sparams.temp = settings.temp;
@@ -836,7 +831,7 @@ void xBot::recv_set(SETTINGS settings,bool require_load)
         reload_flag = true;
     }
     //如果是装载模型前，则传完参数就返回
-    if(!require_load){return;}
+    if(!can_reload){return;}
     //如果是第一次装载或从网络模式转回来则重新加载模型
     if(!is_load){reload_flag = true;is_first_load=true;}
 
