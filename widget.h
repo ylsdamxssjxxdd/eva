@@ -38,7 +38,7 @@
 #include <windows.h>
 #include "utils/customplaintextedit.h"
 #include "utils/doubleqprogressbar.h"
-#include "utils/versionlog.h"
+#include "expend.h"
 #include "xconfig.h"//ui和bot都要导入的共有配置
 
 #include "utils/qmarkdowntextedit/qmarkdowntextedit.h"
@@ -69,7 +69,7 @@ public:
     bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
-    Versionlog *versionlog_;//了解更多
+    Expend *expend_;//了解更多
     QStringList questions;//用户右击的问题
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
 
@@ -279,8 +279,8 @@ signals:
 signals:
     void server_kill();//终止server信号
     void gpu_reflash();//强制刷新gpu信息
-    void ui2version_log(QString logs);
-    void ui2version_vocab(QString vocab_);
+    void ui2expend_log(QString logs);
+    void ui2expend_vocab(QString vocab_);
 //处理模型信号的槽
 public slots:
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
@@ -316,7 +316,7 @@ private slots:
     void onConnected();//检测ip是否通畅
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void updateStatus(); //更新cpu内存使用率
-    void recv_creatVersionlog();//创建了解更多窗口
+    void recv_createExpend();//创建扩展窗口
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void state_scrollBarValueChanged(int value);//状态区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容

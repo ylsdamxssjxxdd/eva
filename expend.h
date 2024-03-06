@@ -1,19 +1,20 @@
-#ifndef VERSIONLOG_H
-#define VERSIONLOG_H
+#ifndef EXPEND_H
+#define EXPEND_H
 
 #include <QDialog>
-
+#include <QJsonObject>
 namespace Ui {
-class Versionlog;
+class Expend;
 }
 
-class Versionlog : public QDialog
+class Expend : public QDialog
 {
     Q_OBJECT
 
 public:
-    Versionlog(QWidget *parent = nullptr,QString vocab=nullptr,QStringList model_logs = QStringList());
-    ~Versionlog();
+    Expend(QWidget *parent = nullptr,QJsonObject wordsObj_= QJsonObject(), QString vocab=nullptr, QStringList model_logs = QStringList());
+    ~Expend();
+    QJsonObject wordsObj_;
     QString vocab_;
     QString model_logs_;
     bool is_show_vocab = false;
@@ -26,7 +27,7 @@ private slots:
     void on_tabWidget_tabBarClicked(int index);
 
 private:
-    Ui::Versionlog *ui;
+    Ui::Expend *ui;
 };
 
-#endif // VERSIONLOG_H
+#endif // EXPEND_H

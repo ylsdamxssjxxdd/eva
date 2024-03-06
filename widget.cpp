@@ -54,7 +54,7 @@ Widget::Widget(QWidget *parent)
     //-------------默认启用功能-------------
     //this->setMouseTracking(true);//开启鼠标跟踪
     //ui->state->setMouseTracking(true);//开启鼠标跟踪
-    QObject::connect(ui->state,&customPlainTextEdit::creatVersionlog,this,&Widget::recv_creatVersionlog);//传递信号创建更多窗口
+    QObject::connect(ui->state,&customPlainTextEdit::createExpend,this,&Widget::recv_createExpend);//传递信号创建更多窗口
     //ui->output->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->installEventFilter(this);//安装事件过滤器
@@ -915,24 +915,19 @@ void Widget::recv_params(PARAMS p)
 void Widget::recv_vocab(QString model_vocab)
 {
     ui_model_vocab = model_vocab;
-    emit ui2version_vocab(ui_model_vocab);
+    emit ui2expend_vocab(ui_model_vocab);
 }
 
-//创建了解更多窗口
-void Widget::recv_creatVersionlog()
+//创建扩展窗口
+void Widget::recv_createExpend()
 {
-    versionlog_ = new Versionlog(NULL,ui_model_vocab,ui_model_logs);
-    QFile file(":/ui/QSS-master/ConsoleStyle.qss");
-    file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
-    versionlog_->setStyleSheet(stylesheet);file.close();
-    connect(versionlog_, &Versionlog::finished, versionlog_, &QObject::deleteLater);//保证正确释放控件内存
-    connect(this, &Widget::ui2version_log,versionlog_,&Versionlog::recv_log);
-    connect(this, &Widget::ui2version_vocab,versionlog_,&Versionlog::recv_vocab);
-    versionlog_->show();
-    versionlog_->exec();
+    expend_ = new Expend(NULL,wordsObj,ui_model_vocab,ui_model_logs);
+    connect(expend_, &Expend::finished, expend_, &QObject::deleteLater);//保证正确释放控件内存
+    connect(this, &Widget::ui2expend_log,expend_,&Expend::recv_log);
+    connect(this, &Widget::ui2expend_vocab,expend_,&Expend::recv_vocab);
+    expend_->show();
+    expend_->exec();
 }
-
-
 
 //接收缓存量
 void Widget::recv_kv(float percent,int ctx_size)
@@ -1016,15 +1011,14 @@ void Widget::recv_log(QString log)
 
     if(log == "\n")
     {
-        emit ui2version_log(log);//单条记录
+        emit ui2expend_log(log);//单条记录
         ui_model_logs << log;//总记录
     }
     else
     {
-        emit ui2version_log(dateTimeString + log);//单条记录 
+        emit ui2expend_log(dateTimeString + log);//单条记录 
         ui_model_logs << dateTimeString + log;//总记录
     }
-    
     
 }
 //播放装载动画

@@ -7,8 +7,6 @@
 #include <QTextBlock>
 #include <QTextCursor>
 
-
-
 class customPlainTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
@@ -20,7 +18,7 @@ public:
     QString device_tooltip;//设备支持的提示消息
 
 signals:
-    void creatVersionlog();
+    void createExpend();
 };
 
 #endif // CUSTOMPLAINTEXTEDIT_H

@@ -3,7 +3,7 @@
 customPlainTextEdit::customPlainTextEdit(QWidget *parent) : QPlainTextEdit(parent)
 {
     // 设置鼠标追踪，以便能够捕获鼠标移动事件
-    setMouseTracking(true);
+    //setMouseTracking(true);
 }
 
 void customPlainTextEdit::mouseMoveEvent(QMouseEvent *event)
@@ -29,7 +29,7 @@ void customPlainTextEdit::mouseMoveEvent(QMouseEvent *event)
 //鼠标右击事件
 void customPlainTextEdit::contextMenuEvent(QContextMenuEvent *event)
 {
-    emit creatVersionlog();
+    emit createExpend();
 }
 
 

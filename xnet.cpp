@@ -102,7 +102,6 @@ void xNet::run()
             
             reply->abort();//终止
             reply->deleteLater();
-            emit net2ui_pushover();
         });
 
         // 回复完成时退出事件循环
@@ -161,7 +160,6 @@ void xNet::run()
             
             reply->abort();//终止
             reply->deleteLater();
-            emit net2ui_pushover();
 
         });
         // 回复完成时退出事件循环
@@ -170,6 +168,7 @@ void xNet::run()
 
     // 进入事件循环
     loop.exec();
+    emit net2ui_pushover();
 }
 
 //构造请求的数据体

@@ -1,17 +1,26 @@
-#include "versionlog.h"
-#include "ui_versionlog.h"
+#include "expend.h"
+#include "ui_expend.h"
 #include <QScrollBar>
 #include <QTimer>
 #include <QDebug>
-Versionlog::Versionlog(QWidget *parent,QString vocab,QStringList model_logs) :
+Expend::Expend(QWidget *parent,QJsonObject wordsObj, QString vocab,QStringList model_logs) :
     QDialog(parent),
-    ui(new Ui::Versionlog)
+    ui(new Ui::Expend)
 {
     ui->setupUi(this);
+    //设置风格
+    QFile file(":/ui/QSS-master/ConsoleStyle.qss");
+    file.open(QFile::ReadOnly);
+    QString stylesheet = tr(file.readAll());
+    this->setStyleSheet(stylesheet);
+    file.close();
+    
     ui->version_log->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     //ui->model_vocab->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     //ui->model_logs->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     vocab_ = vocab;
+    wordsObj_ = wordsObj;
+    this->setWindowTitle(wordsObj_["expend window"].toString());
     for(int i=0;i<model_logs.size();i++)
     {
         model_logs_ += model_logs.at(i);
@@ -38,12 +47,12 @@ Versionlog::Versionlog(QWidget *parent,QString vocab,QStringList model_logs) :
     
 }
 
-Versionlog::~Versionlog()
+Expend::~Expend()
 {
     delete ui;
 }
 
-void Versionlog::on_tabWidget_tabBarClicked(int index)
+void Expend::on_tabWidget_tabBarClicked(int index)
 {
     //ui->textBrowser->verticalScrollBar()->setValue(0);
     if(index==1 && !is_show_vocab)
@@ -60,7 +69,7 @@ void Versionlog::on_tabWidget_tabBarClicked(int index)
 }
 
 
-void Versionlog::recv_log(QString log)
+void Expend::recv_log(QString log)
 {
     if(log.contains("load_percent"))
     {
@@ -93,7 +102,7 @@ void Versionlog::recv_log(QString log)
     
 }
 
-void Versionlog::recv_vocab(QString vocab)
+void Expend::recv_vocab(QString vocab)
 {
     vocab_ = vocab;
     ui->model_vocab->setPlainText(vocab);
