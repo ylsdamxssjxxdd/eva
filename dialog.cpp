@@ -241,20 +241,6 @@ void Widget::unlockLoad()
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
     this->setWindowTitle(wordsObj["current model"].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
     ui->kv_bar->message = wordsObj["brain"].toString();
-    ui->send->setEnabled(1);
-    ui->reset->setEnabled(1);
-    ui->date->setEnabled(1);ui->set->setEnabled(1);
-    ui->load->setEnabled(1);
-    ui->output->setStyleSheet("");//取消文本透明
-    ui->input->setFocus();//设置输入区为焦点
-
-    //设置特殊文本,显示设备支持情况
-    QTextCharFormat format;
-    format.setForeground(QColor(0,0,200));    // 设置前景颜色
-    ui->state->setCurrentCharFormat(format);//设置光标格式
-    format.clearForeground();//清除前景颜色
-    ui->state->setCurrentCharFormat(format);//设置光标格式
-    ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_nthread)+"/"+QString::number(max_thread));
     //如果是对话模式则预解码约定
     if(ui_mode == CHAT_)
@@ -369,10 +355,13 @@ void Widget::reflash_state(const QString &state_string,STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
     ui_state = state_string;
-    ui_state.remove("\n");ui_state.remove("\r");//过滤回车和换行符
+    //过滤回车和换行符
+    ui_state.replace("\n","\\n");
+    ui_state.replace("\r","\\r");
     if(state==USUAL_)//一般黑色
     {
         format.clearForeground();//清除前景颜色
+        format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll();
     }
@@ -394,18 +383,25 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     }
     else if(state==SIGNAL_)//信号蓝色
     {
-        format.setForeground(QColor(0,0,200));    // 红色设置前景颜色
+        format.setForeground(QColor(0,0,200));    // 蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll();
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==EVA_)//行为紫色
+    else if(state==EVA_)//行为警告
     {
+        QFont font = format.font();
+        //font.setLetterSpacing(QFont::AbsoluteSpacing, 0); // 设置字母间的绝对间距
+        font.setPixelSize(15);
+        format.setFont(font);
         format.setFontWeight(QFont::Bold); // 设置粗体
-        //format.setFontItalic(true);        // 设置斜体
-        format.setForeground(QColor(128,0,128));    // 红色设置前景颜色
+        format.setFontItalic(true);        // 设置斜体
+        //format.setForeground(QColor(128,0,128));    // 紫色设置前景颜色
+        format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
+        
+        ui_state = wordsObj["cubes"].toString() + "\n" + ui_state + "\n" + wordsObj["cubes"].toString();//添加方块
         state_scroll();//显示
 
         format.setFontWeight(QFont::Normal); // 取消粗体
@@ -415,7 +411,7 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     }
     else if(state==TOOL_)//工具橘黄色
     {
-        format.setForeground(QColor(255, 165, 0));    // 红色设置前景颜色
+        format.setForeground(QColor(255, 165, 0));    //橘黄色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll();
         format.clearForeground();//清除前景颜色
@@ -452,34 +448,6 @@ void Widget::state_scrollBarValueChanged(int value)
 //-------------------------------------------------------------------------
 //--------------------------------控件状态相关------------------------------
 //-------------------------------------------------------------------------
-//恢复ui控件的状态
-void Widget::ui_change()
-{
-    if(ui_mode == COMPLETE_)
-    {
-        //补完模式关闭输入区
-        ui->input->clear();
-        ui->input->setPlaceholderText(wordsObj["please change the text"].toString());
-        ui->input->setStyleSheet("background-color: gray;");//设置背景为灰色
-        ui->input->setReadOnly(1);
-        ui->send->setText(wordsObj["complete"].toString());
-        ui->output->setReadOnly(0);
-        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
-        ui->output->setFocus();//设置输出区为焦点
-    }
-    else if(ui_mode == CHAT_)
-    {
-        //对话模式则清空输出区
-        ui->output->clear();
-        ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
-        ui->input->setStyleSheet("background-color: white;");
-        ui->input->setReadOnly(0);
-        ui->send->setText(wordsObj["send"].toString());
-        ui->output->setReadOnly(1);
-        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
-        ui->input->setFocus();//设置输入区为焦点
-    }
-}
 
 //api模式切换时控件可见状态
 void Widget::change_api_dialog(bool enable)
@@ -616,7 +584,6 @@ void Widget::chooseMmprojpath()
     //用户选择模型位置
     QString mmproj_path = QFileDialog::getOpenFileName(this,"choose mmproj model",ui_SETTINGS.modelpath);
     mmproj_LineEdit->setText(mmproj_path);
-
 }
 
 
@@ -835,7 +802,6 @@ void Widget::set_SetDialog()
     mode_box = new QGroupBox(wordsObj["mode set"].toString());//模式设置区域
     QVBoxLayout *mode_layout = new QVBoxLayout();//模式设置垂直布局器
     
-
     //补完控制
     complete_btn = new QRadioButton(wordsObj["complete mode"].toString());
     mode_layout->addWidget(complete_btn);
@@ -1083,11 +1049,24 @@ void Widget::decode_play()
 }
 void Widget::decode_move()
 {
-    //控制光标移动到最后一行的末尾
     int decode_LineNumber = ui->state->document()->blockCount()-1;// 获取最后一行的行数
-    QTextBlock block = ui->state->document()->findBlockByLineNumber(decode_LineNumber);
-    QTextCursor cursor(block);
-    cursor.movePosition(QTextCursor::EndOfBlock);
+    //如果在新的行数上播放动画,则先删除上一次解码动画的残余部分
+    if(currnet_LineNumber != decode_LineNumber)
+    {
+        QTextBlock currnet_block = ui->state->document()->findBlockByLineNumber(currnet_LineNumber);//取上次最后一行
+        QTextCursor currnet_cursor(currnet_block);//取游标
+        currnet_cursor.movePosition(QTextCursor::EndOfBlock);//游标移动到末尾
+        currnet_cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
+        if(currnet_cursor.selectedText()=="\\"||currnet_cursor.selectedText()=="/"||currnet_cursor.selectedText()=="-")
+        {
+            currnet_cursor.removeSelectedText();//删除选中字符
+        }
+        currnet_LineNumber = decode_LineNumber;
+    }
+    
+    QTextBlock block = ui->state->document()->findBlockByLineNumber(decode_LineNumber);//取最后一行
+    QTextCursor cursor(block);//取游标
+    cursor.movePosition(QTextCursor::EndOfBlock);//游标移动到末尾
 
     //三帧动画
     if(decode_action % 6 == 0)
@@ -1110,7 +1089,6 @@ void Widget::decode_move()
             cursor.removeSelectedText();//删除选中字符
         }
     }
-
 
     decode_action ++;
 }
@@ -1181,9 +1159,7 @@ void Widget::onConnected() {
         // Handle successful connection
     }
     is_api = true;
-    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
-    reflash_state("ui:      " + wordsObj["eva link"].toString(),EVA_);
-    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
+    reflash_state("ui:   " + wordsObj["eva link"].toString(),EVA_);
     if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
     ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
@@ -1193,7 +1169,8 @@ void Widget::onConnected() {
     
     emit ui2net_apis(apis);
     reflash_output(ui_DATES.system_prompt,0,Qt::black);
-    ui->date->setEnabled(1);ui->set->setEnabled(1);
+    ui->date->setEnabled(1);
+    ui->set->setEnabled(1);
     ui->reset->setEnabled(1);
     ui->send->setEnabled(1);
     api_dialog->setDisabled(0);
@@ -1231,4 +1208,96 @@ void Widget::keep_onError(QAbstractSocket::SocketError socketError)
     //qDebug() << socketError;
     if(socketError!=QAbstractSocket::RemoteHostClosedError){ui->kv_bar->setSecondValue(100);}
     
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------界面状态--------------------------------
+//-------------------------------------------------------------------------
+//按钮的可用和可视状态控制
+
+//初始界面状态
+void Widget::ui_state_init()
+{
+    ui->load->setEnabled(1);//装载按钮
+    ui->date->setEnabled(0);//约定按钮
+    ui->set->setEnabled(0);//设置按钮
+    ui->reset->setEnabled(0);//重置按钮
+    ui->send->setEnabled(0);//发送按钮
+}
+
+// 装载中界面状态
+void Widget::ui_state_loading()
+{
+    ui->send->setEnabled(0);//发送按钮
+    ui->reset->setEnabled(0);//重置按钮
+    ui->date->setEnabled(0);//约定按钮
+    ui->set->setEnabled(0);//设置按钮
+    ui->load->setEnabled(0);//装载按钮
+    ui->input->setFocus();//设置输入区为焦点
+}
+
+//推理中界面状态
+void Widget::ui_state_pushing()
+{
+    ui->load->setEnabled(0);
+    ui->date->setEnabled(0);
+    ui->set->setEnabled(0);
+    ui->reset->setEnabled(1);
+    ui->send->setEnabled(0);
+}
+
+//服务中界面状态
+void Widget::ui_state_servering()
+{
+    ui->load->setEnabled(0);
+    ui->date->setEnabled(0);
+    ui->set->setEnabled(1);
+    ui->reset->setEnabled(0);
+    ui->input->setVisible(0);
+    ui->send->setVisible(0);
+}
+
+//待机界面状态
+void Widget::ui_state_normal()
+{
+    if(ui_mode == CHAT_)
+    {
+        ui->input->setVisible(1);
+        ui->send->setVisible(1);
+
+        ui->load->setEnabled(1);
+        ui->date->setEnabled(1);
+        ui->set->setEnabled(1);
+        ui->reset->setEnabled(1);
+        ui->send->setEnabled(1);
+        ui->input->setVisible(1);
+        ui->send->setVisible(1);
+
+        ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
+        ui->input->setStyleSheet("background-color: white;");
+        ui->input->setReadOnly(0);
+        ui->input->setFocus();//设置输入区为焦点
+        ui->output->setReadOnly(1);
+        ui->send->setText(wordsObj["send"].toString());
+        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
+    }
+    else if(ui_mode == COMPLETE_)
+    {
+        ui->load->setEnabled(1);
+        ui->date->setEnabled(1);
+        ui->set->setEnabled(1);
+        ui->reset->setEnabled(1);
+        ui->send->setEnabled(1);
+        ui->input->setVisible(1);
+        ui->send->setVisible(1);
+
+        ui->input->clear();
+        ui->input->setPlaceholderText(wordsObj["please change the text"].toString());
+        ui->input->setStyleSheet("background-color: gray;");//设置背景为灰色
+        ui->input->setReadOnly(1);
+        ui->send->setText(wordsObj["complete"].toString());
+        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
+        ui->output->setReadOnly(0);
+        ui->output->setFocus();//设置输出区为焦点
+    }
 }

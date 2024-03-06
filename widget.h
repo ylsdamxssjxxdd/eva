@@ -60,11 +60,10 @@ public:
     //拯救中文
     QJsonObject wordsObj;
     void getWords(QString json_file_path);
-    QMap<QString, DATES> date_map;//约定模板
+
     //ui控制相关
     void state_scroll();//向state末尾添加文本并滚动
     void output_scroll(QColor color = QColor(0,0,0));
-    void ui_change();//根据标签改变ui控件的状态
     QString ui_output,ui_state;
     bool is_stop_output_scroll = false;//输出区滚动标签
     bool is_stop_state_scroll = false;//状态区滚动标签
@@ -73,28 +72,19 @@ public:
     Versionlog *versionlog_;//了解更多
     QStringList questions;//用户右击的问题
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
-    //测试相关
-    bool is_test  =false;//测试标签
-    QElapsedTimer test_time;
-    QList<int> test_question_index;//待测试题目索引
-    QStringList test_list_question,test_list_answer;//测试题和答案
-    void clearQuestionlist();//清空题库
-    void readCsvFile(const QString &fileName);
-    void getAllFiles(const QString &floderPath);
-    QList<QString> childPathList;//子文件夹路径
-    QList<QString> filePathList;//绝对文件路径
-    void makeTestQuestion(QString dirPath);//构建题库
-    void makeTestIndex();//构建出题索引
-    float test_score=0;//答对的个数
-    float test_count=0;//回答的次数
-    bool help_input = false;//是否添加引导题
-    QString makeHelpInput();//构建引导题
+
+    void ui_state_init();//初始界面状态
+    void ui_state_loading();//装载中界面状态
+    void ui_state_pushing();//推理中界面状态
+    void ui_state_servering();//服务中界面状态
+    void ui_state_normal();//待机界面状态
 
     //连续回答
     QStringList query_list;//待回答列表
     bool is_query =false;//连续回答标签
 
     //模型控制相关
+    QMap<QString, DATES> date_map;//约定模板
     void preLoad();//装载前动作
     bool is_load = false;//模型装载标签
     bool is_run = false;//模型运行标签,方便设置界面的状态
@@ -118,7 +108,23 @@ public:
     float load_time = 0;
     QTimer *force_unlockload_pTimer;//到时间强制解锁
 
-    void modeChange();
+    //测试相关
+    bool is_test  =false;//测试标签
+    QElapsedTimer test_time;
+    QList<int> test_question_index;//待测试题目索引
+    QStringList test_list_question,test_list_answer;//测试题和答案
+    void clearQuestionlist();//清空题库
+    void readCsvFile(const QString &fileName);
+    void getAllFiles(const QString &floderPath);
+    QList<QString> childPathList;//子文件夹路径
+    QList<QString> filePathList;//绝对文件路径
+    void makeTestQuestion(QString dirPath);//构建题库
+    void makeTestIndex();//构建出题索引
+    float test_score=0;//答对的个数
+    float test_count=0;//回答的次数
+    bool help_input = false;//是否添加引导题
+    QString makeHelpInput();//构建引导题
+
     //设置按钮相关
     void set_SetDialog();//设置设置选项
     QDialog *set_dialog;
@@ -158,7 +164,7 @@ public:
     QLabel *system_label;
     QTextEdit *system_TextEdit;
     QRadioButton *complete_btn,*web_btn,*chat_btn;
-    QProcess *server_process;//用来启动server.exe
+    
     QLabel *port_label;QLineEdit *port_lineEdit;
     QString ui_port = "8080";
     QString ipAddress = "";
@@ -203,12 +209,13 @@ public:
     void set_dotcolor(QTextCharFormat *format, int action);//设置点颜色
     int playlineNumber = 0;//动画播放的起始行
 
-    //编码动画相关
+    //解码码动画相关
     QTimer *decode_pTimer;
     int decode_action = 0;//动作计数
-    bool is_decode = false;//编码中标签
+    int currnet_LineNumber = 0;//上一次解码动画所在行
+    bool is_decode = false;//解码中标签
     void decode_move();//下一帧
-    void decode_play();//播放编码中动画
+    void decode_play();//播放解码中动画
 
     //系统信息相关
     QString model_memusage="0",ctx_memusage="0";
@@ -244,7 +251,6 @@ public:
     QElapsedTimer keeptime;//测量时间
     
     
-
 //发给模型的信号
 signals:
     void ui2bot_language(QJsonObject wordsObj_);//传递使用的语言
@@ -271,6 +277,7 @@ signals:
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
 //自用信号
 signals:
+    void server_kill();//终止server信号
     void gpu_reflash();//强制刷新gpu信息
     void ui2version_log(QString logs);
     void ui2version_vocab(QString vocab_);
@@ -327,8 +334,8 @@ private slots:
     void complete_change();//补完按钮响应
     void chat_change();//对话按钮响应
     void web_change();//网页服务响应
-    void onProcessStarted();//进程开始响应
-    void onProcessFinished();//进程结束响应
+    void server_onProcessStarted();//进程开始响应
+    void server_onProcessFinished();//进程结束响应
     void temp_change();//温度滑块响应
     void ngl_change();//ngl滑块响应
     void batch_change();//batch滑块响应

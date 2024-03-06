@@ -39,6 +39,7 @@ Widget::Widget(QWidget *parent)
     QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();
+    ui->output->setStyleSheet("background-color: white;");//设置输出区背景为纯白
     ui->input->setStyleSheet("background-color: white;");//设置输入区背景为纯白
     ui->mem_bar->message = wordsObj["mem"].toString();//进度条里面的文本
     ui->vram_bar->message = wordsObj["vram"].toString();//进度条里面的文本
@@ -49,6 +50,7 @@ Widget::Widget(QWidget *parent)
     setApiDialog();//设置api选项
     set_DateDialog();//设置约定选项
     set_SetDialog();//设置设置选项
+    ui_state_init();//初始界面状态
     //-------------默认启用功能-------------
     //this->setMouseTracking(true);//开启鼠标跟踪
     //ui->state->setMouseTracking(true);//开启鼠标跟踪
@@ -75,10 +77,6 @@ Widget::Widget(QWidget *parent)
     connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
     state_scrollBar =  ui->state->verticalScrollBar();
     connect(state_scrollBar, &QScrollBar::valueChanged, this, &Widget::state_scrollBarValueChanged);
-    //-------------服务的运行程序配置-------------
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
-    connect(server_process, &QProcess::started, this, &Widget::onProcessStarted);//连接开始信号
-    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::onProcessFinished);//连接结束信号
     //-------------添加右击问题-------------
     QDate currentDate = QDate::currentDate();//历史中的今天
     QString dateString = currentDate.toString("MM" + wordsObj["month"].toString() + "dd" + wordsObj["day"].toString());
@@ -104,6 +102,7 @@ Widget::Widget(QWidget *parent)
 Widget::~Widget()
 {
     delete ui;
+    emit server_kill();
 }
 
 //用户点击装载按钮处理
@@ -135,14 +134,7 @@ void Widget::preLoad()
     is_load = false;//重置is_load标签
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
-    ui->send->setEnabled(0);//禁用发送按钮
-    ui->reset->setEnabled(0);//禁用重置按钮
-    ui->date->setEnabled(0);//禁用约定按钮
-    ui->set->setEnabled(0);//禁用设置按钮
-    ui->load->setEnabled(0);//禁用装载按钮
-
-    ui->input->setFocus();//设置输入区为焦点
-    //ui->output->setStyleSheet("color: transparent;");//设置文本为透明
+    ui_state_loading();//装载中界面状态
     reflash_state("ui:" + wordsObj["model location"].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
 }
@@ -158,6 +150,7 @@ void Widget::recv_loadover(bool ok_,float load_time_)
         all_fps ++;//补上最后一帧,表示上下文也创建了
         load_pTimer->stop();//停止动画,但是动作计数load_action保留
         load_pTimer->start(10);//快速播放完剩下的动画,播放完再做一些后续动作
+        if(ui_mode == COMPLETE_){ui_state_normal();}//待机界面状态
     }
     else
     {
@@ -165,9 +158,9 @@ void Widget::recv_loadover(bool ok_,float load_time_)
         load_begin_pTimer->stop();//停止动画
         load_pTimer->stop();//停止动画
         is_load = false;//标记模型未装载
-        ui->load->setEnabled(1);
-        ui->output->setStyleSheet("");//取消文本为透明
         load_action = 0;
+        this->setWindowTitle(wordsObj["current model"].toString() + " ");
+        ui_state_init();
     }
 
 }
@@ -205,7 +198,8 @@ void Widget::on_send_clicked()
                 test_question_index.clear();test_count = 0;test_score=0;test_tokens=0;
                 ui->send->setEnabled(1);
                 ui->load->setEnabled(1);
-                ui->date->setEnabled(1);ui->set->setEnabled(1);
+                ui->date->setEnabled(1);
+                ui->set->setEnabled(1);
                 return;
             }
             ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
@@ -321,7 +315,9 @@ void Widget::on_send_clicked()
         ui->input->setFocus();
         is_run =true;//模型正在运行标签
         emit ui2net_push();
-        ui->date->setDisabled(1);ui->load->setDisabled(1);ui->send->setDisabled(1);
+        ui->date->setDisabled(1);
+        ui->load->setDisabled(1);
+        ui->send->setDisabled(1);
         ui->set->setEnabled(0);
         return;
     }
@@ -365,10 +361,7 @@ void Widget::on_send_clicked()
                 test_count = 0;
                 test_score = 0;
                 test_tokens = 0;
-                ui->send->setEnabled(1);
-                ui->load->setEnabled(1);
-                ui->date->setEnabled(1);
-                ui->set->setEnabled(1);
+                ui_state_normal();//待机界面状态
                 return;
             }
         }
@@ -385,10 +378,8 @@ void Widget::on_send_clicked()
                 reflash_state(ui_state,SUCCESS_);
                 is_query = false;
                 is_run = false;
-                //恢复
-                ui->send->setEnabled(1);
-                ui->load->setEnabled(1);
-                ui->date->setEnabled(1);ui->set->setEnabled(1);
+
+                ui_state_normal();//待机界面状态
                 return;
             }
             emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
@@ -471,8 +462,6 @@ void Widget::on_send_clicked()
             }
                
         }
-        ui->input->setFocus();//聚焦在输入区
-        
     }
     else if(ui_mode == COMPLETE_)
     {
@@ -484,10 +473,7 @@ void Widget::on_send_clicked()
     emit ui2bot_push();//开始推理
     decode_play();//开启推理动画
 
-    ui->send->setEnabled(0);//按钮禁用,直到bot输出完毕
-    ui->load->setEnabled(0);//按钮禁用,直到bot输出完毕
-    ui->date->setEnabled(0);ui->set->setEnabled(0);
-
+    ui_state_pushing();//推理中界面状态
 }
 
 
@@ -531,11 +517,7 @@ void Widget::recv_pushover()
             if(func_arg_list.size() == 0)
             {
                 is_run = false;
-                ui->send->setEnabled(1);
-                ui->load->setEnabled(1);
-                ui->date->setEnabled(1);
-                ui->set->setEnabled(1);
-                ui->reset->setEnabled(1);
+                ui_state_normal();//待机界面状态
             }
             else
             {
@@ -550,11 +532,7 @@ void Widget::recv_pushover()
         else
         {
             is_run = false;
-            ui->send->setEnabled(1);
-            ui->load->setEnabled(1);
-            ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
-            ui->reset->setEnabled(1);
+            ui_state_normal();//待机界面状态
         }
         decode_pTimer->stop();
         decode_action=0;
@@ -621,11 +599,12 @@ void Widget::recv_datereset()
     else
     {
         reflash_state("· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);
-        QString stop_str;//展示额外停止标志
+        //展示额外停止标志
+        QString stop_str;
         stop_str = wordsObj["extra stop words"].toString() + " ";
         for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
         {
-            stop_str += ui_DATES.extra_stop_words.at(i)+" ";
+            stop_str += ui_DATES.extra_stop_words.at(i) + " ";
         }
         reflash_state("· "+ stop_str +" ",USUAL_);
     }
@@ -684,7 +663,9 @@ void Widget::on_reset_clicked()
         return;
     }
     reflash_state("ui:"+ wordsObj["clicked reset"].toString(),SIGNAL_);
-    ui_change();//恢复控件状态
+
+    if(ui_mode == CHAT_){ui->output->clear();}
+    ui_state_normal();//待机界面状态
 
     if(is_api)
     {
@@ -733,7 +714,6 @@ void Widget::on_date_clicked()
 void Widget::on_set_clicked()
 {
     ui_state = "ui:"+wordsObj["clicked"].toString()+wordsObj["set"].toString();reflash_state(ui_state,SIGNAL_);
-    if(ui_mode == SERVER_){server_process->kill();}//要在应用前关闭掉,否则再次启动不了
     if(ui_mode == CHAT_){chat_btn->setChecked(1),chat_change();}
     else if(ui_mode == COMPLETE_){complete_btn->setChecked(1),complete_change();}
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
@@ -781,9 +761,33 @@ void Widget::set_set()
     set_dialog->close();
     if(ui_mode!=CHAT_){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
     else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
-    if(current_server && ui_mode!=SERVER_){current_server=false;emit ui2bot_set(ui_SETTINGS,1);}//从服务模式回来强行重载
+    //从服务模式回来强行重载
+    if(current_server && ui_mode!=SERVER_)
+    {
+        current_server=false;
+        emit ui2bot_set(ui_SETTINGS,1);
+    }
     else if(ui_mode!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
-    modeChange();
+
+    //server.exe接管,不需要告知bot约定
+    if(ui_mode == SERVER_){emit server_kill();}//关闭重启
+    if(ui_mode==SERVER_)
+    {
+        ui_state_servering();//服务中界面状态
+        serverControl();
+    }
+    else
+    {
+        if(is_api)//api模式不发信号
+        {
+            ui_user_history.clear();
+            ui_assistant_history.clear();
+            if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
+            else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
+            ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
+            this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
+        }
+    }
 }
 
 //应用用户设置的约定内容
@@ -814,44 +818,12 @@ void Widget::set_date()
 
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
-    modeChange();//根据模式改变控件
-
 }
 
-void Widget::modeChange()
-{
-    //server.exe接管,不需要告知bot约定
-    if(ui_mode==SERVER_)
-    {
-        ui->output->clear();
-        ui->load->setEnabled(0);
-        ui->reset->setEnabled(0);
-        ui->input->setVisible(0);
-        ui->send->setVisible(0);
-        ui->date->setEnabled(0);
-        current_server = true;
-        serverControl();
-    }
-    else
-    {
-        ui->input->setVisible(1);
-        ui->send->setVisible(1);
-
-        if(is_api)
-        {
-            ui_user_history.clear();ui_assistant_history.clear();
-            if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
-            else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-            ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
-            this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
-            return ;
-        }//api模式不发信号
-
-    }
-}
-//server.exe接管
+// server.exe接管
 void Widget::serverControl()
 {
+    current_server = true;
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
@@ -880,14 +852,11 @@ void Widget::serverControl()
     QFile localFile(localPath);
 
     // 尝试打开本地文件进行写入
-    if (!localFile.open(QIODevice::WriteOnly)) {
-        qWarning("cannot write local");
-        return ;
+    if (localFile.open(QIODevice::WriteOnly)) 
+    {
+        localFile.write(fileData);
+        localFile.close();
     }
-
-    // 写入内容到本地文件
-    localFile.write(fileData);
-    localFile.close();
 
     // 设置要运行的exe文件的路径
     QString program = localPath;
@@ -907,11 +876,16 @@ void Widget::serverControl()
     if(ui_SETTINGS.mmprojpath!=""){arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
     // 开始运行程序
+    QProcess *server_process;//用来启动server.exe
+    server_process = new QProcess(this);//实例化
+    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
+    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号
+    connect(this,&Widget::server_kill, server_process, &QProcess::kill);
+
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
-    reflash_state("ui:      " + wordsObj["eva"].toString() + wordsObj["eva expand"].toString(),EVA_);
-    reflash_state("ui:" + QString("//////////////////////////"),EVA_);
+    reflash_state("ui:   " + wordsObj["eva"].toString() + wordsObj["eva expand"].toString(),EVA_);
+    
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();

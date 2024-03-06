@@ -245,9 +245,7 @@ int xBot::stream()
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
                     if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
                     else{emit bot2ui_arrivemaxctx(0);}
-                    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
                     emit bot2ui_state("bot:" + wordsObj["eva overload"].toString() + " " + wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",EVA_);
-                    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
                 }
             }
             else
@@ -338,17 +336,9 @@ int xBot::stream()
                 id_5 += QString("%1|").arg(id_, 7, 'd', 0, ' ');
                 std::string str_ = llama_token_to_piece(ctx, id_);
                 prob_5 += QString("%1%|").arg(cur_p.data[i].p * 100.0, 7, 'f', 0, ' ');
-                if(str_ == "\n" || str_ == "\r")
-                {
-                    word_5 += QString("%1").arg(wordsObj["<enter>"].toString() + "|", 7);//数字是固定长度
-                }
-                else if(id_ == eos_token)
+                if(id_ == eos_token)
                 {
                     word_5 += QString("%1").arg(wordsObj["<end>"].toString() + "|", 7);
-                }
-                else if(str_ == " ")
-                {
-                    word_5 += QString("%1").arg(wordsObj["<space>"].toString() + "|", 7);
                 }
                 else
                 {
@@ -509,9 +499,7 @@ void xBot::load(std::string &modelpath)
 #endif
     if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
     
-    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
-    emit bot2ui_state("bot:        " + wordsObj["eva loadding"].toString(),EVA_);
-    emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
+    emit bot2ui_state("bot:     " + wordsObj["eva loadding"].toString(),EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -532,9 +520,7 @@ void xBot::load(std::string &modelpath)
     {
         is_first_load = true;
         emit bot2ui_loadover(false, 0);
-        emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
         emit bot2ui_state("bot:" + wordsObj["eva broken"].toString()+ " " +wordsObj["right click and check model log"].toString(),EVA_);
-        emit bot2ui_state("bot:" + QString("//////////////////////////"),EVA_);
         return;
     }
 

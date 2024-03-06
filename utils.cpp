@@ -130,7 +130,7 @@ QString Widget::getFirstNonLoopbackIPv4Address() {
 }
 
 //第三方程序开始
-void Widget::onProcessStarted()
+void Widget::server_onProcessStarted()
 {
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
@@ -139,11 +139,18 @@ void Widget::onProcessStarted()
 }
 
 //第三方程序结束
-void Widget::onProcessFinished()
+void Widget::server_onProcessFinished()
 {
-    QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-    ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
-    ui_output = "\nserver"+wordsObj["shut down"].toString();output_scroll();
+    if(current_server)
+    {
+        ui_state = "ui:"+ wordsObj["old"].toString() + "server" + wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
+    }
+    else
+    {
+        QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
+        ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
+        ui_output = "\nserver"+wordsObj["shut down"].toString();output_scroll();
+    }
 }
 
 // 构建测试问题
