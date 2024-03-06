@@ -32,7 +32,7 @@ struct DATES{
     QString input_pfx;
     QString input_sfx;
     bool is_load_tool;
-
+    QStringList extra_stop_words;//额外停止标志
 };
 
 //设置参数

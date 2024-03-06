@@ -109,7 +109,7 @@
         "use prob random": "按概率随机",
         "detected": "检测到",
         "detecting": "检测",
-        "extra end flag": "额外终止标志",
+        "extra stop words": "额外停止标志",
         "load model": "装载模型",
         "free model and ctx": "释放旧的模型和上下文",
         "speedup": "加速支持",

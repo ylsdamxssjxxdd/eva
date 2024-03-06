@@ -16,8 +16,6 @@
 #include "llama.cpp/examples/llava/llava.h"
 #include "llama.cpp/common/stb_image.h"
 
-
-
 //llama模型类
 class xBot : public QThread
 {
@@ -61,6 +59,7 @@ public:
     int ga_i = 0;//记录拓展的上下文数量?
     int ga_n = 1;//拓展的倍数
     int ga_w = 512;//拓展时用于计算的宽度？group-attention width
+    
     //计算时间相关
     bool is_batch = false;
     float batch_time = 0.000001;
@@ -88,7 +87,7 @@ public:
     float vfree=0;
     bool is_multi=false;//是否为多模态
     bool is_load_tool=false;//是否挂载了工具
-
+    QStringList extra_stop_words;//额外停止标志
 
 public slots:
     void recv_language(QJsonObject wordsObj_);//传递使用的语言

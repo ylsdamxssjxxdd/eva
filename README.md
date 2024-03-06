@@ -3,14 +3,13 @@
 
 ## 特点
 - 直观
-    - 推理过程、采样过程、工作流程可视化
+    - 工作流程可视化
     - 输出区的内容就是模型的全部现实
 - win7
     - 最低支持32位windows7
     - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
 - 轻量
     - 机体没有其它依赖组件，就是一个exe程序
-    - 如果是cuda版本则需要安装cuda12版本的工具包 https://developer.nvidia.com/cuda-toolkit-archive
 - 多功能
     - 本地模型交互，在线模型交互(待完善)，多模态(待完善)，agent(待完善)，RAG(待完善)，对外api服务，模型评测
 ## 快速开始
@@ -29,6 +28,7 @@
 3. 服务模式
 4. 链接模式
 5. 挂载工具
+6. 更多功能
 ## 源码编译
 1. 配置环境
 ---记得先在系统环境变量中添加对应的qt5库
@@ -52,8 +52,12 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
 3. 根据需要修改CMakeLists.txt文件中的配置
 
 ## 待办事项
-按服务模式做法，在隐藏界面增加制作台选项
-- 制作台
+在更多界面增加模型工厂和工具工厂选项
+- 工具工厂
+    - 知识库工具
+    - 搜素引擎工具
+    - 大模型工具
+- 模型工厂
     - 模型训练
     - 模型下载
     - 模型转化
@@ -61,6 +65,13 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
     - 模型评估
     - 模型微调
 ## 已知BUG
+- csv文件存在特殊符号时不能正确解析，待修复
+- 多次按批解码会失败，通过暂时置入空的记忆来缓解，待修复
+- 部分字符utf-8解析有问题，已修复（模型输出不完整的utf8字符，需要手动将3个拼接成1个）
+- 切换模型时显存泄露，已修复（使用cuda时，不使用mmp）
+- 链接模式下行为还不够可控，待修复
+- 挂载视觉后模型输出异常，待修复
+- 服务模式点击设置就会先终止server.exe而不是点ok后，待修复
 ## 运行原理
 - 装载流程
     - ...
@@ -72,7 +83,9 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
     - ...
 - 发送流程
     - ...
-- 预解码流程
-    - ...
 - 工具调用流程
+    - ...    
+- 链接流程
+    - ...
+- 量化流程
     - ...

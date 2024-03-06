@@ -17,11 +17,12 @@ Widget::Widget(QWidget *parent)
     else{getWords(":/chinese.json");}
     //-------------初始化约定模板-------------
     ui_system_prompt = DEFAULT_PROMPT;ui_DATES.system_prompt = DEFAULT_PROMPT;ui_DATES.input_pfx = DEFAULT_PREFIX;ui_DATES.input_sfx = DEFAULT_SUFFIX;ui_DATES.is_load_tool = false;
+    ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
     date_map.insert("qwen", ui_DATES);
-    date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "### Instruction", "### Response",false});
-    date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false});
-    date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "### " + wordsObj["user"].toString(), "### " + wordsObj["troll"].toString(),false});
-    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "### " + wordsObj["driver"].toString(), "### eva",false});
+    date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "### Instruction", "### Response",false,QStringList{}});
+    date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
+    date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "### " + wordsObj["user"].toString(), "### " + wordsObj["troll"].toString(),false,QStringList{}});
+    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "### " + wordsObj["driver"].toString(), "### eva",false,QStringList{}});
     //-------------默认展示内容-------------
     ui_model_vocab = wordsObj["lode model first"].toString();//模型词表提示
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
@@ -613,8 +614,21 @@ void Widget::recv_datereset()
 {
     //打印约定的系统指令
     ui_state = "···········"+ wordsObj["date"].toString() + "···········";reflash_state(ui_state,USUAL_);
-    if(ui_mode == COMPLETE_){reflash_state("· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ",USUAL_);}
-    else{reflash_state("· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);}
+    if(ui_mode == COMPLETE_)
+    {
+        reflash_state("· "+ wordsObj["complete mode"].toString() + wordsObj["on"].toString() +" ",USUAL_);
+    }
+    else
+    {
+        reflash_state("· "+ wordsObj["system calling"].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);
+        QString stop_str;//展示额外停止标志
+        stop_str = wordsObj["extra stop words"].toString() + " ";
+        for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
+        {
+            stop_str += ui_DATES.extra_stop_words.at(i)+" ";
+        }
+        reflash_state("· "+ stop_str +" ",USUAL_);
+    }
     reflash_state("···········"+ wordsObj["date"].toString() + "···········",USUAL_);
     //is_datereset = true;
     ui->reset->click();
@@ -786,6 +800,18 @@ void Widget::set_date()
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = prompt_comboBox->currentText();
     ui_extra_lan = switch_lan_button->text();
+
+    //处理额外停止标志
+    ui_DATES.extra_stop_words.clear();//重置额外停止标志
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":\n";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+    ui_DATES.extra_stop_words << "<|im_end|>";//防chatml
+    if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
+    {
+        ui_DATES.extra_stop_words << "Observation:";
+        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toString();
+        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toString();
+    }
+
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
     modeChange();//根据模式改变控件

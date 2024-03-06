@@ -166,10 +166,9 @@ void xNet::run()
         });
         // 回复完成时退出事件循环
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-
     }
 
-    // 进入事件循环，等待回复
+    // 进入事件循环
     loop.exec();
 }
 

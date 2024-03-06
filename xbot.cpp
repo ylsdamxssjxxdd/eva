@@ -435,7 +435,7 @@ int xBot::stream()
                         }
                         else
                         {
-                            emit bot2ui_state("bot:"+ wordsObj["detected"].toString() + wordsObj["extra end flag"].toString() + " "  + QString::fromStdString(antiprompt));
+                            emit bot2ui_state("bot:"+ wordsObj["detected"].toString() + wordsObj["extra stop words"].toString() + " "  + QString::fromStdString(antiprompt));
                             emit bot2ui_state("bot:-----------------------------------------------" );
                         }
                         emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
@@ -594,13 +594,12 @@ void xBot::reset(bool is_clear_all)
     candidates = new std::vector<llama_token_data>;
     candidates->reserve(n_vocab);//词表采样矩阵
     gpt_params_.antiprompt.clear();//清空反提示
-    if(gpt_params_.input_prefix!=""){gpt_params_.antiprompt.push_back(gpt_params_.input_prefix);}//添加反提示,阻止模型输出前缀内容
-    gpt_params_.antiprompt.push_back("<|im_end|>");//添加chatml格式反提示
-    if(is_load_tool)//如果挂载了工具则添加调用工具反提示
+    for(int i = 0;i < extra_stop_words.size(); ++i)
     {
-        gpt_params_.antiprompt.push_back("Observation:");
-        gpt_params_.antiprompt.push_back(wordsObj["tool_observation"].toString().toStdString());
-        gpt_params_.antiprompt.push_back(wordsObj["tool_observation2"].toString().toStdString());
+        if(extra_stop_words.at(i)!="")
+        {
+            gpt_params_.antiprompt.push_back(extra_stop_words.at(i).toStdString());
+        }
     }
     if(!is_first_load){llama_sampling_free(sparams);}//清空采样参数
     sparams = llama_sampling_init(gpt_params_.sparams);//初始化采样参数
@@ -865,11 +864,11 @@ void xBot::recv_date(DATES date)
     if(date.input_sfx == ""){gpt_params_.input_suffix = "";}
     else{gpt_params_.input_suffix = date.input_sfx.toStdString() + ":\n";}
     is_load_tool = date.is_load_tool;
+    extra_stop_words = date.extra_stop_words;
 
     emit bot2ui_datereset();//bot发信号请求ui触发reset
-
-    
 }
+
 //释放
 void xBot::recv_free()
 {
@@ -933,6 +932,5 @@ bool xBot::isIncompleteUTF8(const std::string &text)
 //传递使用的语言
 void xBot::recv_language(QJsonObject wordsObj_)
 {
-    qDebug()<<"hello";
     wordsObj = wordsObj_;
 }
