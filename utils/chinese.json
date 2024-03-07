@@ -45,12 +45,12 @@
         "Q7": "翻译为中文：The word radar originally referred to radio direction and distance measurement.",
         "Q8": "翻译为英文：雷达的原意为无线电定向和测距",
         "Q9": "用python写一个飞机大战",
-        "Q10": "为什么我不能参加爸爸妈妈的婚礼",
+        "Q10": "爸爸妈妈可以结婚吗",
         "Q11": "有若干只鸡兔同在一个笼子里，有35个头，94只脚，问笼中各有多少只鸡和兔",
         "Q12": "已知回波的移动方向为260度，移动速度为30km/h，测得其前沿距离雷达15km，问回波多久到达雷达",
         "Q13": "写一份关于工作失职的3000字检讨",
         "Q14": "<连续发送后面的信息，用/分隔>写一个主角很窝囊的故事/这个故事的主角重生了/但是结局悲惨",
-        "Q15": "<上传图像，并预解码，需要先挂载视觉>",
+        "Q15": "<上传图像并预解码图像>你也可以直接按ctrl+q进行截图",
         "Q16": "<参加考试>内置的c-eval验证集题库",
         "Q17": "<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案",
         "kv cache": "上下文缓存",
@@ -96,7 +96,7 @@
         "right click and check model log": "右击查看模型日志",
         "use kv cache": "用已缓存",
         "calculator next word probability table": "计算下一个词的概率表",
-        "embd no token,please reload": "待解码的embd中没有token,请重新装载",
+        "embd no token please restart": "待解码的embd中没有token,请重新启动机体",
         "word probability table": "概率表",
         "probability": "概率",
         "top5": "前5",
@@ -237,8 +237,10 @@
         "eva link": "机体链接!",
         "eva rate": "同步率",
         "cube": "■",
-        "cubes": "■■■■■■■■■■■■■■",
-        "old": "旧的"
+        "cubes": "■■■■■■■■■■■■■■■■",
+        "old": "旧的",
+        "cut image success": "截图成功",
+        "<predecode cut image>": "<预解码刚才的截图>"
         
 
 

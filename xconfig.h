@@ -5,8 +5,8 @@
 
 //约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
-#define DEFAULT_PREFIX "### User"
-#define DEFAULT_SUFFIX "### Assistant"
+#define DEFAULT_PREFIX "User"
+#define DEFAULT_SUFFIX "Assistant"
 //采样
 #define DEFAULT_NPREDICT 2048
 #define DEFAULT_TEMP 0.5

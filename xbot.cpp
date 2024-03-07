@@ -293,7 +293,11 @@ int xBot::stream()
             if(is_batch){batch_count+=embd.size();batch_time +=time4.nsecsElapsed()/1000000000.0;}
             else{singl_count++;singl_time +=time4.nsecsElapsed()/1000000000.0;}
         }   
-        else{emit bot2ui_state("bot:" +wordsObj["embd no token,please reload"].toString(),WRONG_);return 0;}//待推理的embd没有token则退出
+        else
+        {
+            emit bot2ui_state("bot:" +wordsObj["embd no token please restart"].toString(),EVA_);
+            return 0;
+        }//待推理的embd没有token则退出
         embd.clear();//清空embd
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
@@ -487,7 +491,7 @@ void xBot::load(std::string &modelpath)
 #endif
     if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
     
-    emit bot2ui_state("bot:     " + wordsObj["eva loadding"].toString(),EVA_);
+    emit bot2ui_state("bot:" + wordsObj["eva loadding"].toString(),EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -674,7 +678,7 @@ void xBot::preDecode()
     }
     else//待推理的embd没有token则退出
     {
-        emit bot2ui_state("bot:" + wordsObj["embd no token,please reload"].toString(),WRONG_);//新增
+        emit bot2ui_state("bot:" + wordsObj["embd no token please restart"].toString(),EVA_);//新增
         return;
     }
 

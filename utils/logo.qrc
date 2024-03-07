@@ -29,11 +29,6 @@
         <file>ui/red_logo.png</file>
         <file>ui/sync.ico</file>
         <file>ui/TB0361.ico</file>
-        <file>ui/qmarkdownedit_image/edit-find-replace.png</file>
-        <file>ui/qmarkdownedit_image/format-text-superscript.png</file>
-        <file>ui/qmarkdownedit_image/go-bottom.png</file>
-        <file>ui/qmarkdownedit_image/go-top.png</file>
-        <file>ui/qmarkdownedit_image/window-close.png</file>
         <file>ui/connection-point-blue.png</file>
         <file>ui/connection-point-green.png</file>
     </qresource>

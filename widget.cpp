@@ -19,10 +19,10 @@ Widget::Widget(QWidget *parent)
     ui_system_prompt = DEFAULT_PROMPT;ui_DATES.system_prompt = DEFAULT_PROMPT;ui_DATES.input_pfx = DEFAULT_PREFIX;ui_DATES.input_sfx = DEFAULT_SUFFIX;ui_DATES.is_load_tool = false;
     ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
     date_map.insert("qwen", ui_DATES);
-    date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "### Instruction", "### Response",false,QStringList{}});
+    date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "Instruction", "Response",false,QStringList{}});
     date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
-    date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "### " + wordsObj["user"].toString(), "### " + wordsObj["troll"].toString(),false,QStringList{}});
-    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "### " + wordsObj["driver"].toString(), "### eva",false,QStringList{}});
+    date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "" + wordsObj["user"].toString(), "" + wordsObj["troll"].toString(),false,QStringList{}});
+    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "" + wordsObj["driver"].toString(), "eva",false,QStringList{}});
     //-------------默认展示内容-------------
     ui_model_vocab = wordsObj["lode model first"].toString();//模型词表提示
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
@@ -97,6 +97,12 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe_zh"].toString(),wordsObj["knowledge_func_describe_en"].toString()});
     tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
     tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
+
+    //-------------截图相关-------------
+    QShortcut* shortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);// 创建快捷键
+    connect(shortcut, &QShortcut::activated, this, &Widget::onShortcutActivated);// 连接信号和槽
+    // 传递截取的图像路径
+    QObject::connect(&cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
 }
 
 Widget::~Widget()
@@ -108,6 +114,7 @@ Widget::~Widget()
 //用户点击装载按钮处理
 void Widget::on_load_clicked()
 {
+    
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
     //用户选择模型位置
     QString model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH);
@@ -327,7 +334,7 @@ void Widget::on_send_clicked()
     {
         if(ui_need_predecode)
         {
-            input = "<ylsdamxssjxxdd:predecode>";//告诉bot开始预解码
+            input = "<ylsdamxssjxxdd:predecode>";//预解码指令
             ui_need_predecode = false;
             ui->reset->setEnabled(0);//预解码时不允许重置
             emit ui2bot_input({"",input,""},0);//传递用户输入  
@@ -387,7 +394,7 @@ void Widget::on_send_clicked()
         else//正常情况!!!
         {
             if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
-            //-----------------------Q16/Q17测试相关----------------------------
+            //-----------------------Q16测试相关----------------------------
             if(input ==  wordsObj["Q16"].toString())//开始测试开始
             {
                 ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
@@ -404,7 +411,8 @@ void Widget::on_send_clicked()
                 ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
                 
             }
-            else if (input ==  wordsObj["Q17"].toString())//自定义数据集
+            //-----------------------自定义数据集--------------------------
+            else if (input ==  wordsObj["Q17"].toString())
             {
                 ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
                 QString custom_csvpath = QFileDialog::getOpenFileName(this,wordsObj["Q17"].toString(),"D:/soul","CSV files (*.csv)");//用户选择自定义的csv文件
@@ -440,12 +448,33 @@ void Widget::on_send_clicked()
             else if(input == wordsObj["Q15"].toString())
             {
                 QString imagepath = QFileDialog::getOpenFileName(this,wordsObj["Q15"].toString(),"D:/soul","(*.png *.jpg *.bmp)");//用户选择图片
-                input = "<ylsdamxssjxxdd:imagedecode>";
+                input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
 
                 showImage(imagepath);//显示文件名和图像
 
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(imagepath);
+            }
+            //-----------------------如果是拖进来的文件-------------------------
+            else if(input.contains("file:///"))
+            {
+                QString imagepath = input.split("file:///")[1];
+                input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
+
+                showImage(imagepath);//显示文件名和图像
+
+                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_imagepath(imagepath);
+            }
+            //-----------------------截图-------------------------
+            else if(input == wordsObj["<predecode cut image>"].toString())
+            {
+                input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
+
+                showImage(cut_imagepath);//显示文件名和图像
+
+                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_imagepath(cut_imagepath);
             }
             //-----------------------正常情况----------------------------
             else
@@ -483,7 +512,6 @@ void Widget::recv_pushover()
 {
     ui_assistant_history << temp_assistant_history;
     temp_assistant_history = "";
-    //qDebug() << ui_assistant_history;
     if(is_test)//继续测试
     {
         if(is_api)
@@ -715,18 +743,48 @@ void Widget::on_date_clicked()
     prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     system_TextEdit->setText(ui_system_prompt);
 
-    if(ui_calculator_ischecked){calculator_checkbox->setChecked(1);}
-    if(ui_cmd_ischecked){cmd_checkbox->setChecked(1);}
-    if(ui_search_ischecked){search_checkbox->setChecked(1);}
-    if(ui_positron_ischecked){positron_checkbox->setChecked(1);}
-    if(ui_knowledge_ischecked){knowledge_checkbox->setChecked(1);}
-    if(ui_llm_ischecked){llm_checkbox->setChecked(1);}
+    calculator_checkbox->setChecked(ui_calculator_ischecked);
+    cmd_checkbox->setChecked(ui_cmd_ischecked);
+    search_checkbox->setChecked(ui_search_ischecked);
+    positron_checkbox->setChecked(ui_positron_ischecked);
+    knowledge_checkbox->setChecked(ui_knowledge_ischecked);
+    llm_checkbox->setChecked(ui_llm_ischecked);
 
     switch_lan_button->setText(ui_extra_lan);
     extra_TextEdit->setText(ui_extra_prompt);//这个要放到各个checkbox的后面来，可以保护用户的修改
 
     date_dialog->exec();
 }
+
+//应用用户设置的约定内容
+void Widget::set_date()
+{
+    ui_extra_prompt = extra_TextEdit->toPlainText();
+    ui_system_prompt = system_TextEdit->toPlainText();
+    //合并附加指令
+    if(ui_extra_prompt!=""){ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;}
+    else{ui_DATES.system_prompt = ui_system_prompt;}
+
+    ui_DATES.input_pfx = input_pfx_LineEdit->text();
+    ui_DATES.input_sfx = input_sfx_LineEdit->text();
+    ui_DATES.is_load_tool = is_load_tool;
+    ui_template = prompt_comboBox->currentText();
+    ui_extra_lan = switch_lan_button->text();
+
+    ui_calculator_ischecked = calculator_checkbox->isChecked();
+    ui_cmd_ischecked = cmd_checkbox->isChecked();
+    ui_search_ischecked = search_checkbox->isChecked();
+    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
+    ui_positron_ischecked = positron_checkbox->isChecked();
+    ui_llm_ischecked = llm_checkbox->isChecked();
+
+    //添加额外停止标志
+    addStopwords();
+
+    date_dialog->close();
+    emit ui2bot_date(ui_DATES);
+}
+
 //用户点击设置按钮响应
 void Widget::on_set_clicked()
 {
@@ -749,7 +807,22 @@ void Widget::on_set_clicked()
     port_lineEdit->setText(ui_port);
     set_dialog->exec();
 }
-//设置用户设置内容
+
+//用户按下截图键响应
+void Widget::onShortcutActivated()
+{
+    cutscreen_dialog.showFullScreen();
+}
+
+//接收传来的图像
+void Widget::recv_qimagepath(QString cut_imagepath_)
+{
+    cut_imagepath = cut_imagepath_;
+    reflash_state("ui:" + wordsObj["cut image success"].toString(),USUAL_);
+    ui->input->setPlainText(wordsObj["<predecode cut image>"].toString());
+}
+
+// 设置用户设置内容
 void Widget::set_set()
 {
     ui_SETTINGS.temp = temp_slider->value()/100.0;
@@ -805,35 +878,6 @@ void Widget::set_set()
             this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
         }
     }
-}
-
-//应用用户设置的约定内容
-void Widget::set_date()
-{
-    ui_extra_prompt = extra_TextEdit->toPlainText();
-    ui_system_prompt = system_TextEdit->toPlainText();
-    //合并附加指令
-    if(ui_extra_prompt!=""){ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;}
-    else{ui_DATES.system_prompt = ui_system_prompt;}
-
-    ui_DATES.input_pfx = input_pfx_LineEdit->text();
-    ui_DATES.input_sfx = input_sfx_LineEdit->text();
-    ui_DATES.is_load_tool = is_load_tool;
-    ui_template = prompt_comboBox->currentText();
-    ui_extra_lan = switch_lan_button->text();
-
-    ui_calculator_ischecked = calculator_checkbox->isChecked();
-    ui_cmd_ischecked = cmd_checkbox->isChecked();
-    ui_search_ischecked = search_checkbox->isChecked();
-    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
-    ui_positron_ischecked = positron_checkbox->isChecked();
-    ui_llm_ischecked = llm_checkbox->isChecked();
-
-    //添加额外停止标志
-    addStopwords();
-
-    date_dialog->close();
-    emit ui2bot_date(ui_DATES);
 }
 
 // server.exe接管
@@ -900,7 +944,7 @@ void Widget::serverControl()
 
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state("ui:   " + wordsObj["eva"].toString() + wordsObj["eva expand"].toString(),EVA_);
+    reflash_state("ui:" + wordsObj["eva"].toString() + wordsObj["eva expand"].toString(),EVA_);
     
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {

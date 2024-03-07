@@ -99,17 +99,8 @@ utils/customplaintextedit.cpp
 utils/customplaintextedit.h
 utils/doubleqprogressbar.cpp
 utils/doubleqprogressbar.h
-utils/qmarkdowntextedit/qplaintexteditsearchwidget.ui
-utils/qmarkdowntextedit/linenumberarea.h
-utils/qmarkdowntextedit/markdownhighlighter.h
-utils/qmarkdowntextedit/qmarkdowntextedit.h
-utils/qmarkdowntextedit/qownlanguagedata.h
-utils/qmarkdowntextedit/qplaintexteditsearchwidget.h
-utils/qmarkdowntextedit/qmarkdowntextedit.cpp
-utils/qmarkdowntextedit/markdownhighlighter.cpp
-utils/qmarkdowntextedit/qmarkdowntextedit.cpp
-utils/qmarkdowntextedit/qownlanguagedata.cpp
-utils/qmarkdowntextedit/qplaintexteditsearchwidget.cpp
+utils/CutScreenDialog.h
+utils/CutScreenDialog.cpp
 )
 
 #确保server先于eva编译

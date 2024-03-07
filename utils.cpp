@@ -182,7 +182,7 @@ void Widget::makeTestQuestion(QString dirPath)
 //显示文件名和图像
 void Widget::showImage(QString imagepath)
 {
-    ui_output = "\nimagefile:" + imagepath + "\n";
+    ui_output = "\nfile:///" + imagepath + "\n";
     output_scroll(ui_output);
     
     // 加载图片以获取其原始尺寸

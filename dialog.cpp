@@ -59,6 +59,11 @@ void Widget::init_move()
         movie_color <<QColor(0, 0, 0);
     }
 
+    //设置动画内容字体格式
+    movie_format.setFontWeight(QFont::Bold); // 设置粗体
+    movie_font.setPointSize(8);
+    movie_format.setFont(movie_font);
+
     load_pTimer = new QTimer(this);//连接接动画
     load_begin_pTimer = new QTimer(this);//向中滑动
     load_over_pTimer = new QTimer(this);//向下滑动
@@ -95,8 +100,7 @@ void Widget::set_dotcolor(QTextCharFormat *format,int load_action)
 void Widget::load_move()
 {
     QTextCursor cursor = ui->state->textCursor();
-    QTextCharFormat format;
-    QFont font;font.setPointSize(6);format.setFont(font);
+
 
     if(load_action % 2 ==0)
     {
@@ -105,8 +109,8 @@ void Widget::load_move()
         cursor.movePosition(QTextCursor::Right,QTextCursor::MoveAnchor,movie_dot.at(load_action / 2).y()-1);//向右移动到指定列
         cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
         cursor.removeSelectedText();//删除选中字符
-        set_dotcolor(&format,load_action / 2);//设置字体颜色
-        cursor.setCharFormat(format);//设置字体
+        set_dotcolor(&movie_format,load_action / 2);//设置字体颜色
+        cursor.setCharFormat(movie_format);//设置字体
         cursor.insertText("*");//插入字符
     }
     else
@@ -116,7 +120,7 @@ void Widget::load_move()
         cursor.movePosition(QTextCursor::Right,QTextCursor::MoveAnchor,movie_dot.at(load_action / 2 + 1).y()-1);//向右移动到指定列
         cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
         cursor.removeSelectedText();//删除选中字符
-        cursor.setCharFormat(format);//设置字体
+        cursor.setCharFormat(movie_format);//设置字体
         cursor.insertText(" ");//插入字符
     }
 
@@ -129,8 +133,7 @@ void Widget::load_play()
     QTextCursor cursor = ui->state->textCursor();
     cursor.movePosition(QTextCursor::End);
     cursor.insertText("\n");//插个回车
-    QTextCharFormat format;
-    QFont font;font.setPointSize(6);format.setFont(font);
+
     load_action = 0;
 
     //获取当前行数
@@ -146,15 +149,8 @@ void Widget::load_play()
     for(int i = 0;i<movie_line.size();++i)
     {
         cursor.movePosition(QTextCursor::End);//移到文本开头
-        cursor.setCharFormat(format);//设置字体
+        cursor.setCharFormat(movie_format);//设置字体
         cursor.insertText(movie_line.at(i)+"\n");//插入字符
-        //恢复字体大小
-        if(i==movie_line.size()-1)
-        {
-            font.setPointSize(9);format.setFont(font);
-            cursor.setCharFormat(format);//设置字体
-            //cursor.insertText("");    
-        }
     }
 
     //向下滑
@@ -352,6 +348,9 @@ void Widget::output_scroll(QString output, QColor color)
 void Widget::reflash_state(QString state_string,STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
+    QFont font;//字体
+    font.setPointSize(9);
+    format.setFont(font);
     //过滤回车和换行符
     state_string.replace("\n","\\n");
     state_string.replace("\r","\\r");
@@ -875,7 +874,7 @@ void Widget::set_DateDialog()
     {
         prompt_comboBox->addItem(key);
     }
-    prompt_comboBox->addItem(wordsObj["custom set"].toString());
+    prompt_comboBox->addItem(wordsObj["custom set"].toString());//添加自定义模板
     prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     connect(prompt_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
     layout_H9->addWidget(prompt_comboBox);
@@ -1074,23 +1073,27 @@ void Widget::decode_move()
     QTextCursor cursor(block);//取游标
     cursor.movePosition(QTextCursor::EndOfBlock);//游标移动到末尾
 
-    //三帧动画
-    if(decode_action % 6 == 0)
+    //四帧动画
+    if(decode_action % 8 == 0)
+    {
+        cursor.insertText("|");//插入字符
+    }
+    else if(decode_action % 8 == 2)
     {
         cursor.insertText("/");//插入字符
     }
-    else if(decode_action % 6 == 2)
+    else if(decode_action % 8 == 4)
     {
         cursor.insertText("-");//插入字符
     }
-    else if(decode_action % 6 == 4)
+    else if(decode_action % 8 == 6)
     {
         cursor.insertText("\\");//插入字符
     }
     else
     {
         cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
-        if(cursor.selectedText()=="\\"||cursor.selectedText()=="/"||cursor.selectedText()=="-")
+        if(cursor.selectedText()=="|"||cursor.selectedText()=="\\"||cursor.selectedText()=="/"||cursor.selectedText()=="-")
         {
             cursor.removeSelectedText();//删除选中字符
         }
@@ -1165,7 +1168,7 @@ void Widget::onConnected() {
         // Handle successful connection
     }
     is_api = true;
-    reflash_state("ui:   " + wordsObj["eva link"].toString(),EVA_);
+    reflash_state("ui:" + wordsObj["eva link"].toString(),EVA_);
     if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
     ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
@@ -1190,7 +1193,8 @@ void Widget::onError(QAbstractSocket::SocketError socketError) {
     is_api = false;
     ui_state = "ui:api"+wordsObj["port"].toString()+wordsObj["blocked"].toString();reflash_state(ui_state,WRONG_);
     this->setWindowTitle(wordsObj["eva"].toString());
-    ui->date->setEnabled(0);ui->set->setEnabled(0);
+    ui->date->setEnabled(0);
+    ui->set->setEnabled(0);
     ui->reset->setEnabled(0);
     ui->send->setEnabled(0);
     api_dialog->setDisabled(0);
@@ -1229,6 +1233,7 @@ void Widget::ui_state_init()
     ui->set->setEnabled(0);//设置按钮
     ui->reset->setEnabled(0);//重置按钮
     ui->send->setEnabled(0);//发送按钮
+    ui->output->setReadOnly(1);
 }
 
 // 装载中界面状态

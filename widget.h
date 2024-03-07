@@ -34,14 +34,14 @@
 #include <QNetworkRequest>
 #include <QTcpSocket>
 #include <QThread>
+#include <QShortcut>
 
 #include <windows.h>
 #include "utils/customplaintextedit.h"
 #include "utils/doubleqprogressbar.h"
+#include "utils/CutScreenDialog.h"
 #include "expend.h"
 #include "xconfig.h"//ui和bot都要导入的共有配置
-
-#include "utils/qmarkdowntextedit/qmarkdowntextedit.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -110,6 +110,8 @@ public:
 
     //视觉相关
     void showImage(QString imagepath);//显示文件名和图像
+    CutScreenDialog cutscreen_dialog;
+    QString cut_imagepath;
 
     //测试相关
     bool is_test  =false;//测试标签
@@ -205,6 +207,8 @@ public:
     QVector<QString> movie_line;
     QVector<QPointF> movie_dot;
     QVector<QColor> movie_color;
+    QTextCharFormat movie_format;//动画内容格式
+    QFont movie_font;//动画内容字体
     int load_action = 0;//动作计数
     QTimer *load_pTimer,*load_over_pTimer,*load_begin_pTimer;
     void init_move();//初始化动画参数
@@ -356,7 +360,8 @@ private slots:
     void on_reset_clicked();//用户点击遗忘按钮响应
     void on_date_clicked();//用户点击约定按钮响应
     void on_set_clicked();//用户点击设置按钮响应
-
+    void onShortcutActivated();//用户按下截图键响应
+    void recv_qimagepath(QString cut_imagepath_);//接收传来的图像
 
 private:
     Ui::Widget *ui;
