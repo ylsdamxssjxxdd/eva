@@ -17,11 +17,13 @@
 #include <QDateTime>
 #include <QDir>
 #include <QDeBug>
+#include <QJsonObject>
+
 class CutScreenDialog:public QDialog
 {
     Q_OBJECT
 public:
-    CutScreenDialog(QWidget *parent = nullptr);
+    CutScreenDialog(QWidget *parent = nullptr,QJsonObject wordsObj_= QJsonObject());
     ~CutScreenDialog();
 private:
     QPixmap m_screenPicture;

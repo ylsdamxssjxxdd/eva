@@ -99,15 +99,17 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
 
     //-------------截图相关-------------
+    cutscreen_dialog = new CutScreenDialog(this, wordsObj);
     QShortcut* shortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);// 创建快捷键
     connect(shortcut, &QShortcut::activated, this, &Widget::onShortcutActivated);// 连接信号和槽
     // 传递截取的图像路径
-    QObject::connect(&cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
+    QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
 }
 
 Widget::~Widget()
 {
     delete ui;
+    delete cutscreen_dialog;
     emit server_kill();
 }
 
@@ -811,7 +813,7 @@ void Widget::on_set_clicked()
 //用户按下截图键响应
 void Widget::onShortcutActivated()
 {
-    cutscreen_dialog.showFullScreen();
+    cutscreen_dialog->showFullScreen();
 }
 
 //接收传来的图像

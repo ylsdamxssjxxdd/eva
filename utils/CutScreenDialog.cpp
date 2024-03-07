@@ -1,13 +1,12 @@
 #include "CutScreenDialog.h"
 
-
-CutScreenDialog::CutScreenDialog(QWidget* parent):QDialog(parent)
+CutScreenDialog::CutScreenDialog(QWidget* parent,QJsonObject wordsObj_)
+:QDialog(parent)
 {
-
     this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);
     m_screenMenu = new QMenu(this);
-    m_screenMenu->addAction("save", this, &CutScreenDialog::slot_saveCapturedScreen);
-    m_screenMenu->addAction("save all", this, &CutScreenDialog::slot_saveFullScreen);
+    m_screenMenu->addAction(wordsObj_["save cut image"].toString(), this, &CutScreenDialog::slot_saveCapturedScreen);
+    m_screenMenu->addAction(wordsObj_["svae screen image"].toString(), this, &CutScreenDialog::slot_saveFullScreen);
 }
 
 CutScreenDialog::~CutScreenDialog()

@@ -110,7 +110,7 @@ public:
 
     //视觉相关
     void showImage(QString imagepath);//显示文件名和图像
-    CutScreenDialog cutscreen_dialog;
+    CutScreenDialog *cutscreen_dialog;
     QString cut_imagepath;
 
     //测试相关
