@@ -77,7 +77,7 @@ void xBot::run()
         {
             if(is_multi)
             {
-                emit bot2ui_state("bot:" + wordsObj["use mmproj model predecode image"].toString() + "...",USUAL_);
+                emit bot2ui_state("bot:" + wordsObj["use mmproj model predecode image"].toString(),USUAL_);
                 llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.c_str());
                 bool ok_ = llava_eval_image_embed(ctx, image_embed, gpt_params_.n_batch, &n_past);
                 emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量
@@ -121,6 +121,7 @@ void xBot::run()
             {
                 line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), true, true);
             }
+            
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
         //qDebug()<<"插入line_pfx后embd_inp"<<view_embd(ctx,embd_inp);
@@ -137,23 +138,10 @@ void xBot::run()
         is_antiprompt = false;//重置反提示标签
         is_first_input = false;
         //qDebug()<<"插入用户输入 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
-        //如果是对话模式,先输出用户的输入,起到一个验证的作用
-        if(!is_complete)
-        {
-            std::string token_str;
-            for (size_t i = original_size; i < embd_inp.size(); ++i)
-            {
-                const llama_token token = embd_inp[i];
-                history_tokens->push_back(token);
-                std::string sstr = llama_token_to_piece(ctx, token);
-                //暂时这么解决qwen的pad符号
-                if(!QString::fromStdString(sstr).contains("[PAD")){token_str += llama_token_to_piece(ctx, token);}
-            }
-            //如果是工具输出的结果给过来的话，用绿色，前缀后缀都是空则认为是工具
-            if(input.input_prefix==""&&input.input_suffix==""){emit bot2ui_output(QString::fromStdString(token_str),0,QColor(255, 165, 0));}
-            else{emit bot2ui_output(QString::fromStdString(token_str),USUAL_);}
-            
-        }
+        
+        push_out(line_pfx,0);//在输出区贴上用户昵称
+        push_out(line_inp,1);//在输出区贴上输入内容
+        push_out(line_sfx,2);//在输出区贴上模型昵称
 
         //---------------------embd_inp插入到embd中----------------------
         //qDebug()<<"插入前embd"<<view_embd(ctx,embd);
@@ -590,6 +578,8 @@ void xBot::reset(bool is_clear_all)
     is_first_input = true;//初次输入标签,对话模式中初次输前已经考虑add_bos,不再向用户输入插入开始标志
     candidates = new std::vector<llama_token_data>;
     candidates->reserve(n_vocab);//词表采样矩阵
+
+    //添加额外停止标志
     gpt_params_.antiprompt.clear();//清空反提示
     for(int i = 0;i < extra_stop_words.size(); ++i)
     {
@@ -598,6 +588,12 @@ void xBot::reset(bool is_clear_all)
             gpt_params_.antiprompt.push_back(extra_stop_words.at(i).toStdString());
         }
     }
+    //如果是多模态，针对yi-vl-6b增加额外停止标志
+    if(mmprojpath!="")
+    {
+        gpt_params_.antiprompt.push_back("###");
+    }
+
     if(!is_first_load){llama_sampling_free(sparams);}//清空采样参数
     sparams = llama_sampling_init(gpt_params_.sparams);//初始化采样参数
 
@@ -698,7 +694,7 @@ void xBot::preDecode()
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
 
-    emit bot2ui_output(QString::fromStdString(token_str),USUAL_);//将预解码内容贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str));//将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 
@@ -745,6 +741,45 @@ QString xBot::view_embd(llama_context *ctx_,std::vector<llama_token> embd_)
     return qstr;
 }
 
+//先输出用户发送过来的东西
+//context_pos 0是用户昵称 1是输入内容 2是模型昵称
+void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
+{
+    //如果是对话模式,先输出用户的输入,起到一个验证的作用
+    if(!is_complete)
+    {
+        std::string token_str;
+        for (size_t i = 0; i < embd_output.size(); ++i)
+        {
+            const llama_token token = embd_output[i];
+            history_tokens->push_back(token);
+            std::string sstr = llama_token_to_piece(ctx, token);
+            //暂时这么解决qwen的pad符号
+            if(!QString::fromStdString(sstr).contains("[PAD"))
+            {
+                token_str += sstr;
+            }
+        }
+        //如果是工具输出的结果给过来的话，用橘黄色，前缀后缀都是空则认为是工具
+        if(input.input_prefix==""&&input.input_suffix=="")
+        {
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(255, 165, 0));
+        }
+        else if(context_pos == 0)//用户昵称
+        {
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255));
+        }
+        else if(context_pos == 1)//输入内容
+        {
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 0));
+        }
+        else if(context_pos == 2)//模型昵称
+        {
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255));
+        }
+    }
+}
+
 //接受图片路径
 void xBot::recv_imagepath(QString image_path)
 {
@@ -781,6 +816,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     gpt_params_.sparams.temp = settings.temp;
     gpt_params_.sparams.penalty_repeat = settings.repeat;
     gpt_params_.n_predict = settings.npredict;
+
     bool reload_flag = false;//重载标签
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //如果gpu负载层数改变则重新加载模型,但是为999且ngl最大的情况除外

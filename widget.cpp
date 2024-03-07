@@ -441,7 +441,9 @@ void Widget::on_send_clicked()
             {
                 QString imagepath = QFileDialog::getOpenFileName(this,wordsObj["Q15"].toString(),"D:/soul","(*.png *.jpg *.bmp)");//用户选择图片
                 input = "<ylsdamxssjxxdd:imagedecode>";
-                ui_output = "\nfile:///" + imagepath + "\n";output_scroll();
+
+                showImage(imagepath);//显示文件名和图像
+
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(imagepath);
             }
@@ -472,7 +474,6 @@ void Widget::on_send_clicked()
     is_run =true;//模型正在运行标签
     emit ui2bot_push();//开始推理
     decode_play();//开启推理动画
-
     ui_state_pushing();//推理中界面状态
 }
 
@@ -636,6 +637,14 @@ void Widget::recv_setreset()
     else if(ui_mode == COMPLETE_){reflash_state("· " + wordsObj["complete mode"].toString(),USUAL_);}
     
     reflash_state("···········"+ wordsObj["set"].toString() + "···········",USUAL_);
+    //展示额外停止标志
+    QString stop_str;
+    stop_str = wordsObj["extra stop words"].toString() + " ";
+    for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
+    {
+        stop_str += ui_DATES.extra_stop_words.at(i) + " ";
+    }
+    reflash_state("· "+ stop_str +" ",USUAL_);
     
     ui->reset->click();
 }
@@ -820,16 +829,8 @@ void Widget::set_date()
     ui_positron_ischecked = positron_checkbox->isChecked();
     ui_llm_ischecked = llm_checkbox->isChecked();
 
-    //处理额外停止标志
-    ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":\n";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-    ui_DATES.extra_stop_words << "<|im_end|>";//防chatml
-    if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
-    {
-        ui_DATES.extra_stop_words << "Observation:";
-        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toString();
-        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toString();
-    }
+    //添加额外停止标志
+    addStopwords();
 
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
@@ -912,11 +913,12 @@ void Widget::serverControl()
             ui_state = "ui:server " +wordsObj["on"].toString()+wordsObj["success"].toString()+ ","+wordsObj["browser at"].toString()+ ipAddress + ":"+ ui_port;reflash_state(ui_state,SUCCESS_);
 
         }//替换ip地址
-        output_scroll();
-    });    connect(server_process, &QProcess::readyReadStandardError, [=]() {
+        output_scroll(ui_output);
+    });    
+    connect(server_process, &QProcess::readyReadStandardError, [=]() {
         ui_output = server_process->readAllStandardError();
         if(ui_output.contains("0.0.0.0")){ui_output.replace("0.0.0.0", ipAddress);}//替换ip地址
-        output_scroll();
+        output_scroll(ui_output);
     });
 }
 

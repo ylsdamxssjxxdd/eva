@@ -63,7 +63,7 @@ public:
 
     //ui控制相关
     void state_scroll(QString str);//向state末尾添加文本并滚动
-    void output_scroll(QColor color = QColor(0,0,0));
+    void output_scroll(QString output, QColor color = QColor(0,0,0));
     QString ui_output,ui_state;
     bool is_stop_output_scroll = false;//输出区滚动标签
     bool is_stop_state_scroll = false;//状态区滚动标签
@@ -107,6 +107,9 @@ public:
 
     float load_time = 0;
     QTimer *force_unlockload_pTimer;//到时间强制解锁
+
+    //视觉相关
+    void showImage(QString imagepath);//显示文件名和图像
 
     //测试相关
     bool is_test  =false;//测试标签
@@ -189,6 +192,7 @@ public:
     QString ui_extra_prompt;
     QString ui_system_prompt;
     QString create_extra_prompt();//构建附加指令
+    void addStopwords();//添加额外停止标志
     QMap<QString, TOOLS> tool_map;//工具包
     bool is_load_tool = false;//是否挂载了工具
     QStringList JSONparser(QString text);//输出解析器，提取JSON

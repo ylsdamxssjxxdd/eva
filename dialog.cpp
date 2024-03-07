@@ -270,9 +270,8 @@ void Widget::load_log_play()
 //output和state采用verticalScrollBar()控制滑动条,如果其在底部,有新内容加入将自动下滑,用户上滑后下滑效果取消
 
 //更新输出区,is_while表示从流式输出的token
-void Widget::reflash_output(const QString result,bool is_while, QColor color)
+void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
-    ui_output = result;
     if(is_test && is_while)//现在要知道是模型输出的答案还是预编码完成的结果,要将预编码完成的结果排除
     {
         test_count++;//已经加一了
@@ -280,13 +279,14 @@ void Widget::reflash_output(const QString result,bool is_while, QColor color)
         //答对，remove(' ')移除答案中的空格
         if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))//
         {
-            test_score++;output_scroll(Qt::green);
+            test_score++;
+            output_scroll(result, Qt::green);
             ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
         }
         //答错
         else
         {
-            output_scroll(Qt::red);
+            output_scroll(result, Qt::red);
             ui_state = "ui:"+ QString::number(test_count) + " " + wordsObj["answer error"].toString() + " " + wordsObj["right answer"].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
@@ -305,8 +305,7 @@ void Widget::reflash_output(const QString result,bool is_while, QColor color)
     else
     {
         //正常输出
-        ui_output = result;
-        output_scroll(color);
+        output_scroll(result, color);
     }
     if(is_while){temp_assistant_history += result;}
     
@@ -328,7 +327,7 @@ void Widget::output_scrollBarValueChanged(int value)
 }
 
 //向output末尾添加文本并滚动
-void Widget::output_scroll(QColor color)
+void Widget::output_scroll(QString output, QColor color)
 {
     QTextCursor cursor = ui->output->textCursor();
     QTextCharFormat textFormat;
@@ -337,7 +336,7 @@ void Widget::output_scroll(QColor color)
     cursor.movePosition(QTextCursor::End);//光标移动到末尾
     cursor.mergeCharFormat(textFormat);   // 应用文本格式
 
-    cursor.insertText(ui_output);//输出
+    cursor.insertText(output);//输出
 
     QTextCharFormat textFormat0;// 清空文本格式
     cursor.movePosition(QTextCursor::End);//光标移动到末尾

@@ -118,6 +118,20 @@ QString Widget::create_extra_prompt()
     
 }
 
+//添加额外停止标志
+void Widget::addStopwords()
+{
+    ui_DATES.extra_stop_words.clear();//重置额外停止标志
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":\n";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+    ui_DATES.extra_stop_words << "<|im_end|>";//防chatml
+    if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
+    {
+        ui_DATES.extra_stop_words << "Observation:";
+        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toString();
+        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toString();
+    }
+}
+
 //获取本机第一个ip地址
 QString Widget::getFirstNonLoopbackIPv4Address() {
     QList<QHostAddress> list = QNetworkInterface::allAddresses();
@@ -149,7 +163,8 @@ void Widget::server_onProcessFinished()
     {
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
         ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
-        ui_output = "\nserver"+wordsObj["shut down"].toString();output_scroll();
+        ui_output = "\nserver"+wordsObj["shut down"].toString();
+        output_scroll(ui_output);
     }
 }
 
@@ -164,7 +179,29 @@ void Widget::makeTestQuestion(QString dirPath)
     }
 }
 
-//清空题库
+//显示文件名和图像
+void Widget::showImage(QString imagepath)
+{
+    ui_output = "\nimagefile:" + imagepath + "\n";
+    output_scroll(ui_output);
+    
+    // 加载图片以获取其原始尺寸
+    QImage image(imagepath);
+    int originalWidth = image.width();
+    int originalHeight = image.height();
+
+    QTextCursor cursor(ui->output->textCursor());
+    cursor.movePosition(QTextCursor::End);
+
+    QTextImageFormat imageFormat;
+    imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+    imageFormat.setHeight(originalHeight); // 设置图片的高度
+    imageFormat.setName(imagepath);  // 图片资源路径
+
+    cursor.insertImage(imageFormat);
+}
+
+// 清空题库
 void Widget::clearQuestionlist()
 {
     filePathList.clear();

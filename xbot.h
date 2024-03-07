@@ -43,6 +43,10 @@ public:
     llama_context *ctx;//上下文
     clip_ctx * ctx_clip;//clip模型,编码图像用
 
+    //先输出用户发送过来的东西
+    //context_pos 0是用户昵称 1是输入内容 2是模型昵称
+    void push_out(std::vector<llama_token> embd_output, int context_pos);
+
     int n_vocab;//词表大小
     int n_ctx_train;//模型最大上下文长度
     int n_gpu_layers;//模型最大gpu负载层数
@@ -106,7 +110,7 @@ public slots:
 signals:
     void bot2ui_predecode(QString bot_predecode_);//传递模型预解码内容
     void bot2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
-    void bot2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
+    void bot2ui_output(const QString &result, bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号
     void bot2ui_pushover();//推理完成的信号
     void bot2ui_stopover();//完成停止的信号
