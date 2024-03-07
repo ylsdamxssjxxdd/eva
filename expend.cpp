@@ -1,10 +1,8 @@
 #include "expend.h"
 #include "ui_expend.h"
-#include <QScrollBar>
-#include <QTimer>
-#include <QDebug>
-Expend::Expend(QWidget *parent,QJsonObject wordsObj, QString vocab,QStringList model_logs) :
-    QDialog(parent),
+
+Expend::Expend(QWidget *parent, QJsonObject wordsObj, QString vocab, QStringList model_logs) :
+    QWidget(parent),
     ui(new Ui::Expend)
 {
     ui->setupUi(this);

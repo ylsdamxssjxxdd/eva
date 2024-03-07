@@ -62,7 +62,7 @@ public:
     void getWords(QString json_file_path);
 
     //ui控制相关
-    void state_scroll();//向state末尾添加文本并滚动
+    void state_scroll(QString str);//向state末尾添加文本并滚动
     void output_scroll(QColor color = QColor(0,0,0));
     QString ui_output,ui_state;
     bool is_stop_output_scroll = false;//输出区滚动标签
@@ -181,7 +181,7 @@ public:
 
     QGroupBox *tool_box;
     QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*llm_checkbox;
-    //bool ui_calculator_ischecked,ui_cmd_ischecked,ui_search_ischecked,ui_knowledge_ischecked,ui_positron_ischecked,ui_llm_ischecked;
+    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_search_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_llm_ischecked=0;
     QLabel *extra_label;//附加指令，行动纲领
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
@@ -285,8 +285,8 @@ signals:
 public slots:
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
-    void reflash_output(const QString &result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
-    void reflash_state(const QString &state_string, STATE state=USUAL_);//更新状态区
+    void reflash_output(const QString result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
+    void reflash_state(QString state_string, STATE state=USUAL_);//更新状态区
     void recv_loadover(bool ok_, float load_time_);//完成加载模型
     void recv_pushover();//推理完毕的后处理
     void recv_stopover();//停止完毕的后处理

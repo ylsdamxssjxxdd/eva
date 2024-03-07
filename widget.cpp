@@ -705,8 +705,16 @@ void Widget::on_date_clicked()
     //展示最近一次设置值
     prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     system_TextEdit->setText(ui_system_prompt);
-    extra_TextEdit->setText(ui_extra_prompt);
+
+    if(ui_calculator_ischecked){calculator_checkbox->setChecked(1);}
+    if(ui_cmd_ischecked){cmd_checkbox->setChecked(1);}
+    if(ui_search_ischecked){search_checkbox->setChecked(1);}
+    if(ui_positron_ischecked){positron_checkbox->setChecked(1);}
+    if(ui_knowledge_ischecked){knowledge_checkbox->setChecked(1);}
+    if(ui_llm_ischecked){llm_checkbox->setChecked(1);}
+
     switch_lan_button->setText(ui_extra_lan);
+    extra_TextEdit->setText(ui_extra_prompt);//这个要放到各个checkbox的后面来，可以保护用户的修改
 
     date_dialog->exec();
 }
@@ -804,6 +812,13 @@ void Widget::set_date()
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = prompt_comboBox->currentText();
     ui_extra_lan = switch_lan_button->text();
+
+    ui_calculator_ischecked = calculator_checkbox->isChecked();
+    ui_cmd_ischecked = cmd_checkbox->isChecked();
+    ui_search_ischecked = search_checkbox->isChecked();
+    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
+    ui_positron_ischecked = positron_checkbox->isChecked();
+    ui_llm_ischecked = llm_checkbox->isChecked();
 
     //处理额外停止标志
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
@@ -921,12 +936,12 @@ void Widget::recv_vocab(QString model_vocab)
 //创建扩展窗口
 void Widget::recv_createExpend()
 {
-    expend_ = new Expend(NULL,wordsObj,ui_model_vocab,ui_model_logs);
-    connect(expend_, &Expend::finished, expend_, &QObject::deleteLater);//保证正确释放控件内存
-    connect(this, &Widget::ui2expend_log,expend_,&Expend::recv_log);
-    connect(this, &Widget::ui2expend_vocab,expend_,&Expend::recv_vocab);
+    expend_ = new Expend(NULL, wordsObj, ui_model_vocab, ui_model_logs);
+    connect(expend_, &Expend::destroyed, expend_, &Expend::deleteLater);//保证正确释放控件内存
+    connect(this, &Widget::ui2expend_log, expend_,&Expend::recv_log);
+    connect(this, &Widget::ui2expend_vocab, expend_,&Expend::recv_vocab);
+    expend_->setAttribute(Qt::WA_DeleteOnClose); // 确保关闭窗口时删除对象
     expend_->show();
-    expend_->exec();
 }
 
 //接收缓存量
@@ -958,57 +973,6 @@ void Widget::recv_log(QString log)
             ngl_slider->setMaximum(maxngl);
         #endif
     }
-    //截获装载进度,需要修改llama.cpp里的llama_load_model_from_file函数
-    /*
-    while (percentage > cur_percent) 
-    {
-        cur_percent++;
-        LLAMA_LOG_INFO("load_percent = %d",cur_percent);
-        if (cur_percent >= 100) {
-            LLAMA_LOG_INFO("\n");
-        }
-    }
-    if(percentage > *cur_percentage_p)
-    {
-        *cur_percentage_p = percentage;
-    }
-    */
-    //注意匹配格式
-    else if(log.contains("load_percent"))
-    {
-        //上一次也是这个则删除它
-        if(load_percent_tag)
-        {
-            ui_model_logs.removeLast();
-        }
-        load_percent_tag = true;
-        load_percent = log.split("=")[1].toInt();
-        load_log_play();//按日志显示装载进度
-    }
-    // else if(log.contains("CPU buffer size"))
-    // {
-    //     model_memusage = log.split("=")[1].split("MiB")[0];
-    //     ui->mem_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_memusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_memusage + "\n" + wordsObj["else unknown"].toString());
-
-    // }
-    // else if(log.contains("KV self size"))
-    // {
-    //     ctx_memusage = log.split("=")[1].split("MiB")[0];
-    //     ui->mem_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_memusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_memusage + "\n" + wordsObj["else unknown"].toString());
-    // }
-    // else if(log.contains("KV buffer size"))
-    // {
-    //     ctx_vramusage = log.split("=")[1].split("MiB")[0];
-    //     ui->vram_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_vramusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_vramusage + "\n" + wordsObj["else unknown"].toString());
-    // }
-    // else if(log.contains("offloading 0 repeating layers to GPU"))
-    // {
-    //     model_vramusage = "0";
-    //     ctx_vramusage = "0";
-    //     ui->vram_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_vramusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_vramusage + "\n" + wordsObj["else unknown"].toString());
-    // }
-
-
     if(log == "\n")
     {
         emit ui2expend_log(log);//单条记录

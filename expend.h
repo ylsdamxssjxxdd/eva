@@ -1,13 +1,16 @@
 #ifndef EXPEND_H
 #define EXPEND_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QJsonObject>
+#include <QScrollBar>
+#include <QTimer>
+#include <QDebug>
 namespace Ui {
 class Expend;
 }
 
-class Expend : public QDialog
+class Expend : public QWidget
 {
     Q_OBJECT
 

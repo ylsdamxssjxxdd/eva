@@ -6,7 +6,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
 #####################################处理编译选项####################################

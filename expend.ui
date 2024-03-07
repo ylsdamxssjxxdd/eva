@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Expend</class>
- <widget class="QDialog" name="Expend">
+ <widget class="QWidget" name="Expend">
   <property name="geometry">
    <rect>
     <x>0</x>

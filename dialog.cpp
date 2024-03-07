@@ -267,11 +267,10 @@ void Widget::load_log_play()
 //-------------------------------------------------------------------------
 //------------------------------文字输出相关--------------------------------
 //-------------------------------------------------------------------------
-//output采用verticalScrollBar()控制滑动条,如果其在底部,有新内容加入将自动下滑,用户上滑后下滑效果取消
-//state通过append()来控制滑动条,如果其在底部,有新内容加入将自动下滑,用户上滑后下滑效果取消,且每次预解码完毕后强制下滑见底
+//output和state采用verticalScrollBar()控制滑动条,如果其在底部,有新内容加入将自动下滑,用户上滑后下滑效果取消
 
 //更新输出区,is_while表示从流式输出的token
-void Widget::reflash_output(const QString &result,bool is_while, QColor color)
+void Widget::reflash_output(const QString result,bool is_while, QColor color)
 {
     ui_output = result;
     if(is_test && is_while)//现在要知道是模型输出的答案还是预编码完成的结果,要将预编码完成的结果排除
@@ -351,25 +350,24 @@ void Widget::output_scroll(QColor color)
 }
 
 //更新状态区
-void Widget::reflash_state(const QString &state_string,STATE state)
+void Widget::reflash_state(QString state_string,STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
-    ui_state = state_string;
     //过滤回车和换行符
-    ui_state.replace("\n","\\n");
-    ui_state.replace("\r","\\r");
+    state_string.replace("\n","\\n");
+    state_string.replace("\r","\\r");
     if(state==USUAL_)//一般黑色
     {
         format.clearForeground();//清除前景颜色
         format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll(state_string);
     }
     else if(state==SUCCESS_)//正常绿色
     {
         format.setForeground(QColor(0,200,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -377,7 +375,7 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     {
         format.setForeground(QColor(200,0,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -385,7 +383,7 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     {
         format.setForeground(QColor(0,0,200));    // 蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -400,10 +398,17 @@ void Widget::reflash_state(const QString &state_string,STATE state)
         //format.setForeground(QColor(128,0,128));    // 紫色设置前景颜色
         format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
+        //■■■■■■■■■■■■■■
+        state_scroll(wordsObj["cubes"].toString());//显示
+        //中间内容
+        format.setFontItalic(false);         // 取消斜体
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+        state_scroll(state_string);//显示
+        //■■■■■■■■■■■■■■
+        format.setFontItalic(true);        // 设置斜体
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+        state_scroll(wordsObj["cubes"].toString());//显示
         
-        ui_state = wordsObj["cubes"].toString() + "\n" + ui_state + "\n" + wordsObj["cubes"].toString();//添加方块
-        state_scroll();//显示
-
         format.setFontWeight(QFont::Normal); // 取消粗体
         format.setFontItalic(false);         // 取消斜体
         format.clearForeground();//清除前景颜色
@@ -413,7 +418,7 @@ void Widget::reflash_state(const QString &state_string,STATE state)
     {
         format.setForeground(QColor(255, 165, 0));    //橘黄色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll();
+        state_scroll(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -421,10 +426,11 @@ void Widget::reflash_state(const QString &state_string,STATE state)
 }
 
 //向state末尾添加文本并滚动
-void Widget::state_scroll()
+void Widget::state_scroll(QString str)
 {
-    ui->state->appendPlainText(ui_state);
-    if(!is_stop_state_scroll)//如果停止标签没有启用,则每次输出完自动滚动到最下面
+    ui->state->appendPlainText(str);
+    //如果停止标签没有启用,则每次输出完自动滚动到最下面
+    if(!is_stop_state_scroll)
     {
        ui->state->verticalScrollBar()->setValue(ui->state->verticalScrollBar()->maximum());//滚动条滚动到最下面
     }
@@ -852,7 +858,7 @@ void Widget::set_DateDialog()
 {
     date_dialog = new QDialog;
     date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
-    date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
+    //date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     date_dialog->resize(150, 200); // 设置宽度,高度
     QVBoxLayout *layout = new QVBoxLayout(date_dialog);//垂直布局器
     //layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
@@ -965,7 +971,8 @@ void Widget::set_DateDialog()
     layout->addWidget(tool_box);
     connect(switch_lan_button, &QPushButton::clicked, this, &Widget::switch_lan_change);
     
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, Qt::Horizontal, date_dialog);// 创建 QDialogButtonBox 用于确定按钮
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);// 创建 QDialogButtonBox 用于确定按钮
+    
     layout->addWidget(buttonBox);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);
     connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);

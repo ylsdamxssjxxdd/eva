@@ -504,6 +504,17 @@ void xBot::load(std::string &modelpath)
     
     //装载模型
     std::tie(model, ctx) = llama_init_from_gpt_params(gpt_params_);//同时获取model和ctx
+
+    // //看看可以打印的关于模型信息
+    // for(int i = 0;i<llama_model_meta_count(model);++i)
+    // {
+    //     char value[128];
+    //     char key[128];
+    //     int32_t res1 = llama_model_meta_key_by_index(model, i, key, sizeof(key));
+    //     int32_t res2 = llama_model_meta_val_str_by_index(model, i, value, sizeof(value));
+    //     printf("%d %s %s\n", i, key, value);
+    // }
+    
     //挂载视觉
     if(mmprojpath!="")
     {
