@@ -16,6 +16,7 @@
 #include <qscreen.h>
 #include <QDateTime>
 #include <QDir>
+#include <QDeBug>
 class CutScreenDialog:public QDialog
 {
     Q_OBJECT
@@ -26,7 +27,7 @@ private:
     QPixmap m_screenPicture;
     QPixmap backgroundPicture;
     bool m_isMousePressed = false;
-    QPoint m_startPos, m_endPos;
+    QPoint m_startPos, m_endPos, m_startPos_fixed;
     QMenu *m_screenMenu;
 
 

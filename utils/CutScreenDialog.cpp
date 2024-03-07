@@ -75,14 +75,11 @@ void CutScreenDialog::paintEvent(QPaintEvent *event)
     pen.setWidth(1);
     painter.setPen(pen);
     painter.drawPixmap(0, 0, backgroundPicture);
-
-
     QRect rect(getCapturedRect(m_startPos, m_endPos));
-
+    
     if (rect.isValid()) {
-        painter.drawPixmap(rect.x(), rect.y(), m_screenPicture.copy(rect));
+        painter.drawPixmap(rect.x()/devicePixelRatioF(), rect.y()/devicePixelRatioF(), m_screenPicture.copy(rect));
     }
-
 
 }
 
@@ -90,23 +87,29 @@ void CutScreenDialog::mousePressEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton){
         m_isMousePressed = true;
-        m_startPos = event->pos();
+        m_startPos = event->pos()*devicePixelRatioF();//devicePixelRatioF()是缩放系数
+        //qDebug()<<"m_startPos"<<m_startPos;
+    }
+}
+
+void CutScreenDialog::mouseMoveEvent(QMouseEvent *event)
+{
+    if(m_isMousePressed){
+       m_endPos = event->pos()*devicePixelRatioF();//devicePixelRatioF()是缩放系数
+       m_startPos_fixed = m_startPos;
+       //qDebug()<<"m_endPos"<<m_endPos;
+       update();  //产生绘图事件
     }
 }
 
 void CutScreenDialog::mouseReleaseEvent(QMouseEvent *event)
 {
     m_isMousePressed = false;
+    m_screenMenu->exec(cursor().pos());
 
 }
 
-void CutScreenDialog::mouseMoveEvent(QMouseEvent *event)
-{
-    if(m_isMousePressed){
-       m_endPos = event->pos();
-       update();  //产生绘图事件
-    }
-}
+
 
 void CutScreenDialog::contextMenuEvent(QContextMenuEvent *event)
 {
@@ -129,7 +132,7 @@ void CutScreenDialog::keyPressEvent(QKeyEvent *event)
 void CutScreenDialog::slot_saveCapturedScreen() //保存图片动作被点击
 {
     QClipboard *clipboard = QApplication::clipboard();
-    QRect rect(getCapturedRect(m_startPos, m_endPos));
+    QRect rect(getCapturedRect(m_startPos_fixed, m_endPos));
     clipboard->setPixmap(m_screenPicture.copy(rect));
     clearinformation();
 
