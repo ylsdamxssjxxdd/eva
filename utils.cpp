@@ -221,9 +221,9 @@ void Widget::recordAudio()
     }
     _audioInput = new QAudioInput(devInfo,audioFormat,this);
 
-    QDateTime audio_DateTime = QDateTime::currentDateTime();
-    QString dateTimeString = audio_DateTime.toString("yyyy-hh-mm-ss");
-    QString audiopath = "/" + QString("EVA_") + dateTimeString + ".wav";
+    // QDateTime audio_DateTime = QDateTime::currentDateTime();
+    // QString dateTimeString = audio_DateTime.toString("yyyy-hh-mm-ss");
+    QString audiopath = "/" + QString("EVA_") + ".wav";
     outFilePath = qApp->applicationDirPath() + audiopath;
     outFile.setFileName(outFilePath); //语音原始文件
     outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -231,11 +231,11 @@ void Widget::recordAudio()
     audio_timer->start(100);  // 每隔100毫秒刷新一次
 }
 
+// 每隔100毫秒刷新一次
 void Widget::monitorAudioLevel()
 {
     audio_time += 100;
-    ui_state_recoding();
-    qDebug() << audio_time;
+    ui_state_recoding();//更新输入区
 }
 
 //停止录音
