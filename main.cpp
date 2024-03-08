@@ -3,6 +3,7 @@
 #include "xnet.h"
 #include "xtool.h"
 #include "xbert.h"
+#include "expend.h"
 #include <locale>
 #include <QStyleFactory>
 #ifdef BODY_USE_CUBLAST
@@ -26,12 +27,13 @@ int main(int argc, char *argv[])
 
     //------------------实例化主要节点------------------
     Widget w;//窗口实例
+    Expend expend;//扩展实例
     xBot bot;//模型实例
     xNet net;//链接实例
     xBert bert;//嵌入实例
     xTool tool;//工具实例
 
-    bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
+    expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
     llama_log_set(bot_log_callback,&bot);//设置回调
 #ifdef BODY_USE_CUBLAST
     gpuChecker gpuer;//监测显卡信息
@@ -53,7 +55,6 @@ int main(int argc, char *argv[])
     QObject::connect(&bot,&xBot::bot2ui_resetover,&w,&Widget::recv_resetover);//完成重置,预解码约定
     QObject::connect(&bot,&xBot::bot2ui_stopover,&w,&Widget::recv_stopover);//完成停止
     QObject::connect(&bot,&xBot::bot2ui_arrivemaxctx,&w,&Widget::recv_arrivemaxctx);//模型达到最大上下文
-    QObject::connect(&bot,&xBot::bot2ui_device,&w,&Widget::recv_device);//传递支持设备信息
     QObject::connect(&bot,&xBot::bot2ui_reload,&w,&Widget::recv_reload);//设置参数改变,重载模型
     QObject::connect(&bot,&xBot::bot2ui_datereset,&w,&Widget::recv_datereset);//bot发信号请求ui触发reset
     QObject::connect(&bot,&xBot::bot2ui_setreset,&w,&Widget::recv_setreset);//bot发信号请求ui触发reset
@@ -78,6 +79,11 @@ int main(int argc, char *argv[])
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
 #endif
+
+    //------------------连接扩展和窗口-------------------
+    QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
+    QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
+    QObject::connect(&w, &Widget::ui2expend_vocab, &expend, &Expend::recv_vocab);
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新

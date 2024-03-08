@@ -185,10 +185,10 @@ void Widget::showImage(QString imagepath)
     ui_output = "\nfile:///" + imagepath + "\n";
     output_scroll(ui_output);
     
-    // 加载图片以获取其原始尺寸
+    // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
     QImage image(imagepath);
-    int originalWidth = image.width();
-    int originalHeight = image.height();
+    int originalWidth = image.width()/devicePixelRatioF();
+    int originalHeight = image.height()/devicePixelRatioF();
 
     QTextCursor cursor(ui->output->textCursor());
     cursor.movePosition(QTextCursor::End);
@@ -412,4 +412,31 @@ QString Widget::makeHelpInput()
         help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
     }
     return help_input;
+}
+
+//监听操作系统
+bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *result)
+{
+    Q_UNUSED(eventType)
+    Q_UNUSED(result)
+    // Transform the message pointer to the MSG WinAPI
+    MSG* msg = reinterpret_cast<MSG*>(message);
+ 
+    // If the message is a HotKey, then ...
+    if(msg->message == WM_HOTKEY){
+        // ... check HotKey
+        if(msg->wParam == 7758258)
+        {
+            // We inform about this to the console
+            onShortcutActivated();//处理截图事件
+            return true;
+        }
+        else if (msg->wParam == 123456)
+        {
+            qDebug()<<"whisper";
+            return true;
+        }
+        
+    }
+    return false;
 }

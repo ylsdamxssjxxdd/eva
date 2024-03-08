@@ -35,12 +35,12 @@
 #include <QTcpSocket>
 #include <QThread>
 #include <QShortcut>
+#include <QTextBlock>
+#include <QTextCursor>
 
 #include <windows.h>
-#include "utils/customplaintextedit.h"
 #include "utils/doubleqprogressbar.h"
 #include "utils/CutScreenDialog.h"
-#include "expend.h"
 #include "xconfig.h"//ui和bot都要导入的共有配置
 
 QT_BEGIN_NAMESPACE
@@ -55,8 +55,9 @@ public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
-
+    bool nativeEvent(const QByteArray &eventType, void *message, long *result);//监听操作系统
 public:
+    //bool registerGlobalHotKey();
     //拯救中文
     QJsonObject wordsObj;
     void getWords(QString json_file_path);
@@ -69,7 +70,6 @@ public:
     bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
-    Expend *expend_;//了解更多
     QStringList questions;//用户右击的问题
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
 
@@ -283,6 +283,8 @@ signals:
 //发送给tool的信号
     void ui2tool_push();//开始推理
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
+//发送给expend的信号
+    void ui2expend_show(bool is_show);//通知显示扩展窗口
 //自用信号
 signals:
     void server_kill();//终止server信号
@@ -303,7 +305,6 @@ public slots:
     void recv_reload();//gpu负载层数改变,重载模型
     void recv_setreset();//bot发信号请求ui触发reset
     void recv_datereset();//bot发信号请求ui触发reset
-    void recv_device(QString device_);//接受支持设备信息
     void recv_params(PARAMS p);//bot将模型参数传递给ui
     void recv_vocab(QString model_vocab);//接收模型词表
     void recv_kv(float percent, int ctx_size);//接收缓存量
@@ -324,7 +325,6 @@ private slots:
     void onConnected();//检测ip是否通畅
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void updateStatus(); //更新cpu内存使用率
-    void recv_createExpend();//创建扩展窗口
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void state_scrollBarValueChanged(int value);//状态区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容

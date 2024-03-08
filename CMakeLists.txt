@@ -71,6 +71,8 @@ set(LOGO_FILES
 utils/ui/ico.rc
 )
 
+add_compile_definitions(BUILD_QXT_CORE)#全局截图qxtglobalshortcut需要的宏
+
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
 #WIN32
@@ -95,8 +97,6 @@ xtool.h
 xconfig.h
 widget.ui
 expend.ui
-utils/customplaintextedit.cpp
-utils/customplaintextedit.h
 utils/doubleqprogressbar.cpp
 utils/doubleqprogressbar.h
 utils/CutScreenDialog.h

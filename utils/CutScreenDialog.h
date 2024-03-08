@@ -23,14 +23,15 @@ class CutScreenDialog:public QDialog
 {
     Q_OBJECT
 public:
-    CutScreenDialog(QWidget *parent = nullptr,QJsonObject wordsObj_= QJsonObject());
+    CutScreenDialog(QWidget *parent = nullptr);
     ~CutScreenDialog();
+    void init_action(QString act1_name,QString act2_name);
 private:
     QPixmap m_screenPicture;
     QPixmap backgroundPicture;
     bool m_isMousePressed = false;
     QPoint m_startPos, m_endPos, m_startPos_fixed;
-    QMenu *m_screenMenu;
+    QMenu m_screenMenu;
 
 
 private:

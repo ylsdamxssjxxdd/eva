@@ -15,19 +15,23 @@ class Expend : public QWidget
     Q_OBJECT
 
 public:
-    Expend(QWidget *parent = nullptr,QJsonObject wordsObj_= QJsonObject(), QString vocab=nullptr, QStringList model_logs = QStringList());
+    Expend(QWidget *parent = nullptr);
     ~Expend();
-    QJsonObject wordsObj_;
-    QString vocab_;
-    QString model_logs_;
-    bool is_show_vocab = false;
-    bool is_show_logs = false;
+    QJsonObject wordsObj;
+    QString vocab;
+    QString model_logs;
+    bool is_first_show_expend = true;
+    bool is_first_show_vocab = true;
+    bool is_first_show_logs = true;
+    bool is_first_show_info = true;
     bool load_percent_tag = false;
 public slots:
     void recv_log(QString log);
     void recv_vocab(QString vocab);
+    void recv_expend_show(bool is_show);//通知显示扩展窗口
+
 private slots:
-    void on_tabWidget_tabBarClicked(int index);
+    void on_tabWidget_tabBarClicked(int index);//用户切换选项卡时响应
 
 private:
     Ui::Expend *ui;

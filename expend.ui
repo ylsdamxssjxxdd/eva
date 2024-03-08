@@ -35,7 +35,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -58,7 +58,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QTextBrowser" name="version_log">
+        <widget class="QTextBrowser" name="version_card">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -111,7 +111,7 @@ p, li { white-space: pre-wrap; }
         <number>0</number>
        </property>
        <item>
-        <widget class="QPlainTextEdit" name="model_vocab">
+        <widget class="QPlainTextEdit" name="vocab_card">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -143,7 +143,7 @@ p, li { white-space: pre-wrap; }
         <number>0</number>
        </property>
        <item>
-        <widget class="QTextBrowser" name="textBrowser">
+        <widget class="QTextEdit" name="info_card">
          <property name="html">
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
@@ -176,11 +176,11 @@ p, li { white-space: pre-wrap; }
         <number>0</number>
        </property>
        <item>
-        <widget class="QPlainTextEdit" name="model_log">
+        <widget class="QPlainTextEdit" name="modellog_card">
          <property name="font">
           <font>
            <family>Arial</family>
-           <pointsize>9</pointsize>
+           <pointsize>10</pointsize>
           </font>
          </property>
          <property name="plainText">
@@ -197,8 +197,6 @@ p, li { white-space: pre-wrap; }
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="logo.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -1,14 +1,18 @@
 #include "CutScreenDialog.h"
 
-CutScreenDialog::CutScreenDialog(QWidget* parent,QJsonObject wordsObj_)
+CutScreenDialog::CutScreenDialog(QWidget* parent)
 :QDialog(parent)
 {
     this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);
-    m_screenMenu = new QMenu(this);
-    m_screenMenu->addAction(wordsObj_["save cut image"].toString(), this, &CutScreenDialog::slot_saveCapturedScreen);
-    m_screenMenu->addAction(wordsObj_["svae screen image"].toString(), this, &CutScreenDialog::slot_saveFullScreen);
+
 }
 
+void CutScreenDialog::init_action(QString act1_name,QString act2_name)
+{
+    m_screenMenu.clear();
+    m_screenMenu.addAction(act1_name, this, &CutScreenDialog::slot_saveCapturedScreen);
+    m_screenMenu.addAction(act2_name, this, &CutScreenDialog::slot_saveFullScreen);
+}
 CutScreenDialog::~CutScreenDialog()
 {
 
@@ -17,7 +21,6 @@ CutScreenDialog::~CutScreenDialog()
 void CutScreenDialog::clearinformation()
 {
     this->m_startPos = this->m_endPos = QPoint();
-
 }
 
 QRect CutScreenDialog::getCapturedRect(QPoint startpos, QPoint endpos)
@@ -104,7 +107,7 @@ void CutScreenDialog::mouseMoveEvent(QMouseEvent *event)
 void CutScreenDialog::mouseReleaseEvent(QMouseEvent *event)
 {
     m_isMousePressed = false;
-    m_screenMenu->exec(cursor().pos());
+    m_screenMenu.exec(cursor().pos());
 
 }
 
@@ -113,18 +116,14 @@ void CutScreenDialog::mouseReleaseEvent(QMouseEvent *event)
 void CutScreenDialog::contextMenuEvent(QContextMenuEvent *event)
 {
     this->setCursor(Qt::ArrowCursor);
-    m_screenMenu->exec(cursor().pos());
+    m_screenMenu.exec(cursor().pos());
 }
 
 void CutScreenDialog::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() == Qt::Key_Escape) {
 
-        clearinformation();
-        hide();
-    } else {
-        QDialog::keyPressEvent(event);
-    }
+    clearinformation();
+    hide();
 
 }
 

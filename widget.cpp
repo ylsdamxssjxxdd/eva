@@ -54,12 +54,13 @@ Widget::Widget(QWidget *parent)
     //-------------默认启用功能-------------
     //this->setMouseTracking(true);//开启鼠标跟踪
     //ui->state->setMouseTracking(true);//开启鼠标跟踪
-    QObject::connect(ui->state,&customPlainTextEdit::createExpend,this,&Widget::recv_createExpend);//传递信号创建更多窗口
     //ui->output->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->installEventFilter(this);//安装事件过滤器
     ui->load->installEventFilter(this);//安装事件过滤器
     api_ip_LineEdit->installEventFilter(this);//安装事件过滤器
+    ui->state->setContextMenuPolicy(Qt::NoContextMenu);//取消右键
+    ui->state->installEventFilter(this);//安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->state->setFocus();//设为当前焦点
     //-------------获取cpu内存信息-------------
@@ -99,11 +100,19 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
 
     //-------------截图相关-------------
-    cutscreen_dialog = new CutScreenDialog(this, wordsObj);
-    QShortcut* shortcut = new QShortcut(QKeySequence("Ctrl+Q"), this);// 创建快捷键
-    connect(shortcut, &QShortcut::activated, this, &Widget::onShortcutActivated);// 连接信号和槽
+    cutscreen_dialog = new CutScreenDialog(this);
+    cutscreen_dialog->init_action(wordsObj["save cut image"].toString(),wordsObj["svae screen image"].toString());
     // 传递截取的图像路径
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
+    //注册全局热键,windows平台用
+    RegisterHotKey((HWND)Widget::winId(),   // Set the system identifier of the widget window that will handle the HotKey
+                    7758258,                         // Set identifier HotKey
+                    0,         // Set modifiers
+                    VK_F1);                        // We define hotkeys for HotKey
+    RegisterHotKey((HWND)Widget::winId(),   // Set the system identifier of the widget window that will handle the HotKey
+                    123456,                         // Set identifier HotKey
+                    0,         // Set modifiers
+                    VK_F2);                 
 }
 
 Widget::~Widget()
@@ -468,7 +477,7 @@ void Widget::on_send_clicked()
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(imagepath);
             }
-            //-----------------------截图-------------------------
+            //-----------------------截图的情况-------------------------
             else if(input == wordsObj["<predecode cut image>"].toString())
             {
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
@@ -677,13 +686,6 @@ void Widget::recv_setreset()
     reflash_state("· "+ stop_str +" ",USUAL_);
     
     ui->reset->click();
-}
-
-//接受支持设备信息
-void Widget::recv_device(QString device_)
-{
-    ui->state->device_tooltip = device_;//传递给自定义的plaintextedit控件
-    //内容在模型装载完毕动画完毕后显示
 }
 
 
@@ -981,16 +983,6 @@ void Widget::recv_vocab(QString model_vocab)
     emit ui2expend_vocab(ui_model_vocab);
 }
 
-//创建扩展窗口
-void Widget::recv_createExpend()
-{
-    expend_ = new Expend(NULL, wordsObj, ui_model_vocab, ui_model_logs);
-    connect(expend_, &Expend::destroyed, expend_, &Expend::deleteLater);//保证正确释放控件内存
-    connect(this, &Widget::ui2expend_log, expend_,&Expend::recv_log);
-    connect(this, &Widget::ui2expend_vocab, expend_,&Expend::recv_vocab);
-    expend_->setAttribute(Qt::WA_DeleteOnClose); // 确保关闭窗口时删除对象
-    expend_->show();
-}
 
 //接收缓存量
 void Widget::recv_kv(float percent,int ctx_size)
@@ -1109,6 +1101,12 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     if (obj == api_ip_LineEdit && event->type() == QEvent::ContextMenu)
     {
         api_ip_LineEdit->setText(getFirstNonLoopbackIPv4Address());
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == ui->state && event->type() == QEvent::ContextMenu)
+    {
+        emit ui2expend_show(1);
         return true;
     }
 

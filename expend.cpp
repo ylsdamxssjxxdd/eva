@@ -1,7 +1,7 @@
 #include "expend.h"
 #include "ui_expend.h"
 
-Expend::Expend(QWidget *parent, QJsonObject wordsObj, QString vocab, QStringList model_logs) :
+Expend::Expend(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Expend)
 {
@@ -12,36 +12,14 @@ Expend::Expend(QWidget *parent, QJsonObject wordsObj, QString vocab, QStringList
     QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);
     file.close();
-    
-    ui->version_log->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
+    //初始化选项卡
+    ui->version_card->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     //ui->model_vocab->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
-    //ui->model_logs->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
-    vocab_ = vocab;
-    wordsObj_ = wordsObj;
-    this->setWindowTitle(wordsObj_["expend window"].toString());
-    for(int i=0;i<model_logs.size();i++)
-    {
-        model_logs_ += model_logs.at(i);
-    }
-    
-    ui->model_vocab->setReadOnly(1);//这样才能滚轮放大
-    ui->model_log->setReadOnly(1);
-    setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);//取消自带的问号按钮
-
-    QString imagePath = ":/ui/run.png";
-    
-    // 设置图片的新宽度
-    int newWidth = 1000; // 新宽度，高度自适应
-
-    // 使用HTML插入调整尺寸后的图片
-    ui->textBrowser->setHtml(QString("<img src=\"%1\" width=\"%2\"/>")
-                    .arg(imagePath).arg(newWidth));
-    
-
-    ui->model_log->setPlainText(model_logs_);
-    ui->tabWidget->setCurrentIndex(3);    
-    // 延迟设置滚动条位置
-    QTimer::singleShot(0, this, [this]() {ui->model_log->verticalScrollBar()->setValue(ui->model_log->verticalScrollBar()->maximum());});
+    //ui->modellog_cards->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
+    ui->info_card->setReadOnly(1);
+    ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
+    ui->modellog_card->setReadOnly(1);
+    ui->tabWidget->setCurrentIndex(3);//默认显示模型日志    
     
 }
 
@@ -50,58 +28,69 @@ Expend::~Expend()
     delete ui;
 }
 
+//用户切换选项卡时响应
+//0版本日志,1模型词表,2软件介绍,3模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    //ui->textBrowser->verticalScrollBar()->setValue(0);
-    if(index==1 && !is_show_vocab)
+    if(index==1 && is_first_show_vocab)//第一次点模型词表
     {
-        //QElapsedTimer time1;time1.start();
-        ui->model_vocab->setPlainText(vocab_);
-        //qDebug()<<QString::number(time1.nsecsElapsed()/1000000000.0,'f',4);
-        is_show_vocab = true;
+        ui->vocab_card->setPlainText(vocab);
+        is_first_show_vocab = false;
     }
-    if(index==2)
+    if(index==2 && is_first_show_info)//第一次点软件介绍
     {
-        QTimer::singleShot(0, this, [this]() {ui->textBrowser->verticalScrollBar()->setValue(0);});
+        is_first_show_info = false;
+        // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+        QString imagePath = ":/ui/run.png";
+        QImage image(imagePath);
+        int originalWidth = image.width()/devicePixelRatioF();
+        int originalHeight = image.height()/devicePixelRatioF();
+
+        QTextCursor cursor(ui->info_card->textCursor());
+        cursor.movePosition(QTextCursor::End);
+
+        QTextImageFormat imageFormat;
+        imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+        imageFormat.setHeight(originalHeight); // 设置图片的高度
+        imageFormat.setName(imagePath);  // 图片资源路径
+
+        cursor.insertImage(imageFormat);
+        //强制延迟见顶
+        QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
     }
 }
 
-
+//接收模型日志
 void Expend::recv_log(QString log)
 {
-    if(log.contains("load_percent"))
-    {
-        //上一次也是这个则删除
-        if(load_percent_tag)
-        {
-            QTextCursor cursor = ui->model_log->textCursor();
-            // 移动光标到文档的末尾
-            cursor.movePosition(QTextCursor::End);
-            cursor.movePosition(QTextCursor::StartOfLine);
-        
-            // 选择从当前位置到文档末尾的文本
-            cursor.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
-            
-            // 删除选中的文本（即最后一行）
-            cursor.removeSelectedText();
-            
-            // 删除因为删除最后一行而产生的额外的换行符
-            cursor.deletePreviousChar();
-            // 将修改后的光标应用回编辑器
-            ui->model_log->setTextCursor(cursor);
-        }
-        load_percent_tag = true;
-    }
-    else
-    {
-        load_percent_tag = false;
-    }
-    ui->model_log->appendPlainText(log);
-    
+    ui->modellog_card->appendPlainText(log);
 }
 
-void Expend::recv_vocab(QString vocab)
+//接收模型词表
+void Expend::recv_vocab(QString vocab_)
 {
-    vocab_ = vocab;
-    ui->model_vocab->setPlainText(vocab);
+    vocab = vocab_;
+    ui->vocab_card->setPlainText(vocab);
+}
+
+//通知显示扩展窗口
+void Expend::recv_expend_show(bool is_show)
+{
+    if(is_first_show_expend)//第一次显示的话
+    {
+        is_first_show_expend = false;
+        qDebug()<<ui->vocab_card->toPlainText();
+        if(vocab == "")
+        {
+            vocab = wordsObj["lode model first"].toString();
+        }
+        if(ui->modellog_card->toPlainText() == "")
+        {
+            ui->modellog_card->setPlainText(wordsObj["lode model first"].toString());
+        }
+    }
+
+    this->setWindowTitle(wordsObj["expend window"].toString());
+    this->show();
+    this->activateWindow(); // 激活扩展窗口
 }
