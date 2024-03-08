@@ -1312,3 +1312,25 @@ void Widget::ui_state_normal()
         ui->output->setFocus();//设置输出区为焦点
     }
 }
+
+//录音界面状态
+void Widget::ui_state_recoding()
+{
+    if(audio_time == 0)
+    {
+        ui->load->setEnabled(0);
+        ui->date->setEnabled(0);
+        ui->set->setEnabled(0);
+        ui->reset->setEnabled(0);
+        ui->send->setEnabled(0);
+        ui->input->clear();
+        ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");
+        ui->input->setReadOnly(1);
+        ui->input->setFocus();//设置输入区为焦点
+        ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... " + wordsObj["push f2 to stop"].toString());
+    }
+    else{ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + wordsObj["push f2 to stop"].toString());}
+    
+    
+    
+}

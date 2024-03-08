@@ -201,6 +201,74 @@ void Widget::showImage(QString imagepath)
     cursor.insertImage(imageFormat);
 }
 
+//开始录音
+void Widget::recordAudio()
+{
+    ui_state_recoding();
+    //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
+    QAudioFormat audioFormat;
+    audioFormat.setByteOrder(QAudioFormat::LittleEndian);
+    audioFormat.setChannelCount(1);
+    audioFormat.setCodec("audio/pcm");
+    audioFormat.setSampleRate(16000);
+    audioFormat.setSampleSize(16);
+    audioFormat.setSampleType(QAudioFormat::SignedInt);
+    //判断设备，查看是否存在
+    QAudioDeviceInfo devInfo = QAudioDeviceInfo::defaultInputDevice();
+    //不支持格式，使用最接近格式
+    if(!devInfo.isFormatSupported(audioFormat)){ //当前使用设备是否支持
+        audioFormat = devInfo.nearestFormat(audioFormat); //转换为最接近格式
+    }
+    _audioInput = new QAudioInput(devInfo,audioFormat,this);
+
+    QDateTime audio_DateTime = QDateTime::currentDateTime();
+    QString dateTimeString = audio_DateTime.toString("yyyy-hh-mm-ss");
+    QString audiopath = "/" + QString("EVA_") + dateTimeString + ".wav";
+    outFilePath = qApp->applicationDirPath() + audiopath;
+    outFile.setFileName(outFilePath); //语音原始文件
+    outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    _audioInput->start(&outFile);
+    audio_timer->start(100);  // 每隔100毫秒刷新一次
+}
+
+void Widget::monitorAudioLevel()
+{
+    audio_time += 100;
+    ui_state_recoding();
+    qDebug() << audio_time;
+}
+
+//停止录音
+void Widget::stop_recordAudio()
+{
+    QIODevice *device{nullptr};
+    device = &outFile;
+//添加wav文件头
+    static WAVHEADER wavHeader;
+    qstrcpy(wavHeader.RiffName,"RIFF");
+    qstrcpy(wavHeader.WavName,"WAVE");
+    qstrcpy(wavHeader.FmtName,"fmt ");
+    qstrcpy(wavHeader.DATANAME,"data");
+    wavHeader.nFmtLength = 16;
+    int nAudioFormat = 1;
+    wavHeader.nAudioFormat = nAudioFormat;
+    wavHeader.nBitsPerSample = 16;
+    wavHeader.nChannleNumber = 1;
+    wavHeader.nSampleRate = 16000;
+    wavHeader.nBytesPerSample = wavHeader.nChannleNumber * wavHeader.nBitsPerSample / 8;
+    wavHeader.nBytesPerSecond = wavHeader.nSampleRate * wavHeader.nChannleNumber *  wavHeader.nBitsPerSample / 8;
+    wavHeader.nRiffLength = device->size() - 8 + sizeof(WAVHEADER);
+    wavHeader.nDataLength = device->size();
+//写到IO设备头
+    device->seek(0);
+    device->write(reinterpret_cast<char*>(&wavHeader),sizeof WAVHEADER);
+    _audioInput->stop();
+    audio_timer->stop();
+    audio_time = 0;
+    outFile.close();
+    ui_state_normal();
+}
+
 // 清空题库
 void Widget::clearQuestionlist()
 {
@@ -433,7 +501,17 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         }
         else if (msg->wParam == 123456)
         {
-            qDebug()<<"whisper";
+            if(!is_recodering && ui_mode == CHAT_ && is_load)
+            {
+                recordAudio();
+                is_recodering = true;
+            }
+            else if(is_recodering)
+            {
+                stop_recordAudio();
+                is_recodering = false;
+            }
+            
             return true;
         }
         

@@ -99,20 +99,19 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
     tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
 
-    //-------------截图相关-------------
+    //-------------截图声音相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
     cutscreen_dialog->init_action(wordsObj["save cut image"].toString(),wordsObj["svae screen image"].toString());
     // 传递截取的图像路径
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
     //注册全局热键,windows平台用
     RegisterHotKey((HWND)Widget::winId(),   // Set the system identifier of the widget window that will handle the HotKey
-                    7758258,                         // Set identifier HotKey
-                    0,         // Set modifiers
-                    VK_F1);                        // We define hotkeys for HotKey
-    RegisterHotKey((HWND)Widget::winId(),   // Set the system identifier of the widget window that will handle the HotKey
-                    123456,                         // Set identifier HotKey
-                    0,         // Set modifiers
-                    VK_F2);                 
+                    7758258,// 信号标识
+                    0,//控制键
+                    VK_F1);//截图快捷键
+    RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2);    //录音快捷键  
+    audio_timer = new QTimer(this);
+    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);        
 }
 
 Widget::~Widget()

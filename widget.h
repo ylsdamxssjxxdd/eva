@@ -1,6 +1,7 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#include <QtGlobal>
 #include <QApplication>
 #include <QWidget>
 #include <QElapsedTimer>
@@ -38,6 +39,10 @@
 #include <QTextBlock>
 #include <QTextCursor>
 
+#include <QAudioInput>
+#include <QBuffer>
+#include <QIODevice>
+
 #include <windows.h>
 #include "utils/doubleqprogressbar.h"
 #include "utils/CutScreenDialog.h"
@@ -56,6 +61,7 @@ public:
     ~Widget();
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     bool nativeEvent(const QByteArray &eventType, void *message, long *result);//监听操作系统
+
 public:
     //bool registerGlobalHotKey();
     //拯救中文
@@ -78,6 +84,7 @@ public:
     void ui_state_pushing();//推理中界面状态
     void ui_state_servering();//服务中界面状态
     void ui_state_normal();//待机界面状态
+    void ui_state_recoding();//录音界面状态
 
     //连续回答
     QStringList query_list;//待回答列表
@@ -112,6 +119,15 @@ public:
     void showImage(QString imagepath);//显示文件名和图像
     CutScreenDialog *cutscreen_dialog;
     QString cut_imagepath;
+
+    //语音相关
+    void recordAudio();//开始录音
+    bool is_recodering = false;//是否正在录音
+    QAudioInput *_audioInput; //录音对象
+    QFile outFile;
+    int audio_time = 0;
+    QString outFilePath;
+    QTimer *audio_timer;
 
     //测试相关
     bool is_test  =false;//测试标签
@@ -317,6 +333,7 @@ public slots:
 
 //自用的槽
 private slots:
+    void stop_recordAudio();//停止录音
     void unlockLoad();
     void send_testhandleTimeout();//api模式下测试时延迟发送
     void keepConnection();//持续检测ip是否通畅
@@ -362,6 +379,7 @@ private slots:
     void on_set_clicked();//用户点击设置按钮响应
     void onShortcutActivated();//用户按下截图键响应
     void recv_qimagepath(QString cut_imagepath_);//接收传来的图像
+    void monitorAudioLevel();//监视音量
 
 private:
     Ui::Widget *ui;

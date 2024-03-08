@@ -57,7 +57,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 # 查找Qt相关库
-find_package(Qt5 COMPONENTS Widgets Network Script REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Network Script Multimedia REQUIRED)
 
 # 资源文件
 set(RESOURCE_FILES
@@ -70,8 +70,6 @@ utils/ceval.qrc
 set(LOGO_FILES
 utils/ui/ico.rc
 )
-
-add_compile_definitions(BUILD_QXT_CORE)#全局截图qxtglobalshortcut需要的宏
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
@@ -106,6 +104,6 @@ utils/CutScreenDialog.cpp
 #确保server先于eva编译
 add_dependencies(${TARGET} server)
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script)
+target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)
 

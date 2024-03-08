@@ -242,9 +242,9 @@
         "cut image success": "截图成功",
         "<predecode cut image>": "<预解码刚才的截图>",
         "save cut image": "保存截图",
-        "svae screen image": "保存全屏"
-        
-
+        "svae screen image": "保存全屏",
+        "recoding": "录音中",
+        "push f2 to stop": "按f2停止"
 
     }
 }
