@@ -1,3 +1,4 @@
 build/
 .vscode/
 utils/server.exe
+utils/whisper.exe
