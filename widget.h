@@ -77,6 +77,7 @@ public:
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
     QStringList questions;//用户右击的问题
+    QMenu *right_menu;//输入区右击菜单
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
 
     void ui_state_init();//初始界面状态
@@ -94,6 +95,7 @@ public:
     QMap<QString, DATES> date_map;//约定模板
     void preLoad();//装载前动作
     bool is_load = false;//模型装载标签
+    bool is_load_play_over = false;//模型装载动画结束后
     bool is_run = false;//模型运行标签,方便设置界面的状态
     MODE ui_mode = CHAT_;//模型的模式
     bool ui_need_predecode = false;//需要预解码标签

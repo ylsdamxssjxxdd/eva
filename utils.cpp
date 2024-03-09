@@ -241,6 +241,7 @@ void Widget::monitorAudioLevel()
 //停止录音
 void Widget::stop_recordAudio()
 {
+    is_recodering = false;
     QIODevice *device{nullptr};
     device = &outFile;
 //添加wav文件头
@@ -501,15 +502,16 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         }
         else if (msg->wParam == 123456)
         {
-            if(!is_recodering && ui_mode == CHAT_ && is_load)
+            if(!is_recodering && ui_mode == CHAT_ && is_load_play_over)
             {
+                reflash_state("ui:" + wordsObj["recoding"].toString() + "... ");
                 recordAudio();
                 is_recodering = true;
             }
             else if(is_recodering)
             {
+                reflash_state("ui:" + wordsObj["recoding over"].toString());
                 stop_recordAudio();
-                is_recodering = false;
             }
             
             return true;

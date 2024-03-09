@@ -134,10 +134,10 @@ void CutScreenDialog::slot_saveCapturedScreen() //保存图片动作被点击
     clipboard->setPixmap(m_screenPicture.copy(rect));
     clearinformation();
 
-    // QDateTime currentDateTime = QDateTime::currentDateTime();
-    // QString dateTimeString = currentDateTime.toString("yyyy-hh-mm-ss");
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+    QString dateTimeString = currentDateTime.toString("yyyy-hh-mm-ss");
     QString currentDir = QDir::currentPath();
-    QString cut_qimagepath = currentDir + "/" + "EVA_" + ".png";
+    QString cut_qimagepath = currentDir + "/" + "EVA_" + dateTimeString + ".png";
     m_screenPicture.copy(rect).toImage().save(cut_qimagepath);
     cut2ui_qimagepath(cut_qimagepath);
 

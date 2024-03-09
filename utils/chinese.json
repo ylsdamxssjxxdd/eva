@@ -75,6 +75,8 @@
         "stop": "停止",
         "predecode": "预解码",
         "image": "图像",
+        "voice": "语音",
+        "video": "视频",
         "decode": "解码",
         "nums": "个",
         "predict": "预测",
@@ -244,7 +246,13 @@
         "save cut image": "保存截图",
         "svae screen image": "保存全屏",
         "recoding": "录音中",
-        "push f2 to stop": "按f2停止"
+        "push f2 to stop": "按f2停止",
+        "recoding over": "录音完毕",
+        "version log": "版本日志",
+        "model vocab": "模型词表",
+        "introduction": "软件介绍",
+        "model log": "模型日志",
+        "proliferation": "增殖" 
 
     }
 }

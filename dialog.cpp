@@ -246,6 +246,7 @@ void Widget::unlockLoad()
         on_send_clicked();
     }
     force_unlockload_pTimer->stop();
+    is_load_play_over = true;//标记模型动画已经完成
 }
 
 // 按日志显示装载进度
@@ -1304,7 +1305,7 @@ void Widget::ui_state_normal()
 
         ui->input->clear();
         ui->input->setPlaceholderText(wordsObj["please change the text"].toString());
-        ui->input->setStyleSheet("background-color: gray;");//设置背景为灰色
+        ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");//设置背景为橘黄色
         ui->input->setReadOnly(1);
         ui->send->setText(wordsObj["complete"].toString());
         ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
@@ -1316,6 +1317,7 @@ void Widget::ui_state_normal()
 //录音界面状态
 void Widget::ui_state_recoding()
 {
+
     if(audio_time == 0)
     {
         ui->load->setEnabled(0);
@@ -1324,13 +1326,14 @@ void Widget::ui_state_recoding()
         ui->reset->setEnabled(0);
         ui->send->setEnabled(0);
         ui->input->clear();
-        ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");
+        ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");//透明绿色
         ui->input->setReadOnly(1);
         ui->input->setFocus();//设置输入区为焦点
         ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... " + wordsObj["push f2 to stop"].toString());
     }
-    else{ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + wordsObj["push f2 to stop"].toString());}
-    
-    
+    else
+    {
+        ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + wordsObj["push f2 to stop"].toString());
+    }
     
 }

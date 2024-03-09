@@ -29,6 +29,7 @@ Widget::Widget(QWidget *parent)
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     ui_state = "ui:" + wordsObj["click load and choose gguf file"].toString();reflash_state(ui_state,USUAL_);
     ui_state = "ui:" + wordsObj["right click link api"].toString();reflash_state(ui_state,USUAL_);
+
     #if defined(BODY_USE_CUBLAST)
     //this->setWindowTitle(QString("eva-cuda") + VERSION);
 #else
@@ -90,6 +91,14 @@ Widget::Widget(QWidget *parent)
         }
         
     }
+    // 创建菜单并添加动作
+    right_menu = new QMenu(this);
+    for(int i=0;i<questions.size();++i)
+    {
+        QAction *action = right_menu->addAction(questions.at(i));
+        // 连接信号和槽
+        connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(questions.at(i));});
+    }
     
     //-------------初始化工具-------------
     tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
@@ -149,6 +158,7 @@ void Widget::on_load_clicked()
 void Widget::preLoad()
 {
     is_load = false;//重置is_load标签
+    is_load_play_over = false;
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
     ui_state_loading();//装载中界面状态
@@ -163,7 +173,7 @@ void Widget::recv_loadover(bool ok_,float load_time_)
     {
         load_time = load_time_;
         change_api_dialog(1);
-        is_load = true;//标记模型已装载,只有这个是true才允许后续动作
+        is_load = true;//标记模型已装载
         all_fps ++;//补上最后一帧,表示上下文也创建了
         load_pTimer->stop();//停止动画,但是动作计数load_action保留
         load_pTimer->start(10);//快速播放完剩下的动画,播放完再做一些后续动作
@@ -674,15 +684,20 @@ void Widget::recv_setreset()
     if(ui_mode == CHAT_){reflash_state("· " + wordsObj["chat mode"].toString(),USUAL_);}
     else if(ui_mode == COMPLETE_){reflash_state("· " + wordsObj["complete mode"].toString(),USUAL_);}
     
-    reflash_state("···········"+ wordsObj["set"].toString() + "···········",USUAL_);
     //展示额外停止标志
-    QString stop_str;
-    stop_str = wordsObj["extra stop words"].toString() + " ";
-    for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
+    if(ui_mode == CHAT_)
     {
-        stop_str += ui_DATES.extra_stop_words.at(i) + " ";
+        QString stop_str;
+        stop_str = wordsObj["extra stop words"].toString() + " ";
+        for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
+        {
+            stop_str += ui_DATES.extra_stop_words.at(i) + " ";
+        }
+        reflash_state("· "+ stop_str +" ",USUAL_);
     }
-    reflash_state("· "+ stop_str +" ",USUAL_);
+
+    reflash_state("···········"+ wordsObj["set"].toString() + "···········",USUAL_);
+    
     
     ui->reset->click();
 }
@@ -823,6 +838,7 @@ void Widget::recv_qimagepath(QString cut_imagepath_)
     cut_imagepath = cut_imagepath_;
     reflash_state("ui:" + wordsObj["cut image success"].toString(),USUAL_);
     ui->input->setPlainText(wordsObj["<predecode cut image>"].toString());
+    if(is_load && ui_mode == CHAT_){on_send_clicked();}//如果装载了模型直接发送截图
 }
 
 // 设置用户设置内容
@@ -1049,23 +1065,11 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
     //响应已安装控件上的鼠标右击事件
-    if (obj == ui->input && event->type() == QEvent::ContextMenu)
+    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_mode == CHAT_)
     {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
-        
-        // 创建菜单并添加动作
-        QMenu menu(this);
-        for(int i=0;i<questions.size();++i)
-        {
-            
-            QAction *action = menu.addAction(questions.at(i));
-
-            // 连接信号和槽
-            connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(questions.at(i));});
-        }
-
         // 显示菜单
-        menu.exec(contextMenuEvent->globalPos());
+        right_menu->exec(contextMenuEvent->globalPos());
         return true;
     }
     //响应已安装控件上的鼠标右击事件

@@ -20,6 +20,9 @@ elseif(LLAMA_CLBLAST)
 endif()           
 # msvc设置编译选项
 if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持中文
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         set(EXTRA_FILES
             utils/gpuchecker.h
@@ -51,6 +54,8 @@ add_subdirectory(llama.cpp/examples/server)# 添加子目录
 set(SERVER_FILE utils/server.qrc)# 添加到资源文件
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
+#####################################whisper.cpp相关#####################################
+
 ######################################eva相关######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
@@ -90,15 +95,23 @@ xnet.cpp
 xnet.h
 xbert.cpp
 xbert.h
+xwhisper.cpp
+xwhisper.h
 xtool.cpp
 xtool.h
 xconfig.h
 widget.ui
 expend.ui
+
 utils/doubleqprogressbar.cpp
 utils/doubleqprogressbar.h
 utils/CutScreenDialog.h
 utils/CutScreenDialog.cpp
+utils/CustomTabWidget.h
+utils/CustomTabBar.h
+
+whisper.cpp/whisper.h
+whisper.cpp/whisper.cpp
 )
 
 #确保server先于eva编译

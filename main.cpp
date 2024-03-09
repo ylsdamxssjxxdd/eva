@@ -3,6 +3,7 @@
 #include "xnet.h"
 #include "xtool.h"
 #include "xbert.h"
+#include "xwhisper.h"
 #include "expend.h"
 #include <locale>
 #include <QStyleFactory>
@@ -31,7 +32,9 @@ int main(int argc, char *argv[])
     xBot bot;//模型实例
     xNet net;//链接实例
     xBert bert;//嵌入实例
+    xWhisper whisper;//耳语实例
     xTool tool;//工具实例
+
 
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
     llama_log_set(bot_log_callback,&bot);//设置回调
@@ -99,6 +102,9 @@ int main(int argc, char *argv[])
     QObject::connect(&tool,&xTool::tool2ui_pushover,&w,&Widget::recv_toolpushover);//完成推理
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
+
+    //------------------连接扩展和耳语-------------------
+    QObject::connect(&expend, &Expend::expend2whisper_modelpath, &whisper, &xWhisper::recv_modelpath);
 
     w.show();//展示窗口
     return a.exec();//进入事件循环

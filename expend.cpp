@@ -7,11 +7,11 @@ Expend::Expend(QWidget *parent) :
 {
     ui->setupUi(this);
     //设置风格
-    QFile file(":/ui/QSS-master/ConsoleStyle.qss");
-    file.open(QFile::ReadOnly);
-    QString stylesheet = tr(file.readAll());
-    this->setStyleSheet(stylesheet);
-    file.close();
+    // QFile file(":/ui/QSS-master/ConsoleStyle.qss");
+    // file.open(QFile::ReadOnly);
+    // QString stylesheet = tr(file.readAll());
+    // this->setStyleSheet(stylesheet);
+    // file.close();
     //初始化选项卡
     ui->version_card->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     //ui->model_vocab->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
@@ -28,16 +28,20 @@ Expend::~Expend()
     delete ui;
 }
 
+//-------------------------------------------------------------------------
+//----------------------------------界面相关--------------------------------
+//-------------------------------------------------------------------------
+
 //用户切换选项卡时响应
-//0版本日志,1模型词表,2软件介绍,3模型日志
+//0版本日志,1软件介绍,2模型词表,3模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    if(index==1 && is_first_show_vocab)//第一次点模型词表
+    if(index==2 && is_first_show_vocab)//第一次点模型词表
     {
         ui->vocab_card->setPlainText(vocab);
         is_first_show_vocab = false;
     }
-    if(index==2 && is_first_show_info)//第一次点软件介绍
+    if(index==1 && is_first_show_info)//第一次点软件介绍
     {
         is_first_show_info = false;
         // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
@@ -66,7 +70,22 @@ void Expend::recv_log(QString log)
     ui->modellog_card->appendPlainText(log);
 }
 
-//接收模型词表
+//初始化扩展窗口
+void Expend::init_expend()
+{
+    ui->tabWidget->setTabText(0,wordsObj["version log"].toString());//版本日志
+    ui->tabWidget->setTabText(1,wordsObj["introduction"].toString());//软件介绍
+    ui->tabWidget->setTabText(2,wordsObj["model vocab"].toString());//模型词表
+    ui->tabWidget->setTabText(3,wordsObj["model log"].toString());//模型日志
+    ui->tabWidget->setTabText(4,wordsObj["model"].toString() + wordsObj["proliferation"].toString());//模型增殖
+    ui->tabWidget->setTabText(5,wordsObj["tool"].toString() + wordsObj["proliferation"].toString());//工具增殖
+    ui->tabWidget->setTabText(6,wordsObj["image"].toString() + wordsObj["proliferation"].toString());//图像增殖
+    ui->tabWidget->setTabText(7,wordsObj["voice"].toString() + wordsObj["proliferation"].toString());//语音增殖
+    ui->tabWidget->setTabText(8,wordsObj["video"].toString() + wordsObj["proliferation"].toString());//视频增殖
+
+}
+
+// 接收模型词表
 void Expend::recv_vocab(QString vocab_)
 {
     vocab = vocab_;
@@ -76,10 +95,10 @@ void Expend::recv_vocab(QString vocab_)
 //通知显示扩展窗口
 void Expend::recv_expend_show(bool is_show)
 {
+    init_expend();
     if(is_first_show_expend)//第一次显示的话
     {
         is_first_show_expend = false;
-        qDebug()<<ui->vocab_card->toPlainText();
         if(vocab == "")
         {
             vocab = wordsObj["lode model first"].toString();
@@ -93,4 +112,21 @@ void Expend::recv_expend_show(bool is_show)
     this->setWindowTitle(wordsObj["expend window"].toString());
     this->show();
     this->activateWindow(); // 激活扩展窗口
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------语音相关--------------------------------
+//-------------------------------------------------------------------------
+
+//用户点击选择whisper路径时响应
+void Expend::on_voice_load_modelpath_button_clicked()
+{
+    whisper_model_path = QFileDialog::getOpenFileName(this,"choose whisper model",whisper_model_path);
+    ui->voice_load_modelpath_linedit->setText(whisper_model_path);
+}
+
+//用户点击加载whisper模型时响应
+void Expend::on_voice_load_load_button_clicked()
+{
+    emit expend2whisper_modelpath(ui->voice_load_modelpath_linedit->text());
 }
