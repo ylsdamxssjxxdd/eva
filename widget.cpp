@@ -27,8 +27,9 @@ Widget::Widget(QWidget *parent)
     ui_model_vocab = wordsObj["lode model first"].toString();//模型词表提示
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
-    ui_state = "ui:" + wordsObj["click load and choose gguf file"].toString();reflash_state(ui_state,USUAL_);
-    ui_state = "ui:" + wordsObj["right click link api"].toString();reflash_state(ui_state,USUAL_);
+    reflash_state("ui:" + wordsObj["click load and choose gguf file"].toString(),USUAL_);
+    reflash_state("ui:" + wordsObj["right click link api"].toString(),USUAL_);
+    reflash_state("ui:" + QString("press f3 to switch zh/en"),USUAL_);
 
     #if defined(BODY_USE_CUBLAST)
     //this->setWindowTitle(QString("eva-cuda") + VERSION);
@@ -913,7 +914,7 @@ void Widget::serverControl()
     is_load = false;
 
     QString resourcePath = ":/server.exe";
-    QString localPath = "server.exe";
+    QString localPath = "./EVA_TEMP/server.exe";
 
     // 获取资源文件
     QFile resourceFile(resourcePath);
@@ -928,6 +929,7 @@ void Widget::serverControl()
     QByteArray fileData = resourceFile.readAll();
     resourceFile.close();
 
+    createTempDirectory("./EVA_TEMP");
     QFile localFile(localPath);
 
     // 尝试打开本地文件进行写入
@@ -951,6 +953,7 @@ void Widget::serverControl()
     arguments << "-b" << QString::number(ui_SETTINGS.batch);//批大小
     arguments << "-cb";//允许连续批处理
     arguments << "--embedding";//允许词嵌入
+    arguments << "--log-disable";//不要日志
     if(ui_SETTINGS.lorapath!=""){arguments << "--no-mmap";arguments << "--lora" << ui_SETTINGS.lorapath;}//挂载lora不能开启mmp
     if(ui_SETTINGS.mmprojpath!=""){arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
@@ -963,7 +966,7 @@ void Widget::serverControl()
 
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state("ui:" + wordsObj["eva"].toString() + wordsObj["eva expand"].toString(),EVA_);
+    reflash_state("ui:" + wordsObj["eva expand"].toString(),EVA_);
     
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
@@ -1109,7 +1112,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->state && event->type() == QEvent::ContextMenu)
     {
-        emit ui2expend_show(1);
+        emit ui2expend_show(3);
         return true;
     }
 
@@ -1120,4 +1123,17 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
 void Widget::recv_predecode(QString bot_predecode_)
 {
     bot_predecode = bot_predecode_;
+}
+
+//
+void Widget::recv_voicedecode_over(QString result)
+{
+    ui_state_normal();
+    ui->input->appendPlainText(result);
+}
+
+//接收模型路径
+void Widget::recv_whisper_modelpath(QString modelpath)
+{
+    whisper_model_path = modelpath;
 }

@@ -228,8 +228,7 @@ void Widget::load_over_handleTimeout()
     }
 }
 
-
-//装载完毕强制预处理
+// 装载完毕强制预处理
 void Widget::unlockLoad()
 {
     ui_state = "ui:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toString();reflash_state(ui_state,SUCCESS_);
@@ -1205,7 +1204,8 @@ void Widget::send_testhandleTimeout()
 {
     on_send_clicked();
 }
-//每多少秒测一次延迟,回应时间/keeptest*100为延迟量
+
+// 每多少秒测一次延迟,回应时间/keeptest*100为延迟量
 void Widget::keep_onConnected()
 {
     float percent = keeptime.nsecsElapsed()/1000000000.0 / keeptesttime;

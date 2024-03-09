@@ -134,10 +134,12 @@ void CutScreenDialog::slot_saveCapturedScreen() //保存图片动作被点击
     clipboard->setPixmap(m_screenPicture.copy(rect));
     clearinformation();
 
+    createTempDirectory("./EVA_TEMP");
+
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QString dateTimeString = currentDateTime.toString("yyyy-hh-mm-ss");
     QString currentDir = QDir::currentPath();
-    QString cut_qimagepath = currentDir + "/" + "EVA_" + dateTimeString + ".png";
+    QString cut_qimagepath = currentDir + "/EVA_TEMP/" + "EVA_" + dateTimeString + ".png";
     m_screenPicture.copy(rect).toImage().save(cut_qimagepath);
     cut2ui_qimagepath(cut_qimagepath);
 
@@ -148,14 +150,31 @@ void CutScreenDialog::slot_saveFullScreen() //保存整个屏幕的图片
 {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setPixmap(m_screenPicture);
-    clearinformation();
+
+    createTempDirectory("./EVA_TEMP");
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QString dateTimeString = currentDateTime.toString("hh-mm-ss");
     QString currentDir = QDir::currentPath();
-    QString cut_qimagepath = currentDir + "/" + dateTimeString + ".png";
+    QString cut_qimagepath = currentDir + "/EVA_TEMP/" + "EVA_" + dateTimeString + ".png";
     m_screenPicture.toImage().save(cut_qimagepath);
     cut2ui_qimagepath(cut_qimagepath);
 
     this->hide();
+}
+
+//创建临时文件夹EVA_TEMP
+bool CutScreenDialog::createTempDirectory(const QString &path) {
+    QDir dir;
+    // 检查路径是否存在
+    if (dir.exists(path)) {
+        return false;
+    } else {
+        // 尝试创建目录
+        if (dir.mkpath(path)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

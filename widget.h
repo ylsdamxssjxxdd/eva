@@ -79,6 +79,7 @@ public:
     QStringList questions;//用户右击的问题
     QMenu *right_menu;//输入区右击菜单
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
+    bool createTempDirectory(const QString &path);//创建临时文件夹
 
     void ui_state_init();//初始界面状态
     void ui_state_loading();//装载中界面状态
@@ -130,6 +131,8 @@ public:
     int audio_time = 0;
     QString outFilePath;
     QTimer *audio_timer;
+    QString whisper_model_path = "";
+
 
     //测试相关
     bool is_test  =false;//测试标签
@@ -302,7 +305,8 @@ signals:
     void ui2tool_push();//开始推理
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
 //发送给expend的信号
-    void ui2expend_show(bool is_show);//通知显示扩展窗口
+    void ui2expend_show(int index_);//通知显示扩展窗口
+    void ui2expend_voicedecode(QString wavpath);//传一个wav文件开始解码
 //自用信号
 signals:
     void server_kill();//终止server信号
@@ -332,7 +336,9 @@ public slots:
 #ifdef BODY_USE_CUBLAST
     void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率
 #endif
-
+//处理expend信号的槽
+    void recv_voicedecode_over(QString result);
+    void recv_whisper_modelpath(QString modelpath);//传递模型路径
 //自用的槽
 private slots:
     void stop_recordAudio();//停止录音

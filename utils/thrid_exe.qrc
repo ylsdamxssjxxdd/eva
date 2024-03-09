@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>server.exe</file>
+	<file>whisper.exe</file>
+    </qresource>
+</RCC>

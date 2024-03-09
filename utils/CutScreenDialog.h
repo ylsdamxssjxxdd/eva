@@ -26,6 +26,7 @@ public:
     CutScreenDialog(QWidget *parent = nullptr);
     ~CutScreenDialog();
     void init_action(QString act1_name,QString act2_name);
+    bool createTempDirectory(const QString &path);
 private:
     QPixmap m_screenPicture;
     QPixmap backgroundPicture;

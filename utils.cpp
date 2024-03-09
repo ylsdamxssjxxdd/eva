@@ -205,6 +205,7 @@ void Widget::showImage(QString imagepath)
 void Widget::recordAudio()
 {
     ui_state_recoding();
+    
     //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
     QAudioFormat audioFormat;
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
@@ -220,10 +221,8 @@ void Widget::recordAudio()
         audioFormat = devInfo.nearestFormat(audioFormat); //转换为最接近格式
     }
     _audioInput = new QAudioInput(devInfo,audioFormat,this);
-
-    // QDateTime audio_DateTime = QDateTime::currentDateTime();
-    // QString dateTimeString = audio_DateTime.toString("yyyy-hh-mm-ss");
-    QString audiopath = "/" + QString("EVA_") + ".wav";
+    createTempDirectory("./EVA_TEMP");
+    QString audiopath = "./EVA_TEMP/" + QString("EVA_") + ".wav";
     outFilePath = qApp->applicationDirPath() + audiopath;
     outFile.setFileName(outFilePath); //语音原始文件
     outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -267,7 +266,7 @@ void Widget::stop_recordAudio()
     audio_timer->stop();
     audio_time = 0;
     outFile.close();
-    ui_state_normal();
+    emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav");//传一个wav文件开始解码
 }
 
 // 清空题库
@@ -502,8 +501,14 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         }
         else if (msg->wParam == 123456)
         {
+            
             if(!is_recodering && ui_mode == CHAT_ && is_load_play_over)
             {
+                if(whisper_model_path == "")//如果还未指定模型路径则先指定
+                {
+                    emit ui2expend_show(7);//语音增殖界面
+                    return true;
+                }
                 reflash_state("ui:" + wordsObj["recoding"].toString() + "... ");
                 recordAudio();
                 is_recodering = true;
@@ -519,4 +524,20 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         
     }
     return false;
+}
+
+//创建临时文件夹EVA_TEMP
+bool Widget::createTempDirectory(const QString &path) {
+    QDir dir;
+    // 检查路径是否存在
+    if (dir.exists(path)) {
+        return false;
+    } else {
+        // 尝试创建目录
+        if (dir.mkpath(path)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

@@ -7,6 +7,11 @@
 #include <QTimer>
 #include <QDebug>
 #include <QFileDialog>
+#include <QProcess>
+#include <QFile>
+#include <QTextStream>
+
+#include "xconfig.h"
 namespace Ui {
 class Expend;
 }
@@ -32,6 +37,7 @@ public:
 public slots:
     void recv_log(QString log);
     void recv_vocab(QString vocab);    
+    void recv_expend_show(int index_);//通知显示扩展窗口
 private slots:
     void on_tabWidget_tabBarClicked(int index);//用户切换选项卡时响应    
 private:
@@ -40,15 +46,18 @@ private:
 //----------------------------------语音相关--------------------------------
 //-------------------------------------------------------------------------
 public:
-    QString whisper_model_path="";
+    Whisper_Params whisper_params;//whisper.exe可以传入的参数
+    int max_thread;
 signals:
-    void expend2whisper_modelpath(QString whisper_model_path_);
-    void expend2whisper_load();
-public slots:    
-    void recv_expend_show(bool is_show);//通知显示扩展窗口
+    void whisper_kill();
+    void expend2ui_voicedecode_over(QString result);
+    void expend2ui_whisper_modelpath(QString modelpath);
+public slots:
+    void recv_voicedecode(QString wavpath);//开始语音转文字
+    void whisper_onProcessStarted();
+    void whisper_onProcessFinished();
 private slots:    
     void on_voice_load_modelpath_button_clicked();//用户点击选择whisper路径时响应
-    void on_voice_load_load_button_clicked();//用户点击加载whisper模型时响应
 
 };
 

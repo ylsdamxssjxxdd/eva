@@ -58,7 +58,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QTextBrowser" name="version_card">
+        <widget class="QTextEdit" name="version_card">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -197,16 +197,109 @@ p, li { white-space: pre-wrap; }
       <attribute name="title">
        <string>模型增殖</string>
       </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="CustomTabWidget" name="tabWidget_2">
+         <widget class="QWidget" name="tab_10">
+          <attribute name="title">
+           <string>增殖中</string>
+          </attribute>
+         </widget>
+         <widget class="QWidget" name="tab_12">
+          <attribute name="title">
+           <string>Tab 2</string>
+          </attribute>
+         </widget>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="tab_6">
       <attribute name="title">
        <string>工具增殖</string>
       </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_11">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="CustomTabWidget" name="tabWidget_3">
+         <widget class="QWidget" name="tab_13">
+          <attribute name="title">
+           <string>增殖中</string>
+          </attribute>
+         </widget>
+         <widget class="QWidget" name="tab_14">
+          <attribute name="title">
+           <string>Tab 2</string>
+          </attribute>
+         </widget>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="tab_7">
       <attribute name="title">
        <string>图像增殖</string>
       </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_12">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="CustomTabWidget" name="tabWidget_4">
+         <widget class="QWidget" name="tab_15">
+          <attribute name="title">
+           <string>增殖中</string>
+          </attribute>
+         </widget>
+         <widget class="QWidget" name="tab_16">
+          <attribute name="title">
+           <string>Tab 2</string>
+          </attribute>
+         </widget>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="tab_8">
       <attribute name="title">
@@ -235,52 +328,9 @@ p, li { white-space: pre-wrap; }
          </property>
          <widget class="QWidget" name="voice_load_card">
           <attribute name="title">
-           <string>加载模型</string>
+           <string>录音转文字</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <widget class="QGroupBox" name="voice_load_groupBox_3">
-             <property name="font">
-              <font>
-               <family>Arial</family>
-               <pointsize>12</pointsize>
-              </font>
-             </property>
-             <property name="title">
-              <string>语音转文字可用状态</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_9">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="voice_load_usable_label">
-                <property name="font">
-                 <font>
-                  <family>Arial</family>
-                  <pointsize>10</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>不可用</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
            <item>
             <widget class="QGroupBox" name="voice_load_groupBox">
              <property name="font">
@@ -290,7 +340,7 @@ p, li { white-space: pre-wrap; }
               </font>
              </property>
              <property name="title">
-              <string>选择whisper模型路径</string>
+              <string>whisper模型路径</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <property name="spacing">
@@ -308,16 +358,6 @@ p, li { white-space: pre-wrap; }
               <property name="bottomMargin">
                <number>0</number>
               </property>
-              <item>
-               <widget class="QLineEdit" name="voice_load_modelpath_linedit">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>30</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
               <item>
                <widget class="QPushButton" name="voice_load_modelpath_button">
                 <property name="minimumSize">
@@ -343,58 +383,22 @@ p, li { white-space: pre-wrap; }
                 </property>
                </widget>
               </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="voice_load_groupBox_2">
-             <property name="font">
-              <font>
-               <family>Arial</family>
-               <pointsize>12</pointsize>
-              </font>
-             </property>
-             <property name="title">
-              <string>加载whisper模型</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_7">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
               <item>
-               <widget class="QPushButton" name="voice_load_load_button">
+               <widget class="QLineEdit" name="voice_load_modelpath_linedit">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
                   <height>30</height>
                  </size>
                 </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>16777215</width>
-                  <height>30</height>
-                 </size>
+                <property name="readOnly">
+                 <bool>false</bool>
                 </property>
-                <property name="font">
-                 <font>
-                  <family>Arial</family>
-                  <pointsize>10</pointsize>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>加载</string>
+                <property name="placeholderText">
+                 <string>指定whisper模型路径</string>
                 </property>
                </widget>
               </item>
@@ -448,7 +452,7 @@ p, li { white-space: pre-wrap; }
          </widget>
          <widget class="QWidget" name="tab_11">
           <attribute name="title">
-           <string>语音转文字</string>
+           <string>wav转文字</string>
           </attribute>
          </widget>
         </widget>
@@ -459,6 +463,37 @@ p, li { white-space: pre-wrap; }
       <attribute name="title">
        <string>视频增殖</string>
       </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_13">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="CustomTabWidget" name="tabWidget_5">
+         <widget class="QWidget" name="tab_17">
+          <attribute name="title">
+           <string>增殖中</string>
+          </attribute>
+         </widget>
+         <widget class="QWidget" name="tab_18">
+          <attribute name="title">
+           <string>Tab 2</string>
+          </attribute>
+         </widget>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
    </item>

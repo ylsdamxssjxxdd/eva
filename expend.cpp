@@ -6,12 +6,6 @@ Expend::Expend(QWidget *parent) :
     ui(new Ui::Expend)
 {
     ui->setupUi(this);
-    //设置风格
-    // QFile file(":/ui/QSS-master/ConsoleStyle.qss");
-    // file.open(QFile::ReadOnly);
-    // QString stylesheet = tr(file.readAll());
-    // this->setStyleSheet(stylesheet);
-    // file.close();
     //初始化选项卡
     ui->version_card->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     //ui->model_vocab->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
@@ -19,7 +13,9 @@ Expend::Expend(QWidget *parent) :
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
     ui->modellog_card->setReadOnly(1);
-    ui->tabWidget->setCurrentIndex(3);//默认显示模型日志    
+    ui->tabWidget->setCurrentIndex(3);//默认显示模型日志 
+
+    ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     
 }
 
@@ -82,7 +78,6 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(6,wordsObj["image"].toString() + wordsObj["proliferation"].toString());//图像增殖
     ui->tabWidget->setTabText(7,wordsObj["voice"].toString() + wordsObj["proliferation"].toString());//语音增殖
     ui->tabWidget->setTabText(8,wordsObj["video"].toString() + wordsObj["proliferation"].toString());//视频增殖
-
 }
 
 // 接收模型词表
@@ -93,7 +88,7 @@ void Expend::recv_vocab(QString vocab_)
 }
 
 //通知显示扩展窗口
-void Expend::recv_expend_show(bool is_show)
+void Expend::recv_expend_show(int index_)
 {
     init_expend();
     if(is_first_show_expend)//第一次显示的话
@@ -108,7 +103,7 @@ void Expend::recv_expend_show(bool is_show)
             ui->modellog_card->setPlainText(wordsObj["lode model first"].toString());
         }
     }
-
+    ui->tabWidget->setCurrentIndex(index_);
     this->setWindowTitle(wordsObj["expend window"].toString());
     this->show();
     this->activateWindow(); // 激活扩展窗口
@@ -121,12 +116,80 @@ void Expend::recv_expend_show(bool is_show)
 //用户点击选择whisper路径时响应
 void Expend::on_voice_load_modelpath_button_clicked()
 {
-    whisper_model_path = QFileDialog::getOpenFileName(this,"choose whisper model",whisper_model_path);
-    ui->voice_load_modelpath_linedit->setText(whisper_model_path);
+    whisper_params.model = QFileDialog::getOpenFileName(this,"choose whisper model",QString::fromStdString(whisper_params.model)).toStdString();
+    ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
+    emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
+    ui->voice_load_log->setPlainText("选择好了就可以关闭这个窗口,按f2录音了");
 }
 
-//用户点击加载whisper模型时响应
-void Expend::on_voice_load_load_button_clicked()
+//开始语音转文字
+void Expend::recv_voicedecode(QString wavpath)
 {
-    emit expend2whisper_modelpath(ui->voice_load_modelpath_linedit->text());
+    QString resourcePath = ":/whisper.exe";
+    QString localPath = "./EVA_TEMP/whisper.exe";
+    // 获取资源文件
+    QFile resourceFile(resourcePath);
+    // 尝试打开资源文件进行读取
+    if (!resourceFile.open(QIODevice::ReadOnly)) {
+        qWarning("cannot open qrc file");
+        return ;
+    }
+    // 读取资源文件的内容
+    QByteArray fileData = resourceFile.readAll();
+    resourceFile.close();
+    QFile localFile(localPath);
+    // 尝试打开本地文件进行写入
+    if (localFile.open(QIODevice::WriteOnly)) 
+    {
+        localFile.write(fileData);
+        localFile.close();
+    }
+    // 设置要运行的exe文件的路径
+    QString program = localPath;
+    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    QStringList arguments;
+    arguments << "-m" << QString::fromStdString(whisper_params.model);//模型路径
+    arguments << "-f" << wavpath;//wav文件路径
+    arguments << "--language" << QString::fromStdString(whisper_params.language);//识别语种
+    arguments << "--threads" << QString::number(max_thread*0.7);
+    arguments << "--output-txt";//结果输出为一个txt
+    
+    // 开始运行程序
+    QProcess *whisper_process;//用来启动whisper.exe
+    whisper_process = new QProcess(this);//实例化
+    connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);//连接开始信号
+    connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::whisper_onProcessFinished);//连接结束信号
+    //连接信号和槽,获取程序的输出
+    connect(whisper_process, &QProcess::readyReadStandardOutput, [=]() {
+        QString output = whisper_process->readAllStandardOutput();
+        ui->voice_load_log->appendPlainText(output);
+    });    
+    connect(whisper_process, &QProcess::readyReadStandardError, [=]() {
+        QString output = whisper_process->readAllStandardError();
+        ui->voice_load_log->appendPlainText(output);
+    });
+    whisper_process->start(program, arguments);
+}
+
+void Expend::whisper_onProcessStarted()
+{
+    qDebug()<<"开始处理";
+}
+
+void Expend::whisper_onProcessFinished()
+{
+    QString content;
+    // 文件路径
+    QString filePath = qApp->applicationDirPath() + "./EVA_TEMP/" + QString("EVA_") + ".wav.txt";
+    // 创建 QFile 对象
+    QFile file(filePath);
+    // 打开文件
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+    {
+        QTextStream in(&file);// 创建 QTextStream 对象
+        in.setCodec("UTF-8");
+        content = in.readAll();// 读取文件内容
+    }
+    file.close();
+    emit expend2ui_voicedecode_over(content);
 }

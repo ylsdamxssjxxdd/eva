@@ -2,8 +2,6 @@
 #include "xbot.h"
 #include "xnet.h"
 #include "xtool.h"
-#include "xbert.h"
-#include "xwhisper.h"
 #include "expend.h"
 #include <locale>
 #include <QStyleFactory>
@@ -31,12 +29,10 @@ int main(int argc, char *argv[])
     Expend expend;//扩展实例
     xBot bot;//模型实例
     xNet net;//链接实例
-    xBert bert;//嵌入实例
-    xWhisper whisper;//耳语实例
     xTool tool;//工具实例
 
-
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
+    expend.max_thread = w.max_thread;
     llama_log_set(bot_log_callback,&bot);//设置回调
 #ifdef BODY_USE_CUBLAST
     gpuChecker gpuer;//监测显卡信息
@@ -87,6 +83,9 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
     QObject::connect(&w, &Widget::ui2expend_vocab, &expend, &Expend::recv_vocab);
+    QObject::connect(&w, &Widget::ui2expend_voicedecode, &expend, &Expend::recv_voicedecode);//开始语音转文字
+    QObject::connect(&expend, &Expend::expend2ui_voicedecode_over, &w, &Widget::recv_voicedecode_over);//转换完成返回结果
+    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);//传递模型路径
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
@@ -103,8 +102,6 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
-    //------------------连接扩展和耳语-------------------
-    QObject::connect(&expend, &Expend::expend2whisper_modelpath, &whisper, &xWhisper::recv_modelpath);
 
     w.show();//展示窗口
     return a.exec();//进入事件循环

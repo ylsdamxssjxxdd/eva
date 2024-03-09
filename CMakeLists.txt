@@ -43,7 +43,7 @@ endif()
 #####################################llama.cpp相关#####################################
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-add_subdirectory(llama.cpp)
+add_subdirectory(llama.cpp)# 添加子项目后该有的库就在了
 add_subdirectory(llama.cpp/examples/main)
 add_subdirectory(llama.cpp/examples/llava)
 #先编译好server并放到utils目录下，等待eva打包进资源文件
@@ -51,10 +51,32 @@ set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
 add_subdirectory(llama.cpp/examples/server)# 添加子目录
-set(SERVER_FILE utils/server.qrc)# 添加到资源文件
+set(THRIDEXE_FILE utils/thrid_exe.qrc)# 添加到资源文件
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
+
 #####################################whisper.cpp相关#####################################
+#先编译好server并放到utils目录下，等待eva打包进资源文件
+set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
+
+set(TARGET_whisper whisper)
+add_executable(${TARGET_whisper} 
+whisper.cpp/main.cpp
+whisper.cpp/whisper.h
+whisper.cpp/whisper.cpp
+whisper.cpp/common.h
+whisper.cpp/common.cpp
+whisper.cpp/dr_wav.h
+llama.cpp/ggml.h
+llama.cpp/ggml-mpi.h
+llama.cpp/ggml-quants.h
+)
+
+target_link_libraries(${TARGET_whisper} PRIVATE ggml ${CMAKE_THREAD_LIBS_INIT})
+target_compile_features(${TARGET_whisper} PRIVATE cxx_std_11)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
 ######################################eva相关######################################
 # 启用moc rcc uic编译器
@@ -67,7 +89,7 @@ find_package(Qt5 COMPONENTS Widgets Network Script Multimedia REQUIRED)
 # 资源文件
 set(RESOURCE_FILES
 utils/logo.qrc
-${SERVER_FILE}
+${THRIDEXE_FILE}
 utils/ceval.qrc
 )
 
@@ -93,10 +115,6 @@ xbot.cpp
 xbot.h
 xnet.cpp
 xnet.h
-xbert.cpp
-xbert.h
-xwhisper.cpp
-xwhisper.h
 xtool.cpp
 xtool.h
 xconfig.h
@@ -109,9 +127,6 @@ utils/CutScreenDialog.h
 utils/CutScreenDialog.cpp
 utils/CustomTabWidget.h
 utils/CustomTabBar.h
-
-whisper.cpp/whisper.h
-whisper.cpp/whisper.cpp
 )
 
 #确保server先于eva编译
