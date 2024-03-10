@@ -76,10 +76,11 @@ public:
     bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
-    QStringList questions;//用户右击的问题
     QMenu *right_menu;//输入区右击菜单
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
     bool createTempDirectory(const QString &path);//创建临时文件夹
+    void create_right_menu();//添加右击问题
+    QStringList func_arg_list;//提取出来的函数和参数
 
     void ui_state_init();//初始界面状态
     void ui_state_loading();//装载中界面状态
@@ -264,16 +265,16 @@ public:
     void setApiDialog();//初始化设置api选项
     void set_api();//应用api设置
     void startConnection(const QString &ip, int port);//检测ip是否通畅
+    void api_send_clicked_slove();//api模式的发送处理
     
     QDialog *api_dialog;
     QLabel *api_ip_label,*api_port_label,*api_chat_label,*api_complete_label;
     QLineEdit *api_ip_LineEdit,*api_port_LineEdit,*api_chat_LineEdit,*api_complete_LineEdit;
     QCheckBox *api_is_cache;//是否缓存上下文
-    bool is_api=false;//是否处于api模式
+    bool is_api = false;//是否处于api模式,按照链接模式的行为来
     APIS apis;//api配置参数
     QStringList ui_user_history,ui_assistant_history;
     QString temp_assistant_history="";//临时数据
-    void api_addhelpinput();
     QString current_api;//当前负载端点
     float keeptesttime = 0.1;//回应时间/keeptest*100为延迟量
     QTimer *keeptimer;//测试延迟定时器
@@ -293,7 +294,6 @@ signals:
     void ui2bot_date(DATES date);//传递约定内容
     void ui2bot_set(SETTINGS settings,bool can_reload);//传递设置内容
     void ui2bot_free();//释放
-    void ui2bot_help_input(bool add=true);//添加引导题
     void ui2bot_maxngl(int maxngl_);
 //发给net的信号
 signals:
@@ -344,6 +344,7 @@ private slots:
     void stop_recordAudio();//停止录音
     void unlockLoad();
     void send_testhandleTimeout();//api模式下测试时延迟发送
+    void tool_testhandleTimeout();//api模式下测试时延迟发送
     void keepConnection();//持续检测ip是否通畅
     void keep_onConnected();//检测ip是否通畅
     void keep_onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅

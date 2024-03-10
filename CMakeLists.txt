@@ -6,17 +6,17 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
-option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的标志
+option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
 if(BODY_32BIT)
-    add_compile_definitions(BODY_USE_32BIT)#告诉源码编译32位标志
+    add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
 elseif(LLAMA_CUBLAS)
-    add_compile_definitions(BODY_USE_CUBLAST)#编译body-cuda标志
+    add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
 elseif(LLAMA_CLBLAST)
-    add_compile_definitions(BODY_USE_CLBLAST)#编译body-cuda标志
+    add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
 endif()           
 # msvc设置编译选项
 if(MSVC)
@@ -100,7 +100,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

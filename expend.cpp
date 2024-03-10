@@ -7,13 +7,10 @@ Expend::Expend(QWidget *parent) :
 {
     ui->setupUi(this);
     //初始化选项卡
-    ui->version_card->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
-    //ui->model_vocab->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
-    //ui->modellog_cards->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
     ui->modellog_card->setReadOnly(1);
-    ui->tabWidget->setCurrentIndex(3);//默认显示模型日志 
+    ui->tabWidget->setCurrentIndex(2);//默认显示模型日志 
 
     ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     
@@ -29,32 +26,46 @@ Expend::~Expend()
 //-------------------------------------------------------------------------
 
 //用户切换选项卡时响应
-//0版本日志,1软件介绍,2模型词表,3模型日志
+//0软件介绍,1模型词表,2模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    if(index==2 && is_first_show_vocab)//第一次点模型词表
+    if(index==1 && is_first_show_vocab)//第一次点模型词表
     {
         ui->vocab_card->setPlainText(vocab);
         is_first_show_vocab = false;
     }
-    if(index==1 && is_first_show_info)//第一次点软件介绍
+    if(index==0 && is_first_show_info)//第一次点软件介绍
     {
         is_first_show_info = false;
-        // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-        QString imagePath = ":/ui/run.png";
-        QImage image(imagePath);
-        int originalWidth = image.width()/devicePixelRatioF();
-        int originalHeight = image.height()/devicePixelRatioF();
 
-        QTextCursor cursor(ui->info_card->textCursor());
-        cursor.movePosition(QTextCursor::End);
+        //展示readme内容
+        QString readme_content;
+        QFile file(":/README.md");
+        // 打开文件
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+        {
+            QTextStream in(&file);// 创建 QTextStream 对象
+            in.setCodec("UTF-8");
+            readme_content = in.readAll();// 读取文件内容
+        }
+        file.close();
+        ui->info_card->setMarkdown(readme_content);
 
-        QTextImageFormat imageFormat;
-        imageFormat.setWidth(originalWidth);  // 设置图片的宽度
-        imageFormat.setHeight(originalHeight); // 设置图片的高度
-        imageFormat.setName(imagePath);  // 图片资源路径
+        // // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+        // QString imagePath = ":/ui/run.png";
+        // QImage image(imagePath);
+        // int originalWidth = image.width()/devicePixelRatioF();
+        // int originalHeight = image.height()/devicePixelRatioF();
 
-        cursor.insertImage(imageFormat);
+        // QTextCursor cursor(ui->info_card->textCursor());
+        // cursor.movePosition(QTextCursor::End);
+
+        // QTextImageFormat imageFormat;
+        // imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+        // imageFormat.setHeight(originalHeight); // 设置图片的高度
+        // imageFormat.setName(imagePath);  // 图片资源路径
+
+        // cursor.insertImage(imageFormat);
         //强制延迟见顶
         QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
     }
@@ -69,15 +80,14 @@ void Expend::recv_log(QString log)
 //初始化扩展窗口
 void Expend::init_expend()
 {
-    ui->tabWidget->setTabText(0,wordsObj["version log"].toString());//版本日志
-    ui->tabWidget->setTabText(1,wordsObj["introduction"].toString());//软件介绍
-    ui->tabWidget->setTabText(2,wordsObj["model vocab"].toString());//模型词表
-    ui->tabWidget->setTabText(3,wordsObj["model log"].toString());//模型日志
-    ui->tabWidget->setTabText(4,wordsObj["model"].toString() + wordsObj["proliferation"].toString());//模型增殖
-    ui->tabWidget->setTabText(5,wordsObj["tool"].toString() + wordsObj["proliferation"].toString());//工具增殖
-    ui->tabWidget->setTabText(6,wordsObj["image"].toString() + wordsObj["proliferation"].toString());//图像增殖
-    ui->tabWidget->setTabText(7,wordsObj["voice"].toString() + wordsObj["proliferation"].toString());//语音增殖
-    ui->tabWidget->setTabText(8,wordsObj["video"].toString() + wordsObj["proliferation"].toString());//视频增殖
+    ui->tabWidget->setTabText(0,wordsObj["introduction"].toString());//软件介绍
+    ui->tabWidget->setTabText(1,wordsObj["model vocab"].toString());//模型词表
+    ui->tabWidget->setTabText(2,wordsObj["model log"].toString());//模型日志
+    ui->tabWidget->setTabText(3,wordsObj["model"].toString() + wordsObj["proliferation"].toString());//模型增殖
+    ui->tabWidget->setTabText(4,wordsObj["tool"].toString() + wordsObj["proliferation"].toString());//工具增殖
+    ui->tabWidget->setTabText(5,wordsObj["image"].toString() + wordsObj["proliferation"].toString());//图像增殖
+    ui->tabWidget->setTabText(6,wordsObj["voice"].toString() + wordsObj["proliferation"].toString());//语音增殖
+    ui->tabWidget->setTabText(7,wordsObj["video"].toString() + wordsObj["proliferation"].toString());//视频增殖
 }
 
 // 接收模型词表
@@ -119,12 +129,15 @@ void Expend::on_voice_load_modelpath_button_clicked()
     whisper_params.model = QFileDialog::getOpenFileName(this,"choose whisper model",QString::fromStdString(whisper_params.model)).toStdString();
     ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
-    ui->voice_load_log->setPlainText("选择好了就可以关闭这个窗口,按f2录音了");
+    ui->voice_load_log->setPlainText("选择好了就可以按f2录音了");
+    if(is_first_choose_whispermodel){this->close();is_first_choose_whispermodel=false;}
 }
 
 //开始语音转文字
 void Expend::recv_voicedecode(QString wavpath)
 {
+    whisper_time.restart();
+
     QString resourcePath = ":/whisper.exe";
     QString localPath = "./EVA_TEMP/whisper.exe";
     // 获取资源文件
@@ -173,7 +186,7 @@ void Expend::recv_voicedecode(QString wavpath)
 
 void Expend::whisper_onProcessStarted()
 {
-    qDebug()<<"开始处理";
+    emit expend2ui_state("expend:调用whisper.exe解码录音",USUAL_);
 }
 
 void Expend::whisper_onProcessFinished()
@@ -191,5 +204,6 @@ void Expend::whisper_onProcessFinished()
         content = in.readAll();// 读取文件内容
     }
     file.close();
+    emit expend2ui_state("expend:解码完成 " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
     emit expend2ui_voicedecode_over(content);
 }

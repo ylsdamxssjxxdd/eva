@@ -79,7 +79,7 @@ struct ENDPOINT_DATA{
     float temp;
     double repeat;
     int n_predict;
-    
+    QStringList stopwords;//停止标志
 };
 
 //单参数工具

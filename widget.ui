@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>384</width>
+    <width>328</width>
     <height>617</height>
    </rect>
   </property>
@@ -164,7 +164,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QPlainTextEdit" name="input">
+        <widget class="QTextEdit" name="input">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -181,9 +181,6 @@
           <font>
            <pointsize>12</pointsize>
           </font>
-         </property>
-         <property name="placeholderText">
-          <string/>
          </property>
         </widget>
        </item>

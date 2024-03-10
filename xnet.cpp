@@ -31,24 +31,19 @@ void xNet::run()
         request.setRawHeader("Authorization", api_key.toUtf8());
         //构造请求的数据体
         QByteArray data = createChatBody();
-        
         // 发送 POST 请求
         QNetworkReply *reply = manager.post(request, data);
-        
         // 处理响应
         QObject::connect(reply, &QNetworkReply::readyRead, [&]() 
         {
-            
-            if(is_first_token){is_first_token = false;time2.start();}
+            if(is_first_token){is_first_token = false;time2.start();}//从接收到第一个token开始计时
             QString jsonString = reply->readAll();
              // 由于原始字符串包含非JSON格式的前缀"data: "，我们需要去除这些部分
             QStringList dataList = jsonString.split("\n\n", QString::SkipEmptyParts);
             for (QString &data : dataList) {
                 data.remove(0, data.indexOf("{"));  // 去除"data: "前缀
-
                 // 把QString对象转换为QByteArray
                 QByteArray jsonData = data.toUtf8();
-
                 // 使用Qt的JSON类解析JSON数据
                 QJsonDocument document = QJsonDocument::fromJson(jsonData);
                 if (!document.isNull()) {
@@ -56,20 +51,24 @@ void xNet::run()
                         QJsonObject jsonObject = document.object();
                         QJsonArray choices = jsonObject["choices"].toArray();
                         QJsonObject firstChoice = choices.at(0).toObject();
+                        //qDebug()<<firstChoice;//看看接收到了什么
                         QJsonObject delta = firstChoice["delta"].toObject();
                         QString content = delta["content"].toString();
                         QString content_flag;
-                        if(content == "\n" || content == "\r"){content_flag = wordsObj["<enter>"].toString();}
-                        else if(content == " "){content_flag = wordsObj["<space>"].toString();}
-                        else if(firstChoice.value("finish_reason").toString() == "stop"){content_flag = wordsObj["<end>"].toString();}
-                        else{content_flag=content;}
-                        if(content!="")
+                        if(firstChoice.value("finish_reason").toString() == "stop")
+                        {
+                            content_flag = wordsObj["<end>"].toString();
+                        }
+                        else
+                        {
+                            content_flag=content;
+                        }
+                        if(content!="")//解析的结果发送到输出区
                         {
                             tokens++;
                             emit net2ui_state("net:" + wordsObj["recv output"].toString() + " " + content_flag);
                             emit net2ui_output(content,1);
                         }
-                        
                     }
                 } else {
                     emit net2ui_state("net:resolve json fail",WRONG_);
@@ -77,7 +76,6 @@ void xNet::run()
                     qDebug() << dataList;
                 }
             }
-
             if(is_stop)
             {
                 is_stop =false;
@@ -90,8 +88,14 @@ void xNet::run()
             if (reply->error() == QNetworkReply::NoError) 
             {
                 // 请求完成，所有数据都已正常接收
-                if(endpoint_data.n_predict == 1){emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);}
-            else{emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);}
+                if(endpoint_data.n_predict == 1)
+                {
+                    emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);
+                }
+                else
+                {
+                    emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
+                }
             } 
             else 
             {
@@ -129,9 +133,7 @@ void xNet::run()
             QJsonObject rootObject = document.object();
             QString content = rootObject.value("content").toString();// 得到content字段的值
             QString content_flag;
-            if(content == "\n" || content == "\r"){content_flag = wordsObj["<enter>"].toString();}
-            else if(content == " "){content_flag = wordsObj["<space>"].toString();}
-            else if(rootObject.value("stop").toBool()){content_flag = wordsObj["<end>"].toString();}
+            if(rootObject.value("stop").toBool()){content_flag = wordsObj["<end>"].toString();}
             else{content_flag=content;}
             tokens++;
             emit net2ui_state("net:" + wordsObj["recv output"].toString() + " " + content_flag);
@@ -141,7 +143,6 @@ void xNet::run()
                 is_stop =false;
                 reply->abort();//终止
             }
-
         });
         // 完成
         QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -180,7 +181,11 @@ QByteArray xNet::createChatBody()
     json.insert("stream", true);
     json.insert("temperature", 2*endpoint_data.temp);
     json.insert("max_tokens", endpoint_data.n_predict);
-    QJsonArray stopkeys;stopkeys.append("<|im_end|>");//强制结束的词
+    QJsonArray stopkeys;//强制结束的词
+    for(int i =0;i<endpoint_data.stopwords.size();++i)
+    {
+        stopkeys.append(endpoint_data.stopwords.at(i));
+    }
     json.insert("stop", stopkeys);
 
     QJsonArray messagesArray;//总消息
@@ -191,7 +196,9 @@ QByteArray xNet::createChatBody()
     messagesArray.append(systemMessage);//添加消息
     //构造历史和当前的用户输入，一条用户的一条模型的这样构造，直到历史记录没有
     //qDebug()<<"--------------------------------";
-    while(endpoint_data.user_history.size()>0)
+    int k = 0;
+    int j = 0;
+    while(endpoint_data.user_history.size()>0 || endpoint_data.assistant_history.size()>0)
     {
         if(endpoint_data.user_history.size()>0)
         {
@@ -199,16 +206,19 @@ QByteArray xNet::createChatBody()
             userMessage.insert("role", "user");
             userMessage.insert("content", endpoint_data.user_history.at(0));
             //qDebug() << "user" << endpoint_data.user_history.at(0);
+            j++;
+            //emit net2ui_state("user:" + QString::number(j) + " " + endpoint_data.user_history.at(0),WRONG_);
             messagesArray.append(userMessage);
             endpoint_data.user_history.removeFirst();
             
         }
         if(endpoint_data.assistant_history.size()>0)
         {
+            k++;
+            //emit net2ui_state("ass:" + QString::number(k) + " " + endpoint_data.assistant_history.at(0),WRONG_);
             QJsonObject assistantMessage;
             assistantMessage.insert("role", "assistant");
             assistantMessage.insert("content", endpoint_data.assistant_history.at(0));
-            //qDebug() << "assistant" << endpoint_data.assistant_history.at(0);
             messagesArray.append(assistantMessage);
             endpoint_data.assistant_history.removeFirst();
         }

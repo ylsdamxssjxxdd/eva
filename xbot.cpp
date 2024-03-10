@@ -28,6 +28,7 @@ xBot::xBot()
     gpt_params_.n_batch = DEFAULT_BATCH;//一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
     gpt_params_.input_prefix = DEFAULT_PREFIX + std::string(":\n");//输入前缀
     gpt_params_.input_suffix = DEFAULT_SUFFIX + std::string(":\n");//输入后缀
+    qDebug()<<gpt_params_.n_ctx;
     //初始的采样参数
     gpt_params_.sparams.top_p = 0.95;
     gpt_params_.sparams.temp = DEFAULT_TEMP;//温度
@@ -95,7 +96,7 @@ void xBot::run()
             }
             else
             {
-                emit bot2ui_state("bot:" + wordsObj["please"].toString() + wordsObj["load mmproj"].toString(),USUAL_);
+                emit bot2ui_state("bot:" + wordsObj["invalid operation"].toString() + ", " + wordsObj["please"].toString() + wordsObj["load mmproj"].toString(),USUAL_);
             }
             emit bot2ui_pushover();//推理完成的信号
             is_stop = false;
@@ -233,7 +234,8 @@ int xBot::stream()
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
                     if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
                     else{emit bot2ui_arrivemaxctx(0);}
-                    emit bot2ui_state("bot:" + wordsObj["eva overload"].toString() + " " + wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",EVA_);
+                    emit bot2ui_state(wordsObj["eva overload"].toString(), EVA_);
+                    emit bot2ui_state("bot:" +  wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",SIGNAL_);
                 }
             }
             else
@@ -295,7 +297,8 @@ int xBot::stream()
         }   
         else
         {
-            emit bot2ui_state("bot:" +wordsObj["embd no token please restart"].toString(),EVA_);
+            emit bot2ui_state(wordsObj["eva confuse"].toString(),EVA_);
+            emit bot2ui_state("bot:" + wordsObj["embd no token please restart"].toString(),WRONG_);
             return 0;
         }//待推理的embd没有token则退出
         embd.clear();//清空embd
@@ -491,7 +494,7 @@ void xBot::load(std::string &modelpath)
 #endif
     if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
     
-    emit bot2ui_state("bot:" + wordsObj["eva loadding"].toString(),EVA_);
+    emit bot2ui_state(wordsObj["eva loadding"].toString(),EVA_);
     emit bot2ui_play();//播放动画
     
     //装载模型
@@ -523,7 +526,8 @@ void xBot::load(std::string &modelpath)
     {
         is_first_load = true;
         emit bot2ui_loadover(false, 0);
-        emit bot2ui_state("bot:" + wordsObj["eva broken"].toString()+ " " +wordsObj["right click and check model log"].toString(),EVA_);
+        emit bot2ui_state(wordsObj["eva broken"].toString(),EVA_);
+        emit bot2ui_state("bot:" + wordsObj["right click and check model log"].toString(),WRONG_);
         return;
     }
 
@@ -678,7 +682,8 @@ void xBot::preDecode()
     }
     else//待推理的embd没有token则退出
     {
-        emit bot2ui_state("bot:" + wordsObj["embd no token please restart"].toString(),EVA_);//新增
+        emit bot2ui_state(wordsObj["eva confuse"].toString(),EVA_);
+        emit bot2ui_state("bot:" + wordsObj["embd no token please restart"].toString(),WRONG_);
         return;
     }
 

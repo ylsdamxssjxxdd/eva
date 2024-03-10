@@ -10,6 +10,7 @@
 #include <QProcess>
 #include <QFile>
 #include <QTextStream>
+#include <QElapsedTimer>
 
 #include "xconfig.h"
 namespace Ui {
@@ -34,6 +35,8 @@ public:
     bool is_first_show_info = true;
     bool load_percent_tag = false;
     void init_expend();//初始化扩展窗口
+signals:    
+    void expend2ui_state(QString state_string,STATE state);
 public slots:
     void recv_log(QString log);
     void recv_vocab(QString vocab);    
@@ -48,6 +51,8 @@ private:
 public:
     Whisper_Params whisper_params;//whisper.exe可以传入的参数
     int max_thread;
+    QElapsedTimer whisper_time;//计时器
+    bool is_first_choose_whispermodel=true;//第一次选好模型路径直接关闭扩展窗口
 signals:
     void whisper_kill();
     void expend2ui_voicedecode_over(QString result);

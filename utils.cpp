@@ -204,8 +204,8 @@ void Widget::showImage(QString imagepath)
 //开始录音
 void Widget::recordAudio()
 {
+    reflash_state("ui:" + wordsObj["recoding"].toString() + "... ");
     ui_state_recoding();
-    
     //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
     QAudioFormat audioFormat;
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
@@ -261,11 +261,14 @@ void Widget::stop_recordAudio()
     wavHeader.nDataLength = device->size();
 //写到IO设备头
     device->seek(0);
-    device->write(reinterpret_cast<char*>(&wavHeader),sizeof WAVHEADER);
+    device->write(reinterpret_cast<char*>(&wavHeader),sizeof(WAVHEADER));
+
     _audioInput->stop();
     audio_timer->stop();
-    audio_time = 0;
     outFile.close();
+    reflash_state("ui:" + wordsObj["recoding over"].toString() + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
+    audio_time = 0;
+    
     emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav");//传一个wav文件开始解码
 }
 
@@ -472,6 +475,7 @@ void Widget::switch_lan_change()
 QString Widget::makeHelpInput()
 {
     QString help_input;
+
     for(int i = 1; i < 3;++i)//2个
     {
         help_input = help_input + ui_DATES.input_pfx + ":\n";//前缀,用户昵称
@@ -479,6 +483,7 @@ QString Widget::makeHelpInput()
         help_input = help_input + "\n" + ui_DATES.input_sfx + ":\n";//后缀,模型昵称
         help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
     }
+    
     return help_input;
 }
 
@@ -501,22 +506,19 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         }
         else if (msg->wParam == 123456)
         {
-            
-            if(!is_recodering && ui_mode == CHAT_ && is_load_play_over)
+            if(whisper_model_path == "")//如果还未指定模型路径则先指定
             {
-                if(whisper_model_path == "")//如果还未指定模型路径则先指定
-                {
-                    emit ui2expend_show(7);//语音增殖界面
-                    return true;
-                }
-                reflash_state("ui:" + wordsObj["recoding"].toString() + "... ");
-                recordAudio();
+                emit ui2expend_show(6);//语音增殖界面
+                return true;
+            }   
+            else if(!is_recodering)
+            {
+                recordAudio();//开始录音
                 is_recodering = true;
             }
             else if(is_recodering)
             {
-                reflash_state("ui:" + wordsObj["recoding over"].toString());
-                stop_recordAudio();
+                stop_recordAudio();//停止录音
             }
             
             return true;
@@ -541,3 +543,5 @@ bool Widget::createTempDirectory(const QString &path) {
         }
     }
 }
+
+

@@ -61,7 +61,7 @@ void Widget::init_move()
 
     //设置动画内容字体格式
     movie_format.setFontWeight(QFont::Bold); // 设置粗体
-    movie_font.setPointSize(8);
+    movie_font.setPointSize(6);
     movie_format.setFont(movie_font);
 
     load_pTimer = new QTimer(this);//连接接动画
@@ -293,8 +293,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         //每20次题加一次引导题
         if(int(test_count) % 20 == 0)
         {
-            if(!is_api){help_input = true;}
-            else{api_addhelpinput();}
+            help_input = true;
             ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
         }
     }
@@ -389,21 +388,24 @@ void Widget::reflash_state(QString state_string,STATE state)
     {
         QFont font = format.font();
         //font.setLetterSpacing(QFont::AbsoluteSpacing, 0); // 设置字母间的绝对间距
-        font.setPixelSize(15);
+        font.setPixelSize(14);
         format.setFont(font);
-        format.setFontWeight(QFont::Bold); // 设置粗体
         format.setFontItalic(true);        // 设置斜体
         //format.setForeground(QColor(128,0,128));    // 紫色设置前景颜色
         format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         //■■■■■■■■■■■■■■
         state_scroll(wordsObj["cubes"].toString());//显示
+
         //中间内容
         format.setFontItalic(false);         // 取消斜体
+        format.setFontWeight(QFont::Black); // 设置粗体
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(state_string);//显示
+        state_scroll("          " + state_string);//显示
+
         //■■■■■■■■■■■■■■
         format.setFontItalic(true);        // 设置斜体
+        format.setFontWeight(QFont::Normal); // 取消粗体
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll(wordsObj["cubes"].toString());//显示
         
@@ -447,26 +449,6 @@ void Widget::state_scrollBarValueChanged(int value)
     {
         is_stop_state_scroll = 1;
     }
-}
-
-//-------------------------------------------------------------------------
-//--------------------------------控件状态相关------------------------------
-//-------------------------------------------------------------------------
-
-//api模式切换时控件可见状态
-void Widget::change_api_dialog(bool enable)
-{
-    repeat_label->setVisible(enable);repeat_slider->setVisible(enable);
-    nctx_label->setVisible(enable);nctx_slider->setVisible(enable);
-    nthread_label->setVisible(enable);nthread_slider->setVisible(enable);
-    batch_label->setVisible(enable);batch_slider->setVisible(enable);
-    mmproj_label->setVisible(enable);mmproj_LineEdit->setVisible(enable);
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ngl_label->setVisible(enable);ngl_slider->setVisible(enable);
-#else
-    lora_label->setVisible(enable);lora_LineEdit->setVisible(enable);
-#endif
-    port_label->setVisible(enable);port_lineEdit->setVisible(enable);web_btn->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
@@ -528,6 +510,7 @@ void Widget::complete_change()
         port_lineEdit->setEnabled(0);
     }
 }
+
 //对话按钮响应
 void Widget::chat_change()
 {
@@ -1062,7 +1045,7 @@ void Widget::decode_move()
         QTextCursor currnet_cursor(currnet_block);//取游标
         currnet_cursor.movePosition(QTextCursor::EndOfBlock);//游标移动到末尾
         currnet_cursor.movePosition(QTextCursor::Left,QTextCursor::KeepAnchor);//选中当前字符
-        if(currnet_cursor.selectedText()=="\\"||currnet_cursor.selectedText()=="/"||currnet_cursor.selectedText()=="-")
+        if(currnet_cursor.selectedText()=="\\"||currnet_cursor.selectedText()=="/"||currnet_cursor.selectedText()=="-"||currnet_cursor.selectedText()=="|")
         {
             currnet_cursor.removeSelectedText();//删除选中字符
         }
@@ -1116,72 +1099,61 @@ void Widget::decode_handleTimeout()
 //应用api设置
 void Widget::set_api()
 {
+    //判断ip地址是否合理
     if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,WRONG_);return;}
-    ui_state = "ui:"+wordsObj["detecting"].toString()+"api...";reflash_state(ui_state,SIGNAL_);
-    emit ui2bot_free();is_load = false;
-    if(ui_mode == CHAT_){ui->output->clear();}
+    reflash_state("ui:"+wordsObj["detecting"].toString()+"api...",SIGNAL_);
+    emit ui2bot_free();//释放原来的模型
+    is_load = false;
+
+    //获取设置值
     apis.api_ip = api_ip_LineEdit->text();
     apis.api_port = api_port_LineEdit->text();
     apis.api_chat_endpoint = api_chat_LineEdit->text();
     apis.api_complete_endpoint = api_complete_LineEdit->text();
     apis.is_cache = api_is_cache->isChecked();
+
     startConnection(apis.api_ip,apis.api_port.toInt());//检测ip是否通畅
-    api_dialog->setDisabled(1);
 }
 
 void Widget::startConnection(const QString &ip, int port) {
     // socket should be a member variable or should be managed to ensure its lifetime
     // during the asynchronous operation
+    api_dialog->setDisabled(1);//阻塞界面
     QTcpSocket *socket = new QTcpSocket(this); 
-    connect(socket, &QTcpSocket::connected, this, &Widget::onConnected);
-    connect(socket, &QTcpSocket::errorOccurred, this, &Widget::onError);
+    connect(socket, &QTcpSocket::connected, this, &Widget::onConnected);//链接成功的后处理动作
+    connect(socket, &QTcpSocket::errorOccurred, this, &Widget::onError);//链接失败的后处理动作
     socket->connectToHost(ip, port);
-    
 }
 
 void Widget::keepConnection()
 {
-    //if(keeptimer->isActive()){keeptimer->stop();}//控制超时处理函数只会处理一次
     keeptime.restart();
     QTcpSocket *socket = new QTcpSocket(this); 
     connect(socket, &QTcpSocket::connected, this, &Widget::keep_onConnected);
     connect(socket, &QTcpSocket::errorOccurred, this, &Widget::keep_onError);
     socket->connectToHost(apis.api_ip, apis.api_port.toInt());
-    
-}
-
-void Widget::api_addhelpinput()
-{
-    ui_user_history << wordsObj["H1"].toString();
-    ui_assistant_history << wordsObj["A1"].toString();
-    ui_user_history << wordsObj["H2"].toString();
-    ui_assistant_history << wordsObj["A2"].toString();
-    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H1"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A1"].toString(),0,Qt::black);
-    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj["H2"].toString() + "\n" + ui_DATES.input_sfx + ":\n" + wordsObj["A2"].toString(),0,Qt::black);
 }
 
 // 连接成功
-void Widget::onConnected() {
+void Widget::onConnected() 
+{
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    if (socket) {
-        socket->disconnectFromHost();
-        // Handle successful connection
-    }
-    is_api = true;
+    if (socket) {socket->disconnectFromHost();}//中断访问
+
+    is_api = true;//按照链接模式的行为来
     reflash_state("ui:" + wordsObj["eva link"].toString(),EVA_);
     if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-    ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
+    reflash_state("ui:"+wordsObj["current api"].toString() + " " + current_api,USUAL_);
     this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-    ui->kv_bar->message = wordsObj["delay"].toString();ui->kv_bar->setToolTip("");
+    ui->kv_bar->message = wordsObj["delay"].toString();
+    ui->kv_bar->setToolTip("");
     
     emit ui2net_apis(apis);
     reflash_output(ui_DATES.system_prompt,0,Qt::black);
-    ui->date->setEnabled(1);
-    ui->set->setEnabled(1);
-    ui->reset->setEnabled(1);
-    ui->send->setEnabled(1);
+    ui_state_normal();
+    
     api_dialog->setDisabled(0);
     api_dialog->close();
 
@@ -1191,15 +1163,30 @@ void Widget::onConnected() {
 void Widget::onError(QAbstractSocket::SocketError socketError) {
     // Handle the error
     is_api = false;
-    ui_state = "ui:api"+wordsObj["port"].toString()+wordsObj["blocked"].toString();reflash_state(ui_state,WRONG_);
+    reflash_state("ui:api"+wordsObj["port"].toString()+wordsObj["blocked"].toString(),WRONG_);
     this->setWindowTitle(wordsObj["eva"].toString());
-    ui->date->setEnabled(0);
-    ui->set->setEnabled(0);
-    ui->reset->setEnabled(0);
-    ui->send->setEnabled(0);
     api_dialog->setDisabled(0);
     api_dialog->close();
 }
+//api模式下工具返回结果时延迟发送
+void Widget::tool_testhandleTimeout()
+{
+    ENDPOINT_DATA data;
+    data.date_prompt = ui_DATES.system_prompt;
+    data.input_pfx = ui_DATES.input_pfx;
+    data.input_sfx = ui_DATES.input_sfx;
+    data.stopwords = ui_DATES.extra_stop_words;
+    data.complete_mode = ui_mode;
+    data.temp=ui_SETTINGS.temp;
+    data.repeat=ui_SETTINGS.repeat;
+    data.n_predict = ui_SETTINGS.npredict;
+    data.assistant_history = ui_assistant_history;
+    data.user_history = ui_user_history;
+    
+    emit ui2net_data(data);
+    emit ui2net_push();
+}
+
 void Widget::send_testhandleTimeout()
 {
     on_send_clicked();
@@ -1213,18 +1200,34 @@ void Widget::keep_onConnected()
     if(percent < 1 && percent >0){percent = 1;}
     ui->kv_bar->setSecondValue(percent);
 }
+
 //每多少秒测一次延迟,回应时间/keeptest*100为延迟量
 void Widget::keep_onError(QAbstractSocket::SocketError socketError)
 {
-    //qDebug() << socketError;
     if(socketError!=QAbstractSocket::RemoteHostClosedError){ui->kv_bar->setSecondValue(100);}
-    
+}
+
+//api模式切换时某些控件可见状态
+void Widget::change_api_dialog(bool enable)
+{
+    repeat_label->setVisible(enable);repeat_slider->setVisible(enable);
+    nctx_label->setVisible(enable);nctx_slider->setVisible(enable);
+    nthread_label->setVisible(enable);nthread_slider->setVisible(enable);
+    batch_label->setVisible(enable);batch_slider->setVisible(enable);
+    mmproj_label->setVisible(enable);mmproj_LineEdit->setVisible(enable);
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+    ngl_label->setVisible(enable);ngl_slider->setVisible(enable);
+#else
+    lora_label->setVisible(enable);lora_LineEdit->setVisible(enable);
+#endif
+    port_label->setVisible(enable);port_lineEdit->setVisible(enable);web_btn->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
 //----------------------------------界面状态--------------------------------
 //-------------------------------------------------------------------------
 //按钮的可用和可视状态控制
+//最终要归到下面的几种状态来
 
 //初始界面状态
 void Widget::ui_state_init()
@@ -1251,6 +1254,7 @@ void Widget::ui_state_loading()
 //推理中界面状态
 void Widget::ui_state_pushing()
 {
+    decode_play();//开启推理动画
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
     ui->set->setEnabled(0);
@@ -1272,16 +1276,21 @@ void Widget::ui_state_servering()
 //待机界面状态
 void Widget::ui_state_normal()
 {
+    decode_pTimer->stop();//停止解码动画
     if(ui_mode == CHAT_)
     {
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
         ui->load->setEnabled(1);
-        ui->date->setEnabled(1);
-        ui->set->setEnabled(1);
-        ui->reset->setEnabled(1);
-        ui->send->setEnabled(1);
+        if(is_load || is_api)
+        {
+            ui->reset->setEnabled(1);
+            ui->send->setEnabled(1);
+            //后期再把date和set拿出来
+            ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
+        }
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
@@ -1296,10 +1305,15 @@ void Widget::ui_state_normal()
     else if(ui_mode == COMPLETE_)
     {
         ui->load->setEnabled(1);
-        ui->date->setEnabled(1);
-        ui->set->setEnabled(1);
-        ui->reset->setEnabled(1);
-        ui->send->setEnabled(1);
+        
+        if(is_load || is_api)
+        {
+            ui->reset->setEnabled(1);
+            ui->send->setEnabled(1);
+            //后期再把date和set拿出来
+            ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
+        }
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
@@ -1312,12 +1326,17 @@ void Widget::ui_state_normal()
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
     }
+    else if(ui_mode == SERVER_)
+    {
+        ui->set->setEnabled(1);
+    }
+    if(is_api){change_api_dialog(0);}//api模式不要解码设置
+    else{change_api_dialog(1);}
 }
 
 //录音界面状态
 void Widget::ui_state_recoding()
 {
-
     if(audio_time == 0)
     {
         ui->load->setEnabled(0);
@@ -1325,6 +1344,7 @@ void Widget::ui_state_recoding()
         ui->set->setEnabled(0);
         ui->reset->setEnabled(0);
         ui->send->setEnabled(0);
+        ui->input->setFocus();
         ui->input->clear();
         ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");//透明绿色
         ui->input->setReadOnly(1);
@@ -1336,4 +1356,86 @@ void Widget::ui_state_recoding()
         ui->input->setPlaceholderText(wordsObj["recoding"].toString() + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + wordsObj["push f2 to stop"].toString());
     }
     
+}
+
+
+//添加右击问题
+void Widget::create_right_menu()
+{
+    QDate currentDate = QDate::currentDate();//历史中的今天
+    QString dateString = currentDate.toString("MM" + wordsObj["month"].toString() + "dd" + wordsObj["day"].toString());
+    //---------------创建一般问题菜单--------------
+    right_menu = new QMenu(this);
+    for(int i=1;i<15;++i)
+    {
+        QString question;
+        if(i == 4){question = wordsObj[QString("Q%1").arg(i)].toString().replace("{today}",dateString);}//历史中的今天
+        else{question = wordsObj[QString("Q%1").arg(i)].toString();}
+        QAction *action = right_menu->addAction(question);
+        connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question);});
+    }
+    //------------创建自动化问题菜单-------------
+    //上传图像
+    QAction *action15 = right_menu->addAction(wordsObj["Q15"].toString());
+    connect(action15, &QAction::triggered, this, [=]() 
+    {
+        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+
+        QString imagepath = QFileDialog::getOpenFileName(this,wordsObj["Q15"].toString(),"","(*.png *.jpg *.bmp)");//用户选择图片
+        if(imagepath==""){return;}
+        emit ui2bot_imagepath(imagepath);//发送图像路径
+
+        QString input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
+        ui->input->setPlainText(input);
+
+        if(ui->send->isEnabled()){showImage(imagepath);}//显示文件名和图像
+        ui->send->click();//触发一次发送
+    });
+    //Q16测试相关,ceval数据集
+    QAction *action16 = right_menu->addAction(wordsObj["Q16"].toString());
+    connect(action16, &QAction::triggered, this, [=]() 
+    {
+        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+
+        clearQuestionlist();//清空题库
+        makeTestQuestion(":/ceval-exam/val");//构建测试问题集
+        makeTestIndex();//构建测试问题索引
+        QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
+        this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
+
+        reflash_state("ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString(),USUAL_);
+        reflash_state("ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1",USUAL_);
+        reflash_state("ui:"+ wordsObj["add help question"].toString(),SIGNAL_);
+
+        test_time.restart();
+        is_test = true;
+        help_input = true;
+        ui->send->click();//触发一次发送
+    });
+    //Q17测试相关,自定义数据集
+    QAction *action17 = right_menu->addAction(wordsObj["Q17"].toString());
+    connect(action17, &QAction::triggered, this, [=]() 
+    {
+        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+
+        QString custom_csvpath = QFileDialog::getOpenFileName(this,wordsObj["Q17"].toString(),"D:/soul","CSV files (*.csv)");//用户选择自定义的csv文件
+        if(custom_csvpath==""){return;}
+
+        clearQuestionlist();//清空题库
+        readCsvFile(custom_csvpath);//构建测试问题集
+        makeTestIndex();//构建测试问题索引
+        if(test_question_index.size()==0){reflash_state("ui:0"+ wordsObj["question"].toString(),WRONG_);return;}
+        QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
+        this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
+        
+        reflash_state("ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString(),USUAL_);
+        reflash_state("ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1",USUAL_);
+        reflash_state("ui:"+ wordsObj["add help question"].toString(),SIGNAL_);
+
+        test_time.restart();
+        is_test = true;
+        help_input = true;
+        ui->send->click();//触发一次发送
+    });
+
 }

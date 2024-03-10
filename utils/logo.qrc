@@ -1,8 +1,8 @@
 <RCC>
     <qresource prefix="/">
+        <file>../README.md</file>
         <file>chinese.json</file>
         <file>english.json</file>
-        <file>ui/run.png</file>
         <file>ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png</file>
         <file>ui/QSS-master/QSS_IMG/go-next-symbolic.symbolic.png</file>
         <file>ui/QSS-master/QSS_IMG/go-previous-symbolic.symbolic.png</file>

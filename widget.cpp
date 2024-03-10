@@ -81,26 +81,7 @@ Widget::Widget(QWidget *parent)
     state_scrollBar =  ui->state->verticalScrollBar();
     connect(state_scrollBar, &QScrollBar::valueChanged, this, &Widget::state_scrollBarValueChanged);
     //-------------添加右击问题-------------
-    QDate currentDate = QDate::currentDate();//历史中的今天
-    QString dateString = currentDate.toString("MM" + wordsObj["month"].toString() + "dd" + wordsObj["day"].toString());
-    for(int i = 1; i < 18;++i)
-    {
-        if(i == 4){questions<<wordsObj[QString("Q%1").arg(i)].toString().replace("{today}",dateString);}//历史中的今天
-        else
-        {
-            questions<<wordsObj[QString("Q%1").arg(i)].toString();
-        }
-        
-    }
-    // 创建菜单并添加动作
-    right_menu = new QMenu(this);
-    for(int i=0;i<questions.size();++i)
-    {
-        QAction *action = right_menu->addAction(questions.at(i));
-        // 连接信号和槽
-        connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(questions.at(i));});
-    }
-    
+    create_right_menu();
     //-------------初始化工具-------------
     tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
@@ -173,7 +154,6 @@ void Widget::recv_loadover(bool ok_,float load_time_)
     if(ok_)
     {
         load_time = load_time_;
-        change_api_dialog(1);
         is_load = true;//标记模型已装载
         all_fps ++;//补上最后一帧,表示上下文也创建了
         load_pTimer->stop();//停止动画,但是动作计数load_action保留
@@ -199,157 +179,7 @@ void Widget::on_send_clicked()
     reflash_state("ui:" + wordsObj["clicked send"].toString(),SIGNAL_);
     QString input;
     
-    //api模式的处理
-    if(is_api)
-    {
-        emit ui2net_stop(0);
-        ENDPOINT_DATA data;
-        data.date_prompt = ui_DATES.system_prompt;data.input_pfx = ui_DATES.input_pfx;data.input_sfx = ui_DATES.input_sfx;
-        data.complete_mode = ui_mode;data.temp=ui_SETTINGS.temp;data.repeat=ui_SETTINGS.repeat;
-        data.assistant_history = ui_assistant_history;data.user_history = ui_user_history;
-
-        if(is_test)
-        {
-            if(test_question_index.size()>0)//测试中
-            {
-                input = QString::number(test_count+1) + ". " +test_list_question.at(test_question_index.at(0));
-            }
-            else//完成测试完成
-            {
-                float acc = test_score / test_count * 100.0;//回答准确率
-                ui_state = "ui:" + wordsObj["test"].toString() + wordsObj["over"].toString()+ " " + QString::number(test_count) + wordsObj["question"].toString() + " " + wordsObj["accurate"].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s ";
-                decode_pTimer->stop();
-                reflash_state(ui_state,SUCCESS_);
-                is_test = false;
-                is_run = false;
-                //恢复
-                test_question_index.clear();test_count = 0;test_score=0;test_tokens=0;
-                ui->send->setEnabled(1);
-                ui->load->setEnabled(1);
-                ui->date->setEnabled(1);
-                ui->set->setEnabled(1);
-                return;
-            }
-            ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-            data.input_prompt = input;data.n_predict=1;
-            emit ui2net_data(data);
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-        }
-        else if(is_query)
-        {
-            if(query_list.size()>0)//连续回答中
-            {
-                input = query_list.at(0);
-                query_list.removeFirst();
-            }
-            else//连续回答完成
-            {
-                ui_state = "ui:" + wordsObj["query"].toString() + wordsObj["over"].toString();
-                reflash_state(ui_state,SUCCESS_);
-                is_query = false;
-                is_run = false;
-                //恢复
-                ui->send->setEnabled(1);
-                ui->load->setEnabled(1);
-                ui->date->setEnabled(1);ui->set->setEnabled(1);
-                return;
-            }
-            ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-            data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
-            emit ui2net_data(data);
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-        }
-        else
-        {
-            input = ui->input->toPlainText().toUtf8().data();//获取用户输入
-            ui->input->clear();//用户输入区清空输入
-
-            if(input ==  wordsObj["Q16"].toString())//开始测试开始
-            {
-                ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " " + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
-                clearQuestionlist();//清空题库
-                makeTestQuestion(":/ceval-exam/val");//构建测试问题集
-                makeTestIndex();//构建测试问题索引
-                ui_state = "ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString();reflash_state(ui_state,SIGNAL_);
-                test_time.restart();
-                QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-
-                api_addhelpinput();//加入引导问题
-                is_test = true;
-                input = QString::number(test_count+1) + ". "+test_list_question.at(test_question_index.at(0));
-                ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-                data.input_prompt = input;data.n_predict=1;
-                emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-                this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " +wordsObj["current api"].toString() + " " + current_api);  
-                ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
-                
-            }
-            else if (input ==  wordsObj["Q17"].toString())//自定义数据集
-            {
-                ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
-                QString custom_csvpath = QFileDialog::getOpenFileName(this,wordsObj["Q17"].toString(),"D:/soul","CSV files (*.csv)");//用户选择自定义的csv文件
-                clearQuestionlist();//清空题库
-                readCsvFile(custom_csvpath);//构建测试问题集
-                makeTestIndex();//构建测试问题索引
-                if(test_question_index.size()==0){ui_state = "ui:0"+ wordsObj["question"].toString();reflash_state(ui_state,WRONG_);return;}
-                ui_state = "ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString();reflash_state(ui_state,SIGNAL_);
-                test_time.restart();
-                QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-                api_addhelpinput();//加入引导问题
-                is_test = true;
-                input = QString::number(test_count+1) + ". "+test_list_question.at(test_question_index.at(0));
-                ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-                
-                ui_assistant_history << input;
-                
-                data.input_prompt = input;data.n_predict=1;
-                emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-                this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " +wordsObj["current api"].toString() + " " + current_api);  
-                ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
-                
-            }
-            else if(input.contains(wordsObj["Q14"].toString().split(">")[0]))
-            {
-                query_list = input.split(">")[1].split("/");
-                if(query_list.size()==0)
-                {
-                    return;
-                }
-                is_query = true;
-                input = query_list.at(0);
-                query_list.removeFirst();
-                ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-                data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
-                emit ui2net_data(data);
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-            }
-            else if(ui_mode == CHAT_)
-            {
-                ui_user_history << input;data.user_history = ui_user_history;data.assistant_history = ui_assistant_history;
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n" + ui_user_history.last() + "\n" + ui_DATES.input_sfx + ":\n",0,Qt::black);
-                data.n_predict=ui_SETTINGS.npredict;
-                emit ui2net_data(data);
-            } 
-            else if(ui_mode == COMPLETE_)//直接用output上的文本进行推理
-            {
-                input = ui->output->toPlainText().toUtf8().data();
-                data.input_prompt = input;data.n_predict=ui_SETTINGS.npredict;
-                emit ui2net_data(data);
-            }
-               
-        }
-        ui->input->setFocus();
-        is_run =true;//模型正在运行标签
-        emit ui2net_push();
-        ui->date->setDisabled(1);
-        ui->load->setDisabled(1);
-        ui->send->setDisabled(1);
-        ui->set->setEnabled(0);
-        return;
-    }
-    
+    if(is_api){api_send_clicked_slove();return;}//api模式的处理
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if(ui_mode == CHAT_)
     {
@@ -408,6 +238,7 @@ void Widget::on_send_clicked()
                 is_run = false;
 
                 ui_state_normal();//待机界面状态
+                
                 return;
             }
             emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
@@ -415,45 +246,8 @@ void Widget::on_send_clicked()
         else//正常情况!!!
         {
             if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
-            //-----------------------Q16测试相关----------------------------
-            if(input ==  wordsObj["Q16"].toString())//开始测试开始
-            {
-                ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
-                clearQuestionlist();//清空题库
-                makeTestQuestion(":/ceval-exam/val");//构建测试问题集
-                makeTestIndex();//构建测试问题索引
-                ui_state = "ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString();reflash_state(ui_state,SIGNAL_);
-                test_time.restart();
-                QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-                is_test = true;
-                input = QString::number(test_count+1) + ". "+test_list_question.at(test_question_index.at(0));
-                emit ui2bot_input({makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n" + wordsObj["answer"].toString() + ":"},1);//传递用户输入
-                this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
-                ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
-                
-            }
-            //-----------------------自定义数据集--------------------------
-            else if (input ==  wordsObj["Q17"].toString())
-            {
-                ui_state = "ui:"+ wordsObj["clicked"].toString() + wordsObj["test"].toString() + " "  + wordsObj["npredict"].toString() + wordsObj["limited"].toString() + "1";reflash_state(ui_state,SIGNAL_);
-                QString custom_csvpath = QFileDialog::getOpenFileName(this,wordsObj["Q17"].toString(),"D:/soul","CSV files (*.csv)");//用户选择自定义的csv文件
-                clearQuestionlist();//清空题库
-                readCsvFile(custom_csvpath);//构建测试问题集
-                makeTestIndex();//构建测试问题索引
-                if(test_question_index.size()==0){ui_state = "ui:0"+ wordsObj["question"].toString();reflash_state(ui_state,WRONG_);return;}
-                ui_state = "ui:"+ wordsObj["question make well"].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toString();reflash_state(ui_state,SIGNAL_);
-                test_time.restart();
-                QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-
-                is_test = true;
-                input = QString::number(test_count+1) + ". "+test_list_question.at(test_question_index.at(0));
-                
-                emit ui2bot_input({makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},1);//传递用户输入
-                this->setWindowTitle(wordsObj["test"].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
-                ui_state = "ui:"+ wordsObj["add help question"].toString();reflash_state(ui_state,SIGNAL_);
-            }
             //-----------------------Q14连续回答相关----------------------------
-            else if(input.contains(wordsObj["Q14"].toString().split(">")[0]))
+            if(input.contains(wordsObj["Q14"].toString().split(">")[0]))
             {
                 query_list = input.split(">")[1].split("/");
                 if(query_list.size()==0)
@@ -464,17 +258,6 @@ void Widget::on_send_clicked()
                 input = query_list.at(0);
                 query_list.removeFirst();
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
-            }
-            //-----------------------Q15多模态相关----------------------------
-            else if(input == wordsObj["Q15"].toString())
-            {
-                QString imagepath = QFileDialog::getOpenFileName(this,wordsObj["Q15"].toString(),"D:/soul","(*.png *.jpg *.bmp)");//用户选择图片
-                input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
-
-                showImage(imagepath);//显示文件名和图像
-
-                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
-                emit ui2bot_imagepath(imagepath);
             }
             //-----------------------如果是拖进来的文件-------------------------
             else if(input.contains("file:///"))
@@ -491,9 +274,7 @@ void Widget::on_send_clicked()
             else if(input == wordsObj["<predecode cut image>"].toString())
             {
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
-
                 showImage(cut_imagepath);//显示文件名和图像
-
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(cut_imagepath);
             }
@@ -512,7 +293,6 @@ void Widget::on_send_clicked()
                     emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);
                 }
             }
-               
         }
     }
     else if(ui_mode == COMPLETE_)
@@ -523,7 +303,6 @@ void Widget::on_send_clicked()
 
     is_run =true;//模型正在运行标签
     emit ui2bot_push();//开始推理
-    decode_play();//开启推理动画
     ui_state_pushing();//推理中界面状态
 }
 
@@ -562,8 +341,8 @@ void Widget::recv_pushover()
         //如果挂载了工具,则尝试提取里面的json
         if(is_load_tool)
         {
-            QStringList func_arg_list;
-            func_arg_list = JSONparser(ui_assistant_history.last());//取巧预解码的系统指令故意不让解析出json
+            QString tool_str = ui_assistant_history.last();
+            func_arg_list = JSONparser(tool_str);//取巧预解码的系统指令故意不让解析出json
             if(func_arg_list.size() == 0)
             {
                 is_run = false;
@@ -711,24 +490,37 @@ void Widget::on_reset_clicked()
     if(is_run)
     {
         reflash_state("ui:"+ wordsObj["clicked"].toString()+ wordsObj["shut down"].toString(),SIGNAL_);
-        emit ui2bot_help_input(0);//通知模型不再加入引导问题
         test_question_index.clear();//清空待测试问题列表
         query_list.clear();//清空待回答列表
         if(is_api){emit ui2net_stop(1);}
         else{emit ui2bot_stop();}//传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
     }
+    
     reflash_state("ui:"+ wordsObj["clicked reset"].toString(),SIGNAL_);
 
     if(ui_mode == CHAT_){ui->output->clear();}
     ui_state_normal();//待机界面状态
-
+    
+    //如果是链接模式就简单处理
     if(is_api)
     {
-        ui_assistant_history.clear();//清空历史
-        ui_user_history.clear();//清空历史
-        this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
+        ui_user_history.clear();
+        ui_assistant_history.clear();
+        if(ui_mode == CHAT_)
+        {
+            reflash_output(ui_DATES.system_prompt,0,QColor(0,0,0));
+            current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
+        }
+        else
+        {
+            current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;
+        }
+
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
+        reflash_state("ui:"+wordsObj["current api"].toString() + " " + current_api,USUAL_);
+        this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
+
         return;
     }
 
@@ -752,11 +544,7 @@ void Widget::on_reset_clicked()
 //用户点击约定按钮处理
 void Widget::on_date_clicked()
 {
-    ui_state = "ui:"+wordsObj["clicked date"].toString();reflash_state(ui_state,SIGNAL_);
-    if(is_api)//api模式不要解码设置
-    {
-        change_api_dialog(0);
-    }
+    reflash_state("ui:"+wordsObj["clicked date"].toString(),SIGNAL_);
 
     //展示最近一次设置值
     prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
@@ -800,6 +588,8 @@ void Widget::set_date()
     //添加额外停止标志
     addStopwords();
 
+    if(is_api){on_reset_clicked();}//如果是链接模式就重置一下
+
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
 }
@@ -807,7 +597,7 @@ void Widget::set_date()
 //用户点击设置按钮响应
 void Widget::on_set_clicked()
 {
-    ui_state = "ui:"+wordsObj["clicked"].toString()+wordsObj["set"].toString();reflash_state(ui_state,SIGNAL_);
+    reflash_state("ui:"+wordsObj["clicked"].toString()+wordsObj["set"].toString(),SIGNAL_);
     if(ui_mode == CHAT_){chat_btn->setChecked(1),chat_change();}
     else if(ui_mode == COMPLETE_){complete_btn->setChecked(1),complete_change();}
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
@@ -890,12 +680,7 @@ void Widget::set_set()
     {
         if(is_api)//api模式不发信号
         {
-            ui_user_history.clear();
-            ui_assistant_history.clear();
-            if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
-            else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-            ui_state = "ui:"+wordsObj["current api"].toString() + " " + current_api;reflash_state(ui_state,USUAL_);
-            this->setWindowTitle(wordsObj["current api"].toString() + " " + current_api);
+            on_reset_clicked();
         }
     }
 }
@@ -966,17 +751,18 @@ void Widget::serverControl()
 
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state("ui:" + wordsObj["eva expand"].toString(),EVA_);
+    reflash_state(wordsObj["eva expand"].toString(),EVA_);
     
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();
-        if(ui_output.contains("model loaded"))
+        if(ui_output.contains("warming up the model with an empty run"))
         {
             ui_output += "\n"+wordsObj["browser at"].toString() +QString(" http://")+ipAddress+":"+ui_port;
             ui_output += "\n"+wordsObj["chat"].toString()+wordsObj["endpoint"].toString()+ " " + "/v1/chat/completions";
             ui_output += "\n"+wordsObj["complete"].toString()+wordsObj["endpoint"].toString()+ " " + "/completion"+"\n";
-            ui_state = "ui:server " +wordsObj["on"].toString()+wordsObj["success"].toString()+ ","+wordsObj["browser at"].toString()+ ipAddress + ":"+ ui_port;reflash_state(ui_state,SUCCESS_);
+            ui_state = "ui:server " +wordsObj["on"].toString()+wordsObj["success"].toString()+ ","+wordsObj["browser at"].toString()+ ipAddress + ":"+ ui_port;
+            reflash_state(ui_state,SUCCESS_);
 
         }//替换ip地址
         output_scroll(ui_output);
@@ -1112,7 +898,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->state && event->type() == QEvent::ContextMenu)
     {
-        emit ui2expend_show(3);
+        emit ui2expend_show(2);//2是模型日志页
         return true;
     }
 
@@ -1125,15 +911,185 @@ void Widget::recv_predecode(QString bot_predecode_)
     bot_predecode = bot_predecode_;
 }
 
-//
+//接收whisper解码后的结果
 void Widget::recv_voicedecode_over(QString result)
 {
     ui_state_normal();
-    ui->input->appendPlainText(result);
+    ui->input->append(result);
 }
 
 //接收模型路径
 void Widget::recv_whisper_modelpath(QString modelpath)
 {
     whisper_model_path = modelpath;
+}
+
+//api模式的发送处理
+void Widget::api_send_clicked_slove()
+{
+    //注意api模式不发送前后缀
+    QString input;
+
+    emit ui2net_stop(0);
+    ENDPOINT_DATA data;
+    data.date_prompt = ui_DATES.system_prompt;
+    data.input_pfx = ui_DATES.input_pfx;
+    data.input_sfx = ui_DATES.input_sfx;
+    data.stopwords = ui_DATES.extra_stop_words;
+    data.complete_mode = ui_mode;
+    data.temp=ui_SETTINGS.temp;
+    data.n_predict = ui_SETTINGS.npredict;
+    data.repeat=ui_SETTINGS.repeat;
+    data.assistant_history = ui_assistant_history;
+    data.user_history = ui_user_history;
+
+    if(is_test)
+    {
+        QString input;
+        if(test_question_index.size()>0)//测试中
+        {
+            input = QString::number(test_count+1) + ". " +test_list_question.at(test_question_index.at(0));//题目
+            //添加引导题
+            if(help_input)
+            {
+                for(int i = 1; i < 3;++i)//2个引导题
+                {
+                    ui_user_history << wordsObj[QString("H%1").arg(i)].toString();//问题
+                    ui_assistant_history << wordsObj[QString("A%1").arg(i)].toString().remove(wordsObj["answer"].toString() + ":");//答案不要答案:这三个字
+                    //贴出引导题
+                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toString(), 0, QColor(0, 0, 255));
+                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toString().remove(wordsObj["answer"].toString() + ":"), 0, QColor(0, 0, 255));
+                }
+                help_input = false;
+            }
+        }
+        else//完成测试完成
+        {
+            float acc = test_score / test_count * 100.0;//回答准确率
+            decode_pTimer->stop();
+            reflash_state("ui:" + wordsObj["test"].toString() + wordsObj["over"].toString()+ " " + QString::number(test_count) + wordsObj["question"].toString() + " " + wordsObj["accurate"].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s ",SUCCESS_);
+            //恢复
+            test_question_index.clear();test_count = 0;test_score=0;test_tokens=0;
+            is_test = false;
+            is_run = false;
+            ui->send->setEnabled(1);
+            ui->load->setEnabled(1);
+            ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
+            
+            return;
+        }
+        ui_user_history << input;
+        data.user_history = ui_user_history;
+        data.assistant_history = ui_assistant_history;
+        data.n_predict=1;
+        emit ui2net_data(data);
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+    }
+    else if(is_query)
+    {
+        if(query_list.size()>0)//连续回答中
+        {
+            input = query_list.at(0);
+            query_list.removeFirst();
+        }
+        else//连续回答完成
+        {
+            reflash_state("ui:" + wordsObj["query"].toString() + wordsObj["over"].toString(),SUCCESS_);
+            is_query = false;
+            is_run = false;
+            //恢复
+            ui->send->setEnabled(1);
+            ui->load->setEnabled(1);
+            ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
+            return;
+        }
+        ui_user_history << input;//置入用户问题
+        data.user_history = ui_user_history;
+        data.assistant_history = ui_assistant_history;
+        data.n_predict=ui_SETTINGS.npredict;
+        emit ui2net_data(data);
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+    }
+    else
+    {
+        if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
+        //连续回答
+        if(input.contains(wordsObj["Q14"].toString().split(">")[0]))
+        {
+            query_list = input.split(">")[1].split("/");
+            if(query_list.size()==0)
+            {
+                return;
+            }
+            is_query = true;
+            input = query_list.at(0);
+            query_list.removeFirst();
+            ui_user_history << input;
+            data.user_history = ui_user_history;
+            data.assistant_history = ui_assistant_history;
+            data.input_prompt = input;
+            data.n_predict=ui_SETTINGS.npredict;
+            emit ui2net_data(data);
+            
+            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+            reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
+            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        }
+        //
+        //来补充链接模式的各种情况/上传图像/图像文件
+        //
+        //-----------------------正常情况----------------------------
+        else if(ui_mode == CHAT_)
+        {
+            //如果工具返回的结果不为空,则发送工具结果给net
+            if(tool_result!="")
+            {
+                if(ui_extra_lan == "zh")
+                {
+                    ui_assistant_history << wordsObj["tool_observation"].toString() + tool_result;
+                    reflash_output(ui_assistant_history.last() + "\n", 0, QColor(255, 165, 0));//橘黄色表示工具返回结果
+                }
+                else if(ui_extra_lan == "en")
+                {
+                    ui_assistant_history << "observation: " + tool_result;
+                    reflash_output(ui_assistant_history.last() + "\n", 0, QColor(255, 165, 0));//橘黄色表示工具返回结果
+                }
+                
+                tool_result="";
+
+                QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
+                is_run =true;//模型正在运行标签
+                ui_state_pushing();
+                return;
+            }
+            else
+            {
+                ui_user_history << input;
+                data.user_history = ui_user_history;
+                data.assistant_history = ui_assistant_history;
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+                reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
+                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+                data.n_predict=ui_SETTINGS.npredict;
+                emit ui2net_data(data);
+            }
+        }
+        else if(ui_mode == COMPLETE_)//直接用output上的文本进行推理
+        {
+            data.input_prompt = input;
+            data.n_predict=ui_SETTINGS.npredict;
+            emit ui2net_data(data);
+        }
+            
+    }
+    
+    emit ui2net_push();
+    is_run =true;//模型正在运行标签
+    ui_state_pushing();
 }
