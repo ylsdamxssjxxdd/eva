@@ -28,7 +28,6 @@ xBot::xBot()
     gpt_params_.n_batch = DEFAULT_BATCH;//一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
     gpt_params_.input_prefix = DEFAULT_PREFIX + std::string(":\n");//输入前缀
     gpt_params_.input_suffix = DEFAULT_SUFFIX + std::string(":\n");//输入后缀
-    qDebug()<<gpt_params_.n_ctx;
     //初始的采样参数
     gpt_params_.sparams.top_p = 0.95;
     gpt_params_.sparams.temp = DEFAULT_TEMP;//温度
@@ -186,15 +185,16 @@ void xBot::run()
             fail++;
             qDebug()<<"fail times"<<fail<<"return "<<o1;
         }
-        //qDebug()<<batch_count<<batch_time;
-        //qDebug()<<singl_count<<singl_time;
+        
         emit bot2ui_pushover();//推理完成的信号
     }
 }
 
+//流式输出
 int xBot::stream()
 {
-    while (n_remain!= 0)//退出循环的情况:n_remain!=0/停止标签/推理失败/结束/用户昵称
+    //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
+    while (n_remain!= 0)
     {
         //停止标签控制模型停止
         if(is_stop)
@@ -218,7 +218,6 @@ int xBot::stream()
                 embd.resize(max_embd_size);
                 emit bot2ui_state("bot:" + wordsObj["input ctx length over"].toString()+ QString::number(max_embd_size)+ " " + wordsObj["skip"].toString() +QString::number(skipped_tokens)+" token",WRONG_);
             }
-
             
             //上下文缓存超过n_ctx截断处理一半上下文
             if(ga_n == 1)
@@ -255,7 +254,6 @@ int xBot::stream()
                 }
             }
             
-            
             if(embd.size()>1)//embd.size()>1说明需要按批处理
             {
                 is_batch = true;
@@ -273,9 +271,13 @@ int xBot::stream()
 
             for (int i = 0; i < (int) embd.size(); i += gpt_params_.n_batch)
             {
-                int n_eval = (int) embd.size() - i;//待解码
-                if (n_eval > gpt_params_.n_batch){n_eval = gpt_params_.n_batch;}
+                int n_eval = (int) embd.size() - i;//待解码token数目
+                if (n_eval > gpt_params_.n_batch)
+                {
+                    n_eval = gpt_params_.n_batch;
+                }
                 QElapsedTimer time3;time3.start();
+
                 //解码
                 int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0));
 
@@ -322,9 +324,9 @@ int xBot::stream()
                 sample_str = wordsObj["sampling"].toString() + "·" + wordsObj["use prob random"].toString();
             }
             
-            QString prob_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() +" " + wordsObj["probability"].toString();//前5概率
-            QString id_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() +" " + "token";//对应id
-            QString word_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() +" "  + wordsObj["word"].toString()+"  ";//对应词
+            QString prob_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() + wordsObj["probability"].toString();//前5概率
+            QString id_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() + "token";//对应id
+            QString word_5 = "bot:"+ wordsObj["word probability table"].toString() +wordsObj["top5"].toString() + wordsObj["word"].toString()+"  ";//对应词
             for (int i = 0; i < 5; i++)
             {
                 const llama_token id_ = cur_p.data[i].id;
@@ -341,12 +343,18 @@ int xBot::stream()
                 }
                 //qDebug()<<id<<llama_token_to_piece(ctx, id).c_str()<<cur_p.data[i].p;
             }
-            emit bot2ui_state(prob_5);emit bot2ui_state(id_5);emit bot2ui_state(word_5);
+            emit bot2ui_state(prob_5);
+            emit bot2ui_state(id_5);
+            emit bot2ui_state(word_5);
             //qDebug()<<"bot的历史消息"<<view_embd(ctx,history_tokens);qDebug()<<"第"<<times<<"次输出完毕";times++;
             std::string sstr = llama_token_to_piece(ctx, id);
 
             //处理不全的utf-8字符
-            if(pick_half_utf8.size()>0&&pick_half_utf8.size()<3){pick_half_utf8.push_back(id);sstr = "";}
+            if(pick_half_utf8.size()>0 && pick_half_utf8.size()<3)
+            {
+                pick_half_utf8.push_back(id);
+                sstr = "";
+            }
             if(isIncompleteUTF8(sstr))
             {
                 if(!is_test)pick_half_utf8.push_back(id);
@@ -367,14 +375,7 @@ int xBot::stream()
             
             --n_remain;
 
-            if(sstr == "\n")
-            {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<enter>"].toString());
-                emit bot2ui_state("bot:" + wordsObj["sample token add next decode"].toString());
-                emit bot2ui_output(QString::fromStdString(sstr));
-                
-            }
-            else if(id == eos_token)//如果遇到结束则停止
+            if(id == eos_token)//如果遇到结束则停止
             {
                 emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<end>"].toString());
                 emit bot2ui_state("bot:" + wordsObj["sample token add next decode"].toString());
@@ -397,7 +398,6 @@ int xBot::stream()
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
             }
             
-
             //检测输出的内容中是否包含反提示,如果有则停止
             if(!is_complete)
             {
@@ -429,7 +429,7 @@ int xBot::stream()
                     }
                     list_num++;
                 }
-                
+
             }
         }
         //输入太多的特殊情况处理
@@ -446,13 +446,16 @@ int xBot::stream()
                 }
             }
         }
+
     }//这里是推理循环
+
     //这里是达到最大预测长度的情况
     if(!is_test)//测试的时候不输出这个
     {
         emit bot2ui_state("bot:"+ wordsObj["arrivemaxpredict"].toString() + " " + QString::number(gpt_params_.n_predict));
         emit bot2ui_state("bot:" + wordsObj["predict"].toString() + wordsObj["stop"].toString()+" " +wordsObj["singl decode"].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
     }
+
     return 0;
 }
 
@@ -476,7 +479,7 @@ void xBot::load(std::string &modelpath)
     {
         //如果是第一次装载则初始化一些东西
         std::mt19937 rng(1996);//随机数种子
-        //llama_backend_init();
+        llama_backend_init();
     }
 
     gpt_params_.model = modelpath;//传递模型路径
