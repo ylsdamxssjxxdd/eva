@@ -1,6 +1,6 @@
 # 机体
 一款轻量的大模型应用软件：机体 (qt5+llama.cpp)
-<img src="[https://github.com/ylsdamxssjxxdd/eva/assets/63994076/46db9d10-3002-4c44-add9-c0ab167a2cbe" width="210px">
+<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/46db9d10-3002-4c44-add9-c0ab167a2cbe" width="210px">
 ![image](:/ui/ui_demo.png)
 
 ## 特点
