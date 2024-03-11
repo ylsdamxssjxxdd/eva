@@ -910,18 +910,18 @@ void Widget::set_DateDialog()
     tool_layout->addLayout(layout_H44);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H45 = new QHBoxLayout();//水平布局器
-    search_checkbox = new QCheckBox(wordsObj["search"].toString());
+    positron_checkbox = new QCheckBox(wordsObj["positron"].toString());
     knowledge_checkbox = new QCheckBox(wordsObj["knowledge"].toString());
-    layout_H45->addWidget(search_checkbox);
     layout_H45->addWidget(knowledge_checkbox);
+    layout_H45->addWidget(positron_checkbox);
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
-    positron_checkbox = new QCheckBox(wordsObj["positron"].toString());
+    search_checkbox = new QCheckBox(wordsObj["search"].toString());
     llm_checkbox = new QCheckBox(wordsObj["llm"].toString());
-    layout_H46->addWidget(positron_checkbox);
-    layout_H46->addWidget(llm_checkbox);
-    tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
+    // layout_H46->addWidget(search_checkbox);
+    // layout_H46->addWidget(llm_checkbox);
+    // tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
 
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
     connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);

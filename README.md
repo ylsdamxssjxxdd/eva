@@ -1,7 +1,7 @@
 # 机体
 一款轻量的大模型应用软件：机体 (qt5+llama.cpp)
 
-![image](https://github.com/ylsdamxssjxxdd/eva/blob/main/utils/ui/ui_demo.png)
+![image](utils/ui/ui_demo.png)
 ![image](:/ui/ui_demo.png)
 
 ## 特点
