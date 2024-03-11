@@ -1,7 +1,9 @@
 # 机体
 一款轻量的大模型应用软件：机体 (qt5+llama.cpp)
-- 界面
+
 ![image](utils/ui/ui_demo.png)
+![image](:/ui/ui_demo.png)
+
 ## 特点
 - 轻量
     - 机体没有其它依赖组件，就是一个exe程序
