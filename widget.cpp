@@ -67,7 +67,6 @@ Widget::Widget(QWidget *parent)
     ui->state->setFocus();//设为当前焦点
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
-    ui_SETTINGS.nthread = max_thread*0.7;
     nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateStatus()));
@@ -102,14 +101,17 @@ Widget::Widget(QWidget *parent)
                     VK_F1);//截图快捷键
     RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2);    //录音快捷键  
     audio_timer = new QTimer(this);
-    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);        
+    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);
+
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
+    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
+    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
 }
 
 Widget::~Widget()
 {
     delete ui;
     delete cutscreen_dialog;
-    emit server_kill();
 }
 
 //用户点击装载按钮处理
@@ -126,12 +128,11 @@ void Widget::on_load_clicked()
     emit gpu_reflash();//强制刷新gpu信息
     QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
     int modelsize_MB = fileInfo.size() /1024/1024;
-    if(vfree>modelsize_MB*1.2)
+    if(vfree>modelsize_MB*1.2 && ui_SETTINGS.ngl==0)
     {
         //reflash_state("ui:" +wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
-        ui_SETTINGS.ngl= 999;
+        ui_SETTINGS.ngl = 999;
     }
-    else{ui_SETTINGS.ngl= 0;}
     //发送设置参数给bot
     emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
 }
@@ -597,6 +598,7 @@ void Widget::set_date()
 //用户点击设置按钮响应
 void Widget::on_set_clicked()
 {
+    server_process->kill();
     reflash_state("ui:"+wordsObj["clicked"].toString()+wordsObj["set"].toString(),SIGNAL_);
     if(ui_mode == CHAT_){chat_btn->setChecked(1),chat_change();}
     else if(ui_mode == COMPLETE_){complete_btn->setChecked(1),complete_change();}
@@ -670,7 +672,6 @@ void Widget::set_set()
     else if(ui_mode!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
 
     //server.exe接管,不需要告知bot约定
-    if(ui_mode == SERVER_){emit server_kill();}//关闭重启
     if(ui_mode==SERVER_)
     {
         ui_state_servering();//服务中界面状态
@@ -740,15 +741,13 @@ void Widget::serverControl()
     arguments << "--embedding";//允许词嵌入
     arguments << "--log-disable";//不要日志
     if(ui_SETTINGS.lorapath!=""){arguments << "--no-mmap";arguments << "--lora" << ui_SETTINGS.lorapath;}//挂载lora不能开启mmp
-    if(ui_SETTINGS.mmprojpath!=""){arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
+    // server的多模态原作者正在重写中
+    // if(ui_SETTINGS.mmprojpath!="")
+    // {
+    //     arguments << "--mmproj" << ui_SETTINGS.mmprojpath;
+    // }
 
     // 开始运行程序
-    QProcess *server_process;//用来启动server.exe
-    server_process = new QProcess(this);//实例化
-    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
-    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号
-    connect(this,&Widget::server_kill, server_process, &QProcess::kill);
-
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
     reflash_state(wordsObj["eva expand"].toString(),EVA_);

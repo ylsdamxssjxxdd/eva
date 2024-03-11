@@ -114,7 +114,6 @@ public:
     QStringList ui_model_logs;
     bool load_percent_tag;
     int max_thread = 1;//最大线程数
-    int ui_nthread=1;//使用的线程数
 
     float load_time = 0;
     QTimer *force_unlockload_pTimer;//到时间强制解锁
@@ -123,6 +122,16 @@ public:
     void showImage(QString imagepath);//显示文件名和图像
     CutScreenDialog *cutscreen_dialog;
     QString cut_imagepath;
+
+    //服务相关
+    QProcess *server_process;
+    QLabel *port_label;
+    QLineEdit *port_lineEdit;
+    QString ui_port = "8080";
+    QString ipAddress = "";
+    QString getFirstNonLoopbackIPv4Address();//获取本机第一个ip地址
+    bool current_server=false;//从服务模式回来要重载
+    void serverControl();
 
     //语音相关
     void recordAudio();//开始录音
@@ -192,12 +201,7 @@ public:
     QTextEdit *system_TextEdit;
     QRadioButton *complete_btn,*web_btn,*chat_btn;
     
-    QLabel *port_label;QLineEdit *port_lineEdit;
-    QString ui_port = "8080";
-    QString ipAddress = "";
-    QString getFirstNonLoopbackIPv4Address();//获取本机第一个ip地址
-    bool current_server=false;//从服务模式回来要重载
-    void serverControl();
+
     QLabel *input_pfx_label;
     QLineEdit *input_pfx_LineEdit;
     QLabel *input_sfx_label;
@@ -309,7 +313,6 @@ signals:
     void ui2expend_voicedecode(QString wavpath);//传一个wav文件开始解码
 //自用信号
 signals:
-    void server_kill();//终止server信号
     void gpu_reflash();//强制刷新gpu信息
     void ui2expend_log(QString logs);
     void ui2expend_vocab(QString vocab_);

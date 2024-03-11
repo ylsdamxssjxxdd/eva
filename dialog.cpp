@@ -231,12 +231,12 @@ void Widget::load_over_handleTimeout()
 // 装载完毕强制预处理
 void Widget::unlockLoad()
 {
-    ui_state = "ui:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toString();reflash_state(ui_state,SUCCESS_);
+    reflash_state("ui:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toString(),SUCCESS_);
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
     this->setWindowTitle(wordsObj["current model"].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
     ui->kv_bar->message = wordsObj["brain"].toString();
-    ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_nthread)+"/"+QString::number(max_thread));
+    ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
     //如果是对话模式则预解码约定
     if(ui_mode == CHAT_)
     {
@@ -724,14 +724,14 @@ void Widget::set_SetDialog()
 #endif
     //cpu线程数设置
     QHBoxLayout *layout_H16 = new QHBoxLayout();//水平布局器
-    nthread_label = new QLabel("cpu " + wordsObj["thread"].toString() + " " + QString::number(ui_nthread));
+    nthread_label = new QLabel("cpu " + wordsObj["thread"].toString() + " " + QString::number(ui_SETTINGS.nthread));
     nthread_label->setToolTip(wordsObj["not big better"].toString());
     nthread_label->setMinimumWidth(100);
     layout_H16->addWidget(nthread_label);
     nthread_slider = new QSlider(Qt::Horizontal);
     nthread_slider->setToolTip(wordsObj["not big better"].toString());
     
-    nthread_slider->setValue(ui_nthread);
+    nthread_slider->setValue(ui_SETTINGS.nthread);
     layout_H16->addWidget(nthread_slider);
     decode_layout->addLayout(layout_H16);//将布局添加到总布局
     connect(nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
@@ -1233,8 +1233,8 @@ void Widget::change_api_dialog(bool enable)
 void Widget::ui_state_init()
 {
     ui->load->setEnabled(1);//装载按钮
-    ui->date->setEnabled(0);//约定按钮
-    ui->set->setEnabled(0);//设置按钮
+    ui->date->setEnabled(1);//约定按钮
+    ui->set->setEnabled(1);//设置按钮
     ui->reset->setEnabled(0);//重置按钮
     ui->send->setEnabled(0);//发送按钮
     ui->output->setReadOnly(1);
@@ -1287,10 +1287,9 @@ void Widget::ui_state_normal()
         {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
-            //后期再把date和set拿出来
-            ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
         }
+        ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
@@ -1310,10 +1309,9 @@ void Widget::ui_state_normal()
         {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
-            //后期再把date和set拿出来
-            ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
         }
+        ui->date->setEnabled(1);
+        ui->set->setEnabled(1);
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 

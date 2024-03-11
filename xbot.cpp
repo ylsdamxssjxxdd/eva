@@ -489,13 +489,19 @@ void xBot::load(std::string &modelpath)
     else{gpt_params_.use_mmap = false;}
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //使用mmp后gpu负载无法分担内存占用，这里折中方案，如果不用gpu则开启mmp，否则禁用
-    if(gpt_params_.n_gpu_layers == 0){gpt_params_.use_mmap = true;}
+    if(gpt_params_.n_gpu_layers == 0)
+    {
+        gpt_params_.use_mmap = true;
+    }
     else{gpt_params_.use_mmap = false;}
 #endif
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
 #endif
-    if(gpt_params_.n_gpu_layers == 999){emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);}
+    if(gpt_params_.n_gpu_layers == 999)
+    {
+        emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
+    }
     
     emit bot2ui_state(wordsObj["eva loadding"].toString(),EVA_);
     emit bot2ui_play();//播放动画
@@ -550,21 +556,11 @@ void xBot::load(std::string &modelpath)
     is_first_reset = true;//模型装载后首次重置完成标签,控制是否输出清空的消息
     is_first_load = false;//标记是否是打开软件后第一次装载
     is_free = false;
-    //输出加速支持
-    QString device_;
-#ifdef BODY_USE_CLBLAST
-    device_ +="gpu "+ wordsObj["offload"].toString() + " " + QString::number(gpt_params_.n_gpu_layers) + "\n";
-#endif
-#ifdef BODY_USE_CUBLAST
-    device_ +="gpu "+ wordsObj["offload"].toString() + " " + QString::number(gpt_params_.n_gpu_layers) + "\n";
-#endif
-    device_ +="cpu " + wordsObj["speedup"].toString() + " "+QString::fromUtf8(llama_print_system_info()) + "\n";
-    device_ +=wordsObj["thread/threadmax"].toString()+QString::number(nthread)+"/"+QString::number(std::thread::hardware_concurrency()) + "\n";
 
-    emit bot2ui_device(device_);//传递加速支持信息
+    qDebug()<<QString::fromUtf8(llama_print_system_info());
     emit bot2ui_vocab(viewVocab());//发出模型词表
     emit bot2ui_loadover(true,time1.nsecsElapsed()/1000000000.0);//发出已完成装载信号
-    //emit bot2ui_state("bot:" + wordsObj["load model"].toString() + wordsObj["over"].toString() + " " + QString::number(time1.nsecsElapsed()/1000000000.0,'f',2)+" s " + wordsObj["right click and check model log"].toString(),SUCCESS_);
+    
 }
 
 

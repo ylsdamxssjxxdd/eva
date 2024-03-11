@@ -198,6 +198,10 @@ QByteArray xNet::createChatBody()
     //qDebug()<<"--------------------------------";
     int k = 0;
     int j = 0;
+    // QJsonObject userMessage;
+    // userMessage.insert("role", "user");
+    // userMessage.insert("image_url", "C:\\Users\\32138\\Desktop\\ayanami.png");
+    // messagesArray.append(userMessage);
     while(endpoint_data.user_history.size()>0 || endpoint_data.assistant_history.size()>0)
     {
         if(endpoint_data.user_history.size()>0)

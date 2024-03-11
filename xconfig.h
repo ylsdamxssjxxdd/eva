@@ -2,6 +2,7 @@
 #define XCONFIG_H
 
 #include <QDebug>
+#include <thread>
 
 //约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
@@ -25,6 +26,8 @@
 //模型
 #define DEFAULT_MODELPATH "D:/soul/qwen-1.8b-q4_0.gguf"
 
+//嵌入
+#define DEFAULT_EMBEDDING_PORT "7758"
 
 //约定内容
 struct DATES{
@@ -44,7 +47,7 @@ struct SETTINGS{
     int ngl = DEFAULT_NGL;
     int nctx = DEFAULT_NCTX;
     int batch = DEFAULT_BATCH;
-    int nthread = DEFAULT_NTHREAD;
+    int nthread = std::thread::hardware_concurrency()*0.7;
 
     QString modelpath = "";
     QString lorapath = "";
@@ -191,6 +194,11 @@ struct Whisper_Params {
 
     std::vector<std::string> fname_inp = {};
     std::vector<std::string> fname_out = {};
+};
+
+struct Embedding_Params 
+{
+    QString modelpath="";
 };
 
 //extern QMap<QString, DATE_> date_map;//extern定义后可以多个.cpp访问

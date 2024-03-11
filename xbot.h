@@ -58,7 +58,6 @@ public:
     std::vector<llama_token_data> *candidates;//词表采样矩阵
     llama_grammar * grammar = NULL; //强制语法
     std::vector<int>   *history_tokens;//记录模型的输出
-    int nthread=DEFAULT_NTHREAD;//使用的线程数
     std::vector<llama_token> pick_half_utf8;
     int ga_i = 0;//记录拓展的上下文数量?
     int ga_n = 1;//拓展的倍数
@@ -119,7 +118,6 @@ signals:
     void bot2ui_reload();//gpu负载层数改变,重载模型的信号
     void bot2ui_setreset();//bot发信号请求ui触发reset
     void bot2ui_datereset();//bot发信号请求ui触发reset
-    void bot2ui_device(QString device_);//传递支持设备信息
     void bot2ui_params(PARAMS p);//bot将模型参数传递给ui
     void bot2ui_vocab(QString model_vocab);//传递模型总词表
     void bot2ui_kv(float percent,int n_past);//传递缓存量

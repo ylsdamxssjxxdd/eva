@@ -149,7 +149,7 @@ void Widget::server_onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    ui_state = "ui:server"+wordsObj["oning"].toString()+"...";reflash_state(ui_state,SIGNAL_);
+    reflash_state("ui:server"+wordsObj["oning"].toString()+"...",SIGNAL_);
 }
 
 //第三方程序结束
@@ -162,7 +162,7 @@ void Widget::server_onProcessFinished()
     else
     {
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        ui_state = "ui:server"+wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
+        reflash_state("ui:server"+wordsObj["off"].toString(),SIGNAL_);
         ui_output = "\nserver"+wordsObj["shut down"].toString();
         output_scroll(ui_output);
     }

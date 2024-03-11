@@ -17,6 +17,7 @@
         "browser at": "浏览器访问",
         "chat mode": "对话模式",
         "complete mode": "补完模式",
+        "server": "服务",
         "server mode": "服务模式",
         "system calling": "系统指令",
         "click load and choose gguf file": "点击装载,选择gguf格式文件",
@@ -254,7 +255,8 @@
         "introduction": "软件介绍",
         "model log": "模型日志",
         "proliferation": "增殖" ,
-        "invalid operation": "操作无效" 
+        "invalid operation": "操作无效",
+        "embedding": "嵌入"
 
     }
 }

@@ -5,12 +5,22 @@
 #include <QJsonObject>
 #include <QScrollBar>
 #include <QTimer>
-#include <QDebug>
 #include <QFileDialog>
 #include <QProcess>
 #include <QFile>
 #include <QTextStream>
 #include <QElapsedTimer>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QObject>
+#include <QDebug>
+#include <QEventLoop>
+#include <QAbstractSocket>
+#include <QNetworkInterface>
 
 #include "xconfig.h"
 namespace Ui {
@@ -35,6 +45,7 @@ public:
     bool is_first_show_info = true;
     bool load_percent_tag = false;
     void init_expend();//初始化扩展窗口
+    bool createTempDirectory(const QString &path);
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:
@@ -46,7 +57,7 @@ private slots:
 private:
     Ui::Expend *ui;
 //-------------------------------------------------------------------------
-//----------------------------------语音相关--------------------------------
+//----------------------------------声音相关--------------------------------
 //-------------------------------------------------------------------------
 public:
     Whisper_Params whisper_params;//whisper.exe可以传入的参数
@@ -63,7 +74,27 @@ public slots:
     void whisper_onProcessFinished();
 private slots:    
     void on_voice_load_modelpath_button_clicked();//用户点击选择whisper路径时响应
-
+//-------------------------------------------------------------------------
+//----------------------------------知识库相关--------------------------------
+//-------------------------------------------------------------------------
+public:
+    Embedding_Params embedding_params;
+    QProcess *server_process;
+    QString ipAddress = "";
+    QString getFirstNonLoopbackIPv4Address();
+    QString embedding_port = DEFAULT_EMBEDDING_PORT;
+    QString txtpath;//用户上传的txt文件路径
+    void preprocessTXT();//预处理文件内容
+    QStringList ready_embedding_split_txt;//即将送入嵌入的文本
+public slots:
+    void server_onProcessStarted();//进程开始响应
+    void server_onProcessFinished();//进程结束响应
+private slots:
+    void on_embedding_modelpath_button_clicked();//用户点击选择嵌入模型路径时响应
+    void on_embedding_server_start_clicked();//尝试启动server
+    void on_embedding_server_stop_clicked();//终止server
+    void on_embedding_txt_upload_clicked();//用户点击上传路径时响应
+    void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
 };
 
 #endif // EXPEND_H
