@@ -3,6 +3,8 @@
 
 #include <QDebug>
 #include <thread>
+#include <vector>
+#include <array>
 
 //约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
@@ -200,9 +202,11 @@ struct Embedding_Params
 {
     QString modelpath="";
 };
-
-//extern QMap<QString, DATE_> date_map;//extern定义后可以多个.cpp访问
-
-
+// 定义一个结构体来存储索引和值
+struct Embedding_vector {
+    int index;
+    QString chunk;
+    std::array<double, 2048> value; // 最高支持2048维向量
+};
 
 #endif

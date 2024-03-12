@@ -562,14 +562,14 @@ void Widget::prompt_template_change()
 void Widget::chooseLorapath()
 {
     //用户选择模型位置
-    QString lora_path = QFileDialog::getOpenFileName(this,"choose lora model",ui_SETTINGS.modelpath);
+    QString lora_path = QFileDialog::getOpenFileName(this,"choose lora model",ui_SETTINGS.modelpath,"(*.bin *.gguf)");
     lora_LineEdit->setText(lora_path);
 }
 
 void Widget::chooseMmprojpath()
 {
     //用户选择模型位置
-    QString mmproj_path = QFileDialog::getOpenFileName(this,"choose mmproj model",ui_SETTINGS.modelpath);
+    QString mmproj_path = QFileDialog::getOpenFileName(this,"choose mmproj model",ui_SETTINGS.modelpath,"(*.bin *.gguf)");
     mmproj_LineEdit->setText(mmproj_path);
 }
 

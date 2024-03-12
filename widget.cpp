@@ -120,7 +120,7 @@ void Widget::on_load_clicked()
     
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
     //用户选择模型位置
-    QString model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH);
+    QString model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH,"(*.bin *.gguf)");
     if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
     ui_SETTINGS.modelpath = model_path;//模型路径变化则重置参数
@@ -693,7 +693,7 @@ void Widget::serverControl()
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
-        ui_SETTINGS.modelpath = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH);
+        ui_SETTINGS.modelpath = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH,"(*.bin *.gguf)");
     }
     
     emit ui2bot_free();

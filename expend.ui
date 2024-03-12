@@ -274,7 +274,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </item>
            <item>
-            <widget class="QTextEdit" name="embedding_server_log">
+            <widget class="QPlainTextEdit" name="embedding_server_log">
              <property name="readOnly">
               <bool>true</bool>
              </property>
@@ -434,13 +434,13 @@ p, li { white-space: pre-wrap; }
              <property name="minimumSize">
               <size>
                <width>0</width>
-               <height>110</height>
+               <height>150</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>110</height>
+               <height>150</height>
               </size>
              </property>
              <property name="frameShape">
@@ -466,69 +466,17 @@ p, li { white-space: pre-wrap; }
                <number>0</number>
               </property>
               <item>
-               <widget class="QGroupBox" name="groupBox">
-                <property name="minimumSize">
-                 <size>
-                  <width>250</width>
-                  <height>110</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>250</width>
-                  <height>110</height>
-                 </size>
-                </property>
-                <property name="title">
-                 <string>日志</string>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_6">
-                 <property name="spacing">
-                  <number>0</number>
-                 </property>
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QTextEdit" name="textEdit_2">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>80</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>80</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
                <widget class="QGroupBox" name="groupBox_2">
                 <property name="minimumSize">
                  <size>
-                  <width>250</width>
-                  <height>110</height>
+                  <width>0</width>
+                  <height>140</height>
                  </size>
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>250</width>
-                  <height>110</height>
+                  <width>1000</width>
+                  <height>140</height>
                  </size>
                 </property>
                 <property name="title">
@@ -551,33 +499,36 @@ p, li { white-space: pre-wrap; }
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QTextEdit" name="textEdit">
+                  <widget class="QTextEdit" name="embedding_test_textEdit">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
-                     <height>80</height>
+                     <height>120</height>
                     </size>
                    </property>
                    <property name="maximumSize">
                     <size>
                      <width>16777215</width>
-                     <height>80</height>
+                     <height>120</height>
                     </size>
+                   </property>
+                   <property name="placeholderText">
+                    <string>嵌入文本段后在这里输入问题，点击检索，通过向嵌入服务发送查询，将返回文本相似度最高的3个文本段</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QPushButton" name="pushButton">
+                  <widget class="QPushButton" name="embedding_test_pushButton">
                    <property name="minimumSize">
                     <size>
                      <width>50</width>
-                     <height>80</height>
+                     <height>30</height>
                     </size>
                    </property>
                    <property name="maximumSize">
                     <size>
-                     <width>16777215</width>
-                     <height>80</height>
+                     <width>50</width>
+                     <height>30</height>
                     </size>
                    </property>
                    <property name="text">
@@ -592,14 +543,14 @@ p, li { white-space: pre-wrap; }
                <widget class="QGroupBox" name="groupBox_3">
                 <property name="minimumSize">
                  <size>
-                  <width>0</width>
-                  <height>110</height>
+                  <width>250</width>
+                  <height>140</height>
                  </size>
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>16777215</width>
-                  <height>110</height>
+                  <width>250</width>
+                  <height>140</height>
                  </size>
                 </property>
                 <property name="title">
@@ -622,18 +573,73 @@ p, li { white-space: pre-wrap; }
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QTableWidget" name="tableWidget">
+                  <widget class="QPlainTextEdit" name="embedding_test_result">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
-                     <height>80</height>
+                     <height>120</height>
                     </size>
                    </property>
                    <property name="maximumSize">
                     <size>
                      <width>16777215</width>
-                     <height>80</height>
+                     <height>120</height>
                     </size>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QGroupBox" name="groupBox">
+                <property name="minimumSize">
+                 <size>
+                  <width>250</width>
+                  <height>140</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>250</width>
+                  <height>140</height>
+                 </size>
+                </property>
+                <property name="title">
+                 <string>日志</string>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QPlainTextEdit" name="embedding_test_log">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>120</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>120</height>
+                    </size>
+                   </property>
+                   <property name="readOnly">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
