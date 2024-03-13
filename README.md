@@ -3,6 +3,8 @@
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/836433f4-1ee4-4cf6-8502-d2c1f938a9a8" width="300px">
 
+<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/87dbe6a2-af38-49a3-a7da-0e741d38e501" width="400px">
+
 ## 特点
 - 轻量
     - 机体没有其它依赖组件，就是一个exe程序
