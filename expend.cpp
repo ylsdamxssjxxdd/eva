@@ -88,8 +88,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         ui->info_card->setMarkdown(readme_content.remove(re));
 
         // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-        QString imagePath = ":/ui/server_demo.png";
-        QImage image(imagePath);
+        QImage image(":/ui/ui_demo.png");
+        
         int originalWidth = image.width()/devicePixelRatioF();
         int originalHeight = image.height()/devicePixelRatioF();
 
@@ -99,9 +99,17 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         QTextImageFormat imageFormat;
         imageFormat.setWidth(originalWidth);  // 设置图片的宽度
         imageFormat.setHeight(originalHeight); // 设置图片的高度
-        imageFormat.setName(imagePath);  // 图片资源路径
-
+        imageFormat.setName(":/ui/ui_demo.png");  // 图片资源路径
         cursor.insertImage(imageFormat);
+
+        QImage image2(":/ui/knowledge_demo.png");
+        originalWidth = image2.width()/devicePixelRatioF()/2;
+        originalHeight = image2.height()/devicePixelRatioF()/2;
+        imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+        imageFormat.setHeight(originalHeight); // 设置图片的高度
+        imageFormat.setName(":/ui/knowledge_demo.png");  // 图片资源路径
+        cursor.insertImage(imageFormat);
+
         cursor.insertText("\n\n");
 
         //强制延迟见顶
