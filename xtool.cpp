@@ -19,9 +19,9 @@ void xTool::run()
         QScriptEngine enging;
         QScriptValue result_ = enging.evaluate(func_arg_list.last());
         QString result = QString::number(result_.toNumber());
-        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + result;
-        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + result,TOOL_);
-        emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + result);
+        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result;
+        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result,TOOL_);
+        emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + " " + result);
     }
     else if(func_arg_list.front() == "cmd")
     {
@@ -40,18 +40,18 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + process->errorString(),TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + process->errorString());
-            qDebug() << QString("cmd ") + wordsObj["return"].toString() + process->errorString();
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString(),TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString());
+            qDebug() << QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString();
         } 
         else 
         {
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + output,TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + output);
-            qDebug() << QString("cmd ") + wordsObj["return"].toString() + output;
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + " " + output,TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + " " + output);
+            qDebug() << QString("cmd ") + wordsObj["return"].toString() + " " + output;
         }
 
     }
@@ -62,8 +62,23 @@ void xTool::run()
     }
     else if(func_arg_list.front() == "knowledge")
     {
+        QElapsedTimer time4;time4.start();
+        QString result;
+        if(Embedding_DB.size()==0)
+        {
+            result = "请用户先嵌入知识到知识库中";
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toString() + " " + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toString() + " " + result);
+        }
+        else
+        {
+            //查询计算词向量和计算相似度，返回匹配的文本段
+            result = embedding_query_process(func_arg_list.last());
+            emit tool2ui_state("tool:" + QString("查询&计算耗时: ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2));
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toString() + " " + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toString() + " " + result);
+        }
         
-        emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
     else if(func_arg_list.front() == "positron")
     {
@@ -98,9 +113,9 @@ void xTool::positronShoot()
         int randomValue2 = (qrand() % 360);//0-359随机数
         result = wordsObj["positron_result3"].toString() + " " + QString::number(randomValue2) + wordsObj["degree"].toString();
     }
-    qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + result;
-    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + result,TOOL_);
-    emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + result);
+    qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + " " + result;
+    emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + " " + result,TOOL_);
+    emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + " " + result);
 }
 
 void xTool::recv_func_arg(QStringList func_arg_list_)
@@ -108,7 +123,110 @@ void xTool::recv_func_arg(QStringList func_arg_list_)
     func_arg_list = func_arg_list_;
 }
 
-//阳电子步枪充能,数到3就发射
+//查询计算词向量和计算相似度，返回匹配的文本段
+QString xTool::embedding_query_process(QString query_str)
+{
+    QString knowledge_result;
+    ipAddress = getFirstNonLoopbackIPv4Address();
+    QEventLoop loop;// 进入事件循环，等待回复
+    QNetworkAccessManager manager;
+    // 设置请求的端点 URL
+    QNetworkRequest request(QUrl("http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings"));
+    // 设置请求头
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QString api_key ="Bearer " + QString("sjxx");
+    request.setRawHeader("Authorization", api_key.toUtf8());
+    //构造请求的数据体
+    QJsonObject json;
+    json.insert("model", "gpt-3.5-turbo");
+    json.insert("encoding_format", "float");
+    json.insert("input", query_str);
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson();
+    
+    // POST 请求
+    QNetworkReply *reply = manager.post(request, data);
+
+    // 处理响应
+    QObject::connect(reply, &QNetworkReply::readyRead, [&]() 
+    {
+        QString jsonString = reply->readAll();
+        QJsonDocument document = QJsonDocument::fromJson(jsonString.toUtf8());// 使用QJsonDocument解析JSON数据
+        QJsonObject rootObject = document.object();
+        // 遍历"data"数组,获取嵌入向量结构体的嵌入向量
+        QJsonArray dataArray = rootObject["data"].toArray();
+        QString vector_str = "[";
+        
+        for(int i = 0; i < dataArray.size(); ++i)
+        {
+            QJsonObject dataObj = dataArray[i].toObject();
+            
+            // 检查"data"对象中是否存在"embedding"
+            if(dataObj.contains("embedding"))
+            {
+                QJsonArray embeddingArray = dataObj["embedding"].toArray();
+                // 处理"embedding"数组
+                for(int j = 0; j < embeddingArray.size(); ++j)
+                {
+                    query_embedding_vector.value[j] = embeddingArray[j].toDouble();
+                    vector_str += QString::number(query_embedding_vector.value[j],'f',4)+", ";
+                }
+            }
+        }
+        vector_str += "]";
+        emit tool2ui_state("tool:" + QString("查询文本段嵌入完毕! ") + "维度:"+QString::number(query_embedding_vector.value.size()) + " " + "词向量: "+ vector_str,USUAL_);
+    });
+    // 完成
+    QObject::connect(reply, &QNetworkReply::finished, [&]() 
+    {
+        if (reply->error() == QNetworkReply::NoError) 
+        {
+            // 请求完成，所有数据都已正常接收
+            //计算余弦相似度
+            //A向量点积B向量除以(A模乘B模)
+            std::vector<std::pair<int, double>> score;
+            score = similar_indices(query_embedding_vector.value,Embedding_DB);
+
+            if(score.size()>0){knowledge_result += "相似度最高的三个文本段:\n";}
+
+            //将分数前三的结果显示出来
+            for(int i = 0;i < 3 && i < score.size();++i)
+            {
+                knowledge_result += QString::number(score[i].first + 1) + "号文本段 相似度: " + QString::number(score[i].second);
+                knowledge_result += " 内容: " + Embedding_DB.at(score[i].first).chunk + "\n";
+            }
+
+        } 
+        else 
+        {
+            // 请求出错
+            emit tool2ui_state("tool:请求出错 " + reply->error(), WRONG_);
+            knowledge_result += "请求出错 " + reply->error();
+        }
+        
+        reply->abort();//终止
+        reply->deleteLater();
+    });
+
+    // 回复完成时退出事件循环
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    // 进入事件循环
+    loop.exec();
+    return knowledge_result;
+}
+
+QString xTool::getFirstNonLoopbackIPv4Address()
+{
+    QList<QHostAddress> list = QNetworkInterface::allAddresses();
+    for (int i = 0; i < list.count(); i++) {
+        if (!list[i].isLoopback() && list[i].protocol() == QAbstractSocket::IPv4Protocol) {
+            return list[i].toString();
+        }
+    }
+    return QString();
+}
+
+// 阳电子步枪充能,数到5就发射
 void xTool::positronPower()
 {
     if(positron_power<5)
@@ -129,4 +247,44 @@ void xTool::positronPower()
         positron_p->stop();
         positronShoot();
     }
+}
+
+
+// 计算两个向量的余弦相似度
+double xTool::cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b)
+{
+    double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
+    for (int i = 0; i < 2048; ++i) {
+        dot_product += a[i] * b[i];
+        norm_a += a[i] * a[i];
+        norm_b += b[i] * b[i];
+    }
+    return dot_product / (sqrt(norm_a) * sqrt(norm_b));
+}
+
+// 计算user_vector与Embedding_DB中每个元素的相似度，并返回得分最高的3个索引
+std::vector<std::pair<int, double>> xTool::similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB)
+{
+    std::vector<std::pair<int, double>> scores; // 存储每个索引和其相应的相似度得分
+
+    // 计算相似度得分
+    for (const auto& emb : embedding_DB) {
+        double sim = cosine_similarity(user_vector, emb.value);
+        scores.emplace_back(emb.index, sim);
+    }
+
+    // 根据相似度得分排序（降序）
+    std::sort(scores.begin(), scores.end(), [](const std::pair<int, double>& a, const std::pair<int, double>& b) 
+    {
+        return a.second > b.second;
+    });
+
+    return scores;
+}
+
+void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
+{
+    Embedding_DB.clear();
+    Embedding_DB = Embedding_DB_;
+    emit tool2ui_state("tool:接收到已嵌入文本段数据",USUAL_);
 }

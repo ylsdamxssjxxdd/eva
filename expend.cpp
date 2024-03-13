@@ -509,7 +509,7 @@ void Expend::on_embedding_txt_embedding_clicked()
                 ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());// 在表格末尾添加新行
                 QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(show_chunk_index).chunk);
                 newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-                newItem->setBackground(QColor(144, 238, 144)); // 设置单元格背景颜色
+                newItem->setBackground(QColor(255, 165, 0)); // 设置单元格背景颜色,橘黄色
                 ui->embedding_txt_over->setItem(show_chunk_index, 0, newItem);
                 ui->embedding_txt_over->setColumnWidth(0,ui->embedding_txt_over->width());// 列宽保持控件宽度
                 ui->embedding_txt_over->resizeRowsToContents();// 自动调整行高
@@ -538,6 +538,7 @@ void Expend::on_embedding_txt_embedding_clicked()
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
 
     ui->embedding_test_log->appendPlainText("嵌入完成");
+    emit expend2toool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
 
 }
 
@@ -612,8 +613,8 @@ void Expend::on_embedding_test_pushButton_clicked()
             //将分数前三的结果显示出来
             for(int i = 0;i < 3 && i < score.size();++i)
             {
-                qDebug()<<score[i].first<<score[i].second;
-                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + "号文本段 分数: " + QString::number(score[i].second));
+                //qDebug()<<score[i].first<<score[i].second;
+                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + "号文本段 相似度: " + QString::number(score[i].second));
             }
 
         } 
@@ -635,6 +636,7 @@ void Expend::on_embedding_test_pushButton_clicked()
     ui->embedding_txt_upload->setEnabled(1);//上传按钮
     ui->embedding_txt_embedding->setEnabled(1);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
+    
 }
 
 // 计算两个向量的余弦相似度

@@ -91,7 +91,8 @@ public:
     Embedding_vector user_embedding_vector;
     double cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b);
     std::vector<std::pair<int, double>> similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB);
-
+signals:
+    void expend2toool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);//发送已嵌入文本段数据给tool
 public slots:
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应

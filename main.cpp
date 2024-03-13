@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
     qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
     qRegisterMetaType<STATE>("STATE");//注册STATE作为信号传递变量
+    qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
@@ -103,6 +104,8 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
+    //------------------连接扩展和tool-------------------
+    QObject::connect(&expend, &Expend::expend2toool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
 
     w.show();//展示窗口
     return a.exec();//进入事件循环
