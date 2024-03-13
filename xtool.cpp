@@ -193,7 +193,7 @@ QString xTool::embedding_query_process(QString query_str)
             for(int i = 0;i < 3 && i < score.size();++i)
             {
                 knowledge_result += QString::number(score[i].first + 1) + "号文本段 相似度: " + QString::number(score[i].second);
-                knowledge_result += " 内容: " + Embedding_DB.at(score[i].first).chunk + "\n";
+                knowledge_result += " 内容:\n" + Embedding_DB.at(score[i].first).chunk + "\n";
             }
 
         } 

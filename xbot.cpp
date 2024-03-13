@@ -498,9 +498,10 @@ void xBot::load(std::string &modelpath)
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
 #endif
-    if(gpt_params_.n_gpu_layers == 999)
+    if(vram_enough)
     {
-        emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
+        emit bot2ui_state("bot:" + wordsObj["vram enough, gpu offload auto set max"].toString(),SUCCESS_);
+        vram_enough = false;
     }
     
     emit bot2ui_state(wordsObj["eva loadding"].toString(),EVA_);
@@ -827,9 +828,16 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     bool reload_flag = false;//重载标签
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    //如果gpu负载层数改变则重新加载模型,但是为999且ngl最大的情况除外
-    if(gpt_params_.n_gpu_layers != settings.ngl && !(gpt_params_.n_gpu_layers==999 && settings.ngl==maxngl))
+    if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
+        gpt_params_.n_gpu_layers = maxngl;
+        reload_flag = true;
+        vram_enough = true;
+    }
+    //如果gpu负载层数改变则重新加载模型
+    if(gpt_params_.n_gpu_layers != settings.ngl)
+    {
+        //qDebug()<<gpt_params_.n_gpu_layers<<settings.ngl<<maxngl;
         gpt_params_.n_gpu_layers = settings.ngl;
         reload_flag = true;
     }

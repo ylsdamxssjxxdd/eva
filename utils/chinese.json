@@ -151,7 +151,7 @@
         "model": "模型",
         "use MB": "占用MB",
         "old model and ctx offloaded": "旧的模型和上下文已卸载",
-        "vram enough, gpu offload auto set 999": "显存充足,自动将gpu负载设置为999",
+        "vram enough, gpu offload auto set max": "显存充足,自动将gpu负载设置为最大",
         "brain": "记忆",
         "batch size mean": "一次解码同时处理的token数量",
         "and input": "和送入的",

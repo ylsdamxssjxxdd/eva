@@ -91,6 +91,7 @@ public:
     bool is_multi=false;//是否为多模态
     bool is_load_tool=false;//是否挂载了工具
     QStringList extra_stop_words;//额外停止标志
+    bool vram_enough = false;
 
 public slots:
     void recv_language(QJsonObject wordsObj_);//传递使用的语言

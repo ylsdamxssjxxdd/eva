@@ -117,22 +117,24 @@ Widget::~Widget()
 //用户点击装载按钮处理
 void Widget::on_load_clicked()
 {
-    
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
     //用户选择模型位置
     QString model_path = QFileDialog::getOpenFileName(this,wordsObj["choose soul in eva"].toString(),DEFAULT_MODELPATH,"(*.bin *.gguf)");
     if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
     ui_SETTINGS.modelpath = model_path;//模型路径变化则重置参数
+
+    //-------------------只会应用生效一次------------------
     //分析显存，如果可用显存比模型大1.2倍则自动将gpu负载设置为999
     emit gpu_reflash();//强制刷新gpu信息
     QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
     int modelsize_MB = fileInfo.size() /1024/1024;
     if(vfree>modelsize_MB*1.2 && ui_SETTINGS.ngl==0)
     {
-        //reflash_state("ui:" +wordsObj["vram enough, gpu offload auto set 999"].toString(),SUCCESS_);
+        qDebug()<<999;
         ui_SETTINGS.ngl = 999;
     }
+    //-------------------只有初次装载才会生效------------------
     //发送设置参数给bot
     emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
 }
@@ -814,18 +816,24 @@ void Widget::recv_log(QString log)
             int maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit ui2bot_maxngl(maxngl);
             ngl_slider->setMaximum(maxngl);
+            if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=maxngl;}//及时修正999值
         #endif
     }
-    if(log == "\n")
+
+    if(log == ".")
     {
-        emit ui2expend_log(log);//单条记录
-        ui_model_logs << log;//总记录
+        //不处理
     }
     else
     {
+        log.remove("\n");
         emit ui2expend_log(dateTimeString + log);//单条记录 
         ui_model_logs << dateTimeString + log;//总记录
     }
+
+    
+
+    
     
 }
 //播放装载动画

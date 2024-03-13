@@ -86,6 +86,7 @@ public:
     QString embedding_server_api = "";
     QString getFirstNonLoopbackIPv4Address();
     QString txtpath;//用户上传的txt文件路径
+    int embedding_server_n_embd = 1024;//开启嵌入服务的嵌入维度
     void preprocessTXT();//预处理文件内容
     int show_chunk_index = 0;//待显示的嵌入文本段的序号
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库

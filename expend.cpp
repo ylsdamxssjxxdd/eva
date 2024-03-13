@@ -16,6 +16,8 @@ Expend::Expend(QWidget *parent) :
     ui->modellog_card->setReadOnly(1);
     ui->tabWidget->setCurrentIndex(2);//默认显示模型日志 
 
+    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
+    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_server_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
@@ -307,6 +309,7 @@ void Expend::on_embedding_server_start_clicked()
 
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         QString server_output = server_process->readAllStandardOutput();
+
         //启动成功的标志
         if(server_output.contains("warming up the model with an empty run"))
         {
@@ -315,7 +318,16 @@ void Expend::on_embedding_server_start_clicked()
             ui->embedding_server_ip_lineEdit->setText(embedding_server_ip);
             ui->embedding_server_api_lineEdit->setText(embedding_server_api);
             server_output += "\n" + wordsObj["server"].toString() + wordsObj["address"].toString() + " " + embedding_server_ip;
-            server_output += "\n" + wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api +"\n";
+            server_output += "\n" + wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api;
+            if(embedding_server_n_embd!=1024)
+            {
+                server_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) + " 不符合要求请更换模型" +"\n";
+            }
+            else
+            {
+                server_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) +"\n";
+            }
+            
             ui->embedding_server_start->setEnabled(0);
             ui->embedding_server_stop->setEnabled(1);//启动成功后只能点终止按钮
             ui->embedding_modelpath_button->setEnabled(0);
@@ -328,6 +340,10 @@ void Expend::on_embedding_server_start_clicked()
         QString server_output = server_process->readAllStandardError();
         if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
         ui->embedding_server_log->appendPlainText(server_output);
+        if(server_output.contains("llm_load_print_meta: n_embd           = "))
+        {
+            embedding_server_n_embd = server_output.split("llm_load_print_meta: n_embd           = ").at(1).split("\r\n").at(0).toInt();
+        }//截获n_embd嵌入维度
     });
 }
 
