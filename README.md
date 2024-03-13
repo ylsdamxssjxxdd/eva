@@ -87,13 +87,11 @@ git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
     - 【ui】->用户右击装载->配置ip和端点->点击确认->锁定界面->记录配置->连接测试->测试通过->解锁界面->END
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
 ## 待办事项
-在扩展窗口增加模型/图像/声音增殖选项
+在扩展窗口增加模型/和图像增殖选项
 - 模型增殖
     - 借助llama.cpp项目进行模型的转化、量化、微调
 - 图像增殖
     - 借助stable-diffusion.cpp项目进行文生图
-- 声音增殖
-    - 借助whisper.cpp项目将声音转文字
 
 ## 已知BUG
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复
