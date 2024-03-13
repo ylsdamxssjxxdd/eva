@@ -7,7 +7,7 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORC
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
 option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               ON)
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
