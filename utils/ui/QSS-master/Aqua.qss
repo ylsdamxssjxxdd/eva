@@ -54,7 +54,7 @@ QToolButton:pressed{
 	padding: 2px;
 	background-color: rgb(142,142,142);
 }
-QPushButton{
+/* QPushButton{
 	border-style: solid;
 	border-top-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(215, 215, 215), stop:1 rgb(222, 222, 222));
 	border-right-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgb(217, 217, 217), stop:1 rgb(227, 227, 227));
@@ -65,7 +65,7 @@ QPushButton{
 	color: rgb(0,0,0);
 	padding: 2px;
 	background-color: rgb(255,255,255);
-}
+} */
 QPushButton::default{
 	border-style: solid;
 	border-top-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(215, 215, 215), stop:1 rgb(222, 222, 222));
@@ -73,12 +73,12 @@ QPushButton::default{
 	border-left-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgb(227, 227, 227), stop:1 rgb(217, 217, 217));
 	border-bottom-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(215, 215, 215), stop:1 rgb(222, 222, 222));
 	border-width: 1px;
-	border-radius: 5px;
+	/* border-radius: 5px; */
 	color: rgb(0,0,0);
 	padding: 2px;
 	background-color: rgb(255,255,255);
 }
-QPushButton:hover{
+/* QPushButton:hover{
 	border-style: solid;
 	border-top-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(195, 195, 195), stop:1 rgb(222, 222, 222));
 	border-right-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgb(197, 197, 197), stop:1 rgb(227, 227, 227));
@@ -89,7 +89,7 @@ QPushButton:hover{
 	color: rgb(0,0,0);
 	padding: 2px;
 	background-color: rgb(255,255,255);
-}
+} */
 QPushButton:pressed{
 	border-style: solid;
 	border-top-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(215, 215, 215), stop:1 rgb(222, 222, 222));
@@ -109,16 +109,16 @@ QPushButton:disabled{
 	border-left-color: qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgb(227, 227, 227), stop:1 rgb(217, 217, 217));
 	border-bottom-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgb(215, 215, 215), stop:1 rgb(222, 222, 222));
 	border-width: 1px;
-	border-radius: 5px;
+	/* border-radius: 5px; */
 	color: #808086;
 	padding: 2px;
 	background-color: rgb(142,142,142);
 }
-QLineEdit {
+/* QLineEdit {
 	border-width: 1px; border-radius: 4px;
 	border-style: solid;
 	border-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 rgba(0, 113, 255, 255), stop:1 rgba(91, 171, 252, 255));
-}
+} */
 QLabel {
 	color: #000000;
 }

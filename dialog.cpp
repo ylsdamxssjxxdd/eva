@@ -612,7 +612,6 @@ void Widget::search_change()
 
 void Widget::knowledge_change()
 {
-    
     if(toolcheckbox_checked())
     {
         is_load_tool = true;

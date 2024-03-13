@@ -200,13 +200,13 @@ struct Whisper_Params {
 
 struct Embedding_Params 
 {
-    QString modelpath="";
+    QString modelpath="D:/soul/bert/bge-large-zh-v1.5-q2_k.gguf";
 };
 // 定义一个结构体来存储索引和值
 struct Embedding_vector {
     int index;
     QString chunk;
-    std::array<double, 2048> value; // 最高支持2048维向量
+    std::array<double, 1024> value; // 最高支持1024维向量
 };
 
 #endif

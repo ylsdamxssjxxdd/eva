@@ -74,7 +74,7 @@ void xTool::run()
         {
             //查询计算词向量和计算相似度，返回匹配的文本段
             result = embedding_query_process(func_arg_list.last());
-            emit tool2ui_state("tool:" + QString("查询&计算耗时: ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2));
+            emit tool2ui_state("tool:" + wordsObj["qurey&timeuse"].toString() + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
             emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toString() + " " + result, TOOL_);
             emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toString() + " " + result);
         }
@@ -131,7 +131,7 @@ QString xTool::embedding_query_process(QString query_str)
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl("http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings"));
+    QNetworkRequest request(QUrl(embedding_server_ip + embedding_server_api));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -251,10 +251,10 @@ void xTool::positronPower()
 
 
 // 计算两个向量的余弦相似度
-double xTool::cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b)
+double xTool::cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
 {
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < 2048; ++i) {
+    for (int i = 0; i < 1024; ++i) {
         dot_product += a[i] * b[i];
         norm_a += a[i] * a[i];
         norm_b += b[i] * b[i];
@@ -263,7 +263,7 @@ double xTool::cosine_similarity(const std::array<double, 2048>& a, const std::ar
 }
 
 // 计算user_vector与Embedding_DB中每个元素的相似度，并返回得分最高的3个索引
-std::vector<std::pair<int, double>> xTool::similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB)
+std::vector<std::pair<int, double>> xTool::similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB)
 {
     std::vector<std::pair<int, double>> scores; // 存储每个索引和其相应的相似度得分
 
@@ -287,4 +287,14 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
     Embedding_DB.clear();
     Embedding_DB = Embedding_DB_;
     emit tool2ui_state("tool:接收到已嵌入文本段数据",USUAL_);
+}
+//传递嵌入服务地址
+void xTool::recv_serverip(QString serverip)
+{
+    embedding_server_ip = serverip;
+}
+//传递嵌入服务端点
+void xTool::recv_serverapi(QString serverapi)
+{
+    embedding_server_api = serverapi;
 }

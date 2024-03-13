@@ -1092,3 +1092,8 @@ void Widget::api_send_clicked_slove()
     is_run =true;//模型正在运行标签
     ui_state_pushing();
 }
+//传递知识库的描述
+void Widget::recv_embeddingdb_describe(QString describe)
+{
+    embeddingdb_describe = describe;
+}

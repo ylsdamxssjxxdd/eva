@@ -82,17 +82,21 @@ public:
     Embedding_Params embedding_params;
     QProcess *server_process;
     QString ipAddress = "";
+    QString embedding_server_ip = "";
+    QString embedding_server_api = "";
     QString getFirstNonLoopbackIPv4Address();
-    QString embedding_port = DEFAULT_EMBEDDING_PORT;
     QString txtpath;//用户上传的txt文件路径
     void preprocessTXT();//预处理文件内容
     int show_chunk_index = 0;//待显示的嵌入文本段的序号
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库
     Embedding_vector user_embedding_vector;
-    double cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b);
-    std::vector<std::pair<int, double>> similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB);
+    double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
+    std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
 signals:
-    void expend2toool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);//发送已嵌入文本段数据给tool
+    void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);//发送已嵌入文本段数据给tool
+    void expend2ui_embeddingdb_describe(QString describe);//传递知识库的描述
+    void expend2tool_serverip(QString serverip);//传递嵌入服务地址
+    void expend2tool_serverapi(QString serverapi);//传递嵌入服务端点
 public slots:
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
@@ -103,6 +107,9 @@ private slots:
     void on_embedding_txt_upload_clicked();//用户点击上传路径时响应
     void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();//用户点击检索时响应
+    void on_embedding_server_ip_lineEdit_textChanged();//嵌入服务地址改变响应
+    void on_embedding_server_api_lineEdit_textChanged();//嵌入服务端点改变响应
+
 };
 
 #endif // EXPEND_H

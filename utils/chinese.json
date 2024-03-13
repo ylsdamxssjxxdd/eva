@@ -256,7 +256,8 @@
         "model log": "模型日志",
         "proliferation": "增殖" ,
         "invalid operation": "操作无效",
-        "embedding": "嵌入"
-
+        "embedding": "嵌入",
+        "embeddingdb describe": "知识库描述",
+        "qurey&timeuse": "查询&计算耗时"
     }
 }

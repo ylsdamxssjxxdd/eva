@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_voicedecode_over, &w, &Widget::recv_voicedecode_over);//转换完成返回结果
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);//传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
+    QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);//传递知识库的描述
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
@@ -105,7 +106,9 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
     //------------------连接扩展和tool-------------------
-    QObject::connect(&expend, &Expend::expend2toool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
+    QObject::connect(&expend, &Expend::expend2tool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
+    QObject::connect(&expend, &Expend::expend2tool_serverip,&tool,&xTool::recv_serverip);//传递嵌入服务地址
+    QObject::connect(&expend, &Expend::expend2tool_serverapi,&tool,&xTool::recv_serverapi);//传递嵌入服务端点
 
     w.show();//展示窗口
     return a.exec();//进入事件循环

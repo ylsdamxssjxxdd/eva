@@ -6,6 +6,10 @@ Expend::Expend(QWidget *parent) :
     ui(new Ui::Expend)
 {
     ui->setupUi(this);
+    QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
+    file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
+    this->setStyleSheet(stylesheet);file.close();
+
     //初始化选项卡
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
@@ -290,7 +294,7 @@ void Expend::on_embedding_server_start_clicked()
     QStringList arguments;
     arguments << "-m" << embedding_params.modelpath;
     arguments << "--host" << "0.0.0.0";//暴露本机ip
-    arguments << "--port" << embedding_port;//服务端口
+    arguments << "--port" << DEFAULT_EMBEDDING_PORT;//服务端口
     arguments << "--threads" << QString::number(std::thread::hardware_concurrency()*0.5);//使用线程
     arguments << "-cb";//允许连续批处理
     arguments << "--embedding";//允许词嵌入
@@ -306,11 +310,16 @@ void Expend::on_embedding_server_start_clicked()
         //启动成功的标志
         if(server_output.contains("warming up the model with an empty run"))
         {
-            server_output += "\n" + wordsObj["server"].toString() + wordsObj["address"].toString() + " " + QString("http://") + ipAddress + ":"+ embedding_port;
-            server_output += "\n" + wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + "v1/embeddings"+"\n";
+            embedding_server_ip = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT;
+            embedding_server_api = "/v1/embeddings";
+            ui->embedding_server_ip_lineEdit->setText(embedding_server_ip);
+            ui->embedding_server_api_lineEdit->setText(embedding_server_api);
+            server_output += "\n" + wordsObj["server"].toString() + wordsObj["address"].toString() + " " + embedding_server_ip;
+            server_output += "\n" + wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api +"\n";
             ui->embedding_server_start->setEnabled(0);
             ui->embedding_server_stop->setEnabled(1);//启动成功后只能点终止按钮
             ui->embedding_modelpath_button->setEnabled(0);
+            
         }//替换ip地址
         ui->embedding_server_log->appendPlainText(server_output);
         
@@ -441,11 +450,10 @@ void Expend::on_embedding_txt_embedding_clicked()
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
     QElapsedTimer time2;
-    ipAddress = getFirstNonLoopbackIPv4Address();
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl("http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings"));
+    QNetworkRequest request(QUrl(ui->embedding_server_ip_lineEdit->text() + ui->embedding_server_api_lineEdit->text()));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -519,7 +527,7 @@ void Expend::on_embedding_txt_embedding_clicked()
             else 
             {
                 // 请求出错
-                ui->embedding_test_log->appendPlainText("请求出错");
+                ui->embedding_test_log->appendPlainText("请求出错，请确保启动嵌入服务");
             }
 
             reply->abort();//终止
@@ -538,8 +546,8 @@ void Expend::on_embedding_txt_embedding_clicked()
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
 
     ui->embedding_test_log->appendPlainText("嵌入完成");
-    emit expend2toool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
-
+    emit expend2tool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
+    emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text());//传递知识库的描述
 }
 
 //用户点击检索时响应
@@ -550,11 +558,10 @@ void Expend::on_embedding_test_pushButton_clicked()
     ui->embedding_txt_embedding->setEnabled(0);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(0);//检索按钮
 
-    ipAddress = getFirstNonLoopbackIPv4Address();
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl("http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings"));
+    QNetworkRequest request(QUrl(ui->embedding_server_ip_lineEdit->text() + ui->embedding_server_api_lineEdit->text()));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -621,7 +628,7 @@ void Expend::on_embedding_test_pushButton_clicked()
         else 
         {
             // 请求出错
-            ui->embedding_test_log->appendPlainText("请求出错");
+            ui->embedding_test_log->appendPlainText("请求出错，请确保启动嵌入服务");
         }
         
         reply->abort();//终止
@@ -640,10 +647,10 @@ void Expend::on_embedding_test_pushButton_clicked()
 }
 
 // 计算两个向量的余弦相似度
-double Expend::cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b)
+double Expend::cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
 {
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < 2048; ++i) {
+    for (int i = 0; i < 1024; ++i) {
         dot_product += a[i] * b[i];
         norm_a += a[i] * a[i];
         norm_b += b[i] * b[i];
@@ -652,7 +659,7 @@ double Expend::cosine_similarity(const std::array<double, 2048>& a, const std::a
 }
 
 // 计算user_vector与Embedding_DB中每个元素的相似度，并返回得分最高的3个索引
-std::vector<std::pair<int, double>> Expend::similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB)
+std::vector<std::pair<int, double>> Expend::similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB)
 {
     std::vector<std::pair<int, double>> scores; // 存储每个索引和其相应的相似度得分
 
@@ -669,4 +676,15 @@ std::vector<std::pair<int, double>> Expend::similar_indices(const std::array<dou
     });
 
     return scores;
+}
+
+//嵌入服务地址改变响应
+void Expend::on_embedding_server_ip_lineEdit_textChanged()
+{
+    emit expend2tool_serverip(embedding_server_ip);//传递嵌入服务端点
+}
+//嵌入服务端点改变响应
+void Expend::on_embedding_server_api_lineEdit_textChanged()
+{
+    emit expend2tool_serverapi(embedding_server_api);//传递嵌入服务端点
 }

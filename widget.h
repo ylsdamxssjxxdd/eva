@@ -117,6 +117,8 @@ public:
 
     float load_time = 0;
     QTimer *force_unlockload_pTimer;//到时间强制解锁
+    //扩展相关
+    QString embeddingdb_describe;//知识库的描述
 
     //视觉相关
     void showImage(QString imagepath);//显示文件名和图像
@@ -342,6 +344,7 @@ public slots:
 //处理expend信号的槽
     void recv_voicedecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);//传递模型路径
+    void recv_embeddingdb_describe(QString describe);//传递知识库的描述
 //自用的槽
 private slots:
     void stop_recordAudio();//停止录音

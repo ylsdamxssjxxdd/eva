@@ -43,9 +43,10 @@ endif()
 #####################################llama.cpp相关#####################################
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-add_subdirectory(llama.cpp)# 添加子项目后该有的库就在了
-add_subdirectory(llama.cpp/examples/main)
-add_subdirectory(llama.cpp/examples/llava)
+add_subdirectory(llama.cpp)# 添加子项目主要库
+add_subdirectory(llama.cpp/examples/main)#测试用
+add_subdirectory(llama.cpp/examples/quantize)#测试用
+add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录

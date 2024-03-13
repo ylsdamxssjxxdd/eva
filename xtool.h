@@ -36,17 +36,21 @@ public:
     int positron_power=0;//阳电子步枪充能值
 
     //知识库相关
+    QString embedding_server_ip = "";
+    QString embedding_server_api = "";
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库
     QString embedding_query_process(QString query_str);//获取查询词向量和计算相似度，返回匹配的文本段
     Embedding_vector query_embedding_vector;//查询词向量
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address();
-    double cosine_similarity(const std::array<double, 2048>& a, const std::array<double, 2048>& b);
-    std::vector<std::pair<int, double>> similar_indices(const std::array<double, 2048>& user_vector, const QVector<Embedding_vector>& embedding_DB);
+    double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
+    std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
 public slots:
     void recv_func_arg(QStringList func_arg_list);
     void positronPower();//阳电子步枪充能
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
+    void recv_serverip(QString serverip);//传递嵌入服务地址
+    void recv_serverapi(QString serverapi);//传递嵌入服务端点
     
 signals:
     void tool2ui_pushover(QString tool_result);
