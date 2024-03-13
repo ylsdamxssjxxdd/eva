@@ -22,6 +22,7 @@
 #include <QAbstractSocket>
 #include <QNetworkInterface>
 #include <QPlainTextEdit>
+#include <math.h>
 
 #include "xconfig.h"
 namespace Ui {

@@ -18,7 +18,7 @@
 #include <QEventLoop>
 #include <QAbstractSocket>
 #include <QNetworkInterface>
-
+#include <math.h>
 #include "xconfig.h"
 class xTool : public QThread
 {
