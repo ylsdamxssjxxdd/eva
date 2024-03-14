@@ -214,13 +214,13 @@
         "calculator_func_describe_zh": "calculator(str) - 输入一个数值运算表达式，javascript解释器进行运算，返回计算结果",
         "cmd_func_describe_zh": "cmd(str) - 输入一串windows命令提示符指令，系统将执行相应操作，返回执行结果",
         "search_func_describe_zh": "search(str) - 向搜索引擎发送查询，返回搜索结果",
-        "knowledge_func_describe_zh": "knowledge(str) - 向知识库发送查询的问题，返回3条相似度最高的文本段",
+        "knowledge_func_describe_zh": "knowledge(str) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段",
         "positron_func_describe_zh": "positron(int) - 阳电子步枪，请输入目标所在的方位角度(一个整数)进行打击",
         "llm_func_describe_zh": "llm(str) - 将一个问题或者请求发送给大语言模型，大语言模型将返回合理准确的回答，适用于你需要场外援助的场合",
         "calculator_func_describe_en": "calculator(str) - Enter a numeric expression, and the JavaScript interpreter will perform the calculation and return the result.",
         "cmd_func_describe_en": "cmd(str) - Enter a string of Windows Command Prompt commands, and the system will execute the corresponding actions and return the execution results.",
         "search_func_describe_en": "search(str) - Send a query to the search engine, and it returns the search results.",
-        "knowledge_func_describe_en": "knowledge(str) - Submit a question to the knowledge base and return the three most similar query results.",
+        "knowledge_func_describe_en": "knowledge(str) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question.",
         "positron_func_describe_en": "positron(int) - Positron Rifle, please enter the target’s azimuth (an integer) to engage.",
         "llm_func_describe_en": "llm(str) - Sending a question or request to a large language model will yield a reasonable and accurate response, suitable for situations where you need assistance from outside sources.",
         "positron_powering": "阳电子步枪充能中",
@@ -257,7 +257,8 @@
         "proliferation": "增殖" ,
         "invalid operation": "操作无效",
         "embedding": "嵌入",
-        "embeddingdb describe": "知识库描述",
+        "embeddingdb describe zh": "知识库描述",
+        "embeddingdb describe en": "knowledge database describe",
         "qurey&timeuse": "查询&计算耗时"
     }
 }

@@ -26,7 +26,7 @@
 #define DEFAULT_NTHREAD 1
 #define DEFAULT_NGL 0
 //模型
-#define DEFAULT_MODELPATH "D:/soul/qwen-1.8b-q4_0.gguf"
+#define DEFAULT_MODELPATH "D:/soul/"
 
 //嵌入
 #define DEFAULT_EMBEDDING_PORT "7758"
@@ -187,7 +187,7 @@ struct Whisper_Params {
     std::string language  = "zh";
     std::string prompt;
     std::string font_path = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf";
-    std::string model     = "D:/soul/whisper-base-q5_1.bin";
+    std::string model     = "";
 
     // [TDRZ] speaker turn string
     std::string tdrz_speaker_turn = " [SPEAKER_TURN]"; // TODO: set from command line
@@ -200,7 +200,7 @@ struct Whisper_Params {
 
 struct Embedding_Params 
 {
-    QString modelpath="D:/soul/bert/bge-large-zh-v1.5-q2_k.gguf";
+    QString modelpath="";
 };
 // 定义一个结构体来存储索引和值
 struct Embedding_vector {

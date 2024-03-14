@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#1
+#1 当前llama.cpp版本为b2409
 #llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
 # uint32_t to_lower(uint32_t code) {
 # #if defined(_WIN32)
@@ -25,7 +25,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -63,9 +63,7 @@ endif()
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)# 添加子项目主要库
-add_subdirectory(llama.cpp/examples/main)#测试用
-add_subdirectory(llama.cpp/examples/quantize)#测试用
-add_subdirectory(llama.cpp/examples/embedding)#测试用
+add_subdirectory(llama.cpp/examples/quantize)# 模型量化用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录

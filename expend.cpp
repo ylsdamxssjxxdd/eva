@@ -89,8 +89,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
         QImage image(":/ui/ui_demo.png");
         
-        int originalWidth = image.width()/devicePixelRatioF();
-        int originalHeight = image.height()/devicePixelRatioF();
+        int originalWidth = image.width()/devicePixelRatioF()/1.5;
+        int originalHeight = image.height()/devicePixelRatioF()/1.5;
 
         QTextCursor cursor(ui->info_card->textCursor());
         cursor.movePosition(QTextCursor::Start);
@@ -102,8 +102,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         cursor.insertImage(imageFormat);
 
         QImage image2(":/ui/knowledge_demo.png");
-        originalWidth = image2.width()/devicePixelRatioF()/2;
-        originalHeight = image2.height()/devicePixelRatioF()/2;
+        originalWidth = image2.width()/devicePixelRatioF()/2.5;
+        originalHeight = image2.height()/devicePixelRatioF()/2.5;
         imageFormat.setWidth(originalWidth);  // 设置图片的宽度
         imageFormat.setHeight(originalHeight); // 设置图片的高度
         imageFormat.setName(":/ui/knowledge_demo.png");  // 图片资源路径
@@ -170,7 +170,13 @@ void Expend::recv_expend_show(int index_)
 //用户点击选择whisper路径时响应
 void Expend::on_voice_load_modelpath_button_clicked()
 {
-    whisper_params.model = QFileDialog::getOpenFileName(this,"choose whisper model",QString::fromStdString(whisper_params.model)).toStdString();
+    QFileDialog dlg(NULL, "choose whisper model");
+    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
+    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
+    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
+    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
+    if (dlg.exec() == QDialog::Accepted) {whisper_params.model = dlg.selectedFiles().first().toStdString();}//只要一个文件
+
     ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
     ui->voice_load_log->setPlainText("选择好了就可以按f2录音了");
@@ -263,7 +269,13 @@ void Expend::whisper_onProcessFinished()
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
-    embedding_params.modelpath = QFileDialog::getOpenFileName(this,"choose embedding model",embedding_params.modelpath,"(*.bin *.gguf)");
+    QFileDialog dlg(NULL, "choose embedding model");
+    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
+    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
+    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
+    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
+    if (dlg.exec() == QDialog::Accepted) {embedding_params.modelpath = dlg.selectedFiles().first();}//只要一个文件
+
     if(embedding_params.modelpath==""){return;}
     ui->embedding_txt_modepath_lineedit->setText(embedding_params.modelpath);
 
@@ -375,7 +387,13 @@ QString Expend::getFirstNonLoopbackIPv4Address() {
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    txtpath = QFileDialog::getOpenFileName(this,"选择一个txt文件嵌入到知识库",txtpath,"(*.txt)");
+    QFileDialog dlg(NULL, "选择一个txt文件嵌入到知识库");
+    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
+    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
+    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
+    dlg.setNameFilter("(*.txt)");//筛选格式
+    if (dlg.exec() == QDialog::Accepted) {txtpath = dlg.selectedFiles().first();}//只要一个文件
+
     ui->embedding_txt_lineEdit->setText(txtpath);
     if(txtpath!=""){ui->embedding_txt_embedding->setEnabled(1);}
     else{ui->embedding_txt_embedding->setEnabled(0);return;}

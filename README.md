@@ -61,7 +61,7 @@
 
 2. 克隆源代码
 ```bash
-git clone --recurse-submodules https://github.com/ylsdamxssjxxdd/eva.git
+git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
 3. 根据需要修改CMakeLists.txt文件中的配置
 4. 编译
