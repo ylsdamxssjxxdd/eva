@@ -9979,12 +9979,18 @@ struct llm_tokenizer_wpm {
         return words;
     }
 
-    uint32_t to_lower(uint32_t code) {
-        static const std::locale locale("en_US.UTF-8");
+uint32_t to_lower(uint32_t code) {
 #if defined(_WIN32)
+#if defined(__GNUC__) //为了使mingw编译器可以支持locale
+        static const std::locale locale;
+#else
+        static const std::locale locale("en_US.UTF-8");
+#endif
         if (code > 0xFFFF) {
             return code;
         }
+#else
+        static const std::locale locale("en_US.UTF-8");
 #endif
         return std::tolower(wchar_t(code), locale);
     }

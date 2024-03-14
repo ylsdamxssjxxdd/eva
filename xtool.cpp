@@ -131,7 +131,7 @@ QString xTool::embedding_query_process(QString query_str)
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(embedding_server_ip + embedding_server_api));
+    QNetworkRequest request(QUrl(embedding_server_api+""));//加一个""是为了避免语法解析错误
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -288,11 +288,7 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
     Embedding_DB = Embedding_DB_;
     emit tool2ui_state("tool:接收到已嵌入文本段数据",USUAL_);
 }
-//传递嵌入服务地址
-void xTool::recv_serverip(QString serverip)
-{
-    embedding_server_ip = serverip;
-}
+
 //传递嵌入服务端点
 void xTool::recv_serverapi(QString serverapi)
 {

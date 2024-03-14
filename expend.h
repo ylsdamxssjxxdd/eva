@@ -83,9 +83,9 @@ public:
     Embedding_Params embedding_params;
     QProcess *server_process;
     QString ipAddress = "";
-    QString embedding_server_ip = "";
     QString embedding_server_api = "";
     QString getFirstNonLoopbackIPv4Address();
+    void embedding_server_start();//尝试启动server
     QString txtpath;//用户上传的txt文件路径
     int embedding_server_n_embd = 1024;//开启嵌入服务的嵌入维度
     void preprocessTXT();//预处理文件内容
@@ -103,14 +103,12 @@ public slots:
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
 private slots:
-    void on_embedding_modelpath_button_clicked();//用户点击选择嵌入模型路径时响应
-    void on_embedding_server_start_clicked();//尝试启动server
-    void on_embedding_server_stop_clicked();//终止server
+    void on_embedding_txt_modelpath_button_clicked();//用户点击选择嵌入模型路径时响应
     void on_embedding_txt_upload_clicked();//用户点击上传路径时响应
     void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();//用户点击检索时响应
-    void on_embedding_server_ip_lineEdit_textChanged();//嵌入服务地址改变响应
-    void on_embedding_server_api_lineEdit_textChanged();//嵌入服务端点改变响应
+    void on_embedding_txt_modepath_lineedit_textChanged();//嵌入端点改变响应
+    void on_embedding_txt_describe_lineEdit_textChanged();//知识库描述改变响应
 
 };
 

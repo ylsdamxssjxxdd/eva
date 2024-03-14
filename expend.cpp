@@ -19,7 +19,6 @@ Expend::Expend(QWidget *parent) :
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->embedding_server_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
@@ -261,16 +260,19 @@ void Expend::whisper_onProcessFinished()
 //-------------------------------------------------------------------------
 
 //用户点击选择嵌入模型路径时响应
-void Expend::on_embedding_modelpath_button_clicked()
+void Expend::on_embedding_txt_modelpath_button_clicked()
 {
+    server_process->kill();//终止server
     embedding_params.modelpath = QFileDialog::getOpenFileName(this,"choose embedding model",embedding_params.modelpath,"(*.bin *.gguf)");
-    ui->embedding_modelpath_lineedit->setText(embedding_params.modelpath);
-    if(embedding_params.modelpath!=""){ui->embedding_server_start->setEnabled(1);}
-    else{ui->embedding_server_start->setEnabled(0);}
+    if(embedding_params.modelpath==""){return;}
+    ui->embedding_txt_modepath_lineedit->setText(embedding_params.modelpath);
+
+    //尝试启动服务
+    embedding_server_start();
 }
 
 // 尝试启动server
-void Expend::on_embedding_server_start_clicked()
+void Expend::embedding_server_start()
 {
     QString resourcePath = ":/server.exe";
     QString localPath = "./EVA_TEMP/server.exe";
@@ -317,37 +319,30 @@ void Expend::on_embedding_server_start_clicked()
 
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         QString server_output = server_process->readAllStandardOutput();
-
+        QString log_output;
         //启动成功的标志
         if(server_output.contains("warming up the model with an empty run"))
         {
-            embedding_server_ip = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT;
-            embedding_server_api = "/v1/embeddings";
-            ui->embedding_server_ip_lineEdit->setText(embedding_server_ip);
-            ui->embedding_server_api_lineEdit->setText(embedding_server_api);
-            server_output += "\n" + wordsObj["server"].toString() + wordsObj["address"].toString() + " " + embedding_server_ip;
-            server_output += "\n" + wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api;
+            embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
+            ui->embedding_txt_modepath_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
+            log_output += wordsObj["embedding"].toString() + "服务启动完成" + "\n";
+            log_output += wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api;
             if(embedding_server_n_embd!=1024)
             {
-                server_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) + " 不符合要求请更换模型" +"\n";
+                log_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) + " 不符合要求请更换模型" +"\n";
             }
             else
             {
-                server_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) +"\n";
+                log_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd);
             }
             
-            ui->embedding_server_start->setEnabled(0);
-            ui->embedding_server_stop->setEnabled(1);//启动成功后只能点终止按钮
-            ui->embedding_modelpath_button->setEnabled(0);
-            
         }//替换ip地址
-        ui->embedding_server_log->appendPlainText(server_output);
+        ui->embedding_test_log->appendPlainText(log_output);
         
     });    
     connect(server_process, &QProcess::readyReadStandardError, [=]() {
         QString server_output = server_process->readAllStandardError();
         if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
-        ui->embedding_server_log->appendPlainText(server_output);
         if(server_output.contains("llm_load_print_meta: n_embd           = "))
         {
             embedding_server_n_embd = server_output.split("llm_load_print_meta: n_embd           = ").at(1).split("\r\n").at(0).toInt();
@@ -358,21 +353,13 @@ void Expend::on_embedding_server_start_clicked()
 //进程开始响应
 void Expend::server_onProcessStarted()
 {
-    ui->embedding_server_log->appendPlainText("嵌入服务启动");
+    ;
 }
 
 //进程结束响应
 void Expend::server_onProcessFinished()
 {
-    ui->embedding_server_start->setEnabled(1);
-    ui->embedding_modelpath_button->setEnabled(1);
-    ui->embedding_server_stop->setEnabled(0);
-    ui->embedding_server_log->appendPlainText("嵌入服务终止");
-}
-//终止server
-void Expend::on_embedding_server_stop_clicked()
-{
-    server_process->kill();
+    ui->embedding_test_log->appendPlainText("嵌入服务终止");
 }
 
 //获取本机第一个ip地址
@@ -448,13 +435,16 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->resizeRowsToContents();// 自动调整行高
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入"});//设置列名
 }
+
 //用户点击嵌入时响应
 void Expend::on_embedding_txt_embedding_clicked()
 {
+
     //锁定界面
     ui->embedding_txt_upload->setEnabled(0);//上传按钮
     ui->embedding_txt_embedding->setEnabled(0);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(0);//检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(0);//选择模型按钮
 
     Embedding_DB.clear();//清空向量数据库
     show_chunk_index = 0;//待显示的嵌入文本段的序号
@@ -473,11 +463,10 @@ void Expend::on_embedding_txt_embedding_clicked()
     //进行嵌入工作,发送ready_embedding_chunks给server.exe
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
-    QElapsedTimer time2;
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(ui->embedding_server_ip_lineEdit->text() + ui->embedding_server_api_lineEdit->text()));
+    QNetworkRequest request(QUrl(ui->embedding_txt_modepath_lineedit->text()));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -568,10 +557,10 @@ void Expend::on_embedding_txt_embedding_clicked()
     ui->embedding_txt_upload->setEnabled(1);//上传按钮
     ui->embedding_txt_embedding->setEnabled(1);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(1);//选择模型按钮
 
-    ui->embedding_test_log->appendPlainText("嵌入完成");
+    ui->embedding_test_log->appendPlainText("嵌入完成 耗时 "+ QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + "s");
     emit expend2tool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
-    emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text());//传递知识库的描述
 }
 
 //用户点击检索时响应
@@ -581,11 +570,12 @@ void Expend::on_embedding_test_pushButton_clicked()
     ui->embedding_txt_upload->setEnabled(0);//上传按钮
     ui->embedding_txt_embedding->setEnabled(0);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(0);//检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(0);//选择模型按钮
 
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(ui->embedding_server_ip_lineEdit->text() + ui->embedding_server_api_lineEdit->text()));
+    QNetworkRequest request(QUrl(ui->embedding_txt_modepath_lineedit->text()));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key ="Bearer " + QString("sjxx");
@@ -628,7 +618,7 @@ void Expend::on_embedding_test_pushButton_clicked()
             }
         }
         vector_str += "]";
-        ui->embedding_test_log->appendPlainText("用户文本段嵌入完毕!" + QString(" ") + "维度:"+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
+        ui->embedding_test_log->appendPlainText("查询文本段嵌入完毕!" + QString(" ") + "维度:"+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -667,6 +657,7 @@ void Expend::on_embedding_test_pushButton_clicked()
     ui->embedding_txt_upload->setEnabled(1);//上传按钮
     ui->embedding_txt_embedding->setEnabled(1);//嵌入按钮
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(1);//选择模型按钮
     
 }
 
@@ -702,13 +693,13 @@ std::vector<std::pair<int, double>> Expend::similar_indices(const std::array<dou
     return scores;
 }
 
-//嵌入服务地址改变响应
-void Expend::on_embedding_server_ip_lineEdit_textChanged()
-{
-    emit expend2tool_serverip(embedding_server_ip);//传递嵌入服务端点
-}
 //嵌入服务端点改变响应
-void Expend::on_embedding_server_api_lineEdit_textChanged()
+void Expend::on_embedding_txt_modepath_lineedit_textChanged()
 {
     emit expend2tool_serverapi(embedding_server_api);//传递嵌入服务端点
+}
+//知识库描述改变响应
+void Expend::on_embedding_txt_describe_lineEdit_textChanged()
+{
+    emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text());//传递知识库的描述
 }

@@ -107,7 +107,6 @@ int main(int argc, char *argv[])
 
     //------------------连接扩展和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
-    QObject::connect(&expend, &Expend::expend2tool_serverip,&tool,&xTool::recv_serverip);//传递嵌入服务地址
     QObject::connect(&expend, &Expend::expend2tool_serverapi,&tool,&xTool::recv_serverapi);//传递嵌入服务端点
 
     w.show();//展示窗口

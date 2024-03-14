@@ -36,7 +36,6 @@ public:
     int positron_power=0;//阳电子步枪充能值
 
     //知识库相关
-    QString embedding_server_ip = "";
     QString embedding_server_api = "";
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库
     QString embedding_query_process(QString query_str);//获取查询词向量和计算相似度，返回匹配的文本段
@@ -49,7 +48,6 @@ public slots:
     void recv_func_arg(QStringList func_arg_list);
     void positronPower();//阳电子步枪充能
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
-    void recv_serverip(QString serverip);//传递嵌入服务地址
     void recv_serverapi(QString serverapi);//传递嵌入服务端点
     
 signals:
