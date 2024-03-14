@@ -1,3 +1,22 @@
+######################################手动修改######################################
+#1
+#llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
+# uint32_t to_lower(uint32_t code) {
+# #if defined(_WIN32)
+# #if defined(__GNUC__) //为了使mingw编译器可以支持locale
+#         static const std::locale locale;
+# #else
+#         static const std::locale locale("en_US.UTF-8");
+# #endif
+#         if (code > 0xFFFF) {
+#             return code;
+#         }
+# #else
+#         static const std::locale locale("en_US.UTF-8");
+# #endif
+#         return std::tolower(wchar_t(code), locale);
+#     }
+
 ######################################基础配置######################################
 cmake_minimum_required(VERSION 3.12)
 project(body)
@@ -46,6 +65,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)# 添加子项目主要库
 add_subdirectory(llama.cpp/examples/main)#测试用
 add_subdirectory(llama.cpp/examples/quantize)#测试用
+add_subdirectory(llama.cpp/examples/embedding)#测试用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
@@ -101,7 +121,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-WIN32
+#WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}
