@@ -81,6 +81,7 @@ public:
     bool createTempDirectory(const QString &path);//创建临时文件夹
     void create_right_menu();//添加右击问题
     QStringList func_arg_list;//提取出来的函数和参数
+    QString customOpenfile(QString dirpath, QString describe, QString format);
 
     void ui_state_init();//初始界面状态
     void ui_state_loading();//装载中界面状态

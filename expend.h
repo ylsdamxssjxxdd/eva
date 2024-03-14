@@ -23,6 +23,7 @@
 #include <QNetworkInterface>
 #include <QPlainTextEdit>
 #include <math.h>
+#include <QFileDialog>
 
 #include "xconfig.h"
 namespace Ui {
@@ -48,6 +49,8 @@ public:
     bool load_percent_tag = false;
     void init_expend();//初始化扩展窗口
     bool createTempDirectory(const QString &path);
+    QString customOpenfile(QString dirpath, QString describe, QString format);
+
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:

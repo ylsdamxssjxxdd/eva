@@ -119,15 +119,8 @@ void Widget::on_load_clicked()
 {
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
 
-    
     //用户选择模型位置
-    QString model_path;
-    QFileDialog dlg(NULL, wordsObj["choose soul in eva"].toString());
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {model_path = dlg.selectedFiles().first();}//只要一个文件
+    QString model_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose soul in eva"].toString(),"(*.bin *.gguf)");
 
     if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
@@ -704,12 +697,8 @@ void Widget::serverControl()
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
-        QFileDialog dlg(NULL, wordsObj["choose soul in eva"].toString());
-        dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-        dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-        dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-        dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-        if (dlg.exec() == QDialog::Accepted) {ui_SETTINGS.modelpath = dlg.selectedFiles().first();}//只要一个文件
+        ui_SETTINGS.modelpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose soul in eva"].toString(),"(*.bin *.gguf)");
+        
     }
     if(ui_SETTINGS.modelpath==""){return;}
     

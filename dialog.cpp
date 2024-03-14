@@ -562,13 +562,7 @@ void Widget::prompt_template_change()
 void Widget::chooseLorapath()
 {
     //用户选择模型位置
-    QString lora_path;
-    QFileDialog dlg(NULL, wordsObj["choose lora model"].toString());
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {lora_path = dlg.selectedFiles().first();}//只要一个文件
+    QString lora_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose lora model"].toString(),"(*.bin *.gguf)");
     
     lora_LineEdit->setText(lora_path);
 }
@@ -576,13 +570,7 @@ void Widget::chooseLorapath()
 void Widget::chooseMmprojpath()
 {
     //用户选择模型位置
-    QString mmproj_path;
-    QFileDialog dlg(NULL, wordsObj["choose mmproj model"].toString());
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {mmproj_path = dlg.selectedFiles().first();}//只要一个文件
+    QString mmproj_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose mmproj model"].toString(),"(*.bin *.gguf)");
     
     mmproj_LineEdit->setText(mmproj_path);
 }
@@ -1392,13 +1380,8 @@ void Widget::create_right_menu()
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
 
-        QString imagepath;//用户选择图片
-        QFileDialog dlg(NULL, wordsObj["Q15"].toString());
-        dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-        dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-        dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-        dlg.setNameFilter("(*.png *.jpg *.bmp)");//筛选格式
-        if (dlg.exec() == QDialog::Accepted) {imagepath = dlg.selectedFiles().first();}//只要一个文件
+        //用户选择图片
+        QString imagepath = customOpenfile(DEFAULT_MODELPATH,wordsObj["Q15"].toString(),"(*.png *.jpg *.bmp)");
         
         if(imagepath==""){return;}
         emit ui2bot_imagepath(imagepath);//发送图像路径
@@ -1435,14 +1418,8 @@ void Widget::create_right_menu()
     connect(action17, &QAction::triggered, this, [=]() 
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
-
-        QString custom_csvpath;//用户选择自定义的csv文件
-        QFileDialog dlg(NULL, wordsObj["Q17"].toString());
-        dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-        dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-        dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-        dlg.setNameFilter("CSV files (*.csv)");//筛选格式
-        if (dlg.exec() == QDialog::Accepted) {custom_csvpath = dlg.selectedFiles().first();}//只要一个文件
+        //用户选择自定义的csv文件
+        QString custom_csvpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["Q17"].toString(),"CSV files (*.csv)");
 
         if(custom_csvpath==""){return;}
 

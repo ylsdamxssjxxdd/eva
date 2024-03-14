@@ -6,6 +6,7 @@ Expend::Expend(QWidget *parent) :
     ui(new Ui::Expend)
 {
     ui->setupUi(this);
+
     QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();
@@ -163,6 +164,24 @@ void Expend::recv_expend_show(int index_)
     this->activateWindow(); // 激活扩展窗口
 }
 
+QString Expend::customOpenfile(QString dirpath, QString describe, QString format)
+{
+    QString filepath="";
+#if defined(_WIN32)
+    filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
+#else 
+    QFileDialog dlg(NULL, describe);
+    dlg.setDirectory(dirpath);//默认打开路径
+    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
+    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
+    dlg.setNameFilter(format);//筛选格式
+    if (dlg.exec() == QDialog::Accepted) {filepath = dlg.selectedFiles().first();}//只要一个文件
+#endif
+
+    return filepath;
+}
+
+
 //-------------------------------------------------------------------------
 //----------------------------------语音相关--------------------------------
 //-------------------------------------------------------------------------
@@ -170,13 +189,8 @@ void Expend::recv_expend_show(int index_)
 //用户点击选择whisper路径时响应
 void Expend::on_voice_load_modelpath_button_clicked()
 {
-    QFileDialog dlg(NULL, "choose whisper model");
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {whisper_params.model = dlg.selectedFiles().first().toStdString();}//只要一个文件
-
+    whisper_params.model = customOpenfile(DEFAULT_MODELPATH,"choose whisper model","(*.bin *.gguf)").toStdString();
+ 
     ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
     ui->voice_load_log->setPlainText("选择好了就可以按f2录音了");
@@ -269,12 +283,8 @@ void Expend::whisper_onProcessFinished()
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
-    QFileDialog dlg(NULL, "choose embedding model");
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.bin *.gguf)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {embedding_params.modelpath = dlg.selectedFiles().first();}//只要一个文件
+
+    embedding_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"choose embedding model","(*.bin *.gguf)");
 
     if(embedding_params.modelpath==""){return;}
     ui->embedding_txt_modepath_lineedit->setText(embedding_params.modelpath);
@@ -332,9 +342,11 @@ void Expend::embedding_server_start()
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         QString server_output = server_process->readAllStandardOutput();
         QString log_output;
+        qDebug()<<server_output;
         //启动成功的标志
         if(server_output.contains("warming up the model with an empty run"))
         {
+            
             embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
             ui->embedding_txt_modepath_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
             log_output += wordsObj["embedding"].toString() + "服务启动完成" + "\n";
@@ -387,12 +399,7 @@ QString Expend::getFirstNonLoopbackIPv4Address() {
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    QFileDialog dlg(NULL, "选择一个txt文件嵌入到知识库");
-    dlg.setDirectory(DEFAULT_MODELPATH);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter("(*.txt)");//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {txtpath = dlg.selectedFiles().first();}//只要一个文件
+    txtpath = customOpenfile(DEFAULT_MODELPATH,"选择一个txt文件嵌入到知识库","(*.txt)");
 
     ui->embedding_txt_lineEdit->setText(txtpath);
     if(txtpath!=""){ui->embedding_txt_embedding->setEnabled(1);}
@@ -451,7 +458,7 @@ void Expend::preprocessTXT()
     }
     ui->embedding_txt_wait->setColumnWidth(0,ui->embedding_txt_wait->width());// 列宽保持控件宽度
     ui->embedding_txt_wait->resizeRowsToContents();// 自动调整行高
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入"});//设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
 }
 
 //用户点击嵌入时响应
