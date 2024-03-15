@@ -22,10 +22,15 @@ Expend::Expend(QWidget *parent) :
     ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
+    ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::server_onProcessFinished);//连接结束信号        
+
+    quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
+    connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);//连接开始信号
+    connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::quantize_onProcessFinished);//连接结束信号        
 
     
     ui->embedding_txt_wait->setColumnCount(1);//设置一列
@@ -33,6 +38,7 @@ Expend::Expend(QWidget *parent) :
 
     ui->embedding_txt_over->setColumnCount(1);//设置一列
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{"已嵌入文本段"});//设置列名
+
 }
 
 Expend::~Expend()
@@ -115,6 +121,69 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         //强制延迟见顶
         QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
     }
+
+    if(index==4 && is_first_show_modelproliferation)//第一次点模型增殖
+    {
+        is_first_show_modelproliferation = false;
+        //量化方法说明
+        quantize_types = {
+            { "Q8_0", "48.5%", "+0.0004", "⭐"},
+            { "Q6_K", "60.4%", "+0.0008", "⭐"},
+            { "Q5_1", "63.8%", "+0.0349", "⭐"},
+            { "Q5_K_M", "65.8%", "+0.0122", "⭐⭐⭐"},
+            { "Q5_K_S", "66.7%", "+0.0400", "⭐"},
+            { "Q5_0", "66.7%", "+0.0683", "⭐"},
+            { "Q4_1", "70%", "+0.1585", "⭐"},
+            { "Q4_K_M", "70.8%", "+0.0532", "⭐"},
+            { "Q4_K_S", "72.4%", "+0.0992", "⭐"},
+            { "Q4_0", "72.6%", "+0.2166", "⭐⭐"},
+            { "Q3_K_L", "74.2%", "+0.1764", "⭐"},
+            { "Q3_K_M", "76.4%", "+0.2496", "⭐"},
+            { "Q3_K_S", "78.8%", "+0.5551", "⭐"},
+            { "Q2_K", "79.8%", "+0.6717", "⭐"},
+            { "Q2_K_S", "83.4%", "+9.0634", ""},
+            { "IQ4_NL", "71.9%", "和重要性矩阵有关", "⭐"},
+            { "IQ4_XS", "73.4%", "和重要性矩阵有关", "⭐"},
+            { "IQ3_M", "77.1%", "和重要性矩阵有关", "⭐"},
+            { "IQ3_S", "78.5%", "和重要性矩阵有关", "⭐"},
+            { "IQ3_XS", "79.4%", "和重要性矩阵有关", "⭐"},
+            { "IQ3_XXS", "80.9%", "和重要性矩阵有关", "⭐"},
+            { "IQ2_M", "83.1%", "和重要性矩阵有关", "⭐"},
+            { "IQ2_S", "84.3%", "和重要性矩阵有关", "⭐"}, 
+            { "IQ2_XS", "85.6%", "和重要性矩阵有关", "⭐"},
+            { "IQ2_XXS", "87.1%", "和重要性矩阵有关", "⭐"},
+            { "IQ1_S", "90.3%", "和重要性矩阵有关", "⭐⭐"},
+        };
+
+        //添加量化方法选项
+        for(int i = 0;i < quantize_types.size(); ++i)
+        {
+            ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
+        }
+        ui->model_quantize_type->setCurrentText("Q5_K_M");
+        //添加量化方法说明
+        ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
+        ui->model_quantize_info->setColumnCount(4);
+        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率","困惑度","推荐"});//设置列名
+        for(int i=0;i<quantize_types.size(); ++i)
+        {
+            QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
+            ui->model_quantize_info->setItem(i, 0, newItem1);
+
+            QTableWidgetItem *newItem2 = new QTableWidgetItem(quantize_types.at(i).bit);
+            ui->model_quantize_info->setItem(i, 1, newItem2);
+
+            QTableWidgetItem *newItem3 = new QTableWidgetItem(quantize_types.at(i).perplexity);
+            ui->model_quantize_info->setItem(i, 2, newItem3);
+
+            QTableWidgetItem *newItem4 = new QTableWidgetItem(quantize_types.at(i).recommand);
+            ui->model_quantize_info->setItem(i, 3, newItem4);
+
+        }
+        QHeaderView* headerView = ui->model_quantize_info->horizontalHeader();//水平表头对象,用来控制列宽
+        headerView->setSectionResizeMode(QHeaderView::Stretch);// 设置所有列为等宽且撑满整个表格宽度
+    }
+
 }
 
 //接收模型日志
@@ -208,6 +277,7 @@ void Expend::recv_voicedecode(QString wavpath)
 
     QString resourcePath = ":/whisper.exe";
     QString localPath = "./EVA_TEMP/whisper.exe";
+    createTempDirectory("./EVA_TEMP");
     // 获取资源文件
     QFile resourceFile(resourcePath);
     // 尝试打开资源文件进行读取
@@ -727,4 +797,130 @@ void Expend::on_embedding_txt_modepath_lineedit_textChanged()
 void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 {
     emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text());//传递知识库的描述
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------模型量化相关--------------------------------
+//-------------------------------------------------------------------------
+
+//用户点击选择待量化模型路径时响应
+void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
+{
+    QString row_modelpath = customOpenfile(DEFAULT_MODELPATH,"需要选择fp32或fp16的gguf模型","(*.gguf)");
+    ui->model_quantize_row_modelpath_lineedit->setText(row_modelpath);
+}
+//用户点击选择重要性矩阵路径时响应
+void Expend::on_model_quantize_important_datapath_pushButton_clicked()
+{
+    QString importtant_datapath = customOpenfile(DEFAULT_MODELPATH,"iq量化方法必须,选择重要性矩阵","");
+    ui->model_quantize_important_datapath_lineedit->setText(importtant_datapath);
+}
+//待量化模型路径改变响应
+void Expend::on_model_quantize_row_modelpath_lineedit_textChanged()
+{
+    output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
+}
+//根据待量化模型路径和量化方法填入量化后模型路径
+void Expend::output_modelpath_change()
+{
+    //提取模型名
+    QString modelpath = ui->model_quantize_row_modelpath_lineedit->text();
+    if(modelpath.contains(".gguf"))
+    {
+        if(modelpath.contains("fp16"))
+        {
+            QString output_modelpath = modelpath.replace("fp16",ui->model_quantize_type->currentText());
+            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+        }
+        else if(modelpath.contains("fp32"))
+        {
+            QString output_modelpath = modelpath.replace("fp32",ui->model_quantize_type->currentText());
+            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+        }
+    }
+
+}
+//量化方法改变响应
+void Expend::on_model_quantize_type_currentIndexChanged(int index)
+{
+    output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
+}
+//用户点击执行量化按钮时响应
+void Expend::on_model_quantize_execute_clicked()
+{
+    //锁定界面
+    ui->model_quantize_frame1->setEnabled(0);
+    ui->model_quantize_frame2->setEnabled(0);
+    ui->model_quantize_frame3->setEnabled(0);
+    ui->model_quantize_frame4->setEnabled(0);
+
+    //执行量化
+    quantize(ui->model_quantize_row_modelpath_lineedit->text(),ui->model_quantize_output_modelpath_lineedit->text(),ui->model_quantize_important_datapath_lineedit->text(),ui->model_quantize_type->currentText());
+}
+
+//执行量化
+void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
+{
+    //结束quantize.exe
+    quantize_process->kill();
+
+    QString resourcePath = "://quantize.exe";
+    QString localPath = "./EVA_TEMP/quantize.exe";
+    createTempDirectory("./EVA_TEMP");
+    // 获取资源文件
+    QFile resourceFile(resourcePath);
+    // 尝试打开资源文件进行读取
+    if (!resourceFile.open(QIODevice::ReadOnly)) {
+        qWarning("cannot open qrc file");
+        return ;
+    }
+    // 读取资源文件的内容
+    QByteArray fileData = resourceFile.readAll();
+    resourceFile.close();
+    QFile localFile(localPath);
+    // 尝试打开本地文件进行写入
+    if (localFile.open(QIODevice::WriteOnly)) 
+    {
+        localFile.write(fileData);
+        localFile.close();
+    }
+    // 设置要运行的exe文件的路径
+    QString program = localPath;
+    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    QStringList arguments;
+    if(important_datapath!=""){arguments << "--imatrix" << important_datapath;}//重要性矩阵路径
+    arguments << in_modelpath;//待量化模型路径
+    arguments << out_modelpath;//输出路径
+    arguments << quantize_type;//量化方法
+    arguments << QString::number(max_thread*0.7);//使用线程数
+    
+    //连接信号和槽,获取程序的输出
+    connect(quantize_process, &QProcess::readyReadStandardOutput, [=]() {
+        QString output = quantize_process->readAllStandardOutput();
+        ui->model_quantize_log->appendPlainText(output);
+ 
+    });    
+    connect(quantize_process, &QProcess::readyReadStandardError, [=]() {
+        QString output = quantize_process->readAllStandardError();
+        ui->model_quantize_log->appendPlainText(output);
+    });
+    quantize_process->start(program, arguments);
+
+    
+}
+//开始信号
+void Expend::quantize_onProcessStarted()
+{
+
+}
+//结束信号
+void Expend::quantize_onProcessFinished()
+{
+    //解锁界面
+    ui->model_quantize_frame1->setEnabled(1);
+    ui->model_quantize_frame2->setEnabled(1);
+    ui->model_quantize_frame3->setEnabled(1);
+    ui->model_quantize_frame4->setEnabled(1);
+
+    ui->model_quantize_log->appendPlainText("量化完成! " + ui->model_quantize_output_modelpath_lineedit->text());
 }

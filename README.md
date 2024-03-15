@@ -1,5 +1,5 @@
 # 机体
-一款轻量的大模型应用软件：机体 (qt5+llama.cpp-b2409)
+一款直观的大模型应用软件：机体 (qt5+llama.cpp-b2409)
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/836433f4-1ee4-4cf6-8502-d2c1f938a9a8" width="300px">
 
@@ -13,7 +13,7 @@
     - 最低支持32位windows7
     - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
 - 多功能
-    - 本地模型交互，多模态，录音转文字，在线模型交互，模型评测，对外api服务，调用工具，知识库问答
+    - 本地模型交互，多模态，录音转文字，在线模型交互，模型评测，对外api服务，调用工具，知识库问答，模型量化
 - 直观
     - 输出区的内容就是模型的全部现实
     - 状态区的内容就是全部工作流程
@@ -92,7 +92,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 ## 待办事项
 在扩展窗口增加模型/和图像增殖选项
 - 模型增殖
-    - 借助llama.cpp项目进行模型的转化、量化、微调
+    - 借助llama.cpp项目进行模型的微调
 - 图像增殖
     - 借助stable-diffusion.cpp项目进行文生图
 

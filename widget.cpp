@@ -29,7 +29,7 @@ Widget::Widget(QWidget *parent)
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     reflash_state("ui:" + wordsObj["click load and choose gguf file"].toString(),USUAL_);
     reflash_state("ui:" + wordsObj["right click link api"].toString(),USUAL_);
-    reflash_state("ui:" + QString("press f3 to switch zh/en"),USUAL_);
+    reflash_state("ui:" + QString("右击这里可打开扩展窗口"),USUAL_);
 
     #if defined(BODY_USE_CUBLAST)
     //this->setWindowTitle(QString("eva-cuda") + VERSION);

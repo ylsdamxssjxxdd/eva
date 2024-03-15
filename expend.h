@@ -26,6 +26,7 @@
 #include <QFileDialog>
 
 #include "xconfig.h"
+
 namespace Ui {
 class Expend;
 }
@@ -42,6 +43,7 @@ public:
     QJsonObject wordsObj;
     QString vocab;
     QString model_logs;
+    bool is_first_show_modelproliferation = true;
     bool is_first_show_expend = true;
     bool is_first_show_vocab = true;
     bool is_first_show_logs = true;
@@ -113,6 +115,22 @@ private slots:
     void on_embedding_txt_modepath_lineedit_textChanged();//嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();//知识库描述改变响应
 
+//-------------------------------------------------------------------------
+//----------------------------------模型量化相关--------------------------------
+//-------------------------------------------------------------------------
+public:
+    std::vector<QuantizeType> quantize_types;//量化方法说明数据
+    void output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
+    QProcess *quantize_process;
+    void quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type);
+private slots:
+    void on_model_quantize_row_modelpath_pushButton_clicked();//用户点击选择待量化模型路径时响应
+    void on_model_quantize_important_datapath_pushButton_clicked();//用户点击选择重要性矩阵路径时响应
+    void on_model_quantize_row_modelpath_lineedit_textChanged();//待量化模型路径改变响应
+    void on_model_quantize_type_currentIndexChanged(int index);//量化方法改变响应
+    void on_model_quantize_execute_clicked();//用户点击执行量化按钮时响应
+    void quantize_onProcessStarted();//开始信号
+    void quantize_onProcessFinished();//结束信号
 };
 
 #endif // EXPEND_H

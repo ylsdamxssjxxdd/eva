@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>server.exe</file>
-	<file>whisper.exe</file>
+        <file>whisper.exe</file>
+        <file>quantize.exe</file>
     </qresource>
 </RCC>

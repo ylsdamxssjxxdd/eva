@@ -42,6 +42,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持中文
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
+    
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         set(EXTRA_FILES
             utils/gpuchecker.h
@@ -63,14 +64,14 @@ endif()
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)# 添加子项目主要库
-add_subdirectory(llama.cpp/examples/quantize)# 模型量化用
+add_subdirectory(llama.cpp/examples/imatrix)# 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
+add_subdirectory(llama.cpp/examples/quantize)# 模型量化用
 add_subdirectory(llama.cpp/examples/server)# 添加子目录
-set(THRIDEXE_FILE utils/thrid_exe.qrc)# 添加到资源文件
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
@@ -97,6 +98,7 @@ target_compile_features(${TARGET_whisper} PRIVATE cxx_std_11)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
+set(THRIDEXE_FILE utils/thrid_exe.qrc)# 第三方exe程序添加到资源文件
 ######################################eva相关######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
