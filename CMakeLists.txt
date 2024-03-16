@@ -16,7 +16,16 @@
 # #endif
 #         return std::tolower(wchar_t(code), locale);
 #     }
-
+#
+#2
+#stable-diffusion.cpp/cmakelists.txt中添加
+# mingw设置编译选项
+# if(MINGW)
+#     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
+#     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
+#     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
+# endif()
+#将stable-diffusion.cpp/ggml/src/cmakelists.txt中链接的ggml库全部更名为ggml-sd(4处)
 ######################################基础配置######################################
 cmake_minimum_required(VERSION 3.12)
 project(body)
@@ -25,17 +34,21 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
+option(BODY_CUBLAS                          "llama: use CUDA"                                  ON)
+option(BODY_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
-elseif(LLAMA_CUBLAS)
+    add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用
+elseif(BODY_CUBLAS)
     add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
-elseif(LLAMA_CLBLAST)
+    set(GGML_CUBLAS ON)#sd用
+    add_definitions(-DSD_USE_CUBLAS)#sd用
+elseif(BODY_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
+    add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用
 endif()           
 # msvc设置编译选项
 if(MSVC)
@@ -43,7 +56,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
     
-    if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
+    if (BODY_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         set(EXTRA_FILES
             utils/gpuchecker.h
             utils/gpuchecker.cpp
@@ -66,12 +79,14 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(llama.cpp)# 添加子项目主要库
 add_subdirectory(llama.cpp/examples/imatrix)# 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
+add_subdirectory(stable-diffusion.cpp)# 添加子目录
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
 add_subdirectory(llama.cpp/examples/quantize)# 模型量化用
 add_subdirectory(llama.cpp/examples/server)# 添加子目录
+add_subdirectory(stable-diffusion.cpp/examples/cli)#添加子目录
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 

@@ -13,7 +13,7 @@
     - 最低支持32位windows7
     - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
 - 多功能
-    - 本地模型交互，多模态，录音转文字，在线模型交互，模型评测，对外api服务，调用工具，知识库问答，模型量化
+    - 本地模型交互，多模态，在线模型交互，对外api服务，调用工具，知识库问答，模型量化，声转文，文生图
 - 直观
     - 输出区的内容就是模型的全部现实
     - 状态区的内容就是全部工作流程
@@ -23,7 +23,7 @@
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
-- 支持几乎所有开源大语言模型:千问、零一、猎户、百川、llama、gemma、mistral、deepseek、gpt2...
+- 也可以前往 https://hf-mirror.com 搜索，支持几乎所有开源大语言模型:千问、零一、猎户、百川、llama、gemma、phi、mamba、bloom、mistral、moe、deepseek、gpt2...
 3. 装载！
 - 点击装载按钮，选择一个gguf模型载入内存
 4. 发送！
@@ -90,11 +90,9 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
     - 【ui】->用户右击装载->配置ip和端点->点击确认->锁定界面->记录配置->连接测试->测试通过->解锁界面->END
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
 ## 待办事项
-在扩展窗口增加模型/和图像增殖选项
-- 模型增殖
-    - 借助llama.cpp项目进行模型的微调
-- 图像增殖
-    - 借助stable-diffusion.cpp项目进行文生图
+- 适配linux
+- 适配国产cpu/gpu
+- 英文版本
 
 ## 已知BUG
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复

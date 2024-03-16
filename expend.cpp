@@ -15,7 +15,8 @@ Expend::Expend(QWidget *parent) :
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
     ui->modellog_card->setReadOnly(1);
-    ui->tabWidget->setCurrentIndex(2);//默认显示模型日志 
+    ui->tabWidget->setCurrentIndex(2);//默认显示模型日志
+    ui->sd_prompt_lineEdit->installEventFilter(this);//安装事件过滤器
 
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
@@ -23,7 +24,11 @@ Expend::Expend(QWidget *parent) :
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
+    ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
+    ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
+
+    //塞入第三方exe
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::server_onProcessFinished);//连接结束信号        
@@ -32,6 +37,10 @@ Expend::Expend(QWidget *parent) :
     connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);//连接开始信号
     connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::quantize_onProcessFinished);//连接结束信号        
 
+    sd_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
+    connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);//连接开始信号
+    connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::sd_onProcessFinished);//连接结束信号        
+
     
     ui->embedding_txt_wait->setColumnCount(1);//设置一列
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
@@ -39,6 +48,9 @@ Expend::Expend(QWidget *parent) :
     ui->embedding_txt_over->setColumnCount(1);//设置一列
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{"已嵌入文本段"});//设置列名
 
+    //添加采样算法
+    ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
+    ui->sd_sampletype->setCurrentText("euler_a");
 }
 
 Expend::~Expend()
@@ -122,7 +134,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
     }
 
-    if(index==4 && is_first_show_modelproliferation)//第一次点模型增殖
+    if(index==3 && is_first_show_modelproliferation)//第一次点模型增殖
     {
         is_first_show_modelproliferation = false;
         //量化方法说明
@@ -163,8 +175,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         ui->model_quantize_type->setCurrentText("Q5_K_M");
         //添加量化方法说明
         ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
-        ui->model_quantize_info->setColumnCount(4);
-        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率","困惑度","推荐"});//设置列名
+        ui->model_quantize_info->setColumnCount(5);
+        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率","困惑度","推荐","预估量化后大小"});//设置列名
         for(int i=0;i<quantize_types.size(); ++i)
         {
             QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
@@ -198,10 +210,10 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(0,wordsObj["introduction"].toString());//软件介绍
     ui->tabWidget->setTabText(1,wordsObj["model vocab"].toString());//模型词表
     ui->tabWidget->setTabText(2,wordsObj["model log"].toString());//模型日志
-    ui->tabWidget->setTabText(3,wordsObj["knowledge"].toString());//知识库
-    ui->tabWidget->setTabText(4,wordsObj["model"].toString() + wordsObj["proliferation"].toString());//模型增殖
-    ui->tabWidget->setTabText(5,wordsObj["image"].toString() + wordsObj["proliferation"].toString());//图像增殖
-    ui->tabWidget->setTabText(6,wordsObj["voice"].toString() + wordsObj["proliferation"].toString());//语音增殖
+    ui->tabWidget->setTabText(3,wordsObj["model"].toString() + wordsObj["quantize"].toString());//模型量化
+    ui->tabWidget->setTabText(4,wordsObj["knowledge"].toString());//知识库
+    ui->tabWidget->setTabText(5,wordsObj["text2image"].toString());//图像
+    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toString());//语音
 }
 
 // 接收模型词表
@@ -248,6 +260,20 @@ QString Expend::customOpenfile(QString dirpath, QString describe, QString format
 #endif
 
     return filepath;
+}
+
+//事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
+bool Expend::eventFilter(QObject *obj, QEvent *event)
+{
+    //响应已安装控件上的鼠标右击事件
+    if (obj == ui->sd_prompt_lineEdit && event->type() == QEvent::ContextMenu)
+    {
+        // 自动填充提示词
+        ui->sd_prompt_lineEdit->setText("full body, Ayanami Rei, beautiful face, Blue hair, 1 girl, Anime style");
+        return true;
+    }
+
+    return QObject::eventFilter(obj, event);
 }
 
 
@@ -812,7 +838,7 @@ void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
 //用户点击选择重要性矩阵路径时响应
 void Expend::on_model_quantize_important_datapath_pushButton_clicked()
 {
-    QString importtant_datapath = customOpenfile(DEFAULT_MODELPATH,"iq量化方法必须,选择重要性矩阵","");
+    QString importtant_datapath = customOpenfile(DEFAULT_MODELPATH,"iq量化方法必须,选择重要性矩阵","(*.dat)");
     ui->model_quantize_important_datapath_lineedit->setText(importtant_datapath);
 }
 //待量化模型路径改变响应
@@ -825,7 +851,7 @@ void Expend::output_modelpath_change()
 {
     //提取模型名
     QString modelpath = ui->model_quantize_row_modelpath_lineedit->text();
-    if(modelpath.contains(".gguf"))
+    if(modelpath.contains(".gguf") && QFile::exists(modelpath))
     {
         if(modelpath.contains("fp16"))
         {
@@ -836,6 +862,33 @@ void Expend::output_modelpath_change()
         {
             QString output_modelpath = modelpath.replace("fp32",ui->model_quantize_type->currentText());
             ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+        }
+        //顺便改变量化方法说明中的预估量化后大小
+        QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
+        float in_modelsize = fileInfo1.size() /1024.0/1024.0;
+
+        MEMORYSTATUSEX memInfo;
+        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+        GlobalMemoryStatusEx(&memInfo);
+        float totalPhysMem = memInfo.ullTotalPhys;//总内存
+
+        for(int i=0;i<quantize_types.size(); ++i)
+        {
+            QTableWidgetItem *item = ui->model_quantize_info->item(i, 1);
+            float estimate_modelsize = in_modelsize * (1 - item->text().split("%")[0].toFloat()/100.0);
+            QString estimate_modelsize_str = QString::number(estimate_modelsize,'f',1) + " MB";
+            QTableWidgetItem *newItem1 = new QTableWidgetItem(estimate_modelsize_str);
+            ui->model_quantize_info->setItem(i, 4, newItem1);
+
+            //加星,如果量化后的大小比本机内存小20%以上就加一颗星
+            QString star;
+            if(estimate_modelsize < totalPhysMem /1024.0/1024.0 * 0.8)
+            {
+                star = quantize_types.at(i).recommand + "⭐";
+            }
+            else{star = quantize_types.at(i).recommand;}
+            QTableWidgetItem *newItem4 = new QTableWidgetItem(star);
+            ui->model_quantize_info->setItem(i, 3, newItem4);
         }
     }
 
@@ -903,6 +956,11 @@ void Expend::quantize(QString in_modelpath, QString out_modelpath, QString impor
     connect(quantize_process, &QProcess::readyReadStandardError, [=]() {
         QString output = quantize_process->readAllStandardError();
         ui->model_quantize_log->appendPlainText(output);
+        // if(output.contains("llama_model_quantize_internal: model size  =  "))
+        // {
+        //     in_modelsize = output.split("llama_model_quantize_internal: model size  =  ")[1];
+        //     qDebug()<<in_modelsize;
+        // }
     });
     quantize_process->start(program, arguments);
 
@@ -922,5 +980,139 @@ void Expend::quantize_onProcessFinished()
     ui->model_quantize_frame3->setEnabled(1);
     ui->model_quantize_frame4->setEnabled(1);
 
-    ui->model_quantize_log->appendPlainText("量化完成! " + ui->model_quantize_output_modelpath_lineedit->text());
+    ui->model_quantize_log->appendPlainText("量化完成! 模型保存:" + ui->model_quantize_output_modelpath_lineedit->text());
+    QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
+    float modelsize1_MB = fileInfo1.size() /1024.0/1024.0;
+    QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text());//获取文件大小
+    float modelsize2_MB = fileInfo2.size() /1024.0/1024.0;
+    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB" + " 压缩率:" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
+
+}
+
+
+//-------------------------------------------------------------------------
+//----------------------------------文生图相关--------------------------------
+//-------------------------------------------------------------------------
+
+//用户点击选择sd模型路径时响应  
+void Expend::on_sd_modelpath_pushButton_clicked()
+{
+    sd_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
+
+}
+//用户点击开始绘制时响应  
+void Expend::on_sd_draw_pushButton_clicked()
+{
+    if(ui->sd_prompt_lineEdit->text()==""){ui->sd_log->appendPlainText("请输入提示词告诉模型你想绘制图像的样子");return;}
+    if(ui->sd_modelpath_lineEdit->text()==""){ui->sd_log->appendPlainText("请先指定sd模型路径");return;}
+    //锁定界面
+    ui->frame_6->setEnabled(0);
+    ui->groupBox_6->setEnabled(0);
+    ui->frame_13->setEnabled(0);
+
+    //收集参数
+    sd_params.prompt = ui->sd_prompt_lineEdit->text();
+    sd_params.modelpath = ui->sd_modelpath_lineEdit->text();
+    sd_params.width = ui->sd_imagewidth->value();
+    sd_params.height = ui->sd_imageheight->value();
+    sd_params.sampletype = ui->sd_sampletype->currentText();
+    sd_params.steps = ui->sd_samplesteps->value();
+    sd_params.cfg_scale = ui->sd_cfgscale->value();
+    sd_params.seed = ui->sd_seed->value();
+    
+    QTime currentTime = QTime::currentTime();// 获取当前时间
+    QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
+    sd_params.outpath = "./EVA_TEMP/sd_output" + timeString + ".png";
+
+    //结束sd.exe
+    sd_process->kill();
+
+    QString resourcePath = "://sd.exe";
+    QString localPath = "./EVA_TEMP/sd.exe";
+    createTempDirectory("./EVA_TEMP");
+    // 获取资源文件
+    QFile resourceFile(resourcePath);
+    // 尝试打开资源文件进行读取
+    if (!resourceFile.open(QIODevice::ReadOnly)) {
+        qWarning("cannot open qrc file");
+        return ;
+    }
+    // 读取资源文件的内容
+    QByteArray fileData = resourceFile.readAll();
+    resourceFile.close();
+    QFile localFile(localPath);
+    // 尝试打开本地文件进行写入
+    if (localFile.open(QIODevice::WriteOnly)) 
+    {
+        localFile.write(fileData);
+        localFile.close();
+    }
+    // 设置要运行的exe文件的路径
+    QString program = localPath;
+    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    QStringList arguments;
+    arguments << "-M" << sd_params.runmode;//运行模式
+    arguments << "-m" << sd_params.modelpath;//模型路径
+    arguments << "--vae" << sd_params.vaepath;//vae路径
+    //arguments << "--lora-model-dir" << sd_params.lora_model_dir;//lora所在目录
+    arguments << "--sampling-method" << sd_params.sampletype;//模型路径
+    arguments << "--clip-skip" << QString::number(sd_params.clip_skip);//跳层
+    arguments << "-t" << QString::number(sd_params.nthreads);//线程数
+    arguments << "-o" << sd_params.outpath;//输出路径
+    arguments << "-p" << sd_params.extra_prompt + sd_params.prompt;//提示词
+    arguments << "-n" << sd_params.negative_prompt;//反向提示词
+    arguments << "--cfg-scale" << QString::number(sd_params.cfg_scale);//相关系数
+    arguments << "--strength" << QString::number(sd_params.noise_strength);//噪声系数
+    arguments << "-W" << QString::number(sd_params.width);//图像宽
+    arguments << "-H" << QString::number(sd_params.height);//图像长
+    arguments << "--steps" << QString::number(sd_params.steps);//采样步数
+    arguments << "-s" << QString::number(sd_params.seed);//随机种子
+
+    //连接信号和槽,获取程序的输出
+    connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
+        QString output = sd_process->readAllStandardOutput();
+        QTextCursor cursor(ui->sd_log->textCursor());
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertText(output);
+        ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum());//滚动条滚动到最下面
+    });    
+    connect(sd_process, &QProcess::readyReadStandardError, [=]() {
+        QString output = sd_process->readAllStandardError();
+        QTextCursor cursor(ui->sd_log->textCursor());
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertText(output);
+        ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum());//滚动条滚动到最下面
+    });
+    sd_process->start(program, arguments);
+
+}
+//进程开始响应
+void Expend::sd_onProcessStarted()
+{
+
+}
+//进程结束响应
+void Expend::sd_onProcessFinished()
+{
+    //解锁界面
+    ui->frame_6->setEnabled(1);
+    ui->groupBox_6->setEnabled(1);
+    ui->frame_13->setEnabled(1);
+
+    //绘制结果
+    QImage image(sd_params.outpath);
+    int originalWidth = image.width()/devicePixelRatioF();
+    int originalHeight = image.height()/devicePixelRatioF();
+    QTextCursor cursor(ui->sd_result->textCursor());
+    cursor.movePosition(QTextCursor::End);
+
+    QTextImageFormat imageFormat;
+    imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+    imageFormat.setHeight(originalHeight); // 设置图片的高度
+    imageFormat.setName(sd_params.outpath);  // 图片资源路径
+    cursor.insertImage(imageFormat);
+    ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum());//滚动条滚动到最下面
+
+
 }

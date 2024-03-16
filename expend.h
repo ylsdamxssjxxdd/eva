@@ -25,6 +25,7 @@
 #include <math.h>
 #include <QFileDialog>
 
+#include <windows.h>
 #include "xconfig.h"
 
 namespace Ui {
@@ -40,6 +41,7 @@ class Expend : public QWidget
 public:
     Expend(QWidget *parent = nullptr);
     ~Expend();
+    bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QJsonObject wordsObj;
     QString vocab;
     QString model_logs;
@@ -52,7 +54,7 @@ public:
     void init_expend();//初始化扩展窗口
     bool createTempDirectory(const QString &path);
     QString customOpenfile(QString dirpath, QString describe, QString format);
-
+    
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:
@@ -131,6 +133,21 @@ private slots:
     void on_model_quantize_execute_clicked();//用户点击执行量化按钮时响应
     void quantize_onProcessStarted();//开始信号
     void quantize_onProcessFinished();//结束信号
+
+//-------------------------------------------------------------------------
+//----------------------------------文生图相关--------------------------------
+//-------------------------------------------------------------------------
+
+public:
+    SD_Params sd_params;
+    QProcess *sd_process;
+public slots:
+    void sd_onProcessStarted();//进程开始响应
+    void sd_onProcessFinished();//进程结束响应
+private slots:
+    void on_sd_modelpath_pushButton_clicked();//用户点击选择sd模型路径时响应    
+    void on_sd_draw_pushButton_clicked();//用户点击开始绘制时响应  
+    
 };
 
 #endif // EXPEND_H
