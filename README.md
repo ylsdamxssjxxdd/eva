@@ -45,13 +45,12 @@
 5. 知识库
 - 用户可以上传文档，经过嵌入处理后成为模型的知识库
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="400px">
+<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
 
 6. 文生图
 - 可以使用sd模型绘制图像
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/5c8cba4d-5236-4586-87a2-77e85a490b2b" width="400px">
-
+<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
 ## 源码编译
 1. 配置环境
