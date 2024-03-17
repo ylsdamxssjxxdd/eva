@@ -313,7 +313,7 @@ signals:
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
 //发送给expend的信号
     void ui2expend_show(int index_);//通知显示扩展窗口
-    void ui2expend_voicedecode(QString wavpath);//传一个wav文件开始解码
+    void ui2expend_voicedecode(QString wavpath, QString out_format);//传一个wav文件开始解码
 //自用信号
 signals:
     void gpu_reflash();//强制刷新gpu信息

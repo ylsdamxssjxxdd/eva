@@ -269,7 +269,7 @@ void Widget::stop_recordAudio()
     reflash_state("ui:" + wordsObj["recoding over"].toString() + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     
-    emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav");//传一个wav文件开始解码
+    emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
 }
 
 // 清空题库

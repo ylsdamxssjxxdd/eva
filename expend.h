@@ -66,23 +66,29 @@ private slots:
 private:
     Ui::Expend *ui;
 //-------------------------------------------------------------------------
-//----------------------------------声音相关--------------------------------
+//----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 public:
+    QProcess *whisper_process;//用来启动whisper.exe
     Whisper_Params whisper_params;//whisper.exe可以传入的参数
     int max_thread;
     QElapsedTimer whisper_time;//计时器
     bool is_first_choose_whispermodel=true;//第一次选好模型路径直接关闭扩展窗口
+    QString wavpath;
+    bool is_handle_whisper = false;//是否为手动转换
 signals:
     void whisper_kill();
     void expend2ui_voicedecode_over(QString result);
     void expend2ui_whisper_modelpath(QString modelpath);
 public slots:
-    void recv_voicedecode(QString wavpath);//开始语音转文字
+    void recv_voicedecode(QString wavpath, QString out_format="txt");//开始语音转文字
     void whisper_onProcessStarted();
     void whisper_onProcessFinished();
 private slots:    
     void on_voice_load_modelpath_button_clicked();//用户点击选择whisper路径时响应
+    void on_whisper_wavpath_pushButton_clicked();//用户点击选择wav路径时响应
+    void on_whisper_execute_pushbutton_clicked();//用户点击执行转换时响应
+
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
 //-------------------------------------------------------------------------
@@ -141,13 +147,15 @@ private slots:
 public:
     SD_Params sd_params;
     QProcess *sd_process;
+    bool is_handle_sd = true;
 public slots:
     void sd_onProcessStarted();//进程开始响应
     void sd_onProcessFinished();//进程结束响应
 private slots:
-    void on_sd_modelpath_pushButton_clicked();//用户点击选择sd模型路径时响应    
+    void on_sd_modelpath_pushButton_clicked();//用户点击选择sd模型路径时响应 
+    void on_sd_vaepath_pushButton_clicked();//用户点击选择vae模型路径时响应   
     void on_sd_draw_pushButton_clicked();//用户点击开始绘制时响应  
-    
+    void on_sd_modelpath_lineEdit_textChanged();//sd模型路径改变响应
 };
 
 #endif // EXPEND_H

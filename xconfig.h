@@ -225,14 +225,15 @@ struct SD_Params
     QString lora_model_dir = "";//lora所在目录 不指定则在当前目录，使用时在提示词后加<lora:文件名:1> 1是应用强度
     QString sampletype = "euler_a";//采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
     QString prompt = "";//提示词
-    QString negative_prompt = "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes,fat:1.2,facing away, looking away,tilted head, lowres,bad anatomy,bad hands, missing fingers,extra digit, fewer digits,bad feet,poorly drawn hands,poorly drawn face,mutation,deformed,extra fingers,extra limbs,extra arms,extra legs,malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure,";//反向提示词
+    QString negative_prompt = "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure";//反向提示词
     QString extra_prompt = "masterpieces, best quality, beauty, detailed, Pixar, 8k, ";//附加提示词
+    int batch_count = 1;//出图张数
     int width = 512;//图像宽度
     int height = 512;//图像高度
     int steps = 20;//采样步数
     int seed = -1;//随机数种子 -1随机
     int nthreads = std::thread::hardware_concurrency()*0.7;//线程数
-    float cfg_scale = 11;//提示词与图像相关系数
+    float cfg_scale = 7.5;//提示词与图像相关系数
     float noise_strength = 0.75;//噪声系数
     float clip_skip = 2;//跳层
     QString outpath = "";//输出路径

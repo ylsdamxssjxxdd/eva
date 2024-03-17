@@ -20,7 +20,7 @@ Expend::Expend(QWidget *parent) :
 
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->voice_load_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
+    ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
@@ -36,6 +36,10 @@ Expend::Expend(QWidget *parent) :
     quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
     connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);//连接开始信号
     connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::quantize_onProcessFinished);//连接结束信号        
+    
+    whisper_process = new QProcess(this);//实例化
+    connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);//连接开始信号
+    connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::whisper_onProcessFinished);//连接结束信号
 
     sd_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);//连接开始信号
@@ -51,6 +55,8 @@ Expend::Expend(QWidget *parent) :
     //添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
     ui->sd_sampletype->setCurrentText("euler_a");
+    //添加输出格式
+    ui->whisper_output_format->addItems({"文本文档txt","视频字幕srt","逗号分隔csv","json"});
 }
 
 Expend::~Expend()
@@ -212,8 +218,8 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(2,wordsObj["model log"].toString());//模型日志
     ui->tabWidget->setTabText(3,wordsObj["model"].toString() + wordsObj["quantize"].toString());//模型量化
     ui->tabWidget->setTabText(4,wordsObj["knowledge"].toString());//知识库
-    ui->tabWidget->setTabText(5,wordsObj["text2image"].toString());//图像
-    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toString());//语音
+    ui->tabWidget->setTabText(5,wordsObj["text2image"].toString());//文生图
+    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toString());//声转文
 }
 
 // 接收模型词表
@@ -278,7 +284,7 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 
 
 //-------------------------------------------------------------------------
-//----------------------------------语音相关--------------------------------
+//----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 
 //用户点击选择whisper路径时响应
@@ -288,7 +294,7 @@ void Expend::on_voice_load_modelpath_button_clicked()
  
     ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
-    ui->voice_load_log->setPlainText("选择好了就可以按f2录音了");
+    ui->whisper_log->setPlainText("选择好了就可以按f2录音了");
     if(is_first_choose_whispermodel)
     {
         this->close();
@@ -297,10 +303,9 @@ void Expend::on_voice_load_modelpath_button_clicked()
 }
 
 //开始语音转文字
-void Expend::recv_voicedecode(QString wavpath)
+void Expend::recv_voicedecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
-
     QString resourcePath = ":/whisper.exe";
     QString localPath = "./EVA_TEMP/whisper.exe";
     createTempDirectory("./EVA_TEMP");
@@ -329,48 +334,79 @@ void Expend::recv_voicedecode(QString wavpath)
     arguments << "-f" << wavpath;//wav文件路径
     arguments << "--language" << QString::fromStdString(whisper_params.language);//识别语种
     arguments << "--threads" << QString::number(max_thread*0.7);
-    arguments << "--output-txt";//结果输出为一个txt
+    if(out_format=="txt"){arguments << "--output-txt";}//结果输出为一个txt
+    else if(out_format=="文本文档txt"){arguments << "--output-txt";}//结果输出为一个txt
+    else if(out_format=="视频字幕srt"){arguments << "--output-srt";}
+    else if(out_format=="逗号分隔csv"){arguments << "--output-csv";}
+    else if(out_format=="json"){arguments << "--output-json";}
     
     // 开始运行程序
-    QProcess *whisper_process;//用来启动whisper.exe
-    whisper_process = new QProcess(this);//实例化
-    connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);//连接开始信号
-    connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::whisper_onProcessFinished);//连接结束信号
     //连接信号和槽,获取程序的输出
     connect(whisper_process, &QProcess::readyReadStandardOutput, [=]() {
         QString output = whisper_process->readAllStandardOutput();
-        ui->voice_load_log->appendPlainText(output);
+        ui->whisper_log->appendPlainText(output);
     });    
     connect(whisper_process, &QProcess::readyReadStandardError, [=]() {
         QString output = whisper_process->readAllStandardError();
-        ui->voice_load_log->appendPlainText(output);
+        ui->whisper_log->appendPlainText(output);
     });
     whisper_process->start(program, arguments);
 }
 
 void Expend::whisper_onProcessStarted()
 {
-    emit expend2ui_state("expend:调用whisper.exe解码录音",USUAL_);
+    if(!is_handle_whisper)
+    {
+        emit expend2ui_state("expend:调用whisper.exe解码录音",USUAL_);
+    }
+    
 }
 
 void Expend::whisper_onProcessFinished()
 {
-    QString content;
-    // 文件路径
-    QString filePath = qApp->applicationDirPath() + "./EVA_TEMP/" + QString("EVA_") + ".wav.txt";
-    // 创建 QFile 对象
-    QFile file(filePath);
-    // 打开文件
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+    if(!is_handle_whisper)
     {
-        QTextStream in(&file);// 创建 QTextStream 对象
-        in.setCodec("UTF-8");
-        content = in.readAll();// 读取文件内容
+        QString content;
+        // 文件路径
+        QString filePath = qApp->applicationDirPath() + "./EVA_TEMP/" + QString("EVA_") + ".wav.txt";
+        // 创建 QFile 对象
+        QFile file(filePath);
+        // 打开文件
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+        {
+            QTextStream in(&file);// 创建 QTextStream 对象
+            in.setCodec("UTF-8");
+            content = in.readAll();// 读取文件内容
+        }
+        file.close();
+        emit expend2ui_state("expend:解码完成 " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
+        emit expend2ui_voicedecode_over(content);
     }
-    file.close();
-    emit expend2ui_state("expend:解码完成 " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
-    emit expend2ui_voicedecode_over(content);
+    else
+    {
+        ui->whisper_log->appendPlainText("结果已保存在源wav文件目录 "+ QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s");
+    }
+    is_handle_whisper = false;
 }
+
+//用户点击选择wav路径时响应
+void Expend::on_whisper_wavpath_pushButton_clicked()
+{
+    wavpath = customOpenfile(DEFAULT_MODELPATH,"choose whisper model","(*.wav)");
+    if(wavpath==""){return;}
+    ui->whisper_wavpath_lineedit->setText(wavpath);
+
+}
+//用户点击执行转换时响应
+void Expend::on_whisper_execute_pushbutton_clicked()
+{   
+    //执行whisper.exe
+    is_handle_whisper = true;
+    whisper_process->kill();
+    recv_voicedecode(ui->whisper_wavpath_lineedit->text(),ui->whisper_output_format->currentText());
+
+}
+
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
 //-------------------------------------------------------------------------
@@ -438,7 +474,7 @@ void Expend::embedding_server_start()
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         QString server_output = server_process->readAllStandardOutput();
         QString log_output;
-        qDebug()<<server_output;
+        //qDebug()<<server_output;
         //启动成功的标志
         if(server_output.contains("warming up the model with an empty run"))
         {
@@ -1001,6 +1037,14 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
 
 }
+//用户点击选择vae模型路径时响应 
+void Expend::on_sd_vaepath_pushButton_clicked()
+{
+    sd_params.vaepath = customOpenfile(DEFAULT_MODELPATH,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    if(sd_params.vaepath!=""){ui->sd_vaepath_lineEdit->setText(sd_params.vaepath);}
+
+}
+
 //用户点击开始绘制时响应  
 void Expend::on_sd_draw_pushButton_clicked()
 {
@@ -1014,12 +1058,15 @@ void Expend::on_sd_draw_pushButton_clicked()
     //收集参数
     sd_params.prompt = ui->sd_prompt_lineEdit->text();
     sd_params.modelpath = ui->sd_modelpath_lineEdit->text();
+    sd_params.vaepath = ui->sd_vaepath_lineEdit->text();
     sd_params.width = ui->sd_imagewidth->value();
     sd_params.height = ui->sd_imageheight->value();
     sd_params.sampletype = ui->sd_sampletype->currentText();
     sd_params.steps = ui->sd_samplesteps->value();
     sd_params.cfg_scale = ui->sd_cfgscale->value();
     sd_params.seed = ui->sd_seed->value();
+    sd_params.clip_skip = ui->sd_skipclip->value();
+    sd_params.batch_count = ui->sd_batch_count->value();
     
     QTime currentTime = QTime::currentTime();// 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
@@ -1068,6 +1115,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     arguments << "-H" << QString::number(sd_params.height);//图像长
     arguments << "--steps" << QString::number(sd_params.steps);//采样步数
     arguments << "-s" << QString::number(sd_params.seed);//随机种子
+    arguments << "-b" << QString::number(sd_params.batch_count);//出图张数
 
     //连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
@@ -1113,6 +1161,55 @@ void Expend::sd_onProcessFinished()
     imageFormat.setName(sd_params.outpath);  // 图片资源路径
     cursor.insertImage(imageFormat);
     ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum());//滚动条滚动到最下面
+    //如果是多幅
+    if(sd_params.batch_count>1)
+    {
+        for(int i = 1; i < sd_params.batch_count; ++i)
+        {
+            QTextImageFormat imageFormats;
+            imageFormats.setWidth(originalWidth);  // 设置图片的宽度
+            imageFormats.setHeight(originalHeight); // 设置图片的高度
+            imageFormats.setName(sd_params.outpath.split(".png")[0] + "_" + QString::number(i+1) + ".png");  // 图片资源路径
+            cursor.insertImage(imageFormats);
+            ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum());//滚动条滚动到最下面
+        }
+    }
 
 
+}
+//sd模型路径改变响应
+void Expend::on_sd_modelpath_lineEdit_textChanged()
+{
+    //提取模型名
+    QString modelpath = ui->sd_modelpath_lineEdit->text();
+    //遍历当前目录寻找最匹配的vae模型
+
+    if(QFile::exists(modelpath))
+    {
+        if(modelpath.contains("fp16"))
+        {
+            QString vae_modelpath = modelpath.replace("fp16","vae");
+            if(QFile::exists(vae_modelpath))
+            {
+                ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+            }
+            
+        }
+        else if(modelpath.contains("fp32"))
+        {
+            QString vae_modelpath = modelpath.replace("fp32","vae");
+            if(QFile::exists(vae_modelpath))
+            {
+                ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+            }
+        }
+        else if(modelpath.contains("q8_0"))
+        {
+            QString vae_modelpath = modelpath.replace("q8_0","vae");
+            if(QFile::exists(vae_modelpath))
+            {
+                ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+            }
+        }
+    }
 }

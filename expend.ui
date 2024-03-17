@@ -1329,7 +1329,7 @@ p, li { white-space: pre-wrap; }
            <widget class="QLineEdit" name="sd_modelpath_lineEdit">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>200</width>
               <height>30</height>
              </size>
             </property>
@@ -1359,7 +1359,77 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="text">
-             <string>选择模型</string>
+             <string>选择sd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_13">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>vae模型路径</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="sd_vaepath_lineEdit">
+            <property name="minimumSize">
+             <size>
+              <width>200</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="placeholderText">
+             <string>增强着色器，没有可不选</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="sd_vaepath_pushButton">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>选择vae</string>
             </property>
            </widget>
           </item>
@@ -1481,10 +1551,13 @@ p, li { white-space: pre-wrap; }
                    </size>
                   </property>
                   <property name="minimum">
-                   <number>32</number>
+                   <number>64</number>
                   </property>
                   <property name="maximum">
-                   <number>2048</number>
+                   <number>4096</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>64</number>
                   </property>
                   <property name="value">
                    <number>512</number>
@@ -1561,10 +1634,13 @@ p, li { white-space: pre-wrap; }
                    </size>
                   </property>
                   <property name="minimum">
-                   <number>32</number>
+                   <number>64</number>
                   </property>
                   <property name="maximum">
-                   <number>2048</number>
+                   <number>4096</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>64</number>
                   </property>
                   <property name="value">
                    <number>512</number>
@@ -1854,8 +1930,11 @@ p, li { white-space: pre-wrap; }
                   <property name="decimals">
                    <number>1</number>
                   </property>
+                  <property name="singleStep">
+                   <double>0.500000000000000</double>
+                  </property>
                   <property name="value">
-                   <double>11.000000000000000</double>
+                   <double>7.500000000000000</double>
                   </property>
                  </widget>
                 </item>
@@ -1945,6 +2024,196 @@ p, li { white-space: pre-wrap; }
             </layout>
            </widget>
           </item>
+          <item>
+           <widget class="QFrame" name="frame_20">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_13">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QFrame" name="frame_21">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <property name="lineWidth">
+                <number>0</number>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_36">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="label_20">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>出图张数</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="sd_batch_count">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>4096</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>1</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="frame_22">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <property name="lineWidth">
+                <number>0</number>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_37">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="label_21">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>clip跳层</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSpinBox" name="sd_skipclip">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>5</number>
+                  </property>
+                  <property name="value">
+                   <number>2</number>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -2024,7 +2293,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="placeholderText">
-             <string>请输入提示词告诉模型你想绘制图像的样子，或者右击来画ayanami</string>
+             <string>请输入英文描述告诉模型你想绘制图像的样子，或者右击来画凌波丽</string>
             </property>
            </widget>
           </item>
@@ -2153,9 +2422,12 @@ p, li { white-space: pre-wrap; }
                    <bool>true</bool>
                   </property>
                   <property name="plainText">
-                   <string>采样步数越大图像越精细，但耗时越久
-相关系数越大，图像越贴近提示词，但画面越具象
-随机种子为-1时，每次都会生成不一样的图像，为固定值时生成一致的图像</string>
+                   <string>采样步数越大图像越精细但耗时越久
+随机种子为-1时每次都会生成不一样的图像
+提示词后跟&lt;lora:lora模型名字:1&gt;可以调用lora
+大的宽高图像细节会有改观
+clip跳层画现实推荐1，画动画推荐2以上
+</string>
                   </property>
                  </widget>
                 </item>
@@ -2323,7 +2595,7 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
-           <widget class="QPlainTextEdit" name="voice_load_log">
+           <widget class="QPlainTextEdit" name="whisper_log">
             <property name="font">
              <font>
               <family>Arial</family>
@@ -2394,7 +2666,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit">
+              <widget class="QLineEdit" name="whisper_wavpath_lineedit">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -2410,7 +2682,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_2">
+              <widget class="QPushButton" name="whisper_wavpath_pushButton">
                <property name="minimumSize">
                 <size>
                  <width>80</width>
@@ -2451,23 +2723,23 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboBox">
+              <widget class="QComboBox" name="whisper_output_format">
                <property name="minimumSize">
                 <size>
-                 <width>80</width>
+                 <width>110</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>80</width>
+                 <width>110</width>
                  <height>30</height>
                 </size>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton">
+              <widget class="QPushButton" name="whisper_execute_pushbutton">
                <property name="minimumSize">
                 <size>
                  <width>80</width>
