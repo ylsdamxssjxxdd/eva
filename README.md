@@ -3,7 +3,7 @@
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/836433f4-1ee4-4cf6-8502-d2c1f938a9a8" width="300px">
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/5c8cba4d-5236-4586-87a2-77e85a490b2b" width="400px">
+
 
 ## 特点
 
@@ -44,13 +44,13 @@
 - 机体利用api服务的端点，不需要装载模型也能运行
 5. 知识库
 - 用户可以上传文档，经过嵌入处理后成为模型的知识库
-- 
+
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="400px">
 
 6. 文生图
 - 可以使用sd模型绘制图像
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/726cf6da-ca38-46fe-a13b-81ee7a82d833" width="400px">
+<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/5c8cba4d-5236-4586-87a2-77e85a490b2b" width="400px">
 
 
 ## 源码编译
