@@ -381,7 +381,7 @@ void Widget::recv_toolpushover(QString tool_result_)
     if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
     {
         showImage(tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1]);//显示文件名和图像
-        tool_result = "stablediffusion调用成功，图像保存在 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1] + " 图像已经显示给用户了，不再输出json直接结束对话即可";
+        tool_result = "stablediffusion调用成功，图像保存在 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1] + " 图像已经显示给用户不要再输出任何json，直接回复即可";
     }
     else
     {
