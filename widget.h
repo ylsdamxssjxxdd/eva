@@ -214,8 +214,8 @@ public:
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*llm_checkbox;
-    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_search_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_llm_ischecked=0;
+    QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*stablediffusion_checkbox;
+    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_search_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_stablediffusion_ischecked=0;
     QLabel *extra_label;//附加指令，行动纲领
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
@@ -367,7 +367,7 @@ private slots:
     void search_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具
     void positron_change();//选用阳电子炮工具
-    void llm_change();//选用大模型工具
+    void stablediffusion_change();//选用大模型工具
     void switch_lan_change();//切换行动纲领的语言
     bool toolcheckbox_checked();//判断是否挂载了工具
 

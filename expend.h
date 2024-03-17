@@ -151,6 +151,10 @@ public:
 public slots:
     void sd_onProcessStarted();//进程开始响应
     void sd_onProcessFinished();//进程结束响应
+
+    void recv_draw(QString prompt_);//接收到tool的开始绘制图像信号
+signals:
+    void expend2tool_drawover(QString result_, bool ok_);//绘制完成信号
 private slots:
     void on_sd_modelpath_pushButton_clicked();//用户点击选择sd模型路径时响应 
     void on_sd_vaepath_pushButton_clicked();//用户点击选择vae模型路径时响应   

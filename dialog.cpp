@@ -634,12 +634,12 @@ void Widget::positron_change()
     extra_TextEdit->setText(create_extra_prompt());
 }
 
-void Widget::llm_change()
+void Widget::stablediffusion_change()
 {
     if(toolcheckbox_checked())
     {
         is_load_tool = true;
-        //ui_llm_ischecked = llm_checkbox->isChecked();
+        //ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
     }
     else{is_load_tool = false;}
     extra_TextEdit->setText(create_extra_prompt());
@@ -919,17 +919,17 @@ void Widget::set_DateDialog()
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
     search_checkbox = new QCheckBox(wordsObj["search"].toString());
-    llm_checkbox = new QCheckBox(wordsObj["llm"].toString());
-    // layout_H46->addWidget(search_checkbox);
-    // layout_H46->addWidget(llm_checkbox);
-    // tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
+    stablediffusion_checkbox = new QCheckBox(wordsObj["stablediffusion"].toString());
+    layout_H46->addWidget(stablediffusion_checkbox);
+    layout_H46->addWidget(search_checkbox);
+    tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
 
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
     connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);
     connect(search_checkbox, &QCheckBox::stateChanged, this, &Widget::search_change);
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
     connect(positron_checkbox, &QCheckBox::stateChanged, this, &Widget::positron_change);
-    connect(llm_checkbox, &QCheckBox::stateChanged, this, &Widget::llm_change);
+    connect(stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::stablediffusion_change);
 
     //附加指令
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器

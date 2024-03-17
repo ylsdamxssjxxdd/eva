@@ -105,9 +105,13 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
+
     //------------------连接扩展和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
     QObject::connect(&expend, &Expend::expend2tool_serverapi,&tool,&xTool::recv_serverapi);//传递嵌入服务端点
+
+    QObject::connect(&tool,&xTool::tool2expend_draw,&expend,&Expend::recv_draw);//开始绘制图像
+    QObject::connect(&expend,&Expend::expend2tool_drawover,&tool,&xTool::recv_drawover);//图像绘制完成
 
     w.show();//展示窗口
     return a.exec();//进入事件循环

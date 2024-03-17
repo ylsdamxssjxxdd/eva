@@ -555,26 +555,25 @@ void Expend::preprocessTXT()
     }
     file.close();
 
-    //分段
+    //-------------------分词&分段-----------------
     //按字数,250字分一段,每一段保留上一段50字重合
-    QStringList split_txt;
+    QStringList paragraphs;
     int splitLength = 250;
     int overlap = 50;
     int splitNums = 0;
-
-    if (splitLength <= overlap) {
-        split_txt << content;
-        splitNums++;
-    }
-
     int start = 0;
     int actualNewLength = splitLength - overlap; // 实际上每次新增加的字符长度
+    if (splitLength <= overlap) {
+        paragraphs << content;
+        splitNums++;
+    }
+    
     while (start < content.length()) 
     {
         if (!content.isEmpty()) {start -= overlap;}// 如果不是第一段，则保留前一段的部分字符
 
         int endLength = qMin(splitLength, content.length() - start);
-        split_txt << content.mid(start, endLength);
+        paragraphs << content.mid(start, endLength);
         splitNums++;
         start += actualNewLength;
     }
@@ -583,9 +582,9 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->clear();
     ui->embedding_txt_wait->setRowCount(splitNums);//创建splitNums很多行
 
-    for(int i=0;i<split_txt.size(); ++i)
+    for(int i=0;i<paragraphs.size(); ++i)
     {
-        QTableWidgetItem *newItem = new QTableWidgetItem(split_txt.at(i));
+        QTableWidgetItem *newItem = new QTableWidgetItem(paragraphs.at(i));
         ui->embedding_txt_wait->setItem(i, 0, newItem);
     }
     ui->embedding_txt_wait->setColumnWidth(0,ui->embedding_txt_wait->width());// 列宽保持控件宽度
@@ -1048,8 +1047,17 @@ void Expend::on_sd_vaepath_pushButton_clicked()
 //用户点击开始绘制时响应  
 void Expend::on_sd_draw_pushButton_clicked()
 {
-    if(ui->sd_prompt_lineEdit->text()==""){ui->sd_log->appendPlainText("请输入提示词告诉模型你想绘制图像的样子");return;}
-    if(ui->sd_modelpath_lineEdit->text()==""){ui->sd_log->appendPlainText("请先指定sd模型路径");return;}
+    if(is_handle_sd && ui->sd_prompt_lineEdit->text()=="")
+    {
+        ui->sd_log->appendPlainText("请输入提示词告诉模型你想绘制图像的样子");
+        return;
+    }
+    else if(is_handle_sd && ui->sd_modelpath_lineEdit->text()=="")
+    {
+        ui->sd_log->appendPlainText("请先指定sd模型路径");
+        return;
+    }
+
     //锁定界面
     ui->frame_6->setEnabled(0);
     ui->groupBox_6->setEnabled(0);
@@ -1175,6 +1183,18 @@ void Expend::sd_onProcessFinished()
         }
     }
 
+    //处理工具调用情况
+    if(!is_handle_sd && originalWidth>0)
+    {
+        is_handle_sd = true;
+        emit expend2tool_drawover(sd_params.outpath,1);//绘制完成信号
+    }
+    else if(!is_handle_sd)
+    {
+        is_handle_sd = true;
+        emit expend2tool_drawover("绘制失败，注意提示词需要纯英文",0);//绘制完成信号
+    }
+
 
 }
 //sd模型路径改变响应
@@ -1182,7 +1202,6 @@ void Expend::on_sd_modelpath_lineEdit_textChanged()
 {
     //提取模型名
     QString modelpath = ui->sd_modelpath_lineEdit->text();
-    //遍历当前目录寻找最匹配的vae模型
 
     if(QFile::exists(modelpath))
     {
@@ -1212,4 +1231,27 @@ void Expend::on_sd_modelpath_lineEdit_textChanged()
             }
         }
     }
+}
+
+//接收到tool的开始绘制图像信号
+void Expend::recv_draw(QString prompt_)
+{
+    //判断是否空闲
+    if(!ui->sd_draw_pushButton->isEnabled())
+    {
+        emit expend2tool_drawover("stablediffusion正在运行，请稍后重试",0);//绘制完成信号
+        return;
+    }
+    else if(ui->sd_modelpath_lineEdit->text() == "")
+    {
+        emit expend2tool_drawover("指令无效，请先让用户在扩展窗口指定sd模型路径",0);//绘制完成信号
+        return;
+    }
+    //先把提示词写进输入框
+    ui->sd_prompt_lineEdit->setText(prompt_);
+    //不是手动
+    is_handle_sd = false;
+    //触发绘制
+    ui->sd_draw_pushButton->click();
+
 }

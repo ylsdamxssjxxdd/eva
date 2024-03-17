@@ -88,10 +88,12 @@ void xTool::run()
         emit positron_starter();
         //positron_p->start(1000);
     }
-    else if(func_arg_list.front() == "llm")
+    else if(func_arg_list.front() == "stablediffusion")
     {
+        //告诉expend开始绘制
+        emit tool2expend_draw(func_arg_list.last());
+
         
-        emit tool2ui_pushover(wordsObj["not set tool"].toString());
     }
     else
     {
@@ -113,7 +115,7 @@ void xTool::positronShoot()
         int randomValue2 = (qrand() % 360);//0-359随机数
         result = wordsObj["positron_result3"].toString() + " " + QString::number(randomValue2) + wordsObj["degree"].toString();
     }
-    qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + " " + result;
+    //qDebug()<<"tool:" + QString("positron ") + wordsObj["return"].toString() + " " + result;
     emit tool2ui_state("tool:" + QString("positron ") + wordsObj["return"].toString() + " " + result,TOOL_);
     emit tool2ui_pushover(QString("positron ") + wordsObj["return"].toString() + " " + result);
 }
@@ -293,4 +295,20 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
 void xTool::recv_serverapi(QString serverapi)
 {
     embedding_server_api = serverapi;
+}
+
+//接收图像绘制完成信号
+void xTool::recv_drawover(QString result_, bool ok_)
+{
+    //绘制失败的情况
+    if(!ok_)
+    {
+        emit tool2ui_pushover(result_);
+        return;
+    }
+
+    //绘制成功的情况
+    //添加绘制成功并显示图像指令
+    emit tool2ui_state("tool:" + QString("stablediffusion ") + wordsObj["return"].toString() + " " + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
+    emit tool2ui_pushover("<ylsdamxssjxxdd:showdraw>" + result_);
 }

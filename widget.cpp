@@ -87,7 +87,7 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("search", {wordsObj["search"].toString(),"search",wordsObj["search_func_describe_zh"].toString(),wordsObj["search_func_describe_en"].toString()});
     tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe_zh"].toString(),wordsObj["knowledge_func_describe_en"].toString()});
     tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
-    tool_map.insert("llm", {wordsObj["llm"].toString(),"llm",wordsObj["llm_func_describe_zh"].toString(),wordsObj["llm_func_describe_en"].toString()});
+    tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe_zh"].toString(),wordsObj["stablediffusion_func_describe_en"].toString()});
 
     //-------------截图声音相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
@@ -359,6 +359,7 @@ void Widget::recv_pushover()
                 reflash_state("ui:" + wordsObj["clicked"].toString() + " " + func_arg_list.front(),SIGNAL_);
                 emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
                 emit ui2tool_push();
+                //使用工具时解码动画不停
             }
 
         }
@@ -367,17 +368,27 @@ void Widget::recv_pushover()
         {
             is_run = false;
             ui_state_normal();//待机界面状态
+            decode_pTimer->stop();
+            decode_action=0;
         }
-        decode_pTimer->stop();
-        decode_action=0;
+        
     }
 }
 
 //处理tool推理完毕的槽
 void Widget::recv_toolpushover(QString tool_result_)
 {
-    tool_result = tool_result_;
-    on_send_clicked();
+    if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
+    {
+        showImage(tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1]);//显示文件名和图像
+        tool_result = "stablediffusion调用成功，图像已经显示给用户 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
+    }
+    else
+    {
+        tool_result = tool_result_;
+    }
+    
+    on_send_clicked();//触发发送继续预测下一个词
 }
 
 //停止完毕的后处理
@@ -560,7 +571,7 @@ void Widget::on_date_clicked()
     search_checkbox->setChecked(ui_search_ischecked);
     positron_checkbox->setChecked(ui_positron_ischecked);
     knowledge_checkbox->setChecked(ui_knowledge_ischecked);
-    llm_checkbox->setChecked(ui_llm_ischecked);
+    stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
 
     switch_lan_button->setText(ui_extra_lan);
     extra_TextEdit->setText(ui_extra_prompt);//这个要放到各个checkbox的后面来，可以保护用户的修改
@@ -588,7 +599,7 @@ void Widget::set_date()
     ui_search_ischecked = search_checkbox->isChecked();
     ui_knowledge_ischecked = knowledge_checkbox->isChecked();
     ui_positron_ischecked = positron_checkbox->isChecked();
-    ui_llm_ischecked = llm_checkbox->isChecked();
+    ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
 
     //添加额外停止标志
     addStopwords();
@@ -756,7 +767,7 @@ void Widget::serverControl()
     // 开始运行程序
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state(wordsObj["eva expand"].toString(),EVA_);
+    reflash_state(wordsObj["eva expend"].toString(),EVA_);
     
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {

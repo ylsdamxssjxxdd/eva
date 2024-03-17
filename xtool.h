@@ -44,16 +44,21 @@ public:
     QString getFirstNonLoopbackIPv4Address();
     double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
     std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
+
+    //文生图相关
+    
 public slots:
     void recv_func_arg(QStringList func_arg_list);
     void positronPower();//阳电子步枪充能
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_serverapi(QString serverapi);//传递嵌入服务端点
+    void recv_drawover(QString result_, bool ok_);//接收图像绘制完成信号
     
 signals:
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
     void positron_starter();
+    void tool2expend_draw(QString prompt_);
 
 };
 
