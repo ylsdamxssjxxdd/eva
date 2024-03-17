@@ -543,13 +543,13 @@ bool Widget::createTempDirectory(const QString &path) {
         }
     }
 }
-
+//解决打开选择文件窗口异常大的问题
 QString Widget::customOpenfile(QString dirpath, QString describe, QString format)
 {
     QString filepath="";
 #if defined(_WIN32)
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
-#else 
+#else
     QFileDialog dlg(NULL, describe);
     dlg.setDirectory(dirpath);//默认打开路径
     dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口

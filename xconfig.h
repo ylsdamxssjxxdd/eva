@@ -211,10 +211,10 @@ struct Embedding_vector {
 
 //量化方法说明数据结构
 struct QuantizeType {
-    QString typename_ = "";//方法名
-    QString bit = "";//压缩率,fp16为基准
-    QString perplexity = ""; //困惑度
-    QString recommand = ""; //推荐度
+    QString typename_;//方法名
+    QString bit;//压缩率,fp16为基准
+    QString perplexity; //困惑度
+    QString recommand; //推荐度
 };
 
 struct SD_Params 

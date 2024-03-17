@@ -36,19 +36,17 @@ set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORC
 ######################################编译选项######################################
 option(BODY_CUBLAS                          "llama: use CUDA"                                  ON)
 option(BODY_CLBLAST                         "llama: use CLBlast"                               OFF)
-option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
+option(BODY_32BIT                           "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
-    add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用
 elseif(BODY_CUBLAS)
     add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
-    set(GGML_CUBLAS ON)#sd用
-    add_definitions(-DSD_USE_CUBLAS)#sd用
+    set(GGML_CUBLAS ON)#sd用cuda
+    add_definitions(-DSD_USE_CUBLAS)#sd用cuda
 elseif(BODY_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
-    add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用
 endif()           
 # msvc设置编译选项
 if(MSVC)
@@ -136,7 +134,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

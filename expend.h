@@ -127,7 +127,7 @@ private slots:
 //----------------------------------模型量化相关--------------------------------
 //-------------------------------------------------------------------------
 public:
-    std::vector<QuantizeType> quantize_types;//量化方法说明数据
+    QVector<QuantizeType> quantize_types;//量化方法说明数据
     void output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
     QProcess *quantize_process;
     void quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type);
