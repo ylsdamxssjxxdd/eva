@@ -43,6 +43,7 @@ Widget::Widget(QWidget *parent)
     this->setStyleSheet(stylesheet);file.close();
     ui->output->setStyleSheet("background-color: white;");//设置输出区背景为纯白
     ui->input->setStyleSheet("background-color: white;");//设置输入区背景为纯白
+    ui->state->setStyleSheet("background-color: rgba(128, 128, 128, 30);");//灰色
     ui->mem_bar->message = wordsObj["mem"].toString();//进度条里面的文本
     ui->vram_bar->message = wordsObj["vram"].toString();//进度条里面的文本
     ui->kv_bar->message = wordsObj["brain"].toString();//进度条里面的文本
