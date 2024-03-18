@@ -302,7 +302,24 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         //正常输出
         output_scroll(result, color);
     }
-    if(is_while){temp_assistant_history += result;}
+    if(is_while)
+    {
+        temp_assistant_history += result;
+        //添加待朗读的文字
+        if(!is_test)
+        {
+            temp_speech += result;
+            //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并朗读
+            QRegularExpression re("[！；、，。？：!;,.?:]");
+            QRegularExpressionMatch match = re.match(temp_speech);
+            if(match.hasMatch())
+            {
+                //qDebug()<< temp_speech;
+                wait_speech << temp_speech;
+                temp_speech = "";
+            }
+        }
+    }
     
 }
 

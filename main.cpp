@@ -114,5 +114,6 @@ int main(int argc, char *argv[])
     QObject::connect(&expend,&Expend::expend2tool_drawover,&tool,&xTool::recv_drawover);//图像绘制完成
 
     w.show();//展示窗口
+
     return a.exec();//进入事件循环
 }

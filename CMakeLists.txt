@@ -34,18 +34,18 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (default to Release)" FORCE)# 强制设置构建类型为 Release
 #更新子模块 git submodule update --remote
 ######################################编译选项######################################
-option(BODY_CUBLAS                          "llama: use CUDA"                                  ON)
-option(BODY_CLBLAST                         "llama: use CLBlast"                               OFF)
-option(BODY_32BIT                           "build 32 bit"                                     OFF)#编译32位的选项！
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
+option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
-elseif(BODY_CUBLAS)
+elseif(LLAMA_CUBLAS)
     add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
-elseif(BODY_CLBLAST)
+elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
 endif()           
 # msvc设置编译选项
@@ -54,7 +54,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
     
-    if (BODY_CUBLAS)# 如果启用LLAMA_CUBLAS标志
+    if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         set(EXTRA_FILES
             utils/gpuchecker.h
             utils/gpuchecker.cpp
@@ -118,7 +118,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 # 查找Qt相关库
-find_package(Qt5 COMPONENTS Widgets Network Script Multimedia REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Network Script Multimedia TextToSpeech REQUIRED)
 
 # 资源文件
 set(RESOURCE_FILES
@@ -166,6 +166,6 @@ utils/CustomTabBar.h
 #确保server先于eva编译
 add_dependencies(${TARGET} server)
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia)
+target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)
 

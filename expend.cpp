@@ -1192,7 +1192,7 @@ void Expend::sd_onProcessFinished()
     else if(!is_handle_sd)
     {
         is_handle_sd = true;
-        emit expend2tool_drawover("绘制失败，注意提示词需要纯英文",0);//绘制完成信号
+        emit expend2tool_drawover("绘制失败，注意描述的文本需要用纯英文",0);//绘制完成信号
     }
 
 

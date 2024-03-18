@@ -107,6 +107,12 @@ Widget::Widget(QWidget *parent)
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
+
+    speech = new QTextToSpeech();
+    connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
+    speechtimer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
+    speechtimer->start(500);
 }
 
 Widget::~Widget()
@@ -503,6 +509,10 @@ void Widget::recv_setreset()
 //用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked()
 {
+    temp_speech="";//清空待读列表
+    wait_speech.clear();//清空待读列表
+    speech->stop();//停止朗读
+    
     //如果模型正在推理就改变模型的停止标签
     if(is_run)
     {

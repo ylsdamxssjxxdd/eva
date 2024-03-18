@@ -193,6 +193,7 @@ void xBot::run()
 //流式输出
 int xBot::stream()
 {
+    is_stop = false;
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain!= 0)
     {
@@ -703,7 +704,7 @@ void xBot::preDecode()
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
 
-    emit bot2ui_output(QString::fromStdString(token_str));//将预解码内容贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str),0);//将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 

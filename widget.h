@@ -42,6 +42,7 @@
 #include <QAudioInput>
 #include <QBuffer>
 #include <QIODevice>
+#include <QTextToSpeech>
 
 #include <windows.h>
 #include "utils/doubleqprogressbar.h"
@@ -287,7 +288,15 @@ public:
     QTimer *keeptimer;//测试延迟定时器
     QElapsedTimer keeptime;//测量时间
     
+    //语音朗读相关
+    void qspeech(QString str);
+    QTextToSpeech *speech;
+    bool is_speech = false;
+    QTimer *speechtimer;//朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
     
+    QStringList wait_speech;//等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
+    QString temp_speech;
+
 //发给模型的信号
 signals:
     void ui2bot_language(QJsonObject wordsObj_);//传递使用的语言
@@ -348,6 +357,8 @@ public slots:
     void recv_embeddingdb_describe(QString describe);//传递知识库的描述
 //自用的槽
 private slots:
+    void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
+    void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音
     void unlockLoad();
     void send_testhandleTimeout();//api模式下测试时延迟发送
