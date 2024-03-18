@@ -838,9 +838,17 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     //如果gpu负载层数改变则重新加载模型
     if(gpt_params_.n_gpu_layers != settings.ngl)
     {
-        //qDebug()<<gpt_params_.n_gpu_layers<<settings.ngl<<maxngl;
-        gpt_params_.n_gpu_layers = settings.ngl;
-        reload_flag = true;
+        qDebug()<<gpt_params_.n_gpu_layers<<settings.ngl<<maxngl;
+        //第一次显存充足的话会等于999，再确认时赋予真实最大值，不需要重载
+        if(gpt_params_.n_gpu_layers == 999 && settings.ngl == maxngl)
+        {
+            gpt_params_.n_gpu_layers = maxngl;
+        }
+        else
+        {
+            gpt_params_.n_gpu_layers = settings.ngl;
+            reload_flag = true;
+        }
     }
 #endif
     //如果线程数改变则重新加载模型

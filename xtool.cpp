@@ -198,6 +198,8 @@ QString xTool::embedding_query_process(QString query_str)
                 knowledge_result += " 内容:\n" + Embedding_DB.at(score[i].first).chunk + "\n";
             }
 
+            if(score.size()>0){knowledge_result += "以这些信息为基础，回复用户之前的问题，不再输出json";}
+
         } 
         else 
         {

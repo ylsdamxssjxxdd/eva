@@ -140,7 +140,7 @@ void Widget::on_load_clicked()
     int modelsize_MB = fileInfo.size() /1024/1024;
     if(vfree>modelsize_MB*1.2 && ui_SETTINGS.ngl==0)
     {
-        qDebug()<<999;
+        //qDebug()<<999;
         ui_SETTINGS.ngl = 999;
     }
     //-------------------只有初次装载才会生效------------------
