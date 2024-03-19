@@ -20,8 +20,15 @@ void xTool::run()
         QScriptValue result_ = enging.evaluate(func_arg_list.last());
         QString result = QString::number(result_.toNumber());
         //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result;
+        if(result == "nan")//计算失败的情况
+        {
+            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + "计算失败，请确认计算公式是否合理");
+        }
+        else
+        {
+            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + " " + result);
+        }
         emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result,TOOL_);
-        emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + " " + result);
     }
     else if(func_arg_list.front() == "cmd")
     {

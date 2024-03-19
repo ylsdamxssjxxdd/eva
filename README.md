@@ -16,7 +16,7 @@
     - 本地模型交互，多模态，在线模型交互，对外api服务，智能体，知识库问答，模型量化，文生图，声转文，语音朗读
 - 直观
     - 输出区的内容就是模型的全部现实
-    - 状态区的内容就是全部工作流程
+    - 状态区的内容就是运行的全部流程
 
 ## 快速开始
 1. 下载一个机体
@@ -37,18 +37,18 @@
 - 可以上传csv格式的题库进行测试
 - 可以按f1截图，按f2进行录音，截图和录音会发送给多模态或whisper模型进行相应处理
 2. 补完模式
-- 在输出区输入一段文字，模型对其进行补完
+- 在输出区键入任意文字，模型对其进行补完，这是机体所有功能实现的基础
 3. 服务模式
-- 机体成为一个开放api端口的服务，也可以在网页上进行聊天
+- 机体成为一个开放api端口的服务，也可以在网页上进行聊天，但是挂载的工具失效
 4. 链接状态
-- 机体利用api服务的端点，不需要装载模型也能运行
+- 机体可以链接到其它api服务的对话端点，不需要装载模型也能运行
 5. 知识库
-- 用户可以上传文档，经过嵌入处理后成为模型的知识库
+- 用户可以上传文档，经过嵌入处理后成为模型的知识库，挂载后可供模型调用
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
 
 6. 文生图
-- 可以使用sd模型绘制图像
+- 可以使用sd模型绘制图像，挂载后可供模型调用
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
@@ -64,14 +64,14 @@
     - 下载clblast，build_shared_lib选项关闭，静态编译并添加到环境变量 https://github.com/CNugteren/CLBlast   
 - cuda版本(CUBLAST选项打开，其它关闭)
     - 我的工具链为msvc2022+qt5.15.10+cuda12
-    - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive 这也是cuda版本的机体运行时必须的
     - 安装cudnn https://developer.nvidia.com/cudnn
 
 2. 克隆源代码
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
-3. 根据需要修改CMakeLists.txt文件中的配置
+3. 根据CMakeLists.txt文件中的说明修改相应配置
 4. 编译
 
 ## 主线
@@ -96,6 +96,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - 链接流程
     - 【ui】->用户右击装载->配置ip和端点->点击确认->锁定界面->记录配置->连接测试->测试通过->解锁界面->END
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
+    
 ## 待办事项
 - 优化代码结构
 - 适配linux
