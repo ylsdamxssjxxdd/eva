@@ -1127,18 +1127,22 @@ void Expend::on_sd_draw_pushButton_clicked()
 
     //连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
-        QString output = sd_process->readAllStandardOutput();
+        sd_process_output = sd_process->readAllStandardOutput();
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
-        cursor.insertText(output);
+        cursor.insertText(sd_process_output);
         ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum());//滚动条滚动到最下面
+        if(sd_process_output.contains("CUDA error"))
+        {sd_process->kill();}
     });    
     connect(sd_process, &QProcess::readyReadStandardError, [=]() {
-        QString output = sd_process->readAllStandardError();
+        sd_process_output = sd_process->readAllStandardError();
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
-        cursor.insertText(output);
+        cursor.insertText(sd_process_output);
         ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum());//滚动条滚动到最下面
+        if(sd_process_output.contains("CUDA error"))
+        {sd_process->kill();}
     });
     sd_process->start(program, arguments);
 
@@ -1192,7 +1196,15 @@ void Expend::sd_onProcessFinished()
     else if(!is_handle_sd)
     {
         is_handle_sd = true;
-        emit expend2tool_drawover("绘制失败，注意描述的文本需要用纯英文",0);//绘制完成信号
+        if(sd_process_output.contains("CUDA error"))
+        {
+            emit expend2tool_drawover("绘制失败，显存不足，请用户减小图像宽高",0);//绘制完成信号
+        }
+        else
+        {
+            emit expend2tool_drawover("绘制失败，注意描述的文本需要用纯英文",0);//绘制完成信号
+        }
+        
     }
 
 

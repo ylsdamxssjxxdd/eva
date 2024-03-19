@@ -97,6 +97,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
     - 【ui】->用户右击装载->配置ip和端点->点击确认->锁定界面->记录配置->连接测试->测试通过->解锁界面->END
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
 ## 待办事项
+- 优化代码结构
 - 适配linux
 - 适配国产cpu/gpu
 - 英文版本

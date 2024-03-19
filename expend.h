@@ -148,6 +148,7 @@ public:
     SD_Params sd_params;
     QProcess *sd_process;
     bool is_handle_sd = true;
+    QString sd_process_output;
 public slots:
     void sd_onProcessStarted();//进程开始响应
     void sd_onProcessFinished();//进程结束响应
