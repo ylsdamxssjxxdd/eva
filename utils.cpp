@@ -227,10 +227,10 @@ void Widget::recordAudio()
     outFile.setFileName(outFilePath); //语音原始文件
     outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
     _audioInput->start(&outFile);
-    audio_timer->start(100);  // 每隔100毫秒刷新一次
+    audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
 }
 
-// 每隔100毫秒刷新一次
+// 每隔100毫秒刷新一次监视录音
 void Widget::monitorAudioLevel()
 {
     audio_time += 100;

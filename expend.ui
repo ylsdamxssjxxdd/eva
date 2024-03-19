@@ -1537,7 +1537,7 @@ p, li { white-space: pre-wrap; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="sd_imageheight">
+                 <widget class="QSpinBox" name="sd_imagewidth">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -1620,7 +1620,7 @@ p, li { white-space: pre-wrap; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QSpinBox" name="sd_imagewidth">
+                 <widget class="QSpinBox" name="sd_imageheight">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>

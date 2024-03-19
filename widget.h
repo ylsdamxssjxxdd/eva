@@ -42,6 +42,7 @@
 #include <QAudioInput>
 #include <QBuffer>
 #include <QIODevice>
+
 #include <QTextToSpeech>
 
 #include <windows.h>
@@ -64,15 +65,13 @@ public:
     bool nativeEvent(const QByteArray &eventType, void *message, long *result);//监听操作系统
 
 public:
-    //bool registerGlobalHotKey();
-    //拯救中文
-    QJsonObject wordsObj;
-    void getWords(QString json_file_path);
+    QJsonObject wordsObj;//中文英文
+    void getWords(QString json_file_path);//中文英文
 
-    //ui控制相关
-    void state_scroll(QString str);//向state末尾添加文本并滚动
-    void output_scroll(QString output, QColor color = QColor(0,0,0));
+    //ui相关
     QString ui_output,ui_state;
+    void state_scroll(QString str);//向state末尾添加文本并滚动
+    void output_scroll(QString output, QColor color = QColor(0,0,0));//向output末尾添加文本并滚动
     bool is_stop_output_scroll = false;//输出区滚动标签
     bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
@@ -119,6 +118,7 @@ public:
 
     float load_time = 0;
     QTimer *force_unlockload_pTimer;//到时间强制解锁
+
     //扩展相关
     QString embeddingdb_describe;//知识库的描述
 
@@ -146,7 +146,6 @@ public:
     QString outFilePath;
     QTimer *audio_timer;
     QString whisper_model_path = "";
-
 
     //测试相关
     bool is_test  =false;//测试标签
@@ -205,7 +204,6 @@ public:
     QTextEdit *system_TextEdit;
     QRadioButton *complete_btn,*web_btn,*chat_btn;
     
-
     QLabel *input_pfx_label;
     QLineEdit *input_pfx_LineEdit;
     QLabel *input_sfx_label;
@@ -217,7 +215,7 @@ public:
     QGroupBox *tool_box;
     QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*stablediffusion_checkbox;
     bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_search_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_stablediffusion_ischecked=0;
-    QLabel *extra_label;//附加指令，行动纲领
+    QLabel *extra_label;//附加指令
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
     QTextEdit *extra_TextEdit;
@@ -241,7 +239,7 @@ public:
     QFont movie_font;//动画内容字体
     int load_action = 0;//动作计数
     QTimer *load_pTimer,*load_over_pTimer,*load_begin_pTimer;
-    void init_move();//初始化动画参数
+    void init_movie();//初始化动画参数
     void load_move();//下一帧动画
     void load_play();//连续播放
     void set_dotcolor(QTextCharFormat *format, int action);//设置点颜色
@@ -293,7 +291,6 @@ public:
     QTextToSpeech *speech;
     bool is_speech = false;
     QTimer *speechtimer;//朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
-    
     QStringList wait_speech;//等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
     QString temp_speech;
 
@@ -406,7 +403,7 @@ private slots:
     void on_set_clicked();//用户点击设置按钮响应
     void onShortcutActivated();//用户按下截图键响应
     void recv_qimagepath(QString cut_imagepath_);//接收传来的图像
-    void monitorAudioLevel();//监视音量
+    void monitorAudioLevel();// 每隔100毫秒刷新一次监视录音
 
 private:
     Ui::Widget *ui;

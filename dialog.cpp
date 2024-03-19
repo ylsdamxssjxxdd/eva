@@ -15,7 +15,7 @@
 //5.真正装载完的处理unlockLoad()
 
 // 初始化动画,主要是背景和12条连线
-void Widget::init_move()
+void Widget::init_movie()
 {
     movie_line << "                        ##                        ";//2
     movie_line << "                      #    #                      ";//3

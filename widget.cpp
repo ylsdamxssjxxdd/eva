@@ -7,57 +7,57 @@ Widget::Widget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Widget)
 {
-    //-------------初始化ui-------------
+    //---------------初始化ui--------------
     ui->setupUi(this);
 
-    //-------------初始化语言-------------
+    //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
     if(locale.languageToString(language) == "English"){getWords(":/english.json");}
     else{getWords(":/chinese.json");}
+
     //-------------初始化约定模板-------------
-    ui_system_prompt = DEFAULT_PROMPT;ui_DATES.system_prompt = DEFAULT_PROMPT;ui_DATES.input_pfx = DEFAULT_PREFIX;ui_DATES.input_sfx = DEFAULT_SUFFIX;ui_DATES.is_load_tool = false;
+    ui_system_prompt = DEFAULT_PROMPT;
+    ui_DATES.system_prompt = DEFAULT_PROMPT;
+    ui_DATES.input_pfx = DEFAULT_PREFIX;
+    ui_DATES.input_sfx = DEFAULT_SUFFIX;
+    ui_DATES.is_load_tool = false;
     ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
+
     date_map.insert("qwen", ui_DATES);
     date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "Instruction", "Response",false,QStringList{}});
     date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
     date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "" + wordsObj["user"].toString(), "" + wordsObj["troll"].toString(),false,QStringList{}});
     date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "" + wordsObj["driver"].toString(), "eva",false,QStringList{}});
+    
     //-------------默认展示内容-------------
-    ui_model_vocab = wordsObj["lode model first"].toString();//模型词表提示
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
-    reflash_state("ui:" + wordsObj["click load and choose gguf file"].toString(),USUAL_);
-    reflash_state("ui:" + wordsObj["right click link api"].toString(),USUAL_);
-    reflash_state("ui:" + QString("右击这里可打开扩展窗口"),USUAL_);
-
-    #if defined(BODY_USE_CUBLAST)
-    //this->setWindowTitle(QString("eva-cuda") + VERSION);
-#else
+    ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
+    reflash_state("ui:" + wordsObj["click load and choose a gguf file"].toString(),USUAL_);//初始提示
+    // reflash_state("ui:" + wordsObj["right click load to use link mode"].toString(),USUAL_);//初始提示
+    // reflash_state("ui:" + wordsObj["right click here to open expend window"].toString(),USUAL_);//初始提示
+#ifndef BODY_USE_CUBLAST
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
     ui->vram_bar->setVisible(0);
 #endif
-    init_move();//初始化动画参数
+    init_movie();//初始化动画参数
     QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();
     ui->output->setStyleSheet("background-color: white;");//设置输出区背景为纯白
     ui->input->setStyleSheet("background-color: white;");//设置输入区背景为纯白
-    ui->state->setStyleSheet("background-color: rgba(128, 128, 128, 30);");//灰色
     ui->mem_bar->message = wordsObj["mem"].toString();//进度条里面的文本
     ui->vram_bar->message = wordsObj["vram"].toString();//进度条里面的文本
     ui->kv_bar->message = wordsObj["brain"].toString();//进度条里面的文本
     ui->cpu_bar->message = "cpu";//进度条里面的文本
     ui->vcore_bar->message = "gpu";//进度条里面的文本
-    //-------------初始化dialog-------------
+
+    //-------------初始化各种控件-------------
     setApiDialog();//设置api选项
     set_DateDialog();//设置约定选项
     set_SetDialog();//设置设置选项
     ui_state_init();//初始界面状态
-    //-------------默认启用功能-------------
-    //this->setMouseTracking(true);//开启鼠标跟踪
-    //ui->state->setMouseTracking(true);//开启鼠标跟踪
-    //ui->output->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
     ui->input->installEventFilter(this);//安装事件过滤器
     ui->load->installEventFilter(this);//安装事件过滤器
@@ -66,6 +66,7 @@ Widget::Widget(QWidget *parent)
     ui->state->installEventFilter(this);//安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->state->setFocus();//设为当前焦点
+
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
     nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
@@ -75,13 +76,16 @@ Widget::Widget(QWidget *parent)
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
     //ui->mem_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_memusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_memusage + "\n" + wordsObj["else unknown"].toString());
     //ui->vram_bar->setToolTip(wordsObj["model"].toString() + wordsObj["use MB"].toString() + ":" + model_vramusage + "\n" + wordsObj["ctx"].toString() + wordsObj["use MB"].toString() + ":" + ctx_vramusage + "\n" + wordsObj["else unknown"].toString());
+
     //-------------输出/状态区滚动条控制-------------
-    output_scrollBar =  ui->output->verticalScrollBar();
+    output_scrollBar = ui->output->verticalScrollBar();
     connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
-    state_scrollBar =  ui->state->verticalScrollBar();
+    state_scrollBar = ui->state->verticalScrollBar();
     connect(state_scrollBar, &QScrollBar::valueChanged, this, &Widget::state_scrollBarValueChanged);
+
     //-------------添加右击问题-------------
     create_right_menu();
+
     //-------------初始化工具-------------
     tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
@@ -92,27 +96,28 @@ Widget::Widget(QWidget *parent)
 
     //-------------截图声音相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
-    cutscreen_dialog->init_action(wordsObj["save cut image"].toString(),wordsObj["svae screen image"].toString());
-    // 传递截取的图像路径
-    QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);
-    //注册全局热键,windows平台用
-    RegisterHotKey((HWND)Widget::winId(),   // Set the system identifier of the widget window that will handle the HotKey
-                    7758258,// 信号标识
-                    0,//控制键
-                    VK_F1);//截图快捷键
-    RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2);    //录音快捷键  
-    audio_timer = new QTimer(this);
-    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);
+    cutscreen_dialog->init_action(wordsObj["save cut image"].toString(), wordsObj["svae screen image"].toString());
+    QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);// 传递截取的图像路径
+    // 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
+    //注册截图快捷键
+    if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
+    {reflash_state("ui:" + QString("f1 ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}
+    //注册录音快捷键 
+    if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
+    {reflash_state("ui:" + QString("f2 ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}  
 
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
-    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
-    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
-
+    audio_timer = new QTimer(this);//录音定时器
+    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
     speech = new QTextToSpeech();
     connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
     speechtimer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
-    speechtimer->start(500);
+    speechtimer->start(500);//每半秒检查一次是否需要朗读
+
+    //----------------第三方进程相关------------------
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
+    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
+    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
 }
 
 Widget::~Widget()
@@ -931,7 +936,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->state && event->type() == QEvent::ContextMenu)
     {
-        emit ui2expend_show(2);//2是模型日志页
+        emit ui2expend_show(-1);//2是模型日志页
         return true;
     }
 

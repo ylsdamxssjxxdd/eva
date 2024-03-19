@@ -1,6 +1,10 @@
 {
     "words": 
     {
+        "click load and choose a gguf file": "点击装载选择gguf格式模型文件",
+        "right click load to use link mode": "或者右击装载使用链接模式",
+        "right click here to open expend window": "右击这里可打开扩展窗口",
+        "shortcut key registration failed": "快捷键注册失败",
         "hello": "你好",
         "send": "发送",
         "ctx": "上下文",
@@ -20,8 +24,6 @@
         "server": "服务",
         "server mode": "服务模式",
         "system calling": "系统指令",
-        "click load and choose gguf file": "点击装载,选择gguf格式文件",
-        "right click link api": "或者右击装载,使用链接模式",
         "clicked": "触发",
         "clicked load": "触发装载",
         "choose soul in eva": "选择模型(灵魂)装入机体",

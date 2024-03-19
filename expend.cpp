@@ -213,6 +213,7 @@ void Expend::recv_log(QString log)
 //初始化扩展窗口
 void Expend::init_expend()
 {
+    this->setWindowTitle(wordsObj["expend window"].toString());//标题
     ui->tabWidget->setTabText(0,wordsObj["introduction"].toString());//软件介绍
     ui->tabWidget->setTabText(1,wordsObj["model vocab"].toString());//模型词表
     ui->tabWidget->setTabText(2,wordsObj["model log"].toString());//模型日志
@@ -232,7 +233,7 @@ void Expend::recv_vocab(QString vocab_)
 //通知显示扩展窗口
 void Expend::recv_expend_show(int index_)
 {
-    init_expend();
+    init_expend();//主要是设置界面的语言
     if(is_first_show_expend)//第一次显示的话
     {
         is_first_show_expend = false;
@@ -246,7 +247,7 @@ void Expend::recv_expend_show(int index_)
         }
     }
     ui->tabWidget->setCurrentIndex(index_);
-    this->setWindowTitle(wordsObj["expend window"].toString());
+    this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
     this->show();
     this->activateWindow(); // 激活扩展窗口
 }
