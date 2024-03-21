@@ -195,8 +195,14 @@ void Widget::on_send_clicked()
 {
     reflash_state("ui:" + wordsObj["clicked send"].toString(),SIGNAL_);
     QString input;
-    
-    if(is_api){api_send_clicked_slove();return;}//api模式的处理
+
+    //api模式的处理
+    if(is_api)
+    {
+        api_send_clicked_slove();
+        return;
+    }
+
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if(ui_mode == CHAT_)
     {
@@ -329,6 +335,8 @@ void Widget::recv_pushover()
 {
     ui_assistant_history << temp_assistant_history;
     temp_assistant_history = "";
+    temp_speech = "";//清空缓存的待读的字
+    
     if(is_test)//继续测试
     {
         if(is_api)
@@ -421,6 +429,7 @@ void Widget::recv_resetover()
 {
     if(ui_SETTINGS.ngl ==0){QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}//恢复
     else{QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}//恢复
+    reflash_state("ui:" + wordsObj["reset ok"].toString(),SUCCESS_);
     //如果是对话模式且约定有变或第一次装载则预解码约定
     if(ui_mode == CHAT_)
     {
@@ -433,7 +442,6 @@ void Widget::recv_resetover()
         }
     }
     is_datereset = false;//恢复
-    reflash_state("ui:" + wordsObj["reset ok"].toString(),SUCCESS_);
     
 }
 
@@ -1135,4 +1143,10 @@ void Widget::api_send_clicked_slove()
 void Widget::recv_embeddingdb_describe(QString describe)
 {
     embeddingdb_describe = describe;
+}
+
+//传递文转声参数
+void Widget::recv_voiceparams(Voice_Params Voice_Params_)
+{
+    voice_params = Voice_Params_;
 }

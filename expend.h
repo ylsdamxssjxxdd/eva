@@ -25,6 +25,8 @@
 #include <math.h>
 #include <QFileDialog>
 
+#include <QTextToSpeech>
+
 #include <windows.h>
 #include "xconfig.h"
 
@@ -161,6 +163,23 @@ private slots:
     void on_sd_vaepath_pushButton_clicked();//用户点击选择vae模型路径时响应   
     void on_sd_draw_pushButton_clicked();//用户点击开始绘制时响应  
     void on_sd_modelpath_lineEdit_textChanged();//sd模型路径改变响应
+
+
+//-------------------------------------------------------------------------
+//----------------------------------文转声相关--------------------------------
+//-------------------------------------------------------------------------
+
+public:
+    void get_sys_voice();//获取系统可用声源并设置到combobox
+
+signals:
+    void expend2ui_voiceparams(Voice_Params Voice_Params_);
+
+private slots:
+    void voice_enable_change();//用户点击启用声音选项响应
+    void voice_source_change();//用户切换音源响应
 };
+
+
 
 #endif // EXPEND_H

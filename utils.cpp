@@ -564,18 +564,25 @@ QString Widget::customOpenfile(QString dirpath, QString describe, QString format
 //语音朗读相关
 void Widget::qspeech(QString str)
 {
+    //如果禁用了朗读则直接退出
+    //qDebug()<<voice_params.is_voice<<voice_params.voice_name;
+    if(!voice_params.is_voice)
+    {
+        speechOver();
+        return;
+    }
+    
     // 遍历所有可用音色
     foreach (const QVoice &voice, speech->availableVoices()) 
     {
         // qDebug() << "Name:" << voice.name();
         // qDebug() << "Age:" << voice.age();
         // qDebug() << "Gender:" << voice.gender();
-        //使用慧慧音色
-        if (voice.name() == "Microsoft Huihui Desktop") 
+        //使用用户选择的音色
+        if (voice.name() == voice_params.voice_name) 
         {
-            // qDebug() << "Microsoft Huihui Desktop";
             speech->setVoice(voice);
-            //break;
+            break;
         }
     }
 
@@ -609,6 +616,7 @@ void Widget::qspeech_process()
 //朗读结束后动作
 void Widget::speechOver()
 {
+    speechtimer->stop();
     speechtimer->start(500);
-    is_speech = false;
+    is_speech = false;//解锁
 }

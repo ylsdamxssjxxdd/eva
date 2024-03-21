@@ -57,6 +57,12 @@ Expend::Expend(QWidget *parent) :
     ui->sd_sampletype->setCurrentText("euler_a");
     //添加输出格式
     ui->whisper_output_format->addItems({"文本文档txt","视频字幕srt","逗号分隔csv","json"});
+
+    //声转文相关
+    get_sys_voice();
+    connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
+    connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
+    
 }
 
 Expend::~Expend()
@@ -126,13 +132,13 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         imageFormat.setName(":/ui/ui_demo.png");  // 图片资源路径
         cursor.insertImage(imageFormat);
 
-        QImage image2(":/ui/knowledge_demo.png");
-        originalWidth = image2.width()/devicePixelRatioF()/2.5;
-        originalHeight = image2.height()/devicePixelRatioF()/2.5;
-        imageFormat.setWidth(originalWidth);  // 设置图片的宽度
-        imageFormat.setHeight(originalHeight); // 设置图片的高度
-        imageFormat.setName(":/ui/knowledge_demo.png");  // 图片资源路径
-        cursor.insertImage(imageFormat);
+        // QImage image2(":/ui/knowledge_demo.png");
+        // originalWidth = image2.width()/devicePixelRatioF()/2.5;
+        // originalHeight = image2.height()/devicePixelRatioF()/2.5;
+        // imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+        // imageFormat.setHeight(originalHeight); // 设置图片的高度
+        // imageFormat.setName(":/ui/knowledge_demo.png");  // 图片资源路径
+        // cursor.insertImage(imageFormat);
 
         cursor.insertText("\n\n");
 
@@ -1267,4 +1273,63 @@ void Expend::recv_draw(QString prompt_)
     //触发绘制
     ui->sd_draw_pushButton->click();
 
+}
+
+
+//-------------------------------------------------------------------------
+//----------------------------------文转声相关--------------------------------
+//-------------------------------------------------------------------------
+
+//获取系统可用声源并设置到combobox
+void Expend::get_sys_voice()
+{
+    QTextToSpeech *speech = new QTextToSpeech();
+    // 遍历所有可用音色
+    foreach (const QVoice &voice, speech->availableVoices()) 
+    {
+        // qDebug() << "Name:" << voice.name();
+        // qDebug() << "Age:" << voice.age();
+        // qDebug() << "Gender:" << voice.gender();
+        ui->voice_source_comboBox->addItem(voice.name());//添加到下拉框
+    }
+}
+
+//用户点击启用声音选项响应
+void Expend::voice_enable_change()
+{
+    Voice_Params Voice_Params_;
+
+    Voice_Params_.voice_name = ui->voice_source_comboBox->currentText();
+
+    if(ui->voice_enable_radioButton->isChecked())
+    {
+        Voice_Params_.is_voice = true;
+        ui->voice_source_comboBox->setEnabled(1);
+    }
+    else
+    {
+        Voice_Params_.is_voice = false;
+        ui->voice_source_comboBox->setEnabled(0);
+    }
+
+    emit expend2ui_voiceparams(Voice_Params_);
+}
+
+//用户切换音源响应
+void Expend::voice_source_change()
+{
+    Voice_Params Voice_Params_;
+
+    Voice_Params_.voice_name = ui->voice_source_comboBox->currentText();
+
+    if(ui->voice_enable_radioButton->isChecked())
+    {
+        Voice_Params_.is_voice = true;
+    }
+    else
+    {
+        Voice_Params_.is_voice = false;
+    }
+
+    emit expend2ui_voiceparams(Voice_Params_);
 }

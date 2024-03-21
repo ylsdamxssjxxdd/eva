@@ -287,6 +287,7 @@ public:
     QElapsedTimer keeptime;//测量时间
     
     //语音朗读相关
+    Voice_Params voice_params;
     void qspeech(QString str);
     QTextToSpeech *speech;
     bool is_speech = false;
@@ -352,6 +353,7 @@ public slots:
     void recv_voicedecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);//传递模型路径
     void recv_embeddingdb_describe(QString describe);//传递知识库的描述
+    void recv_voiceparams(Voice_Params Voice_Params_);//传递文转声参数
 //自用的槽
 private slots:
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
@@ -380,9 +382,9 @@ private slots:
     bool toolcheckbox_checked();//判断是否挂载了工具
 
     void prompt_template_change();//提示词模板下拉框响应
-    void complete_change();//补完按钮响应
-    void chat_change();//对话按钮响应
-    void web_change();//网页服务响应
+    void complete_change();//补完模式响应
+    void chat_change();//对话模式响应
+    void web_change();//服务模式响应
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
     void temp_change();//温度滑块响应

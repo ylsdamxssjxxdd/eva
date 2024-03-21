@@ -1,6 +1,8 @@
 # 机体
 一款直观的大模型应用软件：机体 (qt5+llama.cpp-b2409)
 
+视频介绍 https://www.bilibili.com/video/BV15r421h728/?share_source=copy_web&vd_source=569c126f2f63df7930affe9a2267a8f8
+
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/836433f4-1ee4-4cf6-8502-d2c1f938a9a8" width="300px">
 
 
@@ -13,8 +15,8 @@
     - 最低支持32位windows7
     - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
 - 多功能
-    - 本地模型交互，多模态，在线模型交互，对外api服务，智能体，知识库问答，模型量化，文生图，声转文，语音朗读
-- 直观
+    - 本地模型交互，多模态，在线模型交互，对外api服务，智能体，知识库问答，模型量化，文生图，声转文，语音朗读 (全都有就是效果不咋地)
+- 直观 
     - 输出区的内容就是模型的全部现实
     - 状态区的内容就是运行的全部流程
 

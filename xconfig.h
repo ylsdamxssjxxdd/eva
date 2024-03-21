@@ -240,4 +240,11 @@ struct SD_Params
 
 };
 
+//文转声参数
+struct Voice_Params 
+{
+    bool is_voice = false;
+    QString voice_name = "";
+};
+
 #endif

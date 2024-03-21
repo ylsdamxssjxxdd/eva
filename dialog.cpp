@@ -518,10 +518,9 @@ void Widget::complete_change()
     //选中则禁止约定输入
     if(complete_btn->isChecked())
     {
-        npredict_slider->setEnabled(1);
+        sample_box->setEnabled(1);
+
         nthread_slider->setEnabled(1);
-        temp_slider->setEnabled(1);
-        repeat_slider->setEnabled(1);
         nctx_slider->setEnabled(1);
 
         port_lineEdit->setEnabled(0);
@@ -533,24 +532,21 @@ void Widget::chat_change()
 {
     if(chat_btn->isChecked())
     {
-        temp_slider->setEnabled(1);
-        repeat_slider->setEnabled(1);
+        sample_box->setEnabled(1);
+
         nctx_slider->setEnabled(1);
-        npredict_slider->setEnabled(1);
         nthread_slider->setEnabled(1);
 
         port_lineEdit->setEnabled(0);
     }
 }
 
-//网页服务响应
+//服务模式响应
 void Widget::web_change()
 {
     if(web_btn->isChecked())
     {
-        temp_slider->setEnabled(0);
-        npredict_slider->setEnabled(0);
-        repeat_slider->setEnabled(0);
+        sample_box->setEnabled(0);
 
         port_lineEdit->setEnabled(1);
     }
@@ -670,6 +666,10 @@ void Widget::set_SetDialog()
     set_dialog = new QDialog;
     set_dialog->setWindowFlags(set_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     set_dialog->resize(150, 200); // 设置宽度,高度
+
+    // QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
+    // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
+    // set_dialog->setStyleSheet(stylesheet);file.close();
 
     QVBoxLayout *layout = new QVBoxLayout(set_dialog);//总垂直布局器
 
@@ -859,6 +859,11 @@ void Widget::set_DateDialog()
     date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     //date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     date_dialog->resize(150, 200); // 设置宽度,高度
+
+    // QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
+    // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
+    // date_dialog->setStyleSheet(stylesheet);file.close();
+
     QVBoxLayout *layout = new QVBoxLayout(date_dialog);//垂直布局器
     //layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
     //------------提示词模板设置---------------

@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
     qRegisterMetaType<STATE>("STATE");//注册STATE作为信号传递变量
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
+    qRegisterMetaType<Voice_Params>("Voice_Params");
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
@@ -89,6 +90,7 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);//传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);//传递知识库的描述
+    QObject::connect(&expend, &Expend::expend2ui_voiceparams,&w,&Widget::recv_voiceparams);//传递文转声参数
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
