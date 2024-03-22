@@ -63,6 +63,9 @@ Expend::Expend(QWidget *parent) :
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     
+    //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文
+    readConfig();
+
 }
 
 Expend::~Expend()
@@ -275,6 +278,46 @@ QString Expend::customOpenfile(QString dirpath, QString describe, QString format
     return filepath;
 }
 
+//读取配置文件并应用
+void Expend::readConfig()
+{
+    QFile configfile("./EVA_TEMP/eva_config.ini");
+    if(configfile.exists())
+    {
+        // 创建 QSettings 对象，指定配置文件的名称和格式
+        QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+
+        // 读取配置文件中的值
+        QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
+        QString vae_modelpath = settings.value("vae_modelpath", "").toString();//vae模型路径
+        int image_width = settings.value("image_width", 512).toInt();//图像宽度
+        int image_height = settings.value("image_height", 512).toInt();//图像高度
+        QString sample_type = settings.value("sample_type", "euler_a").toString();//采样方式
+        int sample_steps = settings.value("sample_steps", 20).toInt();//采样步数
+        float cfg = settings.value("cfg", 7.5).toFloat();//相关系数
+        int seed = settings.value("seed", -1).toInt();//随机数种子
+        int image_nums = settings.value("image_nums", 1).toInt();//生成图像数目
+        int clip_skip = settings.value("clip_skip", 2).toInt();//跳层数
+
+        QString whisper_modelpath = settings.value("whisper_modelpath", "").toString();//whisper模型路径
+
+        // 应用值
+        ui->sd_modelpath_lineEdit->setText(sd_modelpath);
+        ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+        ui->sd_imagewidth->setValue(image_width);
+        ui->sd_imageheight->setValue(image_height);
+        ui->sd_sampletype->setCurrentText(sample_type);
+        ui->sd_samplesteps->setValue(sample_steps);
+        ui->sd_cfgscale->setValue(cfg);
+        ui->sd_seed->setValue(seed);
+        ui->sd_batch_count->setValue(image_nums);
+        ui->sd_skipclip->setValue(clip_skip);
+
+        ui->whisper_load_modelpath_linedit->setText(whisper_modelpath);
+        whisper_params.model = whisper_modelpath.toStdString();
+    }
+}
+
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Expend::eventFilter(QObject *obj, QEvent *event)
 {
@@ -289,17 +332,38 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
+//关闭事件
+void Expend::closeEvent(QCloseEvent *event)
+{
+    //--------------保存当前用户配置---------------
+    // 创建 QSettings 对象，指定配置文件的名称和格式
+    createTempDirectory("./EVA_TEMP");
+    QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setValue("sd_modelpath",ui->sd_modelpath_lineEdit->text());
+    settings.setValue("vae_modelpath",ui->sd_vaepath_lineEdit->text());
+    settings.setValue("image_width",ui->sd_imagewidth->value());
+    settings.setValue("image_height",ui->sd_imageheight->value());
+    settings.setValue("sample_type",ui->sd_sampletype->currentText());
+    settings.setValue("sample_steps",ui->sd_samplesteps->value());
+    settings.setValue("cfg",ui->sd_cfgscale->value());
+    settings.setValue("seed",ui->sd_seed->value());
+    settings.setValue("image_nums",ui->sd_batch_count->value());
+    settings.setValue("clip_skip",ui->sd_skipclip->value());
+    settings.setValue("whisper_modelpath",ui->whisper_load_modelpath_linedit->text());
+
+    //event->accept();
+}
 
 //-------------------------------------------------------------------------
 //----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 
 //用户点击选择whisper路径时响应
-void Expend::on_voice_load_modelpath_button_clicked()
+void Expend::on_whisper_load_modelpath_button_clicked()
 {
     whisper_params.model = customOpenfile(DEFAULT_MODELPATH,"choose whisper model","(*.bin *.gguf)").toStdString();
  
-    ui->voice_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
+    ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
     ui->whisper_log->setPlainText("选择好了就可以按f2录音了");
     if(is_first_choose_whispermodel)

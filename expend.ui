@@ -23,7 +23,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>7</number>
+      <number>6</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -2521,7 +2521,7 @@ clip跳层画现实推荐1，画动画推荐2以上
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="voice_load_modelpath_linedit">
+           <widget class="QLineEdit" name="whisper_load_modelpath_linedit">
             <property name="enabled">
              <bool>false</bool>
             </property>
@@ -2540,7 +2540,7 @@ clip跳层画现实推荐1，画动画推荐2以上
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="voice_load_modelpath_button">
+           <widget class="QPushButton" name="whisper_load_modelpath_button">
             <property name="minimumSize">
              <size>
               <width>80</width>

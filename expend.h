@@ -24,7 +24,7 @@
 #include <QPlainTextEdit>
 #include <math.h>
 #include <QFileDialog>
-
+#include <QSettings>
 #include <QTextToSpeech>
 
 #include <windows.h>
@@ -43,6 +43,7 @@ class Expend : public QWidget
 public:
     Expend(QWidget *parent = nullptr);
     ~Expend();
+    void closeEvent(QCloseEvent *event) override;//关闭事件
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QJsonObject wordsObj;
     QString vocab;
@@ -56,6 +57,7 @@ public:
     void init_expend();//初始化扩展窗口
     bool createTempDirectory(const QString &path);
     QString customOpenfile(QString dirpath, QString describe, QString format);
+    void readConfig();//读取配置文件并应用
     
 signals:    
     void expend2ui_state(QString state_string,STATE state);
@@ -87,7 +89,7 @@ public slots:
     void whisper_onProcessStarted();
     void whisper_onProcessFinished();
 private slots:    
-    void on_voice_load_modelpath_button_clicked();//用户点击选择whisper路径时响应
+    void on_whisper_load_modelpath_button_clicked();//用户点击选择whisper路径时响应
     void on_whisper_wavpath_pushButton_clicked();//用户点击选择wav路径时响应
     void on_whisper_execute_pushbutton_clicked();//用户点击执行转换时响应
 

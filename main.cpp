@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言
     expend.max_thread = w.max_thread;
+    w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     llama_log_set(bot_log_callback,&bot);//设置回调
 #ifdef BODY_USE_CUBLAST
     gpuChecker gpuer;//监测显卡信息

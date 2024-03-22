@@ -263,7 +263,8 @@ int xBot::stream()
             else{is_batch = false;}
 
             //按批处理,直到处理完
-            QElapsedTimer time4;time4.start();
+            QElapsedTimer time4;
+            time4.start();
             emit bot2ui_state("bot:" + wordsObj["decode"].toString() + "·" 
                                 + wordsObj["use kv cache"].toString()  +"("+ QString::number(n_past)+ wordsObj["nums"].toString()+")" 
                                 + wordsObj["and input"].toString()+"("+ QString::number(embd.size())+ wordsObj["nums"].toString()+")" +"token"
@@ -277,7 +278,6 @@ int xBot::stream()
                 {
                     n_eval = gpt_params_.n_batch;
                 }
-                QElapsedTimer time3;time3.start();
 
                 //解码
                 int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0));
@@ -292,11 +292,11 @@ int xBot::stream()
                 }
 
                 emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
-                //emit bot2ui_state("bot:" + wordsObj["use ctx"].toString()  + QString::number(n_past) + wordsObj["nums"].toString()+ "token" + wordsObj["caculate next word probability table"].toString() + " " + QString::number(time3.nsecsElapsed()/1000000000.0,'f',2)+" s ");
             }
             if(is_test){emit bot2ui_tokens(embd.size());}//测试过程传递处理的token数量,用来计算批解码速度
-            if(is_batch){batch_count+=embd.size();batch_time +=time4.nsecsElapsed()/1000000000.0;}
-            else{singl_count++;singl_time +=time4.nsecsElapsed()/1000000000.0;}
+            if(is_batch){batch_count+=embd.size();batch_time += time4.nsecsElapsed()/1000000000.0;}
+            else{singl_count++;singl_time += time4.nsecsElapsed()/1000000000.0;}
+            //qDebug()<<batch_count<<batch_time;
         }   
         else
         {
@@ -461,7 +461,7 @@ int xBot::stream()
 }
 
 //----------------------------------------------------------------------
-//--------------------------------加载模型--------------------------------
+//--------------------------------装载模型--------------------------------
 //----------------------------------------------------------------------
 void xBot::load(std::string &modelpath)
 {
@@ -669,7 +669,6 @@ void xBot::preDecode()
             int n_eval = (int) embd.size() - i;//待验证
             if (n_eval > gpt_params_.n_batch){n_eval = gpt_params_.n_batch;}
             //qDebug()<<"n_eval "<<QString::number(n_eval)<<"n_past "<<QString::number(n_past);
-            QElapsedTimer time3;time3.start();
             //推理
             if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0))) //将emd推理到ctx中,返回0表示推理正常
             {
