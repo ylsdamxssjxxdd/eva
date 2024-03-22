@@ -77,7 +77,6 @@ public:
     Whisper_Params whisper_params;//whisper.exe可以传入的参数
     int max_thread;
     QElapsedTimer whisper_time;//计时器
-    bool is_first_choose_whispermodel=true;//第一次选好模型路径直接关闭扩展窗口
     QString wavpath;
     bool is_handle_whisper = false;//是否为手动转换
 signals:

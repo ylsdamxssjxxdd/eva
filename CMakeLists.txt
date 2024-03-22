@@ -1,6 +1,24 @@
 ######################################手动修改######################################
 #llama.cpp-b2491
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
+#llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
+#
+# uint32_t to_lower(uint32_t code) {
+# #if defined(_WIN32)
+# #if defined(__GNUC__) //为了使mingw编译器可以支持locale
+#         static const std::locale locale;
+# #else
+#         static const std::locale locale("en_US.UTF-8");
+# #endif
+#         if (code > 0xFFFF) {
+#             return code;
+#         }
+# #else
+#         static const std::locale locale("en_US.UTF-8");
+# #endif
+#         return std::tolower(wchar_t(code), locale);
+#     }
+#
 #----------------------------------------------------------------------------------
 #stable-diffusion.cpp master-48bcce4
 #stable-diffusion.cpp/cmakelists.txt中添加
@@ -25,7 +43,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -131,7 +149,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-WIN32
+#WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

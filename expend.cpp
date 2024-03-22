@@ -366,11 +366,6 @@ void Expend::on_whisper_load_modelpath_button_clicked()
     ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
     ui->whisper_log->setPlainText("选择好了就可以按f2录音了");
-    if(is_first_choose_whispermodel)
-    {
-        this->close();
-        is_first_choose_whispermodel=false;
-    }
 }
 
 //开始语音转文字
@@ -569,6 +564,7 @@ void Expend::embedding_server_start()
     });    
     connect(server_process, &QProcess::readyReadStandardError, [=]() {
         QString server_output = server_process->readAllStandardError();
+        //qDebug()<<server_output;
         if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
         if(server_output.contains("llm_load_print_meta: n_embd           = "))
         {
