@@ -1,25 +1,8 @@
 ######################################手动修改######################################
-##############################1 llama.cpp的版本见readme#############################
-#llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
-#
-# uint32_t to_lower(uint32_t code) {
-# #if defined(_WIN32)
-# #if defined(__GNUC__) //为了使mingw编译器可以支持locale
-#         static const std::locale locale;
-# #else
-#         static const std::locale locale("en_US.UTF-8");
-# #endif
-#         if (code > 0xFFFF) {
-#             return code;
-#         }
-# #else
-#         static const std::locale locale("en_US.UTF-8");
-# #endif
-#         return std::tolower(wchar_t(code), locale);
-#     }
-#
-#######################################2###################################
-#
+#llama.cpp-b2491
+#llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
+#----------------------------------------------------------------------------------
+#stable-diffusion.cpp master-48bcce4
 #stable-diffusion.cpp/cmakelists.txt中添加
 # mingw设置编译选项
 # if(MINGW)
@@ -28,9 +11,14 @@
 #     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 # endif()
 #将stable-diffusion.cpp/ggml/src/cmakelists.txt中链接的ggml库全部更名为ggml-sd(4处)避免冲突
-#######################################3###################################
+#----------------------------------------------------------------------------------
+#whisper.cpp
 #
+#----------------------------------------------------------------------------------
+#camke
 #注意cmake构建类型应该设置为 Release
+#----------------------------------------------------------------------------------
+
 ######################################基础配置######################################
 cmake_minimum_required(VERSION 3.12)
 project(body)
@@ -50,7 +38,8 @@ elseif(LLAMA_CUBLAS)
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
-endif()           
+endif()
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持中文
@@ -70,8 +59,11 @@ if(MSVC)
     endif()
 # mingw设置编译选项
 elseif(MINGW)
+    set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version")#原项目 编译选项
+    add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER})#原项目 编译选项
+    add_compile_definitions(_XOPEN_SOURCE=600)#原项目 编译选项
     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 endif()
 #####################################llama.cpp相关#####################################
@@ -138,7 +130,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-WIN32
+#WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

@@ -1,5 +1,5 @@
 # 机体
-一款直观的大模型应用软件：机体 (qt5+llama.cpp-b2409)
+一款直观的大模型应用软件：机体 (qt5+llama.cpp)
 
 视频介绍 https://www.bilibili.com/video/BV15r421h728/?share_source=copy_web&vd_source=569c126f2f63df7930affe9a2267a8f8
 

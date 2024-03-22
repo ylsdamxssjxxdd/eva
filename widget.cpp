@@ -361,6 +361,14 @@ void Widget::recv_pushover()
             on_send_clicked();
         }
     }
+    else if(ui_mode == COMPLETE_)//补完模式的话额外重置一下
+    {
+        is_run = false;
+        ui_state_normal();//待机界面状态
+        decode_pTimer->stop();
+        decode_action=0;
+        on_reset_clicked();//触发重置
+    }
     else
     {
         //如果挂载了工具,则尝试提取里面的json
@@ -391,7 +399,6 @@ void Widget::recv_pushover()
             decode_pTimer->stop();
             decode_action=0;
         }
-        
     }
 }
 
