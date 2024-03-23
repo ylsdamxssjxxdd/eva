@@ -8,6 +8,7 @@
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QColor>
+#include <QTextCodec>
 
 #include "xconfig.h" //ui和bot都要导入的共有配置
 #include "llama.cpp/common/common.h"

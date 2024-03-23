@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2491
+#llama.cpp-b2509
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
 #
@@ -28,7 +28,8 @@
     # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 # endif()
-#将stable-diffusion.cpp/ggml/src/cmakelists.txt中链接的ggml库全部更名为ggml-sd(4处)避免冲突
+#将stable-diffusion.cpp链接的ggml库全部更名为ggml-sd(5处)避免冲突，直接和老文件对比吧
+#stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)以及stable-diffusion.cpp/ggml/src/cmakelists.txt
 #----------------------------------------------------------------------------------
 #whisper.cpp 1..5.4
 #
@@ -149,7 +150,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

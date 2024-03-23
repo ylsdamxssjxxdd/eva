@@ -63,7 +63,7 @@ Expend::Expend(QWidget *parent) :
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     
-    //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文
+    //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 
 }
@@ -298,12 +298,26 @@ void Expend::readConfig()
         int seed = settings.value("seed", -1).toInt();//随机数种子
         int image_nums = settings.value("image_nums", 1).toInt();//生成图像数目
         int clip_skip = settings.value("clip_skip", 2).toInt();//跳层数
+        QString sd_prompt = settings.value("sd_prompt", "").toString();//sd提示词
 
         QString whisper_modelpath = settings.value("whisper_modelpath", "").toString();//whisper模型路径
 
+        voice_params.is_voice = settings.value("voice_enable", "").toBool();//是否启用语音朗读
+        voice_params.voice_name = settings.value("voice_name", "").toString();//朗读者
+
         // 应用值
-        ui->sd_modelpath_lineEdit->setText(sd_modelpath);
-        ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+        QFile sd_modelpath_file(sd_modelpath);
+        if(sd_modelpath_file.exists())
+        {
+            ui->sd_modelpath_lineEdit->setText(sd_modelpath);
+        }
+        
+        QFile vae_modelpath_file(vae_modelpath);
+        if(vae_modelpath_file.exists())
+        {
+            ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+        }
+
         ui->sd_imagewidth->setValue(image_width);
         ui->sd_imageheight->setValue(image_height);
         ui->sd_sampletype->setCurrentText(sample_type);
@@ -312,9 +326,25 @@ void Expend::readConfig()
         ui->sd_seed->setValue(seed);
         ui->sd_batch_count->setValue(image_nums);
         ui->sd_skipclip->setValue(clip_skip);
+        ui->sd_prompt_lineEdit->setText(sd_prompt);
 
-        ui->whisper_load_modelpath_linedit->setText(whisper_modelpath);
-        whisper_params.model = whisper_modelpath.toStdString();
+        QFile whisper_load_modelpath_file(whisper_modelpath);
+        if(whisper_load_modelpath_file.exists())
+        {
+            ui->whisper_load_modelpath_linedit->setText(whisper_modelpath);
+            whisper_params.model = whisper_modelpath.toStdString();
+        }
+        
+        for(int i = 0; i < ui->voice_source_comboBox->count(); ++i) 
+        {
+            QString itemText = ui->voice_source_comboBox->itemText(i);
+            if(voice_params.voice_name == itemText)//如果有同名的声源则应用它
+            {
+                ui->voice_source_comboBox->setCurrentText(voice_params.voice_name);
+                ui->voice_enable_radioButton->setChecked(voice_params.is_voice); 
+            }
+        }
+        
     }
 }
 
@@ -349,8 +379,10 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("seed",ui->sd_seed->value());
     settings.setValue("image_nums",ui->sd_batch_count->value());
     settings.setValue("clip_skip",ui->sd_skipclip->value());
+    settings.setValue("sd_prompt",ui->sd_prompt_lineEdit->text());
     settings.setValue("whisper_modelpath",ui->whisper_load_modelpath_linedit->text());
-
+    settings.setValue("voice_enable",ui->voice_enable_radioButton->isChecked());
+    settings.setValue("voice_name",ui->voice_source_comboBox->currentText());
     //event->accept();
 }
 

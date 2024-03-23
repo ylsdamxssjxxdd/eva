@@ -484,7 +484,7 @@ void xBot::load(std::string &modelpath)
     }
 
     gpt_params_.model = modelpath;//传递模型路径
-    
+  
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
@@ -598,10 +598,10 @@ void xBot::reset(bool is_clear_all)
         }
     }
     //如果是多模态，针对yi-vl-6b增加额外停止标志
-    if(mmprojpath!="")
-    {
-        gpt_params_.antiprompt.push_back("###");
-    }
+    // if(mmprojpath!="")
+    // {
+    //     gpt_params_.antiprompt.push_back("###");
+    // }
 
     if(!is_first_load){llama_sampling_free(sparams);}//清空采样参数
     sparams = llama_sampling_init(gpt_params_.sparams);//初始化采样参数
@@ -769,10 +769,10 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
                 token_str += sstr;
             }
         }
-        //如果是工具输出的结果给过来的话，用橘黄色，前缀后缀都是空则认为是工具
+        //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是空则认为是工具
         if(input.input_prefix==""&&input.input_suffix=="")
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(255, 165, 0));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(100, 149, 237));
         }
         else if(context_pos == 0)//用户昵称
         {
@@ -871,13 +871,23 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     //如果mmprojpath改变则重新加载模型
     if(settings.mmprojpath.toStdString()!=mmprojpath)
     {
+#if defined(__GNUC__)         
+        QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+        mmprojpath = code->fromUnicode(settings.mmprojpath).data();
+#else
         mmprojpath = settings.mmprojpath.toStdString();
+#endif
         reload_flag = true;
     }
     //如果lora改变则重新加载模型
     if(settings.lorapath.toStdString()!=lorapath)
     {
+#if defined(__GNUC__) 
+        QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+        lorapath = code->fromUnicode(settings.lorapath).data();
+#else
         lorapath = settings.lorapath.toStdString();
+#endif
         if(lorapath != "")
         {
             std::tuple<std::string, float> element = std::make_tuple(lorapath, 1.0);//1.0是lora的影响系数
@@ -894,7 +904,12 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     //如果更换了模型则重载
     if(bot_modelpath!=settings.modelpath.toStdString())
     {
+#if defined(__GNUC__) 
+        QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+        bot_modelpath = code->fromUnicode(settings.modelpath).data();
+#else
         bot_modelpath = settings.modelpath.toStdString();
+#endif
         reload_flag = true;
     }
     

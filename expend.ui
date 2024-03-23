@@ -23,7 +23,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>6</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -2424,7 +2424,7 @@ p, li { white-space: pre-wrap; }
                   <property name="plainText">
                    <string>采样步数越大图像越精细但耗时越久
 随机种子为-1时每次都会生成不一样的图像
-提示词后跟&lt;lora:lora模型名字:1&gt;可以调用lora
+提示词后跟&lt;lora:lora模型名字:1&gt;可以调用lora，:1的意思是应用lora的强度等级
 大的宽高图像细节会有改观
 clip跳层画现实推荐1，画动画推荐2以上
 </string>

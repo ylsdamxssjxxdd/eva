@@ -31,6 +31,7 @@ Widget::Widget(QWidget *parent)
     date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "" + wordsObj["driver"].toString(), "eva",false,QStringList{}});
     
     //-------------默认展示内容-------------
+    ui_font.setPointSize(10); // 将设置控件的字体大小设置为10
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
@@ -45,8 +46,8 @@ Widget::Widget(QWidget *parent)
     QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();
-    ui->output->setStyleSheet("background-color: white;");//设置输出区背景为纯白
-    ui->input->setStyleSheet("background-color: white;");//设置输入区背景为纯白
+    // ui->output->setStyleSheet("background-color: white;");//设置输出区背景为纯白
+    // ui->input->setStyleSheet("background-color: white;");//设置输入区背景为纯白
     ui->mem_bar->message = wordsObj["mem"].toString();//进度条里面的文本
     ui->vram_bar->message = wordsObj["vram"].toString();//进度条里面的文本
     ui->kv_bar->message = wordsObj["brain"].toString();//进度条里面的文本
@@ -89,7 +90,7 @@ Widget::Widget(QWidget *parent)
     //-------------初始化工具-------------
     tool_map.insert("calculator", {wordsObj["calculator"].toString(),"calculator",wordsObj["calculator_func_describe_zh"].toString(),wordsObj["calculator_func_describe_en"].toString()});
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
-    tool_map.insert("search", {wordsObj["search"].toString(),"search",wordsObj["search_func_describe_zh"].toString(),wordsObj["search_func_describe_en"].toString()});
+    tool_map.insert("toolguy", {wordsObj["toolguy"].toString(),"toolguy",wordsObj["toolguy_func_describe_zh"].toString(),wordsObj["toolguy_func_describe_en"].toString()});
     tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe_zh"].toString(),wordsObj["knowledge_func_describe_en"].toString()});
     tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
     tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe_zh"].toString(),wordsObj["stablediffusion_func_describe_en"].toString()});
@@ -266,6 +267,15 @@ void Widget::on_send_clicked()
             }
             emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
         }
+        else if(is_toolguy)//如果你是工具人
+        {
+            is_toolguy = false;
+            ui->input->installEventFilter(this);
+            input = QString("toolguy ") + wordsObj["return"].toString() + " " + ui->input->toPlainText().toUtf8().data();
+            ui->input->clear();
+            input += "\n" + wordsObj["tool_thought"].toString();
+            emit ui2bot_input({"",input,""},0);
+        }
         else//正常情况!!!
         {
             if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
@@ -385,9 +395,21 @@ void Widget::recv_pushover()
             {
                 //调用工具
                 reflash_state("ui:" + wordsObj["clicked"].toString() + " " + func_arg_list.front(),SIGNAL_);
-                emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
-                emit ui2tool_push();
-                //使用工具时解码动画不停
+
+                if(func_arg_list.first() == "toolguy")
+                {
+                    is_toolguy = true;
+                    ui->send->setEnabled(1);
+                    ui->input->setStyleSheet("background-color: rgba(100, 149, 237, 60);");//输入区天蓝色
+                    ui->input->setPlaceholderText("工具人赶紧去给模型找答案吧~");
+                    ui->input->removeEventFilter(this);//禁用输入区右击
+                }
+                else
+                {
+                    emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
+                    emit ui2tool_push();//调用tool
+                    //使用工具时解码动画不停
+                }
             }
 
         }
@@ -599,7 +621,7 @@ void Widget::on_date_clicked()
 
     calculator_checkbox->setChecked(ui_calculator_ischecked);
     cmd_checkbox->setChecked(ui_cmd_ischecked);
-    search_checkbox->setChecked(ui_search_ischecked);
+    toolguy_checkbox->setChecked(ui_toolguy_ischecked);
     positron_checkbox->setChecked(ui_positron_ischecked);
     knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
@@ -627,7 +649,7 @@ void Widget::set_date()
 
     ui_calculator_ischecked = calculator_checkbox->isChecked();
     ui_cmd_ischecked = cmd_checkbox->isChecked();
-    ui_search_ischecked = search_checkbox->isChecked();
+    ui_toolguy_ischecked = toolguy_checkbox->isChecked();
     ui_knowledge_ischecked = knowledge_checkbox->isChecked();
     ui_positron_ischecked = positron_checkbox->isChecked();
     ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
@@ -874,13 +896,14 @@ void Widget::recv_log(QString log)
     {
         log.remove("\n");
         emit ui2expend_log(dateTimeString + log);//单条记录 
-        ui_model_logs << dateTimeString + log;//总记录
     }
 
-    
+    //处理异常情况
+    if(log.contains("failed to load model"))//提示用户不能有中文
+    {
+        emit ui2expend_log("请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足");//单条记录 
+    }
 
-    
-    
 }
 //播放装载动画
 void Widget::recv_play()
@@ -1069,6 +1092,29 @@ void Widget::api_send_clicked_slove()
         reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
         reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
     }
+    else if(is_toolguy)//如果你是工具人
+    {
+        is_toolguy = false;
+        ui->input->installEventFilter(this);
+        input = QString("toolguy ") + wordsObj["return"].toString() + " " + ui->input->toPlainText().toUtf8().data();
+        ui->input->clear();
+        input += "\n" + wordsObj["tool_thought"].toString();
+
+        if(ui_extra_lan == "zh")
+        {
+            ui_assistant_history << wordsObj["tool_observation"].toString() + input;
+        }
+        else if(ui_extra_lan == "en")
+        {
+            ui_assistant_history << "observation: " + input;
+        }
+        reflash_output(ui_assistant_history.last() + "\n", 0, QColor(100, 149, 237));//天蓝色表示工具返回结果
+
+        QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
+        is_run =true;//模型正在运行标签
+        ui_state_pushing();
+        return;
+    }
     else
     {
         if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
@@ -1106,13 +1152,12 @@ void Widget::api_send_clicked_slove()
                 if(ui_extra_lan == "zh")
                 {
                     ui_assistant_history << wordsObj["tool_observation"].toString() + tool_result;
-                    reflash_output(ui_assistant_history.last() + "\n", 0, QColor(255, 165, 0));//橘黄色表示工具返回结果
                 }
                 else if(ui_extra_lan == "en")
                 {
                     ui_assistant_history << "observation: " + tool_result;
-                    reflash_output(ui_assistant_history.last() + "\n", 0, QColor(255, 165, 0));//橘黄色表示工具返回结果
                 }
+                reflash_output(ui_assistant_history.last() + "\n", 0, QColor(100, 149, 237));//天蓝色表示工具返回结果
                 
                 tool_result="";
 

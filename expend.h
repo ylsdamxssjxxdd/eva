@@ -172,7 +172,7 @@ private slots:
 
 public:
     void get_sys_voice();//获取系统可用声源并设置到combobox
-
+    Voice_Params voice_params;
 signals:
     void expend2ui_voiceparams(Voice_Params Voice_Params_);
 

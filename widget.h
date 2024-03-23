@@ -82,6 +82,7 @@ public:
     void create_right_menu();//添加右击问题
     QStringList func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
+    QFont ui_font;//字体大小
 
     void ui_state_init();//初始界面状态
     void ui_state_loading();//装载中界面状态
@@ -112,7 +113,6 @@ public:
 
     QString ui_model_vocab;//模型词表
     int test_tokens=0;//测试生产的token数量
-    QStringList ui_model_logs;
     bool load_percent_tag;
     int max_thread = 1;//最大线程数
 
@@ -213,8 +213,8 @@ public:
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox,*cmd_checkbox,*search_checkbox,*knowledge_checkbox,*positron_checkbox,*stablediffusion_checkbox;
-    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_search_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_stablediffusion_ischecked=0;
+    QCheckBox *calculator_checkbox,*cmd_checkbox,*toolguy_checkbox,*knowledge_checkbox,*positron_checkbox,*stablediffusion_checkbox;
+    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_toolguy_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_stablediffusion_ischecked=0;
     QLabel *extra_label;//附加指令
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
@@ -225,6 +225,7 @@ public:
     void addStopwords();//添加额外停止标志
     QMap<QString, TOOLS> tool_map;//工具包
     bool is_load_tool = false;//是否挂载了工具
+    bool is_toolguy = false;//是否为工具人
     QStringList JSONparser(QString text);//输出解析器，提取JSON
     QString tool_result;
 
@@ -374,7 +375,7 @@ private slots:
     void set_date();//设置用户约定内容
     void calculator_change();//选用计算器工具
     void cmd_change();//选用系统终端工具
-    void search_change();//选用搜索引擎工具
+    void toolguy_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具
     void positron_change();//选用阳电子炮工具
     void stablediffusion_change();//选用大模型工具

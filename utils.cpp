@@ -70,7 +70,7 @@ QString Widget::create_extra_prompt()
             //头
             if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_zh + "\n";}
             if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_zh + "\n";}
-            if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe_zh + "\n";}
+            if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_zh + "\n";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_zh + " " + wordsObj["embeddingdb describe zh"].toString() + ":" + embeddingdb_describe + "\n";}
             if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_zh + "\n";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_zh + "\n";}
@@ -78,7 +78,7 @@ QString Widget::create_extra_prompt()
             extra_prompt_ +=wordsObj["middle_extra_prompt_zh"].toString();
             if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
             if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
-            if(search_checkbox->isChecked()){extra_prompt_ += "\"search\" ";}
+            if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
             if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
@@ -96,7 +96,7 @@ QString Widget::create_extra_prompt()
             //头
             if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_en + "\n";}
             if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_en + "\n";}
-            if(search_checkbox->isChecked()){extra_prompt_ += tool_map["search"].func_describe_en + "\n";}
+            if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_en + "\n";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_en  + " " + wordsObj["embeddingdb describe en"].toString() + ":" + embeddingdb_describe + "\n";}
             if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_en + "\n";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_en + "\n";}
@@ -104,7 +104,7 @@ QString Widget::create_extra_prompt()
             extra_prompt_ +=wordsObj["middle_extra_prompt_en"].toString();
             if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
             if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
-            if(search_checkbox->isChecked()){extra_prompt_ += "\"search\" ";}
+            if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
             if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
@@ -445,7 +445,7 @@ void Widget::getWords(QString json_file_path)
 // 判断是否挂载了工具
 bool Widget::toolcheckbox_checked()
 {
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || search_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || stablediffusion_checkbox->isChecked())
+    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || stablediffusion_checkbox->isChecked())
     {
         return true;
     }

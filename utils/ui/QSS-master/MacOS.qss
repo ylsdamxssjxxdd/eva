@@ -84,23 +84,19 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QTimeEdit, QDate
     border-right-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #c1c9cf, stop:1 #d2d8dd);
     border-bottom-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #c1c9cf, stop:1 #d2d8dd);
     border-left-color: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #c1c9cf, stop:1 #d2d8dd);
-    background-color: #f4f4f4;
-    color: #3d3d3d;
+    background-color: #ffffff; /* 设置背景颜色为白色 */
+    color: #060606;
 }
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QTimeEdit:focus, QDateEdit:focus, QDateTimeEdit:focus {
-    border-width: 2px;
-    border-radius: 8px;
-    border-style: solid;
     border-top-color: qlineargradient(spread:pad, x1:0.5, y1:1, x2:0.5, y2:0, stop:0 #85b7e3, stop:1 #9ec1db);
     border-right-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 #85b7e3, stop:1 #9ec1db);
     border-bottom-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #85b7e3, stop:1 #9ec1db);
     border-left-color: qlineargradient(spread:pad, x1:1, y1:0, x2:0, y2:0, stop:0 #85b7e3, stop:1 #9ec1db);
-    background-color: #f4f4f4;
-    color: #3d3d3d;
 }
 QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QTimeEdit:disabled, QDateEdit:disabled, QDateTimeEdit:disabled {
-    color: #b9b9b9;
+    background-color: #818080;
 }
+
 QSpinBox::up-button, QDoubleSpinBox::up-button, QTimeEdit::up-button, QDateEdit::up-button, QDateTimeEdit::up-button {
     subcontrol-origin: padding;
     subcontrol-position: top right;
@@ -143,10 +139,10 @@ QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover, QTimeEdit::down-
     background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #84afe5, stop:1 #1168e4);
 }
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow, QTimeEdit::up-arrow, QDateEdit::up-arrow, QDateTimeEdit::up-arrow {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-up-symbolic.symbolic.png);
+    image: url(:/ui/QSS-master/QSS_IMG/go-up-symbolic.symbolic.png);
 }
 QSpinBox::down-arrow, QDoubleSpinBox::down-arrow, QTimeEdit::down-arrow, QDateEdit::down-arrow, QDateTimeEdit::down-arrow {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-down-symbolic.symbolic.png);
+    image: url(:/ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png);
 }
 QSlider::groove {
     border: 1px solid #bbbbbb;
@@ -224,7 +220,7 @@ QComboBox::drop-down {
     border-bottom-right-radius: 3px;
 }
 QComboBox::down-arrow {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-down-symbolic.symbolic.png); /*Adawaita icon thene*/
+    image: url(:/ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png); /*Adawaita icon thene*/
 }
 
 QComboBox::down-arrow:on {
@@ -261,7 +257,7 @@ QCheckBox:hover {
     border-color: transparent;
 }
 QCheckBox::indicator:checked {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/object-select-symbolic.symbolic.png);
+    /* image: url(:/ui/QSS-master/QSS_IMG/object-select-symbolic.symbolic.png); */
     height: 15px;
     width: 15px;
     border-style:solid;
@@ -462,14 +458,14 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal, QScrollBar::ad
     background: none;
 }
 QScrollBar::up-arrow:vertical {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-up-symbolic.symbolic.png);
+    /* image: url(:/ui/QSS-master/QSS_IMG/go-up-symbolic.symbolic.png); */
 }
 QScrollBar::down-arrow:vertical {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-down-symbolic.symbolic.png);
+    /* image: url(:/ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png); */
 }
 QScrollBar::left-arrow:horizontal {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-previous-symbolic.symbolic.png);
+    /* image: url(:/ui/QSS-master/QSS_IMG/go-previous-symbolic.symbolic.png); */
 }
 QScrollBar::right-arrow:horizontal {
-    image: url(/usr/share/icons/Adwaita/16x16/actions/go-next-symbolic.symbolic.png);
+    /* image: url(:/ui/QSS-master/QSS_IMG/go-next-symbolic.symbolic.png); */
 }

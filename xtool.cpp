@@ -62,11 +62,6 @@ void xTool::run()
         }
 
     }
-    else if(func_arg_list.front() == "search")
-    {
-        
-        emit tool2ui_pushover(wordsObj["not set tool"].toString());
-    }
     else if(func_arg_list.front() == "knowledge")
     {
         QElapsedTimer time4;time4.start();

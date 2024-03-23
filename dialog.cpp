@@ -431,9 +431,9 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==TOOL_)//工具橘黄色
+    else if(state==TOOL_)//工具天蓝色
     {
-        format.setForeground(QColor(255, 165, 0));    //橘黄色设置前景颜色
+        format.setForeground(QColor(100, 149, 237));    //天蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         state_scroll(state_string);
         format.clearForeground();//清除前景颜色
@@ -613,13 +613,13 @@ void Widget::cmd_change()
     extra_TextEdit->setText(create_extra_prompt());
 }
 
-void Widget::search_change()
+void Widget::toolguy_change()
 {
     
     if(toolcheckbox_checked())
     {
         is_load_tool = true;
-        //ui_search_ischecked = search_checkbox->isChecked();
+        //ui_toolguy_ischecked = toolguy_checkbox->isChecked();
     }
     else{is_load_tool = false;}
     extra_TextEdit->setText(create_extra_prompt());
@@ -663,20 +663,22 @@ void Widget::stablediffusion_change()
 //-------------------------------------------------------------------------
 void Widget::set_SetDialog()
 {
-    set_dialog = new QDialog;
+    set_dialog = new QDialog();
     set_dialog->setWindowFlags(set_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     set_dialog->resize(150, 200); // 设置宽度,高度
 
-    // QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
-    // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
-    // set_dialog->setStyleSheet(stylesheet);file.close();
+    QFile file(":/ui/QSS-master/Ubuntu.qss");//加载皮肤
+    file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
+    set_dialog->setStyleSheet(stylesheet);file.close();
 
     QVBoxLayout *layout = new QVBoxLayout(set_dialog);//总垂直布局器
-
+    layout->setSpacing(0); // 设置布局中子项之间的间隔为0
+    layout->setContentsMargins(0, 0, 0, 0);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //------------采样设置---------------
     sample_box = new QGroupBox(wordsObj["sample set"].toString());//采样设置区域
+    sample_box->setFont(ui_font);
     QVBoxLayout *samlpe_layout = new QVBoxLayout();//采样设置垂直布局器
-
+    
     //温度控制
     QHBoxLayout *layout_H1 = new QHBoxLayout();//水平布局器
     temp_label = new QLabel(wordsObj["temperature"].toString()+" " + QString::number(ui_SETTINGS.temp));
@@ -724,6 +726,7 @@ void Widget::set_SetDialog()
 
     //------------解码设置---------------
     decode_box = new QGroupBox(wordsObj["decode set"].toString());//解码设置区域
+    decode_box->setFont(ui_font);
     QVBoxLayout *decode_layout = new QVBoxLayout();//解码设置垂直布局器
 
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
@@ -805,6 +808,7 @@ void Widget::set_SetDialog()
 
     //------------模式设置---------------
     mode_box = new QGroupBox(wordsObj["mode set"].toString());//模式设置区域
+    mode_box->setFont(ui_font);
     QVBoxLayout *mode_layout = new QVBoxLayout();//模式设置垂直布局器
     
     //补完控制
@@ -855,19 +859,22 @@ void Widget::set_SetDialog()
 //-------------------------------------------------------------------------
 void Widget::set_DateDialog()
 {
-    date_dialog = new QDialog;
+    date_dialog = new QDialog(this);
     date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     //date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     date_dialog->resize(150, 200); // 设置宽度,高度
 
-    // QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
+    // QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
     // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     // date_dialog->setStyleSheet(stylesheet);file.close();
 
     QVBoxLayout *layout = new QVBoxLayout(date_dialog);//垂直布局器
+    layout->setSpacing(0); // 设置布局中子项之间的间隔为0
+    layout->setContentsMargins(0, 0, 0, 0);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
     //------------提示词模板设置---------------
     prompt_box = new QGroupBox(wordsObj["prompt"].toString() + wordsObj["template"].toString());//提示词模板设置区域
+    prompt_box->setFont(ui_font);
     QVBoxLayout *prompt_layout = new QVBoxLayout();//提示词模板设置垂直布局器
 
     //预设模板
@@ -923,6 +930,7 @@ void Widget::set_DateDialog()
 
     //------------工具设置---------------
     tool_box = new QGroupBox(wordsObj["mount"].toString() + wordsObj["tool"].toString());//提示词模板设置区域
+    tool_box->setFont(ui_font);
     QVBoxLayout *tool_layout = new QVBoxLayout();//提示词模板设置垂直布局器
     //可用工具
     QHBoxLayout *layout_H44 = new QHBoxLayout();//水平布局器
@@ -940,15 +948,15 @@ void Widget::set_DateDialog()
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
-    search_checkbox = new QCheckBox(wordsObj["search"].toString());
+    toolguy_checkbox = new QCheckBox(wordsObj["toolguy"].toString());
     stablediffusion_checkbox = new QCheckBox(wordsObj["stablediffusion"].toString());
     layout_H46->addWidget(stablediffusion_checkbox);
-    layout_H46->addWidget(search_checkbox);
+    layout_H46->addWidget(toolguy_checkbox);
     tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
 
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
     connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);
-    connect(search_checkbox, &QCheckBox::stateChanged, this, &Widget::search_change);
+    connect(toolguy_checkbox, &QCheckBox::stateChanged, this, &Widget::toolguy_change);
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
     connect(positron_checkbox, &QCheckBox::stateChanged, this, &Widget::positron_change);
     connect(stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::stablediffusion_change);
@@ -959,6 +967,7 @@ void Widget::set_DateDialog()
     layout_H55->addWidget(extra_label);
     switch_lan_button = new QPushButton(ui_extra_lan);
     switch_lan_button->setMinimumWidth(200);
+    switch_lan_button->setMinimumHeight(20);
     layout_H55->addWidget(switch_lan_button);
     extra_TextEdit = new QTextEdit();
     extra_TextEdit->setPlaceholderText(wordsObj["extra calling tooltip"].toString());
@@ -1299,6 +1308,25 @@ void Widget::ui_state_servering()
 //待机界面状态
 void Widget::ui_state_normal()
 {
+    if(is_run)//如果是模型正在运行的状态的话
+    {
+        ui->reset->setEnabled(1);
+        ui->input->setEnabled(1);
+        ui->input->setReadOnly(0);
+        if(is_toolguy)
+        {
+            ui->send->setEnabled(1);
+            ui->input->setStyleSheet("background-color: rgba(100, 149, 237, 60);");//输入区天蓝色
+            ui->input->setPlaceholderText("工具人赶紧去给模型找答案吧~");
+        }
+        else
+        {
+            ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toString());
+            ui->input->setStyleSheet("background-color: white;");
+        }
+        return;
+    }
+
     decode_pTimer->stop();//停止解码动画
     if(ui_mode == CHAT_)
     {
