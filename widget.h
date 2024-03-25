@@ -107,6 +107,7 @@ public:
     QString history_mmprojpath = "";
     QString ui_template = "qwen";//模板
     QString bot_predecode = "";//模型预解码的内容
+    void normal_finish_pushover();//正常情况处理推理完毕
 
     DATES ui_DATES;//ui的约定
     SETTINGS ui_SETTINGS;//ui的设置
@@ -228,6 +229,7 @@ public:
     bool is_toolguy = false;//是否为工具人
     QStringList JSONparser(QString text);//输出解析器，提取JSON
     QString tool_result;
+    QString wait_to_show_image = "";//文生图后待显示图像的图像路径
 
     //装载动画相关
     int all_fps =142;//总帧数

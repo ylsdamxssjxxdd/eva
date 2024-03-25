@@ -672,8 +672,8 @@ void Widget::set_SetDialog()
     set_dialog->setStyleSheet(stylesheet);file.close();
 
     QVBoxLayout *layout = new QVBoxLayout(set_dialog);//总垂直布局器
-    layout->setSpacing(0); // 设置布局中子项之间的间隔为0
-    layout->setContentsMargins(0, 0, 0, 0);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
+    layout->setSpacing(6); // 设置布局中子项之间的间隔为0
+    layout->setContentsMargins(3, 3, 3, 3);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //------------采样设置---------------
     sample_box = new QGroupBox(wordsObj["sample set"].toString());//采样设置区域
     sample_box->setFont(ui_font);
@@ -869,8 +869,8 @@ void Widget::set_DateDialog()
     // date_dialog->setStyleSheet(stylesheet);file.close();
 
     QVBoxLayout *layout = new QVBoxLayout(date_dialog);//垂直布局器
-    layout->setSpacing(0); // 设置布局中子项之间的间隔为0
-    layout->setContentsMargins(0, 0, 0, 0);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
+    layout->setSpacing(6); // 设置布局中子项之间的间隔为0
+    layout->setContentsMargins(3, 3, 3, 3);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
     //------------提示词模板设置---------------
     prompt_box = new QGroupBox(wordsObj["prompt"].toString() + wordsObj["template"].toString());//提示词模板设置区域

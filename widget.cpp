@@ -373,10 +373,7 @@ void Widget::recv_pushover()
     }
     else if(ui_mode == COMPLETE_)//补完模式的话额外重置一下
     {
-        is_run = false;
-        ui_state_normal();//待机界面状态
-        decode_pTimer->stop();
-        decode_action=0;
+        normal_finish_pushover();
         on_reset_clicked();//触发重置
     }
     else
@@ -388,15 +385,19 @@ void Widget::recv_pushover()
             func_arg_list = JSONparser(tool_str);//取巧预解码的系统指令故意不让解析出json
             if(func_arg_list.size() == 0)
             {
-                is_run = false;
-                ui_state_normal();//待机界面状态
+                normal_finish_pushover();
             }
             else
             {
                 //调用工具
                 reflash_state("ui:" + wordsObj["clicked"].toString() + " " + func_arg_list.front(),SIGNAL_);
-
-                if(func_arg_list.first() == "toolguy")
+                //包含以下字段则停止调用
+                if(func_arg_list.first().contains("Answer") || func_arg_list.first().contains("response") || func_arg_list.first().contains("最终回复") )
+                {
+                    normal_finish_pushover();
+                }
+                //如果是toolguy的情况
+                else if(func_arg_list.first() == "toolguy")
                 {
                     is_toolguy = true;
                     ui->send->setEnabled(1);
@@ -404,6 +405,7 @@ void Widget::recv_pushover()
                     ui->input->setPlaceholderText("工具人赶紧去给模型找答案吧~");
                     ui->input->removeEventFilter(this);//禁用输入区右击
                 }
+                //正常调用情况
                 else
                 {
                     emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
@@ -416,11 +418,21 @@ void Widget::recv_pushover()
         //正常结束
         else
         {
-            is_run = false;
-            ui_state_normal();//待机界面状态
-            decode_pTimer->stop();
-            decode_action=0;
+            normal_finish_pushover();
         }
+    }
+}
+//正常情况处理推理完毕
+void Widget::normal_finish_pushover()
+{
+    is_run = false;
+    ui_state_normal();//待机界面状态
+    decode_pTimer->stop();
+    decode_action=0;
+    if(wait_to_show_image!="")
+    {
+        showImage(wait_to_show_image);
+        wait_to_show_image = "";
     }
 }
 
@@ -429,8 +441,8 @@ void Widget::recv_toolpushover(QString tool_result_)
 {
     if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
     {
-        showImage(tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1]);//显示文件名和图像
-        tool_result = "stablediffusion调用成功，图像保存在 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1] + " 图像已经显示给用户不要再输出任何json，直接回复即可";
+        wait_to_show_image = tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];//文生图后待显示图像的图像路径
+        tool_result = "stablediffusion调用成功，图像保存在 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     }
     else
     {
@@ -551,6 +563,7 @@ void Widget::recv_setreset()
 //用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked()
 {
+    wait_to_show_image = "";//清空待显示图像
     temp_speech="";//清空待读列表
     wait_speech.clear();//清空待读列表
     speech->stop();//停止朗读

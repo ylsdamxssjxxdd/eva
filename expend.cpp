@@ -1156,6 +1156,10 @@ void Expend::on_sd_draw_pushButton_clicked()
         ui->sd_log->appendPlainText("请先指定sd模型路径");
         return;
     }
+    else if(!is_handle_sd)
+    {
+        emit expend2ui_state("expend:sd.exe程序绘制中",USUAL_);
+    }
 
     //锁定界面
     ui->frame_6->setEnabled(0);
@@ -1214,6 +1218,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     arguments << "--clip-skip" << QString::number(sd_params.clip_skip);//跳层
     arguments << "-t" << QString::number(sd_params.nthreads);//线程数
     arguments << "-o" << sd_params.outpath;//输出路径
+    
     arguments << "-p" << sd_params.extra_prompt + sd_params.prompt;//提示词
     arguments << "-n" << sd_params.negative_prompt;//反向提示词
     arguments << "--cfg-scale" << QString::number(sd_params.cfg_scale);//相关系数
@@ -1290,6 +1295,7 @@ void Expend::sd_onProcessFinished()
     if(!is_handle_sd && originalWidth>0)
     {
         is_handle_sd = true;
+        emit expend2ui_state("expend:绘制完毕",USUAL_);
         emit expend2tool_drawover(sd_params.outpath,1);//绘制完成信号
     }
     else if(!is_handle_sd)
@@ -1297,10 +1303,12 @@ void Expend::sd_onProcessFinished()
         is_handle_sd = true;
         if(sd_process_output.contains("CUDA error"))
         {
+            emit expend2ui_state("expend:绘制失败，显存不足，请用户减小图像宽高",WRONG_);
             emit expend2tool_drawover("绘制失败，显存不足，请用户减小图像宽高",0);//绘制完成信号
         }
         else
         {
+            emit expend2ui_state("expend:绘制失败，注意描述的文本需要用纯英文",WRONG_);
             emit expend2tool_drawover("绘制失败，注意描述的文本需要用纯英文",0);//绘制完成信号
         }
         
