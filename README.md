@@ -11,15 +11,15 @@
 
 - 轻量
     - 机体没有其它依赖组件，就是一个exe程序
-- win7
+- 兼容性
     - 最低支持32位windows7
     - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
-- 多功能
-    - 本地模型交互，多模态，在线模型交互，对外api服务，智能体，知识库问答，模型量化，文生图，声转文，语音朗读 (全都有就是效果不咋地)
 - 直观 
     - 输出区的内容就是模型的全部现实
     - 状态区的内容就是运行的全部流程
-
+- 多功能
+    - 本地模型交互，智能体，多模态，在线模型交互，对外api服务，知识库问答，模型量化，文生图，声转文，语音朗读 (全都有就是效果不咋地)
+    
 ## 快速开始
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -100,7 +100,6 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
     
 ## 待办事项
-- 逐步弃用xbot转为xcore，使用server.exe的/completion端点代替手撸的推理循环，提高系统稳定性
 - 适配linux
 - 适配国产cpu/gpu
 - 英文版本

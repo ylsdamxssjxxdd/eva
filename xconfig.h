@@ -20,7 +20,7 @@
     #define DEFAULT_BATCH 32
 #else
     #define DEFAULT_NCTX 2048
-    #define DEFAULT_BATCH 256
+    #define DEFAULT_BATCH 512
 #endif    
 
 #define DEFAULT_NTHREAD 1

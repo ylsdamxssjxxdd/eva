@@ -72,7 +72,6 @@
         "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response": "温度越高回答越发散,温度越低回答越准确",
         "Reduce the probability of the model outputting synonymous words": "降低模型输出同类词的概率",
         "put some model paragram to gpu and reload model": "将模型的一部分参数装载到gpu上",
-        "memory capacity": "记忆的容量",
         "please change the text": "请在上面修改任意文本",
         "over": "完毕",
         "stop": "停止",
@@ -169,7 +168,7 @@
         "recv output": "接收到回复",
         "current api": "当前负载端点",
         "send message to api": "向负载端点发送请求",
-        "npredict": "最大输出长度",
+        "npredict": "最长输出",
         "api mode": "api模式",
         "limited": "限制为",
         "next token": "下一个词",
@@ -177,6 +176,7 @@
         "one predict model can output max token number": "模型在一次预测过程中最多能输出的token数",
         "thread": "线程数",
         "not big better": "不是越大越好",
+        "big brain size lead small wisdom": "容量过大会使智力减弱",
         "degree": "度",
         "day": "日",
         "month": "月",
@@ -264,6 +264,7 @@
         "qurey&timeuse": "查询&计算耗时",
         "quantize": "量化",
         "text2image": "文生图",
-        "voice2text": "声转文"
+        "voice2text": "声转文",
+        "brain size": "记忆容量"
     }
 }

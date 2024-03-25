@@ -481,7 +481,7 @@ void Widget::temp_change()
 void Widget::ngl_change()
 {
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ngl_label->setText("gpu "+ wordsObj["offload"].toString() + " " + QString::number(ngl_slider->value()));
+    ngl_label->setText("gpu"+ wordsObj["offload"].toString() + " " + QString::number(ngl_slider->value()));
 #endif
 }
 //batch滑块响应
@@ -492,7 +492,7 @@ void Widget::batch_change()
 // nctx滑块响应
 void Widget::nctx_change()
 {
-    nctx_label->setText(wordsObj["ctx"].toString()+wordsObj["length"].toString()+" "+ QString::number(nctx_slider->value()));
+    nctx_label->setText(wordsObj["brain size"].toString() + " "+ QString::number(nctx_slider->value()));
     
 }
 //repeat滑块响应
@@ -509,7 +509,7 @@ void Widget::npredict_change()
 
 void Widget::nthread_change()
 {
-    nthread_label->setText("cpu " + wordsObj["thread"].toString() + " " + QString::number(nthread_slider->value()));
+    nthread_label->setText("cpu" + wordsObj["thread"].toString() + " " + QString::number(nthread_slider->value()));
 }
 
 //补完按钮响应
@@ -732,7 +732,7 @@ void Widget::set_SetDialog()
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
-    ngl_label = new QLabel("gpu " + wordsObj["offload"].toString() + QString::number(ui_SETTINGS.ngl));
+    ngl_label = new QLabel("gpu" + wordsObj["offload"].toString() + QString::number(ui_SETTINGS.ngl));
     ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toString());ngl_label->setMinimumWidth(100);
     layout_H2->addWidget(ngl_label);
     ngl_slider = new QSlider(Qt::Horizontal);
@@ -745,7 +745,7 @@ void Widget::set_SetDialog()
 #endif
     //cpu线程数设置
     QHBoxLayout *layout_H16 = new QHBoxLayout();//水平布局器
-    nthread_label = new QLabel("cpu " + wordsObj["thread"].toString() + " " + QString::number(ui_SETTINGS.nthread));
+    nthread_label = new QLabel("cpu" + wordsObj["thread"].toString() + " " + QString::number(ui_SETTINGS.nthread));
     nthread_label->setToolTip(wordsObj["not big better"].toString());
     nthread_label->setMinimumWidth(100);
     layout_H16->addWidget(nthread_label);
@@ -756,29 +756,29 @@ void Widget::set_SetDialog()
     layout_H16->addWidget(nthread_slider);
     decode_layout->addLayout(layout_H16);//将布局添加到总布局
     connect(nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
-    //ctx length
+    //ctx length 记忆容量
     QHBoxLayout *layout_H3 = new QHBoxLayout();//水平布局器
-    nctx_label = new QLabel(wordsObj["ctx"].toString()+wordsObj["length"].toString()+" " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(wordsObj["memory capacity"].toString() + "," + wordsObj["not big better"].toString());nctx_label->setMinimumWidth(100);
+    nctx_label = new QLabel(wordsObj["brain size"].toString()+" " + QString::number(ui_SETTINGS.nctx));
+    nctx_label->setToolTip(wordsObj["ctx"].toString() + wordsObj["length"].toString() + "," + wordsObj["big brain size lead small wisdom"].toString());nctx_label->setMinimumWidth(100);
     layout_H3->addWidget(nctx_label);
     nctx_slider = new QSlider(Qt::Horizontal);
     nctx_slider->setRange(128,32768);
     nctx_slider->setValue(ui_SETTINGS.nctx);
-    nctx_slider->setToolTip(wordsObj["memory capacityl"].toString() + "," + wordsObj["not big better"].toString());
+    nctx_slider->setToolTip(wordsObj["ctx"].toString() + wordsObj["length"].toString() + "," + wordsObj["big brain size lead small wisdom"].toString());
     layout_H3->addWidget(nctx_slider);
     decode_layout->addLayout(layout_H3);//将布局添加到总布局
     connect(nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
-    //batch size
+    //batch size 批大小
     QHBoxLayout *layout_H13 = new QHBoxLayout();//水平布局器
     batch_label = new QLabel(wordsObj["batch size"].toString() + " " + QString::number(ui_SETTINGS.batch));
     batch_label->setToolTip(wordsObj["batch size mean"].toString());batch_label->setMinimumWidth(100);
-    layout_H13->addWidget(batch_label);
+    //layout_H13->addWidget(batch_label);//暂时不显示
     batch_slider = new QSlider(Qt::Horizontal);
     batch_slider->setRange(1,2048);
     batch_slider->setValue(ui_SETTINGS.batch);
     batch_slider->setToolTip(wordsObj["batch size mean"].toString());
-    layout_H13->addWidget(batch_slider);
-    decode_layout->addLayout(layout_H13);//将布局添加到总布局
+    //layout_H13->addWidget(batch_slider);//暂时不显示
+    //decode_layout->addLayout(layout_H13);//暂时不显示
     connect(batch_slider, &QSlider::valueChanged, this, &Widget::batch_change);
 
     //load lora
@@ -1245,7 +1245,7 @@ void Widget::change_api_dialog(bool enable)
     repeat_label->setVisible(enable);repeat_slider->setVisible(enable);
     nctx_label->setVisible(enable);nctx_slider->setVisible(enable);
     nthread_label->setVisible(enable);nthread_slider->setVisible(enable);
-    batch_label->setVisible(enable);batch_slider->setVisible(enable);
+    //batch_label->setVisible(enable);batch_slider->setVisible(enable);
     mmproj_label->setVisible(enable);mmproj_LineEdit->setVisible(enable);
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_label->setVisible(enable);ngl_slider->setVisible(enable);
