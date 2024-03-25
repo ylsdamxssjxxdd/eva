@@ -53,9 +53,8 @@ public:
     int n_gpu_layers;//模型最大gpu负载层数
     int maxngl=0;
 
-    std::vector<llama_token> embd_inp,embd,prompt_token;//待推理词向量
+    std::vector<llama_token> embd_inp,embd;//待推理词向量
     llama_token eos_token;//结束标志
-    llama_context *ctx_guidance = NULL;//上下文梯度
     std::vector<llama_token_data> *candidates;//词表采样矩阵
     llama_grammar * grammar = NULL; //强制语法
     std::vector<int>   *history_tokens;//记录模型的输出
@@ -63,7 +62,8 @@ public:
     int ga_i = 0;//记录拓展的上下文数量?
     int ga_n = 1;//拓展的倍数
     int ga_w = 512;//拓展时用于计算的宽度？group-attention width
-    
+    std::vector<llama_token> system_tokens;//系统指令的token
+
     //计算时间相关
     bool is_batch = false;
     float batch_time = 0.000001;

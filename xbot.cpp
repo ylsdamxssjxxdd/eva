@@ -176,14 +176,14 @@ void xBot::run()
         else{ga_n = 1;ga_w = 512;}
 
         int o1 = stream();
-        while(o1)//如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码完成
+        while(o1)//如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
         {
             n_past++;//置入一个空的记忆来缓解
             batch_count--;//空的不算数
             emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
             o1 = stream();
             fail++;
-            qDebug()<<"fail times"<<fail<<"return "<<o1;
+            //qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
         }
         
         emit bot2ui_pushover();//推理完成的信号
@@ -211,29 +211,38 @@ int xBot::stream()
         if (!embd.empty())
         {
             emit bot2ui_state("bot:-----------------------------------------------" );
-            //输入的上下文长度超过n_ctx - 4直接截断
-            int max_embd_size = gpt_params_.n_ctx - 4 - prompt_token.size();
+            //输入的上下文长度超过阈值直接截断
+            int max_embd_size = gpt_params_.n_ctx - 4 - system_tokens.size();
             if ((int) embd.size() > max_embd_size)
             {
                 const int skipped_tokens = (int) embd.size() - max_embd_size;
                 embd.resize(max_embd_size);
                 emit bot2ui_state("bot:" + wordsObj["input ctx length over"].toString()+ QString::number(max_embd_size)+ " " + wordsObj["skip"].toString() +QString::number(skipped_tokens)+" token",WRONG_);
             }
-            
-            //上下文缓存超过n_ctx截断处理一半上下文
+            //上下文缓存超过n_ctx截断处理一半上下文, 但是保留系统指令
             if(ga_n == 1)
             {
-                while(n_past + (int) embd.size() > gpt_params_.n_ctx)
+                while(n_past + (int) embd.size() >= gpt_params_.n_ctx - 1)
                 {
-                    const int n_left    = n_past - gpt_params_.n_keep ;//gpt_params_.n_keep需要保留的字符
-                    const int n_discard = n_left/2;
-                    llama_kv_cache_seq_rm(ctx, 0, gpt_params_.n_keep           , gpt_params_.n_keep + n_discard);
-                    llama_kv_cache_seq_add(ctx, 0, gpt_params_.n_keep + n_discard, n_past, -n_discard);
-                    //llama_kv_cache_seq_shift(ctx, 0, gpt_params_.n_keep + 1 + n_discard, n_past, -n_discard);//导致批解码失败的元首
+                    const int n_keep    = system_tokens.size();//需要保留的token长度
+                    const int n_left    = n_past - n_keep;//除了需要保留的剩下的token长度
+                    const int n_discard = n_left / 2;//待删除的token长度
+                    //qDebug()<<"n_past"<<n_past<<"n_keep"<<n_keep<<"n_left"<<n_left<<"n_discard"<<n_discard;
+                    //导致批解码失败的元首
+                    llama_kv_cache_seq_rm(ctx, 0, n_keep           , n_keep + n_discard);//删除中间一段缓存(n_keep -> n_keep + n_discard)
+                    llama_kv_cache_seq_add(ctx, 0, n_keep + n_discard, n_past, -n_discard);//把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
+
                     n_past -= n_discard;
-                    emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
-                    if(!is_complete){emit bot2ui_arrivemaxctx(1);}//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
-                    else{emit bot2ui_arrivemaxctx(0);}
+                    emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
+                    
+                    if(!is_complete)
+                    {
+                        emit bot2ui_arrivemaxctx(1);//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
+                    }
+                    else
+                    {
+                        emit bot2ui_arrivemaxctx(0);
+                    }
                     emit bot2ui_state(wordsObj["eva overload"].toString(), EVA_);
                     emit bot2ui_state("bot:" +  wordsObj["arrivemaxctx"].toString()+ wordsObj["will cut"].toString() +" "+QString::number(n_discard) + " token",SIGNAL_);
                 }
@@ -254,13 +263,16 @@ int xBot::stream()
                     //qDebug()<<n_past<<bd<<ga_i;
                 }
             }
-            
-            if(embd.size()>1)//embd.size()>1说明需要按批处理
+
+            //embd.size()>1说明需要按批处理
+            if(embd.size()>1)
             {
                 is_batch = true;
-                //bot2ui_state("bot:" +wordsObj["make input"].toString() +  QString::number(embd.size())+wordsObj["nums"].toString() + "token" +wordsObj["batch decode"].toString()+ " " + wordsObj["batch size"].toString() + QString::number(gpt_params_.n_batch));
             }
-            else{is_batch = false;}
+            else
+            {
+                is_batch = false;
+            }
 
             //按批处理,直到处理完
             QElapsedTimer time4;
@@ -308,7 +320,7 @@ int xBot::stream()
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
         {
-            const llama_token id = llama_sampling_sample(sparams, ctx, ctx_guidance);//采样获取下一个token的id
+            const llama_token id = llama_sampling_sample(sparams, ctx, NULL);//采样获取下一个token的id
 
             //展示概率表
             llama_token_data_array cur_p = { sparams->cur.data(), sparams->cur.size(), false };//词概率表
@@ -472,7 +484,9 @@ void xBot::load(std::string &modelpath)
         llama_kv_cache_clear(ctx);//清空ctx kv缓存
         n_past=0;
         llama_free(ctx);
+        ctx = nullptr;
         llama_free_model(model);
+        model = nullptr;
         emit bot2ui_kv(0,n_past);//新增,当前没有缓存
         emit bot2ui_state("bot:" + wordsObj["free model and ctx"].toString());
     }
@@ -507,7 +521,7 @@ void xBot::load(std::string &modelpath)
     
     emit bot2ui_state(wordsObj["eva loadding"].toString(),EVA_);
     emit bot2ui_play();//播放动画
-    
+
     //装载模型
     std::tie(model, ctx) = llama_init_from_gpt_params(gpt_params_);//同时获取model和ctx
 
@@ -524,13 +538,22 @@ void xBot::load(std::string &modelpath)
     //挂载视觉
     if(mmprojpath!="")
     {
-        if(is_multi){clip_free(ctx_clip);}//如果之前是多模态则先释放,但是显存没有返还
+        if(is_multi)//如果之前是多模态则先释放,但是显存没有返还
+        {
+            clip_free(ctx_clip);
+            ctx_clip = nullptr;
+        }
         ctx_clip = clip_model_load(mmprojpath.c_str(), /*verbosity=*/ 1);
         is_multi = true;
     }
     else
     {
-        if(is_multi){clip_free(ctx_clip);is_multi=false;}//如果之前是多模态则先释放
+        if(is_multi)
+        {
+            clip_free(ctx_clip);
+            ctx_clip = nullptr;
+            is_multi=false;
+        }//如果之前是多模态则先释放
     }
     
     if (model == NULL)
@@ -573,16 +596,16 @@ void xBot::reset(bool is_clear_all)
     //-------------------------------初始化----------------------------------
     //----------------------------------------------------------------------
     QElapsedTimer time1;time1.start();
-    
+
     //新增
     if(int(llama_tokenize(ctx, gpt_params_.prompt, add_bos, true).size())>gpt_params_.n_ctx -4)//如果约定的系统指令长度太长则不约定
     {is_datetoolong = true;emit bot2ui_state("bot:" +wordsObj["system calling too long use"].toString()+":You are a helpful assistant.\n",WRONG_);}
     else{is_datetoolong = false;}
 
-    prompt_token.clear();
-    if(is_complete){prompt_token = llama_tokenize(ctx, "", add_bos, true);}//补完模式预解码空的约定词向量
-    else if(is_datetoolong){prompt_token = llama_tokenize(ctx, "You are a helpful assistant.\n", add_bos, true);}//新增
-    else{prompt_token = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true);}
+    system_tokens.clear();
+    if(is_complete){system_tokens = llama_tokenize(ctx, "", add_bos, true);}//补完模式预解码空的约定词向量
+    else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.\n", add_bos, true);}//新增
+    else{system_tokens = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true);}
     is_antiprompt = false;//用户昵称检测标签
     is_first_input = true;//初次输入标签,对话模式中初次输前已经考虑add_bos,不再向用户输入插入开始标志
     candidates = new std::vector<llama_token_data>;
@@ -603,7 +626,11 @@ void xBot::reset(bool is_clear_all)
     //     gpt_params_.antiprompt.push_back("###");
     // }
 
-    if(!is_first_load){llama_sampling_free(sparams);}//清空采样参数
+    if(!is_first_load)
+    {
+        llama_sampling_free(sparams);
+        sparams = nullptr;
+    }//清空采样参数
     sparams = llama_sampling_init(gpt_params_.sparams);//初始化采样参数
 
     if(is_clear_all)//清空ctx kv缓存
@@ -612,25 +639,25 @@ void xBot::reset(bool is_clear_all)
         n_past             = 0;//已推理字符数
         n_consumed         = 0;//已推理字符数
         history_tokens->clear();//用来记录输出
-        emit bot2ui_kv(0,n_past);//新增,当前没有缓存
+        emit bot2ui_kv(0,n_past);//当前没有缓存
     }
     else//删除prompt以外的kv缓存
     {
-        if(n_past>int(prompt_token.size()))
+        if(n_past>int(system_tokens.size()))
         {
-            llama_kv_cache_seq_rm   (ctx, 0, prompt_token.size(), -1);//从prompt_token.size()位置开始删除到最后
-            n_past = prompt_token.size();
-            n_consumed = prompt_token.size();
+            llama_kv_cache_seq_rm   (ctx, 0, system_tokens.size(), -1);//从system_tokens.size()位置开始删除到最后
+            n_past = system_tokens.size();
+            n_consumed = system_tokens.size();
             history_tokens->clear();//用来记录输出
-            history_tokens->insert(history_tokens->end(), prompt_token.begin(), prompt_token.end());
-            emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//新增,当前缓存量为系统指令token量
+            history_tokens->insert(history_tokens->end(), system_tokens.begin(), system_tokens.end());
+            emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
         }
     }
     ga_i = 0;
     pick_half_utf8.clear();
     embd.clear();
     embd_inp.clear();
-    embd_inp.insert(embd_inp.end(), prompt_token.begin(), prompt_token.end());//预解码的约定词向量
+    embd_inp.insert(embd_inp.end(), system_tokens.begin(), system_tokens.end());//预解码的约定词向量
 
     if(is_first_reset)//模型装载后首次重置完成标签,控制是否输出清空的消息
     {
@@ -668,17 +695,16 @@ void xBot::preDecode()
         {
             int n_eval = (int) embd.size() - i;//待验证
             if (n_eval > gpt_params_.n_batch){n_eval = gpt_params_.n_batch;}
-            //qDebug()<<"n_eval "<<QString::number(n_eval)<<"n_past "<<QString::number(n_past);
             //推理
             if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0))) //将emd推理到ctx中,返回0表示推理正常
             {
-                emit bot2ui_state("bot:"+wordsObj["decode"].toString() + wordsObj["fail"].toString() ,WRONG_);
+                emit bot2ui_state("bot:"+wordsObj["predecode"].toString() + wordsObj["fail"].toString() ,WRONG_);
                 return;
             }
 
             n_past += n_eval;
         }
-        emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//新增,当前缓存量为系统指令token量
+        emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
     }
     else//待推理的embd没有token则退出
     {
@@ -949,7 +975,9 @@ void xBot::recv_free()
         QElapsedTimer time2;time2.start();
         llama_kv_cache_clear(ctx);//清空ctx kv缓存
         llama_free(ctx);
+        ctx = nullptr;
         llama_free_model(model);
+        model = nullptr;
         is_free = true;
         is_load = false;
         emit bot2ui_kv(0,0);

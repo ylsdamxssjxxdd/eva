@@ -107,11 +107,11 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 
 ## 已知BUG
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复
-- 达到最大上下文后截断一次后再达到，解码会失败，通过暂时置入空的记忆来缓解，定位在xbot.cpp的llama_decode返回1（找不到kv槽），待修复
 - 链接模式下，无法无间隔的连续发送，通过定时100ms后触发来缓解，定位在xnet.cpp的QNetworkAccessManager不能及时释放，待修复
 - 多模态模型输出异常，需要向llava.cpp对齐，待修复
-- csv文件存在特殊符号时不能正确解析，定位在utils.cpp的readCsvFile函数待修复
+- csv文件存在特殊符号时不能正确解析，定位在utils.cpp的readCsvFile函数，待修复
 ---
+- 达到最大上下文长度后截断一次后再达到，解码会失败，通过暂时置入空的记忆来缓解，定位在xbot.cpp的llama_decode返回1（找不到kv槽），没修复（实际上是截断后，送入的token数量与保留的部分依旧超过最大上下文长度，需要再截断一次）
 - 部分字符utf-8解析有问题，已修复（模型输出不完整的utf8字符，需要手动将3个拼接成1个）
 - 切换模型时显存泄露，已修复（使用cuda时，不使用mmp）
 - mingw编译的版本装载时无法识别中文路径，定位在llama.cpp的fp = std::fopen(fname, mode);，已修复（利用QTextCodec::codecForName("GB2312")将字符转码）
