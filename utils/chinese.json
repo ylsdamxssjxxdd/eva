@@ -203,7 +203,7 @@
         "positron": "阳电子步枪",
         "stablediffusion": "文生图",
         "extra calling": "额外指令",
-        "extra calling tooltip": "勾选工具后将自动添加额外的系统指令，点击zh/en切换语言，支持手动修改，注意小模型挂载工具后可能会急剧降低输出质量",
+        "extra calling tooltip": "勾选工具后将自动添加额外的系统指令，点击zh/en切换语言，支持手动修改，注意挂载工具后可能会急剧降低模型输出质量",
         "tool_observation": "观察:",
         "tool_observation2": "观察：",
         "tool_thought": "思考:",
