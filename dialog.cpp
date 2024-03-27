@@ -237,6 +237,7 @@ void Widget::unlockLoad()
     this->setWindowTitle(wordsObj["current model"].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
     ui->kv_bar->message = wordsObj["brain"].toString();
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
+    auto_save_user();//保存ui配置
     //如果是对话模式则预解码约定
     if(ui_mode == CHAT_)
     {
@@ -246,6 +247,7 @@ void Widget::unlockLoad()
     }
     force_unlockload_pTimer->stop();
     is_load_play_over = true;//标记模型动画已经完成
+    
 }
 
 // 按日志显示装载进度
@@ -555,7 +557,7 @@ void Widget::web_change()
 //提示词模板下拉框响应
 void Widget::prompt_template_change()
 {
-    if(prompt_comboBox->currentText() == wordsObj["custom set"].toString())
+    if(chattemplate_comboBox->currentText() == wordsObj["custom set"].toString())
     {
         system_TextEdit->setEnabled(1);
         input_pfx_LineEdit->setEnabled(1);
@@ -563,11 +565,11 @@ void Widget::prompt_template_change()
     }
     else
     {
-        system_TextEdit->setText(date_map[prompt_comboBox->currentText()].system_prompt);
+        system_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].system_prompt);
         system_TextEdit->setEnabled(0);
-        input_pfx_LineEdit->setText(date_map[prompt_comboBox->currentText()].input_pfx);
+        input_pfx_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].input_pfx);
         input_pfx_LineEdit->setEnabled(0);
-        input_sfx_LineEdit->setText(date_map[prompt_comboBox->currentText()].input_sfx);
+        input_sfx_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].input_sfx);
         input_sfx_LineEdit->setEnabled(0);
     }
 }
@@ -881,16 +883,16 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H9 = new QHBoxLayout();//水平布局器
     prompt_label = new QLabel(wordsObj["chat"].toString() + wordsObj["template"].toString());
     layout_H9->addWidget(prompt_label);
-    prompt_comboBox = new QComboBox();
-    prompt_comboBox->setMinimumWidth(200);
+    chattemplate_comboBox = new QComboBox();
+    chattemplate_comboBox->setMinimumWidth(200);
     for (const QString &key : date_map.keys())
     {
-        prompt_comboBox->addItem(key);
+        chattemplate_comboBox->addItem(key);
     }
-    prompt_comboBox->addItem(wordsObj["custom set"].toString());//添加自定义模板
-    prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
-    connect(prompt_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
-    layout_H9->addWidget(prompt_comboBox);
+    chattemplate_comboBox->addItem(wordsObj["custom set"].toString());//添加自定义模板
+    chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
+    connect(chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
+    layout_H9->addWidget(chattemplate_comboBox);
     prompt_layout->addLayout(layout_H9);//将布局添加到总布局
     //系统指令
     QHBoxLayout *layout_H11 = new QHBoxLayout();//水平布局器
@@ -1490,4 +1492,55 @@ void Widget::create_right_menu()
         ui->send->click();//触发一次发送
     });
 
+}
+
+//获取设置中的纸面值
+void Widget::get_set()
+{
+    ui_SETTINGS.temp = temp_slider->value()/100.0;
+    ui_SETTINGS.repeat = repeat_slider->value()/100.0;
+    ui_SETTINGS.npredict = npredict_slider->value();
+
+    ui_SETTINGS.nthread =nthread_slider->value();
+    ui_SETTINGS.nctx = nctx_slider->value();//获取nctx滑块的值
+    ui_SETTINGS.batch = batch_slider->value();//获取nctx滑块的值
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+    ui_SETTINGS.ngl = ngl_slider->value();//获取npl滑块的值
+#endif
+
+    ui_SETTINGS.lorapath = lora_LineEdit->text();
+    ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();
+
+    ui_SETTINGS.complete_mode = complete_btn->isChecked();
+    if(chat_btn->isChecked()){ui_mode=CHAT_;}
+    else if(complete_btn->isChecked()){ui_mode=COMPLETE_;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预解码
+    else if(web_btn->isChecked()){ui_mode=SERVER_;}
+    ui_port = port_lineEdit->text();
+    
+}
+
+//获取约定中的纸面值
+void Widget::get_date()
+{
+    ui_extra_prompt = extra_TextEdit->toPlainText();
+    ui_system_prompt = system_TextEdit->toPlainText();
+    //合并附加指令
+    if(ui_extra_prompt!=""){ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;}
+    else{ui_DATES.system_prompt = ui_system_prompt;}
+
+    ui_DATES.input_pfx = input_pfx_LineEdit->text();
+    ui_DATES.input_sfx = input_sfx_LineEdit->text();
+    ui_DATES.is_load_tool = is_load_tool;
+    ui_template = chattemplate_comboBox->currentText();
+    ui_extra_lan = switch_lan_button->text();
+
+    ui_calculator_ischecked = calculator_checkbox->isChecked();
+    ui_cmd_ischecked = cmd_checkbox->isChecked();
+    ui_toolguy_ischecked = toolguy_checkbox->isChecked();
+    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
+    ui_positron_ischecked = positron_checkbox->isChecked();
+    ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
+
+    //添加额外停止标志
+    addStopwords();
 }

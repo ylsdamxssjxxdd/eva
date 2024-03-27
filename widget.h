@@ -38,6 +38,7 @@
 #include <QShortcut>
 #include <QTextBlock>
 #include <QTextCursor>
+#include <QSettings>
 
 #include <QAudioInput>
 #include <QBuffer>
@@ -83,6 +84,9 @@ public:
     QStringList func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;//字体大小
+    void auto_save_user();//每次约定和设置后都保存配置到本地
+    void get_set();//获取设置中的纸面值
+    void get_date();//获取约定中的纸面值
 
     void ui_state_init();//初始界面状态
     void ui_state_loading();//装载中界面状态
@@ -210,7 +214,7 @@ public:
     QLabel *input_sfx_label;
     QLineEdit *input_sfx_LineEdit;
     QLabel *prompt_label;
-    QComboBox *prompt_comboBox;
+    QComboBox *chattemplate_comboBox;
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
@@ -300,6 +304,7 @@ public:
 
 //发给模型的信号
 signals:
+    void ui2bot_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void ui2bot_language(QJsonObject wordsObj_);//传递使用的语言
     void ui2bot_imagepath(QString image_path);//传递图片路径
     void ui2bot_modelpath(QString model_path,bool is_first_load_=false);//传递模型路径
@@ -358,6 +363,9 @@ public slots:
     void recv_embeddingdb_describe(QString describe);//传递知识库的描述
     void recv_voiceparams(Voice_Params Voice_Params_);//传递文转声参数
 //自用的槽
+public slots:    
+    void switch_lan_change();//切换行动纲领的语言
+//自用的槽
 private slots:
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();//朗读结束后动作
@@ -381,7 +389,6 @@ private slots:
     void knowledge_change();//选用知识库工具
     void positron_change();//选用阳电子炮工具
     void stablediffusion_change();//选用大模型工具
-    void switch_lan_change();//切换行动纲领的语言
     bool toolcheckbox_checked();//判断是否挂载了工具
 
     void prompt_template_change();//提示词模板下拉框响应

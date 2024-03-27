@@ -54,7 +54,7 @@ public:
     bool is_first_show_logs = true;
     bool is_first_show_info = true;
     bool load_percent_tag = false;
-    void init_expend();//初始化扩展窗口
+    void init_expend();//初始化增殖窗口
     bool createTempDirectory(const QString &path);
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();//读取配置文件并应用
@@ -64,7 +64,7 @@ signals:
 public slots:
     void recv_log(QString log);
     void recv_vocab(QString vocab);    
-    void recv_expend_show(int index_);//通知显示扩展窗口
+    void recv_expend_show(int index_);//通知显示增殖窗口
 private slots:
     void on_tabWidget_tabBarClicked(int index);//用户切换选项卡时响应    
 private:
@@ -152,6 +152,9 @@ public:
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
+    bool uploadimaging = false;//是否正在上传图像
+    QString uploadimagepath = "";//上传图像的路径
+    bool img2img =false;//是否是图生图操作
 public slots:
     void sd_onProcessStarted();//进程开始响应
     void sd_onProcessFinished();//进程结束响应
@@ -162,8 +165,10 @@ signals:
 private slots:
     void on_sd_modelpath_pushButton_clicked();//用户点击选择sd模型路径时响应 
     void on_sd_vaepath_pushButton_clicked();//用户点击选择vae模型路径时响应   
-    void on_sd_draw_pushButton_clicked();//用户点击开始绘制时响应  
+    void on_sd_draw_pushButton_clicked();//用户点击文生图时响应  
     void on_sd_modelpath_lineEdit_textChanged();//sd模型路径改变响应
+    void on_sd_uploadimage_textEdit_textChanged();//上传图像文本区改变响应
+    void on_sd_draw_pushButton_2_clicked();//用户点击图生图时响应  
 
 
 //-------------------------------------------------------------------------

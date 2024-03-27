@@ -23,7 +23,7 @@ Widget::Widget(QWidget *parent)
     ui_DATES.input_sfx = DEFAULT_SUFFIX;
     ui_DATES.is_load_tool = false;
     ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
-
+    addStopwords();//添加停止词
     date_map.insert("qwen", ui_DATES);
     date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "Instruction", "Response",false,QStringList{}});
     date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
@@ -515,7 +515,8 @@ void Widget::recv_datereset()
         reflash_state("· "+ stop_str +" ",USUAL_);
     }
     reflash_state("···········"+ wordsObj["date"].toString() + "···········",USUAL_);
-    //is_datereset = true;
+    auto_save_user();//保存ui配置
+    
     ui->reset->click();
 }
 
@@ -554,7 +555,7 @@ void Widget::recv_setreset()
     }
 
     reflash_state("···········"+ wordsObj["set"].toString() + "···········",USUAL_);
-    
+    auto_save_user();//保存ui配置
     
     ui->reset->click();
 }
@@ -629,7 +630,7 @@ void Widget::on_date_clicked()
     reflash_state("ui:"+wordsObj["clicked date"].toString(),SIGNAL_);
 
     //展示最近一次设置值
-    prompt_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
+    chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     system_TextEdit->setText(ui_system_prompt);
 
     calculator_checkbox->setChecked(ui_calculator_ischecked);
@@ -648,27 +649,7 @@ void Widget::on_date_clicked()
 //应用用户设置的约定内容
 void Widget::set_date()
 {
-    ui_extra_prompt = extra_TextEdit->toPlainText();
-    ui_system_prompt = system_TextEdit->toPlainText();
-    //合并附加指令
-    if(ui_extra_prompt!=""){ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;}
-    else{ui_DATES.system_prompt = ui_system_prompt;}
-
-    ui_DATES.input_pfx = input_pfx_LineEdit->text();
-    ui_DATES.input_sfx = input_sfx_LineEdit->text();
-    ui_DATES.is_load_tool = is_load_tool;
-    ui_template = prompt_comboBox->currentText();
-    ui_extra_lan = switch_lan_button->text();
-
-    ui_calculator_ischecked = calculator_checkbox->isChecked();
-    ui_cmd_ischecked = cmd_checkbox->isChecked();
-    ui_toolguy_ischecked = toolguy_checkbox->isChecked();
-    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
-    ui_positron_ischecked = positron_checkbox->isChecked();
-    ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
-
-    //添加额外停止标志
-    addStopwords();
+    get_date();//获取约定中的纸面值
 
     if(is_api){on_reset_clicked();}//如果是链接模式就重置一下
 
@@ -718,32 +699,15 @@ void Widget::recv_qimagepath(QString cut_imagepath_)
 // 设置用户设置内容
 void Widget::set_set()
 {
-    ui_SETTINGS.temp = temp_slider->value()/100.0;
-    ui_SETTINGS.repeat = repeat_slider->value()/100.0;
-    ui_SETTINGS.npredict = npredict_slider->value();
-
-    ui_SETTINGS.nthread =nthread_slider->value();
-    ui_SETTINGS.nctx = nctx_slider->value();//获取nctx滑块的值
-    ui_SETTINGS.batch = batch_slider->value();//获取nctx滑块的值
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ui_SETTINGS.ngl = ngl_slider->value();//获取npl滑块的值
-#endif
-
-    ui_SETTINGS.lorapath = lora_LineEdit->text();
-    ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();
-
-    ui_SETTINGS.complete_mode = complete_btn->isChecked();
-    if(chat_btn->isChecked()){ui_mode=CHAT_;}
-    else if(complete_btn->isChecked()){ui_mode=COMPLETE_;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预解码
-    else if(web_btn->isChecked()){ui_mode=SERVER_;}
-    ui_port = port_lineEdit->text();
+    get_set();//获取设置中的纸面值
     
-    // QDir checkDir(ui_SETTINGS.mmprojpath);
-    // qDebug()<<ui_SETTINGS.mmprojpath<<checkDir.exists();
-    // if (!checkDir.exists()) {ui_SETTINGS.mmprojpath="";ui_state = "ui:mmporj path not exit";reflash_state(ui_state,WRONG_);}// 目录不存在
     set_dialog->close();
-    if(ui_mode!=CHAT_){prompt_box->setEnabled(0);tool_box->setEnabled(0);}//如果不是对话模式则禁用约定
+
+    //如果不是对话模式则禁用约定
+    if(ui_mode!=CHAT_)
+    {prompt_box->setEnabled(0);tool_box->setEnabled(0);}
     else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
+
     //从服务模式回来强行重载
     if(current_server && ui_mode!=SERVER_)
     {
@@ -755,7 +719,6 @@ void Widget::set_set()
     //server.exe接管,不需要告知bot约定
     if(ui_mode==SERVER_)
     {
-        ui_state_servering();//服务中界面状态
         serverControl();
     }
     else
@@ -770,6 +733,7 @@ void Widget::set_set()
 // server.exe接管
 void Widget::serverControl()
 {
+    ui_state_servering();//服务中界面状态
     current_server = true;
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
@@ -823,6 +787,8 @@ void Widget::serverControl()
     arguments << "-cb";//允许连续批处理
     arguments << "--embedding";//允许词嵌入
     arguments << "--log-disable";//不要日志
+    // arguments << "-np";//设置进程请求的槽数 默认：1
+
     if(ui_SETTINGS.lorapath!=""){arguments << "--no-mmap";arguments << "--lora" << ui_SETTINGS.lorapath;}//挂载lora不能开启mmp
     // server的多模态原作者正在重写中
     // if(ui_SETTINGS.mmprojpath!="")
@@ -844,6 +810,7 @@ void Widget::serverControl()
             ui_output += "\n"+wordsObj["chat"].toString()+wordsObj["endpoint"].toString()+ " " + "/v1/chat/completions";
             ui_output += "\n"+wordsObj["complete"].toString()+wordsObj["endpoint"].toString()+ " " + "/completion"+"\n";
             ui_state = "ui:server " +wordsObj["on"].toString()+wordsObj["success"].toString()+ ","+wordsObj["browser at"].toString()+ ipAddress + ":"+ ui_port;
+            auto_save_user();//保存ui配置
             reflash_state(ui_state,SUCCESS_);
 
         }//替换ip地址

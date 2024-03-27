@@ -32,7 +32,7 @@
 #stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)以及stable-diffusion.cpp/ggml/src/cmakelists.txt
 #----------------------------------------------------------------------------------
 #whisper.cpp 1..5.4
-#
+# 删除不兼容的判断 whisper.cpp中if (params.use_gpu && ggml_cublas_loaded())中的 && ggml_cublas_loaded()
 #----------------------------------------------------------------------------------
 #camke
 #注意cmake构建类型应该设置为 Release
@@ -53,6 +53,7 @@ if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
 elseif(LLAMA_CUBLAS)
     add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
+    add_compile_definitions(GGML_USE_CUBLAS)#由于whisper和llama.cpp暂时有冲突不启用
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
 elseif(LLAMA_CLBLAST)

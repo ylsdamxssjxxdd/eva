@@ -19,6 +19,7 @@ static void bot_log_callback(ggml_log_level level, const char *text, void *user_
 int main(int argc, char *argv[])
 {
     std::setlocale(LC_ALL, "zh_CN.UTF-8");//中文路径支持
+
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);//自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例
@@ -52,7 +53,6 @@ int main(int argc, char *argv[])
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
     QObject::connect(&bot,&xBot::bot2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
     QObject::connect(&bot,&xBot::bot2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
-    QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
     QObject::connect(&bot,&xBot::bot2ui_play,&w,&Widget::recv_play);//播放加载动画
     QObject::connect(&bot,&xBot::bot2ui_loadover,&w,&Widget::recv_loadover);//完成加载模型
     QObject::connect(&bot,&xBot::bot2ui_pushover,&w,&Widget::recv_pushover);//完成推理
@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
     QObject::connect(&bot,&xBot::bot2ui_log,&w,&Widget::recv_log);//传递llama.cpp的log
     QObject::connect(&bot,&xBot::bot2ui_predecode,&w,&Widget::recv_predecode);//传递模型预解码的内容
 
+    QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
     QObject::connect(&w, &Widget::ui2bot_input,&bot,&xBot::recv_input);//传递用户输入
     QObject::connect(&w, &Widget::ui2bot_push,&bot, [&bot]() {bot.start();});//开始推理,利用对象指针实现多线程
     QObject::connect(&w, &Widget::ui2bot_reset,&bot,&xBot::recv_reset);//传递重置信号
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
 #endif
+    QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
 
     //------------------连接扩展和窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
@@ -118,6 +120,63 @@ int main(int argc, char *argv[])
     QObject::connect(&expend,&Expend::expend2tool_drawover,&tool,&xTool::recv_drawover);//图像绘制完成
 
     w.show();//展示窗口
+
+    //---------------读取配置文件并执行------------------
+    QFile configfile("./EVA_TEMP/eva_config.ini");
+    if(configfile.exists())
+    {
+        QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        QString modelpath = settings.value("modelpath", "").toString();//模型路径
+
+        QFile modelpath_file(modelpath);
+        if(modelpath_file.exists())//模型存在的话才继续进行
+        {
+            // 读取配置文件中的值
+            w.ui_SETTINGS.modelpath = modelpath;
+            
+            // ui显示值
+            w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
+            w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
+            w.input_pfx_LineEdit->setText(settings.value("input_pfx", "").toString());
+            w.input_sfx_LineEdit->setText(settings.value("input_sfx", "").toString());
+            w.cmd_checkbox->setChecked(settings.value("cmd_checkbox", "").toBool());
+            w.calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
+            w.knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
+            w.positron_checkbox->setChecked(settings.value("positron_checkbox", "").toBool());
+            w.stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", "").toBool());
+            w.toolguy_checkbox->setChecked(settings.value("toolguy_checkbox", "").toBool());
+            if(settings.value("extra_lan", "").toString()!="zh"){w.switch_lan_change();}//切换为英文
+            w.extra_TextEdit->setText(settings.value("extra_prompt", "").toString());//放到后面保护用户定义值
+
+            w.temp_slider->setValue(settings.value("temp", "").toFloat()*100);
+            w.repeat_slider->setValue(settings.value("repeat", "").toFloat()*100);
+            w.npredict_slider->setValue(settings.value("npredict", "").toFloat());
+            w.nthread_slider->setValue(settings.value("nthread", "").toInt());
+            w.nctx_slider->setValue(settings.value("nctx", "").toInt());
+            w.batch_slider->setValue(settings.value("batch", "").toInt());
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+            w.ngl_slider->setValue(settings.value("ngl", "").toInt());
+#endif
+            QFile checkFile(settings.value("lorapath", "").toString());
+            if (checkFile.exists()) {w.lora_LineEdit->setText(settings.value("lorapath", "").toString());}
+            QFile checkFile2(settings.value("mmprojpath", "").toString());
+            if (checkFile2.exists()) {w.mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString());}
+            int mode_num = settings.value("ui_mode", "").toInt();
+            if(mode_num == 0){w.chat_btn->setChecked(1);}
+            else if(mode_num == 1){w.complete_btn->setChecked(1);}
+            else if(mode_num == 2){w.web_btn->setChecked(1);}
+            w.port_lineEdit->setText(settings.value("port", "").toString());
+
+            // ui显示值传给ui内部值
+            w.get_date();//获取约定中的纸面值
+            w.get_set();//获取设置中的纸面值
+            
+            if(w.ui_mode == SERVER_){w.serverControl();}//自动启动服务
+            else{emit w.ui2bot_dateset(w.ui_DATES,w.ui_SETTINGS);}//自动装载模型
+            
+        }
+        
+    }
 
     return a.exec();//进入事件循环
 }

@@ -16,7 +16,9 @@ Expend::Expend(QWidget *parent) :
     ui->vocab_card->setReadOnly(1);//这样才能滚轮放大
     ui->modellog_card->setReadOnly(1);
     ui->tabWidget->setCurrentIndex(2);//默认显示模型日志
-    ui->sd_prompt_lineEdit->installEventFilter(this);//安装事件过滤器
+    ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);//取消右键菜单
+    ui->sd_prompt_textEdit->installEventFilter(this);//安装事件过滤器
+    ui->sd_antiprompt_lineEdit->installEventFilter(this);//安装事件过滤器
 
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
@@ -63,6 +65,9 @@ Expend::Expend(QWidget *parent) :
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     
+    //文生图相关
+    ui->sd_antiprompt_lineEdit->setText(sd_params.negative_prompt);
+
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 
@@ -162,8 +167,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
             { "Q5_0", "66.7%", "+0.0683", "⭐"},
             { "Q4_1", "70%", "+0.1585", "⭐"},
             { "Q4_K_M", "70.8%", "+0.0532", "⭐"},
-            { "Q4_K_S", "72.4%", "+0.0992", "⭐"},
-            { "Q4_0", "72.6%", "+0.2166", "⭐⭐"},
+            { "Q4_K_S", "72.4%", "+0.0992", "⭐⭐"},
+            { "Q4_0", "72.6%", "+0.2166", "⭐"},
             { "Q3_K_L", "74.2%", "+0.1764", "⭐"},
             { "Q3_K_M", "76.4%", "+0.2496", "⭐"},
             { "Q3_K_S", "78.8%", "+0.5551", "⭐"},
@@ -219,7 +224,7 @@ void Expend::recv_log(QString log)
     ui->modellog_card->appendPlainText(log);
 }
 
-//初始化扩展窗口
+//初始化增殖窗口
 void Expend::init_expend()
 {
     this->setWindowTitle(wordsObj["expend window"].toString());//标题
@@ -239,7 +244,7 @@ void Expend::recv_vocab(QString vocab_)
     ui->vocab_card->setPlainText(vocab);
 }
 
-//通知显示扩展窗口
+//通知显示增殖窗口
 void Expend::recv_expend_show(int index_)
 {
     init_expend();//主要是设置界面的语言
@@ -258,7 +263,7 @@ void Expend::recv_expend_show(int index_)
     ui->tabWidget->setCurrentIndex(index_);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
     this->show();
-    this->activateWindow(); // 激活扩展窗口
+    this->activateWindow(); // 激活增殖窗口
 }
 
 QString Expend::customOpenfile(QString dirpath, QString describe, QString format)
@@ -290,6 +295,7 @@ void Expend::readConfig()
         // 读取配置文件中的值
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
         QString vae_modelpath = settings.value("vae_modelpath", "").toString();//vae模型路径
+        QString antiprompt = settings.value("antiprompt", "").toString();//反提示
         int image_width = settings.value("image_width", 512).toInt();//图像宽度
         int image_height = settings.value("image_height", 512).toInt();//图像高度
         QString sample_type = settings.value("sample_type", "euler_a").toString();//采样方式
@@ -317,7 +323,7 @@ void Expend::readConfig()
         {
             ui->sd_vaepath_lineEdit->setText(vae_modelpath);
         }
-
+        ui->sd_antiprompt_lineEdit->setText(antiprompt);
         ui->sd_imagewidth->setValue(image_width);
         ui->sd_imageheight->setValue(image_height);
         ui->sd_sampletype->setCurrentText(sample_type);
@@ -326,7 +332,7 @@ void Expend::readConfig()
         ui->sd_seed->setValue(seed);
         ui->sd_batch_count->setValue(image_nums);
         ui->sd_skipclip->setValue(clip_skip);
-        ui->sd_prompt_lineEdit->setText(sd_prompt);
+        ui->sd_prompt_textEdit->setText(sd_prompt);
 
         QFile whisper_load_modelpath_file(whisper_modelpath);
         if(whisper_load_modelpath_file.exists())
@@ -352,10 +358,16 @@ void Expend::readConfig()
 bool Expend::eventFilter(QObject *obj, QEvent *event)
 {
     //响应已安装控件上的鼠标右击事件
-    if (obj == ui->sd_prompt_lineEdit && event->type() == QEvent::ContextMenu)
+    if (obj == ui->sd_prompt_textEdit && event->type() == QEvent::ContextMenu)
     {
         // 自动填充提示词
-        ui->sd_prompt_lineEdit->setText("full body, Ayanami Rei, beautiful face, Blue hair, 1 girl, Anime style");
+        ui->sd_prompt_textEdit->setText("full body, Ayanami Rei, beautiful face, Blue hair, 1 girl");
+        return true;
+    }
+    else if(obj == ui->sd_antiprompt_lineEdit && event->type() == QEvent::ContextMenu)
+    {
+        //还原反提示
+        ui->sd_antiprompt_lineEdit->setText("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
         return true;
     }
 
@@ -371,6 +383,7 @@ void Expend::closeEvent(QCloseEvent *event)
     QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setValue("sd_modelpath",ui->sd_modelpath_lineEdit->text());
     settings.setValue("vae_modelpath",ui->sd_vaepath_lineEdit->text());
+    settings.setValue("antiprompt",ui->sd_antiprompt_lineEdit->text());
     settings.setValue("image_width",ui->sd_imagewidth->value());
     settings.setValue("image_height",ui->sd_imageheight->value());
     settings.setValue("sample_type",ui->sd_sampletype->currentText());
@@ -379,7 +392,7 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("seed",ui->sd_seed->value());
     settings.setValue("image_nums",ui->sd_batch_count->value());
     settings.setValue("clip_skip",ui->sd_skipclip->value());
-    settings.setValue("sd_prompt",ui->sd_prompt_lineEdit->text());
+    settings.setValue("sd_prompt",ui->sd_prompt_textEdit->toPlainText());
     settings.setValue("whisper_modelpath",ui->whisper_load_modelpath_linedit->text());
     settings.setValue("voice_enable",ui->voice_enable_radioButton->isChecked());
     settings.setValue("voice_name",ui->voice_source_comboBox->currentText());
@@ -997,6 +1010,16 @@ void Expend::output_modelpath_change()
             QString output_modelpath = modelpath.replace("fp32",ui->model_quantize_type->currentText());
             ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
         }
+        else if(modelpath.contains("f16"))
+        {
+            QString output_modelpath = modelpath.replace("f16",ui->model_quantize_type->currentText());
+            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+        }
+        else if(modelpath.contains("f32"))
+        {
+            QString output_modelpath = modelpath.replace("f32",ui->model_quantize_type->currentText());
+            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+        }
         //顺便改变量化方法说明中的预估量化后大小
         QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
         float in_modelsize = fileInfo1.size() /1024.0/1024.0;
@@ -1133,6 +1156,7 @@ void Expend::on_sd_modelpath_pushButton_clicked()
 {
     sd_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
+    if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText("检测到xl模型，推荐将图像宽高设置在768以上");}
 
 }
 //用户点击选择vae模型路径时响应 
@@ -1146,7 +1170,7 @@ void Expend::on_sd_vaepath_pushButton_clicked()
 //用户点击开始绘制时响应  
 void Expend::on_sd_draw_pushButton_clicked()
 {
-    if(is_handle_sd && ui->sd_prompt_lineEdit->text()=="")
+    if(is_handle_sd && ui->sd_prompt_textEdit->toPlainText()=="")
     {
         ui->sd_log->appendPlainText("请输入提示词告诉模型你想绘制图像的样子");
         return;
@@ -1162,12 +1186,10 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
 
     //锁定界面
-    ui->frame_6->setEnabled(0);
     ui->groupBox_6->setEnabled(0);
-    ui->frame_13->setEnabled(0);
 
     //收集参数
-    sd_params.prompt = ui->sd_prompt_lineEdit->text();
+    sd_params.prompt = ui->sd_prompt_textEdit->toPlainText();
     sd_params.modelpath = ui->sd_modelpath_lineEdit->text();
     sd_params.vaepath = ui->sd_vaepath_lineEdit->text();
     sd_params.width = ui->sd_imagewidth->value();
@@ -1178,6 +1200,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     sd_params.seed = ui->sd_seed->value();
     sd_params.clip_skip = ui->sd_skipclip->value();
     sd_params.batch_count = ui->sd_batch_count->value();
+    sd_params.negative_prompt = ui->sd_antiprompt_lineEdit->text();
     
     QTime currentTime = QTime::currentTime();// 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
@@ -1210,11 +1233,21 @@ void Expend::on_sd_draw_pushButton_clicked()
     QString program = localPath;
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
-    arguments << "-M" << sd_params.runmode;//运行模式
+
+    if(img2img)
+    {
+        arguments << "-M" << "img2img";//运行模式 图生图
+        arguments << "-i" << uploadimagepath;
+        img2img = false;
+    }
+    else
+    {
+        arguments << "-M" << "txt2img";//运行模式 文生图
+    }
+
     arguments << "-m" << sd_params.modelpath;//模型路径
     arguments << "--vae" << sd_params.vaepath;//vae路径
-    //arguments << "--lora-model-dir" << sd_params.lora_model_dir;//lora所在目录
-    arguments << "--sampling-method" << sd_params.sampletype;//模型路径
+    arguments << "--sampling-method" << sd_params.sampletype;//采样方法
     arguments << "--clip-skip" << QString::number(sd_params.clip_skip);//跳层
     arguments << "-t" << QString::number(sd_params.nthreads);//线程数
     arguments << "-o" << sd_params.outpath;//输出路径
@@ -1260,9 +1293,7 @@ void Expend::sd_onProcessStarted()
 void Expend::sd_onProcessFinished()
 {
     //解锁界面
-    ui->frame_6->setEnabled(1);
     ui->groupBox_6->setEnabled(1);
-    ui->frame_13->setEnabled(1);
 
     //绘制结果
     QImage image(sd_params.outpath);
@@ -1352,6 +1383,57 @@ void Expend::on_sd_modelpath_lineEdit_textChanged()
     }
 }
 
+//上传图像文本区改变响应
+void Expend::on_sd_uploadimage_textEdit_textChanged()
+{
+    if(uploadimaging){return;}//防止卡死
+    QString str = ui->sd_uploadimage_textEdit->toPlainText();
+
+    if(str.contains("file:///"))
+    {
+        if(str.contains(".png")||str.contains(".jpg")||str.contains(".jpeg")||str.contains(".bmp"))
+        {
+            QString imagepath = str.split("file:///")[1];
+            QFile upload_file(imagepath);
+            if(upload_file.exists())
+            {
+                uploadimaging = true;
+                ui->sd_uploadimage_textEdit->clear();
+                
+                //文件存在则展示图像，并且记录当前的图像路径，并且解锁图生图按钮
+                // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+                QImage image(imagepath);
+                
+                int originalWidth = image.width()/devicePixelRatioF()/1.5;
+                int originalHeight = image.height()/devicePixelRatioF()/1.5;
+
+                QTextCursor cursor(ui->sd_uploadimage_textEdit->textCursor());
+                cursor.movePosition(QTextCursor::End);
+
+                QTextImageFormat imageFormat;
+                imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+                imageFormat.setHeight(originalHeight); // 设置图片的高度
+                imageFormat.setName(imagepath);  // 图片资源路径
+                cursor.insertImage(imageFormat);
+
+                uploadimagepath = imagepath;
+                ui->sd_draw_pushButton_2->setEnabled(1);//解锁
+                uploadimaging = false;
+                return;
+            }
+        }
+    }
+
+    ui->sd_draw_pushButton_2->setEnabled(0);//上锁
+}
+
+//用户点击图生图时响应  
+void Expend::on_sd_draw_pushButton_2_clicked()
+{
+    img2img = true;
+    ui->sd_draw_pushButton->click();
+}
+
 //接收到tool的开始绘制图像信号
 void Expend::recv_draw(QString prompt_)
 {
@@ -1363,11 +1445,11 @@ void Expend::recv_draw(QString prompt_)
     }
     else if(ui->sd_modelpath_lineEdit->text() == "")
     {
-        emit expend2tool_drawover("指令无效，请先让用户在扩展窗口指定sd模型路径",0);//绘制完成信号
+        emit expend2tool_drawover("指令无效，请先让用户在增殖窗口指定sd模型路径",0);//绘制完成信号
         return;
     }
     //先把提示词写进输入框
-    ui->sd_prompt_lineEdit->setText(prompt_);
+    ui->sd_prompt_textEdit->setText(prompt_);
     //不是手动
     is_handle_sd = false;
     //触发绘制

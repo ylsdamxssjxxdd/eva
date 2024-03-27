@@ -955,14 +955,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 //接受约定内容
 void xBot::recv_date(DATES date)
 {
-    if(date.system_prompt == ""){gpt_params_.prompt = "";}
-    else{gpt_params_.prompt = date.system_prompt.toStdString() + "\n";}//默认为用户的约定加一个回车
-    if(date.input_pfx == ""){gpt_params_.input_prefix = "";}
-    else{gpt_params_.input_prefix = date.input_pfx.toStdString() + ":\n";}
-    if(date.input_sfx == ""){gpt_params_.input_suffix = "";}
-    else{gpt_params_.input_suffix = date.input_sfx.toStdString() + ":\n";}
-    is_load_tool = date.is_load_tool;
-    extra_stop_words = date.extra_stop_words;
+    apply_date(date);//应用约定
 
     emit bot2ui_datereset();//bot发信号请求ui触发reset
 }
@@ -1033,4 +1026,24 @@ bool xBot::isIncompleteUTF8(const std::string &text)
 void xBot::recv_language(QJsonObject wordsObj_)
 {
     wordsObj = wordsObj_;
+}
+
+//自动装载
+void xBot::recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS)
+{
+    apply_date(ini_DATES);//应用约定
+    recv_set(ini_SETTINGS,1);//触发设置引起重载
+}
+
+//应用约定
+void xBot::apply_date(DATES date)
+{
+    if(date.system_prompt == ""){gpt_params_.prompt = "";}
+    else{gpt_params_.prompt = date.system_prompt.toStdString() + "\n";}//默认为用户的约定加一个回车
+    if(date.input_pfx == ""){gpt_params_.input_prefix = "";}
+    else{gpt_params_.input_prefix = date.input_pfx.toStdString() + ":\n";}
+    if(date.input_sfx == ""){gpt_params_.input_suffix = "";}
+    else{gpt_params_.input_suffix = date.input_sfx.toStdString() + ":\n";}
+    is_load_tool = date.is_load_tool;
+    extra_stop_words = date.extra_stop_words;
 }

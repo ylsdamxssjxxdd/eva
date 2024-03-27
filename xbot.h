@@ -64,6 +64,8 @@ public:
     int ga_w = 512;//拓展时用于计算的宽度？group-attention width
     std::vector<llama_token> system_tokens;//系统指令的token
 
+    void apply_date(DATES date);//应用约定
+
     //计算时间相关
     bool is_batch = false;
     float batch_time = 0.000001;
@@ -95,6 +97,7 @@ public:
     bool vram_enough = false;
 
 public slots:
+    void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void recv_language(QJsonObject wordsObj_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径
     void recv_input(INPUTS input_,bool is_test_);//接受用户输入

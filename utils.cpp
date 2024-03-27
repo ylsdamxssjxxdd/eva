@@ -199,6 +199,9 @@ void Widget::showImage(QString imagepath)
     imageFormat.setName(imagepath);  // 图片资源路径
 
     cursor.insertImage(imageFormat);
+    //滚动到底部展示
+    ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());//滚动条滚动到最下面
+
 }
 
 //开始录音
@@ -455,6 +458,7 @@ bool Widget::toolcheckbox_checked()
     }
     
 }
+
 //切换额外指令的语言
 void Widget::switch_lan_change()
 {
@@ -620,3 +624,43 @@ void Widget::speechOver()
     speechtimer->start(500);
     is_speech = false;//解锁
 }
+
+//每次约定和设置后都保存配置到本地
+ void Widget::auto_save_user()
+ {
+    //--------------保存当前用户配置---------------
+    // 创建 QSettings 对象，指定配置文件的名称和格式
+
+    createTempDirectory("./EVA_TEMP");
+    QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    
+    //保存设置参数
+    settings.setValue("modelpath",ui_SETTINGS.modelpath);//模型路径
+    settings.setValue("temp",ui_SETTINGS.temp);//惩罚系数
+    settings.setValue("repeat",ui_SETTINGS.repeat);//惩罚系数
+    settings.setValue("npredict",ui_SETTINGS.npredict);//最大输出长度
+    settings.setValue("ngl",ui_SETTINGS.ngl);//gpu负载层数
+    settings.setValue("nthread",ui_SETTINGS.nthread);//cpu线程数
+    settings.setValue("nctx",ui_SETTINGS.nctx);//记忆容量
+    settings.setValue("batch",ui_SETTINGS.batch);//批大小
+    settings.setValue("mmprojpath",ui_SETTINGS.mmprojpath);//视觉
+    settings.setValue("lorapath",ui_SETTINGS.lorapath);//lora
+    settings.setValue("ui_mode",ui_mode);//模式
+    settings.setValue("port",ui_port);//服务端口
+
+    //保存约定参数
+    settings.setValue("chattemplate",chattemplate_comboBox->currentText());//对话模板
+    settings.setValue("system_prompt",system_TextEdit->toPlainText());//系统指令
+    settings.setValue("extra_prompt",extra_TextEdit->toPlainText());//额外指令
+    settings.setValue("input_pfx",ui_DATES.input_pfx);//用户昵称
+    settings.setValue("input_sfx",ui_DATES.input_sfx);//模型昵称
+    settings.setValue("calculator_checkbox",calculator_checkbox->isChecked());//计算器工具
+    settings.setValue("cmd_checkbox",cmd_checkbox->isChecked());//cmd工具
+    settings.setValue("knowledge_checkbox",knowledge_checkbox->isChecked());//knowledge工具
+    settings.setValue("positron_checkbox",positron_checkbox->isChecked());//positron工具
+    settings.setValue("stablediffusion_checkbox",stablediffusion_checkbox->isChecked());//计算器工具
+    settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
+    settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
+    
+    reflash_state("ui:已保存ui配置，如遇异常启动前删除EVA_TEMP文件夹",USUAL_);
+ }
