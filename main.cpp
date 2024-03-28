@@ -18,8 +18,6 @@ static void bot_log_callback(ggml_log_level level, const char *text, void *user_
 
 int main(int argc, char *argv[])
 {
-    std::setlocale(LC_ALL, "zh_CN.UTF-8");//中文路径支持
-
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);//自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例

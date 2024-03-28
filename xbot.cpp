@@ -896,24 +896,16 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     }
     //如果mmprojpath改变则重新加载模型
     if(settings.mmprojpath.toStdString()!=mmprojpath)
-    {
-#if defined(__GNUC__)         
+    {     
         QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
         mmprojpath = code->fromUnicode(settings.mmprojpath).data();
-#else
-        mmprojpath = settings.mmprojpath.toStdString();
-#endif
         reload_flag = true;
     }
     //如果lora改变则重新加载模型
     if(settings.lorapath.toStdString()!=lorapath)
     {
-#if defined(__GNUC__) 
         QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
         lorapath = code->fromUnicode(settings.lorapath).data();
-#else
-        lorapath = settings.lorapath.toStdString();
-#endif
         if(lorapath != "")
         {
             std::tuple<std::string, float> element = std::make_tuple(lorapath, 1.0);//1.0是lora的影响系数
@@ -930,12 +922,8 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     //如果更换了模型则重载
     if(bot_modelpath!=settings.modelpath.toStdString())
     {
-#if defined(__GNUC__) 
         QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
         bot_modelpath = code->fromUnicode(settings.modelpath).data();
-#else
-        bot_modelpath = settings.modelpath.toStdString();
-#endif
         reload_flag = true;
     }
     

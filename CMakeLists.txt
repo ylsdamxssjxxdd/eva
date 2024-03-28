@@ -1,24 +1,8 @@
 ######################################手动修改######################################
-#llama.cpp-b2509
+#llama.cpp-b2554
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
-#llama.cpp项目手动更新后，记得修改llama.cpp的uint32_t to_lower(uint32_t code)函数
-#
-# uint32_t to_lower(uint32_t code) {
-# #if defined(_WIN32)
-# #if defined(__GNUC__) //为了使mingw编译器可以支持locale
-#         static const std::locale locale;
-# #else
-#         static const std::locale locale("en_US.UTF-8");
-# #endif
-#         if (code > 0xFFFF) {
-#             return code;
-#         }
-# #else
-#         static const std::locale locale("en_US.UTF-8");
-# #endif
-#         return std::tolower(wchar_t(code), locale);
-#     }
-#
+#修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
+#只要保留return fopen(fname, mode);其余删除
 #----------------------------------------------------------------------------------
 #stable-diffusion.cpp master-48bcce4
 #stable-diffusion.cpp/cmakelists.txt中添加
@@ -31,8 +15,8 @@
 #将stable-diffusion.cpp链接的ggml库全部更名为ggml-sd(5处)避免冲突，直接和老文件对比吧
 #stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)以及stable-diffusion.cpp/ggml/src/cmakelists.txt
 #----------------------------------------------------------------------------------
-#whisper.cpp 1..5.4
-# 删除不兼容的判断 whisper.cpp中if (params.use_gpu && ggml_cublas_loaded())中的 && ggml_cublas_loaded()
+#whisper.cpp master-298c74
+#
 #----------------------------------------------------------------------------------
 #camke
 #注意cmake构建类型应该设置为 Release
@@ -44,7 +28,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -62,9 +46,9 @@ endif()
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持中文
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8") # 支持中文
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持中文
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持代码中的中文
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8") # 支持代码中的中文
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
     
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         # 监视gpu部分
@@ -151,7 +135,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

@@ -8,7 +8,7 @@
 #include "ggml-metal.h"
 #endif
 
-#ifdef GGML_USE_CUBLAS
+#ifdef GGML_USE_CUDA
 #include "ggml-cuda.h"
 #endif
 
@@ -1198,7 +1198,7 @@ static ggml_backend_t whisper_backend_init(const whisper_context_params & params
     ggml_backend_t backend_gpu = NULL;
 
     // initialize the backends
-#ifdef GGML_USE_CUBLAS
+#ifdef GGML_USE_CUDA
     if (params.use_gpu) {
         WHISPER_LOG_INFO("%s: using CUDA backend\n", __func__);
         backend_gpu = ggml_backend_cuda_init(params.gpu_device);
@@ -3721,7 +3721,7 @@ int whisper_tokenize(struct whisper_context * ctx, const char * text, whisper_to
 
     if (n_max_tokens < (int) res.size()) {
         WHISPER_LOG_ERROR("%s: too many resulting tokens: %d (max %d)\n", __func__, (int) res.size(), n_max_tokens);
-        return -1;
+        return -(int) res.size();
     }
 
     for (int i = 0; i < (int) res.size(); i++) {
@@ -3729,6 +3729,10 @@ int whisper_tokenize(struct whisper_context * ctx, const char * text, whisper_to
     }
 
     return res.size();
+}
+
+int whisper_token_count(struct whisper_context * ctx, const char * text) {
+    return -whisper_tokenize(ctx, text, NULL, 0);
 }
 
 int whisper_lang_max_id() {
@@ -4075,7 +4079,7 @@ const char * whisper_print_system_info(void) {
     s += "SSE3 = "      + std::to_string(ggml_cpu_has_sse3())      + " | ";
     s += "SSSE3 = "     + std::to_string(ggml_cpu_has_ssse3())     + " | ";
     s += "VSX = "       + std::to_string(ggml_cpu_has_vsx())       + " | ";
-    s += "CUDA = "      + std::to_string(ggml_cpu_has_cublas())    + " | ";
+    s += "CUDA = "      + std::to_string(ggml_cpu_has_cuda())      + " | ";
     s += "COREML = "    + std::to_string(whisper_has_coreml())     + " | ";
     s += "OPENVINO = "  + std::to_string(whisper_has_openvino())          ;
 
@@ -5313,7 +5317,12 @@ int whisper_full_with_state(
         // initial prompt
         if (!params.prompt_tokens && params.initial_prompt) {
             prompt_tokens.resize(1024);
-            prompt_tokens.resize(whisper_tokenize(ctx, params.initial_prompt, prompt_tokens.data(), prompt_tokens.size()));
+            int n_needed = whisper_tokenize(ctx, params.initial_prompt, prompt_tokens.data(), prompt_tokens.size());
+            if (n_needed < 0) {
+                prompt_tokens.resize(-n_needed);
+                n_needed = whisper_tokenize(ctx, params.initial_prompt, prompt_tokens.data(), prompt_tokens.size());
+            }
+            prompt_tokens.resize(n_needed);
             params.prompt_tokens   = prompt_tokens.data();
             params.prompt_n_tokens = prompt_tokens.size();
         }

@@ -16,7 +16,6 @@ import numpy as np
 import openai
 from behave import step
 from behave.api.async_step import async_run_until_complete
-from huggingface_hub import hf_hub_download
 from prometheus_client import parser
 
 
@@ -39,6 +38,8 @@ def step_server_config(context, server_fqdn, server_port):
 
     context.model_alias = None
     context.model_file = None
+    context.model_hf_repo = None
+    context.model_hf_file = None
     context.model_url = None
     context.n_batch = None
     context.n_ubatch = None
@@ -68,9 +69,9 @@ def step_server_config(context, server_fqdn, server_port):
 
 @step('a model file {hf_file} from HF repo {hf_repo}')
 def step_download_hf_model(context, hf_file, hf_repo):
-    context.model_file = hf_hub_download(repo_id=hf_repo, filename=hf_file)
-    if context.debug:
-        print(f"model file: {context.model_file}")
+    context.model_hf_repo = hf_repo
+    context.model_hf_file = hf_file
+    context.model_file = os.path.basename(hf_file)
 
 
 @step('a model file {model_file}')
@@ -1079,6 +1080,10 @@ def start_server_background(context):
         server_args.extend(['--model', context.model_file])
     if context.model_url:
         server_args.extend(['--model-url', context.model_url])
+    if context.model_hf_repo:
+        server_args.extend(['--hf-repo', context.model_hf_repo])
+    if context.model_hf_file:
+        server_args.extend(['--hf-file', context.model_hf_file])
     if context.n_batch:
         server_args.extend(['--batch-size', context.n_batch])
     if context.n_ubatch:
@@ -1109,7 +1114,10 @@ def start_server_background(context):
         server_args.append('--verbose')
     if 'SERVER_LOG_FORMAT_JSON' not in os.environ:
         server_args.extend(['--log-format', "text"])
-    print(f"starting server with: {context.server_path} {server_args}")
+
+    args = [str(arg) for arg in [context.server_path, *server_args]]
+    print(f"bench: starting server with: {' '.join(args)}")
+
     flags = 0
     if 'nt' == os.name:
         flags |= subprocess.DETACHED_PROCESS
@@ -1125,16 +1133,14 @@ def start_server_background(context):
         [str(arg) for arg in [context.server_path, *server_args]],
         **pkwargs)
 
-    def log_stdout(process):
-        for line in iter(process.stdout.readline, b''):
-            print(line.decode('utf-8'), end='')
-    thread_stdout = threading.Thread(target=log_stdout, args=(context.server_process,))
+    def server_log(in_stream, out_stream):
+        for line in iter(in_stream.readline, b''):
+            print(line.decode('utf-8'), end='', file=out_stream)
+
+    thread_stdout = threading.Thread(target=server_log, args=(context.server_process.stdout, sys.stdout))
     thread_stdout.start()
 
-    def log_stderr(process):
-        for line in iter(process.stderr.readline, b''):
-            print(line.decode('utf-8'), end='', file=sys.stderr)
-    thread_stderr = threading.Thread(target=log_stderr, args=(context.server_process,))
+    thread_stderr = threading.Thread(target=server_log, args=(context.server_process.stderr, sys.stderr))
     thread_stderr.start()
 
     print(f"server pid={context.server_process.pid}, behave pid={os.getpid()}")

@@ -262,9 +262,6 @@ int main(int argc, char ** argv) {
     ggml_time_init();
 
     gpt_params params;
-    params.model = "D:\\soul\\yi-vl-6b-Q5_K.gguf";
-    params.mmproj = "D:\\soul\\yi-vl-6b-mmproj-q6_k.gguf";
-    params.image = "C:\\Users\\32138\\Desktop\\sd_output-19-49-27.png";
 
     if (!gpt_params_parse(argc, argv, params)) {
         show_additional_info(argc, argv);

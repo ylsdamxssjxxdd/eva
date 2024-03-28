@@ -196,7 +196,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         //添加量化方法说明
         ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
         ui->model_quantize_info->setColumnCount(5);
-        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率","困惑度","推荐","预估量化后大小"});//设置列名
+        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率（f16->）","困惑度","推荐","预估大小（f16->）"});//设置列名
         for(int i=0;i<quantize_types.size(); ++i)
         {
             QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
@@ -1000,26 +1000,11 @@ void Expend::output_modelpath_change()
     QString modelpath = ui->model_quantize_row_modelpath_lineedit->text();
     if(modelpath.contains(".gguf") && QFile::exists(modelpath))
     {
-        if(modelpath.contains("fp16"))
-        {
-            QString output_modelpath = modelpath.replace("fp16",ui->model_quantize_type->currentText());
-            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
-        }
-        else if(modelpath.contains("fp32"))
-        {
-            QString output_modelpath = modelpath.replace("fp32",ui->model_quantize_type->currentText());
-            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
-        }
-        else if(modelpath.contains("f16"))
-        {
-            QString output_modelpath = modelpath.replace("f16",ui->model_quantize_type->currentText());
-            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
-        }
-        else if(modelpath.contains("f32"))
-        {
-            QString output_modelpath = modelpath.replace("f32",ui->model_quantize_type->currentText());
-            ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
-        }
+        //重构名称，将尾部的量化词条更换为当前量化方法
+        QString output_modelpath = modelpath.replace(modelpath.split(".gguf")[0].split("-").last(),ui->model_quantize_type->currentText());
+        //qDebug()<<output_modelpath<<modelpath.split(".gguf")[0].split("-").last()<<modelpath.split(".gguf")[0];
+        ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
+
         //顺便改变量化方法说明中的预估量化后大小
         QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
         float in_modelsize = fileInfo1.size() /1024.0/1024.0;

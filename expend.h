@@ -26,6 +26,7 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QTextToSpeech>
+#include <QTextCodec>
 
 #include <windows.h>
 #include "xconfig.h"

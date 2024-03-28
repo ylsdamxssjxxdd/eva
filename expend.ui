@@ -236,7 +236,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="placeholderText">
-             <string>需要选择fp32或fp16的gguf模型</string>
+             <string>尽量选择f32或f16的gguf模型</string>
             </property>
            </widget>
           </item>
@@ -1367,7 +1367,7 @@ p, li { white-space: pre-wrap; }
                 </size>
                </property>
                <property name="placeholderText">
-                <string>选择stable-diffusion系列模型</string>
+                <string>选择stable-diffusion模型</string>
                </property>
               </widget>
              </item>
@@ -1569,6 +1569,9 @@ p, li { white-space: pre-wrap; }
                  <width>16777215</width>
                  <height>25</height>
                 </size>
+               </property>
+               <property name="toolTip">
+                <string>右击恢复默认值</string>
                </property>
                <property name="placeholderText">
                 <string>使用纯英文描述，你不想看到的样子</string>
@@ -2034,6 +2037,9 @@ p, li { white-space: pre-wrap; }
              </property>
              <item>
               <widget class="QTextEdit" name="sd_prompt_textEdit">
+               <property name="toolTip">
+                <string>右击来画凌波丽</string>
+               </property>
                <property name="placeholderText">
                 <string>使用纯英文描述，已经默认应用masterpieces, best quality, beauty, detailed, Pixar, 8k,</string>
                </property>
@@ -2206,6 +2212,7 @@ p, li { white-space: pre-wrap; }
 提示词后跟&lt;lora:lora模型名字:1&gt;可以调用lora，:1的意思是应用lora的强度等级
 带xl名字的模型推荐宽高在768以上
 画现实clip跳层推荐1，动画推荐2以上
+若需要自己量化模型为gguf格式，使用机体释放的sd.exe程序，命令行 sd.exe -M &quot;convert&quot; -m 你的模型路径 -o 输出模型名称.gguf --type q8_0
 </string>
                </property>
               </widget>
