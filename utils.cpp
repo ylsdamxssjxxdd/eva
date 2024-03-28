@@ -641,7 +641,8 @@ void Widget::speechOver()
     settings.setValue("npredict",ui_SETTINGS.npredict);//最大输出长度
     settings.setValue("ngl",ui_SETTINGS.ngl);//gpu负载层数
     settings.setValue("nthread",ui_SETTINGS.nthread);//cpu线程数
-    settings.setValue("nctx",ui_SETTINGS.nctx);//记忆容量
+    if(ui_SETTINGS.nctx > ui_n_ctx_train){settings.setValue("nctx",ui_n_ctx_train);}//防止溢出
+    else{settings.setValue("nctx",ui_SETTINGS.nctx);}
     settings.setValue("batch",ui_SETTINGS.batch);//批大小
     settings.setValue("mmprojpath",ui_SETTINGS.mmprojpath);//视觉
     settings.setValue("lorapath",ui_SETTINGS.lorapath);//lora
@@ -662,5 +663,5 @@ void Widget::speechOver()
     settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
     settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
     
-    reflash_state("ui:已保存ui配置，如遇异常启动前删除EVA_TEMP文件夹",USUAL_);
+    reflash_state("ui:已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);
  }

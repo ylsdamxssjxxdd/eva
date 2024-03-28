@@ -162,6 +162,7 @@ void Widget::preLoad()
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
     ui_state_loading();//装载中界面状态
+    if(is_config){is_config = false;reflash_state("ui:应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);}
     reflash_state("ui:" + wordsObj["model location"].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
 }
@@ -734,6 +735,7 @@ void Widget::set_set()
 void Widget::serverControl()
 {
     ui_state_servering();//服务中界面状态
+    if(is_config){is_config = false;reflash_state("ui:应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);}
     current_server = true;
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
@@ -826,6 +828,7 @@ void Widget::serverControl()
 //bot将模型参数传递给ui
 void Widget::recv_params(PARAMS p)
 {
+    ui_n_ctx_train = p.n_ctx_train;
     nctx_slider->setMaximum(p.n_ctx_train);//没有拓展4倍,因为批解码时还是会失败
 }
 
@@ -861,10 +864,10 @@ void Widget::recv_log(QString log)
     if(log.contains("llm_load_print_meta: n_layer"))
     {
         #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-            int maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
-            emit ui2bot_maxngl(maxngl);
-            ngl_slider->setMaximum(maxngl);
-            if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=maxngl;}//及时修正999值
+            ui_maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
+            emit ui2bot_maxngl(ui_maxngl);
+            ngl_slider->setMaximum(ui_maxngl);
+            if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
         #endif
     }
 

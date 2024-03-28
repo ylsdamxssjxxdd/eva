@@ -786,7 +786,9 @@ void Widget::set_SetDialog()
     //load lora
     QHBoxLayout *layout_H12 = new QHBoxLayout();//水平布局器
     lora_label = new QLabel(wordsObj["load lora"].toString());
+    lora_label->setToolTip(wordsObj["lora_label_tooltip"].toString());
     lora_LineEdit = new QLineEdit();
+    lora_LineEdit->setToolTip(wordsObj["lora_label_tooltip"].toString());
     lora_LineEdit->setPlaceholderText(wordsObj["right click and choose lora"].toString());
     layout_H12->addWidget(lora_label);
     layout_H12->addWidget(lora_LineEdit);
@@ -797,7 +799,9 @@ void Widget::set_SetDialog()
     //load mmproj
     QHBoxLayout *layout_H17 = new QHBoxLayout();//水平布局器
     mmproj_label = new QLabel(wordsObj["load mmproj"].toString());
+    mmproj_label->setToolTip(wordsObj["mmproj_label_tooltip"].toString());
     mmproj_LineEdit = new QLineEdit();
+    mmproj_LineEdit->setToolTip(wordsObj["mmproj_label_tooltip"].toString());
     mmproj_LineEdit->setPlaceholderText(wordsObj["right click and choose mmproj"].toString());
     layout_H17->addWidget(mmproj_label);
     layout_H17->addWidget(mmproj_LineEdit);
@@ -815,20 +819,25 @@ void Widget::set_SetDialog()
     
     //补完控制
     complete_btn = new QRadioButton(wordsObj["complete mode"].toString());
+    complete_btn->setToolTip(wordsObj["complete_btn_tooltip"].toString());
     mode_layout->addWidget(complete_btn);
     connect(complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
     //多轮对话
     chat_btn = new QRadioButton(wordsObj["chat mode"].toString());
+    chat_btn->setToolTip(wordsObj["chat_btn_tooltip"].toString());
     mode_layout->addWidget(chat_btn);
     chat_btn->setChecked(1);
     connect(chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
     //网页服务控制
     QHBoxLayout *layout_H10 = new QHBoxLayout();//水平布局器
     web_btn = new QRadioButton(wordsObj["server mode"].toString());
+    web_btn->setToolTip(wordsObj["web_btn_tooltip"].toString());
     layout_H10->addWidget(web_btn);
     port_label = new QLabel(wordsObj["port"].toString());
+    port_label->setToolTip(wordsObj["port_label_tooltip"].toString());
     layout_H10->addWidget(port_label);
     port_lineEdit = new QLineEdit();
+    port_lineEdit->setToolTip(wordsObj["port_label_tooltip"].toString());
     port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535);//限制端口输入
     port_lineEdit->setValidator(validator);
@@ -881,9 +890,11 @@ void Widget::set_DateDialog()
 
     //预设模板
     QHBoxLayout *layout_H9 = new QHBoxLayout();//水平布局器
-    prompt_label = new QLabel(wordsObj["chat"].toString() + wordsObj["template"].toString());
-    layout_H9->addWidget(prompt_label);
+    chattemplate_label = new QLabel(wordsObj["chat"].toString() + wordsObj["template"].toString());
+    chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toString());
+    layout_H9->addWidget(chattemplate_label);
     chattemplate_comboBox = new QComboBox();
+    chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toString());
     chattemplate_comboBox->setMinimumWidth(200);
     for (const QString &key : date_map.keys())
     {
@@ -897,9 +908,10 @@ void Widget::set_DateDialog()
     //系统指令
     QHBoxLayout *layout_H11 = new QHBoxLayout();//水平布局器
     system_label = new QLabel(wordsObj["system calling"].toString());
-    system_label->setToolTip(wordsObj["will predecode"].toString());
+    system_label->setToolTip(wordsObj["system_label_tooltip"].toString());
     layout_H11->addWidget(system_label);
     system_TextEdit = new QTextEdit();
+    system_TextEdit->setToolTip(wordsObj["system_label_tooltip"].toString());
     // 设置样式表
     // system_TextEdit->setStyleSheet("QTextEdit {"
     //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
@@ -911,18 +923,20 @@ void Widget::set_DateDialog()
     //输入前缀设置
     QHBoxLayout *layout_H5 = new QHBoxLayout();//水平布局器
     input_pfx_label = new QLabel(wordsObj["user name"].toString());
-    input_pfx_label->setToolTip(wordsObj["pfx"].toString());
+    input_pfx_label->setToolTip(wordsObj["input_pfx_label_tooltip"].toString());
     layout_H5->addWidget(input_pfx_label);
     input_pfx_LineEdit = new QLineEdit();
+    input_pfx_LineEdit->setToolTip(wordsObj["input_pfx_label_tooltip"].toString());
     input_pfx_LineEdit->setText(ui_DATES.input_pfx);
     layout_H5->addWidget(input_pfx_LineEdit);
     prompt_layout->addLayout(layout_H5);//将布局添加到总布局
     //输入后缀设置
     QHBoxLayout *layout_H6 = new QHBoxLayout();//水平布局器
     input_sfx_label = new QLabel(wordsObj["bot name"].toString());
-    input_sfx_label->setToolTip(wordsObj["sfx"].toString());
+    input_sfx_label->setToolTip(wordsObj["input_sfx_label_tooltip"].toString());
     layout_H6->addWidget(input_sfx_label);
     input_sfx_LineEdit = new QLineEdit();
+    input_sfx_LineEdit->setToolTip(wordsObj["input_sfx_label_tooltip"].toString());
     input_sfx_LineEdit->setText(ui_DATES.input_sfx);
     layout_H6->addWidget(input_sfx_LineEdit);
     prompt_layout->addLayout(layout_H6);//将布局添加到垂直布局
@@ -937,21 +951,27 @@ void Widget::set_DateDialog()
     //可用工具
     QHBoxLayout *layout_H44 = new QHBoxLayout();//水平布局器
     calculator_checkbox = new QCheckBox(wordsObj["calculator"].toString());
+    calculator_checkbox->setToolTip(wordsObj["calculator_checkbox_tooltip"].toString());
     cmd_checkbox = new QCheckBox(wordsObj["cmd"].toString());
+    cmd_checkbox->setToolTip(wordsObj["cmd_checkbox_tooltip"].toString());
     layout_H44->addWidget(calculator_checkbox);
     layout_H44->addWidget(cmd_checkbox);
     tool_layout->addLayout(layout_H44);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H45 = new QHBoxLayout();//水平布局器
     positron_checkbox = new QCheckBox(wordsObj["positron"].toString());
+    positron_checkbox->setToolTip(wordsObj["positron_checkbox_tooltip"].toString());
     knowledge_checkbox = new QCheckBox(wordsObj["knowledge"].toString());
+    knowledge_checkbox->setToolTip(wordsObj["knowledge_checkbox_tooltip"].toString());
     layout_H45->addWidget(knowledge_checkbox);
     layout_H45->addWidget(positron_checkbox);
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
     toolguy_checkbox = new QCheckBox(wordsObj["toolguy"].toString());
+    toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toString());
     stablediffusion_checkbox = new QCheckBox(wordsObj["stablediffusion"].toString());
+    stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toString());
     layout_H46->addWidget(stablediffusion_checkbox);
     layout_H46->addWidget(toolguy_checkbox);
     tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
@@ -966,13 +986,16 @@ void Widget::set_DateDialog()
     //附加指令
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器
     extra_label = new QLabel(wordsObj["extra calling"].toString());
+    extra_label->setToolTip(wordsObj["extra_label_tooltip"].toString());
     layout_H55->addWidget(extra_label);
     switch_lan_button = new QPushButton(ui_extra_lan);
+    switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toString());
     switch_lan_button->setMinimumWidth(200);
     switch_lan_button->setMinimumHeight(20);
     layout_H55->addWidget(switch_lan_button);
     extra_TextEdit = new QTextEdit();
-    extra_TextEdit->setPlaceholderText(wordsObj["extra calling tooltip"].toString());
+    extra_TextEdit->setPlaceholderText(wordsObj["extra_TextEdit_tooltip"].toString());
+    extra_TextEdit->setToolTip(wordsObj["extra_TextEdit_tooltip"].toString());
     // 设置样式表
     // extra_TextEdit->setStyleSheet("QTextEdit {"
     //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色

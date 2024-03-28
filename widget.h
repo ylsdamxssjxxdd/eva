@@ -84,6 +84,8 @@ public:
     QStringList func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;//字体大小
+
+    bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
     void get_set();//获取设置中的纸面值
     void get_date();//获取约定中的纸面值
@@ -117,7 +119,9 @@ public:
     SETTINGS ui_SETTINGS;//ui的设置
 
     QString ui_model_vocab;//模型词表
-    int test_tokens=0;//测试生产的token数量
+    int ui_n_ctx_train = 2048;//模型最大上下文长度
+    int ui_maxngl = 0;//模型可卸载到gpu上的层数
+    int test_tokens = 0;//测试生产的token数量
     bool load_percent_tag;
     int max_thread = 1;//最大线程数
 
@@ -213,7 +217,7 @@ public:
     QLineEdit *input_pfx_LineEdit;
     QLabel *input_sfx_label;
     QLineEdit *input_sfx_LineEdit;
-    QLabel *prompt_label;
+    QLabel *chattemplate_label;
     QComboBox *chattemplate_comboBox;
     void change_api_dialog(bool enable);
 

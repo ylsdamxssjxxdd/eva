@@ -170,7 +170,8 @@ int main(int argc, char *argv[])
             // ui显示值传给ui内部值
             w.get_date();//获取约定中的纸面值
             w.get_set();//获取设置中的纸面值
-            
+            w.is_config = true;
+
             if(w.ui_mode == SERVER_){w.serverControl();}//自动启动服务
             else{emit w.ui2bot_dateset(w.ui_DATES,w.ui_SETTINGS);}//自动装载模型
             
