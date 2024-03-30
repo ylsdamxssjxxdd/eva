@@ -31,9 +31,6 @@ public:
     void run() override;
 public:
     QStringList func_arg_list;
-    QTimer *positron_p;//阳电子步枪充能定时器
-    void positronShoot();//阳电子步枪发射
-    int positron_power=0;//阳电子步枪充能值
 
     //知识库相关
     QString embedding_server_api = "";
@@ -49,16 +46,16 @@ public:
     
 public slots:
     void recv_func_arg(QStringList func_arg_list);
-    void positronPower();//阳电子步枪充能
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_serverapi(QString serverapi);//传递嵌入服务端点
     void recv_drawover(QString result_, bool ok_);//接收图像绘制完成信号
+    void tool2ui_controller_over(QString result);//传递控制完成结果
     
 signals:
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
-    void positron_starter();
     void tool2expend_draw(QString prompt_);
+    void tool2ui_controller(int num);//传递控制信息
 
 };
 

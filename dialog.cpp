@@ -638,12 +638,12 @@ void Widget::knowledge_change()
     extra_TextEdit->setText(create_extra_prompt());
 }
 
-void Widget::positron_change()
+void Widget::controller_change()
 {
     if(toolcheckbox_checked())
     {
         is_load_tool = true;
-        //ui_positron_ischecked = positron_checkbox->isChecked();
+        //ui_controller_ischecked = controller_checkbox->isChecked();
     }
     else{is_load_tool = false;}
     extra_TextEdit->setText(create_extra_prompt());
@@ -959,12 +959,12 @@ void Widget::set_DateDialog()
     tool_layout->addLayout(layout_H44);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H45 = new QHBoxLayout();//水平布局器
-    positron_checkbox = new QCheckBox(wordsObj["positron"].toString());
-    positron_checkbox->setToolTip(wordsObj["positron_checkbox_tooltip"].toString());
+    controller_checkbox = new QCheckBox(wordsObj["controller"].toString());
+    controller_checkbox->setToolTip(wordsObj["controller_checkbox_tooltip"].toString());
     knowledge_checkbox = new QCheckBox(wordsObj["knowledge"].toString());
     knowledge_checkbox->setToolTip(wordsObj["knowledge_checkbox_tooltip"].toString());
     layout_H45->addWidget(knowledge_checkbox);
-    layout_H45->addWidget(positron_checkbox);
+    layout_H45->addWidget(controller_checkbox);
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
@@ -980,7 +980,7 @@ void Widget::set_DateDialog()
     connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);
     connect(toolguy_checkbox, &QCheckBox::stateChanged, this, &Widget::toolguy_change);
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
-    connect(positron_checkbox, &QCheckBox::stateChanged, this, &Widget::positron_change);
+    connect(controller_checkbox, &QCheckBox::stateChanged, this, &Widget::controller_change);
     connect(stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::stablediffusion_change);
 
     //附加指令
@@ -1561,7 +1561,7 @@ void Widget::get_date()
     ui_cmd_ischecked = cmd_checkbox->isChecked();
     ui_toolguy_ischecked = toolguy_checkbox->isChecked();
     ui_knowledge_ischecked = knowledge_checkbox->isChecked();
-    ui_positron_ischecked = positron_checkbox->isChecked();
+    ui_controller_ischecked = controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
 
     //添加额外停止标志

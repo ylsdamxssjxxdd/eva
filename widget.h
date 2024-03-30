@@ -40,7 +40,7 @@
 #include <QTextCursor>
 #include <QSettings>
 #include <QTextCodec>
-
+#include <QMediaPlayer>
 #include <QAudioInput>
 #include <QBuffer>
 #include <QIODevice>
@@ -85,6 +85,7 @@ public:
     QStringList func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;//字体大小
+    QMediaPlayer music_player;
 
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
@@ -223,8 +224,8 @@ public:
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox,*cmd_checkbox,*toolguy_checkbox,*knowledge_checkbox,*positron_checkbox,*stablediffusion_checkbox;
-    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_toolguy_ischecked=0,ui_knowledge_ischecked=0,ui_positron_ischecked=0,ui_stablediffusion_ischecked=0;
+    QCheckBox *calculator_checkbox,*cmd_checkbox,*toolguy_checkbox,*knowledge_checkbox,*controller_checkbox,*stablediffusion_checkbox;
+    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_toolguy_ischecked=0,ui_knowledge_ischecked=0,ui_controller_ischecked=0,ui_stablediffusion_ischecked=0;
     QLabel *extra_label;//附加指令
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
@@ -331,6 +332,7 @@ signals:
 //发送给tool的信号
     void ui2tool_push();//开始推理
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
+    void recv_controller_over(QString result);
 //发送给expend的信号
     void ui2expend_show(int index_);//通知显示扩展窗口
     void ui2expend_voicedecode(QString wavpath, QString out_format);//传一个wav文件开始解码
@@ -367,6 +369,8 @@ public slots:
     void recv_whisper_modelpath(QString modelpath);//传递模型路径
     void recv_embeddingdb_describe(QString describe);//传递知识库的描述
     void recv_voiceparams(Voice_Params Voice_Params_);//传递文转声参数
+//处理tool信号的槽
+    void recv_controller(int num);//传递控制信息
 //自用的槽
 public slots:    
     void switch_lan_change();//切换行动纲领的语言
@@ -392,7 +396,7 @@ private slots:
     void cmd_change();//选用系统终端工具
     void toolguy_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具
-    void positron_change();//选用阳电子炮工具
+    void controller_change();//选用阳电子炮工具
     void stablediffusion_change();//选用大模型工具
     bool toolcheckbox_checked();//判断是否挂载了工具
 

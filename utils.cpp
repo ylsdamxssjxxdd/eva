@@ -72,7 +72,7 @@ QString Widget::create_extra_prompt()
             if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_zh + "\n";}
             if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_zh + "\n";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_zh + " " + wordsObj["embeddingdb describe zh"].toString() + ":" + embeddingdb_describe + "\n";}
-            if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_zh + "\n";}
+            if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe_zh + "\n";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_zh + "\n";}
             //中
             extra_prompt_ +=wordsObj["middle_extra_prompt_zh"].toString();
@@ -80,7 +80,7 @@ QString Widget::create_extra_prompt()
             if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
             if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-            if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
+            if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
             //尾
             extra_prompt_ += wordsObj["tail_extra_prompt_zh"].toString();
@@ -98,7 +98,7 @@ QString Widget::create_extra_prompt()
             if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_en + "\n";}
             if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_en + "\n";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_en  + " " + wordsObj["embeddingdb describe en"].toString() + ":" + embeddingdb_describe + "\n";}
-            if(positron_checkbox->isChecked()){extra_prompt_ += tool_map["positron"].func_describe_en + "\n";}
+            if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe_en + "\n";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_en + "\n";}
             //中
             extra_prompt_ +=wordsObj["middle_extra_prompt_en"].toString();
@@ -106,7 +106,7 @@ QString Widget::create_extra_prompt()
             if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
             if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
             if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-            if(positron_checkbox->isChecked()){extra_prompt_ +="\"positron\" ";}
+            if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
             if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
             //尾
             extra_prompt_ += wordsObj["tail_extra_prompt_en"].toString();
@@ -448,7 +448,7 @@ void Widget::getWords(QString json_file_path)
 // 判断是否挂载了工具
 bool Widget::toolcheckbox_checked()
 {
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || positron_checkbox->isChecked() || stablediffusion_checkbox->isChecked())
+    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked())
     {
         return true;
     }
@@ -526,6 +526,10 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
             }
             
             return true;
+        }
+        else if (msg->wParam == 741852963)
+        {
+            ui->send->click();
         }
         
     }
@@ -658,7 +662,7 @@ void Widget::speechOver()
     settings.setValue("calculator_checkbox",calculator_checkbox->isChecked());//计算器工具
     settings.setValue("cmd_checkbox",cmd_checkbox->isChecked());//cmd工具
     settings.setValue("knowledge_checkbox",knowledge_checkbox->isChecked());//knowledge工具
-    settings.setValue("positron_checkbox",positron_checkbox->isChecked());//positron工具
+    settings.setValue("controller_checkbox",controller_checkbox->isChecked());//controller工具
     settings.setValue("stablediffusion_checkbox",stablediffusion_checkbox->isChecked());//计算器工具
     settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
     settings.setValue("extra_lan",ui_extra_lan);//额外指令语种

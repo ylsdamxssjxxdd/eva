@@ -248,6 +248,11 @@ void Expend::recv_vocab(QString vocab_)
 void Expend::recv_expend_show(int index_)
 {
     init_expend();//主要是设置界面的语言
+    if(index_ == 999)
+    {
+        this->close();
+        return;
+    }
     if(is_first_show_expend)//第一次显示的话
     {
         is_first_show_expend = false;
@@ -260,6 +265,7 @@ void Expend::recv_expend_show(int index_)
             ui->modellog_card->setPlainText(wordsObj["lode model first"].toString());
         }
     }
+    //打开指定页数窗口
     ui->tabWidget->setCurrentIndex(index_);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
     this->show();

@@ -106,6 +106,8 @@ int main(int argc, char *argv[])
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool,&xTool::tool2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
+    QObject::connect(&tool,&xTool::tool2ui_controller,&w,&Widget::recv_controller);//传递控制信息
+    QObject::connect(&w,&Widget::recv_controller_over,&tool,&xTool::tool2ui_controller_over);//传递控制完成结果
     QObject::connect(&tool,&xTool::tool2ui_pushover,&w,&Widget::recv_toolpushover);//完成推理
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
@@ -140,7 +142,7 @@ int main(int argc, char *argv[])
             w.cmd_checkbox->setChecked(settings.value("cmd_checkbox", "").toBool());
             w.calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
             w.knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
-            w.positron_checkbox->setChecked(settings.value("positron_checkbox", "").toBool());
+            w.controller_checkbox->setChecked(settings.value("controller_checkbox", "").toBool());
             w.stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", "").toBool());
             w.toolguy_checkbox->setChecked(settings.value("toolguy_checkbox", "").toBool());
             if(settings.value("extra_lan", "").toString()!="zh"){w.switch_lan_change();}//切换为英文

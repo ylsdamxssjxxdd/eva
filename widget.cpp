@@ -53,7 +53,7 @@ Widget::Widget(QWidget *parent)
     ui->kv_bar->message = wordsObj["brain"].toString();//进度条里面的文本
     ui->cpu_bar->message = "cpu";//进度条里面的文本
     ui->vcore_bar->message = "gpu";//进度条里面的文本
-
+    music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));//设置播放的音乐
     //-------------初始化各种控件-------------
     setApiDialog();//设置api选项
     set_DateDialog();//设置约定选项
@@ -92,7 +92,7 @@ Widget::Widget(QWidget *parent)
     tool_map.insert("cmd", {wordsObj["cmd"].toString(),"cmd",wordsObj["cmd_func_describe_zh"].toString(),wordsObj["cmd_func_describe_en"].toString()});
     tool_map.insert("toolguy", {wordsObj["toolguy"].toString(),"toolguy",wordsObj["toolguy_func_describe_zh"].toString(),wordsObj["toolguy_func_describe_en"].toString()});
     tool_map.insert("knowledge", {wordsObj["knowledge"].toString(),"knowledge",wordsObj["knowledge_func_describe_zh"].toString(),wordsObj["knowledge_func_describe_en"].toString()});
-    tool_map.insert("positron", {wordsObj["positron"].toString(),"positron",wordsObj["positron_func_describe_zh"].toString(),wordsObj["positron_func_describe_en"].toString()});
+    tool_map.insert("controller", {wordsObj["controller"].toString(),"controller",wordsObj["controller_func_describe_zh"].toString(),wordsObj["controller_func_describe_en"].toString()});
     tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe_zh"].toString(),wordsObj["stablediffusion_func_describe_en"].toString()});
 
     //-------------截图声音相关-------------
@@ -105,7 +105,10 @@ Widget::Widget(QWidget *parent)
     {reflash_state("ui:" + QString("f1 ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}
     //注册录音快捷键 
     if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
-    {reflash_state("ui:" + QString("f2 ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}  
+    {reflash_state("ui:" + QString("f2 ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}
+    //注册发送快捷键 
+    if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
+    {reflash_state("ui:" + QString("crtl+enter ") + wordsObj["shortcut key registration failed"].toString(), WRONG_);}  
 
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
@@ -637,7 +640,7 @@ void Widget::on_date_clicked()
     calculator_checkbox->setChecked(ui_calculator_ischecked);
     cmd_checkbox->setChecked(ui_cmd_ischecked);
     toolguy_checkbox->setChecked(ui_toolguy_ischecked);
-    positron_checkbox->setChecked(ui_positron_ischecked);
+    controller_checkbox->setChecked(ui_controller_ischecked);
     knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
 
@@ -1184,4 +1187,62 @@ void Widget::recv_embeddingdb_describe(QString describe)
 void Widget::recv_voiceparams(Voice_Params Voice_Params_)
 {
     voice_params = Voice_Params_;
+}
+
+//传递控制信息
+void Widget::recv_controller(int num)
+{
+    QString result;
+    if(num == 1)//最大化主窗口
+    {
+        setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
+        result = "主窗口已最大化";
+    }
+    else if(num == 2)//最小化主窗口
+    {
+        this->showMinimized();
+        result = "主窗口已最小化";
+    }
+    else if(num == 3)//主窗口置顶
+    {
+        setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+        show();
+        result = "主窗口已置顶";
+    }
+    else if(num == 4)//取消主窗口置顶
+    {
+        setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+        show();
+        result = "主窗口已取消置顶";
+    }
+    else if(num == 5)//关闭主窗口
+    {
+        this->close();
+        result = "主窗口已关闭";
+    }
+    else if(num == 6)//播放音乐
+    {
+        music_player.play();
+        result = "音乐已开始播放";
+    }
+    else if(num == 7)//关闭音乐
+    {
+        music_player.stop();
+        result = "音乐已停止播放";
+    }
+    else if(num == 8)//打开增殖窗口
+    {
+        emit ui2expend_show(-1);
+        result = "增殖窗口已打开";
+    }
+    else if(num == 9)//关闭增殖窗口
+    {
+        emit ui2expend_show(999);
+        result = "增殖窗口已关闭";
+    }
+    else
+    {
+        result = "传入的数字不存在对应动作";
+    }
+    emit recv_controller_over(result);
 }
