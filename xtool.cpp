@@ -11,6 +11,7 @@ xTool::~xTool()
 
 void xTool::run()
 {
+    //----------------------计算器------------------
     if(func_arg_list.front() == "calculator")
     {
         emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.last() + ")");
@@ -28,6 +29,7 @@ void xTool::run()
         }
         emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result,TOOL_);
     }
+    //----------------------命令提示符------------------
     else if(func_arg_list.front() == "cmd")
     {
 
@@ -60,6 +62,7 @@ void xTool::run()
         }
 
     }
+    //----------------------知识库------------------
     else if(func_arg_list.front() == "knowledge")
     {
         QElapsedTimer time4;time4.start();
@@ -80,20 +83,22 @@ void xTool::run()
         }
         
     }
+    //----------------------控制台------------------
     else if(func_arg_list.front() == "controller")
     {
         emit tool2ui_state("tool:" + QString("controller(") + func_arg_list.last() + ")");
         //执行相应界面控制
         emit tool2ui_controller(func_arg_list.last().toInt());
     }
+    //----------------------文生图------------------
     else if(func_arg_list.front() == "stablediffusion")
     {
         //告诉expend开始绘制
         emit tool2expend_draw(func_arg_list.last());
     }
+    //----------------------没有该工具------------------
     else
     {
-        //没有该工具
         emit tool2ui_pushover(wordsObj["not load tool"].toString());
     }
     
@@ -108,6 +113,7 @@ void xTool::recv_func_arg(QStringList func_arg_list_)
 QString xTool::embedding_query_process(QString query_str)
 {
     QString knowledge_result;
+    //---------------计算查询文本段的词向量-------------------------
     ipAddress = getFirstNonLoopbackIPv4Address();
     QEventLoop loop;// 进入事件循环，等待回复
     QNetworkAccessManager manager;
@@ -163,10 +169,10 @@ QString xTool::embedding_query_process(QString query_str)
         if (reply->error() == QNetworkReply::NoError) 
         {
             // 请求完成，所有数据都已正常接收
-            //计算余弦相似度
+            //------------------------计算余弦相似度---------------------------
             //A向量点积B向量除以(A模乘B模)
             std::vector<std::pair<int, double>> score;
-            score = similar_indices(query_embedding_vector.value,Embedding_DB);
+            score = similar_indices(query_embedding_vector.value,Embedding_DB);//计算查询文本段和所有嵌入文本段之间的相似度
 
             if(score.size()>0){knowledge_result += "相似度最高的三个文本段:\n";}
 
@@ -198,6 +204,7 @@ QString xTool::embedding_query_process(QString query_str)
     return knowledge_result;
 }
 
+//获取ipv4地址
 QString xTool::getFirstNonLoopbackIPv4Address()
 {
     QList<QHostAddress> list = QNetworkInterface::allAddresses();
@@ -209,8 +216,8 @@ QString xTool::getFirstNonLoopbackIPv4Address()
     return QString();
 }
 
-// 计算两个向量的余弦相似度
-double xTool::cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
+// 计算两个向量的余弦相似度，A向量点积B向量除以(A模乘B模)
+double xTool::cosine_similarity_1024(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
 {
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
     for (int i = 0; i < 1024; ++i) {
@@ -228,7 +235,7 @@ std::vector<std::pair<int, double>> xTool::similar_indices(const std::array<doub
 
     // 计算相似度得分
     for (const auto& emb : embedding_DB) {
-        double sim = cosine_similarity(user_vector, emb.value);
+        double sim = cosine_similarity_1024(user_vector, emb.value);
         scores.emplace_back(emb.index, sim);
     }
 

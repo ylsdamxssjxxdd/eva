@@ -39,7 +39,7 @@ public:
     Embedding_vector query_embedding_vector;//查询词向量
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address();
-    double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
+    double cosine_similarity_1024(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
     std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
 
     //文生图相关

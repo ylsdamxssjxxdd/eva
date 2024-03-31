@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -956,7 +956,7 @@ p, li { white-space: pre-wrap; }
           <item>
            <widget class="QPushButton" name="embedding_txt_embedding">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="minimumSize">
              <size>

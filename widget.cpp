@@ -35,6 +35,7 @@ Widget::Widget(QWidget *parent)
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
+    ui->load->setToolTip(wordsObj["load_button_tooltip"].toString());
     reflash_state("ui:" + wordsObj["click load and choose a gguf file"].toString(),USUAL_);//初始提示
     // reflash_state("ui:" + wordsObj["right click load to use link mode"].toString(),USUAL_);//初始提示
     // reflash_state("ui:" + wordsObj["right click here to open expend window"].toString(),USUAL_);//初始提示
@@ -136,7 +137,7 @@ void Widget::on_load_clicked()
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
 
     //用户选择模型位置
-    QString model_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose soul in eva"].toString(),"(*.bin *.gguf)");
+    QString model_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
 
     if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
@@ -743,7 +744,7 @@ void Widget::serverControl()
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
-        ui_SETTINGS.modelpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose soul in eva"].toString(),"(*.bin *.gguf)");
+        ui_SETTINGS.modelpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
         
     }
     if(ui_SETTINGS.modelpath==""){return;}

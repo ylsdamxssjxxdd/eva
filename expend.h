@@ -27,6 +27,7 @@
 #include <QSettings>
 #include <QTextToSpeech>
 #include <QTextCodec>
+#include <QMenu>
 
 #include <windows.h>
 #include "xconfig.h"
@@ -120,8 +121,11 @@ public slots:
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
 private slots:
+    void show_embedding_txt_wait_menu(const QPoint &pos);//右击表格显示菜单
+    void embedding_txt_wait_onAdd();//添加表格
+    void embedding_txt_wait_onDelete();//删除表格
     void on_embedding_txt_modelpath_button_clicked();//用户点击选择嵌入模型路径时响应
-    void on_embedding_txt_upload_clicked();//用户点击上传路径时响应
+    void on_embedding_txt_upload_clicked();//用户点击上传文档时响应
     void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();//用户点击检索时响应
     void on_embedding_txt_modepath_lineedit_textChanged();//嵌入端点改变响应

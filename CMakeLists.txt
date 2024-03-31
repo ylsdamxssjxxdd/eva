@@ -28,7 +28,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -42,6 +42,9 @@ elseif(LLAMA_CUBLAS)
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
+#sd的cpu加速暂不支持mingw编译器
+# else()
+#     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速
 endif()
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项

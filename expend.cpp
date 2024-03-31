@@ -47,7 +47,9 @@ Expend::Expend(QWidget *parent) :
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);//连接开始信号
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::sd_onProcessFinished);//连接结束信号        
 
-    
+    ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu);//添加右键菜单
+    connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
+
     ui->embedding_txt_wait->setColumnCount(1);//设置一列
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
 
@@ -533,7 +535,7 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
 
-    embedding_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"choose embedding model","(*.bin *.gguf)");
+    embedding_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"选择嵌入模型","(*.bin *.gguf)");
 
     if(embedding_params.modelpath==""){return;}
     ui->embedding_txt_modepath_lineedit->setText(embedding_params.modelpath);
@@ -652,8 +654,6 @@ void Expend::on_embedding_txt_upload_clicked()
     txtpath = customOpenfile(DEFAULT_MODELPATH,"选择一个txt文件嵌入到知识库","(*.txt)");
 
     ui->embedding_txt_lineEdit->setText(txtpath);
-    if(txtpath!=""){ui->embedding_txt_embedding->setEnabled(1);}
-    else{ui->embedding_txt_embedding->setEnabled(0);return;}
 
     preprocessTXT();//预处理文件内容
 }
@@ -708,6 +708,55 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->setColumnWidth(0,ui->embedding_txt_wait->width());// 列宽保持控件宽度
     ui->embedding_txt_wait->resizeRowsToContents();// 自动调整行高
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
+}
+
+//右击表格显示菜单
+void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
+{
+    // 创建菜单并添加动作
+    QMenu contextMenu(tr("Context menu"), this);
+
+    QAction actionAdd(tr("添加"), this);
+    connect(&actionAdd, &QAction::triggered, this, &Expend::embedding_txt_wait_onAdd);
+    contextMenu.addAction(&actionAdd);
+
+    QAction actionDelete(tr("删除"), this);
+    connect(&actionDelete, &QAction::triggered, this, &Expend::embedding_txt_wait_onDelete);
+    contextMenu.addAction(&actionDelete);
+
+    // 显示菜单
+    contextMenu.exec(ui->embedding_txt_wait->viewport()->mapToGlobal(pos));
+}
+
+//添加表格
+void Expend::embedding_txt_wait_onAdd()
+{
+    // 获取选中的行
+    int row = ui->embedding_txt_wait->currentRow()+1;
+    ui->embedding_txt_wait->insertRow(row);  // 在选中的行的下一行添加一行
+
+    // 根据需要设置新行的内容
+    QTableWidgetItem *newItem = new QTableWidgetItem(tr("请输入需要被嵌入的知识"));
+    ui->embedding_txt_wait->setItem(row, 0, newItem);  // 假设我们只设置第一列
+}
+//删除表格
+void Expend::embedding_txt_wait_onDelete()
+{
+    // 获取选中的行号
+    QList<QTableWidgetItem*> selectedItems = ui->embedding_txt_wait->selectedItems();
+    QSet<int> rows;
+    for (auto item : selectedItems) {
+        rows.insert(item->row());  // 只添加行号
+    }
+
+    // 转换为列表并排序（从大到小）
+    QList<int> sortedRows = QList<int>(rows.begin(), rows.end());
+    std::sort(sortedRows.begin(), sortedRows.end(), std::greater<int>());
+
+    // 删除行
+    for (int row : sortedRows) {
+        ui->embedding_txt_wait->removeRow(row);
+    }
 }
 
 //用户点击嵌入时响应
