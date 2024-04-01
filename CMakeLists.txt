@@ -40,6 +40,7 @@ elseif(LLAMA_CUBLAS)
     add_compile_definitions(GGML_USE_CUBLAS)#由于whisper和llama.cpp暂时有冲突不启用
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
+    add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
 #sd的cpu加速暂不支持mingw编译器

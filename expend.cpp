@@ -63,7 +63,9 @@ Expend::Expend(QWidget *parent) :
     ui->whisper_output_format->addItems({"文本文档txt","视频字幕srt","逗号分隔csv","json"});
 
     //声转文相关
-    get_sys_voice();
+#ifdef BODY_USE_SPEECH
+    get_sys_voice();//由于win7下不支持，只在使用cuda时开启
+#endif
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     

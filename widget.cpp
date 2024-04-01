@@ -113,12 +113,14 @@ Widget::Widget(QWidget *parent)
 
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
+
     speech = new QTextToSpeech();
     connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
     speechtimer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
+    connect(speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
+#ifdef BODY_USE_SPEECH
     speechtimer->start(500);//每半秒检查一次是否需要朗读
-
+#endif
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
@@ -572,7 +574,9 @@ void Widget::on_reset_clicked()
     wait_to_show_image = "";//清空待显示图像
     temp_speech="";//清空待读列表
     wait_speech.clear();//清空待读列表
+#ifdef BODY_USE_SPEECH
     speech->stop();//停止朗读
+#endif
     
     //如果模型正在推理就改变模型的停止标签
     if(is_run)

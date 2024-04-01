@@ -1375,7 +1375,6 @@ void Widget::ui_state_normal()
         ui->input->setFocus();//设置输入区为焦点
         ui->output->setReadOnly(1);
         ui->send->setText(wordsObj["send"].toString());
-        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
     }
     else if(ui_mode == COMPLETE_)
     {
@@ -1396,7 +1395,6 @@ void Widget::ui_state_normal()
         ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");//设置背景为橘黄色
         ui->input->setReadOnly(1);
         ui->send->setText(wordsObj["complete"].toString());
-        ui->send->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return));//恢复快捷键
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
     }

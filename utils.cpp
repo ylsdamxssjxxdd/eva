@@ -580,28 +580,31 @@ void Widget::qspeech(QString str)
         return;
     }
     
-    // 遍历所有可用音色
-    foreach (const QVoice &voice, speech->availableVoices()) 
+    if(voice_params.voice_name!="")
     {
-        // qDebug() << "Name:" << voice.name();
-        // qDebug() << "Age:" << voice.age();
-        // qDebug() << "Gender:" << voice.gender();
-        //使用用户选择的音色
-        if (voice.name() == voice_params.voice_name) 
+        // 遍历所有可用音色
+        foreach (const QVoice &voice, speech->availableVoices()) 
         {
-            speech->setVoice(voice);
-            break;
+            // qDebug() << "Name:" << voice.name();
+            // qDebug() << "Age:" << voice.age();
+            // qDebug() << "Gender:" << voice.gender();
+            //使用用户选择的音色
+            if (voice.name() == voice_params.voice_name) 
+            {
+                speech->setVoice(voice);
+                break;
+            }
         }
+
+        // 设置语速，范围从-1到1
+        speech->setRate(0.3);
+
+        // 设置音量，范围从0到1
+        speech->setVolume(1.0);
+
+        // 开始文本到语音转换
+        speech->say(str);
     }
-
-    // 设置语速，范围从-1到1
-    speech->setRate(0.3);
-
-    // 设置音量，范围从0到1
-    speech->setVolume(1.0);
-
-    // 开始文本到语音转换
-    speech->say(str);
 
 }
 
