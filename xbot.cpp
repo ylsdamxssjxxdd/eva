@@ -22,7 +22,7 @@ xBot::xBot()
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;//gpu负载层数
     gpt_params_.prompt = DEFAULT_PROMPT + std::string("\n");//约定提示词
-    gpt_params_.model = DEFAULT_MODELPATH;//模型路径
+    gpt_params_.model = "";//模型路径
     gpt_params_.n_threads = DEFAULT_NTHREAD;//默认使用一半的线程数
     gpt_params_.n_ctx = DEFAULT_NCTX;//上下文最大长度
     gpt_params_.n_batch = DEFAULT_BATCH;//一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关

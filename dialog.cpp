@@ -577,17 +577,17 @@ void Widget::prompt_template_change()
 void Widget::chooseLorapath()
 {
     //用户选择模型位置
-    QString lora_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose lora model"].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,wordsObj["choose lora model"].toString(),"(*.bin *.gguf)");
     
-    lora_LineEdit->setText(lora_path);
+    lora_LineEdit->setText(currentpath);
 }
 
 void Widget::chooseMmprojpath()
 {
     //用户选择模型位置
-    QString mmproj_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["choose mmproj model"].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,wordsObj["choose mmproj model"].toString(),"(*.bin *.gguf)");
     
-    mmproj_LineEdit->setText(mmproj_path);
+    mmproj_LineEdit->setText(currentpath);
 }
 
 
@@ -1454,15 +1454,15 @@ void Widget::create_right_menu()
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
 
         //用户选择图片
-        QString imagepath = customOpenfile(DEFAULT_MODELPATH,wordsObj["Q15"].toString(),"(*.png *.jpg *.bmp)");
+        currentpath = customOpenfile(currentpath,wordsObj["Q15"].toString(),"(*.png *.jpg *.bmp)");
         
-        if(imagepath==""){return;}
-        emit ui2bot_imagepath(imagepath);//发送图像路径
+        if(currentpath==""){return;}
+        emit ui2bot_imagepath(currentpath);//发送图像路径
 
         QString input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
         ui->input->setPlainText(input);
 
-        if(ui->send->isEnabled()){showImage(imagepath);}//显示文件名和图像
+        if(ui->send->isEnabled()){showImage(currentpath);}//显示文件名和图像
         ui->send->click();//触发一次发送
     });
     //Q16测试相关,ceval数据集
@@ -1492,12 +1492,12 @@ void Widget::create_right_menu()
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
         //用户选择自定义的csv文件
-        QString custom_csvpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["Q17"].toString(),"CSV files (*.csv)");
+        currentpath = customOpenfile(currentpath,wordsObj["Q17"].toString(),"CSV files (*.csv)");
 
-        if(custom_csvpath==""){return;}
+        if(currentpath==""){return;}
 
         clearQuestionlist();//清空题库
-        readCsvFile(custom_csvpath);//构建测试问题集
+        readCsvFile(currentpath);//构建测试问题集
         makeTestIndex();//构建测试问题索引
         if(test_question_index.size()==0){reflash_state("ui:0"+ wordsObj["question"].toString(),WRONG_);return;}
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标

@@ -287,43 +287,60 @@ void Widget::clearQuestionlist()
 void Widget::readCsvFile(const QString &fileName)
 {
     QFile file(fileName);
-    QString questiontitle = wordsObj["question type"].toString() + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
-    if (!file.open(QIODevice::ReadOnly)) 
-    {
-        qDebug() << file.errorString();
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open file for reading:" << file.errorString();
         return;
     }
-
+    QString questiontitle = wordsObj["question type"].toString() + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
     QTextStream in(&file);
-    in.setCodec("UTF-8");
-    // 读取并忽略标题行
-    QString headerLine = in.readLine();
+    in.setCodec("UTF-8");//要求csv文件的格式必须是utf-8 不能是ansi
+    QString headerLine = in.readLine();// 读取并忽略标题行
+    bool inQuotes = false;
+    QString currentField;
+    QStringList currentRow;
 
-    // 读取文件的每一行
-    while (!in.atEnd())
-    {
+    while (!in.atEnd()) {
         QString line = in.readLine();
-        // 使用制表符分割每一行的内容
-        QStringList fields = line.split(",");
+        for (int i = 0; i < line.length(); ++i) {
+            QChar currentChar = line[i];
+            if (currentChar == '\"') {
+                inQuotes = !inQuotes; // Toggle the inQuotes state
+            } else if (currentChar == ',' && !inQuotes) {
+                // We've reached the end of a field
+                currentRow.append(currentField);
+                currentField.clear();
+            } else {
+                currentField += currentChar;
+            }
+        }
+        if (!inQuotes) {
+            // End of line and not in quotes, add the last field to the row
+            currentRow.append(currentField);
+            currentField.clear();
 
-        
-        // 确保每行有足够的列
-        if(fields.size() >= 7)
-        {
-            // 输出题目和答案
-            // qDebug() << "id:" << fields.at(0).trimmed();
-            // qDebug() << "Question:" << fields.at(1).trimmed();
-            // qDebug() << "A:" << fields.at(2).trimmed();
-            // qDebug() << "B:" << fields.at(3).trimmed();
-            // qDebug() << "C:" << fields.at(4).trimmed();
-            // qDebug() << "D:" << fields.at(5).trimmed();
-            // qDebug() << "Answer:" << fields.at(6).trimmed();
-            test_list_question<<questiontitle +fields.at(1).trimmed()+"\n\n"+"A:" + fields.at(2).trimmed()+"\n"+"B:"+fields.at(3).trimmed()+"\n"+"C:"+fields.at(4).trimmed()+"\n"+"D:"+fields.at(5).trimmed()+"\n";
-            test_list_answer<<fields.at(6).trimmed();
+            if(currentRow.size() >= 7)
+            {
+                // 输出题目和答案
+                // qDebug() << "id:" << currentRow.at(0).trimmed();
+                // qDebug() << "Question:" << currentRow.at(1).trimmed();
+                // qDebug() << "A:" << currentRow.at(2).trimmed();
+                // qDebug() << "B:" << currentRow.at(3).trimmed();
+                // qDebug() << "C:" << currentRow.at(4).trimmed();
+                // qDebug() << "D:" << currentRow.at(5).trimmed();
+                // qDebug() << "Answer:" << currentRow.at(6).trimmed();
+                test_list_question<<questiontitle +currentRow.at(1).trimmed()+"\n\n"+"A:" + currentRow.at(2).trimmed()+"\n"+"B:"+currentRow.at(3).trimmed()+"\n"+"C:"+currentRow.at(4).trimmed()+"\n"+"D:"+currentRow.at(5).trimmed()+"\n";
+                test_list_answer<<currentRow.at(6).trimmed();
+            }
+
+            currentRow.clear(); // Prepare for the next row
+        } else {
+            // Line ends but we're inside quotes, this means the field continues to the next line
+            currentField += '\n'; // Add the newline character that was part of the field
         }
     }
 
     file.close();
+
 }
 
 void Widget::makeTestIndex()

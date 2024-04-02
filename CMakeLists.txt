@@ -28,7 +28,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -37,15 +37,15 @@ if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
 elseif(LLAMA_CUBLAS)
     add_compile_definitions(BODY_USE_CUBLAST)#编译cuda的标志
-    add_compile_definitions(GGML_USE_CUBLAS)#由于whisper和llama.cpp暂时有冲突不启用
+    add_compile_definitions(GGML_USE_CUBLAS)#llama.cpp用cuda
+    add_compile_definitions(GGML_USE_CUDA)#whisper用cuda, 注意cuda版本精度异常
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
     add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
-#sd的cpu加速暂不支持mingw编译器
-# else()
-#     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速
+else()
+#     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速, 报错
 endif()
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项

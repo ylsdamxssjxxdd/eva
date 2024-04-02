@@ -277,6 +277,13 @@
         "chat_btn_tooltip": "默认模式",
         "web_btn_tooltip": "启动一个web服务并且开放api端点，约定与采样设置不再生效",
         "port_label_tooltip": "服务启动后的端口号，ip地址为本机",
-        "load_button_tooltip": "选择驾驶员进入机体"
+        "load_button_tooltip": "选择驾驶员进入机体",
+
+        "apply_config_mess": "应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹",
+        "toolguy_input_mess": "工具人赶紧去给模型找答案吧~",
+        "call successful, image save at": "调用成功, 图像保存在",
+        "failed to load model mess": "请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足",
+
+        "---end---": "---end---"
     }
 }

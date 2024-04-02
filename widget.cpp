@@ -25,8 +25,8 @@ Widget::Widget(QWidget *parent)
     ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
     addStopwords();//添加停止词
     date_map.insert("qwen", ui_DATES);
-    date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "Instruction", "Response",false,QStringList{}});
-    date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
+    //date_map.insert("alpaca", {"Below is an instruction that describes a task. Write a response that appropriately completes the request.", "Instruction", "Response",false,QStringList{}});
+    //date_map.insert("chatML", {"<|im_start|>system \nYou are a helpful assistant.<|im_end|>", "<|im_start|>user", "<|im_end|>\n<|im_start|>assistant",false,QStringList{}});
     date_map.insert(wordsObj["troll"].toString(), {wordsObj["you are a troll please respect any question for user"].toString(), "" + wordsObj["user"].toString(), "" + wordsObj["troll"].toString(),false,QStringList{}});
     date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toString(), "" + wordsObj["driver"].toString(), "eva",false,QStringList{}});
     
@@ -139,11 +139,11 @@ void Widget::on_load_clicked()
     reflash_state("ui:"+wordsObj["clicked load"].toString(),SIGNAL_);
 
     //用户选择模型位置
-    QString model_path = customOpenfile(DEFAULT_MODELPATH,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
 
-    if(model_path==""){return;}//如果路径没选好就让它等于上一次的路径
+    if(currentpath==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
-    ui_SETTINGS.modelpath = model_path;//模型路径变化则重置参数
+    ui_SETTINGS.modelpath = currentpath;//模型路径变化则重置参数
 
     //-------------------只会应用生效一次------------------
     //分析显存，如果可用显存比模型大1.2倍则自动将gpu负载设置为999
@@ -168,7 +168,7 @@ void Widget::preLoad()
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
     ui_state_loading();//装载中界面状态
-    if(is_config){is_config = false;reflash_state("ui:应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);}
+    if(is_config){is_config = false;reflash_state("ui:" + wordsObj["apply_config_mess"].toString(),USUAL_);}
     reflash_state("ui:" + wordsObj["model location"].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
 }
@@ -409,7 +409,7 @@ void Widget::recv_pushover()
                     is_toolguy = true;
                     ui->send->setEnabled(1);
                     ui->input->setStyleSheet("background-color: rgba(100, 149, 237, 60);");//输入区天蓝色
-                    ui->input->setPlaceholderText("工具人赶紧去给模型找答案吧~");
+                    ui->input->setPlaceholderText(wordsObj["toolguy_input_mess"].toString());
                     ui->input->removeEventFilter(this);//禁用输入区右击
                 }
                 //正常调用情况
@@ -449,7 +449,7 @@ void Widget::recv_toolpushover(QString tool_result_)
     if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
     {
         wait_to_show_image = tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];//文生图后待显示图像的图像路径
-        tool_result = "stablediffusion调用成功，图像保存在 " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
+        tool_result = "stablediffusion" + wordsObj["call successful, image save at"].toString() + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     }
     else
     {
@@ -743,13 +743,13 @@ void Widget::set_set()
 void Widget::serverControl()
 {
     ui_state_servering();//服务中界面状态
-    if(is_config){is_config = false;reflash_state("ui:应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);}
+    if(is_config){is_config = false;reflash_state("ui:" + wordsObj["apply_config_mess"].toString(),USUAL_);}
     current_server = true;
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
-        ui_SETTINGS.modelpath = customOpenfile(DEFAULT_MODELPATH,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
-        
+        currentpath = customOpenfile(currentpath,wordsObj["load_button_tooltip"].toString(),"(*.bin *.gguf)");
+        ui_SETTINGS.modelpath = currentpath;
     }
     if(ui_SETTINGS.modelpath==""){return;}
     
@@ -892,7 +892,7 @@ void Widget::recv_log(QString log)
     //处理异常情况
     if(log.contains("failed to load model"))//提示用户不能有中文
     {
-        emit ui2expend_log("请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足");//单条记录 
+        emit ui2expend_log(wordsObj["failed to load model mess"].toString());//单条记录 
     }
 
 }
@@ -983,6 +983,7 @@ void Widget::recv_voicedecode_over(QString result)
 {
     ui_state_normal();
     ui->input->append(result);
+    ui->send->click();//尝试一次发送
 }
 
 //接收模型路径

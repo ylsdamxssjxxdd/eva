@@ -416,8 +416,8 @@ void Expend::closeEvent(QCloseEvent *event)
 //用户点击选择whisper路径时响应
 void Expend::on_whisper_load_modelpath_button_clicked()
 {
-    whisper_params.model = customOpenfile(DEFAULT_MODELPATH,"choose whisper model","(*.bin *.gguf)").toStdString();
- 
+    currentpath = customOpenfile(currentpath,"choose whisper model","(*.bin *.gguf)");
+    whisper_params.model = currentpath.toStdString();
     ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
     ui->whisper_log->setPlainText("选择好了就可以按f2录音了");
@@ -513,7 +513,8 @@ void Expend::whisper_onProcessFinished()
 //用户点击选择wav路径时响应
 void Expend::on_whisper_wavpath_pushButton_clicked()
 {
-    wavpath = customOpenfile(DEFAULT_MODELPATH,"choose whisper model","(*.wav)");
+    currentpath= customOpenfile(currentpath,"choose whisper model","(*.wav)");
+    wavpath = currentpath;
     if(wavpath==""){return;}
     ui->whisper_wavpath_lineedit->setText(wavpath);
 
@@ -536,9 +537,8 @@ void Expend::on_whisper_execute_pushbutton_clicked()
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
-
-    embedding_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"选择嵌入模型","(*.bin *.gguf)");
-
+    currentpath= customOpenfile(currentpath,"选择嵌入模型","(*.bin *.gguf)");
+    embedding_params.modelpath = currentpath;
     if(embedding_params.modelpath==""){return;}
     ui->embedding_txt_modepath_lineedit->setText(embedding_params.modelpath);
 
@@ -653,8 +653,8 @@ QString Expend::getFirstNonLoopbackIPv4Address() {
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    txtpath = customOpenfile(DEFAULT_MODELPATH,"选择一个txt文件嵌入到知识库","(*.txt)");
-
+    currentpath= customOpenfile(currentpath,"选择一个txt文件嵌入到知识库","(*.txt)");
+    txtpath = currentpath;
     ui->embedding_txt_lineEdit->setText(txtpath);
 
     preprocessTXT();//预处理文件内容
@@ -1036,14 +1036,14 @@ void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 //用户点击选择待量化模型路径时响应
 void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
 {
-    QString row_modelpath = customOpenfile(DEFAULT_MODELPATH,"需要选择fp32或fp16的gguf模型","(*.gguf)");
-    ui->model_quantize_row_modelpath_lineedit->setText(row_modelpath);
+    currentpath= customOpenfile(currentpath,"需要选择fp32或fp16的gguf模型","(*.gguf)");
+    ui->model_quantize_row_modelpath_lineedit->setText(currentpath);
 }
 //用户点击选择重要性矩阵路径时响应
 void Expend::on_model_quantize_important_datapath_pushButton_clicked()
 {
-    QString importtant_datapath = customOpenfile(DEFAULT_MODELPATH,"iq量化方法必须,选择重要性矩阵","(*.dat)");
-    ui->model_quantize_important_datapath_lineedit->setText(importtant_datapath);
+    currentpath = customOpenfile(currentpath,"iq量化方法必须,选择重要性矩阵","(*.dat)");
+    ui->model_quantize_important_datapath_lineedit->setText(currentpath);
 }
 //待量化模型路径改变响应
 void Expend::on_model_quantize_row_modelpath_lineedit_textChanged()
@@ -1196,7 +1196,8 @@ void Expend::quantize_onProcessFinished()
 //用户点击选择sd模型路径时响应  
 void Expend::on_sd_modelpath_pushButton_clicked()
 {
-    sd_params.modelpath = customOpenfile(DEFAULT_MODELPATH,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    currentpath = customOpenfile(currentpath ,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    sd_params.modelpath = currentpath;
     if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
     if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText("检测到xl模型，推荐将图像宽高设置在768以上");}
 
@@ -1204,7 +1205,8 @@ void Expend::on_sd_modelpath_pushButton_clicked()
 //用户点击选择vae模型路径时响应 
 void Expend::on_sd_vaepath_pushButton_clicked()
 {
-    sd_params.vaepath = customOpenfile(DEFAULT_MODELPATH,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    currentpath = customOpenfile(currentpath ,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    sd_params.vaepath = currentpath;
     if(sd_params.vaepath!=""){ui->sd_vaepath_lineEdit->setText(sd_params.vaepath);}
 
 }
