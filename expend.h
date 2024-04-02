@@ -100,6 +100,8 @@ private slots:
 //-------------------------------------------------------------------------
 public:
     Embedding_Params embedding_params;
+    bool embedding_need = false;//下一次打开是否需要自动构建知识库
+    bool embedding_need_auto = false;//下一次打开是否需要自启动嵌入服务
     QProcess *server_process;
     QString ipAddress = "";
     QString embedding_server_api = "";
@@ -113,6 +115,7 @@ public:
     Embedding_vector user_embedding_vector;
     double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
     std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
+    void embedding_processing();//知识库构建过程
 signals:
     void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);//发送已嵌入文本段数据给tool
     void expend2ui_embeddingdb_describe(QString describe);//传递知识库的描述
@@ -129,7 +132,7 @@ private slots:
     void on_embedding_txt_upload_clicked();//用户点击上传文档时响应
     void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();//用户点击检索时响应
-    void on_embedding_txt_modepath_lineedit_textChanged();//嵌入端点改变响应
+    void on_embedding_txt_api_lineedit_textChanged();//嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();//知识库描述改变响应
 
 //-------------------------------------------------------------------------

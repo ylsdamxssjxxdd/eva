@@ -112,6 +112,7 @@ void xTool::recv_func_arg(QStringList func_arg_list_)
 //查询计算词向量和计算相似度，返回匹配的文本段
 QString xTool::embedding_query_process(QString query_str)
 {
+    
     QString knowledge_result;
     //---------------计算查询文本段的词向量-------------------------
     ipAddress = getFirstNonLoopbackIPv4Address();

@@ -176,6 +176,26 @@ int main(int argc, char *argv[])
             else{emit w.ui2bot_dateset(w.ui_DATES,w.ui_SETTINGS);}//自动装载模型
             
         }
+
+        //是否需要自动重构知识库, 源文档在expend实例化时已经完成
+        bool embedding_need = settings.value("embedding_need", "").toBool();
+        if(embedding_need)
+        {
+            QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
+            QFile embedding_modelpath_file(embedding_modelpath);
+            if(embedding_modelpath_file.exists())
+            {
+                expend.embedding_need_auto = true;
+                expend.embedding_params.modelpath = embedding_modelpath;
+                expend.embedding_server_start();//启动嵌入服务,并执行嵌入
+            }
+            else//借助端点直接嵌入
+            {
+                expend.embedding_processing();//执行嵌入
+                tool.embedding_server_api = settings.value("embedding_endpoint", "").toString();//要让tool拿到api端点地址
+            }
+            
+        }
         
     }
 
