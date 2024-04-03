@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QColor>
 #include <QTextCodec>
+#include <QJsonArray>
 
 #include "xconfig.h" //ui和bot都要导入的共有配置
 #include "llama.cpp/common/common.h"
@@ -35,6 +36,7 @@ public:
 public:
     //拯救中文
     QJsonObject wordsObj;
+    int language_flag = 0;
     //实例相关
     llama_model_params hparams;//模型内部参数
     gpt_params gpt_params_;//控制模型的参数,内含控制采样的参数sparams
@@ -98,7 +100,7 @@ public:
 
 public slots:
     void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
-    void recv_language(QJsonObject wordsObj_);//传递使用的语言
+    void recv_language(int language_flag_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径
     void recv_input(INPUTS input_,bool is_test_);//接受用户输入
     void recv_stop();//接受停止信号

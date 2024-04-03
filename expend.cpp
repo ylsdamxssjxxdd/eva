@@ -101,6 +101,23 @@ bool Expend::createTempDirectory(const QString &path) {
 //----------------------------------界面相关--------------------------------
 //-------------------------------------------------------------------------
 
+//初始化增殖窗口
+void Expend::init_expend()
+{
+    this->setWindowTitle(wordsObj["expend window"].toArray()[language_flag].toString());//标题
+    ui->tabWidget->setTabText(0,wordsObj["introduction"].toArray()[language_flag].toString());//软件介绍
+    ui->tabWidget->setTabText(1,wordsObj["model vocab"].toArray()[language_flag].toString());//模型词表
+    ui->tabWidget->setTabText(2,wordsObj["model log"].toArray()[language_flag].toString());//模型日志
+    ui->tabWidget->setTabText(3,wordsObj["model"].toArray()[language_flag].toString() + wordsObj["quantize"].toArray()[language_flag].toString());//模型量化
+    ui->tabWidget->setTabText(4,wordsObj["knowledge"].toArray()[language_flag].toString());//知识库
+    ui->tabWidget->setTabText(5,wordsObj["text2image"].toArray()[language_flag].toString());//文生图
+    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toArray()[language_flag].toString());//声转文
+    ui->tabWidget->setTabText(7,wordsObj["text2voice"].toArray()[language_flag].toString());//文转声
+
+    //大量的工作...来写吧
+
+}
+
 //用户切换选项卡时响应
 //0软件介绍,1模型词表,2模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
@@ -229,19 +246,6 @@ void Expend::recv_log(QString log)
     ui->modellog_card->appendPlainText(log);
 }
 
-//初始化增殖窗口
-void Expend::init_expend()
-{
-    this->setWindowTitle(wordsObj["expend window"].toString());//标题
-    ui->tabWidget->setTabText(0,wordsObj["introduction"].toString());//软件介绍
-    ui->tabWidget->setTabText(1,wordsObj["model vocab"].toString());//模型词表
-    ui->tabWidget->setTabText(2,wordsObj["model log"].toString());//模型日志
-    ui->tabWidget->setTabText(3,wordsObj["model"].toString() + wordsObj["quantize"].toString());//模型量化
-    ui->tabWidget->setTabText(4,wordsObj["knowledge"].toString());//知识库
-    ui->tabWidget->setTabText(5,wordsObj["text2image"].toString());//文生图
-    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toString());//声转文
-}
-
 // 接收模型词表
 void Expend::recv_vocab(QString vocab_)
 {
@@ -252,7 +256,6 @@ void Expend::recv_vocab(QString vocab_)
 //通知显示增殖窗口
 void Expend::recv_expend_show(int index_)
 {
-    init_expend();//主要是设置界面的语言
     if(index_ == 999)
     {
         this->close();
@@ -263,11 +266,11 @@ void Expend::recv_expend_show(int index_)
         is_first_show_expend = false;
         if(vocab == "")
         {
-            vocab = wordsObj["lode model first"].toString();
+            vocab = wordsObj["lode model first"].toArray()[language_flag].toString();
         }
         if(ui->modellog_card->toPlainText() == "")
         {
-            ui->modellog_card->setPlainText(wordsObj["lode model first"].toString());
+            ui->modellog_card->setPlainText(wordsObj["lode model first"].toArray()[language_flag].toString());
         }
     }
     //打开指定页数窗口
@@ -292,6 +295,13 @@ QString Expend::customOpenfile(QString dirpath, QString describe, QString format
 #endif
 
     return filepath;
+}
+
+//传递使用的语言
+void Expend::recv_language(int language_flag_)
+{
+    language_flag = language_flag_;
+    init_expend();
 }
 
 //读取配置文件并应用
@@ -624,8 +634,8 @@ void Expend::embedding_server_start()
             
             embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
             ui->embedding_txt_api_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
-            log_output += wordsObj["embedding"].toString() + "服务启动完成" + "\n";
-            log_output += wordsObj["embedding"].toString() + wordsObj["endpoint"].toString() + " " + embedding_server_api;
+            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + "服务启动完成" + "\n";
+            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + wordsObj["endpoint"].toArray()[language_flag].toString() + " " + embedding_server_api;
             if(embedding_server_n_embd!=1024)
             {
                 log_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) + " 不符合要求请更换模型" +"\n";

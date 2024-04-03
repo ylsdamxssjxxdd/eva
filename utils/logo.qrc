@@ -1,8 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>../README.md</file>
-        <file>chinese.json</file>
-        <file>english.json</file>
+        <file>language.json</file>
         <file>fly_me_to_the_moon.mp3</file>
         <file>ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png</file>
         <file>ui/QSS-master/QSS_IMG/go-next-symbolic.symbolic.png</file>

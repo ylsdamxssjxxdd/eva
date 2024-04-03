@@ -128,7 +128,7 @@
           </font>
          </property>
          <property name="toolTip">
-          <string>设置</string>
+          <string/>
          </property>
          <property name="text">
           <string/>
@@ -153,7 +153,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string>重置</string>
+          <string/>
          </property>
          <property name="text">
           <string/>
@@ -243,7 +243,7 @@
           </font>
          </property>
          <property name="toolTip">
-          <string>ctrl+回车</string>
+          <string/>
          </property>
          <property name="text">
           <string>发送</string>

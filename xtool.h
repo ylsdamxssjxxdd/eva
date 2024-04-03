@@ -28,6 +28,7 @@ public:
     ~xTool();
     //拯救中文
     QJsonObject wordsObj;
+    int language_flag = 0;
     void run() override;
 public:
     QStringList func_arg_list;
@@ -50,6 +51,7 @@ public slots:
     void recv_serverapi(QString serverapi);//传递嵌入服务端点
     void recv_drawover(QString result_, bool ok_);//接收图像绘制完成信号
     void tool2ui_controller_over(QString result);//传递控制完成结果
+    void recv_language(int language_flag_);
     
 signals:
     void tool2ui_pushover(QString tool_result);

@@ -67,7 +67,7 @@ struct APIS{
     QString api_port = "8080";
     QString api_chat_endpoint = "/v1/chat/completions";
     QString api_complete_endpoint = "/completion";
-    bool is_cache = false;
+    bool is_cache = true;
 };
 
 //端点接收参数
@@ -89,8 +89,7 @@ struct ENDPOINT_DATA{
 struct TOOLS{
     QString tool_name;//工具名
     QString func_name;//函数名
-    QString func_describe_zh;//功能描述中
-    QString func_describe_en;//功能描述英
+    QString func_describe;//功能描述
 };
 
 //传递的前缀/输入/后缀

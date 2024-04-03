@@ -18,16 +18,16 @@ void xTool::run()
         QScriptEngine enging;
         QScriptValue result_ = enging.evaluate(func_arg_list.last());
         QString result = QString::number(result_.toNumber());
-        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result;
+        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result;
         if(result == "nan")//计算失败的情况
         {
-            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + "计算失败，请确认计算公式是否合理");
+            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "计算失败，请确认计算公式是否合理");
         }
         else
         {
-            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toString() + " " + result);
+            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
         }
-        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toString() + " " + result,TOOL_);
+        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result,TOOL_);
     }
     //----------------------命令提示符------------------
     else if(func_arg_list.front() == "cmd")
@@ -47,18 +47,18 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString(),TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString());
-            qDebug() << QString("cmd ") + wordsObj["return"].toString() + " " + process->errorString();
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString(),TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString());
+            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString();
         } 
         else 
         {
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toString() + " " + output,TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toString() + " " + output);
-            qDebug() << QString("cmd ") + wordsObj["return"].toString() + " " + output;
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output,TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output);
+            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output;
         }
 
     }
@@ -69,17 +69,17 @@ void xTool::run()
         QString result;
         if(Embedding_DB.size()==0)
         {
-            result = "请用户先嵌入知识到知识库中";
-            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toString() + " " + result, TOOL_);
-            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toString() + " " + result);
+            result = wordsObj["Please tell user to embed knowledge into the knowledge base first"].toArray()[language_flag].toString();
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
         }
         else
         {
             //查询计算词向量和计算相似度，返回匹配的文本段
             result = embedding_query_process(func_arg_list.last());
-            emit tool2ui_state("tool:" + wordsObj["qurey&timeuse"].toString() + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
-            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toString() + " " + result, TOOL_);
-            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toString() + " " + result);
+            emit tool2ui_state("tool:" + wordsObj["qurey&timeuse"].toArray()[language_flag].toString() + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
         }
         
     }
@@ -99,7 +99,7 @@ void xTool::run()
     //----------------------没有该工具------------------
     else
     {
-        emit tool2ui_pushover(wordsObj["not load tool"].toString());
+        emit tool2ui_pushover(wordsObj["not load tool"].toArray()[language_flag].toString());
     }
     
 }
@@ -162,7 +162,7 @@ QString xTool::embedding_query_process(QString query_str)
             }
         }
         vector_str += "]";
-        emit tool2ui_state("tool:" + QString("查询文本段嵌入完毕! ") + "维度:"+QString::number(query_embedding_vector.value.size()) + " " + "词向量: "+ vector_str,USUAL_);
+        emit tool2ui_state("tool:" + wordsObj["The query text segment has been embedded"].toArray()[language_flag].toString() + wordsObj["dimension"].toArray()[language_flag].toString() + ": "+QString::number(query_embedding_vector.value.size()) + " " + wordsObj["word vector"].toArray()[language_flag].toString() + ": "+ vector_str,USUAL_);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -175,23 +175,23 @@ QString xTool::embedding_query_process(QString query_str)
             std::vector<std::pair<int, double>> score;
             score = similar_indices(query_embedding_vector.value,Embedding_DB);//计算查询文本段和所有嵌入文本段之间的相似度
 
-            if(score.size()>0){knowledge_result += "相似度最高的三个文本段:\n";}
+            if(score.size()>0){knowledge_result += wordsObj["The three text segments with the highest similarity"].toArray()[language_flag].toString() + ":\n";}
 
             //将分数前三的结果显示出来
             for(int i = 0;i < 3 && i < score.size();++i)
             {
-                knowledge_result += QString::number(score[i].first + 1) + "号文本段 相似度: " + QString::number(score[i].second);
-                knowledge_result += " 内容:\n" + Embedding_DB.at(score[i].first).chunk + "\n";
+                knowledge_result += QString::number(score[i].first + 1) + wordsObj["Number text segment similarity"].toArray()[language_flag].toString() + ": " + QString::number(score[i].second);
+                knowledge_result += " " + wordsObj["content"].toArray()[language_flag].toString() + ":\n" + Embedding_DB.at(score[i].first).chunk + "\n";
             }
 
-            if(score.size()>0){knowledge_result += "以这些信息为基础，回复用户之前的问题";}
+            if(score.size()>0){knowledge_result += wordsObj["Based on this information, reply to the user's previous questions"].toArray()[language_flag].toString();}
 
         } 
         else 
         {
             // 请求出错
-            emit tool2ui_state("tool:请求出错 " + reply->error(), WRONG_);
-            knowledge_result += "请求出错 " + reply->error();
+            emit tool2ui_state("tool:" + wordsObj["Request error"].toArray()[language_flag].toString() + " " + reply->error(), WRONG_);
+            knowledge_result += wordsObj["Request error"].toArray()[language_flag].toString() + " " + reply->error();
         }
         
         reply->abort();//终止
@@ -253,7 +253,7 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
 {
     Embedding_DB.clear();
     Embedding_DB = Embedding_DB_;
-    emit tool2ui_state("tool:接收到已嵌入文本段数据",USUAL_);
+    emit tool2ui_state("tool:" +  wordsObj["Received embedded text segment data"].toArray()[language_flag].toString(),USUAL_);
 }
 
 //传递嵌入服务端点
@@ -274,13 +274,18 @@ void xTool::recv_drawover(QString result_, bool ok_)
 
     //绘制成功的情况
     //添加绘制成功并显示图像指令
-    emit tool2ui_state("tool:" + QString("stablediffusion ") + wordsObj["return"].toString() + " " + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
+    emit tool2ui_state("tool:" + QString("stablediffusion ") + wordsObj["return"].toArray()[language_flag].toString() + " " + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
     emit tool2ui_pushover("<ylsdamxssjxxdd:showdraw>" + result_);
 }
 
 //传递控制完成结果
 void xTool::tool2ui_controller_over(QString result)
 {
-    emit tool2ui_state("tool:" + QString("controller ") + wordsObj["return"].toString() + " " + result, TOOL_);
-    emit tool2ui_pushover(QString("controller ") + wordsObj["return"].toString() + " " + result);
+    emit tool2ui_state("tool:" + QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
+    emit tool2ui_pushover(QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+}
+
+void xTool::recv_language(int language_flag_)
+{
+    language_flag = language_flag_;
 }

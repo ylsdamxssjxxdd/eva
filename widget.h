@@ -68,6 +68,7 @@ public:
 public:
     QJsonObject wordsObj;//中文英文
     void getWords(QString json_file_path);//中文英文
+    int language_flag = 0;//0是中文1是英文
 
     //ui相关
     QString ui_output,ui_state;
@@ -86,6 +87,7 @@ public:
     QFont ui_font;//字体大小
     QMediaPlayer music_player;
     QString currentpath = "";
+    void apply_language(int language_flag_);//改变语种相关
 
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
@@ -289,7 +291,6 @@ public:
     QDialog *api_dialog;
     QLabel *api_ip_label,*api_port_label,*api_chat_label,*api_complete_label;
     QLineEdit *api_ip_LineEdit,*api_port_LineEdit,*api_chat_LineEdit,*api_complete_LineEdit;
-    QCheckBox *api_is_cache;//是否缓存上下文
     bool is_api = false;//是否处于api模式,按照链接模式的行为来
     APIS apis;//api配置参数
     QStringList ui_user_history,ui_assistant_history;
@@ -311,7 +312,7 @@ public:
 //发给模型的信号
 signals:
     void ui2bot_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
-    void ui2bot_language(QJsonObject wordsObj_);//传递使用的语言
+    void ui2bot_language(int language_flag_);//传递使用的语言
     void ui2bot_imagepath(QString image_path);//传递图片路径
     void ui2bot_modelpath(QString model_path,bool is_first_load_=false);//传递模型路径
     void ui2bot_loadmodel();//开始装载模型
@@ -325,15 +326,18 @@ signals:
     void ui2bot_maxngl(int maxngl_);
 //发给net的信号
 signals:
+    void ui2net_language(int language_flag_);//传递使用的语言
     void ui2net_push();//开始推理
     void ui2net_data(ENDPOINT_DATA data);//传递端点参数
     void ui2net_apis(APIS apis);//传递api设置参数
     void ui2net_stop(bool stop);//传递停止信号
 //发送给tool的信号
+    void ui2tool_language(int language_flag_);//传递使用的语言
     void ui2tool_push();//开始推理
     void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
     void recv_controller_over(QString result);
 //发送给expend的信号
+    void ui2expend_language(int language_flag_);//传递使用的语言
     void ui2expend_show(int index_);//通知显示扩展窗口
     void ui2expend_voicedecode(QString wavpath, QString out_format);//传一个wav文件开始解码
 //自用信号

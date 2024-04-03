@@ -10,7 +10,7 @@ xNet::~xNet()
 }
 void xNet::run()
 {
-    emit net2ui_state("net:" + wordsObj["send message to api"].toString());
+    emit net2ui_state("net:" + wordsObj["send message to api"].toArray()[language_flag].toString());
     
     QElapsedTimer time;time.start();
     QElapsedTimer time2;
@@ -57,7 +57,7 @@ void xNet::run()
                         QString content_flag;
                         if(firstChoice.value("finish_reason").toString() == "stop")
                         {
-                            content_flag = wordsObj["<end>"].toString();
+                            content_flag = wordsObj["<end>"].toArray()[language_flag].toString();
                         }
                         else
                         {
@@ -66,7 +66,7 @@ void xNet::run()
                         if(content!="")//解析的结果发送到输出区
                         {
                             tokens++;
-                            emit net2ui_state("net:" + wordsObj["recv output"].toString() + " " + content_flag);
+                            emit net2ui_state("net:" + wordsObj["recv reply"].toArray()[language_flag].toString() + " " + content_flag);
                             emit net2ui_output(content,1);
                         }
                     }
@@ -90,11 +90,11 @@ void xNet::run()
                 // 请求完成，所有数据都已正常接收
                 if(endpoint_data.n_predict == 1)
                 {
-                    emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);
+                    emit net2ui_state("net:" + wordsObj["use time"].toArray()[language_flag].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);
                 }
                 else
                 {
-                    emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
+                    emit net2ui_state("net:" + wordsObj["use time"].toArray()[language_flag].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["single decode"].toArray()[language_flag].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
                 }
             } 
             else 
@@ -133,10 +133,10 @@ void xNet::run()
             QJsonObject rootObject = document.object();
             QString content = rootObject.value("content").toString();// 得到content字段的值
             QString content_flag;
-            if(rootObject.value("stop").toBool()){content_flag = wordsObj["<end>"].toString();}
+            if(rootObject.value("stop").toBool()){content_flag = wordsObj["<end>"].toArray()[language_flag].toString();}
             else{content_flag=content;}
             tokens++;
-            emit net2ui_state("net:" + wordsObj["recv output"].toString() + " " + content_flag);
+            emit net2ui_state("net:" + wordsObj["recv reply"].toArray()[language_flag].toString() + " " + content_flag);
             emit net2ui_output(content,1);
             if(is_stop)
             {
@@ -150,7 +150,7 @@ void xNet::run()
             if (reply->error() == QNetworkReply::NoError) 
             {
                 // 请求完成，所有数据都已正常接收
-                emit net2ui_state("net:" + wordsObj["use time"].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["singl decode"].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
+                emit net2ui_state("net:" + wordsObj["use time"].toArray()[language_flag].toString() + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ wordsObj["single decode"].toArray()[language_flag].toString() + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
             } 
             else 
             {
@@ -304,4 +304,9 @@ QStringList xNet::extractAllContent(const QString &data) {
     }
 
     return contentList;
+}
+
+void xNet::recv_language(int language_flag_)
+{
+    language_flag = language_flag_;
 }

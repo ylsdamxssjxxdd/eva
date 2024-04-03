@@ -48,6 +48,7 @@ public:
     void closeEvent(QCloseEvent *event) override;//关闭事件
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QJsonObject wordsObj;
+    int language_flag = 0;
     QString vocab;
     QString model_logs;
     bool is_first_show_modelproliferation = true;
@@ -65,6 +66,7 @@ public:
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:
+    void recv_language(int language_flag_);//传递语言标志
     void recv_log(QString log);
     void recv_vocab(QString vocab);    
     void recv_expend_show(int index_);//通知显示增殖窗口

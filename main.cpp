@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
 
     //------------------连接扩展和窗口-------------------
+    QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
     QObject::connect(&w, &Widget::ui2expend_vocab, &expend, &Expend::recv_vocab);
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
     QObject::connect(&net,&xNet::net2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
     QObject::connect(&w, &Widget::ui2net_push,&net, [&net]() {net.start();});//开始推理,利用对象指针实现多线程
     QObject::connect(&net,&xNet::net2ui_pushover,&w,&Widget::recv_pushover);//完成推理
+    QObject::connect(&w, &Widget::ui2net_language,&net,&xNet::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2net_apis,&net,&xNet::recv_apis);//传递api设置参数
     QObject::connect(&w, &Widget::ui2net_data,&net,&xNet::recv_data);//传递端点参数
     QObject::connect(&w, &Widget::ui2net_stop,&net,&xNet::recv_stop);//传递停止信号
@@ -109,6 +111,7 @@ int main(int argc, char *argv[])
     QObject::connect(&tool,&xTool::tool2ui_controller,&w,&Widget::recv_controller);//传递控制信息
     QObject::connect(&w,&Widget::recv_controller_over,&tool,&xTool::tool2ui_controller_over);//传递控制完成结果
     QObject::connect(&tool,&xTool::tool2ui_pushover,&w,&Widget::recv_toolpushover);//完成推理
+    QObject::connect(&w, &Widget::ui2tool_language,&tool,&xTool::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
@@ -135,7 +138,7 @@ int main(int argc, char *argv[])
             w.ui_SETTINGS.modelpath = modelpath;
             
             // ui显示值
-            w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
+            w.chattemplate_comboBox->setCurrentIndex(settings.value("chattemplate", "").toInt());
             w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
             w.input_pfx_LineEdit->setText(settings.value("input_pfx", "").toString());
             w.input_sfx_LineEdit->setText(settings.value("input_sfx", "").toString());

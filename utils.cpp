@@ -45,15 +45,15 @@ QStringList Widget::JSONparser(QString text)
                 func_arg_list << action;
                 func_arg_list << action_input;
                 qDebug() << "action:" << action<< "action_input:" << action_input;
-                reflash_state("ui:" + wordsObj["json detect"].toString() + " action:" + action + " action_input:" + action_input,USUAL_);
+                reflash_state("ui:" + wordsObj["json detect"].toArray()[language_flag].toString() + " action:" + action + " action_input:" + action_input,USUAL_);
             } else {
-                reflash_state("ui:" + wordsObj["no json detect"].toString() + " JSON document is not an object",USUAL_);
+                reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString() + " JSON document is not an object",USUAL_);
             }
         } else {
-            reflash_state("ui:" + wordsObj["no json detect"].toString() + " Invalid JSON...",USUAL_);
+            reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString() + " Invalid JSON...",USUAL_);
         }
     } else {
-        reflash_state("ui:" + wordsObj["no json detect"].toString(),USUAL_);
+        reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString(),USUAL_);
     }
     return func_arg_list;
 }
@@ -62,60 +62,30 @@ QStringList Widget::JSONparser(QString text)
 QString Widget::create_extra_prompt()
 {
     QString extra_prompt_;
-    if(switch_lan_button->text()=="zh")
+
+    extra_prompt_ = wordsObj["head_extra_prompt"].toArray()[language_flag].toString();
+    if(is_load_tool)
     {
-        extra_prompt_ = wordsObj["head_extra_prompt_zh"].toString();
-        if(is_load_tool)
-        {
-            //头
-            if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_zh + "\n";}
-            if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_zh + "\n";}
-            if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_zh + "\n";}
-            if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_zh + " " + wordsObj["embeddingdb describe zh"].toString() + ":" + embeddingdb_describe + "\n";}
-            if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe_zh + "\n";}
-            if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_zh + "\n";}
-            //中
-            extra_prompt_ +=wordsObj["middle_extra_prompt_zh"].toString();
-            if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
-            if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
-            if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
-            if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-            if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
-            if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
-            //尾
-            extra_prompt_ += wordsObj["tail_extra_prompt_zh"].toString();
-        }
-        else{extra_prompt_ = "";}
-        return extra_prompt_;
+        //头
+        if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
+        if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
+        if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
+        if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + wordsObj["embeddingdb describe"].toArray()[language_flag].toString() + ":" + embeddingdb_describe + "\n";}
+        if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
+        if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
+        //中
+        extra_prompt_ +=wordsObj["middle_extra_prompt"].toArray()[language_flag].toString();
+        if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
+        if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
+        if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
+        if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
+        if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
+        if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
+        //尾
+        extra_prompt_ += wordsObj["tail_extra_prompt"].toArray()[language_flag].toString();
     }
-    else if(switch_lan_button->text()=="en")
-    {
-        extra_prompt_ = wordsObj["head_extra_prompt_en"].toString();
-        if(is_load_tool)
-        {
-            //头
-            if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe_en + "\n";}
-            if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe_en + "\n";}
-            if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe_en + "\n";}
-            if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe_en  + " " + wordsObj["embeddingdb describe en"].toString() + ":" + embeddingdb_describe + "\n";}
-            if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe_en + "\n";}
-            if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe_en + "\n";}
-            //中
-            extra_prompt_ +=wordsObj["middle_extra_prompt_en"].toString();
-            if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
-            if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
-            if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
-            if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-            if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
-            if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
-            //尾
-            extra_prompt_ += wordsObj["tail_extra_prompt_en"].toString();
-        }
-        else{extra_prompt_ = "";}
-        
-    }
+    else{extra_prompt_ = "";}
     return extra_prompt_;
-    
 }
 
 //添加额外停止标志
@@ -127,8 +97,8 @@ void Widget::addStopwords()
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
         ui_DATES.extra_stop_words << "Observation:";
-        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toString();
-        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toString();
+        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toArray()[language_flag].toString();
+        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toArray()[language_flag].toString();
     }
 }
 
@@ -149,7 +119,7 @@ void Widget::server_onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server"+wordsObj["oning"].toString()+"...",SIGNAL_);
+    reflash_state("ui:server"+wordsObj["oning"].toArray()[language_flag].toString()+"...",SIGNAL_);
 }
 
 //第三方程序结束
@@ -157,13 +127,13 @@ void Widget::server_onProcessFinished()
 {
     if(current_server)
     {
-        ui_state = "ui:"+ wordsObj["old"].toString() + "server" + wordsObj["off"].toString();reflash_state(ui_state,SIGNAL_);
+        ui_state = "ui:"+ wordsObj["old"].toArray()[language_flag].toString() + "server" + wordsObj["off"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
     }
     else
     {
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        reflash_state("ui:server"+wordsObj["off"].toString(),SIGNAL_);
-        ui_output = "\nserver"+wordsObj["shut down"].toString();
+        reflash_state("ui:server"+wordsObj["off"].toArray()[language_flag].toString(),SIGNAL_);
+        ui_output = "\nserver"+wordsObj["shut down"].toArray()[language_flag].toString();
         output_scroll(ui_output);
     }
 }
@@ -207,7 +177,7 @@ void Widget::showImage(QString imagepath)
 //开始录音
 void Widget::recordAudio()
 {
-    reflash_state("ui:" + wordsObj["recoding"].toString() + "... ");
+    reflash_state("ui:" + wordsObj["recoding"].toArray()[language_flag].toString() + "... ");
     ui_state_recoding();
     //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
     QAudioFormat audioFormat;
@@ -269,7 +239,7 @@ void Widget::stop_recordAudio()
     _audioInput->stop();
     audio_timer->stop();
     outFile.close();
-    reflash_state("ui:" + wordsObj["recoding over"].toString() + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
+    reflash_state("ui:" + wordsObj["recoding over"].toArray()[language_flag].toString() + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     
     emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
@@ -291,7 +261,7 @@ void Widget::readCsvFile(const QString &fileName)
         qDebug() << "Cannot open file for reading:" << file.errorString();
         return;
     }
-    QString questiontitle = wordsObj["question type"].toString() + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
+    QString questiontitle = wordsObj["question type"].toArray()[language_flag].toString() + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
     QTextStream in(&file);
     in.setCodec("UTF-8");//要求csv文件的格式必须是utf-8 不能是ansi
     QString headerLine = in.readLine();// 读取并忽略标题行
@@ -481,16 +451,131 @@ void Widget::switch_lan_change()
 {
     if(switch_lan_button->text()=="zh")
     {
+        language_flag = 1;
         switch_lan_button->setText("en");
-        create_extra_prompt();
-        extra_TextEdit->setText(create_extra_prompt());
     }
     else if(switch_lan_button->text()=="en")
     {
+        language_flag = 0;
         switch_lan_button->setText("zh");
-        create_extra_prompt();
-        extra_TextEdit->setText(create_extra_prompt());
     }
+    apply_language(language_flag);
+    emit ui2bot_language(language_flag);
+    emit ui2tool_language(language_flag);
+    emit ui2net_language(language_flag);
+    emit ui2expend_language(language_flag);
+}
+//改变语种相关
+void Widget::apply_language(int language_flag_)
+{
+    //主界面语种
+    ui->load->setText(wordsObj["load"].toArray()[language_flag].toString());
+    ui->load->setToolTip(wordsObj["load_button_tooltip"].toArray()[language_flag].toString());
+    ui->date->setText(wordsObj["date"].toArray()[language_flag].toString());
+    ui->set->setToolTip(wordsObj["set"].toArray()[language_flag].toString());
+    ui->reset->setToolTip(wordsObj["reset"].toArray()[language_flag].toString());
+    ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+    ui->send->setToolTip(wordsObj["send_tooltip"].toArray()[language_flag].toString());
+    cutscreen_dialog->init_action(wordsObj["save cut image"].toArray()[language_flag].toString(), wordsObj["svae screen image"].toArray()[language_flag].toString());
+    ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
+    ui->mem_bar->message = wordsObj["mem"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->vram_bar->message = wordsObj["vram"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->kv_bar->message = wordsObj["brain"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->cpu_bar->message = "cpu ";//进度条里面的文本
+    ui->vcore_bar->message = "gpu ";//进度条里面的文本
+    //输入区右击菜单语种
+    create_right_menu();//添加右击问题
+    //api设置语种
+    api_dialog->setWindowTitle("api" + wordsObj["set"].toArray()[language_flag].toString());
+    api_ip_label->setText("api " + wordsObj["address"].toArray()[language_flag].toString());
+    api_ip_LineEdit->setPlaceholderText(wordsObj["input server ip"].toArray()[language_flag].toString());
+    api_port_label->setText("api " + wordsObj["port"].toArray()[language_flag].toString());
+    api_chat_label->setText(wordsObj["chat"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
+    api_complete_label->setText(wordsObj["complete"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
+    //约定选项语种
+    prompt_box->setTitle(wordsObj["prompt"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());//提示词模板设置区域
+    chattemplate_label->setText(wordsObj["chat"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());
+    chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
+    chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
+    system_label->setText(wordsObj["system calling"].toArray()[language_flag].toString());
+    system_label->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
+    system_TextEdit->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
+    input_pfx_label->setText(wordsObj["user name"].toArray()[language_flag].toString());
+    input_pfx_label->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
+    input_pfx_LineEdit->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
+    input_sfx_label->setText(wordsObj["bot name"].toArray()[language_flag].toString());
+    input_sfx_label->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
+    input_sfx_LineEdit->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
+    tool_box->setTitle(wordsObj["mount"].toArray()[language_flag].toString() + wordsObj["tool"].toArray()[language_flag].toString());
+    calculator_checkbox->setText(wordsObj["calculator"].toArray()[language_flag].toString());
+    calculator_checkbox->setToolTip(wordsObj["calculator_checkbox_tooltip"].toArray()[language_flag].toString());
+    cmd_checkbox->setText(wordsObj["cmd"].toArray()[language_flag].toString());
+    cmd_checkbox->setToolTip(wordsObj["cmd_checkbox_tooltip"].toArray()[language_flag].toString());
+    controller_checkbox->setText(wordsObj["controller"].toArray()[language_flag].toString());
+    controller_checkbox->setToolTip(wordsObj["controller_checkbox_tooltip"].toArray()[language_flag].toString());
+    knowledge_checkbox->setText(wordsObj["knowledge"].toArray()[language_flag].toString());
+    knowledge_checkbox->setToolTip(wordsObj["knowledge_checkbox_tooltip"].toArray()[language_flag].toString());
+    toolguy_checkbox->setText(wordsObj["toolguy"].toArray()[language_flag].toString());
+    toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toArray()[language_flag].toString());
+    stablediffusion_checkbox->setText(wordsObj["stablediffusion"].toArray()[language_flag].toString());
+    stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toArray()[language_flag].toString());
+    extra_label->setText(wordsObj["extra calling"].toArray()[language_flag].toString());
+    extra_label->setToolTip(wordsObj["extra_label_tooltip"].toArray()[language_flag].toString());
+    switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toArray()[language_flag].toString());
+    extra_TextEdit->setPlaceholderText(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
+    extra_TextEdit->setToolTip(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
+    tool_map.clear();
+    tool_map.insert("calculator", {wordsObj["calculator"].toArray()[language_flag].toString(),"calculator",wordsObj["calculator_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("cmd", {wordsObj["cmd"].toArray()[language_flag].toString(),"cmd",wordsObj["cmd_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("toolguy", {wordsObj["toolguy"].toArray()[language_flag].toString(),"toolguy",wordsObj["toolguy_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("knowledge", {wordsObj["knowledge"].toArray()[language_flag].toString(),"knowledge",wordsObj["knowledge_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("controller", {wordsObj["controller"].toArray()[language_flag].toString(),"controller",wordsObj["controller_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toArray()[language_flag].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe"].toArray()[language_flag].toString()});
+    extra_TextEdit->setText(create_extra_prompt());//构建附加指令
+    date_dialog->setWindowTitle(wordsObj["date"].toArray()[language_flag].toString());
+    //设置选项语种
+    sample_box->setTitle(wordsObj["sample set"].toArray()[language_flag].toString());//采样设置区域
+    temp_label->setText(wordsObj["temperature"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.temp));
+    temp_label->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
+    temp_slider->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
+    repeat_label->setText(wordsObj["repeat"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.repeat));
+    repeat_label->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
+    repeat_slider->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
+    npredict_label->setText(wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict));
+    npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());npredict_label->setMinimumWidth(100);
+    npredict_slider->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
+    decode_box->setTitle(wordsObj["decode set"].toArray()[language_flag].toString());//解码设置区域
+    ngl_label->setText("gpu" + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
+    ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());ngl_label->setMinimumWidth(100);
+    ngl_slider->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+    nthread_label->setText("cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
+    nthread_label->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
+    nthread_slider->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
+    nctx_label->setText(wordsObj["brain size"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.nctx));
+    nctx_label->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());nctx_label->setMinimumWidth(100);
+    nctx_slider->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());
+    batch_label->setText(wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.batch));
+    batch_label->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());batch_label->setMinimumWidth(100);
+    batch_slider->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());
+    lora_label->setText(wordsObj["load lora"].toArray()[language_flag].toString());
+    lora_label->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
+    lora_LineEdit->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
+    lora_LineEdit->setPlaceholderText(wordsObj["right click and choose lora"].toArray()[language_flag].toString());
+    mmproj_label->setText(wordsObj["load mmproj"].toArray()[language_flag].toString());
+    mmproj_label->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
+    mmproj_LineEdit->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
+    mmproj_LineEdit->setPlaceholderText(wordsObj["right click and choose mmproj"].toArray()[language_flag].toString());
+    mode_box->setTitle(wordsObj["mode set"].toArray()[language_flag].toString());//模式设置区域
+    complete_btn->setText(wordsObj["complete mode"].toArray()[language_flag].toString());
+    complete_btn->setToolTip(wordsObj["complete_btn_tooltip"].toArray()[language_flag].toString());
+    chat_btn->setText(wordsObj["chat mode"].toArray()[language_flag].toString());
+    chat_btn->setToolTip(wordsObj["chat_btn_tooltip"].toArray()[language_flag].toString());
+    web_btn->setText(wordsObj["server mode"].toArray()[language_flag].toString());
+    web_btn->setToolTip(wordsObj["web_btn_tooltip"].toArray()[language_flag].toString());
+    port_label->setText(wordsObj["port"].toArray()[language_flag].toString());
+    port_label->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
+    port_lineEdit->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
+    set_dialog->setWindowTitle(wordsObj["set"].toArray()[language_flag].toString());
 }
 
 QString Widget::makeHelpInput()
@@ -500,9 +585,9 @@ QString Widget::makeHelpInput()
     for(int i = 1; i < 3;++i)//2个
     {
         help_input = help_input + ui_DATES.input_pfx + ":\n";//前缀,用户昵称
-        help_input = help_input + wordsObj[QString("H%1").arg(i)].toString() + "\n";//问题
+        help_input = help_input + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString() + "\n";//问题
         help_input = help_input + "\n" + ui_DATES.input_sfx + ":\n";//后缀,模型昵称
-        help_input = help_input + wordsObj[QString("A%1").arg(i)].toString() + "\n";//答案
+        help_input = help_input + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString() + "\n";//答案
     }
     
     return help_input;
@@ -687,5 +772,5 @@ void Widget::speechOver()
     settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
     settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
     
-    reflash_state("ui:已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹",USUAL_);
+    reflash_state("ui:" + wordsObj["save_config_mess"].toArray()[language_flag].toString(),USUAL_);
  }
