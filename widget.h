@@ -86,7 +86,7 @@ public:
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;//字体大小
     QMediaPlayer music_player;
-    QString currentpath = "";
+    QString currentpath = DEFAULT_MODELPATH;
     void apply_language(int language_flag_);//改变语种相关
 
     bool is_config = false;//是否是读取了配置进行的装载

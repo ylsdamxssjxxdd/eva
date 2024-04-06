@@ -42,8 +42,8 @@ QStringList Widget::JSONparser(QString text)
                     // 如果是数字，则获取数字
                     action_input = QString::number(actionInputValue.toDouble());
                 }
-                func_arg_list << action;
-                func_arg_list << action_input;
+                func_arg_list << action.toLower();
+                func_arg_list << action_input.toLower();
                 qDebug() << "action:" << action<< "action_input:" << action_input;
                 reflash_state("ui:" + wordsObj["json detect"].toArray()[language_flag].toString() + " action:" + action + " action_input:" + action_input,USUAL_);
             } else {
@@ -545,9 +545,11 @@ void Widget::apply_language(int language_flag_)
     npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());npredict_label->setMinimumWidth(100);
     npredict_slider->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
     decode_box->setTitle(wordsObj["decode set"].toArray()[language_flag].toString());//解码设置区域
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_label->setText("gpu" + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
     ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());ngl_label->setMinimumWidth(100);
     ngl_slider->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+#endif
     nthread_label->setText("cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
     nthread_label->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
     nthread_slider->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());

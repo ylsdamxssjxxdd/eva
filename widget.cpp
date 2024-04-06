@@ -106,6 +106,7 @@ Widget::Widget(QWidget *parent)
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
 
+    //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
 }
 
@@ -381,7 +382,7 @@ void Widget::recv_pushover()
                 //调用工具
                 reflash_state("ui:" + wordsObj["clicked"].toArray()[language_flag].toString() + " " + func_arg_list.front(),SIGNAL_);
                 //包含以下字段则停止调用
-                if(func_arg_list.first().contains("Answer") || func_arg_list.first().contains("response") || func_arg_list.first().contains("最终回复") )
+                if(func_arg_list.first().contains("answer") || func_arg_list.first().contains("response") || func_arg_list.first().contains("最终回复") || func_arg_list.first().contains("final"))
                 {
                     normal_finish_pushover();
                 }

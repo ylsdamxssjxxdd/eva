@@ -18,10 +18,10 @@
         "remain":["剩余","remain "],
         "shut down":["终止","shut down "],
         "browser at": ["浏览器访问","browser at "],
-        "chat mode": ["对话模式","chat mode "],
-        "complete mode": ["补完模式","complete mode "],
+        "chat mode": ["对话模式","chat mode"],
+        "complete mode": ["补完模式","complete mode"],
         "server": ["服务","server "],
-        "server mode": ["服务模式","server mode "],
+        "server mode": ["服务模式","server mode"],
         "system calling": ["系统指令","system instruction "],
         "clicked": ["触发","clicked "],
         "clicked load": ["触发装载","clicked load "],
@@ -195,8 +195,8 @@
         "tool_observation2": ["观察：","Observation:  "],
         "tool_thought": ["思考:","Thought: "],
         "head_extra_prompt": ["尽可能准确回答用户的问题. 你可以使用以下工具:\n\n","Respond to the human as helpfully and accurately as possible. You have access to the following tools:\n\n "],
-        "middle_extra_prompt": ["\n使用一个\"JSON块\"来调用工具，需要提供一个\"action\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action\"的值只能是: \"Final Answer\" ","\nUse a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).\nValid \"action\" values: \"Final Answer\"  "],
-        "tail_extra_prompt": ["\n\"action_input\"的值只能是一个数值或字符串\n\"JSON块\"的格式要像这样:```{\"action\": $TOOL_NAME,\"action_input\": $INPUT}```\n回答时遵循以下格式:\n\n思考: 一步一步分析\n行动: \"JSON块\"\n观察: 工具返回的结果\n(重复思考/行动/观察多次直到问题解决)\n思考: 我知道如何回复用户了\n行动: {\"action\":\"Final Answer\",\"action_input\":\"最终给用户回复的内容\"}\n\n开始吧！只在必要时使用工具，不需要使用时请直接回复\n","\nValid \"action_input\" values: str or int\nProvide only ONE action per $JSON_BLOB, as shown:\n```{\"action\": $TOOL_NAME,\"action_input\": $INPUT}```\nFollow this format:\n\nThought: consider previous and subsequent steps\nAction:``` $JSON_BLOB ```\nObservation: action result ...\n(repeat Thought/Action/Observation N times)\nThought: I know what to respond \nAction: {\"action\":\"Final Answer\",\"action_input\":\"Final response to human\"}\n\nBegin! Use tools if necessary. Respond directly if appropriate.\n "],
+        "middle_extra_prompt": ["\n使用一个\"JSON块\"来调用工具，需要提供一个\"action\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action\"的值只能是: \"answer\" ","\nUse a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).\nValid \"action\" values: \"answer\"  "],
+        "tail_extra_prompt": ["\n\"action_input\"的值只能是一个数值或字符串\n\"JSON块\"的格式要像这样:```{\"action\": $TOOL_NAME,\"action_input\": $INPUT}```\n回答时遵循以下格式:\n\n思考: 一步一步分析\n行动: \"JSON块\"\n观察: 工具返回的结果\n(重复思考/行动/观察多次直到问题解决)\n思考: 我知道如何回复用户了\n行动: {\"action\":\"answer\",\"action_input\":\"最终给用户回复的内容\"}\n\n开始吧！只在必要时使用工具，不需要使用时请直接回复\n","\nValid \"action_input\" values: str or int\nProvide only ONE action per $JSON_BLOB, as shown:\n```{\"action\": $TOOL_NAME,\"action_input\": $INPUT}```\nFollow this format:\n\nThought: consider previous and subsequent steps\nAction:``` $JSON_BLOB ```\nObservation: action result ...\n(repeat Thought/Action/Observation N times)\nThought: I know what to respond \nAction: {\"action\":\"answer\",\"action_input\":\"Final response to human\"}\n\nBegin! Use tools if necessary. Respond directly if appropriate.\n "],
         "calculator_func_describe": ["calculator(str) - 输入一个数值运算表达式，javascript解释器进行运算，返回计算结果","calculator(str) - Enter a numeric expression, and the JavaScript interpreter will perform the calculation and return the result. "],
         "cmd_func_describe": ["cmd(str) - 输入一串windows命令提示符指令，系统将执行相应操作，返回执行结果","cmd(str) - Enter a string of Windows Command Prompt commands, and the system will execute the corresponding actions and return the execution results. "],
         "toolguy_func_describe": ["toolguy(str) - 当你的能力无法完成当前任务时，你可以向工具人询问或要求任何事情，他将帮助你完成，并告知你结果","toolguy(str) - When your abilities are unable to complete the current task, you can ask or request anything from the tool guy, who will help you complete it and inform you of the results. "],
@@ -289,6 +289,17 @@
         "Based on this information, reply to the user's previous questions": ["以这些信息为基础，回复用户之前的问题","Based on this information, reply to the user's previous questions"],
         "Request error": ["请求出错","Request error"],
         "Received embedded text segment data": ["接收到已嵌入文本段数据","received embedded text segment data"],
+
+
+        "model_quantize_label_text": ["待量化模型路径","input path"],
+        "model_quantize_label_2_text": ["重要性矩阵路径","imatrix path"],
+        "model_quantize_label_3_text": ["量化后模型路径","output path"],
+        "model_quantize_row_modelpath_lineedit_placeholder": ["尽量选择f32或f16的gguf模型", "f32 or f16 gguf model better"],
+        "model_quantize_important_datapath_lineedit_placeholder": ["iq量化方法必须，其它量化方法不要填写本项，重要性矩阵需要用原项目imatrix工具和文本数据生成", "iq quantize dedicated, not necessary"],
+        "model_quantize_output_modelpath_lineedit_placeholder": ["选择好待量化模型路径和量化方法后会自动填充", "auto fill"],
+
+
+
         "---end---": ["---end---","---end--- "]
     }
 }

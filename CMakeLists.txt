@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2554
+#llama.cpp-b2615
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除

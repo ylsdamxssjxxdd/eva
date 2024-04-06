@@ -115,6 +115,13 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(7,wordsObj["text2voice"].toArray()[language_flag].toString());//文转声
 
     //大量的工作...来写吧
+    ui->model_quantize_label->setText(wordsObj["model_quantize_label_text"].toArray()[language_flag].toString());
+    ui->model_quantize_label_2->setText(wordsObj["model_quantize_label_2_text"].toArray()[language_flag].toString());
+    ui->model_quantize_label_3->setText(wordsObj["model_quantize_label_3_text"].toArray()[language_flag].toString());
+    ui->model_quantize_row_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_row_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
+    ui->model_quantize_important_datapath_lineedit->setPlaceholderText(wordsObj["model_quantize_important_datapath_lineedit_placeholder"].toArray()[language_flag].toString());
+    ui->model_quantize_output_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_output_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
+
 
 }
 

@@ -128,7 +128,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 ## 待办事项
 - 适配linux
 - 适配国产cpu/gpu
-- 英文版本
+- ~~英文版本（已完成）~~
 
 ## 已知BUG
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复

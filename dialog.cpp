@@ -988,6 +988,14 @@ void Widget::set_DateDialog()
     extra_label = new QLabel(wordsObj["extra calling"].toArray()[language_flag].toString());
     extra_label->setToolTip(wordsObj["extra_label_tooltip"].toArray()[language_flag].toString());
     layout_H55->addWidget(extra_label);
+    if(language_flag == 0)
+    {
+        ui_extra_lan = "zh";
+    }
+    if(language_flag == 1)
+    {
+        ui_extra_lan = "en";
+    }
     switch_lan_button = new QPushButton(ui_extra_lan);
     switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toArray()[language_flag].toString());
     switch_lan_button->setMinimumWidth(200);

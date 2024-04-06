@@ -61,7 +61,7 @@ public:
     bool createTempDirectory(const QString &path);
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();//读取配置文件并应用
-    QString currentpath = "";
+    QString currentpath = DEFAULT_MODELPATH;
     
 signals:    
     void expend2ui_state(QString state_string,STATE state);

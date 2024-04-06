@@ -26,6 +26,9 @@
 #define DEFAULT_NTHREAD 1
 #define DEFAULT_NGL 0
 
+//模型路径
+#define DEFAULT_MODELPATH "D:/soul"
+
 //嵌入
 #define DEFAULT_EMBEDDING_PORT "7758"
 
