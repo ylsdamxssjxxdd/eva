@@ -4,7 +4,7 @@
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
 #----------------------------------------------------------------------------------
-#stable-diffusion.cpp master-48bcce4
+#stable-diffusion.cpp master-afea457
 #stable-diffusion.cpp/cmakelists.txt中添加
 # mingw设置编译选项
 # if(MINGW)

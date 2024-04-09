@@ -676,7 +676,7 @@ public:
             // }
 
             int64_t t1 = ggml_time_ms();
-            //LOG_DEBUG("computing condition graph completed, taking %" PRId64 " ms", t1 - t0);
+            LOG_DEBUG("computing condition graph completed, taking %" PRId64 " ms", t1 - t0);
             ggml_tensor* result = ggml_dup_tensor(work_ctx, chunk_hidden_states);
             {
                 float original_mean = ggml_tensor_mean(chunk_hidden_states);
@@ -825,7 +825,7 @@ public:
             print_ggml_tensor(y);
         }
         int64_t t1 = ggml_time_ms();
-        //LOG_DEBUG("computing svd condition graph completed, taking %" PRId64 " ms", t1 - t0);
+        LOG_DEBUG("computing svd condition graph completed, taking %" PRId64 " ms", t1 - t0);
         return {c_crossattn, c_concat, y};
     }
 
@@ -1607,10 +1607,11 @@ sd_image_t* txt2img(sd_ctx_t* sd_ctx,
     int64_t t1 = ggml_time_ms();
     LOG_INFO("apply_loras completed, taking %.2fs", (t1 - t0) * 1.0f / 1000);
 
-    if (sd_ctx->sd->stacked_id) {
+    if (sd_ctx->sd->stacked_id && !sd_ctx->sd->pmid_lora->applied) {
         t0 = ggml_time_ms();
         sd_ctx->sd->pmid_lora->apply(sd_ctx->sd->tensors, sd_ctx->sd->n_threads);
-        t1 = ggml_time_ms();
+        t1                             = ggml_time_ms();
+        sd_ctx->sd->pmid_lora->applied = true;
         LOG_INFO("pmid_lora apply completed, taking %.2fs", (t1 - t0) * 1.0f / 1000);
         if (sd_ctx->sd->free_params_immediately) {
             sd_ctx->sd->pmid_lora->free_params_buffer();
@@ -1675,7 +1676,7 @@ sd_image_t* txt2img(sd_ctx_t* sd_ctx,
 
             prompts_embeds = sd_ctx->sd->id_encoder(work_ctx, init_img, prompts_embeds, class_tokens_mask);
             t1             = ggml_time_ms();
-            //LOG_INFO("Photomaker ID Stacking, taking %" PRId64 " ms", t1 - t0);
+            LOG_INFO("Photomaker ID Stacking, taking %" PRId64 " ms", t1 - t0);
             if (sd_ctx->sd->free_params_immediately) {
                 sd_ctx->sd->pmid_model->free_params_buffer();
             }
@@ -1715,7 +1716,7 @@ sd_image_t* txt2img(sd_ctx_t* sd_ctx,
         uc_vector        = uncond_pair.second;  // [adm_in_channels, ]
     }
     t1 = ggml_time_ms();
-    //LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
+    LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
 
     if (sd_ctx->sd->free_params_immediately) {
         sd_ctx->sd->cond_stage_model->free_params_buffer();
@@ -1780,7 +1781,7 @@ sd_image_t* txt2img(sd_ctx_t* sd_ctx,
         sd_ctx->sd->diffusion_model->free_params_buffer();
     }
     int64_t t3 = ggml_time_ms();
-    //LOG_INFO("generating %" PRId64 " latent images completed, taking %.2fs", final_latents.size(), (t3 - t1) * 1.0f / 1000);
+    LOG_INFO("generating %" PRId64 " latent images completed, taking %.2fs", final_latents.size(), (t3 - t1) * 1.0f / 1000);
 
     LOG_INFO("decoding %zu latents", final_latents.size());
     std::vector<struct ggml_tensor*> decoded_images;  // collect decoded images
@@ -1792,7 +1793,7 @@ sd_image_t* txt2img(sd_ctx_t* sd_ctx,
             decoded_images.push_back(img);
         }
         int64_t t2 = ggml_time_ms();
-        //LOG_INFO("latent %" PRId64 " decoded, taking %.2fs", i + 1, (t2 - t1) * 1.0f / 1000);
+        LOG_INFO("latent %" PRId64 " decoded, taking %.2fs", i + 1, (t2 - t1) * 1.0f / 1000);
     }
 
     int64_t t4 = ggml_time_ms();
@@ -1911,7 +1912,7 @@ sd_image_t* img2img(sd_ctx_t* sd_ctx,
         uc_vector        = uncond_pair.second;  // [adm_in_channels, ]
     }
     int64_t t2 = ggml_time_ms();
-    //LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t2 - t1);
+    LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t2 - t1);
     if (sd_ctx->sd->free_params_immediately) {
         sd_ctx->sd->cond_stage_model->free_params_buffer();
     }
@@ -2047,7 +2048,7 @@ SD_API sd_image_t* img2vid(sd_ctx_t* sd_ctx,
     uc_vector = ggml_dup_tensor(work_ctx, c_vector);
 
     int64_t t1 = ggml_time_ms();
-    //LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
+    LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
     if (sd_ctx->sd->free_params_immediately) {
         sd_ctx->sd->clip_vision->free_params_buffer();
     }
