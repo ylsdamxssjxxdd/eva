@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2615
+#llama.cpp-b2636
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
@@ -139,7 +139,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

@@ -13,13 +13,13 @@ Widget::Widget(QWidget *parent)
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
-    if(locale.languageToString(language) == "English")
+    if(locale.languageToString(language) == "Chinese")
     {
-        language_flag = 1;//英文
+        language_flag = 0;//中文
     }
     else
     {
-        language_flag = 0;//中文
+        language_flag = 1;//英文
     }
     getWords(":/language.json");
     //-------------初始化约定模板-------------

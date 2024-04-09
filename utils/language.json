@@ -379,6 +379,8 @@
         "calling whisper.exe to decode recording": ["调用whisper.exe解码录音","calling whisper.exe to decode recording"],
         "decode over": ["解码完成","decode over"],
         "the result has been saved in the source wav file directory": ["结果已保存在源wav文件目录","the result has been saved in the source wav file directory"],
+        "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
+        
         "---end---": ["---end---","---end--- "]
     }
 }

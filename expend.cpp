@@ -471,7 +471,7 @@ void Expend::on_whisper_load_modelpath_button_clicked()
     whisper_params.model = currentpath.toStdString();
     ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
-    ui->whisper_log->setPlainText("选择好了就可以按f2录音了");
+    ui->whisper_log->setPlainText(wordsObj["once selected, you can record by pressing f2"].toArray()[language_flag].toString());
 }
 
 //开始语音转文字
