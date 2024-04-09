@@ -61,7 +61,7 @@ Expend::Expend(QWidget *parent) :
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
     ui->sd_sampletype->setCurrentText("euler_a");
     //添加输出格式
-    ui->whisper_output_format->addItems({"文本文档txt","视频字幕srt","逗号分隔csv","json"});
+    ui->whisper_output_format->addItems({"txt","srt","csv","json"});
 
     //声转文相关
 #ifdef BODY_USE_SPEECH
@@ -115,13 +115,69 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(7,wordsObj["text2voice"].toArray()[language_flag].toString());//文转声
 
     //大量的工作...来写吧
+    //软件介绍
+    showReadme();
+    //模型量化
     ui->model_quantize_label->setText(wordsObj["model_quantize_label_text"].toArray()[language_flag].toString());
     ui->model_quantize_label_2->setText(wordsObj["model_quantize_label_2_text"].toArray()[language_flag].toString());
     ui->model_quantize_label_3->setText(wordsObj["model_quantize_label_3_text"].toArray()[language_flag].toString());
     ui->model_quantize_row_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_row_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
     ui->model_quantize_important_datapath_lineedit->setPlaceholderText(wordsObj["model_quantize_important_datapath_lineedit_placeholder"].toArray()[language_flag].toString());
     ui->model_quantize_output_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_output_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
+    ui->quantize_info_groupBox->setTitle(wordsObj["quantize_info_groupBox_title"].toArray()[language_flag].toString());
+    show_quantize_types();
+    ui->model_quantize_type_label->setText(wordsObj["select quantize type"].toArray()[language_flag].toString());
+    ui->model_quantize_execute->setText(wordsObj["execute quantize"].toArray()[language_flag].toString());
+    ui->quantize_log_groupBox->setTitle("quantize.exe " + wordsObj["execute log"].toArray()[language_flag].toString());
+    //知识库
+    ui->embedding_endpoint_label->setText(wordsObj["embd api"].toArray()[language_flag].toString());
+    ui->embedding_txt_api_lineedit->setPlaceholderText(wordsObj["embedding_txt_api_lineedit_placeholder"].toArray()[language_flag].toString());
+    ui->embedding_split_label->setText(wordsObj["split length"].toArray()[language_flag].toString());
+    ui->embedding_overlap_label->setText(wordsObj["overlap length"].toArray()[language_flag].toString());
+    ui->embedding_source_doc_label->setText(wordsObj["source doc"].toArray()[language_flag].toString());
+    ui->embedding_txt_lineEdit->setPlaceholderText(wordsObj["embedding_txt_lineEdit_placeholder"].toArray()[language_flag].toString());
+    ui->embedding_describe_label->setText(wordsObj["knowledge base description"].toArray()[language_flag].toString());
+    ui->embedding_txt_describe_lineEdit->setPlaceholderText(wordsObj["embedding_txt_describe_lineEdit_placeholder"].toArray()[language_flag].toString());
+    ui->embedding_txt_embedding->setText(wordsObj["embedding txt"].toArray()[language_flag].toString());
+    ui->embedding_test_groupBox->setTitle(wordsObj["test"].toArray()[language_flag].toString());
+    ui->embedding_test_textEdit->setPlaceholderText(wordsObj["embedding_test_textEdit_placeholder"].toArray()[language_flag].toString());
+    ui->embedding_test_pushButton->setText(wordsObj["retrieval"].toArray()[language_flag].toString());
+    ui->embedding_result_groupBox->setTitle(wordsObj["retrieval result"].toArray()[language_flag].toString());
+    ui->embedding_log_groupBox->setTitle(wordsObj["log"].toArray()[language_flag].toString());
+    //文生图
+    ui->sd_set_groupBox->setTitle(wordsObj["settings"].toArray()[language_flag].toString());
+    ui->sd_result_groupBox->setTitle(wordsObj["result"].toArray()[language_flag].toString());
+    ui->sd_modelpath_label->setText(wordsObj["sd path"].toArray()[language_flag].toString());
+    ui->sd_vaepath_label->setText(wordsObj["vae path"].toArray()[language_flag].toString());
+    ui->sd_antiprompt_label->setText(wordsObj["negative"].toArray()[language_flag].toString());
+    ui->sd_modelpath_lineEdit->setPlaceholderText(wordsObj["sd_modelpath_lineEdit_placeholder"].toArray()[language_flag].toString());
+    ui->sd_vaepath_lineEdit->setPlaceholderText(wordsObj["sd_vaepath_lineEdit_placeholder"].toArray()[language_flag].toString());
+    ui->sd_antiprompt_lineEdit->setPlaceholderText(wordsObj["sd_antiprompt_lineEdit_placeholder"].toArray()[language_flag].toString());
+    ui->sd_imagewidth_label->setText(wordsObj["image width"].toArray()[language_flag].toString());
+    ui->sd_imageheight_label->setText(wordsObj["image height"].toArray()[language_flag].toString());
+    ui->sd_sampletype_label->setText(wordsObj["sample type"].toArray()[language_flag].toString());
+    ui->sd_samplesteps_label->setText(wordsObj["sample steps"].toArray()[language_flag].toString());
+    ui->sd_cfg_label->setText(wordsObj["cfg scale"].toArray()[language_flag].toString());
+    ui->sd_imagenums_label->setText(wordsObj["image nums"].toArray()[language_flag].toString());
+    ui->sd_seed_label->setText(wordsObj["seed"].toArray()[language_flag].toString());
+    ui->sd_clip_label->setText(wordsObj["clip"].toArray()[language_flag].toString());
+    ui->sd_prompt_groupBox->setTitle(wordsObj["prompt"].toArray()[language_flag].toString());
+    ui->sd_upload_groupBox->setTitle(wordsObj["upload image"].toArray()[language_flag].toString());
+    ui->sd_draw_pushButton->setText(wordsObj["text to image"].toArray()[language_flag].toString());
+    ui->sd_draw_pushButton_2->setText(wordsObj["image to image"].toArray()[language_flag].toString());
+    ui->sd_prompt_textEdit->setPlaceholderText(wordsObj["sd_prompt_textEdit_placeholder"].toArray()[language_flag].toString());
+    ui->sd_uploadimage_textEdit->setPlaceholderText(wordsObj["sd_uploadimage_textEdit_placeholder"].toArray()[language_flag].toString());
+    ui->sd_log_groupBox->setTitle("sd.exe " + wordsObj["log"].toArray()[language_flag].toString());
+    ui->sd_log->setPlainText(wordsObj["sd_log_plainText"].toArray()[language_flag].toString());
 
+    //声转文
+    ui->whisper_modelpath_label->setText(wordsObj["whisper path"].toArray()[language_flag].toString());
+    ui->whisper_load_modelpath_linedit->setPlaceholderText(wordsObj["whisper_load_modelpath_linedit_placeholder"].toArray()[language_flag].toString());
+    ui->voice_load_groupBox_4->setTitle("whisper.exe " + wordsObj["log"].toArray()[language_flag].toString());
+    ui->whisper_wav2text_label->setText(wordsObj["wav2text"].toArray()[language_flag].toString());
+    ui->whisper_wavpath_pushButton->setText(wordsObj["wav path"].toArray()[language_flag].toString());
+    ui->whisper_format_label->setText(wordsObj["format"].toArray()[language_flag].toString());
+    ui->whisper_execute_pushbutton->setText(wordsObj["convert"].toArray()[language_flag].toString());
 
 }
 
@@ -139,45 +195,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         is_first_show_info = false;
 
         //展示readme内容
-        QString readme_content;
-        QFile file(":/README.md");
-        // 打开文件
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
-        {
-            QTextStream in(&file);// 创建 QTextStream 对象
-            in.setCodec("UTF-8");
-            readme_content = in.readAll();// 读取文件内容
-        }
-        file.close();
-        //正则表达式,删除<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/直到>的所有文本
-        QRegularExpression re("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
-
-        ui->info_card->setMarkdown(readme_content.remove(re));
-
-        // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-        QImage image(":/ui/ui_demo.png");
-        
-        int originalWidth = image.width()/devicePixelRatioF()/1.5;
-        int originalHeight = image.height()/devicePixelRatioF()/1.5;
-
-        QTextCursor cursor(ui->info_card->textCursor());
-        cursor.movePosition(QTextCursor::Start);
-
-        QTextImageFormat imageFormat;
-        imageFormat.setWidth(originalWidth);  // 设置图片的宽度
-        imageFormat.setHeight(originalHeight); // 设置图片的高度
-        imageFormat.setName(":/ui/ui_demo.png");  // 图片资源路径
-        cursor.insertImage(imageFormat);
-
-        // QImage image2(":/ui/knowledge_demo.png");
-        // originalWidth = image2.width()/devicePixelRatioF()/2.5;
-        // originalHeight = image2.height()/devicePixelRatioF()/2.5;
-        // imageFormat.setWidth(originalWidth);  // 设置图片的宽度
-        // imageFormat.setHeight(originalHeight); // 设置图片的高度
-        // imageFormat.setName(":/ui/knowledge_demo.png");  // 图片资源路径
-        // cursor.insertImage(imageFormat);
-
-        cursor.insertText("\n\n");
+        showReadme();
 
         //强制延迟见顶
         QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
@@ -186,63 +204,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
     if(index==3 && is_first_show_modelproliferation)//第一次点模型增殖
     {
         is_first_show_modelproliferation = false;
-        //量化方法说明
-        quantize_types = {
-            { "Q8_0", "48.5%", "+0.0004", "⭐"},
-            { "Q6_K", "60.4%", "+0.0008", "⭐"},
-            { "Q5_1", "63.8%", "+0.0349", "⭐"},
-            { "Q5_K_M", "65.8%", "+0.0122", "⭐⭐⭐"},
-            { "Q5_K_S", "66.7%", "+0.0400", "⭐"},
-            { "Q5_0", "66.7%", "+0.0683", "⭐"},
-            { "Q4_1", "70%", "+0.1585", "⭐"},
-            { "Q4_K_M", "70.8%", "+0.0532", "⭐"},
-            { "Q4_K_S", "72.4%", "+0.0992", "⭐⭐"},
-            { "Q4_0", "72.6%", "+0.2166", "⭐"},
-            { "Q3_K_L", "74.2%", "+0.1764", "⭐"},
-            { "Q3_K_M", "76.4%", "+0.2496", "⭐"},
-            { "Q3_K_S", "78.8%", "+0.5551", "⭐"},
-            { "Q2_K", "79.8%", "+0.6717", "⭐"},
-            { "Q2_K_S", "83.4%", "+9.0634", ""},
-            { "IQ4_NL", "71.9%", "和重要性矩阵有关", "⭐"},
-            { "IQ4_XS", "73.4%", "和重要性矩阵有关", "⭐"},
-            { "IQ3_M", "77.1%", "和重要性矩阵有关", "⭐"},
-            { "IQ3_S", "78.5%", "和重要性矩阵有关", "⭐"},
-            { "IQ3_XS", "79.4%", "和重要性矩阵有关", "⭐"},
-            { "IQ3_XXS", "80.9%", "和重要性矩阵有关", "⭐"},
-            { "IQ2_M", "83.1%", "和重要性矩阵有关", "⭐"},
-            { "IQ2_S", "84.3%", "和重要性矩阵有关", "⭐"}, 
-            { "IQ2_XS", "85.6%", "和重要性矩阵有关", "⭐"},
-            { "IQ2_XXS", "87.1%", "和重要性矩阵有关", "⭐"},
-            { "IQ1_S", "90.3%", "和重要性矩阵有关", "⭐⭐"},
-        };
-
-        //添加量化方法选项
-        for(int i = 0;i < quantize_types.size(); ++i)
-        {
-            ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
-        }
-        ui->model_quantize_type->setCurrentText("Q5_K_M");
-        //添加量化方法说明
-        ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
-        ui->model_quantize_info->setColumnCount(5);
-        ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{"量化方法","压缩率（f16->）","困惑度","推荐","预估大小（f16->）"});//设置列名
-        for(int i=0;i<quantize_types.size(); ++i)
-        {
-            QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
-            ui->model_quantize_info->setItem(i, 0, newItem1);
-
-            QTableWidgetItem *newItem2 = new QTableWidgetItem(quantize_types.at(i).bit);
-            ui->model_quantize_info->setItem(i, 1, newItem2);
-
-            QTableWidgetItem *newItem3 = new QTableWidgetItem(quantize_types.at(i).perplexity);
-            ui->model_quantize_info->setItem(i, 2, newItem3);
-
-            QTableWidgetItem *newItem4 = new QTableWidgetItem(quantize_types.at(i).recommand);
-            ui->model_quantize_info->setItem(i, 3, newItem4);
-
-        }
-        QHeaderView* headerView = ui->model_quantize_info->horizontalHeader();//水平表头对象,用来控制列宽
-        headerView->setSectionResizeMode(QHeaderView::Stretch);// 设置所有列为等宽且撑满整个表格宽度
+        show_quantize_types();//展示量化方法
     }
 
 }
@@ -396,6 +358,55 @@ void Expend::readConfig()
     }
 }
 
+//展示readme内容
+void Expend::showReadme()
+{
+    QString readme_content;
+    QFile file;
+    QString imagefile;
+    if(language_flag == 0)
+    {
+        file.setFileName(":/README.md");
+        imagefile = ":/ui/ui_demo.png";
+    }
+    else if (language_flag == 1)
+    {
+        file.setFileName(":/README_en.md");
+        imagefile = ":/ui/ui_demo_en.png";
+    }
+
+    // 打开文件
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) 
+    {
+        QTextStream in(&file);// 创建 QTextStream 对象
+        in.setCodec("UTF-8");
+        readme_content = in.readAll();// 读取文件内容
+    }
+    file.close();
+    //正则表达式,删除<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/直到>的所有文本
+    QRegularExpression re("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
+
+    ui->info_card->setMarkdown(readme_content.remove(re));
+
+    // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+
+    QImage image(imagefile);
+    
+    int originalWidth = image.width()/devicePixelRatioF()/1.5;
+    int originalHeight = image.height()/devicePixelRatioF()/1.5;
+
+    QTextCursor cursor(ui->info_card->textCursor());
+    cursor.movePosition(QTextCursor::Start);
+
+    QTextImageFormat imageFormat;
+    imageFormat.setWidth(originalWidth);  // 设置图片的宽度
+    imageFormat.setHeight(originalHeight); // 设置图片的高度
+    imageFormat.setName(imagefile);  // 图片资源路径
+    cursor.insertImage(imageFormat);
+
+    cursor.insertText("\n\n");
+}
+
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Expend::eventFilter(QObject *obj, QEvent *event)
 {
@@ -496,9 +507,9 @@ void Expend::recv_voicedecode(QString wavpath, QString out_format)
     arguments << "--language" << QString::fromStdString(whisper_params.language);//识别语种
     arguments << "--threads" << QString::number(max_thread*0.7);
     if(out_format=="txt"){arguments << "--output-txt";}//结果输出为一个txt
-    else if(out_format=="文本文档txt"){arguments << "--output-txt";}//结果输出为一个txt
-    else if(out_format=="视频字幕srt"){arguments << "--output-srt";}
-    else if(out_format=="逗号分隔csv"){arguments << "--output-csv";}
+    else if(out_format=="txt"){arguments << "--output-txt";}//结果输出为一个txt
+    else if(out_format=="srt"){arguments << "--output-srt";}
+    else if(out_format=="csv"){arguments << "--output-csv";}
     else if(out_format=="json"){arguments << "--output-json";}
     
     // 开始运行程序
@@ -518,7 +529,7 @@ void Expend::whisper_onProcessStarted()
 {
     if(!is_handle_whisper)
     {
-        emit expend2ui_state("expend:调用whisper.exe解码录音",USUAL_);
+        emit expend2ui_state("expend:" + wordsObj["calling whisper.exe to decode recording"].toArray()[language_flag].toString(),USUAL_);
     }
     
 }
@@ -540,12 +551,12 @@ void Expend::whisper_onProcessFinished()
             content = in.readAll();// 读取文件内容
         }
         file.close();
-        emit expend2ui_state("expend:解码完成 " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
+        emit expend2ui_state("expend:" + wordsObj["decode over"].toArray()[language_flag].toString() + " " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
         emit expend2ui_voicedecode_over(content);
     }
     else
     {
-        ui->whisper_log->appendPlainText("结果已保存在源wav文件目录 "+ QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s");
+        ui->whisper_log->appendPlainText(wordsObj["the result has been saved in the source wav file directory"].toArray()[language_flag].toString() + " "+ QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s");
     }
     is_handle_whisper = false;
 }
@@ -577,7 +588,7 @@ void Expend::on_whisper_execute_pushbutton_clicked()
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
-    currentpath= customOpenfile(currentpath,"选择嵌入模型","(*.bin *.gguf)");
+    currentpath= customOpenfile(currentpath,wordsObj["select embedding model"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
     embedding_params.modelpath = currentpath;
     if(embedding_params.modelpath==""){return;}
 
@@ -641,15 +652,15 @@ void Expend::embedding_server_start()
             
             embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
             ui->embedding_txt_api_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
-            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + "服务启动完成" + "\n";
+            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + wordsObj["service startup completed"].toArray()[language_flag].toString() + "\n";
             log_output += wordsObj["embedding"].toArray()[language_flag].toString() + wordsObj["endpoint"].toArray()[language_flag].toString() + " " + embedding_server_api;
             if(embedding_server_n_embd!=1024)
             {
-                log_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd) + " 不符合要求请更换模型" +"\n";
+                log_output += "\n" + wordsObj["embedding dimension"].toArray()[language_flag].toString() + ": " +QString::number(embedding_server_n_embd) + " " + wordsObj["does not meet the requirements, please replace the model"].toArray()[language_flag].toString() +"\n";
             }
             else
             {
-                log_output += "\n" + QString("嵌入维度 ") +QString::number(embedding_server_n_embd);
+                log_output += "\n" + wordsObj["embedding dimension"].toArray()[language_flag].toString() + ": " +QString::number(embedding_server_n_embd);
             }
             
         }//替换ip地址
@@ -681,7 +692,7 @@ void Expend::server_onProcessStarted()
 //进程结束响应
 void Expend::server_onProcessFinished()
 {
-    ui->embedding_test_log->appendPlainText("嵌入服务终止");
+    ui->embedding_test_log->appendPlainText(wordsObj["embedding server abort"].toArray()[language_flag].toString());
 }
 
 //获取本机第一个ip地址
@@ -697,7 +708,7 @@ QString Expend::getFirstNonLoopbackIPv4Address() {
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    currentpath= customOpenfile(currentpath,"选择一个txt文件嵌入到知识库","(*.txt)");
+    currentpath= customOpenfile(currentpath,wordsObj["choose a txt to embed"].toArray()[language_flag].toString(),"(*.txt)");
     txtpath = currentpath;
     ui->embedding_txt_lineEdit->setText(txtpath);
 
@@ -753,7 +764,7 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->setColumnWidth(0,qMax(ui->embedding_txt_wait->width(),400));// 列宽保持控件宽度
 
     ui->embedding_txt_wait->resizeRowsToContents();// 自动调整行高
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{wordsObj["embedless text segment"].toArray()[language_flag].toString()});//设置列名
 }
 
 //右击表格显示菜单
@@ -762,11 +773,11 @@ void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
     // 创建菜单并添加动作
     QMenu contextMenu(tr("Context menu"), this);
 
-    QAction actionAdd(tr("添加"), this);
+    QAction actionAdd(wordsObj["add"].toArray()[language_flag].toString(), this);
     connect(&actionAdd, &QAction::triggered, this, &Expend::embedding_txt_wait_onAdd);
     contextMenu.addAction(&actionAdd);
 
-    QAction actionDelete(tr("删除"), this);
+    QAction actionDelete(wordsObj["delete"].toArray()[language_flag].toString(), this);
     connect(&actionDelete, &QAction::triggered, this, &Expend::embedding_txt_wait_onDelete);
     contextMenu.addAction(&actionDelete);
 
@@ -782,7 +793,7 @@ void Expend::embedding_txt_wait_onAdd()
     ui->embedding_txt_wait->insertRow(row);  // 在选中的行的下一行添加一行
 
     // 根据需要设置新行的内容
-    QTableWidgetItem *newItem = new QTableWidgetItem(tr("请输入需要被嵌入的知识"));
+    QTableWidgetItem *newItem = new QTableWidgetItem(wordsObj["please input the text that needs to be embedded"].toArray()[language_flag].toString());
     ui->embedding_txt_wait->setItem(row, 0, newItem);  // 假设我们只设置第一列
 }
 //删除表格
@@ -866,7 +877,7 @@ void Expend::on_embedding_test_pushButton_clicked()
             }
         }
         vector_str += "]";
-        ui->embedding_test_log->appendPlainText("查询文本段嵌入完毕!" + QString(" ") + "维度:"+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
+        ui->embedding_test_log->appendPlainText(wordsObj["The query text segment has been embedded"].toArray()[language_flag].toString() + "! " + wordsObj["dimension"].toArray()[language_flag].toString() + ": "+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -878,19 +889,19 @@ void Expend::on_embedding_test_pushButton_clicked()
             //A向量点积B向量除以(A模乘B模)
             std::vector<std::pair<int, double>> score;
             score = similar_indices(user_embedding_vector.value,Embedding_DB);
-            ui->embedding_test_result->appendPlainText("相似度最高的前三个文本段:");
+            ui->embedding_test_result->appendPlainText(wordsObj["The three text segments with the highest similarity"].toArray()[language_flag].toString() + ":");
             //将分数前三的结果显示出来
             for(int i = 0;i < 3 && i < score.size();++i)
             {
                 //qDebug()<<score[i].first<<score[i].second;
-                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + "号文本段 相似度: " + QString::number(score[i].second));
+                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + " " + wordsObj["Number text segment similarity"].toArray()[language_flag].toString() + ": " + QString::number(score[i].second));
             }
 
         } 
         else 
         {
             // 请求出错
-            ui->embedding_test_log->appendPlainText("请求出错，请确保启动嵌入服务");
+            ui->embedding_test_log->appendPlainText(wordsObj["Request error, please make sure to start the embedded service"].toArray()[language_flag].toString());
         }
         
         reply->abort();//终止
@@ -952,7 +963,7 @@ void Expend::embedding_processing()
 
     ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
     ui->embedding_txt_over->setRowCount(0);//设置已嵌入文本段表格为0行
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{"已嵌入文本段"});//设置列名
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{wordsObj["embeded text segment"].toArray()[language_flag].toString()});//设置列名
     show_chunk_index = 0;//待显示的嵌入文本段的序号
 
     //----------------------相同的内容不再嵌入-----------------------
@@ -1064,7 +1075,7 @@ void Expend::embedding_processing()
                 }
             }
             vector_str += "]";
-            ui->embedding_test_log->appendPlainText(QString::number(Embedding_DB.at(o).index+1) + "号文本段嵌入完毕!"+" "+"维度:"+QString::number(Embedding_DB.at(o).value.size()) + " " + "词向量: "+ vector_str);
+            ui->embedding_test_log->appendPlainText(QString::number(Embedding_DB.at(o).index+1) + " " + wordsObj["Number text segment embedding over"].toArray()[language_flag].toString() +"! "+ wordsObj["dimension"].toArray()[language_flag].toString() + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + "词向量: "+ vector_str);
             
         });
         // 完成
@@ -1088,7 +1099,7 @@ void Expend::embedding_processing()
             else 
             {
                 // 请求出错
-                ui->embedding_test_log->appendPlainText("请求出错，请确保启动嵌入服务");
+                ui->embedding_test_log->appendPlainText(wordsObj["Request error, please make sure to start the embedded service"].toArray()[language_flag].toString());
             }
 
             reply->abort();//终止
@@ -1107,7 +1118,7 @@ void Expend::embedding_processing()
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
     ui->embedding_txt_modelpath_button->setEnabled(1);//选择模型按钮
 
-    ui->embedding_test_log->appendPlainText("嵌入完成 耗时 "+ QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + "s");
+    ui->embedding_test_log->appendPlainText(wordsObj["embedding over"].toArray()[language_flag].toString() + " " + wordsObj["use time"].toArray()[language_flag].toString() + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + "s");
     emit expend2tool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
 }
 
@@ -1129,13 +1140,14 @@ void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 //用户点击选择待量化模型路径时响应
 void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
 {
-    currentpath= customOpenfile(currentpath,"需要选择fp32或fp16的gguf模型","(*.gguf)");
+    currentpath= customOpenfile(currentpath,wordsObj["model_quantize_row_modelpath_lineedit_placeholder"].toArray()[language_flag].toString(),"(*.gguf)");
     ui->model_quantize_row_modelpath_lineedit->setText(currentpath);
 }
+
 //用户点击选择重要性矩阵路径时响应
 void Expend::on_model_quantize_important_datapath_pushButton_clicked()
 {
-    currentpath = customOpenfile(currentpath,"iq量化方法必须,选择重要性矩阵","(*.dat)");
+    currentpath = customOpenfile(currentpath,wordsObj["model_quantize_important_datapath_lineedit_placeholder"].toArray()[language_flag].toString(),"(*.dat)");
     ui->model_quantize_important_datapath_lineedit->setText(currentpath);
 }
 //待量化模型路径改变响应
@@ -1143,7 +1155,72 @@ void Expend::on_model_quantize_row_modelpath_lineedit_textChanged()
 {
     output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
 }
-//根据待量化模型路径和量化方法填入量化后模型路径
+//展示量化方法
+void Expend::show_quantize_types()
+{
+    //量化方法说明
+    quantize_types.clear();
+    ui->model_quantize_type->clear();
+    quantize_types = {
+        { "Q8_0", "48.5%", "+0.0004", "⭐"},
+        { "Q6_K", "60.4%", "+0.0008", "⭐"},
+        { "Q5_1", "63.8%", "+0.0349", "⭐"},
+        { "Q5_K_M", "65.8%", "+0.0122", "⭐⭐⭐"},
+        { "Q5_K_S", "66.7%", "+0.0400", "⭐"},
+        { "Q5_0", "66.7%", "+0.0683", "⭐"},
+        { "Q4_1", "70%", "+0.1585", "⭐"},
+        { "Q4_K_M", "70.8%", "+0.0532", "⭐"},
+        { "Q4_K_S", "72.4%", "+0.0992", "⭐⭐"},
+        { "Q4_0", "72.6%", "+0.2166", "⭐"},
+        { "Q3_K_L", "74.2%", "+0.1764", "⭐"},
+        { "Q3_K_M", "76.4%", "+0.2496", "⭐"},
+        { "Q3_K_S", "78.8%", "+0.5551", "⭐"},
+        { "Q2_K", "79.8%", "+0.6717", "⭐"},
+        { "Q2_K_S", "83.4%", "+9.0634", ""},
+        { "IQ4_NL", "71.9%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ4_XS", "73.4%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ3_M", "77.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ3_S", "78.5%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ3_XS", "79.4%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ3_XXS", "80.9%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ2_M", "83.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ2_S", "84.3%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"}, 
+        { "IQ2_XS", "85.6%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ2_XXS", "87.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
+        { "IQ1_S", "90.3%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐⭐"},
+    };
+    
+    //添加量化方法选项
+    for(int i = 0;i < quantize_types.size(); ++i)
+    {
+        ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
+    }
+    ui->model_quantize_type->setCurrentText("Q5_K_M");
+    //添加量化方法说明
+    ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
+    ui->model_quantize_info->setColumnCount(5);
+    ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{wordsObj["quantize type"].toArray()[language_flag].toString(), wordsObj["compression"].toArray()[language_flag].toString() + "（f16->）",
+                                                                    wordsObj["perplexity"].toArray()[language_flag].toString(),wordsObj["recommend"].toArray()[language_flag].toString(),
+                                                                    wordsObj["estimated size"].toArray()[language_flag].toString() + "（f16->）"});//设置列名
+    for(int i=0;i<quantize_types.size(); ++i)
+    {
+        QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
+        ui->model_quantize_info->setItem(i, 0, newItem1);
+
+        QTableWidgetItem *newItem2 = new QTableWidgetItem(quantize_types.at(i).bit);
+        ui->model_quantize_info->setItem(i, 1, newItem2);
+
+        QTableWidgetItem *newItem3 = new QTableWidgetItem(quantize_types.at(i).perplexity);
+        ui->model_quantize_info->setItem(i, 2, newItem3);
+
+        QTableWidgetItem *newItem4 = new QTableWidgetItem(quantize_types.at(i).recommand);
+        ui->model_quantize_info->setItem(i, 3, newItem4);
+
+    }
+    QHeaderView* headerView = ui->model_quantize_info->horizontalHeader();//水平表头对象,用来控制列宽
+    headerView->setSectionResizeMode(QHeaderView::Stretch);// 设置所有列为等宽且撑满整个表格宽度
+}
+// 根据待量化模型路径和量化方法填入量化后模型路径
 void Expend::output_modelpath_change()
 {
     //提取模型名
@@ -1272,12 +1349,12 @@ void Expend::quantize_onProcessFinished()
     ui->model_quantize_frame3->setEnabled(1);
     ui->model_quantize_frame4->setEnabled(1);
 
-    ui->model_quantize_log->appendPlainText("量化完成! 模型保存:" + ui->model_quantize_output_modelpath_lineedit->text());
+    ui->model_quantize_log->appendPlainText(wordsObj["quantize completed! model save"].toArray()[language_flag].toString() + ":" + ui->model_quantize_output_modelpath_lineedit->text());
     QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
     float modelsize1_MB = fileInfo1.size() /1024.0/1024.0;
     QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text());//获取文件大小
     float modelsize2_MB = fileInfo2.size() /1024.0/1024.0;
-    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB" + " 压缩率:" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
+    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB " + wordsObj["compression"].toArray()[language_flag].toString() + " :" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
 
 }
 
@@ -1292,7 +1369,7 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     currentpath = customOpenfile(currentpath ,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     sd_params.modelpath = currentpath;
     if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
-    if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText("检测到xl模型，推荐将图像宽高设置在768以上");}
+    if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText(wordsObj["xl model detected, recommend setting the image width and height to 768 or above"].toArray()[language_flag].toString());}
 
 }
 //用户点击选择vae模型路径时响应 
@@ -1309,22 +1386,22 @@ void Expend::on_sd_draw_pushButton_clicked()
 {
     if(is_handle_sd && ui->sd_prompt_textEdit->toPlainText()=="")
     {
-        ui->sd_log->appendPlainText("请输入提示词告诉模型你想绘制图像的样子");
+        ui->sd_log->appendPlainText(wordsObj["Please enter prompt words to tell the model what you want the image to look like"].toArray()[language_flag].toString());
         return;
     }
     else if(is_handle_sd && ui->sd_modelpath_lineEdit->text()=="")
     {
-        ui->sd_log->appendPlainText("请先指定sd模型路径");
+        ui->sd_log->appendPlainText(wordsObj["Please specify the SD model path first"].toArray()[language_flag].toString());
         return;
     }
     else if(!is_handle_sd)
     {
-        emit expend2ui_state("expend:sd.exe程序绘制中",USUAL_);
+        emit expend2ui_state("expend:sd.exe" + wordsObj["drawing"].toArray()[language_flag].toString(),USUAL_);
     }
 
     //锁定界面
-    ui->groupBox_6->setEnabled(0);
-
+    ui->sd_set_groupBox->setEnabled(0);
+    
     //收集参数
     sd_params.prompt = ui->sd_prompt_textEdit->toPlainText();
     sd_params.modelpath = ui->sd_modelpath_lineEdit->text();
@@ -1430,7 +1507,7 @@ void Expend::sd_onProcessStarted()
 void Expend::sd_onProcessFinished()
 {
     //解锁界面
-    ui->groupBox_6->setEnabled(1);
+    ui->sd_set_groupBox->setEnabled(1);
 
     //绘制结果
     QImage image(sd_params.outpath);
@@ -1463,7 +1540,7 @@ void Expend::sd_onProcessFinished()
     if(!is_handle_sd && originalWidth>0)
     {
         is_handle_sd = true;
-        emit expend2ui_state("expend:绘制完毕",USUAL_);
+        emit expend2ui_state("expend:" + wordsObj["draw over"].toArray()[language_flag].toString(),USUAL_);
         emit expend2tool_drawover(sd_params.outpath,1);//绘制完成信号
     }
     else if(!is_handle_sd)
@@ -1471,13 +1548,13 @@ void Expend::sd_onProcessFinished()
         is_handle_sd = true;
         if(sd_process_output.contains("CUDA error"))
         {
-            emit expend2ui_state("expend:绘制失败，显存不足，请用户减小图像宽高",WRONG_);
-            emit expend2tool_drawover("绘制失败，显存不足，请用户减小图像宽高",0);//绘制完成信号
+            emit expend2ui_state("expend:" + wordsObj["draw fail cuda"].toArray()[language_flag].toString(),WRONG_);
+            emit expend2tool_drawover(wordsObj["draw fail cuda"].toArray()[language_flag].toString(),0);//绘制完成信号
         }
         else
         {
-            emit expend2ui_state("expend:绘制失败，注意描述的文本需要用纯英文",WRONG_);
-            emit expend2tool_drawover("绘制失败，注意描述的文本需要用纯英文",0);//绘制完成信号
+            emit expend2ui_state("expend:" + wordsObj["draw fail draw fail prompt"].toArray()[language_flag].toString(),WRONG_);
+            emit expend2tool_drawover(wordsObj["draw fail draw fail prompt"].toArray()[language_flag].toString(),0);//绘制完成信号
         }
         
     }
@@ -1577,12 +1654,12 @@ void Expend::recv_draw(QString prompt_)
     //判断是否空闲
     if(!ui->sd_draw_pushButton->isEnabled())
     {
-        emit expend2tool_drawover("stablediffusion正在运行，请稍后重试",0);//绘制完成信号
+        emit expend2tool_drawover("stablediffusion" + wordsObj["Running, please try again later"].toArray()[language_flag].toString(),0);//绘制完成信号
         return;
     }
     else if(ui->sd_modelpath_lineEdit->text() == "")
     {
-        emit expend2tool_drawover("指令无效，请先让用户在增殖窗口指定sd模型路径",0);//绘制完成信号
+        emit expend2tool_drawover(wordsObj["The command is invalid. Please ask the user to specify the SD model path in the breeding window first"].toArray()[language_flag].toString(),0);//绘制完成信号
         return;
     }
     //先把提示词写进输入框

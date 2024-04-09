@@ -62,7 +62,7 @@ public:
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();//读取配置文件并应用
     QString currentpath = DEFAULT_MODELPATH;
-    
+    void showReadme();//展示readme内容
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:
@@ -142,6 +142,7 @@ private slots:
 //-------------------------------------------------------------------------
 public:
     QVector<QuantizeType> quantize_types;//量化方法说明数据
+    void show_quantize_types();//展示量化方法
     void output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
     QProcess *quantize_process;
     void quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type);

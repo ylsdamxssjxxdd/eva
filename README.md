@@ -1,6 +1,8 @@
 # 机体
 直观的大模型应用软件：机体 (qt5+llama.cpp)
 
+\[ 中文 | [English](README_en.md) \]
+
 视频介绍 https://www.bilibili.com/video/BV15r421h728/?share_source=copy_web&vd_source=569c126f2f63df7930affe9a2267a8f8
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/836433f4-1ee4-4cf6-8502-d2c1f938a9a8" width="300px">
@@ -126,6 +128,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 
 
 ## 待办事项
+- 更换llamafile内核
 - 适配linux
 - 适配国产cpu/gpu
 - ~~英文版本（已完成）~~

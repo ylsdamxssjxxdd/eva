@@ -713,7 +713,8 @@ void Widget::set_SetDialog()
     //最大输出长度设置
     QHBoxLayout *layout_H15 = new QHBoxLayout();//水平布局器
     npredict_label = new QLabel(wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict));
-    npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());npredict_label->setMinimumWidth(100);
+    npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
+    npredict_label->setMinimumWidth(100);
     layout_H15->addWidget(npredict_label);
     npredict_slider = new QSlider(Qt::Horizontal);
     npredict_slider->setRange(1, 8192); // 设置范围
@@ -735,7 +736,8 @@ void Widget::set_SetDialog()
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
     ngl_label = new QLabel("gpu" + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
-    ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());ngl_label->setMinimumWidth(100);
+    ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+    ngl_label->setMinimumWidth(100);
     layout_H2->addWidget(ngl_label);
     ngl_slider = new QSlider(Qt::Horizontal);
     ngl_slider->setRange(0,99);
@@ -761,7 +763,8 @@ void Widget::set_SetDialog()
     //ctx length 记忆容量
     QHBoxLayout *layout_H3 = new QHBoxLayout();//水平布局器
     nctx_label = new QLabel(wordsObj["brain size"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());nctx_label->setMinimumWidth(100);
+    nctx_label->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());
+    nctx_label->setMinimumWidth(100);
     layout_H3->addWidget(nctx_label);
     nctx_slider = new QSlider(Qt::Horizontal);
     nctx_slider->setRange(128,32768);
@@ -773,7 +776,8 @@ void Widget::set_SetDialog()
     //batch size 批大小
     QHBoxLayout *layout_H13 = new QHBoxLayout();//水平布局器
     batch_label = new QLabel(wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.batch));
-    batch_label->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());batch_label->setMinimumWidth(100);
+    batch_label->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());
+    batch_label->setMinimumWidth(100);
     //layout_H13->addWidget(batch_label);//暂时不显示
     batch_slider = new QSlider(Qt::Horizontal);
     batch_slider->setRange(1,2048);
@@ -890,8 +894,9 @@ void Widget::set_DateDialog()
 
     //预设模板
     QHBoxLayout *layout_H9 = new QHBoxLayout();//水平布局器
-    chattemplate_label = new QLabel(wordsObj["chat"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());
+    chattemplate_label = new QLabel(wordsObj["chat template"].toArray()[language_flag].toString());
     chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
+    chattemplate_label->setFixedSize(60,30);
     layout_H9->addWidget(chattemplate_label);
     chattemplate_comboBox = new QComboBox();
     chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
@@ -909,6 +914,7 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H11 = new QHBoxLayout();//水平布局器
     system_label = new QLabel(wordsObj["system calling"].toArray()[language_flag].toString());
     system_label->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
+    system_label->setFixedSize(60,30);
     layout_H11->addWidget(system_label);
     system_TextEdit = new QTextEdit();
     system_TextEdit->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
@@ -924,6 +930,7 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H5 = new QHBoxLayout();//水平布局器
     input_pfx_label = new QLabel(wordsObj["user name"].toArray()[language_flag].toString());
     input_pfx_label->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
+    input_pfx_label->setFixedSize(60,30);
     layout_H5->addWidget(input_pfx_label);
     input_pfx_LineEdit = new QLineEdit();
     input_pfx_LineEdit->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
@@ -934,6 +941,7 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H6 = new QHBoxLayout();//水平布局器
     input_sfx_label = new QLabel(wordsObj["bot name"].toArray()[language_flag].toString());
     input_sfx_label->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
+    input_sfx_label->setFixedSize(60,30);
     layout_H6->addWidget(input_sfx_label);
     input_sfx_LineEdit = new QLineEdit();
     input_sfx_LineEdit->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());

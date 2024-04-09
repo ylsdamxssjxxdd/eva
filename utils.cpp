@@ -494,7 +494,7 @@ void Widget::apply_language(int language_flag_)
     api_complete_label->setText(wordsObj["complete"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
     //约定选项语种
     prompt_box->setTitle(wordsObj["prompt"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());//提示词模板设置区域
-    chattemplate_label->setText(wordsObj["chat"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());
+    chattemplate_label->setText(wordsObj["chat template"].toArray()[language_flag].toString());
     chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
     chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
     system_label->setText(wordsObj["system calling"].toArray()[language_flag].toString());

@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
             w.ui_SETTINGS.modelpath = modelpath;
             
             // ui显示值
-            w.chattemplate_comboBox->setCurrentIndex(settings.value("chattemplate", "").toInt());
+            w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
             w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
             w.input_pfx_LineEdit->setText(settings.value("input_pfx", "").toString());
             w.input_sfx_LineEdit->setText(settings.value("input_sfx", "").toString());

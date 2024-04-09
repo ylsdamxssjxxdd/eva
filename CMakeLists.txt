@@ -29,7 +29,7 @@ set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
 option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#opencl版本支持还不够完善
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 #这三个标志是互斥的
@@ -41,7 +41,7 @@ elseif(LLAMA_CUBLAS)
     add_compile_definitions(GGML_USE_CUDA)#whisper用cuda, 注意cuda版本精度异常
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
-    add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
+    #add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
 else()
