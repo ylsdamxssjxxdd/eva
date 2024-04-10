@@ -76,7 +76,7 @@
         "image": ["图像","image "],
         "voice": ["语音","voice "],
         "video": ["视频","video "],
-        "decode": ["解码","Decode"],
+        "decode": ["解码","Decoding"],
         "nums": ["个"," "],
         "predict": ["预测","predict "],
         "use time": ["耗时","use time "],

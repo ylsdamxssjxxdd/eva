@@ -337,13 +337,13 @@ int xBot::stream()
             {
                 // for llama_sample_token_greedy we need to sort candidates
                 llama_sample_softmax(ctx, &cur_p);
-                sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use max prob"].toArray()[language_flag].toString();
+                //sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use max prob"].toArray()[language_flag].toString();
             }
             else
             {
-                sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use prob random"].toArray()[language_flag].toString();
+                //sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use prob random"].toArray()[language_flag].toString();
             }
-
+            sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·";
             // ---------------------------构建概率表格----------------------------------
             // 表格宽度，每列宽度
             const int columnWidth1 = 7;
@@ -428,7 +428,7 @@ int xBot::stream()
 
             if(id == eos_token)//如果遇到结束则停止
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<end>"].toArray()[language_flag].toString() + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
+                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +wordsObj["<end>"].toArray()[language_flag].toString());
                 emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " 
                                     + wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
                                     + wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
@@ -438,12 +438,12 @@ int xBot::stream()
             }
             else if(QString::fromUtf8(sstr.c_str()).contains("[PAD"))//千问的空白字符输出空
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr)  + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
+                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr) );
                 emit bot2ui_output("");
             }
             else
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr) + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
+                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr));
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
             }
             
