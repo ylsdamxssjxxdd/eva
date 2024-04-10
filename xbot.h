@@ -37,6 +37,7 @@ public:
     //拯救中文
     QJsonObject wordsObj;
     int language_flag = 0;
+    int get_Chinese_word_nums(QString str_);
     //实例相关
     llama_model_params hparams;//模型内部参数
     gpt_params gpt_params_;//控制模型的参数,内含控制采样的参数sparams

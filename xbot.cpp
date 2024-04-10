@@ -210,7 +210,6 @@ int xBot::stream()
         //------------------------------推理-----------------------------------
         if (!embd.empty())
         {
-            emit bot2ui_state("bot:-----------------------------------------------" );
             //输入的上下文长度超过阈值直接截断
             int max_embd_size = gpt_params_.n_ctx - 4 - system_tokens.size();
             if ((int) embd.size() > max_embd_size)
@@ -336,29 +335,60 @@ int xBot::stream()
             {
                 sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use prob random"].toArray()[language_flag].toString();
             }
+
+            // ---------------------------构建概率表格----------------------------------
+            // 表格宽度，每列宽度
+            const int columnWidth1 = 7;
+            const int columnWidth2 = 11;
+
+            // 构建表头
+            QString header;
+            QString prob_5;
+            QString word_5;
+            if(language_flag == 0)//中文一个字符要占两格
+            {
+                header = " |" + wordsObj["probability table"].toArray()[language_flag].toString().leftJustified(columnWidth1 - wordsObj["probability table"].toArray()[language_flag].toString().size()) + "| " + QString("top1").leftJustified(columnWidth2) + "| " + QString("top2").leftJustified(columnWidth2) + "| " + QString("top3").leftJustified(columnWidth2) + "| " + QString("top4").leftJustified(columnWidth2) + "| " + QString("top5").leftJustified(columnWidth2) + "| ";
+                prob_5 = " |" + wordsObj["probability"].toArray()[language_flag].toString().leftJustified(columnWidth1 - wordsObj["probability"].toArray()[language_flag].toString().size()) + "| ";
+                word_5 = " |" + wordsObj["word"].toArray()[language_flag].toString().leftJustified(columnWidth1 - wordsObj["word"].toArray()[language_flag].toString().size()) + "| ";
+            }
+            else
+            {
+                header = " |" + wordsObj["probability table"].toArray()[language_flag].toString().leftJustified(columnWidth1) + "| " + QString("top1").leftJustified(columnWidth2) + "| " + QString("top2").leftJustified(columnWidth2) + "| " + QString("top3").leftJustified(columnWidth2) + "| " + QString("top4").leftJustified(columnWidth2) + "| " + QString("top5").leftJustified(columnWidth2) + "| ";
+                prob_5 = " |" + wordsObj["probability"].toArray()[language_flag].toString().leftJustified(columnWidth1) + "| ";
+                word_5 = " |" + wordsObj["word"].toArray()[language_flag].toString().leftJustified(columnWidth1) + "| ";
+            }
             
-            QString prob_5 = "bot:"+ wordsObj["word probability table"].toArray()[language_flag].toString() +wordsObj["top5"].toArray()[language_flag].toString() + wordsObj["probability"].toArray()[language_flag].toString();//前5概率
-            QString id_5 = "bot:"+ wordsObj["word probability table"].toArray()[language_flag].toString() +wordsObj["top5"].toArray()[language_flag].toString() + "token";//对应id
-            QString word_5 = "bot:"+ wordsObj["word probability table"].toArray()[language_flag].toString() +wordsObj["top5"].toArray()[language_flag].toString() + wordsObj["word"].toArray()[language_flag].toString()+"  ";//对应词
+            QString separator = " +" + QString().fill('-', columnWidth1) + "+" + QString().fill('-', columnWidth2 + 1) + "+" + QString().fill('-', columnWidth2 + 1) + "+" + QString().fill('-', columnWidth2 + 1) + "+" + QString().fill('-', columnWidth2 + 1) + "+" + QString().fill('-', columnWidth2 + 1) + "+";
+            QString id_5 = " |" + QString("token").leftJustified(columnWidth1) + "| ";
+    
             for (int i = 0; i < 5; i++)
             {
                 const llama_token id_ = cur_p.data[i].id;
-                id_5 += QString("%1|").arg(id_, 7, 'd', 0, ' ');
+                id_5 += QString::number(id_).leftJustified(columnWidth2) + "| ";
+                //id_5 += QString("%1|").arg(id_, columnWidth2, 'd', 0, ' ');
                 std::string str_ = llama_token_to_piece(ctx, id_);
-                prob_5 += QString("%1%|").arg(cur_p.data[i].p * 100.0, 7, 'f', 0, ' ');
+                //prob_5 += QString("%1%|").arg(cur_p.data[i].p * 100.0, columnWidth2, 'f', 0, ' ');
+                prob_5 += (QString::number(cur_p.data[i].p * 100.0,'f',1) + "%").leftJustified(columnWidth2) + "| ";
                 if(id_ == eos_token)
                 {
-                    word_5 += QString("%1").arg(wordsObj["<end>"].toArray()[language_flag].toString() + "|", 7);
+                    int chinese_nums = get_Chinese_word_nums(wordsObj["<end>"].toArray()[language_flag].toString());
+                    word_5 += wordsObj["<end>"].toArray()[language_flag].toString().leftJustified(columnWidth2 - chinese_nums) + "| ";
                 }
                 else
                 {
-                    word_5 += QString("%1").arg(QString::fromStdString(str_)+"|", 7);
+                    int chinese_nums = get_Chinese_word_nums(QString::fromStdString(str_));
+                    word_5 += QString::fromStdString(str_).leftJustified(columnWidth2 - chinese_nums - QString::fromStdString(str_).count("\n") - QString::fromStdString(str_).count("\r")) + "| ";
                 }
                 //qDebug()<<id<<llama_token_to_piece(ctx, id).c_str()<<cur_p.data[i].p;
             }
+            //emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator);
+            emit bot2ui_state(separator);
+            emit bot2ui_state(header);
+            emit bot2ui_state(separator);
             emit bot2ui_state(prob_5);
             emit bot2ui_state(id_5);
             emit bot2ui_state(word_5);
+            emit bot2ui_state(separator);
             //qDebug()<<"bot的历史消息"<<view_embd(ctx,history_tokens);qDebug()<<"第"<<times<<"次输出完毕";times++;
             std::string sstr = llama_token_to_piece(ctx, id);
 
@@ -390,9 +420,7 @@ int xBot::stream()
 
             if(id == eos_token)//如果遇到结束则停止
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<end>"].toArray()[language_flag].toString());
-                emit bot2ui_state("bot:" + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
-                emit bot2ui_state("bot:-----------------------------------------------" );
+                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +wordsObj["<end>"].toArray()[language_flag].toString() + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
                 emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                 //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
                 //qDebug() << batch_count << batch_time << singl_count << singl_time;
@@ -400,14 +428,12 @@ int xBot::stream()
             }
             else if(QString::fromUtf8(sstr.c_str()).contains("[PAD"))//千问的空白字符输出空
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr));
-                emit bot2ui_state("bot:" + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
+                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr)  + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
                 emit bot2ui_output("");
             }
             else
             {
-                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr));
-                emit bot2ui_state("bot:" + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
+                emit bot2ui_state("bot:" + sample_str + " token=" + QString::number(id) + " " +QString::fromStdString(sstr) + " " + wordsObj["This token will be sent to the next decoding"].toArray()[language_flag].toString());
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
             }
             
@@ -429,12 +455,10 @@ int xBot::stream()
                         {
                             is_antiprompt = true;//下一次预处理不加前缀
                             emit bot2ui_state("bot:" + wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["user name"].toArray()[language_flag].toString() + " " + QString::fromStdString(antiprompt));
-                            emit bot2ui_state("bot:-----------------------------------------------" );
                         }
                         else
                         {
                             emit bot2ui_state("bot:"+ wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["extra stop words"].toArray()[language_flag].toString() + " "  + QString::fromStdString(antiprompt));
-                            emit bot2ui_state("bot:-----------------------------------------------" );
                         }
                         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/singl_time,'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                         return 0;
@@ -741,8 +765,8 @@ QString xBot::viewVocab()
     QElapsedTimer time1;time1.start();
     for(int i=0; i < n_vocab;++i)
     {
-        QString str = QString::fromUtf8(llama_token_to_piece(ctx, i).c_str());//新增
-        for(int j=0;j<str.length();++j)//新增,判断字符是否是汉字
+        QString str = QString::fromUtf8(llama_token_to_piece(ctx, i).c_str());
+        for(int j=0;j<str.length();++j)//判断字符是否是汉字
         {
             QChar ch = str.at(j);
             if(ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FA5)
@@ -759,7 +783,24 @@ QString xBot::viewVocab()
     return vocab;
 }
 
-
+int xBot::get_Chinese_word_nums(QString str_)
+{
+    int count = 0;
+    QStringList chinesePunctuation;
+    chinesePunctuation << "，" << "。" << "：" << "？" << "！" << "、" << "；" << "“" << "”" << "‘" << "’" << "（" << "）" << "【" << "】";// 定义一个包含常见中文标点符号的集合
+    for (int i = 0; i < str_.length(); ++i) {
+        QChar ch = str_[i];
+        // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5
+        if (ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FA5) {
+            ++count;
+        }
+        // 检查当前字符是否为中文标点
+        if (chinesePunctuation.contains(str_.at(i))) {
+            ++count;
+        }
+    }
+    return count;
+}
 
 //推理embd,即token序列
 QString xBot::view_embd(llama_context *ctx_,std::vector<llama_token> embd_)
