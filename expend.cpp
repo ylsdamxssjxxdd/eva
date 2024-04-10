@@ -81,6 +81,7 @@ Expend::Expend(QWidget *parent) :
 Expend::~Expend()
 {
     delete ui;
+    server_process->kill();//有点问题
 }
 //创建临时文件夹EVA_TEMP
 bool Expend::createTempDirectory(const QString &path) {
@@ -372,7 +373,7 @@ void Expend::showReadme()
     else if (language_flag == 1)
     {
         file.setFileName(":/README_en.md");
-        imagefile = ":/ui/ui_demo_en.png";
+        imagefile = ":/ui/ui_demo.png";
     }
 
     // 打开文件

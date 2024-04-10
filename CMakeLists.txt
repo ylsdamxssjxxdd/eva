@@ -12,8 +12,9 @@
     # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 # endif()
-#将stable-diffusion.cpp链接的ggml库全部更名为ggml-sd(5处)避免冲突，直接和老文件对比吧
-#stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)以及stable-diffusion.cpp/ggml/src/cmakelists.txt
+#将stable-diffusion.cpp链接的ggml库全部更名为ggml-sd(5处)避免冲突
+#stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)
+#stable-diffusion.cpp/ggml/src/cmakelists.txt 中 set(TARGET 和if (GGML_CUDA_SOURCES)处
 #----------------------------------------------------------------------------------
 #whisper.cpp master-298c74
 #

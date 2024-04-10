@@ -231,6 +231,12 @@ void Widget::load_over_handleTimeout()
 // 装载完毕强制预处理
 void Widget::unlockLoad()
 {
+#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+    if(ui_SETTINGS.ngl<ui_maxngl)
+    {
+        reflash_state("ui:" + wordsObj["ngl tips"].toArray()[language_flag].toString(),USUAL_);
+    }
+#endif
     reflash_state("ui:" + wordsObj["load model"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toArray()[language_flag].toString(),SUCCESS_);
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
@@ -483,7 +489,7 @@ void Widget::temp_change()
 void Widget::ngl_change()
 {
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ngl_label->setText("gpu"+ wordsObj["offload"].toArray()[language_flag].toString() + " " + QString::number(ngl_slider->value()));
+    ngl_label->setText("gpu "+ wordsObj["offload"].toArray()[language_flag].toString() + " " + QString::number(ngl_slider->value()));
 #endif
 }
 //batch滑块响应
@@ -511,7 +517,7 @@ void Widget::npredict_change()
 
 void Widget::nthread_change()
 {
-    nthread_label->setText("cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(nthread_slider->value()));
+    nthread_label->setText("cpu " + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(nthread_slider->value()));
 }
 
 //补完按钮响应
@@ -735,7 +741,7 @@ void Widget::set_SetDialog()
 #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
-    ngl_label = new QLabel("gpu" + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
+    ngl_label = new QLabel("gpu " + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
     ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
     ngl_label->setMinimumWidth(100);
     layout_H2->addWidget(ngl_label);
@@ -749,7 +755,7 @@ void Widget::set_SetDialog()
 #endif
     //cpu线程数设置
     QHBoxLayout *layout_H16 = new QHBoxLayout();//水平布局器
-    nthread_label = new QLabel("cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
+    nthread_label = new QLabel("cpu " + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
     nthread_label->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
     nthread_label->setMinimumWidth(100);
     layout_H16->addWidget(nthread_label);

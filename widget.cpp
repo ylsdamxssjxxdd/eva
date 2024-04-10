@@ -114,6 +114,7 @@ Widget::~Widget()
 {
     delete ui;
     delete cutscreen_dialog;
+    server_process->kill();//有点问题
 }
 
 //用户点击装载按钮处理
@@ -184,6 +185,8 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
+    if(ui_mode == SERVER_){return;}
+    
     reflash_state("ui:" + wordsObj["clicked send"].toArray()[language_flag].toString(),SIGNAL_);
     QString input;
 
