@@ -30,7 +30,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#opencl版本支持还不够完善
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
@@ -141,7 +141,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

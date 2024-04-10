@@ -378,6 +378,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     //过滤回车和换行符
     state_string.replace("\n","\\n");
     state_string.replace("\r","\\r");
+    
     if(state==USUAL_)//一般黑色
     {
         format.clearForeground();//清除前景颜色
@@ -389,6 +390,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     {
         format.setForeground(QColor(0,200,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
+
         state_scroll(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -671,7 +673,7 @@ void Widget::stablediffusion_change()
 //-------------------------------------------------------------------------
 void Widget::set_SetDialog()
 {
-    set_dialog = new QDialog();
+    set_dialog = new QDialog(this);
     set_dialog->setWindowFlags(set_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     set_dialog->resize(150, 200); // 设置宽度,高度
 
@@ -830,11 +832,13 @@ void Widget::set_SetDialog()
     //补完控制
     complete_btn = new QRadioButton(wordsObj["complete mode"].toArray()[language_flag].toString());
     complete_btn->setToolTip(wordsObj["complete_btn_tooltip"].toArray()[language_flag].toString());
+    complete_btn->setMinimumHeight(20);
     mode_layout->addWidget(complete_btn);
     connect(complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
     //多轮对话
     chat_btn = new QRadioButton(wordsObj["chat mode"].toArray()[language_flag].toString());
     chat_btn->setToolTip(wordsObj["chat_btn_tooltip"].toArray()[language_flag].toString());
+    chat_btn->setMinimumHeight(20);
     mode_layout->addWidget(chat_btn);
     chat_btn->setChecked(1);
     connect(chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
@@ -842,6 +846,7 @@ void Widget::set_SetDialog()
     QHBoxLayout *layout_H10 = new QHBoxLayout();//水平布局器
     web_btn = new QRadioButton(wordsObj["server mode"].toArray()[language_flag].toString());
     web_btn->setToolTip(wordsObj["web_btn_tooltip"].toArray()[language_flag].toString());
+    web_btn->setMinimumHeight(20);
     layout_H10->addWidget(web_btn);
     port_label = new QLabel(wordsObj["port"].toArray()[language_flag].toString());
     port_label->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
@@ -1450,7 +1455,7 @@ void Widget::ui_state_recoding()
 void Widget::create_right_menu()
 {
     QDate currentDate = QDate::currentDate();//历史中的今天
-    QString dateString = currentDate.toString("MM" + wordsObj["month"].toArray()[language_flag].toString() + "dd" + wordsObj["day"].toArray()[language_flag].toString());
+    QString dateString = currentDate.toString("MM" + QString(" ") + wordsObj["month"].toArray()[language_flag].toString() + QString(" ") + "dd" + QString(" ") + wordsObj["day"].toArray()[language_flag].toString());
     //---------------创建一般问题菜单--------------
     if(right_menu != nullptr){delete right_menu;}
     right_menu = new QMenu(this);
