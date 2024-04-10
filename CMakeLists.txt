@@ -15,6 +15,7 @@
 #将stable-diffusion.cpp链接的ggml库全部更名为ggml-sd(5处)避免冲突
 #stable-diffusion.cpp/cmakelists.txt/target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)
 #stable-diffusion.cpp/ggml/src/cmakelists.txt 中 set(TARGET 和if (GGML_CUDA_SOURCES)处
+#还要更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 #----------------------------------------------------------------------------------
 #whisper.cpp master-298c74
 #
@@ -29,7 +30,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#opencl版本支持还不够完善
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
