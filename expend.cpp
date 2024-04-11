@@ -967,13 +967,15 @@ void Expend::embedding_processing()
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{wordsObj["embeded text segment"].toArray()[language_flag].toString()});//设置列名
     show_chunk_index = 0;//待显示的嵌入文本段的序号
 
-    //----------------------相同的内容不再嵌入-----------------------
+    //----------------------相同的内容不再嵌入, 先保留再新增-----------------------
     QVector<Embedding_vector> new_Embedding_DB;
     QVector<int> save_list;
     //构造一个如果文本段一致则保留的数据库
     for(int i=0;i<Embedding_DB.size(); ++i)
     {
         bool remove_flag = true;
+        int current_index_table = 0;//记录未嵌入之前在表格中的序号，保证将来在表格的位置
+        //如果原来的数据库中有当前待嵌入文本一致的内容则保留
         for(int j=0;j<ui->embedding_txt_wait->rowCount(); ++j)
         {
             QTableWidgetItem *item = ui->embedding_txt_wait->item(j, 0);
@@ -982,35 +984,22 @@ void Expend::embedding_processing()
                 if(Embedding_DB.at(i).chunk == item->text())
                 {
                     remove_flag = false;
+                    current_index_table = j;
                 }
             }
         }
         if(!remove_flag)
         {
-            save_list.append(i);
+            new_Embedding_DB.append(Embedding_DB.at(i));
+            new_Embedding_DB.last().index = current_index_table;
+            save_list.append(current_index_table);
+            //qDebug()<<"保留的"<<i<<Embedding_DB.at(i).chunk;
         }
-    }
-    for(int i=0;i<save_list.size(); ++i)
-    {
-        new_Embedding_DB.append(Embedding_DB.at(save_list.at(i)));
-        new_Embedding_DB[i].index = i;//重新赋予索引
-
-        ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());// 在表格末尾添加新行
-        QTableWidgetItem *newItem = new QTableWidgetItem(new_Embedding_DB.at(i).chunk);
-        newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-        newItem->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
-        ui->embedding_txt_over->setItem(i, 0, newItem);
-        ui->embedding_txt_over->setColumnWidth(0,qMax(ui->embedding_txt_over->width(),400));// 列宽保持控件宽度
-        ui->embedding_txt_over->resizeRowsToContents();// 自动调整行高
-        ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);// 滚动到新添加的行
-        show_chunk_index++;
     }
     Embedding_DB.clear();
     Embedding_DB = new_Embedding_DB;
 
     //读取待嵌入表格中的内容
-    
-    int index_ = save_list.size();
     for(int i=0;i<ui->embedding_txt_wait->rowCount(); ++i)
     {
         QTableWidgetItem *item = ui->embedding_txt_wait->item(i, 0);
@@ -1018,11 +1007,17 @@ void Expend::embedding_processing()
         {
             if(!save_list.contains(i))
             {
-                Embedding_DB.append({index_,item->text()});
-                index_++;
+                Embedding_DB.append({i,item->text()});
+                //qDebug()<<"新增的"<<i<<item->text();
             }
         }
     }
+
+    //先排好序
+    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector& a, const Embedding_vector& b) {
+        return a.index < b.index;
+    });
+
     //进行嵌入工作,发送ready_embedding_chunks给server.exe
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
@@ -1035,8 +1030,23 @@ void Expend::embedding_processing()
     QString api_key ="Bearer " + QString("sjxx");
     request.setRawHeader("Authorization", api_key.toUtf8());
     //-------------------循环发送请求直到文本段处理完-------------------
-    for(int o = save_list.size(); o<Embedding_DB.size();o++)
+    for(int o = 0; o<Embedding_DB.size();o++)
     {
+        //已经嵌入的就不处理了
+        if(save_list.contains(Embedding_DB.at(o).index))
+        {
+            ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());// 在表格末尾添加新行
+            QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(o).chunk);
+            newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
+            newItem->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+            ui->embedding_txt_over->setItem(o, 0, newItem);
+            ui->embedding_txt_over->setColumnWidth(0,qMax(ui->embedding_txt_over->width(),400));// 列宽保持控件宽度
+            ui->embedding_txt_over->resizeRowsToContents();// 自动调整行高
+            ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);// 滚动到新添加的行
+            show_chunk_index++;
+            continue;
+        }
+
         //构造请求的数据体
         QJsonObject json;
         json.insert("model", "gpt-3.5-turbo");

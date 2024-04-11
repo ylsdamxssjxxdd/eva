@@ -14,10 +14,9 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     - Minimum support for 32-bit Windows 7
     - may be can support x86，arm，windows，linux，macos，android，cuda，rocm，vulkan
 - Intuitive 
-    - The content of the output area is the entire reality of the model
-    - The content of the status area is the entire running process
+    - Clearly demonstrate the process of the llm predicting the next word
 - Multifunctional
-    - Local model interaction, agent, multimodality, online model interaction, external API services, knowledge base QA, model quantification, text2img, voice2text, text2voice (all available but not very effective)
+    - Local model interaction, agent, multimodality, online model interaction, external API services, knowledge base QA, model quantification, text2img, voice2text (all available but not very effective)
     
 ## quick start
 1. Download eva
