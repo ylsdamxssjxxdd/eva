@@ -286,7 +286,7 @@ void Expend::readConfig()
         // 读取配置文件中的值
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
         QString vae_modelpath = settings.value("vae_modelpath", "").toString();//vae模型路径
-        QString antiprompt = settings.value("antiprompt", "").toString();//反提示
+        QString antiprompt = settings.value("antiprompt", DEFAULT_ANTIPROMPT).toString();//反提示
         int image_width = settings.value("image_width", 512).toInt();//图像宽度
         int image_height = settings.value("image_height", 512).toInt();//图像高度
         QString sample_type = settings.value("sample_type", "euler_a").toString();//采样方式
@@ -421,7 +421,7 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
     else if(obj == ui->sd_antiprompt_lineEdit && event->type() == QEvent::ContextMenu)
     {
         //还原反提示
-        ui->sd_antiprompt_lineEdit->setText("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+        ui->sd_antiprompt_lineEdit->setText(DEFAULT_ANTIPROMPT);
         return true;
     }
 
