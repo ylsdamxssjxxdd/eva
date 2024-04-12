@@ -64,6 +64,7 @@ void xBot::run()
             {
                 preDecode();//预解码
                 embd.clear();//清空embd
+                is_first_reset = false;reset(0);is_first_reset = true;
                 float time_ = time2.nsecsElapsed()/1000000000.0;
                 float speed_ = (history_tokens->size() - history_past)/time_;
                 //qDebug() << history_tokens->size() - history_past<<time_;
@@ -481,32 +482,6 @@ int xBot::stream()
                     list_num++;
                 }
 
-                // for (std::string & antiprompt : gpt_params_.antiprompt)//遍历检测
-                // {
-                //     //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(last_output);
-                //     size_t search_start_pos = last_output.length() > static_cast<size_t>(antiprompt.length())
-                //         ? last_output.length() - static_cast<size_t>(antiprompt.length())
-                //         : 0;
-
-                //     //检测到反提示,默认第一个元素是用户昵称
-                //     if (last_output.find(antiprompt, search_start_pos) != std::string::npos)
-                //     {
-                //         if(list_num==0)
-                //         {
-                //             is_antiprompt = true;//下一次预处理不加前缀
-                //             emit bot2ui_state("bot:" + wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["user name"].toArray()[language_flag].toString() + " " + QString::fromStdString(antiprompt));
-                //         }
-                //         else
-                //         {
-                //             emit bot2ui_state("bot:"+ wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["extra stop words"].toArray()[language_flag].toString() + " "  + QString::fromStdString(antiprompt));
-                //         }
-                //         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
-                //         return 0;
-                        
-                //     }
-                //     list_num++;
-                // }
-
             }
         }
         //输入太多的特殊情况处理
@@ -699,7 +674,7 @@ void xBot::reset(bool is_clear_all)
 
     if(is_clear_all)//清空ctx kv缓存
     {
-        llama_kv_cache_clear(ctx);//清空ctx kv缓存        
+        llama_kv_cache_seq_rm   (ctx, 0, -1, -1);//清空ctx kv缓存        
         n_past             = 0;//已推理字符数
         n_consumed         = 0;//已推理字符数
         history_tokens->clear();//用来记录输出

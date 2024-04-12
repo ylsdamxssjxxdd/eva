@@ -18,16 +18,16 @@ void xTool::run()
         QScriptEngine enging;
         QScriptValue result_ = enging.evaluate(func_arg_list.second);
         QString result = QString::number(result_.toNumber());
-        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result;
+        //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result;
         if(result == "nan")//计算失败的情况
         {
             emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "计算失败，请确认计算公式是否合理");
         }
         else
         {
-            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+            emit tool2ui_pushover(QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result);
         }
-        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result,TOOL_);
+        emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result,TOOL_);
     }
     //----------------------命令提示符------------------
     else if(func_arg_list.first == "cmd")
@@ -47,18 +47,18 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString(),TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString());
-            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + process->errorString();
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + process->errorString(),TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + process->errorString());
+            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + process->errorString();
         } 
         else 
         {
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output,TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output);
-            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + " " + output;
+            emit tool2ui_state("tool:" +QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + output,TOOL_);
+            emit tool2ui_pushover(QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + output);
+            qDebug() << QString("cmd ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + output;
         }
 
     }
@@ -70,16 +70,16 @@ void xTool::run()
         if(Embedding_DB.size()==0)
         {
             result = wordsObj["Please tell user to embed knowledge into the knowledge base first"].toArray()[language_flag].toString();
-            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
-            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result);
         }
         else
         {
             //查询计算词向量和计算相似度，返回匹配的文本段
             result = embedding_query_process(func_arg_list.second);
             emit tool2ui_state("tool:" + wordsObj["qurey&timeuse"].toArray()[language_flag].toString() + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
-            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
-            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+            emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result, TOOL_);
+            emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result);
         }
         
     }
@@ -139,8 +139,8 @@ void xTool::run()
             qDebug() << "Failed to open file for writing";
         }
 
-        emit tool2ui_state("tool:" +QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result,TOOL_);
-        emit tool2ui_pushover(QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+        emit tool2ui_state("tool:" +QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result,TOOL_);
+        emit tool2ui_pushover(QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result);
     }
     //----------------------没有该工具------------------
     else
@@ -336,15 +336,15 @@ void xTool::recv_drawover(QString result_, bool ok_)
 
     //绘制成功的情况
     //添加绘制成功并显示图像指令
-    emit tool2ui_state("tool:" + QString("stablediffusion ") + wordsObj["return"].toArray()[language_flag].toString() + " " + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
+    emit tool2ui_state("tool:" + QString("stablediffusion ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
     emit tool2ui_pushover("<ylsdamxssjxxdd:showdraw>" + result_);
 }
 
 //传递控制完成结果
 void xTool::tool2ui_controller_over(QString result)
 {
-    emit tool2ui_state("tool:" + QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
-    emit tool2ui_pushover(QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
+    emit tool2ui_state("tool:" + QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result, TOOL_);
+    emit tool2ui_pushover(QString("controller ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result);
 }
 
 void xTool::recv_language(int language_flag_)
