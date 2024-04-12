@@ -39,7 +39,7 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QSettings>
-#include <QTextCodec>
+
 #include <QMediaPlayer>
 #include <QAudioInput>
 #include <QBuffer>
@@ -82,7 +82,7 @@ public:
     QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
     bool createTempDirectory(const QString &path);//创建临时文件夹
     void create_right_menu();//添加右击问题
-    QStringList func_arg_list;//提取出来的函数和参数
+    QPair<QString, QString> func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;//字体大小
     QMediaPlayer music_player;
@@ -226,8 +226,8 @@ public:
     void change_api_dialog(bool enable);
 
     QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox,*cmd_checkbox,*toolguy_checkbox,*knowledge_checkbox,*controller_checkbox,*stablediffusion_checkbox;
-    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_toolguy_ischecked=0,ui_knowledge_ischecked=0,ui_controller_ischecked=0,ui_stablediffusion_ischecked=0;
+    QCheckBox *calculator_checkbox,*cmd_checkbox,*toolguy_checkbox,*knowledge_checkbox,*controller_checkbox,*stablediffusion_checkbox,*interpreter_checkbox;
+    bool ui_calculator_ischecked=0,ui_cmd_ischecked=0,ui_toolguy_ischecked=0,ui_knowledge_ischecked=0,ui_controller_ischecked=0,ui_stablediffusion_ischecked=0,ui_interpreter_ischecked=0;
     QLabel *extra_label;//附加指令
     QPushButton *switch_lan_button;//切换附加指令的语言
     QString ui_extra_lan="zh";
@@ -235,11 +235,12 @@ public:
     QString ui_extra_prompt;
     QString ui_system_prompt;
     QString create_extra_prompt();//构建附加指令
+    void tool_change();//响应工具选择
     void addStopwords();//添加额外停止标志
     QMap<QString, TOOLS> tool_map;//工具包
     bool is_load_tool = false;//是否挂载了工具
     bool is_toolguy = false;//是否为工具人
-    QStringList JSONparser(QString text);//输出解析器，提取JSON
+    QPair<QString, QString> JSONparser(QString text);//手搓输出解析器，提取JSON
     QString tool_result;
     QString wait_to_show_image = "";//文生图后待显示图像的图像路径
 
@@ -334,7 +335,7 @@ signals:
 //发送给tool的信号
     void ui2tool_language(int language_flag_);//传递使用的语言
     void ui2tool_push();//开始推理
-    void ui2tool_func_arg(QStringList func_arg_list);//传递函数名和参数
+    void ui2tool_func_arg(QPair<QString, QString> func_arg_list);//传递函数名和参数
     void recv_controller_over(QString result);
 //发送给expend的信号
     void ui2expend_language(int language_flag_);//传递使用的语言
@@ -397,12 +398,12 @@ private slots:
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容
     void calculator_change();//选用计算器工具
+    void interpreter_change();//选用代码解释器工具
     void cmd_change();//选用系统终端工具
     void toolguy_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具
     void controller_change();//选用阳电子炮工具
     void stablediffusion_change();//选用大模型工具
-    bool toolcheckbox_checked();//判断是否挂载了工具
 
     void prompt_template_change();//提示词模板下拉框响应
     void complete_change();//补完模式响应

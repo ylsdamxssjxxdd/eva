@@ -18,6 +18,8 @@
 #include <QEventLoop>
 #include <QAbstractSocket>
 #include <QNetworkInterface>
+#include <QDir>
+#include <QTextCodec>
 #include <math.h>
 #include "xconfig.h"
 class xTool : public QThread
@@ -31,8 +33,8 @@ public:
     int language_flag = 0;
     void run() override;
 public:
-    QStringList func_arg_list;
-
+    QPair<QString, QString> func_arg_list;
+    bool createTempDirectory(const QString &path);//创建临时文件夹
     //知识库相关
     QString embedding_server_api = "";
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库
@@ -46,7 +48,7 @@ public:
     //文生图相关
     
 public slots:
-    void recv_func_arg(QStringList func_arg_list);
+    void recv_func_arg(QPair<QString, QString> func_arg_list);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_serverapi(QString serverapi);//传递嵌入服务端点
     void recv_drawover(QString result_, bool ok_);//接收图像绘制完成信号

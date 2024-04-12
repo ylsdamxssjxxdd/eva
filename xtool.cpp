@@ -12,11 +12,11 @@ xTool::~xTool()
 void xTool::run()
 {
     //----------------------计算器------------------
-    if(func_arg_list.front() == "calculator")
+    if(func_arg_list.first == "calculator")
     {
-        emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.last() + ")");
+        emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.second + ")");
         QScriptEngine enging;
-        QScriptValue result_ = enging.evaluate(func_arg_list.last());
+        QScriptValue result_ = enging.evaluate(func_arg_list.second);
         QString result = QString::number(result_.toNumber());
         //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result;
         if(result == "nan")//计算失败的情况
@@ -30,7 +30,7 @@ void xTool::run()
         emit tool2ui_state("tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result,TOOL_);
     }
     //----------------------命令提示符------------------
-    else if(func_arg_list.front() == "cmd")
+    else if(func_arg_list.first == "cmd")
     {
 
         QProcess *process = new QProcess();
@@ -38,7 +38,7 @@ void xTool::run()
         #ifdef Q_OS_WIN
         // 在Windows上执行
         
-        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.last());//使用start()方法来执行命令。Windows中的命令提示符是cmd.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
+        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);//使用start()方法来执行命令。Windows中的命令提示符是cmd.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
         #else
         // 在Unix-like系统上执行
         process->start("/bin/sh", QStringList() << "-c" << commandString);
@@ -63,7 +63,7 @@ void xTool::run()
 
     }
     //----------------------知识库------------------
-    else if(func_arg_list.front() == "knowledge")
+    else if(func_arg_list.first == "knowledge")
     {
         QElapsedTimer time4;time4.start();
         QString result;
@@ -76,7 +76,7 @@ void xTool::run()
         else
         {
             //查询计算词向量和计算相似度，返回匹配的文本段
-            result = embedding_query_process(func_arg_list.last());
+            result = embedding_query_process(func_arg_list.second);
             emit tool2ui_state("tool:" + wordsObj["qurey&timeuse"].toArray()[language_flag].toString() + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
             emit tool2ui_state("tool:" + QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result, TOOL_);
             emit tool2ui_pushover(QString("knowledge ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
@@ -84,17 +84,63 @@ void xTool::run()
         
     }
     //----------------------控制台------------------
-    else if(func_arg_list.front() == "controller")
+    else if(func_arg_list.first == "controller")
     {
-        emit tool2ui_state("tool:" + QString("controller(") + func_arg_list.last() + ")");
+        emit tool2ui_state("tool:" + QString("controller(") + func_arg_list.second + ")");
         //执行相应界面控制
-        emit tool2ui_controller(func_arg_list.last().toInt());
+        emit tool2ui_controller(func_arg_list.second.toInt());
     }
     //----------------------文生图------------------
-    else if(func_arg_list.front() == "stablediffusion")
+    else if(func_arg_list.first == "stablediffusion")
     {
         //告诉expend开始绘制
-        emit tool2expend_draw(func_arg_list.last());
+        emit tool2expend_draw(func_arg_list.second);
+    }
+    //----------------------代码解释器------------------
+    else if(func_arg_list.first == "interpreter")
+    {
+        QString result;
+        //---内容写入interpreter.py---
+        createTempDirectory("./EVA_TEMP");
+        QFile file("./EVA_TEMP/interpreter.py");
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) 
+        {
+            QTextStream out(&file);
+            out.setCodec("UTF-8"); // 设置编码为UTF-8
+            out << func_arg_list.second;
+            file.close();
+            //---运行interpreter.py---
+            QProcess *process = new QProcess();
+            // 构建Python命令
+            QString command = "python";
+            QStringList args;
+            args << "./EVA_TEMP/interpreter.py";
+
+            // 连接信号以获取输出
+            connect(process, &QProcess::readyReadStandardOutput, [&]() {
+                result = process->readAllStandardOutput();
+                //qDebug() << "readyReadStandardOutput" << process->readAllStandardOutput();
+            });
+            connect(process, &QProcess::readyReadStandardError, [&]() {
+                result = process->readAllStandardError();
+                //qDebug() << "readyReadStandardError" << process->readAllStandardError();
+            });
+
+            // 开始运行脚本
+            process->start(command, args);
+
+            // 等待脚本结束（可选）
+            process->waitForFinished();
+            
+        } 
+        else 
+        {
+            result += "Failed to open file for writing";
+            qDebug() << "Failed to open file for writing";
+        }
+
+        emit tool2ui_state("tool:" +QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result,TOOL_);
+        emit tool2ui_pushover(QString("interpreter ") + wordsObj["return"].toArray()[language_flag].toString() + " " + result);
     }
     //----------------------没有该工具------------------
     else
@@ -104,7 +150,23 @@ void xTool::run()
     
 }
 
-void xTool::recv_func_arg(QStringList func_arg_list_)
+//创建临时文件夹EVA_TEMP
+bool xTool::createTempDirectory(const QString &path) {
+    QDir dir;
+    // 检查路径是否存在
+    if (dir.exists(path)) {
+        return false;
+    } else {
+        // 尝试创建目录
+        if (dir.mkpath(path)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+void xTool::recv_func_arg(QPair<QString, QString> func_arg_list_)
 {
     func_arg_list = func_arg_list_;
 }

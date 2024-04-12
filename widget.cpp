@@ -376,21 +376,21 @@ void Widget::recv_pushover()
         {
             QString tool_str = ui_assistant_history.last();
             func_arg_list = JSONparser(tool_str);//取巧预解码的系统指令故意不让解析出json
-            if(func_arg_list.size() == 0)
+            if(func_arg_list.first == "")
             {
                 normal_finish_pushover();
             }
             else
             {
                 //调用工具
-                reflash_state("ui:" + wordsObj["clicked"].toArray()[language_flag].toString() + " " + func_arg_list.front(),SIGNAL_);
+                reflash_state("ui:" + wordsObj["clicked"].toArray()[language_flag].toString() + " " + func_arg_list.first,SIGNAL_);
                 //包含以下字段则停止调用
-                if(func_arg_list.first().contains("answer") || func_arg_list.first().contains("response") || func_arg_list.first().contains("最终回复") || func_arg_list.first().contains("final"))
+                if(func_arg_list.first.contains("answer") || func_arg_list.first.contains("response") || func_arg_list.first.contains("最终回复") || func_arg_list.first.contains("final"))
                 {
                     normal_finish_pushover();
                 }
                 //如果是toolguy的情况
-                else if(func_arg_list.first() == "toolguy")
+                else if(func_arg_list.first == "toolguy")
                 {
                     is_toolguy = true;
                     ui->send->setEnabled(1);
@@ -634,6 +634,7 @@ void Widget::on_date_clicked()
     controller_checkbox->setChecked(ui_controller_ischecked);
     knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
+    interpreter_checkbox->setChecked(ui_interpreter_ischecked);
 
     switch_lan_button->setText(ui_extra_lan);
     extra_TextEdit->setText(ui_extra_prompt);//这个要放到各个checkbox的后面来，可以保护用户的修改

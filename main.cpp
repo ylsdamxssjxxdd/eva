@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<STATE>("STATE");//注册STATE作为信号传递变量
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
+    qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
@@ -148,6 +149,7 @@ int main(int argc, char *argv[])
             w.controller_checkbox->setChecked(settings.value("controller_checkbox", "").toBool());
             w.stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", "").toBool());
             w.toolguy_checkbox->setChecked(settings.value("toolguy_checkbox", "").toBool());
+            w.interpreter_checkbox->setChecked(settings.value("interpreter_checkbox", "").toBool());
             if(settings.value("extra_lan", "").toString()!="zh"){w.switch_lan_change();}//切换为英文
             w.extra_TextEdit->setText(settings.value("extra_prompt", "").toString());//放到后面保护用户定义值
 

@@ -3,58 +3,66 @@
 #include "widget.h"
 #include "ui_widget.h"
 
-//输出解析器，提取JSON
-QStringList Widget::JSONparser(QString text)
-{
-    QStringList func_arg_list;
-    // 使用正则表达式来定位JSON部分
-    // 使用QRegularExpression查找JSON字符串
-    // 正则表达式解释：
-    // \s* 可能的空白符
-    // \{ 开始的大括号
-    // (?:.|\n)*? 非贪婪匹配任意字符包括换行符
-    // \} 结束的大括号
-    QRegularExpression re("\\{(?:.|\\s)*?\\}");
+//手搓输出解析器，提取JSON
+QPair<QString, QString> Widget::JSONparser(QString text) {
+    
+    QPair<QString, QString> func_arg_list;
+    // 匹配花括号至最后一个花括号中的内容
+    QRegularExpression re("\\{(.*)\\}");
+    re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
     QRegularExpressionMatch match = re.match(text);
 
-    if (match.hasMatch()) {
-        // 提取JSON字符串
-        QString jsonString = match.captured(0);
-        // 将JSON字符串转换为QJsonDocument
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonString.toUtf8());
-        // 检查解析是否成功
-        if (!jsonDoc.isNull()) {
-            if (jsonDoc.isObject()) {
-                // 获取QJsonObject并操作它
-                QJsonObject jsonObj = jsonDoc.object();
-                QString action = jsonObj["action"].toString();
-                
-                QString action_input;
-                // 检查action_input的类型并相应处理
-                QJsonValue actionInputValue = jsonObj["action_input"];
-                if (actionInputValue.isString()) 
+    if (match.hasMatch())
+    {
+        QString content = match.captured(1);  // 获取第一个捕获组的内容
+        qDebug() << "花括号中的内容是：" << content;
+        // 匹配"action:"至逗号， \\s*的意思是允许忽略空格
+        QRegularExpression re2("\"action\"\\s*[:：]\\s*\"([^\"]*)\"");
+        QRegularExpressionMatch match2 = re2.match(content);
+        if (match2.hasMatch())
+        {
+            QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
+            func_arg_list.first = content2;
+            qDebug() << "action中的内容是：" << content2;
+            // 匹配"action_input:"至最后
+            QRegularExpression re3("\"action_input\"\\s*[:：]\\s*(.*)");
+            re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
+            QRegularExpressionMatch match3 = re3.match(content);
+            if (match3.hasMatch())
+            {
+                QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");;  // 获取第一个捕获组的内容
+                //如果挂载了代码解释器则去除文本段前后的标点
+                if(ui_interpreter_ischecked)
                 {
-                    // 如果是字符串，则获取字符串
-                    action_input = actionInputValue.toString();
-                    
-                } 
-                else if (actionInputValue.isDouble()) {
-                    // 如果是数字，则获取数字
-                    action_input = QString::number(actionInputValue.toDouble());
+                    // 去除最前面的标点 { " ' }
+                    while (!content3.isEmpty() && (content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{'))) {
+                        content3 = content3.mid(1);
+                    }
+
+                    // 去除最后面的标点 { " ' }
+                    while (!content3.isEmpty() && (content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}'))) {
+                        content3.chop(1);
+                    }
                 }
-                func_arg_list << action.toLower();
-                func_arg_list << action_input.toLower();
-                qDebug() << "action:" << action<< "action_input:" << action_input;
-                reflash_state("ui:" + wordsObj["json detect"].toArray()[language_flag].toString() + " action:" + action + " action_input:" + action_input,USUAL_);
-            } else {
-                reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString() + " JSON document is not an object",USUAL_);
+                func_arg_list.second = content3;
+                qDebug() << "action_input中的内容是：" << content3;
             }
-        } else {
-            reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString() + " Invalid JSON...",USUAL_);
+            else
+            {
+                qDebug() << "没有找到action_input中的内容。";
+            }
+
         }
-    } else {
-        reflash_state("ui:" + wordsObj["no json detect"].toArray()[language_flag].toString(),USUAL_);
+        else {
+            qDebug() << "没有找到action中的内容。";
+        }
     }
+    else {
+        qDebug() << "没有找到花括号中的内容。";
+    }
+
+
+    qDebug()<<func_arg_list;
     return func_arg_list;
 }
 
@@ -67,20 +75,22 @@ QString Widget::create_extra_prompt()
     if(is_load_tool)
     {
         //头
+        if(interpreter_checkbox->isChecked()){extra_prompt_ += tool_map["interpreter"].func_describe + "\n";}
         if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
         if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
         if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + wordsObj["embeddingdb describe"].toArray()[language_flag].toString() + ":" + embeddingdb_describe + "\n";}
-        if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
+        if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
         //中
         extra_prompt_ +=wordsObj["middle_extra_prompt"].toArray()[language_flag].toString();
+        if(interpreter_checkbox->isChecked()){extra_prompt_ +="\"interpreter\" ";}
         if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
         if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
         if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-        if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
+        if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
         //尾
         extra_prompt_ += wordsObj["tail_extra_prompt"].toArray()[language_flag].toString();
     }
@@ -92,7 +102,7 @@ QString Widget::create_extra_prompt()
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":\n";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
     ui_DATES.extra_stop_words << "<|im_end|>";//防chatml
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
@@ -432,20 +442,6 @@ void Widget::getWords(QString json_file_path)
     wordsObj = jsonObj["words"].toObject();
 }
 
-// 判断是否挂载了工具
-bool Widget::toolcheckbox_checked()
-{
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked())
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-    
-}
-
 //切换额外指令的语言
 void Widget::switch_lan_change()
 {
@@ -519,6 +515,8 @@ void Widget::apply_language(int language_flag_)
     toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toArray()[language_flag].toString());
     stablediffusion_checkbox->setText(wordsObj["stablediffusion"].toArray()[language_flag].toString());
     stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toArray()[language_flag].toString());
+    interpreter_checkbox->setText(wordsObj["interpreter"].toArray()[language_flag].toString());
+    interpreter_checkbox->setToolTip(wordsObj["interpreter_checkbox_tooltip"].toArray()[language_flag].toString());
     extra_label->setText(wordsObj["extra calling"].toArray()[language_flag].toString());
     extra_label->setToolTip(wordsObj["extra_label_tooltip"].toArray()[language_flag].toString());
     switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toArray()[language_flag].toString());
@@ -531,6 +529,7 @@ void Widget::apply_language(int language_flag_)
     tool_map.insert("knowledge", {wordsObj["knowledge"].toArray()[language_flag].toString(),"knowledge",wordsObj["knowledge_func_describe"].toArray()[language_flag].toString()});
     tool_map.insert("controller", {wordsObj["controller"].toArray()[language_flag].toString(),"controller",wordsObj["controller_func_describe"].toArray()[language_flag].toString()});
     tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toArray()[language_flag].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("interpreter", {wordsObj["interpreter"].toArray()[language_flag].toString(),"interpreter",wordsObj["interpreter_func_describe"].toArray()[language_flag].toString()});
     extra_TextEdit->setText(create_extra_prompt());//构建附加指令
     date_dialog->setWindowTitle(wordsObj["date"].toArray()[language_flag].toString());
     //设置选项语种
@@ -772,6 +771,7 @@ void Widget::speechOver()
     settings.setValue("controller_checkbox",controller_checkbox->isChecked());//controller工具
     settings.setValue("stablediffusion_checkbox",stablediffusion_checkbox->isChecked());//计算器工具
     settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
+    settings.setValue("interpreter_checkbox",interpreter_checkbox->isChecked());//toolguy工具
     settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
     
     reflash_state("ui:" + wordsObj["save_config_mess"].toArray()[language_flag].toString(),USUAL_);

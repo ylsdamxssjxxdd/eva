@@ -98,6 +98,7 @@ public:
     bool is_load_tool=false;//是否挂载了工具
     QStringList extra_stop_words;//额外停止标志
     bool vram_enough = false;
+    std::string current_output;//用来判断里面是否存在反向词
 
 public slots:
     void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载

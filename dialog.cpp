@@ -598,74 +598,58 @@ void Widget::chooseMmprojpath()
     mmproj_LineEdit->setText(currentpath);
 }
 
+//响应工具选择
+void Widget::tool_change()
+{
+    // 判断是否挂载了工具
+    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked())
+    {
+        is_load_tool = true;
+    }
+    else
+    {
+        is_load_tool = false;
+    }
+    extra_TextEdit->setText(create_extra_prompt());
+}
 
 //选用计算器工具
 void Widget::calculator_change()
 {
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_calculator_ischecked = calculator_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
+
+//选用代码解释器工具
+void Widget::interpreter_change()
+{
+    tool_change();
+}
+
 //选用系统终端工具
 void Widget::cmd_change()
 {
     
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_cmd_ischecked = cmd_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
 
 void Widget::toolguy_change()
 {
-    
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_toolguy_ischecked = toolguy_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
 
 void Widget::knowledge_change()
 {
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_knowledge_ischecked = knowledge_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
 
 void Widget::controller_change()
 {
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_controller_ischecked = controller_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
 
 void Widget::stablediffusion_change()
 {
-    if(toolcheckbox_checked())
-    {
-        is_load_tool = true;
-        //ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
-    }
-    else{is_load_tool = false;}
-    extra_TextEdit->setText(create_extra_prompt());
+    tool_change();
 }
 
 //-------------------------------------------------------------------------
@@ -989,10 +973,13 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
     toolguy_checkbox = new QCheckBox(wordsObj["toolguy"].toArray()[language_flag].toString());
     toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toArray()[language_flag].toString());
+    interpreter_checkbox = new QCheckBox(wordsObj["interpreter"].toArray()[language_flag].toString());
+    interpreter_checkbox->setToolTip(wordsObj["interpreter_checkbox_tooltip"].toArray()[language_flag].toString());
     stablediffusion_checkbox = new QCheckBox(wordsObj["stablediffusion"].toArray()[language_flag].toString());
     stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toArray()[language_flag].toString());
     layout_H46->addWidget(stablediffusion_checkbox);
-    layout_H46->addWidget(toolguy_checkbox);
+    //layout_H46->addWidget(toolguy_checkbox);//暂不显示
+    layout_H46->addWidget(interpreter_checkbox);
     tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
 
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
@@ -1001,6 +988,7 @@ void Widget::set_DateDialog()
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
     connect(controller_checkbox, &QCheckBox::stateChanged, this, &Widget::controller_change);
     connect(stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::stablediffusion_change);
+    connect(interpreter_checkbox, &QCheckBox::stateChanged, this, &Widget::interpreter_change);
 
     //附加指令
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器
@@ -1582,6 +1570,7 @@ void Widget::get_date()
     ui_knowledge_ischecked = knowledge_checkbox->isChecked();
     ui_controller_ischecked = controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
+    ui_interpreter_ischecked = interpreter_checkbox->isChecked();
 
     //添加额外停止标志
     addStopwords();

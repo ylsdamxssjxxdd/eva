@@ -196,6 +196,7 @@ int xBot::stream()
     QElapsedTimer single_timer;
     single_timer.start();//后面减去batch_timer记录的时间就是单解码用时
     QElapsedTimer batch_timer;
+    current_output = "";
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain!= 0)
     {
@@ -440,26 +441,28 @@ int xBot::stream()
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr) );
                 emit bot2ui_output("");
+                
             }
             else
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr));
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
+                current_output += sstr;
+                if(current_output.length() > 32)
+                {
+                    current_output = current_output.substr(current_output.length() - 32, 32);//只保留32个字符
+                }
             }
             
             //检测输出的内容中是否包含反提示,如果有则停止
             if(!is_complete)
             {
-                const int n_prev = 32;//反向检测最后32个token是否包含反提示token序列
-                const std::string last_output = llama_sampling_prev_str(sparams, ctx, n_prev);//从sparams记录的token中取出n_prev个
                 int list_num=0;//记录第一个元素,只有第一个元素需要控制is_antiprompt = true
-                for (std::string & antiprompt : gpt_params_.antiprompt)//遍历检测
+                //qDebug() << QString::fromStdString(current_output);
+                for (const std::string &antiprompt : gpt_params_.antiprompt) 
                 {
-                    size_t search_start_pos = last_output.length() > static_cast<size_t>(antiprompt.length())
-                        ? last_output.length() - static_cast<size_t>(antiprompt.length())
-                        : 0;
-                    //检测到反提示,默认第一个元素是用户昵称
-                    if (last_output.find(antiprompt, search_start_pos) != std::string::npos)
+                    
+                    if (current_output.find(antiprompt) != std::string::npos) 
                     {
                         if(list_num==0)
                         {
@@ -471,11 +474,38 @@ int xBot::stream()
                             emit bot2ui_state("bot:"+ wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["extra stop words"].toArray()[language_flag].toString() + " "  + QString::fromStdString(antiprompt));
                         }
                         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
+                        //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
                         return 0;
                         
                     }
                     list_num++;
                 }
+
+                // for (std::string & antiprompt : gpt_params_.antiprompt)//遍历检测
+                // {
+                //     //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(last_output);
+                //     size_t search_start_pos = last_output.length() > static_cast<size_t>(antiprompt.length())
+                //         ? last_output.length() - static_cast<size_t>(antiprompt.length())
+                //         : 0;
+
+                //     //检测到反提示,默认第一个元素是用户昵称
+                //     if (last_output.find(antiprompt, search_start_pos) != std::string::npos)
+                //     {
+                //         if(list_num==0)
+                //         {
+                //             is_antiprompt = true;//下一次预处理不加前缀
+                //             emit bot2ui_state("bot:" + wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["user name"].toArray()[language_flag].toString() + " " + QString::fromStdString(antiprompt));
+                //         }
+                //         else
+                //         {
+                //             emit bot2ui_state("bot:"+ wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["extra stop words"].toArray()[language_flag].toString() + " "  + QString::fromStdString(antiprompt));
+                //         }
+                //         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
+                //         return 0;
+                        
+                //     }
+                //     list_num++;
+                // }
 
             }
         }

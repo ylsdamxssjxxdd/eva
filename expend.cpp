@@ -451,9 +451,16 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("voice_enable",ui->voice_enable_radioButton->isChecked());
     settings.setValue("voice_name",ui->voice_source_comboBox->currentText());
 
-    settings.setValue("embedding_need",embedding_need);
     settings.setValue("embedding_modelpath",embedding_params.modelpath);
     settings.setValue("embedding_endpoint",ui->embedding_txt_api_lineedit->text());//如果模型不存在则直接使用端点
+    if(embedding_need)
+    {
+        if(ui->embedding_txt_api_lineedit->text() == "")//如果用户删除了嵌入端点的内容则不自动嵌入
+        {
+            embedding_need = false;
+        }
+    }
+    settings.setValue("embedding_need",embedding_need);
     settings.setValue("embedding_split",ui->embedding_split_spinbox->value());
     settings.setValue("embedding_overlap",ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt",ui->embedding_txt_lineEdit->text());
