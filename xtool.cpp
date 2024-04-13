@@ -118,12 +118,15 @@ void xTool::run()
 
             // 连接信号以获取输出
             connect(process, &QProcess::readyReadStandardOutput, [&]() {
-                result = process->readAllStandardOutput();
-                //qDebug() << "readyReadStandardOutput" << process->readAllStandardOutput();
+                QByteArray rawOutput = process->readAllStandardOutput();
+                QTextCodec *codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
+                result += codec->toUnicode(rawOutput);
             });
             connect(process, &QProcess::readyReadStandardError, [&]() {
-                result = process->readAllStandardError();
-                //qDebug() << "readyReadStandardError" << process->readAllStandardError();
+                QByteArray rawOutput = process->readAllStandardError();
+                QTextCodec *codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
+                result += codec->toUnicode(rawOutput);
+                
             });
 
             // 开始运行脚本
@@ -131,7 +134,7 @@ void xTool::run()
 
             // 等待脚本结束（可选）
             process->waitForFinished();
-            
+            qDebug() << result;
         } 
         else 
         {
