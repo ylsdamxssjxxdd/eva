@@ -1,0 +1,33 @@
+0,1,2,3,4,5
+" Use indirect truth tables to determine whether each set of propositions is consistent. If the set is consistent, choose an option with a consistent valuation. (There may be other consistent valuations.)
+D ≡ E
+F ∨ D
+~E · ~F",Inconsistent,"Consistent. Consistent valuation when D, E, and F are true",Consistent. Consistent valuation when D and E are true and F is false,Consistent. Consistent valuation when D and F are true and E is false,A
+" Use indirect truth tables to determine whether each set of propositions is consistent. If the set is consistent, choose an option with a consistent valuation. (There may be other consistent valuations.)
+~N ≡ (O · P)
+~O ⊃ Q
+N · ~Q",Inconsistent,"Consistent. Consistent valuation when N, O, and P are true and Q is false",Consistent. Consistent valuation when N and O are true and P and Q are false,Consistent. Consistent valuation when N and P are true and O and Q are false,C
+"Identify the antecedent of the following conditional proposition: If the Bees don't win their first game, then both the Aardvarks and the Chipmunks win their first games.",The Aardvarks win their first game.,The Bees don't win their first game.,The Chipmunks win their first game.,Both the Aardvarks and the Chipmunks win their first games.,B
+"Which of the following propositions is an immediate (one-step) consequence in PL of the given premises?
+(A ∨ B) ⊃ (C ∨ D)
+A ∨ B
+~C",~A ∨ ~B,~~C,C ∨ D,(A ∨ B) ⊃ D,C
+" Which of the given formulas of PL is the best symbolization of the following sentence?
+The restaurant serves pie or cheesecake or ice cream for dessert.",P ∨ (C ∨ I),(P ∨ C) ∨ I,P ∨ C ∨ I,Options A and B,D
+" Use indirect truth tables to determine whether each set of propositions is consistent. If the set is consistent, choose an option with a consistent valuation. (There may be other consistent valuations.)
+(T ⊃ U) ⊃ (W ⊃ U)
+T ⊃ ~(U ⊃ X)
+(T ⊃ ~X) ⊃ W",Inconsistent,"Consistent. Consistent valuation when U, W, and X are true and T is false",Consistent. Consistent valuation when W and X are true and T and U are false,Consistent. Consistent valuation when T and U are true and W and X are false,B
+ Select the best translation into predicate logic. All kings are luckier than all paupers. (Kx: x is a king; Px: x is a pauper; Lxy: x is luckier than y),(∀x)[Kx ⊃ (∀y)(Py ⊃ Lxy)],(∀x)[Kx ⊃ (∀y)(Lxy ⊃ Py)],(∀x)(∀y)[(Kx • Py) ⊃ Lyx],(∀x)[(Kx • (∀y)(Py)) ⊃ Lxy],A
+ Select the best translation into predicate logic: No artifacts are people.,~Pa,(∀x)(Ax ⊃ ~Px),~Ap,(∀x)(Ax • ~Px),B
+Select the best translation into predicate logic: Sheena is a punk rocker.,Sx,xS,sP,Ps,D
+"Use indirect truth tables to determine whether the following argument is valid. If the argument is invalid, choose an option which presents a counterexample. (There may be other counterexamples as well.)
+(A ∨ B) ⊃ C
+C ⊃ ~D / D ⊃ A",Valid,"Invalid. Counterexample when B, C, and D are true and A is false",Invalid. Counterexample when B and D are true and A and C are false,"Invalid. Counterexample when A, B, and C are false and D is true",D
+"Select the best translation into predicate logic: If Delilah is in New York City, then Juana is in Bogota or Layla is in San Juan.",Nd ⊃ (Bj • Sl),Dn ≡ (Bx • Ly),Nd ≡ (Bj • Sl),Nd ⊃ (Bj ∨ Sl),D
+ Select the best translation into predicate logic. All planets are smaller than Jupiter. (j: Jupiter; Px: x is a planet; Sxy: x is smaller than y),(∃x)(Px • Sxj),(∀x)(Px • Sxj),(∀x)(Px ⊃ Sjx),(∀x)(Px ⊃ Sxj),D
+" Which of the following propositions is an immediate (one-step) consequence in PL of the given premises?
+U ⊃ W
+W ⊃ (X ≡ ~Y)
+(X ≡ ~Y) ⊃ Z
+~Z",U ⊃ Z,U ∨ W,~W,~(X ≡ ~Y),D

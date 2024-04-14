@@ -1484,7 +1484,7 @@ void Widget::create_right_menu()
 
         //构建测试问题集
         if(language_flag == 0){makeTestQuestion(":/ceval-exam/val");}
-        else{makeTestQuestion(":/mmlu-exam/test");}
+        else{makeTestQuestion(":/mmlu-exam/val");}
 
         makeTestIndex();//构建测试问题索引
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标

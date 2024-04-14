@@ -287,7 +287,7 @@ void Widget::on_send_clicked()
                 emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
             }
             //-----------------------如果是拖进来的文件-------------------------
-            else if(input.contains("file:///"))
+            else if(input.contains("file:///") && (input.contains(".png") || input.contains(".jpg")))
             {
                 QString imagepath = input.split("file:///")[1];
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令

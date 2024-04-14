@@ -15,8 +15,10 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     - May be can support linux, macos, android
 - Intuitive 
     - Clearly show the process of the llm predicting the next word
-- Multifunctional
-    - Local model interaction, agent, multimodal, online model interaction, external API services, knowledge base QA, model quantize, text2img, voice2text (all available but not very effective)
+- Multifunctional (all available but not very effective)
+    - local model,  online model, API services, agent, multimodal
+    - knowledge base QA, code interpreter, software control, text2img, voice2text 
+    - model quantize, model evaluation
     
 ## quick start
 1. Download eva
@@ -52,6 +54,8 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - Stable-diffusion.cpp can be used to draw images, which can be called by the model after mount
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
+
+7. ...
 
 ## build
 1. Configure the environment
