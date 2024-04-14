@@ -541,7 +541,7 @@ void xBot::load(std::string &modelpath)
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //使用mmp后gpu负载无法分担内存占用，这里折中方案，如果不用gpu则开启mmp，否则禁用
     if(gpt_params_.n_gpu_layers == 0)
     {
@@ -909,7 +909,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     gpt_params_.n_predict = settings.npredict;
 
     bool reload_flag = false;//重载标签
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
         gpt_params_.n_gpu_layers = maxngl;

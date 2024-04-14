@@ -320,6 +320,7 @@ if (GGML_METAL)
         )
 endif()
 
+
 if (GGML_PERF)
     set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_PERF)
 endif()
@@ -335,7 +336,6 @@ add_library(${TARGET}
     ../include/ggml/ggml-alloc.h
     ../include/ggml/ggml-backend.h
     ${GGML_CUDA_SOURCES}
-    ${GGML_OPENCL_SOURCES}
     ${GGML_METAL_SOURCES}
     )
 

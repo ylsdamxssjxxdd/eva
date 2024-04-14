@@ -30,10 +30,12 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#opencl版本支持还不够完善
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)#加速到900%
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#加速到150%,暂不支持sd
+option(LLAMA_VULKAN                          "llama: use Vulkan"                                ON)#加速到250%,暂不支持sd
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
+
 #这三个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
@@ -44,11 +46,20 @@ elseif(LLAMA_CUBLAS)
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
     #add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
+elseif(LLAMA_VULKAN)
+    find_package(Vulkan)# 查找Vulkan相关库
+    include_directories({Vulkan_INCLUDE_DIRS})# 包含目录
+    set(Vulkan_LIB Vulkan::Vulkan) # 准备链接库
+    add_compile_definitions(BODY_USE_VULKAN)#编译VULKAN的标志
+    set(GGML_HEADERS_VULKAN ggml-vulkan.h)
+    set(GGML_SOURCES_VULKAN ggml-vulkan.cpp)
+    add_compile_definitions(GGML_USE_VULKAN)
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
 else()
 #     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速, 报错
 endif()
+
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项
 if(MSVC)
@@ -80,10 +91,12 @@ endif()
 #####################################llama.cpp相关#####################################
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+add_subdirectory(stable-diffusion.cpp)# 添加stable-diffusion.cpp基础库，为避免冲突已将ggml库更名为ggml-sd
+
 add_subdirectory(llama.cpp)# 添加子项目主要库
 add_subdirectory(llama.cpp/examples/imatrix)# 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
-add_subdirectory(stable-diffusion.cpp)# 添加stable-diffusion.cpp基础库，为避免冲突已将ggml库更名为ggml-sd
+
 #先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
@@ -173,6 +186,6 @@ utils/CustomTabBar.h
 #确保第三方程序先于eva编译
 add_dependencies(${TARGET} server whisper sd)
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
+target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${Vulkan_LIB} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)
 

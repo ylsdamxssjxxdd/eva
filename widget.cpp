@@ -3,6 +3,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 
+
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Widget)
@@ -523,7 +524,7 @@ void Widget::recv_setreset()
     reflash_state("· " + wordsObj["repeat"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
     reflash_state("· " + wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
     
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     reflash_state("· gpu " + wordsObj["offload"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
 #endif
     reflash_state("· cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
@@ -663,7 +664,7 @@ void Widget::on_set_clicked()
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_slider->setValue(ui_SETTINGS.ngl);
 #endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
@@ -858,7 +859,7 @@ void Widget::recv_log(QString log)
     //截获gpu最大负载层数
     if(log.contains("llm_load_print_meta: n_layer"))
     {
-        #if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
             ui_maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit ui2bot_maxngl(ui_maxngl);
             ngl_slider->setMaximum(ui_maxngl);

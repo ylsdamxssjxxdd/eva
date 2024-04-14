@@ -189,7 +189,7 @@ public:
     QSlider *repeat_slider;
 
     QGroupBox *decode_box;
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     QLabel *ngl_label;
     QSlider *ngl_slider;
 #endif

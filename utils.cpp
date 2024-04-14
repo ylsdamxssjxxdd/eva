@@ -544,7 +544,7 @@ void Widget::apply_language(int language_flag_)
     npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());npredict_label->setMinimumWidth(100);
     npredict_slider->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
     decode_box->setTitle(wordsObj["decode set"].toArray()[language_flag].toString());//解码设置区域
-#if defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     ngl_label->setText("gpu " + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
     ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());ngl_label->setMinimumWidth(100);
     ngl_slider->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());

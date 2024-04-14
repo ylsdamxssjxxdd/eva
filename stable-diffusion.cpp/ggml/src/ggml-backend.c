@@ -383,11 +383,6 @@ GGML_CALL static void ggml_backend_registry_init(void) {
     ggml_backend_register("Metal", ggml_backend_reg_metal_init, ggml_backend_metal_buffer_type(), NULL);
 #endif
 
-#ifdef GGML_USE_VULKAN
-    extern GGML_CALL int ggml_backend_vk_reg_devices(void);
-    ggml_backend_vk_reg_devices();
-#endif
-
 #ifdef GGML_USE_KOMPUTE
     extern GGML_CALL void ggml_backend_kompute_reg_devices(void);
     ggml_backend_kompute_reg_devices();
