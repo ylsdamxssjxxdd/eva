@@ -284,13 +284,13 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))//
         {
             test_score++;
-            output_scroll(result, Qt::green);
+            output_scroll(result + "\n", Qt::green);
             ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toArray()[language_flag].toString() + " " + wordsObj["right answer"].toArray()[language_flag].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
         }
         //答错
         else
         {
-            output_scroll(result, Qt::red);
+            output_scroll(result + "\n", Qt::red);
             ui_state = "ui:"+ QString::number(test_count) + " " + wordsObj["answer error"].toArray()[language_flag].toString() + " " + wordsObj["right answer"].toArray()[language_flag].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
@@ -1481,7 +1481,11 @@ void Widget::create_right_menu()
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
 
         clearQuestionlist();//清空题库
-        makeTestQuestion(":/ceval-exam/val");//构建测试问题集
+
+        //构建测试问题集
+        if(language_flag == 0){makeTestQuestion(":/ceval-exam/val");}
+        else{makeTestQuestion(":/mmlu-exam/test");}
+
         makeTestIndex();//构建测试问题索引
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
         this->setWindowTitle(wordsObj["test"].toArray()[language_flag].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  

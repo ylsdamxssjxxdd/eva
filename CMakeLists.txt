@@ -30,9 +30,9 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)#加速到900%
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#加速到150%,暂不支持sd
-option(LLAMA_VULKAN                          "llama: use Vulkan"                                ON)#加速到250%,暂不支持sd
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)#速度900%
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#速度150%,暂不支持sd
+option(LLAMA_VULKAN                          "llama: use Vulkan"                                OFF)#速度250%,暂不支持sd
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
 #####################################处理编译选项####################################
 
@@ -47,9 +47,6 @@ elseif(LLAMA_CUBLAS)
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
     #add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
-    find_package(Vulkan)# 查找Vulkan相关库
-    include_directories({Vulkan_INCLUDE_DIRS})# 包含目录
-    set(Vulkan_LIB Vulkan::Vulkan) # 准备链接库
     add_compile_definitions(BODY_USE_VULKAN)#编译VULKAN的标志
     set(GGML_HEADERS_VULKAN ggml-vulkan.h)
     set(GGML_SOURCES_VULKAN ggml-vulkan.cpp)
@@ -145,6 +142,7 @@ set(RESOURCE_FILES
 utils/logo.qrc
 ${THRIDEXE_FILE}
 utils/ceval.qrc
+utils/mmlu.qrc
 )
 
 # 应用程序图标windows
@@ -186,6 +184,6 @@ utils/CustomTabBar.h
 #确保第三方程序先于eva编译
 add_dependencies(${TARGET} server whisper sd)
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} ${Vulkan_LIB} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
+target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 target_compile_features(${TARGET} PRIVATE cxx_std_11)
 

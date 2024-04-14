@@ -227,7 +227,7 @@ void Widget::on_send_clicked()
             else//完成测试完成,没有题目剩余
             {
                 float acc = test_score / test_count * 100.0;//回答准确率
-                ui_state = "ui:" + wordsObj["test"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString()+ " " + QString::number(test_count) + wordsObj["question"].toArray()[language_flag].toString() + " " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toArray()[language_flag].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s "+wordsObj["batch decode"].toArray()[language_flag].toString() +":" + QString::number(test_tokens/(test_time.nsecsElapsed()/1000000000.0)) + " token/s" ;
+                ui_state = "ui:" + wordsObj["test"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " + QString::number(test_count) + " " + wordsObj["question"].toArray()[language_flag].toString() + " " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toArray()[language_flag].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s "+wordsObj["batch decode"].toArray()[language_flag].toString() +":" + QString::number(test_tokens/(test_time.nsecsElapsed()/1000000000.0)) + " token/s" ;
                 reflash_state(ui_state,SUCCESS_);
                 decode_pTimer->stop();
                 is_test = false;

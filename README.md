@@ -14,7 +14,7 @@
     - 机体没有其它依赖组件，就是一个exe程序
 - 兼容性
     - 最低支持32位windows7
-    - 具有编译到(x86，arm，windows，linux，macos，android，cuda，rocm，vulkan)的潜力
+    - 具有编译到(linux，macos，android)的潜力
 - 直观 
     - 清晰的展示大模型预测下一个词的过程
     - 输出区的内容就是模型的全部现实
@@ -61,15 +61,17 @@
     - 我的工具链为mingw81_64+qt5.15.10(静态库)
 - 32bit版本(BODY_32BIT选项打开，其它关闭)
     - 我的工具链为mingw81_32+qt5.15.10(静态库)
-- opencl版本(CLBLAST选项打开，其它关闭)
+- opencl版本(LLAMA_CLBLAST选项打开，其它关闭)
     - 我的工具链为mingw81_64+clblast(静态库)+qt5.15.10(静态库) 
     - 下载opencl-sdk，将其include目录添加到环境变量  https://github.com/KhronosGroup/OpenCL-SDK
     - 下载clblast，build_shared_lib选项关闭，静态编译并添加到环境变量 https://github.com/CNugteren/CLBlast   
-- cuda版本(CUBLAST选项打开，其它关闭)
+- cuda版本(LLAMA_CUBLAST选项打开，其它关闭)
     - 我的工具链为msvc2022+qt5.15.10+cuda12
     - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive 这也是cuda版本的机体运行时必须的
     - 安装cudnn https://developer.nvidia.com/cudnn
-
+- Vulkan版本(LLAMA_VULKAN选项打开，其它关闭)
+    - 我的工具链为mingw81_64+VulkanSDK+qt5.15.10(静态库)
+    - 下载VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. 克隆源代码
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git

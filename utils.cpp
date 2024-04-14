@@ -129,7 +129,7 @@ void Widget::server_onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server"+wordsObj["oning"].toArray()[language_flag].toString()+"...",SIGNAL_);
+    reflash_state("ui:server " + wordsObj["oning"].toArray()[language_flag].toString(),SIGNAL_);
 }
 
 //第三方程序结束
@@ -137,7 +137,7 @@ void Widget::server_onProcessFinished()
 {
     if(current_server)
     {
-        ui_state = "ui:"+ wordsObj["old"].toArray()[language_flag].toString() + "server" + wordsObj["off"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
+        ui_state = "ui:"+ wordsObj["old"].toArray()[language_flag].toString() + "server " + wordsObj["off"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
     }
     else
     {
@@ -310,6 +310,11 @@ void Widget::readCsvFile(const QString &fileName)
                 // qDebug() << "Answer:" << currentRow.at(6).trimmed();
                 test_list_question<<questiontitle +currentRow.at(1).trimmed()+"\n\n"+"A:" + currentRow.at(2).trimmed()+"\n"+"B:"+currentRow.at(3).trimmed()+"\n"+"C:"+currentRow.at(4).trimmed()+"\n"+"D:"+currentRow.at(5).trimmed()+"\n";
                 test_list_answer<<currentRow.at(6).trimmed();
+            }
+            else if(currentRow.size() == 6)//题库没有序号的情况 针对mmlu
+            {
+                test_list_question<<questiontitle +currentRow.at(0).trimmed()+"\n\n"+"A:" + currentRow.at(1).trimmed()+"\n"+"B:"+currentRow.at(2).trimmed()+"\n"+"C:"+currentRow.at(3).trimmed()+"\n"+"D:"+currentRow.at(4).trimmed()+"\n";
+                test_list_answer<<currentRow.at(5).trimmed();
             }
 
             currentRow.clear(); // Prepare for the next row
