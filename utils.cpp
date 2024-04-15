@@ -778,6 +778,14 @@ void Widget::speechOver()
     settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
     settings.setValue("interpreter_checkbox",interpreter_checkbox->isChecked());//toolguy工具
     settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
+
+    //保存自定义的约定模板
+    settings.setValue("custom1_system_prompt",custom1_system_prompt);
+    settings.setValue("custom1_input_pfx",custom1_input_pfx);
+    settings.setValue("custom1_input_sfx",custom1_input_sfx);
+    settings.setValue("custom2_system_prompt",custom2_system_prompt);
+    settings.setValue("custom2_input_pfx",custom2_input_pfx);
+    settings.setValue("custom2_input_sfx",custom2_input_sfx);
     
     reflash_state("ui:" + wordsObj["save_config_mess"].toArray()[language_flag].toString(),USUAL_);
  }

@@ -107,6 +107,8 @@ public:
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板
+    QString custom1_system_prompt;QString custom1_input_pfx;QString custom1_input_sfx;//自定义约定模板1
+    QString custom2_system_prompt;QString custom2_input_pfx;QString custom2_input_sfx;//自定义约定模板2
     void preLoad();//装载前动作
     bool is_load = false;//模型装载标签
     bool is_load_play_over = false;//模型装载动画结束后

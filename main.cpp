@@ -78,12 +78,14 @@ int main(int argc, char *argv[])
     QObject::connect(&bot,&xBot::bot2ui_kv,&w,&Widget::recv_kv);//传递缓存量
     QObject::connect(&w, &Widget::ui2bot_imagepath,&bot,&xBot::recv_imagepath);//传递图片路径
     QObject::connect(&w, &Widget::ui2bot_maxngl,&bot,&xBot::recv_maxngl);//传递模型最大的ngl值
+    QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
+
+    //------------------监测gpu信息-------------------
 #ifdef BODY_USE_CUBLAST
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
 #endif
-    QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
 
     //------------------连接扩展和窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
@@ -126,6 +128,7 @@ int main(int argc, char *argv[])
     w.show();//展示窗口
 
     //---------------读取配置文件并执行------------------
+    emit w.gpu_reflash();//强制刷新gpu信息，为了获取未装载时的显存占用
     QFile configfile("./EVA_TEMP/eva_config.ini");
     if(configfile.exists())
     {
@@ -137,6 +140,12 @@ int main(int argc, char *argv[])
         {
             // 读取配置文件中的值
             w.ui_SETTINGS.modelpath = modelpath;
+            w.custom1_system_prompt = settings.value("custom1_system_prompt", "").toString();
+            w.custom1_input_pfx = settings.value("custom1_input_pfx", "").toString();
+            w.custom1_input_sfx = settings.value("custom1_input_sfx", "").toString();
+            w.custom2_system_prompt = settings.value("custom2_system_prompt", "").toString();
+            w.custom2_input_pfx = settings.value("custom2_input_pfx", "").toString();
+            w.custom2_input_sfx = settings.value("custom2_input_sfx", "").toString();
             
             // ui显示值
             w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());

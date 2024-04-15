@@ -19,6 +19,7 @@ public:
     nvmlDevice_t device;//显卡设备
     nvmlUtilization_t utilization;//利用率
     nvmlMemory_t memory;
+
 signals:
     void gpu_status(float vmem,float vram, float vcore, float vfree_);
 public slots:

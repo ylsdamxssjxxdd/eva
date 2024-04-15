@@ -565,11 +565,25 @@ void Widget::web_change()
 //提示词模板下拉框响应
 void Widget::prompt_template_change()
 {
-    if(chattemplate_comboBox->currentText() == wordsObj["custom set"].toArray()[0].toString() || chattemplate_comboBox->currentText() == wordsObj["custom set"].toArray()[1].toString())
+    if(chattemplate_comboBox->currentText() == wordsObj["custom set1"].toArray()[0].toString())
     {
         system_TextEdit->setEnabled(1);
         input_pfx_LineEdit->setEnabled(1);
         input_sfx_LineEdit->setEnabled(1);
+
+        system_TextEdit->setText(custom1_system_prompt);
+        input_pfx_LineEdit->setText(custom1_input_pfx);
+        input_sfx_LineEdit->setText(custom1_input_sfx);
+    }
+    else if(chattemplate_comboBox->currentText() == wordsObj["custom set2"].toArray()[0].toString())
+    {
+        system_TextEdit->setEnabled(1);
+        input_pfx_LineEdit->setEnabled(1);
+        input_sfx_LineEdit->setEnabled(1);
+
+        system_TextEdit->setText(custom2_system_prompt);
+        input_pfx_LineEdit->setText(custom2_input_pfx);
+        input_sfx_LineEdit->setText(custom2_input_sfx);
     }
     else
     {
@@ -900,7 +914,8 @@ void Widget::set_DateDialog()
     {
         chattemplate_comboBox->addItem(key);
     }
-    chattemplate_comboBox->addItem(wordsObj["custom set"].toArray()[language_flag].toString());//添加自定义模板
+    chattemplate_comboBox->addItem(wordsObj["custom set1"].toArray()[language_flag].toString());//添加自定义模板
+    chattemplate_comboBox->addItem(wordsObj["custom set2"].toArray()[language_flag].toString());//添加自定义模板
     chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     connect(chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
     layout_H9->addWidget(chattemplate_comboBox);
@@ -1564,6 +1579,7 @@ void Widget::get_date()
 
     ui_DATES.input_pfx = input_pfx_LineEdit->text();
     ui_DATES.input_sfx = input_sfx_LineEdit->text();
+
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = chattemplate_comboBox->currentText();
     ui_extra_lan = switch_lan_button->text();
@@ -1575,6 +1591,20 @@ void Widget::get_date()
     ui_controller_ischecked = controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
     ui_interpreter_ischecked = interpreter_checkbox->isChecked();
+
+    //记录自定义模板
+    if(ui_template == wordsObj["custom set1"].toArray()[0].toString())
+    {
+        custom1_system_prompt = ui_system_prompt;
+        custom1_input_pfx = ui_DATES.input_pfx;
+        custom1_input_sfx = ui_DATES.input_sfx;
+    }
+    else if(ui_template == wordsObj["custom set2"].toArray()[0].toString())
+    {
+        custom2_system_prompt = ui_system_prompt;
+        custom2_input_pfx = ui_DATES.input_pfx;
+        custom2_input_sfx = ui_DATES.input_sfx;
+    }
 
     //添加额外停止标志
     addStopwords();

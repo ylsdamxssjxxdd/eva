@@ -70,7 +70,7 @@ Widget::Widget(QWidget *parent)
     nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(updateStatus()));
-    timer->start(300); // 多少ms更新一次
+    timer->start(500); // 多少ms更新一次
     
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();
@@ -628,7 +628,9 @@ void Widget::on_date_clicked()
     //展示最近一次设置值
     chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     system_TextEdit->setText(ui_system_prompt);
-
+    input_pfx_LineEdit->setText(ui_DATES.input_pfx);
+    input_sfx_LineEdit->setText(ui_DATES.input_sfx);
+    
     calculator_checkbox->setChecked(ui_calculator_ischecked);
     cmd_checkbox->setChecked(ui_cmd_ischecked);
     toolguy_checkbox->setChecked(ui_toolguy_ischecked);
@@ -897,11 +899,13 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     vfree = vfree_;//剩余显存
     ui->vcore_bar->setValue(vcore);
     //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
-    if(is_first_getvram){is_first_getvram = false;first_vramp = vramp;ui->vram_bar->setValue(first_vramp);}
+    if(is_first_getvram)
+    {
+        is_first_getvram = false;
+        first_vramp = vramp;
+        ui->vram_bar->setValue(first_vramp);
+    }
     ui->vram_bar->setSecondValue(vramp - first_vramp);
-    // ui->vram_bar->setValue(vram - (model_vramusage.toFloat()+ctx_vramusage.toFloat())*100/vmem);
-    // ui->vram_bar->setSecondValue((model_vramusage.toFloat()+ctx_vramusage.toFloat())*100/vmem);
-    
 }
 #endif
 
