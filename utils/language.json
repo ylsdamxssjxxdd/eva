@@ -54,7 +54,7 @@
         "Q13": ["写一份关于工作失职的3000字检讨","Write a 3000 word review on dereliction of duty at work "],
         "Q14": ["<连续发送后面的信息，用/分隔>写一个主角很窝囊的故事/这个故事的主角重生了","<Continuously send the following messages, separated by/>Write a story where the protagonist is very weak/The protagonist of this story is reborn "],
         "Q15": ["<上传图像>","<Upload Image> "],
-        "Q16": ["<参加考试>内置的c-eval验证集题库","<Take the exam> Built in MMLU test question bank "],
+        "Q16": ["<参加考试>内置10%的c-eval题库","<Take the exam> Built in 10% MMLU test question bank "],
         "Q17": ["<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案","<Take the exam>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "],
         "kv cache": ["上下文缓存","Context cache "],
         "cache ctx": ["缓存上下文","Cache Context "],

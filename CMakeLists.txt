@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2636
+#llama.cpp-b2687
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
@@ -30,7 +30,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)#速度900%
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)#速度900%
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#速度150%,暂不支持sd
 option(LLAMA_VULKAN                          "llama: use Vulkan"                                OFF)#速度250%,暂不支持sd
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
@@ -152,7 +152,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

@@ -82,6 +82,9 @@ Expend::~Expend()
 {
     delete ui;
     server_process->kill();//有点问题
+    sd_process->kill();
+    whisper_process->kill();
+    quantize_process->kill();
 }
 //创建临时文件夹EVA_TEMP
 bool Expend::createTempDirectory(const QString &path) {
