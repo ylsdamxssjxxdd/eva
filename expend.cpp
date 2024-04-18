@@ -75,7 +75,7 @@ Expend::Expend(QWidget *parent) :
 
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
-
+    qDebug()<<"expend init over";
 }
 
 Expend::~Expend()
@@ -1417,7 +1417,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
     else if(!is_handle_sd)
     {
-        emit expend2ui_state("expend:sd.exe" + wordsObj["drawing"].toArray()[language_flag].toString(),USUAL_);
+        emit expend2ui_state("expend:sd.exe " + wordsObj["drawing"].toArray()[language_flag].toString(),USUAL_);
     }
 
     //锁定界面

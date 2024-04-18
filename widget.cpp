@@ -109,6 +109,7 @@ Widget::Widget(QWidget *parent)
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
+    qDebug()<<"widget init over";
 }
 
 Widget::~Widget()

@@ -459,7 +459,9 @@ static wchar_t * ggml_mbstowcs(const char * mbs) {
 #endif
 
 FILE * ggml_fopen(const char * fname, const char * mode) {
+
     return fopen(fname, mode);
+
 }
 
 //

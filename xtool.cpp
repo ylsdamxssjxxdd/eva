@@ -2,7 +2,7 @@
 
 xTool::xTool()
 {
-    ;
+    qDebug()<<"tool init over";
 }
 xTool::~xTool()
 {

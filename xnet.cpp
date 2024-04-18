@@ -2,7 +2,7 @@
 
 xNet::xNet()
 {
-    ;
+    qDebug()<<"net init over";
 }
 xNet::~xNet()
 {

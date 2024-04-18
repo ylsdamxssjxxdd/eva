@@ -193,7 +193,7 @@
         "toolguy": ["超级工具人","toolguy "],
         "knowledge": ["知识库","knowledge "],
         "controller": ["软件控制台","controller "],
-        "stablediffusion": ["文生图","stablediffusion "],
+        "stablediffusion": ["文生图","stablediffusion"],
         "interpreter": ["代码解释器","interpreter "],
         "extra calling": ["额外指令","extra"],
         "tool_observation": ["观察:","observation:"],

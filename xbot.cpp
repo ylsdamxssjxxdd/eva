@@ -37,6 +37,7 @@ xBot::xBot()
     //gpt_params_.sparams.penalty_last_n = 256;
     //gpt_params_.sparams.top_p = 0.5;
     history_tokens = new std::vector<int>;//用来记录输出
+    qDebug()<<"bot init over";
 }
 
 

@@ -54,9 +54,7 @@ QDialog {
 	background-color:#f0f0f0;
 }
 
-QLabel,QLineEdit {
-	color:rgb(17,17,17);
-}
+
 QLineEdit {
 	background-color:rgb(255,255,255);
 	selection-background-color:rgb(236,116,64);
@@ -65,6 +63,7 @@ QLineEdit {
 QLineEdit:disabled {
 	color: rgb(150, 150, 150);
 }
+
 QMenuBar {
 	color:rgb(223,219,210);
 	background-color:rgb(65,64,59);

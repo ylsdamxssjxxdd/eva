@@ -800,6 +800,11 @@ void Widget::set_SetDialog()
     lora_LineEdit = new QLineEdit();
     lora_LineEdit->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
     lora_LineEdit->setPlaceholderText(wordsObj["right click and choose lora"].toArray()[language_flag].toString());
+    
+    QPalette palette = lora_LineEdit->palette();
+    palette.setColor(QPalette::PlaceholderText, QColor("lightgray"));
+    lora_LineEdit->setPalette(palette);
+
     layout_H12->addWidget(lora_label);
     layout_H12->addWidget(lora_LineEdit);
     decode_layout->addLayout(layout_H12);//将布局添加到总布局
