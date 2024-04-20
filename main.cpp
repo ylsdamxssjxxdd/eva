@@ -213,5 +213,8 @@ int main(int argc, char *argv[])
         
     }
 
+    //传递停止词，因为第一次没有传递约定参数给bot
+    bot.extra_stop_words = w.ui_DATES.extra_stop_words;
+
     return a.exec();//进入事件循环
 }

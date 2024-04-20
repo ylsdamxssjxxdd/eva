@@ -15,6 +15,17 @@ std::string tokens_to_str(llama_context *ctx, Iter begin, Iter end)
     return ret;
 }
 
+//转为小写，针对英文字母
+std::string toLowerCaseASCII(const std::string& input) {
+    std::string output = input;
+    for (char& c : output) {
+        if ((unsigned char)c < 128) { // 确保字符是ASCII范围内的
+            c = std::tolower((unsigned char)c);
+        }
+    }
+    return output;
+}
+
 xBot::xBot()
 {
     
@@ -464,7 +475,7 @@ int xBot::stream()
                 for (const std::string &antiprompt : gpt_params_.antiprompt) 
                 {
                     
-                    if (current_output.find(antiprompt) != std::string::npos) 
+                    if (toLowerCaseASCII(current_output).find(antiprompt) != std::string::npos) 
                     {
                         if(list_num==0)
                         {

@@ -102,14 +102,20 @@ QString Widget::create_extra_prompt()
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx + ":";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-    ui_DATES.extra_stop_words << "<|im_end|>";//防chatml
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + ":";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + ":";//可以说相当严格了
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + "：";//可以说相当严格了
+    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + "：";//可以说相当严格了
+    ui_DATES.extra_stop_words << "<|im_end|>";//可以说相当严格了
+
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
-        ui_DATES.extra_stop_words << "Observation:";
-        ui_DATES.extra_stop_words << wordsObj["tool_observation"].toArray()[language_flag].toString();
-        ui_DATES.extra_stop_words << wordsObj["tool_observation2"].toArray()[language_flag].toString();
+        ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
+        ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
+        ui_DATES.extra_stop_words << "观察:";//可以说相当严格了
+        ui_DATES.extra_stop_words << "观察：";//可以说相当严格了
     }
+    
 }
 
 //获取本机第一个ip地址

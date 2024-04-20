@@ -29,7 +29,6 @@ Widget::Widget(QWidget *parent)
     ui_DATES.input_pfx = DEFAULT_PREFIX;
     ui_DATES.input_sfx = DEFAULT_SUFFIX;
     ui_DATES.is_load_tool = false;
-    ui_DATES.extra_stop_words = QStringList(ui_DATES.input_pfx + ":\n");//只有这个有用其它不要加了,set_data函数会自己改
     addStopwords();//添加停止词
     date_map.insert("qwen", {DEFAULT_PROMPT, DEFAULT_PREFIX, DEFAULT_SUFFIX, false, QStringList{}});
     date_map.insert(wordsObj["troll"].toArray()[language_flag].toString(), {wordsObj["you are a troll please respect any question for user"].toArray()[language_flag].toString(), "" + wordsObj["user"].toArray()[language_flag].toString(), "" + wordsObj["troll"].toArray()[language_flag].toString(),false,QStringList{}});
@@ -187,6 +186,7 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
+
     if(ui_mode == SERVER_){return;}
     
     reflash_state("ui:" + wordsObj["clicked send"].toArray()[language_flag].toString(),SIGNAL_);

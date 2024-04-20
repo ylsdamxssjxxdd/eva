@@ -4,3 +4,8 @@ utils/server.exe
 utils/whisper.exe
 utils/quantize.exe
 utils/sd.exe
+utils/ceval_rc.py
+utils/cmmlu_rc.py
+utils/logo_rc.py
+utils/mmlu_rc.py
+utils/thrid_exe_rc.py
