@@ -965,6 +965,27 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
+    // if (obj == ui->state && event->type() == QEvent::Wheel)
+    // {
+    //     QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
+    //     if (wheelEvent->modifiers() == Qt::ControlModifier)
+    //     {
+    //         // 放大或缩小文本的逻辑
+    //         if (wheelEvent->angleDelta().y() > 0)
+    //         {
+    //             // 向上滚动，放大文本
+    //             ui->state->zoomIn(2);
+    //             return true; // 表示事件已经被处理
+    //         }
+    //         else
+    //         {
+    //             // 向下滚动，缩小文本
+    //             ui->state->zoomOut(2);
+    //             return true; // 表示事件已经被处理
+    //         }
+    //     }
+    // }
+
     return QObject::eventFilter(obj, event);
 }
 

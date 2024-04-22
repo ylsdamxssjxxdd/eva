@@ -45,7 +45,7 @@ elseif(LLAMA_CUBLAS)
     add_compile_definitions(GGML_USE_CUDA)#whisper用cuda, 注意cuda版本精度异常
     set(GGML_CUBLAS ON)#sd用cuda
     add_definitions(-DSD_USE_CUBLAS)#sd用cuda
-    #add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
+    # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
     add_compile_definitions(BODY_USE_VULKAN)#编译VULKAN的标志
     set(GGML_HEADERS_VULKAN ggml-vulkan.h)

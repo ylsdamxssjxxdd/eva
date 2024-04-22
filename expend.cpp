@@ -1705,13 +1705,17 @@ void Expend::recv_draw(QString prompt_)
 void Expend::get_sys_voice()
 {
     QTextToSpeech *speech = new QTextToSpeech();
-    // 遍历所有可用音色
-    foreach (const QVoice &voice, speech->availableVoices()) 
+
+    if (speech->state() == QTextToSpeech::Ready)     // 初始化成功的情况
     {
-        // qDebug() << "Name:" << voice.name();
-        // qDebug() << "Age:" << voice.age();
-        // qDebug() << "Gender:" << voice.gender();
-        ui->voice_source_comboBox->addItem(voice.name());//添加到下拉框
+        // 遍历所有可用音色
+        foreach (const QVoice &voice, speech->availableVoices()) 
+        {
+            // qDebug() << "Name:" << voice.name();
+            // qDebug() << "Age:" << voice.age();
+            // qDebug() << "Gender:" << voice.gender();
+            ui->voice_source_comboBox->addItem(voice.name());//添加到下拉框
+        }
     }
 }
 
@@ -1784,7 +1788,7 @@ void Expend::voice_source_change()
     prev_searchButton->setAutoRepeat(true); // 为了长按效果
     prev_searchButton->setAutoRepeatDelay(100); // 设置重复点击的延迟时间
     // 设置行布局
-    QHBoxLayout *hLayout = new QHBoxLayout(this);
+    QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->addWidget(prev_searchButton);
     hLayout->addWidget(next_searchButton);
     hLayout->addWidget(search_lineedit);

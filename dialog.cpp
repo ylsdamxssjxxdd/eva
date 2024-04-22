@@ -372,9 +372,9 @@ void Widget::output_scroll(QString output, QColor color)
 void Widget::reflash_state(QString state_string,STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
-    QFont font;//字体
-    font.setPointSize(9);
-    format.setFont(font);
+    //QFont font;//字体 设置了字体就不能缩放了
+    //font.setPointSize(9);
+    //format.setFont(font);
     //过滤回车和换行符
     state_string.replace("\n","\\n");
     state_string.replace("\r","\\r");

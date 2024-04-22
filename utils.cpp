@@ -812,7 +812,7 @@ void Widget::speechOver()
     next_searchButton->setMaximumHeight(20);
     search_label->setMaximumHeight(20);
     search_label->setMinimumWidth(150);
-    search_label->setStyleSheet("QLabel { color : rgb(255, 165, 0); font-weight: bold; }"); //橘黄色字体
+    search_label->setStyleSheet("QLabel { color : rgb(255, 165, 0); font-weight: bold; }"); //橘黄色字体&加粗
     prev_searchButton->setMaximumWidth(20);
     next_searchButton->setMaximumWidth(20);
     next_searchButton->setIcon(QIcon(":/ui/Nav_green_right.ico"));
@@ -822,7 +822,7 @@ void Widget::speechOver()
     prev_searchButton->setAutoRepeat(true); // 为了长按效果
     prev_searchButton->setAutoRepeatDelay(100); // 设置重复点击的延迟时间
     // 设置行布局
-    QHBoxLayout *hLayout = new QHBoxLayout(this);
+    QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->addWidget(prev_searchButton);
     hLayout->addWidget(next_searchButton);
     hLayout->addWidget(search_lineedit);
