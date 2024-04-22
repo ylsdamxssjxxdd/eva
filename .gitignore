@@ -10,3 +10,4 @@ utils/logo_rc.py
 utils/mmlu_rc.py
 utils/thrid_exe_rc.py
 widget_ui.py
+expend_ui.py
