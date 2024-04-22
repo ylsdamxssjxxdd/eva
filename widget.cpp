@@ -12,7 +12,8 @@ Widget::Widget(QWidget *parent)
     ui->setupUi(this);
     ui->splitter->setStretchFactor(0, 3);//设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);//设置分隔器中第二个元素初始高度占比为1
-
+    set_searchBar();//初始化状态区的搜索框
+    
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
@@ -158,6 +159,7 @@ void Widget::preLoad()
     if(is_config){is_config = false;reflash_state("ui:" + wordsObj["apply_config_mess"].toArray()[language_flag].toString(),USUAL_);}
     reflash_state("ui:" + wordsObj["model location"].toArray()[language_flag].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
+    
 }
 
 //完成加载模型
@@ -439,7 +441,7 @@ void Widget::recv_toolpushover(QString tool_result_)
     if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
     {
         wait_to_show_image = tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];//文生图后待显示图像的图像路径
-        tool_result = "stablediffusion" + wordsObj["call successful, image save at"].toArray()[language_flag].toString() + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
+        tool_result = "stablediffusion " + wordsObj["call successful, image save at"].toArray()[language_flag].toString() + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     }
     else
     {

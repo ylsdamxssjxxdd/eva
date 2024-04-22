@@ -213,8 +213,9 @@ int main(int argc, char *argv[])
         
     }
 
-    //传递停止词，因为第一次没有传递约定参数给bot
-    bot.extra_stop_words = w.ui_DATES.extra_stop_words;
+    //传递停止词和约定，因为第一次没有传递约定参数给bot
+    bot.extra_stop_words = w.ui_DATES.extra_stop_words; // 同步
+    bot.gpt_params_.prompt = w.ui_DATES.system_prompt.toStdString(); // 同步
 
     return a.exec();//进入事件循环
 }

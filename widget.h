@@ -88,6 +88,19 @@ public:
     QMediaPlayer music_player;
     QString currentpath = DEFAULT_MODELPATH;
     void apply_language(int language_flag_);//改变语种相关
+    //搜索框相关
+    void set_searchBar();//初始化状态区的搜索框
+    void resizeEvent(QResizeEvent *event) override;  // 声明resize事件处理函数
+    QLineEdit *search_lineedit;
+    QList<QTextCursor> searchResults;  // 存储搜索结果位置
+    int current_searchResultIndex;            // 当前结果的索引
+    QPushButton *prev_searchButton;
+    QPushButton *next_searchButton;
+    QFrame *searchBar;
+    QLabel *search_label;
+    void centerCursorInTextEdit(QTextCursor cursor);
+    QTextCharFormat highlightFormat; // 用于所有匹配项
+    QTextCharFormat currentHighlightFormat; // 用于当前选中项
 
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
@@ -383,6 +396,10 @@ public slots:
     void switch_lan_change();//切换行动纲领的语言
 //自用的槽
 private slots:
+    void onsearch_ShortcutActivated();//状态区搜索框快捷键响应
+    void searchTextChanged(const QString &text);//搜索框文本改变响应
+    void onPrevClicked();//上一个
+    void onNextClicked();//下一个
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音
