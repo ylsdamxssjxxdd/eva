@@ -456,7 +456,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPlainTextEdit" name="state">
+        <widget class="CustomQPlainTextEdit" name="state">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -502,6 +502,11 @@
    <class>DoubleQProgressBar</class>
    <extends>QProgressBar</extends>
    <header>utils/doubleqprogressbar.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CustomQPlainTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>utils/customqplaintextedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

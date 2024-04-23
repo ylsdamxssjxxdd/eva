@@ -12,7 +12,6 @@ Widget::Widget(QWidget *parent)
     ui->setupUi(this);
     ui->splitter->setStretchFactor(0, 3);//设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);//设置分隔器中第二个元素初始高度占比为1
-    set_searchBar();//初始化状态区的搜索框
     
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale

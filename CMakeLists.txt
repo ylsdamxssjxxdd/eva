@@ -173,6 +173,7 @@ xconfig.h
 widget.ui
 expend.ui
 
+utils/customqplaintextedit.h
 utils/doubleqprogressbar.cpp
 utils/doubleqprogressbar.h
 utils/CutScreenDialog.h

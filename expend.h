@@ -66,20 +66,7 @@ public:
     void readConfig();//读取配置文件并应用
     QString currentpath = DEFAULT_MODELPATH;
     void showReadme();//展示readme内容
-
-    //搜索框相关
-    void set_searchBar();//初始化状态区的搜索框
-    void resizeEvent(QResizeEvent *event) override;  // 声明resize事件处理函数
-    QLineEdit *search_lineedit;
-    QList<QTextCursor> searchResults;  // 存储搜索结果位置
-    int current_searchResultIndex;            // 当前结果的索引
-    QPushButton *prev_searchButton;
-    QPushButton *next_searchButton;
-    QFrame *searchBar;
-    QLabel *search_label;
-    void centerCursorInTextEdit(QTextCursor cursor);
-    QTextCharFormat highlightFormat; // 用于所有匹配项
-    QTextCharFormat currentHighlightFormat; // 用于当前选中项
+    
 signals:    
     void expend2ui_state(QString state_string,STATE state);
 public slots:
@@ -88,10 +75,6 @@ public slots:
     void recv_vocab(QString vocab);    
     void recv_expend_show(int index_);//通知显示增殖窗口
 private slots:
-    void onsearch_ShortcutActivated();//状态区搜索框快捷键响应
-    void searchTextChanged(const QString &text);//搜索框文本改变响应
-    void onPrevClicked();//上一个
-    void onNextClicked();//下一个
     void on_tabWidget_tabBarClicked(int index);//用户切换选项卡时响应    
 private:
     Ui::Expend *ui;
