@@ -101,7 +101,6 @@ void Widget::load_move()
 {
     QTextCursor cursor = ui->state->textCursor();
 
-
     if(load_action % 2 ==0)
     {
         cursor.movePosition(QTextCursor::Start);//移到文本开头

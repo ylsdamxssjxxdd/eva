@@ -575,7 +575,7 @@ void xBot::load(std::string &modelpath)
 
     //装载模型
     std::tie(model, ctx) = llama_init_from_gpt_params(gpt_params_);//同时获取model和ctx
-
+    
     // //看看可以打印的关于模型信息
     // for(int i = 0;i<llama_model_meta_count(model);++i)
     // {
@@ -625,7 +625,7 @@ void xBot::load(std::string &modelpath)
     p.n_ctx_train = n_ctx_train;//最大值
     //ngl的最大值在模型日志中截获,为模型层数+1
     emit bot2ui_params(p);
-
+    
     is_load = true;//标记已完成装载
     is_first_reset = false;//模型装载后首次重置完成标签,控制是否输出清空的消息
     reset(1);//初始化模型,1表示清空上下文
@@ -634,9 +634,8 @@ void xBot::load(std::string &modelpath)
     is_free = false;
 
     qDebug()<<QString::fromUtf8(llama_print_system_info());
-    emit bot2ui_vocab(viewVocab());//发出模型词表
     emit bot2ui_loadover(true,time1.nsecsElapsed()/1000000000.0);//发出已完成装载信号
-    
+    emit bot2expend_vocab(viewVocab());//发出模型词表，词表太大导致卡顿
 }
 
 

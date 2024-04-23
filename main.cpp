@@ -74,7 +74,6 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2bot_set,&bot,&xBot::recv_set);//传递设置内容
     QObject::connect(&w, &Widget::ui2bot_language,&bot,&xBot::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2bot_free,&bot,&xBot::recv_free);//释放模型和上下文
-    QObject::connect(&bot,&xBot::bot2ui_vocab,&w,&Widget::recv_vocab);//传递模型词表
     QObject::connect(&bot,&xBot::bot2ui_kv,&w,&Widget::recv_kv);//传递缓存量
     QObject::connect(&w, &Widget::ui2bot_imagepath,&bot,&xBot::recv_imagepath);//传递图片路径
     QObject::connect(&w, &Widget::ui2bot_maxngl,&bot,&xBot::recv_maxngl);//传递模型最大的ngl值
@@ -91,13 +90,15 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
-    QObject::connect(&w, &Widget::ui2expend_vocab, &expend, &Expend::recv_vocab);
     QObject::connect(&w, &Widget::ui2expend_voicedecode, &expend, &Expend::recv_voicedecode);//开始语音转文字
     QObject::connect(&expend, &Expend::expend2ui_voicedecode_over, &w, &Widget::recv_voicedecode_over);//转换完成返回结果
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);//传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);//传递知识库的描述
     QObject::connect(&expend, &Expend::expend2ui_voiceparams,&w,&Widget::recv_voiceparams);//传递文转声参数
+
+    //------------------连接bot和窗口-------------------
+    QObject::connect(&bot,&xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新

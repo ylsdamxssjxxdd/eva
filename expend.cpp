@@ -224,7 +224,7 @@ void Expend::recv_log(QString log)
 void Expend::recv_vocab(QString vocab_)
 {
     vocab = vocab_;
-    ui->vocab_card->setPlainText(vocab);
+    
 }
 
 //通知显示增殖窗口

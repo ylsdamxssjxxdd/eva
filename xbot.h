@@ -128,7 +128,7 @@ signals:
     void bot2ui_setreset();//bot发信号请求ui触发reset
     void bot2ui_datereset();//bot发信号请求ui触发reset
     void bot2ui_params(PARAMS p);//bot将模型参数传递给ui
-    void bot2ui_vocab(QString model_vocab);//传递模型总词表
+    void bot2expend_vocab(QString model_vocab);//传递模型总词表
     void bot2ui_kv(float percent,int n_past);//传递缓存量
     void bot2ui_tokens(int tokens);//传递测试解码token数量
     void bot2ui_log(QString log);//传递llama.cpp的log

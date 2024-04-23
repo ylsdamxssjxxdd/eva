@@ -834,13 +834,6 @@ void Widget::recv_params(PARAMS p)
     nctx_slider->setMaximum(p.n_ctx_train);//没有拓展4倍,因为批解码时还是会失败
 }
 
-//接收模型词表
-void Widget::recv_vocab(QString model_vocab)
-{
-    ui_model_vocab = model_vocab;
-    emit ui2expend_vocab(ui_model_vocab);
-}
-
 
 //接收缓存量
 void Widget::recv_kv(float percent,int ctx_size)
