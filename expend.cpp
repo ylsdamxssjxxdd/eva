@@ -190,10 +190,10 @@ void Expend::init_expend()
 //0软件介绍,1模型词表,2模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    if(index==1 && is_first_show_vocab)//第一次点模型词表
+    if(index==1 && is_first_show_this_vocab)//点模型词表
     {
         ui->vocab_card->setPlainText(vocab);
-        is_first_show_vocab = false;
+        is_first_show_this_vocab = false;
     }
     if(index==0 && is_first_show_info)//第一次点软件介绍
     {
@@ -224,6 +224,7 @@ void Expend::recv_log(QString log)
 void Expend::recv_vocab(QString vocab_)
 {
     vocab = vocab_;
+    is_first_show_this_vocab = true;
     
 }
 

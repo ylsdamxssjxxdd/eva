@@ -56,7 +56,7 @@ public:
     QString model_logs;
     bool is_first_show_modelproliferation = true;
     bool is_first_show_expend = true;
-    bool is_first_show_vocab = true;
+    bool is_first_show_this_vocab = true;
     bool is_first_show_logs = true;
     bool is_first_show_info = true;
     bool load_percent_tag = false;

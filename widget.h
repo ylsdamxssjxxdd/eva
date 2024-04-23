@@ -48,7 +48,8 @@
 
 #include <windows.h>
 #include "utils/doubleqprogressbar.h"
-#include "utils/CutScreenDialog.h"
+#include "utils/cutscreendialog.h"
+#include "utils/customswitchbutton.h"
 #include "xconfig.h"//ui和bot都要导入的共有配置
 
 QT_BEGIN_NAMESPACE
@@ -88,6 +89,7 @@ public:
     QMediaPlayer music_player;
     QString currentpath = DEFAULT_MODELPATH;
     void apply_language(int language_flag_);//改变语种相关
+    CustomSwitchButton *debugButton;
 
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
@@ -380,7 +382,7 @@ public slots:
     void switch_lan_change();//切换行动纲领的语言
 //自用的槽
 private slots:
-
+    void onSplitterMoved(int pos, int index);//分割器被用户拉动时响应
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音

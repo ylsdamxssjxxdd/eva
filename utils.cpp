@@ -460,6 +460,7 @@ void Widget::switch_lan_change()
     {
         language_flag = 1;
         switch_lan_button->setText("en");
+        
     }
     else if(switch_lan_button->text()=="en")
     {
@@ -485,9 +486,9 @@ void Widget::apply_language(int language_flag_)
     ui->send->setToolTip(wordsObj["send_tooltip"].toArray()[language_flag].toString());
     cutscreen_dialog->init_action(wordsObj["save cut image"].toArray()[language_flag].toString(), wordsObj["svae screen image"].toArray()[language_flag].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
-    ui->mem_bar->show_text = wordsObj["mem"].toArray()[language_flag].toString();//进度条里面的文本
-    ui->vram_bar->show_text = wordsObj["vram"].toArray()[language_flag].toString();//进度条里面的文本
-    ui->kv_bar->show_text = wordsObj["brain"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->mem_bar->set_show_text(wordsObj["mem"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
+    ui->vram_bar->set_show_text(wordsObj["vram"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
+    ui->kv_bar->set_show_text(wordsObj["brain"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
     ui->cpu_bar->show_text = "cpu ";//进度条里面的文本
     ui->vcore_bar->show_text = "gpu ";//进度条里面的文本
     //输入区右击菜单语种

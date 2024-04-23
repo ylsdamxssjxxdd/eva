@@ -12,7 +12,10 @@ Widget::Widget(QWidget *parent)
     ui->setupUi(this);
     ui->splitter->setStretchFactor(0, 3);//设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);//设置分隔器中第二个元素初始高度占比为1
-    
+    connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
+    debugButton = new CustomSwitchButton();
+    debugButton->hide();//用户拉动分割器时出现
+
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
@@ -1260,4 +1263,29 @@ void Widget::recv_controller(int num)
         result = wordsObj["The number passed in does not have a corresponding action"].toArray()[language_flag].toString();
     }
     emit recv_controller_over(result);
+}
+//分割器被用户拉动时响应
+void Widget::onSplitterMoved(int pos, int index)
+{
+    if(debugButton->isHidden())
+    {
+        // 获取各个部件的占比
+        QList<int> sizes = ui->splitter->sizes();
+        int topWidth = sizes.at(0);
+        int bottomWidth = sizes.at(1);
+        int totalWidth = topWidth + bottomWidth;
+
+        // 计算占比并输出
+        double topPercent = static_cast<double>(topWidth) / totalWidth * 100;
+        double bottomPercent = static_cast<double>(bottomWidth) / totalWidth * 100;
+        //qDebug() << "top widget:" << topPercent << "%, bottom widget:" << bottomPercent << "%";
+
+        //40%以上显示debug
+        if(bottomPercent>40)
+        {
+            QVBoxLayout* frame_2_VLayout = ui->frame_2->findChild<QVBoxLayout*>(); // 获取frame_2的列布局对象
+            frame_2_VLayout->addWidget(debugButton);
+            debugButton->show();
+        }
+    }
 }

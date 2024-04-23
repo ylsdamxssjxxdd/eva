@@ -23,6 +23,12 @@ public:
         m_secondValue = value;
         update(); // 更新进度条的显示
     }
+    //设置显示的文本
+    void set_show_text(QString str_)
+    {
+        show_text = str_;
+        update(); // 更新进度条的显示
+    }
 
     // 初始化
     DoubleQProgressBar(QWidget *parent)

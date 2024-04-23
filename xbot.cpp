@@ -265,6 +265,7 @@ int xBot::stream()
             else
             {
                 // 拓展上下文,ga_n是拓展的倍数,ga_w是宽度,宽度越大效果越好但是内存占用越高
+                // 实测有bug
                 while (n_past >= ga_i + ga_w) 
                 {
                     const int ib = (ga_n*ga_i)/ga_w;

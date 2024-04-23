@@ -176,6 +176,7 @@ utils/customqplaintextedit.h
 utils/doubleqprogressbar.h
 utils/cutscreendialog.h
 utils/customtabwidget.h
+utils/customswitchbutton.h
 )
 
 #确保第三方程序先于eva编译
