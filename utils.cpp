@@ -485,11 +485,11 @@ void Widget::apply_language(int language_flag_)
     ui->send->setToolTip(wordsObj["send_tooltip"].toArray()[language_flag].toString());
     cutscreen_dialog->init_action(wordsObj["save cut image"].toArray()[language_flag].toString(), wordsObj["svae screen image"].toArray()[language_flag].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
-    ui->mem_bar->message = wordsObj["mem"].toArray()[language_flag].toString();//进度条里面的文本
-    ui->vram_bar->message = wordsObj["vram"].toArray()[language_flag].toString();//进度条里面的文本
-    ui->kv_bar->message = wordsObj["brain"].toArray()[language_flag].toString();//进度条里面的文本
-    ui->cpu_bar->message = "cpu ";//进度条里面的文本
-    ui->vcore_bar->message = "gpu ";//进度条里面的文本
+    ui->mem_bar->show_text = wordsObj["mem"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->vram_bar->show_text = wordsObj["vram"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->kv_bar->show_text = wordsObj["brain"].toArray()[language_flag].toString();//进度条里面的文本
+    ui->cpu_bar->show_text = "cpu ";//进度条里面的文本
+    ui->vcore_bar->show_text = "gpu ";//进度条里面的文本
     //输入区右击菜单语种
     create_right_menu();//添加右击问题
     //api设置语种

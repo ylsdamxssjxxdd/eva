@@ -241,7 +241,7 @@ void Widget::unlockLoad()
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
     this->setWindowTitle(wordsObj["current model"].toArray()[language_flag].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
-    ui->kv_bar->message = wordsObj["brain"].toArray()[language_flag].toString();
+    ui->kv_bar->show_text = wordsObj["brain"].toArray()[language_flag].toString();
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
     auto_save_user();//保存ui配置
     //如果是对话模式则预解码约定
@@ -1228,7 +1228,7 @@ void Widget::onConnected()
     reflash_state("ui:"+wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api,USUAL_);
     this->setWindowTitle(wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-    ui->kv_bar->message = wordsObj["delay"].toArray()[language_flag].toString();
+    ui->kv_bar->show_text = wordsObj["delay"].toArray()[language_flag].toString();
     ui->kv_bar->setToolTip("");
     
     emit ui2net_apis(apis);

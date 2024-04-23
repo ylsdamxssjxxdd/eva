@@ -68,7 +68,6 @@ if(MSVC)
         # 监视gpu部分
         set(EXTRA_FILES
             utils/gpuchecker.h
-            utils/gpuchecker.cpp
             utils/nvml.h
             )
         set(EXTRA_LIBS
@@ -174,12 +173,9 @@ widget.ui
 expend.ui
 
 utils/customqplaintextedit.h
-utils/doubleqprogressbar.cpp
 utils/doubleqprogressbar.h
-utils/CutScreenDialog.h
-utils/CutScreenDialog.cpp
-utils/CustomTabWidget.h
-utils/CustomTabBar.h
+utils/cutscreendialog.h
+utils/customtabwidget.h
 )
 
 #确保第三方程序先于eva编译
