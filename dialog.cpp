@@ -383,14 +383,14 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.clearForeground();//清除前景颜色
         format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(state_string);
+        ui->state->appendPlainText(state_string);
     }
     else if(state==SUCCESS_)//正常绿色
     {
         format.setForeground(QColor(0,200,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
 
-        state_scroll(state_string);
+        ui->state->appendPlainText(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -398,7 +398,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     {
         format.setForeground(QColor(200,0,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(state_string);
+        ui->state->appendPlainText(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -406,7 +406,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     {
         format.setForeground(QColor(0,0,200));    // 蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(state_string);
+        ui->state->appendPlainText(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -421,19 +421,19 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setForeground(QColor(0,0,0));  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         //■■■■■■■■■■■■■■
-        state_scroll(wordsObj["cubes"].toArray()[language_flag].toString());//显示
+        ui->state->appendPlainText(wordsObj["cubes"].toArray()[language_flag].toString());//显示
 
         //中间内容
         format.setFontItalic(false);         // 取消斜体
         format.setFontWeight(QFont::Black); // 设置粗体
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll("          " + state_string);//显示
+        ui->state->appendPlainText("          " + state_string);//显示
 
         //■■■■■■■■■■■■■■
         format.setFontItalic(true);        // 设置斜体
         format.setFontWeight(QFont::Normal); // 取消粗体
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(wordsObj["cubes"].toArray()[language_flag].toString());//显示
+        ui->state->appendPlainText(wordsObj["cubes"].toArray()[language_flag].toString());//显示
         
         format.setFontWeight(QFont::Normal); // 取消粗体
         format.setFontItalic(false);         // 取消斜体
@@ -444,37 +444,11 @@ void Widget::reflash_state(QString state_string,STATE state)
     {
         format.setForeground(QColor(100, 149, 237));    //天蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        state_scroll(state_string);
+        ui->state->appendPlainText(state_string);
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
 
-}
-
-//向state末尾添加文本并滚动
-void Widget::state_scroll(QString str)
-{
-    ui->state->appendPlainText(str);
-    //如果停止标签没有启用,则每次输出完自动滚动到最下面
-    if(!is_stop_state_scroll)
-    {
-       ui->state->verticalScrollBar()->setValue(ui->state->verticalScrollBar()->maximum());//滚动条滚动到最下面
-    }
-}
-
-//状态区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
-void Widget::state_scrollBarValueChanged(int value)
-{
-    //如果滑动条在最下面则自动滚动
-    int maximumValue = state_scrollBar->maximum();
-    if (value == maximumValue)
-    {
-        is_stop_state_scroll = 0;
-    }
-    else
-    {
-        is_stop_state_scroll = 1;
-    }
 }
 
 //-------------------------------------------------------------------------

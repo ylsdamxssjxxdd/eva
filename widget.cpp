@@ -47,6 +47,7 @@ Widget::Widget(QWidget *parent)
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
     reflash_state("ui:" + wordsObj["click load and choose a gguf file"].toArray()[language_flag].toString(),USUAL_);//初始提示
+
 #ifndef BODY_USE_CUBLAST
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
     ui->vram_bar->setVisible(0);
@@ -80,8 +81,6 @@ Widget::Widget(QWidget *parent)
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();
     connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
-    state_scrollBar = ui->state->verticalScrollBar();
-    connect(state_scrollBar, &QScrollBar::valueChanged, this, &Widget::state_scrollBarValueChanged);
 
     //-------------截图声音相关-------------
     cutscreen_dialog = new CutScreenDialog(this);

@@ -73,14 +73,12 @@ public:
 
     //ui相关
     QString ui_output,ui_state;
-    void state_scroll(QString str);//向state末尾添加文本并滚动
     void output_scroll(QString output, QColor color = QColor(0,0,0));//向output末尾添加文本并滚动
     bool is_stop_output_scroll = false;//输出区滚动标签
-    bool is_stop_state_scroll = false;//状态区滚动标签
     QString history_prompt = "";//记录历史约定
     bool is_datereset = false;//从约定传来的重置信号
     QMenu *right_menu;//输入区右击菜单
-    QScrollBar *output_scrollBar,*state_scrollBar;//输出区,状态区滑动条
+    QScrollBar *output_scrollBar;//输出区滑动条
     bool createTempDirectory(const QString &path);//创建临时文件夹
     void create_right_menu();//添加右击问题
     QPair<QString, QString> func_arg_list;//提取出来的函数和参数
@@ -400,7 +398,6 @@ private slots:
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void updateStatus(); //更新cpu内存使用率
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
-    void state_scrollBarValueChanged(int value);//状态区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容
     void calculator_change();//选用计算器工具

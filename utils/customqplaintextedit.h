@@ -1113,7 +1113,7 @@ static const unsigned int Nav_green_right_ico_len = 6518;
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QShortcut>
-
+#include <QScrollBar>
 class CustomQPlainTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
@@ -1130,10 +1130,10 @@ public:
     // resize事件处理函数
     void resizeEvent(QResizeEvent *event) override
     {
-        QWidget::resizeEvent(event);
         searchBar->move((this->width() - searchBar->width())/2, 0);// 重新调整searchBar的位置
+        // 保留默认行为
+        QPlainTextEdit::resizeEvent(event);
     }
-
     //-----------------------搜索框相关-------------------
     QLineEdit *search_lineedit;
     QList<QTextCursor> searchResults;  // 存储搜索结果位置
