@@ -15,6 +15,7 @@ Widget::Widget(QWidget *parent)
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     debugButton = new CustomSwitchButton();
     debugButton->hide();//用户拉动分割器时出现
+    connect(debugButton,&QAbstractButton::clicked,this,&Widget::on_debugButton_clicked);
 
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
@@ -279,7 +280,10 @@ void Widget::on_send_clicked()
         }
         else//正常情况!!!
         {
-            if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
+            if(tool_result=="")
+            {
+                input = ui->input->toPlainText().toUtf8().data();ui->input->clear(); // 获取用户输入
+            }
             //-----------------------Q14连续回答相关----------------------------
             if(input.contains(wordsObj["Q14"].toArray()[language_flag].toString().split(">")[0]))
             {
@@ -318,7 +322,7 @@ void Widget::on_send_clicked()
                 //如果工具返回的结果不为空,加思考而不加前缀和后缀
                 if(tool_result!="")
                 {
-                    input= tool_result + "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
+                    input = tool_result + "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
                     tool_result="";
                     emit ui2bot_input({"",input,""},0);
                 }
@@ -1267,7 +1271,7 @@ void Widget::recv_controller(int num)
 //分割器被用户拉动时响应
 void Widget::onSplitterMoved(int pos, int index)
 {
-    if(debugButton->isHidden())
+    if(debugButton->isHidden() && !is_api && ui_mode != SERVER_)
     {
         // 获取各个部件的占比
         QList<int> sizes = ui->splitter->sizes();
@@ -1288,4 +1292,11 @@ void Widget::onSplitterMoved(int pos, int index)
             debugButton->show();
         }
     }
+}
+
+//debug按钮点击响应
+void Widget::on_debugButton_clicked()
+{
+    qDebug()<<debugButton->isChecked();
+    //注意只是一个标签，尽量减少侵入
 }

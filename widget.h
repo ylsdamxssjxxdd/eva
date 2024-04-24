@@ -383,6 +383,7 @@ public slots:
 //自用的槽
 private slots:
     void onSplitterMoved(int pos, int index);//分割器被用户拉动时响应
+    void on_debugButton_clicked();//debug按钮点击响应
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音

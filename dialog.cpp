@@ -1468,7 +1468,9 @@ void Widget::create_right_menu()
         if(i == 4){question = wordsObj[QString("Q%1").arg(i)].toArray()[language_flag].toString().replace("{today}",dateString);}//历史中的今天
         else{question = wordsObj[QString("Q%1").arg(i)].toArray()[language_flag].toString();}
         QAction *action = right_menu->addAction(question);
-        connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question);});
+        if(i == 6){connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question+DEFAULT_SHUDU);});}//数独题附带上题目
+        else{connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question);});}
+        
     }
     //------------创建自动化问题菜单-------------
     //上传图像

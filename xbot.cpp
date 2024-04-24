@@ -988,7 +988,9 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     if(!is_load){reload_flag = true;is_first_load=true;}
 
     //如果更换了模型则重载
-    if(bot_modelpath!=settings.modelpath.toStdString())
+    QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+    std::string bot_modelpath_next = code->fromUnicode(settings.modelpath).data();
+    if(bot_modelpath!=bot_modelpath_next)
     {
         QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
         bot_modelpath = code->fromUnicode(settings.modelpath).data();

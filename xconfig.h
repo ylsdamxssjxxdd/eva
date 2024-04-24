@@ -35,6 +35,9 @@
 //默认sd反提示
 #define DEFAULT_ANTIPROMPT "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure"
 
+//数独题目
+#define DEFAULT_SHUDU "\n+---+---+---+---+---+---+\n| 4 |   |   | 2 |   |   |\n+---+---+---+---+---+---+\n|   | 1 |   |   |   | 3 |\n+---+---+---+---+---+---+\n|   |   | 3 |   | 1 |   |\n+---+---+---+---+---+---+\n| 2 |   |   | 3 |   |   |\n+---+---+---+---+---+---+\n|   |   | 1 |   | 4 |   |\n+---+---+---+---+---+---+\n|   | 3 |   |   |   | 5 |\n+---+---+---+---+---+---+"
+
 //约定内容
 struct DATES{
     QString system_prompt;

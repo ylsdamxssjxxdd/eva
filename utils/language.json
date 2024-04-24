@@ -44,7 +44,7 @@
         "Q3": ["4杯25度的水加到一起是多少度","What is the temperature of adding 4 cups of 25 degree water together "],
         "Q4": ["历史上的{today}发生了什么大事","What major events happened in {today} history "],
         "Q5": ["我们来玩成语接龙吧","Let's play idiom relay "],
-        "Q6": ["请介绍agent、RAG技术","Please introduce agent and RAG technology "],
+        "Q6": ["计算下面的数独题，每一行或者一列只能填1-6，并且不能重复","Calculate the Sudoku puzzles below, each row or column can only be filled with 1-6 and cannot be repeated "],
         "Q7": ["翻译为中文：The word radar originally referred to radio direction and distance measurement.","Translated into Chinese: The word radar originally referred to radio direction and distance measurement. "],
         "Q8": ["翻译为英文：雷达的原意为无线电定向和测距","Translated into English: 雷达的原意为无线电定向和测距 "],
         "Q9": ["用Python写一个快速排序算法","Write a fast sorting algorithm in Python "],

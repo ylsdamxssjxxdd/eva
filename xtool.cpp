@@ -16,7 +16,7 @@ void xTool::run()
     {
         emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.second + ")");
         QScriptEngine enging;
-        QScriptValue result_ = enging.evaluate(func_arg_list.second);
+        QScriptValue result_ = enging.evaluate(func_arg_list.second.remove("\""));//手动去除公式中的引号
         QString result = QString::number(result_.toNumber());
         //qDebug()<<"tool:" + QString("calculator ") + wordsObj["return"].toArray()[language_flag].toString() + "\n" + result;
         if(result == "nan")//计算失败的情况

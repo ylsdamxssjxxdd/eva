@@ -31,19 +31,17 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
             if (match3.hasMatch())
             {
                 QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");;  // 获取第一个捕获组的内容
-                //如果挂载了代码解释器则去除文本段前后的标点
-                if(ui_interpreter_ischecked)
-                {
-                    // 去除最前面的标点 { " ' }
-                    while (!content3.isEmpty() && (content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{'))) {
-                        content3 = content3.mid(1);
-                    }
-
-                    // 去除最后面的标点 { " ' }
-                    while (!content3.isEmpty() && (content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}'))) {
-                        content3.chop(1);
-                    }
+                //去除文本段前后的标点
+                // 去除最前面的标点 { " ' }
+                while (!content3.isEmpty() && (content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{'))) {
+                    content3 = content3.mid(1);
                 }
+
+                // 去除最后面的标点 { " ' }
+                while (!content3.isEmpty() && (content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}'))) {
+                    content3.chop(1);
+                }
+
                 func_arg_list.second = content3;
                 qDebug() << "action_input中的内容是：" << content3;
             }
@@ -106,7 +104,7 @@ void Widget::addStopwords()
     ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + ":";//可以说相当严格了
     ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + "：";//可以说相当严格了
     ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + "：";//可以说相当严格了
-    ui_DATES.extra_stop_words << "<|im_end|>";//可以说相当严格了
+    ui_DATES.extra_stop_words << "<|end|>";//可以说相当严格了
 
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
