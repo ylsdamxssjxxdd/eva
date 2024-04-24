@@ -85,11 +85,10 @@ public:
     void create_right_menu();//添加右击问题
     QPair<QString, QString> func_arg_list;//提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
-    QFont ui_font;//字体大小
+    QFont ui_font;//约定和设置的字体大小
     QMediaPlayer music_player;
     QString currentpath = DEFAULT_MODELPATH;
     void apply_language(int language_flag_);//改变语种相关
-    CustomSwitchButton *debugButton;
 
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
@@ -106,6 +105,10 @@ public:
     //连续回答
     QStringList query_list;//待回答列表
     bool is_query =false;//连续回答标签
+
+    //debug相关
+    CustomSwitchButton *debugButton; // debug按钮
+    bool is_debug = false;
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板
@@ -383,7 +386,7 @@ public slots:
 //自用的槽
 private slots:
     void onSplitterMoved(int pos, int index);//分割器被用户拉动时响应
-    void on_debugButton_clicked();//debug按钮点击响应
+    void ondebugButton_clicked();//debug按钮点击响应
     void qspeech_process();//每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音

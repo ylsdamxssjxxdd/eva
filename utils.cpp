@@ -104,7 +104,7 @@ void Widget::addStopwords()
     ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + ":";//可以说相当严格了
     ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + "：";//可以说相当严格了
     ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + "：";//可以说相当严格了
-    ui_DATES.extra_stop_words << "<|end|>";//可以说相当严格了
+    ui_DATES.extra_stop_words << "<|end|>";//可以说相当严格了, 针对phi3
 
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {

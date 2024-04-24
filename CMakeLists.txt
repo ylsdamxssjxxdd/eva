@@ -1,8 +1,10 @@
 ######################################手动修改######################################
-#llama.cpp-b2687
+#llama.cpp-b2715
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
+#修改llama.cpp/examples/server/cmakelists.txt
+#add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 #----------------------------------------------------------------------------------
 #stable-diffusion.cpp master-afea457
 #stable-diffusion.cpp/cmakelists.txt中添加
@@ -30,7 +32,7 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)#速度900%
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)#速度900%
 option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#速度150%,暂不支持sd
 option(LLAMA_VULKAN                          "llama: use Vulkan"                                OFF)#速度250%,暂不支持sd
 option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！

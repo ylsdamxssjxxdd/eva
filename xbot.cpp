@@ -126,19 +126,19 @@ void xBot::run()
 
         if(!is_complete && !is_antiprompt)//前缀,如果已经检测出用户昵称则不加前缀
         {
-            if(is_first_input)
-            {
-                line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true);//前缀不带开始标志,因为初始化embd_inp时已经添加
-            }
-            else
-            {
-                line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), true, true);
-            }
+            // if(is_first_input)
+            // {
+            //     line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true);//前缀不带开始标志,因为初始化embd_inp时已经添加
+            // }
+            // else
+            // {
+            line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true); // 暂时都不添加开始标志了
+            // }
             
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
         //qDebug()<<"插入line_pfx后embd_inp"<<view_embd(ctx,embd_inp);
-        line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, true);//用户输入,这里不处理特殊标志,但是会多一个空格
+        line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, false);//用户输入,这里不处理特殊标志
         embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
         //qDebug()<<"插入line_inp后embd_inp"<<view_embd(ctx,embd_inp);
 
@@ -392,16 +392,10 @@ int xBot::stream()
                 std::string str_ = llama_token_to_piece(ctx, id_);
                 //prob_5 += QString("%1%|").arg(cur_p.data[i].p * 100.0, columnWidth2, 'f', 0, ' ');
                 prob_5 += (QString::number(cur_p.data[i].p * 100.0,'f',1) + "%").leftJustified(columnWidth2) + "| ";
-                if(id_ == eos_token)
-                {
-                    int chinese_nums = get_Chinese_word_nums(wordsObj["<end>"].toArray()[language_flag].toString());
-                    word_5 += wordsObj["<end>"].toArray()[language_flag].toString().leftJustified(columnWidth2 - chinese_nums) + "| ";
-                }
-                else
-                {
-                    int chinese_nums = get_Chinese_word_nums(QString::fromStdString(str_));
-                    word_5 += QString::fromStdString(str_).leftJustified(columnWidth2 - chinese_nums - QString::fromStdString(str_).count("\n") - QString::fromStdString(str_).count("\r")) + "| ";
-                }
+
+                int chinese_nums = get_Chinese_word_nums(QString::fromStdString(str_));
+                word_5 += QString::fromStdString(str_).leftJustified(columnWidth2 - chinese_nums - QString::fromStdString(str_).count("\n") - QString::fromStdString(str_).count("\r")) + "| ";
+
                 //qDebug()<<id<<llama_token_to_piece(ctx, id).c_str()<<cur_p.data[i].p;
             }
             //emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator);
@@ -443,19 +437,15 @@ int xBot::stream()
 
             if(id == eos_token)//如果遇到结束则停止
             {
-                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +wordsObj["<end>"].toArray()[language_flag].toString());
+                emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
+                current_output += sstr;
+                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
                 emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " 
                                     + wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
                                     + wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                 //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
                 //qDebug() << batch_count << batch_time << singl_count << single_timer.nsecsElapsed()/1000000000.0 - batch_time;
                 return 0;
-            }
-            else if(QString::fromUtf8(sstr.c_str()).contains("[PAD"))//千问的空白字符输出空
-            {
-                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr) );
-                emit bot2ui_output("");
-                
             }
             else
             {
@@ -780,7 +770,7 @@ void xBot::preDecode()
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
 
-    emit bot2ui_output(QString::fromStdString(token_str),0);//将预解码内容贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str),0,QColor(0, 0, 255));//将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 
@@ -857,11 +847,7 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
             const llama_token token = embd_output[i];
             history_tokens->push_back(token);
             std::string sstr = llama_token_to_piece(ctx, token);
-            //暂时这么解决qwen的pad符号
-            if(!QString::fromStdString(sstr).contains("[PAD"))
-            {
-                token_str += sstr;
-            }
+            token_str += sstr;
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是空则认为是工具
         if(input.input_prefix==""&&input.input_suffix=="")

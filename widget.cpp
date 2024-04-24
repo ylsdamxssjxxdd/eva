@@ -15,7 +15,7 @@ Widget::Widget(QWidget *parent)
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     debugButton = new CustomSwitchButton();
     debugButton->hide();//用户拉动分割器时出现
-    connect(debugButton,&QAbstractButton::clicked,this,&Widget::on_debugButton_clicked);
+    connect(debugButton,&QAbstractButton::clicked,this,&Widget::ondebugButton_clicked);
 
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
@@ -599,7 +599,7 @@ void Widget::on_reset_clicked()
         ui_assistant_history.clear();
         if(ui_mode == CHAT_)
         {
-            reflash_output(ui_DATES.system_prompt,0,QColor(0,0,0));
+            reflash_output(ui_DATES.system_prompt,0,QColor(0,0,255));
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
         }
         else
@@ -619,7 +619,7 @@ void Widget::on_reset_clicked()
     //如果约定没有变则不需要预解码
     if(ui_mode == CHAT_ && ui_DATES.system_prompt == history_prompt)
     {
-        reflash_output(bot_predecode,0,Qt::black);//直接展示预解码的内容
+        reflash_output(bot_predecode,0,QColor(0,0,255));//直接展示预解码的内容
         is_datereset = false;
         emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
     }
@@ -1294,9 +1294,9 @@ void Widget::onSplitterMoved(int pos, int index)
     }
 }
 
-//debug按钮点击响应
-void Widget::on_debugButton_clicked()
+//debug按钮点击响应，注意只是改变一个标签，尽量减少侵入
+void Widget::ondebugButton_clicked()
 {
-    qDebug()<<debugButton->isChecked();
-    //注意只是一个标签，尽量减少侵入
+    is_debug = debugButton->isChecked();
+    
 }
