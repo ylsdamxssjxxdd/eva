@@ -1576,8 +1576,8 @@ void Expend::sd_onProcessFinished()
         }
         else
         {
-            emit expend2ui_state("expend:" + wordsObj["draw fail draw fail prompt"].toArray()[language_flag].toString(),WRONG_);
-            emit expend2tool_drawover(wordsObj["draw fail draw fail prompt"].toArray()[language_flag].toString(),0);//绘制完成信号
+            emit expend2ui_state("expend:" + wordsObj["draw fail prompt"].toArray()[language_flag].toString(),WRONG_);
+            emit expend2tool_drawover(wordsObj["draw fail prompt"].toArray()[language_flag].toString(),0);//绘制完成信号
         }
         
     }

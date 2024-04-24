@@ -316,6 +316,7 @@ public:
 
 //发给模型的信号
 signals:
+    void ui2bot_debug(bool is_debug_);//传递debug标志
     void ui2bot_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void ui2bot_language(int language_flag_);//传递使用的语言
     void ui2bot_imagepath(QString image_path);//传递图片路径

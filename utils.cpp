@@ -3,12 +3,21 @@
 #include "widget.h"
 #include "ui_widget.h"
 
-//手搓输出解析器，提取JSON
+//手搓输出解析器，提取可能的JSON
 QPair<QString, QString> Widget::JSONparser(QString text) {
     
     QPair<QString, QString> func_arg_list;
-    // 匹配花括号至最后一个花括号中的内容
-    QRegularExpression re("\\{(.*)\\}");
+    // ----------匹配花括号中的内容----------
+    QRegularExpression re;
+    if(ui_interpreter_ischecked)
+    {
+        re.setPattern("\\{(.*)\\}"); // 如果挂载了代码解释器，匹配第一个 { 至最后一个 } 中的内容
+    }
+    else
+    {
+        re.setPattern("\\{(.*?)\\}"); // 其它情况，匹配第一个 { 至第一个 } 中的内容
+    }
+    
     re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
     QRegularExpressionMatch match = re.match(text);
 
@@ -16,7 +25,8 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
     {
         QString content = match.captured(1);  // 获取第一个捕获组的内容
         qDebug() << "花括号中的内容是：" << content;
-        // 匹配"action:"至逗号， \\s*的意思是允许忽略空格
+        // ----------匹配"action:"至逗号----------
+        // \\s*的意思是允许忽略空格
         QRegularExpression re2("\"action\"\\s*[:：]\\s*\"([^\"]*)\"");
         QRegularExpressionMatch match2 = re2.match(content);
         if (match2.hasMatch())
@@ -24,7 +34,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
             QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
             func_arg_list.first = content2;
             qDebug() << "action中的内容是：" << content2;
-            // 匹配"action_input:"至最后
+            // ----------匹配"action_input:"至最后----------
             QRegularExpression re3("\"action_input\"\\s*[:：]\\s*(.*)");
             re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
             QRegularExpressionMatch match3 = re3.match(content);
@@ -480,7 +490,7 @@ void Widget::apply_language(int language_flag_)
     ui->date->setText(wordsObj["date"].toArray()[language_flag].toString());
     ui->set->setToolTip(wordsObj["set"].toArray()[language_flag].toString());
     ui->reset->setToolTip(wordsObj["reset"].toArray()[language_flag].toString());
-    ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+    if(!is_debug){ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());}
     ui->send->setToolTip(wordsObj["send_tooltip"].toArray()[language_flag].toString());
     cutscreen_dialog->init_action(wordsObj["save cut image"].toArray()[language_flag].toString(), wordsObj["svae screen image"].toArray()[language_flag].toString());
     ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));

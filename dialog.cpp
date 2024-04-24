@@ -1371,7 +1371,7 @@ void Widget::ui_state_normal()
         ui->input->setReadOnly(0);
         ui->input->setFocus();//设置输入区为焦点
         ui->output->setReadOnly(1);
-        ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+        if(!is_debug){ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());}
     }
     else if(ui_mode == COMPLETE_)
     {
@@ -1391,7 +1391,7 @@ void Widget::ui_state_normal()
         ui->input->setPlaceholderText(wordsObj["Please modify any text above"].toArray()[language_flag].toString());
         ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");//设置背景为橘黄色
         ui->input->setReadOnly(1);
-        ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
+        if(!is_debug){ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());}
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
     }

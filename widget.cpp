@@ -1296,6 +1296,24 @@ void Widget::onSplitterMoved(int pos, int index)
 //debug按钮点击响应，注意只是改变一个标签，尽量减少侵入
 void Widget::ondebugButton_clicked()
 {
+    // 只有在正常状态才可以点击debug按钮
+    if(is_run)
+    {return ;}
     is_debug = debugButton->isChecked();
-    ui->send->setText("Next");
+    emit ui2bot_debug(is_debug); //传递debug标志
+
+    //改变发送按钮文字
+    if(is_debug)
+    {
+        ui->send->setText("Next");
+    }
+    else if(ui_mode == CHAT_)
+    {
+        ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+    }
+    else if(ui_mode == COMPLETE_)
+    {
+        ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
+    }
+
 }

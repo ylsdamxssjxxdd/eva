@@ -99,8 +99,10 @@ public:
     QStringList extra_stop_words;//额外停止标志
     bool vram_enough = false;
     std::string current_output;//用来判断里面是否存在反向词
+    bool is_debug = false;//debug标志
 
 public slots:
+    void recv_debug(bool is_debug_);//传递debug标志
     void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void recv_language(int language_flag_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径

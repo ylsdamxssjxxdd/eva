@@ -1091,3 +1091,9 @@ void xBot::apply_date(DATES date)
     is_load_tool = date.is_load_tool;
     extra_stop_words = date.extra_stop_words;
 }
+
+//传递debug标志
+void xBot::recv_debug(bool is_debug_)
+{
+    is_debug = is_debug_;
+}
