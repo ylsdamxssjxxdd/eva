@@ -1297,7 +1297,5 @@ void Widget::onSplitterMoved(int pos, int index)
 void Widget::ondebugButton_clicked()
 {
     is_debug = debugButton->isChecked();
-
-    // ui->send->setIcon(QIcon(":/ui/Player.ico"));
-    // ui->send->setText("");
+    ui->send->setText("Next");
 }
