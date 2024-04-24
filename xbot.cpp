@@ -770,7 +770,7 @@ void xBot::preDecode()
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
 
-    emit bot2ui_output(QString::fromStdString(token_str),0,QColor(0, 0, 255));//将预解码内容贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str),0,QColor(0, 0, 255, 150));//将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 
@@ -856,7 +856,7 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
         }
         else if(context_pos == 0)//用户昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255, 150));
         }
         else if(context_pos == 1)//输入内容
         {
@@ -864,7 +864,7 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
         }
         else if(context_pos == 2)//模型昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255, 150));
         }
     }
 }

@@ -598,7 +598,7 @@ void Widget::on_reset_clicked()
         ui_assistant_history.clear();
         if(ui_mode == CHAT_)
         {
-            reflash_output(ui_DATES.system_prompt,0,QColor(0,0,255));
+            reflash_output(ui_DATES.system_prompt,0,QColor(0, 0, 255, 150));
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
         }
         else
@@ -618,7 +618,7 @@ void Widget::on_reset_clicked()
     //如果约定没有变则不需要预解码
     if(ui_mode == CHAT_ && ui_DATES.system_prompt == history_prompt)
     {
-        reflash_output(bot_predecode,0,QColor(0,0,255));//直接展示预解码的内容
+        reflash_output(bot_predecode,0,QColor(0, 0, 255, 150));//直接展示预解码的内容
         is_datereset = false;
         emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
     }
@@ -1040,8 +1040,8 @@ void Widget::api_send_clicked_slove()
                     ui_user_history << wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString();//问题
                     ui_assistant_history << wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":");//答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString(), 0, QColor(0, 0, 255));
-                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":"), 0, QColor(0, 0, 255));
+                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString(), 0, QColor(0, 0, 255, 150));
+                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":"), 0, QColor(0, 0, 255, 150));
                 }
                 help_input = false;
             }
@@ -1067,9 +1067,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=1;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
         reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
     }
     else if(is_query)
     {
@@ -1095,9 +1095,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=ui_SETTINGS.npredict;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
         reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
     }
     else if(is_toolguy)//如果你是工具人
     {
@@ -1143,9 +1143,9 @@ void Widget::api_send_clicked_slove()
             data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
             
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
             reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
         }
         //
         //来补充链接模式的各种情况/上传图像/图像文件
@@ -1178,9 +1178,9 @@ void Widget::api_send_clicked_slove()
                 ui_user_history << input;
                 data.user_history = ui_user_history;
                 data.assistant_history = ui_assistant_history;
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
                 reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255));//前后缀用蓝色
+                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             }
@@ -1297,5 +1297,7 @@ void Widget::onSplitterMoved(int pos, int index)
 void Widget::ondebugButton_clicked()
 {
     is_debug = debugButton->isChecked();
-    
+
+    // ui->send->setIcon(QIcon(":/ui/Player.ico"));
+    // ui->send->setText("");
 }
