@@ -94,7 +94,7 @@
         "predecode system instruction": ["对系统指令进行预解码","predecode system instruction "],
         "fail": ["失败","fail "],
         "right click and check model log": ["右击查看模型日志","right click and check model log "],
-        "use kv cache": ["用已缓存","use kv cache "],
+        "use kv cache": ["用已缓存","use context cache "],
         "calculator next word probability table": ["计算下一个词的概率表","calculator next word probability table "],
         "embd no token please restart": ["待解码的embd中没有token, 请重新启动机体","embd no token please restart "],
         "word probability table": ["概率表",""],
@@ -114,8 +114,8 @@
         "free model and ctx": ["释放旧的模型和上下文","free model and ctx "],
         "nthread/maxthread": ["使用线程数/最大线程数","nthread/maxthread "],
         "system calling too long use": ["约定的系统指令长度太长,请修改,暂使用","system instruction too long. Temporarily use "],
-        "delete kv cache": ["清空上下文缓存","delete kv cache "],
-        "delete kv cache except system calling": ["删除系统指令以外的上下文缓存","delete kv cache except system instruction "],
+        "delete kv cache": ["清空上下文缓存","delete context cache "],
+        "delete kv cache except system calling": ["删除系统指令以外的上下文缓存","delete context cache except system instruction "],
         "current model": ["当前模型","current model "],
         "vocab size": ["词表大小","vocab size "],
         "chinese rate": ["汉字比重","chinese rate "],
@@ -235,7 +235,7 @@
         "eva confuse": ["机体混淆!","EVA confuse"],
         "eva rate": ["同步率","EVA rate"],
         "cube": ["■","■ "],
-        "cubes": ["■■■■■■■■■■■■■■■","■■■■■■■■■■■■■■■ "],
+        "cubes": ["■■■■■■■■■■■■■■■","■■■■■■■■■■■■■■■"],
         "old": ["旧的","old "],
         "content": ["内容","content"],
         "dimension": ["维度","dimension"],
@@ -385,7 +385,8 @@
         "the result has been saved in the source wav file directory": ["结果已保存在源wav文件目录","the result has been saved in the source wav file directory"],
         "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
         
-        "debug_input_placeholder": ["点击Next预测下一个词","click Next to predict next word"],
+        "debug_input_placeholder": ["点击Next预测下一个词，或者按ctrl+enter连续预测","click Next to predict next word, or press Ctrl+enter to continuously predict"],
+        "caculate token": ["处理token数量","Number of tokens processed"],
         "---end---": ["---end---","---end--- "]
     }
 }

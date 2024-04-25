@@ -308,6 +308,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
     {
         //正常输出
         output_scroll(result, color);
+        
     }
     
     if(is_while)
@@ -327,6 +328,8 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
                 temp_speech = "";
             }
         }
+
+        if(is_debuging){ui->send->setEnabled(1);} // debug中发送按钮可以一直用
     }
     
 }
@@ -419,7 +422,7 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setFont(font);
         format.setFontItalic(true);        // 设置斜体
         //format.setForeground(QColor(128,0,128));    // 紫色设置前景颜色
-        format.setForeground(QColor(0,0,0));  //还是黑色吧
+        format.setForeground(NORMAL_BLACK);  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         //■■■■■■■■■■■■■■
         ui->state->appendPlainText(wordsObj["cubes"].toArray()[language_flag].toString());//显示
@@ -446,6 +449,22 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setForeground(TOOL_BLUE);    //天蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         ui->state->appendPlainText(state_string);
+        format.clearForeground();//清除前景颜色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+    }
+    else if(state==DEBUGING_)//debug墨绿色
+    {
+        QFont font = format.font();
+        font.setPixelSize(14);
+        format.setFont(font);
+        format.setFontItalic(true);        // 设置斜体
+        format.setForeground(QColor(0,100,0));  //墨绿色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+
+        ui->state->appendPlainText(state_string + wordsObj["cubes"].toArray()[language_flag].toString() + wordsObj["cubes"].toArray()[language_flag].toString());
+
+        format.setFontWeight(QFont::Normal); // 取消粗体
+        format.setFontItalic(false);         // 取消斜体
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
@@ -1322,7 +1341,6 @@ void Widget::ui_state_pushing()
     if(is_debug)
     {
         ui->send->setText("Next");
-        ui->send->setEnabled(1); // debug中发送按钮可以一直用
         ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
         ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
         ui->input->setReadOnly(1);
@@ -1360,6 +1378,7 @@ void Widget::ui_state_normal()
         }
         else
         {
+            ui->send->setEnabled(0);
             ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toArray()[language_flag].toString());
             ui->input->setStyleSheet("background-color: white;");
         }
@@ -1423,6 +1442,7 @@ void Widget::ui_state_normal()
     else{change_api_dialog(1);}
 
     is_debuging = false; // 退出debug中状态
+    debuging_times = 1;
     emit ui2bot_debuging(is_debuging); //传递debug中状态
 }
 
@@ -1608,6 +1628,10 @@ void Widget::get_date()
     //添加额外停止标志
     addStopwords();
 }
+
+//-------------------------------------------------------------------------
+//--------------------------------debuging状态-----------------------------
+//-------------------------------------------------------------------------
 
 // 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
 void Widget::debugButton_enable()

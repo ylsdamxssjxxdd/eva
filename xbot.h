@@ -75,7 +75,8 @@ public:
     float batch_count = 0;
     float singl_time = 0.000001;
     float singl_count = 0;
-    int n_remain=-1;
+    int n_remain= -1;
+    int remain_n_remain = 0;
     int stream();//推理循环
 
     //标签相关
@@ -100,6 +101,7 @@ public:
     bool vram_enough = false;
     std::string current_output;//用来判断里面是否存在反向词
     bool is_debuging = false;//debug中状态
+    int debuging_one = 0;//debuging时控制循环只进行一次
 
 public slots:
     void recv_debuging(bool is_debuging_);//传递debug中状态

@@ -109,6 +109,7 @@ public:
     CustomSwitchButton *debugButton; // debug按钮
     bool is_debug = false;//debug启用标志
     bool is_debuging = false;//debug运行中标志
+    int debuging_times = 1;//debug运行中点击next的次数
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板

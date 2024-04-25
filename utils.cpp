@@ -628,7 +628,11 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         if(msg->wParam == 7758258)
         {
             // We inform about this to the console
-            onShortcutActivated();//处理截图事件
+            if(!is_debuging)
+            {
+                onShortcutActivated();//处理截图事件
+            }
+
             return true;
         }
         else if (msg->wParam == 123456)
@@ -640,7 +644,7 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
             }   
             else if(!is_recodering)
             {
-                if(!is_debug)
+                if(!is_debuging)
                 {
                     recordAudio();//开始录音
                     is_recodering = true;
@@ -649,7 +653,7 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
             }
             else if(is_recodering)
             {
-                if(!is_debug)
+                if(!is_debuging)
                 {
                     stop_recordAudio();//停止录音
                 }

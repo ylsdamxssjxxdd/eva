@@ -123,6 +123,7 @@ enum STATE {
         WRONG_,//错误，红色
         EVA_,//机体，紫色
         TOOL_,//工具，橘色
+        DEBUGING_,//debug，墨绿色
 };
 //模式枚举
 enum MODE {

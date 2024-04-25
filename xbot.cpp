@@ -79,11 +79,10 @@ void xBot::run()
                 is_first_reset = false;reset(0);is_first_reset = true;
                 float time_ = time2.nsecsElapsed()/1000000000.0;
                 float speed_ = (history_tokens->size() - history_past)/time_;
-                //qDebug() << history_tokens->size() - history_past<<time_;
                 emit bot2ui_state("bot:" + wordsObj["system calling"].toArray()[language_flag].toString() + wordsObj["predecode"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " "+wordsObj["batch decode"].toArray()[language_flag].toString()+ ":"+QString::number(speed_,'f',2)+ " token/s",SUCCESS_);
             }
             emit bot2ui_pushover();//推理完成的信号
-            return;
+            return ;
         }
         //--------------------预解码图像,受ui控制--------------------
         else if(input.input=="<ylsdamxssjxxdd:imagedecode>")
@@ -160,6 +159,14 @@ void xBot::run()
         //qDebug()<<"历史token"<<view_embd(ctx,*history_tokens);
         //qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
 
+        // 用户刚点击发送按钮进入debuging状态时（通过前后缀不为空知道是刚点击）
+        if(is_debuging && input.input_prefix != "" && input.input_suffix != "")
+        {
+            bot2ui_state("DEBUGING 0 ", DEBUGING_);
+            remain_n_remain = gpt_params_.n_predict;//用来记录一次debuging过程的n_remain值
+            current_output = "";//清空上一轮的输出记录
+        }
+
         //-------------------------------------------------------------
         //---------------------------流式输出---------------------------
         //-------------------------------------------------------------
@@ -167,8 +174,9 @@ void xBot::run()
         batch_time = 0.000001;
         batch_count = 0;//被批解码的token数
         singl_count = 0;//被单解码的token数
-        n_remain= gpt_params_.n_predict;//-1的话可以无限输出
-        if(is_test || is_debuging){n_remain=1;}//测试时最大输出长度强制为1
+        n_remain = gpt_params_.n_predict;//-1的话可以无限输出
+        if(is_test){n_remain=1;}//测试时最大输出长度强制为1
+        if(is_debuging){debuging_one = 1;n_remain = remain_n_remain;}//debuging时控制循环只进行一次, n_remain使用上一次的
         //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
         if(gpt_params_.n_ctx > n_ctx_train)
         {
@@ -189,7 +197,14 @@ void xBot::run()
             //qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
         }
 
-        if(!is_debuging || o1 == -1)//debuging状态就是不让bot发送pushover信号，如果是遇到停止标志则可以
+        //debuging状态输出额外的信息
+        if(is_debuging)
+        {
+            //打印当前缓存的上下文
+            //emit bot2ui_state("bot:" + wordsObj["kv cache"].toArray()[language_flag].toString() + " " + QString::number(llama_get_kv_cache_token_count(ctx)) + " token");
+        }
+
+        if(!is_debuging || o1 == -1)//debuging状态就是不让bot发送pushover信号，如果是遇到停止标志或达到最大输出长度则可以
         {
             emit bot2ui_pushover();//推理完成的信号
         }
@@ -204,17 +219,37 @@ int xBot::stream()
     QElapsedTimer single_timer;
     single_timer.start();//后面减去batch_timer记录的时间就是单解码用时
     QElapsedTimer batch_timer;
-    current_output = "";
+    QElapsedTimer debuging_timer;
+    if(!is_debuging){current_output = "";}
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain!= 0)
     {
+        //debuging时控制循环只进行一次
+        if(is_debuging)
+        {
+            if(debuging_one == 0)
+            {
+                return 0;
+            }
+            debuging_one --;
+            remain_n_remain --;//用于下次debuging判断是否达到最大输出长度
+        }
+
         //停止标签控制模型停止
         if(is_stop)
         {
             is_stop =false;
             pick_half_utf8.clear();
             emit bot2ui_stopover();//完成停止的信号
-            emit bot2ui_state("bot:"+wordsObj["predict"].toArray()[language_flag].toString()+wordsObj["shut down"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s"+" " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
+
+            QString fianl_state;
+            fianl_state = "bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString() + " ";
+            if(!is_debuging)
+            {
+                fianl_state += wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                + wordsObj["batch decode"].toArray()[language_flag].toString() + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+            }
+            emit bot2ui_state(fianl_state,SUCCESS_);
             return 0;
         }
 
@@ -241,7 +276,6 @@ int xBot::stream()
                     //导致批解码失败的元首
                     llama_kv_cache_seq_rm(ctx, 0, n_keep           , n_keep + n_discard);//删除中间一段缓存(n_keep -> n_keep + n_discard)
                     llama_kv_cache_seq_add(ctx, 0, n_keep + n_discard, n_past, -n_discard);//把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
-
                     n_past -= n_discard;
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
                     
@@ -301,8 +335,15 @@ int xBot::stream()
                     n_eval = gpt_params_.n_batch;
                 }
 
-                //解码
+                //--------------解码----------------
+                
+                if(is_debuging){debuging_timer.restart();}
                 int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0));
+                if(is_debuging){emit bot2ui_state("bot:" + wordsObj["decode"].toArray()[language_flag].toString() + " " 
+                                                    + wordsObj["use time"].toArray()[language_flag].toString() + " " 
+                                                    + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4) + " s "
+                                                    + wordsObj["caculate token"].toArray()[language_flag].toString() + " " + QString::number(n_eval)
+                                                    ,SUCCESS_);}
 
                 if (ret==1) //找不到槽的情况
                 {
@@ -337,6 +378,7 @@ int xBot::stream()
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
         {
+            if(is_debuging){debuging_timer.restart();}
             const llama_token id = llama_sampling_sample(sparams, ctx, NULL);//采样获取下一个token的id
 
             //展示概率表
@@ -401,7 +443,7 @@ int xBot::stream()
             emit bot2ui_state(id_5);
             emit bot2ui_state(word_5);
             emit bot2ui_state(separator);
-            //qDebug()<<"bot的历史消息"<<view_embd(ctx,history_tokens);qDebug()<<"第"<<times<<"次输出完毕";times++;
+
             std::string sstr = llama_token_to_piece(ctx, id);
 
             //处理不全的utf-8字符
@@ -432,21 +474,29 @@ int xBot::stream()
 
             if(id == eos_token)//如果遇到结束则停止
             {
+                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
+                if(is_debuging){emit bot2ui_state("bot:" + wordsObj["sampling"].toArray()[language_flag].toString() + " " + wordsObj["use time"].toArray()[language_flag].toString() + " " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s",SUCCESS_);}
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
                 current_output += sstr;
-                emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
-                emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " 
-                                    + wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
-                                    + wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
-                //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
+
+                QString fianl_state;
+                fianl_state = "bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " ";
+                if(!is_debuging)
+                {
+                    fianl_state += wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                 + wordsObj["batch decode"].toArray()[language_flag].toString() + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                }
+                emit bot2ui_state(fianl_state,SUCCESS_);
                 //qDebug() << batch_count << batch_time << singl_count << single_timer.nsecsElapsed()/1000000000.0 - batch_time;
                 return -1;
             }
             else
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " +QString::fromStdString(sstr));
+                if(is_debuging){emit bot2ui_state("bot:" + wordsObj["sampling"].toArray()[language_flag].toString() + " " + wordsObj["use time"].toArray()[language_flag].toString() + " " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s",SUCCESS_);}
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
                 current_output += sstr;
+
                 if(current_output.length() > 32)
                 {
                     current_output = current_output.substr(current_output.length() - 32, 32);//只保留32个字符
@@ -472,7 +522,15 @@ int xBot::stream()
                         {
                             emit bot2ui_state("bot:"+ wordsObj["detected"].toArray()[language_flag].toString() + wordsObj["extra stop words"].toArray()[language_flag].toString() + " "  + QString::fromStdString(antiprompt));
                         }
-                        emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
+
+                        QString fianl_state;
+                        fianl_state = "bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString() + " ";
+                        if(!is_debuging)
+                        {
+                            fianl_state += wordsObj["single decode"].toArray()[language_flag].toString() + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                         + wordsObj["batch decode"].toArray()[language_flag].toString() + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                        }
+                        emit bot2ui_state(fianl_state,SUCCESS_);
                         //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
                         return -1;
                         
@@ -503,10 +561,17 @@ int xBot::stream()
     if(!is_test && !is_debuging)//测试的时候不输出这个
     {
         emit bot2ui_state("bot:"+ wordsObj["arrive max predict length"].toArray()[language_flag].toString() + " " + QString::number(gpt_params_.n_predict));
-        emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
+        QString fianl_state;
+        fianl_state = "bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString() + " ";
+        if(!is_debuging)
+        {
+            fianl_state += wordsObj["single decode"].toArray()[language_flag].toString() +  QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                         + wordsObj["batch decode"].toArray()[language_flag].toString() + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+        }
+        emit bot2ui_state(fianl_state,SUCCESS_);
     }
 
-    return 0;
+    return -1;
 }
 
 //----------------------------------------------------------------------
@@ -752,7 +817,6 @@ void xBot::preDecode()
     for (size_t i = 0; i < embd_inp.size(); ++i)
     {
         const llama_token token = embd_inp[i];
-        history_tokens->push_back(token);
     }
 
     std::string token_str;
@@ -819,13 +883,16 @@ QString xBot::view_embd(llama_context *ctx_,std::vector<llama_token> embd_)
 {
     QString qstr;
     QString qstr_token;
+    //QString qstr_debuging;
     for(int i=0;i<int(embd_.size());++i)
     {
-        qstr_token += QString::number(embd_[i]) + " ";
+        qstr_token += QString::number(embd_[i]) + " | ";
         qstr += QString::fromStdString(llama_token_to_piece(ctx_, embd_[i]));
-        qDebug()<<embd_[i]<<"|"<<QString::fromStdString(llama_token_to_piece(ctx_, embd_[i]));
+        //qstr_debuging += QString::number(embd_[i]) + "|" + QString::fromStdString(llama_token_to_piece(ctx_, embd_[i])) + " | ";
+        //qDebug()<<embd_[i]<<"|"<<QString::fromStdString(llama_token_to_piece(ctx_, embd_[i]));
     }
     //qDebug()<<"embd token序列"<<qstr_token;
+    //emit bot2ui_state("bot:" + wordsObj["kv cache"].toArray()[language_flag].toString() + " " + qstr_debuging);
     return qstr;
 }
 
@@ -1091,4 +1158,5 @@ void xBot::apply_date(DATES date)
 void xBot::recv_debuging(bool is_debuging_)
 {
     is_debuging = is_debuging_;
+    
 }

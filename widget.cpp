@@ -15,6 +15,12 @@ Widget::Widget(QWidget *parent)
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     debugButton = new CustomSwitchButton();
     debugButton->hide();//用户拉动分割器时出现
+
+    //测试后删除
+    QVBoxLayout* frame_2_VLayout = ui->frame_2->findChild<QVBoxLayout*>(); // 获取frame_2的列布局对象
+    frame_2_VLayout->addWidget(debugButton);
+    debugButton->show();
+
     connect(debugButton,&QAbstractButton::clicked,this,&Widget::ondebugButton_clicked);
 
     //--------------初始化语言--------------
@@ -197,8 +203,11 @@ void Widget::on_send_clicked()
     //如果是debuging中的状态
     if(ui->send->text() == "Next")
     {
+        ui->send->setEnabled(0);
+        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
         emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
         emit ui2bot_push();//开始推理
+        debuging_times ++;
         return;
     }
 
@@ -586,8 +595,10 @@ void Widget::on_reset_clicked()
     //debuging状态下，点击重置按钮直接退出debuging状态
     if(is_debuging)
     {
+        reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString()+ wordsObj["shut down"].toArray()[language_flag].toString(),SIGNAL_);
         is_debuging = false;
         is_run = false;
+        debuging_times = 1;
         ui_state_normal();//待机界面状态
         return;
     }
@@ -933,7 +944,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
     //响应已安装控件上的鼠标右击事件
-    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_mode == CHAT_)
+    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_mode == CHAT_ && !is_debuging)
     {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
         // 显示菜单
