@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2bot_imagepath,&bot,&xBot::recv_imagepath);//传递图片路径
     QObject::connect(&w, &Widget::ui2bot_maxngl,&bot,&xBot::recv_maxngl);//传递模型最大的ngl值
     QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
-    QObject::connect(&w, &Widget::ui2bot_debug,&bot,&xBot::recv_debug);//传递debug标志
+    QObject::connect(&w, &Widget::ui2bot_debuging,&bot,&xBot::recv_debuging);//传递debug中状态
 
     //------------------监测gpu信息-------------------
 #ifdef BODY_USE_CUBLAST

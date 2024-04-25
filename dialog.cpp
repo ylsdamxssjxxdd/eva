@@ -56,7 +56,7 @@ void Widget::init_movie()
         //彩色
         //movie_color <<QColor(QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256));
         //黑色
-        movie_color <<QColor(0, 0, 0);
+        movie_color << NORMAL_BLACK;
     }
 
     //设置动画内容字体格式
@@ -309,6 +309,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         //正常输出
         output_scroll(result, color);
     }
+    
     if(is_while)
     {
         temp_assistant_history += result;
@@ -381,7 +382,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     if(state==USUAL_)//一般黑色
     {
         format.clearForeground();//清除前景颜色
-        format.setForeground(QColor(0,0,0));  //还是黑色吧
+        format.setForeground(NORMAL_BLACK);  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         ui->state->appendPlainText(state_string);
     }
@@ -442,7 +443,7 @@ void Widget::reflash_state(QString state_string,STATE state)
     }
     else if(state==TOOL_)//工具天蓝色
     {
-        format.setForeground(QColor(100, 149, 237));    //天蓝色设置前景颜色
+        format.setForeground(TOOL_BLUE);    //天蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
         ui->state->appendPlainText(state_string);
         format.clearForeground();//清除前景颜色
@@ -1287,11 +1288,13 @@ void Widget::change_api_dialog(bool enable)
 void Widget::ui_state_init()
 {
     ui->load->setEnabled(1);//装载按钮
-    ui->date->setEnabled(1);//约定按钮
-    ui->set->setEnabled(1);//设置按钮
+    ui->date->setEnabled(0);//约定按钮
+    ui->set->setEnabled(0);//设置按钮
     ui->reset->setEnabled(0);//重置按钮
     ui->send->setEnabled(0);//发送按钮
     ui->output->setReadOnly(1);
+    debugButton_enable();
+    
 }
 
 // 装载中界面状态
@@ -1303,6 +1306,7 @@ void Widget::ui_state_loading()
     ui->set->setEnabled(0);//设置按钮
     ui->load->setEnabled(0);//装载按钮
     ui->input->setFocus();//设置输入区为焦点
+    debugButton_enable();
 }
 
 //推理中界面状态
@@ -1314,6 +1318,17 @@ void Widget::ui_state_pushing()
     ui->set->setEnabled(0);
     ui->reset->setEnabled(1);
     ui->send->setEnabled(0);
+    debugButton_enable();
+    if(is_debug)
+    {
+        ui->send->setText("Next");
+        ui->send->setEnabled(1); // debug中发送按钮可以一直用
+        ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
+        ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
+        ui->input->setReadOnly(1);
+        is_debuging = true; // 进入debug中状态
+        emit ui2bot_debuging(is_debuging); //传递debug中状态
+    }
 }
 
 //服务中界面状态
@@ -1325,11 +1340,13 @@ void Widget::ui_state_servering()
     ui->reset->setEnabled(0);
     ui->input->setVisible(0);
     ui->send->setVisible(0);
+    debugButton_enable();
 }
 
 //待机界面状态
 void Widget::ui_state_normal()
 {
+    debugButton_enable();
     if(is_run)//如果是模型正在运行的状态的话
     {
         ui->reset->setEnabled(1);
@@ -1338,7 +1355,7 @@ void Widget::ui_state_normal()
         if(is_toolguy)
         {
             ui->send->setEnabled(1);
-            ui->input->setStyleSheet("background-color: rgba(100, 149, 237, 60);");//输入区天蓝色
+            ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 60);");//输入区天蓝色
             ui->input->setPlaceholderText(wordsObj["toolguy_input_mess"].toArray()[language_flag].toString());
         }
         else
@@ -1370,8 +1387,10 @@ void Widget::ui_state_normal()
         ui->input->setStyleSheet("background-color: white;");
         ui->input->setReadOnly(0);
         ui->input->setFocus();//设置输入区为焦点
+        ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+
         ui->output->setReadOnly(1);
-        if(!is_debug){ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());}
+        
     }
     else if(ui_mode == COMPLETE_)
     {
@@ -1391,7 +1410,8 @@ void Widget::ui_state_normal()
         ui->input->setPlaceholderText(wordsObj["Please modify any text above"].toArray()[language_flag].toString());
         ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");//设置背景为橘黄色
         ui->input->setReadOnly(1);
-        if(!is_debug){ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());}
+        ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
+
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
     }
@@ -1401,6 +1421,9 @@ void Widget::ui_state_normal()
     }
     if(is_api){change_api_dialog(0);}//api模式不要解码设置
     else{change_api_dialog(1);}
+
+    is_debuging = false; // 退出debug中状态
+    emit ui2bot_debuging(is_debuging); //传递debug中状态
 }
 
 //录音界面状态
@@ -1585,3 +1608,18 @@ void Widget::get_date()
     //添加额外停止标志
     addStopwords();
 }
+
+// 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
+void Widget::debugButton_enable()
+{
+    if(is_run || ui_mode == SERVER_ || is_api || audio_time != 0)
+    {
+        debugButton->setEnabled(0);
+    }
+    else
+    {
+        debugButton->setEnabled(1);
+    }
+}
+    
+    

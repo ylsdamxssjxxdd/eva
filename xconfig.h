@@ -2,6 +2,7 @@
 #define XCONFIG_H
 
 #include <QDebug>
+#include <QColor>
 #include <thread>
 #include <vector>
 #include <array>
@@ -37,6 +38,12 @@
 
 //数独题目
 #define DEFAULT_SHUDU "\n+---+---+---+---+---+---+\n| 4 |   |   | 2 |   |   |\n+---+---+---+---+---+---+\n|   | 1 |   |   |   | 3 |\n+---+---+---+---+---+---+\n|   |   | 3 |   | 1 |   |\n+---+---+---+---+---+---+\n| 2 |   |   | 3 |   |   |\n+---+---+---+---+---+---+\n|   |   | 1 |   | 4 |   |\n+---+---+---+---+---+---+\n|   | 3 |   |   |   | 5 |\n+---+---+---+---+---+---+"
+
+//颜色
+const QColor SIGNAL_BLUE(0, 0, 255); // 蓝色
+const QColor SYSTEM_BLUE(0, 0, 255, 200); // 蓝紫色
+const QColor TOOL_BLUE(0, 191, 255); // 天蓝色
+const QColor NORMAL_BLACK(0, 0, 0); // 黑色
 
 //约定内容
 struct DATES{

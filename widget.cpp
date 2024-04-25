@@ -192,9 +192,16 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
-
     if(ui_mode == SERVER_){return;}
-    
+
+    //如果是debuging中的状态
+    if(ui->send->text() == "Next")
+    {
+        emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+        emit ui2bot_push();//开始推理
+        return;
+    }
+
     reflash_state("ui:" + wordsObj["clicked send"].toArray()[language_flag].toString(),SIGNAL_);
     QString input;
 
@@ -223,12 +230,12 @@ void Widget::on_send_clicked()
                 //添加引导题
                 if(help_input)
                 {
-                    emit ui2bot_input({makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({"\n" + makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
                     help_input = false;
                 }
                 else
                 {
-                    emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
                 }
             }
             else//完成测试完成,没有题目剩余
@@ -266,7 +273,7 @@ void Widget::on_send_clicked()
                 
                 return;
             }
-            emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
+            emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
         }
         else if(is_toolguy)//如果你是工具人
         {
@@ -294,7 +301,7 @@ void Widget::on_send_clicked()
                 is_query = true;
                 input = query_list.at(0);
                 query_list.removeFirst();
-                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
             }
             //-----------------------如果是拖进来的文件-------------------------
             else if(input.contains("file:///") && (input.contains(".png") || input.contains(".jpg")))
@@ -304,7 +311,7 @@ void Widget::on_send_clicked()
 
                 showImage(imagepath);//显示文件名和图像
 
-                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(imagepath);
             }
             //-----------------------截图的情况-------------------------
@@ -312,10 +319,10 @@ void Widget::on_send_clicked()
             {
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
                 showImage(cut_imagepath);//显示文件名和图像
-                emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
                 emit ui2bot_imagepath(cut_imagepath);
             }
-            //-----------------------正常情况----------------------------
+            //-----------------------一般情况----------------------------
             else
             {
                 //如果工具返回的结果不为空,加思考而不加前缀和后缀
@@ -323,11 +330,11 @@ void Widget::on_send_clicked()
                 {
                     input = tool_result + "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
                     tool_result="";
-                    emit ui2bot_input({"",input,""},0);
+                    emit ui2bot_input({"\n",input,"\n"},0);
                 }
                 else
                 {
-                    emit ui2bot_input({ui_DATES.input_pfx+ ":\n",input,ui_DATES.input_sfx + ":\n"},0);
+                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);
                 }
             }
         }
@@ -339,8 +346,9 @@ void Widget::on_send_clicked()
     }
 
     is_run =true;//模型正在运行标签
-    emit ui2bot_push();//开始推理
     ui_state_pushing();//推理中界面状态
+    emit ui2bot_push();//开始推理
+    
 }
 
 
@@ -405,7 +413,7 @@ void Widget::recv_pushover()
                 {
                     is_toolguy = true;
                     ui->send->setEnabled(1);
-                    ui->input->setStyleSheet("background-color: rgba(100, 149, 237, 60);");//输入区天蓝色
+                    ui->input->setStyleSheet("background-color: rgba(TOOL_BLUE, 60);");//输入区天蓝色
                     ui->input->setPlaceholderText(wordsObj["toolguy_input_mess"].toArray()[language_flag].toString());
                     ui->input->removeEventFilter(this);//禁用输入区右击
                 }
@@ -574,6 +582,15 @@ void Widget::on_reset_clicked()
 #ifdef BODY_USE_SPEECH
     speech->stop();//停止朗读
 #endif
+
+    //debuging状态下，点击重置按钮直接退出debuging状态
+    if(is_debuging)
+    {
+        is_debuging = false;
+        is_run = false;
+        ui_state_normal();//待机界面状态
+        return;
+    }
     
     //如果模型正在推理就改变模型的停止标签
     if(is_run)
@@ -598,7 +615,7 @@ void Widget::on_reset_clicked()
         ui_assistant_history.clear();
         if(ui_mode == CHAT_)
         {
-            reflash_output(ui_DATES.system_prompt,0,QColor(0, 0, 255, 150));
+            reflash_output(ui_DATES.system_prompt,0,SYSTEM_BLUE);
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
         }
         else
@@ -618,7 +635,7 @@ void Widget::on_reset_clicked()
     //如果约定没有变则不需要预解码
     if(ui_mode == CHAT_ && ui_DATES.system_prompt == history_prompt)
     {
-        reflash_output(bot_predecode,0,QColor(0, 0, 255, 150));//直接展示预解码的内容
+        reflash_output(bot_predecode,0,SYSTEM_BLUE);//直接展示预解码的内容
         is_datereset = false;
         emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
     }
@@ -1040,8 +1057,8 @@ void Widget::api_send_clicked_slove()
                     ui_user_history << wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString();//问题
                     ui_assistant_history << wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":");//答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString(), 0, QColor(0, 0, 255, 150));
-                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":"), 0, QColor(0, 0, 255, 150));
+                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString(), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":"), 0, SYSTEM_BLUE);
                 }
                 help_input = false;
             }
@@ -1067,9 +1084,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=1;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
-        reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_query)
     {
@@ -1095,9 +1112,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=ui_SETTINGS.npredict;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
-        reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_toolguy)//如果你是工具人
     {
@@ -1115,7 +1132,7 @@ void Widget::api_send_clicked_slove()
         {
             ui_assistant_history << "observation: " + input;
         }
-        reflash_output(ui_assistant_history.last() + "\n", 0, QColor(100, 149, 237));//天蓝色表示工具返回结果
+        reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
 
         QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
         is_run =true;//模型正在运行标签
@@ -1143,9 +1160,9 @@ void Widget::api_send_clicked_slove()
             data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
             
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
-            reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
+            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+            reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
         }
         //
         //来补充链接模式的各种情况/上传图像/图像文件
@@ -1164,7 +1181,7 @@ void Widget::api_send_clicked_slove()
                 {
                     ui_assistant_history << "observation: " + tool_result;
                 }
-                reflash_output(ui_assistant_history.last() + "\n", 0, QColor(100, 149, 237));//天蓝色表示工具返回结果
+                reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
                 
                 tool_result="";
 
@@ -1178,9 +1195,9 @@ void Widget::api_send_clicked_slove()
                 ui_user_history << input;
                 data.user_history = ui_user_history;
                 data.assistant_history = ui_assistant_history;
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
-                reflash_output(ui_user_history.last(), 0, QColor(0, 0, 0));//输入用黑色
-                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, QColor(0, 0, 255, 150));//前后缀用蓝色
+                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+                reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             }
@@ -1194,9 +1211,9 @@ void Widget::api_send_clicked_slove()
             
     }
     
-    emit ui2net_push();
     is_run =true;//模型正在运行标签
     ui_state_pushing();
+    emit ui2net_push();
 }
 //传递知识库的描述
 void Widget::recv_embeddingdb_describe(QString describe)
@@ -1296,22 +1313,14 @@ void Widget::onSplitterMoved(int pos, int index)
 //debug按钮点击响应，注意只是改变一个标签，尽量减少侵入
 void Widget::ondebugButton_clicked()
 {
-    // 只有在正常状态才可以点击debug按钮
-    if(is_run)
-    {return ;}
     is_debug = debugButton->isChecked();
-    emit ui2bot_debug(is_debug); //传递debug标志
 
-    //改变发送按钮文字
-    if(is_debug)
-    {
-        ui->send->setText("Next");
-    }
-    else if(ui_mode == CHAT_)
+    //还原状态
+    if(!is_debug && ui_mode == CHAT_)
     {
         ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
     }
-    else if(ui_mode == COMPLETE_)
+    else if(!is_debug && ui_mode == COMPLETE_)
     {
         ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
     }

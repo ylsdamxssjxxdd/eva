@@ -57,7 +57,10 @@
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
-7. ...
+7. debug状态
+- 下一个词的预测由用户手动控制，可以获取更多模型运行的信息
+
+8. ...
 
 ## 源码编译
 1. 配置环境
@@ -105,6 +108,11 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - 链接流程
     - 【ui】->用户右击装载->配置ip和端点->点击确认->锁定界面->记录配置->连接测试->测试通过->解锁界面->END
     - 链接状态下的其它流程与上面类似，【bot】替换为【net】
+- debug流程
+    - 拉动状态区向上可弹出debug按钮，启用后模型的最大输出长度强制为1
+    - 用户开启debug按钮，第一次点击发送后，进入debuging状态
+    - debuging中点击Next不再添加任何内容，而是由模型继续执行预测
+    - 当检测到停止标志或手动停止时才能退出debuging状态
 
 ## 概念
 - eva 机体: 由拘束器（行动纲领）和素体（llama.cpp）组成，大模型是驾驶员，用户是指挥员

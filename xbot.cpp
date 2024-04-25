@@ -126,25 +126,17 @@ void xBot::run()
 
         if(!is_complete && !is_antiprompt)//前缀,如果已经检测出用户昵称则不加前缀
         {
-            // if(is_first_input)
-            // {
-            //     line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true);//前缀不带开始标志,因为初始化embd_inp时已经添加
-            // }
-            // else
-            // {
-            line_pfx = ::llama_tokenize(ctx, "\n" + input.input_prefix.toStdString(), false, true); // 暂时都不添加开始标志了
-            // }
-            
+            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString(), false, true); // 暂时都不添加开始标志了
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
         //qDebug()<<"插入line_pfx后embd_inp"<<view_embd(ctx,embd_inp);
-        line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, false);//用户输入,这里不处理特殊标志
+        line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, true);//用户输入,最后一个true表示会将特殊token整个分词
         embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
         //qDebug()<<"插入line_inp后embd_inp"<<view_embd(ctx,embd_inp);
 
         if(!is_complete)//后缀
         {
-            line_sfx = ::llama_tokenize(ctx, "\n" + input.input_suffix.toStdString(), false, true);
+            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), false, true);
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
         //qDebug()<<"插入line_sfx后embd_inp"<<view_embd(ctx,embd_inp);
@@ -176,8 +168,7 @@ void xBot::run()
         batch_count = 0;//被批解码的token数
         singl_count = 0;//被单解码的token数
         n_remain= gpt_params_.n_predict;//-1的话可以无限输出
-        if(is_test){n_remain=1;}//测试时最大输出长度强制为1
-
+        if(is_test || is_debuging){n_remain=1;}//测试时最大输出长度强制为1
         //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
         if(gpt_params_.n_ctx > n_ctx_train)
         {
@@ -188,7 +179,7 @@ void xBot::run()
         else{ga_n = 1;ga_w = 512;}
 
         int o1 = stream();
-        while(o1)//如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
+        while(o1 == 1)//如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
         {
             n_past++;//置入一个空的记忆来缓解
             batch_count--;//空的不算数
@@ -197,12 +188,16 @@ void xBot::run()
             fail++;
             //qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
         }
+
+        if(!is_debuging || o1 == -1)//debuging状态就是不让bot发送pushover信号，如果是遇到停止标志则可以
+        {
+            emit bot2ui_pushover();//推理完成的信号
+        }
         
-        emit bot2ui_pushover();//推理完成的信号
     }
 }
 
-//流式输出
+//流式输出，0表示正常，-1表示遇到停止标志，1表示解码失败
 int xBot::stream()
 {
     is_stop = false;
@@ -445,7 +440,7 @@ int xBot::stream()
                                     + wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                 //emit bot2ui_output(QString::fromUtf8(sstr.c_str()));//输出这个结束标志看看是什么
                 //qDebug() << batch_count << batch_time << singl_count << single_timer.nsecsElapsed()/1000000000.0 - batch_time;
-                return 0;
+                return -1;
             }
             else
             {
@@ -479,7 +474,7 @@ int xBot::stream()
                         }
                         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
                         //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-                        return 0;
+                        return -1;
                         
                     }
                     list_num++;
@@ -505,7 +500,7 @@ int xBot::stream()
     }//这里是推理循环
 
     //这里是达到最大预测长度的情况
-    if(!is_test)//测试的时候不输出这个
+    if(!is_test && !is_debuging)//测试的时候不输出这个
     {
         emit bot2ui_state("bot:"+ wordsObj["arrive max predict length"].toArray()[language_flag].toString() + " " + QString::number(gpt_params_.n_predict));
         emit bot2ui_state("bot:" + wordsObj["predict"].toArray()[language_flag].toString() + wordsObj["stop"].toArray()[language_flag].toString()+" " +wordsObj["single decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " +wordsObj["batch decode"].toArray()[language_flag].toString()+ QString(":")+QString::number(batch_count/batch_time,'f',2)+ " token/s",SUCCESS_);
@@ -770,7 +765,7 @@ void xBot::preDecode()
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
 
-    emit bot2ui_output(QString::fromStdString(token_str),0,QColor(0, 0, 255, 150));//将预解码内容贴到输出区
+    emit bot2ui_output(QString::fromStdString(token_str),0,SYSTEM_BLUE);//将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));//传递模型预解码内容
 }
 
@@ -852,19 +847,19 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是空则认为是工具
         if(input.input_prefix==""&&input.input_suffix=="")
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(100, 149, 237));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, TOOL_BLUE);
         }
         else if(context_pos == 0)//用户昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255, 150));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);
         }
         else if(context_pos == 1)//输入内容
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 0));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, NORMAL_BLACK);
         }
         else if(context_pos == 2)//模型昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, QColor(0, 0, 255, 150));
+            emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);
         }
     }
 }
@@ -1092,8 +1087,8 @@ void xBot::apply_date(DATES date)
     extra_stop_words = date.extra_stop_words;
 }
 
-//传递debug标志
-void xBot::recv_debug(bool is_debug_)
+//传递debug中状态
+void xBot::recv_debuging(bool is_debuging_)
 {
-    is_debug = is_debug_;
+    is_debuging = is_debuging_;
 }

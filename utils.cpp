@@ -640,12 +640,19 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
             }   
             else if(!is_recodering)
             {
-                recordAudio();//开始录音
-                is_recodering = true;
+                if(!is_debug)
+                {
+                    recordAudio();//开始录音
+                    is_recodering = true;
+                }
+                
             }
             else if(is_recodering)
             {
-                stop_recordAudio();//停止录音
+                if(!is_debug)
+                {
+                    stop_recordAudio();//停止录音
+                }
             }
             
             return true;

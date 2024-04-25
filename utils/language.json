@@ -139,7 +139,7 @@
         "try": ["尝试","try "],
         "load lora": ["挂载lora","load lora "],
         "right click and choose lora": ["右击选择与该模型绑定的lora模型","right click and choose lora "],
-        "chat or right click to choose question": ["输入聊天内容,或右击选择问题,或按f1截图,或按f2录音","chat, or right click to choose question, or press F1 screenshot, or press F2 to record "],
+        "chat or right click to choose question": ["输入聊天内容,或右击选择问题,或按f1截图,或按f2录音","chat, or right click to choose question, or press F1 screenshot, or press F2 record "],
         "This token will be sent to the next decoding": ["该token将送入下一次解码","this token will be sent to the next decoding "],
         "incompleteUTF8 detected": ["检测到不完整的utf8字符","incompleteUTF8 detected "],
         "model": ["模型","model "],
@@ -385,6 +385,7 @@
         "the result has been saved in the source wav file directory": ["结果已保存在源wav文件目录","the result has been saved in the source wav file directory"],
         "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
         
+        "debug_input_placeholder": ["点击Next预测下一个词","click Next to predict next word"],
         "---end---": ["---end---","---end--- "]
     }
 }

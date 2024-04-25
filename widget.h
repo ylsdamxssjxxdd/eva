@@ -105,8 +105,10 @@ public:
     bool is_query =false;//连续回答标签
 
     //debug相关
+    void debugButton_enable();// 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
     CustomSwitchButton *debugButton; // debug按钮
-    bool is_debug = false;
+    bool is_debug = false;//debug启用标志
+    bool is_debuging = false;//debug运行中标志
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板
@@ -316,7 +318,7 @@ public:
 
 //发给模型的信号
 signals:
-    void ui2bot_debug(bool is_debug_);//传递debug标志
+    void ui2bot_debuging(bool is_debuging_);//传递debug中状态
     void ui2bot_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void ui2bot_language(int language_flag_);//传递使用的语言
     void ui2bot_imagepath(QString image_path);//传递图片路径
