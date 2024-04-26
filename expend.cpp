@@ -111,7 +111,7 @@ void Expend::init_expend()
 {
     this->setWindowTitle(wordsObj["expend window"].toArray()[language_flag].toString());//标题
     ui->tabWidget->setTabText(0,wordsObj["introduction"].toArray()[language_flag].toString());//软件介绍
-    ui->tabWidget->setTabText(1,wordsObj["model vocab"].toArray()[language_flag].toString());//模型词表
+    ui->tabWidget->setTabText(1,wordsObj["model brain"].toArray()[language_flag].toString());//模型记忆
     ui->tabWidget->setTabText(2,wordsObj["model log"].toArray()[language_flag].toString());//模型日志
     ui->tabWidget->setTabText(3,wordsObj["model"].toArray()[language_flag].toString() + wordsObj["quantize"].toArray()[language_flag].toString());//模型量化
     ui->tabWidget->setTabText(4,wordsObj["knowledge"].toArray()[language_flag].toString());//知识库
@@ -120,8 +120,12 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(7,wordsObj["text2voice"].toArray()[language_flag].toString());//文转声
 
     //大量的工作...来写吧
+    //模型记忆
+    ui->vocab_groupBox->setTitle(wordsObj["vocab_groupBox_title"].toArray()[language_flag].toString());
+    ui->brain_groupBox->setTitle(wordsObj["brain_groupBox_title"].toArray()[language_flag].toString());
     //软件介绍
     showReadme();
+    
     //模型量化
     ui->model_quantize_label->setText(wordsObj["model_quantize_label_text"].toArray()[language_flag].toString());
     ui->model_quantize_label_2->setText(wordsObj["model_quantize_label_2_text"].toArray()[language_flag].toString());
@@ -187,14 +191,19 @@ void Expend::init_expend()
 }
 
 //用户切换选项卡时响应
-//0软件介绍,1模型词表,2模型日志
+//0软件介绍,1模型记忆,2模型日志
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    if(index==1 && is_first_show_this_vocab)//点模型词表
+    if(index==1)//点模型记忆
     {
-        ui->vocab_card->setPlainText(vocab);
-        is_first_show_this_vocab = false;
+        if(is_first_show_this_vocab)
+        {
+            ui->vocab_card->setPlainText(vocab);
+            is_first_show_this_vocab = false;
+        }
+        reflash_brain_matrix();
     }
+
     if(index==0 && is_first_show_info)//第一次点软件介绍
     {
         is_first_show_info = false;
@@ -225,7 +234,7 @@ void Expend::recv_vocab(QString vocab_)
 {
     vocab = vocab_;
     is_first_show_this_vocab = true;
-    
+    init_brain_matrix();
 }
 
 //通知显示增殖窗口
@@ -1755,4 +1764,62 @@ void Expend::voice_source_change()
     }
 
     emit expend2ui_voiceparams(Voice_Params_);
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------记忆相关--------------------------------
+//-------------------------------------------------------------------------
+
+//传递记忆向量和上下文长度
+void Expend::recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash)
+{
+    if(nctx!=nctx_){init_brain_matrix();}
+    nctx = nctx_;
+    Brain_vector = Brain_vector_;
+
+    if(reflash && ui->tabWidget->currentIndex()==1)
+    {
+        reflash_brain_matrix();
+    }
+    
+}
+
+//重置记忆矩阵(新词表过来时/nctx变化时)
+void Expend::init_brain_matrix()
+{
+    ui->brain_tableWidget->clear();
+    ui->brain_tableWidget->setColumnCount(3);//设置多少列
+    ui->brain_tableWidget->setRowCount(nctx);//创建很多行
+    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence","token","word"});//设置列名
+}
+
+//刷新一次记忆矩阵
+void Expend::reflash_brain_matrix()
+{
+    init_brain_matrix();
+    QTableWidgetItem *lastItem = nullptr; // 初始化指向最后一个单元格的指针
+    for(int i=0;i<int(Brain_vector.size()); ++i)
+    {
+        QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(Brain_vector.at(i).id));
+        newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
+        newItem1->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        ui->brain_tableWidget->setItem(i, 0, newItem1);
+
+        QTableWidgetItem *newItem2 = new QTableWidgetItem(QString::number(Brain_vector.at(i).token));
+        newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
+        newItem2->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        ui->brain_tableWidget->setItem(i, 1, newItem2);
+
+
+        QTableWidgetItem *newItem3 = new QTableWidgetItem(Brain_vector.at(i).word.replace("\n","\\n"));
+        newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
+        newItem3->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        ui->brain_tableWidget->setItem(i, 2, newItem3);
+
+        lastItem = newItem3; // 更新最后一个单元格的引用
+    }
+    if (lastItem != nullptr) {
+        // 滚动到最后一个添加的单元格
+        ui->brain_tableWidget->scrollToItem(lastItem);
+    }
 }

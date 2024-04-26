@@ -257,11 +257,11 @@
         "embeddingdb describe": ["知识库描述","knowledge database describe"],
         "qurey&timeuse": ["查询&计算耗时","qurey&timeuse"],
         "quantize": ["量化","quantize "],
-        "text2image": ["文生图","text2image"],
-        "text to image": ["文生图","txt2img"],
-        "image to image": ["图生图","img2img"],
-        "voice2text": ["声转文","voice2text"],
-        "text2voice": ["文转声","text2voice"],
+        "text2image": ["文生图","text2image "],
+        "text to image": ["文生图","txt2img "],
+        "image to image": ["图生图","img2img "],
+        "voice2text": ["声转文","voice2text "],
+        "text2voice": ["文转声","text2voice "],
         "brain size": ["记忆容量","brain size "],
         "send_tooltip": ["ctrl + 回车","ctrl + enter"],
         "system_label_tooltip": ["模型将预先解码的文字，相当于模型的背景知识和角色限定","The model will predecode the text, which is equivalent to the model's background knowledge and role constraints "],
@@ -387,6 +387,9 @@
         
         "debug_input_placeholder": ["点击Next预测下一个词，或者按ctrl+enter连续预测","click Next to predict next word, or press Ctrl+enter to continuously predict"],
         "caculate token": ["处理token数量","Number of tokens processed"],
+        "model brain": ["模型记忆","model brain "],
+        "brain_groupBox_title": ["记忆 (缓存的上下文)","Brain (context cache)"],
+        "vocab_groupBox_title": ["词表 (模型拥有的所有token以及其对应的词)","Vocab (all tokens owned by the model and their corresponding words)"],
         "---end---": ["---end---","---end--- "]
     }
 }

@@ -200,8 +200,21 @@ signals:
 private slots:
     void voice_enable_change();//用户点击启用声音选项响应
     void voice_source_change();//用户切换音源响应
+
+
+//-------------------------------------------------------------------------
+//----------------------------------记忆相关--------------------------------
+//-------------------------------------------------------------------------
+
+public:
+    int nctx = 0;
+    std::vector<Brain_Cell> Brain_vector;
+    void init_brain_matrix();//重置记忆矩阵(新词表过来时/nctx变化时)
+    void reflash_brain_matrix();//刷新一次记忆矩阵
+
+public slots:
+    void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);//传递记忆向量和上下文长度
+
+
 };
-
-
-
 #endif // EXPEND_H

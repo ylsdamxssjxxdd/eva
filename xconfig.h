@@ -261,4 +261,12 @@ struct Voice_Params
     QString voice_name = "";
 };
 
+//记忆单元（当前记忆）
+struct Brain_Cell
+{
+    int id;//在缓存中的序号
+    int token;//缓存的词索引
+    QString word;//词索引对应的词
+};
+
 #endif

@@ -57,7 +57,7 @@
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
-7. debug状态
+7. debug模式
 - 下一个词的预测由用户手动控制，可以获取更多模型运行的信息
 
 8. ...

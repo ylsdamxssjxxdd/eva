@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
     //------------------实例化主要节点------------------
     Widget w;//窗口实例
-    Expend expend;//扩展实例
+    Expend expend;//增殖窗口实例
     xBot bot;//模型实例
     xNet net;//链接实例
     xTool tool;//工具实例
@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
+    qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
@@ -87,7 +88,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
 #endif
 
-    //------------------连接扩展和窗口-------------------
+    //------------------连接扩展和增殖窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
@@ -98,8 +99,9 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);//传递知识库的描述
     QObject::connect(&expend, &Expend::expend2ui_voiceparams,&w,&Widget::recv_voiceparams);//传递文转声参数
 
-    //------------------连接bot和窗口-------------------
+    //------------------连接bot和增殖窗口-------------------
     QObject::connect(&bot,&xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
+    QObject::connect(&bot,&xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector);//传递记忆向量和上下文长度
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
@@ -120,7 +122,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_func_arg,&tool,&xTool::recv_func_arg);//传递函数名和参数
     QObject::connect(&w, &Widget::ui2tool_push,&tool, [&tool]() {tool.start();});//开始推理,利用对象指针实现多线程
 
-    //------------------连接扩展和tool-------------------
+    //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
     QObject::connect(&expend, &Expend::expend2tool_serverapi,&tool,&xTool::recv_serverapi);//传递嵌入服务端点
 
