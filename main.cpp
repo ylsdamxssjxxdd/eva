@@ -35,6 +35,7 @@ int main(int argc, char *argv[])
     expend.max_thread = w.max_thread;
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
+    if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
     llama_log_set(bot_log_callback,&bot);//设置回调
 #ifdef BODY_USE_CUBLAST
     gpuChecker gpuer;//监测显卡信息

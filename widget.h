@@ -110,6 +110,8 @@ public:
     bool is_debug = false;//debug启用标志
     bool is_debuging = false;//debug运行中标志
     int debuging_times = 1;//debug运行中点击next的次数
+    bool is_debug_query = false;//debug模式，处于query流程中的标签
+    bool is_debug_tool1 = false;//debug模式，发送函数给tool的标签
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板

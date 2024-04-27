@@ -386,10 +386,11 @@
         "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
         
         "debug_input_placeholder": ["点击Next预测下一个词，或者按ctrl+enter连续预测","click Next to predict next word, or press Ctrl+enter to continuously predict"],
+        "debug_tool1": ["将解析的json发送给tool处理","Send the parsed JSON to the tool for processing "],
         "caculate token": ["处理token数量","Number of tokens processed"],
         "model brain": ["模型记忆","model brain "],
         "brain_groupBox_title": ["记忆 (缓存的上下文)","Brain (context cache)"],
-        "vocab_groupBox_title": ["词表 (模型拥有的所有token以及其对应的词)","Vocab (all tokens owned by the model and their corresponding words)"],
+        "vocab_groupBox_title": ["词表 (模型训练时的所有token以及其对应的词)","Vocab (all tokens during the model training)"],
         "---end---": ["---end---","---end--- "]
     }
 }

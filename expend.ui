@@ -96,7 +96,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="brain_groupBox">
          <property name="title">
-          <string>记忆(缓存的上下文)</string>
+          <string>记忆 (缓存的上下文)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="spacing">
@@ -123,7 +123,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QGroupBox" name="vocab_groupBox">
          <property name="title">
-          <string>词表(所有token对应的词)</string>
+          <string>词表 (模型训练时的所有token以及其对应的词)</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="spacing">

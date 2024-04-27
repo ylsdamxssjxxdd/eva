@@ -165,13 +165,21 @@ void xBot::run()
         //qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
 
         // 用户刚点击发送按钮进入debuging状态时（通过前后缀不为空知道是刚点击）
-        if(is_debuging && input.input_prefix != "" && input.input_suffix != "")
+        // 针对工具前后缀使用\n标志
+        if(is_debuging)
         {
-            bot2ui_state("DEBUGING 0 ", DEBUGING_);
-            remain_n_remain = gpt_params_.n_predict;//用来记录一次debuging过程的n_remain值
-            current_output = "";//清空上一轮的输出记录
+            if(!is_test)
+            {
+                if((input.input_prefix != "" && input.input_suffix != ""))
+                {
+                    bot2ui_state("DEBUGING 0 ", DEBUGING_);
+                    remain_n_remain = gpt_params_.n_predict;//用来记录一次debuging过程的n_remain值
+                    current_output = "";//清空上一轮的输出记录
+                }
+            }
+            
         }
-
+        
         //-------------------------------------------------------------
         //---------------------------流式输出---------------------------
         //-------------------------------------------------------------
@@ -198,7 +206,8 @@ void xBot::run()
             Brain_vector.push_back({n_past, -1, ""});
             batch_count--;//空的不算数
             emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
-            emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx);
+            if(is_debuging){emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);}//1强制刷新记忆矩阵
+            else{emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx);}
             o1 = stream();
             fail++;
             //qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
@@ -305,8 +314,8 @@ int xBot::stream()
 
                     n_past -= n_discard;
                     emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
-                    emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx);
-
+                    emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);//1强制刷新记忆矩阵
+                    
                     if(!is_complete)
                     {
                         emit bot2ui_arrivemaxctx(1);//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
@@ -386,7 +395,9 @@ int xBot::stream()
                 {
                     Brain_vector.push_back({n_past - int(embd.size()) + i + 1, embd.at(i), QString::fromStdString(llama_token_to_piece(ctx, embd.at(i)))});
                 }
-                emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx);
+
+                if(is_debuging){emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);}//1强制刷新记忆矩阵
+                else{emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx);}
                 emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);
                 
             }
@@ -956,8 +967,8 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
             std::string sstr = llama_token_to_piece(ctx, token);
             token_str += sstr;
         }
-        //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是空则认为是工具
-        if(input.input_prefix==""&&input.input_suffix=="")
+        //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
+        if(input.input_prefix=="\n"&&input.input_suffix=="\n")
         {
             emit bot2ui_output(QString::fromStdString(token_str), 0, TOOL_BLUE);
         }

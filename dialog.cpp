@@ -1340,12 +1340,12 @@ void Widget::ui_state_pushing()
     debugButton_enable();
     if(is_debug)
     {
+        is_debuging = true; // 进入debug中状态
+        emit ui2bot_debuging(is_debuging); //传递debug中状态
         ui->send->setText("Next");
         ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
         ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
         ui->input->setReadOnly(1);
-        is_debuging = true; // 进入debug中状态
-        emit ui2bot_debuging(is_debuging); //传递debug中状态
     }
 }
 

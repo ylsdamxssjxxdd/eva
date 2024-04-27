@@ -199,18 +199,6 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 void Widget::on_send_clicked()
 {
     if(ui_mode == SERVER_){return;}
-
-    //如果是debuging中的状态
-    if(ui->send->text() == "Next")
-    {
-        ui->send->setEnabled(0);
-        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
-        emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-        emit ui2bot_push();//开始推理
-        debuging_times ++;
-        return;
-    }
-
     reflash_state("ui:" + wordsObj["clicked send"].toArray()[language_flag].toString(),SIGNAL_);
     QString input;
 
@@ -231,8 +219,26 @@ void Widget::on_send_clicked()
             ui->reset->setEnabled(0);//预解码时不允许重置
             emit ui2bot_input({"",input,""},0);//传递用户输入  
         }
+        else if(is_debug_tool1)
+        {
+            ui->send->setEnabled(0);
+            reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+            is_debug_tool1 = false;
+            debuging_times ++;
+            emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
+            emit ui2tool_push();//调用tool
+            return;
+        }
         else if(is_test)
         {
+            //debug相关
+            if(ui->send->text() == "Next")
+            {
+                ui->send->setEnabled(0);
+                reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+                debuging_times ++;
+            }
+
             if(test_question_index.size()>0)//测试中,还有题目剩余
             {
                 input = QString::number(test_count+1) + ". " +test_list_question.at(test_question_index.at(0));
@@ -266,10 +272,25 @@ void Widget::on_send_clicked()
         }
         else if(is_query)
         {
+            //debug相关
+            if(ui->send->text() == "Next")
+            {
+                ui->send->setEnabled(0);
+                reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+                debuging_times ++;
+                if(is_debug_query)
+                {
+                    emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                    emit ui2bot_push();//开始推理
+                    return;
+                }
+            }
+            
             if(query_list.size()>0)//连续回答中
             {
                 input = query_list.at(0);
                 query_list.removeFirst();
+                is_debug_query = true;
             }
             else//连续回答完成
             {
@@ -299,6 +320,7 @@ void Widget::on_send_clicked()
             {
                 input = ui->input->toPlainText().toUtf8().data();ui->input->clear(); // 获取用户输入
             }
+
             //-----------------------Q14连续回答相关----------------------------
             if(input.contains(wordsObj["Q14"].toArray()[language_flag].toString().split(">")[0]))
             {
@@ -308,6 +330,7 @@ void Widget::on_send_clicked()
                     return;
                 }
                 is_query = true;
+                is_debug_query = true;
                 input = query_list.at(0);
                 query_list.removeFirst();
                 emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
@@ -340,9 +363,33 @@ void Widget::on_send_clicked()
                     input = tool_result + "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
                     tool_result="";
                     emit ui2bot_input({"\n",input,"\n"},0);
+
+                    //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
+                    if(ui->send->text() == "Next")
+                    {
+                        ui->send->setEnabled(0);
+                        ui->reset->setEnabled(1);
+                        ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
+                        ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
+                        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+                        emit ui2bot_push();//开始推理
+                        debuging_times ++;
+                        return;
+                    }
                 }
                 else
                 {
+                    //如果是debuging中的状态
+                    if(ui->send->text() == "Next")
+                    {
+                        ui->send->setEnabled(0);
+                        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+                        emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                        emit ui2bot_push();//开始推理
+                        debuging_times ++;
+                        return;
+                    }
+
                     emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);
                 }
             }
@@ -350,8 +397,19 @@ void Widget::on_send_clicked()
     }
     else if(ui_mode == COMPLETE_)
     {
+        //如果是debuging中的状态
+        if(ui->send->text() == "Next")
+        {
+            ui->send->setEnabled(0);
+            reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
+            emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+            emit ui2bot_push();//开始推理
+            debuging_times ++;
+            return;
+        }
+ 
         input = ui->output->toPlainText().toUtf8().data();//直接用output上的文本进行推理
-        emit ui2bot_input({"",input,""},0);//传递用户输入
+        emit ui2bot_input({"<complete>",input,"<complete>"},0);//传递用户输入
     }
 
     is_run =true;//模型正在运行标签
@@ -382,6 +440,9 @@ void Widget::recv_pushover()
     }
     else if(is_query)//继续回答
     {
+        //debug相关
+        is_debug_query = false;
+
         if(is_api)
         {
             //待修复是net中maneger的问题
@@ -429,6 +490,15 @@ void Widget::recv_pushover()
                 //正常调用情况
                 else
                 {
+                    if(is_debuging)
+                    {
+                        ui->input->setPlaceholderText(wordsObj["debug_tool1"].toArray()[language_flag].toString() + " " + func_arg_list.first + "(" + func_arg_list.second + ")");
+                        ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 200);");
+                        ui->reset->setEnabled(0);
+                        is_debug_tool1 = true;
+                        return;
+                    }
+
                     emit ui2tool_func_arg(func_arg_list);//传递函数名和参数
                     emit ui2tool_push();//调用tool
                     //使用工具时解码动画不停
@@ -470,6 +540,14 @@ void Widget::recv_toolpushover(QString tool_result_)
         tool_result = tool_result_;
     }
     
+    if(is_debuging)
+    {
+        ui->input->setPlaceholderText(tool_result);
+        ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 200);");
+        ui->send->setEnabled(1);
+        return;
+    }
+
     on_send_clicked();//触发发送继续预测下一个词
 }
 
@@ -598,8 +676,13 @@ void Widget::on_reset_clicked()
         reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString()+ wordsObj["shut down"].toArray()[language_flag].toString(),SIGNAL_);
         is_debuging = false;
         is_run = false;
-        debuging_times = 1;
+        is_query = false;
+        is_debug_query = false;
+        is_debug_tool1 = false;
+        debuging_times = 1;//重置为一
         ui_state_normal();//待机界面状态
+        test_question_index.clear();//清空待测试问题列表
+        query_list.clear();//清空待回答列表
         return;
     }
     
@@ -1110,6 +1193,7 @@ void Widget::api_send_clicked_slove()
         {
             reflash_state("ui:" + wordsObj["query"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString(),SUCCESS_);
             is_query = false;
+            is_debug_query = false;
             is_run = false;
             //恢复
             ui->send->setEnabled(1);

@@ -111,7 +111,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - debug流程
     - 拉动状态区向上可弹出debug按钮
     - 用户开启debug按钮，第一次点击发送后，进入debuging状态
-    - debuging中点击Next不再传递任何上下文，而是由模型继续执行下一次解码和采样
+    - debuging中点击Next不再传递任何上下文(自动任务除外)，而是由模型继续执行下一次解码和采样
     - 当 检测到停止标志/达到最大输出长度/手动停止 时才能退出debuging状态
 
 ## 概念
