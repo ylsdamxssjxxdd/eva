@@ -45,7 +45,7 @@ jobs:
             host: 'windows'   # 主机系统
             target: ${{ matrix.qt_target }} # 目标平台
             arch: ${{ matrix.qt_arch }} # 架构和编译器
-            dir: 'D:\'     # 安装目录.
+            dir: 'D:\'     # 安装目录
       # 拉取代码
       - uses: actions/checkout@v1
         with:
