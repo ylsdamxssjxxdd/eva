@@ -16,13 +16,8 @@ jobs:
       matrix:
         qt_ver: [5.15.2]
         qt_target: [desktop]
-        # qt_arch: [win64_msvc2017_64, win32_msvc2017, win32_mingw53,win32_mingw73]
-        qt_arch: [win64_msvc2017_64]
-        # 额外设置msvc_arch
-        include:
-          - qt_arch: win64_msvc2017_64
-            msvc_arch: x64
-            qt_arch_install: msvc2017_64
+        qt_arch: [win64_msvc2019_64]
+        qt_arch_install: [msvc2019_64]
 
     # 步骤
     steps:
@@ -30,13 +25,13 @@ jobs:
         id: WindowsCacheQt
         uses: actions/cache@v1
         with:
-          path: ../Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+          path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
           key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
       - name: setupQt
         if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
         shell: pwsh
         env:
-          QtPath: ../Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+          QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         run: |
           $qt_Path=${env:QtPath}
           echo "::set-env name=Qt5_Dir::$qt_Path"
@@ -44,15 +39,24 @@ jobs:
       # 安装Qt
       - name: Install Qt
         if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
-        # 使用外部action。这个action专门用来安装Qt
-        uses: jurplel/install-qt-action@v2.0.0
+        uses: jurplel/install-qt-action@v2
         with:
-          # Version of Qt to install
-          version: ${{ matrix.qt_ver }}
-          # Target platform for build
-          target: ${{ matrix.qt_target }}
-          # Architecture for Windows/Android
-          arch: ${{ matrix.qt_arch }}
+            version: ${{ matrix.qt_ver }} # 指定 Qt 版本
+            host: 'windows'   # 主机系统
+            target: ${{ matrix.qt_target }} # 目标平台
+            arch: ${{ matrix.qt_arch }} # 架构和编译器
+            dir: 'D:\'     # 安装目录
+    #   - name: Install Qt
+    #     if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
+    #     # 使用外部action。这个action专门用来安装Qt
+    #     uses: jurplel/install-qt-action@v2.0.0
+    #     with:
+    #       # Version of Qt to install
+    #       version: ${{ matrix.qt_ver }}
+    #       # Target platform for build
+    #       target: ${{ matrix.qt_target }}
+    #       # Architecture for Windows/Android
+    #       arch: ${{ matrix.qt_arch }}
       # 拉取代码
       - uses: actions/checkout@v1
         with:
