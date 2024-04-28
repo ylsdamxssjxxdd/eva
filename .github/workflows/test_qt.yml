@@ -15,8 +15,19 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Check if Qt is cached
+      id: check-qt-cache
+      run: |
+        if [ -d "D:\Qt" ]; then
+          echo "Qt is cached"
+          echo "cache-exists=true" >> $GITHUB_ENV
+        else
+          echo "Qt is not cached"
+          echo "cache-exists=false" >> $GITHUB_ENV
+
     # 设置 Qt 环境
     - name: Install Qt
+      if: env.cache-exists == 'false'
       uses: jurplel/install-qt-action@v2
       with:
         version: '5.15.2' # 指定 Qt 版本
@@ -31,7 +42,7 @@ jobs:
       with:
         path: D:\
         key: ${{ runner.os }}-QtCache-5.15.2
-        restore-keys: ${{ runner.os }}-QtCache-5.15.2
+        
     # 其他构建步骤，比如生成构建文件、编译、测试
     - name: Configure
       run: |
