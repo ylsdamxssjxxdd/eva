@@ -44,7 +44,6 @@ jobs:
       run: |
         cd build
         # 用于构建项目的命令，比如 make 或 nmake 或 jom
-        # 例如：nmake 或者 jom
 
     - name: Test
       run: |
