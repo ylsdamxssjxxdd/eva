@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2717
+#llama.cpp-b2751
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
@@ -32,13 +32,13 @@ project(body)
 set(TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)#将项目目录也作为头文件包含目录
 ######################################编译选项######################################
-option(LLAMA_CUBLAS                          "llama: use CUDA"                                  ON)#速度900%
-option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#速度150%,暂不支持sd
-option(LLAMA_VULKAN                          "llama: use Vulkan"                                OFF)#速度250%,暂不支持sd
-option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！
+option(LLAMA_CUBLAS                          "llama: use CUDA"                                  OFF)#速度900%
+option(LLAMA_CLBLAST                         "llama: use CLBlast"                               OFF)#速度150%,暂不支持sd加速
+option(LLAMA_VULKAN                          "llama: use Vulkan"                                OFF)#速度250%,暂不支持sd加速
+option(BODY_32BIT                            "build 32 bit"                                     OFF)#编译32位的选项！不能装载超过1G的模型
 #####################################处理编译选项####################################
 
-#这三个标志是互斥的
+#这几个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT)#编译32位的标志
 elseif(LLAMA_CUBLAS)
@@ -55,7 +55,7 @@ elseif(LLAMA_VULKAN)
     add_compile_definitions(GGML_USE_VULKAN)
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST)#编译clblast的标志
-else()
+else() # 什么都没有默认编译64bit版本
 #     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速, 报错
 endif()
 
@@ -95,7 +95,7 @@ add_subdirectory(llama.cpp)# 添加子项目主要库
 add_subdirectory(llama.cpp/examples/imatrix)# 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
 
-#先编译好server并放到utils目录下，等待eva打包进资源文件
+#先编译好server.exe等并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
@@ -106,7 +106,6 @@ add_subdirectory(stable-diffusion.cpp/examples/cli)#添加stable-diffusion.cpp�
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
 #####################################whisper.cpp相关#####################################
-#先编译好server并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
@@ -130,6 +129,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_
 
 # 第三方exe程序添加到资源文件
 set(THRIDEXE_FILE utils/thrid_exe.qrc)
+
 ######################################eva相关######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
@@ -153,7 +153,7 @@ utils/ui/ico.rc
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
 add_executable(${TARGET}
-#WIN32
+WIN32
 ${LOGO_FILES}
 ${RESOURCE_FILES}
 ${EXTRA_FILES}

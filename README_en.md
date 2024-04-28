@@ -55,7 +55,10 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
-7. ...
+7. Debug mode
+- The prediction of the next word is manually controlled by the user, which can obtain more information about the model's operation
+
+8. ...
 
 ## build
 1. Configure the environment
@@ -104,6 +107,12 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - Link process
     - [ui] -> User right-click load -> Configure IP and endpoints -> Click confirm -> Lock interface -> Record configuration -> Connection test -> Test passed -> Unlock interface -> END
     - The other processes in the linked state are similar to the above, replacing [bot] with [net]
+- Debug process
+    - Pull the state area upwards to pop up the debug button
+    - The user opens the debug button and enters the debugging state after clicking send for the first time
+    - Clicking Next in debugging will no longer pass any context (except for system behavior), but the model will continue to perform the next decoding and sampling
+    - The debugging state can only be exited when the stop flag is detected / the maximum output length is reached / manual stop is reached, and it is forced to execute when the tool is called
+
 
 ## concepts
 - eva: composed of a restraint device (action plan) and a body (llama. cpp), with the large model being the driver and the user being the commander
@@ -132,7 +141,6 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 
 
 ## to do
-- Use llamafile kernel
 - Adapt to Linux
 - Adapt to more CPU/GPU
 - ~~English version (completed)~~

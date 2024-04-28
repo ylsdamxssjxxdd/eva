@@ -111,8 +111,8 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - debug流程
     - 拉动状态区向上可弹出debug按钮
     - 用户开启debug按钮，第一次点击发送后，进入debuging状态
-    - debuging中点击Next不再传递任何上下文(自动任务除外)，而是由模型继续执行下一次解码和采样
-    - 当 检测到停止标志/达到最大输出长度/手动停止 时才能退出debuging状态
+    - debuging中点击Next不再传递任何上下文(系统行为除外)，而是由模型继续执行下一次解码和采样
+    - 当 检测到停止标志/达到最大输出长度/手动停止 时才能退出debuging状态，工具调用时强制执行
 
 ## 概念
 - eva 机体: 由拘束器（行动纲领）和素体（llama.cpp）组成，大模型是驾驶员，用户是指挥员
@@ -141,7 +141,6 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 
 
 ## 待办事项
-- 更换llamafile内核
 - 适配linux
 - 适配国产cpu/gpu
 - ~~英文版本（已完成）~~

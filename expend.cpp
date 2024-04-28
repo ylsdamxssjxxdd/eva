@@ -20,13 +20,13 @@ Expend::Expend(QWidget *parent) :
     ui->sd_prompt_textEdit->installEventFilter(this);//安装事件过滤器
     ui->sd_antiprompt_lineEdit->installEventFilter(this);//安装事件过滤器
 
-    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
-    ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 127);");//灰色
+    ui->vocab_card->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->modellog_card->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->whisper_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->embedding_test_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->embedding_test_result->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->model_quantize_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->sd_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
 
@@ -72,6 +72,9 @@ Expend::Expend(QWidget *parent) :
     
     //文生图相关
     ui->sd_antiprompt_lineEdit->setText(sd_params.negative_prompt);
+    
+    //记忆矩阵相关
+    ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);//让表格自动撑满所在区域
 
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
@@ -1120,7 +1123,7 @@ void Expend::embedding_processing()
                 ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());// 在表格末尾添加新行
                 QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(show_chunk_index).chunk);
                 newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-                newItem->setBackground(QColor(255, 165, 0)); // 设置单元格背景颜色,橘黄色
+                newItem->setBackground(LCL_ORANGE); // 设置单元格背景颜色,橘黄色
                 ui->embedding_txt_over->setItem(show_chunk_index, 0, newItem);
                 ui->embedding_txt_over->setColumnWidth(0,qMax(ui->embedding_txt_over->width(),400));// 列宽保持控件宽度
                 ui->embedding_txt_over->resizeRowsToContents();// 自动调整行高
@@ -1796,24 +1799,25 @@ void Expend::init_brain_matrix()
 //刷新一次记忆矩阵
 void Expend::reflash_brain_matrix()
 {
-    init_brain_matrix();
+    ui->brain_tableWidget->clear();
+    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence","token","word"});//设置列名
     QTableWidgetItem *lastItem = nullptr; // 初始化指向最后一个单元格的指针
     for(int i=0;i<int(Brain_vector.size()); ++i)
     {
         QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(Brain_vector.at(i).id));
         newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-        newItem1->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        newItem1->setBackground(LCL_ORANGE); // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 0, newItem1);
 
         QTableWidgetItem *newItem2 = new QTableWidgetItem(QString::number(Brain_vector.at(i).token));
         newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-        newItem2->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        newItem2->setBackground(LCL_ORANGE); // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 1, newItem2);
 
 
         QTableWidgetItem *newItem3 = new QTableWidgetItem(Brain_vector.at(i).word.replace("\n","\\n"));
         newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable);//单元格不可编辑
-        newItem3->setBackground(QColor(255, 165, 0, 60)); // 设置单元格背景颜色,橘黄色
+        newItem3->setBackground(LCL_ORANGE); // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 2, newItem3);
 
         lastItem = newItem3; // 更新最后一个单元格的引用
@@ -1822,4 +1826,5 @@ void Expend::reflash_brain_matrix()
         // 滚动到最后一个添加的单元格
         ui->brain_tableWidget->scrollToItem(lastItem);
     }
+    
 }

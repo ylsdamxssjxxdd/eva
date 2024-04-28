@@ -44,6 +44,7 @@ const QColor SIGNAL_BLUE(0, 0, 255); // 蓝色
 const QColor SYSTEM_BLUE(0, 0, 255, 200); // 蓝紫色
 const QColor TOOL_BLUE(0, 191, 255); // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0); // 黑色
+const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 
 //约定内容
 struct DATES{
