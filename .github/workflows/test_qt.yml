@@ -32,7 +32,7 @@ jobs:
         path: D:\
         key: ${{ runner.os }}-QtCache-5.15.2
 
-    # 其他构建步骤，比如生成构建文件、编译、测试等
+    # 其他构建步骤，比如生成构建文件、编译、测试
     - name: Configure
       run: |
         mkdir build
