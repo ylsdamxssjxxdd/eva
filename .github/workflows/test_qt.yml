@@ -15,15 +15,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    # 检测是否缓存了qt
     - name: Check if Qt is cached
       id: check-qt-cache
       run: |
-        if [ -d "D:\Qt" ]; then
+        if (Test-Path "D:\Qt") {
           echo "Qt is cached"
-          echo "cache-exists=true" >> $GITHUB_ENV
-        else
+          echo "cache-exists=true" >> $Env:GITHUB_ENV
+        } else {
           echo "Qt is not cached"
-          echo "cache-exists=false" >> $GITHUB_ENV
+          echo "cache-exists=false" >> $Env:GITHUB_ENV
+        }
+  
 
     # 设置 Qt 环境
     - name: Install Qt
@@ -36,7 +39,7 @@ jobs:
         arch: 'win64_msvc2019_64' # 架构和编译器
         dir: 'D:\'     # 安装目录
 
-    # 缓存 Qt 安装，这样在下一次运行时可以节省时间
+    # 缓存 整个D盘
     - name: Cache Qt
       uses: actions/cache@v2
       with:
