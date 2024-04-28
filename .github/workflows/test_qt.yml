@@ -1,68 +1,68 @@
-permissions:
-  contents: write # 打开写入权限
+# permissions:
+#   contents: write # 打开写入权限
 
-name: Qt
+# name: Qt
 
-on:
-  push: # 推送时触发工作流
-    branches: [ "main" ]
+# on:
+#   push: # 推送时触发工作流
+#     branches: [ "main" ]
 
-# 具体任务
-jobs:
-  build:
-    runs-on: windows-latest
+# # 具体任务
+# jobs:
+#   build:
+#     runs-on: windows-latest
 
-    steps:
-    - uses: actions/checkout@v2
+#     steps:
+#     - uses: actions/checkout@v2
 
-    # 检测是否缓存了qt
-    - name: Check if Qt is cached
-      id: check-qt-cache
-      run: |
-        if (Test-Path "D:\Qt") {
-          echo "Qt is cached"
-          echo "cache-exists=true" >> $Env:GITHUB_ENV
-        } else {
-          echo "Qt is not cached"
-          echo "cache-exists=false" >> $Env:GITHUB_ENV
-        }
+#     # 检测是否缓存了qt
+#     - name: Check if Qt is cached
+#       id: check-qt-cache
+#       run: |
+#         if (Test-Path "D:\Qt") {
+#           echo "Qt is cached"
+#           echo "cache-exists=true" >> $Env:GITHUB_ENV
+#         } else {
+#           echo "Qt is not cached"
+#           echo "cache-exists=false" >> $Env:GITHUB_ENV
+#         }
   
 
-    # 设置 Qt
-    - name: Install Qt
-      if: env.cache-exists == 'false'
-      uses: jurplel/install-qt-action@v2
-      with:
-        version: '5.15.2' # 指定 Qt 版本
-        host: 'windows'   # 主机系统
-        target: 'desktop' # 目标平台
-        arch: 'win64_msvc2019_64' # 架构和编译器
-        dir: 'D:\'     # 安装目录
+#     # 设置 Qt
+#     - name: Install Qt
+#       if: env.cache-exists == 'false'
+#       uses: jurplel/install-qt-action@v2
+#       with:
+#         version: '5.15.2' # 指定 Qt 版本
+#         host: 'windows'   # 主机系统
+#         target: 'desktop' # 目标平台
+#         arch: 'win64_msvc2019_64' # 架构和编译器
+#         dir: 'D:\'     # 安装目录
 
-    # 缓存 Qt
-    - name: Cache Qt
-      uses: actions/cache@v2
-      with:
-        path: D:\Qt
-        key: ${{ runner.os }}-QtCache-5.15.2
+#     # 缓存 Qt
+#     - name: Cache Qt
+#       uses: actions/cache@v2
+#       with:
+#         path: D:\Qt
+#         key: ${{ runner.os }}-QtCache-5.15.2
         
-    # 其他构建步骤，比如生成构建文件、编译、测试.
-    - name: Configure
-      run: |
-        mkdir build
-        cd build
-        # 用于生成构建系统的命令，可能是 qmake 或 cmake
-        # 例如：qmake ../your_project.pro -spec win32-msvc
+#     # 其他构建步骤，比如生成构建文件、编译、测试.
+#     - name: Configure
+#       run: |
+#         mkdir build
+#         cd build
+#         # 用于生成构建系统的命令，可能是 qmake 或 cmake
+#         # 例如：qmake ../your_project.pro -spec win32-msvc
 
-    - name: Build
-      run: |
-        cd build
-        # 用于构建项目的命令，比如 make 或 nmake 或 jom
+#     - name: Build
+#       run: |
+#         cd build
+#         # 用于构建项目的命令，比如 make 或 nmake 或 jom
 
-    - name: Test
-      run: |
-        cd build
-        # 执行测试
-        # 例如：ctest
+#     - name: Test
+#       run: |
+#         cd build
+#         # 执行测试
+#         # 例如：ctest
 
-    # 你可以添加更多的步骤来打包你的应用，上传构建产物到发布页面等。
+#     # 你可以添加更多的步骤来打包你的应用，上传构建产物到发布页面等。
