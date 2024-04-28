@@ -39,11 +39,11 @@ jobs:
         arch: 'win64_msvc2019_64' # 架构和编译器
         dir: 'D:\'     # 安装目录
 
-    # 缓存 整个D盘
+    # 缓存 Qt
     - name: Cache Qt
       uses: actions/cache@v2
       with:
-        path: D:\
+        path: D:\Qt
         key: ${{ runner.os }}-QtCache-5.15.2
         
     # 其他构建步骤，比如生成构建文件、编译、测试.
