@@ -424,12 +424,13 @@ int xBot::stream()
         //--------------------------采样&输出----------------------------
         if ((int) embd_inp.size() <= n_consumed)
         {
-            if(is_debuging){debuging_timer.restart();}
-            const llama_token id = llama_sampling_sample(sparams, ctx, NULL);//采样获取下一个token的id
-
+            if(is_debuging){debuging_timer.restart();} // 记录采样时间
+            //qDebug()<<"1  " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s";
+            const llama_token id = llama_sampling_sample(sparams, ctx, NULL);//采样获取下一个token的id，gpu负载时耗时异常且高于cpu
+            //qDebug()<<"2  " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s";
             //展示概率表
             llama_token_data_array cur_p = { sparams->cur.data(), sparams->cur.size(), false };//词概率表
-
+            
             QString sample_str;//采样打印信息
             if (sparams->params.temp<= 0)
             {
@@ -442,6 +443,7 @@ int xBot::stream()
                 //sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·" + wordsObj["use prob random"].toArray()[language_flag].toString();
             }
             sample_str = wordsObj["sampling"].toArray()[language_flag].toString() + "·";
+            
             // ---------------------------构建概率表格----------------------------------
             // 表格宽度，每列宽度
             const int columnWidth1 = 7;
@@ -514,7 +516,6 @@ int xBot::stream()
 
             llama_sampling_accept(sparams, ctx, id, true);//记录token的id
             embd.push_back(id);//把预测的词加到下一次的预测中,准备下一次预测
-            
             --n_remain;
 
             if(id == eos_token)//如果遇到结束则停止
@@ -547,7 +548,6 @@ int xBot::stream()
                     current_output = current_output.substr(current_output.length() - 32, 32);//只保留32个字符
                 }
             }
-            
             //检测输出的内容中是否包含反提示,如果有则停止
             if(!is_complete)
             {
