@@ -28,7 +28,7 @@ jobs:
         }
   
 
-    # 设置 Qt 环境
+    # 设置 Qt
     - name: Install Qt
       if: env.cache-exists == 'false'
       uses: jurplel/install-qt-action@v2
