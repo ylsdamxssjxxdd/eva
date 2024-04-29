@@ -34,7 +34,7 @@ jobs:
       - name: Install 
         uses: jurplel/install-qt-action@v2
         with:
-            version: ${{ matrix.qt_ver }} # 指定 Qt 版本
+            version: ${{ matrix.qt_ver }} # 指定 Qt 版本.
             host: 'windows'   # 主机系统
             target: ${{ matrix.qt_target }} # 目标平台
             arch: ${{ matrix.qt_arch }} # 架构和编译器
