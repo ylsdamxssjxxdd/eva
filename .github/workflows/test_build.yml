@@ -2,19 +2,17 @@ permissions:
   contents: write # 打开写入权限
 
 name: Windows
+# push代码时触发workflow
 on: 
-  # push代码时触发workflow
   push:
     branches: [ "main" ]
 
 jobs:
   build:
-    name: Build platform
-    # 运行平台， windows-latest目前是windows server 2019
-    runs-on: windows-latest
+    name: Test Build
+    runs-on: windows-latest # 运行平台
     strategy:
-      # 矩阵配置
-      matrix:
+      matrix: # 矩阵配置
         qt_ver: [5.15.2] # Qt 版本
         qt_target: [desktop] # 对象平台
         qt_arch: [win64_msvc2019_64] # 编译器
