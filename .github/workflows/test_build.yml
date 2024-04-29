@@ -32,9 +32,9 @@ jobs:
         if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
         shell: pwsh
         run: |
-          echo "QT_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
-          echo "QT_DIR=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5" >> $GITHUB_ENV
-          echo "QT_BIN=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin" >> $GITHUB_ENV
+          echo "Qt5_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
+          echo "Qt5_DIR=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5" >> $GITHUB_ENV
+          echo "Qt5_BIN=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin" >> $GITHUB_ENV
 
       # 安装Qt
       - name: Install Qt
