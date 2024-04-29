@@ -16,6 +16,7 @@ jobs:
         qt_ver: [5.15.2] # Qt 版本
         qt_target: [desktop] # 对象平台
         qt_arch: [win64_msvc2019_64] # 编译器
+        qt_arch_install: [msvc2019_64]
 
     # 步骤
     steps:
@@ -30,8 +31,6 @@ jobs:
       - name: setupQt
         if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
         shell: pwsh
-        env:
-          QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         run: |
           echo "QT_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
           echo "QT_DIR=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5" >> $GITHUB_ENV
