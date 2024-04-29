@@ -34,10 +34,8 @@ jobs:
         env:
           QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         # 如果已经缓存了，则设置环境变量就行
-        run: |
-          $qt_Path=${env:QtPath}      
-          echo "{Qt5_Dir::$qt_Path}={$qt_Path/bin}" >> "$GITHUB_ENV"
-          echo "GITHUB_ENV"
+        run: |     
+          echo "{Qt5_Dir}={D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin}" >> "$GITHUB_ENV"
           
       # 安装Qt
       - name: Install 
