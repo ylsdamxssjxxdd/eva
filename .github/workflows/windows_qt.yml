@@ -35,8 +35,16 @@ jobs:
           QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         # 如果已经缓存了，则设置环境变量就行
         run: |     
-          echo "{Qt5_Dir}={D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin}" >> "$GITHUB_ENV"
-          
+          echo "{Qt5_Dir}={D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin}" >> "$env:GITHUB_ENV"
+      
+      - name: Add Qt to PATH
+        run: echo "QT_PATH=D:/Qt/{{ matrix.qt_ver }}/{{ matrix.qt_arch_install }}/bin" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Add Qt to system PATH
+        run: echo "env:QT_PATH" | Out-File -FilePath env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh    
+
       # 安装Qt
       - name: Install 
         # 检测是否已经缓存
