@@ -58,54 +58,44 @@ elseif(LLAMA_CLBLAST)
 else() # 什么都没有默认编译64bit版本
 #     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速, 报错
 endif()
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项     
 
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项        
 # msvc设置编译选项
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持代码中的中文
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8") # 支持代码中的中文
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
-    
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         # 监视gpu部分
-        set(EXTRA_FILES
-            utils/gpuchecker.h
-            utils/nvml.h
-            )
-        set(EXTRA_LIBS
-            ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib #注意库文件最好用这样的绝对路径 
-        )
+        set(EXTRA_FILES utils/gpuchecker.h utils/nvml.h)
+        set(EXTRA_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib)#注意库文件最好用这样的绝对路径
     endif()
 # mingw设置编译选项
 elseif(MINGW)
     set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version")#原项目 编译选项
     add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER})#原项目 编译选项
     add_compile_definitions(_XOPEN_SOURCE=600)#原项目 编译选项
-
     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
 endif()
-#####################################llama.cpp相关#####################################
+
+##################################### llama.cpp相关 #####################################
 #添加llama相关项目,将会强制应用父项目的编译设置
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_subdirectory(stable-diffusion.cpp)# 添加stable-diffusion.cpp基础库，为避免冲突已将ggml库更名为ggml-sd
-
 add_subdirectory(llama.cpp)# 添加子项目主要库
 add_subdirectory(llama.cpp/examples/imatrix)# 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/llava)#视觉和server必须
-
 #先编译好server.exe等并放到utils目录下，等待eva打包进资源文件
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
-
 add_subdirectory(llama.cpp/examples/quantize)# 模型量化用
 add_subdirectory(llama.cpp/examples/server)# 添加子目录
 add_subdirectory(stable-diffusion.cpp/examples/cli)#添加stable-diffusion.cpp运行程序
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
-#####################################whisper.cpp相关#####################################
+##################################### whisper.cpp相关 #####################################
 set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 保存当前的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
@@ -127,63 +117,37 @@ target_compile_features(${TARGET_whisper} PRIVATE cxx_std_11)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
-# 第三方exe程序添加到资源文件
-set(THRIDEXE_FILE utils/thrid_exe.qrc)
-
 ######################################eva相关######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+
 # 查找Qt相关库
 find_package(Qt5 COMPONENTS Widgets Network Script Multimedia TextToSpeech REQUIRED)
 
 # 资源文件
-set(RESOURCE_FILES
-utils/logo.qrc
-${THRIDEXE_FILE}
-utils/ceval.qrc
-utils/mmlu.qrc
-)
+set(THRIDEXE_FILE utils/thrid_exe.qrc)# 第三方exe程序添加到资源文件
+set(RESOURCE_FILES utils/logo.qrc ${THRIDEXE_FILE} utils/ceval.qrc utils/mmlu.qrc)
 
 # 应用程序图标windows
-set(LOGO_FILES
-utils/ui/ico.rc
-)
+set(LOGO_FILES utils/ui/ico.rc)
 
 # 设置可执行文件,添加源文件,使用WIN32可以去掉控制台黑框
-add_executable(${TARGET}
+add_executable(
+${TARGET}
 #WIN32
-${LOGO_FILES}
-${RESOURCE_FILES}
-${EXTRA_FILES}
-main.cpp
-utils.cpp
-dialog.cpp
-widget.cpp
-expend.h
-expend.cpp
-widget.h
-xbot.cpp
-xbot.h
-xnet.cpp
-xnet.h
-xtool.cpp
-xtool.h
-xconfig.h
-widget.ui
-expend.ui
-
-utils/customqplaintextedit.h
-utils/doubleqprogressbar.h
-utils/cutscreendialog.h
-utils/customtabwidget.h
-utils/customswitchbutton.h
+${LOGO_FILES} ${RESOURCE_FILES} ${EXTRA_FILES}
+main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
+widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
+widget.ui expend.ui
+utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
 )
 
 #确保第三方程序先于eva编译
-add_dependencies(${TARGET} server whisper sd)
+add_dependencies(${TARGET} server whisper sd quantize)
+
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} ${CMAKE_THREAD_LIBS_INIT} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
-target_compile_features(${TARGET} PRIVATE cxx_std_11)
+target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
+
 
