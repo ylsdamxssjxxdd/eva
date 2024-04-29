@@ -34,8 +34,7 @@ jobs:
           QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         run: |
           echo "QT_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
-          echo "QT_Dir=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin" >> $GITHUB_ENV
-          echo "Qt is located at: ${{env.QT_PATH}}"
+          echo "QT_DIR=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5" >> $GITHUB_ENV
 
       # 安装Qt
       - name: Install Qt
@@ -55,8 +54,6 @@ jobs:
       # 编译代码
       - name: Build eva
         id: cmake_build
-        env:
-          QT_Dir : D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin
         run: |
           mkdir build
           cd build
