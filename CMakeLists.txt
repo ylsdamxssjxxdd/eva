@@ -100,16 +100,11 @@ set(OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils")# 设置新的输出目录
 
 set(TARGET_whisper whisper)
-add_executable(${TARGET_whisper} 
-whisper.cpp/main.cpp
-whisper.cpp/whisper.h
-whisper.cpp/whisper.cpp
-whisper.cpp/common.h
-whisper.cpp/common.cpp
-whisper.cpp/dr_wav.h
-llama.cpp/ggml.h
-llama.cpp/ggml-mpi.h
-llama.cpp/ggml-quants.h
+add_executable(
+${TARGET_whisper} 
+whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
+whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
+llama.cpp/ggml.h llama.cpp/ggml-mpi.h llama.cpp/ggml-quants.h
 )
 
 target_link_libraries(${TARGET_whisper} PRIVATE ggml ${CMAKE_THREAD_LIBS_INIT})
@@ -117,7 +112,7 @@ target_compile_features(${TARGET_whisper} PRIVATE cxx_std_11)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
-######################################eva相关######################################
+###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
