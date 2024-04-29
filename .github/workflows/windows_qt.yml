@@ -53,3 +53,10 @@ jobs:
       - uses: actions/checkout@v1
         with:
           fetch-depth: 1
+      - name: Build
+        id: cmake_build
+        run: |
+          mkdir build
+          cd build
+          cmake .. 
+          cmake --build . --config Release -j ${env:NUMBER_OF_PROCESSORS}
