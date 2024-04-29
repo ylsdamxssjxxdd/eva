@@ -39,6 +39,8 @@ jobs:
             target: ${{ matrix.qt_target }} # 目标平台
             arch: ${{ matrix.qt_arch }} # 架构和编译器
             dir: 'D:/'     # 安装目录
+            modules: 'qtscript' # 指定额外的模块
+
       # 拉取代码
       - uses: actions/checkout@v1
         with:
@@ -49,4 +51,4 @@ jobs:
           mkdir build
           cd build
           cmake .. 
-          cmake --build . --config Release -j ${env:NUMBER_OF_PROCESSORS}
+          cmake --build . --config Release

@@ -1,68 +1,62 @@
 # permissions:
-#   contents: write # 打开写入权限
-
-# name: Qt
-
-# on:
-#   push: # 推送时触发工作流
-#     branches: [ "main" ]
-
-# # 具体任务
-# jobs:
-#   build:
-#     runs-on: windows-latest
-
-#     steps:
-#     - uses: actions/checkout@v2
-
-#     # 检测是否缓存了qt
-#     - name: Check if Qt is cached
-#       id: check-qt-cache
-#       run: |
-#         if (Test-Path "D:\Qt") {
-#           echo "Qt is cached"
-#           echo "cache-exists=true" >> $Env:GITHUB_ENV
-#         } else {
-#           echo "Qt is not cached"
-#           echo "cache-exists=false" >> $Env:GITHUB_ENV
-#         }
+#     contents: write # 打开写入权限
   
-
-#     # 设置 Qt
-#     - name: Install Qt
-#       if: env.cache-exists == 'false'
-#       uses: jurplel/install-qt-action@v2
-#       with:
-#         version: '5.15.2' # 指定 Qt 版本
-#         host: 'windows'   # 主机系统
-#         target: 'desktop' # 目标平台
-#         arch: 'win64_msvc2019_64' # 架构和编译器
-#         dir: 'D:\'     # 安装目录
-
-#     # 缓存 Qt
-#     - name: Cache Qt
-#       uses: actions/cache@v2
-#       with:
-#         path: D:\Qt
-#         key: ${{ runner.os }}-QtCache-5.15.2
+#   name: Windows
+#   on: 
+#     # push代码时触发workflow
+#     push:
+#       branches: [ "main" ]
+#   jobs:
+#     build:
+#       name: Build
+#       # 运行平台， windows-latest目前是windows server 2019
+#       runs-on: windows-latest
+#       strategy:
+#         # 矩阵配置
+#         matrix:
+#           qt_ver: [5.15.2]
+#           qt_target: [desktop]
+#           qt_arch: [win64_msvc2019_64]
+#           qt_arch_install: [msvc2019_64]
+  
+#       # 步骤
+#       steps:
+#         - name: cacheQt
+#           id: WindowsCacheQt
+#           uses: actions/cache@v1
+#           with:
+#             path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+#             key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
+#         - name: setupQt
+#           # 检测是否已经缓存
+#           if: steps.WindowsCacheQt.outputs.cache-hit == 'true' 
+#           shell: pwsh
+#           env:
+#             QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+#           # 如果已经缓存了，则设置环境变量就行
+#           run: |     
+#             echo "{Qt5_Dir}={D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin}" >> %GITHUB_ENV%
         
-#     # 其他构建步骤，比如生成构建文件、编译、测试.
-#     - name: Configure
-#       run: |
-#         mkdir build
-#         cd build
-#         # 用于生成构建系统的命令，可能是 qmake 或 cmake
-#         # 例如：qmake ../your_project.pro -spec win32-msvc
-
-#     - name: Build
-#       run: |
-#         cd build
-#         # 用于构建项目的命令，比如 make 或 nmake 或 jom
-
-#     - name: Test
-#       run: |
-#         cd build
-#         # 执行测试
-#         # 例如：ctest
-
-#     # 你可以添加更多的步骤来打包你的应用，上传构建产物到发布页面等。
+  
+#         # 安装Qt
+#         - name: Install 
+#           # 检测是否已经缓存
+#           if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
+#           uses: jurplel/install-qt-action@v2
+#           with:
+#               version: ${{ matrix.qt_ver }} # 指定 Qt 版本
+#               host: 'windows'   # 主机系统
+#               target: ${{ matrix.qt_target }} # 目标平台
+#               arch: ${{ matrix.qt_arch }} # 架构和编译器
+#               dir: 'D:/'     # 安装目录
+#         # 拉取代码
+#         - uses: actions/checkout@v1
+#           with:
+#             fetch-depth: 1
+#         - name: Build
+#           id: cmake_build
+#           run: |
+#             mkdir build
+#             cd build
+#             cmake .. 
+#             cmake --build . --config Release -j ${env:NUMBER_OF_PROCESSORS}
