@@ -20,24 +20,16 @@ jobs:
 
     # 步骤
     steps:
-      # 缓存
-      - name: cacheQt
-        id: WindowsCacheQt
-        uses: actions/cache@v1
-        with:
-          path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
-          key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
-      # 使用缓存    
-      - name: setupQt
-        if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
-        shell: pwsh
-        run: |
-          echo "Qt5_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
-          echo "Qt5_DIR=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5" >> $GITHUB_ENV
+      # # 缓存
+      # - name: cacheQt
+      #   id: WindowsCacheQt
+      #   uses: actions/cache@v1
+      #   with:
+      #     path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+      #     key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
 
       # 安装Qt
       - name: Install Qt
-        if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
         uses: jurplel/install-qt-action@v2
         with:
             version: ${{ matrix.qt_ver }} # 指定 Qt 版本
@@ -52,6 +44,8 @@ jobs:
 
       # 编译代码
       - name: Build eva
+        # env : # 指定环境变量
+        #   Qt5_DIR: D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5
         id: cmake_build
         run: |
           mkdir build
