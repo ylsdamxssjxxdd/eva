@@ -55,6 +55,8 @@ jobs:
       # 编译代码
       - name: Build eva
         id: cmake_build
+        env:
+          QT_Dir : D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin
         run: |
           mkdir build
           cd build
