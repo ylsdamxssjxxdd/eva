@@ -28,8 +28,6 @@ jobs:
           path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
           key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
 
-      
-
       # 安装Qt
       - name: Install 
         uses: jurplel/install-qt-action@v2
@@ -43,12 +41,10 @@ jobs:
 
       # 拉取代码
       - uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
       - name: Build
         id: cmake_build
         run: |
           mkdir build
           cd build
           cmake .. 
-          cmake --build . --config Release
+          cmake --build . --config Release -j 2
