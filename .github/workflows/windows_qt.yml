@@ -37,7 +37,8 @@ jobs:
         run: |
           $qt_Path=${env:QtPath}      
           echo "{Qt5_Dir::$qt_Path}={$qt_Path/bin}" >> "$GITHUB_ENV"
-
+          echo "GITHUB_ENV"
+          
       # 安装Qt
       - name: Install 
         # 检测是否已经缓存
