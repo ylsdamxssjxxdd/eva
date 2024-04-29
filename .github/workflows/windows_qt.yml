@@ -6,6 +6,7 @@ on:
   # push代码时触发workflow
   push:
     branches: [ "main" ]
+
 jobs:
   build:
     name: Build platform
@@ -14,10 +15,9 @@ jobs:
     strategy:
       # 矩阵配置
       matrix:
-        qt_ver: [5.15.2]
-        qt_target: [desktop]
-        qt_arch: [win64_msvc2019_64]
-        qt_arch_install: [msvc2019_64]
+        qt_ver: [5.15.2] # Qt 版本
+        qt_target: [desktop] # 对象平台
+        qt_arch: [win64_msvc2019_64] # 编译器
 
     # 步骤
     steps:
@@ -25,7 +25,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-            version: ${{ matrix.qt_ver }} # 指定 Qt 版本.
+            version: ${{ matrix.qt_ver }} # 指定 Qt 版本
             host: 'windows'   # 主机系统
             target: ${{ matrix.qt_target }} # 目标平台
             arch: ${{ matrix.qt_arch }} # 架构和编译器
