@@ -47,6 +47,7 @@ jobs:
         # env : # 指定环境变量
         #   Qt5_DIR: D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/lib/cmake/Qt5
         id: cmake_build
+        # 暂时不编译加速选项
         run: |
           mkdir build
           cd build
