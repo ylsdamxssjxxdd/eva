@@ -19,8 +19,26 @@ jobs:
 
     # 步骤
     steps:
+      # 缓存
+      - name: cacheQt
+        id: WindowsCacheQt
+        uses: actions/cache@v1
+        with:
+          path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+          key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
+      # 使用缓存    
+      - name: setupQt
+        if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
+        shell: pwsh
+        env:
+          QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
+        run: |
+          echo "Qt5_Dir=D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}" | Out-File -FilePath env:GITHUB_ENV -Append
+          echo "D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin" | Out-File -FilePath env:GITHUB_PATH -Append
+
       # 安装Qt
       - name: Install Qt
+        if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
         uses: jurplel/install-qt-action@v2
         with:
             version: ${{ matrix.qt_ver }} # 指定 Qt 版本
