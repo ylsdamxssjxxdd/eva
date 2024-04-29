@@ -8,7 +8,7 @@ on:
     branches: [ "main" ]
 jobs:
   build:
-    name: Build
+    name: Build platform
     # 运行平台， windows-latest目前是windows server 2019
     runs-on: windows-latest
     strategy:
@@ -21,15 +21,8 @@ jobs:
 
     # 步骤
     steps:
-      - name: cacheQt
-        id: WindowsCacheQt
-        uses: actions/cache@v1
-        with:
-          path: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
-          key: ${{ runner.os }}-Qt/${{matrix.qt_ver}}/${{matrix.qt_arch}}
-
       # 安装Qt
-      - name: Install 
+      - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
             version: ${{ matrix.qt_ver }} # 指定 Qt 版本.
@@ -41,10 +34,33 @@ jobs:
 
       # 拉取代码
       - uses: actions/checkout@v1
-      - name: Build
+
+      # 编译代码
+      - name: Build eva
         id: cmake_build
         run: |
           mkdir build
           cd build
           cmake .. 
           cmake --build . --config Release -j 2
+
+      # 发布
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: test # tag号
+          release_name: test # 本次发布名称
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./main.exe
+          asset_name: infinity.exe
+          asset_content_type: application/x-msdownload 
