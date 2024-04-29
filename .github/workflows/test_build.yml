@@ -50,7 +50,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. 
+          cmake .. -DLLAMA_CUBLAS=OFF -DLLAMA_CLBLAST=OFF -DLLAMA_VULKAN=OFF -DBODY_32BIT=OFF
           cmake --build . --config Release -j 2
 
       # # 发布
