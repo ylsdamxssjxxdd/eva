@@ -42,25 +42,25 @@ jobs:
           mkdir build
           cd build
           cmake .. 
-          cmake --build . --config Release -j 2
+          cmake --build . --config Release -j 4
 
-      # 发布
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: latest # tag号
-          release_name: infinity # 本次发布名称
-          draft: false
-          prerelease: false
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: D:\a\eva\eva\build\Release\eva.exe
-          asset_name: eva_test.exe
-          asset_content_type: application/x-msdownload
+      # # 发布
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: test # tag号
+      #     release_name: test # 本次发布名称
+      #     draft: false
+      #     prerelease: false
+      # - name: Upload Release Asset
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: D:\a\eva\eva\build\Release\eva.exe
+      #     asset_name: eva_test.exe
+      #     asset_content_type: application/x-msdownload
