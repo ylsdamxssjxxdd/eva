@@ -37,7 +37,7 @@ jobs:
 
       # 安装Qt
       - name: Install Qt
-        if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
+        if: steps.WindowsCacheQt.outputs.cache-hit == 'true'
         uses: jurplel/install-qt-action@v2
         with:
             version: ${{ matrix.qt_ver }} # 指定 Qt 版本
