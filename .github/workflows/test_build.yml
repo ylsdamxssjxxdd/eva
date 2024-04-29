@@ -33,9 +33,10 @@ jobs:
         env:
           QtPath: D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}
         run: |
-          echo "Qt5_Dir=D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}" | Out-File -FilePath env:GITHUB_ENV -Append
-          echo "D:/Qt/${{matrix.qt_ver}}/${{matrix.qt_arch_install}}/bin" | Out-File -FilePath env:GITHUB_PATH -Append
-
+          echo "QT_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
+          echo "QT_Dir=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin" >> $GITHUB_ENV
+          echo "Qt is located at: $env:QT_PATH"
+          
       # 安装Qt
       - name: Install Qt
         if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
