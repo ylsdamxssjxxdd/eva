@@ -35,8 +35,8 @@ jobs:
         run: |
           echo "QT_PATH=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}" >> $GITHUB_ENV
           echo "QT_Dir=D:/Qt/${{ matrix.qt_ver }}/${{ matrix.qt_arch_install }}/bin" >> $GITHUB_ENV
-          echo "Qt is located at: $env:QT_PATH"
-          
+          echo "Qt is located at: ${{env:QT_PATH}}"
+
       # 安装Qt
       - name: Install Qt
         if: steps.WindowsCacheQt.outputs.cache-hit != 'true'
