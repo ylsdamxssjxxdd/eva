@@ -67,8 +67,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
     if (LLAMA_CUBLAS)# 如果启用LLAMA_CUBLAS标志
         # 监视gpu部分
-        set(EXTRA_FILES utils/gpuchecker.h utils/nvml.h)
-        set(EXTRA_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib)#注意库文件最好用这样的绝对路径
+        list(APPEND EXTRA_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向EXTRA_INCLUDES列表里添加文件
+        list(APPEND EXTRA_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib) # 向EXTRA_LIBS列表里添加文件
     endif()
 # mingw设置编译选项
 elseif(MINGW)
@@ -123,12 +123,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# 查找Qt相关库
+# 查找Qt相关库，qt库的bin目录需要在环境变量中
 find_package(Qt5 COMPONENTS Widgets Network Script Multimedia TextToSpeech REQUIRED)
 
 # 资源文件
-set(THRIDEXE_FILE utils/thrid_exe.qrc)# 第三方exe程序添加到资源文件
-set(RESOURCE_FILES utils/logo.qrc ${THRIDEXE_FILE} utils/ceval.qrc utils/mmlu.qrc)
+set(RESOURCE_FILES utils/logo.qrc utils/thrid_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
 
 # 应用程序图标windows
 set(LOGO_FILES utils/ui/ico.rc)
@@ -137,7 +136,7 @@ set(LOGO_FILES utils/ui/ico.rc)
 add_executable(
 ${TARGET}
 #WIN32
-${LOGO_FILES} ${RESOURCE_FILES} ${EXTRA_FILES}
+${LOGO_FILES} ${RESOURCE_FILES} ${EXTRA_INCLUDES}
 main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui
