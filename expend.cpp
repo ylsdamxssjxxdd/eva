@@ -105,6 +105,13 @@ bool Expend::createTempDirectory(const QString &path) {
         }
     }
 }
+
+// 根据language.json和language_flag中找到对应的文字
+QString Expend::jtr(QString customstr)
+{
+    return wordsObj[customstr].toArray()[language_flag].toString();
+}
+
 //-------------------------------------------------------------------------
 //----------------------------------界面相关--------------------------------
 //-------------------------------------------------------------------------
@@ -112,84 +119,84 @@ bool Expend::createTempDirectory(const QString &path) {
 //初始化增殖窗口
 void Expend::init_expend()
 {
-    this->setWindowTitle(wordsObj["expend window"].toArray()[language_flag].toString());//标题
-    ui->tabWidget->setTabText(0,wordsObj["introduction"].toArray()[language_flag].toString());//软件介绍
-    ui->tabWidget->setTabText(1,wordsObj["model brain"].toArray()[language_flag].toString());//模型记忆
-    ui->tabWidget->setTabText(2,wordsObj["model log"].toArray()[language_flag].toString());//模型日志
-    ui->tabWidget->setTabText(3,wordsObj["model"].toArray()[language_flag].toString() + wordsObj["quantize"].toArray()[language_flag].toString());//模型量化
-    ui->tabWidget->setTabText(4,wordsObj["knowledge"].toArray()[language_flag].toString());//知识库
-    ui->tabWidget->setTabText(5,wordsObj["text2image"].toArray()[language_flag].toString());//文生图
-    ui->tabWidget->setTabText(6,wordsObj["voice2text"].toArray()[language_flag].toString());//声转文
-    ui->tabWidget->setTabText(7,wordsObj["text2voice"].toArray()[language_flag].toString());//文转声
+    this->setWindowTitle(jtr("expend window"));//标题
+    ui->tabWidget->setTabText(0,jtr("introduction"));//软件介绍
+    ui->tabWidget->setTabText(1,jtr("model brain"));//模型记忆
+    ui->tabWidget->setTabText(2,jtr("model log"));//模型日志
+    ui->tabWidget->setTabText(3,jtr("model") + jtr("quantize"));//模型量化
+    ui->tabWidget->setTabText(4,jtr("knowledge"));//知识库
+    ui->tabWidget->setTabText(5,jtr("text2image"));//文生图
+    ui->tabWidget->setTabText(6,jtr("voice2text"));//声转文
+    ui->tabWidget->setTabText(7,jtr("text2voice"));//文转声
 
     //大量的工作...来写吧
     //模型记忆
-    ui->vocab_groupBox->setTitle(wordsObj["vocab_groupBox_title"].toArray()[language_flag].toString());
-    ui->brain_groupBox->setTitle(wordsObj["brain_groupBox_title"].toArray()[language_flag].toString());
+    ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
+    ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
     //软件介绍
     showReadme();
     
     //模型量化
-    ui->model_quantize_label->setText(wordsObj["model_quantize_label_text"].toArray()[language_flag].toString());
-    ui->model_quantize_label_2->setText(wordsObj["model_quantize_label_2_text"].toArray()[language_flag].toString());
-    ui->model_quantize_label_3->setText(wordsObj["model_quantize_label_3_text"].toArray()[language_flag].toString());
-    ui->model_quantize_row_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_row_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
-    ui->model_quantize_important_datapath_lineedit->setPlaceholderText(wordsObj["model_quantize_important_datapath_lineedit_placeholder"].toArray()[language_flag].toString());
-    ui->model_quantize_output_modelpath_lineedit->setPlaceholderText(wordsObj["model_quantize_output_modelpath_lineedit_placeholder"].toArray()[language_flag].toString());
-    ui->quantize_info_groupBox->setTitle(wordsObj["quantize_info_groupBox_title"].toArray()[language_flag].toString());
+    ui->model_quantize_label->setText(jtr("model_quantize_label_text"));
+    ui->model_quantize_label_2->setText(jtr("model_quantize_label_2_text"));
+    ui->model_quantize_label_3->setText(jtr("model_quantize_label_3_text"));
+    ui->model_quantize_row_modelpath_lineedit->setPlaceholderText(jtr("model_quantize_row_modelpath_lineedit_placeholder"));
+    ui->model_quantize_important_datapath_lineedit->setPlaceholderText(jtr("model_quantize_important_datapath_lineedit_placeholder"));
+    ui->model_quantize_output_modelpath_lineedit->setPlaceholderText(jtr("model_quantize_output_modelpath_lineedit_placeholder"));
+    ui->quantize_info_groupBox->setTitle(jtr("quantize_info_groupBox_title"));
     show_quantize_types();
-    ui->model_quantize_type_label->setText(wordsObj["select quantize type"].toArray()[language_flag].toString());
-    ui->model_quantize_execute->setText(wordsObj["execute quantize"].toArray()[language_flag].toString());
-    ui->quantize_log_groupBox->setTitle("quantize.exe " + wordsObj["execute log"].toArray()[language_flag].toString());
+    ui->model_quantize_type_label->setText(jtr("select quantize type"));
+    ui->model_quantize_execute->setText(jtr("execute quantize"));
+    ui->quantize_log_groupBox->setTitle("quantize.exe " + jtr("execute log"));
     //知识库
-    ui->embedding_endpoint_label->setText(wordsObj["embd api"].toArray()[language_flag].toString());
-    ui->embedding_txt_api_lineedit->setPlaceholderText(wordsObj["embedding_txt_api_lineedit_placeholder"].toArray()[language_flag].toString());
-    ui->embedding_split_label->setText(wordsObj["split length"].toArray()[language_flag].toString());
-    ui->embedding_overlap_label->setText(wordsObj["overlap length"].toArray()[language_flag].toString());
-    ui->embedding_source_doc_label->setText(wordsObj["source doc"].toArray()[language_flag].toString());
-    ui->embedding_txt_lineEdit->setPlaceholderText(wordsObj["embedding_txt_lineEdit_placeholder"].toArray()[language_flag].toString());
-    ui->embedding_describe_label->setText(wordsObj["knowledge base description"].toArray()[language_flag].toString());
-    ui->embedding_txt_describe_lineEdit->setPlaceholderText(wordsObj["embedding_txt_describe_lineEdit_placeholder"].toArray()[language_flag].toString());
-    ui->embedding_txt_embedding->setText(wordsObj["embedding txt"].toArray()[language_flag].toString());
-    ui->embedding_test_groupBox->setTitle(wordsObj["test"].toArray()[language_flag].toString());
-    ui->embedding_test_textEdit->setPlaceholderText(wordsObj["embedding_test_textEdit_placeholder"].toArray()[language_flag].toString());
-    ui->embedding_test_pushButton->setText(wordsObj["retrieval"].toArray()[language_flag].toString());
-    ui->embedding_result_groupBox->setTitle(wordsObj["retrieval result"].toArray()[language_flag].toString());
-    ui->embedding_log_groupBox->setTitle(wordsObj["log"].toArray()[language_flag].toString());
+    ui->embedding_endpoint_label->setText(jtr("embd api"));
+    ui->embedding_txt_api_lineedit->setPlaceholderText(jtr("embedding_txt_api_lineedit_placeholder"));
+    ui->embedding_split_label->setText(jtr("split length"));
+    ui->embedding_overlap_label->setText(jtr("overlap length"));
+    ui->embedding_source_doc_label->setText(jtr("source doc"));
+    ui->embedding_txt_lineEdit->setPlaceholderText(jtr("embedding_txt_lineEdit_placeholder"));
+    ui->embedding_describe_label->setText(jtr("knowledge base description"));
+    ui->embedding_txt_describe_lineEdit->setPlaceholderText(jtr("embedding_txt_describe_lineEdit_placeholder"));
+    ui->embedding_txt_embedding->setText(jtr("embedding txt"));
+    ui->embedding_test_groupBox->setTitle(jtr("test"));
+    ui->embedding_test_textEdit->setPlaceholderText(jtr("embedding_test_textEdit_placeholder"));
+    ui->embedding_test_pushButton->setText(jtr("retrieval"));
+    ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
+    ui->embedding_log_groupBox->setTitle(jtr("log"));
     //文生图
-    ui->sd_set_groupBox->setTitle(wordsObj["settings"].toArray()[language_flag].toString());
-    ui->sd_result_groupBox->setTitle(wordsObj["result"].toArray()[language_flag].toString());
-    ui->sd_modelpath_label->setText(wordsObj["sd path"].toArray()[language_flag].toString());
-    ui->sd_vaepath_label->setText(wordsObj["vae path"].toArray()[language_flag].toString());
-    ui->sd_antiprompt_label->setText(wordsObj["negative"].toArray()[language_flag].toString());
-    ui->sd_modelpath_lineEdit->setPlaceholderText(wordsObj["sd_modelpath_lineEdit_placeholder"].toArray()[language_flag].toString());
-    ui->sd_vaepath_lineEdit->setPlaceholderText(wordsObj["sd_vaepath_lineEdit_placeholder"].toArray()[language_flag].toString());
-    ui->sd_antiprompt_lineEdit->setPlaceholderText(wordsObj["sd_antiprompt_lineEdit_placeholder"].toArray()[language_flag].toString());
-    ui->sd_imagewidth_label->setText(wordsObj["image width"].toArray()[language_flag].toString());
-    ui->sd_imageheight_label->setText(wordsObj["image height"].toArray()[language_flag].toString());
-    ui->sd_sampletype_label->setText(wordsObj["sample type"].toArray()[language_flag].toString());
-    ui->sd_samplesteps_label->setText(wordsObj["sample steps"].toArray()[language_flag].toString());
-    ui->sd_cfg_label->setText(wordsObj["cfg scale"].toArray()[language_flag].toString());
-    ui->sd_imagenums_label->setText(wordsObj["image nums"].toArray()[language_flag].toString());
-    ui->sd_seed_label->setText(wordsObj["seed"].toArray()[language_flag].toString());
-    ui->sd_clip_label->setText(wordsObj["clip"].toArray()[language_flag].toString());
-    ui->sd_prompt_groupBox->setTitle(wordsObj["prompt"].toArray()[language_flag].toString());
-    ui->sd_upload_groupBox->setTitle(wordsObj["upload image"].toArray()[language_flag].toString());
-    ui->sd_draw_pushButton->setText(wordsObj["text to image"].toArray()[language_flag].toString());
-    ui->sd_draw_pushButton_2->setText(wordsObj["image to image"].toArray()[language_flag].toString());
-    ui->sd_prompt_textEdit->setPlaceholderText(wordsObj["sd_prompt_textEdit_placeholder"].toArray()[language_flag].toString());
-    ui->sd_uploadimage_textEdit->setPlaceholderText(wordsObj["sd_uploadimage_textEdit_placeholder"].toArray()[language_flag].toString());
-    ui->sd_log_groupBox->setTitle("sd.exe " + wordsObj["log"].toArray()[language_flag].toString());
-    ui->sd_log->setPlainText(wordsObj["sd_log_plainText"].toArray()[language_flag].toString());
+    ui->sd_set_groupBox->setTitle(jtr("settings"));
+    ui->sd_result_groupBox->setTitle(jtr("result"));
+    ui->sd_modelpath_label->setText(jtr("sd path"));
+    ui->sd_vaepath_label->setText(jtr("vae path"));
+    ui->sd_antiprompt_label->setText(jtr("negative"));
+    ui->sd_modelpath_lineEdit->setPlaceholderText(jtr("sd_modelpath_lineEdit_placeholder"));
+    ui->sd_vaepath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    ui->sd_antiprompt_lineEdit->setPlaceholderText(jtr("sd_antiprompt_lineEdit_placeholder"));
+    ui->sd_imagewidth_label->setText(jtr("image width"));
+    ui->sd_imageheight_label->setText(jtr("image height"));
+    ui->sd_sampletype_label->setText(jtr("sample type"));
+    ui->sd_samplesteps_label->setText(jtr("sample steps"));
+    ui->sd_cfg_label->setText(jtr("cfg scale"));
+    ui->sd_imagenums_label->setText(jtr("image nums"));
+    ui->sd_seed_label->setText(jtr("seed"));
+    ui->sd_clip_label->setText(jtr("clip"));
+    ui->sd_prompt_groupBox->setTitle(jtr("prompt"));
+    ui->sd_upload_groupBox->setTitle(jtr("upload image"));
+    ui->sd_draw_pushButton->setText(jtr("text to image"));
+    ui->sd_draw_pushButton_2->setText(jtr("image to image"));
+    ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
+    ui->sd_uploadimage_textEdit->setPlaceholderText(jtr("sd_uploadimage_textEdit_placeholder"));
+    ui->sd_log_groupBox->setTitle("sd.exe " + jtr("log"));
+    ui->sd_log->setPlainText(jtr("sd_log_plainText"));
 
     //声转文
-    ui->whisper_modelpath_label->setText(wordsObj["whisper path"].toArray()[language_flag].toString());
-    ui->whisper_load_modelpath_linedit->setPlaceholderText(wordsObj["whisper_load_modelpath_linedit_placeholder"].toArray()[language_flag].toString());
-    ui->voice_load_groupBox_4->setTitle("whisper.exe " + wordsObj["log"].toArray()[language_flag].toString());
-    ui->whisper_wav2text_label->setText(wordsObj["wav2text"].toArray()[language_flag].toString());
-    ui->whisper_wavpath_pushButton->setText(wordsObj["wav path"].toArray()[language_flag].toString());
-    ui->whisper_format_label->setText(wordsObj["format"].toArray()[language_flag].toString());
-    ui->whisper_execute_pushbutton->setText(wordsObj["convert"].toArray()[language_flag].toString());
+    ui->whisper_modelpath_label->setText(jtr("whisper path"));
+    ui->whisper_load_modelpath_linedit->setPlaceholderText(jtr("whisper_load_modelpath_linedit_placeholder"));
+    ui->voice_load_groupBox_4->setTitle("whisper.exe " + jtr("log"));
+    ui->whisper_wav2text_label->setText(jtr("wav2text"));
+    ui->whisper_wavpath_pushButton->setText(jtr("wav path"));
+    ui->whisper_format_label->setText(jtr("format"));
+    ui->whisper_execute_pushbutton->setText(jtr("convert"));
 
 }
 
@@ -253,11 +260,11 @@ void Expend::recv_expend_show(int index_)
         is_first_show_expend = false;
         if(vocab == "")
         {
-            vocab = wordsObj["lode model first"].toArray()[language_flag].toString();
+            vocab = jtr("lode model first");
         }
         if(ui->modellog_card->toPlainText() == "")
         {
-            ui->modellog_card->setPlainText(wordsObj["lode model first"].toArray()[language_flag].toString());
+            ui->modellog_card->setPlainText(jtr("lode model first"));
         }
     }
     //打开指定页数窗口
@@ -496,7 +503,7 @@ void Expend::on_whisper_load_modelpath_button_clicked()
     whisper_params.model = currentpath.toStdString();
     ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
     emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
-    ui->whisper_log->setPlainText(wordsObj["once selected, you can record by pressing f2"].toArray()[language_flag].toString());
+    ui->whisper_log->setPlainText(jtr("once selected, you can record by pressing f2"));
 }
 
 //开始语音转文字
@@ -554,7 +561,7 @@ void Expend::whisper_onProcessStarted()
 {
     if(!is_handle_whisper)
     {
-        emit expend2ui_state("expend:" + wordsObj["calling whisper.exe to decode recording"].toArray()[language_flag].toString(),USUAL_);
+        emit expend2ui_state("expend:" + jtr("calling whisper.exe to decode recording"),USUAL_);
     }
     
 }
@@ -576,12 +583,12 @@ void Expend::whisper_onProcessFinished()
             content = in.readAll();// 读取文件内容
         }
         file.close();
-        emit expend2ui_state("expend:" + wordsObj["decode over"].toArray()[language_flag].toString() + " " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
+        emit expend2ui_state("expend:" + jtr("decode over") + " " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
         emit expend2ui_voicedecode_over(content);
     }
     else
     {
-        ui->whisper_log->appendPlainText(wordsObj["the result has been saved in the source wav file directory"].toArray()[language_flag].toString() + " "+ QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s");
+        ui->whisper_log->appendPlainText(jtr("the result has been saved in the source wav file directory") + " "+ QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s");
     }
     is_handle_whisper = false;
 }
@@ -613,7 +620,7 @@ void Expend::on_whisper_execute_pushbutton_clicked()
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     server_process->kill();//终止server
-    currentpath= customOpenfile(currentpath,wordsObj["select embedding model"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
+    currentpath= customOpenfile(currentpath,jtr("select embedding model"),"(*.bin *.gguf)");
     embedding_params.modelpath = currentpath;
     if(embedding_params.modelpath==""){return;}
 
@@ -677,15 +684,15 @@ void Expend::embedding_server_start()
             
             embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
             ui->embedding_txt_api_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
-            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + wordsObj["service startup completed"].toArray()[language_flag].toString() + "\n";
-            log_output += wordsObj["embedding"].toArray()[language_flag].toString() + wordsObj["endpoint"].toArray()[language_flag].toString() + " " + embedding_server_api;
+            log_output += jtr("embedding") + jtr("service startup completed") + "\n";
+            log_output += jtr("embedding") + jtr("endpoint") + " " + embedding_server_api;
             if(embedding_server_n_embd!=1024)
             {
-                log_output += "\n" + wordsObj["embedding dimension"].toArray()[language_flag].toString() + ": " +QString::number(embedding_server_n_embd) + " " + wordsObj["does not meet the requirements, please replace the model"].toArray()[language_flag].toString() +"\n";
+                log_output += "\n" + jtr("embedding dimension") + ": " +QString::number(embedding_server_n_embd) + " " + jtr("does not meet the requirements, please replace the model") +"\n";
             }
             else
             {
-                log_output += "\n" + wordsObj["embedding dimension"].toArray()[language_flag].toString() + ": " +QString::number(embedding_server_n_embd);
+                log_output += "\n" + jtr("embedding dimension") + ": " +QString::number(embedding_server_n_embd);
             }
             
         }//替换ip地址
@@ -717,7 +724,7 @@ void Expend::server_onProcessStarted()
 //进程结束响应
 void Expend::server_onProcessFinished()
 {
-    ui->embedding_test_log->appendPlainText(wordsObj["embedding server abort"].toArray()[language_flag].toString());
+    ui->embedding_test_log->appendPlainText(jtr("embedding server abort"));
 }
 
 //获取本机第一个ip地址
@@ -733,7 +740,7 @@ QString Expend::getFirstNonLoopbackIPv4Address() {
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    currentpath= customOpenfile(currentpath,wordsObj["choose a txt to embed"].toArray()[language_flag].toString(),"(*.txt)");
+    currentpath= customOpenfile(currentpath,jtr("choose a txt to embed"),"(*.txt)");
     txtpath = currentpath;
     ui->embedding_txt_lineEdit->setText(txtpath);
 
@@ -789,7 +796,7 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->setColumnWidth(0,qMax(ui->embedding_txt_wait->width(),400));// 列宽保持控件宽度
 
     ui->embedding_txt_wait->resizeRowsToContents();// 自动调整行高
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{wordsObj["embedless text segment"].toArray()[language_flag].toString()});//设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});//设置列名
 }
 
 //右击表格显示菜单
@@ -798,11 +805,11 @@ void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
     // 创建菜单并添加动作
     QMenu contextMenu(tr("Context menu"), this);
 
-    QAction actionAdd(wordsObj["add"].toArray()[language_flag].toString(), this);
+    QAction actionAdd(jtr("add"), this);
     connect(&actionAdd, &QAction::triggered, this, &Expend::embedding_txt_wait_onAdd);
     contextMenu.addAction(&actionAdd);
 
-    QAction actionDelete(wordsObj["delete"].toArray()[language_flag].toString(), this);
+    QAction actionDelete(jtr("delete"), this);
     connect(&actionDelete, &QAction::triggered, this, &Expend::embedding_txt_wait_onDelete);
     contextMenu.addAction(&actionDelete);
 
@@ -818,7 +825,7 @@ void Expend::embedding_txt_wait_onAdd()
     ui->embedding_txt_wait->insertRow(row);  // 在选中的行的下一行添加一行
 
     // 根据需要设置新行的内容
-    QTableWidgetItem *newItem = new QTableWidgetItem(wordsObj["please input the text that needs to be embedded"].toArray()[language_flag].toString());
+    QTableWidgetItem *newItem = new QTableWidgetItem(jtr("please input the text that needs to be embedded"));
     ui->embedding_txt_wait->setItem(row, 0, newItem);  // 假设我们只设置第一列
 }
 //删除表格
@@ -902,7 +909,7 @@ void Expend::on_embedding_test_pushButton_clicked()
             }
         }
         vector_str += "]";
-        ui->embedding_test_log->appendPlainText(wordsObj["The query text segment has been embedded"].toArray()[language_flag].toString() + "! " + wordsObj["dimension"].toArray()[language_flag].toString() + ": "+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
+        ui->embedding_test_log->appendPlainText(jtr("The query text segment has been embedded") + "! " + jtr("dimension") + ": "+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -914,19 +921,19 @@ void Expend::on_embedding_test_pushButton_clicked()
             //A向量点积B向量除以(A模乘B模)
             std::vector<std::pair<int, double>> score;
             score = similar_indices(user_embedding_vector.value,Embedding_DB);
-            ui->embedding_test_result->appendPlainText(wordsObj["The three text segments with the highest similarity"].toArray()[language_flag].toString() + ":");
+            ui->embedding_test_result->appendPlainText(jtr("The three text segments with the highest similarity") + ":");
             //将分数前三的结果显示出来
             for(int i = 0;i < 3 && i < score.size();++i)
             {
                 //qDebug()<<score[i].first<<score[i].second;
-                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + " " + wordsObj["Number text segment similarity"].toArray()[language_flag].toString() + ": " + QString::number(score[i].second));
+                ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + " " + jtr("Number text segment similarity") + ": " + QString::number(score[i].second));
             }
 
         } 
         else 
         {
             // 请求出错
-            ui->embedding_test_log->appendPlainText(wordsObj["Request error, please make sure to start the embedded service"].toArray()[language_flag].toString());
+            ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
         }
         
         reply->abort();//终止
@@ -988,7 +995,7 @@ void Expend::embedding_processing()
 
     ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
     ui->embedding_txt_over->setRowCount(0);//设置已嵌入文本段表格为0行
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{wordsObj["embeded text segment"].toArray()[language_flag].toString()});//设置列名
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
     show_chunk_index = 0;//待显示的嵌入文本段的序号
 
     //----------------------相同的内容不再嵌入, 先保留再新增-----------------------
@@ -1110,7 +1117,7 @@ void Expend::embedding_processing()
                 }
             }
             vector_str += "]";
-            ui->embedding_test_log->appendPlainText(QString::number(Embedding_DB.at(o).index+1) + " " + wordsObj["Number text segment embedding over"].toArray()[language_flag].toString() +"! "+ wordsObj["dimension"].toArray()[language_flag].toString() + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + "词向量: "+ vector_str);
+            ui->embedding_test_log->appendPlainText(QString::number(Embedding_DB.at(o).index+1) + " " + jtr("Number text segment embedding over") +"! "+ jtr("dimension") + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + "词向量: "+ vector_str);
             
         });
         // 完成
@@ -1134,7 +1141,7 @@ void Expend::embedding_processing()
             else 
             {
                 // 请求出错
-                ui->embedding_test_log->appendPlainText(wordsObj["Request error, please make sure to start the embedded service"].toArray()[language_flag].toString());
+                ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
             }
 
             reply->abort();//终止
@@ -1153,7 +1160,7 @@ void Expend::embedding_processing()
     ui->embedding_test_pushButton->setEnabled(1);//检索按钮
     ui->embedding_txt_modelpath_button->setEnabled(1);//选择模型按钮
 
-    ui->embedding_test_log->appendPlainText(wordsObj["embedding over"].toArray()[language_flag].toString() + " " + wordsObj["use time"].toArray()[language_flag].toString() + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + "s");
+    ui->embedding_test_log->appendPlainText(jtr("embedding over") + " " + jtr("use time") + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + "s");
     emit expend2tool_embeddingdb(Embedding_DB);//发送已嵌入文本段数据给tool
 }
 
@@ -1175,14 +1182,14 @@ void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 //用户点击选择待量化模型路径时响应
 void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
 {
-    currentpath= customOpenfile(currentpath,wordsObj["model_quantize_row_modelpath_lineedit_placeholder"].toArray()[language_flag].toString(),"(*.gguf)");
+    currentpath= customOpenfile(currentpath,jtr("model_quantize_row_modelpath_lineedit_placeholder"),"(*.gguf)");
     ui->model_quantize_row_modelpath_lineedit->setText(currentpath);
 }
 
 //用户点击选择重要性矩阵路径时响应
 void Expend::on_model_quantize_important_datapath_pushButton_clicked()
 {
-    currentpath = customOpenfile(currentpath,wordsObj["model_quantize_important_datapath_lineedit_placeholder"].toArray()[language_flag].toString(),"(*.dat)");
+    currentpath = customOpenfile(currentpath,jtr("model_quantize_important_datapath_lineedit_placeholder"),"(*.dat)");
     ui->model_quantize_important_datapath_lineedit->setText(currentpath);
 }
 //待量化模型路径改变响应
@@ -1212,17 +1219,17 @@ void Expend::show_quantize_types()
         { "Q3_K_S", "78.8%", "+0.5551", "⭐"},
         { "Q2_K", "79.8%", "+0.6717", "⭐"},
         { "Q2_K_S", "83.4%", "+9.0634", ""},
-        { "IQ4_NL", "71.9%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ4_XS", "73.4%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ3_M", "77.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ3_S", "78.5%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ3_XS", "79.4%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ3_XXS", "80.9%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ2_M", "83.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ2_S", "84.3%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"}, 
-        { "IQ2_XS", "85.6%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ2_XXS", "87.1%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐"},
-        { "IQ1_S", "90.3%", wordsObj["related to the imatrix"].toArray()[language_flag].toString(), "⭐⭐"},
+        { "IQ4_NL", "71.9%", jtr("related to the imatrix"), "⭐"},
+        { "IQ4_XS", "73.4%", jtr("related to the imatrix"), "⭐"},
+        { "IQ3_M", "77.1%", jtr("related to the imatrix"), "⭐"},
+        { "IQ3_S", "78.5%", jtr("related to the imatrix"), "⭐"},
+        { "IQ3_XS", "79.4%", jtr("related to the imatrix"), "⭐"},
+        { "IQ3_XXS", "80.9%", jtr("related to the imatrix"), "⭐"},
+        { "IQ2_M", "83.1%", jtr("related to the imatrix"), "⭐"},
+        { "IQ2_S", "84.3%", jtr("related to the imatrix"), "⭐"}, 
+        { "IQ2_XS", "85.6%", jtr("related to the imatrix"), "⭐"},
+        { "IQ2_XXS", "87.1%", jtr("related to the imatrix"), "⭐"},
+        { "IQ1_S", "90.3%", jtr("related to the imatrix"), "⭐⭐"},
     };
     
     //添加量化方法选项
@@ -1234,9 +1241,9 @@ void Expend::show_quantize_types()
     //添加量化方法说明
     ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
     ui->model_quantize_info->setColumnCount(5);
-    ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{wordsObj["quantize type"].toArray()[language_flag].toString(), wordsObj["compression"].toArray()[language_flag].toString() + "（f16->）",
-                                                                    wordsObj["perplexity"].toArray()[language_flag].toString(),wordsObj["recommend"].toArray()[language_flag].toString(),
-                                                                    wordsObj["estimated size"].toArray()[language_flag].toString() + "（f16->）"});//设置列名
+    ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{jtr("quantize type"), jtr("compression") + "（f16->）",
+                                                                    jtr("perplexity"),jtr("recommend"),
+                                                                    jtr("estimated size") + "（f16->）"});//设置列名
     for(int i=0;i<quantize_types.size(); ++i)
     {
         QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
@@ -1384,12 +1391,12 @@ void Expend::quantize_onProcessFinished()
     ui->model_quantize_frame3->setEnabled(1);
     ui->model_quantize_frame4->setEnabled(1);
 
-    ui->model_quantize_log->appendPlainText(wordsObj["quantize completed! model save"].toArray()[language_flag].toString() + ":" + ui->model_quantize_output_modelpath_lineedit->text());
+    ui->model_quantize_log->appendPlainText(jtr("quantize completed! model save") + ":" + ui->model_quantize_output_modelpath_lineedit->text());
     QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
     float modelsize1_MB = fileInfo1.size() /1024.0/1024.0;
     QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text());//获取文件大小
     float modelsize2_MB = fileInfo2.size() /1024.0/1024.0;
-    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB " + wordsObj["compression"].toArray()[language_flag].toString() + " :" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
+    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB " + jtr("compression") + " :" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
 
 }
 
@@ -1404,7 +1411,7 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     currentpath = customOpenfile(currentpath ,"choose sd model","(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     sd_params.modelpath = currentpath;
     if(sd_params.modelpath!=""){ui->sd_modelpath_lineEdit->setText(sd_params.modelpath);}
-    if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText(wordsObj["xl model detected, recommend setting the image width and height to 768 or above"].toArray()[language_flag].toString());}
+    if(sd_params.modelpath.contains("xl")){ui->sd_log->appendPlainText(jtr("xl model detected, recommend setting the image width and height to 768 or above"));}
 
 }
 //用户点击选择vae模型路径时响应 
@@ -1421,17 +1428,17 @@ void Expend::on_sd_draw_pushButton_clicked()
 {
     if(is_handle_sd && ui->sd_prompt_textEdit->toPlainText()=="")
     {
-        ui->sd_log->appendPlainText(wordsObj["Please enter prompt words to tell the model what you want the image to look like"].toArray()[language_flag].toString());
+        ui->sd_log->appendPlainText(jtr("Please enter prompt words to tell the model what you want the image to look like"));
         return;
     }
     else if(is_handle_sd && ui->sd_modelpath_lineEdit->text()=="")
     {
-        ui->sd_log->appendPlainText(wordsObj["Please specify the SD model path first"].toArray()[language_flag].toString());
+        ui->sd_log->appendPlainText(jtr("Please specify the SD model path first"));
         return;
     }
     else if(!is_handle_sd)
     {
-        emit expend2ui_state("expend:sd.exe " + wordsObj["drawing"].toArray()[language_flag].toString(),USUAL_);
+        emit expend2ui_state("expend:sd.exe " + jtr("drawing"),USUAL_);
     }
 
     //锁定界面
@@ -1575,7 +1582,7 @@ void Expend::sd_onProcessFinished()
     if(!is_handle_sd && originalWidth>0)
     {
         is_handle_sd = true;
-        emit expend2ui_state("expend:" + wordsObj["draw over"].toArray()[language_flag].toString(),USUAL_);
+        emit expend2ui_state("expend:" + jtr("draw over"),USUAL_);
         emit expend2tool_drawover(sd_params.outpath,1);//绘制完成信号
     }
     else if(!is_handle_sd)
@@ -1583,13 +1590,13 @@ void Expend::sd_onProcessFinished()
         is_handle_sd = true;
         if(sd_process_output.contains("CUDA error"))
         {
-            emit expend2ui_state("expend:" + wordsObj["draw fail cuda"].toArray()[language_flag].toString(),WRONG_);
-            emit expend2tool_drawover(wordsObj["draw fail cuda"].toArray()[language_flag].toString(),0);//绘制完成信号
+            emit expend2ui_state("expend:" + jtr("draw fail cuda"),WRONG_);
+            emit expend2tool_drawover(jtr("draw fail cuda"),0);//绘制完成信号
         }
         else
         {
-            emit expend2ui_state("expend:" + wordsObj["draw fail prompt"].toArray()[language_flag].toString(),WRONG_);
-            emit expend2tool_drawover(wordsObj["draw fail prompt"].toArray()[language_flag].toString(),0);//绘制完成信号
+            emit expend2ui_state("expend:" + jtr("draw fail prompt"),WRONG_);
+            emit expend2tool_drawover(jtr("draw fail prompt"),0);//绘制完成信号
         }
         
     }
@@ -1689,12 +1696,12 @@ void Expend::recv_draw(QString prompt_)
     //判断是否空闲
     if(!ui->sd_draw_pushButton->isEnabled())
     {
-        emit expend2tool_drawover("stablediffusion" + wordsObj["Running, please try again later"].toArray()[language_flag].toString(),0);//绘制完成信号
+        emit expend2tool_drawover("stablediffusion" + jtr("Running, please try again later"),0);//绘制完成信号
         return;
     }
     else if(ui->sd_modelpath_lineEdit->text() == "")
     {
-        emit expend2tool_drawover(wordsObj["The command is invalid. Please ask the user to specify the SD model path in the breeding window first"].toArray()[language_flag].toString(),0);//绘制完成信号
+        emit expend2tool_drawover(jtr("The command is invalid. Please ask the user to specify the SD model path in the breeding window first"),0);//绘制完成信号
         return;
     }
     //先把提示词写进输入框

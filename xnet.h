@@ -28,6 +28,7 @@ public:
     ENDPOINT_DATA endpoint_data;//端点参数
     QJsonObject wordsObj;
     int language_flag = 0;
+    QString jtr(QString customstr);// 根据language.json(wordsObj)和language_flag中找到对应的文字
     QByteArray createChatBody();//构造请求的数据体,对话模式
     QByteArray createCompleteBody();//构造请求的数据体,补完模式
     bool is_stop = false;//终止标签

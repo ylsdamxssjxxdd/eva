@@ -42,13 +42,13 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
             {
                 QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");;  // 获取第一个捕获组的内容
                 //去除文本段前后的标点
-                // 去除最前面的标点 { " ' }
-                while (!content3.isEmpty() && (content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{'))) {
+                // 去除最前面的标点 { " ' ` }
+                while (!content3.isEmpty() && (content3.at(0) == QChar('`') || content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{'))) {
                     content3 = content3.mid(1);
                 }
 
-                // 去除最后面的标点 { " ' }
-                while (!content3.isEmpty() && (content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}'))) {
+                // 去除最后面的标点 { " ' ` }
+                while (!content3.isEmpty() && (content3.at(content3.length() - 1) == QChar('`') || content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}'))) {
                     content3.chop(1);
                 }
 
@@ -79,7 +79,7 @@ QString Widget::create_extra_prompt()
 {
     QString extra_prompt_;
 
-    extra_prompt_ = wordsObj["head_extra_prompt"].toArray()[language_flag].toString();
+    extra_prompt_ = jtr("head_extra_prompt");
     if(is_load_tool)
     {
         //头
@@ -87,11 +87,11 @@ QString Widget::create_extra_prompt()
         if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
         if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
-        if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + wordsObj["embeddingdb describe"].toArray()[language_flag].toString() + ":" + embeddingdb_describe + "\n";}
+        if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";}
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
         if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
         //中
-        extra_prompt_ +=wordsObj["middle_extra_prompt"].toArray()[language_flag].toString();
+        extra_prompt_ +=jtr("middle_extra_prompt");
         if(interpreter_checkbox->isChecked()){extra_prompt_ +="\"interpreter\" ";}
         if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
         if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
@@ -100,7 +100,7 @@ QString Widget::create_extra_prompt()
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
         if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
         //尾
-        extra_prompt_ += wordsObj["tail_extra_prompt"].toArray()[language_flag].toString();
+        extra_prompt_ += jtr("tail_extra_prompt");
     }
     else{extra_prompt_ = "";}
     return extra_prompt_;
@@ -143,7 +143,7 @@ void Widget::server_onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server " + wordsObj["oning"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:server " + jtr("oning"),SIGNAL_);
 }
 
 //第三方程序结束
@@ -151,13 +151,13 @@ void Widget::server_onProcessFinished()
 {
     if(current_server)
     {
-        ui_state = "ui:"+ wordsObj["old"].toArray()[language_flag].toString() + "server " + wordsObj["off"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
+        ui_state = "ui:"+ jtr("old") + "server " + jtr("off");reflash_state(ui_state,SIGNAL_);
     }
     else
     {
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        reflash_state("ui:server"+wordsObj["off"].toArray()[language_flag].toString(),SIGNAL_);
-        ui_output = "\nserver"+wordsObj["shut down"].toArray()[language_flag].toString();
+        reflash_state("ui:server"+jtr("off"),SIGNAL_);
+        ui_output = "\nserver"+jtr("shut down");
         output_scroll(ui_output);
     }
 }
@@ -201,7 +201,7 @@ void Widget::showImage(QString imagepath)
 //开始录音
 void Widget::recordAudio()
 {
-    reflash_state("ui:" + wordsObj["recoding"].toArray()[language_flag].toString() + "... ");
+    reflash_state("ui:" + jtr("recoding") + "... ");
     ui_state_recoding();
     //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
     QAudioFormat audioFormat;
@@ -263,7 +263,7 @@ void Widget::stop_recordAudio()
     _audioInput->stop();
     audio_timer->stop();
     outFile.close();
-    reflash_state("ui:" + wordsObj["recoding over"].toArray()[language_flag].toString() + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
+    reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     
     emit ui2expend_voicedecode("./EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
@@ -285,7 +285,7 @@ void Widget::readCsvFile(const QString &fileName)
         qDebug() << "Cannot open file for reading:" << file.errorString();
         return;
     }
-    QString questiontitle = wordsObj["question type"].toArray()[language_flag].toString() + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
+    QString questiontitle = jtr("question type") + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
     QTextStream in(&file);
     in.setCodec("UTF-8");//要求csv文件的格式必须是utf-8 不能是ansi
     QString headerLine = in.readLine();// 读取并忽略标题行
@@ -485,118 +485,118 @@ void Widget::switch_lan_change()
 void Widget::apply_language(int language_flag_)
 {
     //主界面语种
-    ui->load->setText(wordsObj["load"].toArray()[language_flag].toString());
-    ui->load->setToolTip(wordsObj["load_button_tooltip"].toArray()[language_flag].toString());
-    ui->date->setText(wordsObj["date"].toArray()[language_flag].toString());
-    ui->set->setToolTip(wordsObj["set"].toArray()[language_flag].toString());
-    ui->reset->setToolTip(wordsObj["reset"].toArray()[language_flag].toString());
-    if(!is_debug){ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());}
-    ui->send->setToolTip(wordsObj["send_tooltip"].toArray()[language_flag].toString());
-    cutscreen_dialog->init_action(wordsObj["save cut image"].toArray()[language_flag].toString(), wordsObj["svae screen image"].toArray()[language_flag].toString());
-    ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
-    ui->mem_bar->set_show_text(wordsObj["mem"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
-    ui->vram_bar->set_show_text(wordsObj["vram"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
-    ui->kv_bar->set_show_text(wordsObj["brain"].toArray()[language_flag].toString());//进度条里面的文本,强制重绘
+    ui->load->setText(jtr("load"));
+    ui->load->setToolTip(jtr("load_button_tooltip"));
+    ui->date->setText(jtr("date"));
+    ui->set->setToolTip(jtr("set"));
+    ui->reset->setToolTip(jtr("reset"));
+    if(!is_debug){ui->send->setText(jtr("send"));}
+    ui->send->setToolTip(jtr("send_tooltip"));
+    cutscreen_dialog->init_action(jtr("save cut image"), jtr("svae screen image"));
+    ui->cpu_bar->setToolTip(jtr("nthread/maxthread")+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
+    ui->mem_bar->set_show_text(jtr("mem"));//进度条里面的文本,强制重绘
+    ui->vram_bar->set_show_text(jtr("vram"));//进度条里面的文本,强制重绘
+    ui->kv_bar->set_show_text(jtr("brain"));//进度条里面的文本,强制重绘
     ui->cpu_bar->show_text = "cpu ";//进度条里面的文本
     ui->vcore_bar->show_text = "gpu ";//进度条里面的文本
     //输入区右击菜单语种
     create_right_menu();//添加右击问题
     //api设置语种
-    api_dialog->setWindowTitle("api" + wordsObj["set"].toArray()[language_flag].toString());
-    api_ip_label->setText("api " + wordsObj["address"].toArray()[language_flag].toString());
-    api_ip_LineEdit->setPlaceholderText(wordsObj["input server ip"].toArray()[language_flag].toString());
-    api_port_label->setText("api " + wordsObj["port"].toArray()[language_flag].toString());
-    api_chat_label->setText(wordsObj["chat"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
-    api_complete_label->setText(wordsObj["complete"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
+    api_dialog->setWindowTitle("api" + jtr("set"));
+    api_ip_label->setText("api " + jtr("address"));
+    api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_port_label->setText("api " + jtr("port"));
+    api_chat_label->setText(jtr("chat")+jtr("endpoint"));
+    api_complete_label->setText(jtr("complete")+jtr("endpoint"));
     //约定选项语种
-    prompt_box->setTitle(wordsObj["prompt"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());//提示词模板设置区域
-    chattemplate_label->setText(wordsObj["chat template"].toArray()[language_flag].toString());
-    chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
-    chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
-    system_label->setText(wordsObj["system calling"].toArray()[language_flag].toString());
-    system_label->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
-    system_TextEdit->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
-    input_pfx_label->setText(wordsObj["user name"].toArray()[language_flag].toString());
-    input_pfx_label->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
-    input_pfx_LineEdit->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
-    input_sfx_label->setText(wordsObj["bot name"].toArray()[language_flag].toString());
-    input_sfx_label->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
-    input_sfx_LineEdit->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
-    tool_box->setTitle(wordsObj["mount"].toArray()[language_flag].toString() + wordsObj["tool"].toArray()[language_flag].toString());
-    calculator_checkbox->setText(wordsObj["calculator"].toArray()[language_flag].toString());
-    calculator_checkbox->setToolTip(wordsObj["calculator_checkbox_tooltip"].toArray()[language_flag].toString());
-    cmd_checkbox->setText(wordsObj["cmd"].toArray()[language_flag].toString());
-    cmd_checkbox->setToolTip(wordsObj["cmd_checkbox_tooltip"].toArray()[language_flag].toString());
-    controller_checkbox->setText(wordsObj["controller"].toArray()[language_flag].toString());
-    controller_checkbox->setToolTip(wordsObj["controller_checkbox_tooltip"].toArray()[language_flag].toString());
-    knowledge_checkbox->setText(wordsObj["knowledge"].toArray()[language_flag].toString());
-    knowledge_checkbox->setToolTip(wordsObj["knowledge_checkbox_tooltip"].toArray()[language_flag].toString());
-    toolguy_checkbox->setText(wordsObj["toolguy"].toArray()[language_flag].toString());
-    toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toArray()[language_flag].toString());
-    stablediffusion_checkbox->setText(wordsObj["stablediffusion"].toArray()[language_flag].toString());
-    stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toArray()[language_flag].toString());
-    interpreter_checkbox->setText(wordsObj["interpreter"].toArray()[language_flag].toString());
-    interpreter_checkbox->setToolTip(wordsObj["interpreter_checkbox_tooltip"].toArray()[language_flag].toString());
-    extra_label->setText(wordsObj["extra calling"].toArray()[language_flag].toString());
-    extra_label->setToolTip(wordsObj["extra_label_tooltip"].toArray()[language_flag].toString());
-    switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toArray()[language_flag].toString());
-    extra_TextEdit->setPlaceholderText(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
-    extra_TextEdit->setToolTip(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
+    prompt_box->setTitle(jtr("prompt") + jtr("template"));//提示词模板设置区域
+    chattemplate_label->setText(jtr("chat template"));
+    chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
+    chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
+    system_label->setText(jtr("system calling"));
+    system_label->setToolTip(jtr("system_label_tooltip"));
+    system_TextEdit->setToolTip(jtr("system_label_tooltip"));
+    input_pfx_label->setText(jtr("user name"));
+    input_pfx_label->setToolTip(jtr("input_pfx_label_tooltip"));
+    input_pfx_LineEdit->setToolTip(jtr("input_pfx_label_tooltip"));
+    input_sfx_label->setText(jtr("bot name"));
+    input_sfx_label->setToolTip(jtr("input_sfx_label_tooltip"));
+    input_sfx_LineEdit->setToolTip(jtr("input_sfx_label_tooltip"));
+    tool_box->setTitle(jtr("mount") + jtr("tool"));
+    calculator_checkbox->setText(jtr("calculator"));
+    calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
+    cmd_checkbox->setText(jtr("cmd"));
+    cmd_checkbox->setToolTip(jtr("cmd_checkbox_tooltip"));
+    controller_checkbox->setText(jtr("controller"));
+    controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
+    knowledge_checkbox->setText(jtr("knowledge"));
+    knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
+    toolguy_checkbox->setText(jtr("toolguy"));
+    toolguy_checkbox->setToolTip(jtr("toolguy_checkbox_tooltip"));
+    stablediffusion_checkbox->setText(jtr("stablediffusion"));
+    stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
+    interpreter_checkbox->setText(jtr("interpreter"));
+    interpreter_checkbox->setToolTip(jtr("interpreter_checkbox_tooltip"));
+    extra_label->setText(jtr("extra calling"));
+    extra_label->setToolTip(jtr("extra_label_tooltip"));
+    switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
+    extra_TextEdit->setPlaceholderText(jtr("extra_TextEdit_tooltip"));
+    extra_TextEdit->setToolTip(jtr("extra_TextEdit_tooltip"));
     tool_map.clear();
-    tool_map.insert("calculator", {wordsObj["calculator"].toArray()[language_flag].toString(),"calculator",wordsObj["calculator_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("cmd", {wordsObj["cmd"].toArray()[language_flag].toString(),"cmd",wordsObj["cmd_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("toolguy", {wordsObj["toolguy"].toArray()[language_flag].toString(),"toolguy",wordsObj["toolguy_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("knowledge", {wordsObj["knowledge"].toArray()[language_flag].toString(),"knowledge",wordsObj["knowledge_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("controller", {wordsObj["controller"].toArray()[language_flag].toString(),"controller",wordsObj["controller_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("stablediffusion", {wordsObj["stablediffusion"].toArray()[language_flag].toString(),"stablediffusion",wordsObj["stablediffusion_func_describe"].toArray()[language_flag].toString()});
-    tool_map.insert("interpreter", {wordsObj["interpreter"].toArray()[language_flag].toString(),"interpreter",wordsObj["interpreter_func_describe"].toArray()[language_flag].toString()});
+    tool_map.insert("calculator", {jtr("calculator"),"calculator",jtr("calculator_func_describe")});
+    tool_map.insert("cmd", {jtr("cmd"),"cmd",jtr("cmd_func_describe")});
+    tool_map.insert("toolguy", {jtr("toolguy"),"toolguy",jtr("toolguy_func_describe")});
+    tool_map.insert("knowledge", {jtr("knowledge"),"knowledge",jtr("knowledge_func_describe")});
+    tool_map.insert("controller", {jtr("controller"),"controller",jtr("controller_func_describe")});
+    tool_map.insert("stablediffusion", {jtr("stablediffusion"),"stablediffusion",jtr("stablediffusion_func_describe")});
+    tool_map.insert("interpreter", {jtr("interpreter"),"interpreter",jtr("interpreter_func_describe")});
     extra_TextEdit->setText(create_extra_prompt());//构建附加指令
-    date_dialog->setWindowTitle(wordsObj["date"].toArray()[language_flag].toString());
+    date_dialog->setWindowTitle(jtr("date"));
     //设置选项语种
-    sample_box->setTitle(wordsObj["sample set"].toArray()[language_flag].toString());//采样设置区域
-    temp_label->setText(wordsObj["temperature"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.temp));
-    temp_label->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
-    temp_slider->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
-    repeat_label->setText(wordsObj["repeat"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.repeat));
-    repeat_label->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
-    repeat_slider->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
-    npredict_label->setText(wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict));
-    npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());npredict_label->setMinimumWidth(100);
-    npredict_slider->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
-    decode_box->setTitle(wordsObj["decode set"].toArray()[language_flag].toString());//解码设置区域
+    sample_box->setTitle(jtr("sample set"));//采样设置区域
+    temp_label->setText(jtr("temperature")+" " + QString::number(ui_SETTINGS.temp));
+    temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
+    temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
+    repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
+    repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
+    repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
+    npredict_label->setText(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
+    npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));npredict_label->setMinimumWidth(100);
+    npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
+    decode_box->setTitle(jtr("decode set"));//解码设置区域
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ngl_label->setText("gpu " + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
-    ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());ngl_label->setMinimumWidth(100);
-    ngl_slider->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+    ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
+    ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));ngl_label->setMinimumWidth(100);
+    ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
 #endif
-    nthread_label->setText("cpu " + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
-    nthread_label->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
-    nthread_slider->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
-    nctx_label->setText(wordsObj["brain size"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());nctx_label->setMinimumWidth(100);
-    nctx_slider->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());
-    batch_label->setText(wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.batch));
-    batch_label->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());batch_label->setMinimumWidth(100);
-    batch_slider->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());
-    lora_label->setText(wordsObj["load lora"].toArray()[language_flag].toString());
-    lora_label->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
-    lora_LineEdit->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
-    lora_LineEdit->setPlaceholderText(wordsObj["right click and choose lora"].toArray()[language_flag].toString());
-    mmproj_label->setText(wordsObj["load mmproj"].toArray()[language_flag].toString());
-    mmproj_label->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
-    mmproj_LineEdit->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
-    mmproj_LineEdit->setPlaceholderText(wordsObj["right click and choose mmproj"].toArray()[language_flag].toString());
-    mode_box->setTitle(wordsObj["mode set"].toArray()[language_flag].toString());//模式设置区域
-    complete_btn->setText(wordsObj["complete mode"].toArray()[language_flag].toString());
-    complete_btn->setToolTip(wordsObj["complete_btn_tooltip"].toArray()[language_flag].toString());
-    chat_btn->setText(wordsObj["chat mode"].toArray()[language_flag].toString());
-    chat_btn->setToolTip(wordsObj["chat_btn_tooltip"].toArray()[language_flag].toString());
-    web_btn->setText(wordsObj["server mode"].toArray()[language_flag].toString());
-    web_btn->setToolTip(wordsObj["web_btn_tooltip"].toArray()[language_flag].toString());
-    port_label->setText(wordsObj["port"].toArray()[language_flag].toString());
-    port_label->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
-    port_lineEdit->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
-    set_dialog->setWindowTitle(wordsObj["set"].toArray()[language_flag].toString());
+    nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
+    nthread_label->setToolTip(jtr("not big better"));
+    nthread_slider->setToolTip(jtr("not big better"));
+    nctx_label->setText(jtr("brain size")+" " + QString::number(ui_SETTINGS.nctx));
+    nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));nctx_label->setMinimumWidth(100);
+    nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
+    batch_label->setText(jtr("batch size") + " " + QString::number(ui_SETTINGS.batch));
+    batch_label->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));batch_label->setMinimumWidth(100);
+    batch_slider->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
+    lora_label->setText(jtr("load lora"));
+    lora_label->setToolTip(jtr("lora_label_tooltip"));
+    lora_LineEdit->setToolTip(jtr("lora_label_tooltip"));
+    lora_LineEdit->setPlaceholderText(jtr("right click and choose lora"));
+    mmproj_label->setText(jtr("load mmproj"));
+    mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
+    mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
+    mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
+    mode_box->setTitle(jtr("mode set"));//模式设置区域
+    complete_btn->setText(jtr("complete mode"));
+    complete_btn->setToolTip(jtr("complete_btn_tooltip"));
+    chat_btn->setText(jtr("chat mode"));
+    chat_btn->setToolTip(jtr("chat_btn_tooltip"));
+    web_btn->setText(jtr("server mode"));
+    web_btn->setToolTip(jtr("web_btn_tooltip"));
+    port_label->setText(jtr("port"));
+    port_label->setToolTip(jtr("port_label_tooltip"));
+    port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    set_dialog->setWindowTitle(jtr("set"));
 }
 
 QString Widget::makeHelpInput()
@@ -606,9 +606,9 @@ QString Widget::makeHelpInput()
     for(int i = 1; i < 3;++i)//2个
     {
         help_input = help_input + ui_DATES.input_pfx + ":\n";//前缀,用户昵称
-        help_input = help_input + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString() + "\n";//问题
+        help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";//问题
         help_input = help_input + "\n" + ui_DATES.input_sfx + ":\n";//后缀,模型昵称
-        help_input = help_input + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString() + "\n";//答案
+        help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";//答案
     }
     
     return help_input;
@@ -813,5 +813,5 @@ void Widget::speechOver()
     settings.setValue("custom2_input_pfx",custom2_input_pfx);
     settings.setValue("custom2_input_sfx",custom2_input_sfx);
     
-    reflash_state("ui:" + wordsObj["save_config_mess"].toArray()[language_flag].toString(),USUAL_);
+    reflash_state("ui:" + jtr("save_config_mess"),USUAL_);
  }

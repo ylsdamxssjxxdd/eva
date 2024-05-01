@@ -52,6 +52,7 @@ public:
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QJsonObject wordsObj;
     int language_flag = 0;
+    QString jtr(QString customstr);// 根据language.json(wordsObj)和language_flag中找到对应的文字
     QString vocab;
     QString model_logs;
     bool is_first_show_modelproliferation = true;

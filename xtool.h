@@ -31,6 +31,7 @@ public:
     //拯救中文
     QJsonObject wordsObj;
     int language_flag = 0;
+    QString jtr(QString customstr);// 根据language.json(wordsObj)和language_flag中找到对应的文字
     void run() override;
 public:
     QPair<QString, QString> func_arg_list;

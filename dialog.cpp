@@ -233,15 +233,15 @@ void Widget::unlockLoad()
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     if(ui_SETTINGS.ngl<ui_maxngl)
     {
-        reflash_state("ui:" + wordsObj["ngl tips"].toArray()[language_flag].toString(),USUAL_);
+        reflash_state("ui:" + jtr("ngl tips"),USUAL_);
     }
 #endif
-    reflash_state("ui:" + wordsObj["load model"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " + QString::number(load_time,'f',2)+" s " + wordsObj["right click and check model log"].toArray()[language_flag].toString(),SUCCESS_);
+    reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time,'f',2)+" s " + jtr("right click and check model log"),SUCCESS_);
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
-    this->setWindowTitle(wordsObj["current model"].toArray()[language_flag].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
-    ui->kv_bar->show_text = wordsObj["brain"].toArray()[language_flag].toString();
-    ui->cpu_bar->setToolTip(wordsObj["nthread/maxthread"].toArray()[language_flag].toString()+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
+    this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
+    ui->kv_bar->show_text = jtr("brain");
+    ui->cpu_bar->setToolTip(jtr("nthread/maxthread")+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
     auto_save_user();//保存ui配置
     //如果是对话模式则预解码约定
     if(ui_mode == CHAT_)
@@ -284,24 +284,24 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             test_score++;
             output_scroll(result + "\n", Qt::green);
-            ui_state = "ui:"+ QString::number(test_count) + " " +wordsObj["answer right"].toArray()[language_flag].toString() + " " + wordsObj["right answer"].toArray()[language_flag].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
+            ui_state = "ui:"+ QString::number(test_count) + " " +jtr("answer right") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
         }
         //答错
         else
         {
             output_scroll(result + "\n", Qt::red);
-            ui_state = "ui:"+ QString::number(test_count) + " " + wordsObj["answer error"].toArray()[language_flag].toString() + " " + wordsObj["right answer"].toArray()[language_flag].toString() + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
+            ui_state = "ui:"+ QString::number(test_count) + " " + jtr("answer error") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
         test_question_index.removeAt(0);//回答完毕删除开头的第一个问题
-        if(is_api){this->setWindowTitle(wordsObj["test"].toArray()[language_flag].toString() + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " + "   "+wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api);}
-        else{this->setWindowTitle(wordsObj["test"].toArray()[language_flag].toString() + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " + "   "+ ui_SETTINGS.modelpath.split("/").last());} 
+        if(is_api){this->setWindowTitle(jtr("test") + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + jtr("accurate") +QString::number(acc,'f',1) + "% " + "   "+jtr("current api") + " " + current_api);}
+        else{this->setWindowTitle(jtr("test") + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + jtr("accurate") +QString::number(acc,'f',1) + "% " + "   "+ ui_SETTINGS.modelpath.split("/").last());} 
 
         //每20次题加一次引导题
         if(int(test_count) % 20 == 0)
         {
             help_input = true;
-            ui_state = "ui:"+ wordsObj["add help question"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
+            ui_state = "ui:"+ jtr("add help question");reflash_state(ui_state,SIGNAL_);
         }
     }
     else
@@ -329,7 +329,11 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             }
         }
 
-        if(is_debuging){ui->send->setEnabled(1);} // debug中发送按钮可以一直用
+        if(is_debuging)
+        {
+            ui->send->setEnabled(1); // debug模式下发送按钮可以马上用
+            ui->reset->setEnabled(1);
+        }
     }
     
 }
@@ -425,7 +429,7 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setForeground(NORMAL_BLACK);  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         //■■■■■■■■■■■■■■
-        ui->state->appendPlainText(wordsObj["cubes"].toArray()[language_flag].toString());//显示
+        ui->state->appendPlainText(jtr("cubes"));//显示
 
         //中间内容
         format.setFontItalic(false);         // 取消斜体
@@ -437,7 +441,7 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setFontItalic(true);        // 设置斜体
         format.setFontWeight(QFont::Normal); // 取消粗体
         ui->state->setCurrentCharFormat(format);//设置光标格式
-        ui->state->appendPlainText(wordsObj["cubes"].toArray()[language_flag].toString());//显示
+        ui->state->appendPlainText(jtr("cubes"));//显示
         
         format.setFontWeight(QFont::Normal); // 取消粗体
         format.setFontItalic(false);         // 取消斜体
@@ -461,7 +465,7 @@ void Widget::reflash_state(QString state_string,STATE state)
         format.setForeground(QColor(0,100,0));  //墨绿色
         ui->state->setCurrentCharFormat(format);//设置光标格式
 
-        ui->state->appendPlainText(state_string + wordsObj["cubes"].toArray()[language_flag].toString() + wordsObj["cubes"].toArray()[language_flag].toString());
+        ui->state->appendPlainText(state_string + jtr("cubes") + jtr("cubes"));
 
         format.setFontWeight(QFont::Normal); // 取消粗体
         format.setFontItalic(false);         // 取消斜体
@@ -478,41 +482,41 @@ void Widget::reflash_state(QString state_string,STATE state)
 //温度滑块响应
 void Widget::temp_change()
 {
-    temp_label->setText(wordsObj["temperature"].toArray()[language_flag].toString()+" "+ QString::number(temp_slider->value()/100.0));
+    temp_label->setText(jtr("temperature")+" "+ QString::number(temp_slider->value()/100.0));
 }
 //ngl滑块响应
 void Widget::ngl_change()
 {
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    ngl_label->setText("gpu "+ wordsObj["offload"].toArray()[language_flag].toString() + " " + QString::number(ngl_slider->value()));
+    ngl_label->setText("gpu "+ jtr("offload") + " " + QString::number(ngl_slider->value()));
 #endif
 }
 //batch滑块响应
 void Widget::batch_change()
 {
-    batch_label->setText(wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(batch_slider->value()));
+    batch_label->setText(jtr("batch size") + " " + QString::number(batch_slider->value()));
 }
 // nctx滑块响应
 void Widget::nctx_change()
 {
-    nctx_label->setText(wordsObj["brain size"].toArray()[language_flag].toString() + " "+ QString::number(nctx_slider->value()));
+    nctx_label->setText(jtr("brain size") + " "+ QString::number(nctx_slider->value()));
     
 }
 //repeat滑块响应
 void Widget::repeat_change()
 {
 
-    repeat_label->setText(wordsObj["repeat"].toArray()[language_flag].toString()+" "+ QString::number(repeat_slider->value()/100.0));
+    repeat_label->setText(jtr("repeat")+" "+ QString::number(repeat_slider->value()/100.0));
 }
 
 void Widget::npredict_change()
 {
-    npredict_label->setText(wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(npredict_slider->value()));
+    npredict_label->setText(jtr("npredict") + " " + QString::number(npredict_slider->value()));
 }
 
 void Widget::nthread_change()
 {
-    nthread_label->setText("cpu " + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(nthread_slider->value()));
+    nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(nthread_slider->value()));
 }
 
 //补完按钮响应
@@ -558,7 +562,7 @@ void Widget::web_change()
 //提示词模板下拉框响应
 void Widget::prompt_template_change()
 {
-    if(chattemplate_comboBox->currentText() == wordsObj["custom set1"].toArray()[0].toString())
+    if(chattemplate_comboBox->currentText() == jtr("custom set1"))
     {
         system_TextEdit->setEnabled(1);
         input_pfx_LineEdit->setEnabled(1);
@@ -568,7 +572,7 @@ void Widget::prompt_template_change()
         input_pfx_LineEdit->setText(custom1_input_pfx);
         input_sfx_LineEdit->setText(custom1_input_sfx);
     }
-    else if(chattemplate_comboBox->currentText() == wordsObj["custom set2"].toArray()[0].toString())
+    else if(chattemplate_comboBox->currentText() == jtr("custom set2"))
     {
         system_TextEdit->setEnabled(1);
         input_pfx_LineEdit->setEnabled(1);
@@ -592,7 +596,7 @@ void Widget::prompt_template_change()
 void Widget::chooseLorapath()
 {
     //用户选择模型位置
-    currentpath = customOpenfile(currentpath,wordsObj["choose lora model"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,jtr("choose lora model"),"(*.bin *.gguf)");
     
     lora_LineEdit->setText(currentpath);
 }
@@ -600,7 +604,7 @@ void Widget::chooseLorapath()
 void Widget::chooseMmprojpath()
 {
     //用户选择模型位置
-    currentpath = customOpenfile(currentpath,wordsObj["choose mmproj model"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,jtr("choose mmproj model"),"(*.bin *.gguf)");
     
     mmproj_LineEdit->setText(currentpath);
 }
@@ -676,49 +680,49 @@ void Widget::set_SetDialog()
     layout->setSpacing(6); // 设置布局中子项之间的间隔为0
     layout->setContentsMargins(3, 3, 3, 3);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //------------采样设置---------------
-    sample_box = new QGroupBox(wordsObj["sample set"].toArray()[language_flag].toString());//采样设置区域
+    sample_box = new QGroupBox(jtr("sample set"));//采样设置区域
     sample_box->setFont(ui_font);
     QVBoxLayout *samlpe_layout = new QVBoxLayout();//采样设置垂直布局器
     
     //温度控制
     QHBoxLayout *layout_H1 = new QHBoxLayout();//水平布局器
-    temp_label = new QLabel(wordsObj["temperature"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.temp));
-    temp_label->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
+    temp_label = new QLabel(jtr("temperature")+" " + QString::number(ui_SETTINGS.temp));
+    temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     temp_label->setMinimumWidth(100);
     layout_H1->addWidget(temp_label);
     temp_slider = new QSlider(Qt::Horizontal);
     temp_slider->setRange(0, 99); // 设置范围为0到99
     temp_slider->setMinimumWidth(150);
     temp_slider->setValue(ui_SETTINGS.temp*100.0);
-    temp_slider->setToolTip(wordsObj["The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"].toArray()[language_flag].toString());
+    temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     connect(temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
     layout_H1->addWidget(temp_slider);
     samlpe_layout->addLayout(layout_H1);
     
     //重复惩罚控制
     QHBoxLayout *layout_H4 = new QHBoxLayout();//水平布局器
-    repeat_label = new QLabel(wordsObj["repeat"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.repeat));
-    repeat_label->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
+    repeat_label = new QLabel(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
+    repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     repeat_label->setMinimumWidth(100);
     layout_H4->addWidget(repeat_label);
     repeat_slider = new QSlider(Qt::Horizontal);
     repeat_slider->setRange(0, 200); // 设置范围
     repeat_slider->setValue(ui_SETTINGS.repeat*100.0);
-    repeat_slider->setToolTip(wordsObj["Reduce the probability of the model outputting synonymous words"].toArray()[language_flag].toString());
+    repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     connect(repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
     layout_H4->addWidget(repeat_slider);
     samlpe_layout->addLayout(layout_H4);
 
     //最大输出长度设置
     QHBoxLayout *layout_H15 = new QHBoxLayout();//水平布局器
-    npredict_label = new QLabel(wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict));
-    npredict_label->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
+    npredict_label = new QLabel(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
+    npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
     npredict_label->setMinimumWidth(100);
     layout_H15->addWidget(npredict_label);
     npredict_slider = new QSlider(Qt::Horizontal);
     npredict_slider->setRange(1, 8192); // 设置范围
     npredict_slider->setValue(ui_SETTINGS.npredict);
-    npredict_slider->setToolTip(wordsObj["The maximum number of tokens that the model can output in a single prediction process"].toArray()[language_flag].toString());
+    npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
     connect(npredict_slider, &QSlider::valueChanged, this, &Widget::npredict_change);
     layout_H15->addWidget(npredict_slider);
     samlpe_layout->addLayout(layout_H15);
@@ -727,33 +731,33 @@ void Widget::set_SetDialog()
     layout->addWidget(sample_box);
 
     //------------解码设置---------------
-    decode_box = new QGroupBox(wordsObj["decode set"].toArray()[language_flag].toString());//解码设置区域
+    decode_box = new QGroupBox(jtr("decode set"));//解码设置区域
     decode_box->setFont(ui_font);
     QVBoxLayout *decode_layout = new QVBoxLayout();//解码设置垂直布局器
 
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
-    ngl_label = new QLabel("gpu " + wordsObj["offload"].toArray()[language_flag].toString() + QString::number(ui_SETTINGS.ngl));
-    ngl_label->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+    ngl_label = new QLabel("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
+    ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
     ngl_label->setMinimumWidth(100);
     layout_H2->addWidget(ngl_label);
     ngl_slider = new QSlider(Qt::Horizontal);
     ngl_slider->setRange(0,99);
     ngl_slider->setValue(ui_SETTINGS.ngl);
-    ngl_slider->setToolTip(wordsObj["put some model paragram to gpu and reload model"].toArray()[language_flag].toString());
+    ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
     layout_H2->addWidget(ngl_slider);
     decode_layout->addLayout(layout_H2);//将布局添加到总布局
     connect(ngl_slider, &QSlider::valueChanged, this, &Widget::ngl_change);
 #endif
     //cpu线程数设置
     QHBoxLayout *layout_H16 = new QHBoxLayout();//水平布局器
-    nthread_label = new QLabel("cpu " + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread));
-    nthread_label->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
+    nthread_label = new QLabel("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
+    nthread_label->setToolTip(jtr("not big better"));
     nthread_label->setMinimumWidth(100);
     layout_H16->addWidget(nthread_label);
     nthread_slider = new QSlider(Qt::Horizontal);
-    nthread_slider->setToolTip(wordsObj["not big better"].toArray()[language_flag].toString());
+    nthread_slider->setToolTip(jtr("not big better"));
     
     nthread_slider->setValue(ui_SETTINGS.nthread);
     layout_H16->addWidget(nthread_slider);
@@ -761,38 +765,38 @@ void Widget::set_SetDialog()
     connect(nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
     //ctx length 记忆容量
     QHBoxLayout *layout_H3 = new QHBoxLayout();//水平布局器
-    nctx_label = new QLabel(wordsObj["brain size"].toArray()[language_flag].toString()+" " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());
+    nctx_label = new QLabel(jtr("brain size")+" " + QString::number(ui_SETTINGS.nctx));
+    nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
     nctx_label->setMinimumWidth(100);
     layout_H3->addWidget(nctx_label);
     nctx_slider = new QSlider(Qt::Horizontal);
     nctx_slider->setRange(128,32768);
     nctx_slider->setValue(ui_SETTINGS.nctx);
-    nctx_slider->setToolTip(wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() + "," + wordsObj["big brain size lead small wisdom"].toArray()[language_flag].toString());
+    nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
     layout_H3->addWidget(nctx_slider);
     decode_layout->addLayout(layout_H3);//将布局添加到总布局
     connect(nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
     //batch size 批大小
     QHBoxLayout *layout_H13 = new QHBoxLayout();//水平布局器
-    batch_label = new QLabel(wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.batch));
-    batch_label->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());
+    batch_label = new QLabel(jtr("batch size") + " " + QString::number(ui_SETTINGS.batch));
+    batch_label->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
     batch_label->setMinimumWidth(100);
     //layout_H13->addWidget(batch_label);//暂时不显示
     batch_slider = new QSlider(Qt::Horizontal);
     batch_slider->setRange(1,2048);
     batch_slider->setValue(ui_SETTINGS.batch);
-    batch_slider->setToolTip(wordsObj["The number of tokens processed simultaneously in one decoding"].toArray()[language_flag].toString());
+    batch_slider->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
     //layout_H13->addWidget(batch_slider);//暂时不显示
     //decode_layout->addLayout(layout_H13);//暂时不显示
     connect(batch_slider, &QSlider::valueChanged, this, &Widget::batch_change);
 
     //load lora
     QHBoxLayout *layout_H12 = new QHBoxLayout();//水平布局器
-    lora_label = new QLabel(wordsObj["load lora"].toArray()[language_flag].toString());
-    lora_label->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
+    lora_label = new QLabel(jtr("load lora"));
+    lora_label->setToolTip(jtr("lora_label_tooltip"));
     lora_LineEdit = new QLineEdit();
-    lora_LineEdit->setToolTip(wordsObj["lora_label_tooltip"].toArray()[language_flag].toString());
-    lora_LineEdit->setPlaceholderText(wordsObj["right click and choose lora"].toArray()[language_flag].toString());
+    lora_LineEdit->setToolTip(jtr("lora_label_tooltip"));
+    lora_LineEdit->setPlaceholderText(jtr("right click and choose lora"));
 
     layout_H12->addWidget(lora_label);
     layout_H12->addWidget(lora_LineEdit);
@@ -802,11 +806,11 @@ void Widget::set_SetDialog()
 
     //load mmproj
     QHBoxLayout *layout_H17 = new QHBoxLayout();//水平布局器
-    mmproj_label = new QLabel(wordsObj["load mmproj"].toArray()[language_flag].toString());
-    mmproj_label->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
+    mmproj_label = new QLabel(jtr("load mmproj"));
+    mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
     mmproj_LineEdit = new QLineEdit();
-    mmproj_LineEdit->setToolTip(wordsObj["mmproj_label_tooltip"].toArray()[language_flag].toString());
-    mmproj_LineEdit->setPlaceholderText(wordsObj["right click and choose mmproj"].toArray()[language_flag].toString());
+    mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
+    mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
     layout_H17->addWidget(mmproj_label);
     layout_H17->addWidget(mmproj_LineEdit);
     decode_layout->addLayout(layout_H17);//将布局添加到总布局
@@ -817,34 +821,34 @@ void Widget::set_SetDialog()
     layout->addWidget(decode_box);
 
     //------------模式设置---------------
-    mode_box = new QGroupBox(wordsObj["mode set"].toArray()[language_flag].toString());//模式设置区域
+    mode_box = new QGroupBox(jtr("mode set"));//模式设置区域
     mode_box->setFont(ui_font);
     QVBoxLayout *mode_layout = new QVBoxLayout();//模式设置垂直布局器
     
     //补完控制
-    complete_btn = new QRadioButton(wordsObj["complete mode"].toArray()[language_flag].toString());
-    complete_btn->setToolTip(wordsObj["complete_btn_tooltip"].toArray()[language_flag].toString());
+    complete_btn = new QRadioButton(jtr("complete mode"));
+    complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     complete_btn->setMinimumHeight(20);
     mode_layout->addWidget(complete_btn);
     connect(complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
     //多轮对话
-    chat_btn = new QRadioButton(wordsObj["chat mode"].toArray()[language_flag].toString());
-    chat_btn->setToolTip(wordsObj["chat_btn_tooltip"].toArray()[language_flag].toString());
+    chat_btn = new QRadioButton(jtr("chat mode"));
+    chat_btn->setToolTip(jtr("chat_btn_tooltip"));
     chat_btn->setMinimumHeight(20);
     mode_layout->addWidget(chat_btn);
     chat_btn->setChecked(1);
     connect(chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
     //网页服务控制
     QHBoxLayout *layout_H10 = new QHBoxLayout();//水平布局器
-    web_btn = new QRadioButton(wordsObj["server mode"].toArray()[language_flag].toString());
-    web_btn->setToolTip(wordsObj["web_btn_tooltip"].toArray()[language_flag].toString());
+    web_btn = new QRadioButton(jtr("server mode"));
+    web_btn->setToolTip(jtr("web_btn_tooltip"));
     web_btn->setMinimumHeight(20);
     layout_H10->addWidget(web_btn);
-    port_label = new QLabel(wordsObj["port"].toArray()[language_flag].toString());
-    port_label->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
+    port_label = new QLabel(jtr("port"));
+    port_label->setToolTip(jtr("port_label_tooltip"));
     layout_H10->addWidget(port_label);
     port_lineEdit = new QLineEdit();
-    port_lineEdit->setToolTip(wordsObj["port_label_tooltip"].toArray()[language_flag].toString());
+    port_lineEdit->setToolTip(jtr("port_label_tooltip"));
     port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535);//限制端口输入
     port_lineEdit->setValidator(validator);
@@ -868,7 +872,7 @@ void Widget::set_SetDialog()
     layout->addWidget(buttonBox);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_set);
     connect(buttonBox, &QDialogButtonBox::rejected, set_dialog, &QDialog::reject);
-    set_dialog->setWindowTitle(wordsObj["set"].toArray()[language_flag].toString());
+    set_dialog->setWindowTitle(jtr("set"));
 
 }
 
@@ -891,37 +895,37 @@ void Widget::set_DateDialog()
     layout->setContentsMargins(3, 3, 3, 3);// 设置布局的边缘间隔为0 (左, 上, 右, 下)
     //layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
     //------------提示词模板设置---------------
-    prompt_box = new QGroupBox(wordsObj["prompt"].toArray()[language_flag].toString() + wordsObj["template"].toArray()[language_flag].toString());//提示词模板设置区域
+    prompt_box = new QGroupBox(jtr("prompt") + jtr("template"));//提示词模板设置区域
     prompt_box->setFont(ui_font);
     QVBoxLayout *prompt_layout = new QVBoxLayout();//提示词模板设置垂直布局器
 
     //预设模板
     QHBoxLayout *layout_H9 = new QHBoxLayout();//水平布局器
-    chattemplate_label = new QLabel(wordsObj["chat template"].toArray()[language_flag].toString());
-    chattemplate_label->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
+    chattemplate_label = new QLabel(jtr("chat template"));
+    chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
     chattemplate_label->setFixedSize(60,30);
     layout_H9->addWidget(chattemplate_label);
     chattemplate_comboBox = new QComboBox();
-    chattemplate_comboBox->setToolTip(wordsObj["chattemplate_label_tooltip"].toArray()[language_flag].toString());
+    chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
     chattemplate_comboBox->setMinimumWidth(200);
     for (const QString &key : date_map.keys())
     {
         chattemplate_comboBox->addItem(key);
     }
-    chattemplate_comboBox->addItem(wordsObj["custom set1"].toArray()[language_flag].toString());//添加自定义模板
-    chattemplate_comboBox->addItem(wordsObj["custom set2"].toArray()[language_flag].toString());//添加自定义模板
+    chattemplate_comboBox->addItem(jtr("custom set1"));//添加自定义模板
+    chattemplate_comboBox->addItem(jtr("custom set2"));//添加自定义模板
     chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
     connect(chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
     layout_H9->addWidget(chattemplate_comboBox);
     prompt_layout->addLayout(layout_H9);//将布局添加到总布局
     //系统指令
     QHBoxLayout *layout_H11 = new QHBoxLayout();//水平布局器
-    system_label = new QLabel(wordsObj["system calling"].toArray()[language_flag].toString());
-    system_label->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
+    system_label = new QLabel(jtr("system calling"));
+    system_label->setToolTip(jtr("system_label_tooltip"));
     system_label->setFixedSize(60,30);
     layout_H11->addWidget(system_label);
     system_TextEdit = new QTextEdit();
-    system_TextEdit->setToolTip(wordsObj["system_label_tooltip"].toArray()[language_flag].toString());
+    system_TextEdit->setToolTip(jtr("system_label_tooltip"));
     // 设置样式表
     // system_TextEdit->setStyleSheet("QTextEdit {"
     //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
@@ -932,23 +936,23 @@ void Widget::set_DateDialog()
     prompt_layout->addLayout(layout_H11);//将布局添加到总布局
     //输入前缀设置
     QHBoxLayout *layout_H5 = new QHBoxLayout();//水平布局器
-    input_pfx_label = new QLabel(wordsObj["user name"].toArray()[language_flag].toString());
-    input_pfx_label->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
+    input_pfx_label = new QLabel(jtr("user name"));
+    input_pfx_label->setToolTip(jtr("input_pfx_label_tooltip"));
     input_pfx_label->setFixedSize(60,30);
     layout_H5->addWidget(input_pfx_label);
     input_pfx_LineEdit = new QLineEdit();
-    input_pfx_LineEdit->setToolTip(wordsObj["input_pfx_label_tooltip"].toArray()[language_flag].toString());
+    input_pfx_LineEdit->setToolTip(jtr("input_pfx_label_tooltip"));
     input_pfx_LineEdit->setText(ui_DATES.input_pfx);
     layout_H5->addWidget(input_pfx_LineEdit);
     prompt_layout->addLayout(layout_H5);//将布局添加到总布局
     //输入后缀设置
     QHBoxLayout *layout_H6 = new QHBoxLayout();//水平布局器
-    input_sfx_label = new QLabel(wordsObj["bot name"].toArray()[language_flag].toString());
-    input_sfx_label->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
+    input_sfx_label = new QLabel(jtr("bot name"));
+    input_sfx_label->setToolTip(jtr("input_sfx_label_tooltip"));
     input_sfx_label->setFixedSize(60,30);
     layout_H6->addWidget(input_sfx_label);
     input_sfx_LineEdit = new QLineEdit();
-    input_sfx_LineEdit->setToolTip(wordsObj["input_sfx_label_tooltip"].toArray()[language_flag].toString());
+    input_sfx_LineEdit->setToolTip(jtr("input_sfx_label_tooltip"));
     input_sfx_LineEdit->setText(ui_DATES.input_sfx);
     layout_H6->addWidget(input_sfx_LineEdit);
     prompt_layout->addLayout(layout_H6);//将布局添加到垂直布局
@@ -957,35 +961,35 @@ void Widget::set_DateDialog()
     layout->addWidget(prompt_box);
 
     //------------工具设置---------------
-    tool_box = new QGroupBox(wordsObj["mount"].toArray()[language_flag].toString() + wordsObj["tool"].toArray()[language_flag].toString());//提示词模板设置区域
+    tool_box = new QGroupBox(jtr("mount") + jtr("tool"));//提示词模板设置区域
     tool_box->setFont(ui_font);
     QVBoxLayout *tool_layout = new QVBoxLayout();//提示词模板设置垂直布局器
     //可用工具
     QHBoxLayout *layout_H44 = new QHBoxLayout();//水平布局器
-    calculator_checkbox = new QCheckBox(wordsObj["calculator"].toArray()[language_flag].toString());
-    calculator_checkbox->setToolTip(wordsObj["calculator_checkbox_tooltip"].toArray()[language_flag].toString());
-    cmd_checkbox = new QCheckBox(wordsObj["cmd"].toArray()[language_flag].toString());
-    cmd_checkbox->setToolTip(wordsObj["cmd_checkbox_tooltip"].toArray()[language_flag].toString());
+    calculator_checkbox = new QCheckBox(jtr("calculator"));
+    calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
+    cmd_checkbox = new QCheckBox(jtr("cmd"));
+    cmd_checkbox->setToolTip(jtr("cmd_checkbox_tooltip"));
     layout_H44->addWidget(calculator_checkbox);
     layout_H44->addWidget(cmd_checkbox);
     tool_layout->addLayout(layout_H44);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H45 = new QHBoxLayout();//水平布局器
-    controller_checkbox = new QCheckBox(wordsObj["controller"].toArray()[language_flag].toString());
-    controller_checkbox->setToolTip(wordsObj["controller_checkbox_tooltip"].toArray()[language_flag].toString());
-    knowledge_checkbox = new QCheckBox(wordsObj["knowledge"].toArray()[language_flag].toString());
-    knowledge_checkbox->setToolTip(wordsObj["knowledge_checkbox_tooltip"].toArray()[language_flag].toString());
+    controller_checkbox = new QCheckBox(jtr("controller"));
+    controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
+    knowledge_checkbox = new QCheckBox(jtr("knowledge"));
+    knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
     layout_H45->addWidget(knowledge_checkbox);
     layout_H45->addWidget(controller_checkbox);
     tool_layout->addLayout(layout_H45);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H46 = new QHBoxLayout();//水平布局器
-    toolguy_checkbox = new QCheckBox(wordsObj["toolguy"].toArray()[language_flag].toString());
-    toolguy_checkbox->setToolTip(wordsObj["toolguy_checkbox_tooltip"].toArray()[language_flag].toString());
-    interpreter_checkbox = new QCheckBox(wordsObj["interpreter"].toArray()[language_flag].toString());
-    interpreter_checkbox->setToolTip(wordsObj["interpreter_checkbox_tooltip"].toArray()[language_flag].toString());
-    stablediffusion_checkbox = new QCheckBox(wordsObj["stablediffusion"].toArray()[language_flag].toString());
-    stablediffusion_checkbox->setToolTip(wordsObj["stablediffusion_checkbox_tooltip"].toArray()[language_flag].toString());
+    toolguy_checkbox = new QCheckBox(jtr("toolguy"));
+    toolguy_checkbox->setToolTip(jtr("toolguy_checkbox_tooltip"));
+    interpreter_checkbox = new QCheckBox(jtr("interpreter"));
+    interpreter_checkbox->setToolTip(jtr("interpreter_checkbox_tooltip"));
+    stablediffusion_checkbox = new QCheckBox(jtr("stablediffusion"));
+    stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
     layout_H46->addWidget(stablediffusion_checkbox);
     //layout_H46->addWidget(toolguy_checkbox);//暂不显示
     layout_H46->addWidget(interpreter_checkbox);
@@ -1001,8 +1005,8 @@ void Widget::set_DateDialog()
 
     //附加指令
     QHBoxLayout *layout_H55 = new QHBoxLayout();//水平布局器
-    extra_label = new QLabel(wordsObj["extra calling"].toArray()[language_flag].toString());
-    extra_label->setToolTip(wordsObj["extra_label_tooltip"].toArray()[language_flag].toString());
+    extra_label = new QLabel(jtr("extra calling"));
+    extra_label->setToolTip(jtr("extra_label_tooltip"));
     layout_H55->addWidget(extra_label);
     if(language_flag == 0)
     {
@@ -1013,13 +1017,13 @@ void Widget::set_DateDialog()
         ui_extra_lan = "en";
     }
     switch_lan_button = new QPushButton(ui_extra_lan);
-    switch_lan_button->setToolTip(wordsObj["switch_lan_button_tooltip"].toArray()[language_flag].toString());
+    switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
     switch_lan_button->setMinimumWidth(200);
     switch_lan_button->setMinimumHeight(20);
     layout_H55->addWidget(switch_lan_button);
     extra_TextEdit = new QTextEdit();
-    extra_TextEdit->setPlaceholderText(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
-    extra_TextEdit->setToolTip(wordsObj["extra_TextEdit_tooltip"].toArray()[language_flag].toString());
+    extra_TextEdit->setPlaceholderText(jtr("extra_TextEdit_tooltip"));
+    extra_TextEdit->setToolTip(jtr("extra_TextEdit_tooltip"));
     // 设置样式表
     // extra_TextEdit->setStyleSheet("QTextEdit {"
     //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
@@ -1040,7 +1044,7 @@ void Widget::set_DateDialog()
     connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);
     prompt_template_change();//先应用提示词模板
     system_TextEdit->setText(ui_system_prompt);
-    date_dialog->setWindowTitle(wordsObj["date"].toArray()[language_flag].toString());
+    date_dialog->setWindowTitle(jtr("date"));
 }
 
 //-------------------------------------------------------------------------
@@ -1049,7 +1053,7 @@ void Widget::set_DateDialog()
 void Widget::setApiDialog()
 {
     api_dialog = new QDialog();
-    api_dialog->setWindowTitle("api" + wordsObj["set"].toArray()[language_flag].toString());
+    api_dialog->setWindowTitle("api" + jtr("set"));
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     api_dialog->resize(250, 200); // 设置宽度为400像素,高度为200像素
@@ -1057,10 +1061,10 @@ void Widget::setApiDialog()
     QVBoxLayout *layout = new QVBoxLayout(api_dialog);//垂直布局器
 
     QHBoxLayout *layout_H1 = new QHBoxLayout();//水平布局器
-    api_ip_label = new QLabel("api " + wordsObj["address"].toArray()[language_flag].toString());
+    api_ip_label = new QLabel("api " + jtr("address"));
     layout_H1->addWidget(api_ip_label);
     api_ip_LineEdit = new QLineEdit();
-    api_ip_LineEdit->setPlaceholderText(wordsObj["input server ip"].toArray()[language_flag].toString());
+    api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_ip_LineEdit->setText(apis.api_ip);
     QRegExp ipRegex("^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");// IPv4的正则表达式限制
     QRegExpValidator *validator_ipv4 = new QRegExpValidator(ipRegex, api_ip_LineEdit);
@@ -1069,7 +1073,7 @@ void Widget::setApiDialog()
     layout->addLayout(layout_H1);//将布局添加到总布局
 
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
-    api_port_label = new QLabel("api " + wordsObj["port"].toArray()[language_flag].toString());
+    api_port_label = new QLabel("api " + jtr("port"));
     layout_H2->addWidget(api_port_label);
     api_port_LineEdit = new QLineEdit();
     api_port_LineEdit->setText(apis.api_port);
@@ -1079,7 +1083,7 @@ void Widget::setApiDialog()
     layout->addLayout(layout_H2);//将布局添加到总布局
 
     QHBoxLayout *layout_H3 = new QHBoxLayout();//水平布局器
-    api_chat_label = new QLabel(wordsObj["chat"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
+    api_chat_label = new QLabel(jtr("chat")+jtr("endpoint"));
     layout_H3->addWidget(api_chat_label);
     api_chat_LineEdit = new QLineEdit();
     api_chat_LineEdit->setText(apis.api_chat_endpoint);
@@ -1087,7 +1091,7 @@ void Widget::setApiDialog()
     layout->addLayout(layout_H3);//将布局添加到总布局
 
     QHBoxLayout *layout_H4 = new QHBoxLayout();//水平布局器
-    api_complete_label = new QLabel(wordsObj["complete"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString());
+    api_complete_label = new QLabel(jtr("complete")+jtr("endpoint"));
     layout_H4->addWidget(api_complete_label);
     api_complete_LineEdit = new QLineEdit();
     api_complete_LineEdit->setText(apis.api_complete_endpoint);
@@ -1176,7 +1180,7 @@ void Widget::set_api()
 {
     //判断ip地址是否合理
     if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,WRONG_);return;}
-    reflash_state("ui:"+wordsObj["detecting"].toArray()[language_flag].toString()+"api...",SIGNAL_);
+    reflash_state("ui:"+jtr("detecting")+"api...",SIGNAL_);
     emit ui2bot_free();//释放原来的模型
     is_load = false;
 
@@ -1215,13 +1219,13 @@ void Widget::onConnected()
     if (socket) {socket->disconnectFromHost();}//中断访问
 
     is_api = true;//按照链接模式的行为来
-    reflash_state("ui:" + wordsObj["eva link"].toArray()[language_flag].toString(),EVA_);
+    reflash_state("ui:" + jtr("eva link"),EVA_);
     if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-    reflash_state("ui:"+wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api,USUAL_);
-    this->setWindowTitle(wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api);
+    reflash_state("ui:"+jtr("current api") + " " + current_api,USUAL_);
+    this->setWindowTitle(jtr("current api") + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-    ui->kv_bar->show_text = wordsObj["delay"].toArray()[language_flag].toString();
+    ui->kv_bar->show_text = jtr("delay");
     ui->kv_bar->setToolTip("");
     
     emit ui2net_apis(apis);
@@ -1237,8 +1241,8 @@ void Widget::onConnected()
 void Widget::onError(QAbstractSocket::SocketError socketError) {
     // Handle the error
     is_api = false;
-    reflash_state("ui:api"+wordsObj["port"].toArray()[language_flag].toString()+wordsObj["blocked"].toArray()[language_flag].toString(),WRONG_);
-    this->setWindowTitle(wordsObj["eva"].toArray()[language_flag].toString());
+    reflash_state("ui:api"+jtr("port")+jtr("blocked"),WRONG_);
+    this->setWindowTitle(jtr("eva"));
     api_dialog->setDisabled(0);
     api_dialog->close();
 }
@@ -1342,8 +1346,9 @@ void Widget::ui_state_pushing()
     {
         is_debuging = true; // 进入debug中状态
         emit ui2bot_debuging(is_debuging); //传递debug中状态
+        ui->reset->setEnabled(0);//debuging时禁止重置
         ui->send->setText("Next");
-        ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
+        ui->input->setPlaceholderText(jtr("debug_input_placeholder"));
         ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
         ui->input->setReadOnly(1);
     }
@@ -1374,12 +1379,12 @@ void Widget::ui_state_normal()
         {
             ui->send->setEnabled(1);
             ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 60);");//输入区天蓝色
-            ui->input->setPlaceholderText(wordsObj["toolguy_input_mess"].toArray()[language_flag].toString());
+            ui->input->setPlaceholderText(jtr("toolguy_input_mess"));
         }
         else
         {
             ui->send->setEnabled(0);
-            ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toArray()[language_flag].toString());
+            ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
             ui->input->setStyleSheet("background-color: white;");
         }
         return;
@@ -1402,11 +1407,11 @@ void Widget::ui_state_normal()
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
-        ui->input->setPlaceholderText(wordsObj["chat or right click to choose question"].toArray()[language_flag].toString());
+        ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
         ui->input->setStyleSheet("background-color: white;");
         ui->input->setReadOnly(0);
         ui->input->setFocus();//设置输入区为焦点
-        ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+        ui->send->setText(jtr("send"));
 
         ui->output->setReadOnly(1);
         
@@ -1426,10 +1431,10 @@ void Widget::ui_state_normal()
         ui->send->setVisible(1);
 
         ui->input->clear();
-        ui->input->setPlaceholderText(wordsObj["Please modify any text above"].toArray()[language_flag].toString());
+        ui->input->setPlaceholderText(jtr("Please modify any text above"));
         ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");//设置背景为橘黄色
         ui->input->setReadOnly(1);
-        ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
+        ui->send->setText(jtr("complete"));
 
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
@@ -1461,11 +1466,11 @@ void Widget::ui_state_recoding()
         ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");//透明绿色
         ui->input->setReadOnly(1);
         ui->input->setFocus();//设置输入区为焦点
-        ui->input->setPlaceholderText(wordsObj["recoding"].toArray()[language_flag].toString() + "... " + wordsObj["push f2 to stop"].toArray()[language_flag].toString());
+        ui->input->setPlaceholderText(jtr("recoding") + "... " + jtr("push f2 to stop"));
     }
     else
     {
-        ui->input->setPlaceholderText(wordsObj["recoding"].toArray()[language_flag].toString() + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + wordsObj["push f2 to stop"].toArray()[language_flag].toString());
+        ui->input->setPlaceholderText(jtr("recoding") + "... "+ QString::number(float(audio_time) / 1000.0,'f',2) + "s " + jtr("push f2 to stop"));
     }
     
 }
@@ -1475,15 +1480,15 @@ void Widget::ui_state_recoding()
 void Widget::create_right_menu()
 {
     QDate currentDate = QDate::currentDate();//历史中的今天
-    QString dateString = currentDate.toString("MM" + QString(" ") + wordsObj["month"].toArray()[language_flag].toString() + QString(" ") + "dd" + QString(" ") + wordsObj["day"].toArray()[language_flag].toString());
+    QString dateString = currentDate.toString("MM" + QString(" ") + jtr("month") + QString(" ") + "dd" + QString(" ") + jtr("day"));
     //---------------创建一般问题菜单--------------
     if(right_menu != nullptr){delete right_menu;}
     right_menu = new QMenu(this);
     for(int i=1;i<15;++i)
     {
         QString question;
-        if(i == 4){question = wordsObj[QString("Q%1").arg(i)].toArray()[language_flag].toString().replace("{today}",dateString);}//历史中的今天
-        else{question = wordsObj[QString("Q%1").arg(i)].toArray()[language_flag].toString();}
+        if(i == 4){question = jtr(QString("Q%1").arg(i)).replace("{today}",dateString);}//历史中的今天
+        else{question = jtr(QString("Q%1").arg(i));}
         QAction *action = right_menu->addAction(question);
         if(i == 6){connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question+DEFAULT_SHUDU);});}//数独题附带上题目
         else{connect(action, &QAction::triggered, this, [=]() {ui->input->setPlainText(question);});}
@@ -1491,13 +1496,13 @@ void Widget::create_right_menu()
     }
     //------------创建自动化问题菜单-------------
     //上传图像
-    QAction *action15 = right_menu->addAction(wordsObj["Q15"].toArray()[language_flag].toString());
+    QAction *action15 = right_menu->addAction(jtr("Q15"));
     connect(action15, &QAction::triggered, this, [=]() 
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
 
         //用户选择图片
-        currentpath = customOpenfile(currentpath,wordsObj["Q15"].toArray()[language_flag].toString(),"(*.png *.jpg *.bmp)");
+        currentpath = customOpenfile(currentpath,jtr("Q15"),"(*.png *.jpg *.bmp)");
         
         if(currentpath==""){return;}
         emit ui2bot_imagepath(currentpath);//发送图像路径
@@ -1509,7 +1514,7 @@ void Widget::create_right_menu()
         ui->send->click();//触发一次发送
     });
     //Q16测试相关,ceval数据集
-    QAction *action16 = right_menu->addAction(wordsObj["Q16"].toArray()[language_flag].toString());
+    QAction *action16 = right_menu->addAction(jtr("Q16"));
     connect(action16, &QAction::triggered, this, [=]() 
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
@@ -1522,11 +1527,11 @@ void Widget::create_right_menu()
 
         makeTestIndex();//构建测试问题索引
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-        this->setWindowTitle(wordsObj["test"].toArray()[language_flag].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
+        this->setWindowTitle(jtr("test") +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
 
-        reflash_state("ui:"+ wordsObj["Question bank construction completed"].toArray()[language_flag].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toArray()[language_flag].toString(),USUAL_);
-        reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString() + wordsObj["test"].toArray()[language_flag].toString() + " "  + wordsObj["npredict"].toArray()[language_flag].toString() + wordsObj["limited"].toArray()[language_flag].toString() + "1",USUAL_);
-        reflash_state("ui:"+ wordsObj["add help question"].toArray()[language_flag].toString(),SIGNAL_);
+        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_);
+        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_);
+        reflash_state("ui:"+ jtr("add help question"),SIGNAL_);
 
         test_time.restart();
         is_test = true;
@@ -1534,25 +1539,25 @@ void Widget::create_right_menu()
         ui->send->click();//触发一次发送
     });
     //Q17测试相关,自定义数据集
-    QAction *action17 = right_menu->addAction(wordsObj["Q17"].toArray()[language_flag].toString());
+    QAction *action17 = right_menu->addAction(jtr("Q17"));
     connect(action17, &QAction::triggered, this, [=]() 
     {
         if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
         //用户选择自定义的csv文件
-        currentpath = customOpenfile(currentpath,wordsObj["Q17"].toArray()[language_flag].toString(),"CSV files (*.csv)");
+        currentpath = customOpenfile(currentpath,jtr("Q17"),"CSV files (*.csv)");
 
         if(currentpath==""){return;}
 
         clearQuestionlist();//清空题库
         readCsvFile(currentpath);//构建测试问题集
         makeTestIndex();//构建测试问题索引
-        if(test_question_index.size()==0){reflash_state("ui:0"+ wordsObj["question"].toArray()[language_flag].toString(),WRONG_);return;}
+        if(test_question_index.size()==0){reflash_state("ui:0"+ jtr("question"),WRONG_);return;}
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
-        this->setWindowTitle(wordsObj["test"].toArray()[language_flag].toString() +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
+        this->setWindowTitle(jtr("test") +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
         
-        reflash_state("ui:"+ wordsObj["Question bank construction completed"].toArray()[language_flag].toString() + " " + QString::number(test_list_question.size())+ wordsObj["question"].toArray()[language_flag].toString(),USUAL_);
-        reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString() + wordsObj["test"].toArray()[language_flag].toString() + " "  + wordsObj["npredict"].toArray()[language_flag].toString() + wordsObj["limited"].toArray()[language_flag].toString() + "1",USUAL_);
-        reflash_state("ui:"+ wordsObj["add help question"].toArray()[language_flag].toString(),SIGNAL_);
+        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_);
+        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_);
+        reflash_state("ui:"+ jtr("add help question"),SIGNAL_);
 
         test_time.restart();
         is_test = true;
@@ -1612,13 +1617,13 @@ void Widget::get_date()
     ui_interpreter_ischecked = interpreter_checkbox->isChecked();
 
     //记录自定义模板
-    if(ui_template == wordsObj["custom set1"].toArray()[0].toString())
+    if(ui_template == jtr("custom set1"))
     {
         custom1_system_prompt = ui_system_prompt;
         custom1_input_pfx = ui_DATES.input_pfx;
         custom1_input_sfx = ui_DATES.input_sfx;
     }
-    else if(ui_template == wordsObj["custom set2"].toArray()[0].toString())
+    else if(ui_template == jtr("custom set2"))
     {
         custom2_system_prompt = ui_system_prompt;
         custom2_input_pfx = ui_DATES.input_pfx;

@@ -43,8 +43,8 @@ Widget::Widget(QWidget *parent)
     ui_DATES.is_load_tool = false;
     addStopwords();//添加停止词
     date_map.insert("qwen", {DEFAULT_PROMPT, DEFAULT_PREFIX, DEFAULT_SUFFIX, false, QStringList{}});
-    date_map.insert(wordsObj["troll"].toArray()[language_flag].toString(), {wordsObj["you are a troll please respect any question for user"].toArray()[language_flag].toString(), "" + wordsObj["user"].toArray()[language_flag].toString(), "" + wordsObj["troll"].toArray()[language_flag].toString(),false,QStringList{}});
-    date_map.insert("eva",{wordsObj["You are an ultimate humanoid weapon of war, please wait for the driver control instructions"].toArray()[language_flag].toString(), "" + wordsObj["driver"].toArray()[language_flag].toString(), "eva",false,QStringList{}});
+    date_map.insert(jtr("troll"), {jtr("you are a troll please respect any question for user"), "" + jtr("user"), "" + jtr("troll"),false,QStringList{}});
+    date_map.insert("eva",{jtr("You are an ultimate humanoid weapon of war, please wait for the driver control instructions"), "" + jtr("driver"), "eva",false,QStringList{}});
     
     //-------------默认展示内容-------------
     right_menu = nullptr;//初始设置输入区右击菜单为空
@@ -52,7 +52,7 @@ Widget::Widget(QWidget *parent)
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));//设置设置图标
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
-    reflash_state("ui:" + wordsObj["click load and choose a gguf file"].toArray()[language_flag].toString(),USUAL_);//初始提示
+    reflash_state("ui:" + jtr("click load and choose a gguf file"),USUAL_);//初始提示
 
 #ifndef BODY_USE_CUBLAST
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
@@ -94,13 +94,13 @@ Widget::Widget(QWidget *parent)
     // 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
     //注册截图快捷键
     if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
-    {reflash_state("ui:" + QString("f1 ") + wordsObj["shortcut key registration failed"].toArray()[language_flag].toString(), WRONG_);}
+    {reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);}
     //注册录音快捷键 
     if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
-    {reflash_state("ui:" + QString("f2 ") + wordsObj["shortcut key registration failed"].toArray()[language_flag].toString(), WRONG_);}
+    {reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);}
     //注册发送快捷键 
     if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
-    {reflash_state("ui:" + QString("crtl+enter ") + wordsObj["shortcut key registration failed"].toArray()[language_flag].toString(), WRONG_);}  
+    {reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);}  
 
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
@@ -132,10 +132,10 @@ Widget::~Widget()
 //用户点击装载按钮处理
 void Widget::on_load_clicked()
 {
-    reflash_state("ui:"+wordsObj["clicked load"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:"+jtr("clicked load"),SIGNAL_);
 
     //用户选择模型位置
-    currentpath = customOpenfile(currentpath,wordsObj["load_button_tooltip"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
+    currentpath = customOpenfile(currentpath,jtr("load_button_tooltip"),"(*.bin *.gguf)");
 
     if(currentpath==""){return;}//如果路径没选好就让它等于上一次的路径
     is_api = false;//只要点击装载有东西就不再是api模式
@@ -164,8 +164,8 @@ void Widget::preLoad()
     if(ui_mode == CHAT_){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
     ui_state_loading();//装载中界面状态
-    if(is_config){is_config = false;reflash_state("ui:" + wordsObj["apply_config_mess"].toArray()[language_flag].toString(),USUAL_);}
-    reflash_state("ui:" + wordsObj["model location"].toArray()[language_flag].toString() +" " + ui_SETTINGS.modelpath,USUAL_);
+    if(is_config){is_config = false;reflash_state("ui:" + jtr("apply_config_mess"),USUAL_);}
+    reflash_state("ui:" + jtr("model location") +" " + ui_SETTINGS.modelpath,USUAL_);
     emit ui2bot_loadmodel();//开始装载模型,应当确保bot的is_load参数为false
     
 }
@@ -189,7 +189,7 @@ void Widget::recv_loadover(bool ok_,float load_time_)
         load_pTimer->stop();//停止动画
         is_load = false;//标记模型未装载
         load_action = 0;
-        this->setWindowTitle(wordsObj["current model"].toArray()[language_flag].toString() + " ");
+        this->setWindowTitle(jtr("current model") + " ");
         ui_state_init();
     }
 
@@ -199,8 +199,10 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 void Widget::on_send_clicked()
 {
     if(ui_mode == SERVER_){return;}
-    reflash_state("ui:" + wordsObj["clicked send"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:" + jtr("clicked send"),SIGNAL_);
     QString input;
+
+    if(is_debug){ui->reset->setEnabled(0);} // debug模式下刚点击next时要解码，所以禁止重置，否则重置失效会一直输出
 
     //api模式的处理
     if(is_api)
@@ -245,18 +247,18 @@ void Widget::on_send_clicked()
                 //添加引导题
                 if(help_input)
                 {
-                    emit ui2bot_input({"\n" + makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({"\n" + makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + jtr("answer") + ":"},1);//传递用户输入,测试模式  
                     help_input = false;
                 }
                 else
                 {
-                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + wordsObj["answer"].toArray()[language_flag].toString() + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + jtr("answer") + ":"},1);//传递用户输入,测试模式  
                 }
             }
             else//完成测试完成,没有题目剩余
             {
                 float acc = test_score / test_count * 100.0;//回答准确率
-                ui_state = "ui:" + wordsObj["test"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString() + " " + QString::number(test_count) + " " + wordsObj["question"].toArray()[language_flag].toString() + " " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toArray()[language_flag].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s "+wordsObj["batch decode"].toArray()[language_flag].toString() +":" + QString::number(test_tokens/(test_time.nsecsElapsed()/1000000000.0)) + " token/s" ;
+                ui_state = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") +QString::number(acc,'f',1) + "% " +jtr("use time") + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s "+jtr("batch decode") +":" + QString::number(test_tokens/(test_time.nsecsElapsed()/1000000000.0)) + " token/s" ;
                 reflash_state(ui_state,SUCCESS_);
                 decode_pTimer->stop();
                 is_test = false;
@@ -294,7 +296,7 @@ void Widget::on_send_clicked()
             }
             else//连续回答完成
             {
-                ui_state = "ui:" + wordsObj["query"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString();
+                ui_state = "ui:" + jtr("query") + jtr("over");
                 reflash_state(ui_state,SUCCESS_);
                 is_query = false;
                 is_run = false;
@@ -309,9 +311,9 @@ void Widget::on_send_clicked()
         {
             is_toolguy = false;
             ui->input->installEventFilter(this);
-            input = QString("toolguy ") + wordsObj["return"].toArray()[language_flag].toString() + " " + ui->input->toPlainText().toUtf8().data();
+            input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
-            input += "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
+            input += "\n" + jtr("tool_thought");
             emit ui2bot_input({"",input,""},0);
         }
         else//正常情况!!!
@@ -322,7 +324,7 @@ void Widget::on_send_clicked()
             }
 
             //-----------------------Q14连续回答相关----------------------------
-            if(input.contains(wordsObj["Q14"].toArray()[language_flag].toString().split(">")[0]))
+            if(input.contains(jtr("Q14").split(">")[0]))
             {
                 query_list = input.split(">")[1].split("/");
                 if(query_list.size()==0)
@@ -347,7 +349,7 @@ void Widget::on_send_clicked()
                 emit ui2bot_imagepath(imagepath);
             }
             //-----------------------截图的情况-------------------------
-            else if(input == wordsObj["<predecode cut image>"].toArray()[language_flag].toString())
+            else if(input == jtr("<predecode cut image>"))
             {
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
                 showImage(cut_imagepath);//显示文件名和图像
@@ -360,7 +362,7 @@ void Widget::on_send_clicked()
                 //如果工具返回的结果不为空,加思考而不加前缀和后缀
                 if(tool_result!="")
                 {
-                    input = tool_result + "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
+                    input = tool_result + "\n" + jtr("tool_thought");
                     tool_result="";
                     emit ui2bot_input({"\n",input,"\n"},0);
 
@@ -370,7 +372,7 @@ void Widget::on_send_clicked()
                         ui->send->setEnabled(0);
                         ui->reset->setEnabled(1);
                         ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
-                        ui->input->setPlaceholderText(wordsObj["debug_input_placeholder"].toArray()[language_flag].toString());
+                        ui->input->setPlaceholderText(jtr("debug_input_placeholder"));
                         reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
                         emit ui2bot_push();//开始推理
                         debuging_times ++;
@@ -472,7 +474,7 @@ void Widget::recv_pushover()
             else
             {
                 //调用工具
-                reflash_state("ui:" + wordsObj["clicked"].toArray()[language_flag].toString() + " " + func_arg_list.first,SIGNAL_);
+                reflash_state("ui:" + jtr("clicked") + " " + func_arg_list.first,SIGNAL_);
                 //包含以下字段则停止调用
                 if(func_arg_list.first.contains("answer") || func_arg_list.first.contains("response") || func_arg_list.first.contains("最终回复") || func_arg_list.first.contains("final"))
                 {
@@ -484,7 +486,7 @@ void Widget::recv_pushover()
                     is_toolguy = true;
                     ui->send->setEnabled(1);
                     ui->input->setStyleSheet("background-color: rgba(TOOL_BLUE, 60);");//输入区天蓝色
-                    ui->input->setPlaceholderText(wordsObj["toolguy_input_mess"].toArray()[language_flag].toString());
+                    ui->input->setPlaceholderText(jtr("toolguy_input_mess"));
                     ui->input->removeEventFilter(this);//禁用输入区右击
                 }
                 //正常调用情况
@@ -492,7 +494,7 @@ void Widget::recv_pushover()
                 {
                     if(is_debuging)
                     {
-                        ui->input->setPlaceholderText(wordsObj["debug_tool1"].toArray()[language_flag].toString() + " " + func_arg_list.first + "(" + func_arg_list.second + ")");
+                        ui->input->setPlaceholderText(jtr("debug_tool1") + " " + func_arg_list.first + "(" + func_arg_list.second + ")");
                         ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 200);");
                         ui->reset->setEnabled(0);
                         is_debug_tool1 = true;
@@ -533,7 +535,7 @@ void Widget::recv_toolpushover(QString tool_result_)
     if(tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))//有图像要显示的情况
     {
         wait_to_show_image = tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];//文生图后待显示图像的图像路径
-        tool_result = "stablediffusion " + wordsObj["call successful, image save at"].toArray()[language_flag].toString() + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
+        tool_result = "stablediffusion " + jtr("call successful, image save at") + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     }
     else
     {
@@ -569,7 +571,7 @@ void Widget::recv_resetover()
 {
     if(ui_SETTINGS.ngl ==0){QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}//恢复
     else{QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}//恢复
-    reflash_state("ui:" + wordsObj["reset ok"].toArray()[language_flag].toString(),SUCCESS_);
+    reflash_state("ui:" + jtr("reset ok"),SUCCESS_);
     //如果是对话模式且约定有变或第一次装载则预解码约定
     if(ui_mode == CHAT_)
     {
@@ -596,24 +598,24 @@ void Widget::recv_reload()
 void Widget::recv_datereset()
 {
     //打印约定的系统指令
-    ui_state = "···········"+ wordsObj["date"].toArray()[language_flag].toString() + "···········";reflash_state(ui_state,USUAL_);
+    ui_state = "···········"+ jtr("date") + "···········";reflash_state(ui_state,USUAL_);
     if(ui_mode == COMPLETE_)
     {
-        reflash_state("· "+ wordsObj["complete mode"].toArray()[language_flag].toString() + wordsObj["on"].toArray()[language_flag].toString() +" ",USUAL_);
+        reflash_state("· "+ jtr("complete mode") + jtr("on") +" ",USUAL_);
     }
     else
     {
-        reflash_state("· "+ wordsObj["system calling"].toArray()[language_flag].toString() +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);
+        reflash_state("· "+ jtr("system calling") +" " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(),USUAL_);
         //展示额外停止标志
         QString stop_str;
-        stop_str = wordsObj["extra stop words"].toArray()[language_flag].toString() + " ";
+        stop_str = jtr("extra stop words") + " ";
         for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
         {
             stop_str += ui_DATES.extra_stop_words.at(i) + " ";
         }
         reflash_state("· "+ stop_str +" ",USUAL_);
     }
-    reflash_state("···········"+ wordsObj["date"].toArray()[language_flag].toString() + "···········",USUAL_);
+    reflash_state("···········"+ jtr("date") + "···········",USUAL_);
     auto_save_user();//保存ui配置
     
     ui->reset->click();
@@ -623,29 +625,29 @@ void Widget::recv_datereset()
 void Widget::recv_setreset()
 {
     //打印设置内容
-    reflash_state("···········"+ wordsObj["set"].toArray()[language_flag].toString() + "···········",USUAL_);
+    reflash_state("···········"+ jtr("set") + "···········",USUAL_);
     
-    reflash_state("· " + wordsObj["temperature"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.temp),USUAL_);
-    reflash_state("· " + wordsObj["repeat"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
-    reflash_state("· " + wordsObj["npredict"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
+    reflash_state("· " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp),USUAL_);
+    reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
+    reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
     
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
-    reflash_state("· gpu " + wordsObj["offload"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
+    reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
 #endif
-    reflash_state("· cpu" + wordsObj["thread"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
-    reflash_state("· " + wordsObj["ctx"].toArray()[language_flag].toString() + wordsObj["length"].toArray()[language_flag].toString() +" " + QString::number(ui_SETTINGS.nctx),USUAL_);
-    reflash_state("· " + wordsObj["batch size"].toArray()[language_flag].toString() + " " + QString::number(ui_SETTINGS.batch),USUAL_);
+    reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
+    reflash_state("· " + jtr("ctx") + jtr("length") +" " + QString::number(ui_SETTINGS.nctx),USUAL_);
+    reflash_state("· " + jtr("batch size") + " " + QString::number(ui_SETTINGS.batch),USUAL_);
     
-    if(ui_SETTINGS.lorapath !=""){reflash_state("ui:" + wordsObj["load lora"].toArray()[language_flag].toString() + " "+ ui_SETTINGS.lorapath,USUAL_);}
-    if(ui_SETTINGS.mmprojpath !=""){reflash_state("ui:" + wordsObj["load mmproj"].toArray()[language_flag].toString() + " "+ ui_SETTINGS.mmprojpath,USUAL_);}
-    if(ui_mode == CHAT_){reflash_state("· " + wordsObj["chat mode"].toArray()[language_flag].toString(),USUAL_);}
-    else if(ui_mode == COMPLETE_){reflash_state("· " + wordsObj["complete mode"].toArray()[language_flag].toString(),USUAL_);}
+    if(ui_SETTINGS.lorapath !=""){reflash_state("ui:" + jtr("load lora") + " "+ ui_SETTINGS.lorapath,USUAL_);}
+    if(ui_SETTINGS.mmprojpath !=""){reflash_state("ui:" + jtr("load mmproj") + " "+ ui_SETTINGS.mmprojpath,USUAL_);}
+    if(ui_mode == CHAT_){reflash_state("· " + jtr("chat mode"),USUAL_);}
+    else if(ui_mode == COMPLETE_){reflash_state("· " + jtr("complete mode"),USUAL_);}
     
     //展示额外停止标志
     if(ui_mode == CHAT_)
     {
         QString stop_str;
-        stop_str = wordsObj["extra stop words"].toArray()[language_flag].toString() + " ";
+        stop_str = jtr("extra stop words") + " ";
         for(int i = 0;i < ui_DATES.extra_stop_words.size(); ++i)
         {
             stop_str += ui_DATES.extra_stop_words.at(i) + " ";
@@ -653,7 +655,7 @@ void Widget::recv_setreset()
         reflash_state("· "+ stop_str +" ",USUAL_);
     }
 
-    reflash_state("···········"+ wordsObj["set"].toArray()[language_flag].toString() + "···········",USUAL_);
+    reflash_state("···········"+ jtr("set") + "···········",USUAL_);
     auto_save_user();//保存ui配置
     
     ui->reset->click();
@@ -673,7 +675,7 @@ void Widget::on_reset_clicked()
     //debuging状态下，点击重置按钮直接退出debuging状态
     if(is_debuging)
     {
-        reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString()+ wordsObj["shut down"].toArray()[language_flag].toString(),SIGNAL_);
+        reflash_state("ui:"+ jtr("clicked")+ jtr("shut down"),SIGNAL_);
         is_debuging = false;
         is_run = false;
         is_query = false;
@@ -689,7 +691,7 @@ void Widget::on_reset_clicked()
     //如果模型正在推理就改变模型的停止标签
     if(is_run)
     {
-        reflash_state("ui:"+ wordsObj["clicked"].toArray()[language_flag].toString()+ wordsObj["shut down"].toArray()[language_flag].toString(),SIGNAL_);
+        reflash_state("ui:"+ jtr("clicked")+ jtr("shut down"),SIGNAL_);
         test_question_index.clear();//清空待测试问题列表
         query_list.clear();//清空待回答列表
         if(is_api){emit ui2net_stop(1);}
@@ -697,7 +699,7 @@ void Widget::on_reset_clicked()
         return;
     }
     
-    reflash_state("ui:"+ wordsObj["clicked reset"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:"+ jtr("clicked reset"),SIGNAL_);
 
     if(ui_mode == CHAT_){ui->output->clear();}
     ui_state_normal();//待机界面状态
@@ -718,13 +720,13 @@ void Widget::on_reset_clicked()
         }
 
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        reflash_state("ui:"+wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api,USUAL_);
-        this->setWindowTitle(wordsObj["current api"].toArray()[language_flag].toString() + " " + current_api);
+        reflash_state("ui:"+jtr("current api") + " " + current_api,USUAL_);
+        this->setWindowTitle(jtr("current api") + " " + current_api);
 
         return;
     }
 
-    this->setWindowTitle(wordsObj["current model"].toArray()[language_flag].toString() + " " + ui_SETTINGS.modelpath.split("/").last());
+    this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
 
     //如果约定没有变则不需要预解码
     if(ui_mode == CHAT_ && ui_DATES.system_prompt == history_prompt)
@@ -744,7 +746,7 @@ void Widget::on_reset_clicked()
 //用户点击约定按钮处理
 void Widget::on_date_clicked()
 {
-    reflash_state("ui:"+wordsObj["clicked date"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:"+jtr("clicked date"),SIGNAL_);
 
     //展示最近一次设置值
     chattemplate_comboBox->setCurrentText(ui_template);//默认使用qwen的提示词模板
@@ -781,7 +783,7 @@ void Widget::set_date()
 void Widget::on_set_clicked()
 {
     server_process->kill();
-    reflash_state("ui:"+wordsObj["clicked"].toArray()[language_flag].toString()+wordsObj["set"].toArray()[language_flag].toString(),SIGNAL_);
+    reflash_state("ui:"+jtr("clicked")+jtr("set"),SIGNAL_);
     if(ui_mode == CHAT_){chat_btn->setChecked(1),chat_change();}
     else if(ui_mode == COMPLETE_){complete_btn->setChecked(1),complete_change();}
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
@@ -811,8 +813,8 @@ void Widget::onShortcutActivated()
 void Widget::recv_qimagepath(QString cut_imagepath_)
 {
     cut_imagepath = cut_imagepath_;
-    reflash_state("ui:" + wordsObj["cut image success"].toArray()[language_flag].toString(),USUAL_);
-    ui->input->setPlainText(wordsObj["<predecode cut image>"].toArray()[language_flag].toString());
+    reflash_state("ui:" + jtr("cut image success"),USUAL_);
+    ui->input->setPlainText(jtr("<predecode cut image>"));
     if(is_load && ui_mode == CHAT_){on_send_clicked();}//如果装载了模型直接发送截图
 }
 
@@ -854,12 +856,12 @@ void Widget::set_set()
 void Widget::serverControl()
 {
     ui_state_servering();//服务中界面状态
-    if(is_config){is_config = false;reflash_state("ui:" + wordsObj["apply_config_mess"].toArray()[language_flag].toString(),USUAL_);}
+    if(is_config){is_config = false;reflash_state("ui:" + jtr("apply_config_mess"),USUAL_);}
     current_server = true;
     //如果还没有选择模型路径
     if(ui_SETTINGS.modelpath=="")
     {
-        currentpath = customOpenfile(currentpath,wordsObj["load_button_tooltip"].toArray()[language_flag].toString(),"(*.bin *.gguf)");
+        currentpath = customOpenfile(currentpath,jtr("load_button_tooltip"),"(*.bin *.gguf)");
         ui_SETTINGS.modelpath = currentpath;
     }
     if(ui_SETTINGS.modelpath==""){return;}
@@ -920,17 +922,17 @@ void Widget::serverControl()
     // 开始运行程序
     server_process->start(program, arguments);
     setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-    reflash_state(wordsObj["eva expend"].toArray()[language_flag].toString(),EVA_);
+    reflash_state(jtr("eva expend"),EVA_);
     
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();
         if(ui_output.contains("warming up the model with an empty run"))
         {
-            ui_output += "\n"+wordsObj["browser at"].toArray()[language_flag].toString() +QString(" http://")+ipAddress+":"+ui_port;
-            ui_output += "\n"+wordsObj["chat"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString()+ " " + "/v1/chat/completions";
-            ui_output += "\n"+wordsObj["complete"].toArray()[language_flag].toString()+wordsObj["endpoint"].toArray()[language_flag].toString()+ " " + "/completion"+"\n";
-            ui_state = "ui:server " +wordsObj["on"].toArray()[language_flag].toString()+wordsObj["success"].toArray()[language_flag].toString()+ ","+wordsObj["browser at"].toArray()[language_flag].toString()+ ipAddress + ":"+ ui_port;
+            ui_output += "\n"+jtr("browser at") +QString(" http://")+ipAddress+":"+ui_port;
+            ui_output += "\n"+jtr("chat")+jtr("endpoint")+ " " + "/v1/chat/completions";
+            ui_output += "\n"+jtr("complete")+jtr("endpoint")+ " " + "/completion"+"\n";
+            ui_state = "ui:server " +jtr("on")+jtr("success")+ ","+jtr("browser at")+ ipAddress + ":"+ ui_port;
             auto_save_user();//保存ui配置
             reflash_state(ui_state,SUCCESS_);
 
@@ -957,7 +959,7 @@ void Widget::recv_kv(float percent,int ctx_size)
 {
     if(percent>0 && percent<1){percent=1;}
     ui->kv_bar->setSecondValue(percent);
-    ui->kv_bar->setToolTip(wordsObj["kv cache"].toArray()[language_flag].toString() + " " + QString::number(ctx_size) + " token");
+    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + " token");
 }
 //接收测试的tokens
 void Widget::recv_tokens(int tokens)
@@ -996,7 +998,7 @@ void Widget::recv_log(QString log)
     //处理异常情况
     if(log.contains("failed to load model"))//提示用户不能有中文
     {
-        emit ui2expend_log(wordsObj["failed to load model mess"].toArray()[language_flag].toString());//单条记录 
+        emit ui2expend_log(jtr("failed to load model mess"));//单条记录 
     }
 
 }
@@ -1052,7 +1054,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         //防止点不了
         if(!api_dialog->isEnabled()){api_dialog->setWindowFlags(api_dialog->windowFlags() & Qt::WindowCloseButtonHint);}
         else{api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);}//隐藏关闭按钮
-        ui_state = "ui:"+wordsObj["clicked"].toArray()[language_flag].toString() + QString("api") + wordsObj["set"].toArray()[language_flag].toString();reflash_state(ui_state,SIGNAL_);
+        ui_state = "ui:"+jtr("clicked") + QString("api") + jtr("set");reflash_state(ui_state,SIGNAL_);
         //设置当前值
         api_ip_LineEdit->setText(apis.api_ip);
         api_port_LineEdit->setText(apis.api_port);
@@ -1148,11 +1150,11 @@ void Widget::api_send_clicked_slove()
             {
                 for(int i = 1; i < 3;++i)//2个引导题
                 {
-                    ui_user_history << wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString();//问题
-                    ui_assistant_history << wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":");//答案不要答案:这三个字
+                    ui_user_history << jtr(QString("H%1").arg(i));//问题
+                    ui_assistant_history << jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":");//答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + wordsObj[QString("H%1").arg(i)].toArray()[language_flag].toString(), 0, SYSTEM_BLUE);
-                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + wordsObj[QString("A%1").arg(i)].toArray()[language_flag].toString().remove(wordsObj["answer"].toArray()[language_flag].toString() + ":"), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
                 }
                 help_input = false;
             }
@@ -1161,7 +1163,7 @@ void Widget::api_send_clicked_slove()
         {
             float acc = test_score / test_count * 100.0;//回答准确率
             decode_pTimer->stop();
-            reflash_state("ui:" + wordsObj["test"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString()+ " " + QString::number(test_count) + wordsObj["question"].toArray()[language_flag].toString() + " " + wordsObj["accurate"].toArray()[language_flag].toString() +QString::number(acc,'f',1) + "% " +wordsObj["use time"].toArray()[language_flag].toString() + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s ",SUCCESS_);
+            reflash_state("ui:" + jtr("test") + jtr("over")+ " " + QString::number(test_count) + jtr("question") + " " + jtr("accurate") +QString::number(acc,'f',1) + "% " +jtr("use time") + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s ",SUCCESS_);
             //恢复
             test_question_index.clear();test_count = 0;test_score=0;test_tokens=0;
             is_test = false;
@@ -1191,7 +1193,7 @@ void Widget::api_send_clicked_slove()
         }
         else//连续回答完成
         {
-            reflash_state("ui:" + wordsObj["query"].toArray()[language_flag].toString() + wordsObj["over"].toArray()[language_flag].toString(),SUCCESS_);
+            reflash_state("ui:" + jtr("query") + jtr("over"),SUCCESS_);
             is_query = false;
             is_debug_query = false;
             is_run = false;
@@ -1215,13 +1217,13 @@ void Widget::api_send_clicked_slove()
     {
         is_toolguy = false;
         ui->input->installEventFilter(this);
-        input = QString("toolguy ") + wordsObj["return"].toArray()[language_flag].toString() + " " + ui->input->toPlainText().toUtf8().data();
+        input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
         ui->input->clear();
-        input += "\n" + wordsObj["tool_thought"].toArray()[language_flag].toString();
+        input += "\n" + jtr("tool_thought");
 
         if(ui_extra_lan == "zh")
         {
-            ui_assistant_history << wordsObj["tool_observation"].toArray()[language_flag].toString() + input;
+            ui_assistant_history << jtr("tool_observation") + input;
         }
         else if(ui_extra_lan == "en")
         {
@@ -1238,7 +1240,7 @@ void Widget::api_send_clicked_slove()
     {
         if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
         //连续回答
-        if(input.contains(wordsObj["Q14"].toArray()[language_flag].toString().split(">")[0]))
+        if(input.contains(jtr("Q14").split(">")[0]))
         {
             query_list = input.split(">")[1].split("/");
             if(query_list.size()==0)
@@ -1270,7 +1272,7 @@ void Widget::api_send_clicked_slove()
             {
                 if(ui_extra_lan == "zh")
                 {
-                    ui_assistant_history << wordsObj["tool_observation"].toArray()[language_flag].toString() + tool_result;
+                    ui_assistant_history << jtr("tool_observation") + tool_result;
                 }
                 else if(ui_extra_lan == "en")
                 {
@@ -1329,53 +1331,53 @@ void Widget::recv_controller(int num)
     if(num == 1)//最大化主窗口
     {
         setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
-        result = wordsObj["main window"].toArray()[language_flag].toString() +  wordsObj["maximized"].toArray()[language_flag].toString();
+        result = jtr("main window") +  jtr("maximized");
     }
     else if(num == 2)//最小化主窗口
     {
         this->showMinimized();
-        result = wordsObj["main window"].toArray()[language_flag].toString() +  wordsObj["minimized"].toArray()[language_flag].toString();
+        result = jtr("main window") +  jtr("minimized");
     }
     else if(num == 3)//主窗口置顶
     {
         setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
         show();
-        result = wordsObj["main window"].toArray()[language_flag].toString() +  wordsObj["topped"].toArray()[language_flag].toString();
+        result = jtr("main window") +  jtr("topped");
     }
     else if(num == 4)//取消主窗口置顶
     {
         setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
         show();
-        result = wordsObj["main window"].toArray()[language_flag].toString() +  wordsObj["topped canceled"].toArray()[language_flag].toString();
+        result = jtr("main window") +  jtr("topped canceled");
     }
     else if(num == 5)//关闭主窗口
     {
         this->close();
-        result = wordsObj["main window"].toArray()[language_flag].toString() +  wordsObj["closed"].toArray()[language_flag].toString();
+        result = jtr("main window") +  jtr("closed");
     }
     else if(num == 6)//播放音乐
     {
         music_player.play();
-        result = wordsObj["music"].toArray()[language_flag].toString() +  wordsObj["started playing"].toArray()[language_flag].toString();
+        result = jtr("music") +  jtr("started playing");
     }
     else if(num == 7)//关闭音乐
     {
         music_player.stop();
-        result = wordsObj["music"].toArray()[language_flag].toString() +  wordsObj["stopped playback"].toArray()[language_flag].toString();
+        result = jtr("music") +  jtr("stopped playback");
     }
     else if(num == 8)//打开增殖窗口
     {
         emit ui2expend_show(-1);
-        result = wordsObj["expend window"].toArray()[language_flag].toString() +  wordsObj["opened"].toArray()[language_flag].toString();
+        result = jtr("expend window") +  jtr("opened");
     }
     else if(num == 9)//关闭增殖窗口
     {
         emit ui2expend_show(999);
-        result = wordsObj["expend window"].toArray()[language_flag].toString() +  wordsObj["closed"].toArray()[language_flag].toString();
+        result = jtr("expend window") +  jtr("closed");
     }
     else
     {
-        result = wordsObj["The number passed in does not have a corresponding action"].toArray()[language_flag].toString();
+        result = jtr("The number passed in does not have a corresponding action");
     }
     emit recv_controller_over(result);
 }
@@ -1413,11 +1415,17 @@ void Widget::ondebugButton_clicked()
     //还原状态
     if(!is_debug && ui_mode == CHAT_)
     {
-        ui->send->setText(wordsObj["send"].toArray()[language_flag].toString());
+        ui->send->setText(jtr("send"));
     }
     else if(!is_debug && ui_mode == COMPLETE_)
     {
-        ui->send->setText(wordsObj["complete"].toArray()[language_flag].toString());
+        ui->send->setText(jtr("complete"));
     }
 
+}
+
+// 根据language.json和language_flag中找到对应的文字
+QString Widget::jtr(QString customstr)
+{
+    return wordsObj[customstr].toArray()[language_flag].toString();
 }
