@@ -108,37 +108,23 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
     - [ui] -> User right-click load -> Configure IP and endpoints -> Click confirm -> Lock interface -> Record configuration -> Connection test -> Test passed -> Unlock interface -> END
     - The other processes in the linked state are similar to the above, replacing [bot] with [net]
 - Debug process
-    - Pull the state area upwards to pop up the debug button
-    - The user opens the debug button and enters the debugging state after clicking send for the first time
-    - Clicking Next in debugging will no longer pass any context (except for system behavior), but the model will continue to perform the next decoding and sampling
-    - The debugging state can only be exited when the stop flag is detected / the maximum output length is reached / manual stop is reached, and it is forced to execute when the tool is called
-
+    - [ui] -> The user can pull up the status area to pop up a debug button -> the user can open the debug button -> click send -> enter the debugging state ->send process, only decode and sample once -> click Next -> send process, only decode and sample once -> ··· -> exit the debugging state when a stop flag is detected/the maximum output length is reached/manual stop is reached -> END
 
 ## concepts
-- eva: composed of a restraint device (action plan) and a body (llama. cpp), with the large model being the driver and the user being the commander
-- model: composed of a formula (neural network structure) and a set of parameters (connection weights), performing decoding operations (using input text to predict the next word)
-- token: The number of words, for example, hello token=123, my token=14, his token=3249, and different model numbers are different
-- vocab: The tokens for all words set during model training are different for different models. The higher the proportion of Chinese in the vocabulary, the stronger the Chinese language ability
-- ctx: includes a set of parameters and context cache that control the decoding of the model, and the memory occupation is related to the model vocabulary size, context length, batch size, and model size
-- KV cache: that is, historical decoding information, equivalent to the memory of the model
-- n_ctx_train: The maximum number of tokens that can be sent for decoding during model training
-- n_ctx: The maximum number of tokens that the model can accept during decoding set by the user, which cannot exceed n_ctx_train
-- vecb: The results obtained by decoding the context cache and incoming tokens by the model
+- model: Composed of a formula and a set of parameters
+- token: The number of words, for example, hello token=123, my token=14, his token=3249, different model numbers are different
+- vocab: The tokens for all words set during the training of this model are different for different model word lists
+- kv cache: The keys and values of the previously calculated model's attention mechanism are equivalent to the model's memory
+- decoding: The model calculates a vector table based on the context cache and the incoming new token, and obtains a new context cache
+- sampling: Calculate the probability table based on the vector table and select the next word
+- predict: (Decoding + Sampling) Loop
+- predecode: Decode only without sampling, used to cache context such as system instructions
+---
+- n_ctx_train: The maximum number of tokens that can be decoded during model training
+- n_ctx: The maximum number of tokens that the model can accept during decoding set by the user cannot exceed n_ctx_train, which is equivalent to memory capacity
 - temperature: During sampling, the vector table will be converted into a probability table based on the temperature value, and the higher the temperature, the greater the randomness
-- prob: The selection probability of all tokens in the model vocabulary, used to predict the next token
-- lora: Mounts a simple model in the original model, which can change the output style of the model. It does not support CUDA acceleration
-
-## behavior
-- Predecoding: Decoding the system instructions agreed upon by the user in advance, and executing them when the user modifies the system instructions/reaches the maximum context
-- Reset: Delete cache other than system instructions and clear output area; If predicting, terminate and do not take any other action
-- eva loading: Load the model structure and model weights into memory, equivalent to the driver entering the machine eva for synchronization
-- eva overload: reloading the model, modifying decoding parameters/switching from web mode/selecting a new model will be executed
-- eva expend: Service mode activated, providing web services and API services to the outside world
-- eva link: The machine is connected to external API services and can run without loading
-- eva overload: If the context cache reaches the set context length, the first half of the cache is discarded
-- eva confusion: malfunction in the Xbot decoding of the model control part of the organism
-- eva broken: loading failure caused by model structure or path issues
-
+- vecb: The probability distribution of all tokens in the word list during this decoding
+- prob: The final selection probability of all tokens in the vocabulary in this sampling
 
 ## to do
 - Adapt to Linux
