@@ -45,6 +45,7 @@ xBot::xBot()
     gpt_params_.sparams.penalty_repeat    = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq      = 0.00; //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present   = 0.00; //同类惩罚 0.0 = disabled openai
+    //gpt_params_.flash_attn = true;
     //gpt_params_.sparams.penalty_last_n = 256;
     //gpt_params_.sparams.top_p = 0.5;
     qDebug()<<"bot init over";
@@ -89,7 +90,9 @@ void xBot::run()
             if(is_multi)
             {
                 emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"),USUAL_);
-                llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.c_str());
+                //llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.c_str());
+                // 图像文件路径暂不支持中文
+                llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.at(0).c_str());
                 bool ok_ = llava_eval_image_embed(ctx, image_embed, gpt_params_.n_batch, &n_past);
                 emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量
                 for(int i = Brain_vector.size(); i<n_past; ++i)
@@ -99,7 +102,7 @@ void xBot::run()
                 emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);//1强制刷新记忆矩阵
 
                 llava_image_embed_free(image_embed);
-                gpt_params_.image = "";
+                gpt_params_.image.clear();
                 if(ok_)
                 {
                     float time_ = time2.nsecsElapsed()/1000000000.0;
@@ -990,7 +993,8 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
 //接受图片路径
 void xBot::recv_imagepath(QString image_path)
 {
-    gpt_params_.image = image_path.toStdString();
+    //gpt_params_.image = image_path.toStdString();
+    gpt_params_.image.push_back(image_path.toStdString());
 }
 
 // 接受用户输入

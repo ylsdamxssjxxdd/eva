@@ -1,5 +1,5 @@
 ######################################手动修改######################################
-#llama.cpp-b2751
+#llama.cpp-b2780
 #llama.cpp项目手动更新后注意cmakelists.txt中的add_compile_definitions选项
 #修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数
 #只要保留return fopen(fname, mode);其余删除
@@ -58,7 +58,10 @@ elseif(LLAMA_CLBLAST)
 else() # 什么都没有默认编译64bit版本
 #     add_definitions(-DSD_USE_FLASH_ATTENTION)#sd用cpu加速, 报错
 endif()
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)#原项目 编译选项     
+
+if (WIN32)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS) # 原项目 编译选项    
+endif()
 
 # msvc设置编译选项
 if(MSVC)
