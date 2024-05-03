@@ -8,13 +8,11 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 
 ## feature
-- Light
-    - eva has no other dependent components, just an exe program
+- Intuitive 
+    - Clearly show the process of the llm predicting the next word
 - Compatibility
     - Minimum support for 32-bit Windows 7
     - May be can support linux, macos, android
-- Intuitive 
-    - Clearly show the process of the llm predicting the next word
 - Multifunctional (all available but not very effective)
     - local model,  online model, API services, agent, multimodal
     - knowledge base QA, code interpreter, software control, text2img, voice2text 
