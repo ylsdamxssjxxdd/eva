@@ -65,6 +65,7 @@ endif()
 
 # msvc设置编译选项
 if(MSVC)
+    option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 如果用msvc编译器就动态链接
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持代码中的中文
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8") # 支持代码中的中文
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
@@ -110,8 +111,7 @@ whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml.h llama.cpp/ggml-mpi.h llama.cpp/ggml-quants.h
 )
 
-target_link_libraries(${TARGET_whisper} PRIVATE ggml ${CMAKE_THREAD_LIBS_INIT})
-target_compile_features(${TARGET_whisper} PRIVATE cxx_std_11)
+target_link_libraries(${TARGET_whisper} PRIVATE llama) # 这里直接链接到llama.cpp的llama库
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OLD_CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 恢复之前的输出目录
 
@@ -142,7 +142,7 @@ utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h 
 )
 
 #确保第三方程序先于eva编译
-add_dependencies(${TARGET} server whisper sd quantize)
+add_dependencies(${TARGET} server whisper quantize sd)
 
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llava llama ${EXTRA_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
