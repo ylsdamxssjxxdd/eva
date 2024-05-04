@@ -16,7 +16,6 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 else()
     set(SD_STANDALONE OFF)
 endif()
-# mingw设置编译选项
 if(MINGW)
     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
@@ -97,7 +96,7 @@ add_subdirectory(ggml)
 
 add_subdirectory(thirdparty)
 
-target_link_libraries(${SD_LIB} PUBLIC ggml-sd zip)
+target_link_libraries(${SD_LIB} PUBLIC ggml zip)
 target_include_directories(${SD_LIB} PUBLIC . thirdparty)
 target_compile_features(${SD_LIB} PUBLIC cxx_std_11)
 

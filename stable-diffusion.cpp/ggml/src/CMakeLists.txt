@@ -137,7 +137,7 @@ endif()
 
 # ggml
 
-set(TARGET ggml-sd)
+set(TARGET ggml)
 
 # on APPLE - include Accelerate framework
 if (APPLE AND NOT GGML_NO_ACCELERATE)
@@ -320,7 +320,6 @@ if (GGML_METAL)
         )
 endif()
 
-
 if (GGML_PERF)
     set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_PERF)
 endif()
@@ -336,6 +335,7 @@ add_library(${TARGET}
     ../include/ggml/ggml-alloc.h
     ../include/ggml/ggml-backend.h
     ${GGML_CUDA_SOURCES}
+    ${GGML_OPENCL_SOURCES}
     ${GGML_METAL_SOURCES}
     )
 
@@ -392,11 +392,11 @@ if (GGML_CUDA_SOURCES)
             set(GGML_CUDA_ARCHITECTURES 52 61 70)
         endif()
         message(STATUS "GGML Configuring CUDA architectures ${GGML_CUDA_ARCHITECTURES}")
-        set_property(TARGET ggml-sd  PROPERTY CUDA_ARCHITECTURES ${GGML_CUDA_ARCHITECTURES})
+        set_property(TARGET ggml  PROPERTY CUDA_ARCHITECTURES ${GGML_CUDA_ARCHITECTURES})
     endif()
-    set_property(TARGET ggml-sd  PROPERTY CUDA_SELECT_NVCC_ARCH_FLAGS "Auto")
+    set_property(TARGET ggml  PROPERTY CUDA_SELECT_NVCC_ARCH_FLAGS "Auto")
     if (NOT MSVC)
-        target_link_libraries(ggml-sd PUBLIC stdc++)
+        target_link_libraries(ggml PUBLIC stdc++)
     endif()
 endif()
 
