@@ -8,6 +8,8 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 
 ## feature
+- Light
+    - It's just an exe file with no other dependencies
 - Intuitive 
     - Clearly show the process of the llm predicting the next word
 - Compatibility

@@ -18,8 +18,9 @@
 #----------------------------------------------------------------------------------
 # camke
 # 注意cmake构建类型应该设置为 Release
+# 更换编译选项记得清空sd的build目录
 # 全大写的变量是cmake内置的，前面小写的变量是自定义的
-# eva.exe将会输出在build/Release目录下
+# mingw编译器用静态链接，msvc编译器使用winrar，最终都将得到一个单独的exe在build/Release目录下
 # ----------------------------------------------------------------------------------
 
 ###################################### 基础配置 ######################################
@@ -52,7 +53,7 @@ elseif(LLAMA_VULKAN)
 elseif(LLAMA_CLBLAST)
     add_compile_definitions(BODY_USE_CLBLAST) # 编译clblast的标志
 else() 
-# 什么都没有默认编译64bit版本
+    # 什么都没有默认编译64bit版本
 endif()
 
 # msvc设置编译选项
@@ -84,7 +85,6 @@ endif()
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}) # 使llama.dll在build/Release目录下
 add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
-add_subdirectory(llama.cpp/examples/llava) # 添加llava库
 
 # 先编译好server.exe等并放到utils目录下，等待eva打包进资源文件
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils") # 设置新的输出目录
@@ -123,7 +123,6 @@ message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
-
 # 资源文件
 set(resource_FILES utils/logo.qrc utils/thrid_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
 
@@ -139,13 +138,30 @@ main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui
 utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
+llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
+
+if(BODY_32BIT)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-32bit")
+elseif(LLAMA_VULKAN)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
+elseif(LLAMA_CLBLAST)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-opencl")
+elseif(LLAMA_CUDA)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda")
+else() 
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-64bit")
+endif()
+
+if(MINGW)
+    set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${eva_OUTPUT_NAME}") # 设置输出文件的文件名 MSVC编译器下输出的未打包文件名是eva.exe
+endif()
 
 # 确保第三方程序先于eva编译
 add_dependencies(${TARGET} server whisper quantize)
 
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llava llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
+target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
 # 后处理
 if(MSVC)
@@ -156,17 +172,18 @@ if(MSVC)
     )
     # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件
     add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}.exp" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}.lib"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}.exp" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}.lib"
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
-        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-${version}-cuda.exe"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}.exe"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
         COMMENT "custom Removing ..."
     )
-    # # 使用winrar打包eva.exe为一个自解压程序
+    
+    # # 使用winrar打包cuda版本的eva.exe为一个自解压程序
     # add_custom_command(TARGET ${TARGET} POST_BUILD
     #     # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
     #     # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-    #     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "eva-${version}-cuda.exe" "./" "-r"
+    #     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
     #     COMMENT "custom Packing ..."
     # )
 
