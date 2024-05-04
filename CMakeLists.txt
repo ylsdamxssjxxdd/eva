@@ -28,12 +28,13 @@
 # ----------------------------------------------------------------------------------
 
 ###################################### 基础配置 ######################################
-cmake_minimum_required(VERSION 3.12)
-project(body)
-set(TARGET eva)
+cmake_minimum_required(VERSION 3.12) # 最低cmake版本
+project(body) # 项目名
+set(VERSION b2780) # 打包版本
+set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
 ###################################### 编译选项 ######################################
-option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
+option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
@@ -134,6 +135,7 @@ widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui
 utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
 )
+
 # 确保第三方程序先于eva编译
 add_dependencies(${TARGET} server whisper quantize sd)
 
@@ -145,13 +147,22 @@ if(MSVC)
     # 在生成目标之后执行 windeployqt
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}.exe"
-        COMMENT "Running windeployqt..."
+        COMMENT "custom Windeployqt ..."
     )
-    # 删除msvc编译器生成共享库产生的辅助文件以及wideployqt.exe生成的vc_redist.x64.exe
+    # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}.exp" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}.lib"
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
-        COMMENT "Removing [.exp .lib vc_redist.x64.exe]"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-${VERSION}-cuda.exe"
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
+        COMMENT "custom Removing ..."
+    )
+    # 使用winrar打包eva.exe为一个自解压程序
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
+        # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "eva-${VERSION}-cuda.exe" "./" "-r"
+        COMMENT "custom Packing ..."
     )
 endif()
 
