@@ -15,12 +15,6 @@ Widget::Widget(QWidget *parent)
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     debugButton = new CustomSwitchButton();
     debugButton->hide();//用户拉动分割器时出现
-
-    //测试后删除
-    // QVBoxLayout* frame_2_VLayout = ui->frame_2->findChild<QVBoxLayout*>(); // 获取frame_2的列布局对象
-    // frame_2_VLayout->addWidget(debugButton);
-    // debugButton->show();
-
     connect(debugButton,&QAbstractButton::clicked,this,&Widget::ondebugButton_clicked);
 
     //--------------初始化语言--------------

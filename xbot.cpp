@@ -758,9 +758,6 @@ void xBot::reset(bool is_clear_all)
     else{system_tokens = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true);}
     is_antiprompt = false;//用户昵称检测标签
     is_first_input = true;//初次输入标签,对话模式中初次输前已经考虑add_bos,不再向用户输入插入开始标志
-    candidates = new std::vector<llama_token_data>;
-    candidates->reserve(n_vocab);//词表采样矩阵
-    
 
     //添加额外停止标志
     gpt_params_.antiprompt.clear();//清空反提示
@@ -993,8 +990,9 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
 //接受图片路径
 void xBot::recv_imagepath(QString image_path)
 {
-    //gpt_params_.image = image_path.toStdString();
-    gpt_params_.image.push_back(image_path.toStdString());
+    QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+    std::string imagepath = code->fromUnicode(image_path).data();
+    gpt_params_.image.push_back(imagepath);
 }
 
 // 接受用户输入

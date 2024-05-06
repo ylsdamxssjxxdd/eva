@@ -59,7 +59,6 @@ public:
 
     std::vector<llama_token> embd_inp,embd;//待推理词向量
     llama_token eos_token;//结束标志
-    std::vector<llama_token_data> *candidates;//词表采样矩阵
     llama_grammar * grammar = NULL; //强制语法
     std::vector<llama_token> pick_half_utf8;
     int ga_i = 0;//记录拓展的上下文数量?
