@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>server.exe</file>
-        <file>whisper.exe</file>
-        <file>quantize.exe</file>
-        <file>sd.exe</file>
-    </qresource>
-</RCC>

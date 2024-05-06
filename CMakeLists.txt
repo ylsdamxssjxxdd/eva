@@ -32,7 +32,7 @@ set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
 
 ###################################### 编译选项 ######################################
-option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
+option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
@@ -124,8 +124,9 @@ message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
-# 添加qt资源文件，会自动处理成.cpp
-qt5_add_big_resources(resource_FILES utils/logo.qrc utils/thrid_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
+# 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
+# 注意32位不能超过10MB所有分了很多个，不用qt5_add_big_resources是因为它会先于exe文件生成前执行
+set(resource_FILES utils/logo.qrc utils/server_exe.qrc utils/quantize_exe.qrc utils/whisper_exe.qrc utils/sd_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
 
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)
