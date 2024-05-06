@@ -1,5 +1,5 @@
 ###################################### 手动修改 ######################################
-# llama.cpp-b2780
+# llama.cpp-b2794
 # 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 # 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 # ----------------------------------------------------------------------------------
@@ -21,12 +21,13 @@
 # 更换编译选项记得清空sd的build目录
 # 全大写的变量是cmake内置的，前面小写的变量是自定义的
 # mingw编译器用静态链接，msvc编译器使用winrar，最终都将得到一个单独的exe在build/Release目录下
+# mingw编译时，对应的mingw/bin目录需要在环境变量中用于sd.exe编译
 # ----------------------------------------------------------------------------------
 
 ###################################### 基础配置 ######################################
 cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
-set(version b2780) # 打包版本
+set(version b2794) # 打包版本
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
 
@@ -102,12 +103,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 # 构建sd.exe并放到utils目录下
 set(stable_DIFFUSION_DIR "${PROJECT_SOURCE_DIR}/stable-diffusion.cpp")
 add_custom_command(TARGET ${TARGET_whisper} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR} ${CMAKE_COMMAND} -E make_directory build
-        COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" ".." ${sd_EXTRA_COMMAND} "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${stable_DIFFUSION_DIR}/build/bin/Release"
-        COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" "--build" "." "--config Release"
-        COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build ${CMAKE_COMMAND} -E copy ${stable_DIFFUSION_DIR}/build/bin/Release/sd.exe ${PROJECT_SOURCE_DIR}/utils/sd.exe
-        COMMENT "custom Cmake ..."
-    )
+    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR} ${CMAKE_COMMAND} -E make_directory build
+    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" ".." ${sd_EXTRA_COMMAND} "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${stable_DIFFUSION_DIR}/build/bin/Release"
+    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" "--build" "." "--config Release"
+    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build ${CMAKE_COMMAND} -E copy ${stable_DIFFUSION_DIR}/build/bin/Release/sd.exe ${PROJECT_SOURCE_DIR}/utils/sd.exe
+    COMMENT "custom Cmake ..."
+)
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
@@ -123,8 +124,8 @@ message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
-# 资源文件
-set(resource_FILES utils/logo.qrc utils/thrid_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
+# 添加qt资源文件，会自动处理成.cpp
+qt5_add_big_resources(resource_FILES utils/logo.qrc utils/thrid_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
 
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)

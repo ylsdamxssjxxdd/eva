@@ -1426,6 +1426,19 @@ void Expend::on_sd_vaepath_pushButton_clicked()
 //用户点击开始绘制时响应  
 void Expend::on_sd_draw_pushButton_clicked()
 {
+    //处理stop的情况
+    if(ui->sd_draw_pushButton_2->text() == "stop" || ui->sd_draw_pushButton->text() == "stop")
+    {
+        ui->sd_log->appendPlainText("stop");
+        sd_process->kill();//强制结束sd.exe
+        ui->sd_draw_pushButton->setText(jtr("text to image"));
+        ui->sd_draw_pushButton_2->setText(jtr("image to image"));
+        img2img = false;
+        return;
+    }
+    ui->sd_draw_pushButton_2->setText("stop");
+    ui->sd_draw_pushButton->setText("stop");
+
     if(is_handle_sd && ui->sd_prompt_textEdit->toPlainText()=="")
     {
         ui->sd_log->appendPlainText(jtr("Please enter prompt words to tell the model what you want the image to look like"));
@@ -1442,8 +1455,11 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
 
     //锁定界面
-    ui->sd_set_groupBox->setEnabled(0);
-    
+    ui->sd_frame_modelpath->setEnabled(0);
+    ui->sd_frame_vaepath->setEnabled(0);
+    ui->sd_frame_antiprompt->setEnabled(0);
+    ui->sd_frame_param->setEnabled(0);
+
     //收集参数
     sd_params.prompt = ui->sd_prompt_textEdit->toPlainText();
     sd_params.modelpath = ui->sd_modelpath_lineEdit->text();
@@ -1549,7 +1565,13 @@ void Expend::sd_onProcessStarted()
 void Expend::sd_onProcessFinished()
 {
     //解锁界面
-    ui->sd_set_groupBox->setEnabled(1);
+    ui->sd_frame_modelpath->setEnabled(1);
+    ui->sd_frame_vaepath->setEnabled(1);
+    ui->sd_frame_antiprompt->setEnabled(1);
+    ui->sd_frame_param->setEnabled(1);
+
+    ui->sd_draw_pushButton->setText(jtr("text to image"));
+    ui->sd_draw_pushButton_2->setText(jtr("image to image"));
 
     //绘制结果
     QImage image(sd_params.outpath);
@@ -1673,14 +1695,13 @@ void Expend::on_sd_uploadimage_textEdit_textChanged()
                 cursor.insertImage(imageFormat);
 
                 uploadimagepath = imagepath;
-                ui->sd_draw_pushButton_2->setEnabled(1);//解锁
                 uploadimaging = false;
+                ui->sd_draw_pushButton_2->setEnabled(1);
                 return;
             }
         }
     }
-
-    ui->sd_draw_pushButton_2->setEnabled(0);//上锁
+    ui->sd_draw_pushButton_2->setEnabled(0);
 }
 
 //用户点击图生图时响应  

@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -1437,7 +1437,7 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
-           <widget class="QFrame" name="frame_6">
+           <widget class="QFrame" name="sd_frame_modelpath">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -1539,7 +1539,7 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QFrame" name="frame_23">
+           <widget class="QFrame" name="sd_frame_vaepath">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -1641,7 +1641,7 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QFrame" name="frame_24">
+           <widget class="QFrame" name="sd_frame_antiprompt">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -1727,7 +1727,7 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-           <widget class="QFrame" name="frame_14">
+           <widget class="QFrame" name="sd_frame_param">
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
             </property>
