@@ -106,6 +106,29 @@ bool Expend::createTempDirectory(const QString &path) {
     }
 }
 
+//传递llama.cpp的log
+void Expend::recv_llama_log(QString log)
+{
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+    QString dateTimeString = currentDateTime.toString("hh:mm:ss  ");
+
+    if(log == ".")
+    {
+        //不处理
+    }
+    else if(log.contains("failed to load model"))//提示用户不能有中文
+    {
+        log = jtr("failed to load model mess");//单条记录 
+    }
+    else
+    {
+        log.remove("\n");
+        log = dateTimeString + log;//单条记录 
+    }
+    
+     ui->modellog_card->appendPlainText(log);
+}
+
 // 根据language.json和language_flag中找到对应的文字
 QString Expend::jtr(QString customstr)
 {
@@ -231,12 +254,6 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         show_quantize_types();//展示量化方法
     }
 
-}
-
-//接收模型日志
-void Expend::recv_log(QString log)
-{
-    ui->modellog_card->appendPlainText(log);
 }
 
 // 接收模型词表

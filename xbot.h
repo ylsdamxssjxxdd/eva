@@ -104,6 +104,7 @@ public:
     std::vector<Brain_Cell> Brain_vector;//记忆向量(当前记忆)
 
 public slots:
+    void recv_llama_log(QString log_);//获取llama log
     void recv_debuging(bool is_debuging_);//传递debug中状态
     void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void recv_language(int language_flag_);//传递使用的语言
@@ -115,7 +116,7 @@ public slots:
     void recv_date(DATES date);//接受约定内容
     void recv_free();//释放
     void recv_maxngl(int maxngl_);//传递模型最大的ngl值
-#ifdef BODY_USE_CUBLAST
+#ifdef BODY_USE_CUDA
     void recv_gpu_status(float vmem,float vram, float vcore, float vfree_);//更新gpu内存使用率
 #endif
 
@@ -136,7 +137,7 @@ signals:
     void bot2ui_params(PARAMS p);//bot将模型参数传递给ui
     void bot2ui_kv(float percent,int n_past);//传递缓存量
     void bot2ui_tokens(int tokens);//传递测试解码token数量
-    void bot2ui_log(QString log);//传递llama.cpp的log
+    void bot_llama_log(QString log);//传递llama.cpp的log
     void bot2ui_play();
 };
 

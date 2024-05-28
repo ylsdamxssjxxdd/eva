@@ -48,7 +48,7 @@ Widget::Widget(QWidget *parent)
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"),USUAL_);//初始提示
 
-#ifndef BODY_USE_CUBLAST
+#ifndef BODY_USE_CUDA
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
     ui->vram_bar->setVisible(0);
 #endif
@@ -625,7 +625,7 @@ void Widget::recv_setreset()
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
     reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
     
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
 #endif
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
@@ -783,7 +783,7 @@ void Widget::on_set_clicked()
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     ngl_slider->setValue(ui_SETTINGS.ngl);
 #endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
@@ -963,46 +963,27 @@ void Widget::recv_tokens(int tokens)
 }
 
 //传递llama.cpp的log
-void Widget::recv_log(QString log)
+void Widget::recv_llama_log(QString log)
 {
-    QDateTime currentDateTime = QDateTime::currentDateTime();
-    QString dateTimeString = currentDateTime.toString("hh:mm:ss  ");
-    
     //截获gpu最大负载层数
     if(log.contains("llm_load_print_meta: n_layer"))
     {
-        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
             ui_maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit ui2bot_maxngl(ui_maxngl);
             ngl_slider->setMaximum(ui_maxngl);
             if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
         #endif
     }
-
-    if(log == ".")
-    {
-        //不处理
-    }
-    else
-    {
-        log.remove("\n");
-        emit ui2expend_log(dateTimeString + log);//单条记录 
-    }
-
-    //处理异常情况
-    if(log.contains("failed to load model"))//提示用户不能有中文
-    {
-        emit ui2expend_log(jtr("failed to load model mess"));//单条记录 
-    }
-
 }
+
 //播放装载动画
 void Widget::recv_play()
 {
     load_play();//开始播放动画
 }
 
-#ifdef BODY_USE_CUBLAST
+#ifdef BODY_USE_CUDA
 //更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {

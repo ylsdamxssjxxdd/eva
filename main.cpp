@@ -5,16 +5,9 @@
 #include "expend.h"
 #include <locale>
 #include <QStyleFactory>
-#ifdef BODY_USE_CUBLAST
+#ifdef BODY_USE_CUDA
 #include "utils/gpuchecker.h"
 #endif
-
-//回调函数,bot获取llama的日志传给ui,ui处理后最大ngl值再传回bot
-static void bot_log_callback(ggml_log_level level, const char *text, void *user_data)
-{
-    xBot* bot = static_cast<xBot*>(user_data);//类型转换操作,不消耗资源,重新解释了现有内存地址的类型
-    emit bot->bot2ui_log(QString::fromStdString(text));
-}
 
 int main(int argc, char* argv[])
 {
@@ -42,8 +35,7 @@ int main(int argc, char* argv[])
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
     if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
-    llama_log_set(bot_log_callback,&bot);//设置回调
-#ifdef BODY_USE_CUBLAST
+#ifdef BODY_USE_CUDA
     gpuChecker gpuer;//监测显卡信息
 #endif
 
@@ -70,7 +62,7 @@ int main(int argc, char* argv[])
     QObject::connect(&bot,&xBot::bot2ui_datereset,&w,&Widget::recv_datereset);//bot发信号请求ui触发reset
     QObject::connect(&bot,&xBot::bot2ui_setreset,&w,&Widget::recv_setreset);//bot发信号请求ui触发reset
     QObject::connect(&bot,&xBot::bot2ui_tokens,&w,&Widget::recv_tokens);//传递测试解码token数量
-    QObject::connect(&bot,&xBot::bot2ui_log,&w,&Widget::recv_log);//传递llama.cpp的log
+    QObject::connect(&bot,&xBot::bot_llama_log,&w,&Widget::recv_llama_log);//传递llama.cpp的log
     QObject::connect(&bot,&xBot::bot2ui_predecode,&w,&Widget::recv_predecode);//传递模型预解码的内容
 
     QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
@@ -89,7 +81,7 @@ int main(int argc, char* argv[])
     QObject::connect(&w, &Widget::ui2bot_debuging,&bot,&xBot::recv_debuging);//传递debug中状态
 
     //------------------监测gpu信息-------------------
-#ifdef BODY_USE_CUBLAST
+#ifdef BODY_USE_CUDA
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
@@ -98,7 +90,6 @@ int main(int argc, char* argv[])
     //------------------连接扩展和增殖窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
-    QObject::connect(&w, &Widget::ui2expend_log, &expend, &Expend::recv_log);
     QObject::connect(&w, &Widget::ui2expend_voicedecode, &expend, &Expend::recv_voicedecode);//开始语音转文字
     QObject::connect(&expend, &Expend::expend2ui_voicedecode_over, &w, &Widget::recv_voicedecode_over);//转换完成返回结果
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);//传递模型路径
@@ -109,7 +100,7 @@ int main(int argc, char* argv[])
     //------------------连接bot和增殖窗口-------------------
     QObject::connect(&bot,&xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
     QObject::connect(&bot,&xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector);//传递记忆向量和上下文长度
-
+    QObject::connect(&bot,&xBot::bot_llama_log, &expend, &Expend::recv_llama_log);
     //------------------连接net和窗口-------------------
     QObject::connect(&net,&xNet::net2ui_output,&w,&Widget::reflash_output);//窗口输出区更新
     QObject::connect(&net,&xNet::net2ui_state,&w,&Widget::reflash_state);//窗口状态区更新
@@ -179,7 +170,7 @@ int main(int argc, char* argv[])
             w.nthread_slider->setValue(settings.value("nthread", "").toInt());
             w.nctx_slider->setValue(settings.value("nctx", "").toInt());
             w.batch_slider->setValue(settings.value("batch", "").toInt());
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
             w.ngl_slider->setValue(settings.value("ngl", "").toInt());
 #endif
             QFile checkFile(settings.value("lorapath", "").toString());

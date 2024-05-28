@@ -3,6 +3,13 @@
 #endif
 #include "xbot.h"
 
+//回调函数,获取llama的日志
+static void bot_log_callback(ggml_log_level level, const char *text, void *user_data)
+{
+    xBot* bot = static_cast<xBot*>(user_data);//类型转换操作,不消耗资源,重新解释了现有内存地址的类型
+    emit bot->bot_llama_log(QString::fromStdString(text));
+}
+
 template <class Iter>
 //解决半个utf8字符问题
 std::string tokens_to_str(llama_context *ctx, Iter begin, Iter end)
@@ -27,9 +34,11 @@ std::string toLowerCaseASCII(const std::string& input) {
 }
 
 xBot::xBot()
-{
-    
+{   
     log_disable();//禁止llama.cpp输出日志文件
+    llama_log_set(bot_log_callback, this);//设置回调,获取llama的日志
+    QObject::connect(this,&xBot::bot_llama_log,this,&xBot::recv_llama_log);
+    
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;//gpu负载层数
     gpt_params_.prompt = DEFAULT_PROMPT + std::string("\n");//约定提示词
@@ -53,7 +62,7 @@ xBot::xBot()
 
 xBot::~xBot()
 {
-    emit bot2ui_state("bot:soul be free");
+    ;
 }
 
 void xBot::run()
@@ -653,7 +662,7 @@ void xBot::load(std::string &modelpath)
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     //使用mmp后gpu负载无法分担内存占用，这里折中方案，如果不用gpu则开启mmp，否则禁用
     if(gpt_params_.n_gpu_layers == 0)
     {
@@ -1035,7 +1044,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     gpt_params_.n_predict = settings.npredict;
 
     bool reload_flag = false;//重载标签
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUBLAST)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
         gpt_params_.n_gpu_layers = maxngl;
@@ -1157,7 +1166,8 @@ void xBot::recv_maxngl(int maxngl_)
 {
     maxngl = maxngl_;
 }
-#ifdef BODY_USE_CUBLAST
+
+#ifdef BODY_USE_CUDA
 void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
 {
     vfree = vfree_;//剩余显存
@@ -1233,4 +1243,10 @@ void xBot::recv_debuging(bool is_debuging_)
 QString xBot::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
+}
+
+//获取llama log
+void xBot::recv_llama_log(QString log_)
+{
+    ;
 }

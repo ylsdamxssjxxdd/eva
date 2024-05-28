@@ -32,7 +32,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目�
 set(version b3014) # 打包版本
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
+option(BODY_PACK                    "pack eva"                                   ON) # 是否打包
 option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
@@ -43,8 +43,9 @@ option(BODY_32BIT                   "build 32 bit"                              
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
 elseif(LLAMA_CUDA)
-    add_compile_definitions(BODY_USE_CUBLAST) # 编译cuda的标志
-    add_compile_definitions(GGML_USE_CUBLAS) # llama.cpp用cuda
+    add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
+    add_compile_definitions(GGML_USE_CUDA)
+    add_compile_definitions(GGML_CUDA_USE_GRAPHS)
     add_compile_definitions(GGML_USE_CUDA) # whisper用cuda, 注意cuda版本精度异常
     # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
