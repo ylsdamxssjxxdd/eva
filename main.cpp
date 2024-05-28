@@ -16,8 +16,14 @@ static void bot_log_callback(ggml_log_level level, const char *text, void *user_
     emit bot->bot2ui_log(QString::fromStdString(text));
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
+    // 测试用户设备是否支持运行该机体
+    for (int i = 0; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--test"){return 0;}
+    }
+
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);//自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例

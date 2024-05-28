@@ -113,6 +113,7 @@ extern "C" {
 
     struct whisper_context_params {
         bool  use_gpu;
+        bool  flash_attn;
         int   gpu_device;  // CUDA device
 
         // [EXPERIMENTAL] Token-level timestamps with DTW
@@ -504,6 +505,9 @@ extern "C" {
 
         // [EXPERIMENTAL] [TDRZ] tinydiarize
         bool tdrz_enable;       // enable tinydiarize speaker turn detection
+
+        // A regular expression that matches tokens to suppress
+        const char * suppress_regex;
 
         // tokens to provide to the whisper decoder as initial prompt
         // these are prepended to any existing text context from a previous call

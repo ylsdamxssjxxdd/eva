@@ -12,3 +12,4 @@ utils/thrid_exe_rc.py
 widget_ui.py
 expend_ui.py
 stable-diffusion.cpp/build
+CMakeLists.txt.user

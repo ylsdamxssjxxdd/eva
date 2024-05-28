@@ -1,5 +1,5 @@
 ###################################### 手动修改 ######################################
-# llama.cpp-b2794
+# llama.cpp-b3014
 # 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 # 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 # ----------------------------------------------------------------------------------
@@ -13,7 +13,7 @@
 # endif()
 # 还要更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 # ----------------------------------------------------------------------------------
-# whisper.cpp master-298c74
+# whisper.cpp 1.6.2
 # 只需要部分文件即可
 #----------------------------------------------------------------------------------
 # camke
@@ -27,12 +27,13 @@
 ###################################### 基础配置 ######################################
 cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
-set(version b2794) # 打包版本
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
+set(version b3014) # 打包版本
 
 ###################################### 编译选项 ######################################
-option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
+option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
+option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
@@ -57,6 +58,9 @@ else()
     # 什么都没有默认编译64bit版本
 endif()
 
+if(BODY_PACK)
+    set(BODY_PACK_EXE WIN32) # 使用WIN32可以去掉控制台黑框
+endif()
 # msvc设置编译选项
 if(MSVC)
     option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 如果用msvc编译器就动态链接
@@ -86,6 +90,7 @@ endif()
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}) # 使llama.dll在build/Release目录下
 add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
+add_subdirectory(llama.cpp/examples/main) # 测试用
 
 # 先编译好server.exe等并放到utils目录下，等待eva打包进资源文件
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils") # 设置新的输出目录
@@ -95,8 +100,8 @@ add_subdirectory(llama.cpp/examples/server) # 添加server.exe
 set(TARGET_whisper whisper) # 添加whisper.exe
 add_executable(${TARGET_whisper} 
 whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
-whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
-llama.cpp/ggml.h llama.cpp/ggml-mpi.h llama.cpp/ggml-quants.h)
+whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h whisper.cpp/grammar-parser.cpp whisper.cpp/grammar-parser.h
+llama.cpp/ggml.h llama.cpp/ggml-quants.h)
 target_link_libraries(${TARGET_whisper} PRIVATE llama) # 这里直接将whisper链接llama.cpp的llama库
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva.exe的输出目录
 
@@ -131,10 +136,10 @@ set(resource_FILES utils/logo.qrc utils/server_exe.qrc utils/quantize_exe.qrc ut
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)
 
-# 创建eva.exe,添加源文件,使用WIN32可以去掉控制台黑框
+# 创建eva.exe,添加源文件
 add_executable(
 ${TARGET}
-# WIN32
+${BODY_PACK_EXE}
 ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
@@ -180,14 +185,14 @@ if(MSVC)
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
         COMMENT "custom Removing ..."
     )
-    
-    # # 使用winrar打包cuda版本的eva.exe为一个自解压程序
-    # add_custom_command(TARGET ${TARGET} POST_BUILD
-    #     # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
-    #     # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-    #     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
-    #     COMMENT "custom Packing ..."
-    # )
-
+    if(BODY_PACK)
+        # 使用winrar打包cuda版本的eva.exe为一个自解压程序
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
+            # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
+            COMMENT "custom Packing ..."
+        )
+    endif()
 endif()
 

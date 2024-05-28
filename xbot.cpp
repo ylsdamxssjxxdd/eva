@@ -45,9 +45,8 @@ xBot::xBot()
     gpt_params_.sparams.penalty_repeat    = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq      = 0.00; //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present   = 0.00; //同类惩罚 0.0 = disabled openai
-    //gpt_params_.flash_attn = true;
-    //gpt_params_.sparams.penalty_last_n = 256;
-    //gpt_params_.sparams.top_p = 0.5;
+    //gpt_params_.flash_attn = true; // 暂时有问题
+
     qDebug()<<"bot init over";
 }
 
@@ -773,22 +772,31 @@ void xBot::reset(bool is_clear_all)
     // {
     //     gpt_params_.antiprompt.push_back("###");
     // }
-
+    
+    //清空采样参数
     if(!is_first_load)
     {
         llama_sampling_free(sparams);
         sparams = nullptr;
-    }//清空采样参数
+    }
     sparams = llama_sampling_init(gpt_params_.sparams);//初始化采样参数
 
     if(is_clear_all)//清空ctx kv缓存
-    {
-        llama_kv_cache_seq_rm   (ctx, 0, -1, -1);//清空ctx kv缓存        
+    {  
+        //先释放再重建一个上下文，这样足够干净
+        llama_kv_cache_clear(ctx);//清空ctx kv缓存   
+        llama_free(ctx);
+        llama_context_params ctx_params = llama_context_default_params();
+        ctx_params.seed  = gpt_params_.seed;
+        ctx_params.n_ctx = gpt_params_.n_ctx;
+        ctx_params.n_threads = gpt_params_.n_threads;
+        ctx_params.n_threads_batch = gpt_params_.n_threads_batch == -1 ? gpt_params_.n_threads : gpt_params_.n_threads_batch;
+        ctx_params.flash_attn = gpt_params_.flash_attn;
+        ctx = llama_new_context_with_model(model, ctx_params); 
+
         n_past             = 0;//已推理字符数
         n_consumed         = 0;//已推理字符数
         Brain_vector.clear();
-        emit bot2ui_kv(0,n_past);//当前没有缓存
-        emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);//1强制刷新记忆矩阵
     }
     else//删除prompt以外的kv缓存
     {
@@ -802,11 +810,11 @@ void xBot::reset(bool is_clear_all)
             {
                 Brain_vector.push_back({i+1,system_tokens.at(i),QString::fromStdString(llama_token_to_piece(ctx, system_tokens.at(i)))});
             }
-            
-            emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
-            emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);//1强制刷新记忆矩阵
         }
     }
+    emit bot2ui_kv(float(n_past)/float(gpt_params_.n_ctx)*100,n_past);//当前缓存量为系统指令token量
+    emit bot2expend_brainvector(Brain_vector,gpt_params_.n_ctx,1);//1强制刷新记忆矩阵
+
     ga_i = 0;
     pick_half_utf8.clear();
     embd.clear();
