@@ -134,6 +134,7 @@ int main(int argc, char* argv[])
     if(configfile.exists())
     {
         QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
         QString modelpath = settings.value("modelpath", "").toString();//模型路径
 
         QFile modelpath_file(modelpath);

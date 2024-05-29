@@ -39,6 +39,7 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QSettings>
+#include <QTextCodec>
 
 #include <QMediaPlayer>
 #include <QAudioInput>

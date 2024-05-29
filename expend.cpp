@@ -320,7 +320,7 @@ void Expend::readConfig()
     {
         // 创建 QSettings 对象，指定配置文件的名称和格式
         QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-
+        settings.setIniCodec("utf-8");
         // 读取配置文件中的值
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
         QString vae_modelpath = settings.value("vae_modelpath", "").toString();//vae模型路径
@@ -473,6 +473,7 @@ void Expend::closeEvent(QCloseEvent *event)
     // 创建 QSettings 对象，指定配置文件的名称和格式
     createTempDirectory("./EVA_TEMP");
     QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
     settings.setValue("sd_modelpath",ui->sd_modelpath_lineEdit->text());
     settings.setValue("vae_modelpath",ui->sd_vaepath_lineEdit->text());
     settings.setValue("antiprompt",ui->sd_antiprompt_lineEdit->text());

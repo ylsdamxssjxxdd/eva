@@ -57,7 +57,7 @@ struct DATES{
 
 //设置参数
 struct SETTINGS{
-    float temp = DEFAULT_TEMP;
+    double temp = DEFAULT_TEMP;
     double repeat = DEFAULT_REPEAT;
     int npredict = DEFAULT_NPREDICT;
 
