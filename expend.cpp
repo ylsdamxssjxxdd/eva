@@ -90,6 +90,7 @@ Expend::~Expend()
     whisper_process->kill();
     quantize_process->kill();
 }
+
 //创建临时文件夹EVA_TEMP
 bool Expend::createTempDirectory(const QString &path) {
     QDir dir;
@@ -112,11 +113,7 @@ void Expend::recv_llama_log(QString log)
     QDateTime currentDateTime = QDateTime::currentDateTime();
     QString dateTimeString = currentDateTime.toString("hh:mm:ss  ");
 
-    if(log == ".")
-    {
-        //不处理
-    }
-    else if(log.contains("failed to load model"))//提示用户不能有中文
+    if(log.contains("failed to load model"))//提示用户不能有中文
     {
         log = jtr("failed to load model mess");//单条记录 
     }

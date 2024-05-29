@@ -734,6 +734,11 @@ void xBot::load(std::string &modelpath)
     p.n_ctx_train = n_ctx_train;//最大值
     //ngl的最大值在模型日志中截获,为模型层数+1
     emit bot2ui_params(p);
+    if(gpt_params_.n_gpu_layers > maxngl)
+    {
+        gpt_params_.n_gpu_layers = maxngl;//装载完成也捕获了maxngl，在这里同步
+    }
+    //qDebug()<<"load后"<<gpt_params_.n_gpu_layers<<maxngl;
     
     is_load = true;//标记已完成装载
     is_first_reset = false;//模型装载后首次重置完成标签,控制是否输出清空的消息
@@ -1044,28 +1049,21 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     gpt_params_.n_predict = settings.npredict;
 
     bool reload_flag = false;//重载标签
+    //qDebug()<<"settings.ngl"<<settings.ngl<<"gpt_params_.n_gpu_layers"<<gpt_params_.n_gpu_layers<<reload_flag<<maxngl;
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
-        gpt_params_.n_gpu_layers = maxngl;
+        gpt_params_.n_gpu_layers = 999;
         reload_flag = true;
         vram_enough = true;
     }
-    //如果gpu负载层数改变则重新加载模型
+    //如果gpu负载层数改变则重新加载模型, 注意maxngl是滞后的必须装载后才能知道
     if(gpt_params_.n_gpu_layers != settings.ngl)
     {
-        //qDebug()<<gpt_params_.n_gpu_layers<<settings.ngl<<maxngl;
-        //第一次显存充足的话会等于999，再确认时赋予真实最大值，不需要重载
-        if(gpt_params_.n_gpu_layers == 999 && settings.ngl == maxngl)
-        {
-            gpt_params_.n_gpu_layers = maxngl;
-        }
-        else
-        {
-            gpt_params_.n_gpu_layers = settings.ngl;
-            reload_flag = true;
-        }
+        gpt_params_.n_gpu_layers = settings.ngl;
+        reload_flag = true;
     }
+    
 #endif
     //如果线程数改变则重新加载模型
     if(gpt_params_.n_threads != settings.nthread)
@@ -1161,11 +1159,6 @@ void xBot::recv_free()
     }
 
 }
-//传递模型最大的ngl值,这个值反而是ui通过截获日志获取的...
-void xBot::recv_maxngl(int maxngl_)
-{
-    maxngl = maxngl_;
-}
 
 #ifdef BODY_USE_CUDA
 void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
@@ -1248,5 +1241,12 @@ QString xBot::jtr(QString customstr)
 //获取llama log
 void xBot::recv_llama_log(QString log_)
 {
-    ;
+    //截获gpu最大负载层数
+    if(log_.contains("llm_load_print_meta: n_layer"))
+    {
+        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
+            maxngl = log_.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
+            emit bot2ui_maxngl(maxngl);
+        #endif
+    }
 }

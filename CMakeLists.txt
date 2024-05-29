@@ -32,7 +32,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目�
 set(version b3014) # 打包版本
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                    "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
 option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速

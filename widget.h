@@ -372,7 +372,7 @@ public slots:
     void recv_params(PARAMS p);//bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);//接收缓存量
     void recv_tokens(int tokens);//传递测试解码token数量
-    void recv_llama_log(QString log);//传递llama.cpp的log
+    void recv_maxngl(int maxngl_);
     void recv_play();
 #ifdef BODY_USE_CUDA
     void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率

@@ -115,7 +115,6 @@ public slots:
     void recv_set(SETTINGS settings,bool can_reload);//接受设置内容
     void recv_date(DATES date);//接受约定内容
     void recv_free();//释放
-    void recv_maxngl(int maxngl_);//传递模型最大的ngl值
 #ifdef BODY_USE_CUDA
     void recv_gpu_status(float vmem,float vram, float vcore, float vfree_);//更新gpu内存使用率
 #endif
@@ -138,6 +137,7 @@ signals:
     void bot2ui_kv(float percent,int n_past);//传递缓存量
     void bot2ui_tokens(int tokens);//传递测试解码token数量
     void bot_llama_log(QString log);//传递llama.cpp的log
+    void bot2ui_maxngl(int maxngl_);
     void bot2ui_play();
 };
 

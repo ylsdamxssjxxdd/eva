@@ -385,8 +385,17 @@ void Widget::on_send_clicked()
                         debuging_times ++;
                         return;
                     }
-
-                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);
+                    
+                    // 挂载工具后强制思考
+                    if(is_load_tool)
+                    {
+                        emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n" + jtr("tool_thought")},0);
+                    }
+                    else
+                    {
+                        emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);
+                    }
+                    
                 }
             }
         }
@@ -962,19 +971,12 @@ void Widget::recv_tokens(int tokens)
     //qDebug() <<test_tokens<< tokens;
 }
 
-//传递llama.cpp的log
-void Widget::recv_llama_log(QString log)
+//传递ngl
+void Widget::recv_maxngl(int maxngl_)
 {
-    //截获gpu最大负载层数
-    if(log.contains("llm_load_print_meta: n_layer"))
-    {
-        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
-            ui_maxngl = log.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
-            emit ui2bot_maxngl(ui_maxngl);
-            ngl_slider->setMaximum(ui_maxngl);
-            if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
-        #endif
-    }
+    ui_maxngl = maxngl_;//gpu负载层数是n_layer+1
+    ngl_slider->setMaximum(ui_maxngl);
+    if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
 }
 
 //播放装载动画

@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     QObject::connect(&bot,&xBot::bot2ui_datereset,&w,&Widget::recv_datereset);//bot发信号请求ui触发reset
     QObject::connect(&bot,&xBot::bot2ui_setreset,&w,&Widget::recv_setreset);//bot发信号请求ui触发reset
     QObject::connect(&bot,&xBot::bot2ui_tokens,&w,&Widget::recv_tokens);//传递测试解码token数量
-    QObject::connect(&bot,&xBot::bot_llama_log,&w,&Widget::recv_llama_log);//传递llama.cpp的log
+    QObject::connect(&bot,&xBot::bot2ui_maxngl,&w,&Widget::recv_maxngl);//传递模型的最大的gpu负载层数
     QObject::connect(&bot,&xBot::bot2ui_predecode,&w,&Widget::recv_predecode);//传递模型预解码的内容
 
     QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
@@ -76,7 +76,6 @@ int main(int argc, char* argv[])
     QObject::connect(&w, &Widget::ui2bot_free,&bot,&xBot::recv_free);//释放模型和上下文
     QObject::connect(&bot,&xBot::bot2ui_kv,&w,&Widget::recv_kv);//传递缓存量
     QObject::connect(&w, &Widget::ui2bot_imagepath,&bot,&xBot::recv_imagepath);//传递图片路径
-    QObject::connect(&w, &Widget::ui2bot_maxngl,&bot,&xBot::recv_maxngl);//传递模型最大的ngl值
     QObject::connect(&w, &Widget::ui2bot_dateset,&bot,&xBot::recv_dateset);//自动装载
     QObject::connect(&w, &Widget::ui2bot_debuging,&bot,&xBot::recv_debuging);//传递debug中状态
 
