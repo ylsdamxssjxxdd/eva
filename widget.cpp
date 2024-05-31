@@ -975,7 +975,9 @@ void Widget::recv_tokens(int tokens)
 void Widget::recv_maxngl(int maxngl_)
 {
     ui_maxngl = maxngl_;//gpu负载层数是n_layer+1
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
     ngl_slider->setMaximum(ui_maxngl);
+#endif
     if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
 }
 
