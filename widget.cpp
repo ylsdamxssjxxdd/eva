@@ -1280,7 +1280,7 @@ void Widget::api_send_clicked_slove()
         }
         else if(ui_mode == COMPLETE_)//直接用output上的文本进行推理
         {
-            data.input_prompt = input;
+            data.input_prompt = ui->output->toPlainText();
             data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
         }

@@ -241,7 +241,7 @@ QByteArray xNet::createCompleteBody()
     // 创建 JSON 数据
     QJsonObject json;
     if(apis.is_cache){json.insert("cache_prompt", apis.is_cache);}
-    json.insert("seed", 2023);
+    json.insert("seed", 1996);
     json.insert("ignore_eos", false);//是否无视结束标志
     json.insert("prompt", endpoint_data.input_prompt);
     json.insert("n_predict", endpoint_data.n_predict);
