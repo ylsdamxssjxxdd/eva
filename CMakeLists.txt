@@ -1,5 +1,5 @@
 ###################################### 手动修改 ######################################
-# llama.cpp-b3014
+# llama.cpp-b3091
 # 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 # 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 # ----------------------------------------------------------------------------------
@@ -29,10 +29,10 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3014) # 打包版本
+set(version b3091) # 打包版本
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
+option(BODY_PACK                    "pack eva"                                   ON) # 是否打包
 option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
@@ -44,9 +44,7 @@ if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
 elseif(LLAMA_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
-    add_compile_definitions(GGML_USE_CUDA)
-    add_compile_definitions(GGML_CUDA_USE_GRAPHS)
-    add_compile_definitions(GGML_USE_CUDA) # whisper用cuda, 注意cuda版本精度异常
+    add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
     # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
@@ -98,10 +96,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/utils") # 设�
 
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize.exe
 add_subdirectory(llama.cpp/examples/server) # 添加server.exe
+
 set(TARGET_whisper whisper) # 添加whisper.exe
 add_executable(${TARGET_whisper} 
 whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
-whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h whisper.cpp/grammar-parser.cpp whisper.cpp/grammar-parser.h
+whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml.h llama.cpp/ggml-quants.h)
 target_link_libraries(${TARGET_whisper} PRIVATE llama) # 这里直接将whisper链接llama.cpp的llama库
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva.exe的输出目录

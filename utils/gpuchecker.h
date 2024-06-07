@@ -1,6 +1,7 @@
 // gpuChecker
-// 每隔一定时间间隔查询一次gpu的显存/显存利用率/gpu利用率/剩余显存，并发送信号
+// 用于查询gpu的显存/显存利用率/gpu利用率/剩余显存
 // 使用时可直接包含此头文件，windows平台依赖nvml.h和nvml.lib
+// 需要连接对应的信号槽
 // 依赖qt5
 
 #ifndef GPUCHECKER_H
@@ -10,7 +11,6 @@
 #include <QDebug>
 #include <QProcess>
 #include <QElapsedTimer>
-#include <QTimer>
 #include "nvml.h"
 
 //llama模型类
@@ -18,36 +18,33 @@ class gpuChecker : public QThread
 {
     Q_OBJECT
 public:
-    QTimer *status_pTimer;
     nvmlDevice_t device;//显卡设备
     nvmlUtilization_t utilization;//利用率
     nvmlMemory_t memory;
-    int check_times = 500;//多久监测一次 ms
 
     // 初始化
     gpuChecker()
     {
         nvmlInit();// 初始化NVML库
         nvmlDeviceGetHandleByIndex(0, &device);// 获取第一个GPU的句柄
-        status_pTimer = new QTimer(this);//启动后,达到规定时间将发射终止信号
-        connect(status_pTimer, SIGNAL(timeout()), this, SLOT(encode_handleTimeout()));//设置终止信号触发的槽函数
-        status_pTimer->start(check_times);
     }
+
     ~gpuChecker()
     {
-        status_pTimer->stop();
-        delete status_pTimer;
         nvmlShutdown();
     }
 
-    void run() override{;} // 让gpuchecker成为一个单独的类直接用定时器当另外的线程了
-    
+    // 多线程支持
+    void run() override
+    {
+        chekGpu();
+    } 
 
 signals:
     void gpu_status(float vmem, float vram, float vcore, float vfree_);
 
 public slots:
-    void encode_handleTimeout()
+    void chekGpu()
     {
         nvmlDeviceGetUtilizationRates(device, &utilization);// 获取GPU利用率
         nvmlDeviceGetMemoryInfo(device, &memory);

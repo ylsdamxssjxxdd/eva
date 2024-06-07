@@ -89,7 +89,7 @@ public:
     QMediaPlayer music_player;
     QString currentpath = DEFAULT_MODELPATH;
     void apply_language(int language_flag_);//改变语种相关
-
+    
     bool is_config = false;//是否是读取了配置进行的装载
     void auto_save_user();//每次约定和设置后都保存配置到本地
     void get_set();//获取设置中的纸面值
@@ -404,6 +404,7 @@ private slots:
     void onConnected();//检测ip是否通畅
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void updateStatus(); //更新cpu内存使用率
+    void updateGpuStatus(); //更新gpu内存使用率
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容

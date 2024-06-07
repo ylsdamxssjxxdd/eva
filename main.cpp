@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 #ifdef BODY_USE_CUDA
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::encode_handleTimeout);//强制刷新gpu信息
+    QObject::connect(&w, &Widget::gpu_reflash,&gpuer, [&gpuer]() {gpuer.start();});//强制刷新gpu信息
 #endif
 
     //------------------连接扩展和增殖窗口-------------------

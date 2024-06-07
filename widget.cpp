@@ -75,8 +75,12 @@ Widget::Widget(QWidget *parent)
     max_thread = std::thread::hardware_concurrency();
     nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
     QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(updateStatus()));
+    connect(timer, &QTimer::timeout, this, &Widget::updateStatus);
     timer->start(500); // 多少ms更新一次
+    //-------------获取gpu内存信息-------------
+    QTimer *gpucheck_timer = new QTimer(this);
+    connect(gpucheck_timer, &QTimer::timeout, this, &Widget::updateGpuStatus);
+    gpucheck_timer->start(500); // 多少ms更新一次
     
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();

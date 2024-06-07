@@ -596,11 +596,13 @@ int xBot::stream()
 
             }
         }
-        //输入太多的特殊情况处理
+        //输入太多的特殊情况处理, 防止报错
         else
         {
             while ((int) embd_inp.size() > n_consumed)
             {
+                qDebug()<<"stream out"<<embd_inp.size()<<n_consumed;
+                emit bot2ui_state("bot:stream out", SUCCESS_);
                 embd.push_back(embd_inp[n_consumed]);
                 llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);//记录token的id
                 ++n_consumed;

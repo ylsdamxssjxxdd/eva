@@ -451,6 +451,12 @@ void Widget::updateStatus()
     
 }
 
+//更新gpu内存使用率
+void Widget::updateGpuStatus()
+{
+    emit gpu_reflash();
+}
+
 //拯救中文
 void Widget::getWords(QString json_file_path)
 {
