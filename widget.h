@@ -283,10 +283,6 @@ public:
     //系统信息相关
     QString model_memusage="0",ctx_memusage="0";
     QString model_vramusage="0",ctx_vramusage="0";
-    FILETIME preidleTime;
-    FILETIME prekernelTime;
-    FILETIME preuserTime;
-    double CalculateCPULoad();
     float vfree=0;//可用显存大小
     int modelsize_MB = 0;//模型占用空间大小
     bool is_first_getvram=true;//%
@@ -356,6 +352,7 @@ signals:
 //自用信号
 signals:
     void gpu_reflash();//强制刷新gpu信息
+    void cpu_reflash();//强制刷新gpu信息
 //处理模型信号的槽
 public slots:
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
@@ -375,9 +372,6 @@ public slots:
     void recv_tokens(int tokens);//传递测试解码token数量
     void recv_maxngl(int maxngl_);
     void recv_play();
-#ifdef BODY_USE_CUDA
-    void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率
-#endif
 //处理expend信号的槽
     void recv_voicedecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);//传递模型路径
@@ -388,6 +382,10 @@ public slots:
 //自用的槽
 public slots:    
     void switch_lan_change();//切换行动纲领的语言
+#ifdef BODY_USE_CUDA
+    void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率
+#endif
+    void recv_cpu_status(double cpuload, double memload);//传递cpu信息
 //自用的槽
 private slots:
     void onSplitterMoved(int pos, int index);//分割器被用户拉动时响应
@@ -403,8 +401,8 @@ private slots:
     void keep_onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void onConnected();//检测ip是否通畅
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
-    void updateStatus(); //更新cpu内存使用率
     void updateGpuStatus(); //更新gpu内存使用率
+    void updateCpuStatus(); //更新cpu内存使用率
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容

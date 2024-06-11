@@ -382,79 +382,16 @@ void Widget::getAllFiles(const QString&floderPath)
     }
 }
 
-double Widget::CalculateCPULoad()
-{
-    FILETIME idleTime, kernelTime, userTime;
-    if (!GetSystemTimes(&idleTime, &kernelTime, &userTime)) {
-        // 获取系统时间失败
-        return -1;
-    }
-
-    ULARGE_INTEGER idle, kernel, user;
-    idle.LowPart = idleTime.dwLowDateTime;
-    idle.HighPart = idleTime.dwHighDateTime;
-
-    kernel.LowPart = kernelTime.dwLowDateTime;
-    kernel.HighPart = kernelTime.dwHighDateTime;
-
-    user.LowPart = userTime.dwLowDateTime;
-    user.HighPart = userTime.dwHighDateTime;
-
-    // Convert previous FILETIME values to ULARGE_INTEGER.
-    ULARGE_INTEGER prevIdle, prevKernel, prevUser;
-    prevIdle.LowPart = preidleTime.dwLowDateTime;
-    prevIdle.HighPart = preidleTime.dwHighDateTime;
-
-    prevKernel.LowPart = prekernelTime.dwLowDateTime;
-    prevKernel.HighPart = prekernelTime.dwHighDateTime;
-
-    prevUser.LowPart = preuserTime.dwLowDateTime;
-    prevUser.HighPart = preuserTime.dwHighDateTime;
-
-    // Calculate the differences between the previous and current times.
-    ULARGE_INTEGER sysIdle, sysKernel, sysUser;
-    sysIdle.QuadPart = idle.QuadPart - prevIdle.QuadPart;
-    sysKernel.QuadPart = kernel.QuadPart - prevKernel.QuadPart;
-    sysUser.QuadPart = user.QuadPart - prevUser.QuadPart;
-
-    // Update the stored times for the next calculation.
-    preidleTime = idleTime;
-    prekernelTime = kernelTime;
-    preuserTime = userTime;
-
-    // Avoid division by zero.
-    if (sysKernel.QuadPart + sysUser.QuadPart == 0) {
-        return 0;
-    }
-
-    // Calculate the CPU load as a percentage.
-    return (sysKernel.QuadPart + sysUser.QuadPart - sysIdle.QuadPart) * 100.0 / (sysKernel.QuadPart + sysUser.QuadPart);
-}
-
-
-//更新cpu内存使用率
-void Widget::updateStatus()
-{
-    MEMORYSTATUSEX memInfo;
-    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-    GlobalMemoryStatusEx(&memInfo);
-    DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
-    DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
-    double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem;// 计算内存使用率
-    double cpuLoad = CalculateCPULoad();// 计算cpu使用率
-    ui->cpu_bar->setValue(cpuLoad);
-    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
-    if(is_first_getmem){first_memp = physMemUsedPercent;ui->mem_bar->setValue(first_memp);is_first_getmem=false;}
-    ui->mem_bar->setSecondValue(physMemUsedPercent - first_memp);
-    //ui->mem_bar->setValue(physMemUsedPercent-(model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
-    //ui->mem_bar->setSecondValue((model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
-    
-}
-
 //更新gpu内存使用率
 void Widget::updateGpuStatus()
 {
     emit gpu_reflash();
+}
+
+//更新cpu内存使用率
+void Widget::updateCpuStatus()
+{
+    emit cpu_reflash();
 }
 
 //拯救中文

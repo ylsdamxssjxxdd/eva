@@ -144,7 +144,7 @@ ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui
-utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
+utils/cpuchecker.h utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
 llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
 

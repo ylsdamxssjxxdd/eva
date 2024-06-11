@@ -74,9 +74,9 @@ Widget::Widget(QWidget *parent)
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
     nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
-    QTimer *timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &Widget::updateStatus);
-    timer->start(500); // 多少ms更新一次
+    QTimer *cpucheck_timer = new QTimer(this);
+    connect(cpucheck_timer, &QTimer::timeout, this, &Widget::updateCpuStatus);
+    cpucheck_timer->start(500); // 多少ms更新一次
     //-------------获取gpu内存信息-------------
     QTimer *gpucheck_timer = new QTimer(this);
     connect(gpucheck_timer, &QTimer::timeout, this, &Widget::updateGpuStatus);
@@ -1007,6 +1007,23 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     ui->vram_bar->setSecondValue(vramp - first_vramp);
 }
 #endif
+
+//传递cpu信息
+void Widget::recv_cpu_status(double cpuload, double memload)
+{
+    ui->cpu_bar->setValue(cpuload);
+    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
+    if(is_first_getmem)
+    {
+        first_memp = memload;
+        ui->mem_bar->setValue(first_memp);
+        is_first_getmem = false;
+    }
+    ui->mem_bar->setSecondValue(memload - first_memp);
+    //ui->mem_bar->setValue(physMemUsedPercent-(model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
+    //ui->mem_bar->setSecondValue((model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
+    
+}
 
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Widget::eventFilter(QObject *obj, QEvent *event)
