@@ -54,7 +54,7 @@ xBot::xBot()
     gpt_params_.sparams.penalty_repeat    = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq      = 0.00; //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present   = 0.00; //同类惩罚 0.0 = disabled openai
-    //gpt_params_.flash_attn = true; // 暂时有问题
+    gpt_params_.flash_attn = true; // 现在默认开启flash_attn
 
     qDebug()<<"bot init over";
 }
@@ -665,12 +665,9 @@ void xBot::load(std::string &modelpath)
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
 #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
-    //使用mmp后gpu负载无法分担内存占用，这里折中方案，如果不用gpu则开启mmp，否则禁用
-    if(gpt_params_.n_gpu_layers == 0)
-    {
-        gpt_params_.use_mmap = true;
-    }
-    else{gpt_params_.use_mmap = false;}
+    //使用mmp后gpu负载无法分担内存占用
+    gpt_params_.use_mmap = true;
+
 #endif
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
