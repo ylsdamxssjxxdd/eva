@@ -571,10 +571,9 @@ void convert_tensor(void* src,
         if (dst_type == GGML_TYPE_F16) {
             ggml_fp32_to_fp16_row((float*)src, (ggml_fp16_t*)dst, n);
         } else {
-            int64_t hist[16];
             std::vector<float> imatrix(n_per_row, 1.0f);  // dummy importance matrix
             const float* im = imatrix.data();
-            ggml_quantize_chunk(dst_type, (float*)src, dst, 0, nrows, n_per_row, hist, im);
+            ggml_quantize_chunk(dst_type, (float*)src, dst, 0, nrows, n_per_row, im);
         }
     } else if (dst_type == GGML_TYPE_F32) {
         if (src_type == GGML_TYPE_F16) {
@@ -602,10 +601,9 @@ void convert_tensor(void* src,
         if (dst_type == GGML_TYPE_F16) {
             ggml_fp32_to_fp16_row((float*)src_data_f32, (ggml_fp16_t*)dst, n);
         } else {
-            int64_t hist[16];
             std::vector<float> imatrix(n_per_row, 1.0f);  // dummy importance matrix
             const float* im = imatrix.data();
-            ggml_quantize_chunk(dst_type, (float*)src_data_f32, dst, 0, nrows, n_per_row, hist, im);
+            ggml_quantize_chunk(dst_type, (float*)src_data_f32, dst, 0, nrows, n_per_row, im);
         }
     }
 }
@@ -888,10 +886,9 @@ bool ModelLoader::init_from_safetensors_file(const std::string& file_path, const
             }
         }
 
-        // ggml/src/ggml.c:2745
-        if (n_dims < 1 || n_dims > GGML_MAX_DIMS) {
-            LOG_ERROR("skip tensor '%s' with n_dims %d", name.c_str(), n_dims);
-            continue;
+        // ggml_n_dims returns 1 for scalars
+        if (n_dims == 0) {
+            n_dims = 1;
         }
 
         TensorStorage tensor_storage(prefix + name, type, ne, n_dims, file_index, ST_HEADER_SIZE_LEN + header_size_ + begin);

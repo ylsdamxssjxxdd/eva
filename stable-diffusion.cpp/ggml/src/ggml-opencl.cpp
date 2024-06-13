@@ -1835,7 +1835,10 @@ static void ggml_cl_mul_mat_q_f32(const ggml_tensor * src0, const ggml_tensor * 
                     CL_CHECK(clEnqueueNDRangeKernel(queue, *to_fp32_cl, 1, &offset, &global, local > 0 ? &local : NULL, events.size(), !events.empty() ? events.data() : NULL, NULL));
                 }
 
-                for (int64_t i12 = i02 * r2, e12 = i12 + r2; i12 < e12; i12++) {
+                int64_t i12 = i02 * r2;
+                int64_t e12 = i12 + r2;
+                events.reserve(e12 - i12);
+                for (; i12 < e12; i12++) {
                     if (mul_mat_vec) { // specialized dequantize_mul_mat_vec kernel
                         // copy src1 to device
                         events.emplace_back();
@@ -2119,6 +2122,7 @@ static size_t ggml_backend_opencl_buffer_type_get_alignment(ggml_backend_buffer_
     if (alignment == (cl_uint)-1) {
         ggml_cl_init();
         clGetDeviceInfo(device, CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(cl_uint), &alignment, NULL);
+        alignment /= 8; // bits to bytes
     }
     return alignment;
 
@@ -2234,6 +2238,11 @@ static ggml_backend_buffer_type_t ggml_backend_opencl_get_default_buffer_type(gg
 static ggml_status ggml_backend_opencl_graph_compute(ggml_backend_t backend, ggml_cgraph * graph) {
     for (int i = 0; i < graph->n_nodes; ++i) {
         ggml_tensor * node = graph->nodes[i];
+
+        if (ggml_is_empty(node)) {
+            continue;
+        }
+
         switch (node->op) {
             case GGML_OP_MUL_MAT:
                 ggml_cl_mul_mat(node->src[0], node->src[1], node, nullptr, 0);

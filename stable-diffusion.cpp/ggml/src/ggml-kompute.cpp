@@ -1427,8 +1427,13 @@ static void ggml_vk_graph_compute(struct ggml_kompute_context * ctx, struct ggml
         for (int i = node_start; i < node_end; ++i) {
             struct ggml_tensor * src0 = gf->nodes[i]->src[0];
             struct ggml_tensor * src1 = gf->nodes[i]->src[1];
+            struct ggml_tensor * src2 = gf->nodes[i]->src[2]; GGML_UNUSED(src2);
             struct ggml_tensor * dst = gf->nodes[i];
             GGML_ASSERT(dst->data != nullptr);
+
+            if (ggml_is_empty(dst)) {
+                continue;
+            }
 
             switch (dst->op) {
                 case GGML_OP_NONE:
@@ -1554,7 +1559,19 @@ static void ggml_vk_graph_compute(struct ggml_kompute_context * ctx, struct ggml
                 case GGML_OP_SOFT_MAX:
                     {
                         float scale;
-                        memcpy(&scale, dst->op_params, sizeof(float));
+                        float max_bias;
+
+                        memcpy(&scale,    (float *)dst->op_params + 0, sizeof(float));
+                        memcpy(&max_bias, (float *)dst->op_params + 1, sizeof(float));
+
+#pragma message("TODO: add ggml_vk_soft_max() F16 src1 support")
+#pragma message("ref:  https://github.com/ggerganov/llama.cpp/pull/5021")
+                        GGML_ASSERT(!src1 || src1t == GGML_TYPE_F32);
+
+#pragma message("TODO: add ALiBi support")
+#pragma message("ref:  https://github.com/ggerganov/llama.cpp/pull/7192")
+                        GGML_ASSERT(max_bias == 0.0f);
+
                         ggml_vk_soft_max(seq, id_src0, id_src1, id_dst, off_src0, off_src1, off_dst, ne00, ne01, ne02, ne03, scale);
                     } break;
                 case GGML_OP_DIAG_MASK_INF:
@@ -1660,6 +1677,10 @@ static void ggml_vk_graph_compute(struct ggml_kompute_context * ctx, struct ggml
                     } break;
                 case GGML_OP_ROPE:
                     {
+#pragma message("TODO: implement phi3 frequency factors support")
+#pragma message("      https://github.com/ggerganov/llama.cpp/pull/7225")
+                        GGML_ASSERT(dst->src[2] == nullptr && "phi3 frequency factors not implemented yet");
+
                         GGML_ASSERT(ne10 == ne02);
                         GGML_ASSERT(src0t == dstt);
                         // const int n_past = ((int32_t *) dst->op_params)[0];
@@ -1951,6 +1972,12 @@ static struct ggml_backend_i kompute_backend_i = {
     /* .graph_plan_compute      = */ NULL,
     /* .graph_compute           = */ ggml_backend_kompute_graph_compute,
     /* .supports_op             = */ ggml_backend_kompute_supports_op,
+    /* .offload_op              = */ NULL,
+    /* .event_new               = */ NULL,
+    /* .event_free              = */ NULL,
+    /* .event_record            = */ NULL,
+    /* .event_wait              = */ NULL,
+    /* .event_synchronize       = */ NULL,
 };
 
 static ggml_guid_t ggml_backend_kompute_guid() {

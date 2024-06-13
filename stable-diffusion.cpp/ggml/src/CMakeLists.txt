@@ -206,17 +206,24 @@ if (GGML_CLBLAST)
 endif()
 
 if (GGML_CUBLAS)
+    message(WARNING "GGML_CUBLAS is deprecated and will be removed in the future.\nUse GGML_CUDA instead")
+    set(GGML_CUDA ON)
+endif()
+
+if (GGML_CUDA)
     cmake_minimum_required(VERSION 3.17)
 
     find_package(CUDAToolkit)
     if (CUDAToolkit_FOUND)
-        message(STATUS "cuBLAS found")
+        message(STATUS "CUDA found")
 
         enable_language(CUDA)
 
-        set(GGML_CUDA_SOURCES ggml-cuda.cu ggml-cuda.h)
+        file(GLOB   GGML_CUDA_SOURCES "ggml-cuda/*.cu")
+        list(APPEND GGML_CUDA_SOURCES  ggml-cuda.h)
+        list(APPEND GGML_CUDA_SOURCES  ggml-cuda.cu)
 
-        set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_USE_CUBLAS)
+        set(GGML_EXTRA_FLAGS ${GGML_EXTRA_FLAGS} -DGGML_USE_CUDA)
 
         if (GGML_CUDA_FORCE_DMMV)
             add_compile_definitions(GGML_CUDA_FORCE_DMMV)
@@ -245,53 +252,97 @@ if (GGML_CUBLAS)
             set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -lineinfo")
         endif()
     else()
-        message(WARNING "cuBLAS not found")
+        message(WARNING "CUDA not found")
     endif()
 endif()
 
+# TODO: do not build separate ggml-rocm target (see CUDA build above, or llama.cpp for reference)
 if (GGML_HIPBLAS)
-    list(APPEND CMAKE_PREFIX_PATH /opt/rocm)
-
-    if (NOT ${CMAKE_C_COMPILER_ID} MATCHES "Clang")
-        message(WARNING "Only LLVM is supported for HIP, hint: CC=/opt/rocm/llvm/bin/clang")
-    endif()
-    if (NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-        message(WARNING "Only LLVM is supported for HIP, hint: CXX=/opt/rocm/llvm/bin/clang++")
-    endif()
-
-    find_package(hip)
-    find_package(hipblas)
-    find_package(rocblas)
-
-    if (${hipblas_FOUND} AND ${hip_FOUND})
-        message(STATUS "HIP and hipBLAS found")
-
-        add_compile_definitions(GGML_USE_HIPBLAS GGML_USE_CUBLAS)
-
-        add_library(ggml-rocm OBJECT ggml-cuda.cu ggml-cuda.h)
-        if (BUILD_SHARED_LIBS)
-            set_target_properties(ggml-rocm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if (NOT EXISTS $ENV{ROCM_PATH})
+        if (NOT EXISTS /opt/rocm)
+            set(ROCM_PATH /usr)
+        else()
+            set(ROCM_PATH /opt/rocm)
         endif()
-        if (GGML_CUDA_FORCE_DMMV)
-            target_compile_definitions(ggml-rocm PRIVATE GGML_CUDA_FORCE_DMMV)
-        endif()
-        if (GGML_CUDA_FORCE_MMQ)
-            target_compile_definitions(ggml-rocm PRIVATE GGML_CUDA_FORCE_MMQ)
-        endif()
-        target_compile_definitions(ggml-rocm PRIVATE GGML_CUDA_DMMV_X=${GGML_CUDA_DMMV_X})
-        target_compile_definitions(ggml-rocm PRIVATE GGML_CUDA_MMV_Y=${GGML_CUDA_MMV_Y})
-        target_compile_definitions(ggml-rocm PRIVATE K_QUANTS_PER_ITERATION=${GGML_CUDA_KQUANTS_ITER})
-        set_source_files_properties(ggml-cuda.cu PROPERTIES LANGUAGE CXX)
-        target_link_libraries(ggml-rocm PRIVATE hip::device PUBLIC hip::host roc::rocblas roc::hipblas)
-        target_include_directories(ggml-rocm PRIVATE . ../include ../include/ggml)
-
-        if (GGML_STATIC)
-            message(FATAL_ERROR "Static linking not supported for HIP/ROCm")
-        endif()
-        set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} ggml-rocm)
     else()
-        message(WARNING "hipBLAS or HIP not found. Try setting CMAKE_PREFIX_PATH=/opt/rocm")
+        set(ROCM_PATH $ENV{ROCM_PATH})
     endif()
+    list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH})
+    list(APPEND CMAKE_PREFIX_PATH "${ROCM_PATH}/lib64/cmake")
+
+    # CMake on Windows doesn't support the HIP language yet
+    if(WIN32)
+        set(CXX_IS_HIPCC TRUE)
+    else()
+        string(REGEX MATCH "hipcc(\.bat)?$" CXX_IS_HIPCC "${CMAKE_CXX_COMPILER}")
+    endif()
+
+    if (CXX_IS_HIPCC)
+        if(LINUX)
+            if (NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+                message(WARNING "Only LLVM is supported for HIP, hint: CXX=/opt/rocm/llvm/bin/clang++")
+            endif()
+
+            message(WARNING "Setting hipcc as the C++ compiler is legacy behavior."
+                    " Prefer setting the HIP compiler directly. See README for details.")
+        endif()
+    else()
+        # Forward AMDGPU_TARGETS to CMAKE_HIP_ARCHITECTURES.
+        if(AMDGPU_TARGETS AND NOT CMAKE_HIP_ARCHITECTURES)
+            set(CMAKE_HIP_ARCHITECTURES ${AMDGPU_TARGETS})
+        endif()
+        cmake_minimum_required(VERSION 3.21)
+        enable_language(HIP)
+    endif()
+
+    find_package(hip     REQUIRED)
+    find_package(hipblas REQUIRED)
+    find_package(rocblas REQUIRED)
+
+    message(STATUS "HIP and hipBLAS found")
+
+    add_compile_definitions(GGML_USE_HIPBLAS GGML_USE_CUDA)
+
+    set(GGML_HEADERS_ROCM ggml-cuda.h)
+
+    file(GLOB GGML_SOURCES_ROCM "ggml-cuda/*.cu")
+    list(APPEND GGML_SOURCES_ROCM "ggml-cuda.cu")
+    list(APPEND GGML_SOURCES_ROCM ${SRCS})
+
+    add_compile_definitions(GGML_USE_HIPBLAS GGML_USE_CUDA)
+
+    if (GGML_CUDA_FORCE_DMMV)
+        add_compile_definitions(GGML_CUDA_FORCE_DMMV)
+    endif()
+
+    if (GGML_CUDA_FORCE_MMQ)
+        add_compile_definitions(GGML_CUDA_FORCE_MMQ)
+    endif()
+
+    add_compile_definitions(GGML_CUDA_DMMV_X=${GGML_CUDA_DMMV_X})
+    add_compile_definitions(GGML_CUDA_MMV_Y=${GGML_CUDA_MMV_Y})
+    add_compile_definitions(K_QUANTS_PER_ITERATION=${GGML_CUDA_KQUANTS_ITER})
+
+    add_library(ggml-rocm OBJECT ${GGML_SOURCES_ROCM} ${GGML_HEADERS_ROCM})
+
+    if (CXX_IS_HIPCC)
+        set_source_files_properties(${GGML_SOURCES_ROCM} PROPERTIES LANGUAGE CXX)
+        target_link_libraries(ggml-rocm PRIVATE hip::device)
+    else()
+        set_source_files_properties(${GGML_SOURCES_ROCM} PROPERTIES LANGUAGE HIP)
+    endif()
+
+    target_link_libraries(ggml-rocm PRIVATE hip::device PUBLIC hip::host roc::rocblas roc::hipblas)
+    target_include_directories(ggml-rocm PRIVATE . ../include ../include/ggml)
+
+    if (BUILD_SHARED_LIBS)
+        set_target_properties(ggml-rocm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    endif()
+
+    if (GGML_STATIC)
+        message(FATAL_ERROR "Static linking not supported for HIP/ROCm")
+    endif()
+    set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} ggml-rocm)
 endif()
 
 if (GGML_METAL)
@@ -309,8 +360,81 @@ if (GGML_METAL)
     # get full path to the file
     #add_compile_definitions(GGML_METAL_DIR_KERNELS="${CMAKE_CURRENT_SOURCE_DIR}/")
 
-    # copy ggml-metal.metal to bin directory
+    # copy ggml-common.h and ggml-metal.metal to bin directory
+    configure_file(ggml-common.h    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-common.h    COPYONLY)
     configure_file(ggml-metal.metal ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.metal COPYONLY)
+
+    if (GGML_METAL_EMBED_LIBRARY)
+        enable_language(ASM)
+        add_compile_definitions(GGML_METAL_EMBED_LIBRARY)
+
+        set(METALLIB_COMMON "${CMAKE_CURRENT_SOURCE_DIR}/ggml-common.h")
+        set(METALLIB_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ggml-metal.metal")
+
+        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/autogenerated")
+
+        # merge ggml-common.h and ggml-metal.metal into a single file
+        set(METALLIB_EMBED_ASM    "${CMAKE_BINARY_DIR}/autogenerated/ggml-metal-embed.s")
+        set(METALLIB_SOURCE_EMBED "${CMAKE_BINARY_DIR}/autogenerated/ggml-metal-embed.metal")
+
+        add_custom_command(
+            OUTPUT ${METALLIB_EMBED_ASM}
+            COMMAND echo "Embedding Metal library"
+            COMMAND sed -e '/\#include \"ggml-common.h\"/r ${METALLIB_COMMON}' -e '/\#include \"ggml-common.h\"/d' < ${METALLIB_SOURCE} > ${METALLIB_SOURCE_EMBED}
+            COMMAND echo ".section __DATA,__ggml_metallib"          >  ${METALLIB_EMBED_ASM}
+            COMMAND echo ".globl _ggml_metallib_start"              >> ${METALLIB_EMBED_ASM}
+            COMMAND echo "_ggml_metallib_start:"                    >> ${METALLIB_EMBED_ASM}
+            COMMAND echo ".incbin \\\"${METALLIB_SOURCE_EMBED}\\\"" >> ${METALLIB_EMBED_ASM}
+            COMMAND echo ".globl _ggml_metallib_end"                >> ${METALLIB_EMBED_ASM}
+            COMMAND echo "_ggml_metallib_end:"                      >> ${METALLIB_EMBED_ASM}
+            DEPENDS ggml-metal.metal ggml-common.h
+            COMMENT "Generate assembly for embedded Metal library"
+        )
+
+        set(GGML_METAL_SOURCES ${GGML_METAL_SOURCES} ${METALLIB_EMBED_ASM})
+    else()
+        if (GGML_METAL_SHADER_DEBUG)
+            # custom command to do the following:
+            #   xcrun -sdk macosx metal    -fno-fast-math -c ggml-metal.metal -o ggml-metal.air
+            #   xcrun -sdk macosx metallib                   ggml-metal.air   -o default.metallib
+            #
+            # note: this is the only way I found to disable fast-math in Metal. it's ugly, but at least it works
+            #       disabling fast math is needed in order to pass tests/test-backend-ops
+            # note: adding -fno-inline fixes the tests when using MTL_SHADER_VALIDATION=1
+            # note: unfortunately, we have to call it default.metallib instead of ggml.metallib
+            #       ref: https://github.com/ggerganov/whisper.cpp/issues/1720
+            set(XC_FLAGS -fno-fast-math -fno-inline -g)
+        else()
+            set(XC_FLAGS -O3)
+        endif()
+
+        # Append macOS metal versioning flags
+        if (GGML_METAL_MACOSX_VERSION_MIN)
+            message(STATUS "Adding -mmacosx-version-min=${GGML_METAL_MACOSX_VERSION_MIN} flag to metal compilation")
+            list(APPEND XC_FLAGS -mmacosx-version-min=${GGML_METAL_MACOSX_VERSION_MIN})
+        endif()
+        if (GGML_METAL_STD)
+            message(STATUS "Adding -std=${GGML_METAL_STD} flag to metal compilation")
+            list(APPEND XC_FLAGS -std=${GGML_METAL_STD})
+        endif()
+
+        add_custom_command(
+            OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/default.metallib
+            COMMAND xcrun -sdk macosx metal    ${XC_FLAGS} -c ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.metal -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.air
+            COMMAND xcrun -sdk macosx metallib                ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.air   -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/default.metallib
+            COMMAND rm -f ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.air
+            COMMAND rm -f ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-common.h
+            COMMAND rm -f ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ggml-metal.metal
+            DEPENDS ggml-metal.metal ggml-common.h
+            COMMENT "Compiling Metal kernels"
+            )
+
+        add_custom_target(
+            ggml-metal ALL
+            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/default.metallib
+            )
+    endif() # GGML_METAL_EMBED_LIBRARY
+
 
     set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS}
         ${FOUNDATION_LIBRARY}
@@ -318,6 +442,38 @@ if (GGML_METAL)
         ${METALKIT_FRAMEWORK}
         ${METALPERFORMANCE_FRAMEWORK}
         )
+endif()
+
+if (GGML_RPC)
+    add_compile_definitions(GGML_USE_RPC)
+
+    if (WIN32)
+        set(GGML_EXTRA_LIBS ${GGML_EXTRA_LIBS} ws2_32)
+    endif()
+
+    set(GGML_RPC_SOURCES ggml-rpc.cpp)
+endif()
+
+if (GGML_VULKAN)
+    find_package(Vulkan)
+    if (Vulkan_FOUND)
+        message(STATUS "Vulkan found")
+
+        set(GGML_VULKAN_SOURCES ggml-vulkan.cpp ggml-vulkan.h)
+
+        add_library(ggml-vulkan OBJECT ggml-vulkan.cpp ggml-vulkan.h)
+        if (BUILD_SHARED_LIBS)
+            set_target_properties(ggml-vulkan PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        endif()
+        target_link_libraries(ggml-vulkan PRIVATE Vulkan::Vulkan)
+        target_include_directories(ggml-vulkan PRIVATE . ../include ../include/ggml)
+
+        add_compile_definitions(GGML_USE_VULKAN)
+
+        set(GGML_EXTRA_LIBS ${GGMl_EXTRA_LIBS} ggml-vulkan)
+    else()
+        message(WARNING "Vulkan not found")
+    endif()
 endif()
 
 if (GGML_PERF)
@@ -337,6 +493,7 @@ add_library(${TARGET}
     ${GGML_CUDA_SOURCES}
     ${GGML_OPENCL_SOURCES}
     ${GGML_METAL_SOURCES}
+    ${GGML_RPC_SOURCES}
     )
 
 target_include_directories(${TARGET} PUBLIC
