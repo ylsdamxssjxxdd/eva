@@ -200,7 +200,7 @@ public:
     QSlider *repeat_slider;
 
     QGroupBox *decode_box;
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
     QLabel *ngl_label;
     QSlider *ngl_slider;
 #endif

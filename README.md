@@ -66,11 +66,7 @@
 - 64bit版本(option选项全部关闭)
     - 我的工具链为mingw81_64+qt5.15.10(静态库)
 - 32bit版本(BODY_32BIT选项打开，其它关闭)
-    - 我的工具链为mingw81_32+qt5.15.10(静态库)
-- opencl版本(LLAMA_CLBLAST选项打开，其它关闭)
-    - 我的工具链为mingw81_64+clblast(静态库)+qt5.15.10(静态库) 
-    - 下载opencl-sdk，将其include目录添加到环境变量  https://github.com/KhronosGroup/OpenCL-SDK
-    - 下载clblast，build_shared_lib选项关闭，静态编译并添加到环境变量 https://github.com/CNugteren/CLBlast   
+    - 我的工具链为mingw81_32+qt5.15.10(静态库) 
 - cuda版本(LLAMA_CUDA选项打开，其它关闭)
     - 我的工具链为msvc2022+qt5.15.10+cuda12
     - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive 这也是cuda版本的机体运行时必须的

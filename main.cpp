@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
             w.nthread_slider->setValue(settings.value("nthread", "").toInt());
             w.nctx_slider->setValue(settings.value("nctx", "").toInt());
             w.batch_slider->setValue(settings.value("batch", "").toInt());
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
             w.ngl_slider->setValue(settings.value("ngl", "").toInt());
 #endif
             QFile checkFile(settings.value("lorapath", "").toString());

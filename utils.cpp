@@ -517,7 +517,7 @@ void Widget::apply_language(int language_flag_)
     npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));npredict_label->setMinimumWidth(100);
     npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
     decode_box->setTitle(jtr("decode set"));//解码设置区域
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CLBLAST) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
     ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
     ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));ngl_label->setMinimumWidth(100);
     ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));

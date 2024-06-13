@@ -36,7 +36,6 @@ set(version b3140) # 打包版本
 ###################################### 编译选项 ######################################
 option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
 option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
-option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(LLAMA_OPENMP                 "llama: use OpenMP"                          ON) # 这个开启的话会依赖libomp.dll
@@ -53,8 +52,6 @@ elseif(LLAMA_VULKAN)
     set(GGML_HEADERS_VULKAN ggml-vulkan.h)
     set(GGML_SOURCES_VULKAN ggml-vulkan.cpp)
     add_compile_definitions(GGML_USE_VULKAN)
-elseif(LLAMA_CLBLAST)
-    add_compile_definitions(BODY_USE_CLBLAST) # 编译clblast的标志
 else() 
     # 什么都没有默认编译64bit版本
 endif()
