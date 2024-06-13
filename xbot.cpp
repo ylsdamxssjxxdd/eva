@@ -664,7 +664,7 @@ void xBot::load(std::string &modelpath)
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     //使用mmp后gpu负载无法分担内存占用
     gpt_params_.use_mmap = true;
 
@@ -1049,7 +1049,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     bool reload_flag = false;//重载标签
     //qDebug()<<"settings.ngl"<<settings.ngl<<"gpt_params_.n_gpu_layers"<<gpt_params_.n_gpu_layers<<reload_flag<<maxngl;
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
         gpt_params_.n_gpu_layers = 999;
@@ -1243,7 +1243,7 @@ void xBot::recv_llama_log(QString log_)
     //截获gpu最大负载层数
     if(log_.contains("llm_load_print_meta: n_layer"))
     {
-        #if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+        #if defined(BODY_USE_GPU)
             maxngl = log_.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit bot2ui_maxngl(maxngl);
         #endif

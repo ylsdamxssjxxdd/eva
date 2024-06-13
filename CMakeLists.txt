@@ -1,30 +1,5 @@
-###################################### 手动修改 ######################################
-# llama.cpp-b3140
-# 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
-# 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
-# ----------------------------------------------------------------------------------
-# stable-diffusion.cpp master-9c51d87
-# stable-diffusion.cpp/cmakelists.txt中添加
-# mingw设置编译选项
-# if(MINGW)
-    # set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
-    # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
-    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
-    # set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
-# endif()
-# 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
-# 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
-# ----------------------------------------------------------------------------------
-# whisper.cpp 1.6.2
-# 只需要部分文件即可
-#----------------------------------------------------------------------------------
-# camke
-# 注意cmake构建类型应该设置为 Release
-# 更换编译选项记得清空sd的build目录
-# 全大写的变量是cmake内置的，前面小写的变量是自定义的
-# mingw编译器用静态链接，msvc编译器使用winrar，最终都将得到一个单独的exe在build/Release目录下
-# mingw编译时，对应的mingw/bin目录需要在环境变量中用于sd.exe编译
-# ----------------------------------------------------------------------------------
+################################# 先阅读README_cmake.md ##############################
+
 
 ###################################### 基础配置 ######################################
 cmake_minimum_required(VERSION 3.12) # 最低cmake版本
@@ -35,7 +10,7 @@ set(version b3140) # 打包版本
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
-option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
+option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(LLAMA_OPENMP                 "llama: use OpenMP"                          ON) # 这个开启的话会依赖libomp.dll
@@ -45,10 +20,12 @@ if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
 elseif(LLAMA_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
+    add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
     # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
+    add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     set(GGML_HEADERS_VULKAN ggml-vulkan.h)
     set(GGML_SOURCES_VULKAN ggml-vulkan.cpp)
     add_compile_definitions(GGML_USE_VULKAN)

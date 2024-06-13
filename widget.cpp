@@ -638,7 +638,7 @@ void Widget::recv_setreset()
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
     reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
     
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
 #endif
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
@@ -796,7 +796,7 @@ void Widget::on_set_clicked()
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     ngl_slider->setValue(ui_SETTINGS.ngl);
 #endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
@@ -912,7 +912,7 @@ void Widget::serverControl()
     arguments << "--port" << ui_port;//服务端口
     arguments << "-c" << QString::number(ui_SETTINGS.nctx);//使用最近一次应用的nctx作为服务的上下文长度
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);//使用最近一次应用的ngl作为服务的gpu负载
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     arguments << "-fa"; // 开启flash attention加速
 #endif
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);//使用线程
@@ -982,7 +982,7 @@ void Widget::recv_tokens(int tokens)
 void Widget::recv_maxngl(int maxngl_)
 {
     ui_maxngl = maxngl_;//gpu负载层数是n_layer+1
-#if defined(BODY_USE_VULKAN) || defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     ngl_slider->setMaximum(ui_maxngl);
 #endif
     if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值

@@ -2688,6 +2688,10 @@ inline bool mmap::open(const char *path) {
   close();
 
 #if defined(_WIN32)
+#if defined(__MINGW32__)
+  close();
+  return false;
+#else
   std::wstring wpath;
   for (size_t i = 0; i < strlen(path); i++) {
     wpath += path[i];
@@ -2702,8 +2706,7 @@ inline bool mmap::open(const char *path) {
   if (!::GetFileSizeEx(hFile_, &size)) { return false; }
   size_ = static_cast<size_t>(size.QuadPart);
 
-  hMapping_ =
-      ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
+  hMapping_ = ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
 
   if (hMapping_ == NULL) {
     close();
@@ -2711,6 +2714,8 @@ inline bool mmap::open(const char *path) {
   }
 
   addr_ = ::MapViewOfFileFromApp(hMapping_, FILE_MAP_READ, 0, 0);
+#endif
+
 #else
   fd_ = ::open(path, O_RDONLY);
   if (fd_ == -1) { return false; }
@@ -2723,13 +2728,13 @@ inline bool mmap::open(const char *path) {
   size_ = static_cast<size_t>(sb.st_size);
 
   addr_ = ::mmap(NULL, size_, PROT_READ, MAP_PRIVATE, fd_, 0);
-#endif
+
 
   if (addr_ == nullptr) {
     close();
     return false;
   }
-
+#endif
   return true;
 }
 
