@@ -64,15 +64,15 @@
 ## 源码编译
 1. 配置环境
 - 64bit版本(option选项全部关闭)
-    - 我的工具链为mingw81_64+qt5.15.10(静态库)
+    - 我的工具链为mingw81_64+qt5.15.14(静态库)
 - 32bit版本(BODY_32BIT选项打开，其它关闭)
-    - 我的工具链为mingw81_32+qt5.15.10(静态库) 
+    - 我的工具链为mingw81_32+qt5.15.14(静态库) 
 - cuda版本(LLAMA_CUDA选项打开，其它关闭)
-    - 我的工具链为msvc2022+qt5.15.10+cuda12
+    - 我的工具链为msvc2022+qt5.15.14+cuda12
     - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive 这也是cuda版本的机体运行时必须的
     - 安装cudnn https://developer.nvidia.com/cudnn
 - Vulkan版本(LLAMA_VULKAN选项打开，其它关闭)
-    - 我的工具链为mingw81_64+VulkanSDK+qt5.15.10(静态库)
+    - 我的工具链为mingw81_64+VulkanSDK+qt5.15.14(静态库)
     - 下载VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. 克隆源代码
 ```bash

@@ -912,7 +912,7 @@ void Widget::serverControl()
     arguments << "--port" << ui_port;//服务端口
     arguments << "-c" << QString::number(ui_SETTINGS.nctx);//使用最近一次应用的nctx作为服务的上下文长度
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);//使用最近一次应用的ngl作为服务的gpu负载
-#if defined(BODY_USE_GPU)
+#if defined(BODY_USE_CUDA)
     arguments << "-fa"; // 开启flash attention加速
 #endif
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);//使用线程
@@ -937,7 +937,7 @@ void Widget::serverControl()
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();
-        if(ui_output.contains("model loaded"))
+        if(ui_output.contains(SERVER_START))
         {
             ui_output += "\n"+jtr("browser at") +QString(" http://")+ipAddress+":"+ui_port;
             ui_output += "\n"+jtr("chat")+jtr("endpoint")+ " " + "/v1/chat/completions";

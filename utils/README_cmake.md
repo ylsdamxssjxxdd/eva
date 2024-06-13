@@ -5,6 +5,7 @@
 - 全大写的变量是cmake内置的，前面小写的变量是自定义的
 - mingw编译器用静态链接，msvc编译器使用winra打包，最终都将得到一个单独的exe在build/Release目录下
 - mingw编译时，mingw对应的bin目录需要在环境变量中用于sd.exe编译
+
 ## 如果要更换第三方库的话尝试按如下规则修改
 ### llama.cpp 当前版本 b3140
 - 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除

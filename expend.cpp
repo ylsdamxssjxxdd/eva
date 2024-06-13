@@ -694,7 +694,7 @@ void Expend::embedding_server_start()
         QString log_output;
         //qDebug()<<server_output;
         //启动成功的标志
-        if(server_output.contains("warming up the model with an empty run"))
+        if(server_output.contains(SERVER_START))
         {
             
             embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
@@ -718,9 +718,9 @@ void Expend::embedding_server_start()
         QString server_output = server_process->readAllStandardError();
         //qDebug()<<server_output;
         if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
-        if(server_output.contains("llm_load_print_meta: n_embd           = "))
+        if(server_output.contains(LLM_EMBD))
         {
-            embedding_server_n_embd = server_output.split("llm_load_print_meta: n_embd           = ").at(1).split("\r\n").at(0).toInt();
+            embedding_server_n_embd = server_output.split(LLM_EMBD).at(1).split("\r\n").at(0).toInt();
         }//截获n_embd嵌入维度
     });
 }
@@ -924,7 +924,7 @@ void Expend::on_embedding_test_pushButton_clicked()
             }
         }
         vector_str += "]";
-        ui->embedding_test_log->appendPlainText(jtr("The query text segment has been embedded") + "! " + jtr("dimension") + ": "+QString::number(user_embedding_vector.value.size()) + " " + "词向量: "+ vector_str);
+        ui->embedding_test_log->appendPlainText(jtr("The query text segment has been embedded") + "! " + jtr("dimension") + ": "+QString::number(user_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -1132,8 +1132,9 @@ void Expend::embedding_processing()
                 }
             }
             vector_str += "]";
-            ui->embedding_test_log->appendPlainText(QString::number(Embedding_DB.at(o).index+1) + " " + jtr("Number text segment embedding over") +"! "+ jtr("dimension") + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + "词向量: "+ vector_str);
-            
+            QString message = QString::number(Embedding_DB.at(o).index+1) + " " + jtr("Number text segment embedding over") +"! "+ jtr("dimension") + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + jtr("word vector") + ": " + vector_str;
+            ui->embedding_test_log->appendPlainText(message);
+            emit expend2ui_state("expend:" + message, USUAL_);
         });
         // 完成
         QObject::connect(reply, &QNetworkReply::finished, [&]() 

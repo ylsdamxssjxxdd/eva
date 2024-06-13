@@ -63,15 +63,15 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 ## build
 1. Configure the environment
 - 64bit version (all option options are turned off)
-    - My toolchain is mingw81_64+qt5.15.10 
+    - My toolchain is mingw81_64+qt5.15.14 
 - 32bit version (BODY_32BIT option turned on, others turned off)
-    - My toolchain is mingw81_12+qt5.15.10 
+    - My toolchain is mingw81_12+qt5.15.14 
 - CUDA version (LLAMA_CUDA option turned on, others turned off)
-    - My toolchain is msvc2022+qt5.15.10+cuda12
+    - My toolchain is msvc2022+qt5.15.14+cuda12
     - Install cuda booklit https://developer.nvidia.com/cuda-toolkit-archive This is also necessary for the runtime of the cuda version of the machine body
     - Install cudnn https://developer.nvidia.com/cudnn
 - Vulkan version (LLAMA_VULKAN option turned on, others turned off)
-    - My toolchain is mingw81_64+VulkanSDK+qt5.15.10
+    - My toolchain is mingw81_64+VulkanSDK+qt5.15.14
     - Download VulkanSDK https://vulkan.lunarg.com/sdk/home
 
 2. Clone source code

@@ -11,10 +11,12 @@
 #define DEFAULT_PROMPT "You are a helpful assistant."
 #define DEFAULT_PREFIX "User"
 #define DEFAULT_SUFFIX "Assistant"
+
 //采样
 #define DEFAULT_NPREDICT 2048
 #define DEFAULT_TEMP 0.5
 #define DEFAULT_REPEAT 1.2
+
 //推理
 #ifdef BODY_USE_32BIT
     #define DEFAULT_NCTX 256
@@ -27,17 +29,18 @@
 #define DEFAULT_NTHREAD 1
 #define DEFAULT_NGL 0
 
-//模型路径
-#define DEFAULT_MODELPATH "D:/soul"
-
-//嵌入
-#define DEFAULT_EMBEDDING_PORT "7758"
+#define DEFAULT_MODELPATH "D:/soul" // 模型所在文件夹
+#define DEFAULT_EMBEDDING_PORT "7758" // 嵌入端口
 
 //默认sd反提示
 #define DEFAULT_ANTIPROMPT "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure"
 
 //数独题目
 #define DEFAULT_SHUDU "\n+---+---+---+---+---+---+\n| 4 |   |   | 2 |   |   |\n+---+---+---+---+---+---+\n|   | 1 |   |   |   | 3 |\n+---+---+---+---+---+---+\n|   |   | 3 |   | 1 |   |\n+---+---+---+---+---+---+\n| 2 |   |   | 3 |   |   |\n+---+---+---+---+---+---+\n|   |   | 1 |   | 4 |   |\n+---+---+---+---+---+---+\n|   | 3 |   |   |   | 5 |\n+---+---+---+---+---+---+"
+
+//llama日志信号字样
+#define SERVER_START "model loaded" // server.exe启动成功返回的字样
+#define LLM_EMBD "llm_load_print_meta: n_embd           = " // 模型装载成功返回的词嵌入维度字样
 
 //颜色
 const QColor SIGNAL_BLUE(0, 0, 255); // 蓝色

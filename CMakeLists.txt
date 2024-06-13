@@ -7,11 +7,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目�
 set(version b3140) # 打包版本
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
-option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
+option(BODY_PACK                    "pack eva"                                   ON) # 是否打包
+option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
-option(LLAMA_OPENMP                 "llama: use OpenMP"                          ON) # 这个开启的话会依赖libomp.dll
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
 if(BODY_32BIT)
@@ -22,11 +21,9 @@ elseif(LLAMA_CUDA)
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
     # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
+    find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
-    set(GGML_HEADERS_VULKAN ggml-vulkan.h)
-    set(GGML_SOURCES_VULKAN ggml-vulkan.cpp)
-    add_compile_definitions(GGML_USE_VULKAN)
 else() 
     # 什么都没有默认编译64bit版本
 endif()
@@ -131,8 +128,6 @@ if(BODY_32BIT)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-32bit")
 elseif(LLAMA_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
-elseif(LLAMA_CLBLAST)
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-opencl")
 elseif(LLAMA_CUDA)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda")
 else() 
