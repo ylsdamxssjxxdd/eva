@@ -9108,6 +9108,7 @@ static void soft_max_f32(const float * x, const float * mask, float * dst, const
     // find the sum of exps in the block
     tmp = warp_reduce_sum(tmp, item_ct1);
     if (block_size > WARP_SIZE) {
+        item_ct1.barrier(sycl::access::fence_space::local_space);
         if (warp_id == 0) {
             buf[lane_id] = 0.f;
         }
@@ -13088,10 +13089,12 @@ void *ggml_sycl_host_malloc(size_t size) try {
         return nullptr;
     }
 
+    ggml_sycl_set_device(g_main_device);
+    dpct::queue_ptr main_stream = g_syclStreams[g_main_device][0];
+
     void * ptr = nullptr;
-    //allow to use dpct::get_in_order_queue() for host malloc
     dpct::err0 err = CHECK_TRY_ERROR(
-        ptr = (void *)sycl::malloc_host(size, dpct::get_in_order_queue()));
+        ptr = (void *)sycl::malloc_host(size, *main_stream));
 
     if (err != 0) {
         // clear the error
@@ -13112,8 +13115,9 @@ catch (sycl::exception const &exc) {
 }
 
 void ggml_sycl_host_free(void *ptr) try {
-    //allow to use dpct::get_in_order_queue() for host malloc
-    SYCL_CHECK(CHECK_TRY_ERROR(sycl::free(ptr, dpct::get_in_order_queue())));
+    ggml_sycl_set_device(g_main_device);
+    dpct::queue_ptr main_stream = g_syclStreams[g_main_device][0];
+    SYCL_CHECK(CHECK_TRY_ERROR(sycl::free(ptr, *main_stream)));
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
@@ -17186,7 +17190,7 @@ GGML_CALL static bool ggml_backend_sycl_supports_op(ggml_backend_t backend, cons
                 case GGML_UNARY_OP_HARDSWISH:
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_TANH:
-                    return true;
+                    return ggml_is_contiguous(op->src[0]);
                 default:
                     return false;
             }

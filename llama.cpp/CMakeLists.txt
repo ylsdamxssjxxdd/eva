@@ -402,11 +402,25 @@ if (LLAMA_CUBLAS)
 endif()
 
 if (LLAMA_CUDA)
-    cmake_minimum_required(VERSION 3.17)
+    cmake_minimum_required(VERSION 3.18)  # for CMAKE_CUDA_ARCHITECTURES
 
     find_package(CUDAToolkit)
     if (CUDAToolkit_FOUND)
         message(STATUS "CUDA found")
+
+        if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            # 52 == lowest CUDA 12 standard
+            # 60 == f16 CUDA intrinsics
+            # 61 == integer CUDA intrinsics
+            # 70 == compute capability at which unrolling a loop in mul_mat_q kernels is faster
+            if (LLAMA_CUDA_F16 OR LLAMA_CUDA_DMMV_F16)
+                set(CMAKE_CUDA_ARCHITECTURES "60;61;70") # needed for f16 CUDA intrinsics
+            else()
+                set(CMAKE_CUDA_ARCHITECTURES "52;61;70") # lowest CUDA 12 standard + lowest for integer intrinsics
+                #set(CMAKE_CUDA_ARCHITECTURES "OFF") # use this to compile much faster, but only F16 models work
+            endif()
+        endif()
+        message(STATUS "Using CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 
         enable_language(CUDA)
 
@@ -415,6 +429,8 @@ if (LLAMA_CUDA)
         file(GLOB GGML_SOURCES_CUDA "ggml-cuda/*.cu")
         list(APPEND GGML_SOURCES_CUDA "ggml-cuda.cu")
         file(GLOB SRCS "ggml-cuda/template-instances/fattn-wmma*.cu")
+        list(APPEND GGML_SOURCES_CUDA ${SRCS})
+        file(GLOB SRCS "ggml-cuda/template-instances/mmq*.cu")
         list(APPEND GGML_SOURCES_CUDA ${SRCS})
 
         add_compile_definitions(GGML_USE_CUDA)
@@ -470,21 +486,6 @@ if (LLAMA_CUDA)
         else()
             set(LLAMA_EXTRA_LIBS ${LLAMA_EXTRA_LIBS} CUDA::cuda_driver) # required by cuDeviceGetAttribute(), cuMemGetAllocationGranularity(...), ...
         endif()
-
-    if (NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        # 52 == lowest CUDA 12 standard
-        # 60 == f16 CUDA intrinsics
-        # 61 == integer CUDA intrinsics
-        # 70 == compute capability at which unrolling a loop in mul_mat_q kernels is faster
-        if (LLAMA_CUDA_F16 OR LLAMA_CUDA_DMMV_F16)
-            set(CMAKE_CUDA_ARCHITECTURES "60;61;70") # needed for f16 CUDA intrinsics
-        else()
-            set(CMAKE_CUDA_ARCHITECTURES "52;61;70") # lowest CUDA 12 standard + lowest for integer intrinsics
-            #set(CMAKE_CUDA_ARCHITECTURES "") # use this to compile much faster, but only F16 models work
-        endif()
-    endif()
-    message(STATUS "Using CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
-
     else()
         message(WARNING "CUDA not found")
     endif()
@@ -587,6 +588,8 @@ if (LLAMA_HIPBLAS)
     file(GLOB GGML_SOURCES_ROCM "ggml-cuda/*.cu")
     list(APPEND GGML_SOURCES_ROCM "ggml-cuda.cu")
     file(GLOB SRCS "ggml-cuda/template-instances/fattn-wmma*.cu")
+    list(APPEND GGML_SOURCES_ROCM ${SRCS})
+    file(GLOB SRCS "ggml-cuda/template-instances/mmq*.cu")
     list(APPEND GGML_SOURCES_ROCM ${SRCS})
 
     add_compile_definitions(GGML_USE_HIPBLAS GGML_USE_CUDA)

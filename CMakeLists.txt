@@ -1,5 +1,5 @@
 ###################################### 手动修改 ######################################
-# llama.cpp-b3091
+# llama.cpp-b3140
 # 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 # 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 # ----------------------------------------------------------------------------------
@@ -29,15 +29,15 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3091) # 打包版本
+set(version b3140) # 打包版本
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
-option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
+option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_CLBLAST                "llama: use CLBlast"                         OFF) # 速度150%,暂不支持sd加速
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd加速
 option(BODY_32BIT                   "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
-
+option(LLAMA_OPENMP                 "llama: use OpenMP"                          ON) # 这个开启的话会依赖libomp.dll
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
 if(BODY_32BIT)
@@ -60,6 +60,7 @@ endif()
 if(BODY_PACK)
     set(BODY_PACK_EXE WIN32) # 使用WIN32可以去掉控制台黑框
 endif()
+
 # msvc设置编译选项
 if(MSVC)
     option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 如果用msvc编译器就动态链接
@@ -75,12 +76,16 @@ if(MSVC)
 
 # mingw设置编译选项
 elseif(MINGW)
+    option(BUILD_SHARED_LIBS        "build shared libraries"           OFF)
     set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version") # 原项目适配mingw
     add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER}) # 原项目适配mingw
     add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
-    set(CMAKE_CXX_FLAGS_RELEASE "-static") # 对齐静态编译的标志
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 编译优化
+    
+    set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
+    
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
     list(APPEND sd_EXTRA_COMMAND "-G" "\"MinGW Makefiles\"") # 对sd的自定义编译强制使用mingw编译器
 endif()
 
