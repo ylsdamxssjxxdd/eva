@@ -937,7 +937,7 @@ void Widget::serverControl()
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();
-        if(ui_output.contains("warming up the model with an empty run"))
+        if(ui_output.contains("model loaded"))
         {
             ui_output += "\n"+jtr("browser at") +QString(" http://")+ipAddress+":"+ui_port;
             ui_output += "\n"+jtr("chat")+jtr("endpoint")+ " " + "/v1/chat/completions";
