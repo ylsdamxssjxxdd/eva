@@ -124,13 +124,11 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 - prob（概率表）: 本次采样中词表里所有token的最终选用概率
 
 ## 待办事项
-- 系统分离重构
 - 适配linux
 - 适配国产cpu/gpu
 - ~~英文版本（已完成）~~
 
 ## 已知BUG
-- cuda版本从2794后，超出上下文截断后模型的记忆和输出异常，待修复
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复
 - 链接模式下，无法无间隔的连续发送，通过定时100ms后触发来缓解，定位在xnet.cpp的QNetworkAccessManager不能及时释放，待修复
 - 多模态模型输出异常，需要向llava.cpp对齐，待修复

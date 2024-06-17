@@ -923,11 +923,10 @@ void Widget::serverControl()
     // arguments << "-np";//设置进程请求的槽数 默认：1
 
     if(ui_SETTINGS.lorapath!=""){arguments << "--no-mmap";arguments << "--lora" << ui_SETTINGS.lorapath;}//挂载lora不能开启mmp
-    // server的多模态原作者正在重写中
-    // if(ui_SETTINGS.mmprojpath!="")
-    // {
-    //     arguments << "--mmproj" << ui_SETTINGS.mmprojpath;
-    // }
+    if(ui_SETTINGS.mmprojpath!="")
+    {
+        arguments << "--mmproj" << ui_SETTINGS.mmprojpath;
+    }
 
     // 开始运行程序
     server_process->start(program, arguments);
