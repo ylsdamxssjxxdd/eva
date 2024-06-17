@@ -444,7 +444,10 @@ void Widget::recv_pushover()
         }
         else
         {
-            on_send_clicked();
+            if(!is_debug)
+            {
+                on_send_clicked();
+            }   
         }
     }
     else if(is_query)//继续回答
@@ -522,6 +525,7 @@ void Widget::recv_pushover()
         }
     }
 }
+
 //正常情况处理推理完毕
 void Widget::normal_finish_pushover()
 {

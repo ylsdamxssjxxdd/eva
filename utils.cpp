@@ -283,6 +283,8 @@ void Widget::stop_recordAudio()
 // 清空题库
 void Widget::clearQuestionlist()
 {
+    test_score=0; // 答对的个数
+    test_count=0; // 回答的次数
     filePathList.clear();
     test_list_answer.clear();
     test_list_question.clear();

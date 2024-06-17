@@ -201,8 +201,8 @@ void xBot::run()
         batch_count = 0;//被批解码的token数
         singl_count = 0;//被单解码的token数
         n_remain = gpt_params_.n_predict;//-1的话可以无限输出
-        if(is_test){n_remain=1;}//测试时最大输出长度强制为1
         if(is_debuging){debuging_one = 1;n_remain = remain_n_remain;}//debuging时控制循环只进行一次, n_remain使用上一次的
+        if(is_test){n_remain=1;}//测试时最大输出长度强制为1
         //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
         if(gpt_params_.n_ctx > n_ctx_train)
         {
@@ -225,7 +225,7 @@ void xBot::run()
             fail++;
             //qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
         }
-
+        
         //debuging状态输出额外的信息
         if(is_debuging)
         {
@@ -397,6 +397,7 @@ int xBot::stream()
 
                 if (ret==1) //找不到槽的情况
                 {
+                    debuging_one = 1; // 让测试的debug保持有次数
                     return 1;
                 }
                 else
@@ -530,7 +531,7 @@ int xBot::stream()
             llama_sampling_accept(sparams, ctx, id, true);//记录token的id
             embd.push_back(id);//把预测的词加到下一次的预测中,准备下一次预测
             --n_remain;
-
+            
             if(id == eos_token)//如果遇到结束则停止
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));

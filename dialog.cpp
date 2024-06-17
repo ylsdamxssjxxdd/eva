@@ -280,7 +280,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         test_count++;//已经加一了
         QString result_ = result;
         //答对，remove(' ')移除答案中的空格
-        if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))//
+        if(result_.remove(' ') == test_list_answer.at(test_question_index.at(0)))
         {
             test_score++;
             output_scroll(result + "\n", Qt::green);
@@ -301,14 +301,14 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         if(int(test_count) % 20 == 0)
         {
             help_input = true;
-            ui_state = "ui:"+ jtr("add help question");reflash_state(ui_state,SIGNAL_);
+            ui_state = "ui:"+ jtr("add help question");
+            reflash_state(ui_state,SIGNAL_);
         }
     }
     else
     {
         //正常输出
         output_scroll(result, color);
-        
     }
     
     if(is_while)
