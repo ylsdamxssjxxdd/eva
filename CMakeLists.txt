@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3140) # 打包版本
+set(version b3181) # 打包版本
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
@@ -139,7 +139,7 @@ if(MINGW)
 endif()
 
 # 确保第三方程序先于eva编译
-add_dependencies(${TARGET} server whisper quantize)
+add_dependencies(${TARGET} llama-server whisper llama-quantize) # 原先的server等添加了llama-前缀
 
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)

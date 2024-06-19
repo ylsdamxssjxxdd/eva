@@ -111,7 +111,7 @@ Widget::Widget(QWidget *parent)
     speechtimer->start(500);//每半秒检查一次是否需要朗读
 #endif
     //----------------第三方进程相关------------------
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server.exe
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
 
@@ -849,7 +849,7 @@ void Widget::set_set()
     }
     else if(ui_mode!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
 
-    //server.exe接管,不需要告知bot约定
+    //llama-server.exe接管,不需要告知bot约定
     if(ui_mode==SERVER_)
     {
         serverControl();
@@ -863,7 +863,7 @@ void Widget::set_set()
     }
 }
 
-// server.exe接管
+// llama-server.exe接管
 void Widget::serverControl()
 {
     ui_state_servering();//服务中界面状态
@@ -880,8 +880,8 @@ void Widget::serverControl()
     emit ui2bot_free();
     is_load = false;
 
-    QString resourcePath = ":/server.exe";
-    QString localPath = "./EVA_TEMP/server.exe";
+    QString resourcePath = ":/llama-server.exe";
+    QString localPath = "./EVA_TEMP/llama-server.exe";
 
     // 获取资源文件
     QFile resourceFile(resourcePath);

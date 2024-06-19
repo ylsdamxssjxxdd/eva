@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>quantize.exe</file>
+        <file>llama-quantize.exe</file>
     </qresource>
 </RCC>

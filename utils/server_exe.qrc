@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>server.exe</file>
+        <file>llama-server.exe</file>
     </qresource>
 </RCC>

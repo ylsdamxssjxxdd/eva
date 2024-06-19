@@ -31,11 +31,11 @@ Expend::Expend(QWidget *parent) :
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
 
     //塞入第三方exe
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动server.exe
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server.exe
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::server_onProcessFinished);//连接结束信号        
 
-    quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
+    quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize.exe
     connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);//连接开始信号
     connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::quantize_onProcessFinished);//连接结束信号        
     
@@ -43,7 +43,7 @@ Expend::Expend(QWidget *parent) :
     connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);//连接开始信号
     connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::whisper_onProcessFinished);//连接结束信号
 
-    sd_process = new QProcess(this);// 创建一个QProcess实例用来启动quantize.exe
+    sd_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize.exe
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);//连接开始信号
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::sd_onProcessFinished);//连接结束信号        
 
@@ -167,7 +167,7 @@ void Expend::init_expend()
     show_quantize_types();
     ui->model_quantize_type_label->setText(jtr("select quantize type"));
     ui->model_quantize_execute->setText(jtr("execute quantize"));
-    ui->quantize_log_groupBox->setTitle("quantize.exe " + jtr("execute log"));
+    ui->quantize_log_groupBox->setTitle("llama-quantize.exe " + jtr("execute log"));
     //知识库
     ui->embedding_endpoint_label->setText(jtr("embd api"));
     ui->embedding_txt_api_lineedit->setPlaceholderText(jtr("embedding_txt_api_lineedit_placeholder"));
@@ -646,8 +646,8 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 // 尝试启动server
 void Expend::embedding_server_start()
 {
-    QString resourcePath = ":/server.exe";
-    QString localPath = "./EVA_TEMP/server.exe";
+    QString resourcePath = ":/llama-server.exe";
+    QString localPath = "./EVA_TEMP/llama-server.exe";
        // 获取资源文件
     QFile resourceFile(resourcePath);
 
@@ -1064,7 +1064,7 @@ void Expend::embedding_processing()
         return a.index < b.index;
     });
 
-    //进行嵌入工作,发送ready_embedding_chunks给server.exe
+    //进行嵌入工作,发送ready_embedding_chunks给llama-server.exe
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
     QEventLoop loop;// 进入事件循环，等待回复
@@ -1341,11 +1341,11 @@ void Expend::on_model_quantize_execute_clicked()
 //执行量化
 void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
 {
-    //结束quantize.exe
+    //结束llama-quantize.exe
     quantize_process->kill();
 
-    QString resourcePath = "://quantize.exe";
-    QString localPath = "./EVA_TEMP/quantize.exe";
+    QString resourcePath = ":/llama-quantize.exe";
+    QString localPath = "./EVA_TEMP/llama-quantize.exe";
     createTempDirectory("./EVA_TEMP");
     // 获取资源文件
     QFile resourceFile(resourcePath);
