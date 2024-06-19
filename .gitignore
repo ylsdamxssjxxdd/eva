@@ -1,8 +1,8 @@
 build/
 .vscode/
-utils/server.exe
+utils/llama-server.exe
 utils/whisper.exe
-utils/quantize.exe
+utils/llama-quantize.exe
 utils/sd.exe
 utils/ceval_rc.py
 utils/cmmlu_rc.py
