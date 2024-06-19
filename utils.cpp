@@ -52,7 +52,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
 
                     // 去除最前面的字段 python
                     while (content3.indexOf("python") == 0) {
-                        content3 = content3.mid(5); // 去除前 5 个字符, 即 "python"
+                        content3 = content3.mid(6); // 去除前 6 个字符, 即 "python"
                     }
 
                     // 去除最后面的标点 { " ' ` }
