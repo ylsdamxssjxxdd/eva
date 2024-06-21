@@ -1219,7 +1219,12 @@ void Expend::show_quantize_types()
     //量化方法说明
     quantize_types.clear();
     ui->model_quantize_type->clear();
+    // 以f16-7B模型的大小为准，8bit是一个字节，f16就是两字节，或者16bpw(每个权重占16位)
+    // f16-7B模型的大小 = 70*10^8*2 / 1024 /1024 /1024 = 13GB 
     quantize_types = {
+        { "F32", "200.0%", "0", "⭐"},
+        { "BF16", "100.0%", "-0.0050", "⭐"},
+        { "F16", "100.0%", "-0.0020", "⭐"},
         { "Q8_0", "48.5%", "+0.0004", "⭐"},
         { "Q6_K", "60.4%", "+0.0008", "⭐"},
         { "Q5_1", "63.8%", "+0.0349", "⭐"},
@@ -1241,11 +1246,12 @@ void Expend::show_quantize_types()
         { "IQ3_S", "78.5%", jtr("related to the imatrix"), "⭐"},
         { "IQ3_XS", "79.4%", jtr("related to the imatrix"), "⭐"},
         { "IQ3_XXS", "80.9%", jtr("related to the imatrix"), "⭐"},
-        { "IQ2_M", "83.1%", jtr("related to the imatrix"), "⭐"},
+        { "IQ2_M", "83.1%", jtr("related to the imatrix"), "⭐⭐"},
         { "IQ2_S", "84.3%", jtr("related to the imatrix"), "⭐"}, 
         { "IQ2_XS", "85.6%", jtr("related to the imatrix"), "⭐"},
         { "IQ2_XXS", "87.1%", jtr("related to the imatrix"), "⭐"},
-        { "IQ1_S", "90.3%", jtr("related to the imatrix"), "⭐⭐"},
+        { "IQ1_M", "89.1%", jtr("related to the imatrix"), "⭐"},
+        { "IQ1_S", "90.3%", jtr("related to the imatrix"), "⭐"},
     };
     
     //添加量化方法选项
