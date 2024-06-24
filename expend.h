@@ -17,7 +17,6 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QObject>
-#include <QDebug>
 #include <QEventLoop>
 #include <QAbstractSocket>
 #include <QNetworkInterface>
@@ -32,7 +31,10 @@
 #include <QLabel>
 #include <QLineEdit>
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
+
 #include "xconfig.h"
 
 namespace Ui {
@@ -84,8 +86,8 @@ private:
 //----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 public:
-    QProcess *whisper_process;//用来启动whisper.exe
-    Whisper_Params whisper_params;//whisper.exe可以传入的参数
+    QProcess *whisper_process;//用来启动whisper
+    Whisper_Params whisper_params;//whisper可以传入的参数
     int max_thread;
     QElapsedTimer whisper_time;//计时器
     QString wavpath;

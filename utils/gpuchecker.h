@@ -31,13 +31,16 @@ public:
 
     ~gpuChecker()
     {
-        nvmlShutdown();
+        nvmlShutdown(); // 关闭NVML库
     }
 
     // 多线程支持
     void run() override
     {
-        chekGpu();
+        while (true) {
+            chekGpu();
+            QThread::msleep(500); // 500毫秒监视一次
+        }
     } 
 
 signals:
@@ -54,65 +57,10 @@ public slots:
         float vfree_ = float(memory.free)/ 1024.0 / 1024.0;//剩余显存MB
         emit gpu_status(vmem, vram, vcore,vfree_);
     }
+    void recv_gpu_reflash()
+    {
+        chekGpu();
+    }
 };
 
 #endif // GPUCHECKER_H
-
-
-    // //vulkan获取gpu总内存
-    // #include <vulkan/vulkan.h>
-
-    // void printDeviceInfo(VkPhysicalDevice device) {
-    //     VkPhysicalDeviceProperties deviceProperties;
-    //     vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-    //     qDebug() << "Device Name: " << deviceProperties.deviceName;
-    //     qDebug() << "Driver Version: " << deviceProperties.driverVersion;
-    //     qDebug() << "API Version: " << deviceProperties.apiVersion;
-    // }
-    // // 初始化Vulkan
-    // VkApplicationInfo appInfo = {};
-    // appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    // appInfo.pApplicationName = "Hello Vulkan";
-    // appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    // appInfo.pEngineName = "No Engine";
-    // appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    // appInfo.apiVersion = VK_API_VERSION_1_0;
-
-    // VkInstanceCreateInfo createInfo = {};
-    // createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    // createInfo.pApplicationInfo = &appInfo;
-
-    // VkInstance instance;
-    // vkCreateInstance(&createInfo, nullptr, &instance);
-
-    // // 枚举物理设备
-    // uint32_t deviceCount = 0;
-    // vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    // if (deviceCount == 0) {
-    //     qDebug() << "Failed to find GPUs with Vulkan support!";
-    //     //return;
-    // }
-
-    // std::vector<VkPhysicalDevice> devices(deviceCount);
-    // vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
-    // for (const auto& device : devices) {
-    //     VkPhysicalDeviceMemoryProperties memProperties;
-    //     vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
-
-    //     for (uint32_t i = 0; i < memProperties.memoryHeapCount; i++) {
-    //         if (memProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-    //             qDebug() << "GPU Memory Heap " << i << ": " 
-    //                       << memProperties.memoryHeaps[i].size / 1024 / 1024 << " MB";
-    //         }
-    //     }
-    // }
-
-    // // 打印设备信息
-    // for (const auto& device : devices) {
-    //     printDeviceInfo(device);
-    // }
-
-    // // 清理
-    // vkDestroyInstance(instance, nullptr);

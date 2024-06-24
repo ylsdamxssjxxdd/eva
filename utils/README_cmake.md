@@ -3,8 +3,9 @@
 - 注意cmake构建类型应该设置为 Release
 - 更换编译选项记得清空sd的build目录
 - 全大写的变量是cmake内置的，前面小写的变量是自定义的
-- mingw编译器用静态链接，msvc编译器使用winra打包，最终都将得到一个单独的exe在build/Release目录下
+- mingw编译器用静态链接，msvc编译器使用winrar打包，最终都将得到一个单独的exe在build/Release目录下
 - mingw编译时，mingw对应的bin目录需要在环境变量中用于sd.exe编译
+- linux编译默认是动态链接的
 
 ## 如果要更换第三方库的话尝试按如下规则修改
 ### llama.cpp 当前版本 b3181

@@ -12,9 +12,16 @@
 #include <QProcess>
 #include <QElapsedTimer>
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
-//llama模型类
+#ifdef __linux__
+#include <fstream>
+#include <string>
+#include <unistd.h>
+#endif
+
 class cpuChecker : public QThread
 {
     Q_OBJECT
@@ -30,19 +37,30 @@ public:
     {
         ;
     }
-
+    
+#ifdef _WIN32
     FILETIME preidleTime;
     FILETIME prekernelTime;
     FILETIME preuserTime;
+#endif
+
+#ifdef __linux__
+    long long prevIdleTime = 0;
+    long long prevTotalTime = 0;
+#endif
 
     // 多线程支持
     void run() override
     {
-        chekCpu();
-    } 
+        while (true) {
+            chekCpu();
+            QThread::msleep(500); // 500毫秒监视一次
+        }
+    }
 
     double CalculateCPULoad()
     {
+#ifdef _WIN32
         FILETIME idleTime, kernelTime, userTime;
         if (!GetSystemTimes(&idleTime, &kernelTime, &userTime)) {
             // 获取系统时间失败
@@ -88,6 +106,34 @@ public:
 
         // Calculate the CPU load as a percentage.
         return (sysKernel.QuadPart + sysUser.QuadPart - sysIdle.QuadPart) * 100.0 / (sysKernel.QuadPart + sysUser.QuadPart);
+#endif       
+
+#ifdef __linux__
+        std::ifstream file("/proc/stat");
+        std::string line;
+        if (std::getline(file, line)) {
+            std::istringstream ss(line);
+            std::string cpu;
+            long long user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
+            ss >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
+            
+            long long idleTime = idle + iowait;
+            long long totalTime = user + nice + system + idle + iowait + irq + softirq + steal;
+            
+            long long totalDelta = totalTime - prevTotalTime;
+            long long idleDelta = idleTime - prevIdleTime;
+
+            prevTotalTime = totalTime;
+            prevIdleTime = idleTime;
+
+            if (totalDelta == 0) {
+                return 0.0;
+            }
+
+            return (1.0 - (idleDelta * 1.0 / totalDelta)) * 100.0;
+        }
+        return -1.0;
+#endif
     }
 
 signals:
@@ -96,16 +142,33 @@ signals:
 public slots:
     void chekCpu()
     {
+#ifdef _WIN32
         MEMORYSTATUSEX memInfo;
         memInfo.dwLength = sizeof(MEMORYSTATUSEX);
         GlobalMemoryStatusEx(&memInfo);
         DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
         DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
-        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem;// 计算内存使用率
-        double cpuLoad = CalculateCPULoad();// 计算cpu使用率
+        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
+        double cpuLoad = CalculateCPULoad(); // 计算cpu使用率
         emit cpu_status(cpuLoad, physMemUsedPercent);
+#endif       
+
+#ifdef __linux__
+        struct sysinfo memInfo;
+        sysinfo(&memInfo);
+        long long totalPhysMem = memInfo.totalram;
+        totalPhysMem *= memInfo.mem_unit;
+        long long physMemUsed = memInfo.totalram - memInfo.freeram;
+        physMemUsed *= memInfo.mem_unit;
+        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
+        double cpuLoad = CalculateCPULoad(); // 计算cpu使用率
+        emit cpu_status(cpuLoad, physMemUsedPercent);
+#endif
+    }
+    void recv_cpu_reflash()
+    {
+        chekCpu();
     }
 };
 
 #endif // CPUCHECKER_H
-

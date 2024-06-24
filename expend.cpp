@@ -31,11 +31,11 @@ Expend::Expend(QWidget *parent) :
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
 
     //塞入第三方exe
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server.exe
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::server_onProcessFinished);//连接结束信号        
 
-    quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize.exe
+    quantize_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize
     connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);//连接开始信号
     connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::quantize_onProcessFinished);//连接结束信号        
     
@@ -43,7 +43,7 @@ Expend::Expend(QWidget *parent) :
     connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);//连接开始信号
     connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::whisper_onProcessFinished);//连接结束信号
 
-    sd_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize.exe
+    sd_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-quantize
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);//连接开始信号
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Expend::sd_onProcessFinished);//连接结束信号        
 
@@ -167,7 +167,7 @@ void Expend::init_expend()
     show_quantize_types();
     ui->model_quantize_type_label->setText(jtr("select quantize type"));
     ui->model_quantize_execute->setText(jtr("execute quantize"));
-    ui->quantize_log_groupBox->setTitle("llama-quantize.exe " + jtr("execute log"));
+    ui->quantize_log_groupBox->setTitle("llama-quantize " + jtr("execute log"));
     //知识库
     ui->embedding_endpoint_label->setText(jtr("embd api"));
     ui->embedding_txt_api_lineedit->setPlaceholderText(jtr("embedding_txt_api_lineedit_placeholder"));
@@ -206,13 +206,13 @@ void Expend::init_expend()
     ui->sd_draw_pushButton_2->setText(jtr("image to image"));
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
     ui->sd_uploadimage_textEdit->setPlaceholderText(jtr("sd_uploadimage_textEdit_placeholder"));
-    ui->sd_log_groupBox->setTitle("sd.exe " + jtr("log"));
+    ui->sd_log_groupBox->setTitle("sd " + jtr("log"));
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
 
     //声转文
     ui->whisper_modelpath_label->setText(jtr("whisper path"));
     ui->whisper_load_modelpath_linedit->setPlaceholderText(jtr("whisper_load_modelpath_linedit_placeholder"));
-    ui->voice_load_groupBox_4->setTitle("whisper.exe " + jtr("log"));
+    ui->voice_load_groupBox_4->setTitle("whisper " + jtr("log"));
     ui->whisper_wav2text_label->setText(jtr("wav2text"));
     ui->whisper_wavpath_pushButton->setText(jtr("wav path"));
     ui->whisper_format_label->setText(jtr("format"));
@@ -525,8 +525,8 @@ void Expend::on_whisper_load_modelpath_button_clicked()
 void Expend::recv_voicedecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
-    QString resourcePath = ":/whisper.exe";
-    QString localPath = "./EVA_TEMP/whisper.exe";
+    QString resourcePath = QString(":/whisper") + SFX_NAME;
+    QString localPath = QString("./EVA_TEMP/whisper") + SFX_NAME;
     createTempDirectory("./EVA_TEMP");
     // 获取资源文件
     QFile resourceFile(resourcePath);
@@ -576,7 +576,7 @@ void Expend::whisper_onProcessStarted()
 {
     if(!is_handle_whisper)
     {
-        emit expend2ui_state("expend:" + jtr("calling whisper.exe to decode recording"),USUAL_);
+        emit expend2ui_state("expend:" + jtr("calling whisper to decode recording"),USUAL_);
     }
     
 }
@@ -620,7 +620,7 @@ void Expend::on_whisper_wavpath_pushButton_clicked()
 //用户点击执行转换时响应
 void Expend::on_whisper_execute_pushbutton_clicked()
 {   
-    //执行whisper.exe
+    //执行whisper
     is_handle_whisper = true;
     whisper_process->kill();
     recv_voicedecode(ui->whisper_wavpath_lineedit->text(),ui->whisper_output_format->currentText());
@@ -646,8 +646,8 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 // 尝试启动server
 void Expend::embedding_server_start()
 {
-    QString resourcePath = ":/llama-server.exe";
-    QString localPath = "./EVA_TEMP/llama-server.exe";
+    QString resourcePath = QString(":/llama-server") + SFX_NAME;
+    QString localPath = QString("./EVA_TEMP/llama-server") + SFX_NAME;
        // 获取资源文件
     QFile resourceFile(resourcePath);
 
@@ -1064,7 +1064,7 @@ void Expend::embedding_processing()
         return a.index < b.index;
     });
 
-    //进行嵌入工作,发送ready_embedding_chunks给llama-server.exe
+    //进行嵌入工作,发送ready_embedding_chunks给llama-server
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
     QEventLoop loop;// 进入事件循环，等待回复
@@ -1347,11 +1347,11 @@ void Expend::on_model_quantize_execute_clicked()
 //执行量化
 void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
 {
-    //结束llama-quantize.exe
+    //结束llama-quantize
     quantize_process->kill();
 
-    QString resourcePath = ":/llama-quantize.exe";
-    QString localPath = "./EVA_TEMP/llama-quantize.exe";
+    QString resourcePath = QString(":/llama-quantize") + SFX_NAME;
+    QString localPath = QString("./EVA_TEMP/llama-quantize") + SFX_NAME;
     createTempDirectory("./EVA_TEMP");
     // 获取资源文件
     QFile resourceFile(resourcePath);
@@ -1452,7 +1452,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     if(ui->sd_draw_pushButton_2->text() == "stop" || ui->sd_draw_pushButton->text() == "stop")
     {
         ui->sd_log->appendPlainText("stop");
-        sd_process->kill();//强制结束sd.exe
+        sd_process->kill();//强制结束sd
         ui->sd_draw_pushButton->setText(jtr("text to image"));
         ui->sd_draw_pushButton_2->setText(jtr("image to image"));
         img2img = false;
@@ -1473,7 +1473,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
     else if(!is_handle_sd)
     {
-        emit expend2ui_state("expend:sd.exe " + jtr("drawing"),USUAL_);
+        emit expend2ui_state(QString("expend:sd") + SFX_NAME + " " + jtr("drawing"),USUAL_);
     }
 
     //锁定界面
@@ -1500,11 +1500,11 @@ void Expend::on_sd_draw_pushButton_clicked()
     QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
     sd_params.outpath = "./EVA_TEMP/sd_output" + timeString + ".png";
 
-    //结束sd.exe
+    //结束sd
     sd_process->kill();
 
-    QString resourcePath = "://sd.exe";
-    QString localPath = "./EVA_TEMP/sd.exe";
+    QString resourcePath = QString("://sd") + SFX_NAME;
+    QString localPath = QString("./EVA_TEMP/sd") + SFX_NAME;
     createTempDirectory("./EVA_TEMP");
     // 获取资源文件
     QFile resourceFile(resourcePath);

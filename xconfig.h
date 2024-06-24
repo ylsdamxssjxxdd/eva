@@ -39,7 +39,7 @@
 #define DEFAULT_SHUDU "\n+---+---+---+---+---+---+\n| 4 |   |   | 2 |   |   |\n+---+---+---+---+---+---+\n|   | 1 |   |   |   | 3 |\n+---+---+---+---+---+---+\n|   |   | 3 |   | 1 |   |\n+---+---+---+---+---+---+\n| 2 |   |   | 3 |   |   |\n+---+---+---+---+---+---+\n|   |   | 1 |   | 4 |   |\n+---+---+---+---+---+---+\n|   | 3 |   |   |   | 5 |\n+---+---+---+---+---+---+"
 
 //llama日志信号字样
-#define SERVER_START "model loaded" // server.exe启动成功返回的字样
+#define SERVER_START "model loaded" // server启动成功返回的字样
 #define LLM_EMBD "llm_load_print_meta: n_embd           = " // 模型装载成功返回的词嵌入维度字样
 
 //颜色
@@ -48,6 +48,13 @@ const QColor SYSTEM_BLUE(0, 0, 255, 200); // 蓝紫色
 const QColor TOOL_BLUE(0, 191, 255); // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0); // 黑色
 const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
+
+//第三方程序后缀名
+#ifdef _WIN32
+#define SFX_NAME ".exe"
+#elif __linux__
+#define SFX_NAME ""
+#endif
 
 //约定内容
 struct DATES{
@@ -160,7 +167,7 @@ struct WAVHEADER
     unsigned long   nDataLength;
 };
 
-//whisper.exe可以传入的参数
+//whisper可以传入的参数
 struct Whisper_Params {
     int32_t n_threads    = 1;
     int32_t n_processors =  1;

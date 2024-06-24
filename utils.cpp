@@ -385,18 +385,6 @@ void Widget::getAllFiles(const QString&floderPath)
     }
 }
 
-//更新gpu内存使用率
-void Widget::updateGpuStatus()
-{
-    emit gpu_reflash();
-}
-
-//更新cpu内存使用率
-void Widget::updateCpuStatus()
-{
-    emit cpu_reflash();
-}
-
 //拯救中文
 void Widget::getWords(QString json_file_path)
 {

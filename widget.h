@@ -15,7 +15,7 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QDialogButtonBox>
-#include <QGroupbox>
+#include <QGroupBox>
 #include <QCheckBox>
 #include <QTextBrowser>
 #include <QScrollBar>
@@ -47,7 +47,10 @@
 #include <QIODevice>
 #include <QTextToSpeech>
 
+#ifdef _WIN32
 #include <windows.h>
+#endif
+
 #include "utils/doubleqprogressbar.h"
 #include "utils/cutscreendialog.h"
 #include "utils/customswitchbutton.h"
@@ -401,8 +404,6 @@ private slots:
     void keep_onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
     void onConnected();//检测ip是否通畅
     void onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅
-    void updateGpuStatus(); //更新gpu内存使用率
-    void updateCpuStatus(); //更新cpu内存使用率
     void output_scrollBarValueChanged(int value);//输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();//设置用户设置内容
     void set_date();//设置用户约定内容

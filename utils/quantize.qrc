@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>llama-quantize</file>
+    </qresource>
+</RCC>

@@ -58,9 +58,20 @@ elseif(MINGW)
     
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
     list(APPEND sd_EXTRA_COMMAND "-G" "\"MinGW Makefiles\"") # 对sd的自定义编译强制使用mingw编译器
+# linux下编译选项
+elseif(UNIX)
+    message(STATUS "Compiling on Unix/Linux")
+    list(APPEND extra_INCLUDES utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
+    option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
+    option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 endif()
 
 ##################################### 第三方程序相关 #####################################
+if(WIN32)
+    set(sfx_NAME ".exe") # windows下生成的第三方程序带后缀
+elseif(UNIX)
+    set(sfx_NAME "") # linux下生成的第三方程序带后缀
+endif()
 # 添加llama相关项目,将会强制应用父项目的编译设置
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}) # 使llama.dll在build/Release目录下
@@ -87,7 +98,7 @@ add_custom_command(TARGET ${TARGET_whisper} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR} ${CMAKE_COMMAND} -E make_directory build
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" ".." ${sd_EXTRA_COMMAND} "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${stable_DIFFUSION_DIR}/build/bin/Release"
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" "--build" "." "--config Release"
-    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build ${CMAKE_COMMAND} -E copy ${stable_DIFFUSION_DIR}/build/bin/Release/sd.exe ${PROJECT_SOURCE_DIR}/utils/sd.exe
+    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build ${CMAKE_COMMAND} -E copy ${stable_DIFFUSION_DIR}/build/bin/Release/sd${sfx_NAME} ${PROJECT_SOURCE_DIR}/utils/sd${sfx_NAME}
     COMMENT "custom Cmake ..."
 )
 
@@ -107,8 +118,11 @@ message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 # 注意32位不能超过10MB所有分了很多个，不用qt5_add_big_resources是因为它会先于exe文件生成前执行
-set(resource_FILES utils/logo.qrc utils/server_exe.qrc utils/quantize_exe.qrc utils/whisper_exe.qrc utils/sd_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
-
+if(WIN32)
+    set(resource_FILES utils/logo.qrc utils/server_exe.qrc utils/quantize_exe.qrc utils/whisper_exe.qrc utils/sd_exe.qrc utils/ceval.qrc utils/mmlu.qrc)
+elseif(UNIX)
+    set(resource_FILES utils/logo.qrc utils/server.qrc utils/quantize.qrc utils/whisper.qrc utils/sd.qrc utils/ceval.qrc utils/mmlu.qrc)
+endif()
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)
 

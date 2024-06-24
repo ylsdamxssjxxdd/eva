@@ -71,16 +71,9 @@ Widget::Widget(QWidget *parent)
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->state->setFocus();//设为当前焦点
 
-    //-------------获取cpu内存信息-------------
+    //-------------获取线程信息-------------
     max_thread = std::thread::hardware_concurrency();
-    nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
-    QTimer *cpucheck_timer = new QTimer(this);
-    connect(cpucheck_timer, &QTimer::timeout, this, &Widget::updateCpuStatus);
-    cpucheck_timer->start(500); // 多少ms更新一次
-    //-------------获取gpu内存信息-------------
-    QTimer *gpucheck_timer = new QTimer(this);
-    connect(gpucheck_timer, &QTimer::timeout, this, &Widget::updateGpuStatus);
-    gpucheck_timer->start(500); // 多少ms更新一次
+    nthread_slider->setRange(1, max_thread);//设置线程数滑块的范围
     
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();
@@ -111,7 +104,7 @@ Widget::Widget(QWidget *parent)
     speechtimer->start(500);//每半秒检查一次是否需要朗读
 #endif
     //----------------第三方进程相关------------------
-    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server.exe
+    server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),this, &Widget::server_onProcessFinished);//连接结束信号        
 
@@ -849,7 +842,7 @@ void Widget::set_set()
     }
     else if(ui_mode!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
 
-    //llama-server.exe接管,不需要告知bot约定
+    //llama-server接管,不需要告知bot约定
     if(ui_mode==SERVER_)
     {
         serverControl();
@@ -863,7 +856,7 @@ void Widget::set_set()
     }
 }
 
-// llama-server.exe接管
+// llama-server接管
 void Widget::serverControl()
 {
     ui_state_servering();//服务中界面状态
@@ -880,8 +873,8 @@ void Widget::serverControl()
     emit ui2bot_free();
     is_load = false;
 
-    QString resourcePath = ":/llama-server.exe";
-    QString localPath = "./EVA_TEMP/llama-server.exe";
+    QString resourcePath = QString(":/llama-server") + SFX_NAME;
+    QString localPath = QString("./EVA_TEMP/llama-server") + SFX_NAME;
 
     // 获取资源文件
     QFile resourceFile(resourcePath);

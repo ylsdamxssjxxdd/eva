@@ -42,7 +42,7 @@ void xTool::run()
         process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);//使用start()方法来执行命令。Windows中的命令提示符是cmd.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
         #else
         // 在Unix-like系统上执行
-        process->start("/bin/sh", QStringList() << "-c" << commandString);
+        process->start("/bin/sh", QStringList() << "-c" << func_arg_list.second);
         #endif
 
         if(!process->waitForFinished()) 
