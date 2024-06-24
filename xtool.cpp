@@ -31,7 +31,7 @@ void xTool::run()
         emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result,TOOL_);
     }
     //----------------------命令提示符------------------
-    else if(func_arg_list.first == "cmd")
+    else if(func_arg_list.first == "terminal")
     {
 
         QProcess *process = new QProcess();
@@ -39,27 +39,29 @@ void xTool::run()
         #ifdef Q_OS_WIN
         // 在Windows上执行
         
-        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);//使用start()方法来执行命令。Windows中的命令提示符是cmd.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
+        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);//使用start()方法来执行命令。Windows中的命令提示符是terminal.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
+        emit tool2ui_state(QString("tool: ") + "cmd.exe " + "/c " + func_arg_list.second);
         #else
         // 在Unix-like系统上执行
         process->start("/bin/sh", QStringList() << "-c" << func_arg_list.second);
+        emit tool2ui_state(QString("tool: ") + "/bin/sh " + "/c " + func_arg_list.second);
         #endif
 
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" +QString("cmd ") + jtr("return") + "\n" + process->errorString(),TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + jtr("return") + "\n" + process->errorString());
-            qDebug() << QString("cmd ") + jtr("return") + "\n" + process->errorString();
+            emit tool2ui_state("tool:" + QString("terminal ") + jtr("return") + "\n" + process->errorString(),TOOL_);
+            emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + process->errorString());
+            qDebug() << QString("terminal ") + jtr("return") + "\n" + process->errorString();
         } 
         else 
         {
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("cmd ") + jtr("return") + "\n" + output,TOOL_);
-            emit tool2ui_pushover(QString("cmd ") + jtr("return") + "\n" + output);
-            qDebug() << QString("cmd ") + jtr("return") + "\n" + output;
+            emit tool2ui_state("tool:" +QString("terminal ") + jtr("return") + "\n" + output,TOOL_);
+            emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + output);
+            qDebug() << QString("terminal ") + jtr("return") + "\n" + output;
         }
 
     }
@@ -113,7 +115,13 @@ void xTool::run()
             //---运行interpreter.py---
             QProcess *process = new QProcess();
             // 构建Python命令
+#ifdef Q_OS_WIN
+// 在Windows上执行
             QString command = "python";
+#else
+// 在linux上执行 默认用python3
+            QString command = "python3";
+#endif
             QStringList args;
             args << "./EVA_TEMP/interpreter.py";
 

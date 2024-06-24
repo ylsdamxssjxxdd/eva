@@ -83,6 +83,7 @@ Widget::Widget(QWidget *parent)
     cutscreen_dialog = new CutScreenDialog(this);
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);// 传递截取的图像路径
     // 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
+#ifdef _WIN32
     //注册截图快捷键
     if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
     {reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);}
@@ -92,7 +93,9 @@ Widget::Widget(QWidget *parent)
     //注册发送快捷键 
     if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
     {reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);}  
-
+#elif __linux__
+    // 来实现linux下的全局热键
+#endif
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
 
@@ -759,7 +762,7 @@ void Widget::on_date_clicked()
     input_sfx_LineEdit->setText(ui_DATES.input_sfx);
     
     calculator_checkbox->setChecked(ui_calculator_ischecked);
-    cmd_checkbox->setChecked(ui_cmd_ischecked);
+    terminal_checkbox->setChecked(ui_terminal_ischecked);
     toolguy_checkbox->setChecked(ui_toolguy_ischecked);
     controller_checkbox->setChecked(ui_controller_ischecked);
     knowledge_checkbox->setChecked(ui_knowledge_ischecked);

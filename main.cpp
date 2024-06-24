@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
             w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
             w.input_pfx_LineEdit->setText(settings.value("input_pfx", "").toString());
             w.input_sfx_LineEdit->setText(settings.value("input_sfx", "").toString());
-            w.cmd_checkbox->setChecked(settings.value("cmd_checkbox", "").toBool());
+            w.terminal_checkbox->setChecked(settings.value("terminal_checkbox", "").toBool());
             w.calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
             w.knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
             w.controller_checkbox->setChecked(settings.value("controller_checkbox", "").toBool());

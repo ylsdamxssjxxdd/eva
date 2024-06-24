@@ -49,11 +49,13 @@ const QColor TOOL_BLUE(0, 191, 255); // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0); // 黑色
 const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 
-//第三方程序后缀名
+//不同操作系统相关
 #ifdef _WIN32
-#define SFX_NAME ".exe"
+#define SFX_NAME ".exe" // 第三方程序后缀名
+#define OS "windows"
 #elif __linux__
-#define SFX_NAME ""
+#define SFX_NAME "" //第三方程序后缀名
+#define OS "linux"
 #endif
 
 //约定内容

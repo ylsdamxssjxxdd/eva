@@ -95,7 +95,7 @@ QString Widget::create_extra_prompt()
         //头
         if(interpreter_checkbox->isChecked()){extra_prompt_ += tool_map["interpreter"].func_describe + "\n";}
         if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
-        if(cmd_checkbox->isChecked()){extra_prompt_ += tool_map["cmd"].func_describe + "\n";}
+        if(terminal_checkbox->isChecked()){extra_prompt_ += tool_map["terminal"].func_describe + "\n";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
         if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";}
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
@@ -104,7 +104,7 @@ QString Widget::create_extra_prompt()
         extra_prompt_ +=jtr("middle_extra_prompt");
         if(interpreter_checkbox->isChecked()){extra_prompt_ +="\"interpreter\" ";}
         if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
-        if(cmd_checkbox->isChecked()){extra_prompt_ += "\"cmd\" ";}
+        if(terminal_checkbox->isChecked()){extra_prompt_ += "\"terminal\" ";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
         if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
@@ -469,8 +469,8 @@ void Widget::apply_language(int language_flag_)
     tool_box->setTitle(jtr("mount") + jtr("tool"));
     calculator_checkbox->setText(jtr("calculator"));
     calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
-    cmd_checkbox->setText(jtr("cmd"));
-    cmd_checkbox->setToolTip(jtr("cmd_checkbox_tooltip"));
+    terminal_checkbox->setText(jtr("terminal"));
+    terminal_checkbox->setToolTip(jtr("terminal_checkbox_tooltip"));
     controller_checkbox->setText(jtr("controller"));
     controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
     knowledge_checkbox->setText(jtr("knowledge"));
@@ -488,7 +488,7 @@ void Widget::apply_language(int language_flag_)
     extra_TextEdit->setToolTip(jtr("extra_TextEdit_tooltip"));
     tool_map.clear();
     tool_map.insert("calculator", {jtr("calculator"),"calculator",jtr("calculator_func_describe")});
-    tool_map.insert("cmd", {jtr("cmd"),"cmd",jtr("cmd_func_describe")});
+    tool_map.insert("terminal", {jtr("terminal"),"terminal",jtr("terminal_func_describe").replace("{OS}", OS)});
     tool_map.insert("toolguy", {jtr("toolguy"),"toolguy",jtr("toolguy_func_describe")});
     tool_map.insert("knowledge", {jtr("knowledge"),"knowledge",jtr("knowledge_func_describe")});
     tool_map.insert("controller", {jtr("controller"),"controller",jtr("controller_func_describe")});
@@ -563,6 +563,7 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
 {
     Q_UNUSED(eventType)
     Q_UNUSED(result)
+#ifdef _WIN32
     // Transform the message pointer to the MSG WinAPI
     MSG* msg = reinterpret_cast<MSG*>(message);
  
@@ -611,6 +612,9 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
         }
         
     }
+#elif __linux__
+
+#endif
     return false;
 }
 
@@ -741,7 +745,7 @@ void Widget::speechOver()
     settings.setValue("input_pfx",ui_DATES.input_pfx);//用户昵称
     settings.setValue("input_sfx",ui_DATES.input_sfx);//模型昵称
     settings.setValue("calculator_checkbox",calculator_checkbox->isChecked());//计算器工具
-    settings.setValue("cmd_checkbox",cmd_checkbox->isChecked());//cmd工具
+    settings.setValue("terminal_checkbox",terminal_checkbox->isChecked());//terminal工具
     settings.setValue("knowledge_checkbox",knowledge_checkbox->isChecked());//knowledge工具
     settings.setValue("controller_checkbox",controller_checkbox->isChecked());//controller工具
     settings.setValue("stablediffusion_checkbox",stablediffusion_checkbox->isChecked());//计算器工具

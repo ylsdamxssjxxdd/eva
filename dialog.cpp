@@ -613,7 +613,7 @@ void Widget::chooseMmprojpath()
 void Widget::tool_change()
 {
     // 判断是否挂载了工具
-    if(calculator_checkbox->isChecked() || cmd_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked())
+    if(calculator_checkbox->isChecked() || terminal_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked())
     {
         is_load_tool = true;
     }
@@ -637,7 +637,7 @@ void Widget::interpreter_change()
 }
 
 //选用系统终端工具
-void Widget::cmd_change()
+void Widget::terminal_change()
 {
     
     tool_change();
@@ -968,10 +968,10 @@ void Widget::set_DateDialog()
     QHBoxLayout *layout_H44 = new QHBoxLayout();//水平布局器
     calculator_checkbox = new QCheckBox(jtr("calculator"));
     calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
-    cmd_checkbox = new QCheckBox(jtr("cmd"));
-    cmd_checkbox->setToolTip(jtr("cmd_checkbox_tooltip"));
+    terminal_checkbox = new QCheckBox(jtr("terminal"));
+    terminal_checkbox->setToolTip(jtr("terminal_checkbox_tooltip"));
     layout_H44->addWidget(calculator_checkbox);
-    layout_H44->addWidget(cmd_checkbox);
+    layout_H44->addWidget(terminal_checkbox);
     tool_layout->addLayout(layout_H44);//将布局添加到垂直布局
 
     QHBoxLayout *layout_H45 = new QHBoxLayout();//水平布局器
@@ -996,7 +996,7 @@ void Widget::set_DateDialog()
     tool_layout->addLayout(layout_H46);//将布局添加到垂直布局
 
     connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
-    connect(cmd_checkbox, &QCheckBox::stateChanged, this, &Widget::cmd_change);
+    connect(terminal_checkbox, &QCheckBox::stateChanged, this, &Widget::terminal_change);
     connect(toolguy_checkbox, &QCheckBox::stateChanged, this, &Widget::toolguy_change);
     connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
     connect(controller_checkbox, &QCheckBox::stateChanged, this, &Widget::controller_change);
@@ -1609,7 +1609,7 @@ void Widget::get_date()
     ui_extra_lan = switch_lan_button->text();
 
     ui_calculator_ischecked = calculator_checkbox->isChecked();
-    ui_cmd_ischecked = cmd_checkbox->isChecked();
+    ui_terminal_ischecked = terminal_checkbox->isChecked();
     ui_toolguy_ischecked = toolguy_checkbox->isChecked();
     ui_knowledge_ischecked = knowledge_checkbox->isChecked();
     ui_controller_ischecked = controller_checkbox->isChecked();
