@@ -888,8 +888,6 @@ void Widget::serverControl()
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);//使用最近一次应用的ngl作为服务的gpu负载
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);//使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.batch);//批大小
-    arguments << "-cb";//允许连续批处理
-    arguments << "--embedding";//允许词嵌入
 #if defined(EVA_USE_CUDA)
     arguments << "-fa"; // 开启flash attention加速
 #endif

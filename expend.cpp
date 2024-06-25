@@ -636,7 +636,7 @@ void Expend::embedding_server_start()
     arguments << "-m" << embedding_params.modelpath;
     arguments << "--host" << "0.0.0.0";//暴露本机ip
     arguments << "--port" << DEFAULT_EMBEDDING_PORT;//服务端口
-    arguments << "--threads" << QString::number(std::thread::hardware_concurrency()*0.5);//使用线程
+    arguments << "--threads" << QString::number(max_thread*0.5);//使用线程
     arguments << "-cb";//允许连续批处理
     arguments << "--embedding";//允许词嵌入
     arguments << "--log-disable";//不要日志
