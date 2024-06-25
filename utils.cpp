@@ -570,7 +570,7 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
     // If the message is a HotKey, then ...
     if(msg->message == WM_HOTKEY){
         // ... check HotKey
-        if(msg->wParam == 7758258)
+        if(msg->wParam == 7758258) // f1 快捷键
         {
             // We inform about this to the console
             if(!is_debuging)
@@ -580,7 +580,7 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
 
             return true;
         }
-        else if (msg->wParam == 123456)
+        else if (msg->wParam == 123456) // f2 快捷键
         {
             if(whisper_model_path == "")//如果还未指定模型路径则先指定
             {
@@ -606,14 +606,42 @@ bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *resul
             
             return true;
         }
-        else if (msg->wParam == 741852963)
+        else if (msg->wParam == 741852963) // crtl+enter 快捷键
         {
             ui->send->click();
         }
         
     }
 #elif __linux__
-
+    XEvent *xev = static_cast<XEvent *>(message);
+    if (xev->type == KeyPress) {
+        XKeyEvent *keyEvent = &xev->xkey;
+        KeySym keysym = XLookupKeysym(keyEvent, 0);
+        if (keysym == XK_F1) {
+            if (!is_debuging) {
+                onShortcutActivated(); // 处理截图事件
+            }
+            return true;
+        } else if (keysym == XK_F2) {
+            if (whisper_model_path == "") { // 如果还未指定模型路径则先指定
+                emit ui2expend_show(6); // 语音增殖界面
+                return true;
+            } else if (!is_recodering) {
+                if (!is_debuging) {
+                    recordAudio(); // 开始录音
+                    is_recodering = true;
+                }
+            } else if (is_recodering) {
+                if (!is_debuging) {
+                    stop_recordAudio(); // 停止录音
+                }
+            }
+            return true;
+        } else if (keysym == XK_F3) {
+            ui->send->click();
+            return true;
+        }
+    }
 #endif
     return false;
 }

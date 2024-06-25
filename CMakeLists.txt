@@ -64,6 +64,10 @@ elseif(UNIX)
     option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
+    find_package(X11 REQUIRED)# 查找X11库
+    include_directories(${X11_INCLUDE_DIR})# 包含X11头文件
+    list(APPEND extra_LIBS ${X11_LIBRARIES}) # 向extra_LIBS列表里添加文件
+
     if (LLAMA_CUDA) # 如果启用LLAMA_CUDA标志
         list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
@@ -164,6 +168,7 @@ if(MSVC)
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}.exe"
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/ggml_shared.dll"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama.log"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
         COMMENT "custom Removing ..."
     )

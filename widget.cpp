@@ -82,20 +82,8 @@ Widget::Widget(QWidget *parent)
     //-------------截图声音相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);// 传递截取的图像路径
-    // 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
-#ifdef _WIN32
-    //注册截图快捷键
-    if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
-    {reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);}
-    //注册录音快捷键 
-    if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
-    {reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);}
-    //注册发送快捷键 
-    if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
-    {reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);}  
-#elif __linux__
-    // 来实现linux下的全局热键
-#endif
+    registerHotkeys();// 注册全局热键
+    
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
 
@@ -1397,4 +1385,59 @@ void Widget::ondebugButton_clicked()
 QString Widget::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
+}
+
+// 注册快捷键
+void Widget::registerHotkeys()
+{
+// 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
+#ifdef _WIN32
+    //注册截图快捷键
+    if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
+    {reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);}
+    //注册录音快捷键 
+    if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
+    {reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);}
+    //注册发送快捷键 
+    if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
+    {reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);}  
+#elif __linux__
+    // 来实现linux下的全局热键
+    Display *display = XOpenDisplay(NULL);
+    if (display == NULL) {
+        qWarning("Cannot open display");
+        return;
+    }
+
+    Window root = DefaultRootWindow(display);
+
+    // Register F1 key
+    XGrabKey(display,
+             XKeysymToKeycode(display, XK_F1),
+             AnyModifier,
+             root,
+             True,
+             GrabModeAsync,
+             GrabModeAsync);
+
+    // Register F2 key
+    XGrabKey(display,
+             XKeysymToKeycode(display, XK_F2),
+             AnyModifier,
+             root,
+             True,
+             GrabModeAsync,
+             GrabModeAsync);
+
+    // Register F3 key
+    XGrabKey(display,
+             XKeysymToKeycode(display, XK_F3),
+             AnyModifier,
+             root,
+             True,
+             GrabModeAsync,
+             GrabModeAsync);
+
+    XCloseDisplay(display);
+#endif
 }

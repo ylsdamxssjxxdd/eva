@@ -1257,10 +1257,34 @@ void Expend::output_modelpath_change()
         QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
         float in_modelsize = fileInfo1.size() /1024.0/1024.0;
 
+#ifdef _WIN32
         MEMORYSTATUSEX memInfo;
         memInfo.dwLength = sizeof(MEMORYSTATUSEX);
         GlobalMemoryStatusEx(&memInfo);
-        float totalPhysMem = memInfo.ullTotalPhys;//总内存
+        float totalPhysMem = memInfo.ullTotalPhys; // 总内存
+#elif __linux__
+        // 读取/proc/meminfo文件获取内存信息
+        std::ifstream meminfoFile("/proc/meminfo");
+        std::string line;
+        float totalPhysMem = 0;
+
+        if (meminfoFile.is_open()) {
+            while (getline(meminfoFile, line)) {
+                if (line.find("MemTotal:") == 0) {
+                    std::istringstream iss(line);
+                    std::string key;
+                    float value;
+                    std::string unit;
+                    iss >> key >> value >> unit;
+                    if (unit == "kB") {
+                        totalPhysMem = value * 1024; // 将kB转换为字节
+                    }
+                    break;
+                }
+            }
+            meminfoFile.close();
+        }
+#endif
 
         for(int i=0;i<quantize_types.size(); ++i)
         {

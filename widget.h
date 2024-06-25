@@ -49,6 +49,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif __linux__
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/keysym.h>
 #endif
 
 #include "utils/doubleqprogressbar.h"
@@ -69,7 +73,7 @@ public:
     ~Widget();
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     bool nativeEvent(const QByteArray &eventType, void *message, long *result);//监听操作系统
-
+    void registerHotkeys(); // 注册快捷键
 public:
     QJsonObject wordsObj;//中文英文
     void getWords(QString json_file_path);//中文英文

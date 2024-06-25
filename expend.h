@@ -33,6 +33,11 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif __linux__
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
 #endif
 
 #include "xconfig.h"
