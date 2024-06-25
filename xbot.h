@@ -115,7 +115,7 @@ public slots:
     void recv_set(SETTINGS settings,bool can_reload);//接受设置内容
     void recv_date(DATES date);//接受约定内容
     void recv_free();//释放
-#ifdef BODY_USE_CUDA
+#ifdef EVA_USE_CUDA
     void recv_gpu_status(float vmem,float vram, float vcore, float vfree_);//更新gpu内存使用率
 #endif
 

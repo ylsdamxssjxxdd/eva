@@ -230,7 +230,7 @@ void Widget::load_over_handleTimeout()
 // 装载完毕强制预处理
 void Widget::unlockLoad()
 {
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     if(ui_SETTINGS.ngl<ui_maxngl)
     {
         reflash_state("ui:" + jtr("ngl tips"),USUAL_);
@@ -487,7 +487,7 @@ void Widget::temp_change()
 //ngl滑块响应
 void Widget::ngl_change()
 {
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     ngl_label->setText("gpu "+ jtr("offload") + " " + QString::number(ngl_slider->value()));
 #endif
 }
@@ -735,7 +735,7 @@ void Widget::set_SetDialog()
     decode_box->setFont(ui_font);
     QVBoxLayout *decode_layout = new QVBoxLayout();//解码设置垂直布局器
 
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();//水平布局器
     ngl_label = new QLabel("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
@@ -859,11 +859,11 @@ void Widget::set_SetDialog()
     mode_box->setLayout(mode_layout);
     layout->addWidget(mode_box);
 
-#ifdef BODY_USE_32BIT
+#ifdef EVA_USE_32BIT
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
 #endif
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
 #endif
@@ -1293,7 +1293,7 @@ void Widget::change_api_dialog(bool enable)
     nthread_label->setVisible(enable);nthread_slider->setVisible(enable);
     //batch_label->setVisible(enable);batch_slider->setVisible(enable);
     mmproj_label->setVisible(enable);mmproj_LineEdit->setVisible(enable);
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     ngl_label->setVisible(enable);ngl_slider->setVisible(enable);
 #else
     lora_label->setVisible(enable);lora_LineEdit->setVisible(enable);
@@ -1577,7 +1577,7 @@ void Widget::get_set()
     ui_SETTINGS.nthread =nthread_slider->value();
     ui_SETTINGS.nctx = nctx_slider->value();//获取nctx滑块的值
     ui_SETTINGS.batch = batch_slider->value();//获取nctx滑块的值
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     ui_SETTINGS.ngl = ngl_slider->value();//获取npl滑块的值
 #endif
 

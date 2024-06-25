@@ -18,7 +18,7 @@
 #define DEFAULT_REPEAT 1.2
 
 //推理
-#ifdef BODY_USE_32BIT
+#ifdef EVA_USE_32BIT
     #define DEFAULT_NCTX 256
     #define DEFAULT_BATCH 32
 #else

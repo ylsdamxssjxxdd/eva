@@ -64,7 +64,7 @@ Expend::Expend(QWidget *parent) :
     ui->whisper_output_format->addItems({"txt","srt","csv","json"});
 
     //声转文相关
-#ifdef BODY_USE_SPEECH
+#ifdef EVA_USE_SPEECH
     get_sys_voice();//由于win7下不支持，只在使用cuda时开启
 #endif
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
@@ -526,25 +526,8 @@ void Expend::recv_voicedecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
     QString resourcePath = QString(":/whisper") + SFX_NAME;
-    QString localPath = QString("./EVA_TEMP/whisper") + SFX_NAME;
-    createTempDirectory("./EVA_TEMP");
-    // 获取资源文件
-    QFile resourceFile(resourcePath);
-    // 尝试打开资源文件进行读取
-    if (!resourceFile.open(QIODevice::ReadOnly)) {
-        qWarning("cannot open qrc file");
-        return ;
-    }
-    // 读取资源文件的内容
-    QByteArray fileData = resourceFile.readAll();
-    resourceFile.close();
-    QFile localFile(localPath);
-    // 尝试打开本地文件进行写入
-    if (localFile.open(QIODevice::WriteOnly)) 
-    {
-        localFile.write(fileData);
-        localFile.close();
-    }
+    QString localPath = QString("./whisper") + SFX_NAME;
+
     // 设置要运行的exe文件的路径
     QString program = localPath;
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
@@ -646,34 +629,8 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 // 尝试启动server
 void Expend::embedding_server_start()
 {
-    QString resourcePath = QString(":/llama-server") + SFX_NAME;
-    QString localPath = QString("./EVA_TEMP/llama-server") + SFX_NAME;
-       // 获取资源文件
-    QFile resourceFile(resourcePath);
-
-    // 尝试打开资源文件进行读取
-    if (!resourceFile.open(QIODevice::ReadOnly)) {
-        qWarning("cannot open qrc file");
-        return ;
-    }
-
-    // 读取资源文件的内容
-    QByteArray fileData = resourceFile.readAll();
-    resourceFile.close();
-
-    createTempDirectory("./EVA_TEMP");
-    QFile localFile(localPath);
-
-    // 尝试打开本地文件进行写入
-    if (localFile.open(QIODevice::WriteOnly)) 
-    {
-        localFile.write(fileData);
-        localFile.close();
-    }
-
-    // 设置要运行的exe文件的路径
-    QString program = localPath;
-
+    QString localPath = QString("./llama-server") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
     arguments << "-m" << embedding_params.modelpath;
@@ -1350,28 +1307,8 @@ void Expend::quantize(QString in_modelpath, QString out_modelpath, QString impor
     //结束llama-quantize
     quantize_process->kill();
 
-    QString resourcePath = QString(":/llama-quantize") + SFX_NAME;
-    QString localPath = QString("./EVA_TEMP/llama-quantize") + SFX_NAME;
-    createTempDirectory("./EVA_TEMP");
-    // 获取资源文件
-    QFile resourceFile(resourcePath);
-    // 尝试打开资源文件进行读取
-    if (!resourceFile.open(QIODevice::ReadOnly)) {
-        qWarning("cannot open qrc file");
-        return ;
-    }
-    // 读取资源文件的内容
-    QByteArray fileData = resourceFile.readAll();
-    resourceFile.close();
-    QFile localFile(localPath);
-    // 尝试打开本地文件进行写入
-    if (localFile.open(QIODevice::WriteOnly)) 
-    {
-        localFile.write(fileData);
-        localFile.close();
-    }
-    // 设置要运行的exe文件的路径
-    QString program = localPath;
+    QString localPath = QString("./llama-quantize") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
     if(important_datapath!=""){arguments << "--imatrix" << important_datapath;}//重要性矩阵路径
@@ -1503,28 +1440,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     //结束sd
     sd_process->kill();
 
-    QString resourcePath = QString("://sd") + SFX_NAME;
-    QString localPath = QString("./EVA_TEMP/sd") + SFX_NAME;
-    createTempDirectory("./EVA_TEMP");
-    // 获取资源文件
-    QFile resourceFile(resourcePath);
-    // 尝试打开资源文件进行读取
-    if (!resourceFile.open(QIODevice::ReadOnly)) {
-        qWarning("cannot open qrc file");
-        return ;
-    }
-    // 读取资源文件的内容
-    QByteArray fileData = resourceFile.readAll();
-    resourceFile.close();
-    QFile localFile(localPath);
-    // 尝试打开本地文件进行写入
-    if (localFile.open(QIODevice::WriteOnly)) 
-    {
-        localFile.write(fileData);
-        localFile.close();
-    }
-    // 设置要运行的exe文件的路径
-    QString program = localPath;
+    QString localPath = QString("./sd") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 

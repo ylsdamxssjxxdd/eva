@@ -48,7 +48,7 @@ Widget::Widget(QWidget *parent)
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"),USUAL_);//初始提示
 
-#ifndef BODY_USE_CUDA
+#ifndef EVA_USE_CUDA
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
     ui->vram_bar->setVisible(0);
 #endif
@@ -103,7 +103,7 @@ Widget::Widget(QWidget *parent)
     connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
     speechtimer = new QTimer(this);
     connect(speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
-#ifdef BODY_USE_SPEECH
+#ifdef EVA_USE_SPEECH
     speechtimer->start(500);//每半秒检查一次是否需要朗读
 #endif
     //----------------第三方进程相关------------------
@@ -638,7 +638,7 @@ void Widget::recv_setreset()
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat),USUAL_);
     reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict),USUAL_);
     
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl),USUAL_);
 #endif
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread),USUAL_);
@@ -675,7 +675,7 @@ void Widget::on_reset_clicked()
     wait_to_show_image = "";//清空待显示图像
     temp_speech="";//清空待读列表
     wait_speech.clear();//清空待读列表
-#ifdef BODY_USE_SPEECH
+#ifdef EVA_USE_SPEECH
     speech->stop();//停止朗读
 #endif
 
@@ -796,7 +796,7 @@ void Widget::on_set_clicked()
     else if(ui_mode == SERVER_){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     ngl_slider->setValue(ui_SETTINGS.ngl);
 #endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
@@ -876,34 +876,8 @@ void Widget::serverControl()
     emit ui2bot_free();
     is_load = false;
 
-    QString resourcePath = QString(":/llama-server") + SFX_NAME;
-    QString localPath = QString("./EVA_TEMP/llama-server") + SFX_NAME;
-
-    // 获取资源文件
-    QFile resourceFile(resourcePath);
-
-    // 尝试打开资源文件进行读取
-    if (!resourceFile.open(QIODevice::ReadOnly)) {
-        qWarning("cannot open qrc file");
-        return ;
-    }
-
-    // 读取资源文件的内容
-    QByteArray fileData = resourceFile.readAll();
-    resourceFile.close();
-
-    createTempDirectory("./EVA_TEMP");
-    QFile localFile(localPath);
-
-    // 尝试打开本地文件进行写入
-    if (localFile.open(QIODevice::WriteOnly)) 
-    {
-        localFile.write(fileData);
-        localFile.close();
-    }
-
-    // 设置要运行的exe文件的路径
-    QString program = localPath;
+    QString localPath = QString("./llama-server") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
 
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
@@ -912,21 +886,16 @@ void Widget::serverControl()
     arguments << "--port" << ui_port;//服务端口
     arguments << "-c" << QString::number(ui_SETTINGS.nctx);//使用最近一次应用的nctx作为服务的上下文长度
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);//使用最近一次应用的ngl作为服务的gpu负载
-#if defined(BODY_USE_CUDA)
-    arguments << "-fa"; // 开启flash attention加速
-#endif
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);//使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.batch);//批大小
     arguments << "-cb";//允许连续批处理
     arguments << "--embedding";//允许词嵌入
-    arguments << "--log-disable";//不要日志
+#if defined(EVA_USE_CUDA)
+    arguments << "-fa"; // 开启flash attention加速
+#endif
     // arguments << "-np";//设置进程请求的槽数 默认：1
-
     if(ui_SETTINGS.lorapath!=""){arguments << "--no-mmap";arguments << "--lora" << ui_SETTINGS.lorapath;}//挂载lora不能开启mmp
-    if(ui_SETTINGS.mmprojpath!="")
-    {
-        arguments << "--mmproj" << ui_SETTINGS.mmprojpath;
-    }
+    if(ui_SETTINGS.mmprojpath!=""){arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
     // 开始运行程序
     server_process->start(program, arguments);
@@ -981,7 +950,7 @@ void Widget::recv_tokens(int tokens)
 void Widget::recv_maxngl(int maxngl_)
 {
     ui_maxngl = maxngl_;//gpu负载层数是n_layer+1
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     ngl_slider->setMaximum(ui_maxngl);
 #endif
     if(ui_SETTINGS.ngl==999){ui_SETTINGS.ngl=ui_maxngl;}//及时修正999值
@@ -993,7 +962,7 @@ void Widget::recv_play()
     load_play();//开始播放动画
 }
 
-#ifdef BODY_USE_CUDA
+#ifdef EVA_USE_CUDA
 //更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {

@@ -54,7 +54,7 @@ xBot::xBot()
     gpt_params_.sparams.penalty_repeat    = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq      = 0.00; //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present   = 0.00; //同类惩罚 0.0 = disabled openai
-#if defined(BODY_USE_CUDA)
+#if defined(EVA_USE_CUDA)
     gpt_params_.flash_attn = true; // CUDA默认开启flash_attn
 #endif
 
@@ -667,12 +667,12 @@ void xBot::load(std::string &modelpath)
     //lora不支持mmp
     if(gpt_params_.lora_adapter.size() == 0){gpt_params_.use_mmap = true;}
     else{gpt_params_.use_mmap = false;}
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     //使用mmp后gpu负载无法分担内存占用
     gpt_params_.use_mmap = true;
 
 #endif
-#ifdef BODY_USE_32BIT
+#ifdef EVA_USE_32BIT
     gpt_params_.use_mmap = false;//32位不能mmp
 #endif
     if(vram_enough)
@@ -1052,7 +1052,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     bool reload_flag = false;//重载标签
     //qDebug()<<"settings.ngl"<<settings.ngl<<"gpt_params_.n_gpu_layers"<<gpt_params_.n_gpu_layers<<reload_flag<<maxngl;
-#if defined(BODY_USE_GPU)
+#if defined(EVA_USE_GPU)
     if(settings.ngl == 999)//传过来的是999表示检测到显存充足
     {
         gpt_params_.n_gpu_layers = 999;
@@ -1169,7 +1169,7 @@ void xBot::recv_free()
 
 }
 
-#ifdef BODY_USE_CUDA
+#ifdef EVA_USE_CUDA
 void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
 {
     vfree = vfree_;//剩余显存
@@ -1253,7 +1253,7 @@ void xBot::recv_llama_log(QString log_)
     //截获gpu最大负载层数
     if(log_.contains("llm_load_print_meta: n_layer"))
     {
-        #if defined(BODY_USE_GPU)
+        #if defined(EVA_USE_GPU)
             maxngl = log_.split("=")[1].toInt()+1;//gpu负载层数是n_layer+1
             emit bot2ui_maxngl(maxngl);
         #endif
