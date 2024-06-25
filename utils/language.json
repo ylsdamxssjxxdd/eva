@@ -256,6 +256,7 @@
         "embedding": ["嵌入","embedding "],
         "embeddingdb describe": ["知识库描述","knowledge database describe"],
         "qurey&timeuse": ["查询&计算耗时","qurey&timeuse"],
+        "qureying": ["查询中","qureying"],
         "quantize": ["量化","quantize "],
         "text2image": ["文生图","text2image "],
         "text to image": ["文生图","txt2img "],

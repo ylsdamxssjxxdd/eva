@@ -2683,7 +2683,6 @@ inline mmap::mmap(const char *path)
 }
 
 inline mmap::~mmap() { close(); }
-
 inline bool mmap::open(const char *path) {
   close();
 #if defined(_WIN32)

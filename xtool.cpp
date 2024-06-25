@@ -79,6 +79,7 @@ void xTool::run()
         else
         {
             //查询计算词向量和计算相似度，返回匹配的文本段
+            emit tool2ui_state("tool:" + jtr("qureying"));
             result = embedding_query_process(func_arg_list.second);
             emit tool2ui_state("tool:" + jtr("qurey&timeuse") + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
             emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_);
@@ -138,6 +139,7 @@ void xTool::run()
                 
             });
 
+            emit tool2ui_state("tool: " + command + " " + args.at(0));
             // 开始运行脚本
             process->start(command, args);
 

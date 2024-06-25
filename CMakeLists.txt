@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件名
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3181) # 打包版本
+set(version b3216) # 打包版本
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                    "pack eva"                                   OFF) # 是否打包
@@ -19,6 +19,8 @@ elseif(LLAMA_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
+    option(LLAMA_CUDA_FORCE_MMQ                  "llama: always use mmq kernels instead of cuBLAS"  OFF) # 原项目mmq加速支持
+    option(LLAMA_CUDA_FORCE_CUBLAS               "llama: always use cuBLAS instead of mmq kernels"  OFF) # 原项目cublas加速支持
     # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(LLAMA_VULKAN)
     find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
@@ -61,9 +63,16 @@ elseif(MINGW)
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
-    list(APPEND extra_INCLUDES utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
     option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
+
+    if (LLAMA_CUDA) # 如果启用LLAMA_CUDA标志
+        list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
+        list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
+        list(APPEND sd_EXTRA_COMMAND "-DSD_CUBLAS=ON") # 启用sd的cuda编译标志
+    endif()
+
 endif()
 
 ##################################### 第三方程序相关 #####################################
