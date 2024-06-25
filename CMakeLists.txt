@@ -86,17 +86,21 @@ endif()
 # 添加llama相关项目,将会强制应用父项目的编译设置
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
+if(UNIX AND NOT APPLE)
+    set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
+endif()
 add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
 add_subdirectory(llama.cpp/examples/main) # 测试用
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
 
 set(TARGET_whisper whisper) # 添加whisper
+find_package(Threads REQUIRED)
 add_executable(${TARGET_whisper} 
 whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
 whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml.h llama.cpp/ggml-quants.h)
-target_link_libraries(${TARGET_whisper} PRIVATE llama) # 这里直接将whisper链接llama.cpp的llama库
+target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT}) # 这里直接将whisper链接llama.cpp的llama库
 
 
 # 构建sd.exe并放到utils目录下

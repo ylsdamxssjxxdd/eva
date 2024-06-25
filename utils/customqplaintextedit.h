@@ -1107,7 +1107,7 @@ static const unsigned int Nav_green_right_ico_len = 6518;
 
 // 主要类
 #include <QPlainTextEdit>
-#include <QDeBug>
+#include <QDebug>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>

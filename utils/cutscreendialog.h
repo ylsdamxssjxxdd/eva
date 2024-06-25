@@ -21,7 +21,7 @@
 #include <qscreen.h>
 #include <QDateTime>
 #include <QDir>
-#include <QDeBug>
+#include <QDebug>
 #include <QJsonObject>
 
 class CutScreenDialog:public QDialog

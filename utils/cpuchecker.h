@@ -14,11 +14,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#endif
-
-#ifdef __linux__
+#elif __linux__
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <unistd.h>
 #endif
 
@@ -109,30 +108,7 @@ public:
 #endif       
 
 #ifdef __linux__
-        std::ifstream file("/proc/stat");
-        std::string line;
-        if (std::getline(file, line)) {
-            std::istringstream ss(line);
-            std::string cpu;
-            long long user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
-            ss >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
-            
-            long long idleTime = idle + iowait;
-            long long totalTime = user + nice + system + idle + iowait + irq + softirq + steal;
-            
-            long long totalDelta = totalTime - prevTotalTime;
-            long long idleDelta = idleTime - prevIdleTime;
 
-            prevTotalTime = totalTime;
-            prevIdleTime = idleTime;
-
-            if (totalDelta == 0) {
-                return 0.0;
-            }
-
-            return (1.0 - (idleDelta * 1.0 / totalDelta)) * 100.0;
-        }
-        return -1.0;
 #endif
     }
 
@@ -141,30 +117,87 @@ signals:
 
 public slots:
     void chekCpu()
-    {
+{
 #ifdef _WIN32
-        MEMORYSTATUSEX memInfo;
-        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-        GlobalMemoryStatusEx(&memInfo);
-        DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
-        DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
-        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
-        double cpuLoad = CalculateCPULoad(); // 计算cpu使用率
-        emit cpu_status(cpuLoad, physMemUsedPercent);
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&memInfo);
+    DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
+    DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
+    double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
+    double cpuLoad = CalculateCPULoad(); // 计算cpu使用率
+    emit cpu_status(cpuLoad, physMemUsedPercent);
 #endif       
 
 #ifdef __linux__
-        struct sysinfo memInfo;
-        sysinfo(&memInfo);
-        long long totalPhysMem = memInfo.totalram;
-        totalPhysMem *= memInfo.mem_unit;
-        long long physMemUsed = memInfo.totalram - memInfo.freeram;
-        physMemUsed *= memInfo.mem_unit;
-        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
-        double cpuLoad = CalculateCPULoad(); // 计算cpu使用率
-        emit cpu_status(cpuLoad, physMemUsedPercent);
+    // 获取内存使用情况
+    std::ifstream memInfoFile("/proc/meminfo");
+    std::string line;
+    unsigned long totalMem = 0;
+    unsigned long freeMem = 0;
+    unsigned long availMem = 0;
+    unsigned long buffers = 0;
+    unsigned long cached = 0;
+
+    while (std::getline(memInfoFile, line)) {
+        std::istringstream iss(line);
+        std::string key;
+        unsigned long value;
+        std::string unit;
+        
+        iss >> key >> value >> unit;
+        
+        if (key == "MemTotal:") {
+            totalMem = value;
+        } else if (key == "MemFree:") {
+            freeMem = value;
+        } else if (key == "MemAvailable:") {
+            availMem = value;
+        } else if (key == "Buffers:") {
+            buffers = value;
+        } else if (key == "Cached:") {
+            cached = value;
+        }
+    }
+
+    unsigned long usedMem = totalMem - availMem;
+    double physMemUsedPercent = (usedMem * 100.0) / totalMem;
+
+    // 获取CPU使用情况
+    std::ifstream cpuInfoFile("/proc/stat");
+    std::string cpuLine;
+    std::getline(cpuInfoFile, cpuLine);
+    std::istringstream cpuStream(cpuLine);
+
+    std::string cpu;
+    unsigned long user, nice, system, idle, iowait, irq, softirq, steal;
+    cpuStream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
+
+    static unsigned long prevUser = 0, prevNice = 0, prevSystem = 0, prevIdle = 0, prevIowait = 0, prevIrq = 0, prevSoftirq = 0, prevSteal = 0;
+    unsigned long prevTotalIdle = prevIdle + prevIowait;
+    unsigned long idleTime = idle + iowait;
+
+    unsigned long prevTotal = prevUser + prevNice + prevSystem + prevIdle + prevIowait + prevIrq + prevSoftirq + prevSteal;
+    unsigned long total = user + nice + system + idleTime + irq + softirq + steal;
+
+    unsigned long totald = total - prevTotal;
+    unsigned long idled = idleTime - prevTotalIdle;
+
+    double cpuLoad = (totald - idled) * 100.0 / totald;
+
+    prevUser = user;
+    prevNice = nice;
+    prevSystem = system;
+    prevIdle = idle;
+    prevIowait = iowait;
+    prevIrq = irq;
+    prevSoftirq = softirq;
+    prevSteal = steal;
+
+    emit cpu_status(cpuLoad, physMemUsedPercent);
 #endif
     }
+
     void recv_cpu_reflash()
     {
         chekCpu();
