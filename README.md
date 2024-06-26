@@ -75,9 +75,12 @@
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
-3. 根据CMakeLists.txt文件中的说明修改相应配置
-4. 编译
-
+3. 编译
+```bash
+cd eva
+cmake -B build -DEVA_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DEVA_32BIT=OFF 
+cmake --build build --config Release
+```
 ## 行动纲领
 - 装载流程
     - 【ui】->用户点击装载->选择路径->发送设置参数->【bot】->处理参数->发送重载信号->【ui】->预装载->装载中界面状态->发送装载信号->【bot】->开始装载->发送装载动画信号->装载完重置->发送装载完成信号->【ui】->加速装载动画->装载动画结束->滚动动画开始->动画结束->强制解锁->触发发送->发送预解码(只解码不采样输出)指令->【bot】->预解码系统指令->发送解码完毕信号->【ui】->正常界面状态->END

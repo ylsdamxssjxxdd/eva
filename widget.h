@@ -46,8 +46,7 @@
 #include <QBuffer>
 #include <QIODevice>
 #include <QTextToSpeech>
-
-#include "qxtglobalshortcut.h"
+#include <QShortcut>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -72,8 +71,7 @@ public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
-    
-    QxtGlobalShortcut *shortcut_f1,*shortcut_f2,*shortcut_ctrl_enter;
+    QShortcut *shortcutF1,*shortcutF2,*shortcutCtrlEnter;
     void registerHotkeys(); // 注册快捷键
 public:
     QJsonObject wordsObj;//中文英文

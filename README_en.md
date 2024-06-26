@@ -75,8 +75,12 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
-3. Modify the corresponding configuration according to the instructions in the CMakeLists.txt file
-4. Build
+3. Build
+```bash
+cd eva
+cmake -B build -DEVA_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DEVA_32BIT=OFF 
+cmake --build build --config Release
+```
 
 ## guideline
 - Load process

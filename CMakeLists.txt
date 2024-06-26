@@ -64,10 +64,6 @@ elseif(UNIX)
     option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
-    find_package(X11 REQUIRED)# 查找X11库
-    include_directories(${X11_INCLUDE_DIR})# 包含X11头文件
-    list(APPEND extra_LIBS ${X11_LIBRARIES}) # 向extra_LIBS列表里添加文件
-
     if (LLAMA_CUDA) # 如果启用LLAMA_CUDA标志
         list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
@@ -131,18 +127,6 @@ message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 set(resource_FILES utils/logo.qrc utils/ceval.qrc utils/mmlu.qrc)
 
-#全局热键相关
-include_directories(utils/qxtglobalshortcut5/core utils/qxtglobalshortcut5/gui) # 添加cmake寻找头文件的路径，不会参与编译
-set(qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/core/qxtglobal.cpp utils/qxtglobalshortcut5/gui/qxtwindowsystem.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut.cpp)
-set(qxtglobalshortcut5_HEADERS utils/qxtglobalshortcut5/core/qxtglobal.h utils/qxtglobalshortcut5/gui/qxtglobalshortcut_p.h utils/qxtglobalshortcut5/gui/qxtglobalshortcut.h utils/qxtglobalshortcut5/gui/qxtwindowsystem.h)
-if(UNIX AND NOT APPLE)
-    list(APPEND qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/gui/qxtwindowsystem_x11.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut_x11.cpp)
-    list(APPEND qxtglobalshortcut5_HEADERS utils/qxtglobalshortcut5/gui/x11info.h)
-elseif(WIN32)
-    list(APPEND qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/gui/qxtwindowsystem_win.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut_win.cpp)
-endif()
-add_compile_definitions(BUILD_QXT_CORE BUILD_QXT_GUI)
-
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)
 
@@ -150,7 +134,7 @@ set(logo_FILES utils/ui/ico.rc)
 add_executable(
 ${TARGET}
 ${EVA_PACK_EXE}
-${logo_FILES} ${resource_FILES} ${extra_INCLUDES} ${qxtglobalshortcut5_SOURCE} ${qxtglobalshortcut5_HEADERS}
+${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui

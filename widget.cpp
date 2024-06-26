@@ -1425,35 +1425,14 @@ QString Widget::jtr(QString customstr)
 // 注册快捷键
 void Widget::registerHotkeys()
 {
-    shortcut_f1 = new QxtGlobalShortcut(this);//设置全局快捷键对象
-    if(shortcut_f1->setShortcut(QKeySequence("F1")))//设置快捷键并检测是否占用
-    {
-        connect(shortcut_f1, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_F1);//连接快捷键触发的函数
-    }
-    else
-    {
-        reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);
-    }
+     // 创建快捷键并连接到槽函数
+    QShortcut *shortcutF1 = new QShortcut(QKeySequence(Qt::Key_F1), this);
+    connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
 
-    shortcut_f2 = new QxtGlobalShortcut(this);//设置全局快捷键对象
-    if(shortcut_f2->setShortcut(QKeySequence("F2")))//设置快捷键并检测是否占用
-    {
-        connect(shortcut_f2, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_F2);//连接快捷键触发的函数
-    }
-    else
-    {
-        reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);
-    }
-    
-    shortcut_ctrl_enter = new QxtGlobalShortcut(this);//设置全局快捷键对象
-    if(shortcut_ctrl_enter->setShortcut(QKeySequence("ctrl+enter")))//设置快捷键并检测是否占用
-    {
-        connect(shortcut_ctrl_enter, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_CTRL_ENTER);//连接快捷键触发的函数
-    }
-    else
-    {
-        reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);
-    }
-    
+    QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
+    connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
+
+    QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);
+    connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
 
 }
