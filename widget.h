@@ -47,12 +47,12 @@
 #include <QIODevice>
 #include <QTextToSpeech>
 
+#include "qxtglobalshortcut.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
+
 #endif
 
 #include "utils/doubleqprogressbar.h"
@@ -72,7 +72,8 @@ public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
-    bool nativeEvent(const QByteArray &eventType, void *message, long *result);//监听操作系统
+    
+    QxtGlobalShortcut *shortcut_f1,*shortcut_f2,*shortcut_ctrl_enter;
     void registerHotkeys(); // 注册快捷键
 public:
     QJsonObject wordsObj;//中文英文
@@ -441,7 +442,9 @@ private slots:
     void on_reset_clicked();//用户点击遗忘按钮响应
     void on_date_clicked();//用户点击约定按钮响应
     void on_set_clicked();//用户点击设置按钮响应
-    void onShortcutActivated();//用户按下截图键响应
+    void onShortcutActivated_F1();//用户按下F1键响应
+    void onShortcutActivated_F2();//用户按下F2键响应
+    void onShortcutActivated_CTRL_ENTER();//用户按下CTRL+ENTER键响应
     void recv_qimagepath(QString cut_imagepath_);//接收传来的图像
     void monitorAudioLevel();// 每隔100毫秒刷新一次监视录音
 

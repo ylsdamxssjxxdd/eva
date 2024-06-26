@@ -1014,8 +1014,12 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
 //接受图片路径
 void xBot::recv_imagepath(QString image_path)
 {
+#ifdef WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string imagepath = code->fromUnicode(image_path).data();
+#elif __linux__
+    std::string imagepath = image_path;
+#endif
     gpt_params_.image.push_back(imagepath);
 }
 
@@ -1088,8 +1092,12 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     //如果mmprojpath改变则重新加载模型
     std::string settings_mmprojpath;
+#ifdef WIN32
     QTextCodec *code_mmprojpath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_mmprojpath = code_mmprojpath->fromUnicode(settings.mmprojpath).data();
+#elif __linux__
+    settings_mmprojpath = settings.mmprojpath;
+#endif
     if(settings_mmprojpath != mmprojpath)
     {     
         mmprojpath = settings_mmprojpath;
@@ -1099,8 +1107,14 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     
     //如果lora改变则重新加载模型
     std::string settings_lorapath;
+
+#ifdef WIN32
     QTextCodec *code_lorapath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_lorapath = code_lorapath->fromUnicode(settings.lorapath).data();
+#elif __linux__
+    settings_lorapath = settings.lorapath;
+#endif
+
     if(settings_lorapath != lorapath)
     {
         lorapath = settings_lorapath;
@@ -1118,12 +1132,21 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     if(!is_load){reload_flag = true;is_first_load=true;}
 
     //如果更换了模型则重载
+#ifdef WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string bot_modelpath_next = code->fromUnicode(settings.modelpath).data();
+#elif __linux__
+    std::string bot_modelpath_next = settings.modelpath;
+#endif
+
     if(bot_modelpath != bot_modelpath_next)
     {
-        QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
-        bot_modelpath = code->fromUnicode(settings.modelpath).data();
+#ifdef WIN32
+    QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+    bot_modelpath = code->fromUnicode(settings.modelpath).data();
+#elif __linux__
+    bot_modelpath = settings.modelpath;
+#endif
         reload_flag = true;
     }
     

@@ -798,10 +798,45 @@ void Widget::on_set_clicked()
     set_dialog->exec();
 }
 
-//用户按下截图键响应
-void Widget::onShortcutActivated()
+//用户按下F1键响应
+void Widget::onShortcutActivated_F1()
 {
-    cutscreen_dialog->showFullScreen();
+    if(!is_debuging)
+    {
+        cutscreen_dialog->showFullScreen();//处理截图事件
+    }
+    
+}
+
+//用户按下F2键响应
+void Widget::onShortcutActivated_F2()
+{
+    if(whisper_model_path == "")//如果还未指定模型路径则先指定
+    {
+        emit ui2expend_show(6);//语音增殖界面
+    }   
+    else if(!is_recodering)
+    {
+        if(!is_debuging)
+        {
+            recordAudio();//开始录音
+            is_recodering = true;
+        }
+        
+    }
+    else if(is_recodering)
+    {
+        if(!is_debuging)
+        {
+            stop_recordAudio();//停止录音
+        }
+    }
+}
+
+//用户按下CTRL+ENTER键响应
+void Widget::onShortcutActivated_CTRL_ENTER()
+{
+    ui->send->click();
 }
 
 //接收传来的图像
@@ -1390,54 +1425,35 @@ QString Widget::jtr(QString customstr)
 // 注册快捷键
 void Widget::registerHotkeys()
 {
-// 注册全局热键,windows平台用,第二个参数是信号标识,第三个参数是控制键，最后一个是快捷键
-#ifdef _WIN32
-    //注册截图快捷键
-    if(!RegisterHotKey((HWND)Widget::winId(), 7758258, 0, VK_F1))
-    {reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);}
-    //注册录音快捷键 
-    if(!RegisterHotKey((HWND)Widget::winId(), 123456, 0, VK_F2))
-    {reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);}
-    //注册发送快捷键 
-    if(!RegisterHotKey((HWND)Widget::winId(), 741852963, MOD_CONTROL, VK_RETURN))
-    {reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);}  
-#elif __linux__
-    // 来实现linux下的全局热键
-    Display *display = XOpenDisplay(NULL);
-    if (display == NULL) {
-        qWarning("Cannot open display");
-        return;
+    shortcut_f1 = new QxtGlobalShortcut(this);//设置全局快捷键对象
+    if(shortcut_f1->setShortcut(QKeySequence("F1")))//设置快捷键并检测是否占用
+    {
+        connect(shortcut_f1, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_F1);//连接快捷键触发的函数
+    }
+    else
+    {
+        reflash_state("ui:" + QString("f1 ") + jtr("shortcut key registration failed"), WRONG_);
     }
 
-    Window root = DefaultRootWindow(display);
+    shortcut_f2 = new QxtGlobalShortcut(this);//设置全局快捷键对象
+    if(shortcut_f2->setShortcut(QKeySequence("F2")))//设置快捷键并检测是否占用
+    {
+        connect(shortcut_f2, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_F2);//连接快捷键触发的函数
+    }
+    else
+    {
+        reflash_state("ui:" + QString("f2 ") + jtr("shortcut key registration failed"), WRONG_);
+    }
+    
+    shortcut_ctrl_enter = new QxtGlobalShortcut(this);//设置全局快捷键对象
+    if(shortcut_ctrl_enter->setShortcut(QKeySequence("ctrl+enter")))//设置快捷键并检测是否占用
+    {
+        connect(shortcut_ctrl_enter, &QxtGlobalShortcut::activated,this,&Widget::onShortcutActivated_CTRL_ENTER);//连接快捷键触发的函数
+    }
+    else
+    {
+        reflash_state("ui:" + QString("crtl+enter ") + jtr("shortcut key registration failed"), WRONG_);
+    }
+    
 
-    // Register F1 key
-    XGrabKey(display,
-             XKeysymToKeycode(display, XK_F1),
-             AnyModifier,
-             root,
-             True,
-             GrabModeAsync,
-             GrabModeAsync);
-
-    // Register F2 key
-    XGrabKey(display,
-             XKeysymToKeycode(display, XK_F2),
-             AnyModifier,
-             root,
-             True,
-             GrabModeAsync,
-             GrabModeAsync);
-
-    // Register F3 key
-    XGrabKey(display,
-             XKeysymToKeycode(display, XK_F3),
-             AnyModifier,
-             root,
-             True,
-             GrabModeAsync,
-             GrabModeAsync);
-
-    XCloseDisplay(display);
-#endif
 }

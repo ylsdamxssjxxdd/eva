@@ -8,7 +8,7 @@ set(version b3219) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 ###################################### 编译选项 ######################################
 option(EVA_PACK                     "pack eva"                                   OFF) # 是否打包
-option(LLAMA_CUDA                   "llama: use CUDA"                            ON) # 速度900%
+option(LLAMA_CUDA                   "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_VULKAN                 "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd
 option(EVA_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 ##################################### 处理编译选项 ####################################
@@ -131,6 +131,18 @@ message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 set(resource_FILES utils/logo.qrc utils/ceval.qrc utils/mmlu.qrc)
 
+#全局热键相关
+include_directories(utils/qxtglobalshortcut5/core utils/qxtglobalshortcut5/gui) # 添加cmake寻找头文件的路径，不会参与编译
+set(qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/core/qxtglobal.cpp utils/qxtglobalshortcut5/gui/qxtwindowsystem.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut.cpp)
+set(qxtglobalshortcut5_HEADERS utils/qxtglobalshortcut5/core/qxtglobal.h utils/qxtglobalshortcut5/gui/qxtglobalshortcut_p.h utils/qxtglobalshortcut5/gui/qxtglobalshortcut.h utils/qxtglobalshortcut5/gui/qxtwindowsystem.h)
+if(UNIX AND NOT APPLE)
+    list(APPEND qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/gui/qxtwindowsystem_x11.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut_x11.cpp)
+    list(APPEND qxtglobalshortcut5_HEADERS utils/qxtglobalshortcut5/gui/x11info.h)
+elseif(WIN32)
+    list(APPEND qxtglobalshortcut5_SOURCE utils/qxtglobalshortcut5/gui/qxtwindowsystem_win.cpp utils/qxtglobalshortcut5/gui/qxtglobalshortcut_win.cpp)
+endif()
+add_compile_definitions(BUILD_QXT_CORE BUILD_QXT_GUI)
+
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)
 
@@ -138,7 +150,7 @@ set(logo_FILES utils/ui/ico.rc)
 add_executable(
 ${TARGET}
 ${EVA_PACK_EXE}
-${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
+${logo_FILES} ${resource_FILES} ${extra_INCLUDES} ${qxtglobalshortcut5_SOURCE} ${qxtglobalshortcut5_HEADERS}
 main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
 widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
 widget.ui expend.ui
