@@ -1018,7 +1018,7 @@ void xBot::recv_imagepath(QString image_path)
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string imagepath = code->fromUnicode(image_path).data();
 #elif __linux__
-    std::string imagepath = image_path;
+    std::string imagepath = image_path.toStdString();
 #endif
     gpt_params_.image.push_back(imagepath);
 }
@@ -1096,7 +1096,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     QTextCodec *code_mmprojpath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_mmprojpath = code_mmprojpath->fromUnicode(settings.mmprojpath).data();
 #elif __linux__
-    settings_mmprojpath = settings.mmprojpath;
+    settings_mmprojpath = settings.mmprojpath.toStdString();
 #endif
     if(settings_mmprojpath != mmprojpath)
     {     
@@ -1112,7 +1112,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     QTextCodec *code_lorapath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_lorapath = code_lorapath->fromUnicode(settings.lorapath).data();
 #elif __linux__
-    settings_lorapath = settings.lorapath;
+    settings_lorapath = settings.lorapath.toStdString();
 #endif
 
     if(settings_lorapath != lorapath)
@@ -1136,7 +1136,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string bot_modelpath_next = code->fromUnicode(settings.modelpath).data();
 #elif __linux__
-    std::string bot_modelpath_next = settings.modelpath;
+    std::string bot_modelpath_next = settings.modelpath.toStdString();
 #endif
 
     if(bot_modelpath != bot_modelpath_next)
@@ -1145,7 +1145,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     bot_modelpath = code->fromUnicode(settings.modelpath).data();
 #elif __linux__
-    bot_modelpath = settings.modelpath;
+    bot_modelpath = settings.modelpath.toStdString();
 #endif
         reload_flag = true;
     }
