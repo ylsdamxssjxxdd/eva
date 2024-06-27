@@ -7,8 +7,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目�
 set(version b3219) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
-option(LLAMA_CUDA                    "llama: use CUDA"                            ON) # 速度900%
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
+option(LLAMA_CUDA                    "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_VULKAN                  "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 ##################################### 处理编译选项 ####################################
@@ -106,7 +106,7 @@ target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT})
 # 构建sd.exe并放到utils目录下
 set(stable_DIFFUSION_DIR "${PROJECT_SOURCE_DIR}/stable-diffusion.cpp")
 add_custom_command(TARGET ${TARGET_whisper} POST_BUILD
-    # COMMAND ${CMAKE_COMMAND} -E rm_directory "${stable_DIFFUSION_DIR}/build"
+    # COMMAND ${CMAKE_COMMAND} -E remove_directory "${stable_DIFFUSION_DIR}/build"
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR} ${CMAKE_COMMAND} -E make_directory build
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" ".." ${sd_EXTRA_COMMAND} "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${stable_DIFFUSION_DIR}/build/bin/Release"
     COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" "--build" "." "--config Release"
@@ -170,8 +170,8 @@ if(MSVC)
     )
     # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E rm "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
-        COMMAND ${CMAKE_COMMAND} -E rm "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/ggml_shared.dll"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
+        COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/ggml_shared.dll"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
         COMMENT "custom Removing ..."
     )
@@ -200,7 +200,7 @@ elseif(UNIX)
         # 删除不需要的文件
         set(APPIMAGE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage")
         if(EXISTS ${APPIMAGE_PATH})
-            execute_process(COMMAND ${CMAKE_COMMAND} -E rm ${APPIMAGE_PATH} RESULT_VARIABLE result)
+            execute_process(COMMAND ${CMAKE_COMMAND} -E remove ${APPIMAGE_PATH} RESULT_VARIABLE result)
         endif()
 
         # 自动打包操作，这个动作在eva生产之后
@@ -219,7 +219,7 @@ elseif(UNIX)
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E rm "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper"
             COMMENT "custom linuxdeployqt ..."
         )
     endif()
