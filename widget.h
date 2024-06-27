@@ -206,7 +206,7 @@ public:
     QSlider *repeat_slider;
 
     QGroupBox *decode_box;
-#if defined(EVA_USE_GPU)
+#if defined(BODY_USE_GPU)
     QLabel *ngl_label;
     QSlider *ngl_slider;
 #endif
@@ -388,7 +388,7 @@ public slots:
 //自用的槽
 public slots:    
     void switch_lan_change();//切换行动纲领的语言
-#ifdef EVA_USE_CUDA
+#ifdef BODY_USE_CUDA
     void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率
 #endif
     void recv_cpu_status(double cpuload, double memload);//传递cpu信息

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=eva
+Comment=llm software
+Exec=/usr/bin/eva
+Icon=/usr/share/icons/hicolor/64x64/apps/blue_logo
+Categories=Utility;Application;
+X-AppImage-Version=7758

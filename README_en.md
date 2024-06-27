@@ -11,19 +11,18 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - Intuitive 
     - Clearly show the process of the llm predicting the next word
 - Compatibility
-    - Minimum support for 32-bit Windows 7、kylinV10(linux)
+    - Support Windows7(32bit)、Linux
 - Multifunctional (all available but not very effective)
-    - local model,  online model, API services, agent, multimodal
+    - local model,  online model, API services, WEB services, agent, multimodal
     - knowledge base QA, code interpreter, software control, text2img, voice2text 
     - model quantize, model evaluation
     
 ## quick start
 1. Download eva
-- https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
-- or this Release https://github.com/ylsdamxssjxxdd/eva/releases
+- https://github.com/ylsdamxssjxxdd/eva/releases
+- download programs with the .exe suffix for Windows or .AppImage suffix for Linux
 2. Download gguf model
-- https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
-- or https://huggingface.co
+- https://huggingface.co , eva supports almost all open-source llms
 3. Load！
 - Click the load button, select a gguf model to load into memory
 4. Send！
@@ -59,18 +58,11 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 ## build
 1. Configure the environment
-- 64bit version (all option options are turned off)
-    - My toolchain is mingw81_64+qt5.15.14 
-- 32bit version (BODY_32BIT option turned on, others turned off)
-    - My toolchain is mingw81_12+qt5.15.14 
-- CUDA version (LLAMA_CUDA option turned on, others turned off)
-    - My toolchain is msvc2022+qt5.15.14+cuda12
-    - Install cuda booklit https://developer.nvidia.com/cuda-toolkit-archive This is also necessary for the runtime of the cuda version of the machine body
-    - Install cudnn https://developer.nvidia.com/cudnn
-- Vulkan version (LLAMA_VULKAN option turned on, others turned off)
-    - My toolchain is mingw81_64+VulkanSDK+qt5.15.14
-    - Download VulkanSDK https://vulkan.lunarg.com/sdk/home
-
+    - install compiler msvc or mingw
+    - install Qt5 https://download.qt.io/
+    - install cmake https://cmake.org/
+    - if we want to accelerate, install cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - if we want to accelerate, install VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. Clone source code
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
@@ -81,6 +73,10 @@ cd eva
 cmake -B build -DEVA_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DEVA_32BIT=OFF 
 cmake --build build --config Release
 ```
+-EVA-PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
+-LLAMA-CUDA: Flag indicating whether cuda acceleration needs to be enabled
+-LLAMA_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
+-EVA_12BIT: Flag for compiling to 32-bit program
 
 ## guideline
 - Load process

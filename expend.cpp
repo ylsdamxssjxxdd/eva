@@ -64,7 +64,7 @@ Expend::Expend(QWidget *parent) :
     ui->whisper_output_format->addItems({"txt","srt","csv","json"});
 
     //声转文相关
-#ifdef EVA_USE_SPEECH
+#ifdef BODY_USE_SPEECH
     get_sys_voice();//由于win7下不支持，只在使用cuda时开启
 #endif
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
@@ -525,8 +525,13 @@ void Expend::on_whisper_load_modelpath_button_clicked()
 void Expend::recv_voicedecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
-    QString resourcePath = QString(":/whisper") + SFX_NAME;
+    
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/whisper") + SFX_NAME;
+#else
     QString localPath = QString("./whisper") + SFX_NAME;
+#endif
 
     // 设置要运行的exe文件的路径
     QString program = localPath;
@@ -629,8 +634,15 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 // 尝试启动server
 void Expend::embedding_server_start()
 {
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/llama-server") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
+#else
     QString localPath = QString("./llama-server") + SFX_NAME;
     QString program = localPath;// 设置要运行的exe文件的路径
+#endif
+
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
     arguments << "-m" << embedding_params.modelpath;
@@ -1330,9 +1342,14 @@ void Expend::quantize(QString in_modelpath, QString out_modelpath, QString impor
 {
     //结束llama-quantize
     quantize_process->kill();
-
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/llama-quantize") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
+#else
     QString localPath = QString("./llama-quantize") + SFX_NAME;
     QString program = localPath;// 设置要运行的exe文件的路径
+#endif
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
     if(important_datapath!=""){arguments << "--imatrix" << important_datapath;}//重要性矩阵路径
@@ -1464,8 +1481,14 @@ void Expend::on_sd_draw_pushButton_clicked()
     //结束sd
     sd_process->kill();
 
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/sd") + SFX_NAME;
+    QString program = localPath;// 设置要运行的exe文件的路径
+#else
     QString localPath = QString("./sd") + SFX_NAME;
     QString program = localPath;// 设置要运行的exe文件的路径
+#endif
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 

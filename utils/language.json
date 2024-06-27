@@ -287,7 +287,7 @@
         "port_label_tooltip": ["服务启动后的端口号，ip地址为本机","The port number after service startup, with the IP address being 'local'. "],
         "load_button_tooltip": ["选择驾驶员进入机体","Select the driver to enter eva "],
         "save_config_mess": ["已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹","UI configuration saved. If encountering any abnormal startup, please delete the EVA_TEMP folder before starting. "],
-        "apply_config_mess": ["应用上一次用户的配置，如遇异常启动前请删除EVA_TEMP文件夹","Apply the previous user's configuration. If encountering any abnormal startup, please delete the EVA_TEMP folder before starting. "],
+        "apply_config_mess": ["应用上一次用户的配置，如遇异常启动前请删除","Apply the previous user's configuration. If encountering any abnormal startup, please delete "],
         "toolguy_input_mess": ["工具人赶紧去给模型找答案吧~","Tool man, hurry up and find the answer for the model~ "],
         "call successful, image save at": ["调用成功, 图像保存在","Call successful, image saved in "],
         "failed to load model mess": ["请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足","Please confirm that the model format is correct, confirm that there are no Chinese characters in the model path, and confirm that there is sufficient memory. "],

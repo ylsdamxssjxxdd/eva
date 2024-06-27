@@ -5,7 +5,7 @@
 #include "expend.h"
 #include <locale>
 #include <QStyleFactory>
-#ifdef EVA_USE_CUDA
+#ifdef BODY_USE_CUDA
 #include "utils/gpuchecker.h"
 #endif
 #include "utils/cpuchecker.h"
@@ -17,7 +17,12 @@ int main(int argc, char* argv[])
         std::string arg = argv[i];
         if(arg == "--test"){return 0;}
     }
-
+#ifdef BODY_LINUX_PACK
+    // 指定找动态库的默认路径 LD_LIBRARY_PATH 
+    QString appDirPath = qgetenv("APPDIR");// 获取 APPDIR 环境变量
+    QString ldLibraryPath = appDirPath + "/usr/lib";
+    setenv("LD_LIBRARY_PATH", ldLibraryPath.toLocal8Bit().constData(), 1);
+#endif
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);//自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例
@@ -36,7 +41,7 @@ int main(int argc, char* argv[])
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
     if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
-#ifdef EVA_USE_CUDA
+#ifdef BODY_USE_CUDA
     gpuChecker gpuer;//监测显卡信息
     gpuer.start();// 开始运行监视
 #endif
@@ -84,7 +89,7 @@ int main(int argc, char* argv[])
     QObject::connect(&w, &Widget::ui2bot_debuging,&bot,&xBot::recv_debuging);//传递debug中状态
 
     //------------------监测gpu信息-------------------
-#ifdef EVA_USE_CUDA
+#ifdef BODY_USE_CUDA
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::recv_gpu_reflash);//强制刷新gpu信息
@@ -177,7 +182,7 @@ int main(int argc, char* argv[])
             w.nthread_slider->setValue(settings.value("nthread", "").toInt());
             w.nctx_slider->setValue(settings.value("nctx", "").toInt());
             w.batch_slider->setValue(settings.value("batch", "").toInt());
-#if defined(EVA_USE_GPU)
+#if defined(BODY_USE_GPU)
             w.ngl_slider->setValue(settings.value("ngl", "").toInt());
 #endif
             QFile checkFile(settings.value("lorapath", "").toString());

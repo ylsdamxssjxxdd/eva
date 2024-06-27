@@ -13,18 +13,19 @@
     - 清晰的展示大模型预测下一个词的过程
     - 输出区的内容就是模型的全部现实
 - 兼容性
-    - 最低支持32位windows7、银河麒麟V10
+    - 支持32位windows7、linux
 - 多功能 (全都有就是效果不咋地)
-    - 本地模型，在线模型，api服务，智能体，多模态
+    - 本地模型，在线模型，api服务，网页服务，智能体，多模态
     - 知识库问答，代码解释器，软件控制，文生图，声转文
     - 模型量化，模型评测
     
 ## 快速开始
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
+- windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
-- 也可以前往 https://hf-mirror.com 搜索，支持几乎所有开源大语言模型:千问、零一、猎户、百川、llama、gemma、phi、mamba、bloom、mistral、moe、deepseek、gpt2...
+- 也可以前往 https://hf-mirror.com 搜索，机体支持几乎所有开源大语言模型
 3. 装载！
 - 点击装载按钮，选择一个gguf模型载入内存
 4. 发送！
@@ -60,17 +61,11 @@
 
 ## 源码编译
 1. 配置环境
-- 64bit版本(option选项全部关闭)
-    - 我的工具链为mingw81_64+qt5.15.14(静态库)
-- 32bit版本(BODY_32BIT选项打开，其它关闭)
-    - 我的工具链为mingw81_32+qt5.15.14(静态库) 
-- cuda版本(LLAMA_CUDA选项打开，其它关闭)
-    - 我的工具链为msvc2022+qt5.15.14+cuda12
-    - 安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive 这也是cuda版本的机体运行时必须的
-    - 安装cudnn https://developer.nvidia.com/cudnn
-- Vulkan版本(LLAMA_VULKAN选项打开，其它关闭)
-    - 我的工具链为mingw81_64+VulkanSDK+qt5.15.14(静态库)
-    - 下载VulkanSDK https://vulkan.lunarg.com/sdk/home
+    - 安装编译器msvc或者mingw
+    - 安装Qt5 https://download.qt.io/
+    - 安装cmake https://cmake.org/
+    - 如果要加速，安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - 如果要加速，安装VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. 克隆源代码
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
@@ -81,6 +76,11 @@ cd eva
 cmake -B build -DEVA_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DEVA_32BIT=OFF 
 cmake --build build --config Release
 ```
+- EVA_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
+- LLAMA_CUDA：是否需要启用cuda加速的标志
+- LLAMA_VULKAN：是否需要启用vulkan加速的标志
+- EVA_32BIT：是否需要编译为32位程序的标志
+
 ## 行动纲领
 - 装载流程
     - 【ui】->用户点击装载->选择路径->发送设置参数->【bot】->处理参数->发送重载信号->【ui】->预装载->装载中界面状态->发送装载信号->【bot】->开始装载->发送装载动画信号->装载完重置->发送装载完成信号->【ui】->加速装载动画->装载动画结束->滚动动画开始->动画结束->强制解锁->触发发送->发送预解码(只解码不采样输出)指令->【bot】->预解码系统指令->发送解码完毕信号->【ui】->正常界面状态->END
