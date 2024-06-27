@@ -71,9 +71,16 @@ Widget::Widget(QWidget *parent)
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->state->setFocus();//设为当前焦点
 
-    //-------------获取线程信息-------------
+    //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
-    nthread_slider->setRange(1, max_thread);//设置线程数滑块的范围
+    nthread_slider->setRange(1,max_thread);//设置线程数滑块的范围
+    QTimer *cpucheck_timer = new QTimer(this);
+    connect(cpucheck_timer, &QTimer::timeout, this, &Widget::updateCpuStatus);
+    cpucheck_timer->start(500); // 多少ms更新一次
+    //-------------获取gpu内存信息-------------
+    QTimer *gpucheck_timer = new QTimer(this);
+    connect(gpucheck_timer, &QTimer::timeout, this, &Widget::updateGpuStatus);
+    gpucheck_timer->start(500); // 多少ms更新一次
     
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();

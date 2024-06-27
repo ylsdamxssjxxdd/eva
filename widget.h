@@ -412,6 +412,8 @@ private slots:
     void set_date();//设置用户约定内容
     void calculator_change();//选用计算器工具
     void interpreter_change();//选用代码解释器工具
+    void updateGpuStatus(); //更新gpu内存使用率
+    void updateCpuStatus(); //更新cpu内存使用率
     void terminal_change();//选用系统终端工具
     void toolguy_change();//选用搜索引擎工具
     void knowledge_change();//选用知识库工具

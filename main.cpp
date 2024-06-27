@@ -43,10 +43,8 @@ int main(int argc, char* argv[])
     if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
 #ifdef BODY_USE_CUDA
     gpuChecker gpuer;//监测显卡信息
-    gpuer.start();// 开始运行监视
 #endif
     cpuChecker cpuer;//监视系统信息
-    cpuer.start();// 开始运行监视
 
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
@@ -92,11 +90,11 @@ int main(int argc, char* argv[])
 #ifdef BODY_USE_CUDA
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash,&gpuer,&gpuChecker::recv_gpu_reflash);//强制刷新gpu信息
+    QObject::connect(&w, &Widget::gpu_reflash,&gpuer, [&gpuer]() {gpuer.start();});//强制刷新gpu信息
 #endif
     //------------------监测系统信息-------------------
     QObject::connect(&cpuer,&cpuChecker::cpu_status,&w,&Widget::recv_cpu_status);//传递cpu信息
-    QObject::connect(&w, &Widget::cpu_reflash,&cpuer,&cpuChecker::recv_cpu_reflash);//强制刷新cpu信息
+    QObject::connect(&w, &Widget::cpu_reflash,&cpuer, [&cpuer]() {cpuer.start();});//强制刷新cpu信息
 
     //------------------连接扩展和增殖窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言

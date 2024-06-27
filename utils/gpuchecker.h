@@ -37,10 +37,9 @@ public:
     // 多线程支持
     void run() override
     {
-        while (true) {
-            chekGpu();
-            QThread::msleep(500); // 500毫秒监视一次
-        }
+
+        chekGpu();
+
     } 
 
 signals:
