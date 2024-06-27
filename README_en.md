@@ -62,8 +62,8 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     - install compiler msvc or mingw
     - install Qt5 https://download.qt.io/
     - install cmake https://cmake.org/
-    - if we want to accelerate, install cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
-    - if we want to accelerate, install VulkanSDK https://vulkan.lunarg.com/sdk/home
+    - nvidia gpu accelerate, install cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - more gpu accelerate, install VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. Clone source code
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
