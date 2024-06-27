@@ -1014,7 +1014,7 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
 //接受图片路径
 void xBot::recv_imagepath(QString image_path)
 {
-#ifdef WIN32
+#ifdef _WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string imagepath = code->fromUnicode(image_path).data();
 #elif __linux__
@@ -1092,7 +1092,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     //如果mmprojpath改变则重新加载模型
     std::string settings_mmprojpath;
-#ifdef WIN32
+#ifdef _WIN32
     QTextCodec *code_mmprojpath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_mmprojpath = code_mmprojpath->fromUnicode(settings.mmprojpath).data();
 #elif __linux__
@@ -1108,7 +1108,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     //如果lora改变则重新加载模型
     std::string settings_lorapath;
 
-#ifdef WIN32
+#ifdef _WIN32
     QTextCodec *code_lorapath = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     settings_lorapath = code_lorapath->fromUnicode(settings.lorapath).data();
 #elif __linux__
@@ -1132,7 +1132,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
     if(!is_load){reload_flag = true;is_first_load=true;}
 
     //如果更换了模型则重载
-#ifdef WIN32
+#ifdef _WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     std::string bot_modelpath_next = code->fromUnicode(settings.modelpath).data();
 #elif __linux__
@@ -1141,7 +1141,7 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
 
     if(bot_modelpath != bot_modelpath_next)
     {
-#ifdef WIN32
+#ifdef _WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
     bot_modelpath = code->fromUnicode(settings.modelpath).data();
 #elif __linux__
