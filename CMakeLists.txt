@@ -7,7 +7,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目�
 set(version b3219) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(LLAMA_CUDA                    "llama: use CUDA"                            OFF) # 速度900%
 option(LLAMA_VULKAN                  "llama: use Vulkan"                          OFF) # 速度250%,暂不支持sd
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型

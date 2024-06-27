@@ -13,7 +13,8 @@
     - 清晰的展示大模型预测下一个词的过程
     - 输出区的内容就是模型的全部现实
 - 兼容性
-    - 支持32位windows7、linux
+    - 支持最低32位windows7
+    - 支持linux
 - 多功能 (全都有就是效果不咋地)
     - 本地模型，在线模型，api服务，网页服务，智能体，多模态
     - 知识库问答，代码解释器，软件控制，文生图，声转文
@@ -64,8 +65,8 @@
     - 安装编译器msvc或者mingw
     - 安装Qt5 https://download.qt.io/
     - 安装cmake https://cmake.org/
-    - 如果要加速，安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
-    - 如果要加速，安装VulkanSDK https://vulkan.lunarg.com/sdk/home
+    - 如果要用nvidia显卡加速，安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
+    - 如果要用各种型号显卡加速，安装VulkanSDK https://vulkan.lunarg.com/sdk/home
 2. 克隆源代码
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git

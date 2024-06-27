@@ -11,7 +11,8 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - Intuitive 
     - Clearly show the process of the llm predicting the next word
 - Compatibility
-    - Support Windows7(32bit)、Linux
+    - Support Windows
+    - Support Linux
 - Multifunctional (all available but not very effective)
     - local model,  online model, API services, WEB services, agent, multimodal
     - knowledge base QA, code interpreter, software control, text2img, voice2text 
