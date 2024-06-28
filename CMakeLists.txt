@@ -213,8 +213,8 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/ui/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
-            # 开始打包，排除以下库 -exclude-libs=libcudart.so.12,libcublas.so.12,libcublasLt.so.12 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-exclude-libs=libcublasLt.so.12,libcudart.so.12,libcublas.so.12,libcuda.so.1" "-appimage"
+            # 开始打包 
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
@@ -224,5 +224,6 @@ elseif(UNIX)
     endif()
 endif()
 
-# 
+# linuxdeployqt排除cuda相关库
+# "-exclude-libs=libcublasLt.so.12,libcudart.so.12,libcublas.so.12,libcuda.so.1" 
 
