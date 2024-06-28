@@ -47,6 +47,13 @@ if(MSVC)
         list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib) # 向extra_LIBS列表里添加文件
         list(APPEND sd_EXTRA_COMMAND "-DSD_CUBLAS=ON") # 启用sd的cuda编译标志
+        
+        # 方便打包时找到cuda相关库
+        find_package(CUDA REQUIRED)# 查找CUDA包
+        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDA_VERSION})# 从CUDA版本字符串中提取主版本号
+        set(CUDA_LIB_DIR "${CUDA_TOOLKIT_ROOT_DIR}/bin")# CUDA库文件的目录
+        message(STATUS "cuda主版本 " ${CUDA_VERSION_MAJOR})
+        message(STATUS "cuda库路径 " ${CUDA_LIB_DIR})
     endif()
 
 # mingw设置编译选项
@@ -171,6 +178,23 @@ if(MSVC)
         COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}"
         COMMENT "custom Windeployqt ..."
     )
+
+    # 复制cuda组件过来
+    if(GGML_CUDA)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDA_LIB_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDA_LIB_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDA_LIB_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+            COMMENT "Copying CUDA libraries to output directory"
+            )
+    endif()
+
     # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
@@ -208,7 +232,7 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
@@ -218,7 +242,7 @@ elseif(UNIX)
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
     endif()
