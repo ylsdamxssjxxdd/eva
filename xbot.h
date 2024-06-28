@@ -13,7 +13,7 @@
 
 #include "xconfig.h" //ui和bot都要导入的共有配置
 #include "llama.cpp/common/common.h"
-#include "llama.cpp/llama.h"
+#include "llama.cpp/include/llama.h"
 #include "llama.cpp/examples/llava/clip.h"
 #include "llama.cpp/examples/llava/llava.h"
 #include "llama.cpp/common/stb_image.h"

@@ -557,6 +557,8 @@ void Expend::recv_voicedecode(QString wavpath, QString out_format)
         QString output = whisper_process->readAllStandardError();
         ui->whisper_log->appendPlainText(output);
     });
+    
+    createTempDirectory("./EVA_TEMP");
     whisper_process->start(program, arguments);
 }
 
@@ -1539,6 +1541,8 @@ void Expend::on_sd_draw_pushButton_clicked()
         if(sd_process_output.contains("CUDA error"))
         {sd_process->kill();}
     });
+
+    createTempDirectory("./EVA_TEMP");
     sd_process->start(program, arguments);
 
 }
