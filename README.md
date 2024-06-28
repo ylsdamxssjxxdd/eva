@@ -88,7 +88,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 3. 编译
 ```bash
 cd eva
-cmake -B build -DBODY_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DBODY_32BIT=OFF 
+cmake -B build -DBODY_32BIT=OFF -DBODY_PACK=OFF -DLLAMA_VULKAN=OFF -DLLAMA_CUDA=OFF
 cmake --build build --config Release
 ```
 - EVA_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
