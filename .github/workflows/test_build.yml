@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DBODY_PACK=OFF -DLLAMA_CUDA=OFF -DLLAMA_VULKAN=OFF -DBODY_32BIT=OFF 
+          cmake .. -DBODY_32BIT=OFF -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
           cmake --build . --config Release -j 2
 
       # # 发布
