@@ -10,9 +10,11 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 ## feature
 - Intuitive 
     - Clearly show the process of the llm predicting the next word
+
 - Compatibility
     - Support Windows
     - Support Linux
+
 - Multifunctional (all available but not very effective)
     - local model,  online model, API services, WEB services, agent, multimodal
     - knowledge base QA, code interpreter, software control, text2img, voice2text 
@@ -22,12 +24,20 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 1. Download eva
 - https://github.com/ylsdamxssjxxdd/eva/releases
 - download programs with the .exe suffix for Windows or .AppImage suffix for Linux
+- The 64bit version uses CPU inference for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
+
 2. Download gguf model
 - https://huggingface.co , eva supports almost all open-source llms
+
 3. Load！
 - Click the load button, select a gguf model to load into memory
+
 4. Send！
 - Enter the chat content in the input area and click send
+
+5. Accelerate!
+- Click Settings to set gpu offload. Recommended setting to maximum, but if the VRAM occupies more than 95%, it will be too laggy
+- If running SD simultaneously, make sure to leave enough VRAM for SD
 
 ## function
 1. Chat mode
@@ -36,12 +46,16 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - You can mount tools for the model, but they may affect the model's intelligence
 - You can upload a CSV format question bank for testing
 - You can take a screenshot by pressing f1 and record voice by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
+
 2. Completion mode
 - Typing any text in the output area and the model completing it
+
 3. Service mode
 - eva becomes an open API port service and can also chat on web pages
+
 4. Link status
 - eva can connect to the chat endpoints of other API services and run without the need to load the model
+
 5. Knowledge base
 - Users can upload documents, which are embedded and processed to become the knowledge base of the model. And then you can mount knowledge tool, it can be called by the model
 
@@ -64,10 +78,12 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     - install cmake https://cmake.org/
     - nvidia gpu accelerate, install cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
     - more gpu accelerate, install VulkanSDK https://vulkan.lunarg.com/sdk/home
+
 2. Clone source code
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
+
 3. Build
 ```bash
 cd eva

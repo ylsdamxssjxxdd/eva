@@ -24,13 +24,21 @@
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 - windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
+- 64bit版本使用cpu推理，兼容性最好；cuda版本使用nvidia显卡加速，需要电脑中装有cuda；vulkan版本可以使用任意显卡加速，需要电脑装有显卡
+
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 - 也可以前往 https://hf-mirror.com 搜索，机体支持几乎所有开源大语言模型
+
 3. 装载！
 - 点击装载按钮，选择一个gguf模型载入内存
+
 4. 发送！
 - 在输入区输入聊天内容，点击发送
+
+5. 加速！
+- 点击设置，调整gpu负载层数，显存充足建议拉满，注意显存占用超过95%的话会很卡
+- 同时运行sd的话要确保给sd留足显存
 
 ## 功能介绍
 1. 对话模式
@@ -39,12 +47,16 @@
 - 可以使用挂载的工具，但是会影响模型智力
 - 可以上传csv格式的题库进行测试
 - 可以按f1截图，按f2进行录音，截图和录音会发送给多模态或whisper模型进行相应处理
+
 2. 补完模式
 - 在输出区键入任意文字，模型对其进行补完，这是机体所有功能实现的基础
+
 3. 服务模式
 - 机体成为一个开放api端口的服务，也可以在网页上进行聊天，但是挂载的工具失效
+
 4. 链接状态
 - 机体可以链接到其它api服务的对话端点，不需要装载模型也能运行
+
 5. 知识库
 - 用户可以上传文档，经过嵌入处理后成为模型的知识库，挂载后可供模型调用
 
@@ -67,10 +79,12 @@
     - 安装cmake https://cmake.org/
     - 如果要用nvidia显卡加速，安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
     - 如果要用各种型号显卡加速，安装VulkanSDK https://vulkan.lunarg.com/sdk/home
+
 2. 克隆源代码
 ```bash
 git clone https://github.com/ylsdamxssjxxdd/eva.git
 ```
+
 3. 编译
 ```bash
 cd eva

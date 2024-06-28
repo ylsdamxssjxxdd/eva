@@ -54,8 +54,8 @@ xBot::xBot()
     gpt_params_.sparams.penalty_repeat    = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq      = 0.00; //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present   = 0.00; //同类惩罚 0.0 = disabled openai
-#if defined(BODY_USE_CUDA)
-    gpt_params_.flash_attn = true; // CUDA默认开启flash_attn
+#if defined(BODY_USE_GPU)
+    gpt_params_.flash_attn = true; // gpu默认开启flash_attn
 #endif
 
     qDebug()<<"bot init over";

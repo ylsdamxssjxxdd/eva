@@ -17,12 +17,19 @@ int main(int argc, char* argv[])
         std::string arg = argv[i];
         if(arg == "--test"){return 0;}
     }
+    
 #ifdef BODY_LINUX_PACK
-    // 指定找动态库的默认路径 LD_LIBRARY_PATH 
-    QString appDirPath = qgetenv("APPDIR");// 获取 APPDIR 环境变量
+    QString appDirPath = qgetenv("APPDIR");// 获取镜像的路径
     QString ldLibraryPath = appDirPath + "/usr/lib";
-    setenv("LD_LIBRARY_PATH", ldLibraryPath.toLocal8Bit().constData(), 1);
+    std::string currentPath = ldLibraryPath.toLocal8Bit().constData();
+    setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1);// 指定找动态库的默认路径 LD_LIBRARY_PATH 
+#ifdef BODY_USE_CUDA
+    // cuda版本可以在系统的 /usr/local/cuda/lib64 中寻找库
+    std::string cudaPath = "/usr/local/cuda/lib64";
+    setenv("LD_LIBRARY_PATH", (currentPath + ":" + cudaPath).c_str(), 1);// 指定找动态库的默认路径 LD_LIBRARY_PATH 
 #endif
+#endif
+
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);//自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);//适配非整数倍缩放
     QApplication a(argc, argv);//事件实例

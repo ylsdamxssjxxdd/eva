@@ -939,7 +939,7 @@ void Widget::serverControl()
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);//使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.batch);//批大小
     arguments << "--log-disable";//不要日志
-#if defined(BODY_USE_CUDA)
+#if defined(BODY_USE_GPU)
     arguments << "-fa"; // 开启flash attention加速
 #endif
     // arguments << "-np";//设置进程请求的槽数 默认：1

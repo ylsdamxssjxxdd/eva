@@ -69,7 +69,8 @@ elseif(UNIX)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
     if (LLAMA_CUDA) # 如果启用LLAMA_CUDA标志
-        list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        #list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        list(APPEND extra_INCLUDES utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
         list(APPEND sd_EXTRA_COMMAND "-DSD_CUBLAS=ON") # 启用sd的cuda编译标志
@@ -151,7 +152,9 @@ if(BODY_32BIT)
 elseif(LLAMA_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
 elseif(LLAMA_CUDA)
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda")
+    find_package(CUDA REQUIRED)
+    message(STATUS "CUDA version: ${CUDA_VERSION}")
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}")
 else() 
     set(eva_OUTPUT_NAME "${TARGET}-${version}-64bit")
 endif()
@@ -159,7 +162,7 @@ endif()
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper llama-quantize) # 确保eva最后生产，保证后处理顺利进行
 
 # 后处理
 if(MSVC)
@@ -197,15 +200,11 @@ elseif(MINGW)
 elseif(UNIX)
 # 使用linuxdeployqt打包所有组件为一个appimage
     if(BODY_PACK)
-        # 删除不需要的文件
-        set(APPIMAGE_PATH "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage")
-        if(EXISTS ${APPIMAGE_PATH})
-            execute_process(COMMAND ${CMAKE_COMMAND} -E remove ${APPIMAGE_PATH} RESULT_VARIABLE result)
-        endif()
 
         # 自动打包操作，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # 挪动文件
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/eva"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
@@ -215,7 +214,7 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/ui/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包，排除以下库 -exclude-libs=libcudart.so.12,libcublas.so.12,libcublasLt.so.12 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-exclude-libs=libcublasLt.so.12,libcudart.so.12,libcublas.so.12" "-appimage"
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-exclude-libs=libcublasLt.so.12,libcudart.so.12,libcublas.so.12,libcuda.so.1" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
