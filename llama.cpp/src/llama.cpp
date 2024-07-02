@@ -302,6 +302,8 @@ enum llm_kv {
     LLM_KV_POOLING_TYPE,
     LLM_KV_LOGIT_SCALE,
     LLM_KV_DECODER_START_TOKEN_ID,
+    LLM_KV_ATTN_LOGIT_SOFTCAPPING,
+    LLM_KV_FINAL_LOGIT_SOFTCAPPING,
 
     LLM_KV_ATTENTION_HEAD_COUNT,
     LLM_KV_ATTENTION_HEAD_COUNT_KV,
@@ -315,6 +317,7 @@ enum llm_kv {
     LLM_KV_ATTENTION_Q_LORA_RANK,
     LLM_KV_ATTENTION_KV_LORA_RANK,
     LLM_KV_ATTENTION_RELATIVE_BUCKETS_COUNT,
+    LLM_KV_ATTENTION_SLIDING_WINDOW,
 
     LLM_KV_ROPE_DIMENSION_COUNT,
     LLM_KV_ROPE_FREQ_BASE,
@@ -392,6 +395,8 @@ static const std::map<llm_kv, const char *> LLM_KV_NAMES = {
     { LLM_KV_POOLING_TYPE ,                     "%s.pooling_type"                      },
     { LLM_KV_LOGIT_SCALE,                       "%s.logit_scale"                       },
     { LLM_KV_DECODER_START_TOKEN_ID,            "%s.decoder_start_token_id"            },
+    { LLM_KV_ATTN_LOGIT_SOFTCAPPING,            "%s.attn_logit_softcapping"            },
+    { LLM_KV_FINAL_LOGIT_SOFTCAPPING,           "%s.final_logit_softcapping"           },
 
     { LLM_KV_ATTENTION_HEAD_COUNT,             "%s.attention.head_count"             },
     { LLM_KV_ATTENTION_HEAD_COUNT_KV,          "%s.attention.head_count_kv"          },
@@ -405,6 +410,7 @@ static const std::map<llm_kv, const char *> LLM_KV_NAMES = {
     { LLM_KV_ATTENTION_Q_LORA_RANK,            "%s.attention.q_lora_rank"            },
     { LLM_KV_ATTENTION_KV_LORA_RANK,           "%s.attention.kv_lora_rank"           },
     { LLM_KV_ATTENTION_RELATIVE_BUCKETS_COUNT, "%s.attention.relative_buckets_count" },
+    { LLM_KV_ATTENTION_SLIDING_WINDOW,         "%s.attention.sliding_window"         },
 
     { LLM_KV_ROPE_DIMENSION_COUNT,          "%s.rope.dimension_count"                 },
     { LLM_KV_ROPE_FREQ_BASE,                "%s.rope.freq_base"                       },
@@ -2081,6 +2087,7 @@ struct llama_hparams {
     uint32_t n_head_kv;
     uint32_t n_layer;
     uint32_t n_rot;
+    uint32_t n_swa = 0; // sliding window attention (SWA)
     uint32_t n_embd_head_k; // dimension of keys (d_k). d_q is assumed to be the same, but there are n_head q heads, and only n_head_kv k-v heads
     uint32_t n_embd_head_v; // dimension of values (d_v) aka n_embd_head
     uint32_t n_ff;
@@ -2099,6 +2106,9 @@ struct llama_hparams {
     float f_norm_eps;
     float f_norm_rms_eps;
 
+    float f_attn_logit_softcapping = 50.0f;
+    float f_final_logit_softcapping = 30.0f;
+
     float    rope_attn_factor = 1.0f;
     float    rope_freq_base_train;
     float    rope_freq_scale_train;
@@ -2115,8 +2125,9 @@ struct llama_hparams {
     float f_max_alibi_bias = 0.0f;
     float f_logit_scale    = 0.0f;
 
-    bool causal_attn = true;
-    bool use_alibi   = false;
+    bool causal_attn   = true;
+    bool use_alibi     = false;
+    bool attn_soft_cap = false;
 
     enum llama_pooling_type      pooling_type            = LLAMA_POOLING_TYPE_NONE;
     enum llama_rope_type         rope_type               = LLAMA_ROPE_TYPE_NONE;
@@ -2131,6 +2142,7 @@ struct llama_hparams {
         if (this->n_head_kv     != other.n_head_kv)     return true;
         if (this->n_layer       != other.n_layer)       return true;
         if (this->n_rot         != other.n_rot)         return true;
+        if (this->n_swa         != other.n_swa)         return true;
         if (this->n_embd_head_k != other.n_embd_head_k) return true;
         if (this->n_embd_head_v != other.n_embd_head_v) return true;
         if (this->n_ff          != other.n_ff)          return true;
@@ -2641,17 +2653,18 @@ struct llama_context {
     void *              abort_callback_data = nullptr;
 
     // input tensors
-    struct ggml_tensor * inp_tokens;    // I32 [n_batch]
-    struct ggml_tensor * inp_embd;      // F32 [n_embd, n_batch]
-    struct ggml_tensor * inp_pos;       // I32 [n_batch]
-    struct ggml_tensor * inp_out_ids;   // I32 [n_outputs]
-    struct ggml_tensor * inp_KQ_mask;   // F32 [kv_size, n_batch]
-    struct ggml_tensor * inp_K_shift;   // I32 [kv_size]
-    struct ggml_tensor * inp_mean;      // F32 [n_batch, n_batch]
-    struct ggml_tensor * inp_cls;       // I32 [n_batch]
-    struct ggml_tensor * inp_s_copy;    // I32 [kv_size]
-    struct ggml_tensor * inp_s_mask;    // F32 [1, n_kv]
-    struct ggml_tensor * inp_s_seq;     // I32 [n_kv, n_batch]
+    struct ggml_tensor * inp_tokens;      // I32 [n_batch]
+    struct ggml_tensor * inp_embd;        // F32 [n_embd, n_batch]
+    struct ggml_tensor * inp_pos;         // I32 [n_batch]
+    struct ggml_tensor * inp_out_ids;     // I32 [n_outputs]
+    struct ggml_tensor * inp_KQ_mask;     // F32 [kv_size, n_batch]
+    struct ggml_tensor * inp_KQ_mask_swa; // F32 [kv_size, n_batch]
+    struct ggml_tensor * inp_K_shift;     // I32 [kv_size]
+    struct ggml_tensor * inp_mean;        // F32 [n_batch, n_batch]
+    struct ggml_tensor * inp_cls;         // I32 [n_batch]
+    struct ggml_tensor * inp_s_copy;      // I32 [kv_size]
+    struct ggml_tensor * inp_s_mask;      // F32 [1, n_kv]
+    struct ggml_tensor * inp_s_seq;       // I32 [n_kv, n_batch]
 
     // control vectors
     struct llama_control_vector cvec;
@@ -4701,7 +4714,12 @@ static void llm_load_hparams(
             } break;
         case LLM_ARCH_GEMMA2:
             {
+                hparams.n_swa = 4096; // default value of gemma 2
+                ml.get_key(LLM_KV_ATTENTION_SLIDING_WINDOW, hparams.n_swa, false);
                 ml.get_key(LLM_KV_ATTENTION_LAYERNORM_RMS_EPS, hparams.f_norm_rms_eps);
+                ml.get_key(LLM_KV_ATTN_LOGIT_SOFTCAPPING, hparams.f_attn_logit_softcapping, false);
+                ml.get_key(LLM_KV_FINAL_LOGIT_SOFTCAPPING, hparams.f_final_logit_softcapping, false);
+                hparams.attn_soft_cap = true;
 
                 switch (hparams.n_layer) {
                     case 42: model.type = e_model::MODEL_9B; break;
@@ -5408,6 +5426,7 @@ static void llm_load_print_meta(llama_model_loader & ml, llama_model & model) {
     LLAMA_LOG_INFO("%s: n_head_kv        = %u\n",     __func__, hparams.n_head_kv);
     LLAMA_LOG_INFO("%s: n_layer          = %u\n",     __func__, hparams.n_layer);
     LLAMA_LOG_INFO("%s: n_rot            = %u\n",     __func__, hparams.n_rot);
+    LLAMA_LOG_INFO("%s: n_swa            = %u\n",     __func__, hparams.n_swa);
     LLAMA_LOG_INFO("%s: n_embd_head_k    = %u\n",     __func__, hparams.n_embd_head_k);
     LLAMA_LOG_INFO("%s: n_embd_head_v    = %u\n",     __func__, hparams.n_embd_head_v);
     LLAMA_LOG_INFO("%s: n_gqa            = %u\n",     __func__, hparams.n_gqa());
@@ -7579,6 +7598,12 @@ static struct ggml_tensor * llm_build_kqv(
             kq = ggml_scale(ctx, kq, 30);
         }
 
+        if (hparams.attn_soft_cap) {
+            kq = ggml_scale(ctx, kq, 1.0f / hparams.f_attn_logit_softcapping);
+            kq = ggml_tanh(ctx, kq);
+            kq = ggml_scale(ctx, kq, hparams.f_attn_logit_softcapping);
+        }
+
         kq = ggml_soft_max_ext(ctx, kq, kq_mask, kq_scale, hparams.f_max_alibi_bias);
         cb(kq, "kq_soft_max_ext", il);
 
@@ -7758,17 +7783,18 @@ struct llm_build_context {
 
         ctx0 = ggml_init(params);
 
-        lctx.inp_tokens  = nullptr;
-        lctx.inp_embd    = nullptr;
-        lctx.inp_pos     = nullptr;
-        lctx.inp_out_ids = nullptr;
-        lctx.inp_KQ_mask = nullptr;
-        lctx.inp_K_shift = nullptr;
-        lctx.inp_mean    = nullptr;
-        lctx.inp_cls     = nullptr;
-        lctx.inp_s_copy  = nullptr;
-        lctx.inp_s_mask  = nullptr;
-        lctx.inp_s_seq   = nullptr;
+        lctx.inp_tokens      = nullptr;
+        lctx.inp_embd        = nullptr;
+        lctx.inp_pos         = nullptr;
+        lctx.inp_out_ids     = nullptr;
+        lctx.inp_KQ_mask     = nullptr;
+        lctx.inp_KQ_mask_swa = nullptr;
+        lctx.inp_K_shift     = nullptr;
+        lctx.inp_mean        = nullptr;
+        lctx.inp_cls         = nullptr;
+        lctx.inp_s_copy      = nullptr;
+        lctx.inp_s_mask      = nullptr;
+        lctx.inp_s_seq       = nullptr;
     }
 
     void free() {
@@ -7786,7 +7812,6 @@ struct llm_build_context {
         lctx.inp_K_shift = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, n_ctx);
         cb(lctx.inp_K_shift, "K_shift", -1);
         ggml_set_input(lctx.inp_K_shift);
-
 
         for (int il = 0; il < n_layer; ++il) {
             struct ggml_tensor * rope_factors = build_rope_factors(il);
@@ -7922,14 +7947,25 @@ struct llm_build_context {
     }
 
     struct ggml_tensor * build_inp_KQ_mask(bool causal = true) {
-        if (causal) {
-            lctx.inp_KQ_mask = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_kv,     GGML_PAD(n_tokens, GGML_KQ_MASK_PAD));
-        } else {
-            lctx.inp_KQ_mask = ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_tokens, GGML_PAD(n_tokens, GGML_KQ_MASK_PAD));
-        }
+        lctx.inp_KQ_mask = causal
+            ? ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_kv,     GGML_PAD(n_tokens, GGML_KQ_MASK_PAD))
+            : ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_tokens, GGML_PAD(n_tokens, GGML_KQ_MASK_PAD));
         cb(lctx.inp_KQ_mask, "KQ_mask", -1);
         ggml_set_input(lctx.inp_KQ_mask);
+
         return flash_attn ? ggml_cast(ctx0, lctx.inp_KQ_mask, GGML_TYPE_F16) : lctx.inp_KQ_mask;
+    }
+
+    struct ggml_tensor * build_inp_KQ_mask_swa(bool causal = true) {
+        GGML_ASSERT(hparams.n_swa > 0);
+
+        lctx.inp_KQ_mask_swa = causal
+            ? ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_kv,     GGML_PAD(n_tokens, GGML_KQ_MASK_PAD))
+            : ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, n_tokens, GGML_PAD(n_tokens, GGML_KQ_MASK_PAD));
+        cb(lctx.inp_KQ_mask_swa, "KQ_mask_swa", -1);
+        ggml_set_input(lctx.inp_KQ_mask_swa);
+
+        return flash_attn ? ggml_cast(ctx0, lctx.inp_KQ_mask_swa, GGML_TYPE_F16) : lctx.inp_KQ_mask_swa;
     }
 
     struct ggml_tensor * build_inp_mean() {
@@ -11012,9 +11048,14 @@ struct llm_build_context {
         struct ggml_tensor * inp_pos = build_inp_pos();
 
         // KQ_mask (mask for 1 head, it will be broadcasted to all heads)
-        struct ggml_tensor * KQ_mask = build_inp_KQ_mask();
+        // gemma 2 requires different mask for layers using sliding window (SWA)
+        struct ggml_tensor * KQ_mask     = build_inp_KQ_mask(true);
+        struct ggml_tensor * KQ_mask_swa = build_inp_KQ_mask_swa(true);
 
         for (int il = 0; il < n_layer; ++il) {
+            // (il % 2) layers use SWA
+            struct ggml_tensor * KQ_mask_l = (il % 2 == 0) ? KQ_mask_swa : KQ_mask;
+
             // norm
             cur = llm_build_norm(ctx0, inpL, hparams,
                     model.layers[il].attn_norm, NULL,
@@ -11039,7 +11080,7 @@ struct llm_build_context {
                         ext_factor, attn_factor, beta_fast, beta_slow);
                 cb(Qcur, "Qcur", il);
 
-                Qcur = ggml_scale(ctx0, Qcur, 1.0f / sqrtf(float(n_embd_head_k)));
+                Qcur = ggml_scale(ctx0, Qcur, 1.0f / sqrtf(float(n_embd / n_head)));
                 cb(Qcur, "Qcur_scaled", il);
 
                 Kcur = ggml_rope_ext(
@@ -11050,7 +11091,7 @@ struct llm_build_context {
 
                 cur = llm_build_kv(ctx0, model, hparams, cparams, kv_self, gf,
                         model.layers[il].wo, NULL,
-                        Kcur, Vcur, Qcur, KQ_mask, n_tokens, kv_head, n_kv, 1.0f, cb, il);
+                        Kcur, Vcur, Qcur, KQ_mask_l, n_tokens, kv_head, n_kv, 1.0f, cb, il);
             }
 
             cur = llm_build_norm(ctx0, cur, hparams,
@@ -11106,6 +11147,12 @@ struct llm_build_context {
 
         // lm_head
         cur = ggml_mul_mat(ctx0, model.output, cur);
+
+        // final logit soft-capping
+        cur = ggml_scale(ctx0, cur, 1.0f / hparams.f_final_logit_softcapping);
+        cur = ggml_tanh(ctx0, cur);
+        cur = ggml_scale(ctx0, cur, hparams.f_final_logit_softcapping);
+
         cb(cur, "result_output", -1);
 
         ggml_build_forward_expand(gf, cur);
@@ -12647,7 +12694,12 @@ static void llama_set_inputs(llama_context & lctx, const llama_batch & batch) {
 
             GGML_ASSERT(ggml_backend_buffer_is_host(lctx.inp_KQ_mask->buffer));
 
-            float * data = (float *) lctx.inp_KQ_mask->data;
+            float * data     = (float *) lctx.inp_KQ_mask->data;
+            float * data_swa = nullptr;
+
+            if (lctx.inp_KQ_mask_swa) {
+                data_swa = (float *) lctx.inp_KQ_mask_swa->data;
+            }
 
             // For causal attention, use only the previous KV cells
             // of the correct sequence for each token of the batch.
@@ -12669,6 +12721,14 @@ static void llama_set_inputs(llama_context & lctx, const llama_batch & batch) {
                             }
                         }
                         data[h*(n_kv*n_tokens) + j*n_kv + i] = f;
+
+                        // may need to cut off old tokens for sliding window
+                        if (data_swa) {
+                            if (pos - lctx.kv_self.cells[i].pos >= (int32_t)hparams.n_swa) {
+                                f = -INFINITY;
+                            }
+                            data_swa[h*(n_kv*n_tokens) + j*n_kv + i] = f;
+                        }
                     }
                 }
 
@@ -17379,6 +17439,12 @@ struct llama_context * llama_new_context_with_model(
         params.flash_attn = false;
     }
 
+    if (params.flash_attn && model->hparams.attn_soft_cap) {
+        LLAMA_LOG_WARN("%s: flash_attn is not compatible with attn_soft_cap - forcing off\n", __func__);
+        params.flash_attn = false;
+    }
+
+
     if (params.flash_attn && model->hparams.n_embd_head_k != model->hparams.n_embd_head_v) {
         LLAMA_LOG_WARN("%s: flash_attn requires n_embd_head_k == n_embd_head_v - forcing off\n", __func__);
         params.flash_attn = false;
@@ -19613,7 +19679,10 @@ static int32_t llama_chat_apply_template_internal(
     std::string & dest, bool add_ass) {
     // Taken from the research: https://github.com/ggerganov/llama.cpp/issues/5527
     std::stringstream ss;
-    if (tmpl == "chatml" || tmpl.find("<|im_start|>") != std::string::npos) {
+    auto tmpl_contains = [&tmpl](std::string haystack) -> bool {
+        return tmpl.find(haystack) != std::string::npos;
+    };
+    if (tmpl == "chatml" || tmpl_contains("<|im_start|>")) {
         // chatml template
         for (auto message : chat) {
             ss << "<|im_start|>" << message->role << "\n" << message->content << "<|im_end|>\n";
@@ -19621,16 +19690,16 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|im_start|>assistant\n";
         }
-    } else if (tmpl == "llama2" || tmpl == "mistral" || tmpl.find("[INST]") != std::string::npos) {
+    } else if (tmpl == "llama2" || tmpl == "mistral" || tmpl_contains("[INST]")) {
         // llama2 template and its variants
         // [variant] support system message
-        bool support_system_message = tmpl.find("<<SYS>>") != std::string::npos || tmpl == "mistral";
+        bool support_system_message = tmpl_contains("<<SYS>>") || tmpl == "mistral";
         // [variant] space before + after response
-        bool space_around_response = tmpl.find("' ' + eos_token") != std::string::npos;
+        bool space_around_response = tmpl_contains("' ' + eos_token");
         // [variant] add BOS inside history
-        bool add_bos_inside_history = tmpl.find("bos_token + '[INST]") != std::string::npos;
+        bool add_bos_inside_history = tmpl_contains("bos_token + '[INST]");
         // [variant] trim spaces from the input message
-        bool strip_message = tmpl.find("content.strip()") != std::string::npos;
+        bool strip_message = tmpl_contains("content.strip()");
         // construct the prompt
         bool is_inside_turn = true; // skip BOS at the beginning
         ss << "[INST] ";
@@ -19656,7 +19725,7 @@ static int32_t llama_chat_apply_template_internal(
             }
         }
         // llama2 templates seem to not care about "add_generation_prompt"
-    } else if (tmpl == "phi3" || (tmpl.find("<|assistant|>") != std::string::npos && tmpl.find("<|end|>") != std::string::npos)) {
+    } else if (tmpl == "phi3" || (tmpl_contains("<|assistant|>") && tmpl_contains("<|end|>"))) {
         // Phi 3
         for (auto message : chat) {
             std::string role(message->role);
@@ -19665,7 +19734,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|assistant|>\n";
         }
-    } else if (tmpl == "zephyr" || tmpl.find("<|user|>") != std::string::npos) {
+    } else if (tmpl == "zephyr" || tmpl_contains("<|user|>")) {
         // zephyr template
         for (auto message : chat) {
             ss << "<|" << message->role << "|>" << "\n" << message->content << "<|endoftext|>\n";
@@ -19673,7 +19742,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|assistant|>\n";
         }
-    } else if (tmpl == "monarch" || tmpl.find("bos_token + message['role']") != std::string::npos) {
+    } else if (tmpl == "monarch" || tmpl_contains("bos_token + message['role']")) {
         // mlabonne/AlphaMonarch-7B template (the <s> is included inside history)
         for (auto message : chat) {
             std::string bos = (message == chat.front()) ? "" : "<s>"; // skip BOS for first message
@@ -19682,7 +19751,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<s>assistant\n";
         }
-    } else if (tmpl == "gemma" || tmpl == "gemma2" || tmpl.find("<start_of_turn>") != std::string::npos) {
+    } else if (tmpl == "gemma" || tmpl == "gemma2" || tmpl_contains("<start_of_turn>")) {
         // google/gemma-7b-it
         std::string system_prompt = "";
         for (auto message : chat) {
@@ -19704,7 +19773,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<start_of_turn>model\n";
         }
-    } else if (tmpl == "orion" || tmpl.find("'\\n\\nAssistant: ' + eos_token") != std::string::npos) {
+    } else if (tmpl == "orion" || tmpl_contains("'\\n\\nAssistant: ' + eos_token")) {
         // OrionStarAI/Orion-14B-Chat
         std::string system_prompt = "";
         for (auto message : chat) {
@@ -19724,7 +19793,7 @@ static int32_t llama_chat_apply_template_internal(
                 ss << message->content << "</s>";
             }
         }
-    } else if (tmpl == "openchat" || tmpl.find("GPT4 Correct ") != std::string::npos) {
+    } else if (tmpl == "openchat" || tmpl_contains("GPT4 Correct ")) {
         // openchat/openchat-3.5-0106,
         for (auto message : chat) {
             std::string role(message->role);
@@ -19738,13 +19807,13 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "GPT4 Correct Assistant:";
         }
-    } else if (tmpl == "vicuna" || tmpl == "vicuna-orca" || (tmpl.find("USER: ") != std::string::npos && tmpl.find("ASSISTANT: ") != std::string::npos)) {
+    } else if (tmpl == "vicuna" || tmpl == "vicuna-orca" || (tmpl_contains("USER: ") && tmpl_contains("ASSISTANT: "))) {
         // eachadea/vicuna-13b-1.1 (and Orca variant)
         for (auto message : chat) {
             std::string role(message->role);
             if (role == "system") {
                 // Orca-Vicuna variant uses a system prefix
-                if (tmpl == "vicuna-orca" || tmpl.find("SYSTEM: ") != std::string::npos) {
+                if (tmpl == "vicuna-orca" || tmpl_contains("SYSTEM: ")) {
                     ss << "SYSTEM: " << message->content << "\n";
                 } else {
                     ss << message->content << "\n\n";
@@ -19758,7 +19827,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "ASSISTANT:";
         }
-    } else if (tmpl == "deepseek" || (tmpl.find("### Instruction:") != std::string::npos && tmpl.find("<|EOT|>") != std::string::npos)) {
+    } else if (tmpl == "deepseek" || (tmpl_contains("### Instruction:") && tmpl_contains("<|EOT|>"))) {
         // deepseek-ai/deepseek-coder-33b-instruct
         for (auto message : chat) {
             std::string role(message->role);
@@ -19773,7 +19842,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "### Response:\n";
         }
-    } else if (tmpl == "command-r" || (tmpl.find("<|START_OF_TURN_TOKEN|>") != std::string::npos && tmpl.find("<|USER_TOKEN|>") != std::string::npos)) {
+    } else if (tmpl == "command-r" || (tmpl_contains("<|START_OF_TURN_TOKEN|>") && tmpl_contains("<|USER_TOKEN|>"))) {
         // CohereForAI/c4ai-command-r-plus
         for (auto message : chat) {
             std::string role(message->role);
@@ -19788,7 +19857,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>";
         }
-    } else if (tmpl == "llama3" || (tmpl.find("<|start_header_id|>") != std::string::npos && tmpl.find("<|end_header_id|>") != std::string::npos)) {
+    } else if (tmpl == "llama3" || (tmpl_contains("<|start_header_id|>") && tmpl_contains("<|end_header_id|>"))) {
         // Llama 3
         for (auto message : chat) {
             std::string role(message->role);
@@ -19796,6 +19865,33 @@ static int32_t llama_chat_apply_template_internal(
         }
         if (add_ass) {
             ss << "<|start_header_id|>assistant<|end_header_id|>\n\n";
+        }
+    } else if (tmpl == "minicpm" || tmpl_contains(u8"<用户>")) {
+        // MiniCPM-3B-OpenHermes-2.5-v2-GGUF
+        for (auto message : chat) {
+            std::string role(message->role);
+            if (role == "user") {
+                ss << u8"<用户>";
+                ss << trim(message->content);
+                ss << "<AI>";
+            } else {
+                ss << trim(message->content);
+            }
+        }
+    } else if (tmpl == "deepseek2" || tmpl_contains("'Assistant: ' + message['content'] + eos_token")) {
+        // DeepSeek-V2
+        for (auto message : chat) {
+            std::string role(message->role);
+            if (role == "system") {
+                ss << message->content << "\n\n";
+            } else if (role == "user") {
+                ss << "User: " << message->content << "\n\n";
+            } else if (role == "assistant") {
+                ss << "Assistant: " << message->content << u8"<｜end▁of▁sentence｜>";
+            }
+        }
+        if (add_ass) {
+            ss << "Assistant:";
         }
     } else {
         // template not supported

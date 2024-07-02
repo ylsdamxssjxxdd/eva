@@ -8,50 +8,57 @@
 - linux编译默认是动态链接的
 
 ## 如果要更换第三方库的话尝试按如下规则修改
-### llama.cpp 当前版本 b3259
+### llama.cpp 当前版本 b3279
 - 修改llama.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 - 修改llama.cpp/examples/server/httplib.h的mmap::open函数
 ```c++
 inline bool mmap::open(const char *path) {
   close();
+
 #if defined(_WIN32)
-#if defined(__MINGW32__)
-  close();
-  return false;
-#else
   std::wstring wpath;
   for (size_t i = 0; i < strlen(path); i++) {
     wpath += path[i];
   }
-  hFile_ = ::CreateFile2(wpath.c_str(), GENERIC_READ, FILE_SHARE_READ,
-                         OPEN_EXISTING, NULL);
+
+  hFile_ = ::CreateFileW(wpath.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                         NULL, OPEN_EXISTING, 0, NULL);
+
   if (hFile_ == INVALID_HANDLE_VALUE) { return false; }
+
   LARGE_INTEGER size{};
   if (!::GetFileSizeEx(hFile_, &size)) { return false; }
   size_ = static_cast<size_t>(size.QuadPart);
-  hMapping_ = ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
+
+  hMapping_ =
+      ::CreateFileMappingW(hFile_, NULL, PAGE_READONLY, size.HighPart, size.LowPart, NULL);
+
   if (hMapping_ == NULL) {
     close();
     return false;
   }
-  addr_ = ::MapViewOfFileFromApp(hMapping_, FILE_MAP_READ, 0, 0);
-#endif
+
+  addr_ = ::MapViewOfFile(hMapping_, FILE_MAP_READ, 0, 0, 0);
 #else
   fd_ = ::open(path, O_RDONLY);
   if (fd_ == -1) { return false; }
+
   struct stat sb;
   if (fstat(fd_, &sb) == -1) {
     close();
     return false;
   }
   size_ = static_cast<size_t>(sb.st_size);
+
   addr_ = ::mmap(NULL, size_, PROT_READ, MAP_PRIVATE, fd_, 0);
+#endif
+
   if (addr_ == nullptr) {
     close();
     return false;
   }
-#endif
+
   return true;
 }
 ```

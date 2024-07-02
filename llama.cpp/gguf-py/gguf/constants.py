@@ -50,6 +50,8 @@ class Keys:
         POOLING_TYPE                      = "{arch}.pooling_type"
         LOGIT_SCALE                       = "{arch}.logit_scale"
         DECODER_START_TOKEN_ID            = "{arch}.decoder_start_token_id"
+        ATTN_LOGIT_SOFTCAPPING            = "{arch}.attn_logit_softcapping"
+        FINAL_LOGIT_SOFTCAPPING           = "{arch}.final_logit_softcapping"
 
     class Attention:
         HEAD_COUNT        = "{arch}.attention.head_count"
@@ -64,6 +66,7 @@ class Keys:
         Q_LORA_RANK       = "{arch}.attention.q_lora_rank"
         KV_LORA_RANK      = "{arch}.attention.kv_lora_rank"
         REL_BUCKETS_COUNT = "{arch}.attention.relative_buckets_count"
+        SLIDING_WINDOW    = "{arch}.attention.sliding_window"
 
     class Rope:
         DIMENSION_COUNT         = "{arch}.rope.dimension_count"
