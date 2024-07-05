@@ -392,6 +392,9 @@
         "model brain": ["模型记忆","model brain "],
         "brain_groupBox_title": ["记忆 (缓存的上下文)","Brain (context cache)"],
         "vocab_groupBox_title": ["词表 (模型训练时的所有token以及其对应的词)","Vocab (all tokens during the model training)"],
+        
+        "enable output parser": ["启用输出解析器","enable output parser"],
+        "disable output parser": ["禁用输出解析器","disable output parser"],
         "---end---": ["---end---","---end--- "]
     }
 }

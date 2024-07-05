@@ -16,7 +16,6 @@
 #include <QTextEdit>
 #include <QDialogButtonBox>
 #include <QGroupBox>
-#include <QCheckBox>
 #include <QTextBrowser>
 #include <QScrollBar>
 #include <QRadioButton>

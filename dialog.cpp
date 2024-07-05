@@ -615,10 +615,18 @@ void Widget::tool_change()
     // 判断是否挂载了工具
     if(calculator_checkbox->isChecked() || terminal_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked())
     {
+        if(is_load_tool == false)
+        {
+            reflash_state("ui:" + jtr("enable output parser"), SIGNAL_);
+        }
         is_load_tool = true;
     }
     else
     {
+        if(is_load_tool == true)
+        {
+            reflash_state("ui:" + jtr("disable output parser"), SIGNAL_);
+        }
         is_load_tool = false;
     }
     extra_TextEdit->setText(create_extra_prompt());
