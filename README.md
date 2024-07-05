@@ -24,7 +24,7 @@
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 - windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
-- 64bit版本使用cpu推理，兼容性最好；cuda版本使用nvidia显卡加速，需要电脑中装有cuda；vulkan版本可以使用任意显卡加速，需要电脑装有显卡
+- 64bit版本使用cpu推理，兼容性最好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，但是效果较差
 
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -91,10 +91,10 @@ cd eva
 cmake -B build -DBODY_32BIT=OFF -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
 cmake --build build --config Release
 ```
-- EVA_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
-- LLAMA_CUDA：是否需要启用cuda加速的标志
-- LLAMA_VULKAN：是否需要启用vulkan加速的标志
-- EVA_32BIT：是否需要编译为32位程序的标志
+- BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
+- GGML_CUDA：是否需要启用cuda加速的标志
+- GGML_VULKAN：是否需要启用vulkan加速的标志
+- BODY_32BIT：是否需要编译为32位程序的标志
 
 ## 行动纲领
 - 装载流程

@@ -27,7 +27,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - The 64bit version uses CPU inference for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
 
 2. Download gguf model
-- https://huggingface.co , eva supports almost all open-source llms
+- https://huggingface.c , eva supports almost all open-source llms
 
 3. Load！
 - Click the load button, select a gguf model to load into memory
@@ -90,10 +90,10 @@ cd eva
 cmake -B build -DBODY_32BIT=OFF -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
 cmake --build build --config Release
 ```
--EVA-PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
--LLAMA-CUDA: Flag indicating whether cuda acceleration needs to be enabled
--LLAMA_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
--EVA_12BIT: Flag for compiling to 32-bit program
+- BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
+- GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
+- GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
+- BODY_32BIT: Flag for compiling to 32-bit program
 
 ## guideline
 - Load process
