@@ -8,7 +8,7 @@ set(version b3334) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 ###################################### 编译选项 ######################################
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 ##################################### 处理编译选项 ####################################

@@ -12,8 +12,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     - Clearly show the process of the llm predicting the next word
 
 - Compatibility
-    - Support Windows
-    - Support Linux
+    - Support Windows & Linux
 
 - Multifunctional (all available but not very effective)
     - local model,  online model, API services, WEB services, agent, multimodal

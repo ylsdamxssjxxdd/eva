@@ -29,7 +29,7 @@ Expend::Expend(QWidget *parent) :
     ui->sd_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
-
+    ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
     //塞入第三方exe
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);//连接开始信号
@@ -1231,6 +1231,9 @@ void Expend::show_quantize_types()
         ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
     }
     ui->model_quantize_type->setCurrentText("Q5_K_M");
+    ui->model_quantize_info->setSelectionBehavior(QAbstractItemView::SelectRows);// 设置选择行为为选择行
+    ui->model_quantize_info->selectRow(6);// 选择指定的行
+
     //添加量化方法说明
     ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
     ui->model_quantize_info->setColumnCount(5);
@@ -1324,7 +1327,13 @@ void Expend::output_modelpath_change()
 //量化方法改变响应
 void Expend::on_model_quantize_type_currentIndexChanged(int index)
 {
-    output_modelpath_change();//根据待量化模型路径和量化方法填入量化后模型路径
+    //根据待量化模型路径和量化方法填入量化后模型路径
+    output_modelpath_change();
+
+    // 表格中对应的量化信息高亮
+    ui->model_quantize_info->clearSelection();// 清除当前所有选择
+    ui->model_quantize_info->setSelectionBehavior(QAbstractItemView::SelectRows);// 设置选择行为为选择行
+    ui->model_quantize_info->selectRow(index);// 选择指定的行
 }
 //用户点击执行量化按钮时响应
 void Expend::on_model_quantize_execute_clicked()
