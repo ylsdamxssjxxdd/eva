@@ -147,10 +147,10 @@ int main(int argc, char* argv[])
 
     //---------------读取配置文件并执行------------------
     emit w.gpu_reflash();//强制刷新gpu信息，为了获取未装载时的显存占用
-    QFile configfile("./EVA_TEMP/eva_config.ini");
+    QFile configfile(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini");
     if(configfile.exists())
     {
-        QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         QString modelpath = settings.value("modelpath", "").toString();//模型路径
 

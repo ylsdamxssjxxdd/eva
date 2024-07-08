@@ -315,11 +315,11 @@ void Expend::recv_language(int language_flag_)
 //读取配置文件并应用
 void Expend::readConfig()
 {
-    QFile configfile("./EVA_TEMP/eva_config.ini");
+    QFile configfile(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini");
     if(configfile.exists())
     {
         // 创建 QSettings 对象，指定配置文件的名称和格式
-        QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         // 读取配置文件中的值
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
@@ -471,8 +471,8 @@ void Expend::closeEvent(QCloseEvent *event)
 {
     //--------------保存当前用户配置---------------
     // 创建 QSettings 对象，指定配置文件的名称和格式
-    createTempDirectory("./EVA_TEMP");
-    QSettings settings("./EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
+    QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     settings.setValue("sd_modelpath",ui->sd_modelpath_lineEdit->text());
     settings.setValue("vae_modelpath",ui->sd_vaepath_lineEdit->text());
@@ -558,7 +558,7 @@ void Expend::recv_voicedecode(QString wavpath, QString out_format)
         ui->whisper_log->appendPlainText(output);
     });
     
-    createTempDirectory("./EVA_TEMP");
+    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
     whisper_process->start(program, arguments);
 }
 
@@ -577,7 +577,7 @@ void Expend::whisper_onProcessFinished()
     {
         QString content;
         // 文件路径
-        QString filePath = qApp->applicationDirPath() + "./EVA_TEMP/" + QString("EVA_") + ".wav.txt";
+        QString filePath = qApp->applicationDirPath() + QCoreApplication::applicationDirPath() + "/EVA_TEMP/" + QString("EVA_") + ".wav.txt";
         // 创建 QFile 对象
         QFile file(filePath);
         // 打开文件
@@ -1193,9 +1193,9 @@ void Expend::show_quantize_types()
     // 以f16-7B模型的大小为准，8bit是一个字节，f16就是两字节，或者16bpw(每个权重占16位)
     // f16-7B模型的大小 = 70*10^8*2 / 1024 /1024 /1024 = 13GB 
     quantize_types = {
-        { "F32", "200.0%", "0", "⭐"},
-        { "BF16", "100.0%", "-0.0050", "⭐"},
-        { "F16", "100.0%", "-0.0020", "⭐"},
+        { "F32", "-100.0%", "0", "⭐"},
+        { "BF16", "0.0%", "-0.0050", "⭐"},
+        { "F16", "0.0%", "-0.0020", "⭐"},
         { "Q8_0", "48.5%", "+0.0004", "⭐"},
         { "Q6_K", "60.4%", "+0.0008", "⭐"},
         { "Q5_1", "63.8%", "+0.0349", "⭐"},
@@ -1269,7 +1269,7 @@ void Expend::output_modelpath_change()
 
         //顺便改变量化方法说明中的预估量化后大小
         QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
-        float in_modelsize = fileInfo1.size() /1024.0/1024.0;
+        float in_modelsize = fileInfo1.size() /1024.0/1024.0/1024.0;
 
 #ifdef _WIN32
         MEMORYSTATUSEX memInfo;
@@ -1299,18 +1299,18 @@ void Expend::output_modelpath_change()
             meminfoFile.close();
         }
 #endif
-
+        //  估计量化后大小
         for(int i=0;i<quantize_types.size(); ++i)
         {
             QTableWidgetItem *item = ui->model_quantize_info->item(i, 1);
-            float estimate_modelsize = in_modelsize * (1 - item->text().split("%")[0].toFloat()/100.0);
-            QString estimate_modelsize_str = QString::number(estimate_modelsize,'f',1) + " MB";
+            float estimate_modelsize = in_modelsize * abs(1 - item->text().split("%")[0].toFloat()/100.0);
+            QString estimate_modelsize_str = QString::number(estimate_modelsize,'f',1) + " GB";
             QTableWidgetItem *newItem1 = new QTableWidgetItem(estimate_modelsize_str);
             ui->model_quantize_info->setItem(i, 4, newItem1);
 
             //加星,如果量化后的大小比本机内存小20%以上就加一颗星
             QString star;
-            if(estimate_modelsize < totalPhysMem /1024.0/1024.0 * 0.8)
+            if(estimate_modelsize < totalPhysMem /1024.0/1024.0/1024.0 * 0.8)
             {
                 star = quantize_types.at(i).recommand + "⭐";
             }
@@ -1395,10 +1395,10 @@ void Expend::quantize_onProcessFinished()
 
     ui->model_quantize_log->appendPlainText(jtr("quantize completed! model save") + ":" + ui->model_quantize_output_modelpath_lineedit->text());
     QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text());//获取文件大小
-    float modelsize1_MB = fileInfo1.size() /1024.0/1024.0;
+    float modelsize1_GB = fileInfo1.size() /1024.0/1024.0/1024.0;
     QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text());//获取文件大小
-    float modelsize2_MB = fileInfo2.size() /1024.0/1024.0;
-    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_MB) + " MB" + " -> " + QString::number(modelsize2_MB) + " MB " + jtr("compression") + " :" + QString::number((1-modelsize2_MB/modelsize1_MB)*100) + "%");
+    float modelsize2_GB = fileInfo2.size() /1024.0/1024.0/1024.0;
+    ui->model_quantize_log->appendPlainText(QString::number(modelsize1_GB) + " GB" + " -> " + QString::number(modelsize2_GB) + " GB " + jtr("compression") + " :" + QString::number((1-modelsize2_GB/modelsize1_GB)*100) + "%");
 
 }
 
@@ -1478,8 +1478,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     
     QTime currentTime = QTime::currentTime();// 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
-    sd_params.outpath = "./EVA_TEMP/sd_output" + timeString + ".png";
-
+    sd_params.outpath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/sd_output" + timeString + ".png";
+    
     //结束sd
     sd_process->kill();
 
@@ -1542,7 +1542,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         {sd_process->kill();}
     });
 
-    createTempDirectory("./EVA_TEMP");
+    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
     sd_process->start(program, arguments);
 
 }

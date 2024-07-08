@@ -155,7 +155,7 @@ void Widget::preLoad()
     ui_state_loading();//装载中界面状态
     if(is_config)
     {
-        QString relativePath = "./EVA_TEMP/eva_config.ini";
+        QString relativePath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini";
         QFileInfo fileInfo(relativePath);
         QString absolutePath = fileInfo.absoluteFilePath();
         is_config = false;
@@ -902,7 +902,7 @@ void Widget::serverControl()
     ui_state_servering();//服务中界面状态
     if(is_config)
     {
-        QString relativePath = "./EVA_TEMP/eva_config.ini";
+        QString relativePath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini";
         QFileInfo fileInfo(relativePath);
         QString absolutePath = fileInfo.absoluteFilePath();
         is_config = false;

@@ -20,6 +20,8 @@
 #include <QNetworkInterface>
 #include <QDir>
 #include <QTextCodec>
+#include <QCoreApplication>
+
 #include <math.h>
 #include "xconfig.h"
 class xTool : public QThread
