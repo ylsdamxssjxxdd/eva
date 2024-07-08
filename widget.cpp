@@ -109,6 +109,22 @@ Widget::Widget(QWidget *parent)
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
     qDebug()<<"widget init over";
+
+    QFont font = ui->state->font();
+    // 获取字体的各个属性
+    QString fontFamily = font.family();
+    int fontSize = font.pointSize();
+    bool isBold = font.bold();
+    bool isItalic = font.italic();
+    bool isUnderline = font.underline();
+    
+    // 打印字体信息
+    qDebug() << "Font Family:" << fontFamily;
+    qDebug() << "Font Size:" << fontSize;
+    qDebug() << "Is Bold:" << isBold;
+    qDebug() << "Is Italic:" << isItalic;
+    qDebug() << "Is Underline:" << isUnderline;
+
 }
 
 Widget::~Widget()

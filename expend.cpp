@@ -1230,9 +1230,6 @@ void Expend::show_quantize_types()
     {
         ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
     }
-    ui->model_quantize_type->setCurrentText("Q5_K_M");
-    ui->model_quantize_info->setSelectionBehavior(QAbstractItemView::SelectRows);// 设置选择行为为选择行
-    ui->model_quantize_info->selectRow(6);// 选择指定的行
 
     //添加量化方法说明
     ui->model_quantize_info->setRowCount(quantize_types.size());//创建行
@@ -1257,6 +1254,9 @@ void Expend::show_quantize_types()
     }
     QHeaderView* headerView = ui->model_quantize_info->horizontalHeader();//水平表头对象,用来控制列宽
     headerView->setSectionResizeMode(QHeaderView::Stretch);// 设置所有列为等宽且撑满整个表格宽度
+
+    // 默认的量化级别
+    ui->model_quantize_type->setCurrentText("Q5_K_M");
 }
 // 根据待量化模型路径和量化方法填入量化后模型路径
 void Expend::output_modelpath_change()
