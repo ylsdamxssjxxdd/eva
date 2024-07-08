@@ -532,7 +532,7 @@ int xBot::stream()
             embd.push_back(id);//把预测的词加到下一次的预测中,准备下一次预测
             --n_remain;
             
-            if(id == eos_token)//如果遇到结束则停止
+            if(id == eos_token || id == eot_token)//如果遇到结束则停止
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
                 if(is_debuging){emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s",SUCCESS_);}
@@ -563,7 +563,7 @@ int xBot::stream()
                 }
             }
             //检测输出的内容中是否包含反提示,如果有则停止
-            if(!is_complete)
+            if(!is_complete) // 补完模式不检测
             {
                 int list_num=0;//记录第一个元素,只有第一个元素需要控制is_antiprompt = true
                 //qDebug() << QString::fromStdString(current_output);
@@ -727,7 +727,8 @@ void xBot::load(std::string &modelpath)
         return;
     }
 
-    eos_token = llama_token_eos(model);//结束
+    eos_token = llama_token_eos(model);// 结束标志
+    eot_token = llama_token_eot(model);// 结束标志
     add_bos = llama_should_add_bos_token(model);//是否添加开始标志
     n_vocab = llama_n_vocab(model);//词表总大小
     n_ctx_train = llama_n_ctx_train(model);//上下文总大小
@@ -783,6 +784,7 @@ void xBot::reset(bool is_clear_all)
             gpt_params_.antiprompt.push_back(extra_stop_words.at(i).toStdString());
         }
     }
+    
     //如果是多模态，针对yi-vl-6b增加额外停止标志
     // if(mmprojpath!="")
     // {
