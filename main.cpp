@@ -35,6 +35,8 @@ int main(int argc, char* argv[])
     QApplication a(argc, argv);//事件实例
     QApplication::setStyle(QStyleFactory::create("Fusion"));//现代风格
 
+
+
     //------------------实例化主要节点------------------
     Widget w;//窗口实例
     Expend expend;//增殖窗口实例
@@ -147,10 +149,10 @@ int main(int argc, char* argv[])
 
     //---------------读取配置文件并执行------------------
     emit w.gpu_reflash();//强制刷新gpu信息，为了获取未装载时的显存占用
-    QFile configfile(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini");
+    QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
     if(configfile.exists())
     {
-        QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         QString modelpath = settings.value("modelpath", "").toString();//模型路径
 

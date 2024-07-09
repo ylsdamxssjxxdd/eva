@@ -3,6 +3,10 @@
 
 #include <QDebug>
 #include <QColor>
+#include <QCoreApplication>
+#include <QProcessEnvironment>
+#include <QFileInfo>
+
 #include <thread>
 #include <vector>
 #include <array>
@@ -31,6 +35,15 @@
 
 #define DEFAULT_MODELPATH "D:/soul" // 模型所在文件夹
 #define DEFAULT_EMBEDDING_PORT "7758" // 嵌入端口
+
+#if BODY_LINUX_PACK
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString appImagePath = env.value("APPIMAGE");
+    const QFileInfo fileInfo(appImagePath);
+    const QString applicationDirPath = fileInfo.absolutePath();// 在打包程序运行时所在目录创建EVA_TEMP文件夹
+#else
+    const QString applicationDirPath = "./"; // 就在当前目录创建EVA_TEMP文件夹
+#endif
 
 //默认sd反提示
 #define DEFAULT_ANTIPROMPT "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure"

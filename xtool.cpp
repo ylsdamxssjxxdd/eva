@@ -105,8 +105,8 @@ void xTool::run()
     {
         QString result;
         //---内容写入interpreter.py---
-        createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
-        QFile file(QCoreApplication::applicationDirPath() + "/EVA_TEMP/interpreter.py");
+        createTempDirectory(applicationDirPath + "/EVA_TEMP");
+        QFile file(applicationDirPath + "/EVA_TEMP/interpreter.py");
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) 
         {
             QTextStream out(&file);
@@ -124,7 +124,7 @@ void xTool::run()
             QString command = "python3";
 #endif
             QStringList args;
-            args << QCoreApplication::applicationDirPath() + "/EVA_TEMP/interpreter.py";
+            args << applicationDirPath + "/EVA_TEMP/interpreter.py";
 
             // 连接信号以获取输出
             connect(process, &QProcess::readyReadStandardOutput, [&]() {

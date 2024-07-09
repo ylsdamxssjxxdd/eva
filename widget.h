@@ -77,7 +77,6 @@ public:
     void getWords(QString json_file_path);//中文英文
     int language_flag = 0;//0是中文1是英文
     QString jtr(QString customstr);// 根据language.json(wordsObj)和language_flag中找到对应的文字
-
     //ui相关
     QString ui_output,ui_state;
     void output_scroll(QString output, QColor color = QColor(0,0,0));//向output末尾添加文本并滚动

@@ -110,20 +110,20 @@ Widget::Widget(QWidget *parent)
     apply_language(language_flag);
     qDebug()<<"widget init over";
 
-    QFont font = ui->state->font();
-    // 获取字体的各个属性
-    QString fontFamily = font.family();
-    int fontSize = font.pointSize();
-    bool isBold = font.bold();
-    bool isItalic = font.italic();
-    bool isUnderline = font.underline();
+    // QFont font = ui->state->font();
+    // // 获取字体的各个属性
+    // QString fontFamily = font.family();
+    // int fontSize = font.pointSize();
+    // bool isBold = font.bold();
+    // bool isItalic = font.italic();
+    // bool isUnderline = font.underline();
     
-    // 打印字体信息
-    qDebug() << "Font Family:" << fontFamily;
-    qDebug() << "Font Size:" << fontSize;
-    qDebug() << "Is Bold:" << isBold;
-    qDebug() << "Is Italic:" << isItalic;
-    qDebug() << "Is Underline:" << isUnderline;
+    // // 打印字体信息
+    // qDebug() << "Font Family:" << fontFamily;
+    // qDebug() << "Font Size:" << fontSize;
+    // qDebug() << "Is Bold:" << isBold;
+    // qDebug() << "Is Italic:" << isItalic;
+    // qDebug() << "Is Underline:" << isUnderline;
 
 }
 
@@ -171,7 +171,7 @@ void Widget::preLoad()
     ui_state_loading();//装载中界面状态
     if(is_config)
     {
-        QString relativePath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini";
+        QString relativePath = applicationDirPath + "/EVA_TEMP/eva_config.ini";
         QFileInfo fileInfo(relativePath);
         QString absolutePath = fileInfo.absoluteFilePath();
         is_config = false;
@@ -918,7 +918,7 @@ void Widget::serverControl()
     ui_state_servering();//服务中界面状态
     if(is_config)
     {
-        QString relativePath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini";
+        QString relativePath = applicationDirPath + "/EVA_TEMP/eva_config.ini";
         QFileInfo fileInfo(relativePath);
         QString absolutePath = fileInfo.absoluteFilePath();
         is_config = false;

@@ -227,8 +227,8 @@ void Widget::recordAudio()
         audioFormat = devInfo.nearestFormat(audioFormat); //转换为最接近格式
     }
     _audioInput = new QAudioInput(devInfo,audioFormat,this);
-    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
-    QString audiopath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/" + QString("EVA_") + ".wav";
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    QString audiopath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
     outFilePath = qApp->applicationDirPath() + audiopath;
     outFile.setFileName(outFilePath); //语音原始文件
     outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -275,7 +275,7 @@ void Widget::stop_recordAudio()
     reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     
-    emit ui2expend_voicedecode(QCoreApplication::applicationDirPath() + "/EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
+    emit ui2expend_voicedecode(applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
 }
 
 // 清空题库
@@ -758,8 +758,8 @@ void Widget::speechOver()
     //--------------保存当前用户配置---------------
     // 创建 QSettings 对象，指定配置文件的名称和格式
 
-    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
-    QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     //保存设置参数
     settings.setValue("modelpath",ui_SETTINGS.modelpath);//模型路径

@@ -315,11 +315,11 @@ void Expend::recv_language(int language_flag_)
 //读取配置文件并应用
 void Expend::readConfig()
 {
-    QFile configfile(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini");
+    QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
     if(configfile.exists())
     {
         // 创建 QSettings 对象，指定配置文件的名称和格式
-        QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         // 读取配置文件中的值
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();//sd模型路径
@@ -471,8 +471,8 @@ void Expend::closeEvent(QCloseEvent *event)
 {
     //--------------保存当前用户配置---------------
     // 创建 QSettings 对象，指定配置文件的名称和格式
-    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
-    QSettings settings(QCoreApplication::applicationDirPath() + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     settings.setValue("sd_modelpath",ui->sd_modelpath_lineEdit->text());
     settings.setValue("vae_modelpath",ui->sd_vaepath_lineEdit->text());
@@ -558,7 +558,7 @@ void Expend::recv_voicedecode(QString wavpath, QString out_format)
         ui->whisper_log->appendPlainText(output);
     });
     
-    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
     whisper_process->start(program, arguments);
 }
 
@@ -577,7 +577,7 @@ void Expend::whisper_onProcessFinished()
     {
         QString content;
         // 文件路径
-        QString filePath = qApp->applicationDirPath() + QCoreApplication::applicationDirPath() + "/EVA_TEMP/" + QString("EVA_") + ".wav.txt";
+        QString filePath = qApp->applicationDirPath() + applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav.txt";
         // 创建 QFile 对象
         QFile file(filePath);
         // 打开文件
@@ -1487,7 +1487,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     
     QTime currentTime = QTime::currentTime();// 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss");// 格式化时间为时-分-秒
-    sd_params.outpath = QCoreApplication::applicationDirPath() + "/EVA_TEMP/sd_output" + timeString + ".png";
+    sd_params.outpath = applicationDirPath + "/EVA_TEMP/sd_output" + timeString + ".png";
     
     //结束sd
     sd_process->kill();
@@ -1551,7 +1551,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         {sd_process->kill();}
     });
 
-    createTempDirectory(QCoreApplication::applicationDirPath() + "/EVA_TEMP");
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
     sd_process->start(program, arguments);
 
 }
