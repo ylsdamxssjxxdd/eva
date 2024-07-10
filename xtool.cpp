@@ -1,7 +1,8 @@
 #include "xtool.h"
 
-xTool::xTool()
+xTool::xTool(QString applicationDirPath_)
 {
+    applicationDirPath = applicationDirPath_;
     qDebug()<<"tool init over";
 
 }

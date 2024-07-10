@@ -4,12 +4,13 @@
 #include "ui_widget.h"
 
 
-Widget::Widget(QWidget *parent)
+Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent)
     , ui(new Ui::Widget)
 {
     //---------------初始化ui--------------
     ui->setupUi(this);
+    applicationDirPath = applicationDirPath_;
     ui->splitter->setStretchFactor(0, 3);//设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);//设置分隔器中第二个元素初始高度占比为1
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
@@ -124,7 +125,6 @@ Widget::Widget(QWidget *parent)
     // qDebug() << "Is Bold:" << isBold;
     // qDebug() << "Is Italic:" << isItalic;
     // qDebug() << "Is Underline:" << isUnderline;
-
 }
 
 Widget::~Widget()

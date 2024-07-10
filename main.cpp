@@ -4,7 +4,12 @@
 #include "xtool.h"
 #include "expend.h"
 #include <locale>
+
 #include <QStyleFactory>
+#include <QCoreApplication>
+#include <QProcessEnvironment>
+#include <QFileInfo>
+
 #ifdef BODY_USE_CUDA
 #include "utils/gpuchecker.h"
 #endif
@@ -18,6 +23,7 @@ int main(int argc, char* argv[])
         if(arg == "--test"){return 0;}
     }
     
+    // 设置linux下动态库的默认路径
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");// 获取镜像的路径
     QString ldLibraryPath = appDirPath + "/usr/lib";
@@ -35,14 +41,23 @@ int main(int argc, char* argv[])
     QApplication a(argc, argv);//事件实例
     QApplication::setStyle(QStyleFactory::create("Fusion"));//现代风格
 
-
-
+    // 设置创建EVA_TEMP文件夹所在的目录
+#if BODY_LINUX_PACK
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString appImagePath = env.value("APPIMAGE");
+    const QFileInfo fileInfo(appImagePath);
+    const QString applicationDirPath = fileInfo.absolutePath();// 在打包程序运行时所在目录创建EVA_TEMP文件夹
+#else
+    const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
+#endif
+    qDebug()<<"EVA_TEMP: " + applicationDirPath;
+    
     //------------------实例化主要节点------------------
-    Widget w;//窗口实例
-    Expend expend;//增殖窗口实例
+    Widget w(nullptr, applicationDirPath);//窗口实例
+    Expend expend(nullptr, applicationDirPath);//增殖窗口实例
+    xTool tool(applicationDirPath);//工具实例
     xBot bot;//模型实例
     xNet net;//链接实例
-    xTool tool;//工具实例
 
     //-----------------初始值设定-----------------------
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;//传递语言

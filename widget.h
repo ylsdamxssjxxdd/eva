@@ -67,8 +67,9 @@ class Widget : public QWidget
     Q_OBJECT
 
 public:
-    Widget(QWidget *parent = nullptr);
+    Widget(QWidget *parent = nullptr, QString applicationDirPath_="./");
     ~Widget();
+    QString applicationDirPath;
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QShortcut *shortcutF1,*shortcutF2,*shortcutCtrlEnter;
     void registerHotkeys(); // 注册快捷键

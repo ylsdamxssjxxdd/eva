@@ -1,12 +1,12 @@
 #include "expend.h"
 #include "ui_expend.h"
 
-Expend::Expend(QWidget *parent) :
+Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     QWidget(parent),
     ui(new Ui::Expend)
 {
     ui->setupUi(this);
-
+    applicationDirPath = applicationDirPath_;
     QFile file(":/ui/QSS-master/Aqua.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();

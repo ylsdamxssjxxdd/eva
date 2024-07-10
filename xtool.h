@@ -28,8 +28,9 @@ class xTool : public QThread
 {
     Q_OBJECT
 public:
-    xTool();
+    xTool(QString applicationDirPath_="./");
     ~xTool();
+    QString applicationDirPath;
     //拯救中文
     QJsonObject wordsObj;
     int language_flag = 0;

@@ -53,8 +53,9 @@ class Expend : public QWidget
 //----------------------------------界面相关--------------------------------
 //-------------------------------------------------------------------------
 public:
-    Expend(QWidget *parent = nullptr);
+    Expend(QWidget *parent = nullptr, QString applicationDirPath_="./");
     ~Expend();
+    QString applicationDirPath;
     void closeEvent(QCloseEvent *event) override;//关闭事件
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QJsonObject wordsObj;
