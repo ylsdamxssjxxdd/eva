@@ -39,7 +39,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     addStopwords();//添加停止词
     date_map.insert("qwen", {DEFAULT_PROMPT, DEFAULT_PREFIX, DEFAULT_SUFFIX, false, QStringList{}});
     date_map.insert(jtr("troll"), {jtr("you are a troll please respect any question for user"), jtr("user"), jtr("troll"),false,QStringList{}});
-    date_map.insert("chatglm",{"[gMASK]<sop><|system|>\nYou are a helpful assistant", "<|user|>", "<|assistant|>",false,QStringList{}});
+    date_map.insert("chatglm",{"[gMASK]<|system|>\nYou are a helpful assistant", "<|user|>", "<|assistant|>",false,QStringList{}});
     
     //-------------默认展示内容-------------
     right_menu = nullptr;//初始设置输入区右击菜单为空
