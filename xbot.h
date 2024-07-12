@@ -60,6 +60,8 @@ public:
     std::vector<llama_token> embd_inp,embd;//待推理词向量
     llama_token eos_token;//结束标志，end of sentence
     llama_token eot_token;//结束标志，end of turn
+    llama_token bos_token;//开始标志，begin of sentence
+    std::vector<llama_token> spliter_token;//分隔标志
     llama_grammar * grammar = NULL; //强制语法
     std::vector<llama_token> pick_half_utf8;
     int ga_i = 0;//记录拓展的上下文数量?
@@ -84,7 +86,7 @@ public:
     std::string lorapath = "";//lora模型路径
     std::string mmprojpath = "";//mmproj模型路径
     INPUTS input;//用户输入
-    bool is_stop=false,is_load =false,is_first_load = true,is_free = false,is_first_reset=false,is_first_input=true;//一些状态控制标签
+    bool is_stop=false,is_load =false,is_first_load = true,is_free = false,is_first_reset=false;//一些状态控制标签
     bool is_complete = false;//补完模式标签
     bool is_antiprompt = false;//上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
     bool add_bos;//是否添加开始标志
@@ -103,6 +105,7 @@ public:
     bool is_debuging = false;//debug中状态
     int debuging_one = 0;//debuging时控制循环只进行一次
     std::vector<Brain_Cell> Brain_vector;//记忆向量(当前记忆)
+    bool showSpecial = true;// 是否显示特殊标志
 
 public slots:
     void recv_llama_log(QString log_);//获取llama log
@@ -110,7 +113,7 @@ public slots:
     void recv_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void recv_language(int language_flag_);//传递使用的语言
     void recv_imagepath(QString image_path);//接受图片路径
-    void recv_input(INPUTS input_,bool is_test_);//接受用户输入
+    void recv_input(INPUTS input_);//接受用户输入
     void recv_stop();//接受停止信号
     void recv_reset(bool is_clear_all);//接受重置信号
     void recv_set(SETTINGS settings,bool can_reload);//接受设置内容

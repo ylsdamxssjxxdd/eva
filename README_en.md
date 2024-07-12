@@ -94,6 +94,19 @@ cmake --build build --config Release
 - GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
 - BODY_32BIT: Flag for compiling to 32-bit program
 
+## DATE template
+- In chat mode, eva uses the same set of prompt template (DATE template) for all models. The overall structure is: system prompt + input prefix + user input + input suffix
+```txt
+DATE template format：
+<bos>{{system_prompt}}<eos>
+{{spliter}}<bos>{{user_name}}{{spliter}}
+{{user_content}}
+<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
+
+Eva will decode the system prompt in advance, and after each user clicks send, it will concatenate the sent content into a DATE template format and send it to the model. Then, it will continuously predict the next word, and the model will terminate in the following situations: output stop word/reach maximum output length/receive termination signal
+stop words：{{user_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
+```
+
 ## guideline
 - Load process
     - [ui] -> User clicks on load -> Select path -> Send setting parameters -> [bot] -> Processing parameters -> Send overload signal -> [ui] -> Pre load -> Loading interface status -> Send loading signal -> [bot] -> Start loading -> Send loading animation signal -> After loading reset -> Send loading completion signal -> [ui] -> Accelerate loading animation -> Loading animation end -> Rolling animation start -> Animation end -> Force unlocking -> Trigger sending -> Send pre decoding (only decoding but not sampling output) instruction -> [bot] -> Pre decoding system instruction -> Send decoding completion signal -> [ui] -> Normal interface status -> END

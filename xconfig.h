@@ -8,10 +8,20 @@
 #include <vector>
 #include <array>
 
-//约定
+//约定内容
+struct DATES{
+    QString system_prompt;
+    QString input_pfx;
+    QString input_sfx;
+    bool is_load_tool;
+    QStringList extra_stop_words;//额外停止标志
+};
+
+//默认约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
 #define DEFAULT_PREFIX "User"
 #define DEFAULT_SUFFIX "Assistant"
+#define DEFAULT_SPLITER "\n" // 分隔符
 
 //采样
 #define DEFAULT_NPREDICT 2048
@@ -59,14 +69,7 @@ const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 #define OS "linux"
 #endif
 
-//约定内容
-struct DATES{
-    QString system_prompt;
-    QString input_pfx;
-    QString input_sfx;
-    bool is_load_tool;
-    QStringList extra_stop_words;//额外停止标志
-};
+
 
 //设置参数
 struct SETTINGS{
@@ -122,11 +125,20 @@ struct TOOLS{
     QString func_describe;//功能描述
 };
 
+//发送内容的源
+enum ROLE{
+    ROLE_USER,// 加前缀后缀输入
+    ROLE_TOOL,// 不加前缀后缀，用天蓝色输出用户输入部分
+    ROLE_TEST,// 不加前缀后缀输入，改变is_test标志
+    ROLE_DEBUG,// 不加前缀后缀输入
+};
+
 //传递的前缀/输入/后缀
 struct INPUTS{
     QString input_prefix;
     QString input;
     QString input_suffix;
+    ROLE role;
 };
 
 //状态区信号枚举

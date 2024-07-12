@@ -231,7 +231,7 @@ void Widget::on_send_clicked()
             input = "<ylsdamxssjxxdd:predecode>";//预解码指令
             ui_need_predecode = false;
             ui->reset->setEnabled(0);//预解码时不允许重置
-            emit ui2bot_input({"",input,""},0);//传递用户输入  
+            emit ui2bot_input({"",input,"",ROLE_USER});//传递用户输入  
         }
         else if(is_debug_tool1)
         {
@@ -259,12 +259,12 @@ void Widget::on_send_clicked()
                 //添加引导题
                 if(help_input)
                 {
-                    emit ui2bot_input({"\n" + makeHelpInput() + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + jtr("answer") + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({makeHelpInput() + DEFAULT_SPLITER + ui_DATES.input_pfx,input,ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":",ROLE_TEST});//传递用户输入,测试模式  
                     help_input = false;
                 }
                 else
                 {
-                    emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx+ ":\n"  + jtr("answer") + ":"},1);//传递用户输入,测试模式  
+                    emit ui2bot_input({DEFAULT_SPLITER + ui_DATES.input_pfx,input,ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":",ROLE_TEST});//传递用户输入,测试模式  
                 }
             }
             else//完成测试完成,没有题目剩余
@@ -294,7 +294,7 @@ void Widget::on_send_clicked()
                 debuging_times ++;
                 if(is_debug_query)
                 {
-                    emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                    emit ui2bot_input({"","","",ROLE_DEBUG}); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
                     emit ui2bot_push();//开始推理
                     return;
                 }
@@ -317,7 +317,7 @@ void Widget::on_send_clicked()
                 
                 return;
             }
-            emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入 
+            emit ui2bot_input({ui_DATES.input_pfx + DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入 
         }
         else if(is_toolguy)//如果你是工具人
         {
@@ -326,7 +326,7 @@ void Widget::on_send_clicked()
             input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
             input += "\n" + jtr("tool_thought");
-            emit ui2bot_input({"",input,""},0);
+            emit ui2bot_input({"",input,"",ROLE_USER});
         }
         else//正常情况!!!
         {
@@ -347,7 +347,7 @@ void Widget::on_send_clicked()
                 is_debug_query = true;
                 input = query_list.at(0);
                 query_list.removeFirst();
-                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({ui_DATES.input_pfx+ DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入  
             }
             //-----------------------如果是拖进来的文件-------------------------
             else if(input.contains("file:///") && (input.contains(".png") || input.contains(".jpg")))
@@ -357,7 +357,7 @@ void Widget::on_send_clicked()
 
                 showImage(imagepath);//显示文件名和图像
 
-                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({ui_DATES.input_pfx + DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入  
                 emit ui2bot_imagepath(imagepath);
             }
             //-----------------------截图的情况-------------------------
@@ -365,7 +365,7 @@ void Widget::on_send_clicked()
             {
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
                 showImage(cut_imagepath);//显示文件名和图像
-                emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);//传递用户输入  
+                emit ui2bot_input({ui_DATES.input_pfx+ DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入  
                 emit ui2bot_imagepath(cut_imagepath);
             }
             //-----------------------一般情况----------------------------
@@ -376,7 +376,7 @@ void Widget::on_send_clicked()
                 {
                     input = tool_result + "\n" + jtr("tool_thought");
                     tool_result="";
-                    emit ui2bot_input({"\n",input,"\n"},0);
+                    emit ui2bot_input({"\n",input,"\n",ROLE_TOOL});
 
                     //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
                     if(ui->send->text() == "Next")
@@ -398,22 +398,14 @@ void Widget::on_send_clicked()
                     {
                         ui->send->setEnabled(0);
                         reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
-                        emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                        emit ui2bot_input({"","","",ROLE_DEBUG}); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
                         emit ui2bot_push();//开始推理
                         debuging_times ++;
                         return;
                     }
                     
-                    // 挂载工具后强制思考
-                    if(is_load_tool)
-                    {
-                        emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n" + jtr("tool_thought")},0);
-                    }
-                    else
-                    {
-                        emit ui2bot_input({"\n" + ui_DATES.input_pfx+ ":\n",input,"\n" + ui_DATES.input_sfx + ":\n"},0);
-                    }
-                    
+                    emit ui2bot_input({ ui_DATES.input_pfx,input,ui_DATES.input_sfx,ROLE_USER});
+
                 }
             }
         }
@@ -425,14 +417,14 @@ void Widget::on_send_clicked()
         {
             ui->send->setEnabled(0);
             reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
-            emit ui2bot_input({"","",""},0); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+            emit ui2bot_input({"","","",ROLE_DEBUG}); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
             emit ui2bot_push();//开始推理
             debuging_times ++;
             return;
         }
  
         input = ui->output->toPlainText().toUtf8().data();//直接用output上的文本进行推理
-        emit ui2bot_input({"<complete>",input,"<complete>"},0);//传递用户输入
+        emit ui2bot_input({"<complete>",input,"<complete>",ROLE_USER});//传递用户输入
     }
 
     is_run =true;//模型正在运行标签
@@ -1189,8 +1181,8 @@ void Widget::api_send_clicked_slove()
                     ui_user_history << jtr(QString("H%1").arg(i));//问题
                     ui_assistant_history << jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":");//答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.input_pfx + ":\n" + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
-                    reflash_output("\n" + ui_DATES.input_sfx + ":\n" + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
                 }
                 help_input = false;
             }
@@ -1216,9 +1208,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=1;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
         reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_query)
     {
@@ -1245,9 +1237,9 @@ void Widget::api_send_clicked_slove()
         data.assistant_history = ui_assistant_history;
         data.n_predict=ui_SETTINGS.npredict;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
         reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+        reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_toolguy)//如果你是工具人
     {
@@ -1293,9 +1285,9 @@ void Widget::api_send_clicked_slove()
             data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
             
-            reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+            reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
             reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
-            reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+            reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
         }
         //
         //来补充链接模式的各种情况/上传图像/图像文件
@@ -1328,9 +1320,9 @@ void Widget::api_send_clicked_slove()
                 ui_user_history << input;
                 data.user_history = ui_user_history;
                 data.assistant_history = ui_assistant_history;
-                reflash_output("\n" + ui_DATES.input_pfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+                reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
                 reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
-                reflash_output("\n" + ui_DATES.input_sfx + ":\n", 0, SYSTEM_BLUE);//前后缀用蓝色
+                reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             }

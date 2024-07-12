@@ -120,10 +120,8 @@ QString Widget::create_extra_prompt()
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + ":";//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + ":";//可以说相当严格了
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + "：";//可以说相当严格了
-    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + "：";//可以说相当严格了
+    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
 
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
@@ -559,9 +557,9 @@ QString Widget::makeHelpInput()
 
     for(int i = 1; i < 3;++i)//2个
     {
-        help_input = help_input + ui_DATES.input_pfx + ":\n";//前缀,用户昵称
+        help_input = help_input + "\n" + ui_DATES.input_pfx + DEFAULT_SPLITER;//前缀,用户昵称
         help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";//问题
-        help_input = help_input + "\n" + ui_DATES.input_sfx + ":\n";//后缀,模型昵称
+        help_input = help_input + "\n" + ui_DATES.input_sfx + DEFAULT_SPLITER;//后缀,模型昵称
         help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";//答案
     }
     

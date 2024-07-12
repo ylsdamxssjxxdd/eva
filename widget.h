@@ -330,7 +330,7 @@ signals:
     void ui2bot_imagepath(QString image_path);//传递图片路径
     void ui2bot_modelpath(QString model_path,bool is_first_load_=false);//传递模型路径
     void ui2bot_loadmodel();//开始装载模型
-    void ui2bot_input(INPUTS inputs,bool is_test_);//传递用户输入
+    void ui2bot_input(INPUTS inputs);//传递用户输入
     void ui2bot_push();//开始推理
     void ui2bot_stop();//传递推理停止信号
     void ui2bot_reset(bool is_clear_all);//传递重置信号

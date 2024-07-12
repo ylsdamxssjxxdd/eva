@@ -252,13 +252,13 @@ QString xTool::embedding_query_process(QString query_str)
             std::vector<std::pair<int, double>> score;
             score = similar_indices(query_embedding_vector.value,Embedding_DB);//计算查询文本段和所有嵌入文本段之间的相似度
 
-            if(score.size()>0){knowledge_result += jtr("The three text segments with the highest similarity") + ":\n";}
+            if(score.size()>0){knowledge_result += jtr("The three text segments with the highest similarity") + DEFAULT_SPLITER;}
 
             //将分数前三的结果显示出来
             for(int i = 0;i < 3 && i < score.size();++i)
             {
                 knowledge_result += QString::number(score[i].first + 1) + jtr("Number text segment similarity") + ": " + QString::number(score[i].second);
-                knowledge_result += " " + jtr("content") + ":\n" + Embedding_DB.at(score[i].first).chunk + "\n";
+                knowledge_result += " " + jtr("content") + DEFAULT_SPLITER + Embedding_DB.at(score[i].first).chunk + "\n";
             }
 
             if(score.size()>0){knowledge_result += jtr("Based on this information, reply to the user's previous questions");}

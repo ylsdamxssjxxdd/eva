@@ -38,16 +38,18 @@ xBot::xBot()
     log_disable();//禁止llama.cpp输出日志文件
     llama_log_set(bot_log_callback, this);//设置回调,获取llama的日志
     QObject::connect(this,&xBot::bot_llama_log,this,&xBot::recv_llama_log);
+    showSpecial = true;// 是否显示特殊标志
     
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;//gpu负载层数
-    gpt_params_.prompt = DEFAULT_PROMPT + std::string("\n");//约定提示词
+    gpt_params_.prompt = DEFAULT_PROMPT;//系统指令
+    gpt_params_.input_prefix = DEFAULT_PREFIX;//输入前缀
+    gpt_params_.input_suffix = DEFAULT_SUFFIX;//输入后缀
     gpt_params_.model = "";//模型路径
     gpt_params_.n_threads = DEFAULT_NTHREAD;//默认使用一半的线程数
     gpt_params_.n_ctx = DEFAULT_NCTX;//上下文最大长度
     gpt_params_.n_batch = DEFAULT_BATCH;//一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
-    gpt_params_.input_prefix = DEFAULT_PREFIX + std::string(":\n");//输入前缀
-    gpt_params_.input_suffix = DEFAULT_SUFFIX + std::string(":\n");//输入后缀
+
     //初始的采样参数
     gpt_params_.sparams.top_p = 0.95;
     gpt_params_.sparams.temp = DEFAULT_TEMP;//温度
@@ -141,26 +143,40 @@ void xBot::run()
         std::vector<llama_token> line_inp;//用户输入
         std::vector<llama_token> line_sfx;//后缀
 
-        if(!is_complete && !is_antiprompt)//前缀,如果已经检测出用户昵称则不加前缀
+        //---插入前缀---
+        if(!is_complete && !is_antiprompt && input.role == ROLE_USER)//前缀,如果 检测出用户昵称/补完模式 则不加前缀
         {
-            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString(), false, true); // 暂时都不添加开始标志了
+            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
+            line_pfx.insert(line_pfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
-        //qDebug()<<"插入line_pfx后embd_inp"<<view_embd(ctx,embd_inp);
+        else if(input.role == ROLE_TEST)
+        {
+            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
+            embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
+        }
+        
+        //---插入输入---
         line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, true);//用户输入,最后一个true表示会将特殊token整个分词
         embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
-        //qDebug()<<"插入line_inp后embd_inp"<<view_embd(ctx,embd_inp);
 
-        if(!is_complete)//后缀
+        //---插入后缀---
+        if(!is_complete && input.role == ROLE_USER)//后缀,如果 检测出补完模式 则不加后缀
         {
-            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), false, true);
+            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
+            line_sfx.insert(line_sfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
+            line_sfx.insert(line_sfx.begin(),eos_token); // 前面加一个结束标志
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
-        //qDebug()<<"插入line_sfx后embd_inp"<<view_embd(ctx,embd_inp);
-        is_antiprompt = false;//重置反提示标签
-        is_first_input = false;
-        //qDebug()<<"插入用户输入 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
+        else if(input.role == ROLE_TEST)
+        {
+            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), true, true);
+            embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
+        }
         
+
+        is_antiprompt = false;//重置反提示标签
+
         push_out(line_pfx,0);//在输出区贴上用户昵称
         push_out(line_inp,1);//在输出区贴上输入内容
         push_out(line_sfx,2);//在输出区贴上模型昵称
@@ -178,7 +194,6 @@ void xBot::run()
         //qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
 
         // 用户刚点击发送按钮进入debuging状态时（通过前后缀不为空知道是刚点击）
-        // 针对工具前后缀使用\n标志
         if(is_debuging)
         {
             if(!is_test)
@@ -532,11 +547,16 @@ int xBot::stream()
             embd.push_back(id);//把预测的词加到下一次的预测中,准备下一次预测
             --n_remain;
             
-            if(id == eos_token || id == eot_token)//如果遇到结束则停止
+            if(id == eos_token || id == eot_token || id == bos_token)//如果遇到结束则停止
             {
                 emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
                 if(is_debuging){emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed()/1000000000.0,'f',4)+ " s",SUCCESS_);}
-                emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
+                
+                if(showSpecial)
+                {
+                    emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
+                }
+
                 current_output += sstr;
 
                 QString fianl_state;
@@ -729,6 +749,8 @@ void xBot::load(std::string &modelpath)
 
     eos_token = llama_token_eos(model);// 结束标志
     eot_token = llama_token_eot(model);// 结束标志
+    bos_token = llama_token_bos(model);// 开始标志
+    spliter_token = llama_tokenize(ctx, DEFAULT_SPLITER, false, false);
     add_bos = llama_should_add_bos_token(model);//是否添加开始标志
     n_vocab = llama_n_vocab(model);//词表总大小
     n_ctx_train = llama_n_ctx_train(model);//上下文总大小
@@ -765,15 +787,18 @@ void xBot::reset(bool is_clear_all)
     QElapsedTimer time1;time1.start();
 
     if(int(llama_tokenize(ctx, gpt_params_.prompt, add_bos, true).size())>gpt_params_.n_ctx -4)//如果约定的系统指令长度太长则不约定
-    {is_datetoolong = true;emit bot2ui_state("bot:" +jtr("system calling too long use")+":You are a helpful assistant.\n",WRONG_);}
+    {is_datetoolong = true;emit bot2ui_state("bot:" +jtr("system calling too long use")+":You are a helpful assistant.",WRONG_);}
     else{is_datetoolong = false;}
 
     system_tokens.clear();
     if(is_complete){system_tokens = llama_tokenize(ctx, "", add_bos, true);}//补完模式预解码空的约定词向量
-    else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.\n", add_bos, true);}//新增
-    else{system_tokens = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true);}
+    else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.", add_bos, true);}// 系统指令太长的情况
+    else
+    {
+        system_tokens = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true); // <bos>{{system_content}}{{extra_content}}<eos>
+        system_tokens.push_back(eos_token);
+    }
     is_antiprompt = false;//用户昵称检测标签
-    is_first_input = true;//初次输入标签,对话模式中初次输前已经考虑add_bos,不再向用户输入插入开始标志
 
     //添加额外停止标志
     gpt_params_.antiprompt.clear();//清空反提示
@@ -903,9 +928,17 @@ void xBot::preDecode()
     for (int i = 0; i < embd_inp.size(); ++i)
     {
         const llama_token token = embd_inp[i];
+
         std::string str;
         str = llama_token_to_piece(ctx, token);
-        token_str += str;
+        if(!showSpecial && (token == eos_token || token == eot_token || token == bos_token))
+        {
+            
+        }
+        else
+        {
+            token_str += str;
+        }
         Brain_vector.push_back({i+1,token,QString::fromStdString(str)});
         //qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
@@ -990,11 +1023,18 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos)
         for (int i = 0; i < embd_output.size(); ++i)
         {
             const llama_token token = embd_output[i];
-            std::string sstr = llama_token_to_piece(ctx, token);
-            token_str += sstr;
+            std::string str = llama_token_to_piece(ctx, token);
+            if(!showSpecial && (token == eos_token || token == eot_token || token == bos_token))
+            {
+                
+            }
+            else
+            {
+                token_str += str;
+            }
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
-        if(input.input_prefix=="\n"&&input.input_suffix=="\n")
+        if(input.role == ROLE_TOOL)
         {
             emit bot2ui_output(QString::fromStdString(token_str), 0, TOOL_BLUE);
         }
@@ -1026,11 +1066,18 @@ void xBot::recv_imagepath(QString image_path)
 }
 
 // 接受用户输入
-void xBot::recv_input(INPUTS input_,bool is_test_)
+void xBot::recv_input(INPUTS input_)
 {
-    //qDebug()<< npredict_;
     input = input_;
-    is_test = is_test_;
+    if(input.role == ROLE_TEST)
+    {
+        is_test = true;
+    }
+    else
+    {
+        is_test = false;
+    }
+    
 }
 
 //接受停止信号
@@ -1250,11 +1297,11 @@ void xBot::recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS)
 void xBot::apply_date(DATES date)
 {
     if(date.system_prompt == ""){gpt_params_.prompt = "";}
-    else{gpt_params_.prompt = date.system_prompt.toStdString() + "\n";}//默认为用户的约定加一个回车
+    else{gpt_params_.prompt = date.system_prompt.toStdString();}
     if(date.input_pfx == ""){gpt_params_.input_prefix = "";}
-    else{gpt_params_.input_prefix = date.input_pfx.toStdString() + ":\n";}
+    else{gpt_params_.input_prefix = date.input_pfx.toStdString();}
     if(date.input_sfx == ""){gpt_params_.input_suffix = "";}
-    else{gpt_params_.input_suffix = date.input_sfx.toStdString() + ":\n";}
+    else{gpt_params_.input_suffix = date.input_sfx.toStdString();}
     is_load_tool = date.is_load_tool;
     extra_stop_words = date.extra_stop_words;
 }
