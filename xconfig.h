@@ -19,11 +19,28 @@ struct DATES{
 
 //默认约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
-#define DEFAULT_PREFIX "user"
-#define DEFAULT_SUFFIX "assistant"
+#define DEFAULT_PREFIX "User"
+#define DEFAULT_SUFFIX "Assistant"
 #define DEFAULT_SPLITER "\n" // 分隔符
 #define DEFAULT_THOUGHT "thought: " // 思考词
 #define DEFAULT_OBSERVATION "observation: " // 观察词
+
+//发送内容的源
+enum ROLE{
+    ROLE_USER,// 加前缀后缀输入。                       构成形式：<bos>{{user_name}}{{spliter}}{{user_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
+    ROLE_TOOL,// 不加前缀后缀，用天蓝色输出用户输入部分。 构成形式：{{spliter}}{{observation}}{{tool_content}}{{spliter}}{{thought}}
+    ROLE_TEST,// 同时改变is_test标志。                 构成形式：<bos>{{user_name}}{{spliter}}{{user_content}}<bos>{{model_name}}{{spliter}}
+    ROLE_DEBUG,// 不加前缀后缀输入。                    构成形式：
+    ROLE_THOUGHT,// 后缀末尾的分隔符用 thought: 代替    构成形式：{{spliter}}<bos>{{user_name}}{{spliter}}{{user_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}{{thought}}
+};
+
+//传递的前缀/输入/后缀
+struct INPUTS{
+    QString input_prefix;
+    QString input;
+    QString input_suffix;
+    ROLE role;
+};
 
 //采样
 #define DEFAULT_NPREDICT 2048
@@ -70,8 +87,6 @@ const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 #define SFX_NAME "" //第三方程序后缀名
 #define OS "linux"
 #endif
-
-
 
 //设置参数
 struct SETTINGS{
@@ -126,24 +141,6 @@ struct TOOLS{
     QString func_name;//函数名
     QString func_describe;//功能描述
 };
-
-//发送内容的源
-enum ROLE{
-    ROLE_USER,// 加前缀后缀输入
-    ROLE_TOOL,// 不加前缀后缀，用天蓝色输出用户输入部分
-    ROLE_TEST,// 不加前缀后缀输入，改变is_test标志
-    ROLE_DEBUG,// 不加前缀后缀输入
-    ROLE_THOUGHT,// 后缀末尾的分隔符用 thought: 代替
-};
-
-//传递的前缀/输入/后缀
-struct INPUTS{
-    QString input_prefix;
-    QString input;
-    QString input_suffix;
-    ROLE role;
-};
-
 
 //状态区信号枚举
 enum STATE {

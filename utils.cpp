@@ -27,13 +27,13 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
         qDebug() << "花括号中的内容是：" << content;
         // ----------匹配"action:"至逗号----------
         // \\s*的意思是允许忽略空格
-        QRegularExpression re2("\"action\"\\s*[:：]\\s*\"([^\"]*)\"");
+        QRegularExpression re2("\"action_name\"\\s*[:：]\\s*\"([^\"]*)\"");
         QRegularExpressionMatch match2 = re2.match(content);
         if (match2.hasMatch())
         {
             QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
             func_arg_list.first = content2;
-            qDebug() << "action中的内容是：" << content2;
+            qDebug() << "action_name中的内容是：" << content2;
             // ----------匹配"action_input:"至最后----------
             QRegularExpression re3("\"action_input\"\\s*[:：]\\s*(.*)");
             re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
@@ -72,7 +72,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
 
         }
         else {
-            qDebug() << "没有找到action中的内容。";
+            qDebug() << "没有找到action_name中的内容。";
         }
     }
     else {
@@ -127,8 +127,6 @@ void Widget::addStopwords()
     {
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
-        ui_DATES.extra_stop_words << "观察:";//可以说相当严格了
-        ui_DATES.extra_stop_words << "观察：";//可以说相当严格了
     }
     
 }

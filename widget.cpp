@@ -325,7 +325,7 @@ void Widget::on_send_clicked()
             ui->input->installEventFilter(this);
             input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
-            input += "\n" + jtr("tool_thought");
+            input += "\n" + QString(DEFAULT_THOUGHT);
             emit ui2bot_input({"",input,"",ROLE_USER});
         }
         else//正常情况!!!
@@ -374,9 +374,9 @@ void Widget::on_send_clicked()
                 //如果工具返回的结果不为空,加思考而不加前缀和后缀
                 if(tool_result!="")
                 {
-                    input = tool_result + "\n" + jtr("tool_thought");
+                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + DEFAULT_THOUGHT;
                     tool_result="";
-                    emit ui2bot_input({"\n",input,"\n",ROLE_TOOL});
+                    emit ui2bot_input({"",input,"",ROLE_TOOL});
 
                     //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
                     if(ui->send->text() == "Next")
@@ -1254,16 +1254,9 @@ void Widget::api_send_clicked_slove()
         ui->input->installEventFilter(this);
         input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
         ui->input->clear();
-        input += "\n" + jtr("tool_thought");
+        input += "\n" + QString(DEFAULT_THOUGHT);
+        ui_assistant_history << DEFAULT_OBSERVATION + input;
 
-        if(ui_extra_lan == "zh")
-        {
-            ui_assistant_history << jtr("tool_observation") + input;
-        }
-        else if(ui_extra_lan == "en")
-        {
-            ui_assistant_history << "observation: " + input;
-        }
         reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
 
         QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
@@ -1305,14 +1298,7 @@ void Widget::api_send_clicked_slove()
             //如果工具返回的结果不为空,则发送工具结果给net
             if(tool_result!="")
             {
-                if(ui_extra_lan == "zh")
-                {
-                    ui_assistant_history << jtr("tool_observation") + tool_result;
-                }
-                else if(ui_extra_lan == "en")
-                {
-                    ui_assistant_history << "observation: " + tool_result;
-                }
+                ui_assistant_history << DEFAULT_OBSERVATION + tool_result;
                 reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
                 
                 tool_result="";

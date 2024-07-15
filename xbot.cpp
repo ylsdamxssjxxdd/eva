@@ -144,39 +144,45 @@ void xBot::run()
         std::vector<llama_token> line_sfx;//后缀
 
         //---插入前缀---
-        if(!is_complete && !is_antiprompt && input.role == ROLE_USER)//前缀,如果 检测出用户昵称/补完模式 则不加前缀
+        if((!is_complete && !is_antiprompt) && (input.role == ROLE_USER || input.role == ROLE_THOUGHT))//前缀,如果 检测出用户昵称/补完模式 则不加前缀
         {
+            // 构成形式：{{spliter}}<bos>{{user_name}}{{spliter}}
             line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
             line_pfx.insert(line_pfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
         else if(input.role == ROLE_TEST)
         {
+            // 构成形式：<bos>{{user_name}}{{spliter}}
             line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
             embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
         }
         
         //---插入输入---
+        // 构成形式：{{user_content}}
         line_inp = ::llama_tokenize(ctx, input.input.toStdString(),              false, true);//用户输入,最后一个true表示会将特殊token整个分词
         embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
 
         //---插入后缀---
-        if(!is_complete && input.role == ROLE_USER)//后缀,如果 检测出补完模式 则不加后缀
+        if(!is_complete && input.role == ROLE_USER)// 补完模式 则不加后缀
         {
+            // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
             line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
             line_sfx.insert(line_sfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
             line_sfx.insert(line_sfx.begin(),eos_token); // 前面加一个结束标志
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
         else if(input.role == ROLE_THOUGHT)
-        {!
-            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
+        {
+            // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}{{thought}}
+            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER + DEFAULT_THOUGHT, true, true);
             line_sfx.insert(line_sfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
             line_sfx.insert(line_sfx.begin(),eos_token); // 前面加一个结束标志
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
         else if(input.role == ROLE_TEST)
         {
+            // 构成形式：<bos>{{model_name}}{{spliter}}
             line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), true, true);
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
@@ -796,6 +802,8 @@ void xBot::reset(bool is_clear_all)
     {is_datetoolong = true;emit bot2ui_state("bot:" +jtr("system calling too long use")+":You are a helpful assistant.",WRONG_);}
     else{is_datetoolong = false;}
 
+    //---插入系统提示词---
+    //构成形式：<bos>{{system_prompt}}<eos>
     system_tokens.clear();
     if(is_complete){system_tokens = llama_tokenize(ctx, "", true, true);}//补完模式预解码空的约定词向量
     else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.", true, true);}// 系统指令太长的情况
