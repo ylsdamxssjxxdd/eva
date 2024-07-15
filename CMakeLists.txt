@@ -4,12 +4,12 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3334) # 打包版本
+set(version b3389) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 ###################################### 编译选项 ######################################
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
@@ -102,7 +102,7 @@ add_subdirectory(llama.cpp/examples/main) # 测试用
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
 
-set(TARGET_whisper whisper) # 添加whisper
+set(TARGET_whisper whisper) # 添加whisper 当前版本 1.6.2
 find_package(Threads REQUIRED)
 add_executable(${TARGET_whisper} 
 whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
@@ -112,6 +112,7 @@ target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT})
 
 
 # 构建sd.exe并放到utils目录下
+# 当前版本 master-9c51d87
 set(stable_DIFFUSION_DIR "${PROJECT_SOURCE_DIR}/stable-diffusion.cpp")
 add_custom_command(TARGET ${TARGET_whisper} POST_BUILD
     # COMMAND ${CMAKE_COMMAND} -E remove_directory "${stable_DIFFUSION_DIR}/build"

@@ -168,6 +168,13 @@ void xBot::run()
             line_sfx.insert(line_sfx.begin(),eos_token); // 前面加一个结束标志
             embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
         }
+        else if(input.role == ROLE_THOUGHT)
+        {!
+            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
+            line_sfx.insert(line_sfx.begin(),spliter_token.begin(),spliter_token.end()); // 前面加一个分隔符
+            line_sfx.insert(line_sfx.begin(),eos_token); // 前面加一个结束标志
+            embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
+        }
         else if(input.role == ROLE_TEST)
         {
             line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), true, true);
@@ -751,7 +758,6 @@ void xBot::load(std::string &modelpath)
     eot_token = llama_token_eot(model);// 结束标志
     bos_token = llama_token_bos(model);// 开始标志
     spliter_token = llama_tokenize(ctx, DEFAULT_SPLITER, false, false);
-    add_bos = llama_should_add_bos_token(model);//是否添加开始标志
     n_vocab = llama_n_vocab(model);//词表总大小
     n_ctx_train = llama_n_ctx_train(model);//上下文总大小
     //返回装载时获取的模型参数
@@ -786,16 +792,16 @@ void xBot::reset(bool is_clear_all)
     //----------------------------------------------------------------------
     QElapsedTimer time1;time1.start();
 
-    if(int(llama_tokenize(ctx, gpt_params_.prompt, add_bos, true).size())>gpt_params_.n_ctx -4)//如果约定的系统指令长度太长则不约定
+    if(int(llama_tokenize(ctx, gpt_params_.prompt, true, true).size())>gpt_params_.n_ctx -4)//如果约定的系统指令长度太长则不约定
     {is_datetoolong = true;emit bot2ui_state("bot:" +jtr("system calling too long use")+":You are a helpful assistant.",WRONG_);}
     else{is_datetoolong = false;}
 
     system_tokens.clear();
-    if(is_complete){system_tokens = llama_tokenize(ctx, "", add_bos, true);}//补完模式预解码空的约定词向量
-    else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.", add_bos, true);}// 系统指令太长的情况
+    if(is_complete){system_tokens = llama_tokenize(ctx, "", true, true);}//补完模式预解码空的约定词向量
+    else if(is_datetoolong){system_tokens = llama_tokenize(ctx, "You are a helpful assistant.", true, true);}// 系统指令太长的情况
     else
     {
-        system_tokens = llama_tokenize(ctx, gpt_params_.prompt, add_bos, true); // <bos>{{system_content}}{{extra_content}}<eos>
+        system_tokens = llama_tokenize(ctx, gpt_params_.prompt, true, true); // <bos>{{system_content}}{{extra_content}}<eos>
         system_tokens.push_back(eos_token);
     }
     is_antiprompt = false;//用户昵称检测标签

@@ -19,9 +19,11 @@ struct DATES{
 
 //默认约定
 #define DEFAULT_PROMPT "You are a helpful assistant."
-#define DEFAULT_PREFIX "User"
-#define DEFAULT_SUFFIX "Assistant"
+#define DEFAULT_PREFIX "user"
+#define DEFAULT_SUFFIX "assistant"
 #define DEFAULT_SPLITER "\n" // 分隔符
+#define DEFAULT_THOUGHT "thought: " // 思考词
+#define DEFAULT_OBSERVATION "observation: " // 观察词
 
 //采样
 #define DEFAULT_NPREDICT 2048
@@ -131,6 +133,7 @@ enum ROLE{
     ROLE_TOOL,// 不加前缀后缀，用天蓝色输出用户输入部分
     ROLE_TEST,// 不加前缀后缀输入，改变is_test标志
     ROLE_DEBUG,// 不加前缀后缀输入
+    ROLE_THOUGHT,// 后缀末尾的分隔符用 thought: 代替
 };
 
 //传递的前缀/输入/后缀
@@ -140,6 +143,7 @@ struct INPUTS{
     QString input_suffix;
     ROLE role;
 };
+
 
 //状态区信号枚举
 enum STATE {

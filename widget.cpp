@@ -404,8 +404,15 @@ void Widget::on_send_clicked()
                         return;
                     }
                     
-                    emit ui2bot_input({ ui_DATES.input_pfx,input,ui_DATES.input_sfx,ROLE_USER});
-
+                    // 如果挂载了工具则强制先思考
+                    if(is_load_tool)
+                    {
+                        emit ui2bot_input({ ui_DATES.input_pfx,input,ui_DATES.input_sfx,ROLE_THOUGHT});
+                    }
+                    else
+                    {
+                        emit ui2bot_input({ ui_DATES.input_pfx,input,ui_DATES.input_sfx,ROLE_USER});
+                    }
                 }
             }
         }

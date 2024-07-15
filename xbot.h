@@ -89,7 +89,6 @@ public:
     bool is_stop=false,is_load =false,is_first_load = true,is_free = false,is_first_reset=false;//一些状态控制标签
     bool is_complete = false;//补完模式标签
     bool is_antiprompt = false;//上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
-    bool add_bos;//是否添加开始标志
     bool is_datetoolong = false;//如果约定的系统指令长度太长则不约定
     int n_past = 0;//已推理个数
     int n_consumed =0;//已编码字符数

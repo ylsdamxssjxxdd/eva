@@ -265,7 +265,7 @@ class Model:
                     break
 
             for new_name, data in ((n, d.squeeze().numpy()) for n, d in self.modify_tensors(data_torch, name, bid)):
-                data: np.ndarray = data  # type hint
+                data: np.ndarray  # type hint
                 n_dims = len(data.shape)
                 data_dtype = data.dtype
                 data_qtype: gguf.GGMLQuantizationType | None = None
@@ -373,6 +373,29 @@ class Model:
         except KeyError:
             raise NotImplementedError(f'Architecture {arch!r} not supported!') from None
 
+    def does_token_look_special(self, token: str | bytes) -> bool:
+        if isinstance(token, (bytes, bytearray)):
+            token_text = token.decode(encoding="utf-8")
+        elif isinstance(token, memoryview):
+            token_text = token.tobytes().decode(encoding="utf-8")
+        else:
+            token_text = token
+
+        # Some models mark some added tokens which ought to be control tokens as not special.
+        # (e.g. command-r, command-r-plus, deepseek-coder, gemma{,-2})
+        seems_special = token_text in (
+            "<pad>",  # deepseek-coder
+            "<mask>", "<2mass>", "[@BOS@]",  # gemma{,-2}
+        )
+
+        seems_special = seems_special or (token_text.startswith("<|") and token_text.endswith("|>"))
+        seems_special = seems_special or (token_text.startswith("<｜") and token_text.endswith("｜>"))  # deepseek-coder
+
+        # TODO: should these be marked as UNUSED instead? (maybe not)
+        seems_special = seems_special or (token_text.startswith("<unused") and token_text.endswith(">"))  # gemma{,-2}
+
+        return seems_special
+
     # used for GPT-2 BPE and WordPiece vocabs
     def get_vocab_base(self) -> tuple[list[str], list[int], str]:
         tokens: list[str] = []
@@ -391,16 +414,18 @@ class Model:
         for i in range(vocab_size):
             if i not in reverse_vocab:
                 tokens.append(f"[PAD{i}]")
-                toktypes.append(gguf.TokenType.USER_DEFINED)
-            elif reverse_vocab[i] in added_vocab:
-                tokens.append(reverse_vocab[i])
-                if tokenizer.added_tokens_decoder[i].special:
-                    toktypes.append(gguf.TokenType.CONTROL)
-                else:
-                    toktypes.append(gguf.TokenType.USER_DEFINED)
+                toktypes.append(gguf.TokenType.UNUSED)
             else:
-                tokens.append(reverse_vocab[i])
-                toktypes.append(gguf.TokenType.NORMAL)
+                token: str = reverse_vocab[i]
+                if token in added_vocab:
+                    if tokenizer.added_tokens_decoder[i].special or self.does_token_look_special(token):
+                        toktypes.append(gguf.TokenType.CONTROL)
+                    else:
+                        token = token.replace(b"\xe2\x96\x81".decode("utf-8"), " ")  # pre-normalize user-defined spaces
+                        toktypes.append(gguf.TokenType.USER_DEFINED)
+                else:
+                    toktypes.append(gguf.TokenType.NORMAL)
+                tokens.append(token)
 
         return tokens, toktypes, tokpre
 
@@ -559,7 +584,7 @@ class Model:
         for i in range(vocab_size):
             if i not in reverse_vocab:
                 tokens.append(f"[PAD{i}]")
-                toktypes.append(gguf.TokenType.USER_DEFINED)
+                toktypes.append(gguf.TokenType.UNUSED)
             elif reverse_vocab[i] in added_vocab:
                 tokens.append(reverse_vocab[i])
                 toktypes.append(gguf.TokenType.CONTROL)
@@ -599,10 +624,6 @@ class Model:
 
         tokenizer_path = self.dir_model / 'tokenizer.model'
 
-        tokens: list[bytes] = []
-        scores: list[float] = []
-        toktypes: list[int] = []
-
         if not tokenizer_path.is_file():
             raise FileNotFoundError(f"File not found: {tokenizer_path}")
 
@@ -613,7 +634,7 @@ class Model:
 
         tokens: list[bytes] = [f"[PAD{i}]".encode("utf-8") for i in range(vocab_size)]
         scores: list[float] = [-10000.0] * vocab_size
-        toktypes: list[int] = [SentencePieceTokenTypes.UNKNOWN] * vocab_size
+        toktypes: list[int] = [SentencePieceTokenTypes.UNUSED] * vocab_size
 
         for token_id in range(tokenizer.vocab_size()):
             piece = tokenizer.IdToPiece(token_id)
@@ -647,6 +668,25 @@ class Model:
                     tokens[token_id] = key.encode("utf-8")
                     scores[token_id] = -1000.0
                     toktypes[token_id] = SentencePieceTokenTypes.USER_DEFINED
+
+        tokenizer_config_file = self.dir_model / 'tokenizer_config.json'
+        if tokenizer_config_file.is_file():
+            with open(tokenizer_config_file, "r", encoding="utf-8") as f:
+                tokenizer_config_json = json.load(f)
+                added_tokens_decoder = tokenizer_config_json.get("added_tokens_decoder", {})
+                for token_id, token_data in added_tokens_decoder.items():
+                    token_id = int(token_id)
+                    token: str = token_data["content"]
+                    if toktypes[token_id] != SentencePieceTokenTypes.UNUSED:
+                        assert tokens[token_id] == token.encode("utf-8")
+                    if token_data.get("special") or self.does_token_look_special(token):
+                        toktypes[token_id] = SentencePieceTokenTypes.CONTROL
+                    else:
+                        token = token.replace(b"\xe2\x96\x81".decode("utf-8"), " ")  # pre-normalize user-defined spaces
+                        toktypes[token_id] = SentencePieceTokenTypes.USER_DEFINED
+
+                    scores[token_id] = -1000.0
+                    tokens[token_id] = token.encode("utf-8")
 
         if vocab_size > len(tokens):
             pad_count = vocab_size - len(tokens)
@@ -1207,11 +1247,10 @@ class RefactModel(Model):
 
         # TODO: how to determine special FIM tokens automatically?
         special_vocab = gguf.SpecialVocab(self.dir_model, load_merges=False,
-                                          special_token_types = ['prefix', 'suffix', 'middle', 'fsep', 'eot'])
+                                          special_token_types = ['prefix', 'suffix', 'middle', 'eot'])
         special_vocab._set_special_token("prefix", 1)
         special_vocab._set_special_token("suffix", 3)
         special_vocab._set_special_token("middle", 2)
-        special_vocab._set_special_token("fsep",   4) # is this correct?
         special_vocab.add_to_gguf(self.gguf_writer)
 
     def set_gguf_parameters(self):
@@ -1271,7 +1310,7 @@ class StableLMModel(Model):
         if (self.dir_model / "tokenizer.json").is_file():
             self._set_vocab_gpt2()
         else:
-            # StableLM 2 1.6B uses a vocab in a similar format to Qwen's vocab
+            # StableLM 2 1.6B used to have a vocab in a similar format to Qwen's vocab
             self._set_vocab_qwen()
 
     def set_gguf_parameters(self):
@@ -1360,7 +1399,7 @@ class LlamaModel(Model):
 
     def set_vocab(self):
         try:
-            self. _set_vocab_sentencepiece()
+            self._set_vocab_sentencepiece()
         except FileNotFoundError:
             try:
                 self._set_vocab_llama_hf()
@@ -1583,7 +1622,6 @@ class DbrxModel(Model):
         self.gguf_writer.add_rope_freq_base(attn_config["rope_theta"])
 
         self.gguf_writer.add_clamp_kqv(attn_config["clip_qkv"])
-        self.gguf_writer.add_file_type(self.ftype)
 
         self.gguf_writer.add_expert_count(ffn_config["moe_num_experts"])
         self.gguf_writer.add_expert_used_count(ffn_config["moe_top_k"])
@@ -1877,7 +1915,7 @@ class Phi3MiniModel(Model):
 
         tokens: list[bytes] = [f"[PAD{i}]".encode("utf-8") for i in range(vocab_size)]
         scores: list[float] = [-10000.0] * vocab_size
-        toktypes: list[int] = [SentencePieceTokenTypes.UNKNOWN] * vocab_size
+        toktypes: list[int] = [SentencePieceTokenTypes.UNUSED] * vocab_size
 
         for token_id in range(tokenizer.vocab_size()):
 
@@ -1922,7 +1960,7 @@ class Phi3MiniModel(Model):
                 for token_id, foken_data in added_tokens_decoder.items():
                     token_id = int(token_id)
                     token = foken_data["content"].encode("utf-8")
-                    if toktypes[token_id] != SentencePieceTokenTypes.UNKNOWN:
+                    if toktypes[token_id] != SentencePieceTokenTypes.UNUSED:
                         assert tokens[token_id] == token
                     tokens[token_id] = token
                     scores[token_id] = -1000.0
@@ -1938,7 +1976,7 @@ class Phi3MiniModel(Model):
                 for foken_data in added_tokens:
                     token_id = int(foken_data["id"])
                     token = foken_data["content"].encode("utf-8")
-                    if toktypes[token_id] != SentencePieceTokenTypes.UNKNOWN:
+                    if toktypes[token_id] != SentencePieceTokenTypes.UNUSED:
                         assert tokens[token_id] == token
                     tokens[token_id] = token
                     scores[token_id] = -1000.0
@@ -2120,7 +2158,7 @@ class InternLM2Model(Model):
             logger.error(f'Error: Missing {tokenizer_path}')
             sys.exit(1)
 
-        sentencepiece_model = model.ModelProto()
+        sentencepiece_model = model.ModelProto()  # pyright: ignore[reportAttributeAccessIssue]
         sentencepiece_model.ParseFromString(open(tokenizer_path, "rb").read())
         add_prefix = sentencepiece_model.normalizer_spec.add_dummy_prefix
 
@@ -2148,6 +2186,9 @@ class InternLM2Model(Model):
                 toktype = SentencePieceTokenTypes.UNUSED
             elif tokenizer.IsByte(token_id):
                 toktype = SentencePieceTokenTypes.BYTE
+            # take care of ununsed raw token
+            if piece.startswith('[UNUSED'):
+                toktype = SentencePieceTokenTypes.UNUSED
 
             tokens.append(text)
             scores.append(score)
@@ -2163,6 +2204,47 @@ class InternLM2Model(Model):
                     scores.append(-1000.0)
                     toktypes.append(SentencePieceTokenTypes.USER_DEFINED)
 
+        chat_eos_token = '<|im_end|>'
+        chat_eos_token_id = None
+
+        tokenizer_config_file = self.dir_model / 'tokenizer_config.json'
+        if tokenizer_config_file.is_file():
+            with open(tokenizer_config_file, "r", encoding="utf-8") as f:
+                tokenizer_config_json = json.load(f)
+                added_tokens_decoder = tokenizer_config_json.get("added_tokens_decoder", {})
+                for token_id, foken_data in added_tokens_decoder.items():
+                    token_id = int(token_id)
+                    token = foken_data["content"]
+                    if token == chat_eos_token:
+                        chat_eos_token_id = token_id
+                    token = token.encode("utf-8")
+                    if toktypes[token_id] != SentencePieceTokenTypes.UNUSED:
+                        assert(tokens[token_id] == token)
+                    tokens[token_id] = token
+                    scores[token_id] = -1000.0
+                    toktypes[token_id] = SentencePieceTokenTypes.USER_DEFINED
+                    if foken_data.get("special"):
+                        toktypes[token_id] = SentencePieceTokenTypes.CONTROL
+
+        tokenizer_file = self.dir_model / 'tokenizer.json'
+        if tokenizer_file.is_file():
+            with open(tokenizer_file, "r", encoding="utf-8") as f:
+                tokenizer_json = json.load(f)
+                added_tokens = tokenizer_json.get("added_tokens", [])
+                for foken_data in added_tokens:
+                    token_id = int(foken_data["id"])
+                    token = foken_data["content"]
+                    if token == chat_eos_token:
+                        chat_eos_token_id = token_id
+                    token = token.encode("utf-8")
+                    if toktypes[token_id] != SentencePieceTokenTypes.UNUSED:
+                        assert(tokens[token_id] == token)
+                    tokens[token_id] = token
+                    scores[token_id] = -1000.0
+                    toktypes[token_id] = SentencePieceTokenTypes.USER_DEFINED
+                    if foken_data.get("special"):
+                        toktypes[token_id] = SentencePieceTokenTypes.CONTROL
+
         self.gguf_writer.add_tokenizer_model("llama")
         self.gguf_writer.add_tokenizer_pre("default")
         self.gguf_writer.add_token_list(tokens)
@@ -2172,27 +2254,15 @@ class InternLM2Model(Model):
 
         special_vocab = gguf.SpecialVocab(self.dir_model, n_vocab=len(tokens))
         old_eos = special_vocab.special_token_ids["eos"]
-        if "chat" in os.path.basename(self.dir_model.absolute()):
+        if chat_eos_token_id is not None:
             # For the chat model, we replace the eos with '<|im_end|>'.
             # TODO: this is a hack, should be fixed
             #       https://github.com/ggerganov/llama.cpp/pull/6745#issuecomment-2067687048
-            special_vocab.special_token_ids["eos"] = self._try_get_sft_eos(tokenizer)
-            logger.warning(f"Replace eos:{old_eos} with a special token:{special_vocab.special_token_ids['eos']} \
-in chat mode so that the conversation can end normally.")
+            special_vocab.special_token_ids["eos"] = chat_eos_token_id
+            logger.warning(f"Replace eos:{old_eos} with a special token:{chat_eos_token_id}"
+                           " in chat mode so that the conversation can end normally.")
 
         special_vocab.add_to_gguf(self.gguf_writer)
-
-    def _try_get_sft_eos(self, tokenizer):
-        unused_145_list = tokenizer.Encode('[UNUSED_TOKEN_145]')
-        im_end_list = tokenizer.Encode('<|im_end|>')
-        eos_token = None
-        assert (len(unused_145_list) == 1) ^ (len(im_end_list) == 1)
-        if len(unused_145_list) == 1:
-            eos_token = unused_145_list[0]
-        if len(im_end_list) == 1:
-            eos_token = im_end_list[0]
-        assert eos_token
-        return eos_token
 
     def _hf_permute_qk(self, weights, n_head: int, n_head_kv: int):
         if n_head_kv is not None and n_head != n_head_kv:
@@ -2212,6 +2282,10 @@ in chat mode so that the conversation can end normally.")
         self.gguf_writer.add_layer_norm_rms_eps(self.hparams["rms_norm_eps"])
         self.gguf_writer.add_head_count_kv(self.hparams["num_key_value_heads"])
         self.gguf_writer.add_file_type(self.ftype)
+        if self.hparams.get("rope_scaling") is not None and "factor" in self.hparams["rope_scaling"]:
+            if self.hparams["rope_scaling"].get("type") == "linear":
+                self.gguf_writer.add_rope_scaling_type(gguf.RopeScalingType.LINEAR)
+                self.gguf_writer.add_rope_scaling_factor(self.hparams["rope_scaling"]["factor"])
 
     def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
         num_heads = self.hparams["num_attention_heads"]
@@ -2403,19 +2477,7 @@ class Gemma2Model(Model):
     model_arch = gguf.MODEL_ARCH.GEMMA2
 
     def set_vocab(self):
-        tokens, scores, toktypes = self._create_vocab_sentencepiece()
-        # hack: This is required so that we can properly use start/end-of-turn for chat template
-        for i in range(108):
-            # including <unusedX>, <start_of_turn>, <end_of_turn>
-            toktypes[i] = SentencePieceTokenTypes.CONTROL
-        self.gguf_writer.add_tokenizer_model("llama")
-        self.gguf_writer.add_tokenizer_pre("default")
-        self.gguf_writer.add_token_list(tokens)
-        self.gguf_writer.add_token_scores(scores)
-        self.gguf_writer.add_token_types(toktypes)
-
-        special_vocab = gguf.SpecialVocab(self.dir_model, n_vocab=len(tokens))
-        special_vocab.add_to_gguf(self.gguf_writer)
+        self._set_vocab_sentencepiece()
 
         self.gguf_writer.add_add_space_prefix(False)
 
@@ -2441,11 +2503,6 @@ class Gemma2Model(Model):
             self.hparams["final_logit_softcapping"]
         )
         self.gguf_writer.add_sliding_window(self.hparams["sliding_window"])
-
-        # sanity check
-        attn_scalar = self.hparams["query_pre_attn_scalar"]
-        if attn_scalar != hparams["hidden_size"] / hparams["num_attention_heads"]:
-            raise ValueError("query_pre_attn_scalar must be equal to n_embd / n_head")
 
     def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
         del bid  # unused
@@ -2739,7 +2796,7 @@ class ArcticModel(Model):
 
         tokens: list[bytes] = [f"[PAD{i}]".encode("utf-8") for i in range(vocab_size)]
         scores: list[float] = [-10000.0] * vocab_size
-        toktypes: list[int] = [SentencePieceTokenTypes.UNKNOWN] * vocab_size
+        toktypes: list[int] = [SentencePieceTokenTypes.UNUSED] * vocab_size
 
         for token_id in range(tokenizer.vocab_size()):
 
@@ -2972,16 +3029,16 @@ class T5Model(Model):
         if not tokenizer_path.is_file():
             raise FileNotFoundError(f"File not found: {tokenizer_path}")
 
-        sentencepiece_model = model.ModelProto()
+        sentencepiece_model = model.ModelProto()  # pyright: ignore[reportAttributeAccessIssue]
         sentencepiece_model.ParseFromString(open(tokenizer_path, "rb").read())
 
         # some models like Pile-T5 family use BPE tokenizer instead of Unigram
-        if sentencepiece_model.trainer_spec.model_type == 2: # BPE
+        if sentencepiece_model.trainer_spec.model_type == 2:  # BPE
             # assure the tokenizer model file name is correct
             assert tokenizer_path.name == 'tokenizer.model'
             return self._set_vocab_sentencepiece()
         else:
-            assert sentencepiece_model.trainer_spec.model_type == 1 # UNIGRAM
+            assert sentencepiece_model.trainer_spec.model_type == 1  # UNIGRAM
 
         add_prefix = sentencepiece_model.normalizer_spec.add_dummy_prefix
         remove_whitespaces = sentencepiece_model.normalizer_spec.remove_extra_whitespaces
@@ -2994,7 +3051,7 @@ class T5Model(Model):
 
         tokens: list[bytes] = [f"[PAD{i}]".encode("utf-8") for i in range(vocab_size)]
         scores: list[float] = [-10000.0] * vocab_size
-        toktypes: list[int] = [SentencePieceTokenTypes.UNKNOWN] * vocab_size
+        toktypes: list[int] = [SentencePieceTokenTypes.UNUSED] * vocab_size
 
         for token_id in range(tokenizer.vocab_size()):
             piece = tokenizer.IdToPiece(token_id)
@@ -3152,7 +3209,7 @@ class JaisModel(Model):
             # but Jais's PyTorch model simply precalculates the slope values and places them
             # in relative_pes.slopes
             n_head_closest_log2 = 2 ** math.floor(math.log2(self.hparams["n_head"]))
-            first_val = float(data_torch._data[0])
+            first_val = float(data_torch[0].item())
             self.max_alibi_bias = -round(math.log2(first_val) * n_head_closest_log2)
 
             return tensors
@@ -3186,7 +3243,7 @@ class ChatGLMModel(Model):
     def set_vocab_chatglm3(self):
         dir_model = self.dir_model
         hparams = self.hparams
-        tokens: list[bytearray] = []
+        tokens: list[bytes] = []
         toktypes: list[int] = []
         scores: list[float] = []
 
@@ -3212,15 +3269,14 @@ class ChatGLMModel(Model):
             if len(piece) != 0 and token_id < tokenizer.tokenizer.sp_model.vocab_size():
                 score = tokenizer.tokenizer.sp_model.get_score(token_id)
 
-            if len(piece) == 0:
-                text = f"[PAD{token_id}]".encode("utf-8")
-
             if token_id >= tokenizer.tokenizer.sp_model.vocab_size():
                 if piece in special_tokens:
-                    # show special tokens in prompt
-                    toktype = SentencePieceTokenTypes.USER_DEFINED
+                    toktype = SentencePieceTokenTypes.CONTROL
+                elif len(piece) == 0:
+                    text = f"[PAD{token_id}]".encode("utf-8")
+                    toktype = SentencePieceTokenTypes.UNUSED
                 else:
-                    toktype = SentencePieceTokenTypes.UNKNOWN
+                    toktype = SentencePieceTokenTypes.USER_DEFINED
                 tokens.append(text)
                 scores.append(score)
                 toktypes.append(toktype)
@@ -3309,7 +3365,7 @@ class ChatGLMModel(Model):
         for i in range(vocab_size):
             if i not in reverse_vocab:
                 tokens.append(f"[PAD{i}]")
-                toktypes.append(gguf.TokenType.USER_DEFINED)
+                toktypes.append(gguf.TokenType.UNUSED)
             elif reverse_vocab[i] in added_vocab:
                 tokens.append(reverse_vocab[i])
                 if tokenizer.added_tokens_decoder[i].special:
@@ -3335,7 +3391,7 @@ class ChatGLMModel(Model):
         special_vocab.add_to_gguf(self.gguf_writer)
 
     def set_gguf_parameters(self):
-        self.gguf_writer.add_name(self.hparams.get("_name_or_path").split("/")[1]) # THUDM/glm4-9b-chat or THUDM/chatglm3-6b
+        self.gguf_writer.add_name(self.hparams["_name_or_path"].split("/")[1]) # THUDM/glm4-9b-chat or THUDM/chatglm3-6b
         n_embed = self.hparams.get("hidden_size", self.hparams.get("n_embed"))
         n_head = self.hparams.get("n_head", self.hparams.get("num_attention_heads"))
         n_head_kv = self.hparams.get("multi_query_group_num", n_head)

@@ -8,7 +8,7 @@
 - linux编译默认是动态链接的
 
 ## 如果要更换第三方库的话尝试按如下规则修改
-### llama.cpp 当前版本 b3334
+### llama.cpp
 - 修改llama.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 - 修改llama.cpp/examples/server/httplib.h的mmap::open函数
@@ -63,7 +63,7 @@ inline bool mmap::open(const char *path) {
 }
 ```
 
-### stable-diffusion.cpp 当前版本 master-9c51d87
+### stable-diffusion.cpp
 - stable-diffusion.cpp/cmakelists.txt中添加
 ```cmake
 # mingw设置编译选项
@@ -77,5 +77,5 @@ endif()
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 - 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 
-### whisper.cpp 当前版本 1.6.2
+### whisper.cpp
 - 只需要部分文件即可
