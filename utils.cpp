@@ -224,8 +224,7 @@ void Widget::recordAudio()
     }
     _audioInput = new QAudioInput(devInfo,audioFormat,this);
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
-    QString audiopath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
-    outFilePath = qApp->applicationDirPath() + audiopath;
+    outFilePath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
     outFile.setFileName(outFilePath); //语音原始文件
     outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
     _audioInput->start(&outFile);

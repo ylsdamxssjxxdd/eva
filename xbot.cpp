@@ -525,14 +525,18 @@ int xBot::stream()
 
                 //qDebug()<<id<<llama_token_to_piece(ctx, id).c_str()<<cur_p.data[i].p;
             }
-            //emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator);
-            emit bot2ui_state(separator);
-            emit bot2ui_state(header);
-            emit bot2ui_state(separator);
-            emit bot2ui_state(prob_5);
-            emit bot2ui_state(id_5);
-            emit bot2ui_state(word_5);
-            emit bot2ui_state(separator);
+
+            //过滤回车和换行符
+            word_5.replace("\n","\\n");
+            word_5.replace("\r","\\r");
+            emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator, MATRIX_);
+            // emit bot2ui_state(separator);
+            // emit bot2ui_state(header);
+            // emit bot2ui_state(separator);
+            // emit bot2ui_state(prob_5);
+            // emit bot2ui_state(id_5);
+            // emit bot2ui_state(word_5);
+            // emit bot2ui_state(separator);
 
             std::string sstr = llama_token_to_piece(ctx, id);
 

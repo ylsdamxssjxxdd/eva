@@ -151,6 +151,7 @@ enum STATE {
         EVA_,//机体，紫色
         TOOL_,//工具，橘色
         DEBUGING_,//debug，墨绿色
+        MATRIX_,//文本表格，黑色，不过滤回车符
 };
 //模式枚举
 enum MODE {

@@ -577,7 +577,7 @@ void Expend::whisper_onProcessFinished()
     {
         QString content;
         // 文件路径
-        QString filePath = qApp->applicationDirPath() + applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav.txt";
+        QString filePath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav.txt";
         // 创建 QFile 对象
         QFile file(filePath);
         // 打开文件
