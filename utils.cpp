@@ -223,10 +223,11 @@ void Widget::recordAudio()
         audioFormat = devInfo.nearestFormat(audioFormat); //转换为最接近格式
     }
     _audioInput = new QAudioInput(devInfo,audioFormat,this);
+    _audioInput->setBufferSize(4096); // Adjust this value as needed
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     outFilePath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
-    outFile.setFileName(outFilePath); //语音原始文件
-    outFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+    wav_outFile.setFileName(outFilePath); //语音原始文件
+    wav_outFile.open(QIODevice::WriteOnly | QIODevice::Truncate); // Truncate表示若文件已存在就清空
     _audioInput->start(&outFile);
     audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
 }
@@ -242,31 +243,30 @@ void Widget::monitorAudioLevel()
 void Widget::stop_recordAudio()
 {
     is_recodering = false;
-    QIODevice *device{nullptr};
-    device = &outFile;
-//添加wav文件头
+
+    // Add WAV file header
     static WAVHEADER wavHeader;
-    qstrcpy(wavHeader.RiffName,"RIFF");
-    qstrcpy(wavHeader.WavName,"WAVE");
-    qstrcpy(wavHeader.FmtName,"fmt ");
-    qstrcpy(wavHeader.DATANAME,"data");
+    strcpy(wavHeader.RiffName, "RIFF");
+    strcpy(wavHeader.WavName, "WAVE");
+    strcpy(wavHeader.FmtName, "fmt ");
+    strcpy(wavHeader.DATANAME, "data");
     wavHeader.nFmtLength = 16;
-    int nAudioFormat = 1;
-    wavHeader.nAudioFormat = nAudioFormat;
+    wavHeader.nAudioFormat = 1;
     wavHeader.nBitsPerSample = 16;
     wavHeader.nChannleNumber = 1;
     wavHeader.nSampleRate = 16000;
     wavHeader.nBytesPerSample = wavHeader.nChannleNumber * wavHeader.nBitsPerSample / 8;
-    wavHeader.nBytesPerSecond = wavHeader.nSampleRate * wavHeader.nChannleNumber *  wavHeader.nBitsPerSample / 8;
-    wavHeader.nRiffLength = device->size() - 8 + sizeof(WAVHEADER);
-    wavHeader.nDataLength = device->size();
-//写到IO设备头
-    device->seek(0);
-    device->write(reinterpret_cast<char*>(&wavHeader),sizeof(WAVHEADER));
+    wavHeader.nBytesPerSecond = wavHeader.nSampleRate * wavHeader.nChannleNumber * wavHeader.nBitsPerSample / 8;
+    wavHeader.nRiffLength = wav_outFile.size() - 8 + sizeof(WAVHEADER);
+    wavHeader.nDataLength = wav_outFile.size();
+
+    // Write header to file
+    wav_outFile.seek(0);
+    wav_outFile.write(reinterpret_cast<char*>(&wavHeader), sizeof(WAVHEADER));
 
     _audioInput->stop();
     audio_timer->stop();
-    outFile.close();
+    wav_outFile.close();
     reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     

@@ -170,7 +170,7 @@ public:
     void recordAudio();//开始录音
     bool is_recodering = false;//是否正在录音
     QAudioInput *_audioInput; //录音对象
-    QFile outFile;
+    QFile wav_outFile;
     int audio_time = 0;
     QString outFilePath;
     QTimer *audio_timer;
