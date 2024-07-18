@@ -62,6 +62,7 @@ void Widget::init_movie()
     //设置动画内容字体格式
     movie_format.setFontWeight(QFont::Bold); // 设置粗体
     movie_font.setPointSize(6);
+    movie_font.setFamily(DEFAULT_FONT);
     movie_format.setFont(movie_font);
 
     load_pTimer = new QTimer(this);//连接接动画
@@ -424,6 +425,7 @@ void Widget::reflash_state(QString state_string, STATE state)
     else if(state==EVA_)//行为警告
     {
         QFont font = format.font();
+        font.setFamily(DEFAULT_FONT);
         //font.setLetterSpacing(QFont::AbsoluteSpacing, 0); // 设置字母间的绝对间距
         font.setPixelSize(14);
         format.setFont(font);
@@ -462,6 +464,7 @@ void Widget::reflash_state(QString state_string, STATE state)
     else if(state==DEBUGING_)//debug墨绿色
     {
         QFont font = format.font();
+        font.setFamily(DEFAULT_FONT);
         font.setPixelSize(14);
         format.setFont(font);
         format.setFontItalic(true);        // 设置斜体

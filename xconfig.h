@@ -88,6 +88,12 @@ const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 #define OS "linux"
 #endif
 
+// 字体
+#ifdef _WIN32
+#define DEFAULT_FONT "SimSun"
+#elif __linux__
+#define DEFAULT_FONT "Ubuntu Mono"
+#endif
 //设置参数
 struct SETTINGS{
     double temp = DEFAULT_TEMP;

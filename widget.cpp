@@ -17,7 +17,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     debugButton = new CustomSwitchButton();
     debugButton->hide();//用户拉动分割器时出现
     connect(debugButton,&QAbstractButton::clicked,this,&Widget::ondebugButton_clicked);
-
+    QFont font(DEFAULT_FONT);
+    ui->state->setFont(font); // 设置state区的字体
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
