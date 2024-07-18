@@ -43,7 +43,7 @@ struct INPUTS{
 };
 
 //采样
-#define DEFAULT_NPREDICT 2048
+#define DEFAULT_NPREDICT 4096
 #define DEFAULT_TEMP 0.5
 #define DEFAULT_REPEAT 1.2
 
@@ -52,8 +52,8 @@ struct INPUTS{
     #define DEFAULT_NCTX 256
     #define DEFAULT_BATCH 32
 #else
-    #define DEFAULT_NCTX 2048
-    #define DEFAULT_BATCH 512
+    #define DEFAULT_NCTX 4096
+    #define DEFAULT_BATCH 2048
 #endif    
 
 #define DEFAULT_NTHREAD 1

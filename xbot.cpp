@@ -844,17 +844,7 @@ void xBot::reset(bool is_clear_all)
 
     if(is_clear_all)//清空ctx kv缓存
     {  
-        //先释放再重建一个上下文，这样足够干净
         llama_kv_cache_clear(ctx);//清空ctx kv缓存   
-        llama_free(ctx);
-        llama_context_params ctx_params = llama_context_default_params();
-        ctx_params.seed  = gpt_params_.seed;
-        ctx_params.n_ctx = gpt_params_.n_ctx;
-        ctx_params.n_threads = gpt_params_.n_threads;
-        ctx_params.n_threads_batch = gpt_params_.n_threads_batch == -1 ? gpt_params_.n_threads : gpt_params_.n_threads_batch;
-        ctx_params.flash_attn = gpt_params_.flash_attn;
-        ctx = llama_new_context_with_model(model, ctx_params); 
-
         n_past             = 0;//已推理字符数
         n_consumed         = 0;//已推理字符数
         Brain_vector.clear();
