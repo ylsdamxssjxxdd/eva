@@ -228,7 +228,7 @@ void Widget::recordAudio()
     outFilePath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
     wav_outFile.setFileName(outFilePath); //语音原始文件
     wav_outFile.open(QIODevice::WriteOnly | QIODevice::Truncate); // Truncate表示若文件已存在就清空
-    _audioInput->start(&outFile);
+    _audioInput->start(&wav_outFile);
     audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
 }
 
@@ -246,10 +246,10 @@ void Widget::stop_recordAudio()
 
     // Add WAV file header
     static WAVHEADER wavHeader;
-    strcpy(wavHeader.RiffName, "RIFF");
-    strcpy(wavHeader.WavName, "WAVE");
-    strcpy(wavHeader.FmtName, "fmt ");
-    strcpy(wavHeader.DATANAME, "data");
+    qstrcpy(wavHeader.RiffName, "RIFF");
+    qstrcpy(wavHeader.WavName, "WAVE");
+    qstrcpy(wavHeader.FmtName, "fmt ");
+    qstrcpy(wavHeader.DATANAME, "data");
     wavHeader.nFmtLength = 16;
     wavHeader.nAudioFormat = 1;
     wavHeader.nBitsPerSample = 16;
