@@ -231,7 +231,13 @@ void Widget::stop_recordAudio()
     reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
     //将录制的wav文件重采样为16khz音频文件
-    resampleWav(wav_path.toStdString(),wav_path.toStdString());
+#ifdef _WIN32
+    QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+    std::string wav_path_c = code->fromUnicode(wav_path).data();
+#elif __linux__
+    std::string wav_path_c = wav_path.toStdString();
+#endif
+    resampleWav(wav_path_c, wav_path_c);
     emit ui2expend_voicedecode(wav_path, "txt");//传一个wav文件开始解码
 }
 
