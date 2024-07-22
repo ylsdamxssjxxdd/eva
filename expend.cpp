@@ -64,9 +64,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     ui->whisper_output_format->addItems({"txt","srt","csv","json"});
 
     //声转文相关
-#ifdef BODY_USE_SPEECH
     get_sys_voice();//由于win7下不支持，只在使用cuda时开启
-#endif
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     
@@ -525,7 +523,7 @@ void Expend::on_whisper_load_modelpath_button_clicked()
 void Expend::recv_voicedecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
-    
+
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");
     QString localPath = QString(appDirPath + "/usr/bin/whisper") + SFX_NAME;

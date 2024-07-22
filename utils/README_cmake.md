@@ -79,3 +79,6 @@ endif()
 
 ### whisper.cpp
 - 只需要部分文件即可
+
+### libsamplerate && libsndfile
+- 手动关闭不需要的组件，例如test等

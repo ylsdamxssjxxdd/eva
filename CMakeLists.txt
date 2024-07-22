@@ -19,7 +19,6 @@ elseif(GGML_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
-    # add_compile_definitions(BODY_USE_SPEECH)#由于win7下不支持，只在使用cuda时开启语音朗读
 elseif(GGML_VULKAN)
     find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
@@ -86,6 +85,10 @@ elseif(UNIX)
 endif()
 
 ##################################### 第三方程序相关 #####################################
+add_subdirectory(utils/audio/libsamplerate) # 添加libsamplerate音频重采样库
+add_subdirectory(utils/audio/libsndfile) # 添加libsndfile读取音频文件
+list(APPEND extra_LIBS samplerate sndfile)
+
 if(WIN32)
     set(sfx_NAME ".exe") # windows下生成的第三方程序带后缀
 elseif(UNIX)
@@ -138,7 +141,7 @@ message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
-set(resource_FILES utils/logo.qrc utils/ceval.qrc utils/mmlu.qrc)
+set(resource_FILES utils/res.qrc utils/ceval.qrc utils/mmlu.qrc)
 
 # 应用程序图标windows
 set(logo_FILES utils/ui/ico.rc)

@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QColor>
 
+#include <iostream>
 #include <thread>
 #include <vector>
 #include <array>
@@ -167,32 +168,9 @@ enum MODE {
     LINK_,//链接模式
 };
 
-//音频采样相关
-struct WAVHEADER
-{
-    // RIFF 头
-    char RiffName[4];
-    unsigned long nRiffLength;
-    // 数据类型标识符
-    char WavName[4];
-    // 格式块中的块头
-    char FmtName[4];
-    unsigned long nFmtLength;
-    // 格式块中的块数据
-    unsigned short nAudioFormat;
-    unsigned short nChannleNumber;
-    unsigned long nSampleRate;
-    unsigned long nBytesPerSecond;
-    unsigned short nBytesPerSample;
-    unsigned short nBitsPerSample;
-    // 数据块中的块头
-    char    DATANAME[4];
-    unsigned long   nDataLength;
-};
-
 //whisper可以传入的参数
 struct Whisper_Params {
-    int32_t n_threads    = 1;
+    int32_t n_threads    =  1;
     int32_t n_processors =  1;
     int32_t offset_t_ms  =  0;
     int32_t offset_n     =  0;

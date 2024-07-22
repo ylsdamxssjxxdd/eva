@@ -128,7 +128,8 @@ void Widget::addStopwords()
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
     }
-    
+
+    ui_DATES.extra_stop_words << "<|im_end|>";//可以说相当严格了
 }
 
 //获取本机第一个ip地址
@@ -208,27 +209,8 @@ void Widget::recordAudio()
 {
     reflash_state("ui:" + jtr("recoding") + "... ");
     ui_state_recoding();
-    //本来用QAudioRecorder会很方便但是不能设置采样率为16000HZ...
-    QAudioFormat audioFormat;
-    audioFormat.setByteOrder(QAudioFormat::LittleEndian);
-    audioFormat.setChannelCount(1);
-    audioFormat.setCodec("audio/pcm");
-    audioFormat.setSampleRate(16000);
-    audioFormat.setSampleSize(16);
-    audioFormat.setSampleType(QAudioFormat::SignedInt);
-    //判断设备，查看是否存在
-    QAudioDeviceInfo devInfo = QAudioDeviceInfo::defaultInputDevice();
-    //不支持格式，使用最接近格式
-    if(!devInfo.isFormatSupported(audioFormat)){ //当前使用设备是否支持
-        audioFormat = devInfo.nearestFormat(audioFormat); //转换为最接近格式
-    }
-    _audioInput = new QAudioInput(devInfo,audioFormat,this);
-    _audioInput->setBufferSize(4096); // Adjust this value as needed
-    createTempDirectory(applicationDirPath + "/EVA_TEMP");
-    outFilePath = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
-    wav_outFile.setFileName(outFilePath); //语音原始文件
-    wav_outFile.open(QIODevice::WriteOnly | QIODevice::Truncate); // Truncate表示若文件已存在就清空
-    _audioInput->start(&wav_outFile);
+
+    audioRecorder.record(); // 在这之前检查是否可用 
     audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
 }
 
@@ -242,35 +224,15 @@ void Widget::monitorAudioLevel()
 //停止录音
 void Widget::stop_recordAudio()
 {
+    QString wav_path = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
     is_recodering = false;
-
-    // Add WAV file header
-    static WAVHEADER wavHeader;
-    qstrcpy(wavHeader.RiffName, "RIFF");
-    qstrcpy(wavHeader.WavName, "WAVE");
-    qstrcpy(wavHeader.FmtName, "fmt ");
-    qstrcpy(wavHeader.DATANAME, "data");
-    wavHeader.nFmtLength = 16;
-    wavHeader.nAudioFormat = 1;
-    wavHeader.nBitsPerSample = 16;
-    wavHeader.nChannleNumber = 1;
-    wavHeader.nSampleRate = 16000;
-    wavHeader.nBytesPerSample = wavHeader.nChannleNumber * wavHeader.nBitsPerSample / 8;
-    wavHeader.nBytesPerSecond = wavHeader.nSampleRate * wavHeader.nChannleNumber * wavHeader.nBitsPerSample / 8;
-    wavHeader.nRiffLength = wav_outFile.size() - 8 + sizeof(WAVHEADER);
-    wavHeader.nDataLength = wav_outFile.size();
-
-    // Write header to file
-    wav_outFile.seek(0);
-    wav_outFile.write(reinterpret_cast<char*>(&wavHeader), sizeof(WAVHEADER));
-
-    _audioInput->stop();
+    audioRecorder.stop();
     audio_timer->stop();
-    wav_outFile.close();
     reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
     audio_time = 0;
-    
-    emit ui2expend_voicedecode(applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav", "txt");//传一个wav文件开始解码
+    //将录制的wav文件重采样为16khz音频文件
+    resampleWav(wav_path.toStdString(),wav_path.toStdString());
+    emit ui2expend_voicedecode(wav_path, "txt");//传一个wav文件开始解码
 }
 
 // 清空题库
@@ -563,94 +525,6 @@ QString Widget::makeHelpInput()
     return help_input;
 }
 
-// //监听操作系统
-// bool Widget::nativeEvent(const QByteArray &eventType, void *message, long *result)
-// {
-//     Q_UNUSED(eventType)
-//     Q_UNUSED(result)
-// #ifdef _WIN32
-//     // Transform the message pointer to the MSG WinAPI
-//     MSG* msg = reinterpret_cast<MSG*>(message);
- 
-//     // If the message is a HotKey, then ...
-//     if(msg->message == WM_HOTKEY){
-//         // ... check HotKey
-//         if(msg->wParam == 7758258) // f1 快捷键
-//         {
-//             // We inform about this to the console
-//             if(!is_debuging)
-//             {
-//                 onShortcutActivated();//处理截图事件
-//             }
-
-//             return true;
-//         }
-//         else if (msg->wParam == 123456) // f2 快捷键
-//         {
-//             if(whisper_model_path == "")//如果还未指定模型路径则先指定
-//             {
-//                 emit ui2expend_show(6);//语音增殖界面
-//                 return true;
-//             }   
-//             else if(!is_recodering)
-//             {
-//                 if(!is_debuging)
-//                 {
-//                     recordAudio();//开始录音
-//                     is_recodering = true;
-//                 }
-                
-//             }
-//             else if(is_recodering)
-//             {
-//                 if(!is_debuging)
-//                 {
-//                     stop_recordAudio();//停止录音
-//                 }
-//             }
-            
-//             return true;
-//         }
-//         else if (msg->wParam == 741852963) // crtl+enter 快捷键
-//         {
-//             ui->send->click();
-//         }
-        
-//     }
-// #elif __linux__
-//     XEvent *xev = static_cast<XEvent *>(message);
-//     if (xev->type == KeyPress) {
-//         XKeyEvent *keyEvent = &xev->xkey;
-//         KeySym keysym = XLookupKeysym(keyEvent, 0);
-//         if (keysym == XK_F1) {
-//             if (!is_debuging) {
-//                 onShortcutActivated(); // 处理截图事件
-//             }
-//             return true;
-//         } else if (keysym == XK_F2) {
-//             if (whisper_model_path == "") { // 如果还未指定模型路径则先指定
-//                 emit ui2expend_show(6); // 语音增殖界面
-//                 return true;
-//             } else if (!is_recodering) {
-//                 if (!is_debuging) {
-//                     recordAudio(); // 开始录音
-//                     is_recodering = true;
-//                 }
-//             } else if (is_recodering) {
-//                 if (!is_debuging) {
-//                     stop_recordAudio(); // 停止录音
-//                 }
-//             }
-//             return true;
-//         } else if (keysym == XK_F3) {
-//             ui->send->click();
-//             return true;
-//         }
-//     }
-// #endif
-//     return false;
-// }
-
 //创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path) {
     QDir dir;
@@ -730,7 +604,7 @@ void Widget::qspeech_process()
     {
         if(wait_speech.size()>0)
         {
-            speechtimer->stop();
+            speechtimer.stop();
             is_speech = true;
             qspeech(wait_speech.first());
             //qDebug()<<wait_speech.first();
@@ -742,8 +616,8 @@ void Widget::qspeech_process()
 //朗读结束后动作
 void Widget::speechOver()
 {
-    speechtimer->stop();
-    speechtimer->start(500);
+    speechtimer.stop();
+    speechtimer.start(500);
     is_speech = false;//解锁
 }
 
@@ -796,3 +670,59 @@ void Widget::speechOver()
     
     reflash_state("ui:" + jtr("save_config_mess"),USUAL_);
  }
+
+// 对音频重采样为16khz
+bool Widget::resampleWav(const std::string& inputPath, const std::string& outputPath) {
+    SF_INFO inputFileInfo;
+    SF_INFO outputFileInfo;
+    SNDFILE* inputFile = sf_open(inputPath.c_str(), SFM_READ, &inputFileInfo);
+
+    if (!inputFile) {
+        std::cerr << "Error opening input file: " << sf_strerror(nullptr) << std::endl;
+        return false;
+    }
+
+    int channels = inputFileInfo.channels;
+    int inputSampleRate = inputFileInfo.samplerate;
+    int outputSampleRate = 16000;
+
+    std::vector<float> inputBuffer(inputFileInfo.frames * channels);
+    sf_readf_float(inputFile, inputBuffer.data(), inputFileInfo.frames);
+
+    double ratio = static_cast<double>(outputSampleRate) / inputSampleRate;
+    int outputFrames = static_cast<int>(inputFileInfo.frames * ratio);
+    std::vector<float> outputBuffer(outputFrames * channels);
+
+    SRC_DATA srcData;
+    srcData.data_in = inputBuffer.data();
+    srcData.input_frames = inputFileInfo.frames;
+    srcData.data_out = outputBuffer.data();
+    srcData.output_frames = outputFrames;
+    srcData.src_ratio = ratio;
+    srcData.end_of_input = SF_TRUE;
+
+    int srcError = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, channels);
+    if (srcError != 0) {
+        std::cerr << "Error during resampling: " << src_strerror(srcError) << std::endl;
+        sf_close(inputFile);
+        return false;
+    }
+
+    outputFileInfo.channels = channels;
+    outputFileInfo.samplerate = outputSampleRate;
+    outputFileInfo.format = inputFileInfo.format;
+
+    SNDFILE* outputFile = sf_open(outputPath.c_str(), SFM_WRITE, &outputFileInfo);
+    if (!outputFile) {
+        std::cerr << "Error opening output file: " << sf_strerror(nullptr) << std::endl;
+        sf_close(inputFile);
+        return false;
+    }
+
+    sf_writef_float(outputFile, outputBuffer.data(), srcData.output_frames_gen);
+
+    sf_close(inputFile);
+    sf_close(outputFile);
+
+    return true;
+}

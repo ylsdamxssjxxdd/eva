@@ -19,6 +19,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(debugButton,&QAbstractButton::clicked,this,&Widget::ondebugButton_clicked);
     QFont font(DEFAULT_FONT);
     ui->state->setFont(font); // 设置state区的字体
+    QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this); // 注册发送的快捷键
+    connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
     //--------------初始化语言--------------
     QLocale locale = QLocale::system(); // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
@@ -58,7 +60,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
     file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);file.close();
-    music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));//设置播放的音乐
+    music_player.setMedia(QUrl("qrc:/audio/fly_me_to_the_moon.mp3"));//设置播放的音乐
     //-------------初始化各种控件-------------
     setApiDialog();//设置api选项
     set_DateDialog();//设置约定选项
@@ -88,21 +90,36 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     output_scrollBar = ui->output->verticalScrollBar();
     connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
 
-    //-------------截图声音相关-------------
+    //-------------截图相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath,this,&Widget::recv_qimagepath);// 传递截取的图像路径
-    registerHotkeys();// 注册全局热键
-    
+    QShortcut *shortcutF1 = new QShortcut(QKeySequence(Qt::Key_F1), this);
+    connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
+
+    //-------------音频相关-------------
     audio_timer = new QTimer(this);//录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);// 每隔100毫秒刷新一次输入区
+    if(checkAudio()) // 如果支持音频输入则注册f2快捷键
+    {
+        QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
+        connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
+    }
 
+    //-------------朗读相关-------------
     speech = new QTextToSpeech();
-    connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
-    speechtimer = new QTimer(this);
-    connect(speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
-#ifdef BODY_USE_SPEECH
-    speechtimer->start(500);//每半秒检查一次是否需要朗读
-#endif
+    // 检查是否成功创建
+    if (speech->state() == QTextToSpeech::Ready) {
+        qDebug() << "QTextToSpeech available";
+        is_speech_available = true;
+        connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
+        connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
+        speechtimer.start(500);//每半秒检查一次是否需要朗读
+    } 
+    else {
+        qDebug() << "QTextToSpeech not available";
+        is_speech_available = false;
+    }
+
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);// 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);//连接开始信号
@@ -110,22 +127,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
-    qDebug()<<"widget init over";
 
-    // QFont font = ui->state->font();
-    // // 获取字体的各个属性
-    // QString fontFamily = font.family();
-    // int fontSize = font.pointSize();
-    // bool isBold = font.bold();
-    // bool isItalic = font.italic();
-    // bool isUnderline = font.underline();
-    
-    // // 打印字体信息
-    // qDebug() << "Font Family:" << fontFamily;
-    // qDebug() << "Font Size:" << fontSize;
-    // qDebug() << "Is Bold:" << isBold;
-    // qDebug() << "Is Italic:" << isItalic;
-    // qDebug() << "Is Underline:" << isUnderline;
+
+    qDebug()<<"widget init over";
 }
 
 Widget::~Widget()
@@ -693,9 +697,10 @@ void Widget::on_reset_clicked()
     wait_to_show_image = "";//清空待显示图像
     temp_speech="";//清空待读列表
     wait_speech.clear();//清空待读列表
-#ifdef BODY_USE_SPEECH
-    speech->stop();//停止朗读
-#endif
+    if(is_speech_available)
+    {
+        speech->stop();//停止朗读
+    }
 
     //debuging状态下，点击重置按钮直接退出debuging状态
     if(is_debuging)
@@ -875,7 +880,10 @@ void Widget::recv_qimagepath(QString cut_imagepath_)
     cut_imagepath = cut_imagepath_;
     reflash_state("ui:" + jtr("cut image success"),USUAL_);
     ui->input->setPlainText(jtr("<predecode cut image>"));
-    if(is_load && ui_mode == CHAT_){on_send_clicked();}//如果装载了模型直接发送截图
+    if(is_load && ui_mode == CHAT_)
+    {
+        // on_send_clicked();//如果装载了模型直接发送截图
+    }
 }
 
 // 设置用户设置内容
@@ -1147,7 +1155,7 @@ void Widget::recv_voicedecode_over(QString result)
 {
     ui_state_normal();
     ui->input->append(result);
-    ui->send->click();//尝试一次发送
+    // ui->send->click();//尝试一次发送
 }
 
 //接收模型路径
@@ -1452,17 +1460,55 @@ QString Widget::jtr(QString customstr)
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
 
-// 注册快捷键
-void Widget::registerHotkeys()
+// 检测音频支持
+bool Widget::checkAudio()
 {
-     // 创建快捷键并连接到槽函数
-    QShortcut *shortcutF1 = new QShortcut(QKeySequence(Qt::Key_F1), this);
-    connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
+    // 设置编码器
+    audioSettings.setCodec("audio/x-raw");
+    audioSettings.setSampleRate(44100);
+    audioSettings.setBitRate(128000);
+    audioSettings.setChannelCount(2);
+    audioSettings.setQuality(QMultimedia::HighQuality);
+    // 设置音频编码器参数
+    audioRecorder.setEncodingSettings(audioSettings);
+    // 设置容器格式
+    audioRecorder.setContainerFormat("audio/x-wav");
+    // 设置音频输出位置
+    audioRecorder.setOutputLocation(QUrl::fromLocalFile(applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav"));
 
-    QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
-    connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
+    // 打印出音频支持情况
+    // 获取本机支持的音频编码器和解码器
+    QStringList supportedCodecs = audioRecorder.supportedAudioCodecs();
+    QStringList supportedContainers = audioRecorder.supportedContainers();
+    qDebug() << "Supported audio codecs:" << supportedCodecs;
+    qDebug() << "Supported container formats:" << supportedContainers;
+    // 获取实际的编码器设置
+    QAudioEncoderSettings actualSettings = audioRecorder.audioSettings();
+    qDebug() << "Actual Codec:" << actualSettings.codec();
+    qDebug() << "Actual Sample Rate:" << actualSettings.sampleRate() << "Hz";
+    qDebug() << "Actual Bit Rate:" << actualSettings.bitRate() << "bps";
+    qDebug() << "Actual Channel Count:" << actualSettings.channelCount();
+    qDebug() << "Actual Quality:" << actualSettings.quality();
+    qDebug() << "Actual Encoding Mode:" << actualSettings.encodingMode();
+    // 获取可用的音频输入设备列表
+    QList<QAudioDeviceInfo> availableDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+    if (availableDevices.isEmpty()) {
+        qDebug() << "No audio input devices available.";
+        return false;
+    }
+    qDebug() << "Available Audio Input Devices:";
+    for (const QAudioDeviceInfo &deviceInfo : availableDevices) {
+        qDebug() << "    Device Name:" << deviceInfo.deviceName();
+        qDebug() << "    Supported Codecs:";
+        for (const QString &codecName : deviceInfo.supportedCodecs()) {
+            qDebug() << "        " << codecName;
+        }
+        qDebug() << "    Supported Sample Rates:";
+        for (int sampleRate : deviceInfo.supportedSampleRates()) {
+            qDebug() << "        " << sampleRate;
+        }
+        qDebug() << "    -------------------------------------";
+    }
 
-    QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);
-    connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
-
+    return true;
 }

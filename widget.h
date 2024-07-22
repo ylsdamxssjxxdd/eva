@@ -42,11 +42,12 @@
 
 #include <QMediaPlayer>
 #include <QAudioInput>
+#include <QAudioRecorder>
+#include <QAudioEncoderSettings>
 #include <QBuffer>
 #include <QIODevice>
 #include <QTextToSpeech>
 #include <QShortcut>
-
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
@@ -56,7 +57,10 @@
 #include "utils/doubleqprogressbar.h"
 #include "utils/cutscreendialog.h"
 #include "utils/customswitchbutton.h"
-#include "xconfig.h"//ui和bot都要导入的共有配置
+#include "xconfig.h" // ui和bot都要导入的共有配置
+
+#include <samplerate.h> // 音频重采样
+#include <sndfile.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
@@ -72,7 +76,7 @@ public:
     QString applicationDirPath;
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QShortcut *shortcutF1,*shortcutF2,*shortcutCtrlEnter;
-    void registerHotkeys(); // 注册快捷键
+    bool checkAudio();// 检测音频支持
 public:
     QJsonObject wordsObj;//中文英文
     void getWords(QString json_file_path);//中文英文
@@ -167,10 +171,11 @@ public:
     void serverControl();
 
     //语音相关
+    QAudioRecorder audioRecorder;
+    QAudioEncoderSettings audioSettings;
+    bool resampleWav(const std::string& inputPath, const std::string& outputPath);// 对音频重采样为16khz
     void recordAudio();//开始录音
     bool is_recodering = false;//是否正在录音
-    QAudioInput *_audioInput; //录音对象
-    QFile wav_outFile;
     int audio_time = 0;
     QString outFilePath;
     QTimer *audio_timer;
@@ -317,8 +322,9 @@ public:
     Voice_Params voice_params;
     void qspeech(QString str);
     QTextToSpeech *speech;
+    bool is_speech_available;// 语音朗读是否可用
     bool is_speech = false;
-    QTimer *speechtimer;//朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
+    QTimer speechtimer;//朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
     QStringList wait_speech;//等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
     QString temp_speech;
 

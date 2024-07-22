@@ -681,7 +681,7 @@ bool read_wav(const std::string & fname, std::vector<float>& pcmf32, std::vector
     }
 
     if (wav.bitsPerSample != 16) {
-        fprintf(stderr, "%s: WAV file '%s' must be 16-bit\n", __func__, fname.c_str());
+        fprintf(stderr, "%s: WAV file '%s' \n", __func__, fname.c_str());
         return false;
     }
 
