@@ -12,8 +12,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 ###################################### 编译选项 ######################################
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
@@ -165,7 +165,7 @@ endif()
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper llama-quantize) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
 
 # 后处理
 if(MSVC)
