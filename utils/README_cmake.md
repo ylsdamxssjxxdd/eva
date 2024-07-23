@@ -64,18 +64,8 @@ inline bool mmap::open(const char *path) {
 ```
 
 ### stable-diffusion.cpp
-- stable-diffusion.cpp/cmakelists.txt中添加
-```cmake
-# mingw设置编译选项
-if(MINGW)
-    set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
-endif()
-```
+- cmakelists.txt中的ggml库更名为sd-ggml
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
-- 修改ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 
 ### whisper.cpp
 - 只需要部分文件即可

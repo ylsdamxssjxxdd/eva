@@ -64,7 +64,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     ui->whisper_output_format->addItems({"txt","srt","csv","json"});
 
     //声转文相关
-    get_sys_voice();//由于win7下不支持，只在使用cuda时开启
     connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
     connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
     
@@ -1736,24 +1735,6 @@ void Expend::recv_draw(QString prompt_)
 //----------------------------------文转声相关--------------------------------
 //-------------------------------------------------------------------------
 
-//获取系统可用声源并设置到combobox
-void Expend::get_sys_voice()
-{
-    QTextToSpeech *speech = new QTextToSpeech();
-
-    if (speech->state() == QTextToSpeech::Ready)     // 初始化成功的情况
-    {
-        // 遍历所有可用音色
-        foreach (const QVoice &voice, speech->availableVoices()) 
-        {
-            // qDebug() << "Name:" << voice.name();
-            // qDebug() << "Age:" << voice.age();
-            // qDebug() << "Gender:" << voice.gender();
-            ui->voice_source_comboBox->addItem(voice.name());//添加到下拉框
-        }
-    }
-}
-
 //用户点击启用声音选项响应
 void Expend::voice_enable_change()
 {
@@ -1793,6 +1774,17 @@ void Expend::voice_source_change()
 
     emit expend2ui_voiceparams(Voice_Params_);
 }
+
+// 设置系统可用声源
+void Expend::set_sys_voice(QStringList sys_voice_list)
+{
+    for(int i = 0; i < sys_voice_list.size(); ++i)
+    {
+        ui->voice_source_comboBox->addItem(sys_voice_list.at(i));//添加到下拉框
+    }
+    
+}
+
 
 //-------------------------------------------------------------------------
 //----------------------------------记忆相关--------------------------------

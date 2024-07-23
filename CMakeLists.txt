@@ -1,16 +1,20 @@
 ################################# 若要更换第三方库版本，先阅读utils/README_cmake.md ##############################
+
 ###################################### 基础配置 ######################################
+
 cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
 set(version b3403) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
+
 ###################################### 编译选项 ######################################
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
+
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
 if(BODY_32BIT)
@@ -45,14 +49,13 @@ if(MSVC)
         # 监视gpu部分
         list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib) # 向extra_LIBS列表里添加文件
-        list(APPEND sd_EXTRA_COMMAND "-DSD_CUBLAS=ON") # 启用sd的cuda编译标志
-        
+        add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
         # 方便打包时找到cuda相关库
-        find_package(CUDA REQUIRED)# 查找CUDA包
-        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDA_VERSION})# 从CUDA版本字符串中提取主版本号
-        set(CUDA_LIB_DIR "${CUDA_TOOLKIT_ROOT_DIR}/bin")# CUDA库文件的目录
+        find_package(CUDAToolkit)
+        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
+        string(REGEX MATCH "^[0-9]+\\.[0-9]+" CUDA_VERSION ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主次版本号
         message(STATUS "cuda主版本 " ${CUDA_VERSION_MAJOR})
-        message(STATUS "cuda库路径 " ${CUDA_LIB_DIR})
+        message(STATUS "cuda库路径 " ${CUDAToolkit_BIN_DIR})
     endif()
 
 # mingw设置编译选项
@@ -67,7 +70,6 @@ elseif(MINGW)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
     
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
-    list(APPEND sd_EXTRA_COMMAND "-G" "\"MinGW Makefiles\"") # 对sd的自定义编译强制使用mingw编译器
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
@@ -79,7 +81,7 @@ elseif(UNIX)
         list(APPEND extra_INCLUDES utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
-        list(APPEND sd_EXTRA_COMMAND "-DSD_CUBLAS=ON") # 启用sd的cuda编译标志
+        add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
     endif()
 
 endif()
@@ -94,6 +96,10 @@ if(WIN32)
 elseif(UNIX)
     set(sfx_NAME "") # linux下生成的第三方程序带后缀
 endif()
+
+add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion和sd-ggml库
+add_subdirectory(stable-diffusion.cpp/examples) # 添加sd
+
 # 添加llama相关项目,将会强制应用父项目的编译设置
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
@@ -112,19 +118,6 @@ whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
 whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml/include/ggml.h llama.cpp/ggml/src/ggml-quants.h)
 target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT}) # 这里直接将whisper链接llama.cpp的llama库
-
-
-# 构建sd.exe并放到utils目录下
-# 当前版本 master-9c51d87
-set(stable_DIFFUSION_DIR "${PROJECT_SOURCE_DIR}/stable-diffusion.cpp")
-add_custom_command(TARGET ${TARGET_whisper} POST_BUILD
-    # COMMAND ${CMAKE_COMMAND} -E remove_directory "${stable_DIFFUSION_DIR}/build"
-    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR} ${CMAKE_COMMAND} -E make_directory build
-    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" ".." ${sd_EXTRA_COMMAND} "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=${stable_DIFFUSION_DIR}/build/bin/Release"
-    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build "cmake" "--build" "." "--config Release"
-    COMMAND ${CMAKE_COMMAND} -E chdir ${stable_DIFFUSION_DIR}/build ${CMAKE_COMMAND} -E copy ${stable_DIFFUSION_DIR}/build/bin/Release/sd${sfx_NAME} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd${sfx_NAME}
-    COMMENT "custom build sd ..."
-)
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
@@ -163,7 +156,6 @@ if(BODY_32BIT)
 elseif(GGML_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
 elseif(GGML_CUDA)
-    find_package(CUDA REQUIRED)
     message(STATUS "CUDA version: ${CUDA_VERSION}")
     set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}")
 else() 
@@ -187,13 +179,13 @@ if(MSVC)
     if(GGML_CUDA)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDA_LIB_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+                "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
                 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
             COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDA_LIB_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+                "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
                 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
             COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDA_LIB_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+                "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
                 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
             COMMENT "Copying CUDA libraries to output directory"
             )

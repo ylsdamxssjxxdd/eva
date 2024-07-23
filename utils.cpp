@@ -128,8 +128,6 @@ void Widget::addStopwords()
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
     }
-
-    ui_DATES.extra_stop_words << "<|im_end|>";//可以说相当严格了
 }
 
 //获取本机第一个ip地址

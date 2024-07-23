@@ -137,7 +137,7 @@ endif()
 
 # ggml
 
-set(TARGET ggml)
+set(TARGET sd-ggml)
 
 # on APPLE - include Accelerate framework
 if (APPLE AND NOT GGML_NO_ACCELERATE)
@@ -549,11 +549,11 @@ if (GGML_CUDA_SOURCES)
             set(GGML_CUDA_ARCHITECTURES 52 61 70)
         endif()
         message(STATUS "GGML Configuring CUDA architectures ${GGML_CUDA_ARCHITECTURES}")
-        set_property(TARGET ggml  PROPERTY CUDA_ARCHITECTURES ${GGML_CUDA_ARCHITECTURES})
+        set_property(TARGET sd-ggml  PROPERTY CUDA_ARCHITECTURES ${GGML_CUDA_ARCHITECTURES})
     endif()
-    set_property(TARGET ggml  PROPERTY CUDA_SELECT_NVCC_ARCH_FLAGS "Auto")
+    set_property(TARGET sd-ggml  PROPERTY CUDA_SELECT_NVCC_ARCH_FLAGS "Auto")
     if (NOT MSVC)
-        target_link_libraries(ggml PUBLIC stdc++)
+        target_link_libraries(sd-ggml PUBLIC stdc++)
     endif()
 endif()
 

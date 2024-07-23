@@ -24,7 +24,6 @@
 #include <math.h>
 #include <QFileDialog>
 #include <QSettings>
-#include <QTextToSpeech>
 #include <QTextCodec>
 #include <QMenu>
 #include <QShortcut>
@@ -202,7 +201,7 @@ private slots:
 //-------------------------------------------------------------------------
 
 public:
-    void get_sys_voice();//获取系统可用声源并设置到combobox
+    void set_sys_voice(QStringList sys_voice_list);// 设置系统可用声源
     Voice_Params voice_params;
 signals:
     void expend2ui_voiceparams(Voice_Params Voice_Params_);

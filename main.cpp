@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
     expend.max_thread = w.max_thread;
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
+    expend.set_sys_voice(w.sys_voice_list);// 设置可用系统声源
     if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
 #ifdef BODY_USE_CUDA
     gpuChecker gpuer;//监测显卡信息

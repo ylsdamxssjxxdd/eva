@@ -77,6 +77,7 @@ public:
     bool eventFilter(QObject *obj, QEvent *event) override;// 事件过滤器函数
     QShortcut *shortcutF1,*shortcutF2,*shortcutCtrlEnter;
     bool checkAudio();// 检测音频支持
+    QStringList sys_voice_list;// 系统可用声源列表
 public:
     QJsonObject wordsObj;//中文英文
     void getWords(QString json_file_path);//中文英文

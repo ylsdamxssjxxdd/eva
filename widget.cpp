@@ -109,14 +109,17 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     speech = new QTextToSpeech();
     // 检查是否成功创建
     if (speech->state() == QTextToSpeech::Ready) {
-        qDebug() << "QTextToSpeech available";
         is_speech_available = true;
+        // 遍历所有可用音色
+        foreach (const QVoice &voice, speech->availableVoices()) 
+        {
+            sys_voice_list << voice.name();
+        }
         connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);//朗读结束后动作
         connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
         speechtimer.start(500);//每半秒检查一次是否需要朗读
     } 
     else {
-        qDebug() << "QTextToSpeech not available";
         is_speech_available = false;
     }
 
@@ -1476,39 +1479,41 @@ bool Widget::checkAudio()
     // 设置音频输出位置
     audioRecorder.setOutputLocation(QUrl::fromLocalFile(applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav"));
 
-    // 打印出音频支持情况
-    // 获取本机支持的音频编码器和解码器
-    QStringList supportedCodecs = audioRecorder.supportedAudioCodecs();
-    QStringList supportedContainers = audioRecorder.supportedContainers();
-    qDebug() << "Supported audio codecs:" << supportedCodecs;
-    qDebug() << "Supported container formats:" << supportedContainers;
-    // 获取实际的编码器设置
-    QAudioEncoderSettings actualSettings = audioRecorder.audioSettings();
-    qDebug() << "Actual Codec:" << actualSettings.codec();
-    qDebug() << "Actual Sample Rate:" << actualSettings.sampleRate() << "Hz";
-    qDebug() << "Actual Bit Rate:" << actualSettings.bitRate() << "bps";
-    qDebug() << "Actual Channel Count:" << actualSettings.channelCount();
-    qDebug() << "Actual Quality:" << actualSettings.quality();
-    qDebug() << "Actual Encoding Mode:" << actualSettings.encodingMode();
+    // // 打印出音频支持情况
+    // // 获取本机支持的音频编码器和解码器
+    // QStringList supportedCodecs = audioRecorder.supportedAudioCodecs();
+    // QStringList supportedContainers = audioRecorder.supportedContainers();
+    // qDebug() << "Supported audio codecs:" << supportedCodecs;
+    // qDebug() << "Supported container formats:" << supportedContainers;
+    // // 获取实际的编码器设置
+    // QAudioEncoderSettings actualSettings = audioRecorder.audioSettings();
+    // qDebug() << "Actual Codec:" << actualSettings.codec();
+    // qDebug() << "Actual Sample Rate:" << actualSettings.sampleRate() << "Hz";
+    // qDebug() << "Actual Bit Rate:" << actualSettings.bitRate() << "bps";
+    // qDebug() << "Actual Channel Count:" << actualSettings.channelCount();
+    // qDebug() << "Actual Quality:" << actualSettings.quality();
+    // qDebug() << "Actual Encoding Mode:" << actualSettings.encodingMode();
+
     // 获取可用的音频输入设备列表
     QList<QAudioDeviceInfo> availableDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
     if (availableDevices.isEmpty()) {
         qDebug() << "No audio input devices available.";
         return false;
     }
-    qDebug() << "Available Audio Input Devices:";
-    for (const QAudioDeviceInfo &deviceInfo : availableDevices) {
-        qDebug() << "    Device Name:" << deviceInfo.deviceName();
-        qDebug() << "    Supported Codecs:";
-        for (const QString &codecName : deviceInfo.supportedCodecs()) {
-            qDebug() << "        " << codecName;
-        }
-        qDebug() << "    Supported Sample Rates:";
-        for (int sampleRate : deviceInfo.supportedSampleRates()) {
-            qDebug() << "        " << sampleRate;
-        }
-        qDebug() << "    -------------------------------------";
-    }
+
+    // qDebug() << "Available Audio Input Devices:";
+    // for (const QAudioDeviceInfo &deviceInfo : availableDevices) {
+    //     qDebug() << "    Device Name:" << deviceInfo.deviceName();
+    //     qDebug() << "    Supported Codecs:";
+    //     for (const QString &codecName : deviceInfo.supportedCodecs()) {
+    //         qDebug() << "        " << codecName;
+    //     }
+    //     qDebug() << "    Supported Sample Rates:";
+    //     for (int sampleRate : deviceInfo.supportedSampleRates()) {
+    //         qDebug() << "        " << sampleRate;
+    //     }
+    //     qDebug() << "    -------------------------------------";
+    // }
 
     return true;
 }
