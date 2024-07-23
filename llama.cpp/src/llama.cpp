@@ -19,6 +19,8 @@
 #  include "ggml-sycl.h"
 #elif defined(GGML_USE_KOMPUTE)
 #   include "ggml-kompute.h"
+#elif defined(GGML_USE_CANN)
+#   include "ggml-cann.h"
 #endif
 
 #ifdef GGML_USE_BLAS
@@ -112,7 +114,7 @@
 
 // bump if necessary
 #define LLAMA_MAX_NODES   8192
-#define LLAMA_MAX_LAYERS  256
+#define LLAMA_MAX_LAYERS  512
 #define LLAMA_MAX_EXPERTS 160  // DeepSeekV2
 
 //
@@ -2079,6 +2081,8 @@ struct llama_state {
         ggml_backend_metal_log_set_callback(log_callback, log_callback_user_data);
 #elif defined(GGML_USE_CUDA)
         ggml_backend_cuda_log_set_callback(log_callback, log_callback_user_data);
+#elif defined(GGML_USE_CANN)
+        ggml_backend_cann_log_set_callback(log_callback, log_callback_user_data);
 #endif
     }
 
@@ -2889,6 +2893,8 @@ static size_t llama_get_device_count(const llama_model & model) {
     count = ggml_backend_sycl_get_device_count();
 #elif defined(GGML_USE_VULKAN)
     count = ggml_backend_vk_get_device_count();
+#elif defined(GGML_USE_CANN)
+    return ggml_backend_cann_get_device_count();
 #endif
 #if defined(GGML_USE_RPC)
     count += model.rpc_servers.size();
@@ -2921,6 +2927,8 @@ static ggml_backend_buffer_type_t llama_default_buffer_type_offload(const llama_
     if (buft == nullptr) {
         LLAMA_LOG_WARN("%s: cannot use GPU %d, check `vulkaninfo --summary`\n", __func__, gpu);
     }
+#elif defined(GGML_USE_CANN)
+    buft = ggml_backend_cann_buffer_type(gpu);
 #endif
 
     if (buft == nullptr) {
@@ -2980,6 +2988,11 @@ static size_t llama_get_device_memory(const llama_model & model, int device) {
     size_t total;
     size_t free;
     ggml_backend_vk_get_device_memory(device, &free, &total);
+    return free;
+#elif defined(GGML_USE_CANN)
+    size_t total;
+    size_t free;
+    ggml_backend_cann_get_device_memory(device, &total, &free);
     return free;
 #else
     return 1;
@@ -3694,7 +3707,7 @@ struct llama_model_loader {
         }
 
         if (param_overrides_p != nullptr) {
-            for (const struct llama_model_kv_override *p = param_overrides_p; p->key[0] != 0; p++) {
+            for (const struct llama_model_kv_override * p = param_overrides_p; p->key[0] != 0; p++) {
                 kv_overrides.insert({std::string(p->key), *p});
             }
         }
@@ -3862,7 +3875,7 @@ struct llama_model_loader {
             ftype = (llama_ftype) (ftype | LLAMA_FTYPE_GUESSED);
 
             {
-                const int kid = gguf_find_key(meta, "general.file_type");
+                const int kid = gguf_find_key(meta, "general.file_type"); // TODO: use LLM_KV
                 if (kid >= 0) {
                     ftype = (llama_ftype) gguf_get_val_u32(meta, kid);
                 }
@@ -3994,7 +4007,9 @@ struct llama_model_loader {
                 throw std::runtime_error(format("%s is not a float32, int32 array", key.c_str()));
         }
 
-        GGML_ASSERT(arr_info.length <= N_MAX);
+        if (arr_info.length > N_MAX) {
+            throw std::runtime_error(format("array length %u for key %s exceeds max %u", (uint32_t) arr_info.length, key.c_str(), (uint32_t) N_MAX));
+        }
 
         std::copy((const T*)arr_info.data, (const T *)arr_info.data + arr_info.length, result.begin());
 
@@ -4030,8 +4045,6 @@ struct llama_model_loader {
     // get array of n <= N_MAX elements, or a single element repeated n times
     template<typename T, size_t N_MAX>
     bool get_key_or_arr(const std::string & key, std::array<T, N_MAX> & result, uint32_t n, const bool required = true) {
-        GGML_ASSERT(n <= N_MAX);
-
         const int kid = gguf_find_key(meta, key.c_str());
 
         if (kid < 0) {
@@ -4039,6 +4052,10 @@ struct llama_model_loader {
                 throw std::runtime_error(format("key not found in model: %s", key.c_str()));
             }
             return false;
+        }
+
+        if (n > N_MAX) {
+            throw std::runtime_error(format("n > N_MAX: %u > %u for key %s", (uint32_t) n, (uint32_t) N_MAX, key.c_str()));
         }
 
         if (gguf_get_kv_type(meta, kid) == GGUF_TYPE_ARRAY) {
@@ -4990,7 +5007,7 @@ static void llm_load_hparams(
             {
                 ml.get_key(LLM_KV_ATTENTION_LAYERNORM_EPS, hparams.f_norm_eps);
                 switch (hparams.n_layer) {
-                    case 42: model.type = e_model::MODEL_SMALL; break;
+                    case 42: model.type = e_model::MODEL_7B; break;
                     default: model.type = e_model::MODEL_UNKNOWN;
                 }
             } break;
@@ -5352,6 +5369,7 @@ static void llm_load_vocab(
             if (merges_keyidx == -1) {
                 throw std::runtime_error("cannot find tokenizer merges in model file\n");
             }
+
             const int n_merges = gguf_get_arr_n(ctx, merges_keyidx);
             for (int i = 0; i < n_merges; i++) {
                 const std::string word = gguf_get_arr_str(ctx, merges_keyidx, i);
@@ -5389,16 +5407,6 @@ static void llm_load_vocab(
             vocab.special_pad_id  = 0;
             vocab.special_cls_id  = -1;
             vocab.special_mask_id = -1;
-
-            const int add_space_prefix_keyidx = gguf_find_key(ctx, kv(LLM_KV_TOKENIZER_ADD_PREFIX).c_str());
-            if (add_space_prefix_keyidx != -1) {
-                vocab.tokenizer_add_space_prefix = gguf_get_val_bool(ctx, add_space_prefix_keyidx);
-            } // The default value of add_space_prefix is true.
-
-            const int remove_extra_whitespaces_keyidx = gguf_find_key(ctx, kv(LLM_KV_TOKENIZER_REMOVE_EXTRA_WS).c_str());
-            if (remove_extra_whitespaces_keyidx != -1) {
-                vocab.tokenizer_remove_extra_whitespaces = gguf_get_val_bool(ctx, remove_extra_whitespaces_keyidx);
-            } // The default value of remove_extra_whitespaces is false.
 
             const int precompiled_charsmap_keyidx = gguf_find_key(ctx, kv(LLM_KV_TOKENIZER_PRECOMPILED_CHARSMAP).c_str());
             if (precompiled_charsmap_keyidx != -1) {
@@ -5507,6 +5515,19 @@ static void llm_load_vocab(
             } else if (
                 tokenizer_pre == "jais") {
                 vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_JAIS;
+            } else if (
+                tokenizer_pre == "tekken") {
+                vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_TEKKEN;
+                vocab.tokenizer_clean_spaces = false;
+                vocab.tokenizer_ignore_merges = true;
+                vocab.tokenizer_add_bos = true;
+            } else if (
+                tokenizer_pre == "smollm") {
+                vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_SMOLLM;
+                vocab.tokenizer_clean_spaces = false;
+            } else if (
+                tokenizer_pre == "codeshell") {
+                vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_CODESHELL;
             } else {
                 throw std::runtime_error(format("unknown pre-tokenizer type: '%s'", tokenizer_pre.c_str()));
             }
@@ -5530,10 +5551,8 @@ static void llm_load_vocab(
             vocab.type_pre = LLAMA_VOCAB_PRE_TYPE_DEFAULT;
         }
 
-        const int add_space_prefix_keyidx = gguf_find_key(ctx, kv(LLM_KV_TOKENIZER_ADD_PREFIX).c_str());
-        if (add_space_prefix_keyidx != -1) {
-            vocab.tokenizer_add_space_prefix = gguf_get_val_bool(ctx, add_space_prefix_keyidx);
-        }
+        ml.get_key(LLM_KV_TOKENIZER_ADD_PREFIX,      vocab.tokenizer_add_space_prefix,         false);
+        ml.get_key(LLM_KV_TOKENIZER_REMOVE_EXTRA_WS, vocab.tokenizer_remove_extra_whitespaces, false);
     }
 
     const int token_idx = gguf_find_key(ctx, kv(LLM_KV_TOKENIZER_LIST).c_str());
@@ -6114,10 +6133,10 @@ static bool llm_load_tensors(
 
                         layer.attn_norm = ml.create_tensor(ctx_layer, tn(LLM_TENSOR_ATTN_NORM, "weight", i), {n_embd});
 
-                        layer.wq = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_Q,   "weight", i), {n_embd, n_embd});
-                        layer.wk = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_K,   "weight", i), {n_embd, n_embd_gqa});
-                        layer.wv = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_V,   "weight", i), {n_embd, n_embd_gqa});
-                        layer.wo = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_OUT, "weight", i), {n_embd, n_embd});
+                        layer.wq = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_Q,   "weight", i), {n_embd, n_embd_head_k * n_head});
+                        layer.wk = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_K,   "weight", i), {n_embd, n_embd_k_gqa});
+                        layer.wv = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_V,   "weight", i), {n_embd, n_embd_v_gqa});
+                        layer.wo = ml.create_tensor(ctx_split, tn(LLM_TENSOR_ATTN_OUT, "weight", i), {n_embd_head_k * n_head, n_embd});
 
                         // optional bias tensors
                         layer.bq = ml.create_tensor(ctx_layer, tn(LLM_TENSOR_ATTN_Q,   "bias", i), {n_embd},     llama_model_loader::TENSOR_NOT_REQUIRED);
@@ -15133,6 +15152,10 @@ static void llama_kv_cache_update_internal(struct llama_context & lctx) {
 
     // apply K-shift if needed
     if (lctx.model.hparams.rope_type != LLAMA_ROPE_TYPE_NONE && lctx.kv_self.has_shift) {
+        if (lctx.model.arch == LLM_ARCH_DEEPSEEK2) { // not supported due to MLA
+            GGML_ASSERT(false && "Deepseek2 does not support K-shift");
+        }
+
         {
             ggml_backend_sched_reset(lctx.sched);
 
@@ -15527,6 +15550,8 @@ struct llm_tokenizer_bpe {
             case LLAMA_VOCAB_PRE_TYPE_STARCODER:
             case LLAMA_VOCAB_PRE_TYPE_REFACT:
             case LLAMA_VOCAB_PRE_TYPE_COMMAND_R:
+            case LLAMA_VOCAB_PRE_TYPE_SMOLLM:
+            case LLAMA_VOCAB_PRE_TYPE_CODESHELL:
                 regex_exprs = {
                     "\\p{N}",
                     "'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)",
@@ -15562,6 +15587,13 @@ struct llm_tokenizer_bpe {
                 regex_exprs = {
                     " ?[^(\\s|.,!?…。，、।۔،)]+",
                     "\\p{N}",
+                };
+                break;
+            case LLAMA_VOCAB_PRE_TYPE_TEKKEN:
+                    // original regex from tokenizer.json
+                    // "[^\\r\\n\\p{L}\\p{N}]?[\\p{Lu}\\p{Lt}\\p{Lm}\\p{Lo}\\p{M}]*[\\p{Ll}\\p{Lm}\\p{Lo}\\p{M}]+|[^\\r\\n\\p{L}\\p{N}]?[\\p{Lu}\\p{Lt}\\p{Lm}\\p{Lo}\\p{M}]+[\\p{Ll}\\p{Lm}\\p{Lo}\\p{M}]*|\\p{N}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n/]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+"
+                regex_exprs = {
+                    "[^\\r\\n\\p{L}\\p{N}]?((?=[\\p{L}])([^a-z]))*((?=[\\p{L}])([^A-Z]))+|[^\\r\\n\\p{L}\\p{N}]?((?=[\\p{L}])([^a-z]))+((?=[\\p{L}])([^A-Z]))*|\\p{N}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n/]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+",
                 };
                 break;
             default:
@@ -18254,8 +18286,9 @@ static void llama_model_quantize_internal(const std::string & fname_inp, const s
 
     // copy the KV pairs from the input file
     gguf_set_kv     (ctx_out, ml.meta);
-    gguf_set_val_u32(ctx_out, "general.quantization_version", GGML_QNT_VERSION);
-    gguf_set_val_u32(ctx_out, "general.file_type", ftype);
+    gguf_set_val_u32(ctx_out, "general.quantization_version", GGML_QNT_VERSION); // TODO: use LLM_KV
+    gguf_set_val_u32(ctx_out, "general.file_type", ftype); // TODO: use LLM_KV
+
     // Remove split metadata
     gguf_remove_key(ctx_out, ml.llm_kv(LLM_KV_SPLIT_NO).c_str());
     gguf_remove_key(ctx_out, ml.llm_kv(LLM_KV_SPLIT_COUNT).c_str());
@@ -18867,6 +18900,8 @@ size_t llama_max_devices(void) {
     return GGML_SYCL_MAX_DEVICES;
 #elif defined(GGML_USE_VULKAN)
     return GGML_VK_MAX_DEVICES;
+#elif defined(GGML_USE_CANN)
+    return GGML_CANN_MAX_DEVICES;
 #else
     return 1;
 #endif
@@ -19208,6 +19243,30 @@ struct llama_context * llama_new_context_with_model(
             }
             ctx->backends.push_back(backend);
         }
+#elif defined(GGML_USE_CANN)
+    // with split_mode LLAMA_SPLIT_MODE_NONE or LLAMA_SPLIT_MODE_ROW, only the main GPU backend is used
+    // TODO: ggml_backend_cann is not support split tensor now, just leave code here.
+    if (model->split_mode == LLAMA_SPLIT_MODE_NONE || model->split_mode == LLAMA_SPLIT_MODE_ROW) {
+        ggml_backend_t backend = ggml_backend_cann_init(model->main_gpu);
+        if (backend == nullptr) {
+            LLAMA_LOG_ERROR("%s: failed to initialize CANN%d backend\n", __func__, model->main_gpu);
+            llama_free(ctx);
+            return nullptr;
+        }
+        ctx->backends.push_back(backend);
+    } else {
+        // LLAMA_SPLIT_MODE_LAYER requires a backend for each GPU
+        // TODO: currently, CANN can't use multi-gpus, just leave code here for further cann version.
+        for (int32_t device = 0; device < ggml_backend_cann_get_device_count(); ++device) {
+            ggml_backend_t backend = ggml_backend_cann_init(device);
+            if (backend == nullptr) {
+                LLAMA_LOG_ERROR("%s: failed to initialize CANN%d backend\n", __func__, device);
+                llama_free(ctx);
+                return nullptr;
+            }
+            ctx->backends.push_back(backend);
+        }
+    }
 #endif
 
 #ifdef GGML_USE_BLAS
@@ -19392,7 +19451,6 @@ enum llama_rope_type llama_rope_type(const struct llama_model * model) {
         case LLM_ARCH_BAICHUAN:
         case LLM_ARCH_STARCODER:
         case LLM_ARCH_PLAMO:
-        case LLM_ARCH_CODESHELL:
         case LLM_ARCH_ORION:
         case LLM_ARCH_INTERNLM2:
         case LLM_ARCH_MINICPM:
@@ -19422,6 +19480,7 @@ enum llama_rope_type llama_rope_type(const struct llama_model * model) {
         case LLM_ARCH_STARCODER2:
         case LLM_ARCH_OPENELM:
         case LLM_ARCH_GPTNEOX:
+        case LLM_ARCH_CODESHELL:
             return LLAMA_ROPE_TYPE_NEOX;
 
         // all model arches should be listed explicitly here
@@ -19877,7 +19936,7 @@ size_t llama_state_get_size(const struct llama_context * ctx) {
     );
 
     // on session change it is very likely that the state size has changed - so we need to update this function
-    static_assert(LLAMA_SESSION_VERSION == 6, "So you just bumped the session version - good. But did you remember to update llama_state_get_size?");
+    static_assert(LLAMA_SESSION_VERSION == 7, "So you just bumped the session version - good. But did you remember to update llama_state_get_size?");
 
     return s_total;
 }
@@ -21564,7 +21623,7 @@ static int32_t llama_chat_apply_template_internal(
         if (add_ass) {
             ss << "<|assistant|>";
         }
-    } else if (tmpl == "chaglm4" || tmpl_contains("[gMASK]<sop>")) {
+    } else if (tmpl == "chatglm4" || tmpl_contains("[gMASK]<sop>")) {
         ss << "[gMASK]" << "<sop>";
         for (auto message : chat) {
             std::string role(message->role);
@@ -21785,6 +21844,8 @@ void llama_log_set(ggml_log_callback log_callback, void * user_data) {
     ggml_backend_metal_log_set_callback(g_state.log_callback, g_state.log_callback_user_data);
 #elif defined(GGML_USE_CUDA)
     ggml_backend_cuda_log_set_callback(g_state.log_callback, g_state.log_callback_user_data);
+#elif defined(GGML_USE_CANN)
+    ggml_backend_cann_log_set_callback(g_state.log_callback, g_state.log_callback_user_data);
 #endif
 }
 
