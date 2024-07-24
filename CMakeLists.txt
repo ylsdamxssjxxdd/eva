@@ -60,16 +60,16 @@ if(MSVC)
 
 # mingw设置编译选项
 elseif(MINGW)
-    option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
+    option(BUILD_SHARED_LIBS        "build shared libraries"           OFF)
     set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version") # 原项目适配mingw
     add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER}) # 原项目适配mingw
     add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
     
-    # set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
+    set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
     
-    # set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
