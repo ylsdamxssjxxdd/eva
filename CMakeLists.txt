@@ -10,12 +10,12 @@ set(version b3442) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
+option(BODY_32BIT "build 32 bit" OFF) # 编译32位的选项！不能装载超过1G的模型
 # 这几个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
@@ -60,16 +60,16 @@ if(MSVC)
 
 # mingw设置编译选项
 elseif(MINGW)
-    option(BUILD_SHARED_LIBS        "build shared libraries"           OFF)
+    option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
     set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version") # 原项目适配mingw
     add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER}) # 原项目适配mingw
     add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
     
-    set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
+    # set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
     
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
+    # set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
@@ -182,20 +182,20 @@ if(MSVC)
     )
 
     # 复制cuda组件过来
-    if(GGML_CUDA)
-        add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-            COMMENT "Copying CUDA libraries to output directory"
-            )
-    endif()
+    # if(GGML_CUDA)
+    #     add_custom_command(TARGET ${TARGET} POST_BUILD
+    #         COMMAND ${CMAKE_COMMAND} -E copy
+    #             "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+    #         COMMAND ${CMAKE_COMMAND} -E copy
+    #             "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+    #         COMMAND ${CMAKE_COMMAND} -E copy
+    #             "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+    #         COMMENT "Copying CUDA libraries to output directory"
+    #         )
+    # endif()
 
     # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD

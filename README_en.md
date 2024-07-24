@@ -86,7 +86,7 @@ git clone https://github.com/ylsdamxssjxxdd/eva.git
 3. Build
 ```bash
 cd eva
-cmake -B build -DBODY_32BIT=OFF -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
 cmake --build build --config Release
 ```
 - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
