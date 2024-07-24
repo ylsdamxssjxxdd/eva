@@ -131,12 +131,21 @@ void xTool::run()
             connect(process, &QProcess::readyReadStandardOutput, [&]() {
                 QByteArray rawOutput = process->readAllStandardOutput();
                 QTextCodec *codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
-                result += codec->toUnicode(rawOutput);
+                QString result_output = codec->toUnicode(rawOutput);
+                if(!result_output.contains("QFileSystem"))
+                {
+                    result += result_output;
+                }
+                
             });
             connect(process, &QProcess::readyReadStandardError, [&]() {
                 QByteArray rawOutput = process->readAllStandardError();
                 QTextCodec *codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
-                result += codec->toUnicode(rawOutput);
+                QString result_output = codec->toUnicode(rawOutput);
+                if(!result_output.contains("QFileSystem"))
+                {
+                    result += result_output;
+                }
                 
             });
 

@@ -962,7 +962,7 @@ QString xBot::viewVocab()
 {
     QString vocab;//模型词表
     float zh_nums = 0;//新增
-    QElapsedTimer time1;time1.start();
+    QStringList vocabList; // 使用 QStringList 来构建词表字符串
     for(int i=0; i < n_vocab;++i)
     {
         QString str = QString::fromUtf8(llama_token_to_piece(ctx, i).c_str());
@@ -975,11 +975,18 @@ QString xBot::viewVocab()
                 break;//结束当前最近的循环
             }//汉字编码一般在 0x4E00 - 0x9FA5
         }
-        vocab += "token=" + QString::number(i) + " " + str +"\n";
+        // 替换特殊字符
+        str.replace("\n", "\\n");
+        str.replace("\r", "\\r");
+
+        // 使用 QStringList 来构建词表字符串
+        vocabList << "token=" + QString::number(i) + " " + str;
     }
-    //qDebug() << zh_nums;
-    vocab = jtr("current model") + ": " + QString::fromStdString(bot_modelpath) +"\n"+ jtr("vocab size")+  ": " + QString::number(n_vocab) +"\n"+  jtr("chinese rate") +  ": " + QString::number(zh_nums/n_vocab *100.0)+ "%" +"\n\n" + vocab;//新增
-    //qDebug()<<QString::number(time1.nsecsElapsed()/1000000000.0,'f',2);
+     vocab = jtr("current model") + ": " + QString::fromStdString(bot_modelpath) + "\n" +
+             jtr("vocab size") + ": " + QString::number(n_vocab) + "\n" +
+             jtr("chinese rate") + ": " + QString::number(zh_nums / n_vocab * 100.0) + "%" + "\n\n" +
+             vocabList.join("\n");
+             
     return vocab;
 }
 

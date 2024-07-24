@@ -13,7 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 option(BODY_32BIT                    "build 32 bit"                               OFF) # 编译32位的选项！不能装载超过1G的模型
 option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 # 这几个标志是互斥的
@@ -28,7 +28,7 @@ elseif(GGML_VULKAN)
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
 else() 
-    # 什么都没有默认编译64bit版本
+    # 什么都没有默认编译cpu版本
 endif()
 
 if(BODY_PACK)
@@ -82,6 +82,12 @@ elseif(UNIX)
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
         add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
+        # 方便打包时找到cuda相关库
+        find_package(CUDAToolkit)
+        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
+        string(REGEX MATCH "^[0-9]+\\.[0-9]+" CUDA_VERSION ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主次版本号
+        message(STATUS "cuda主版本 " ${CUDA_VERSION_MAJOR})
+        message(STATUS "cuda库路径 " ${CUDAToolkit_BIN_DIR})
     endif()
 
 endif()
@@ -159,7 +165,7 @@ elseif(GGML_CUDA)
     message(STATUS "CUDA version: ${CUDA_VERSION}")
     set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}")
 else() 
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-64bit")
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-cpu")
 endif()
 
 # 链接相关库,生成可执行文件

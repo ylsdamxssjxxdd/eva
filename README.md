@@ -23,7 +23,7 @@
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 - windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
-- 64bit版本使用cpu推理，兼容性最好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，但是效果较差
+- cpu版本使用avx加速，兼容性最强；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，但是效果较差
 
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
