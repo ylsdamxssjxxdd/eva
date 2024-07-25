@@ -599,15 +599,15 @@ int xBot::stream()
                     current_output = current_output.substr(current_output.length() - 32, 32);//只保留32个字符
                 }
             }
-            //检测输出的内容中是否包含反提示,如果有则停止
+            //检测输出的内容中是否包含反提示和额外停止词,如果有则停止
             if(!is_complete) // 补完模式不检测
             {
                 int list_num=0;//记录第一个元素,只有第一个元素需要控制is_antiprompt = true
                 //qDebug() << QString::fromStdString(current_output);
                 for (const std::string &antiprompt : gpt_params_.antiprompt) 
                 {
-                    
-                    if (toLowerCaseASCII(current_output).find(antiprompt) != std::string::npos) 
+                    // 若包含反提示或额外停止词则停止
+                    if (toLowerCaseASCII(current_output).find(antiprompt) != std::string::npos)
                     {
                         if(list_num==0)
                         {
@@ -631,6 +631,22 @@ int xBot::stream()
                         return -1;
                         
                     }
+                    // 若同时包含"<|" 和 "|>"也停止
+                    if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) 
+                    {
+                        emit bot2ui_state("bot:"+ jtr("detected") + jtr("extra stop words") + " "  + QString::fromStdString("<| |>"));
+                        QString fianl_state;
+                        fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
+                        if(!is_debuging)
+                        {
+                            fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                         + jtr("batch decode") + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                        }
+                        emit bot2ui_state(fianl_state,SUCCESS_);
+                        //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
+                        return -1;
+                    }
+
                     list_num++;
                 }
 

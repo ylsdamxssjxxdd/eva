@@ -116,7 +116,7 @@ QString Widget::create_extra_prompt()
     return extra_prompt_;
 }
 
-//添加额外停止标志
+//添加额外停止标志，若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
@@ -128,8 +128,6 @@ void Widget::addStopwords()
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
     }
-
-    ui_DATES.extra_stop_words << "<|im_end|>";//可以说相当严格了
     
 }
 
