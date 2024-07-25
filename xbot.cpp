@@ -594,9 +594,9 @@ int xBot::stream()
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
                 current_output += sstr;
 
-                if(current_output.length() > 32)
+                if(current_output.length() > 16)
                 {
-                    current_output = current_output.substr(current_output.length() - 32, 32);//只保留32个字符
+                    current_output = current_output.substr(current_output.length() - 16, 16);//只保留16个字符
                 }
             }
             //检测输出的内容中是否包含反提示和额外停止词,如果有则停止
@@ -631,25 +631,26 @@ int xBot::stream()
                         return -1;
                         
                     }
-                    // 若同时包含"<|" 和 "|>"也停止
-                    if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) 
-                    {
-                        emit bot2ui_state("bot:"+ jtr("detected") + jtr("extra stop words") + " "  + QString::fromStdString("<| |>"));
-                        QString fianl_state;
-                        fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-                        if(!is_debuging)
-                        {
-                            fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
-                                         + jtr("batch decode") + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
-                        }
-                        emit bot2ui_state(fianl_state,SUCCESS_);
-                        //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-                        return -1;
-                    }
 
                     list_num++;
                 }
 
+            }
+
+            // 若同时包含"<|" 和 "|>"也停止
+            if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) 
+            {
+                emit bot2ui_state("bot:"+ jtr("detected") + jtr("extra stop words") + " "  + QString::fromStdString("<| |>"));
+                QString fianl_state;
+                fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
+                if(!is_debuging)
+                {
+                    fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                    + jtr("batch decode") + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                }
+                emit bot2ui_state(fianl_state,SUCCESS_);
+                //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
+                return -1;
             }
         }
         //输入太多的特殊情况处理, 防止报错
