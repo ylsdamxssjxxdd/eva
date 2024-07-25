@@ -635,23 +635,23 @@ int xBot::stream()
                     list_num++;
                 }
 
-            }
-
-            // 若同时包含"<|" 和 "|>"也停止
-            if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) 
-            {
-                emit bot2ui_state("bot:"+ jtr("detected") + jtr("extra stop words") + " "  + QString::fromStdString("<| |>"));
-                QString fianl_state;
-                fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-                if(!is_debuging)
+                // 若同时包含"<|" 和 "|>"也停止
+                if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) 
                 {
-                    fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
-                                    + jtr("batch decode") + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                    emit bot2ui_state("bot:"+ jtr("detected") + jtr("extra stop words") + " "  + QString::fromStdString("<| |>"));
+                    QString fianl_state;
+                    fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
+                    if(!is_debuging)
+                    {
+                        fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count/(single_timer.nsecsElapsed()/1000000000.0 - batch_time),'f',2)+ " token/s" + " " 
+                                        + jtr("batch decode") + QString(":") + QString::number(batch_count/batch_time,'f',2)+ " token/s";
+                    }
+                    emit bot2ui_state(fianl_state,SUCCESS_);
+                    //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
+                    return -1;
                 }
-                emit bot2ui_state(fianl_state,SUCCESS_);
-                //qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-                return -1;
             }
+            
         }
         //输入太多的特殊情况处理, 防止报错
         else
