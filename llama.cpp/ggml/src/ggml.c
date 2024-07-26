@@ -21075,6 +21075,12 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
         };
 
         *params.ctx = ggml_init(pdata);
+        if (*params.ctx == NULL) {
+            fprintf(stderr, "%s: failed to initialize context\n", __func__);
+            fclose(file);
+            gguf_free(ctx);
+            return NULL;
+        }
 
         struct ggml_context * ctx_data = *params.ctx;
 
@@ -21978,6 +21984,14 @@ int ggml_cpu_has_rpc(void) {
 
 int ggml_cpu_has_cann(void) {
 #if defined(GGML_USE_CANN)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ggml_cpu_has_llamafile(void) {
+#if defined(GGML_USE_LLAMAFILE)
     return 1;
 #else
     return 0;
