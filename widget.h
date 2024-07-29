@@ -312,7 +312,7 @@ public:
     QLineEdit *api_ip_LineEdit,*api_port_LineEdit,*api_chat_LineEdit,*api_complete_LineEdit;
     bool is_api = false;//是否处于api模式,按照链接模式的行为来
     APIS apis;//api配置参数
-    QStringList ui_user_history,ui_assistant_history;
+    QVector<QPair<QString, API_ROLE>> ui_insert_history;// 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history="";//临时数据
     QString current_api;//当前负载端点
     float keeptesttime = 0.1;//回应时间/keeptest*100为延迟量

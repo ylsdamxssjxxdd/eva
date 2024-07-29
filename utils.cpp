@@ -116,17 +116,25 @@ QString Widget::create_extra_prompt()
     return extra_prompt_;
 }
 
-//添加额外停止标志，若同时包含"<|" 和 "|>"也停止
+//添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-    ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
-
+    if(!is_api)// api模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
+    {
+        ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+        ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
+    }
+    
     if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
     {
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
+
+        if(is_api)
+        {
+            ui_DATES.extra_stop_words << "<|observation|>";// api模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
+        }
     }
     
 }

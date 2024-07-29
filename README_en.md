@@ -8,17 +8,16 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 
 ## feature
-- Intuitive 
+- Intuitive 👁️
     - Clearly show the process of the llm predicting the next word
 
-- Compatibility
+- Compatibility 🚀
     - Support Windows & Linux
 
-- Multifunctional (all available but not very effective)
-    - local model,  online model, API services, WEB services, agent, multimodal
-    - knowledge base QA, code interpreter, software control, text2img, voice2text 
-    - model quantize, model evaluation
-    
+- Multifunctional 🦾
+```txt
+    local model chat, online model chat, API services, WEB services, agent, multimodal, knowledge base QA, code interpreter, software control, text2img, voice2text, model quantize, model evaluation
+```
 ## quick start
 1. Download eva
 - https://github.com/ylsdamxssjxxdd/eva/releases
@@ -54,6 +53,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 4. Link status
 - eva can connect to the chat endpoints of other API services and run without the need to load the model
+- Require the service to provide a default model without setting API-KEY
 
 5. Knowledge base
 - Users can upload documents, which are embedded and processed to become the knowledge base of the model. And then you can mount knowledge tool, it can be called by the model
@@ -92,7 +92,6 @@ cmake --build build --config Release
 - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
 - GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
 - GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
-- BODY_32BIT: Flag for compiling to 32-bit program
 
 ## DATE template
 - In chat mode, eva uses the same set of prompt template (DATE template) for all models. The overall structure is: system prompt + input prefix + user input + input suffix

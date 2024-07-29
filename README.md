@@ -9,21 +9,20 @@
 
 
 ## 特点
-- 直观 
+- 直观 👁️
     - 清晰的展示大模型预测下一个词的过程
     - 输出区的内容就是模型的全部现实
-- 兼容性
+- 兼容性 🚀
     - 支持windows和linux
-- 多功能
-    - 本地模型，在线模型，api服务，网页服务，智能体，多模态
-    - 知识库问答，代码解释器，软件控制，文生图，声转文
-    - 模型量化，模型评测
-    
+- 多功能 🦾
+```txt
+    本地模型对话、网络模型对话、模型api、网页服务、智能体、多模态、知识库问答、代码解释器、软件控制、文生图、声转文、模型量化、模型评测
+```
 ## 快速开始
 1. 下载一个机体
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 - windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
-- cpu版本使用avx加速，兼容性最强；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，但是效果较差
+- cpu版本使用avx加速，兼容性最好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，速度不如cuda版本
 
 2. 下载一个gguf格式模型
 - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -55,6 +54,7 @@
 
 4. 链接状态
 - 机体可以链接到其它api服务的对话端点，不需要装载模型也能运行
+- 要求对应服务可以提供default模型且没有设置API-KEY
 
 5. 知识库
 - 用户可以上传文档，经过嵌入处理后成为模型的知识库，挂载后可供模型调用
@@ -93,7 +93,6 @@ cmake --build build --config Release
 - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
 - GGML_CUDA：是否需要启用cuda加速的标志
 - GGML_VULKAN：是否需要启用vulkan加速的标志
-- BODY_32BIT：是否需要编译为32位程序的标志
 
 ## 约定模板
 - 对话模式下机体对所有模型使用同一套提示词模板（约定模板）其总体结构为：系统提示+输入前缀+用户输入+输入后缀

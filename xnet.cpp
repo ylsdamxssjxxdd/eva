@@ -51,7 +51,7 @@ void xNet::run()
                         QJsonObject jsonObject = document.object();
                         QJsonArray choices = jsonObject["choices"].toArray();
                         QJsonObject firstChoice = choices.at(0).toObject();
-                        //qDebug()<<firstChoice;//看看接收到了什么
+                        // qDebug()<<"choices "<<firstChoice;//看看接收到了什么
                         QJsonObject delta = firstChoice["delta"].toObject();
                         QString content = delta["content"].toString();
                         QString content_flag;
@@ -177,9 +177,10 @@ QByteArray xNet::createChatBody()
 {
     // 创建 JSON 数据,添加一些采样参数
     QJsonObject json;
-    json.insert("model", "gpt-3.5-turbo");
+    if(apis.is_cache){json.insert("cache_prompt", apis.is_cache);} // 缓存上文
+    json.insert("model", "default");
     json.insert("stream", true);
-    json.insert("temperature", 2*endpoint_data.temp);
+    json.insert("temperature", 2 * endpoint_data.temp);// openai 的温度是从0-2，机体是从0-1所以乘2
     json.insert("max_tokens", endpoint_data.n_predict);
     QJsonArray stopkeys;//强制结束的词
     for(int i =0;i<endpoint_data.stopwords.size();++i)
@@ -187,47 +188,41 @@ QByteArray xNet::createChatBody()
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
-
+    // qDebug()<<"stop "<<stopkeys;
     QJsonArray messagesArray;//总消息
     //构造系统指令
     QJsonObject systemMessage;
     systemMessage.insert("role", "system");
     systemMessage.insert("content", endpoint_data.date_prompt);
     messagesArray.append(systemMessage);//添加消息
-    //构造历史和当前的用户输入，一条用户的一条模型的这样构造，直到历史记录没有
     //qDebug()<<"--------------------------------";
-    int k = 0;
-    int j = 0;
     // QJsonObject userMessage;
     // userMessage.insert("role", "user");
     // userMessage.insert("image_url", "C:\\Users\\32138\\Desktop\\ayanami.png");
     // messagesArray.append(userMessage);
-    while(endpoint_data.user_history.size()>0 || endpoint_data.assistant_history.size()>0)
+    QJsonObject roleMessage;
+    for(int i =0;i<endpoint_data.insert_history.size();++i)
     {
-        if(endpoint_data.user_history.size()>0)
+        if(endpoint_data.insert_history.at(i).second == API_ROLE_USER) // 如果是用户发送的
         {
-            QJsonObject userMessage;
-            userMessage.insert("role", "user");
-            userMessage.insert("content", endpoint_data.user_history.at(0));
-            //qDebug() << "user" << endpoint_data.user_history.at(0);
-            j++;
-            //emit net2ui_state("user:" + QString::number(j) + " " + endpoint_data.user_history.at(0),WRONG_);
-            messagesArray.append(userMessage);
-            endpoint_data.user_history.removeFirst();
-            
+            roleMessage.insert("role", "user");
         }
-        if(endpoint_data.assistant_history.size()>0)
+        else if (endpoint_data.insert_history.at(i).second == API_ROLE_OBSERVATION) // 如果是工具发送的
         {
-            k++;
-            //emit net2ui_state("ass:" + QString::number(k) + " " + endpoint_data.assistant_history.at(0),WRONG_);
-            QJsonObject assistantMessage;
-            assistantMessage.insert("role", "assistant");
-            assistantMessage.insert("content", endpoint_data.assistant_history.at(0));
-            messagesArray.append(assistantMessage);
-            endpoint_data.assistant_history.removeFirst();
+            roleMessage.insert("role", "observation");
         }
+        
+        else if(endpoint_data.insert_history.at(i).second == API_ROLE_ASSISANT) // 如果是模型发送的
+        {
+            roleMessage.insert("role", "assistant");
+        }
+
+        roleMessage.insert("content", endpoint_data.insert_history.at(i).first);
+        messagesArray.append(roleMessage);
+
     }
-    
+
+    // qDebug()<<"messages"<<messagesArray;
     // 将 JSON 对象转换为字节序列
     json.insert("messages", messagesArray);//插入总消息
     QJsonDocument doc(json);
@@ -240,7 +235,7 @@ QByteArray xNet::createCompleteBody()
 {
     // 创建 JSON 数据
     QJsonObject json;
-    if(apis.is_cache){json.insert("cache_prompt", apis.is_cache);}
+    if(apis.is_cache){json.insert("cache_prompt", apis.is_cache);} // 缓存上文
     json.insert("seed", 1996);
     json.insert("ignore_eos", false);//是否无视结束标志
     json.insert("prompt", endpoint_data.input_prompt);

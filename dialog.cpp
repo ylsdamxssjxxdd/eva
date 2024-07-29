@@ -1272,8 +1272,7 @@ void Widget::tool_testhandleTimeout()
     data.temp=ui_SETTINGS.temp;
     data.repeat=ui_SETTINGS.repeat;
     data.n_predict = ui_SETTINGS.npredict;
-    data.assistant_history = ui_assistant_history;
-    data.user_history = ui_user_history;
+    data.insert_history = ui_insert_history;
     
     emit ui2net_data(data);
     emit ui2net_push();
@@ -1417,7 +1416,7 @@ void Widget::ui_state_normal()
             ui->send->setEnabled(1);
         }
         ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
+        ui->set->setEnabled(1);
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 

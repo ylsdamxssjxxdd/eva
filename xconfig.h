@@ -127,14 +127,19 @@ struct APIS{
     bool is_cache = true;
 };
 
+enum API_ROLE{
+    API_ROLE_USER,
+    API_ROLE_ASSISANT,
+    API_ROLE_OBSERVATION,
+};
+
 //端点接收参数
 struct ENDPOINT_DATA{
     QString date_prompt;
     QString input_pfx;
     QString input_sfx;
     QString input_prompt;//续写模式用
-    QStringList user_history;//对话模式用
-    QStringList assistant_history;//对话模式用
+    QVector<QPair<QString, API_ROLE>> insert_history;// 将要构造的历史数据，前面是内容后面是角色
     bool complete_mode;
     float temp;
     double repeat;

@@ -452,7 +452,7 @@ void Widget::on_send_clicked()
 //模型输出完毕的后处理
 void Widget::recv_pushover()
 {
-    ui_assistant_history << temp_assistant_history;
+    ui_insert_history.append({temp_assistant_history, API_ROLE_ASSISANT});
     temp_assistant_history = "";
     temp_speech = "";//清空缓存的待读的字
     
@@ -496,7 +496,7 @@ void Widget::recv_pushover()
         //如果挂载了工具,则尝试提取里面的json
         if(is_load_tool)
         {
-            QString tool_str = ui_assistant_history.last();
+            QString tool_str = ui_insert_history.last().first;
             func_arg_list = JSONparser(tool_str);//取巧预解码的系统指令故意不让解析出json
             if(func_arg_list.first == "")
             {
@@ -740,8 +740,7 @@ void Widget::on_reset_clicked()
     //如果是链接模式就简单处理
     if(is_api)
     {
-        ui_user_history.clear();
-        ui_assistant_history.clear();
+        ui_insert_history.clear();
         if(ui_mode == CHAT_)
         {
             reflash_output(ui_DATES.system_prompt,0,SYSTEM_BLUE);
@@ -1183,8 +1182,7 @@ void Widget::api_send_clicked_slove()
     data.temp=ui_SETTINGS.temp;
     data.n_predict = ui_SETTINGS.npredict;
     data.repeat=ui_SETTINGS.repeat;
-    data.assistant_history = ui_assistant_history;
-    data.user_history = ui_user_history;
+    data.insert_history = ui_insert_history;
 
     if(is_test)
     {
@@ -1197,8 +1195,8 @@ void Widget::api_send_clicked_slove()
             {
                 for(int i = 1; i < 3;++i)//2个引导题
                 {
-                    ui_user_history << jtr(QString("H%1").arg(i));//问题
-                    ui_assistant_history << jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":");//答案不要答案:这三个字
+                    ui_insert_history.append({jtr(QString("H%1").arg(i)), API_ROLE_USER});//问题
+                    ui_insert_history.append({jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), API_ROLE_ASSISANT});//答案不要答案:这三个字
                     //贴出引导题
                     reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
                     reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
@@ -1222,13 +1220,12 @@ void Widget::api_send_clicked_slove()
             
             return;
         }
-        ui_user_history << input;
-        data.user_history = ui_user_history;
-        data.assistant_history = ui_assistant_history;
+        ui_insert_history.append({input, API_ROLE_USER});
+        data.insert_history = ui_insert_history;
         data.n_predict=1;
         emit ui2net_data(data);
         reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-        reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+        reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
         reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_query)
@@ -1251,13 +1248,12 @@ void Widget::api_send_clicked_slove()
             ui->set->setEnabled(1);
             return;
         }
-        ui_user_history << input;//置入用户问题
-        data.user_history = ui_user_history;
-        data.assistant_history = ui_assistant_history;
+        ui_insert_history.append({input, API_ROLE_USER});
+        data.insert_history = ui_insert_history;
         data.n_predict=ui_SETTINGS.npredict;
         emit ui2net_data(data);
         reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-        reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+        reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
         reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
     }
     else if(is_toolguy)//如果你是工具人
@@ -1267,9 +1263,8 @@ void Widget::api_send_clicked_slove()
         input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
         ui->input->clear();
         input += "\n" + QString(DEFAULT_THOUGHT);
-        ui_assistant_history << DEFAULT_OBSERVATION + input;
-
-        reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
+        ui_insert_history.append({DEFAULT_OBSERVATION + input, API_ROLE_ASSISANT});
+        reflash_output(DEFAULT_OBSERVATION + input + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
 
         QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
         is_run =true;//模型正在运行标签
@@ -1290,15 +1285,14 @@ void Widget::api_send_clicked_slove()
             is_query = true;
             input = query_list.at(0);
             query_list.removeFirst();
-            ui_user_history << input;
-            data.user_history = ui_user_history;
-            data.assistant_history = ui_assistant_history;
+
+            ui_insert_history.append({input, API_ROLE_USER});
+            data.insert_history = ui_insert_history;
             data.input_prompt = input;
             data.n_predict=ui_SETTINGS.npredict;
             emit ui2net_data(data);
-            
             reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-            reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+            reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
             reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
         }
         //
@@ -1310,8 +1304,8 @@ void Widget::api_send_clicked_slove()
             //如果工具返回的结果不为空,则发送工具结果给net
             if(tool_result!="")
             {
-                ui_assistant_history << DEFAULT_OBSERVATION + tool_result;
-                reflash_output(ui_assistant_history.last() + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
+                ui_insert_history.append({DEFAULT_OBSERVATION + tool_result, API_ROLE_OBSERVATION});
+                reflash_output(DEFAULT_OBSERVATION + tool_result + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
                 
                 tool_result="";
 
@@ -1322,11 +1316,10 @@ void Widget::api_send_clicked_slove()
             }
             else
             {
-                ui_user_history << input;
-                data.user_history = ui_user_history;
-                data.assistant_history = ui_assistant_history;
+                ui_insert_history.append({input, API_ROLE_USER});
+                data.insert_history = ui_insert_history;
                 reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-                reflash_output(ui_user_history.last(), 0, NORMAL_BLACK);//输入用黑色
+                reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
                 reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
                 data.n_predict=ui_SETTINGS.npredict;
                 emit ui2net_data(data);
