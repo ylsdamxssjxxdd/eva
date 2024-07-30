@@ -21,7 +21,7 @@ void xNet::run()
     QNetworkAccessManager manager;
 
     //对话模式
-    if(!endpoint_data.complete_mode)
+    if(!endpoint_data.complete_state)
     {
         // 设置请求的端点 URL
         QNetworkRequest request(QUrl("http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint));

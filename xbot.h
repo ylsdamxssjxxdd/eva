@@ -126,7 +126,7 @@ signals:
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash=0);
     void bot2expend_vocab(QString model_vocab);//传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);//传递模型预解码内容
-    void bot2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
+    void bot2ui_state(const QString &state_string, STATE_STATE state=USUAL_);//发送的状态信号
     void bot2ui_output(const QString &result, bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号
     void bot2ui_pushover();//推理完成的信号

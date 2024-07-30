@@ -84,7 +84,7 @@ public:
     int language_flag = 0;//0是中文1是英文
     QString jtr(QString customstr);// 根据language.json(wordsObj)和language_flag中找到对应的文字
     //ui相关
-    QString ui_output,ui_state;
+    QString ui_output,ui_state_info;
     void output_scroll(QString output, QColor color = QColor(0,0,0));//向output末尾添加文本并滚动
     bool is_stop_output_scroll = false;//输出区滚动标签
     QString history_prompt = "";//记录历史约定
@@ -133,7 +133,8 @@ public:
     bool is_load = false;//模型装载标签
     bool is_load_play_over = false;//模型装载动画结束后
     bool is_run = false;//模型运行标签,方便设置界面的状态
-    MODE ui_mode = CHAT_;//模型的模式
+    EVA_MODE ui_mode = LOCAL_;//机体的模式
+    EVA_STATE ui_state = CHAT_;//机体的状态
     bool ui_need_predecode = false;//需要预解码标签
     QString history_lorapath = "";
     QString history_mmprojpath = "";
@@ -301,16 +302,14 @@ public:
     float first_vramp = 0;//%
     float first_memp = 0;//%
 
-    //请求相关
+    //链接模式相关，EVA_MODE为LINK_时的行为
     void setApiDialog();//初始化设置api选项
     void set_api();//应用api设置
     void startConnection(const QString &ip, int port);//检测ip是否通畅
     void api_send_clicked_slove();//api模式的发送处理
-    
     QDialog *api_dialog;
     QLabel *api_ip_label,*api_port_label,*api_chat_label,*api_complete_label;
     QLineEdit *api_ip_LineEdit,*api_port_LineEdit,*api_chat_LineEdit,*api_complete_LineEdit;
-    bool is_api = false;//是否处于api模式,按照链接模式的行为来
     APIS apis;//api配置参数
     QVector<QPair<QString, API_ROLE>> ui_insert_history;// 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history="";//临时数据
@@ -370,7 +369,7 @@ public slots:
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
     void reflash_output(const QString result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
-    void reflash_state(QString state_string, STATE state=USUAL_);//更新状态区
+    void reflash_state(QString state_string, STATE_STATE state=USUAL_);//更新状态区
     void recv_loadover(bool ok_, float load_time_);//完成加载模型
     void recv_pushover();//推理完毕的后处理
     void recv_stopover();//停止完毕的后处理

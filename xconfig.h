@@ -95,6 +95,20 @@ const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 #elif __linux__
 #define DEFAULT_FONT "Ubuntu Mono"
 #endif
+
+//机体模式枚举
+enum EVA_MODE {
+    LOCAL_,//对话模式
+    LINK_,//链接模式
+};
+
+//机体状态枚举
+enum EVA_STATE {
+    CHAT_,//对话模式
+    COMPLETE_,//补完模式
+    SERVER_,//服务模式
+};
+
 //设置参数
 struct SETTINGS{
     double temp = DEFAULT_TEMP;
@@ -127,6 +141,7 @@ struct APIS{
     bool is_cache = true;
 };
 
+// 链接模式下发送消息的对象枚举
 enum API_ROLE{
     API_ROLE_USER,
     API_ROLE_ASSISANT,
@@ -140,7 +155,7 @@ struct ENDPOINT_DATA{
     QString input_sfx;
     QString input_prompt;//续写模式用
     QVector<QPair<QString, API_ROLE>> insert_history;// 将要构造的历史数据，前面是内容后面是角色
-    bool complete_mode;
+    bool complete_state;
     float temp;
     double repeat;
     int n_predict;
@@ -155,7 +170,7 @@ struct TOOLS{
 };
 
 //状态区信号枚举
-enum STATE {
+enum STATE_STATE {
         USUAL_,//一般输出，黑色
         SIGNAL_,//信号，蓝色
         SUCCESS_,//成功，绿色
@@ -164,13 +179,6 @@ enum STATE {
         TOOL_,//工具，橘色
         DEBUGING_,//debug，墨绿色
         MATRIX_,//文本表格，黑色，不过滤回车符
-};
-//模式枚举
-enum MODE {
-    CHAT_,//对话模式
-    COMPLETE_,//补完模式
-    SERVER_,//服务模式
-    LINK_,//链接模式
 };
 
 //whisper可以传入的参数

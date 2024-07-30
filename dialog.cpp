@@ -245,7 +245,7 @@ void Widget::unlockLoad()
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread")+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(max_thread));
     auto_save_user();//保存ui配置
     //如果是对话模式则预解码约定
-    if(ui_mode == CHAT_)
+    if(ui_state == CHAT_)
     {
         history_prompt = ui_DATES.system_prompt;//同步历史约定内容
         ui_need_predecode = true;
@@ -285,25 +285,27 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             test_score++;
             output_scroll(result + "\n", Qt::green);
-            ui_state = "ui:"+ QString::number(test_count) + " " +jtr("answer right") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,SUCCESS_);
+            ui_state_info = "ui:"+ QString::number(test_count) + " " +jtr("answer right") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
+            reflash_state(ui_state_info,SUCCESS_);
         }
         //答错
         else
         {
             output_scroll(result + "\n", Qt::red);
-            ui_state = "ui:"+ QString::number(test_count) + " " + jtr("answer error") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));reflash_state(ui_state,WRONG_);
+            ui_state_info = "ui:"+ QString::number(test_count) + " " + jtr("answer error") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
+            reflash_state(ui_state_info,WRONG_);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
         test_question_index.removeAt(0);//回答完毕删除开头的第一个问题
-        if(is_api){this->setWindowTitle(jtr("test") + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + jtr("accurate") +QString::number(acc,'f',1) + "% " + "   "+jtr("current api") + " " + current_api);}
+        if(ui_mode == LINK_){this->setWindowTitle(jtr("test") + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + jtr("accurate") +QString::number(acc,'f',1) + "% " + "   "+jtr("current api") + " " + current_api);}
         else{this->setWindowTitle(jtr("test") + QString::number(test_count) +"/"+ QString::number(test_list_question.size())+ "   " + jtr("accurate") +QString::number(acc,'f',1) + "% " + "   "+ ui_SETTINGS.modelpath.split("/").last());} 
 
         //每20次题加一次引导题
         if(int(test_count) % 20 == 0)
         {
             help_input = true;
-            ui_state = "ui:"+ jtr("add help question");
-            reflash_state(ui_state,SIGNAL_);
+            ui_state_info = "ui:"+ jtr("add help question");
+            reflash_state(ui_state_info,SIGNAL_);
         }
     }
     else
@@ -377,7 +379,7 @@ void Widget::output_scroll(QString output, QColor color)
 }
 
 //更新状态区
-void Widget::reflash_state(QString state_string, STATE state)
+void Widget::reflash_state(QString state_string, STATE_STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
     //QFont font;//字体 设置了字体就不能缩放了
@@ -834,19 +836,19 @@ void Widget::set_SetDialog()
     decode_box->setLayout(decode_layout);
     layout->addWidget(decode_box);
 
-    //------------模式设置---------------
-    mode_box = new QGroupBox(jtr("mode set"));//模式设置区域
+    //------------状态设置---------------
+    mode_box = new QGroupBox(jtr("state set"));//状态设置区域
     mode_box->setFont(ui_font);
-    QVBoxLayout *mode_layout = new QVBoxLayout();//模式设置垂直布局器
+    QVBoxLayout *mode_layout = new QVBoxLayout();//状态设置垂直布局器
     
     //补完控制
-    complete_btn = new QRadioButton(jtr("complete mode"));
+    complete_btn = new QRadioButton(jtr("complete state"));
     complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     complete_btn->setMinimumHeight(20);
     mode_layout->addWidget(complete_btn);
     connect(complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
     //多轮对话
-    chat_btn = new QRadioButton(jtr("chat mode"));
+    chat_btn = new QRadioButton(jtr("chat state"));
     chat_btn->setToolTip(jtr("chat_btn_tooltip"));
     chat_btn->setMinimumHeight(20);
     mode_layout->addWidget(chat_btn);
@@ -854,7 +856,7 @@ void Widget::set_SetDialog()
     connect(chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
     //网页服务控制
     QHBoxLayout *layout_H10 = new QHBoxLayout();//水平布局器
-    web_btn = new QRadioButton(jtr("server mode"));
+    web_btn = new QRadioButton(jtr("server state"));
     web_btn->setToolTip(jtr("web_btn_tooltip"));
     web_btn->setMinimumHeight(20);
     layout_H10->addWidget(web_btn);
@@ -1067,7 +1069,7 @@ void Widget::set_DateDialog()
 void Widget::setApiDialog()
 {
     api_dialog = new QDialog();
-    api_dialog->setWindowTitle("api" + jtr("set"));
+    api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);//隐藏?按钮
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     api_dialog->resize(250, 200); // 设置宽度为400像素,高度为200像素
@@ -1193,7 +1195,12 @@ void Widget::decode_handleTimeout()
 void Widget::set_api()
 {
     //判断ip地址是否合理
-    if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()==""){ui_state = "ui:api wrong";reflash_state(ui_state,WRONG_);return;}
+    if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()=="")
+    {
+        ui_state_info = "ui:api wrong";
+        reflash_state(ui_state_info,WRONG_);
+        return;
+    }
     reflash_state("ui:"+jtr("detecting")+"api...",SIGNAL_);
     emit ui2bot_free();//释放原来的模型
     is_load = false;
@@ -1231,10 +1238,9 @@ void Widget::onConnected()
 {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     if (socket) {socket->disconnectFromHost();}//中断访问
-
-    is_api = true;//按照链接模式的行为来
+    ui_mode = LINK_;//按照链接模式的行为来
     reflash_state("ui:" + jtr("eva link"),EVA_);
-    if(ui_mode == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
+    if(ui_state == CHAT_){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
     reflash_state("ui:"+jtr("current api") + " " + current_api,USUAL_);
     this->setWindowTitle(jtr("current api") + " " + current_api);
@@ -1254,7 +1260,7 @@ void Widget::onConnected()
 //连接失败
 void Widget::onError(QAbstractSocket::SocketError socketError) {
     // Handle the error
-    is_api = false;
+    ui_mode = LOCAL_;
     reflash_state("ui:api"+jtr("port")+jtr("blocked"),WRONG_);
     this->setWindowTitle(jtr("eva"));
     api_dialog->setDisabled(0);
@@ -1268,7 +1274,8 @@ void Widget::tool_testhandleTimeout()
     data.input_pfx = ui_DATES.input_pfx;
     data.input_sfx = ui_DATES.input_sfx;
     data.stopwords = ui_DATES.extra_stop_words;
-    data.complete_mode = ui_mode;
+    if(ui_state == COMPLETE_){data.complete_state = true;}
+    else{data.complete_state = false;}
     data.temp=ui_SETTINGS.temp;
     data.repeat=ui_SETTINGS.repeat;
     data.n_predict = ui_SETTINGS.npredict;
@@ -1404,13 +1411,13 @@ void Widget::ui_state_normal()
     }
 
     decode_pTimer->stop();//停止解码动画
-    if(ui_mode == CHAT_)
+    if(ui_state == CHAT_)
     {
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
         ui->load->setEnabled(1);
-        if(is_load || is_api)
+        if(is_load || ui_mode == LINK_)
         {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
@@ -1429,11 +1436,11 @@ void Widget::ui_state_normal()
         ui->output->setReadOnly(1);
         
     }
-    else if(ui_mode == COMPLETE_)
+    else if(ui_state == COMPLETE_)
     {
         ui->load->setEnabled(1);
         
-        if(is_load || is_api)
+        if(is_load || ui_mode == LINK_)
         {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
@@ -1452,11 +1459,11 @@ void Widget::ui_state_normal()
         ui->output->setReadOnly(0);
         ui->output->setFocus();//设置输出区为焦点
     }
-    else if(ui_mode == SERVER_)
+    else if(ui_state == SERVER_)
     {
         ui->set->setEnabled(1);
     }
-    if(is_api){change_api_dialog(0);}//api模式不要解码设置
+    if(ui_mode == LINK_){change_api_dialog(0);}//api模式不要解码设置
     else{change_api_dialog(1);}
 
     is_debuging = false; // 退出debug中状态
@@ -1512,7 +1519,7 @@ void Widget::create_right_menu()
     QAction *action15 = right_menu->addAction(jtr("Q15"));
     connect(action15, &QAction::triggered, this, [=]() 
     {
-        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+        if(is_run || (ui_mode == LOCAL_ && !is_load)){return;}//只在空闲的对话模式生效
 
         //用户选择图片
         currentpath = customOpenfile(currentpath,jtr("Q15"),"(*.png *.jpg *.bmp)");
@@ -1530,7 +1537,7 @@ void Widget::create_right_menu()
     QAction *action16 = right_menu->addAction(jtr("Q16"));
     connect(action16, &QAction::triggered, this, [=]() 
     {
-        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+        if(is_run || (ui_mode == LOCAL_ && !is_load)){return;}//只在空闲的对话模式生效
 
         clearQuestionlist();//清空题库
 
@@ -1555,7 +1562,7 @@ void Widget::create_right_menu()
     QAction *action17 = right_menu->addAction(jtr("Q17"));
     connect(action17, &QAction::triggered, this, [=]() 
     {
-        if(is_run || (!is_api && !is_load)){return;}//只在空闲的对话模式生效
+        if(is_run || (ui_mode == LOCAL_ && !is_load)){return;}//只在空闲的对话模式生效
         //用户选择自定义的csv文件
         currentpath = customOpenfile(currentpath,jtr("Q17"),"CSV files (*.csv)");
 
@@ -1598,9 +1605,9 @@ void Widget::get_set()
     ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();
 
     ui_SETTINGS.complete_mode = complete_btn->isChecked();
-    if(chat_btn->isChecked()){ui_mode=CHAT_;}
-    else if(complete_btn->isChecked()){ui_mode=COMPLETE_;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预解码
-    else if(web_btn->isChecked()){ui_mode=SERVER_;}
+    if(chat_btn->isChecked()){ui_state=CHAT_;}
+    else if(complete_btn->isChecked()){ui_state=COMPLETE_;history_prompt="";}//history_prompt置空是为了下一次切换为对话模式时正确处理预解码
+    else if(web_btn->isChecked()){ui_state=SERVER_;}
     ui_port = port_lineEdit->text();
     
 }
@@ -1654,7 +1661,7 @@ void Widget::get_date()
 // 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
 void Widget::debugButton_enable()
 {
-    if(is_run || ui_mode == SERVER_ || is_api || audio_time != 0)
+    if(is_run || ui_state == SERVER_ || ui_mode == LINK_ || audio_time != 0)
     {
         debugButton->setEnabled(0);
     }

@@ -42,7 +42,7 @@ public slots:
     void recv_language(int language_flag_);
 
 signals:
-    void net2ui_state(const QString &state_string, STATE state=USUAL_);//发送的状态信号
+    void net2ui_state(const QString &state_string, STATE_STATE state=USUAL_);//发送的状态信号
     void net2ui_output(const QString &result,bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void net2ui_pushover();//推理完成的信号
 };

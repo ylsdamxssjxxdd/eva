@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
     qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
-    qRegisterMetaType<STATE>("STATE");//注册STATE作为信号传递变量
+    qRegisterMetaType<STATE_STATE>("STATE_STATE");//注册STATE作为信号传递变量
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
             if (checkFile.exists()) {w.lora_LineEdit->setText(settings.value("lorapath", "").toString());}
             QFile checkFile2(settings.value("mmprojpath", "").toString());
             if (checkFile2.exists()) {w.mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString());}
-            int mode_num = settings.value("ui_mode", "").toInt();
+            int mode_num = settings.value("ui_state", "").toInt();
             if(mode_num == 0){w.chat_btn->setChecked(1);}
             else if(mode_num == 1){w.complete_btn->setChecked(1);}
             else if(mode_num == 2){w.web_btn->setChecked(1);}
@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
             w.get_set();//获取设置中的纸面值
             w.is_config = true;
 
-            if(w.ui_mode == SERVER_){w.serverControl();}//自动启动服务
+            if(w.ui_state == SERVER_){w.serverControl();}//自动启动服务
             else{emit w.ui2bot_dateset(w.ui_DATES,w.ui_SETTINGS);}//自动装载模型
             
         }

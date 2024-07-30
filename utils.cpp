@@ -120,7 +120,7 @@ QString Widget::create_extra_prompt()
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    if(!is_api)// api模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
+    if(ui_mode == LOCAL_)// api模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
     {
         ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
         ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
@@ -131,7 +131,7 @@ void Widget::addStopwords()
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
 
-        if(is_api)
+        if(ui_mode == LINK_)
         {
             ui_DATES.extra_stop_words << "<|observation|>";// api模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
         }
@@ -164,7 +164,8 @@ void Widget::server_onProcessFinished()
 {
     if(current_server)
     {
-        ui_state = "ui:"+ jtr("old") + "server " + jtr("off");reflash_state(ui_state,SIGNAL_);
+        ui_state_info = "ui:"+ jtr("old") + "server " + jtr("off");
+        reflash_state(ui_state_info,SIGNAL_);
     }
     else
     {
@@ -426,7 +427,7 @@ void Widget::apply_language(int language_flag_)
     //输入区右击菜单语种
     create_right_menu();//添加右击问题
     //api设置语种
-    api_dialog->setWindowTitle("api" + jtr("set"));
+    api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_ip_label->setText("api " + jtr("address"));
     api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_port_label->setText("api " + jtr("port"));
@@ -510,12 +511,12 @@ void Widget::apply_language(int language_flag_)
     mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
     mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
     mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
-    mode_box->setTitle(jtr("mode set"));//模式设置区域
-    complete_btn->setText(jtr("complete mode"));
+    mode_box->setTitle(jtr("state set"));//状态设置区域
+    complete_btn->setText(jtr("complete state"));
     complete_btn->setToolTip(jtr("complete_btn_tooltip"));
-    chat_btn->setText(jtr("chat mode"));
+    chat_btn->setText(jtr("chat state"));
     chat_btn->setToolTip(jtr("chat_btn_tooltip"));
-    web_btn->setText(jtr("server mode"));
+    web_btn->setText(jtr("server state"));
     web_btn->setToolTip(jtr("web_btn_tooltip"));
     port_label->setText(jtr("port"));
     port_label->setToolTip(jtr("port_label_tooltip"));
@@ -655,7 +656,7 @@ void Widget::speechOver()
     settings.setValue("batch",ui_SETTINGS.batch);//批大小
     settings.setValue("mmprojpath",ui_SETTINGS.mmprojpath);//视觉
     settings.setValue("lorapath",ui_SETTINGS.lorapath);//lora
-    settings.setValue("ui_mode",ui_mode);//模式
+    settings.setValue("ui_state",ui_state);//模式
     settings.setValue("port",ui_port);//服务端口
 
     //保存约定参数
