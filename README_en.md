@@ -26,31 +26,31 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 1. Download eva
 
-- https://github.com/ylsdamxssjxxdd/eva/releases
+    - https://github.com/ylsdamxssjxxdd/eva/releases
 
-- download programs with the .exe suffix for Windows or .AppImage suffix for Linux
+    - download programs with the .exe suffix for Windows or .AppImage suffix for Linux
 
-```txt
-    The 64bit version uses CPU inference for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
-```
+    ```txt
+        The 64bit version uses CPU inference for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
+    ```
 
 2. Download gguf model
 
-- https://huggingface.c , eva supports almost all open-source llms
+    - https://huggingface.c , eva supports almost all open-source llms
 
 3. Load！
 
-- Click the load button, select a gguf model to load into memory
+    - Click the load button, select a gguf model to load into memory
 
 4. Send！
 
-- Enter the chat content in the input area and click send
+    - Enter the chat content in the input area and click send
 
 5. Accelerate!
 
-- Click Settings to set gpu offload. Recommended setting to maximum, but if the VRAM occupies more than 95%, it will be too laggy
+    - Click Settings to set gpu offload. Recommended setting to maximum, but if the VRAM occupies more than 95%, it will be too laggy
 
-- If running SD simultaneously, make sure to leave enough VRAM for SD
+    - If running SD simultaneously, make sure to leave enough VRAM for SD
 
 ## function
 
@@ -64,23 +64,23 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 1. Chat state
 
-- The default state, where chat content is entered in the input area and the model responds
+    - The default state, where chat content is entered in the input area and the model responds
 
-- You can set prompt templatee in date button
+    - You can set prompt templatee in date button
 
-- You can mount tools for the model, but they may affect the model's intelligence
+    - You can mount tools for the model, but they may affect the model's intelligence
 
-- You can upload a CSV format question bank for testing
+    - You can upload a CSV format question bank for testing
 
-- You can take a screenshot by pressing f1 and record voice by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
+    - You can take a screenshot by pressing f1 and record voice by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
 
 2. Completion state
 
-- Typing any text in the output area and the model completing it
+    - Typing any text in the output area and the model completing it
 
 3. Service state
 
-- eva becomes an open API port service and can also chat on web pages
+    - eva becomes an open API port service and can also chat on web pages
 
 ### Six tool
 
@@ -93,63 +93,65 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 1. calculator
 
-- Model output the calculation formula to the calculator tool, and the tool will return the calculation result
+    - Model output the calculation formula to the calculator tool, and the tool will return the calculation result
 
-- Example: Calculate 888 * 999
+    - Example: Calculate 888 * 999
 
-- Difficulty of calling: ⭐
+    - Difficulty of calling: ⭐
 
 2. controller
 
-- Model output the control number to the controller tool, and the tool will return the execution result
+    - Model output the control number to the controller tool, and the tool will return the execution result
 
-- Example: playing music
+    - Example: playing music
 
-- Difficulty of calling: ⭐
+    - Difficulty of calling: ⭐
 
 3. terminal
 
-- Model output terminal instructions to the terminal tool, which will return the execution result of the instructions
+    - Model output terminal instructions to the terminal tool, which will return the execution result of the instructions
 
-- Example: what is the IP address of my computer
+    - Example: what is the IP address of my computer
 
-- Difficulty of calling: ⭐⭐⭐
+    - Difficulty of calling: ⭐⭐⭐
 
 4. interpreter
 
-- Model output complete Python code to the interpreter tool, which will return the execution result
+    - Model output complete Python code to the interpreter tool, which will return the execution result
 
-- Example: please use matplotlib to draw a heart
+    - Example: please use matplotlib to draw a heart
 
-- Difficulty of calling: ⭐⭐⭐⭐⭐
+    - Difficulty of calling: ⭐⭐⭐⭐⭐
 
 5. knowledge
 
-- Model output query text to the knowledge tool, which will return the three most relevant embedded knowledge items
+    - Model output query text to the knowledge tool, which will return the three most relevant embedded knowledge items
 
-- Requirement: you need to upload documents and build a knowledge base in the proliferation window first
+    - Requirement: you need to upload documents and build a knowledge base in the proliferation window first
 
-- Example: What are the functions of the eva?
+    - Example: What are the functions of the eva?
 
-- Difficulty of calling: ⭐⭐
+    - Difficulty of calling: ⭐⭐
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
+    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
 
 6. stablediffusion
 
-- Model output drawing prompt words to the stablediffusion tool, which will return the drawn 
+    - Model output drawing prompt words to the stablediffusion tool, which will return the drawn 
 
-- Requirement: you need to first configure the model path of the text2image in the proliferation window
+    - Requirement: you need to first configure the model path of the text2image in the proliferation window
 
-- Example: drawing a girl
+    - Example: drawing a girl
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
+    - Difficulty of calling: ⭐⭐
+
+    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
 ### Debug tag
 
-- To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab
+    - To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
 
-- After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
+    - After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
 
 ## build
 
