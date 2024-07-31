@@ -11,7 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
@@ -183,20 +183,20 @@ if(MSVC)
     )
 
     # 复制cuda组件过来
-    # if(GGML_CUDA)
-    #     add_custom_command(TARGET ${TARGET} POST_BUILD
-    #         COMMAND ${CMAKE_COMMAND} -E copy
-    #             "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-    #         COMMAND ${CMAKE_COMMAND} -E copy
-    #             "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-    #         COMMAND ${CMAKE_COMMAND} -E copy
-    #             "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-    #             "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-    #         COMMENT "Copying CUDA libraries to output directory"
-    #         )
-    # endif()
+    if(GGML_CUDA)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy
+                "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+            COMMENT "Copying CUDA libraries to output directory"
+            )
+    endif()
 
     # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
