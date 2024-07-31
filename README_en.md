@@ -169,23 +169,23 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 2. Clone source code
 
-```bash
-git clone https://github.com/ylsdamxssjxxdd/eva.git
-```
+    ```bash
+    git clone https://github.com/ylsdamxssjxxdd/eva.git
+    ```
 
 3. Build
 
-```bash
-cd eva
-cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
-cmake --build build --config Release
-```
+    ```bash
+    cd eva
+    cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+    cmake --build build --config Release
+    ```
 
-- BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
+    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
 
-- GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
+    - GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
 
-- GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
+    - GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
 
 ## DATE template
 

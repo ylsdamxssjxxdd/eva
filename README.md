@@ -175,23 +175,23 @@
 
 2. 克隆源代码
 
-```bash
-git clone https://github.com/ylsdamxssjxxdd/eva.git
-```
+    ```bash
+    git clone https://github.com/ylsdamxssjxxdd/eva.git
+    ```
 
 3. 编译
 
-```bash
-cd eva
-cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
-cmake --build build --config Release
-```
+    ```bash
+    cd eva
+    cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+    cmake --build build --config Release
+    ```
 
-- BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
+    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
 
-- GGML_CUDA：是否需要启用cuda加速的标志
+    - GGML_CUDA：是否需要启用cuda加速的标志
 
-- GGML_VULKAN：是否需要启用vulkan加速的标志
+    - GGML_VULKAN：是否需要启用vulkan加速的标志
 
 ## 约定模板
 
