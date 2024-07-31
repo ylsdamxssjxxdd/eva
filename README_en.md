@@ -149,9 +149,9 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 ### Debug tag
 
-    - To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
+- To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
 
-    - After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
+- After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
 
 ## build
 

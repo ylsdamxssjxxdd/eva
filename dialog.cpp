@@ -879,6 +879,7 @@ void Widget::set_SetDialog()
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
 #endif
+
 #if defined(BODY_USE_GPU)
     lora_label->setVisible(0);
     lora_LineEdit->setVisible(0);
