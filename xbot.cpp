@@ -88,7 +88,9 @@ void xBot::run()
             {
                 preDecode();//预解码
                 embd.clear();//清空embd
-                is_first_reset = false;reset(0);is_first_reset = true;
+                is_first_reset = false;
+                reset(0);
+                is_first_reset = true;
                 float time_ = time2.nsecsElapsed()/1000000000.0;
                 float speed_ = (Brain_vector.size() - history_past)/time_;
                 emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " "+jtr("batch decode")+ ":"+QString::number(speed_,'f',2)+ " token/s",SUCCESS_);

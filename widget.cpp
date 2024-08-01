@@ -453,7 +453,7 @@ void Widget::recv_pushover()
         ui_syncrate_manager.sync_list_question.removeAt(0);//回答完毕删除开头的第一个问题
         on_send_clicked();
     }
-    if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)
+    else if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)
     {
         ui_syncrate_manager.is_predecode = true;
         normal_finish_pushover();
@@ -581,7 +581,7 @@ void Widget::recv_resetover()
     if(ui_state == CHAT_STATE)
     {
         history_prompt = ui_DATES.system_prompt;//同步
-        //约定系统指令有变才预解码
+        //约定系统指令有变才预解码，同步率测试时强制预解码
         if(is_datereset)
         {
             ui_need_predecode =true;
@@ -741,9 +741,18 @@ void Widget::on_reset_clicked()
     //如果约定没有变则不需要预解码
     if(ui_state == CHAT_STATE && ui_DATES.system_prompt == history_prompt)
     {
-        reflash_output(bot_predecode,0,SYSTEM_BLUE);//直接展示预解码的内容
-        is_datereset = false;
-        emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
+        if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)
+        {
+            is_datereset = true;//预解码准备
+            emit ui2bot_reset(1);//传递重置信号,清空kv缓存
+        }
+        else
+        {
+            reflash_output(bot_predecode,0,SYSTEM_BLUE);//直接展示预解码的内容
+            is_datereset = false;
+            emit ui2bot_reset(0);//传递重置信号,删除约定以外的kv缓存
+        }
+        
     }
     //需要预解码
     else
