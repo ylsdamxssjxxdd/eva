@@ -112,10 +112,6 @@ public:
     void ui_state_normal();//待机界面状态
     void ui_state_recoding();//录音界面状态
 
-    //连续回答
-    QStringList query_list;//待回答列表
-    bool is_query =false;//连续回答标签
-
     //debug相关
     void debugButton_enable();// 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
     CustomSwitchButton *debugButton; // debug按钮
@@ -125,6 +121,9 @@ public:
     bool is_debug_query = false;//debug模式，处于query流程中的标签
     bool is_debug_tool1 = false;//debug模式，发送函数给tool的标签
 
+    //同步率测试相关
+    Syncrate_Manager ui_syncrate_manager;//同步率测试管理器
+
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板
     QString custom1_system_prompt;QString custom1_input_pfx;QString custom1_input_sfx;//自定义约定模板1
@@ -133,14 +132,15 @@ public:
     bool is_load = false;//模型装载标签
     bool is_load_play_over = false;//模型装载动画结束后
     bool is_run = false;//模型运行标签,方便设置界面的状态
-    EVA_MODE ui_mode = LOCAL_;//机体的模式
-    EVA_STATE ui_state = CHAT_;//机体的状态
+    EVA_MODE ui_mode = LOCAL_MODE;//机体的模式
+    EVA_STATE ui_state = CHAT_STATE;//机体的状态
     bool ui_need_predecode = false;//需要预解码标签
     QString history_lorapath = "";
     QString history_mmprojpath = "";
     QString ui_template = "qwen";//模板
     QString bot_predecode = "";//模型预解码的内容
     void normal_finish_pushover();//正常情况处理推理完毕
+    bool cuda_wait_load = false;// cuda版本下等待检测完显存信息重新装载的标签
 
     DATES ui_DATES;//ui的约定
     SETTINGS ui_SETTINGS;//ui的设置
@@ -306,7 +306,7 @@ public:
     void setApiDialog();//初始化设置api选项
     void set_api();//应用api设置
     void startConnection(const QString &ip, int port);//检测ip是否通畅
-    void api_send_clicked_slove();//api模式的发送处理
+    void api_send_clicked_slove();//链接模式的发送处理
     QDialog *api_dialog;
     QLabel *api_ip_label,*api_port_label,*api_chat_label,*api_complete_label;
     QLineEdit *api_ip_LineEdit,*api_port_LineEdit,*api_chat_LineEdit,*api_complete_LineEdit;
@@ -330,6 +330,7 @@ public:
 
 //发给模型的信号
 signals:
+    void ui2bot_syncrate(Syncrate_Manager syncrate_manager);//传递同步率
     void ui2bot_debuging(bool is_debuging_);//传递debug中状态
     void ui2bot_dateset(DATES ini_DATES,SETTINGS ini_SETTINGS);//自动装载
     void ui2bot_language(int language_flag_);//传递使用的语言
@@ -342,7 +343,7 @@ signals:
     void ui2bot_reset(bool is_clear_all);//传递重置信号
     void ui2bot_date(DATES date);//传递约定内容
     void ui2bot_set(SETTINGS settings,bool can_reload);//传递设置内容
-    void ui2bot_free();//释放
+    void ui2bot_free(bool loadlater);//释放
     void ui2bot_maxngl(int maxngl_);
 //发给net的信号
 signals:
@@ -366,6 +367,8 @@ signals:
     void cpu_reflash();//强制刷新gpu信息
 //处理模型信号的槽
 public slots:
+    void recv_syncrate(Syncrate_Manager Syncrate_manager);//传递同步率
+    void recv_freeover();//模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
     void reflash_output(const QString result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
@@ -405,8 +408,8 @@ private slots:
     void speechOver();//朗读结束后动作
     void stop_recordAudio();//停止录音
     void unlockLoad();
-    void send_testhandleTimeout();//api模式下测试时延迟发送
-    void tool_testhandleTimeout();//api模式下测试时延迟发送
+    void send_testhandleTimeout();//链接模式下测试时延迟发送
+    void tool_testhandleTimeout();//链接模式下测试时延迟发送
     void keepConnection();//持续检测ip是否通畅
     void keep_onConnected();//检测ip是否通畅
     void keep_onError(QAbstractSocket::SocketError socketError);//检测ip是否通畅

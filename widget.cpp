@@ -151,22 +151,26 @@ void Widget::on_load_clicked()
     currentpath = customOpenfile(currentpath,jtr("load_button_tooltip"),"(*.bin *.gguf)");
 
     if(currentpath==""){return;}//如果路径没选好就让它等于上一次的路径
-    ui_mode = LOCAL_;//只要点击装载有东西就不再是api模式
-    ui_SETTINGS.modelpath = currentpath;//模型路径变化则重置参数
+    
+    //释放旧的模型和上下文
+    emit ui2bot_free(1);
+    is_load = false;
+}
 
-    //-------------------只会应用生效一次------------------
-    //分析显存，如果可用显存比模型大1.2倍则自动将gpu负载设置为999
+//模型释放完毕并重新装载
+void Widget::recv_freeover()
+{
+    ui_mode = LOCAL_MODE;//只要点击装载有东西就不再是链接模式
+    ui_SETTINGS.modelpath = currentpath;//模型路径变化则重置参数
+    
+#ifdef BODY_USE_CUDA
+    //分析显存，如果可用显存比模型大1.1倍则自动将gpu负载设置为999
     emit gpu_reflash();//强制刷新gpu信息
-    QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
-    int modelsize_MB = fileInfo.size() /1024/1024;
-    if(vfree>modelsize_MB*1.2 && ui_SETTINGS.ngl==0)
-    {
-        //qDebug()<<999;
-        ui_SETTINGS.ngl = 999;
-    }
-    //-------------------只有初次装载才会生效------------------
+    cuda_wait_load = true;
+#else
     //发送设置参数给bot
     emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
+#endif
 }
 
 // 装载前动作
@@ -174,7 +178,7 @@ void Widget::preLoad()
 {
     is_load = false;//重置is_load标签
     is_load_play_over = false;
-    if(ui_state == CHAT_){ui->output->clear();}//清空输出区
+    if(ui_state == CHAT_STATE){ui->output->clear();}//清空输出区
     ui->state->clear();//清空状态区
     ui_state_loading();//装载中界面状态
     if(is_config)
@@ -200,7 +204,7 @@ void Widget::recv_loadover(bool ok_,float load_time_)
         all_fps ++;//补上最后一帧,表示上下文也创建了
         load_pTimer->stop();//停止动画,但是动作计数load_action保留
         load_pTimer->start(10);//快速播放完剩下的动画,播放完再做一些后续动作
-        if(ui_state == COMPLETE_){ui_state_normal();}//待机界面状态
+        if(ui_state == COMPLETE_STATE){ui_state_normal();}//待机界面状态
     }
     else
     {
@@ -218,21 +222,21 @@ void Widget::recv_loadover(bool ok_,float load_time_)
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
-    if(ui_state == SERVER_){return;}
+    if(ui_state == SERVER_STATE){return;}
     reflash_state("ui:" + jtr("clicked send"),SIGNAL_);
     QString input;
 
     if(is_debug){ui->reset->setEnabled(0);} // debug模式下刚点击next时要解码，所以禁止重置，否则重置失效会一直输出
 
-    //api模式的处理
-    if(ui_mode == LINK_)
+    //链接模式的处理
+    if(ui_mode == LINK_MODE)
     {
         api_send_clicked_slove();
         return;
     }
-
+    
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
-    if(ui_state == CHAT_)
+    if(ui_state == CHAT_STATE)
     {
         if(ui_need_predecode)
         {
@@ -280,10 +284,11 @@ void Widget::on_send_clicked()
                 float acc = test_score / test_count * 100.0;//回答准确率
                 ui_state_info = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") +QString::number(acc,'f',1) + "% " +jtr("use time") + ":"+ QString::number(test_time.nsecsElapsed()/1000000000.0,'f',2)+" s "+jtr("batch decode") +":" + QString::number(test_tokens/(test_time.nsecsElapsed()/1000000000.0)) + " token/s" ;
                 reflash_state(ui_state_info,SUCCESS_);
+                
+                //恢复
                 decode_pTimer->stop();
                 is_test = false;
                 is_run = false;
-                //恢复
                 test_question_index.clear();
                 test_count = 0;
                 test_score = 0;
@@ -292,40 +297,27 @@ void Widget::on_send_clicked()
                 return;
             }
         }
-        else if(is_query)
+        else if(ui_syncrate_manager.is_sync)
         {
-            //debug相关
-            if(ui->send->text() == "Next")
+            if(ui_syncrate_manager.sync_list_question.size()>0)//同步率测试中,还有问题剩余
             {
-                ui->send->setEnabled(0);
-                reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_);
-                debuging_times ++;
-                if(is_debug_query)
-                {
-                    emit ui2bot_input({"","","",ROLE_DEBUG}); // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-                    emit ui2bot_push();//开始推理
-                    return;
-                }
+                qDebug()<<"继续同步率测试";
+                input = ui_syncrate_manager.sync_list_question.at(0);
+                emit ui2bot_input({ ui_DATES.input_pfx,input,ui_DATES.input_sfx,ROLE_THOUGHT});
             }
-            
-            if(query_list.size()>0)//连续回答中
+            else//完成同步率测试完成,没有问题剩余
             {
-                input = query_list.at(0);
-                query_list.removeFirst();
-                is_debug_query = true;
-            }
-            else//连续回答完成
-            {
-                ui_state_info = "ui:" + jtr("query") + jtr("over");
+                ui_state_info = "ui: sync over";
                 reflash_state(ui_state_info,SUCCESS_);
-                is_query = false;
-                is_run = false;
-
-                ui_state_normal();//待机界面状态
                 
+                //恢复
+                decode_pTimer->stop();
+                is_run = false;
+                ui_state_normal();//待机界面状态
+                Syncrate_Manager syncrate_manager;
+                ui_syncrate_manager = syncrate_manager;// 重置
                 return;
             }
-            emit ui2bot_input({ui_DATES.input_pfx + DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入 
         }
         else if(is_toolguy)//如果你是工具人
         {
@@ -342,23 +334,8 @@ void Widget::on_send_clicked()
             {
                 input = ui->input->toPlainText().toUtf8().data();ui->input->clear(); // 获取用户输入
             }
-
-            //-----------------------Q14连续回答相关----------------------------
-            if(input.contains(jtr("Q14").split(">")[0]))
-            {
-                query_list = input.split(">")[1].split("/");
-                if(query_list.size()==0)
-                {
-                    return;
-                }
-                is_query = true;
-                is_debug_query = true;
-                input = query_list.at(0);
-                query_list.removeFirst();
-                emit ui2bot_input({ui_DATES.input_pfx+ DEFAULT_SPLITER,input,ui_DATES.input_sfx,ROLE_USER});//传递用户输入  
-            }
             //-----------------------如果是拖进来的文件-------------------------
-            else if(input.contains("file:///") && (input.contains(".png") || input.contains(".jpg")))
+            if(input.contains("file:///") && (input.contains(".png") || input.contains(".jpg")))
             {
                 QString imagepath = input.split("file:///")[1];
                 input = "<ylsdamxssjxxdd:imagedecode>";//预解码图像指令
@@ -425,7 +402,7 @@ void Widget::on_send_clicked()
             }
         }
     }
-    else if(ui_state == COMPLETE_)
+    else if(ui_state == COMPLETE_STATE)
     {
         //如果是debuging中的状态
         if(ui->send->text() == "Next")
@@ -458,10 +435,10 @@ void Widget::recv_pushover()
     
     if(is_test)//继续测试
     {
-        if(ui_mode == LINK_)
+        if(ui_mode == LINK_MODE)
         {
             //待修复是net中maneger的问题
-            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));//api模式不能立即发送
+            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));//链接模式不能立即发送
         }
         else
         {
@@ -471,22 +448,18 @@ void Widget::recv_pushover()
             }   
         }
     }
-    else if(is_query)//继续回答
+    else if(ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode)//继续同步率测试
     {
-        //debug相关
-        is_debug_query = false;
-
-        if(ui_mode == LINK_)
-        {
-            //待修复是net中maneger的问题
-            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));//api模式不能立即发送
-        }
-        else
-        {
-            on_send_clicked();
-        }
+        ui_syncrate_manager.sync_list_question.removeAt(0);//回答完毕删除开头的第一个问题
+        on_send_clicked();
     }
-    else if(ui_state == COMPLETE_)//补完模式的话额外重置一下
+    if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)
+    {
+        ui_syncrate_manager.is_predecode = true;
+        normal_finish_pushover();
+        on_send_clicked();
+    }
+    else if(ui_state == COMPLETE_STATE)//补完模式的话额外重置一下
     {
         normal_finish_pushover();
         on_reset_clicked();//触发重置
@@ -588,7 +561,7 @@ void Widget::recv_toolpushover(QString tool_result_)
 //停止完毕的后处理
 void Widget::recv_stopover()
 {
-    if(ui_state == COMPLETE_){ui->reset->click();}//补完模式终止后需要重置
+    if(ui_state == COMPLETE_STATE){ui->reset->click();}//补完模式终止后需要重置
 }
 
 //模型达到最大上下文的后处理
@@ -605,7 +578,7 @@ void Widget::recv_resetover()
     else{QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}//恢复
     reflash_state("ui:" + jtr("reset ok"),SUCCESS_);
     //如果是对话模式且约定有变或第一次装载则预解码约定
-    if(ui_state == CHAT_)
+    if(ui_state == CHAT_STATE)
     {
         history_prompt = ui_DATES.system_prompt;//同步
         //约定系统指令有变才预解码
@@ -616,6 +589,13 @@ void Widget::recv_resetover()
         }
     }
     is_datereset = false;//恢复
+
+    // 开始同步率测试
+    if(ui_syncrate_manager.is_sync)
+    {
+        qDebug()<<"开始同步率测试";
+        ui->send->click();
+    }
     
 }
 
@@ -631,7 +611,7 @@ void Widget::recv_datereset()
 {
     //打印约定的系统指令
     ui_state_info = "···········"+ jtr("date") + "···········";reflash_state(ui_state_info,USUAL_);
-    if(ui_state == COMPLETE_)
+    if(ui_state == COMPLETE_STATE)
     {
         reflash_state("· "+ jtr("complete mode") + jtr("on") +" ",USUAL_);
     }
@@ -672,11 +652,11 @@ void Widget::recv_setreset()
     
     if(ui_SETTINGS.lorapath !=""){reflash_state("ui:" + jtr("load lora") + " "+ ui_SETTINGS.lorapath,USUAL_);}
     if(ui_SETTINGS.mmprojpath !=""){reflash_state("ui:" + jtr("load mmproj") + " "+ ui_SETTINGS.mmprojpath,USUAL_);}
-    if(ui_state == CHAT_){reflash_state("· " + jtr("chat mode"),USUAL_);}
-    else if(ui_state == COMPLETE_){reflash_state("· " + jtr("complete mode"),USUAL_);}
+    if(ui_state == CHAT_STATE){reflash_state("· " + jtr("chat mode"),USUAL_);}
+    else if(ui_state == COMPLETE_STATE){reflash_state("· " + jtr("complete mode"),USUAL_);}
     
     //展示额外停止标志
-    if(ui_state == CHAT_)
+    if(ui_state == CHAT_STATE)
     {
         QString stop_str;
         stop_str = jtr("extra stop words") + " ";
@@ -711,13 +691,11 @@ void Widget::on_reset_clicked()
         reflash_state("ui:"+ jtr("clicked")+ jtr("shut down"),SIGNAL_);
         is_debuging = false;
         is_run = false;
-        is_query = false;
         is_debug_query = false;
         is_debug_tool1 = false;
         debuging_times = 1;//重置为一
         ui_state_normal();//待机界面状态
         test_question_index.clear();//清空待测试问题列表
-        query_list.clear();//清空待回答列表
         return;
     }
     
@@ -726,22 +704,22 @@ void Widget::on_reset_clicked()
     {
         reflash_state("ui:"+ jtr("clicked")+ jtr("shut down"),SIGNAL_);
         test_question_index.clear();//清空待测试问题列表
-        query_list.clear();//清空待回答列表
-        if(ui_mode == LINK_){emit ui2net_stop(1);}
+        ui_syncrate_manager.sync_list_question.clear();//清空待回答列表
+        if(ui_mode == LINK_MODE){emit ui2net_stop(1);}
         else{emit ui2bot_stop();}//传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
     }
     
     reflash_state("ui:"+ jtr("clicked reset"),SIGNAL_);
 
-    if(ui_state == CHAT_){ui->output->clear();}
+    if(ui_state == CHAT_STATE){ui->output->clear();}
     ui_state_normal();//待机界面状态
     
     //如果是链接模式就简单处理
-    if(ui_mode == LINK_)
+    if(ui_mode == LINK_MODE)
     {
         ui_insert_history.clear();
-        if(ui_state == CHAT_)
+        if(ui_state == CHAT_STATE)
         {
             reflash_output(ui_DATES.system_prompt,0,SYSTEM_BLUE);
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
@@ -761,7 +739,7 @@ void Widget::on_reset_clicked()
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
 
     //如果约定没有变则不需要预解码
-    if(ui_state == CHAT_ && ui_DATES.system_prompt == history_prompt)
+    if(ui_state == CHAT_STATE && ui_DATES.system_prompt == history_prompt)
     {
         reflash_output(bot_predecode,0,SYSTEM_BLUE);//直接展示预解码的内容
         is_datereset = false;
@@ -805,7 +783,7 @@ void Widget::set_date()
 {
     get_date();//获取约定中的纸面值
 
-    if(ui_mode == LINK_){on_reset_clicked();}//如果是链接模式就重置一下
+    if(ui_mode == LINK_MODE){on_reset_clicked();}//如果是链接模式就重置一下
 
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
@@ -816,9 +794,9 @@ void Widget::on_set_clicked()
 {
     server_process->kill();
     reflash_state("ui:"+jtr("clicked")+jtr("set"),SIGNAL_);
-    if(ui_state == CHAT_){chat_btn->setChecked(1),chat_change();}
-    else if(ui_state == COMPLETE_){complete_btn->setChecked(1),complete_change();}
-    else if(ui_state == SERVER_){web_btn->setChecked(1),web_change();}
+    if(ui_state == CHAT_STATE){chat_btn->setChecked(1),chat_change();}
+    else if(ui_state == COMPLETE_STATE){complete_btn->setChecked(1),complete_change();}
+    else if(ui_state == SERVER_STATE){web_btn->setChecked(1),web_change();}
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp*100);
 #if defined(BODY_USE_GPU)
@@ -882,7 +860,7 @@ void Widget::recv_qimagepath(QString cut_imagepath_)
     cut_imagepath = cut_imagepath_;
     reflash_state("ui:" + jtr("cut image success"),USUAL_);
     ui->input->setPlainText(jtr("<predecode cut image>"));
-    if(is_load && ui_state == CHAT_)
+    if(is_load && ui_state == CHAT_STATE)
     {
         // on_send_clicked();//如果装载了模型直接发送截图
     }
@@ -896,26 +874,26 @@ void Widget::set_set()
     set_dialog->close();
 
     //如果不是对话模式则禁用约定
-    if(ui_state!=CHAT_)
+    if(ui_state!=CHAT_STATE)
     {prompt_box->setEnabled(0);tool_box->setEnabled(0);}
     else{prompt_box->setEnabled(1);tool_box->setEnabled(1);}
 
     //从服务模式回来强行重载
-    if(current_server && ui_state!=SERVER_)
+    if(current_server && ui_state!=SERVER_STATE)
     {
         current_server=false;
         emit ui2bot_set(ui_SETTINGS,1);
     }
-    else if(ui_state!=SERVER_){emit ui2bot_set(ui_SETTINGS,is_load);}
+    else if(ui_state!=SERVER_STATE){emit ui2bot_set(ui_SETTINGS,is_load);}
 
     //llama-server接管,不需要告知bot约定
-    if(ui_state==SERVER_)
+    if(ui_state==SERVER_STATE)
     {
         serverControl();
     }
     else
     {
-        if(ui_mode == LINK_)//api模式不发信号
+        if(ui_mode == LINK_MODE)//链接模式不发信号
         {
             on_reset_clicked();
         }
@@ -943,7 +921,7 @@ void Widget::serverControl()
     }
     if(ui_SETTINGS.modelpath==""){return;}
     
-    emit ui2bot_free();
+    emit ui2bot_free(0);
     is_load = false;
 
 #ifdef BODY_LINUX_PACK
@@ -1051,6 +1029,22 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
         ui->vram_bar->setValue(first_vramp);
     }
     ui->vram_bar->setSecondValue(vramp - first_vramp);
+
+    if(cuda_wait_load)
+    {
+        cuda_wait_load = false;
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
+        int modelsize_MB = fileInfo.size() / 1024 / 1024;
+        // qDebug()<<vfree<<modelsize_MB * 1.1;
+        if(vfree>modelsize_MB * 1.1)
+        {
+            ui_SETTINGS.ngl = 999;
+        }
+
+        //发送设置参数给bot
+        emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
+    }
+
 }
 #endif
 
@@ -1075,7 +1069,7 @@ void Widget::recv_cpu_status(double cpuload, double memload)
 bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
     //响应已安装控件上的鼠标右击事件
-    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_ && !is_debuging)
+    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE && !is_debuging)
     {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
         // 显示菜单
@@ -1167,10 +1161,10 @@ void Widget::recv_whisper_modelpath(QString modelpath)
     whisper_model_path = modelpath;
 }
 
-//api模式的发送处理
+//链接模式的发送处理
 void Widget::api_send_clicked_slove()
 {
-    //注意api模式不发送前后缀
+    //注意链接模式不发送前后缀
     QString input;
 
     emit ui2net_stop(0);
@@ -1179,7 +1173,7 @@ void Widget::api_send_clicked_slove()
     data.input_pfx = ui_DATES.input_pfx;
     data.input_sfx = ui_DATES.input_sfx;
     data.stopwords = ui_DATES.extra_stop_words;
-    if(ui_state == COMPLETE_){data.complete_state = true;}
+    if(ui_state == COMPLETE_STATE){data.complete_state = true;}
     else{data.complete_state = false;}
     data.temp=ui_SETTINGS.temp;
     data.n_predict = ui_SETTINGS.npredict;
@@ -1230,34 +1224,6 @@ void Widget::api_send_clicked_slove()
         reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
         reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
     }
-    else if(is_query)
-    {
-        if(query_list.size()>0)//连续回答中
-        {
-            input = query_list.at(0);
-            query_list.removeFirst();
-        }
-        else//连续回答完成
-        {
-            reflash_state("ui:" + jtr("query") + jtr("over"),SUCCESS_);
-            is_query = false;
-            is_debug_query = false;
-            is_run = false;
-            //恢复
-            ui->send->setEnabled(1);
-            ui->load->setEnabled(1);
-            ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
-            return;
-        }
-        ui_insert_history.append({input, API_ROLE_USER});
-        data.insert_history = ui_insert_history;
-        data.n_predict=ui_SETTINGS.npredict;
-        emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-        reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-    }
     else if(is_toolguy)//如果你是工具人
     {
         is_toolguy = false;
@@ -1268,7 +1234,7 @@ void Widget::api_send_clicked_slove()
         ui_insert_history.append({DEFAULT_OBSERVATION + input, API_ROLE_ASSISANT});
         reflash_output(DEFAULT_OBSERVATION + input + "\n", 0, TOOL_BLUE);//天蓝色表示工具返回结果
 
-        QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
+        QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//链接模式不能立即发送
         is_run =true;//模型正在运行标签
         ui_state_pushing();
         return;
@@ -1276,32 +1242,11 @@ void Widget::api_send_clicked_slove()
     else
     {
         if(tool_result==""){input = ui->input->toPlainText().toUtf8().data();ui->input->clear();}
-        //连续回答
-        if(input.contains(jtr("Q14").split(">")[0]))
-        {
-            query_list = input.split(">")[1].split("/");
-            if(query_list.size()==0)
-            {
-                return;
-            }
-            is_query = true;
-            input = query_list.at(0);
-            query_list.removeFirst();
-
-            ui_insert_history.append({input, API_ROLE_USER});
-            data.insert_history = ui_insert_history;
-            data.input_prompt = input;
-            data.n_predict=ui_SETTINGS.npredict;
-            emit ui2net_data(data);
-            reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-            reflash_output(input, 0, NORMAL_BLACK);//输入用黑色
-            reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);//前后缀用蓝色
-        }
         //
         //来补充链接模式的各种情况/上传图像/图像文件
         //
         //-----------------------正常情况----------------------------
-        else if(ui_state == CHAT_)
+        if(ui_state == CHAT_STATE)
         {
             //如果工具返回的结果不为空,则发送工具结果给net
             if(tool_result!="")
@@ -1311,7 +1256,7 @@ void Widget::api_send_clicked_slove()
                 
                 tool_result="";
 
-                QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//api模式不能立即发送
+                QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));//链接模式不能立即发送
                 is_run =true;//模型正在运行标签
                 ui_state_pushing();
                 return;
@@ -1327,7 +1272,7 @@ void Widget::api_send_clicked_slove()
                 emit ui2net_data(data);
             }
         }
-        else if(ui_state == COMPLETE_)//直接用output上的文本进行推理
+        else if(ui_state == COMPLETE_STATE)//直接用output上的文本进行推理
         {
             data.input_prompt = ui->output->toPlainText();
             data.n_predict=ui_SETTINGS.npredict;
@@ -1412,7 +1357,7 @@ void Widget::recv_controller(int num)
 //分割器被用户拉动时响应
 void Widget::onSplitterMoved(int pos, int index)
 {
-    if(debugButton->isHidden() && ui_mode == LOCAL_ && ui_state != SERVER_)
+    if(debugButton->isHidden() && ui_mode == LOCAL_MODE && ui_state != SERVER_STATE)
     {
         // 获取各个部件的占比
         QList<int> sizes = ui->splitter->sizes();
@@ -1441,11 +1386,11 @@ void Widget::ondebugButton_clicked()
     is_debug = debugButton->isChecked();
 
     //还原状态
-    if(!is_debug && ui_state == CHAT_)
+    if(!is_debug && ui_state == CHAT_STATE)
     {
         ui->send->setText(jtr("send"));
     }
-    else if(!is_debug && ui_state == COMPLETE_)
+    else if(!is_debug && ui_state == COMPLETE_STATE)
     {
         ui->send->setText(jtr("complete"));
     }
@@ -1511,4 +1456,11 @@ bool Widget::checkAudio()
     // }
 
     return true;
+}
+
+//传递同步率
+void Widget::recv_syncrate(Syncrate_Manager Syncrate_manager)
+{
+    ui_syncrate_manager.pp_time = Syncrate_manager.pp_time;
+    qDebug()<<ui_syncrate_manager.pp_time;
 }

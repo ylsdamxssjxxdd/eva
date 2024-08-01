@@ -79,6 +79,7 @@ int main(int argc, char* argv[])
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
     qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
+    qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot,&xBot::bot2ui_params,&w,&Widget::recv_params);//bot将模型参数传递给ui
@@ -96,7 +97,10 @@ int main(int argc, char* argv[])
     QObject::connect(&bot,&xBot::bot2ui_tokens,&w,&Widget::recv_tokens);//传递测试解码token数量
     QObject::connect(&bot,&xBot::bot2ui_maxngl,&w,&Widget::recv_maxngl);//传递模型的最大的gpu负载层数
     QObject::connect(&bot,&xBot::bot2ui_predecode,&w,&Widget::recv_predecode);//传递模型预解码的内容
+    QObject::connect(&bot,&xBot::bot2ui_freeover,&w,&Widget::recv_freeover);//模型释放完毕并重新装载
+    QObject::connect(&bot,&xBot::bot2ui_syncrate,&w,&Widget::recv_syncrate);//传递同步率
 
+    QObject::connect(&w,&Widget::ui2bot_syncrate,&bot,&xBot::recv_syncrate);//传递同步率
     QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
     QObject::connect(&w, &Widget::ui2bot_input,&bot,&xBot::recv_input);//传递用户输入
     QObject::connect(&w, &Widget::ui2bot_push,&bot, [&bot]() {bot.start();});//开始推理,利用对象指针实现多线程
@@ -223,7 +227,7 @@ int main(int argc, char* argv[])
             w.get_set();//获取设置中的纸面值
             w.is_config = true;
 
-            if(w.ui_state == SERVER_){w.serverControl();}//自动启动服务
+            if(w.ui_state == SERVER_STATE){w.serverControl();}//自动启动服务
             else{emit w.ui2bot_dateset(w.ui_DATES,w.ui_SETTINGS);}//自动装载模型
             
         }

@@ -71,6 +71,9 @@ public:
 
     void apply_date(DATES date);//应用约定
 
+    //同步率测试相关
+    Syncrate_Manager bot_syncrate_manager;//同步率测试管理器
+
     //计算时间相关
     bool is_batch = false;
     float batch_time = 0.000001;
@@ -117,12 +120,15 @@ public slots:
     void recv_reset(bool is_clear_all);//接受重置信号
     void recv_set(SETTINGS settings,bool can_reload);//接受设置内容
     void recv_date(DATES date);//接受约定内容
-    void recv_free();//释放
+    void recv_free(bool loadlater);//释放
+    void recv_syncrate(Syncrate_Manager Syncrate_manager);//传递同步率
 #ifdef BODY_USE_CUDA
     void recv_gpu_status(float vmem,float vram, float vcore, float vfree_);//更新gpu内存使用率
 #endif
 
 signals:
+    void bot2ui_syncrate(Syncrate_Manager Syncrate_manager);// 传递同步率
+    void bot2ui_freeover();// 模型释放完毕
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash=0);
     void bot2expend_vocab(QString model_vocab);//传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);//传递模型预解码内容

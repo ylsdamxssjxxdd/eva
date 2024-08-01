@@ -98,15 +98,15 @@ const QColor LCL_ORANGE(255, 165, 0); // 橘黄色
 
 //机体模式枚举
 enum EVA_MODE {
-    LOCAL_,//对话模式
-    LINK_,//链接模式
+    LOCAL_MODE,//对话模式
+    LINK_MODE,//链接模式
 };
 
 //机体状态枚举
 enum EVA_STATE {
-    CHAT_,//对话模式
-    COMPLETE_,//补完模式
-    SERVER_,//服务模式
+    CHAT_STATE,//对话模式
+    COMPLETE_STATE,//补完模式
+    SERVER_STATE,//服务模式
 };
 
 //设置参数
@@ -292,6 +292,19 @@ struct Brain_Cell
     int id;//在缓存中的序号
     int token;//缓存的词索引
     QString word;//词索引对应的词
+};
+
+//同步率测试管理器
+struct Syncrate_Manager
+{
+    bool is_sync = false;// 是否在测试同步率
+    bool is_predecode = false;// 是否预解码过
+    float pp_time = 0;// 上文处理速度 token/s
+    float tg_time = 0;// 文字生成速度 token/s
+    int correct = 0;// 通过回答个数
+
+    QStringList sync_list_question;// 待完成的回答任务 
+    
 };
 
 #endif

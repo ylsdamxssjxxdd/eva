@@ -92,6 +92,13 @@ void xBot::run()
                 float time_ = time2.nsecsElapsed()/1000000000.0;
                 float speed_ = (Brain_vector.size() - history_past)/time_;
                 emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " "+jtr("batch decode")+ ":"+QString::number(speed_,'f',2)+ " token/s",SUCCESS_);
+                
+                if(bot_syncrate_manager.is_sync)
+                {
+                    bot_syncrate_manager.pp_time = speed_;
+                    emit bot2ui_syncrate(bot_syncrate_manager);
+                }
+                
             }
             emit bot2ui_pushover();//推理完成的信号
             return ;
@@ -1208,9 +1215,16 @@ void xBot::recv_set(SETTINGS settings,bool can_reload)
         reload_flag = true;
     }
     //如果是装载模型前，则传完参数就返回
-    if(!can_reload){return;}
+    if(!can_reload)
+    {
+        return;
+    }
     //如果是第一次装载或从网络模式转回来则重新加载模型
-    if(!is_load){reload_flag = true;is_first_load=true;}
+    if(!is_load)
+    {
+        reload_flag = true;
+        is_first_load=true;
+    }
 
     //如果更换了模型则重载
 #ifdef _WIN32
@@ -1252,8 +1266,8 @@ void xBot::recv_date(DATES date)
     emit bot2ui_datereset();//bot发信号请求ui触发reset
 }
 
-//释放
-void xBot::recv_free()
+//释放旧的模型和上下文
+void xBot::recv_free(bool loadlater)
 {
     if(is_load)
     {
@@ -1271,6 +1285,11 @@ void xBot::recv_free()
         emit bot2ui_state("bot:" + jtr("old model and ctx offloaded") + " " +QString::number(time2.nsecsElapsed()/1000000000.0,'f',2) + " s ",USUAL_);//新增
     }
 
+    if(loadlater)
+    {
+        emit bot2ui_freeover();
+    }
+    
 }
 
 #ifdef BODY_USE_CUDA
@@ -1362,4 +1381,10 @@ void xBot::recv_llama_log(QString log_)
             emit bot2ui_maxngl(maxngl);
         #endif
     }
+}
+
+//传递同步率
+void xBot::recv_syncrate(Syncrate_Manager Syncrate_manager)
+{
+    bot_syncrate_manager.is_sync = Syncrate_manager.is_sync;
 }

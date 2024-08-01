@@ -120,7 +120,7 @@ QString Widget::create_extra_prompt()
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    if(ui_mode == LOCAL_)// api模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
+    if(ui_mode == LOCAL_MODE)// 链接模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
     {
         ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
         ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
@@ -131,9 +131,9 @@ void Widget::addStopwords()
         ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
         ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
 
-        if(ui_mode == LINK_)
+        if(ui_mode == LINK_MODE)
         {
-            ui_DATES.extra_stop_words << "<|observation|>";// api模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
+            ui_DATES.extra_stop_words << "<|observation|>";// 链接模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
         }
     }
     
