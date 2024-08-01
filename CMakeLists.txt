@@ -115,6 +115,7 @@ if(UNIX AND NOT APPLE)
 endif()
 # add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
 # add_subdirectory(llama.cpp/examples/main) # 测试用
+add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
 
