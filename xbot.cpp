@@ -368,7 +368,7 @@ int xBot::stream()
                     
                     if(!is_complete)
                     {
-                        emit bot2ui_arrivemaxctx(1);//模型达到最大上下文的信号,对话模式下下一次重置需要重新预解码
+                        emit bot2ui_arrivemaxctx(1);//模型达到最大上下文的信号
                     }
                     else
                     {

@@ -568,7 +568,7 @@ void Widget::recv_stopover()
 void Widget::recv_arrivemaxctx(bool predecode)
 {
     if(!is_test){QApplication::setWindowIcon(QIcon(":/ui/red_logo.png"));}// 设置应用程序图标
-    if(predecode){history_prompt = "";}//新增,取巧使下一次重置触发预解码
+    // if(predecode){history_prompt = "";}//取巧使下一次重置触发预解码
 }
 
 //重置完毕的后处理
