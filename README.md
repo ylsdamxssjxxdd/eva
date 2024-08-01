@@ -195,14 +195,11 @@
 
 ## 约定模板
 
-- 对话模式下机体对所有模型使用同一套提示词模板（约定模板）其总体结构为：系统提示+输入前缀+用户输入+输入后缀
+- 本地模式 + 对话状态 下机体对所有模型使用同一套提示词模板（约定模板）其总体结构为：系统提示+输入前缀+用户输入+输入后缀
 
 ```txt
 约定模板格式：
-<bos>{{system_prompt}}<eos>
-{{spliter}}<bos>{{user_name}}{{spliter}}
-{{user_content}}
-<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
+<bos>{{system_prompt}}<eos>{{spliter}}<bos>{{user_name}}{{spliter}}{{user_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
 
 - <bos>：开始标志（SPM类模型有，BPE类模型没有，可通过用户昵称和模型昵称的设置来补充）
 - <eos>：结束标志
