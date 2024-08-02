@@ -306,8 +306,8 @@ void Widget::on_send_clicked()
             }
             else//完成同步率测试完成,没有问题剩余
             {
-                ui_state_info = "ui: sync over";
-                reflash_state(ui_state_info,SUCCESS_SIGNAL);
+                ui_state_info = "ui: 同步率测试彻底完成";
+                reflash_state(ui_state_info, SYNC_SIGNAL);
                 
                 //恢复
                 decode_pTimer->stop();
@@ -453,8 +453,7 @@ void Widget::recv_pushover()
         ui_syncrate_manager.sync_list_index.removeAt(0);//回答完毕删除开头的第一个问题
         if(ui_syncrate_manager.sync_list_index.size() == 0)
         {
-            is_run = false; // 同步率测试彻底完成
-            reflash_state("ui:" + QString("同步率测试彻底完成"), SYNC_SIGNAL);
+            is_run = false; // 同步率测试将要完成
         }
         on_reset_clicked();// 每次测试重置上下文
     }
