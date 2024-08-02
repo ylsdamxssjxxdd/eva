@@ -234,10 +234,10 @@ void Widget::unlockLoad()
 #if defined(BODY_USE_GPU)
     if(ui_SETTINGS.ngl<ui_maxngl)
     {
-        reflash_state("ui:" + jtr("ngl tips"),USUAL_);
+        reflash_state("ui:" + jtr("ngl tips"),USUAL_SIGNAL);
     }
 #endif
-    reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time,'f',2)+" s " + jtr("right click and check model log"),SUCCESS_);
+    reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time,'f',2)+" s " + jtr("right click and check model log"),SUCCESS_SIGNAL);
     if(ui_SETTINGS.ngl>0){QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));}// 设置应用程序图标
     else{QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));}// 设置应用程序图标
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
@@ -286,14 +286,14 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             test_score++;
             output_scroll(result + "\n", Qt::green);
             ui_state_info = "ui:"+ QString::number(test_count) + " " +jtr("answer right") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
-            reflash_state(ui_state_info,SUCCESS_);
+            reflash_state(ui_state_info,SUCCESS_SIGNAL);
         }
         //答错
         else
         {
             output_scroll(result + "\n", Qt::red);
             ui_state_info = "ui:"+ QString::number(test_count) + " " + jtr("answer error") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
-            reflash_state(ui_state_info,WRONG_);
+            reflash_state(ui_state_info,WRONG_SIGNAL);
         }
         float acc = test_score / test_count * 100.0;//回答准确率
         test_question_index.removeAt(0);//回答完毕删除开头的第一个问题
@@ -305,7 +305,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             help_input = true;
             ui_state_info = "ui:"+ jtr("add help question");
-            reflash_state(ui_state_info,SIGNAL_);
+            reflash_state(ui_state_info,SIGNAL_SIGNAL);
         }
     }
     else
@@ -379,27 +379,27 @@ void Widget::output_scroll(QString output, QColor color)
 }
 
 //更新状态区
-void Widget::reflash_state(QString state_string, STATE_STATE state)
+void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
 {
     QTextCharFormat format;//设置特殊文本颜色
     //QFont font;//字体 设置了字体就不能缩放了
     //font.setPointSize(9);
     //format.setFont(font);
     //过滤回车和换行符
-    if(state != MATRIX_)
+    if(state != MATRIX_SIGNAL)
     {
         state_string.replace("\n","\\n");
         state_string.replace("\r","\\r");
     }
     
-    if(state==USUAL_ || state==MATRIX_)//一般黑色
+    if(state==USUAL_SIGNAL || state==MATRIX_SIGNAL)//一般黑色
     {
         format.clearForeground();//清除前景颜色
         format.setForeground(NORMAL_BLACK);  //还是黑色吧
         ui->state->setCurrentCharFormat(format);//设置光标格式
         ui->state->appendPlainText(state_string);
     }
-    else if(state==SUCCESS_)//正常绿色
+    else if(state==SUCCESS_SIGNAL)//正常绿色
     {
         format.setForeground(QColor(0,200,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -408,7 +408,7 @@ void Widget::reflash_state(QString state_string, STATE_STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==WRONG_)//不正常红色
+    else if(state==WRONG_SIGNAL)//不正常红色
     {
         format.setForeground(QColor(200,0,0));    // 设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -416,7 +416,7 @@ void Widget::reflash_state(QString state_string, STATE_STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==SIGNAL_)//信号蓝色
+    else if(state==SIGNAL_SIGNAL)//信号蓝色
     {
         format.setForeground(QColor(0,0,200));    // 蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -424,7 +424,7 @@ void Widget::reflash_state(QString state_string, STATE_STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==EVA_)//行为警告
+    else if(state==EVA_SIGNAL)//行为警告
     {
         QFont font = format.font();
         font.setFamily(DEFAULT_FONT);
@@ -455,7 +455,7 @@ void Widget::reflash_state(QString state_string, STATE_STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==TOOL_)//工具天蓝色
+    else if(state==TOOL_SIGNAL)//工具天蓝色
     {
         format.setForeground(TOOL_BLUE);    //天蓝色设置前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
@@ -463,7 +463,15 @@ void Widget::reflash_state(QString state_string, STATE_STATE state)
         format.clearForeground();//清除前景颜色
         ui->state->setCurrentCharFormat(format);//设置光标格式
     }
-    else if(state==DEBUGING_)//debug墨绿色
+    else if(state==SYNC_SIGNAL)//同步橘黄色
+    {
+        format.setForeground(LCL_ORANGE);    //天蓝色设置前景颜色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+        ui->state->appendPlainText(state_string);
+        format.clearForeground();//清除前景颜色
+        ui->state->setCurrentCharFormat(format);//设置光标格式
+    }
+    else if(state==DEBUGING_SIGNAL)//debug墨绿色
     {
         QFont font = format.font();
         font.setFamily(DEFAULT_FONT);
@@ -625,7 +633,7 @@ void Widget::tool_change()
     {
         if(is_load_tool == false)
         {
-            reflash_state("ui:" + jtr("enable output parser"), SIGNAL_);
+            reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
         }
         is_load_tool = true;
     }
@@ -633,7 +641,7 @@ void Widget::tool_change()
     {
         if(is_load_tool == true)
         {
-            reflash_state("ui:" + jtr("disable output parser"), SIGNAL_);
+            reflash_state("ui:" + jtr("disable output parser"), SIGNAL_SIGNAL);
         }
         is_load_tool = false;
     }
@@ -1199,10 +1207,10 @@ void Widget::set_api()
     if(api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size()<3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text()=="")
     {
         ui_state_info = "ui:api wrong";
-        reflash_state(ui_state_info,WRONG_);
+        reflash_state(ui_state_info,WRONG_SIGNAL);
         return;
     }
-    reflash_state("ui:"+jtr("detecting")+"api...",SIGNAL_);
+    reflash_state("ui:"+jtr("detecting")+"api...",SIGNAL_SIGNAL);
     emit ui2bot_free(0);//释放原来的模型
     is_load = false;
 
@@ -1240,10 +1248,10 @@ void Widget::onConnected()
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     if (socket) {socket->disconnectFromHost();}//中断访问
     ui_mode = LINK_MODE;//按照链接模式的行为来
-    reflash_state("ui:" + jtr("eva link"),EVA_);
+    reflash_state("ui:" + jtr("eva link"),EVA_SIGNAL);
     if(ui_state == CHAT_STATE){current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;}
     else{current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;}
-    reflash_state("ui:"+jtr("current api") + " " + current_api,USUAL_);
+    reflash_state("ui:"+jtr("current api") + " " + current_api,USUAL_SIGNAL);
     this->setWindowTitle(jtr("current api") + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
     ui->kv_bar->show_text = jtr("delay");
@@ -1262,7 +1270,7 @@ void Widget::onConnected()
 void Widget::onError(QAbstractSocket::SocketError socketError) {
     // Handle the error
     ui_mode = LOCAL_MODE;
-    reflash_state("ui:api"+jtr("port")+jtr("blocked"),WRONG_);
+    reflash_state("ui:api"+jtr("port")+jtr("blocked"),WRONG_SIGNAL);
     this->setWindowTitle(jtr("eva"));
     api_dialog->setDisabled(0);
     api_dialog->close();
@@ -1526,8 +1534,12 @@ void Widget::create_right_menu()
         emit ui2bot_syncrate(ui_syncrate_manager);
 
         //插入任务
-        ui_syncrate_manager.sync_list_question<<jtr("sync_Q1");
-        ui_syncrate_manager.sync_list_question<<jtr("sync_Q2");
+        for(int i=1;i<3;++i)
+        {
+            ui_syncrate_manager.sync_list_question<<jtr(QString("sync_Q%1").arg(i));
+            ui_syncrate_manager.sync_list_index.append(i);
+        }
+        
         // 自动约定，挂载所有工具
         chattemplate_comboBox->setCurrentText("qwen");//默认使用qwen的提示词模板
         calculator_checkbox->setChecked(1);
@@ -1538,7 +1550,7 @@ void Widget::create_right_menu()
         stablediffusion_checkbox->setChecked(1);
         interpreter_checkbox->setChecked(1);
         get_date();//获取约定中的纸面值
-        emit ui2bot_date(ui_DATES);// 注意在开始同步率测试前会预解码一次
+        emit ui2bot_date(ui_DATES);// 注意在开始同步率测试前会强制预解码一次
         
     });
     //上传图像
@@ -1575,9 +1587,9 @@ void Widget::create_right_menu()
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
         this->setWindowTitle(jtr("test") +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
 
-        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_);
-        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_);
-        reflash_state("ui:"+ jtr("add help question"),SIGNAL_);
+        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_SIGNAL);
+        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_SIGNAL);
+        reflash_state("ui:"+ jtr("add help question"),SIGNAL_SIGNAL);
 
         test_time.restart();
         is_test = true;
@@ -1597,13 +1609,13 @@ void Widget::create_right_menu()
         clearQuestionlist();//清空题库
         readCsvFile(currentpath);//构建测试问题集
         makeTestIndex();//构建测试问题索引
-        if(test_question_index.size()==0){reflash_state("ui:0"+ jtr("question"),WRONG_);return;}
+        if(test_question_index.size()==0){reflash_state("ui:0"+ jtr("question"),WRONG_SIGNAL);return;}
         QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));// 设置应用程序图标
         this->setWindowTitle(jtr("test") +"0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());  
         
-        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_);
-        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_);
-        reflash_state("ui:"+ jtr("add help question"),SIGNAL_);
+        reflash_state("ui:"+ jtr("Question bank construction completed") + " " + QString::number(test_list_question.size())+ jtr("question"),USUAL_SIGNAL);
+        reflash_state("ui:"+ jtr("clicked") + jtr("test") + " "  + jtr("npredict") + jtr("limited") + "1",USUAL_SIGNAL);
+        reflash_state("ui:"+ jtr("add help question"),SIGNAL_SIGNAL);
 
         test_time.restart();
         is_test = true;

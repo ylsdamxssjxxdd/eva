@@ -61,7 +61,7 @@ public slots:
     
 signals:
     void tool2ui_pushover(QString tool_result);
-    void tool2ui_state(const QString &state_string, STATE_STATE state=USUAL_);//发送的状态信号
+    void tool2ui_state(const QString &state_string, SIGNAL_STATE state=USUAL_SIGNAL);//发送的状态信号
     void tool2expend_draw(QString prompt_);
     void tool2ui_controller(int num);//传递控制信息
 

@@ -76,7 +76,7 @@ public:
     void showReadme();//展示readme内容
     
 signals:    
-    void expend2ui_state(QString state_string,STATE_STATE state);
+    void expend2ui_state(QString state_string,SIGNAL_STATE state);
     
 public slots:
     void recv_language(int language_flag_);//传递语言标志

@@ -372,7 +372,7 @@ public slots:
     void recv_predecode(QString bot_predecode_);//传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);//处理tool推理完毕的槽
     void reflash_output(const QString result,bool is_while, QColor color);//更新输出区,is_while表示从流式输出的token
-    void reflash_state(QString state_string, STATE_STATE state=USUAL_);//更新状态区
+    void reflash_state(QString state_string, SIGNAL_STATE state=USUAL_SIGNAL);//更新状态区
     void recv_loadover(bool ok_, float load_time_);//完成加载模型
     void recv_pushover();//推理完毕的后处理
     void recv_stopover();//停止完毕的后处理
@@ -381,7 +381,7 @@ public slots:
     void recv_reload();//gpu负载层数改变,重载模型
     void recv_setreset();//bot发信号请求ui触发reset
     void recv_datereset();//bot发信号请求ui触发reset
-    void recv_params(PARAMS p);//bot将模型参数传递给ui
+    void recv_params(MODEL_PARAMS p);//bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);//接收缓存量
     void recv_tokens(int tokens);//传递测试解码token数量
     void recv_maxngl(int maxngl_);
@@ -434,6 +434,7 @@ private slots:
     void web_change();//服务模式响应
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
+    void bench_onProcessFinished();//llama-bench进程结束响应
     void temp_change();//温度滑块响应
     void ngl_change();//ngl滑块响应
     void batch_change();//batch滑块响应

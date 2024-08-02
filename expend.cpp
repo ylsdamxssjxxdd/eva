@@ -563,7 +563,7 @@ void Expend::whisper_onProcessStarted()
 {
     if(!is_handle_whisper)
     {
-        emit expend2ui_state("expend:" + jtr("calling whisper to decode recording"),USUAL_);
+        emit expend2ui_state("expend:" + jtr("calling whisper to decode recording"),USUAL_SIGNAL);
     }
     
 }
@@ -585,7 +585,7 @@ void Expend::whisper_onProcessFinished()
             content = in.readAll();// 读取文件内容
         }
         file.close();
-        emit expend2ui_state("expend:" + jtr("decode over") + " " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_);
+        emit expend2ui_state("expend:" + jtr("decode over") + " " + QString::number(whisper_time.nsecsElapsed()/1000000000.0,'f',2) + "s ->" + content,SUCCESS_SIGNAL);
         emit expend2ui_voicedecode_over(content);
     }
     else
@@ -1102,7 +1102,7 @@ void Expend::embedding_processing()
             vector_str += "]";
             QString message = QString::number(Embedding_DB.at(o).index+1) + " " + jtr("Number text segment embedding over") +"! "+ jtr("dimension") + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + jtr("word vector") + ": " + vector_str;
             ui->embedding_test_log->appendPlainText(message);
-            emit expend2ui_state("expend:" + message, USUAL_);
+            emit expend2ui_state("expend:" + message, USUAL_SIGNAL);
         });
         // 完成
         QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -1459,7 +1459,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
     else if(!is_handle_sd)
     {
-        emit expend2ui_state(QString("expend:sd") + SFX_NAME + " " + jtr("drawing"),USUAL_);
+        emit expend2ui_state(QString("expend:sd") + SFX_NAME + " " + jtr("drawing"),USUAL_SIGNAL);
     }
 
     //锁定界面
@@ -1600,7 +1600,7 @@ void Expend::sd_onProcessFinished()
     if(!is_handle_sd && originalWidth>0)
     {
         is_handle_sd = true;
-        emit expend2ui_state("expend:" + jtr("draw over"),USUAL_);
+        emit expend2ui_state("expend:" + jtr("draw over"),USUAL_SIGNAL);
         emit expend2tool_drawover(sd_params.outpath,1);//绘制完成信号
     }
     else if(!is_handle_sd)
@@ -1608,12 +1608,12 @@ void Expend::sd_onProcessFinished()
         is_handle_sd = true;
         if(sd_process_output.contains("CUDA error"))
         {
-            emit expend2ui_state("expend:" + jtr("draw fail cuda"),WRONG_);
+            emit expend2ui_state("expend:" + jtr("draw fail cuda"),WRONG_SIGNAL);
             emit expend2tool_drawover(jtr("draw fail cuda"),0);//绘制完成信号
         }
         else
         {
-            emit expend2ui_state("expend:" + jtr("draw fail prompt"),WRONG_);
+            emit expend2ui_state("expend:" + jtr("draw fail prompt"),WRONG_SIGNAL);
             emit expend2tool_drawover(jtr("draw fail prompt"),0);//绘制完成信号
         }
         

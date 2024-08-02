@@ -132,7 +132,7 @@ signals:
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash=0);
     void bot2expend_vocab(QString model_vocab);//传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);//传递模型预解码内容
-    void bot2ui_state(const QString &state_string, STATE_STATE state=USUAL_);//发送的状态信号
+    void bot2ui_state(const QString &state_string, SIGNAL_STATE state=USUAL_SIGNAL);//发送的状态信号
     void bot2ui_output(const QString &result, bool is_while=1, QColor color=QColor(0,0,0));//发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_,float load_time_);//装载完成的信号
     void bot2ui_pushover();//推理完成的信号
@@ -142,7 +142,7 @@ signals:
     void bot2ui_reload();//gpu负载层数改变,重载模型的信号
     void bot2ui_setreset();//bot发信号请求ui触发reset
     void bot2ui_datereset();//bot发信号请求ui触发reset
-    void bot2ui_params(PARAMS p);//bot将模型参数传递给ui
+    void bot2ui_params(MODEL_PARAMS p);//bot将模型参数传递给ui
     void bot2ui_kv(float percent,int n_past);//传递缓存量
     void bot2ui_tokens(int tokens);//传递测试解码token数量
     void bot_llama_log(QString log);//传递llama.cpp的log

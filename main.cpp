@@ -72,9 +72,9 @@ int main(int argc, char* argv[])
     cpuChecker cpuer;//监视系统信息
 
     //------------------注册信号传递变量-------------------
-    qRegisterMetaType<PARAMS>("PARAMS");//注册PARAMS作为信号传递变量
+    qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");//注册PARAMS作为信号传递变量
     qRegisterMetaType<QColor>("QColor");//注册QColor作为信号传递变量
-    qRegisterMetaType<STATE_STATE>("STATE_STATE");//注册STATE作为信号传递变量
+    qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");//注册STATE作为信号传递变量
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
     QObject::connect(&bot,&xBot::bot2ui_maxngl,&w,&Widget::recv_maxngl);//传递模型的最大的gpu负载层数
     QObject::connect(&bot,&xBot::bot2ui_predecode,&w,&Widget::recv_predecode);//传递模型预解码的内容
     QObject::connect(&bot,&xBot::bot2ui_freeover,&w,&Widget::recv_freeover);//模型释放完毕并重新装载
-    QObject::connect(&bot,&xBot::bot2ui_syncrate,&w,&Widget::recv_syncrate);//传递同步率
+    QObject::connect(&bot,&xBot::bot2ui_syncrate,&w,&Widget::recv_syncrate);//传递同步率，待删除
 
-    QObject::connect(&w,&Widget::ui2bot_syncrate,&bot,&xBot::recv_syncrate);//传递同步率
+    QObject::connect(&w,&Widget::ui2bot_syncrate,&bot,&xBot::recv_syncrate);//传递同步率，待删除
     QObject::connect(&w, &Widget::ui2bot_loadmodel,&bot, [&bot]() {bot.start();});//开始加载模型,利用对象指针实现多线程
     QObject::connect(&w, &Widget::ui2bot_input,&bot,&xBot::recv_input);//传递用户输入
     QObject::connect(&w, &Widget::ui2bot_push,&bot, [&bot]() {bot.start();});//开始推理,利用对象指针实现多线程
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     QObject::connect(&cpuer,&cpuChecker::cpu_status,&w,&Widget::recv_cpu_status);//传递cpu信息
     QObject::connect(&w, &Widget::cpu_reflash,&cpuer, [&cpuer]() {cpuer.start();});//强制刷新cpu信息
 
-    //------------------连接扩展和增殖窗口-------------------
+    //------------------连接窗口和增殖窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_voicedecode, &expend, &Expend::recv_voicedecode);//开始语音转文字

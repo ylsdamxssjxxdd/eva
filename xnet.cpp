@@ -71,7 +71,7 @@ void xNet::run()
                         }
                     }
                 } else {
-                    emit net2ui_state("net:resolve json fail",WRONG_);
+                    emit net2ui_state("net:resolve json fail",WRONG_SIGNAL);
                     qDebug() << jsonString;
                     qDebug() << dataList;
                 }
@@ -90,17 +90,17 @@ void xNet::run()
                 // 请求完成，所有数据都已正常接收
                 if(endpoint_data.n_predict == 1)
                 {
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_);
+                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s ",SUCCESS_SIGNAL);
                 }
                 else
                 {
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
+                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_SIGNAL);
                 }
             } 
             else 
             {
                 // 请求出错
-                emit net2ui_state("net:" + reply->errorString(),WRONG_);
+                emit net2ui_state("net:" + reply->errorString(),WRONG_SIGNAL);
                 //qDebug() << "Error:" << reply->errorString();
             }
             
@@ -150,12 +150,12 @@ void xNet::run()
             if (reply->error() == QNetworkReply::NoError) 
             {
                 // 请求完成，所有数据都已正常接收
-                emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_);
+                emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed()/1000000000.0,'f',2) + " s "+ jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed()/1000000000.0),'f',2) + " token/s",SUCCESS_SIGNAL);
             } 
             else 
             {
                 // 请求出错
-                emit net2ui_state("net:" + reply->errorString(),WRONG_);
+                emit net2ui_state("net:" + reply->errorString(),WRONG_SIGNAL);
                 //qDebug() << "Error:" << reply->errorString();
             }
             

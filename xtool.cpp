@@ -29,7 +29,7 @@ void xTool::run()
         {
             emit tool2ui_pushover(QString("calculator ") + jtr("return") + "\n" + result);
         }
-        emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result,TOOL_);
+        emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result,TOOL_SIGNAL);
     }
     //----------------------命令提示符------------------
     else if(func_arg_list.first == "terminal")
@@ -51,7 +51,7 @@ void xTool::run()
         if(!process->waitForFinished()) 
         {
             // 处理错误
-            emit tool2ui_state("tool:" + QString("terminal ") + jtr("return") + "\n" + process->errorString(),TOOL_);
+            emit tool2ui_state("tool:" + QString("terminal ") + jtr("return") + "\n" + process->errorString(),TOOL_SIGNAL);
             emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + process->errorString());
             qDebug() << QString("terminal ") + jtr("return") + "\n" + process->errorString();
         } 
@@ -60,7 +60,7 @@ void xTool::run()
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" +QString("terminal ") + jtr("return") + "\n" + output,TOOL_);
+            emit tool2ui_state("tool:" +QString("terminal ") + jtr("return") + "\n" + output,TOOL_SIGNAL);
             emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + output);
             qDebug() << QString("terminal ") + jtr("return") + "\n" + output;
         }
@@ -74,7 +74,7 @@ void xTool::run()
         if(Embedding_DB.size()==0)
         {
             result = jtr("Please tell user to embed knowledge into the knowledge base first");
-            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_);
+            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
             emit tool2ui_pushover(QString("knowledge ") + jtr("return") + "\n" + result);
         }
         else
@@ -83,7 +83,7 @@ void xTool::run()
             emit tool2ui_state("tool:" + jtr("qureying"));
             result = embedding_query_process(func_arg_list.second);
             emit tool2ui_state("tool:" + jtr("qurey&timeuse") + QString(": ") + QString::number(time4.nsecsElapsed()/1000000000.0,'f',2)+" s");
-            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_);
+            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
             emit tool2ui_pushover(QString("knowledge ") + jtr("return") + "\n" + result);
         }
         
@@ -163,7 +163,7 @@ void xTool::run()
             qDebug() << "Failed to open file for writing";
         }
 
-        emit tool2ui_state("tool:" +QString("interpreter ") + jtr("return") + "\n" + result,TOOL_);
+        emit tool2ui_state("tool:" +QString("interpreter ") + jtr("return") + "\n" + result,TOOL_SIGNAL);
         emit tool2ui_pushover(QString("interpreter ") + jtr("return") + "\n" + result);
     }
     //----------------------没有该工具------------------
@@ -248,7 +248,7 @@ QString xTool::embedding_query_process(QString query_str)
             }
         }
         vector_str += "]";
-        emit tool2ui_state("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": "+QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": "+ vector_str,USUAL_);
+        emit tool2ui_state("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": "+QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": "+ vector_str,USUAL_SIGNAL);
     });
     // 完成
     QObject::connect(reply, &QNetworkReply::finished, [&]() 
@@ -276,7 +276,7 @@ QString xTool::embedding_query_process(QString query_str)
         else 
         {
             // 请求出错
-            emit tool2ui_state("tool:" + jtr("Request error") + " " + reply->error(), WRONG_);
+            emit tool2ui_state("tool:" + jtr("Request error") + " " + reply->error(), WRONG_SIGNAL);
             knowledge_result += jtr("Request error") + " " + reply->error();
         }
         
@@ -339,7 +339,7 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
 {
     Embedding_DB.clear();
     Embedding_DB = Embedding_DB_;
-    emit tool2ui_state("tool:" +  jtr("Received embedded text segment data"),USUAL_);
+    emit tool2ui_state("tool:" +  jtr("Received embedded text segment data"),USUAL_SIGNAL);
 }
 
 //传递嵌入服务端点
@@ -360,14 +360,14 @@ void xTool::recv_drawover(QString result_, bool ok_)
 
     //绘制成功的情况
     //添加绘制成功并显示图像指令
-    emit tool2ui_state("tool:" + QString("stablediffusion ") + jtr("return") + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_);
+    emit tool2ui_state("tool:" + QString("stablediffusion ") + jtr("return") + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_,TOOL_SIGNAL);
     emit tool2ui_pushover("<ylsdamxssjxxdd:showdraw>" + result_);
 }
 
 //传递控制完成结果
 void xTool::tool2ui_controller_over(QString result)
 {
-    emit tool2ui_state("tool:" + QString("controller ") + jtr("return") + "\n" + result, TOOL_);
+    emit tool2ui_state("tool:" + QString("controller ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
     emit tool2ui_pushover(QString("controller ") + jtr("return") + "\n" + result);
 }
 

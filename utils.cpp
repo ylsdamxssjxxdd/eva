@@ -156,7 +156,7 @@ void Widget::server_onProcessStarted()
     if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
     else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
     ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server " + jtr("oning"),SIGNAL_);
+    reflash_state("ui:server " + jtr("oning"),SIGNAL_SIGNAL);
 }
 
 //第三方程序结束
@@ -165,15 +165,21 @@ void Widget::server_onProcessFinished()
     if(current_server)
     {
         ui_state_info = "ui:"+ jtr("old") + "server " + jtr("off");
-        reflash_state(ui_state_info,SIGNAL_);
+        reflash_state(ui_state_info,SIGNAL_SIGNAL);
     }
     else
     {
         QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        reflash_state("ui:server"+jtr("off"),SIGNAL_);
+        reflash_state("ui:server"+jtr("off"),SIGNAL_SIGNAL);
         ui_output = "\nserver"+jtr("shut down");
         output_scroll(ui_output);
     }
+}
+
+//llama-bench进程结束响应
+void Widget::bench_onProcessFinished()
+{
+    qDebug()<<"llama-bench进程结束响应";
 }
 
 // 构建测试问题
@@ -682,7 +688,7 @@ void Widget::speechOver()
     settings.setValue("custom2_input_pfx",custom2_input_pfx);
     settings.setValue("custom2_input_sfx",custom2_input_sfx);
     
-    reflash_state("ui:" + jtr("save_config_mess"),USUAL_);
+    reflash_state("ui:" + jtr("save_config_mess"),USUAL_SIGNAL);
  }
 
 // 对音频重采样为16khz

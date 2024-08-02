@@ -128,8 +128,8 @@ struct SETTINGS{
 };
 
 //模型参数,模型装载后发送给ui的参数
-struct PARAMS{
-    int n_ctx_train;//最大值
+struct MODEL_PARAMS{
+    int n_ctx_train;//最大上下文长度
 };
 
 //api配置参数
@@ -170,15 +170,16 @@ struct TOOLS{
 };
 
 //状态区信号枚举
-enum STATE_STATE {
-        USUAL_,//一般输出，黑色
-        SIGNAL_,//信号，蓝色
-        SUCCESS_,//成功，绿色
-        WRONG_,//错误，红色
-        EVA_,//机体，紫色
-        TOOL_,//工具，橘色
-        DEBUGING_,//debug，墨绿色
-        MATRIX_,//文本表格，黑色，不过滤回车符
+enum SIGNAL_STATE {
+        USUAL_SIGNAL,//一般输出，黑色
+        SIGNAL_SIGNAL,//信号，蓝色
+        SUCCESS_SIGNAL,//成功，绿色
+        WRONG_SIGNAL,//错误，红色
+        EVA_SIGNAL,//机体，紫色
+        TOOL_SIGNAL,//工具，天蓝色
+        SYNC_SIGNAL,//同步，橘黄色
+        DEBUGING_SIGNAL,//debug，墨绿色
+        MATRIX_SIGNAL,//文本表格，黑色，不过滤回车符
 };
 
 //whisper可以传入的参数
@@ -299,11 +300,12 @@ struct Syncrate_Manager
 {
     bool is_sync = false;// 是否在测试同步率
     bool is_predecode = false;// 是否预解码过
-    float pp_time = 0;// 上文处理速度 token/s
-    float tg_time = 0;// 文字生成速度 token/s
-    int correct = 0;// 通过回答个数
-
-    QStringList sync_list_question;// 待完成的回答任务 
+    int correct = 0;// 通过回答个数，每个6分
+    int score = 0;// 最终得分，满分180，当超过100分时分数翻倍，最高同步率360%
+    
+    // 1-5：计算器使用，6-10：系统终端使用，11-15：知识库使用，16-20：软件控制台使用，21-25：文生图使用，26-30：代码解释器使用
+    QList<int> sync_list_index;// 待完成的回答任务的索引
+    QStringList sync_list_question;// 待完成的回答任务
     
 };
 

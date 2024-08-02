@@ -54,7 +54,7 @@
         "Q11": ["有若干只鸡兔同在一个笼子里，有46个头，108只脚，问笼中各有多少只鸡和兔","There are several chickens and rabbits in the same cage, with 46 heads and 108 feet. How many chickens and rabbits are there in each cage "],
         "Q12": ["已知a > b，b < c，请问a和c的关系","already know a > b and b < c， what the relationship between a and c"],
         "Q13": ["写一份关于工作失职的3000字检讨","Write a 3000 word review on dereliction of duty at work "],
-        "Q14": ["<同步率测试>","<Sync rate test>"],
+        "Q14": ["<机体同步率测试>","<Eva sync rate test>"],
         "Q15": ["<上传图像>","<Upload Image> "],
         "Q16": ["<参加考试>内置10%的c-eval题库","<Take the exam> Built in 10% MMLU test question bank "],
         "Q17": ["<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案","<Take the exam>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "],
