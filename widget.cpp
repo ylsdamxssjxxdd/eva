@@ -166,7 +166,7 @@ void Widget::recv_freeover()
 #ifdef BODY_USE_CUDA
     //分析显存，如果可用显存比模型大1.1倍则自动将gpu负载设置为999
     emit gpu_reflash();//强制刷新gpu信息
-    cuda_wait_load = true;
+    gpu_wait_load = true;
 #else
     //发送设置参数给bot
     emit ui2bot_set(ui_SETTINGS,1);//设置应用完会触发preLoad
@@ -1051,9 +1051,9 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     }
     ui->vram_bar->setSecondValue(vramp - first_vramp);
 
-    if(cuda_wait_load)
+    if(gpu_wait_load)
     {
-        cuda_wait_load = false;
+        gpu_wait_load = false;
         QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
         int modelsize_MB = fileInfo.size() / 1024 / 1024;
         // qDebug()<<vfree<<modelsize_MB * 1.2;

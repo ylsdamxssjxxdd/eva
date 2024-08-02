@@ -140,7 +140,7 @@ public:
     QString ui_template = "qwen";//模板
     QString bot_predecode = "";//模型预解码的内容
     void normal_finish_pushover();//正常情况处理推理完毕
-    bool cuda_wait_load = false;// cuda版本下等待检测完显存信息重新装载的标签
+    bool gpu_wait_load = false;// 等待检测完显存信息重新装载的标签
 
     DATES ui_DATES;//ui的约定
     SETTINGS ui_SETTINGS;//ui的设置
