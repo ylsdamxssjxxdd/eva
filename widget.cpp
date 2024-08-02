@@ -1056,10 +1056,14 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
         cuda_wait_load = false;
         QFileInfo fileInfo(ui_SETTINGS.modelpath);//获取文件大小
         int modelsize_MB = fileInfo.size() / 1024 / 1024;
-        // qDebug()<<vfree<<modelsize_MB * 1.1;
-        if(vfree>modelsize_MB * 1.1)
+        // qDebug()<<vfree<<modelsize_MB * 1.2;
+        if(vfree>modelsize_MB * 1.2)
         {
             ui_SETTINGS.ngl = 999;
+        }
+        else
+        {
+            ui_SETTINGS.ngl = 0;
         }
 
         //发送设置参数给bot
