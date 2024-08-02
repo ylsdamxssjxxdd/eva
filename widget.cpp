@@ -449,6 +449,7 @@ void Widget::recv_pushover()
     else if(ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode)// 继续同步率测试
     {
         // 检测结果
+
         qDebug()<<"继续同步率测试";
         ui_syncrate_manager.sync_list_index.removeAt(0);//回答完毕删除开头的第一个问题
         if(ui_syncrate_manager.sync_list_index.size() == 0)
@@ -459,7 +460,7 @@ void Widget::recv_pushover()
     }
     else if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)// 开始第一次同步率测试
     {
-        qDebug()<<"开始第一次同步率测试";
+        qDebug()<<"开始同步率测试";
         ui_syncrate_manager.is_predecode = true;
         on_send_clicked();
     }

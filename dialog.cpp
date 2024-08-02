@@ -1368,7 +1368,15 @@ void Widget::ui_state_pushing()
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
     ui->set->setEnabled(0);
-    ui->reset->setEnabled(1);
+    if(ui_syncrate_manager.is_sync)
+    {
+        ui->reset->setEnabled(0);
+    }
+    else
+    {
+        ui->reset->setEnabled(1);
+    }
+
     ui->send->setEnabled(0);
     debugButton_enable();
     if(is_debug)
@@ -1699,7 +1707,7 @@ void Widget::get_date()
 // 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
 void Widget::debugButton_enable()
 {
-    if(is_run || ui_state == SERVER_STATE || ui_mode == LINK_MODE || audio_time != 0)
+    if(is_run || ui_state == SERVER_STATE || ui_mode == LINK_MODE || audio_time != 0 || ui_syncrate_manager.is_sync)
     {
         debugButton->setEnabled(0);
     }
