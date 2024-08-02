@@ -153,6 +153,12 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
 
+### Eva sync rate test
+
+- In local mode and chat state, the model can be tested for sync rate. Right click on the input area and select \<Eva sync rate test>
+
+- The main test model's instruction following ability, the higher the sync rate, the stronger the model 😊
+
 ## build
 
 1. Configure the environment
