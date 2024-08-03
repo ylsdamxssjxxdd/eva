@@ -69,10 +69,12 @@ public:
                     //         << "Utilization:" << utilization << "%";
                 } else {
                     qDebug() << "Failed to parse NVIDIA GPU information.";
+                    emit gpu_status(0, 0, 0, 0);
                 }
             }
         } else {
             qDebug() << "Failed to retrieve NVIDIA GPU information.";
+            emit gpu_status(0, 0, 0, 0);
         }
     }
 
@@ -105,12 +107,14 @@ public:
                     foundMemoryInfo = true;
                 } else {
                     qDebug() << "Failed to parse AMD GPU information.";
+                    emit gpu_status(0, 0, 0, 0);
                 }
             }
         }
 
         if (!foundMemoryInfo) {
             qDebug() << "Failed to retrieve AMD GPU information.";
+            emit gpu_status(0, 0, 0, 0);
         }
     }
 #ifdef BODY_USE_CUDA
