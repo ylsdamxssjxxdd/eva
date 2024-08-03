@@ -122,7 +122,7 @@ public slots:
     void recv_date(DATES date);//接受约定内容
     void recv_free(bool loadlater);//释放
     void recv_syncrate(Syncrate_Manager Syncrate_manager);//传递同步率
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem,float vram, float vcore, float vfree_);//更新gpu内存使用率
 #endif
 

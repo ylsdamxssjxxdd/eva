@@ -52,7 +52,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->reset->setIcon(QIcon(":/ui/sync.ico"));//设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"),USUAL_SIGNAL);//初始提示
 
-#ifndef BODY_USE_CUDA
+#ifndef BODY_USE_GPU
     ui->vcore_bar->setVisible(0);//如果没有使用cuda则不显示gpu_bar
     ui->vram_bar->setVisible(0);
 #endif
@@ -163,7 +163,7 @@ void Widget::recv_freeover()
     ui_mode = LOCAL_MODE;//只要点击装载有东西就不再是链接模式
     ui_SETTINGS.modelpath = currentpath;//模型路径变化则重置参数
     
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
     //分析显存，如果可用显存比模型大1.1倍则自动将gpu负载设置为999
     emit gpu_reflash();//强制刷新gpu信息
     gpu_wait_load = true;
@@ -1036,7 +1036,7 @@ void Widget::recv_play()
     load_play();//开始播放动画
 }
 
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
 //更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {

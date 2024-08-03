@@ -1288,7 +1288,7 @@ void xBot::recv_free(bool loadlater)
     
 }
 
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
 void xBot::recv_gpu_status(float vmem,float vram, float vcore, float vfree_)
 {
     vfree = vfree_;//剩余显存

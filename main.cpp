@@ -10,7 +10,7 @@
 #include <QProcessEnvironment>
 #include <QFileInfo>
 
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
 #include "utils/gpuchecker.h"
 #endif
 #include "utils/cpuchecker.h"
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
     w.voice_params = expend.voice_params;
     expend.set_sys_voice(w.sys_voice_list);// 设置可用系统声源
     if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
     gpuChecker gpuer;//监测显卡信息
 #endif
     cpuChecker cpuer;//监视系统信息
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     QObject::connect(&w, &Widget::ui2bot_debuging,&bot,&xBot::recv_debuging);//传递debug中状态
 
     //------------------监测gpu信息-------------------
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&w,&Widget::recv_gpu_status);//传递gpu信息
     QObject::connect(&gpuer,&gpuChecker::gpu_status,&bot,&xBot::recv_gpu_status);//传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash,&gpuer, [&gpuer]() {gpuer.start();});//强制刷新gpu信息

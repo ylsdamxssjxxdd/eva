@@ -396,7 +396,7 @@ public slots:
 //自用的槽
 public slots:    
     void switch_lan_change();//切换行动纲领的语言
-#ifdef BODY_USE_CUDA
+#ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem,float vramp, float vcore, float vfree_);//更新gpu内存使用率
 #endif
     void recv_cpu_status(double cpuload, double memload);//传递cpu信息
