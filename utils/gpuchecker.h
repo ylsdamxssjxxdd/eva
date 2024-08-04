@@ -27,7 +27,7 @@ public:
 #ifdef _WIN32
         process.start("wmic path win32_videocontroller get caption");
 #elif __linux__
-        process.start("lspci -nn | grep VGA");
+        process.start("bash", QStringList() << "-c" << "lspci -nn | grep VGA");
 #endif
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
