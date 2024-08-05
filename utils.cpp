@@ -24,7 +24,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
     if (match.hasMatch())
     {
         QString content = match.captured(1);  // 获取第一个捕获组的内容
-        qDebug() << "花括号中的内容是：" << content;
+        // qDebug() << "花括号中的内容是：" << content;
         // ----------匹配"action:"至逗号----------
         // \\s*的意思是允许忽略空格
         QRegularExpression re2("\"action_name\"\\s*[:：]\\s*\"([^\"]*)\"");
@@ -33,7 +33,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
         {
             QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
             func_arg_list.first = content2;
-            qDebug() << "action_name中的内容是：" << content2;
+            // qDebug() << "action_name中的内容是：" << content2;
             // ----------匹配"action_input:"至最后----------
             QRegularExpression re3("\"action_input\"\\s*[:：]\\s*(.*)");
             re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
@@ -63,24 +63,24 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
                 
 
                 func_arg_list.second = content3;
-                qDebug() << "action_input中的内容是：" << content3;
+                // qDebug() << "action_input中的内容是：" << content3;
             }
             else
             {
-                qDebug() << "没有找到action_input中的内容。";
+                // qDebug() << "没有找到action_input中的内容。";
             }
 
         }
         else {
-            qDebug() << "没有找到action_name中的内容。";
+            // qDebug() << "没有找到action_name中的内容。";
         }
     }
     else {
-        qDebug() << "没有找到花括号中的内容。";
+        // qDebug() << "没有找到花括号中的内容。";
     }
 
 
-    qDebug()<<func_arg_list;
+    // qDebug()<<func_arg_list;
     return func_arg_list;
 }
 
@@ -97,7 +97,18 @@ QString Widget::create_extra_prompt()
         if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
         if(terminal_checkbox->isChecked()){extra_prompt_ += tool_map["terminal"].func_describe + "\n";}
         if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
-        if(knowledge_checkbox->isChecked()){extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";}
+        if(knowledge_checkbox->isChecked())
+        {
+            if(ui_syncrate_manager.is_sync)
+            {
+                extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + jtr("embeddingdb_describe") + "\n";
+            }
+            else
+            {
+                extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";
+            }
+            
+        }
         if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
         if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
         //中

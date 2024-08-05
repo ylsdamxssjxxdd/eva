@@ -300,8 +300,8 @@ struct Syncrate_Manager
 {
     bool is_sync = false;// 是否在测试同步率
     bool is_predecode = false;// 是否预解码过
-    int correct = 0;// 通过回答个数，每个6分
-    int score = 0;// 最终得分，满分180，当超过100分时分数翻倍，最高同步率360%
+    QList<int> correct_list;// 通过回答的题目序号
+    int score = 0;// 每个10分，满分300，当达到300时+100，最高同步率400%
     
     // 1-5：计算器使用，6-10：系统终端使用，11-15：知识库使用，16-20：软件控制台使用，21-25：文生图使用，26-30：代码解释器使用
     QList<int> sync_list_index;// 待完成的回答任务的索引

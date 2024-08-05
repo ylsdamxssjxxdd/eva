@@ -39,6 +39,7 @@
 #include <QTextCursor>
 #include <QSettings>
 #include <QTextCodec>
+#include <QScriptEngine>
 
 #include <QMediaPlayer>
 #include <QAudioInput>
@@ -123,6 +124,8 @@ public:
 
     //同步率测试相关
     Syncrate_Manager ui_syncrate_manager;//同步率测试管理器
+    void SyncRateTestCheck(QString assistant_history);// 检测结果并赋分
+    bool checkChinese(QString str_);//检测是否含有中文
 
     //模型控制相关
     QMap<QString, DATES> date_map;//约定模板

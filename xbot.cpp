@@ -1013,8 +1013,8 @@ QString xBot::viewVocab()
 int xBot::get_Chinese_word_nums(QString str_)
 {
     int count = 0;
-    QStringList chinesePunctuation;
-    chinesePunctuation << "，" << "。" << "：" << "？" << "！" << "、" << "；" << "“" << "”" << "‘" << "’" << "（" << "）" << "【" << "】";// 定义一个包含常见中文标点符号的集合
+    QStringList chinesePunctuation;// 定义一个包含常见中文标点符号的集合
+    chinesePunctuation << "，" << "。" << "：" << "？" << "！" << "、" << "；" << "“" << "”" << "‘" << "’" << "（" << "）" << "【" << "】";
     for (int i = 0; i < str_.length(); ++i) {
         QChar ch = str_[i];
         // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5

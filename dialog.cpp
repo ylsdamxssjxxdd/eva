@@ -1542,7 +1542,7 @@ void Widget::create_right_menu()
         emit ui2bot_syncrate(ui_syncrate_manager);
 
         //插入任务
-        for(int i=1;i<3;++i)
+        for(int i=1;i<31;++i)
         {
             ui_syncrate_manager.sync_list_question<<jtr(QString("sync_Q%1").arg(i));
             ui_syncrate_manager.sync_list_index.append(i);
@@ -1552,9 +1552,9 @@ void Widget::create_right_menu()
         chattemplate_comboBox->setCurrentText("qwen");//默认使用qwen的提示词模板
         calculator_checkbox->setChecked(1);
         terminal_checkbox->setChecked(1);
-        toolguy_checkbox->setChecked(1);
         controller_checkbox->setChecked(1);
-        knowledge_checkbox->setChecked(1);
+        knowledge_checkbox->setChecked(0);
+        knowledge_checkbox->setChecked(1);// 刷新一下
         stablediffusion_checkbox->setChecked(1);
         interpreter_checkbox->setChecked(1);
         get_date();//获取约定中的纸面值

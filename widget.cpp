@@ -307,6 +307,7 @@ void Widget::on_send_clicked()
             else//完成同步率测试完成,没有问题剩余
             {
                 ui_state_info = "ui: 同步率测试彻底完成";
+                qDebug()<<ui_syncrate_manager.correct_list.size();
                 reflash_state(ui_state_info, SYNC_SIGNAL);
                 
                 //恢复
@@ -416,7 +417,7 @@ void Widget::on_send_clicked()
         input = ui->output->toPlainText().toUtf8().data();//直接用output上的文本进行推理
         emit ui2bot_input({"<complete>",input,"<complete>",ROLE_USER});//传递用户输入
     }
-    qDebug()<<input;
+    // qDebug()<<input;
     is_run =true;//模型正在运行标签
     ui_state_pushing();//推理中界面状态
     emit ui2bot_push();//开始推理
@@ -448,7 +449,8 @@ void Widget::recv_pushover()
     }
     else if(ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode)// 继续同步率测试
     {
-        // 检测结果
+        // 检测结果并赋分
+        SyncRateTestCheck(ui_insert_history.last().first);
 
         qDebug()<<"继续同步率测试";
         ui_syncrate_manager.sync_list_index.removeAt(0);//回答完毕删除开头的第一个问题
@@ -461,6 +463,7 @@ void Widget::recv_pushover()
     else if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)// 开始第一次同步率测试
     {
         qDebug()<<"开始同步率测试";
+        setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
         ui_syncrate_manager.is_predecode = true;
         on_send_clicked();
     }
@@ -614,7 +617,8 @@ void Widget::recv_reload()
 void Widget::recv_datereset()
 {
     //打印约定的系统指令
-    ui_state_info = "···········"+ jtr("date") + "···········";reflash_state(ui_state_info,USUAL_SIGNAL);
+    ui_state_info = "···········"+ jtr("date") + "···········";
+    reflash_state(ui_state_info,USUAL_SIGNAL);
     if(ui_state == COMPLETE_STATE)
     {
         reflash_state("· "+ jtr("complete mode") + jtr("on") +" ",USUAL_SIGNAL);
@@ -1488,3 +1492,138 @@ void Widget::recv_syncrate(Syncrate_Manager Syncrate_manager)
 {
     
 }
+
+// 检测结果并赋分
+void Widget::SyncRateTestCheck(QString assistant_history)
+{
+    func_arg_list = JSONparser(assistant_history);
+    int index = ui_syncrate_manager.sync_list_index.first();// 根据问题序号对答案
+    qDebug()<<index<<func_arg_list.first<<func_arg_list.second;
+
+    // 验证 计算器 使用
+    if(index >= 1 && index <= 5)
+    {
+        if(func_arg_list.first == "calculator")
+        {
+            if(func_arg_list.second != "")
+            {
+                QScriptEngine enging;
+                QScriptValue result_ = enging.evaluate(func_arg_list.second.remove("\""));//手动去除公式中的引号
+                QString result = QString::number(result_.toNumber());
+                if(result != "nan") // 结果不是nan说明计算成功
+                {
+                    qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                    ui_syncrate_manager.correct_list.append(index);
+                }
+                
+            }
+        }
+    }
+    // 验证 系统终端 使用
+    if(index >= 6 && index <= 10)
+    {
+        if(func_arg_list.first == "terminal")
+        {
+            if(func_arg_list.second != "")
+            {
+                if(!checkChinese(func_arg_list.second))// 不包含中文就通过
+                {
+                    qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                    ui_syncrate_manager.correct_list.append(index);
+                }
+                
+            }
+        }
+    }
+    // 验证 知识库 使用
+    if(index >= 11 && index <= 15)
+    {
+        if(func_arg_list.first == "knowledge")
+        {
+            if(func_arg_list.second != "")// 不为空就通过
+            {
+                qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                ui_syncrate_manager.correct_list.append(index);
+                
+            }
+        }
+    }
+    // 验证 软件控制台 使用
+    if(index >= 16 && index <= 20)
+    {
+        if(func_arg_list.first == "controller")
+        {
+            if(func_arg_list.second != "")
+            {
+                if( index == 16 && func_arg_list.second == 1 || // 主窗口最大化
+                    index == 17 && func_arg_list.second == 3 || // 主窗口置顶
+                    index == 18 && func_arg_list.second == 6 || // 播放音乐
+                    index == 19 && func_arg_list.second == 7 || // 关闭音乐
+                    index == 20 && func_arg_list.second == 8    // 打开增殖窗口
+                )
+                {
+                    qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                    ui_syncrate_manager.correct_list.append(index);
+                }
+                
+            }
+        }
+    }
+
+    // 验证 文生图 使用
+    if(index >= 21 && index <= 25)
+    {
+        if(func_arg_list.first == "stablediffusion")
+        {
+            if(func_arg_list.second != "")
+            {
+                if(!checkChinese(func_arg_list.second))// 不包含中文就通过
+                {
+                    qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                    ui_syncrate_manager.correct_list.append(index);
+                }
+                
+            }
+        }
+    }
+
+        // 验证 文生图 使用
+    if(index >= 26 && index <= 30)
+    {
+        if(func_arg_list.first == "interpreter")
+        {
+            if(func_arg_list.second != "")// 敢输出就是好样的
+            {
+                qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
+                reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
+                ui_syncrate_manager.correct_list.append(index);
+                
+            }
+        }
+    }
+}   
+
+//检测是否含有中文
+bool Widget::checkChinese(QString str_)
+{
+    QStringList chinesePunctuation;// 定义一个包含常见中文标点符号的集合
+    chinesePunctuation << "，" << "。" << "：" << "？" << "！" << "、" << "；" << "“" << "”" << "‘" << "’" << "（" << "）" << "【" << "】";
+    for (int i = 0; i < str_.length(); ++i) {
+        QChar ch = str_[i];
+        // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5
+        if (ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FA5) {
+            return 1;
+        }
+        // 检查当前字符是否为中文标点
+        if (chinesePunctuation.contains(str_.at(i))) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
