@@ -1,4 +1,4 @@
-# eva
+# EVA
 
 Intuitive large model application (based on llama.cpp & qt5)
 
@@ -6,7 +6,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
-## feature
+## Feature
 
 - Intuitive 👁️
 
@@ -22,7 +22,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
     local model chat, online model chat, API services, WEB services, agent, multimodal, knowledge base QA, code interpreter, software control, text2img, voice2text, model quantize, model evaluation
 ```
 
-## quick start
+## Quick start
 
 1. Download eva
 
@@ -52,7 +52,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
     - If running SD simultaneously, make sure to leave enough VRAM for SD
 
-## function
+## Function
 
 ### Two mode
 
@@ -147,6 +147,12 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
+## Auxiliary functions
+
+### Model quantification
+
+- You can right-click on the status area to pop up a proliferation window, and quantify the unquantized gguf models of fp32, fp16, and bf16 in the model quantization tab
+
 ### Debug tag
 
 - To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
@@ -159,7 +165,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - The main test model's instruction following ability, the higher the sync rate, the stronger the model 😊
 
-## build
+## Build
 
 1. Configure the environment
 
@@ -205,7 +211,7 @@ Eva will decode the system prompt in advance, and after each you clicks send, it
 stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 ```
 
-## guideline
+## Guideline
 
 - Load process
 
@@ -253,7 +259,7 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
     - [ui] -> The you can pull up the status area to pop up a debug button -> the you can open the debug button -> click send -> enter the debugging state ->send process, only decode and sample once -> click Next -> send process, only decode and sample once -> ··· -> exit the debugging state when a stop flag is detected/the maximum output length is reached/manual stop is reached -> END
 
-## concepts
+## Concepts
 
 - model: Composed of a formula and a set of parameters
 
@@ -283,7 +289,7 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
 - prob: The final selection probability of all tokens in the vocabulary in this sampling
 
-## to do
+## To do
 
 - ~~Adapt to Linux (completed)~~
 
@@ -291,7 +297,7 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
 - ~~English version (completed)~~
 
-## bugs
+## Bugs
 
 - There is a memory leak in model inference, located in the stream function of xbot.cpp, to be fixed
 
