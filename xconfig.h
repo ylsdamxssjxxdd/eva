@@ -302,7 +302,7 @@ struct Syncrate_Manager
     bool is_sync = false;// 是否在测试同步率
     bool is_predecode = false;// 是否预解码过
     QList<int> correct_list;// 通过回答的题目序号
-    int score = 0;// 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
+    float score = 0;// 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
     
     // 1-5：计算器使用，6-10：系统终端使用，11-15：知识库使用，16-20：软件控制台使用，21-25：文生图使用，26-30：代码解释器使用
     QList<int> sync_list_index;// 待完成的回答任务的索引

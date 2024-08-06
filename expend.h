@@ -227,6 +227,12 @@ public:
 public slots:
     void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);//传递记忆向量和上下文长度
 
+//-------------------------------------------------------------------------
+//----------------------------------同步率相关--------------------------------
+//-------------------------------------------------------------------------
+
+public slots:
+    void recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass);//传递同步率结果
 
 };
 #endif // EXPEND_H

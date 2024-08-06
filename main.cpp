@@ -126,6 +126,7 @@ int main(int argc, char* argv[])
     QObject::connect(&w, &Widget::cpu_reflash,&cpuer, [&cpuer]() {cpuer.start();});//强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
+    QObject::connect(&w, &Widget::ui2expend_syncrate,&expend,&Expend::recv_syncrate);//传递同步率结果
     QObject::connect(&w, &Widget::ui2expend_language,&expend,&Expend::recv_language);//传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show,&expend,&Expend::recv_expend_show);//通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_voicedecode, &expend, &Expend::recv_voicedecode);//开始语音转文字

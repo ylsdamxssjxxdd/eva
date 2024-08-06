@@ -401,6 +401,9 @@
 
         "embeddingdb_describe":["机体软件功能","EVA software functions"],
         "index":["序号","index "],
+        "task":["任务","task "],
+        "response":["回答","response "],
+        "pass":["通过","pass "],
         "sync": ["同步","sync "],
         "sync rate": ["同步率","sync rate "],
         "sync_Q1": ["计算888*999","Caculate 888*999"],

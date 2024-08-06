@@ -20,13 +20,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     ui->sd_prompt_textEdit->installEventFilter(this);//安装事件过滤器
     ui->sd_antiprompt_lineEdit->installEventFilter(this);//安装事件过滤器
 
-    ui->vocab_card->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->modellog_card->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->whisper_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->embedding_test_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->embedding_test_result->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->model_quantize_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
-    ui->sd_log->setStyleSheet("background-color: rgba(100, 140, 255, 20);");//灰色
+    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
+    ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
@@ -50,14 +50,25 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu);//添加右键菜单
     connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
 
+    //知识库相关
     ui->embedding_txt_wait->setColumnCount(1);//设置一列
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});//设置列名
     ui->embedding_txt_over->setColumnCount(1);//设置一列
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
-
     connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput);
     connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
 
+    //同步率相关
+    ui->sync_tableWidget->setColumnCount(6);//设置六列
+    ui->sync_tableWidget->setRowCount(30);//创建行
+    ui->sync_tableWidget->verticalHeader()->setVisible(false);// 隐藏行头部
+    ui->sync_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);// 充满
+
+    // 设置某几列的最大宽度
+    QHeaderView *header = ui->sync_tableWidget->horizontalHeader();// 获取水平表头
+    header->setSectionResizeMode(0, QHeaderView::Interactive);// 序号
+    header->setSectionResizeMode(3, QHeaderView::Interactive);// action_name
+    header->setSectionResizeMode(5, QHeaderView::Interactive);// pass
+    header->setMaximumSectionSize(80);
+    
     //添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
     ui->sd_sampletype->setCurrentText("euler_a");
@@ -73,7 +84,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     
     //记忆矩阵相关
     ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);//让表格自动撑满所在区域
-
+    ui->brain_tableWidget->verticalHeader()->setVisible(false);// 隐藏行头部
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 
@@ -146,6 +157,7 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(5,jtr("text2image"));//文生图
     ui->tabWidget->setTabText(6,jtr("voice2text"));//声转文
     ui->tabWidget->setTabText(7,jtr("text2voice"));//文转声
+    ui->tabWidget->setTabText(8,jtr("sync rate"));//同步率
 
     //大量的工作...来写吧
     //模型记忆
@@ -219,6 +231,17 @@ void Expend::init_expend()
     ui->whisper_format_label->setText(jtr("format"));
     ui->whisper_execute_pushbutton->setText(jtr("convert"));
 
+    //同步率
+    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("index"),jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
+    //插入任务列表
+    for(int i=1;i<31;++i)
+    {
+        QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));
+        ui->sync_tableWidget->setItem(i - 1, 0, newItem1);
+
+        QTableWidgetItem *newItem2 = new QTableWidgetItem(jtr(QString("sync_Q%1").arg(i)));
+        ui->sync_tableWidget->setItem(i - 1, 1, newItem2);
+    }
 }
 
 //用户切换选项卡时响应
@@ -630,6 +653,8 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
     server_process->kill();// 终止server
     Embedding_DB.clear();// 清空向量数据库
     ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
+    ui->embedding_txt_over->setRowCount(0);//设置已嵌入文本段表格为0行
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
     // 清空表格
     currentpath= customOpenfile(currentpath,jtr("select embedding model"),"(*.bin *.gguf)");
     embedding_params.modelpath = currentpath;
@@ -1197,6 +1222,8 @@ void Expend::on_embedding_txt_api_lineedit_textChanged()
         server_process->kill();// 终止server
         Embedding_DB.clear();// 清空向量数据库
         ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
+        ui->embedding_txt_over->setRowCount(0);//设置已嵌入文本段表格为0行
+        ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
     }
     
     emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());//传递嵌入服务端点
@@ -1900,4 +1927,62 @@ void Expend::reflash_brain_matrix()
         ui->brain_tableWidget->scrollToItem(lastItem);
     }
     
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------同步率相关--------------------------------
+//-------------------------------------------------------------------------
+
+//传递同步率结果
+void Expend::recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass)
+{
+    QColor BackgroundColor;
+    if(pass)
+    {
+        BackgroundColor.setRgba(qRgba(255, 165, 0, 255));// 设置单元格背景颜色,橘黄色
+    }
+    else
+    {
+        BackgroundColor.setRgba(qRgba(128, 128, 128, 250));// 设置单元格背景颜色,灰色
+    }
+
+    // 序号
+    QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(index));
+    newItem1->setBackground(BackgroundColor); 
+    ui->sync_tableWidget->setItem(index - 1, 0, newItem1);
+
+    // 任务
+    QTableWidgetItem *newItem2 = new QTableWidgetItem(task);
+    newItem2->setBackground(BackgroundColor);
+    ui->sync_tableWidget->setItem(index - 1, 1, newItem2);
+
+    // 回答
+    QTableWidgetItem *newItem3 = new QTableWidgetItem(response);
+    newItem3->setBackground(BackgroundColor);
+    ui->sync_tableWidget->setItem(index - 1, 2, newItem3);
+
+    // action_name
+    QTableWidgetItem *newItem4 = new QTableWidgetItem(action_name);
+    newItem4->setBackground(BackgroundColor);
+    ui->sync_tableWidget->setItem(index - 1, 3, newItem4);
+
+    // action_input
+    QTableWidgetItem *newItem5 = new QTableWidgetItem(action_input);
+    newItem5->setBackground(BackgroundColor);
+    ui->sync_tableWidget->setItem(index - 1, 4, newItem5);
+
+    // pass
+    QTableWidgetItem *newItem6 = new QTableWidgetItem("√");
+    if(pass)
+    {
+        newItem6 = new QTableWidgetItem("√");
+    }
+    else
+    {
+        newItem6 = new QTableWidgetItem("");
+    }
+    newItem6->setBackground(BackgroundColor); // 设置单元格背景颜色,橘黄色
+    ui->sync_tableWidget->setItem(index - 1, 5, newItem6);
+
+    ui->sync_tableWidget->scrollToItem(newItem6, QAbstractItemView::PositionAtBottom);// 滚动到新添加的行
 }

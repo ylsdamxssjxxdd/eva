@@ -124,7 +124,7 @@ public:
 
     //同步率测试相关
     Syncrate_Manager ui_syncrate_manager;//同步率测试管理器
-    void SyncRateTestCheck(QString assistant_history);// 检测结果并赋分
+    bool SyncRateTestCheck(QString assistant_history);// 检测结果并赋分
     bool checkChinese(QString str_);//检测是否含有中文
 
     //模型控制相关
@@ -361,6 +361,7 @@ signals:
     void ui2tool_func_arg(QPair<QString, QString> func_arg_list);//传递函数名和参数
     void recv_controller_over(QString result);
 //发送给expend的信号
+    void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass);
     void ui2expend_language(int language_flag_);//传递使用的语言
     void ui2expend_show(int index_);//通知显示扩展窗口
     void ui2expend_voicedecode(QString wavpath, QString out_format);//传一个wav文件开始解码

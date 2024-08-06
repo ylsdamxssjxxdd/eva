@@ -306,9 +306,11 @@ void Widget::on_send_clicked()
             }
             else//完成同步率测试完成,没有问题剩余
             {
-                ui_state_info = "ui: 同步率测试彻底完成";
-                qDebug()<<ui_syncrate_manager.correct_list.size();
-                reflash_state(ui_state_info, SYNC_SIGNAL);
+                ui_syncrate_manager.score = float(ui_syncrate_manager.correct_list.size()) * 3.3;
+                if(ui_syncrate_manager.correct_list.size() == 30){ui_syncrate_manager.score = 400;}//当达到满分时为最高同步率400%
+                qDebug()<<"correct_list.size()"<<ui_syncrate_manager.correct_list.size();
+                reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
+                reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
                 
                 //恢复
                 decode_pTimer->stop();
@@ -451,8 +453,7 @@ void Widget::recv_pushover()
     {
         // 检测结果并赋分
         SyncRateTestCheck(ui_insert_history.last().first);
-
-        qDebug()<<"继续同步率测试";
+        // qDebug()<<"继续同步率测试";
         ui_syncrate_manager.sync_list_index.removeAt(0);//回答完毕删除开头的第一个问题
         if(ui_syncrate_manager.sync_list_index.size() == 0)
         {
@@ -462,8 +463,9 @@ void Widget::recv_pushover()
     }
     else if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)// 开始第一次同步率测试
     {
-        qDebug()<<"开始同步率测试";
-        setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
+        // qDebug()<<"开始同步率测试";
+        // setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
+        emit ui2expend_show(8);// 打开同步率选项卡
         ui_syncrate_manager.is_predecode = true;
         on_send_clicked();
     }
@@ -1494,10 +1496,11 @@ void Widget::recv_syncrate(Syncrate_Manager Syncrate_manager)
 }
 
 // 检测结果并赋分
-void Widget::SyncRateTestCheck(QString assistant_history)
+bool Widget::SyncRateTestCheck(QString assistant_history)
 {
     func_arg_list = JSONparser(assistant_history);
     int index = ui_syncrate_manager.sync_list_index.first();// 根据问题序号对答案
+    bool pass = false;
     qDebug()<<index<<func_arg_list.first<<func_arg_list.second;
 
     // 验证 计算器 使用
@@ -1515,6 +1518,7 @@ void Widget::SyncRateTestCheck(QString assistant_history)
                     qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                     ui_syncrate_manager.correct_list.append(index);
+                    pass = true;
                 }
                 
             }
@@ -1532,6 +1536,7 @@ void Widget::SyncRateTestCheck(QString assistant_history)
                     qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                     ui_syncrate_manager.correct_list.append(index);
+                    pass = true;
                 }
                 
             }
@@ -1547,6 +1552,7 @@ void Widget::SyncRateTestCheck(QString assistant_history)
                 qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                 reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                 ui_syncrate_manager.correct_list.append(index);
+                pass = true;
                 
             }
         }
@@ -1558,16 +1564,17 @@ void Widget::SyncRateTestCheck(QString assistant_history)
         {
             if(func_arg_list.second != "")
             {
-                if( index == 16 && func_arg_list.second == 1 || // 主窗口最大化
-                    index == 17 && func_arg_list.second == 3 || // 主窗口置顶
-                    index == 18 && func_arg_list.second == 6 || // 播放音乐
-                    index == 19 && func_arg_list.second == 7 || // 关闭音乐
-                    index == 20 && func_arg_list.second == 8    // 打开增殖窗口
+                if( index == 16 && func_arg_list.second == "1" || // 主窗口最大化
+                    index == 17 && func_arg_list.second == "3" || // 主窗口置顶
+                    index == 18 && func_arg_list.second == "6" || // 播放音乐
+                    index == 19 && func_arg_list.second == "7" || // 关闭音乐
+                    index == 20 && func_arg_list.second == "8"    // 打开增殖窗口
                 )
                 {
                     qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                     ui_syncrate_manager.correct_list.append(index);
+                    pass = true;
                 }
                 
             }
@@ -1586,13 +1593,14 @@ void Widget::SyncRateTestCheck(QString assistant_history)
                     qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                     ui_syncrate_manager.correct_list.append(index);
+                    pass = true;
                 }
                 
             }
         }
     }
 
-        // 验证 文生图 使用
+    // 验证 代码解释器 使用
     if(index >= 26 && index <= 30)
     {
         if(func_arg_list.first == "interpreter")
@@ -1602,10 +1610,14 @@ void Widget::SyncRateTestCheck(QString assistant_history)
                 qDebug()<<"ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                 reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
                 ui_syncrate_manager.correct_list.append(index);
-                
+                pass = true;
             }
         }
     }
+
+    emit ui2expend_syncrate(index, ui_syncrate_manager.sync_list_question.at(index - 1), ui_insert_history.last().first, func_arg_list.first, func_arg_list.second, pass);
+    
+    return pass;
 }   
 
 //检测是否含有中文
