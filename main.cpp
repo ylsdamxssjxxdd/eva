@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
     expend.set_sys_voice(w.sys_voice_list);// 设置可用系统声源
-    if(w.language_flag==1){expend.init_expend();}//系统语言为英语时更新一次expend界面
+    expend.init_expend();//更新一次expend界面
 #ifdef BODY_USE_GPU
     gpuChecker gpuer;//监测显卡信息
 #endif
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb,&tool,&xTool::recv_embeddingdb);//传递已嵌入文本段数据
-    QObject::connect(&expend, &Expend::expend2tool_serverapi,&tool,&xTool::recv_serverapi);//传递嵌入服务端点
+    QObject::connect(&expend, &Expend::expend2tool_embedding_serverapi,&tool,&xTool::recv_embedding_serverapi);//传递嵌入服务端点
 
     QObject::connect(&tool,&xTool::tool2expend_draw,&expend,&Expend::recv_draw);//开始绘制图像
     QObject::connect(&expend,&Expend::expend2tool_drawover,&tool,&xTool::recv_drawover);//图像绘制完成

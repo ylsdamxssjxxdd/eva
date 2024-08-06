@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>4</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -754,6 +754,50 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
+           <widget class="QLabel" name="embedding_dim_label">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>嵌入维度</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="embedding_dim_spinBox">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="minimum">
+             <number>1024</number>
+            </property>
+            <property name="maximum">
+             <number>4096</number>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLabel" name="embedding_endpoint_label">
             <property name="minimumSize">
              <size>
@@ -1187,7 +1231,7 @@ p, li { white-space: pre-wrap; }
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>140</height>
+           <height>150</height>
           </size>
          </property>
          <property name="frameShape">
@@ -1225,7 +1269,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="maximumSize">
              <size>
-              <width>1000</width>
+              <width>250</width>
               <height>125</height>
              </size>
             </property>
@@ -1354,7 +1398,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="maximumSize">
              <size>
-              <width>250</width>
+              <width>1000</width>
               <height>125</height>
              </size>
             </property>

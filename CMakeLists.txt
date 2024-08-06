@@ -201,13 +201,14 @@ if(MSVC)
             )
     endif()
 
-    # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
-    add_custom_command(TARGET ${TARGET} POST_BUILD
+    if(BODY_PACK)
+        # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
+        add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
         COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
         COMMENT "custom Removing ..."
-    )
-    if(BODY_PACK)
+        )
+
         # 使用winrar打包cuda版本的eva.exe为一个自解压程序，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令

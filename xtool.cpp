@@ -239,6 +239,7 @@ QString xTool::embedding_query_process(QString query_str)
             if(dataObj.contains("embedding"))
             {
                 QJsonArray embeddingArray = dataObj["embedding"].toArray();
+                query_embedding_vector.value.resize(embedding_server_dim);
                 // 处理"embedding"数组
                 for(int j = 0; j < embeddingArray.size(); ++j)
                 {
@@ -304,10 +305,15 @@ QString xTool::getFirstNonLoopbackIPv4Address()
 }
 
 // 计算两个向量的余弦相似度，A向量点积B向量除以(A模乘B模)
-double xTool::cosine_similarity_1024(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
+double xTool::cosine_similarity_1024(const std::vector<double>& a, const std::vector<double>& b)
 {
+    // 确保两个向量维度相同
+    if (a.size() != b.size()) {
+        throw std::invalid_argument("Vectors must be of the same length");
+    }
+
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < 1024; ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
         dot_product += a[i] * b[i];
         norm_a += a[i] * a[i];
         norm_b += b[i] * b[i];
@@ -316,7 +322,7 @@ double xTool::cosine_similarity_1024(const std::array<double, 1024>& a, const st
 }
 
 // 计算user_vector与Embedding_DB中每个元素的相似度，并返回得分最高的3个索引
-std::vector<std::pair<int, double>> xTool::similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB)
+std::vector<std::pair<int, double>> xTool::similar_indices(const std::vector<double>& user_vector, const QVector<Embedding_vector>& embedding_DB)
 {
     std::vector<std::pair<int, double>> scores; // 存储每个索引和其相应的相似度得分
 
@@ -342,10 +348,11 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
     emit tool2ui_state("tool:" +  jtr("Received embedded text segment data"),USUAL_SIGNAL);
 }
 
-//传递嵌入服务端点
-void xTool::recv_serverapi(QString serverapi)
+//传递嵌入服务端点和嵌入维度
+void xTool::recv_embedding_serverapi(QString serverapi, int dim)
 {
     embedding_server_api = serverapi;
+    embedding_server_dim = dim;//开启嵌入服务的嵌入维度
 }
 
 //接收图像绘制完成信号

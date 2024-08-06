@@ -115,28 +115,30 @@ private slots:
 //-------------------------------------------------------------------------
 public:
     Embedding_Params embedding_params;
-    bool embedding_need = false;//下一次打开是否需要自动构建知识库
-    bool embedding_need_auto = false;//下一次打开是否需要自启动嵌入服务
+    bool embedding_need = false;// 下一次打开是否需要自动构建知识库
+    bool embedding_need_auto = false;// 下一次打开是否需要自启动嵌入服务
+    bool keep_embedding_server = false;// 确保嵌入服务不会因为刚启动就停止
     QProcess *server_process;
     QString ipAddress = "";
     QString embedding_server_api = "";
     QString getFirstNonLoopbackIPv4Address();
     void embedding_server_start();//尝试启动server
     QString txtpath;//用户上传的txt文件路径
-    int embedding_server_n_embd = 1024;//开启嵌入服务的嵌入维度
+    int embedding_server_dim = 1024;//开启嵌入服务的嵌入维度
     void preprocessTXT();//预处理文件内容
     int show_chunk_index = 0;//待显示的嵌入文本段的序号
     QVector<Embedding_vector> Embedding_DB;//嵌入的所有文本段的词向量，向量数据库
     Embedding_vector user_embedding_vector;
-    double cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b);
-    std::vector<std::pair<int, double>> similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB);
+    double cosine_similarity(const std::vector<double>& a, const std::vector<double>& b);
+    std::vector<std::pair<int, double>> similar_indices(const std::vector<double>& user_vector, const QVector<Embedding_vector>& embedding_DB);
     void embedding_processing();//知识库构建过程
 signals:
     void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);//发送已嵌入文本段数据给tool
     void expend2ui_embeddingdb_describe(QString describe);//传递知识库的描述
-    void expend2tool_serverip(QString serverip);//传递嵌入服务地址
-    void expend2tool_serverapi(QString serverapi);//传递嵌入服务端点
+    void expend2tool_embedding_serverapi(QString serverapi, int dim);//传递嵌入服务端点
 public slots:
+    void readyRead_server_process_StandardOutput();
+    void readyRead_server_process_StandardError();
     void server_onProcessStarted();//进程开始响应
     void server_onProcessFinished();//进程结束响应
 private slots:
@@ -148,6 +150,7 @@ private slots:
     void on_embedding_txt_embedding_clicked();//用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();//用户点击检索时响应
     void on_embedding_txt_api_lineedit_textChanged();//嵌入端点改变响应
+    void on_embedding_dim_spinBox_textChanged();//嵌入维度改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();//知识库描述改变响应
 
 //-------------------------------------------------------------------------

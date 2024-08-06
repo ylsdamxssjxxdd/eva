@@ -242,11 +242,12 @@ struct Embedding_Params
 {
     QString modelpath="";
 };
+
 // 定义一个结构体来存储索引和值
 struct Embedding_vector {
-    int index;//用于排序的序号，在表格中的位置
+    int index; // 用于排序的序号，在表格中的位置
     QString chunk;
-    std::array<double, 1024> value; // 最高支持1024维向量
+    std::vector<double> value; // 支持任意维度向量
 };
 
 //量化方法说明数据结构

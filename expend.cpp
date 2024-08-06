@@ -51,11 +51,12 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
 
     ui->embedding_txt_wait->setColumnCount(1);//设置一列
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{"待嵌入文本段"});//设置列名
-
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});//设置列名
     ui->embedding_txt_over->setColumnCount(1);//设置一列
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{"已嵌入文本段"});//设置列名
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
 
+    connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput);
+    connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
 
     //添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
@@ -166,7 +167,10 @@ void Expend::init_expend()
     ui->model_quantize_execute->setText(jtr("execute quantize"));
     ui->quantize_log_groupBox->setTitle("llama-quantize " + jtr("execute log"));
     //知识库
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});//设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});//设置列名
     ui->embedding_endpoint_label->setText(jtr("embd api"));
+    ui->embedding_dim_label->setText(jtr("embd dim"));
     ui->embedding_txt_api_lineedit->setPlaceholderText(jtr("embedding_txt_api_lineedit_placeholder"));
     ui->embedding_split_label->setText(jtr("split length"));
     ui->embedding_overlap_label->setText(jtr("overlap length"));
@@ -377,11 +381,12 @@ void Expend::readConfig()
             }
         }
 
-        //知识库
+        //知识库，在main.cpp里有启动的部分
         ui->embedding_txt_api_lineedit->setText(settings.value("embedding_endpoint","").toString());//如果模型不存在则直接使用端点
         ui->embedding_txt_describe_lineEdit->setText(settings.value("embedding_describe", "").toString());//知识库描述
         ui->embedding_split_spinbox->setValue(settings.value("embedding_split", 300).toInt());
         ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", 50).toInt());
+        ui->embedding_dim_spinBox->setValue(settings.value("embedding_dim", 1024).toInt());
 
         QString embedding_sourcetxt = settings.value("embedding_sourcetxt", "").toString();//源文档路径
         QFile embedding_sourcetxt_file(embedding_sourcetxt);
@@ -489,6 +494,7 @@ void Expend::closeEvent(QCloseEvent *event)
 
     settings.setValue("embedding_modelpath",embedding_params.modelpath);
     settings.setValue("embedding_endpoint",ui->embedding_txt_api_lineedit->text());//如果模型不存在则直接使用端点
+    settings.setValue("embedding_dim",ui->embedding_dim_spinBox->text());
     if(embedding_need)
     {
         if(ui->embedding_txt_api_lineedit->text() == "")//如果用户删除了嵌入端点的内容则不自动嵌入
@@ -621,13 +627,16 @@ void Expend::on_whisper_execute_pushbutton_clicked()
 //用户点击选择嵌入模型路径时响应
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
-    server_process->kill();//终止server
+    server_process->kill();// 终止server
+    Embedding_DB.clear();// 清空向量数据库
+    ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
+    // 清空表格
     currentpath= customOpenfile(currentpath,jtr("select embedding model"),"(*.bin *.gguf)");
     embedding_params.modelpath = currentpath;
     if(embedding_params.modelpath==""){return;}
 
-    //尝试启动服务
-    embedding_server_start();
+    //100 ms后尝试启动服务, 因为要等待server_process->kill()
+    QTimer::singleShot(100, this, &Expend::embedding_server_start);
 }
 
 // 尝试启动server
@@ -656,52 +665,55 @@ void Expend::embedding_server_start()
 
     //连接信号和槽,获取程序的输出
     ipAddress = getFirstNonLoopbackIPv4Address();
+}
 
-    connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
-        QString server_output = server_process->readAllStandardOutput();
-        QString log_output;
-        //qDebug()<<server_output;
-        //启动成功的标志
-        if(server_output.contains(SERVER_START))
-        {
-            
-            embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
-            ui->embedding_txt_api_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
-            log_output += jtr("embedding") + jtr("service startup completed") + "\n";
-            log_output += jtr("embedding") + jtr("endpoint") + " " + embedding_server_api;
-            if(embedding_server_n_embd!=1024)
-            {
-                log_output += "\n" + jtr("embedding dimension") + ": " +QString::number(embedding_server_n_embd) + " " + jtr("does not meet the requirements, please replace the model") +"\n";
-            }
-            else
-            {
-                log_output += "\n" + jtr("embedding dimension") + ": " +QString::number(embedding_server_n_embd);
-            }
-            
-        }//替换ip地址
-        ui->embedding_test_log->appendPlainText(log_output);
+// 获取server_process日志输出
+void Expend::readyRead_server_process_StandardOutput()
+{
+    QString server_output = server_process->readAllStandardOutput();
+    QString log_output;
+    // qDebug()<<server_output;
+    //启动成功的标志
+    if(server_output.contains(SERVER_START))
+    {
+        keep_embedding_server = true;
+        embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
+        ui->embedding_txt_api_lineedit->setText(embedding_server_api);//启动成功后将端点地址写进去
+        keep_embedding_server = false;
+        log_output += jtr("embedding") + jtr("service startup completed") + "\n";
+        log_output += jtr("embd api") + ": " + embedding_server_api;
+        log_output += "\n" + jtr("embd dim") + ": " +QString::number(embedding_server_dim);
         
-    });    
-    connect(server_process, &QProcess::readyReadStandardError, [=]() {
-        QString server_output = server_process->readAllStandardError();
-        //qDebug()<<server_output;
-        if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
-        if(server_output.contains(LLM_EMBD))
+    }//替换ip地址
+    if(log_output != "")
+    {
+        ui->embedding_test_log->appendPlainText(log_output);
+    }
+}
+
+// 获取server_process日志输出
+void Expend::readyRead_server_process_StandardError()
+{
+    QString server_output = server_process->readAllStandardError();
+    //qDebug()<<server_output;
+    if(server_output.contains("0.0.0.0")){server_output.replace("0.0.0.0", ipAddress);}//替换ip地址
+    if(server_output.contains(LLM_EMBD))
+    {
+        embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\r\n").at(0).toInt();
+        ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+        if(embedding_need_auto)//用来自动构建知识库
         {
-            embedding_server_n_embd = server_output.split(LLM_EMBD).at(1).split("\r\n").at(0).toInt();
-        }//截获n_embd嵌入维度
-    });
+            embedding_need_auto = false;
+            embedding_processing();//执行嵌入
+            emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());//传递嵌入服务端点
+        }
+    }//截获n_embd嵌入维度
 }
 
 //进程开始响应
 void Expend::server_onProcessStarted()
 {
-    if(embedding_need_auto)//用来自动构建知识库
-    {
-        embedding_need_auto = false;
-        embedding_processing();//执行嵌入
-        emit expend2tool_serverapi(ui->embedding_txt_api_lineedit->text());//传递嵌入服务端点
-    }
+    
 }
 
 //进程结束响应
@@ -831,7 +843,8 @@ void Expend::embedding_txt_wait_onDelete()
     }
 }
 
-//用户点击嵌入时响应---------------构建知识库------------------
+//---------------构建知识库------------------
+//用户点击嵌入时响应
 void Expend::on_embedding_txt_embedding_clicked()
 {
     embedding_processing();
@@ -883,12 +896,14 @@ void Expend::on_embedding_test_pushButton_clicked()
             if(dataObj.contains("embedding"))
             {
                 QJsonArray embeddingArray = dataObj["embedding"].toArray();
+                user_embedding_vector.value.resize(ui->embedding_dim_spinBox->value());// 分配空间
                 // 处理"embedding"数组
                 for(int j = 0; j < embeddingArray.size(); ++j)
                 {
                     user_embedding_vector.value[j] = embeddingArray[j].toDouble();
                     vector_str += QString::number(user_embedding_vector.value[j],'f',4)+", ";
                 }
+                
             }
         }
         vector_str += "]";
@@ -936,19 +951,25 @@ void Expend::on_embedding_test_pushButton_clicked()
 }
 
 // 计算两个向量的余弦相似度
-double Expend::cosine_similarity(const std::array<double, 1024>& a, const std::array<double, 1024>& b)
+double Expend::cosine_similarity(const std::vector<double>& a, const std::vector<double>& b)
 {
+    // 确保两个向量维度相同
+    if (a.size() != b.size()) {
+        throw std::invalid_argument("Vectors must be of the same length");
+    }
+
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < 1024; ++i) {
+    for (size_t i = 0; i < a.size(); ++i) {
         dot_product += a[i] * b[i];
         norm_a += a[i] * a[i];
         norm_b += b[i] * b[i];
     }
+
     return dot_product / (sqrt(norm_a) * sqrt(norm_b));
 }
 
 // 计算user_vector与Embedding_DB中每个元素的相似度，并返回得分最高的3个索引
-std::vector<std::pair<int, double>> Expend::similar_indices(const std::array<double, 1024>& user_vector, const QVector<Embedding_vector>& embedding_DB)
+std::vector<std::pair<int, double>> Expend::similar_indices(const std::vector<double>& user_vector, const QVector<Embedding_vector>& embedding_DB)
 {
     std::vector<std::pair<int, double>> scores; // 存储每个索引和其相应的相似度得分
 
@@ -997,8 +1018,23 @@ void Expend::embedding_processing()
             {
                 if(Embedding_DB.at(i).chunk == item->text())
                 {
-                    remove_flag = false;
-                    current_index_table = j;
+                    bool already_save = false;
+                     
+                    // 若已经保留则不保留
+                    for(int k = 0; k < new_Embedding_DB.size(); ++k)
+                    {
+                        if(new_Embedding_DB.at(k).chunk == item->text())
+                        {
+                            already_save = true;
+                        }
+                    }
+
+                    if(!already_save)
+                    {
+                        remove_flag = false;
+                        current_index_table = j;  
+                    }
+
                 }
             }
         }
@@ -1007,7 +1043,7 @@ void Expend::embedding_processing()
             new_Embedding_DB.append(Embedding_DB.at(i));
             new_Embedding_DB.last().index = current_index_table;
             save_list.append(current_index_table);
-            //qDebug()<<"保留的"<<i<<Embedding_DB.at(i).chunk;
+            // qDebug()<<"保留的"<<i<<Embedding_DB.at(i).chunk;
         }
     }
     Embedding_DB.clear();
@@ -1031,7 +1067,7 @@ void Expend::embedding_processing()
     std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector& a, const Embedding_vector& b) {
         return a.index < b.index;
     });
-
+    
     //进行嵌入工作,发送ready_embedding_chunks给llama-server
     //测试v1/embedding端点
     QElapsedTimer time;time.start();
@@ -1091,17 +1127,21 @@ void Expend::embedding_processing()
                 if(dataObj.contains("embedding"))
                 {
                     QJsonArray embeddingArray = dataObj["embedding"].toArray();
+                    Embedding_DB[o].value.resize(ui->embedding_dim_spinBox->value());// 分配空间
                     // 处理"embedding"数组
                     for(int j = 0; j < embeddingArray.size(); ++j)
                     {
                         Embedding_DB[o].value[j] = embeddingArray[j].toDouble();
                         vector_str += QString::number(Embedding_DB[o].value[j],'f',4)+", ";
                     }
+                    
                 }
             }
             vector_str += "]";
             QString message = QString::number(Embedding_DB.at(o).index+1) + " " + jtr("Number text segment embedding over") +"! "+ jtr("dimension") + ": "+QString::number(Embedding_DB.at(o).value.size()) + " " + jtr("word vector") + ": " + vector_str;
             ui->embedding_test_log->appendPlainText(message);
+            ui->embedding_test_log->verticalScrollBar()->setValue(ui->embedding_test_log->verticalScrollBar()->maximum());//滚动条滚动到最下面
+            ui->embedding_test_log->horizontalScrollBar()->setValue(ui->embedding_test_log->horizontalScrollBar()->minimum());// 水平滚动条滚动到最左边
             emit expend2ui_state("expend:" + message, USUAL_SIGNAL);
         });
         // 完成
@@ -1126,6 +1166,7 @@ void Expend::embedding_processing()
             {
                 // 请求出错
                 ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
+                embedding_need = false;
             }
 
             reply->abort();//终止
@@ -1151,8 +1192,22 @@ void Expend::embedding_processing()
 //嵌入服务端点改变响应
 void Expend::on_embedding_txt_api_lineedit_textChanged()
 {
-    emit expend2tool_serverapi(ui->embedding_txt_api_lineedit->text());//传递嵌入服务端点
+    if(!keep_embedding_server)
+    {
+        server_process->kill();// 终止server
+        Embedding_DB.clear();// 清空向量数据库
+        ui->embedding_txt_over->clear();//清空已嵌入文本段表格内容
+    }
+    
+    emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());//传递嵌入服务端点
 }
+
+//嵌入服务端点改变响应
+void Expend::on_embedding_dim_spinBox_textChanged()
+{
+    emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());//传递嵌入服务端点
+}
+
 //知识库描述改变响应
 void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 {
@@ -1255,6 +1310,7 @@ void Expend::show_quantize_types()
     // 默认的量化级别
     ui->model_quantize_type->setCurrentText("Q5_K_M");
 }
+
 // 根据待量化模型路径和量化方法填入量化后模型路径
 void Expend::output_modelpath_change()
 {

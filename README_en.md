@@ -129,7 +129,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - Requirement: you need to upload documents and build a knowledge base in the proliferation window first
 
-    - Example: What are the functions of the eva?
+    - Example: What are the functions of the EVA?
 
     - Difficulty of calling: ⭐⭐
 
