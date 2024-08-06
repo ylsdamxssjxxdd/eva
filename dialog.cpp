@@ -1547,7 +1547,12 @@ void Widget::create_right_menu()
             ui_syncrate_manager.sync_list_question<<jtr(QString("sync_Q%1").arg(i));
             ui_syncrate_manager.sync_list_index.append(i);
         }
-        
+
+        //强制取消debug模式
+        is_debug = false;
+        is_debuging = false;
+        debugButton->setChecked(0);
+
         // 自动约定，挂载所有工具
         chattemplate_comboBox->setCurrentText("qwen");//默认使用qwen的提示词模板
         calculator_checkbox->setChecked(1);
