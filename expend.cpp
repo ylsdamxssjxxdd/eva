@@ -1932,6 +1932,8 @@ void Expend::recv_syncrate(int index, QString task, QString response, QString ac
     if(index == 1)
     {
         init_syncrate();
+        ui->sync_plainTextEdit->clearWaterWave();// 清空水波
+        ui->sync_plainTextEdit->startWaveAnimation();// 开始水波动画
     }
 
     ui->sync_plainTextEdit->setPlainText(jtr("syncrate_describe") + jtr("current") + jtr("sync rate") + ": " + QString::number(score) + "%");

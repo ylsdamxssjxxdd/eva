@@ -2828,7 +2828,7 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_7">
        <item>
-        <widget class="QPlainTextEdit" name="sync_plainTextEdit">
+        <widget class="WaterWavePlainTextEdit" name="sync_plainTextEdit">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -2860,6 +2860,11 @@ p, li { white-space: pre-wrap; }
    <class>CustomQPlainTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>utils/customqplaintextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>WaterWavePlainTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>utils/waterwaveplaintextedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
