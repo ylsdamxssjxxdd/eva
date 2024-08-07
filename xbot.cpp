@@ -742,8 +742,9 @@ void xBot::load(std::string &modelpath)
     emit bot2ui_play();//播放动画
 
     //装载模型
-    std::tie(model, ctx) = llama_init_from_gpt_params(gpt_params_);//同时获取model和ctx
-    
+    llama_init_result llama_init = llama_init_from_gpt_params(gpt_params_);
+    model = llama_init.model;
+    ctx = llama_init.context;
     // //看看可以打印的关于模型信息
     // for(int i = 0;i<llama_model_meta_count(model);++i)
     // {
