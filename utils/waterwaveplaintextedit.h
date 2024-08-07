@@ -11,8 +11,9 @@ class WaterWavePlainTextEdit : public QPlainTextEdit {
     Q_OBJECT
 
 public:
-    WaterWavePlainTextEdit(QWidget *parent = nullptr) 
-        : QPlainTextEdit(parent), m_waveHeight(0), m_targetWaveOffset(0), m_animationRunning(false) {
+    WaterWavePlainTextEdit(QWidget *parent = nullptr)
+        : QPlainTextEdit(parent), m_waveHeight(0), m_targetWaveOffset(0),
+          m_animationRunning(false), m_waveDirectionUp(true), m_maxWaveHeight(0) {
         setAttribute(Qt::WA_OpaquePaintEvent);
         std::srand(std::time(nullptr));  // Initialize random seed
     }
@@ -20,6 +21,7 @@ public:
     void startWaveAnimation() {
         if (!m_animationRunning) {
             m_animationRunning = true;
+            m_maxWaveHeight = viewport()->height();  // Set maximum wave height to the viewport height
             m_timerId = startTimer(16);  // Increase frequency to 60 FPS (every 16ms)
         }
     }
@@ -55,9 +57,19 @@ protected:
         Q_UNUSED(event);
         if (!m_animationRunning) return;
 
-        // Increase wave height gradually until it fills the viewport
-        if (m_waveHeight < viewport()->height()) {
-            m_waveHeight += 0.05;  // Smaller increment for smoother rising
+        // Adjust wave height based on the direction
+        if (m_waveDirectionUp) {
+            if (m_waveHeight < m_maxWaveHeight) {
+                m_waveHeight += 0.1;  // Smaller increment for smoother rising
+            } else {
+                m_waveDirectionUp = false;  // Change direction when reaching the maximum height
+            }
+        } else {
+            if (m_waveHeight > m_maxWaveHeight - 10) {
+                m_waveHeight -= 0.1;  // Decrease wave height
+            } else {
+                m_waveDirectionUp = true;  // Change direction when reaching 10 pixels below the maximum height
+            }
         }
 
         // Gradually adjust wave offset towards the target offset
@@ -100,5 +112,7 @@ private:
     double m_waveOffset = 0;  // Offset to create left-right height difference
     double m_targetWaveOffset;  // Target offset for smooth transition
     bool m_animationRunning;  // Whether the animation is running
+    bool m_waveDirectionUp;  // Direction of the wave motion
     int m_timerId;  // Timer ID for controlling the animation
+    double m_maxWaveHeight;  // Maximum wave height
 };
