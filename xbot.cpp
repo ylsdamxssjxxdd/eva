@@ -321,6 +321,26 @@ int xBot::stream()
         }
 
         //------------------------------推理-----------------------------------
+        if (llama_model_has_encoder(model)) 
+        {
+            int enc_input_size = embd_inp.size();
+            llama_token * enc_input_buf = embd_inp.data();
+
+            if (llama_encode(ctx, llama_batch_get_one(enc_input_buf, enc_input_size, 0, 0))) 
+            {
+                emit bot2ui_state("bot: failed to eval in encoder",EVA_SIGNAL);
+                return 0;
+            }
+
+            llama_token decoder_start_token_id = llama_model_decoder_start_token(model);
+            if (decoder_start_token_id == -1) {
+                decoder_start_token_id = llama_token_bos(model);
+            }
+
+            embd_inp.clear();
+            embd_inp.push_back(decoder_start_token_id);
+        }
+        
         if (!embd.empty())
         {
             //输入的上下文长度超过阈值直接截断
