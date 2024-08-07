@@ -306,8 +306,6 @@ void Widget::on_send_clicked()
             }
             else//完成同步率测试完成,没有问题剩余
             {
-                ui_syncrate_manager.score = float(ui_syncrate_manager.correct_list.size()) * 3.3;
-                if(ui_syncrate_manager.correct_list.size() == 30){ui_syncrate_manager.score = 400;}//当达到满分时为最高同步率400%
                 qDebug()<<"correct_list.size()"<<ui_syncrate_manager.correct_list.size();
                 reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
                 reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
@@ -464,7 +462,7 @@ void Widget::recv_pushover()
     else if(ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)// 开始第一次同步率测试
     {
         // qDebug()<<"开始同步率测试";
-        // setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
+        setWindowState(windowState() | Qt::WindowMaximized);//设置窗口最大化
         emit ui2expend_show(8);// 打开同步率选项卡
         ui_syncrate_manager.is_predecode = true;
         on_send_clicked();
@@ -1615,7 +1613,10 @@ bool Widget::SyncRateTestCheck(QString assistant_history)
         }
     }
 
-    emit ui2expend_syncrate(index, ui_syncrate_manager.sync_list_question.at(index - 1), ui_insert_history.last().first, func_arg_list.first, func_arg_list.second, pass);
+    ui_syncrate_manager.score = float(ui_syncrate_manager.correct_list.size()) * 3.3;
+    if(ui_syncrate_manager.correct_list.size() == 30){ui_syncrate_manager.score = 400;}//当达到满分时为最高同步率400%
+
+    emit ui2expend_syncrate(index, ui_syncrate_manager.sync_list_question.at(index - 1), ui_insert_history.last().first, func_arg_list.first, func_arg_list.second, pass, ui_syncrate_manager.score);
     
     return pass;
 }   

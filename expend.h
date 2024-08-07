@@ -231,8 +231,11 @@ public slots:
 //----------------------------------同步率相关--------------------------------
 //-------------------------------------------------------------------------
 
+public:
+    void init_syncrate();// 重置同步率显示
+
 public slots:
-    void recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass);//传递同步率结果
+    void recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);//传递同步率结果
 
 };
 #endif // EXPEND_H

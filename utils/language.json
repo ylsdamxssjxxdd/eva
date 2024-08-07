@@ -399,7 +399,9 @@
         "enable output parser": ["启用输出解析器","enable output parser"],
         "disable output parser": ["禁用输出解析器","disable output parser"],
 
+        "current": ["当前","current "],
         "embeddingdb_describe":["机体软件功能","EVA software functions"],
+        "syncrate_describe":["机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出action_name和action_input，并与预设的答案对比，若一致则标记为通过\n\n","EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the action_name and action_input, and compare them with the preset answers. If they match, mark it as passed.\n\n"],
         "index":["序号","index "],
         "task":["任务","task "],
         "response":["回答","response "],

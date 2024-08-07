@@ -28,6 +28,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");//灰色
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
+    ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);// 禁用自动换行
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
     //塞入第三方exe
@@ -57,16 +58,15 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) :
     connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
 
     //同步率相关
-    ui->sync_tableWidget->setColumnCount(6);//设置六列
-    ui->sync_tableWidget->setRowCount(30);//创建行
-    ui->sync_tableWidget->verticalHeader()->setVisible(false);// 隐藏行头部
+    ui->sync_tableWidget->setColumnCount(5);//设置列数
+    ui->sync_tableWidget->setRowCount(30);//创建行数
+    // ui->sync_tableWidget->verticalHeader()->setVisible(false);// 隐藏行头部
     ui->sync_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);// 充满
 
     // 设置某几列的最大宽度
     QHeaderView *header = ui->sync_tableWidget->horizontalHeader();// 获取水平表头
-    header->setSectionResizeMode(0, QHeaderView::Interactive);// 序号
-    header->setSectionResizeMode(3, QHeaderView::Interactive);// action_name
-    header->setSectionResizeMode(5, QHeaderView::Interactive);// pass
+    header->setSectionResizeMode(2, QHeaderView::Interactive);// action_name
+    header->setSectionResizeMode(4, QHeaderView::Interactive);// pass
     header->setMaximumSectionSize(80);
     
     //添加采样算法
@@ -232,16 +232,8 @@ void Expend::init_expend()
     ui->whisper_execute_pushbutton->setText(jtr("convert"));
 
     //同步率
-    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("index"),jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
-    //插入任务列表
-    for(int i=1;i<31;++i)
-    {
-        QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));
-        ui->sync_tableWidget->setItem(i - 1, 0, newItem1);
+    init_syncrate();
 
-        QTableWidgetItem *newItem2 = new QTableWidgetItem(jtr(QString("sync_Q%1").arg(i)));
-        ui->sync_tableWidget->setItem(i - 1, 1, newItem2);
-    }
 }
 
 //用户切换选项卡时响应
@@ -1934,8 +1926,16 @@ void Expend::reflash_brain_matrix()
 //-------------------------------------------------------------------------
 
 //传递同步率结果
-void Expend::recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass)
+void Expend::recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score)
 {
+    // 如果接收到的index是1，则先重置
+    if(index == 1)
+    {
+        init_syncrate();
+    }
+
+    ui->sync_plainTextEdit->setPlainText(jtr("syncrate_describe") + jtr("current") + jtr("sync rate") + ": " + QString::number(score) + "%");
+
     QColor BackgroundColor;
     if(pass)
     {
@@ -1946,30 +1946,30 @@ void Expend::recv_syncrate(int index, QString task, QString response, QString ac
         BackgroundColor.setRgba(qRgba(128, 128, 128, 250));// 设置单元格背景颜色,灰色
     }
 
-    // 序号
-    QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(index));
-    newItem1->setBackground(BackgroundColor); 
-    ui->sync_tableWidget->setItem(index - 1, 0, newItem1);
+    // // 序号
+    // QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(index));
+    // newItem1->setBackground(BackgroundColor); 
+    // ui->sync_tableWidget->setItem(index - 1, 0, newItem1);
 
     // 任务
     QTableWidgetItem *newItem2 = new QTableWidgetItem(task);
     newItem2->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 1, newItem2);
+    ui->sync_tableWidget->setItem(index - 1, 0, newItem2);
 
     // 回答
     QTableWidgetItem *newItem3 = new QTableWidgetItem(response);
     newItem3->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 2, newItem3);
+    ui->sync_tableWidget->setItem(index - 1, 1, newItem3);
 
     // action_name
     QTableWidgetItem *newItem4 = new QTableWidgetItem(action_name);
     newItem4->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 3, newItem4);
+    ui->sync_tableWidget->setItem(index - 1, 2, newItem4);
 
     // action_input
     QTableWidgetItem *newItem5 = new QTableWidgetItem(action_input);
     newItem5->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 4, newItem5);
+    ui->sync_tableWidget->setItem(index - 1, 3, newItem5);
 
     // pass
     QTableWidgetItem *newItem6 = new QTableWidgetItem("√");
@@ -1982,7 +1982,26 @@ void Expend::recv_syncrate(int index, QString task, QString response, QString ac
         newItem6 = new QTableWidgetItem("");
     }
     newItem6->setBackground(BackgroundColor); // 设置单元格背景颜色,橘黄色
-    ui->sync_tableWidget->setItem(index - 1, 5, newItem6);
+    ui->sync_tableWidget->setItem(index - 1, 4, newItem6);
 
     ui->sync_tableWidget->scrollToItem(newItem6, QAbstractItemView::PositionAtBottom);// 滚动到新添加的行
+}
+
+// 重置同步率显示
+void Expend::init_syncrate()
+{
+    ui->sync_plainTextEdit->clear();
+    ui->sync_plainTextEdit->appendPlainText(jtr("syncrate_describe"));
+
+    ui->sync_tableWidget->clear();
+    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
+    //插入任务列表
+    for(int i=1;i<31;++i)
+    {
+        // QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));
+        // ui->sync_tableWidget->setItem(i - 1, 0, newItem1);
+
+        QTableWidgetItem *newItem2 = new QTableWidgetItem(jtr(QString("sync_Q%1").arg(i)));
+        ui->sync_tableWidget->setItem(i - 1, 0, newItem2);
+    }
 }

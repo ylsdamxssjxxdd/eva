@@ -361,7 +361,7 @@ signals:
     void ui2tool_func_arg(QPair<QString, QString> func_arg_list);//传递函数名和参数
     void recv_controller_over(QString result);
 //发送给expend的信号
-    void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass);
+    void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);
     void ui2expend_language(int language_flag_);//传递使用的语言
     void ui2expend_show(int index_);//通知显示扩展窗口
     void ui2expend_voicedecode(QString wavpath, QString out_format);//传一个wav文件开始解码
