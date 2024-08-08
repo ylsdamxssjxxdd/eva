@@ -75,7 +75,7 @@ protected:
         // Gradually adjust wave offset towards the target offset
         if (std::abs(m_waveOffset - m_targetWaveOffset) < 0.05) {
             // Generate a new target offset if close enough to current offset
-            m_targetWaveOffset = (std::rand() % 5 - 2) * 0.5;  // Randomly change between -1.0 and 1.0
+            m_targetWaveOffset = (std::rand() % 10 - 5) * 0.5;  // Randomly change between -1.0 and 1.0
         } else {
             // Smoothly move towards the target offset
             m_waveOffset += (m_targetWaveOffset - m_waveOffset) * 0.05;

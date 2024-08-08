@@ -177,7 +177,7 @@
 
     - 安装编译器msvc或者mingw
 
-    - 安装Qt5 https://download.qt.io/
+    - 安装Qt5.15 https://download.qt.io/
 
     - 安装cmake https://cmake.org/
 

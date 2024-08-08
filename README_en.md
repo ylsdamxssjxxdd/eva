@@ -171,7 +171,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - install compiler msvc or mingw
 
-    - install Qt5 https://download.qt.io/
+    - install Qt5.15 https://download.qt.io/
 
     - install cmake https://cmake.org/
 

@@ -231,6 +231,18 @@ void Expend::init_expend()
     ui->whisper_format_label->setText(jtr("format"));
     ui->whisper_execute_pushbutton->setText(jtr("convert"));
 
+    //文转声
+    for(int i = 0; i < ui->voice_source_comboBox->count(); ++i) 
+    {
+        QString itemText = ui->voice_source_comboBox->itemText(i);
+        if(voice_params.voice_name == itemText)//如果有同名的声源则应用它
+        {
+            ui->voice_source_comboBox->setCurrentText(voice_params.voice_name);
+            ui->voice_enable_radioButton->setChecked(voice_params.is_voice); 
+            if(voice_params.is_voice){ui->voice_source_comboBox->setEnabled(1);}
+        }
+    }
+
     //同步率
     init_syncrate();
 
@@ -249,8 +261,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         }
         reflash_brain_matrix();
     }
-
-    if(index==0 && is_first_show_info)//第一次点软件介绍
+    else if(index==0 && is_first_show_info)//第一次点软件介绍
     {
         is_first_show_info = false;
 
@@ -260,11 +271,15 @@ void Expend::on_tabWidget_tabBarClicked(int index)
         //强制延迟见顶
         QTimer::singleShot(0, this, [this]() {ui->info_card->verticalScrollBar()->setValue(0);ui->info_card->horizontalScrollBar()->setValue(0);});
     }
-
-    if(index==3 && is_first_show_modelproliferation)//第一次点模型增殖
+    else if(index==3 && is_first_show_modelproliferation)//第一次点模型增殖
     {
         is_first_show_modelproliferation = false;
         show_quantize_types();//展示量化方法
+    }
+    else if(index==8 && is_first_show_sync)//第一次点模型增殖
+    {
+        is_first_show_sync = false;
+        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
     }
 
 }
@@ -285,6 +300,12 @@ void Expend::recv_expend_show(int index_)
         this->close();
         return;
     }
+    else if(index_==8 && is_first_show_sync)//第一次点模型增殖
+    {
+        is_first_show_sync = false;
+        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
+    }
+
     if(is_first_show_expend)//第一次显示的话
     {
         is_first_show_expend = false;
@@ -297,6 +318,7 @@ void Expend::recv_expend_show(int index_)
             ui->modellog_card->setPlainText(jtr("lode model first"));
         }
     }
+    
     //打开指定页数窗口
     ui->tabWidget->setCurrentIndex(index_);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
@@ -384,16 +406,6 @@ void Expend::readConfig()
         {
             ui->whisper_load_modelpath_linedit->setText(whisper_modelpath);
             whisper_params.model = whisper_modelpath.toStdString();
-        }
-        
-        for(int i = 0; i < ui->voice_source_comboBox->count(); ++i) 
-        {
-            QString itemText = ui->voice_source_comboBox->itemText(i);
-            if(voice_params.voice_name == itemText)//如果有同名的声源则应用它
-            {
-                ui->voice_source_comboBox->setCurrentText(voice_params.voice_name);
-                ui->voice_enable_radioButton->setChecked(voice_params.is_voice); 
-            }
         }
 
         //知识库，在main.cpp里有启动的部分
@@ -1995,8 +2007,7 @@ void Expend::init_syncrate()
     ui->sync_plainTextEdit->clear();
     ui->sync_plainTextEdit->appendPlainText(jtr("syncrate_describe"));
 
-    ui->sync_tableWidget->clear();
-    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"),jtr("response"),"action_name","action_input",jtr("pass")});//设置列名
+    ui->sync_tableWidget->clearContents();
     //插入任务列表
     for(int i=1;i<31;++i)
     {
