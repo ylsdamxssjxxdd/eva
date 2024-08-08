@@ -128,7 +128,8 @@ struct SETTINGS {
 
 //模型参数,模型装载后发送给ui的参数
 struct MODEL_PARAMS {
-    int n_ctx_train;  //最大上下文长度
+    int n_ctx_train;  // 最大上下文长度
+    int max_ngl;      // ngl的最大值
 };
 
 // api配置参数

@@ -371,7 +371,7 @@ class Widget : public QWidget {
    signals:
     void gpu_reflash();  //强制刷新gpu信息
     void cpu_reflash();  //强制刷新gpu信息
-                         //处理模型信号的槽
+    //处理模型信号的槽
    public slots:
     void recv_syncrate(Syncrate_Manager Syncrate_manager);                        //传递同步率
     void recv_freeover();                                                         //模型释放完毕并重新装载
@@ -390,7 +390,6 @@ class Widget : public QWidget {
     void recv_params(MODEL_PARAMS p);                                             // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                    //接收缓存量
     void recv_tokens(int tokens);                                                 //传递测试解码token数量
-    void recv_maxngl(int maxngl_);
     void recv_play();
     //处理expend信号的槽
     void recv_voicedecode_over(QString result);

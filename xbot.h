@@ -145,7 +145,6 @@ class xBot : public QThread {
     void bot2ui_kv(float percent, int n_past);                                                     //传递缓存量
     void bot2ui_tokens(int tokens);                                                                //传递测试解码token数量
     void bot_llama_log(QString log);                                                               //传递llama.cpp的log
-    void bot2ui_maxngl(int maxngl_);
     void bot2ui_play();
 };
 

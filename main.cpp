@@ -96,7 +96,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_datereset, &w, &Widget::recv_datereset);        // bot发信号请求ui触发reset
     QObject::connect(&bot, &xBot::bot2ui_setreset, &w, &Widget::recv_setreset);          // bot发信号请求ui触发reset
     QObject::connect(&bot, &xBot::bot2ui_tokens, &w, &Widget::recv_tokens);              //传递测试解码token数量
-    QObject::connect(&bot, &xBot::bot2ui_maxngl, &w, &Widget::recv_maxngl);              //传递模型的最大的gpu负载层数
     QObject::connect(&bot, &xBot::bot2ui_predecode, &w, &Widget::recv_predecode);        //传递模型预解码的内容
     QObject::connect(&bot, &xBot::bot2ui_freeover, &w, &Widget::recv_freeover);          //模型释放完毕并重新装载
     QObject::connect(&bot, &xBot::bot2ui_syncrate, &w, &Widget::recv_syncrate);          //传递同步率，待删除

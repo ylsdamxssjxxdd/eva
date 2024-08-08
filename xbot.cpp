@@ -494,13 +494,6 @@ int xBot::stream() {
             word_5.replace("\n", "\\n");
             word_5.replace("\r", "\\r");
             emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator, MATRIX_SIGNAL);
-            // emit bot2ui_state(separator);
-            // emit bot2ui_state(header);
-            // emit bot2ui_state(separator);
-            // emit bot2ui_state(prob_5);
-            // emit bot2ui_state(id_5);
-            // emit bot2ui_state(word_5);
-            // emit bot2ui_state(separator);
 
             std::string sstr = llama_token_to_piece(ctx, id);
 
@@ -725,11 +718,12 @@ void xBot::load(std::string &modelpath) {
     bos_token = llama_token_bos(model);  // 开始标志
     spliter_token = llama_tokenize(ctx, DEFAULT_SPLITER, false, false);
     n_vocab = llama_n_vocab(model);          //词表总大小
-    n_ctx_train = llama_n_ctx_train(model);  //上下文总大小
+    n_ctx_train = llama_n_ctx_train(model);  //模型支持的最大上下文
+    maxngl = llama_n_layer(model) + 1;  // ngl的最大值为模型层数+1
     //返回装载时获取的模型参数
     MODEL_PARAMS p;
-    p.n_ctx_train = n_ctx_train;  //最大值
-    // ngl的最大值在模型日志中截获,为模型层数+1
+    p.n_ctx_train = n_ctx_train;
+    p.max_ngl = maxngl;
     emit bot2ui_params(p);
     if (gpt_params_.n_gpu_layers > maxngl) {
         gpt_params_.n_gpu_layers = maxngl;  //装载完成也捕获了maxngl，在这里同步
@@ -1254,13 +1248,7 @@ QString xBot::jtr(QString customstr) { return wordsObj[customstr].toArray()[lang
 
 //获取llama log
 void xBot::recv_llama_log(QString log_) {
-    //截获gpu最大负载层数
-    if (log_.contains("llm_load_print_meta: n_layer")) {
-#if defined(BODY_USE_GPU)
-        maxngl = log_.split("=")[1].toInt() + 1;  // gpu负载层数是n_layer+1
-        emit bot2ui_maxngl(maxngl);
-#endif
-    }
+
 }
 
 //传递同步率

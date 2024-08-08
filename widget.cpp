@@ -916,7 +916,14 @@ void Widget::serverControl() {
 // bot将模型参数传递给ui
 void Widget::recv_params(MODEL_PARAMS p) {
     ui_n_ctx_train = p.n_ctx_train;
-    nctx_slider->setMaximum(p.n_ctx_train);  //没有拓展4倍,因为批解码时还是会失败
+    nctx_slider->setMaximum(p.n_ctx_train);  // 没有拓展4倍,因为批解码时还是会失败
+    ui_maxngl = p.max_ngl;  // gpu负载层数是n_layer+1
+#if defined(BODY_USE_GPU)
+    ngl_slider->setMaximum(ui_maxngl);
+#endif
+    if (ui_SETTINGS.ngl == 999) {
+        ui_SETTINGS.ngl = ui_maxngl;
+    }  //及时修正999值
 }
 
 //接收缓存量
@@ -931,17 +938,6 @@ void Widget::recv_kv(float percent, int ctx_size) {
 void Widget::recv_tokens(int tokens) {
     test_tokens += tokens;
     // qDebug() <<test_tokens<< tokens;
-}
-
-//传递ngl
-void Widget::recv_maxngl(int maxngl_) {
-    ui_maxngl = maxngl_;  // gpu负载层数是n_layer+1
-#if defined(BODY_USE_GPU)
-    ngl_slider->setMaximum(ui_maxngl);
-#endif
-    if (ui_SETTINGS.ngl == 999) {
-        ui_SETTINGS.ngl = ui_maxngl;
-    }  //及时修正999值
 }
 
 //播放装载动画
