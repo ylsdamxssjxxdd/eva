@@ -1,50 +1,43 @@
 //功能函数
 
-#include "widget.h"
 #include "ui_widget.h"
+#include "widget.h"
 
 //手搓输出解析器，提取可能的JSON
 QPair<QString, QString> Widget::JSONparser(QString text) {
-    
     QPair<QString, QString> func_arg_list;
     // ----------匹配花括号中的内容----------
     QRegularExpression re;
-    if(ui_interpreter_ischecked)
-    {
-        re.setPattern("\\{(.*)\\}"); // 如果挂载了代码解释器，匹配第一个 { 至最后一个 } 中的内容
+    if (ui_interpreter_ischecked) {
+        re.setPattern("\\{(.*)\\}");  // 如果挂载了代码解释器，匹配第一个 { 至最后一个 } 中的内容
+    } else {
+        re.setPattern("\\{(.*?)\\}");  // 其它情况，匹配第一个 { 至第一个 } 中的内容
     }
-    else
-    {
-        re.setPattern("\\{(.*?)\\}"); // 其它情况，匹配第一个 { 至第一个 } 中的内容
-    }
-    
-    re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
+
+    re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
     QRegularExpressionMatch match = re.match(text);
 
-    if (match.hasMatch())
-    {
+    if (match.hasMatch()) {
         QString content = match.captured(1);  // 获取第一个捕获组的内容
         // qDebug() << "花括号中的内容是：" << content;
         // ----------匹配"action:"至逗号----------
         // \\s*的意思是允许忽略空格
         QRegularExpression re2("\"action_name\"\\s*[:：]\\s*\"([^\"]*)\"");
         QRegularExpressionMatch match2 = re2.match(content);
-        if (match2.hasMatch())
-        {
+        if (match2.hasMatch()) {
             QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
             func_arg_list.first = content2;
             // qDebug() << "action_name中的内容是：" << content2;
             // ----------匹配"action_input:"至最后----------
             QRegularExpression re3("\"action_input\"\\s*[:：]\\s*(.*)");
-            re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);//允许包含换行符
+            re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
             QRegularExpressionMatch match3 = re3.match(content);
-            if (match3.hasMatch())
-            {
-                QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");;  // 获取第一个捕获组的内容
-                
+            if (match3.hasMatch()) {
+                QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");
+                ;  // 获取第一个捕获组的内容
+
                 //去除文本段前后的标点
-                if(!content3.isEmpty())
-                {
+                if (!content3.isEmpty()) {
                     // 去除最前面的标点 { " ' ` }
                     while (content3.at(0) == QChar('`') || content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{')) {
                         content3 = content3.mid(1);
@@ -52,7 +45,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
 
                     // 去除最前面的字段 python
                     while (content3.indexOf("python") == 0) {
-                        content3 = content3.mid(6); // 去除前 6 个字符, 即 "python"
+                        content3 = content3.mid(6);  // 去除前 6 个字符, 即 "python"
                     }
 
                     // 去除最后面的标点 { " ' ` }
@@ -60,94 +53,105 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
                         content3.chop(1);
                     }
                 }
-                
 
                 func_arg_list.second = content3;
                 // qDebug() << "action_input中的内容是：" << content3;
-            }
-            else
-            {
+            } else {
                 // qDebug() << "没有找到action_input中的内容。";
             }
 
-        }
-        else {
+        } else {
             // qDebug() << "没有找到action_name中的内容。";
         }
-    }
-    else {
+    } else {
         // qDebug() << "没有找到花括号中的内容。";
     }
-
 
     // qDebug()<<func_arg_list;
     return func_arg_list;
 }
 
 //构建附加指令
-QString Widget::create_extra_prompt()
-{
+QString Widget::create_extra_prompt() {
     QString extra_prompt_;
 
     extra_prompt_ = jtr("head_extra_prompt");
-    if(is_load_tool)
-    {
+    if (is_load_tool) {
         //头
-        if(interpreter_checkbox->isChecked()){extra_prompt_ += tool_map["interpreter"].func_describe + "\n";}
-        if(calculator_checkbox->isChecked()){extra_prompt_ += tool_map["calculator"].func_describe + "\n";}
-        if(terminal_checkbox->isChecked()){extra_prompt_ += tool_map["terminal"].func_describe + "\n";}
-        if(toolguy_checkbox->isChecked()){extra_prompt_ += tool_map["toolguy"].func_describe + "\n";}
-        if(knowledge_checkbox->isChecked())
-        {
-            if(ui_syncrate_manager.is_sync)
-            {
+        if (interpreter_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["interpreter"].func_describe + "\n";
+        }
+        if (calculator_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["calculator"].func_describe + "\n";
+        }
+        if (terminal_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["terminal"].func_describe + "\n";
+        }
+        if (toolguy_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["toolguy"].func_describe + "\n";
+        }
+        if (knowledge_checkbox->isChecked()) {
+            if (ui_syncrate_manager.is_sync) {
                 extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + jtr("embeddingdb_describe") + "\n";
-            }
-            else
-            {
+            } else {
                 extra_prompt_ += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";
             }
-            
         }
-        if(stablediffusion_checkbox->isChecked()){extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";}
-        if(controller_checkbox->isChecked()){extra_prompt_ += tool_map["controller"].func_describe + "\n";}
+        if (stablediffusion_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["stablediffusion"].func_describe + "\n";
+        }
+        if (controller_checkbox->isChecked()) {
+            extra_prompt_ += tool_map["controller"].func_describe + "\n";
+        }
         //中
-        extra_prompt_ +=jtr("middle_extra_prompt");
-        if(interpreter_checkbox->isChecked()){extra_prompt_ +="\"interpreter\" ";}
-        if(calculator_checkbox->isChecked()){extra_prompt_ += "\"calculator\" ";}
-        if(terminal_checkbox->isChecked()){extra_prompt_ += "\"terminal\" ";}
-        if(toolguy_checkbox->isChecked()){extra_prompt_ += "\"toolguy\" ";}
-        if(knowledge_checkbox->isChecked()){extra_prompt_ +="\"knowledge\" ";}
-        if(stablediffusion_checkbox->isChecked()){extra_prompt_ +="\"stablediffusion\" ";}
-        if(controller_checkbox->isChecked()){extra_prompt_ +="\"controller\" ";}
+        extra_prompt_ += jtr("middle_extra_prompt");
+        if (interpreter_checkbox->isChecked()) {
+            extra_prompt_ += "\"interpreter\" ";
+        }
+        if (calculator_checkbox->isChecked()) {
+            extra_prompt_ += "\"calculator\" ";
+        }
+        if (terminal_checkbox->isChecked()) {
+            extra_prompt_ += "\"terminal\" ";
+        }
+        if (toolguy_checkbox->isChecked()) {
+            extra_prompt_ += "\"toolguy\" ";
+        }
+        if (knowledge_checkbox->isChecked()) {
+            extra_prompt_ += "\"knowledge\" ";
+        }
+        if (stablediffusion_checkbox->isChecked()) {
+            extra_prompt_ += "\"stablediffusion\" ";
+        }
+        if (controller_checkbox->isChecked()) {
+            extra_prompt_ += "\"controller\" ";
+        }
         //尾
         extra_prompt_ += jtr("tail_extra_prompt");
+    } else {
+        extra_prompt_ = "";
     }
-    else{extra_prompt_ = "";}
     return extra_prompt_;
 }
 
 //添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
-void Widget::addStopwords()
-{
-    ui_DATES.extra_stop_words.clear();//重置额外停止标志
-    if(ui_mode == LOCAL_MODE)// 链接模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
+void Widget::addStopwords() {
+    ui_DATES.extra_stop_words.clear();  //重置额外停止标志
+    if (ui_mode == LOCAL_MODE)          // 链接模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
     {
-        ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;//默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-        ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;//可以说相当严格了
+        ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;  //默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
+        ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;  //可以说相当严格了
     }
-    
-    if(ui_DATES.is_load_tool)//如果挂载了工具则增加额外停止标志
-    {
-        ui_DATES.extra_stop_words << "observation:";//可以说相当严格了
-        ui_DATES.extra_stop_words << "observation：";//可以说相当严格了
 
-        if(ui_mode == LINK_MODE)
-        {
-            ui_DATES.extra_stop_words << "<|observation|>";// 链接模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
+    if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
+    {
+        ui_DATES.extra_stop_words << "observation:";   //可以说相当严格了
+        ui_DATES.extra_stop_words << "observation：";  //可以说相当严格了
+
+        if (ui_mode == LINK_MODE) {
+            ui_DATES.extra_stop_words << "<|observation|>";  // 链接模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
         }
     }
-    
 }
 
 //获取本机第一个ip地址
@@ -162,123 +166,109 @@ QString Widget::getFirstNonLoopbackIPv4Address() {
 }
 
 //第三方程序开始
-void Widget::server_onProcessStarted()
-{
-    if(ui_SETTINGS.ngl==0){QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));}
-    else{QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));}
+void Widget::server_onProcessStarted() {
+    if (ui_SETTINGS.ngl == 0) {
+        QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));
+    } else {
+        QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));
+    }
     ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server " + jtr("oning"),SIGNAL_SIGNAL);
+    reflash_state("ui:server " + jtr("oning"), SIGNAL_SIGNAL);
 }
 
 //第三方程序结束
-void Widget::server_onProcessFinished()
-{
-    if(current_server)
-    {
-        ui_state_info = "ui:"+ jtr("old") + "server " + jtr("off");
-        reflash_state(ui_state_info,SIGNAL_SIGNAL);
-    }
-    else
-    {
-        QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));//设置应用程序图标
-        reflash_state("ui:server"+jtr("off"),SIGNAL_SIGNAL);
-        ui_output = "\nserver"+jtr("shut down");
+void Widget::server_onProcessFinished() {
+    if (current_server) {
+        ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
+        reflash_state(ui_state_info, SIGNAL_SIGNAL);
+    } else {
+        QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));  //设置应用程序图标
+        reflash_state("ui:server" + jtr("off"), SIGNAL_SIGNAL);
+        ui_output = "\nserver" + jtr("shut down");
         output_scroll(ui_output);
     }
 }
 
-//llama-bench进程结束响应
-void Widget::bench_onProcessFinished()
-{
-    qDebug()<<"llama-bench进程结束响应";
-}
+// llama-bench进程结束响应
+void Widget::bench_onProcessFinished() { qDebug() << "llama-bench进程结束响应"; }
 
 // 构建测试问题
-void Widget::makeTestQuestion(QString dirPath)
-{
+void Widget::makeTestQuestion(QString dirPath) {
     getAllFiles(dirPath);
-    for(int i=0;i<filePathList.size();++i)
-    {
+    for (int i = 0; i < filePathList.size(); ++i) {
         QString fileName = filePathList.at(i);
         readCsvFile(fileName);
     }
 }
 
 //显示文件名和图像
-void Widget::showImage(QString imagepath)
-{
+void Widget::showImage(QString imagepath) {
     ui_output = "\nfile:///" + imagepath + "\n";
     output_scroll(ui_output);
-    
+
     // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
     QImage image(imagepath);
-    int originalWidth = image.width()/devicePixelRatioF();
-    int originalHeight = image.height()/devicePixelRatioF();
+    int originalWidth = image.width() / devicePixelRatioF();
+    int originalHeight = image.height() / devicePixelRatioF();
 
     QTextCursor cursor(ui->output->textCursor());
     cursor.movePosition(QTextCursor::End);
 
     QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);  // 设置图片的宽度
-    imageFormat.setHeight(originalHeight); // 设置图片的高度
-    imageFormat.setName(imagepath);  // 图片资源路径
+    imageFormat.setWidth(originalWidth);    // 设置图片的宽度
+    imageFormat.setHeight(originalHeight);  // 设置图片的高度
+    imageFormat.setName(imagepath);         // 图片资源路径
 
     cursor.insertImage(imageFormat);
     //滚动到底部展示
-    ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());//滚动条滚动到最下面
-
+    ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());  //滚动条滚动到最下面
 }
 
 //开始录音
-void Widget::recordAudio()
-{
+void Widget::recordAudio() {
     reflash_state("ui:" + jtr("recoding") + "... ");
     ui_state_recoding();
 
-    audioRecorder.record(); // 在这之前检查是否可用 
+    audioRecorder.record();   // 在这之前检查是否可用
     audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
 }
 
 // 每隔100毫秒刷新一次监视录音
-void Widget::monitorAudioLevel()
-{
+void Widget::monitorAudioLevel() {
     audio_time += 100;
-    ui_state_recoding();//更新输入区
+    ui_state_recoding();  //更新输入区
 }
 
 //停止录音
-void Widget::stop_recordAudio()
-{
+void Widget::stop_recordAudio() {
     QString wav_path = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
     is_recodering = false;
     audioRecorder.stop();
     audio_timer->stop();
-    reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time)/1000.0,'f',2) + "s");
+    reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s");
     audio_time = 0;
     //将录制的wav文件重采样为16khz音频文件
 #ifdef _WIN32
-    QTextCodec *code = QTextCodec::codecForName("GB2312");//mingw中文路径支持
+    QTextCodec* code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
     std::string wav_path_c = code->fromUnicode(wav_path).data();
 #elif __linux__
     std::string wav_path_c = wav_path.toStdString();
 #endif
     resampleWav(wav_path_c, wav_path_c);
-    emit ui2expend_voicedecode(wav_path, "txt");//传一个wav文件开始解码
+    emit ui2expend_voicedecode(wav_path, "txt");  //传一个wav文件开始解码
 }
 
 // 清空题库
-void Widget::clearQuestionlist()
-{
-    test_score=0; // 答对的个数
-    test_count=0; // 回答的次数
+void Widget::clearQuestionlist() {
+    test_score = 0;  // 答对的个数
+    test_count = 0;  // 回答的次数
     filePathList.clear();
     test_list_answer.clear();
     test_list_question.clear();
 }
 
 //读取csv文件
-void Widget::readCsvFile(const QString &fileName)
-{
+void Widget::readCsvFile(const QString& fileName) {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading:" << file.errorString();
@@ -286,8 +276,8 @@ void Widget::readCsvFile(const QString &fileName)
     }
     QString questiontitle = jtr("question type") + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
     QTextStream in(&file);
-    in.setCodec("UTF-8");//要求csv文件的格式必须是utf-8 不能是ansi
-    QString headerLine = in.readLine();// 读取并忽略标题行
+    in.setCodec("UTF-8");                //要求csv文件的格式必须是utf-8 不能是ansi
+    QString headerLine = in.readLine();  // 读取并忽略标题行
     bool inQuotes = false;
     QString currentField;
     QStringList currentRow;
@@ -297,7 +287,7 @@ void Widget::readCsvFile(const QString &fileName)
         for (int i = 0; i < line.length(); ++i) {
             QChar currentChar = line[i];
             if (currentChar == '\"') {
-                inQuotes = !inQuotes; // Toggle the inQuotes state
+                inQuotes = !inQuotes;  // Toggle the inQuotes state
             } else if (currentChar == ',' && !inQuotes) {
                 // We've reached the end of a field
                 currentRow.append(currentField);
@@ -311,8 +301,7 @@ void Widget::readCsvFile(const QString &fileName)
             currentRow.append(currentField);
             currentField.clear();
 
-            if(currentRow.size() >= 7)
-            {
+            if (currentRow.size() >= 7) {
                 // 输出题目和答案
                 // qDebug() << "id:" << currentRow.at(0).trimmed();
                 // qDebug() << "Question:" << currentRow.at(1).trimmed();
@@ -321,72 +310,55 @@ void Widget::readCsvFile(const QString &fileName)
                 // qDebug() << "C:" << currentRow.at(4).trimmed();
                 // qDebug() << "D:" << currentRow.at(5).trimmed();
                 // qDebug() << "Answer:" << currentRow.at(6).trimmed();
-                test_list_question<<questiontitle +currentRow.at(1).trimmed()+"\n\n"+"A:" + currentRow.at(2).trimmed()+"\n"+"B:"+currentRow.at(3).trimmed()+"\n"+"C:"+currentRow.at(4).trimmed()+"\n"+"D:"+currentRow.at(5).trimmed()+"\n";
-                test_list_answer<<currentRow.at(6).trimmed();
-            }
-            else if(currentRow.size() == 6)//题库没有序号的情况 针对mmlu
+                test_list_question << questiontitle + currentRow.at(1).trimmed() + "\n\n" + "A:" + currentRow.at(2).trimmed() + "\n" + "B:" + currentRow.at(3).trimmed() + "\n" + "C:" + currentRow.at(4).trimmed() + "\n" + "D:" + currentRow.at(5).trimmed() + "\n";
+                test_list_answer << currentRow.at(6).trimmed();
+            } else if (currentRow.size() == 6)  //题库没有序号的情况 针对mmlu
             {
-                test_list_question<<questiontitle +currentRow.at(0).trimmed()+"\n\n"+"A:" + currentRow.at(1).trimmed()+"\n"+"B:"+currentRow.at(2).trimmed()+"\n"+"C:"+currentRow.at(3).trimmed()+"\n"+"D:"+currentRow.at(4).trimmed()+"\n";
-                test_list_answer<<currentRow.at(5).trimmed();
+                test_list_question << questiontitle + currentRow.at(0).trimmed() + "\n\n" + "A:" + currentRow.at(1).trimmed() + "\n" + "B:" + currentRow.at(2).trimmed() + "\n" + "C:" + currentRow.at(3).trimmed() + "\n" + "D:" + currentRow.at(4).trimmed() + "\n";
+                test_list_answer << currentRow.at(5).trimmed();
             }
 
-            currentRow.clear(); // Prepare for the next row
+            currentRow.clear();  // Prepare for the next row
         } else {
             // Line ends but we're inside quotes, this means the field continues to the next line
-            currentField += '\n'; // Add the newline character that was part of the field
+            currentField += '\n';  // Add the newline character that was part of the field
         }
     }
 
     file.close();
-
 }
 
-void Widget::makeTestIndex()
-{
+void Widget::makeTestIndex() {
     test_question_index.clear();
-    for(int i =0;i<test_list_question.size();++i)
-    {
-        test_question_index<<i;
+    for (int i = 0; i < test_list_question.size(); ++i) {
+        test_question_index << i;
     }
-    //std::random_shuffle(test_question_index.begin(), test_question_index.end());//随机打乱顺序
+    // std::random_shuffle(test_question_index.begin(), test_question_index.end());//随机打乱顺序
 }
 
 //遍历文件
-void Widget::getAllFiles(const QString&floderPath)
-{
+void Widget::getAllFiles(const QString& floderPath) {
     QDir folder(floderPath);
     folder.setFilter(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
     QFileInfoList entries = folder.entryInfoList();
 
-    for(const QFileInfo&entry : entries)
-    {
-        if(entry.isDir())
-        {
+    for (const QFileInfo& entry : entries) {
+        if (entry.isDir()) {
             childPathList.append(entry.filePath());
-        }
-        else if(entry.isFile())
-        {
+        } else if (entry.isFile()) {
             filePathList.append(entry.filePath());
         }
     }
 }
 
 //更新gpu内存使用率
-void Widget::updateGpuStatus()
-{
-    emit gpu_reflash();
-}
+void Widget::updateGpuStatus() { emit gpu_reflash(); }
 
 //更新cpu内存使用率
-void Widget::updateCpuStatus()
-{
-    emit cpu_reflash();
-}
+void Widget::updateCpuStatus() { emit cpu_reflash(); }
 
 //拯救中文
-void Widget::getWords(QString json_file_path)
-{
-    
+void Widget::getWords(QString json_file_path) {
     QFile jfile(json_file_path);
     if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for reading.";
@@ -394,7 +366,7 @@ void Widget::getWords(QString json_file_path)
     }
 
     QTextStream in(&jfile);
-    in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
+    in.setCodec("UTF-8");  // 确保使用UTF-8编码读取文件
     QString data = in.readAll();
     jfile.close();
 
@@ -404,16 +376,12 @@ void Widget::getWords(QString json_file_path)
 }
 
 //切换额外指令的语言
-void Widget::switch_lan_change()
-{
-    if(switch_lan_button->text()=="zh")
-    {
+void Widget::switch_lan_change() {
+    if (switch_lan_button->text() == "zh") {
         language_flag = 1;
         switch_lan_button->setText("en");
-        
-    }
-    else if(switch_lan_button->text()=="en")
-    {
+
+    } else if (switch_lan_button->text() == "en") {
         language_flag = 0;
         switch_lan_button->setText("zh");
     }
@@ -424,34 +392,35 @@ void Widget::switch_lan_change()
     emit ui2expend_language(language_flag);
 }
 //改变语种相关
-void Widget::apply_language(int language_flag_)
-{
+void Widget::apply_language(int language_flag_) {
     //主界面语种
     ui->load->setText(jtr("load"));
     ui->load->setToolTip(jtr("load_button_tooltip"));
     ui->date->setText(jtr("date"));
     ui->set->setToolTip(jtr("set"));
     ui->reset->setToolTip(jtr("reset"));
-    if(!is_debug){ui->send->setText(jtr("send"));}
+    if (!is_debug) {
+        ui->send->setText(jtr("send"));
+    }
     ui->send->setToolTip(jtr("send_tooltip"));
     cutscreen_dialog->init_action(jtr("save cut image"), jtr("svae screen image"));
-    ui->cpu_bar->setToolTip(jtr("nthread/maxthread")+"  "+QString::number(ui_SETTINGS.nthread)+"/"+QString::number(std::thread::hardware_concurrency()));
-    ui->mem_bar->set_show_text(jtr("mem"));//进度条里面的文本,强制重绘
-    ui->vram_bar->set_show_text(jtr("vram"));//进度条里面的文本,强制重绘
-    ui->kv_bar->set_show_text(jtr("brain"));//进度条里面的文本,强制重绘
-    ui->cpu_bar->show_text = "cpu ";//进度条里面的文本
-    ui->vcore_bar->show_text = "gpu ";//进度条里面的文本
+    ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(std::thread::hardware_concurrency()));
+    ui->mem_bar->set_show_text(jtr("mem"));    //进度条里面的文本,强制重绘
+    ui->vram_bar->set_show_text(jtr("vram"));  //进度条里面的文本,强制重绘
+    ui->kv_bar->set_show_text(jtr("brain"));   //进度条里面的文本,强制重绘
+    ui->cpu_bar->show_text = "cpu ";           //进度条里面的文本
+    ui->vcore_bar->show_text = "gpu ";         //进度条里面的文本
     //输入区右击菜单语种
-    create_right_menu();//添加右击问题
-    //api设置语种
+    create_right_menu();  //添加右击问题
+    // api设置语种
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_ip_label->setText("api " + jtr("address"));
     api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_port_label->setText("api " + jtr("port"));
-    api_chat_label->setText(jtr("chat")+jtr("endpoint"));
-    api_complete_label->setText(jtr("complete")+jtr("endpoint"));
+    api_chat_label->setText(jtr("chat") + jtr("endpoint"));
+    api_complete_label->setText(jtr("complete") + jtr("endpoint"));
     //约定选项语种
-    prompt_box->setTitle(jtr("prompt") + jtr("template"));//提示词模板设置区域
+    prompt_box->setTitle(jtr("prompt") + jtr("template"));  //提示词模板设置区域
     chattemplate_label->setText(jtr("chat template"));
     chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
     chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
@@ -485,40 +454,44 @@ void Widget::apply_language(int language_flag_)
     extra_TextEdit->setPlaceholderText(jtr("extra_TextEdit_tooltip"));
     extra_TextEdit->setToolTip(jtr("extra_TextEdit_tooltip"));
     tool_map.clear();
-    tool_map.insert("calculator", {jtr("calculator"),"calculator",jtr("calculator_func_describe")});
-    tool_map.insert("terminal", {jtr("terminal"),"terminal",jtr("terminal_func_describe").replace("{OS}", OS)});
-    tool_map.insert("toolguy", {jtr("toolguy"),"toolguy",jtr("toolguy_func_describe")});
-    tool_map.insert("knowledge", {jtr("knowledge"),"knowledge",jtr("knowledge_func_describe")});
-    tool_map.insert("controller", {jtr("controller"),"controller",jtr("controller_func_describe")});
-    tool_map.insert("stablediffusion", {jtr("stablediffusion"),"stablediffusion",jtr("stablediffusion_func_describe")});
-    tool_map.insert("interpreter", {jtr("interpreter"),"interpreter",jtr("interpreter_func_describe")});
-    extra_TextEdit->setText(create_extra_prompt());//构建附加指令
+    tool_map.insert("calculator", {jtr("calculator"), "calculator", jtr("calculator_func_describe")});
+    tool_map.insert("terminal", {jtr("terminal"), "terminal", jtr("terminal_func_describe").replace("{OS}", OS)});
+    tool_map.insert("toolguy", {jtr("toolguy"), "toolguy", jtr("toolguy_func_describe")});
+    tool_map.insert("knowledge", {jtr("knowledge"), "knowledge", jtr("knowledge_func_describe")});
+    tool_map.insert("controller", {jtr("controller"), "controller", jtr("controller_func_describe")});
+    tool_map.insert("stablediffusion", {jtr("stablediffusion"), "stablediffusion", jtr("stablediffusion_func_describe")});
+    tool_map.insert("interpreter", {jtr("interpreter"), "interpreter", jtr("interpreter_func_describe")});
+    extra_TextEdit->setText(create_extra_prompt());  //构建附加指令
     date_dialog->setWindowTitle(jtr("date"));
     //设置选项语种
-    sample_box->setTitle(jtr("sample set"));//采样设置区域
-    temp_label->setText(jtr("temperature")+" " + QString::number(ui_SETTINGS.temp));
+    sample_box->setTitle(jtr("sample set"));  //采样设置区域
+    temp_label->setText(jtr("temperature") + " " + QString::number(ui_SETTINGS.temp));
     temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
     repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     npredict_label->setText(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
-    npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));npredict_label->setMinimumWidth(100);
+    npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
+    npredict_label->setMinimumWidth(100);
     npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
-    decode_box->setTitle(jtr("decode set"));//解码设置区域
+    decode_box->setTitle(jtr("decode set"));  //解码设置区域
 #if defined(BODY_USE_GPU)
     ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
-    ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));ngl_label->setMinimumWidth(100);
+    ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
+    ngl_label->setMinimumWidth(100);
     ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
 #endif
     nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
     nthread_label->setToolTip(jtr("not big better"));
     nthread_slider->setToolTip(jtr("not big better"));
-    nctx_label->setText(jtr("brain size")+" " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));nctx_label->setMinimumWidth(100);
+    nctx_label->setText(jtr("brain size") + " " + QString::number(ui_SETTINGS.nctx));
+    nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
+    nctx_label->setMinimumWidth(100);
     nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
     batch_label->setText(jtr("batch size") + " " + QString::number(ui_SETTINGS.batch));
-    batch_label->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));batch_label->setMinimumWidth(100);
+    batch_label->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
+    batch_label->setMinimumWidth(100);
     batch_slider->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
     lora_label->setText(jtr("load lora"));
     lora_label->setToolTip(jtr("lora_label_tooltip"));
@@ -528,7 +501,7 @@ void Widget::apply_language(int language_flag_)
     mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
     mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
     mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
-    mode_box->setTitle(jtr("state set"));//状态设置区域
+    mode_box->setTitle(jtr("state set"));  //状态设置区域
     complete_btn->setText(jtr("complete state"));
     complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     chat_btn->setText(jtr("chat state"));
@@ -541,23 +514,22 @@ void Widget::apply_language(int language_flag_)
     set_dialog->setWindowTitle(jtr("set"));
 }
 
-QString Widget::makeHelpInput()
-{
+QString Widget::makeHelpInput() {
     QString help_input;
 
-    for(int i = 1; i < 3;++i)//2个
+    for (int i = 1; i < 3; ++i)  // 2个
     {
-        help_input = help_input + "\n" + ui_DATES.input_pfx + DEFAULT_SPLITER;//前缀,用户昵称
-        help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";//问题
-        help_input = help_input + "\n" + ui_DATES.input_sfx + DEFAULT_SPLITER;//后缀,模型昵称
-        help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";//答案
+        help_input = help_input + "\n" + ui_DATES.input_pfx + DEFAULT_SPLITER;  //前缀,用户昵称
+        help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";            //问题
+        help_input = help_input + "\n" + ui_DATES.input_sfx + DEFAULT_SPLITER;  //后缀,模型昵称
+        help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";            //答案
     }
-    
+
     return help_input;
 }
 
 //创建临时文件夹EVA_TEMP
-bool Widget::createTempDirectory(const QString &path) {
+bool Widget::createTempDirectory(const QString& path) {
     QDir dir;
     // 检查路径是否存在
     if (dir.exists(path)) {
@@ -572,45 +544,42 @@ bool Widget::createTempDirectory(const QString &path) {
     }
 }
 //解决打开选择文件窗口异常大的问题
-QString Widget::customOpenfile(QString dirpath, QString describe, QString format)
-{
-    QString filepath="";
+QString Widget::customOpenfile(QString dirpath, QString describe, QString format) {
+    QString filepath = "";
 #if defined(_WIN32)
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
 #else
     QFileDialog dlg(NULL, describe);
-    dlg.setDirectory(dirpath);//默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);//不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter(format);//筛选格式
-    if (dlg.exec() == QDialog::Accepted) {filepath = dlg.selectedFiles().first();}//只要一个文件
+    dlg.setDirectory(dirpath);                              //默认打开路径
+    dlg.setOption(QFileDialog::DontUseNativeDialog, true);  //不使用系统原生的窗口
+    dlg.setFileMode(QFileDialog::ExistingFile);
+    dlg.setAcceptMode(QFileDialog::AcceptOpen);
+    dlg.setNameFilter(format);  //筛选格式
+    if (dlg.exec() == QDialog::Accepted) {
+        filepath = dlg.selectedFiles().first();
+    }  //只要一个文件
 #endif
 
     return filepath;
 }
 
 //语音朗读相关
-void Widget::qspeech(QString str)
-{
+void Widget::qspeech(QString str) {
     //如果禁用了朗读则直接退出
-    //qDebug()<<voice_params.is_voice<<voice_params.voice_name;
-    if(!voice_params.is_voice)
-    {
+    // qDebug()<<voice_params.is_voice<<voice_params.voice_name;
+    if (!voice_params.is_voice) {
         speechOver();
         return;
     }
-    
-    if(voice_params.voice_name!="")
-    {
+
+    if (voice_params.voice_name != "") {
         // 遍历所有可用音色
-        foreach (const QVoice &voice, speech->availableVoices()) 
-        {
+        foreach (const QVoice& voice, speech->availableVoices()) {
             // qDebug() << "Name:" << voice.name();
             // qDebug() << "Age:" << voice.age();
             // qDebug() << "Gender:" << voice.gender();
             //使用用户选择的音色
-            if (voice.name() == voice_params.voice_name) 
-            {
+            if (voice.name() == voice_params.voice_name) {
                 speech->setVoice(voice);
                 break;
             }
@@ -625,36 +594,29 @@ void Widget::qspeech(QString str)
         // 开始文本到语音转换
         speech->say(str);
     }
-
 }
 
 //每半秒检查列表，列表中有文字就读然后删，直到读完
-void Widget::qspeech_process()
-{
-    if(!is_speech)
-    {
-        if(wait_speech.size()>0)
-        {
+void Widget::qspeech_process() {
+    if (!is_speech) {
+        if (wait_speech.size() > 0) {
             speechtimer.stop();
             is_speech = true;
             qspeech(wait_speech.first());
-            //qDebug()<<wait_speech.first();
+            // qDebug()<<wait_speech.first();
             wait_speech.removeFirst();
-            
         }
     }
 }
 //朗读结束后动作
-void Widget::speechOver()
-{
+void Widget::speechOver() {
     speechtimer.stop();
     speechtimer.start(500);
-    is_speech = false;//解锁
+    is_speech = false;  //解锁
 }
 
 //每次约定和设置后都保存配置到本地
- void Widget::auto_save_user()
- {
+void Widget::auto_save_user() {
     //--------------保存当前用户配置---------------
     // 创建 QSettings 对象，指定配置文件的名称和格式
 
@@ -662,45 +624,49 @@ void Widget::speechOver()
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     //保存设置参数
-    settings.setValue("modelpath",ui_SETTINGS.modelpath);//模型路径
-    settings.setValue("temp",ui_SETTINGS.temp);//惩罚系数
-    settings.setValue("repeat",ui_SETTINGS.repeat);//惩罚系数
-    settings.setValue("npredict",ui_SETTINGS.npredict);//最大输出长度
-    settings.setValue("ngl",ui_SETTINGS.ngl);//gpu负载层数
-    settings.setValue("nthread",ui_SETTINGS.nthread);//cpu线程数
-    if(ui_SETTINGS.nctx > ui_n_ctx_train){settings.setValue("nctx",ui_n_ctx_train);}//防止溢出
-    else{settings.setValue("nctx",ui_SETTINGS.nctx);}
-    settings.setValue("batch",ui_SETTINGS.batch);//批大小
-    settings.setValue("mmprojpath",ui_SETTINGS.mmprojpath);//视觉
-    settings.setValue("lorapath",ui_SETTINGS.lorapath);//lora
-    settings.setValue("ui_state",ui_state);//模式
-    settings.setValue("port",ui_port);//服务端口
+    settings.setValue("modelpath", ui_SETTINGS.modelpath);  //模型路径
+    settings.setValue("temp", ui_SETTINGS.temp);            //惩罚系数
+    settings.setValue("repeat", ui_SETTINGS.repeat);        //惩罚系数
+    settings.setValue("npredict", ui_SETTINGS.npredict);    //最大输出长度
+    settings.setValue("ngl", ui_SETTINGS.ngl);              // gpu负载层数
+    settings.setValue("nthread", ui_SETTINGS.nthread);      // cpu线程数
+    if (ui_SETTINGS.nctx > ui_n_ctx_train) {
+        settings.setValue("nctx", ui_n_ctx_train);
+    }  //防止溢出
+    else {
+        settings.setValue("nctx", ui_SETTINGS.nctx);
+    }
+    settings.setValue("batch", ui_SETTINGS.batch);            //批大小
+    settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath);  //视觉
+    settings.setValue("lorapath", ui_SETTINGS.lorapath);      // lora
+    settings.setValue("ui_state", ui_state);                  //模式
+    settings.setValue("port", ui_port);                       //服务端口
 
     //保存约定参数
-    settings.setValue("chattemplate",chattemplate_comboBox->currentText());//对话模板
-    settings.setValue("system_prompt",system_TextEdit->toPlainText());//系统指令
-    settings.setValue("extra_prompt",extra_TextEdit->toPlainText());//额外指令
-    settings.setValue("input_pfx",ui_DATES.input_pfx);//用户昵称
-    settings.setValue("input_sfx",ui_DATES.input_sfx);//模型昵称
-    settings.setValue("calculator_checkbox",calculator_checkbox->isChecked());//计算器工具
-    settings.setValue("terminal_checkbox",terminal_checkbox->isChecked());//terminal工具
-    settings.setValue("knowledge_checkbox",knowledge_checkbox->isChecked());//knowledge工具
-    settings.setValue("controller_checkbox",controller_checkbox->isChecked());//controller工具
-    settings.setValue("stablediffusion_checkbox",stablediffusion_checkbox->isChecked());//计算器工具
-    settings.setValue("toolguy_checkbox",toolguy_checkbox->isChecked());//toolguy工具
-    settings.setValue("interpreter_checkbox",interpreter_checkbox->isChecked());//toolguy工具
-    settings.setValue("extra_lan",ui_extra_lan);//额外指令语种
+    settings.setValue("chattemplate", chattemplate_comboBox->currentText());               //对话模板
+    settings.setValue("system_prompt", system_TextEdit->toPlainText());                    //系统指令
+    settings.setValue("extra_prompt", extra_TextEdit->toPlainText());                      //额外指令
+    settings.setValue("input_pfx", ui_DATES.input_pfx);                                    //用户昵称
+    settings.setValue("input_sfx", ui_DATES.input_sfx);                                    //模型昵称
+    settings.setValue("calculator_checkbox", calculator_checkbox->isChecked());            //计算器工具
+    settings.setValue("terminal_checkbox", terminal_checkbox->isChecked());                // terminal工具
+    settings.setValue("knowledge_checkbox", knowledge_checkbox->isChecked());              // knowledge工具
+    settings.setValue("controller_checkbox", controller_checkbox->isChecked());            // controller工具
+    settings.setValue("stablediffusion_checkbox", stablediffusion_checkbox->isChecked());  //计算器工具
+    settings.setValue("toolguy_checkbox", toolguy_checkbox->isChecked());                  // toolguy工具
+    settings.setValue("interpreter_checkbox", interpreter_checkbox->isChecked());          // toolguy工具
+    settings.setValue("extra_lan", ui_extra_lan);                                          //额外指令语种
 
     //保存自定义的约定模板
-    settings.setValue("custom1_system_prompt",custom1_system_prompt);
-    settings.setValue("custom1_input_pfx",custom1_input_pfx);
-    settings.setValue("custom1_input_sfx",custom1_input_sfx);
-    settings.setValue("custom2_system_prompt",custom2_system_prompt);
-    settings.setValue("custom2_input_pfx",custom2_input_pfx);
-    settings.setValue("custom2_input_sfx",custom2_input_sfx);
-    
-    reflash_state("ui:" + jtr("save_config_mess"),USUAL_SIGNAL);
- }
+    settings.setValue("custom1_system_prompt", custom1_system_prompt);
+    settings.setValue("custom1_input_pfx", custom1_input_pfx);
+    settings.setValue("custom1_input_sfx", custom1_input_sfx);
+    settings.setValue("custom2_system_prompt", custom2_system_prompt);
+    settings.setValue("custom2_input_pfx", custom2_input_pfx);
+    settings.setValue("custom2_input_sfx", custom2_input_sfx);
+
+    reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
+}
 
 // 对音频重采样为16khz
 bool Widget::resampleWav(const std::string& inputPath, const std::string& outputPath) {

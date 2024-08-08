@@ -7,27 +7,26 @@
 #ifndef GPUCHECKER_H
 #define GPUCHECKER_H
 
-#include <QThread>
 #include <QDebug>
-#include <QProcess>
 #include <QElapsedTimer>
+#include <QProcess>
+#include <QThread>
 
 #ifdef BODY_USE_CUDA
 #include "nvml.h"
 #endif
-//llama模型类
-class gpuChecker : public QThread
-{
+// llama模型类
+class gpuChecker : public QThread {
     Q_OBJECT
-public:
+   public:
     //获取gpu厂家
-    QString getGpuVendor()
-    {
+    QString getGpuVendor() {
         QProcess process;
 #ifdef _WIN32
         process.start("wmic path win32_videocontroller get caption");
 #elif __linux__
-        process.start("bash", QStringList() << "-c" << "lspci -nn | grep VGA");
+        process.start("bash", QStringList() << "-c"
+                                            << "lspci -nn | grep VGA");
 #endif
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
@@ -61,7 +60,7 @@ public:
                     int usedMemory = values[2].trimmed().toInt();
                     int utilization = values[3].trimmed().toInt();
 
-                    emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization,freeMemory);
+                    emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization, freeMemory);
                     // qDebug() << "NVIDIA GPU" << i
                     //         << "Total Memory:" << totalMemory << "MB"
                     //         << "Free Memory:" << freeMemory << "MB"
@@ -98,7 +97,7 @@ public:
                     int freeMemory = values[3].trimmed().toInt();
                     int utilization = values[4].trimmed().toInt();
 
-                    emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization,freeMemory);
+                    emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization, freeMemory);
                     // qDebug() << "AMD" << gpuName
                     //         << "Total Memory:" << totalMemory << "MB"
                     //         << "Free Memory:" << freeMemory << "MB"
@@ -118,75 +117,61 @@ public:
         }
     }
 #ifdef BODY_USE_CUDA
-    nvmlDevice_t device;//显卡设备
-    nvmlUtilization_t utilization;//利用率
+    nvmlDevice_t device;            //显卡设备
+    nvmlUtilization_t utilization;  //利用率
     nvmlMemory_t memory;
 #endif
 
-    QString gpu_vendor;// 显卡种类 nvidia/amd/inter/asend
+    QString gpu_vendor;  // 显卡种类 nvidia/amd/inter/asend
 
     // 初始化
-    gpuChecker()
-    {
-#ifdef BODY_USE_CUDA        
-        nvmlInit();// 初始化NVML库
-        nvmlDeviceGetHandleByIndex(0, &device);// 获取第一个GPU的句柄
+    gpuChecker() {
+#ifdef BODY_USE_CUDA
+        nvmlInit();                              // 初始化NVML库
+        nvmlDeviceGetHandleByIndex(0, &device);  // 获取第一个GPU的句柄
 #else
         // 判断显卡类型
         gpu_vendor = getGpuVendor();
-        qDebug()<<gpu_vendor;
+        qDebug() << gpu_vendor;
 #endif
     }
 
     // 释放
-    ~gpuChecker()
-    {
-#ifdef BODY_USE_CUDA    
-        nvmlShutdown(); // 关闭NVML库
+    ~gpuChecker() {
+#ifdef BODY_USE_CUDA
+        nvmlShutdown();  // 关闭NVML库
 #endif
     }
 
     // 多线程支持
-    void run() override
-    {
-        chekGpu();
-    } 
+    void run() override { chekGpu(); }
 
-signals:
+   signals:
     void gpu_status(float vmem, float vram, float vcore, float vfree_);
 
-public slots:
+   public slots:
 
-    void chekGpu()
-    {
-#ifdef BODY_USE_CUDA   
-        nvmlDeviceGetUtilizationRates(device, &utilization);// 获取GPU利用率
+    void chekGpu() {
+#ifdef BODY_USE_CUDA
+        nvmlDeviceGetUtilizationRates(device, &utilization);  // 获取GPU利用率
         nvmlDeviceGetMemoryInfo(device, &memory);
-        float vmem = memory.total / 1024 / 1024;//总显存MB
-        float vram = float(memory.used) / float(memory.total) * 100.0;//gpu显存占用率
-        float vcore = utilization.gpu;//gpu核心利用率
-        float vfree_ = float(memory.free)/ 1024.0 / 1024.0;//剩余显存MB
-        emit gpu_status(vmem, vram, vcore,vfree_);
+        float vmem = memory.total / 1024 / 1024;                        //总显存MB
+        float vram = float(memory.used) / float(memory.total) * 100.0;  // gpu显存占用率
+        float vcore = utilization.gpu;                                  // gpu核心利用率
+        float vfree_ = float(memory.free) / 1024.0 / 1024.0;            //剩余显存MB
+        emit gpu_status(vmem, vram, vcore, vfree_);
 #else
-        if(gpu_vendor == "NVIDIA")
-        {
+        if (gpu_vendor == "NVIDIA") {
             getNvidiaGpuInfo();
-        }
-        else if(gpu_vendor == "AMD")
-        {
+        } else if (gpu_vendor == "AMD") {
             getAmdGpuInfo();
-        }
-        else
-        {
+        } else {
             emit gpu_status(0, 0, 0, 0);
         }
 #endif
     }
 
-    void recv_gpu_reflash()
-    {
-        chekGpu();
-    }
+    void recv_gpu_reflash() { chekGpu(); }
 };
 
-#endif // GPUCHECKER_H
+#endif  // GPUCHECKER_H

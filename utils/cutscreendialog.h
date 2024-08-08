@@ -6,50 +6,45 @@
 #ifndef CUTSCREENDIALOG_H
 #define CUTSCREENDIALOG_H
 
-#include <QObject>
-#include <QWidget>
-#include <QDialog>
-#include <qmenu.h>
-#include <qapplication.h>
-#include <QSize>
-#include <QDesktopWidget>
-#include <QPainter>
-#include <QMouseEvent>
-#include <string>
 #include <math.h>
-#include <QClipboard>
+#include <qapplication.h>
+#include <qmenu.h>
 #include <qscreen.h>
-#include <QDateTime>
-#include <QDir>
-#include <QDebug>
-#include <QJsonObject>
 
-class CutScreenDialog:public QDialog
-{
+#include <QClipboard>
+#include <QDateTime>
+#include <QDebug>
+#include <QDesktopWidget>
+#include <QDialog>
+#include <QDir>
+#include <QJsonObject>
+#include <QMouseEvent>
+#include <QObject>
+#include <QPainter>
+#include <QSize>
+#include <QWidget>
+#include <string>
+
+class CutScreenDialog : public QDialog {
     Q_OBJECT
 
-private:
+   private:
     QPixmap m_screenPicture;
     QPixmap backgroundPicture;
     bool m_isMousePressed = false;
     QPoint m_startPos, m_endPos, m_startPos_fixed;
     QMenu m_screenMenu;
 
-public:
+   public:
     //初始化
-    CutScreenDialog(QWidget* parent)
-    :QDialog(parent)
-    {
-        this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);//无边框窗口
-
-
+    CutScreenDialog(QWidget *parent) : QDialog(parent) {
+        this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);  //无边框窗口
     }
     //析构函数
-    ~CutScreenDialog(){;}
+    ~CutScreenDialog() { ; }
 
     //获得截图动作的名称，主要为了转换中英文
-    void init_action(QString act1_name,QString act2_name)
-    {
+    void init_action(QString act1_name, QString act2_name) {
         m_screenMenu.clear();
         m_screenMenu.addAction(act1_name, this, &CutScreenDialog::slot_saveCapturedScreen);
         m_screenMenu.addAction(act2_name, this, &CutScreenDialog::slot_saveFullScreen);
@@ -71,33 +66,23 @@ public:
         }
     }
 
-    void clearinformation()
-    {
-        this->m_startPos = this->m_endPos = QPoint();
-    }
+    void clearinformation() { this->m_startPos = this->m_endPos = QPoint(); }
 
-    QRect getCapturedRect(QPoint startpos, QPoint endpos)
-    {
+    QRect getCapturedRect(QPoint startpos, QPoint endpos) {
         QRect ret;
 
-        if(startpos.x()<endpos.x())
-        {
+        if (startpos.x() < endpos.x()) {
             ret.setLeft(startpos.x());
 
-        }
-        else {
+        } else {
             ret.setLeft(endpos.x());
-
         }
 
-        if(startpos.y() < endpos.y())
-        {
+        if (startpos.y() < endpos.y()) {
             ret.setTop(startpos.y());
 
-        }
-        else {
+        } else {
             ret.setTop(endpos.y());
-
         }
 
         ret.setWidth(qAbs(startpos.x() - endpos.x()));
@@ -106,9 +91,8 @@ public:
         return ret;
     }
 
-protected:
-    void showEvent(QShowEvent *event)
-    {
+   protected:
+    void showEvent(QShowEvent *event) {
         QSize desktopSize = QApplication::desktop()->size();
         QScreen *pscreen = QApplication::primaryScreen();
         m_screenPicture = pscreen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());
@@ -119,8 +103,7 @@ protected:
         painter.drawPixmap(0, 0, pix);
     }
 
-    void paintEvent(QPaintEvent *event)
-    {
+    void paintEvent(QPaintEvent *event) {
         QPainter painter(this);
         QPen pen;
         pen.setColor(Qt::red);
@@ -128,58 +111,46 @@ protected:
         painter.setPen(pen);
         painter.drawPixmap(0, 0, backgroundPicture);
         QRect rect(getCapturedRect(m_startPos, m_endPos));
-        
+
         if (rect.isValid()) {
-            painter.drawPixmap(rect.x()/devicePixelRatioF(), rect.y()/devicePixelRatioF(), m_screenPicture.copy(rect));
+            painter.drawPixmap(rect.x() / devicePixelRatioF(), rect.y() / devicePixelRatioF(), m_screenPicture.copy(rect));
         }
     }
 
-
-    void mousePressEvent(QMouseEvent *event)
-    {
-        if(event->button() == Qt::LeftButton){
+    void mousePressEvent(QMouseEvent *event) {
+        if (event->button() == Qt::LeftButton) {
             m_isMousePressed = true;
-            m_startPos = event->pos()*devicePixelRatioF();//devicePixelRatioF()是缩放系数
-            //qDebug()<<"m_startPos"<<m_startPos;
+            m_startPos = event->pos() * devicePixelRatioF();  // devicePixelRatioF()是缩放系数
+            // qDebug()<<"m_startPos"<<m_startPos;
         }
     }
 
-    void mouseMoveEvent(QMouseEvent *event)
-    {
-        if(m_isMousePressed){
-        m_endPos = event->pos()*devicePixelRatioF();//devicePixelRatioF()是缩放系数
-        m_startPos_fixed = m_startPos;
-        //qDebug()<<"m_endPos"<<m_endPos;
-        update();  //产生绘图事件
+    void mouseMoveEvent(QMouseEvent *event) {
+        if (m_isMousePressed) {
+            m_endPos = event->pos() * devicePixelRatioF();  // devicePixelRatioF()是缩放系数
+            m_startPos_fixed = m_startPos;
+            // qDebug()<<"m_endPos"<<m_endPos;
+            update();  //产生绘图事件
         }
     }
 
-    void mouseReleaseEvent(QMouseEvent *event)
-    {
+    void mouseReleaseEvent(QMouseEvent *event) {
         m_isMousePressed = false;
         m_screenMenu.exec(cursor().pos());
-
     }
 
-
-
-    void contextMenuEvent(QContextMenuEvent *event)
-    {
+    void contextMenuEvent(QContextMenuEvent *event) {
         this->setCursor(Qt::ArrowCursor);
         m_screenMenu.exec(cursor().pos());
     }
 
-    void keyPressEvent(QKeyEvent *event)
-    {
-
+    void keyPressEvent(QKeyEvent *event) {
         clearinformation();
         hide();
-
     }
 
-public:
-    
-    void slot_saveCapturedScreen() //保存图片动作被点击
+   public:
+    void slot_saveCapturedScreen()  //保存图片动作被点击
     {
         QClipboard *clipboard = QApplication::clipboard();
         QRect rect(getCapturedRect(m_startPos_fixed, m_endPos));
@@ -198,7 +169,7 @@ public:
         this->hide();
     }
 
-    void slot_saveFullScreen() //保存整个屏幕的图片
+    void slot_saveFullScreen()  //保存整个屏幕的图片
     {
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setPixmap(m_screenPicture);
@@ -214,9 +185,9 @@ public:
 
         this->hide();
     }
-    
-signals:
+
+   signals:
     void cut2ui_qimagepath(QString cut_imagepath_);
 };
 
-#endif // CUTSCREENDIALOG_H
+#endif  // CUTSCREENDIALOG_H

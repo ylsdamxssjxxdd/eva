@@ -1,19 +1,17 @@
-#include <QPainterPath>
 #include <QApplication>
-#include <QPlainTextEdit>
-#include <QPainter>
-#include <QTimer>
 #include <QPaintEvent>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPlainTextEdit>
+#include <QTimer>
 #include <cstdlib>
 #include <ctime>
 
 class WaterWavePlainTextEdit : public QPlainTextEdit {
     Q_OBJECT
 
-public:
-    WaterWavePlainTextEdit(QWidget *parent = nullptr)
-        : QPlainTextEdit(parent), m_waveHeight(0), m_targetWaveOffset(0),
-          m_animationRunning(false), m_waveDirectionUp(true), m_maxWaveHeight(0) {
+   public:
+    WaterWavePlainTextEdit(QWidget *parent = nullptr) : QPlainTextEdit(parent), m_waveHeight(0), m_targetWaveOffset(0), m_animationRunning(false), m_waveDirectionUp(true), m_maxWaveHeight(0) {
         setAttribute(Qt::WA_OpaquePaintEvent);
         std::srand(std::time(nullptr));  // Initialize random seed
     }
@@ -22,7 +20,7 @@ public:
         if (!m_animationRunning) {
             m_animationRunning = true;
             m_maxWaveHeight = viewport()->height();  // Set maximum wave height to the viewport height
-            m_timerId = startTimer(16);  // Increase frequency to 60 FPS (every 16ms)
+            m_timerId = startTimer(16);              // Increase frequency to 60 FPS (every 16ms)
         }
     }
 
@@ -34,13 +32,13 @@ public:
     }
 
     void clearWaterWave() {
-        m_waveHeight = 0;  // Reset wave height
-        m_waveOffset = 0;  // Reset wave offset
+        m_waveHeight = 0;        // Reset wave height
+        m_waveOffset = 0;        // Reset wave offset
         m_targetWaveOffset = 0;  // Reset target wave offset
-        viewport()->update();  // Request a repaint to clear the wave
+        viewport()->update();    // Request a repaint to clear the wave
     }
 
-protected:
+   protected:
     void paintEvent(QPaintEvent *event) override {
         QPainter painter(viewport());
 
@@ -107,12 +105,12 @@ protected:
         painter.restore();
     }
 
-private:
-    double m_waveHeight;  // Height of the water level, which increases over time
-    double m_waveOffset = 0;  // Offset to create left-right height difference
+   private:
+    double m_waveHeight;        // Height of the water level, which increases over time
+    double m_waveOffset = 0;    // Offset to create left-right height difference
     double m_targetWaveOffset;  // Target offset for smooth transition
-    bool m_animationRunning;  // Whether the animation is running
-    bool m_waveDirectionUp;  // Direction of the wave motion
-    int m_timerId;  // Timer ID for controlling the animation
-    double m_maxWaveHeight;  // Maximum wave height
+    bool m_animationRunning;    // Whether the animation is running
+    bool m_waveDirectionUp;     // Direction of the wave motion
+    int m_timerId;              // Timer ID for controlling the animation
+    double m_maxWaveHeight;     // Maximum wave height
 };
