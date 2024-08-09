@@ -143,9 +143,20 @@ void Widget::on_load_clicked() {
         return;
     }  //如果路径没选好就让它等于上一次的路径
 
-    //释放旧的模型和上下文
-    emit ui2bot_free(1);
-    is_load = false;
+    if(currentpath == historypath)
+    {
+        return; // 如果模型路径是一样的，则不操作
+    }
+    else
+    {
+        historypath = currentpath; // 记录这个路径，方便下次对比
+        ui_SETTINGS.mmprojpath = "";  // 清空mmproj模型路径
+        //释放旧的模型和上下文
+        emit ui2bot_free(1);
+        is_load = false;
+    }
+    
+    
 }
 
 //模型释放完毕并重新装载

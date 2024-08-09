@@ -97,6 +97,7 @@ class Widget : public QWidget {
     QFont ui_font;  //约定和设置的字体大小
     QMediaPlayer music_player;
     QString currentpath = DEFAULT_MODELPATH;
+    QString historypath;
     void apply_language(int language_flag_);  //改变语种相关
 
     bool is_config = false;  //是否是读取了配置进行的装载

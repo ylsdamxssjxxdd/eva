@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
     //-----------------初始值设定-----------------------
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;  //传递语言
     expend.max_thread = w.max_thread;
+    w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.voice_params = expend.voice_params;
     expend.set_sys_voice(w.sys_voice_list);  // 设置可用系统声源
@@ -181,6 +182,7 @@ int main(int argc, char* argv[]) {
         {
             // 读取配置文件中的值
             w.ui_SETTINGS.modelpath = modelpath;
+            w.currentpath = w.historypath = expend.currentpath = modelpath;
             w.custom1_system_prompt = settings.value("custom1_system_prompt", "").toString();
             w.custom1_input_pfx = settings.value("custom1_input_pfx", "").toString();
             w.custom1_input_sfx = settings.value("custom1_input_sfx", "").toString();
