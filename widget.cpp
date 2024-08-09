@@ -149,8 +149,9 @@ void Widget::on_load_clicked() {
     }
     else
     {
-        historypath = currentpath; // 记录这个路径，方便下次对比
+        historypath = currentpath;    // 记录这个路径，方便下次对比
         ui_SETTINGS.mmprojpath = "";  // 清空mmproj模型路径
+        ui_SETTINGS.lorapath = "";    // 清空lora模型路径
         //释放旧的模型和上下文
         emit ui2bot_free(1);
         is_load = false;
