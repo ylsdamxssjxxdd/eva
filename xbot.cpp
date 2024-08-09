@@ -653,7 +653,7 @@ void xBot::load(std::string &modelpath) {
     gpt_params_.model = modelpath;  //传递模型路径
 
     // lora不支持mmp
-    if (gpt_params_.lora_adapter.size() == 0) {
+    if (gpt_params_.lora_adapters.size() == 0) {
         gpt_params_.use_mmap = true;
     } else {
         gpt_params_.use_mmap = false;
@@ -1099,10 +1099,10 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     if (settings_lorapath != lorapath) {
         lorapath = settings_lorapath;
         if (lorapath != "") {
-            std::tuple<std::string, float> element = std::make_tuple(lorapath, 1.0);  // 1.0是lora的影响系数
-            gpt_params_.lora_adapter.push_back(element);
+            llama_lora_adapter_info element = {lorapath, 1.0};  // 1.0是lora的影响系数
+            gpt_params_.lora_adapters.push_back(element);
         } else {
-            gpt_params_.lora_adapter.clear();
+            gpt_params_.lora_adapters.clear();
         }
         reload_flag = true;
     }

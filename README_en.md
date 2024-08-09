@@ -291,9 +291,9 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
 ## To do
 
-- ~~Adapt to Linux (completed)~~
+- Auto State (EVA autonomously controls the screen, mouse, and keyboard to complete user-preset tasks)
 
-- Adapt to more CPU/GPU
+- ~~Adapt to Linux (completed)~~
 
 - ~~English version (completed)~~
 
