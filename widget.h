@@ -176,7 +176,6 @@ class Widget : public QWidget {
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address();  //获取本机第一个ip地址
     bool current_server = false;               //从服务模式回来要重载
-    void serverControl();
 
     //语音相关
     QAudioRecorder audioRecorder;
@@ -351,6 +350,7 @@ class Widget : public QWidget {
     void ui2bot_set(SETTINGS settings, bool can_reload);                     //传递设置内容
     void ui2bot_free(bool loadlater);                                        //释放
     void ui2bot_maxngl(int maxngl_);
+
     //发给net的信号
    signals:
     void ui2net_language(int language_flag_);                      //传递使用的语言
@@ -358,20 +358,24 @@ class Widget : public QWidget {
     void ui2net_data(ENDPOINT_DATA data);                          //传递端点参数
     void ui2net_apis(APIS apis);                                   //传递api设置参数
     void ui2net_stop(bool stop);                                   //传递停止信号
-                                                                   //发送给tool的信号
+
+    //发送给tool的信号
     void ui2tool_language(int language_flag_);                     //传递使用的语言
     void ui2tool_push();                                           //开始推理
     void ui2tool_func_arg(QPair<QString, QString> func_arg_list);  //传递函数名和参数
     void recv_controller_over(QString result);
+
     //发送给expend的信号
     void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);
     void ui2expend_language(int language_flag_);                      //传递使用的语言
     void ui2expend_show(int index_);                                  //通知显示扩展窗口
     void ui2expend_voicedecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
-                                                                      //自用信号
+
+    //自用信号
    signals:
     void gpu_reflash();  //强制刷新gpu信息
     void cpu_reflash();  //强制刷新gpu信息
+
     //处理模型信号的槽
    public slots:
     void recv_syncrate(Syncrate_Manager Syncrate_manager);                        //传递同步率
@@ -392,21 +396,26 @@ class Widget : public QWidget {
     void recv_kv(float percent, int ctx_size);                                    //接收缓存量
     void recv_tokens(int tokens);                                                 //传递测试解码token数量
     void recv_play();
+
     //处理expend信号的槽
     void recv_voicedecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);     //传递模型路径
     void recv_embeddingdb_describe(QString describe);   //传递知识库的描述
     void recv_voiceparams(Voice_Params Voice_Params_);  //传递文转声参数
-                                                        //处理tool信号的槽
+
+    //处理tool信号的槽
     void recv_controller(int num);                      //传递控制信息
-                                                        //自用的槽
+
+    //自用的槽
    public slots:
+    void serverControl();                      //服务状态启动服务
     void switch_lan_change();  //切换行动纲领的语言
 #ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率
 #endif
     void recv_cpu_status(double cpuload, double memload);  //传递cpu信息
-                                                           //自用的槽
+
+    //自用的槽
    private slots:
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
     void ondebugButton_clicked();              // debug按钮点击响应
