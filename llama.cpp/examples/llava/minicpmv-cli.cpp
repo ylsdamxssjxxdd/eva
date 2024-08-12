@@ -126,6 +126,7 @@ static void process_eval_image_embed(struct llava_context * ctx_llava, const str
     auto slice_embed = (llava_image_embed*)malloc(sizeof(llava_image_embed));
     slice_embed->embed = image_embed;
     slice_embed->n_image_pos = clip_n_patches(ctx_llava->ctx_clip);
+    std::cout << "hello" << slice_embed->n_image_pos << std::endl;
     llava_eval_image_embed(ctx_llava->ctx_llama, slice_embed, n_batch, n_past);
     llava_image_embed_free(slice_embed);
 }

@@ -77,11 +77,22 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");  //注册PARAMS作为信号传递变量
     qRegisterMetaType<QColor>("QColor");              //注册QColor作为信号传递变量
     qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");  //注册STATE作为信号传递变量
+    qRegisterMetaType<DATES>("DATES");
+    qRegisterMetaType<SETTINGS>("SETTINGS");
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
     qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
+
+    //------------------开启多线程 todo ------------------------
+// #ifdef BODY_USE_GPU
+//     QThread* gpuer_thread = new QThread;
+//     gpuer.moveToThread(gpuer_thread);
+// #endif
+
+    // QThread* bot_thread = new QThread;
+    // bot.moveToThread(bot_thread);
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot, &xBot::bot2ui_params, &w, &Widget::recv_params);              // bot将模型参数传递给ui

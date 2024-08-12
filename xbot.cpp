@@ -3,36 +3,9 @@
 #endif
 #include "xbot.h"
 
-//回调函数,获取llama的日志
-static void bot_log_callback(ggml_log_level level, const char *text, void *user_data) {
-    xBot *bot = static_cast<xBot *>(user_data);  //类型转换操作,不消耗资源,重新解释了现有内存地址的类型
-    emit bot->bot_llama_log(QString::fromStdString(text));
-}
-
-template <class Iter>
-//解决半个utf8字符问题
-std::string tokens_to_str(llama_context *ctx, Iter begin, Iter end) {
-    std::string ret;
-    for (; begin != end; ++begin) {
-        ret += llama_token_to_piece(ctx, *begin);
-    }
-    return ret;
-}
-
-//转为小写，针对英文字母
-std::string toLowerCaseASCII(const std::string &input) {
-    std::string output = input;
-    for (char &c : output) {
-        if ((unsigned char)c < 128) {  // 确保字符是ASCII范围内的
-            c = std::tolower((unsigned char)c);
-        }
-    }
-    return output;
-}
-
 xBot::xBot() {
-    log_disable();                          //禁止llama.cpp输出日志文件
-    llama_log_set(bot_log_callback, this);  //设置回调,获取llama的日志
+log_disable();                                    //禁止llama.cpp输出日志文件
+    llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
     showSpecial = true;  // 是否显示特殊标志 <bos> <eos> <eot>
 
@@ -90,27 +63,36 @@ void xBot::run() {
         else if (input.input == "<ylsdamxssjxxdd:imagedecode>") {
             if (is_multi) {
                 emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
-                // llava_image_embed * image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.c_str());
-                // 图像文件路径暂不支持中文
-                llava_image_embed *image_embed = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.at(0).c_str());
-                bool ok_ = llava_eval_image_embed(ctx, image_embed, gpt_params_.n_batch, &n_past);
-                emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);  //当前缓存量
-                for (int i = Brain_vector.size(); i < n_past; ++i) {
-                    Brain_vector.push_back({i + 1, -2, "<image>"});
-                }
-                emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
+                int n_past_orin = n_past;
 
-                llava_image_embed_free(image_embed);
-                gpt_params_.image.clear();
+                // 将图像转为token
+                llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.at(0).c_str());
+
+                // 预处理图像(分隔+预解码)
+                bool ok_ = process_image(ctx, ctx_clip, image_embeds, gpt_params_, n_past);
+                
+                emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);  //当前缓存量
+                
+                for (int i = Brain_vector.size(); i < n_past; ++i) {
+                    Brain_vector.push_back({i + 1, -2, "<|image|>"});
+                } // 添加到记忆矩阵
+
+                emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1); // 1 表示强制刷新记忆矩阵
+                llava_image_embed_free(image_embeds); // 释放图像token
+                gpt_params_.image.clear(); // 清空图像
+
                 if (ok_) {
                     float time_ = time2.nsecsElapsed() / 1000000000.0;
-                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + "+1024", SUCCESS_SIGNAL);
+                    int n_past_new = n_past - n_past_orin;// 新增的token数
+                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + "+" + QString::number(n_past_new), SUCCESS_SIGNAL);
                 } else {
-                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail") + " " + jtr("remain") + jtr("ctx") + jtr("length") + "<1024", WRONG_SIGNAL);
+                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
                 }
+
             } else {
                 emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
             }
+
             emit bot2ui_pushover();  //推理完成的信号
             is_stop = false;
             return;
@@ -1082,7 +1064,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
 #endif
     if (settings_mmprojpath != mmprojpath) {
         mmprojpath = settings_mmprojpath;
-        qDebug() << settings.mmprojpath << QString::fromStdString(mmprojpath);
+        // qDebug() << settings.mmprojpath << QString::fromStdString(mmprojpath);
         reload_flag = true;
     }
 
@@ -1253,3 +1235,101 @@ void xBot::recv_llama_log(QString log_) {
 
 //传递同步率
 void xBot::recv_syncrate(Syncrate_Manager Syncrate_manager) { bot_syncrate_manager.is_sync = Syncrate_manager.is_sync; }
+
+
+// 快捷预解码token，参照的是minicpmv-cli.cpp
+bool xBot::eval_tokens(struct llama_context * ctx_llama, std::vector<llama_token> tokens, int n_batch, int * n_past) {
+    int N = (int) tokens.size();
+    for (int i = 0; i < N; i += n_batch) {
+        int n_eval = (int) tokens.size() - i;
+        if (n_eval > n_batch) {
+            n_eval = n_batch;
+        }
+        if (llama_decode(ctx_llama, llama_batch_get_one(&tokens[i], n_eval, *n_past, 0))) {
+            // LOG_TEE("%s : failed to eval. token %d/%d (batch size %d, n_past %d)\n", __func__, i, N, n_batch, *n_past);
+            qDebug()<<"failed to eval";
+            return false;
+        }
+        *n_past += n_eval;
+    }
+    return true;
+}
+
+// 快捷预解码文本，参照的是minicpmv-cli.cpp
+bool xBot::eval_string(struct llama_context * ctx_llama, const char* str, int n_batch, int * n_past, bool add_bos){
+    std::string              str2     = str;
+    std::vector<llama_token> embd_inp = ::llama_tokenize(ctx_llama, str2, add_bos, true);
+    return eval_tokens(ctx_llama, embd_inp, n_batch, n_past);
+}
+
+// 预解码图像，参照的是minicpmv-cli.cpp，llava_context拆解成了ctx_llama ctx_clip
+void xBot::process_eval_image_embed(llama_context * ctx_llama, clip_ctx * ctx_clip, const struct llava_image_embed * embeds, int n_batch, int * n_past, int idx) {
+    float * image_embed = (float *)malloc(clip_embd_nbytes(ctx_clip));
+    std::memcpy(image_embed, embeds->embed + idx * clip_n_patches(ctx_clip) * clip_n_mmproj_embd(ctx_clip), clip_embd_nbytes(ctx_clip));
+    auto slice_embed = (llava_image_embed*)malloc(sizeof(llava_image_embed));
+    slice_embed->embed = image_embed;
+    slice_embed->n_image_pos = clip_n_patches(ctx_clip);
+    llava_eval_image_embed(ctx_llama, slice_embed, n_batch, n_past);
+    llava_image_embed_free(slice_embed);
+}
+
+// 预处理图像，参照的是minicpmv-cli.cpp
+bool xBot::process_image(llama_context * ctx, clip_ctx * ctx_clip, struct llava_image_embed * image_embeds, gpt_params gpt_params_, int &n_past)
+{
+    QElapsedTimer time;
+    time.start();
+    int idx = 0;
+    int num_image_embeds = image_embeds->n_image_pos / clip_n_patches(ctx_clip);
+    eval_string(ctx, std::string("<image>").c_str(), gpt_params_.n_batch, &n_past, false);
+    process_eval_image_embed(ctx, ctx_clip, image_embeds, gpt_params_.n_batch, &n_past, idx++);
+    eval_string(ctx, std::string("</image>").c_str(), gpt_params_.n_batch, &n_past, false);
+    // float time_ = time.nsecsElapsed() / 1000000000.0;
+    // qDebug()<<QString::number(time_, 'f', 2) + " s ";
+    
+    if (num_image_embeds > 1) {
+        size_t num_image_embeds_col = clip_uhd_num_image_embeds_col(ctx_clip);
+        eval_string(ctx, std::string("<slice>").c_str(), gpt_params_.n_batch, &n_past, false);
+        for (size_t i = 0; i < (num_image_embeds-1)/num_image_embeds_col; ++i) {
+            for (size_t j = 0; j < num_image_embeds_col; ++j) {
+                eval_string(ctx, std::string("<image>").c_str(), gpt_params_.n_batch, &n_past, false);
+                process_eval_image_embed(ctx, ctx_clip, image_embeds, gpt_params_.n_batch, &n_past, idx++);
+                // float time_ = time.nsecsElapsed() / 1000000000.0;
+                // qDebug()<<QString::number(time_, 'f', 2) + " s ";
+                eval_string(ctx, std::string("</image>").c_str(), gpt_params_.n_batch, &n_past, false);
+                if (j == num_image_embeds_col - 1) {
+                    eval_string(ctx, std::string("\n").c_str(), gpt_params_.n_batch, &n_past, false);
+                }
+            }
+        }
+        eval_string(ctx, std::string("</slice>").c_str(), gpt_params_.n_batch, &n_past, false);
+    }
+
+    return true;
+}
+
+//回调函数,获取llama的日志
+void xBot::bot_log_callback(ggml_log_level level, const char *text, void *user_data) {
+    xBot *bot = static_cast<xBot *>(user_data);  //类型转换操作,不消耗资源,重新解释了现有内存地址的类型
+    emit bot->bot_llama_log(QString::fromStdString(text));
+}
+
+template <class Iter>
+//解决半个utf8字符问题
+std::string xBot::tokens_to_str(llama_context *ctx, Iter begin, Iter end) {
+    std::string ret;
+    for (; begin != end; ++begin) {
+        ret += llama_token_to_piece(ctx, *begin);
+    }
+    return ret;
+}
+
+//转为小写，针对英文字母
+std::string xBot::toLowerCaseASCII(const std::string &input) {
+    std::string output = input;
+    for (char &c : output) {
+        if ((unsigned char)c < 128) {  // 确保字符是ASCII范围内的
+            c = std::tolower((unsigned char)c);
+        }
+    }
+    return output;
+}

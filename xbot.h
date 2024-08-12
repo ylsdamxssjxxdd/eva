@@ -45,7 +45,23 @@ class xBot : public QThread {
 
     llama_model *model;  //模型
     llama_context *ctx;  //上下文
-    clip_ctx *ctx_clip;  // clip模型,编码图像用
+    clip_ctx *ctx_clip;  // clip模型上下文, 编码图像用
+
+    // 快捷预解码token
+    bool eval_tokens(struct llama_context * ctx_llama, std::vector<llama_token> tokens, int n_batch, int * n_past);
+    // 快捷预解码文本
+    bool eval_string(struct llama_context * ctx_llama, const char* str, int n_batch, int * n_past, bool add_bos);
+    // 预解码图像
+    void process_eval_image_embed(llama_context * ctx_llama, clip_ctx * ctx_clip, const struct llava_image_embed * embeds, int n_batch, int * n_past, int idx);
+    // 预处理图像
+    bool process_image(llama_context * ctx, clip_ctx * ctx_clip, struct llava_image_embed * image_embeds, gpt_params gpt_params_, int &n_past);
+    //回调函数,获取llama的日志
+    static void bot_log_callback(ggml_log_level level, const char *text, void *user_data);
+    //解决半个utf8字符问题
+    template <class Iter>
+    std::string tokens_to_str(llama_context *ctx, Iter begin, Iter end);
+    //转为小写，针对英文字母
+    std::string toLowerCaseASCII(const std::string &input);
 
     //先输出用户发送过来的东西
     // context_pos 0是用户昵称 1是输入内容 2是模型昵称

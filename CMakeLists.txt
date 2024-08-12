@@ -11,7 +11,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
@@ -117,6 +117,7 @@ if(UNIX AND NOT APPLE)
 endif()
 # add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
 # add_subdirectory(llama.cpp/examples/main) # 测试用
+add_subdirectory(llama.cpp/examples/llava) # 测试用
 # add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
