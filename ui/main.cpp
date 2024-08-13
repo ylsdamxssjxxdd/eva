@@ -86,11 +86,12 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
 
     //------------------开启多线程 todo ------------------------
-// #ifdef BODY_USE_GPU
-//     QThread* gpuer_thread = new QThread;
-//     gpuer.moveToThread(gpuer_thread);
-// #endif
-
+#ifdef BODY_USE_GPU
+    QThread* gpuer_thread = new QThread;
+    gpuer.moveToThread(gpuer_thread);
+    gpuer_thread->start();
+#endif
+    
     // QThread* bot_thread = new QThread;
     // bot.moveToThread(bot_thread);
 
@@ -131,7 +132,8 @@ int main(int argc, char* argv[]) {
 #ifdef BODY_USE_GPU
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);    //传递gpu信息
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &bot, &xBot::recv_gpu_status);    //传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, [&gpuer]() { gpuer.start(); });  //强制刷新gpu信息
+    // QObject::connect(&w, &Widget::gpu_reflash, &gpuer, [&gpuer]() { gpuer.start(); });  //强制刷新gpu信息
+    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::chekGpu);  //强制刷新gpu信息
 #endif
     //------------------监测系统信息-------------------
     QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status);    //传递cpu信息

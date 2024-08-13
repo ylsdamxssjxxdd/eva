@@ -168,9 +168,9 @@ QString Widget::getFirstNonLoopbackIPv4Address() {
 //第三方程序开始
 void Widget::server_onProcessStarted() {
     if (ui_SETTINGS.ngl == 0) {
-        QApplication::setWindowIcon(QIcon(":/ui/connection-point-blue.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/connection-point-blue.png"));
     } else {
-        QApplication::setWindowIcon(QIcon(":/ui/connection-point-green.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/connection-point-green.png"));
     }
     ipAddress = getFirstNonLoopbackIPv4Address();
     reflash_state("ui:server " + jtr("oning"), SIGNAL_SIGNAL);
@@ -182,7 +182,7 @@ void Widget::server_onProcessFinished() {
         ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
     } else {
-        QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));  //设置应用程序图标
+        QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
         reflash_state("ui:server" + jtr("off"), SIGNAL_SIGNAL);
         ui_output = "\nserver" + jtr("shut down");
         output_scroll(ui_output);

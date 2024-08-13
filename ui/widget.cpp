@@ -41,9 +41,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空
     ui_font.setPointSize(10);                                                       // 将设置控件的字体大小设置为10
-    QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));                       //设置应用程序图标
-    ui->set->setIcon(QIcon(":/ui/assimp_tools_icon.ico"));                          //设置设置图标
-    ui->reset->setIcon(QIcon(":/ui/sync.ico"));                                     //设置重置图标
+    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));                       //设置应用程序图标
+    ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                          //设置设置图标
+    ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                     //设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL);  //初始提示
 
 #ifndef BODY_USE_GPU
@@ -51,12 +51,12 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->vram_bar->setVisible(0);
 #endif
     init_movie();                             //初始化动画参数
-    QFile file(":/ui/QSS-master/MacOS.qss");  //加载皮肤
+    QFile file(":/QSS-master/MacOS.qss");  //加载皮肤
     file.open(QFile::ReadOnly);
     QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);
     file.close();
-    music_player.setMedia(QUrl("qrc:/audio/fly_me_to_the_moon.mp3"));  //设置播放的音乐
+    music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
     //-------------初始化各种控件-------------
     setApiDialog();                                      //设置api选项
     set_DateDialog();                                    //设置约定选项
@@ -518,7 +518,7 @@ void Widget::recv_stopover() {
 //模型达到最大上下文的后处理
 void Widget::recv_arrivemaxctx(bool predecode) {
     if (!is_test) {
-        QApplication::setWindowIcon(QIcon(":/ui/red_logo.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/red_logo.png"));
     }  // 设置应用程序图标
     // if(predecode){history_prompt = "";}//取巧使下一次重置触发预解码
 }
@@ -526,10 +526,10 @@ void Widget::recv_arrivemaxctx(bool predecode) {
 //重置完毕的后处理
 void Widget::recv_resetover() {
     if (ui_SETTINGS.ngl == 0) {
-        QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/blue_logo.png"));
     }  //恢复
     else {
-        QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/green_logo.png"));
     }  //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
     //如果是对话模式且约定有变或第一次装载则预解码约定
@@ -680,7 +680,7 @@ void Widget::on_reset_clicked() {
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;
         }
 
-        QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));  //设置应用程序图标
+        QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
         reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
         this->setWindowTitle(jtr("current api") + " " + current_api);
 

@@ -16,7 +16,7 @@
 #include "nvml.h"
 #endif
 // llama模型类
-class gpuChecker : public QThread {
+class gpuChecker : public QObject {
     Q_OBJECT
    public:
     //获取gpu厂家
@@ -143,8 +143,6 @@ class gpuChecker : public QThread {
 #endif
     }
 
-    // 多线程支持
-    void run() override { chekGpu(); }
 
    signals:
     void gpu_status(float vmem, float vram, float vcore, float vfree_);

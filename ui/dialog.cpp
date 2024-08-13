@@ -598,7 +598,7 @@ void Widget::set_SetDialog() {
     set_dialog->setWindowFlags(set_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
     set_dialog->resize(150, 200);                                                              // 设置宽度,高度
 
-    QFile file(":/ui/QSS-master/Ubuntu.qss");  //加载皮肤
+    QFile file(":/QSS-master/Ubuntu.qss");  //加载皮肤
     file.open(QFile::ReadOnly);
     QString stylesheet = tr(file.readAll());
     set_dialog->setStyleSheet(stylesheet);
@@ -813,7 +813,7 @@ void Widget::set_DateDialog() {
     // date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
     date_dialog->resize(150, 200);  // 设置宽度,高度
 
-    // QFile file(":/ui/QSS-master/MacOS.qss");//加载皮肤
+    // QFile file(":/QSS-master/MacOS.qss");//加载皮肤
     // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
     // date_dialog->setStyleSheet(stylesheet);file.close();
 

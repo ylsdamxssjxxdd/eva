@@ -10,8 +10,8 @@ set(version b3561) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
@@ -96,8 +96,8 @@ endif()
 
 ##################################### 第三方程序相关 #####################################
 
-add_subdirectory(utils/audio/libsamplerate) # 添加libsamplerate音频重采样库
-add_subdirectory(utils/audio/libsndfile) # 添加libsndfile读取音频文件
+add_subdirectory(ui/utils/audio/libsamplerate) # 添加libsamplerate音频重采样库
+add_subdirectory(ui/utils/audio/libsndfile) # 添加libsndfile读取音频文件
 list(APPEND extra_LIBS samplerate sndfile)
 
 if(WIN32)
@@ -145,20 +145,20 @@ message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
-set(resource_FILES utils/res.qrc utils/ceval.qrc utils/mmlu.qrc)
+set(resource_FILES ui/resource/res.qrc ui/resource/ceval.qrc ui/resource/mmlu.qrc)
 
 # 应用程序图标windows
-set(logo_FILES utils/ui/ico.rc)
+set(logo_FILES ui/resource/logo/ico.rc)
 
 # 创建eva.exe,添加源文件
 add_executable(
 ${TARGET}
 ${BODY_PACK_EXE}
 ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
-main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp
-widget.h xbot.h xtool.h expend.h xnet.h xconfig.h
-widget.ui expend.ui
-utils/waterwaveplaintextedit.h utils/cpuchecker.h utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h
+ui/main.cpp ui/utils.cpp ui/dialog.cpp ui/widget.cpp ui/expend.cpp ui/xbot.cpp ui/xnet.cpp ui/xtool.cpp
+ui/widget.h ui/xbot.h ui/xtool.h ui/expend.h ui/xnet.h ui/xconfig.h
+ui/widget.ui ui/expend.ui
+ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui/utils/customqplaintextedit.h ui/utils/doubleqprogressbar.h ui/utils/cutscreendialog.h ui/utils/customtabwidget.h ui/utils/customswitchbutton.h
 llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
 
@@ -214,7 +214,7 @@ if(MSVC)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
             COMMENT "custom Packing ..."
         )
     endif()
@@ -224,7 +224,7 @@ elseif(MINGW)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}${sfx_NAME}" "./" "-r"
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}${sfx_NAME}" "./" "-r"
             COMMENT "custom Packing ..."
         )
     endif()
@@ -243,8 +243,8 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper"
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/utils/ui/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构

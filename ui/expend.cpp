@@ -5,7 +5,7 @@
 Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), ui(new Ui::Expend) {
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
-    QFile file(":/ui/QSS-master/Aqua.qss");  //加载皮肤
+    QFile file(":/QSS-master/Aqua.qss");  //加载皮肤
     file.open(QFile::ReadOnly);
     QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);
@@ -411,10 +411,10 @@ void Expend::showReadme() {
     QString imagefile;
     if (language_flag == 0) {
         file.setFileName(":/README.md");
-        imagefile = ":/ui/ui_demo.png";
+        imagefile = ":/logo/ui_demo.png";
     } else if (language_flag == 1) {
         file.setFileName(":/README_en.md");
-        imagefile = ":/ui/ui_demo.png";
+        imagefile = ":/logo/ui_demo.png";
     }
 
     // 打开文件
