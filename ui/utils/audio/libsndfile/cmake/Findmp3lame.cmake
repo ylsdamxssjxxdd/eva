@@ -18,24 +18,24 @@ find_path (MP3LAME_INCLUDE_DIR lame/lame.h
 # MSVC built lame may be named mp3lame_static.
 # The provided project files name the library with the lib prefix.
 
-find_library (MP3LAME_LIBRARY
-	NAMES
-		mp3lame
-		mp3lame_static
-		libmp3lame
-		libmp3lame_static
-		libmp3lame-static
-	HINTS
-		${MP3LAME_ROOT}
-	)
+# find_library (MP3LAME_LIBRARY
+# 	NAMES
+# 		mp3lame
+# 		mp3lame_static
+# 		libmp3lame
+# 		libmp3lame_static
+# 		libmp3lame-static
+# 	HINTS
+# 		${MP3LAME_ROOT}
+# 	)
 
-find_library (MP3LAME_HIP_LIBRARY
-	NAMES
-		mpghip-static
-		libmpghip-static
-	HINTS
-		${MP3LAME_ROOT}
-	)
+# find_library (MP3LAME_HIP_LIBRARY
+# 	NAMES
+# 		mpghip-static
+# 		libmpghip-static
+# 	HINTS
+# 		${MP3LAME_ROOT}
+# 	)
 
 # Handle the QUIETLY and REQUIRED arguments and set LAME_FOUND
 # to TRUE if all listed variables are TRUE.

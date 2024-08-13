@@ -1,9 +1,9 @@
-check_include_file(sys/times.h HAVE_SYS_TIMES_H)
+# check_include_file(sys/times.h HAVE_SYS_TIMES_H)
 
-check_function_exists(alarm HAVE_ALARM)
-check_function_exists(signal HAVE_SIGNAL)
+# check_function_exists(alarm HAVE_ALARM)
+# check_function_exists(signal HAVE_SIGNAL)
 
-check_symbol_exists(SIGALRM signal.h HAVE_SIGALRM)
+# check_symbol_exists(SIGALRM signal.h HAVE_SIGALRM)
 
 if((NOT VCPKG_TOOLCHAIN) AND PKG_CONFIG_FOUND AND (NOT CMAKE_VERSION VERSION_LESS 3.6))
   pkg_check_modules(FFTW3 fftw3 IMPORTED_TARGET)

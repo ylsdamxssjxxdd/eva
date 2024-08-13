@@ -93,27 +93,27 @@ endif()
 
 check_include_file(stdbool.h HAVE_STDBOOL_H)
 check_include_file(unistd.h HAVE_UNISTD_H)
-check_include_file(immintrin.h HAVE_IMMINTRIN_H)
+# check_include_file(immintrin.h HAVE_IMMINTRIN_H)
 
 # For examples and tests
 
-find_package(PkgConfig)
+# find_package(PkgConfig)
 
-if(LIBSAMPLERATE_EXAMPLES OR BUILD_TESTING)
-  if((NOT VCPKG_TOOLCHAIN) AND PKG_CONFIG_FOUND AND (NOT CMAKE_VERSION VERSION_LESS 3.6))
-    pkg_check_modules(SndFile sndfile IMPORTED_TARGET)
-    if(SndFile_FOUND)
-      set(SNDFILE_TARGET PkgConfig::SndFile)
-    endif()
-  else()
-    find_package(SndFile)
-    if(SndFile_FOUND)
-      set(SNDFILE_TARGET SndFile::sndfile)
-    endif()
-  endif()
+# if(LIBSAMPLERATE_EXAMPLES OR BUILD_TESTING)
+#   if((NOT VCPKG_TOOLCHAIN) AND PKG_CONFIG_FOUND AND (NOT CMAKE_VERSION VERSION_LESS 3.6))
+#     pkg_check_modules(SndFile sndfile IMPORTED_TARGET)
+#     if(SndFile_FOUND)
+#       set(SNDFILE_TARGET PkgConfig::SndFile)
+#     endif()
+#   else()
+#     find_package(SndFile)
+#     if(SndFile_FOUND)
+#       set(SNDFILE_TARGET SndFile::sndfile)
+#     endif()
+#   endif()
 
-  set(HAVE_SNDFILE ${SndFile_FOUND})
-endif()
+#   set(HAVE_SNDFILE ${SndFile_FOUND})
+# endif()
 
 # SampleRate library
 

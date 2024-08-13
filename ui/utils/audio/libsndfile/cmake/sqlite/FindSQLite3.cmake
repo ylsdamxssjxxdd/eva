@@ -10,26 +10,26 @@ if (SQLite3_INCLUDE_DIR)
 	set (SQLite3_FIND_QUIETLY TRUE)
 endif ()
 
-find_package (PkgConfig QUIET)
+# find_package (PkgConfig QUIET)
 pkg_check_modules (PC_SQLite3 QUIET sqlite3)
 
 set (SQLite3_VERSION ${PC_SQLite3_VERSION})
 
-find_path (SQLite3_INCLUDE_DIR sqlite3.h
-	HINTS
-		${PC_SQLite3_INCLUDEDIR}
-		${PC_SQLite3_INCLUDE_DIRS}
-		${SQLite3_ROOT}
-	)
+# find_path (SQLite3_INCLUDE_DIR sqlite3.h
+# 	HINTS
+# 		${PC_SQLite3_INCLUDEDIR}
+# 		${PC_SQLite3_INCLUDE_DIRS}
+# 		${SQLite3_ROOT}
+# 	)
 
-find_library (SQLite3_LIBRARY
-	NAMES
-		sqlite3
-	HINTS
-		${PC_SQLite3_LIBDIR}
-		${PC_SQLite3_LIBRARY_DIRS}
-		${SQLite3_ROOT}
-	)
+# find_library (SQLite3_LIBRARY
+# 	NAMES
+# 		sqlite3
+# 	HINTS
+# 		${PC_SQLite3_LIBDIR}
+# 		${PC_SQLite3_LIBRARY_DIRS}
+# 		${SQLite3_ROOT}
+# 	)
 
 include (FindPackageHandleStandardArgs)
 

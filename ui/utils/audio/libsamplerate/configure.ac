@@ -179,7 +179,7 @@ AS_IF([test "x$enable_cpu_clip" != "xno"], [
 		ac_cv_c_clip_negative=0
 	])
 
-AC_DEFINE_UNQUOTED([CPU_CLIPS_POSITIVE], [${ac_cv_c_clip_positive}], [Host processor clips on positive float to int conversion.])
+AC_DEFINE_UNQUOTED([], [${ac_cv_c_clip_positive}], [Host processor clips on positive float to int conversion.])
 AC_DEFINE_UNQUOTED([CPU_CLIPS_NEGATIVE], [${ac_cv_c_clip_negative}], [Host processor clips on negative float to int conversion.])
 
 dnl ====================================================================================

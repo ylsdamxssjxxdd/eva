@@ -52,25 +52,25 @@ find_path (mpg123_INCLUDE_DIR mpg123.h
 # MSVC built mpg123 may be named mpg123_static.
 # The provided project files name the library with the lib prefix.
 
-find_library (mpg123_LIBRARY
-	NAMES
-		mpg123
-		mpg123_static
-		libmpg123
-		libmpg123_static
-	HINTS
-		${PC_MPG123_LIBDIR}
-		${PC_MPG123_LIBRARY_DIRS}
-		${mpg123_ROOT}
-	)
+# find_library (mpg123_LIBRARY
+# 	NAMES
+# 		mpg123
+# 		mpg123_static
+# 		libmpg123
+# 		libmpg123_static
+# 	HINTS
+# 		${PC_MPG123_LIBDIR}
+# 		${PC_MPG123_LIBRARY_DIRS}
+# 		${mpg123_ROOT}
+# 	)
 
-if (PC_MPG123_FOUND)
-	set (mpg123_VERSION ${PC_MPG123_VERSION})
-elseif (mpg123_INCLUDE_DIR)
-	file (READ "${mpg123_INCLUDE_DIR}/mpg123.h" _mpg123_h)
-	string (REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" _mpg123_version_re "${_mpg123_h}")
-	set (mpg123_VERSION "${_mpg123_version_re}")
-endif ()
+# if (PC_MPG123_FOUND)
+# 	set (mpg123_VERSION ${PC_MPG123_VERSION})
+# elseif (mpg123_INCLUDE_DIR)
+# 	file (READ "${mpg123_INCLUDE_DIR}/mpg123.h" _mpg123_h)
+# 	string (REGEX MATCH "[0-9]+.[0-9]+.[0-9]+" _mpg123_version_re "${_mpg123_h}")
+# 	set (mpg123_VERSION "${_mpg123_version_re}")
+# endif ()
 
 # Handle the QUIETLY and REQUIRED arguments and set mpg123_FOUND
 # to TRUE if all listed variables are TRUE.

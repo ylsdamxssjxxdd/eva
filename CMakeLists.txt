@@ -10,7 +10,7 @@ set(version b3561) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
@@ -23,12 +23,12 @@ elseif(GGML_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
-    list(APPEND extra_INCLUDES utils/gpuchecker.h)
+    list(APPEND extra_INCLUDES ui/utils/gpuchecker.h)
 elseif(GGML_VULKAN)
     find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
-    list(APPEND extra_INCLUDES utils/gpuchecker.h)
+    list(APPEND extra_INCLUDES ui/utils/gpuchecker.h)
 else() 
     # 什么都没有默认编译cpu版本
 endif()
@@ -49,8 +49,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
         # 监视gpu部分
-        list(APPEND extra_INCLUDES utils/nvml.h) # 向extra_INCLUDES列表里添加文件
-        list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/utils/nvml.lib) # 向extra_LIBS列表里添加文件
+        list(APPEND extra_INCLUDES ui/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/nvml.lib) # 向extra_LIBS列表里添加文件
         add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
         # 方便打包时找到cuda相关库
         find_package(CUDAToolkit)
@@ -79,8 +79,8 @@ elseif(UNIX)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
-        #list(APPEND extra_INCLUDES utils/gpuchecker.h utils/nvml.h) # 向extra_INCLUDES列表里添加文件
-        list(APPEND extra_INCLUDES utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
+        #list(APPEND extra_INCLUDES ui/utils/gpuchecker.h ui/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        list(APPEND extra_INCLUDES ui/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
         add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
