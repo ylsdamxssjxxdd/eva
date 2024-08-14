@@ -52,7 +52,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
     - If running SD simultaneously, make sure to leave enough VRAM for SD
 
-## Function
+## Foundation function
 
 ### Two mode
 

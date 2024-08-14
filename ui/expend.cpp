@@ -424,10 +424,15 @@ void Expend::showReadme() {
         readme_content = in.readAll();  // 读取文件内容
     }
     file.close();
+    
     //正则表达式,删除<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/直到>的所有文本
     QRegularExpression re("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
-
-    ui->info_card->setMarkdown(readme_content.remove(re));
+    readme_content.remove(re);
+    QRegExp regExp("<summary>|</summary>");// 使用QRegExp创建正则表达式来匹配<summary>和</summary>标记
+    readme_content.replace(regExp, "");// 使用replace函数去掉所有<summary>和</summary>标记
+    readme_content.remove("<details>");
+    readme_content.remove("</details>");
+    ui->info_card->setMarkdown(readme_content);
 
     // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
 
