@@ -1,13 +1,17 @@
 #include "xnet.h"
 
 xNet::xNet() { qDebug() << "net init over"; }
+
 xNet::~xNet() { ; }
+
 void xNet::run() {
+    
     emit net2ui_state("net:" + jtr("send message to api"));
 
     QElapsedTimer time;
     time.start();
     QElapsedTimer time2;
+
     bool is_first_token = true;  //接收到第一个token开始记录速度
     int tokens = 0;
 
@@ -30,8 +34,8 @@ void xNet::run() {
         QObject::connect(reply, &QNetworkReply::readyRead, [&]() {
             if (is_first_token) {
                 is_first_token = false;
-                time2.start();
-            }  //从接收到第一个token开始计时
+                time2.start();  //从接收到第一个token开始计时
+            }
             QString jsonString = reply->readAll();
             // 由于原始字符串包含非JSON格式的前缀"data: "，我们需要去除这些部分
             QStringList dataList = jsonString.split("\n\n", QString::SkipEmptyParts);

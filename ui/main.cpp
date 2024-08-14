@@ -59,6 +59,10 @@ int main(int argc, char* argv[]) {
     xTool tool(applicationDirPath);              //工具实例
     xBot bot;                                    //模型实例
     xNet net;                                    //链接实例
+#ifdef BODY_USE_GPU
+    gpuChecker gpuer;  //监测显卡信息
+#endif
+    cpuChecker cpuer;  //监视系统信息
 
     //-----------------初始值设定-----------------------
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;  //传递语言
@@ -68,10 +72,6 @@ int main(int argc, char* argv[]) {
     w.voice_params = expend.voice_params;
     expend.set_sys_voice(w.sys_voice_list);  // 设置可用系统声源
     expend.init_expend();                    //更新一次expend界面
-#ifdef BODY_USE_GPU
-    gpuChecker gpuer;  //监测显卡信息
-#endif
-    cpuChecker cpuer;  //监视系统信息
 
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");  //注册PARAMS作为信号传递变量
@@ -79,21 +79,23 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");  //注册STATE作为信号传递变量
     qRegisterMetaType<DATES>("DATES");
     qRegisterMetaType<SETTINGS>("SETTINGS");
+    qRegisterMetaType<INPUTS>("INPUTS");
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Voice_Params>("Voice_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
     qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
+    qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
+    qRegisterMetaType<APIS>("APIS");
 
     //------------------开启多线程 todo ------------------------
 #ifdef BODY_USE_GPU
-    QThread* gpuer_thread = new QThread;
-    gpuer.moveToThread(gpuer_thread);
-    gpuer_thread->start();
+    QThread* gpuer_thread = new QThread;gpuer.moveToThread(gpuer_thread);gpuer_thread->start();
 #endif
-    
-    // QThread* bot_thread = new QThread;
-    // bot.moveToThread(bot_thread);
+    QThread* cpuer_thread = new QThread;cpuer.moveToThread(cpuer_thread);cpuer_thread->start();
+    QThread* bot_thread = new QThread;bot.moveToThread(bot_thread);bot_thread->start();
+    QThread* tool_thread = new QThread;tool.moveToThread(tool_thread);tool_thread->start();
+    QThread* net_thread = new QThread;net.moveToThread(net_thread);net_thread->start();
 
     //------------------连接模型和窗口-------------------
     QObject::connect(&bot, &xBot::bot2ui_params, &w, &Widget::recv_params);              // bot将模型参数传递给ui
@@ -111,20 +113,17 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_tokens, &w, &Widget::recv_tokens);              //传递测试解码token数量
     QObject::connect(&bot, &xBot::bot2ui_predecode, &w, &Widget::recv_predecode);        //传递模型预解码的内容
     QObject::connect(&bot, &xBot::bot2ui_freeover, &w, &Widget::recv_freeover);          //模型释放完毕并重新装载
-    QObject::connect(&bot, &xBot::bot2ui_syncrate, &w, &Widget::recv_syncrate);          //传递同步率，待删除
-
-    QObject::connect(&w, &Widget::ui2bot_syncrate, &bot, &xBot::recv_syncrate);        //传递同步率，待删除
-    QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, [&bot]() { bot.start(); });  //开始加载模型,利用对象指针实现多线程
-    QObject::connect(&w, &Widget::ui2bot_input, &bot, &xBot::recv_input);              //传递用户输入
-    QObject::connect(&w, &Widget::ui2bot_push, &bot, [&bot]() { bot.start(); });       //开始推理,利用对象指针实现多线程
+    QObject::connect(&w, &Widget::ui2bot_stop,&bot,&xBot::recv_stop);//传递停止信号
+    QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                  //开始加载模型
+    QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                 //开始推理
+    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::preDecode);             //开始预解码
+    QObject::connect(&w, &Widget::ui2bot_preDecodeImage, &bot, &xBot::preDecodeImage); //开始预解码图像
     QObject::connect(&w, &Widget::ui2bot_reset, &bot, &xBot::recv_reset);              //传递重置信号
-    QObject::connect(&w, &Widget::ui2bot_stop, &bot, &xBot::recv_stop);                //传递停止信号
     QObject::connect(&w, &Widget::ui2bot_date, &bot, &xBot::recv_date);                //传递约定内容
     QObject::connect(&w, &Widget::ui2bot_set, &bot, &xBot::recv_set);                  //传递设置内容
     QObject::connect(&w, &Widget::ui2bot_language, &bot, &xBot::recv_language);        //传递使用的语言
     QObject::connect(&w, &Widget::ui2bot_free, &bot, &xBot::recv_free);                //释放模型和上下文
     QObject::connect(&bot, &xBot::bot2ui_kv, &w, &Widget::recv_kv);                    //传递缓存量
-    QObject::connect(&w, &Widget::ui2bot_imagepath, &bot, &xBot::recv_imagepath);      //传递图片路径
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);          //自动装载
     QObject::connect(&w, &Widget::ui2bot_debuging, &bot, &xBot::recv_debuging);        //传递debug中状态
 
@@ -132,12 +131,11 @@ int main(int argc, char* argv[]) {
 #ifdef BODY_USE_GPU
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);    //传递gpu信息
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &bot, &xBot::recv_gpu_status);    //传递gpu信息
-    // QObject::connect(&w, &Widget::gpu_reflash, &gpuer, [&gpuer]() { gpuer.start(); });  //强制刷新gpu信息
     QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::chekGpu);  //强制刷新gpu信息
 #endif
     //------------------监测系统信息-------------------
     QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status);    //传递cpu信息
-    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, [&cpuer]() { cpuer.start(); });  //强制刷新cpu信息
+    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);  //强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
     QObject::connect(&w, &Widget::ui2expend_syncrate, &expend, &Expend::recv_syncrate);                          //传递同步率结果
@@ -157,8 +155,8 @@ int main(int argc, char* argv[]) {
     //------------------连接net和窗口-------------------
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output);    //窗口输出区更新
     QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state);      //窗口状态区更新
-    QObject::connect(&w, &Widget::ui2net_push, &net, [&net]() { net.start(); });  //开始推理,利用对象指针实现多线程
     QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover);   //完成推理
+    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run);  //开始推理
     QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language);   //传递使用的语言
     QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis);           //传递api设置参数
     QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data);           //传递端点参数
@@ -170,8 +168,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over);  //传递控制完成结果
     QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);            //完成推理
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);                //传递使用的语言
-    QObject::connect(&w, &Widget::ui2tool_func_arg, &tool, &xTool::recv_func_arg);                //传递函数名和参数
-    QObject::connect(&w, &Widget::ui2tool_push, &tool, [&tool]() { tool.start(); });              //开始推理,利用对象指针实现多线程
+    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              //开始推理
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                  //传递已嵌入文本段数据

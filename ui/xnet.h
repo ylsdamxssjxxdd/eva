@@ -15,13 +15,13 @@
 
 #include "xconfig.h"  //ui和bot都要导入的共有配置
 
-class xNet : public QThread {
+class xNet : public QObject {
     Q_OBJECT
    public:
     xNet();
     ~xNet();
 
-    void run() override;
+    void run();
 
    public:
     APIS apis;

@@ -335,15 +335,13 @@ class Widget : public QWidget {
 
     //发给模型的信号
    signals:
-    void ui2bot_syncrate(Syncrate_Manager syncrate_manager);                 //传递同步率
     void ui2bot_debuging(bool is_debuging_);                                 //传递debug中状态
     void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);             //自动装载
     void ui2bot_language(int language_flag_);                                //传递使用的语言
-    void ui2bot_imagepath(QString image_path);                               //传递图片路径
-    void ui2bot_modelpath(QString model_path, bool is_first_load_ = false);  //传递模型路径
-    void ui2bot_loadmodel();                                                 //开始装载模型
-    void ui2bot_input(INPUTS inputs);                                        //传递用户输入
-    void ui2bot_push();                                                      //开始推理
+    void ui2bot_loadmodel(QString modelpath);//开始装载模型
+    void ui2bot_predict(INPUTS input);//开始推理
+    void ui2bot_preDecode();//开始预解码
+    void ui2bot_preDecodeImage(QString image_path);//开始预解码图像
     void ui2bot_stop();                                                      //传递推理停止信号
     void ui2bot_reset(bool is_clear_all);                                    //传递重置信号
     void ui2bot_date(DATES date);                                            //传递约定内容
@@ -361,8 +359,7 @@ class Widget : public QWidget {
 
     //发送给tool的信号
     void ui2tool_language(int language_flag_);                     //传递使用的语言
-    void ui2tool_push();                                           //开始推理
-    void ui2tool_func_arg(QPair<QString, QString> func_arg_list);  //传递函数名和参数
+    void ui2tool_exec(QPair<QString, QString> func_arg_list);      //开始推理
     void recv_controller_over(QString result);
 
     //发送给expend的信号
@@ -378,7 +375,6 @@ class Widget : public QWidget {
 
     //处理模型信号的槽
    public slots:
-    void recv_syncrate(Syncrate_Manager Syncrate_manager);                        //传递同步率
     void recv_freeover();                                                         //模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_);                                  //传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                 //处理tool推理完毕的槽

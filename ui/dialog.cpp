@@ -1417,7 +1417,6 @@ void Widget::create_right_menu() {
         }  //只在空闲的本地模式和对话状态中生效
 
         ui_syncrate_manager.is_sync = true;
-        emit ui2bot_syncrate(ui_syncrate_manager);
 
         //插入任务
         for (int i = 1; i < 31; ++i) {
@@ -1455,15 +1454,14 @@ void Widget::create_right_menu() {
         if (currentpath == "") {
             return;
         }
-        emit ui2bot_imagepath(currentpath);  //发送图像路径
-
-        QString input = "<ylsdamxssjxxdd:imagedecode>";  //预解码图像指令
-        ui->input->setPlainText(input);
 
         if (ui->send->isEnabled()) {
-            showImage(currentpath);
-        }                   //显示文件名和图像
-        ui->send->click();  //触发一次发送
+            showImage(currentpath);//显示文件名和图像
+            is_run = true;       //模型正在运行标签
+            ui_state_pushing();  //推理中界面状态
+            emit ui2bot_preDecodeImage(currentpath); //预解码图像
+        }                   
+        
     });
     // Q16测试相关,ceval数据集
     QAction *action16 = right_menu->addAction(jtr("Q16"));

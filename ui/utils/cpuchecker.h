@@ -22,7 +22,7 @@
 #include <string>
 #endif
 
-class cpuChecker : public QThread {
+class cpuChecker : public QObject {
     Q_OBJECT
    public:
     // 初始化
@@ -40,9 +40,6 @@ class cpuChecker : public QThread {
     long long prevIdleTime = 0;
     long long prevTotalTime = 0;
 #endif
-
-    // 多线程支持
-    void run() override { chekCpu(); }
 
     double CalculateCPULoad() {
 #ifdef _WIN32

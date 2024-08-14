@@ -502,12 +502,12 @@
   <customwidget>
    <class>DoubleQProgressBar</class>
    <extends>QProgressBar</extends>
-   <header>utils/doubleqprogressbar.h</header>
+   <header>ui/utils/doubleqprogressbar.h</header>
   </customwidget>
   <customwidget>
    <class>CustomQPlainTextEdit</class>
    <extends>QPlainTextEdit</extends>
-   <header>utils/customqplaintextedit.h</header>
+   <header>ui/utils/customqplaintextedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

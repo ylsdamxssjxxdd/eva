@@ -25,7 +25,7 @@
 #include <QTimer>
 
 #include "xconfig.h"
-class xTool : public QThread {
+class xTool : public QObject {
     Q_OBJECT
    public:
     xTool(QString applicationDirPath_ = "./");
@@ -35,7 +35,7 @@ class xTool : public QThread {
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
-    void run() override;
+    void Exec(QPair<QString, QString> func_arg_list);// 运行
 
    public:
     QPair<QString, QString> func_arg_list;
@@ -54,7 +54,6 @@ class xTool : public QThread {
     //文生图相关
 
    public slots:
-    void recv_func_arg(QPair<QString, QString> func_arg_list);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_embedding_serverapi(QString serverapi, int dim);  //传递嵌入服务端点
     void recv_drawover(QString result_, bool ok_);              //接收图像绘制完成信号

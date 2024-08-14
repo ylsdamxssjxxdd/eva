@@ -2859,12 +2859,12 @@ p, li { white-space: pre-wrap; }
   <customwidget>
    <class>CustomQPlainTextEdit</class>
    <extends>QPlainTextEdit</extends>
-   <header>utils/customqplaintextedit.h</header>
+   <header>ui/utils/customqplaintextedit.h</header>
   </customwidget>
   <customwidget>
    <class>WaterWavePlainTextEdit</class>
    <extends>QPlainTextEdit</extends>
-   <header>utils/waterwaveplaintextedit.h</header>
+   <header>ui/utils/waterwaveplaintextedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

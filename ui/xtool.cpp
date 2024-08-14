@@ -6,7 +6,7 @@ xTool::xTool(QString applicationDirPath_) {
 }
 xTool::~xTool() { ; }
 
-void xTool::run() {
+void xTool::Exec(QPair<QString, QString> func_arg_list) {
     //----------------------计算器------------------
     if (func_arg_list.first == "calculator") {
         emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.second + ")");
@@ -160,8 +160,6 @@ bool xTool::createTempDirectory(const QString& path) {
         }
     }
 }
-
-void xTool::recv_func_arg(QPair<QString, QString> func_arg_list_) { func_arg_list = func_arg_list_; }
 
 //查询计算词向量和计算相似度，返回匹配的文本段
 QString xTool::embedding_query_process(QString query_str) {

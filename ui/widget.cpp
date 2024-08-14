@@ -157,7 +157,6 @@ void Widget::on_load_clicked() {
         is_load = false;
     }
     
-    
 }
 
 //模型释放完毕并重新装载
@@ -192,7 +191,7 @@ void Widget::preLoad() {
         reflash_state("ui:" + jtr("apply_config_mess") + " " + absolutePath, USUAL_SIGNAL);
     }
     reflash_state("ui:" + jtr("model location") + " " + ui_SETTINGS.modelpath, USUAL_SIGNAL);
-    emit ui2bot_loadmodel();  //开始装载模型,应当确保bot的is_load参数为false
+    emit ui2bot_loadmodel(ui_SETTINGS.modelpath);  //开始装载模型
 }
 
 //完成加载模型
@@ -223,7 +222,9 @@ void Widget::on_send_clicked() {
         return;
     }
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
+
     QString input;
+    INPUTS inputs;
 
     if (is_debug) {
         ui->reset->setEnabled(0);
@@ -238,17 +239,19 @@ void Widget::on_send_clicked() {
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if (ui_state == CHAT_STATE) {
         if (ui_need_predecode) {
-            input = "<ylsdamxssjxxdd:predecode>";  //预解码指令
             ui_need_predecode = false;
             ui->reset->setEnabled(0);                       //预解码时不允许重置
-            emit ui2bot_input({"", input, "", ROLE_USER});  //传递用户输入
+            is_run = true;       //模型正在运行标签
+            ui_state_pushing();  //推理中界面状态
+            emit ui2bot_preDecode(); // 预解码
+            return;
         } else if (is_debug_tool1) {
             ui->send->setEnabled(0);
             reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
             is_debug_tool1 = false;
             debuging_times++;
-            emit ui2tool_func_arg(func_arg_list);  //传递函数名和参数
-            emit ui2tool_push();                   //调用tool
+
+            emit ui2tool_exec(func_arg_list);                   //调用tool
             return;
         } else if (is_test) {
             // debug相关
@@ -263,10 +266,10 @@ void Widget::on_send_clicked() {
                 input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));
                 //添加引导题
                 if (help_input) {
-                    emit ui2bot_input({makeHelpInput() + DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST});  //传递用户输入,测试模式
+                    inputs = {makeHelpInput() + DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST};
                     help_input = false;
                 } else {
-                    emit ui2bot_input({DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST});  //传递用户输入,测试模式
+                    inputs = {DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST};
                 }
             } else  //完成测试完成,没有题目剩余
             {
@@ -289,7 +292,7 @@ void Widget::on_send_clicked() {
             if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
-                emit ui2bot_input({ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT});
+                inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT};
             } else  //完成同步率测试完成,没有问题剩余
             {
                 qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
@@ -310,29 +313,30 @@ void Widget::on_send_clicked() {
             input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
             input += "\n" + QString(DEFAULT_THOUGHT);
-            emit ui2bot_input({"", input, "", ROLE_USER});
+            inputs = {"", input, "", ROLE_USER};
         } else  //正常情况!!!
         {
             if (tool_result == "") {
                 input = ui->input->toPlainText().toUtf8().data();
                 ui->input->clear();  // 获取用户输入
             }
+            
             //-----------------------如果是拖进来的文件-------------------------
             if (input.contains("file:///") && (input.contains(".png") || input.contains(".jpg"))) {
                 QString imagepath = input.split("file:///")[1];
-                input = "<ylsdamxssjxxdd:imagedecode>";  //预解码图像指令
-
                 showImage(imagepath);  //显示文件名和图像
-
-                emit ui2bot_input({ui_DATES.input_pfx + DEFAULT_SPLITER, input, ui_DATES.input_sfx, ROLE_USER});  //传递用户输入
-                emit ui2bot_imagepath(imagepath);
+                is_run = true;       //模型正在运行标签
+                ui_state_pushing();  //推理中界面状态
+                emit ui2bot_preDecodeImage(imagepath); //预解码图像
+                return;
             }
             //-----------------------截图的情况-------------------------
             else if (input == jtr("<predecode cut image>")) {
-                input = "<ylsdamxssjxxdd:imagedecode>";                                                           //预解码图像指令
-                showImage(cut_imagepath);                                                                         //显示文件名和图像
-                emit ui2bot_input({ui_DATES.input_pfx + DEFAULT_SPLITER, input, ui_DATES.input_sfx, ROLE_USER});  //传递用户输入
-                emit ui2bot_imagepath(cut_imagepath);
+                showImage(cut_imagepath); //显示文件名和图像
+                is_run = true;       //模型正在运行标签
+                ui_state_pushing();  //推理中界面状态
+                emit ui2bot_preDecodeImage(cut_imagepath); //预解码图像
+                return;
             }
             //-----------------------一般情况----------------------------
             else {
@@ -340,7 +344,7 @@ void Widget::on_send_clicked() {
                 if (tool_result != "") {
                     input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + DEFAULT_THOUGHT;
                     tool_result = "";
-                    emit ui2bot_input({"", input, "", ROLE_TOOL});
+                    inputs = {"", input, "", ROLE_TOOL};
 
                     //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
                     if (ui->send->text() == "Next") {
@@ -349,7 +353,7 @@ void Widget::on_send_clicked() {
                         ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
                         ui->input->setPlaceholderText(jtr("debug_input_placeholder"));
                         reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                        emit ui2bot_push();  //开始推理
+                        emit ui2bot_predict(inputs);  //开始推理
                         debuging_times++;
                         return;
                     }
@@ -358,17 +362,17 @@ void Widget::on_send_clicked() {
                     if (ui->send->text() == "Next") {
                         ui->send->setEnabled(0);
                         reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                        emit ui2bot_input({"", "", "", ROLE_DEBUG});  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-                        emit ui2bot_push();                           //开始推理
+                        inputs = {"", "", "", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                        emit ui2bot_predict(inputs);  //开始推理
                         debuging_times++;
                         return;
                     }
 
                     // 如果挂载了工具则强制先思考
                     if (is_load_tool) {
-                        emit ui2bot_input({ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT});
+                        inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT};
                     } else {
-                        emit ui2bot_input({ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_USER});
+                        inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_USER};
                     }
                 }
             }
@@ -378,19 +382,19 @@ void Widget::on_send_clicked() {
         if (ui->send->text() == "Next") {
             ui->send->setEnabled(0);
             reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-            emit ui2bot_input({"", "", "", ROLE_DEBUG});  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-            emit ui2bot_push();                           //开始推理
+            inputs = {"", "", "", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+            emit ui2bot_predict(inputs);  //开始推理
             debuging_times++;
             return;
         }
 
         input = ui->output->toPlainText().toUtf8().data();                  //直接用output上的文本进行推理
-        emit ui2bot_input({"<complete>", input, "<complete>", ROLE_USER});  //传递用户输入
+        inputs = {"<complete>", input, "<complete>", ROLE_USER};  //传递用户输入
     }
     // qDebug()<<input;
     is_run = true;       //模型正在运行标签
     ui_state_pushing();  //推理中界面状态
-    emit ui2bot_push();  //开始推理
+    emit ui2bot_predict(inputs);  //开始推理
 }
 
 //模型输出完毕的后处理
@@ -403,6 +407,7 @@ void Widget::recv_pushover() {
     {
         if (ui_mode == LINK_MODE) {
             //待修复是net中maneger的问题
+            // on_send_clicked();
             QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));  //链接模式不能立即发送
         } else {
             if (!is_debug) {
@@ -462,8 +467,7 @@ void Widget::recv_pushover() {
                         return;
                     }
 
-                    emit ui2tool_func_arg(func_arg_list);  //传递函数名和参数
-                    emit ui2tool_push();                   //调用tool
+                    emit ui2tool_exec(func_arg_list);                   //调用tool
                     //使用工具时解码动画不停
                 }
             }
@@ -1349,9 +1353,6 @@ bool Widget::checkAudio() {
 
     return true;
 }
-
-//传递同步率
-void Widget::recv_syncrate(Syncrate_Manager Syncrate_manager) {}
 
 // 检测结果并赋分
 bool Widget::SyncRateTestCheck(QString assistant_history) {

@@ -34,210 +34,155 @@ log_disable();                                    //禁止llama.cpp输出日志�
 
 xBot::~xBot() { ; }
 
-void xBot::run() {
-    //---------------如果还没装载模型,先装载模型--------------------
-    if (!is_load) {
-        load(bot_modelpath);
+//模型预测推理过程
+void xBot::predict(INPUTS input) {
+
+    //--------------------预处理用户输入---------------------
+    if (input.role == ROLE_TEST) {
+        is_test = true;
+    } else {
+        is_test = false;
     }
-    //--------------------如果已经装载模型则运行推理--------------------
-    else {
-        QElapsedTimer time2;
-        time2.start();
-        const size_t history_past = Brain_vector.size();  //上一次对话的上下文长度
-        //--------------------预解码系统指令,受ui控制--------------------
-        if (input.input == "<ylsdamxssjxxdd:predecode>") {
-            if (gpt_params_.prompt != "") {
-                preDecode();   //预解码
-                embd.clear();  //清空embd
-                is_first_reset = false;
-                reset(0);
-                is_first_reset = true;
-                float time_ = time2.nsecsElapsed() / 1000000000.0;
-                float speed_ = (Brain_vector.size() - history_past) / time_;
-                emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+
+    const size_t original_size = embd_inp.size();  //输入原长度
+    // qDebug()<<"原embd_inp.size() "<<embd_inp.size();//这里就是约定的tokens
+
+    //------------为用户的输入添加前缀和后缀,构造输入token---------------
+    std::vector<llama_token> line_pfx;  //前缀
+    std::vector<llama_token> line_inp;  //用户输入
+    std::vector<llama_token> line_sfx;  //后缀
+
+    //---插入前缀---
+    if ((!is_complete && !is_antiprompt) && (input.role == ROLE_USER || input.role == ROLE_THOUGHT))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
+    {
+        // 构成形式：{{spliter}}<bos>{{user_name}}{{spliter}}
+        line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
+        line_pfx.insert(line_pfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
+        embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
+    } else if (input.role == ROLE_TEST) {
+        // 构成形式：<bos>{{user_name}}{{spliter}}
+        line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
+        embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
+    }
+
+    //---插入输入---
+    // 构成形式：{{user_content}}
+    line_inp = ::llama_tokenize(ctx, input.input.toStdString(), false, true);  //用户输入,最后一个true表示会将特殊token整个分词
+    embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
+
+    //---插入后缀---
+    if (!is_complete && input.role == ROLE_USER)  // 补完模式 则不加后缀
+    {
+        // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
+        line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
+        line_sfx.insert(line_sfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
+        line_sfx.insert(line_sfx.begin(), eos_token);                                   // 前面加一个结束标志
+        embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
+    } else if (input.role == ROLE_THOUGHT) {
+        // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}{{thought}}
+        line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER + DEFAULT_THOUGHT, true, true);
+        line_sfx.insert(line_sfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
+        line_sfx.insert(line_sfx.begin(), eos_token);                                   // 前面加一个结束标志
+        embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
+    } else if (input.role == ROLE_TEST) {
+        // 构成形式：<bos>{{model_name}}{{spliter}}
+        line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), true, true);
+        embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
+    }
+
+    is_antiprompt = false;  //重置反提示标签
+
+    push_out(input, line_pfx, 0);  //在输出区贴上用户昵称
+    push_out(input, line_inp, 1);  //在输出区贴上输入内容
+    push_out(input, line_sfx, 2);  //在输出区贴上模型昵称
+
+    //---------------------embd_inp插入到embd中----------------------
+    // qDebug()<<"插入前embd"<<view_embd(ctx,embd);
+    while ((int)embd_inp.size() > n_consumed) {
+        embd.push_back(embd_inp[n_consumed]);
+        llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);
+        ++n_consumed;
+    }
+    // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
+    // qDebug()<<"历史token"<<view_embd(ctx,*history_tokens);
+    // qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
+
+    // 用户刚点击发送按钮进入debuging状态时（通过前后缀不为空知道是刚点击）
+    if (is_debuging) {
+        if (!is_test) {
+            if ((input.input_prefix != "" && input.input_suffix != "")) {
+                bot2ui_state("DEBUGING 0 ", DEBUGING_SIGNAL);
+                remain_n_remain = gpt_params_.n_predict;  //用来记录一次debuging过程的n_remain值
+                current_output = "";                      //清空上一轮的输出记录
             }
-            emit bot2ui_pushover();  //推理完成的信号
-            return;
         }
-        //--------------------预解码图像,受ui控制--------------------
-        else if (input.input == "<ylsdamxssjxxdd:imagedecode>") {
-            if (is_multi) {
-                emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
-                int n_past_orin = n_past;
+    }
 
-                // 将图像转为token
-                llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, gpt_params_.image.at(0).c_str());
+    //-------------------------------------------------------------
+    //---------------------------流式输出---------------------------
+    //-------------------------------------------------------------
+    is_batch = false;
+    batch_time = 0.000001;
+    batch_count = 0;                   //被批解码的token数
+    singl_count = 0;                   //被单解码的token数
+    n_remain = gpt_params_.n_predict;  //-1的话可以无限输出
+    if (is_debuging) {
+        debuging_one = 1;
+        n_remain = remain_n_remain;
+    }  // debuging时控制循环只进行一次, n_remain使用上一次的
+    if (is_test) {
+        n_remain = 1;
+    }  //测试时最大输出长度强制为1
+    //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
+    if (gpt_params_.n_ctx > n_ctx_train) {
+        ga_n = gpt_params_.n_ctx / n_ctx_train + 1;
+        ga_w = 512 * ga_n;
+        emit bot2ui_state("bot:" + jtr("extend ctx length") + QString::number(n_ctx_train) + "->" + QString::number(gpt_params_.n_ctx));
+    } else {
+        ga_n = 1;
+        ga_w = 512;
+    }
 
-                // 预处理图像(分隔+预解码)
-                bool ok_ = process_image(ctx, ctx_clip, image_embeds, gpt_params_, n_past);
-                
-                emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);  //当前缓存量
-                
-                for (int i = Brain_vector.size(); i < n_past; ++i) {
-                    Brain_vector.push_back({i + 1, -2, "<|image|>"});
-                } // 添加到记忆矩阵
-
-                emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1); // 1 表示强制刷新记忆矩阵
-                llava_image_embed_free(image_embeds); // 释放图像token
-                gpt_params_.image.clear(); // 清空图像
-
-                if (ok_) {
-                    float time_ = time2.nsecsElapsed() / 1000000000.0;
-                    int n_past_new = n_past - n_past_orin;// 新增的token数
-                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + "+" + QString::number(n_past_new), SUCCESS_SIGNAL);
-                } else {
-                    emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-                }
-
-            } else {
-                emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
-            }
-
-            emit bot2ui_pushover();  //推理完成的信号
-            is_stop = false;
-            return;
-        }
-
-        //--------------------预处理用户输入---------------------
-        const size_t original_size = embd_inp.size();  //输入原长度
-        // qDebug()<<"原embd_inp.size() "<<embd_inp.size();//这里就是约定的tokens
-
-        //------------为用户的输入添加前缀和后缀,构造输入token---------------
-        std::vector<llama_token> line_pfx;  //前缀
-        std::vector<llama_token> line_inp;  //用户输入
-        std::vector<llama_token> line_sfx;  //后缀
-
-        //---插入前缀---
-        if ((!is_complete && !is_antiprompt) && (input.role == ROLE_USER || input.role == ROLE_THOUGHT))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
-        {
-            // 构成形式：{{spliter}}<bos>{{user_name}}{{spliter}}
-            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
-            line_pfx.insert(line_pfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
-            embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
-        } else if (input.role == ROLE_TEST) {
-            // 构成形式：<bos>{{user_name}}{{spliter}}
-            line_pfx = ::llama_tokenize(ctx, input.input_prefix.toStdString() + DEFAULT_SPLITER, true, true);
-            embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
-        }
-
-        //---插入输入---
-        // 构成形式：{{user_content}}
-        line_inp = ::llama_tokenize(ctx, input.input.toStdString(), false, true);  //用户输入,最后一个true表示会将特殊token整个分词
-        embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
-
-        //---插入后缀---
-        if (!is_complete && input.role == ROLE_USER)  // 补完模式 则不加后缀
-        {
-            // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
-            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER, true, true);
-            line_sfx.insert(line_sfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
-            line_sfx.insert(line_sfx.begin(), eos_token);                                   // 前面加一个结束标志
-            embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-        } else if (input.role == ROLE_THOUGHT) {
-            // 构成形式：<eos>{{spliter}}<bos>{{model_name}}{{spliter}}{{thought}}
-            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString() + DEFAULT_SPLITER + DEFAULT_THOUGHT, true, true);
-            line_sfx.insert(line_sfx.begin(), spliter_token.begin(), spliter_token.end());  // 前面加一个分隔符
-            line_sfx.insert(line_sfx.begin(), eos_token);                                   // 前面加一个结束标志
-            embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-        } else if (input.role == ROLE_TEST) {
-            // 构成形式：<bos>{{model_name}}{{spliter}}
-            line_sfx = ::llama_tokenize(ctx, input.input_suffix.toStdString(), true, true);
-            embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-        }
-
-        is_antiprompt = false;  //重置反提示标签
-
-        push_out(line_pfx, 0);  //在输出区贴上用户昵称
-        push_out(line_inp, 1);  //在输出区贴上输入内容
-        push_out(line_sfx, 2);  //在输出区贴上模型昵称
-
-        //---------------------embd_inp插入到embd中----------------------
-        // qDebug()<<"插入前embd"<<view_embd(ctx,embd);
-        while ((int)embd_inp.size() > n_consumed) {
-            embd.push_back(embd_inp[n_consumed]);
-            llama_sampling_accept(sparams, ctx, embd_inp[n_consumed], false);
-            ++n_consumed;
-        }
-        // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
-        // qDebug()<<"历史token"<<view_embd(ctx,*history_tokens);
-        // qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
-
-        // 用户刚点击发送按钮进入debuging状态时（通过前后缀不为空知道是刚点击）
+    int o1 = stream();
+    while (o1 == 1)  //如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
+    {
+        n_past++;  //置入一个空的记忆来缓解
+        Brain_vector.push_back({n_past, -1, ""});
+        batch_count--;  //空的不算数
+        emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);
         if (is_debuging) {
-            if (!is_test) {
-                if ((input.input_prefix != "" && input.input_suffix != "")) {
-                    bot2ui_state("DEBUGING 0 ", DEBUGING_SIGNAL);
-                    remain_n_remain = gpt_params_.n_predict;  //用来记录一次debuging过程的n_remain值
-                    current_output = "";                      //清空上一轮的输出记录
-                }
-            }
+            emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);
+        }  // 1强制刷新记忆矩阵
+        else {
+            emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx);
         }
+        o1 = stream();
+        fail++;
+        // qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
+    }
 
-        //-------------------------------------------------------------
-        //---------------------------流式输出---------------------------
-        //-------------------------------------------------------------
-        is_batch = false;
-        batch_time = 0.000001;
-        batch_count = 0;                   //被批解码的token数
-        singl_count = 0;                   //被单解码的token数
-        n_remain = gpt_params_.n_predict;  //-1的话可以无限输出
-        if (is_debuging) {
-            debuging_one = 1;
-            n_remain = remain_n_remain;
-        }  // debuging时控制循环只进行一次, n_remain使用上一次的
-        if (is_test) {
-            n_remain = 1;
-        }  //测试时最大输出长度强制为1
-        //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
-        if (gpt_params_.n_ctx > n_ctx_train) {
-            ga_n = gpt_params_.n_ctx / n_ctx_train + 1;
-            ga_w = 512 * ga_n;
-            emit bot2ui_state("bot:" + jtr("extend ctx length") + QString::number(n_ctx_train) + "->" + QString::number(gpt_params_.n_ctx));
-        } else {
-            ga_n = 1;
-            ga_w = 512;
-        }
+    // debuging状态输出额外的信息
+    if (is_debuging) {
+        //打印当前缓存的上下文
+        // emit bot2ui_state("bot:" + jtr("kv cache") + " " + QString::number(llama_get_kv_cache_token_count(ctx)) + " token");
+    }
 
-        int o1 = stream();
-        while (o1 == 1)  //如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
-        {
-            n_past++;  //置入一个空的记忆来缓解
-            Brain_vector.push_back({n_past, -1, ""});
-            batch_count--;  //空的不算数
-            emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);
-            if (is_debuging) {
-                emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);
-            }  // 1强制刷新记忆矩阵
-            else {
-                emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx);
-            }
-            o1 = stream();
-            fail++;
-            // qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
-        }
+    // qDebug()<<"-------------------------------------------------";
+    // for(int i=0;i<Brain_vector.size();++i)
+    // {
+    //     qDebug()<<Brain_vector.at(i).id<<Brain_vector.at(i).token<<Brain_vector.at(i).word;
+    // }
 
-        // debuging状态输出额外的信息
-        if (is_debuging) {
-            //打印当前缓存的上下文
-            // emit bot2ui_state("bot:" + jtr("kv cache") + " " + QString::number(llama_get_kv_cache_token_count(ctx)) + " token");
-        }
-
-        // qDebug()<<"-------------------------------------------------";
-        // for(int i=0;i<Brain_vector.size();++i)
-        // {
-        //     qDebug()<<Brain_vector.at(i).id<<Brain_vector.at(i).token<<Brain_vector.at(i).word;
-        // }
-
-        if (!is_debuging || o1 == -1)  // debuging状态就是不让bot发送pushover信号，如果是遇到停止标志或达到最大输出长度则可以
-        {
-            emit bot2ui_pushover();                                           //推理完成的信号
-            emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
-        }
+    if (!is_debuging || o1 == -1)  // debuging状态就是不让bot发送pushover信号，如果是遇到停止标志或达到最大输出长度则可以
+    {
+        emit bot2ui_pushover();                                           //推理完成的信号
+        emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
     }
 }
 
 //流式输出，0表示正常，-1表示遇到停止标志，1表示解码失败
 int xBot::stream() {
+
     is_stop = false;
     QElapsedTimer single_timer;
     single_timer.start();  //后面减去batch_timer记录的时间就是单解码用时
@@ -246,8 +191,12 @@ int xBot::stream() {
     if (!is_debuging) {
         current_output = "";
     }
+
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain != 0) {
+
+        QCoreApplication::processEvents();// 接收主线事件，主要是停止信号
+
         // debuging时控制循环只进行一次
         if (is_debuging) {
             if (debuging_one == 0) {
@@ -257,18 +206,17 @@ int xBot::stream() {
             remain_n_remain--;  //用于下次debuging判断是否达到最大输出长度
         }
 
-        //停止标签控制模型停止
+        //模型停止
         if (is_stop) {
-            is_stop = false;
             pick_half_utf8.clear();
-            emit bot2ui_stopover();  //完成停止的信号
-
             QString fianl_state;
             fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
             if (!is_debuging) {
                 fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
             }
             emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
+            emit bot2ui_stopover();  //完成停止的信号
+            is_stop = false;
             return 0;
         }
 
@@ -607,12 +555,70 @@ int xBot::stream() {
     return -1;
 }
 
+//预解码图像
+void xBot::preDecodeImage(QString image_path)
+{
+    QElapsedTimer time2;
+    time2.start();
+
+#ifdef _WIN32
+    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+    std::string imagepath = code->fromUnicode(image_path).data();
+#elif __linux__
+    std::string imagepath = image_path.toStdString();
+#endif
+
+    if (is_multi) 
+    {
+        emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
+        int n_past_orin = n_past;
+
+        // 将图像转为token
+        llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, imagepath.c_str());
+
+        // 预处理图像(分隔+预解码)
+        bool ok_ = process_image(ctx, ctx_clip, image_embeds, gpt_params_, n_past);
+        
+        emit bot2ui_kv(float(n_past) / float(gpt_params_.n_ctx) * 100, n_past);  //当前缓存量
+        
+        for (int i = Brain_vector.size(); i < n_past; ++i) {
+            Brain_vector.push_back({i + 1, -2, "<|image|>"});
+        } // 添加到记忆矩阵
+
+        emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1); // 1 表示强制刷新记忆矩阵
+        llava_image_embed_free(image_embeds); // 释放图像token
+
+        if (ok_) {
+            float time_ = time2.nsecsElapsed() / 1000000000.0;
+            int n_past_new = n_past - n_past_orin;// 新增的token数
+            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + "+" + QString::number(n_past_new), SUCCESS_SIGNAL);
+        } else {
+            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+        }
+
+    } else {
+        emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
+    }
+
+    emit bot2ui_pushover();  //推理完成的信号
+    is_stop = false;
+    return;
+}
+
 //----------------------------------------------------------------------
 //--------------------------------装载模型--------------------------------
 //----------------------------------------------------------------------
-void xBot::load(std::string &modelpath) {
+void xBot::load(QString modelpath_) {
     QElapsedTimer time1;
     time1.start();
+
+#ifdef _WIN32
+    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+    std::string modelpath = code->fromUnicode(modelpath_).data();
+#elif __linux__
+    std::string modelpath = modelpath_.toStdString();
+#endif
+
     //如果不是打开软件后第一次装载则释放模型和上下文
     if (!is_first_load && !is_free)  //如果已经释放则不再释放
     {
@@ -816,6 +822,10 @@ void xBot::reset(bool is_clear_all) {
 
 //预解码,先将用户约定的系统指令推理一遍
 void xBot::preDecode() {
+    QElapsedTimer time2;
+    time2.start();
+    const size_t history_past = Brain_vector.size();  //上一次对话的上下文长度
+
     // view_embd(ctx,embd_inp);//看看到底推理了什么
     //---------------------embd_inp插入到embd中----------------------
     while ((int)embd_inp.size() > n_consumed) {
@@ -875,6 +885,21 @@ void xBot::preDecode() {
     emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
     emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);   //将预解码内容贴到输出区
     emit bot2ui_predecode(QString::fromStdString(token_str));                //传递模型预解码内容
+
+    embd.clear();  //清空embd
+
+    is_first_reset = false;
+    reset(0);
+    is_first_reset = true;
+
+    float time_ = time2.nsecsElapsed() / 1000000000.0;
+    float speed_ = (Brain_vector.size() - history_past) / time_;
+    emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+    
+    emit bot2ui_pushover();  //推理完成的信号
+    is_stop = false;
+    return;
+
 }
 
 //遍历词表
@@ -954,7 +979,7 @@ QString xBot::view_embd(llama_context *ctx_, std::vector<llama_token> embd_) {
 
 //先输出用户发送过来的东西
 // context_pos 0是用户昵称 1是输入内容 2是模型昵称
-void xBot::push_out(std::vector<llama_token> embd_output, int context_pos) {
+void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int context_pos) {
     //如果是对话模式,先输出用户的输入,起到一个验证的作用
     if (!is_complete) {
         std::string token_str;
@@ -982,33 +1007,14 @@ void xBot::push_out(std::vector<llama_token> embd_output, int context_pos) {
     }
 }
 
-//接受图片路径
-void xBot::recv_imagepath(QString image_path) {
-#ifdef _WIN32
-    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
-    std::string imagepath = code->fromUnicode(image_path).data();
-#elif __linux__
-    std::string imagepath = image_path.toStdString();
-#endif
-    gpt_params_.image.push_back(imagepath);
-}
-
-// 接受用户输入
-void xBot::recv_input(INPUTS input_) {
-    input = input_;
-    if (input.role == ROLE_TEST) {
-        is_test = true;
-    } else {
-        is_test = false;
-    }
-}
-
 //接受停止信号
-void xBot::recv_stop() {
-    if (!is_test)  //不测试时赋予停止标志,测试是通过test_list来判断是否结束
+void xBot::recv_stop()
+{
+    if(!is_test)//不测试时赋予停止标志,测试是通过test_list来判断是否结束
     {
         is_stop = true;
     }
+    
 }
 
 //接受重置信号
@@ -1232,9 +1238,6 @@ QString xBot::jtr(QString customstr) { return wordsObj[customstr].toArray()[lang
 void xBot::recv_llama_log(QString log_) {
 
 }
-
-//传递同步率
-void xBot::recv_syncrate(Syncrate_Manager Syncrate_manager) { bot_syncrate_manager.is_sync = Syncrate_manager.is_sync; }
 
 
 // 快捷预解码token，参照的是minicpmv-cli.cpp

@@ -11,6 +11,7 @@
 #include <QTextCodec>
 #include <QThread>
 
+
 #include "llama.cpp/common/common.h"
 #include "llama.cpp/common/stb_image.h"
 #include "llama.cpp/examples/llava/clip.h"
@@ -19,19 +20,23 @@
 #include "xconfig.h"  //ui和bot都要导入的共有配置
 
 // llama模型类
-class xBot : public QThread {
+class xBot : public QObject {
+
     Q_OBJECT
+
    public:
     xBot();
     ~xBot();
 
-    void run() override;                //预测和装载,多线程的实现方式
-    void load(std::string &modelpath);  //装载模型
+   public slots:
+    void load(QString modelpath);  //装载模型
     void reset(bool is_clear_all);      //重置模型上下文和缓存等
+    void predict(INPUTS input);         //开始预测推理
     void preDecode();                   //预解码
-
+    void preDecodeImage(QString image_path);              //预解码图像
     QString viewVocab();                                                     //获取模型词表
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
+
    public:
     //拯救中文
     QJsonObject wordsObj;
@@ -65,7 +70,7 @@ class xBot : public QThread {
 
     //先输出用户发送过来的东西
     // context_pos 0是用户昵称 1是输入内容 2是模型昵称
-    void push_out(std::vector<llama_token> embd_output, int context_pos);
+    void push_out(INPUTS input, std::vector<llama_token> embd_output, int context_pos);
 
     int n_vocab;       //词表大小
     int n_ctx_train;   //模型最大上下文长度
@@ -86,9 +91,6 @@ class xBot : public QThread {
 
     void apply_date(DATES date);  //应用约定
 
-    //同步率测试相关
-    Syncrate_Manager bot_syncrate_manager;  //同步率测试管理器
-
     //计算时间相关
     bool is_batch = false;
     float batch_time = 0.000001;
@@ -102,8 +104,7 @@ class xBot : public QThread {
     //标签相关
     std::string bot_modelpath = "";                                                                        //模型路径
     std::string lorapath = "";                                                                             // lora模型路径
-    std::string mmprojpath = "";                                                                           // mmproj模型路径
-    INPUTS input;                                                                                          //用户输入
+    std::string mmprojpath = "";                                                                           // mmproj模型路径                                                                                         //用户输入
     bool is_stop = false, is_load = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
     bool is_complete = false;                                                                              //补完模式标签
     bool is_antiprompt = false;                                                                            //上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
@@ -125,24 +126,20 @@ class xBot : public QThread {
     bool showSpecial = true;               // 是否显示特殊标志
 
    public slots:
+    void recv_stop();//接受停止信号
     void recv_llama_log(QString log_);                          //获取llama log
     void recv_debuging(bool is_debuging_);                      //传递debug中状态
     void recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
     void recv_language(int language_flag_);                     //传递使用的语言
-    void recv_imagepath(QString image_path);                    //接受图片路径
-    void recv_input(INPUTS input_);                             //接受用户输入
-    void recv_stop();                                           //接受停止信号
     void recv_reset(bool is_clear_all);                         //接受重置信号
     void recv_set(SETTINGS settings, bool can_reload);          //接受设置内容
     void recv_date(DATES date);                                 //接受约定内容
     void recv_free(bool loadlater);                             //释放
-    void recv_syncrate(Syncrate_Manager Syncrate_manager);      //传递同步率
 #ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
 #endif
 
    signals:
-    void bot2ui_syncrate(Syncrate_Manager Syncrate_manager);  // 传递同步率
     void bot2ui_freeover();                                   // 模型释放完毕
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash = 0);
     void bot2expend_vocab(QString model_vocab);                                                    //传递模型总词表

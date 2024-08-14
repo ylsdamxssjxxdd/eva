@@ -1,6 +1,7 @@
 #ifndef XCONFIG_H
 #define XCONFIG_H
 
+#include <QCoreApplication>
 #include <QColor>
 #include <QDebug>
 #include <array>
