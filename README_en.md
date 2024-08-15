@@ -19,7 +19,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 - Multifunctional 🦾
 
 ```txt
-    local model chat, online model chat, API services, WEB services, agent, multimodal, knowledge base QA, code interpreter, software control, text2img, voice2text, model quantize, model evaluation
+    local model chat, online model chat, API services, WEB services, agent, multimodal, knowledge base QA, code interpreter, software control, text2img, speech2text, model quantize, model evaluation
 ```
 
 ## Quick start
@@ -54,13 +54,19 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
 ## Foundation function
 
-### Two mode
+<details>
+
+<summary> Two mode </summary>
 
 1. Local mode: you left clicks the load button to interact by loading the local model
 
 2. Link mode: you right clicks the load button and inputs the API endpoint of a certain model service for interaction (the service is required to provide a default model and not set API-KEY)
 
-### Three state
+</details>
+
+<details>
+
+<summary> Three state </summary>
 
 1. Chat state
 
@@ -72,7 +78,7 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
     - You can upload a CSV format question bank for testing
 
-    - You can take a screenshot by pressing f1 and record voice by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
+    - You can take a screenshot by pressing f1 and record speech by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
 
 2. Completion state
 
@@ -82,7 +88,11 @@ Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=cop
 
     - eva becomes an open API port service and can also chat on web pages
 
-### Six tool
+</details>
+
+<details>
+
+<summary> Six tool </summary>
 
 In local mode and chat state, you can click on the date button to mount the tool
 
@@ -147,23 +157,69 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
+</details>
+
+## Enhancements
+
+<details>
+
+<summary> Visual </summary>
+
+- Introduction: In Local Mode + Conversation State, you can mount visual models. Visual models typically have "mmproj" in their name and are usually compatible with specific models. Once successfully mounted, users can select an image for pre-decoding, which will serve as the context for the model.
+
+- Activation: Right-click on the "load mmproj" input box in the settings and select the mmproj model. You can pre-decode an image by dragging it into the input box, right-clicking the input box to click, or pressing F1 to take a screenshot. Then, click the send button to pre-decode the image, and after decoding, you can proceed with the Q&A.
+
+</details>
+
+<details>
+
+<summary> Auditory </summary>
+
+- Introduction: With the help of the whisper.cpp project, the user's speech can be converted to text.
+
+- Activation: Right-click the status area to open the expansion window, select the speech2text tab, and choose the path where the whisper model is located. Return to the main interface, press the F2 shortcut to start recording, press F2 again to end the recording, and it will automatically convert to text and fill into the input area.
+
+</details>
+
+<details>
+
+<summary> Speech </summary>
+
+- Introduction: Using the speech function of the Windows system, the model's output text can be converted to speech and automatically played.
+
+- Activation: Right-click the status area to open the expansion window, select the text2speech tab, and enable the system sound source.
+
+</details>
+
 ## Auxiliary functions
 
-### Model quantification
+<details>
+
+<summary> Model quantification </summary>
 
 - You can right-click on the status area to pop up a proliferation window, and quantify the unquantized gguf models of fp32, fp16, and bf16 in the model quantization tab
 
-### Debug tag
+</details>
+
+<details>
+
+<summary> Debug output </summary>
 
 - To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
 
 - After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
 
-### Eva sync rate test
+</details>
+
+<details>
+
+<summary> Eva sync rate test </summary>
 
 - In local mode and chat state, the model can be tested for sync rate. Right click on the input area and select \<Eva sync rate test>
 
 - The main test model's instruction following ability, the higher the sync rate, the stronger the model 😊
+
+</details>
 
 ## Build
 

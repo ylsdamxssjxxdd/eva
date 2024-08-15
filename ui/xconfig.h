@@ -280,9 +280,9 @@ struct SD_Params {
 };
 
 //文转声参数
-struct Voice_Params {
-    bool is_voice = false;
-    QString voice_name = "";
+struct Speech_Params {
+    bool is_speech = false;
+    QString speech_name = "";
 };
 
 //记忆单元（当前记忆）

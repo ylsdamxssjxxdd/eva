@@ -76,7 +76,7 @@ class Widget : public QWidget {
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
     QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
     bool checkAudio();           // 检测音频支持
-    QStringList sys_voice_list;  // 系统可用声源列表
+    QStringList sys_speech_list;  // 系统可用声源列表
    public:
     QJsonObject wordsObj;                   //中文英文
     void getWords(QString json_file_path);  //中文英文
@@ -324,7 +324,7 @@ class Widget : public QWidget {
     QElapsedTimer keeptime;                               //测量时间
 
     //语音朗读相关
-    Voice_Params voice_params;
+    Speech_Params speech_params;
     void qspeech(QString str);
     QTextToSpeech *speech;
     bool is_speech_available;  // 语音朗读是否可用
@@ -366,7 +366,7 @@ class Widget : public QWidget {
     void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);
     void ui2expend_language(int language_flag_);                      //传递使用的语言
     void ui2expend_show(int index_);                                  //通知显示扩展窗口
-    void ui2expend_voicedecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
+    void ui2expend_speechdecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
 
     //自用信号
    signals:
@@ -394,10 +394,10 @@ class Widget : public QWidget {
     void recv_play();
 
     //处理expend信号的槽
-    void recv_voicedecode_over(QString result);
+    void recv_speechdecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);     //传递模型路径
     void recv_embeddingdb_describe(QString describe);   //传递知识库的描述
-    void recv_voiceparams(Voice_Params Voice_Params_);  //传递文转声参数
+    void recv_speechparams(Speech_Params speech_Params_);  //传递文转声参数
 
     //处理tool信号的槽
     void recv_controller(int num);                      //传递控制信息

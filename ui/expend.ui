@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>8</number>
+      <number>7</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -2540,7 +2540,7 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="voice_load_groupBox_4">
+        <widget class="QGroupBox" name="speech_load_groupBox_4">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -2745,7 +2745,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_27">
          <item>
-          <widget class="QLabel" name="label_14">
+          <widget class="QLabel" name="speech_available_label">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -2767,7 +2767,7 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
          <item>
-          <widget class="QComboBox" name="voice_source_comboBox">
+          <widget class="QComboBox" name="speech_source_comboBox">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -2786,7 +2786,7 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
          <item>
-          <widget class="QRadioButton" name="voice_enable_radioButton">
+          <widget class="QRadioButton" name="speech_enable_radioButton">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -2810,7 +2810,7 @@ p, li { white-space: pre-wrap; }
         </layout>
        </item>
        <item>
-        <widget class="QTextEdit" name="voice_log">
+        <widget class="QTextEdit" name="speech_log">
          <property name="html">
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;

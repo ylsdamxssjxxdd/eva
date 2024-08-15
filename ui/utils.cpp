@@ -255,7 +255,7 @@ void Widget::stop_recordAudio() {
     std::string wav_path_c = wav_path.toStdString();
 #endif
     resampleWav(wav_path_c, wav_path_c);
-    emit ui2expend_voicedecode(wav_path, "txt");  //传一个wav文件开始解码
+    emit ui2expend_speechdecode(wav_path, "txt");  //传一个wav文件开始解码
 }
 
 // 清空题库
@@ -566,20 +566,20 @@ QString Widget::customOpenfile(QString dirpath, QString describe, QString format
 //语音朗读相关
 void Widget::qspeech(QString str) {
     //如果禁用了朗读则直接退出
-    // qDebug()<<voice_params.is_voice<<voice_params.voice_name;
-    if (!voice_params.is_voice) {
+    // qDebug()<<speech_params.is_speech<<speech_params.speech_name;
+    if (!speech_params.is_speech) {
         speechOver();
         return;
     }
 
-    if (voice_params.voice_name != "") {
+    if (speech_params.speech_name != "") {
         // 遍历所有可用音色
         foreach (const QVoice& voice, speech->availableVoices()) {
-            // qDebug() << "Name:" << voice.name();
-            // qDebug() << "Age:" << voice.age();
-            // qDebug() << "Gender:" << voice.gender();
+            // qDebug() << "Name:" << speech.name();
+            // qDebug() << "Age:" << speech.age();
+            // qDebug() << "Gender:" << speech.gender();
             //使用用户选择的音色
-            if (voice.name() == voice_params.voice_name) {
+            if (voice.name() == speech_params.speech_name) {
                 speech->setVoice(voice);
                 break;
             }

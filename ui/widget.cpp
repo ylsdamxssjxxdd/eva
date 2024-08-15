@@ -107,7 +107,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     if (speech->state() == QTextToSpeech::Ready) {
         is_speech_available = true;
         // 遍历所有可用音色
-        foreach (const QVoice &voice, speech->availableVoices()) { sys_voice_list << voice.name(); }
+        foreach (const QVoice &speech, speech->availableVoices()) { sys_speech_list << speech.name(); }
         connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);  //朗读结束后动作
         connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
         speechtimer.start(500);  //每半秒检查一次是否需要朗读
@@ -1081,7 +1081,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
 void Widget::recv_predecode(QString bot_predecode_) { bot_predecode = bot_predecode_; }
 
 //接收whisper解码后的结果
-void Widget::recv_voicedecode_over(QString result) {
+void Widget::recv_speechdecode_over(QString result) {
     ui_state_normal();
     ui->input->append(result);
     // ui->send->click();//尝试一次发送
@@ -1214,7 +1214,7 @@ void Widget::api_send_clicked_slove() {
 void Widget::recv_embeddingdb_describe(QString describe) { embeddingdb_describe = describe; }
 
 //传递文转声参数
-void Widget::recv_voiceparams(Voice_Params Voice_Params_) { voice_params = Voice_Params_; }
+void Widget::recv_speechparams(Speech_Params speech_Params_) { speech_params = speech_Params_; }
 
 //传递控制信息
 void Widget::recv_controller(int num) {

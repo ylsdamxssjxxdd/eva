@@ -76,8 +76,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->whisper_output_format->addItems({"txt", "srt", "csv", "json"});
 
     //声转文相关
-    connect(ui->voice_enable_radioButton, &QRadioButton::clicked, this, &Expend::voice_enable_change);
-    connect(ui->voice_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::voice_source_change);
+    connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
+    connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
 
     //文生图相关
     ui->sd_antiprompt_lineEdit->setText(sd_params.negative_prompt);
@@ -147,8 +147,8 @@ void Expend::init_expend() {
     ui->tabWidget->setTabText(3, jtr("model") + jtr("quantize"));  //模型量化
     ui->tabWidget->setTabText(4, jtr("knowledge"));                //知识库
     ui->tabWidget->setTabText(5, jtr("text2image"));               //文生图
-    ui->tabWidget->setTabText(6, jtr("voice2text"));               //声转文
-    ui->tabWidget->setTabText(7, jtr("text2voice"));               //文转声
+    ui->tabWidget->setTabText(6, jtr("speech2text"));               //声转文
+    ui->tabWidget->setTabText(7, jtr("text2speech"));               //文转声
     ui->tabWidget->setTabText(8, jtr("sync rate"));                //同步率
 
     //大量的工作...来写吧
@@ -217,21 +217,24 @@ void Expend::init_expend() {
     //声转文
     ui->whisper_modelpath_label->setText(jtr("whisper path"));
     ui->whisper_load_modelpath_linedit->setPlaceholderText(jtr("whisper_load_modelpath_linedit_placeholder"));
-    ui->voice_load_groupBox_4->setTitle("whisper " + jtr("log"));
+    ui->speech_load_groupBox_4->setTitle("whisper " + jtr("log"));
     ui->whisper_wav2text_label->setText(jtr("wav2text"));
     ui->whisper_wavpath_pushButton->setText(jtr("wav path"));
     ui->whisper_format_label->setText(jtr("format"));
     ui->whisper_execute_pushbutton->setText(jtr("convert"));
 
     //文转声
-    for (int i = 0; i < ui->voice_source_comboBox->count(); ++i) {
-        QString itemText = ui->voice_source_comboBox->itemText(i);
-        if (voice_params.voice_name == itemText)  //如果有同名的声源则应用它
+    ui->speech_available_label->setText(jtr("Available system sound"));
+    ui->speech_enable_radioButton->setText(jtr("enable"));
+
+    for (int i = 0; i < ui->speech_source_comboBox->count(); ++i) {
+        QString itemText = ui->speech_source_comboBox->itemText(i);
+        if (speech_params.speech_name == itemText)  //如果有同名的声源则应用它
         {
-            ui->voice_source_comboBox->setCurrentText(voice_params.voice_name);
-            ui->voice_enable_radioButton->setChecked(voice_params.is_voice);
-            if (voice_params.is_voice) {
-                ui->voice_source_comboBox->setEnabled(1);
+            ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
+            ui->speech_enable_radioButton->setChecked(speech_params.is_speech);
+            if (speech_params.is_speech) {
+                ui->speech_source_comboBox->setEnabled(1);
             }
         }
     }
@@ -357,8 +360,8 @@ void Expend::readConfig() {
 
         QString whisper_modelpath = settings.value("whisper_modelpath", "").toString();  // whisper模型路径
 
-        voice_params.is_voice = settings.value("voice_enable", "").toBool();    //是否启用语音朗读
-        voice_params.voice_name = settings.value("voice_name", "").toString();  //朗读者
+        speech_params.is_speech = settings.value("speech_enable", "").toBool();    //是否启用语音朗读
+        speech_params.speech_name = settings.value("speech_name", "").toString();  //朗读者
 
         // 应用值
         QFile sd_modelpath_file(sd_modelpath);
@@ -489,8 +492,8 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("clip_skip", ui->sd_skipclip->value());
     settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
     settings.setValue("whisper_modelpath", ui->whisper_load_modelpath_linedit->text());
-    settings.setValue("voice_enable", ui->voice_enable_radioButton->isChecked());
-    settings.setValue("voice_name", ui->voice_source_comboBox->currentText());
+    settings.setValue("speech_enable", ui->speech_enable_radioButton->isChecked());
+    settings.setValue("speech_name", ui->speech_source_comboBox->currentText());
 
     settings.setValue("embedding_modelpath", embedding_params.modelpath);
     settings.setValue("embedding_endpoint", ui->embedding_txt_api_lineedit->text());  //如果模型不存在则直接使用端点
@@ -523,7 +526,7 @@ void Expend::on_whisper_load_modelpath_button_clicked() {
 }
 
 //开始语音转文字
-void Expend::recv_voicedecode(QString wavpath, QString out_format) {
+void Expend::recv_speechdecode(QString wavpath, QString out_format) {
     whisper_time.restart();
 
 #ifdef BODY_LINUX_PACK
@@ -591,7 +594,7 @@ void Expend::whisper_onProcessFinished() {
         }
         file.close();
         emit expend2ui_state("expend:" + jtr("decode over") + " " + QString::number(whisper_time.nsecsElapsed() / 1000000000.0, 'f', 2) + "s ->" + content, SUCCESS_SIGNAL);
-        emit expend2ui_voicedecode_over(content);
+        emit expend2ui_speechdecode_over(content);
     } else {
         ui->whisper_log->appendPlainText(jtr("the result has been saved in the source wav file directory") + " " + QString::number(whisper_time.nsecsElapsed() / 1000000000.0, 'f', 2) + "s");
     }
@@ -612,7 +615,7 @@ void Expend::on_whisper_execute_pushbutton_clicked() {
     //执行whisper
     is_handle_whisper = true;
     whisper_process->kill();
-    recv_voicedecode(ui->whisper_wavpath_lineedit->text(), ui->whisper_output_format->currentText());
+    recv_speechdecode(ui->whisper_wavpath_lineedit->text(), ui->whisper_output_format->currentText());
 }
 
 //-------------------------------------------------------------------------
@@ -1666,41 +1669,41 @@ void Expend::recv_draw(QString prompt_) {
 //-------------------------------------------------------------------------
 
 //用户点击启用声音选项响应
-void Expend::voice_enable_change() {
-    Voice_Params Voice_Params_;
+void Expend::speech_enable_change() {
+    Speech_Params speech_Params_;
 
-    Voice_Params_.voice_name = ui->voice_source_comboBox->currentText();
+    speech_Params_.speech_name = ui->speech_source_comboBox->currentText();
 
-    if (ui->voice_enable_radioButton->isChecked()) {
-        Voice_Params_.is_voice = true;
-        ui->voice_source_comboBox->setEnabled(1);
+    if (ui->speech_enable_radioButton->isChecked()) {
+        speech_Params_.is_speech = true;
+        ui->speech_source_comboBox->setEnabled(1);
     } else {
-        Voice_Params_.is_voice = false;
-        ui->voice_source_comboBox->setEnabled(0);
+        speech_Params_.is_speech = false;
+        ui->speech_source_comboBox->setEnabled(0);
     }
 
-    emit expend2ui_voiceparams(Voice_Params_);
+    emit expend2ui_speechparams(speech_Params_);
 }
 
 //用户切换音源响应
-void Expend::voice_source_change() {
-    Voice_Params Voice_Params_;
+void Expend::speech_source_change() {
+    Speech_Params speech_Params_;
 
-    Voice_Params_.voice_name = ui->voice_source_comboBox->currentText();
+    speech_Params_.speech_name = ui->speech_source_comboBox->currentText();
 
-    if (ui->voice_enable_radioButton->isChecked()) {
-        Voice_Params_.is_voice = true;
+    if (ui->speech_enable_radioButton->isChecked()) {
+        speech_Params_.is_speech = true;
     } else {
-        Voice_Params_.is_voice = false;
+        speech_Params_.is_speech = false;
     }
 
-    emit expend2ui_voiceparams(Voice_Params_);
+    emit expend2ui_speechparams(speech_Params_);
 }
 
 // 设置系统可用声源
-void Expend::set_sys_voice(QStringList sys_voice_list) {
-    for (int i = 0; i < sys_voice_list.size(); ++i) {
-        ui->voice_source_comboBox->addItem(sys_voice_list.at(i));  //添加到下拉框
+void Expend::set_sys_speech(QStringList sys_speech_list) {
+    for (int i = 0; i < sys_speech_list.size(); ++i) {
+        ui->speech_source_comboBox->addItem(sys_speech_list.at(i));  //添加到下拉框
     }
 }
 

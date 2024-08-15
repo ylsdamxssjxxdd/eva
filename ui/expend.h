@@ -98,10 +98,10 @@ class Expend : public QWidget {
     bool is_handle_whisper = false;  //是否为手动转换
    signals:
     void whisper_kill();
-    void expend2ui_voicedecode_over(QString result);
+    void expend2ui_speechdecode_over(QString result);
     void expend2ui_whisper_modelpath(QString modelpath);
    public slots:
-    void recv_voicedecode(QString wavpath, QString out_format = "txt");  //开始语音转文字
+    void recv_speechdecode(QString wavpath, QString out_format = "txt");  //开始语音转文字
     void whisper_onProcessStarted();
     void whisper_onProcessFinished();
    private slots:
@@ -202,14 +202,14 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
-    void set_sys_voice(QStringList sys_voice_list);  // 设置系统可用声源
-    Voice_Params voice_params;
+    void set_sys_speech(QStringList sys_speech_list);  // 设置系统可用声源
+    Speech_Params speech_params;
    signals:
-    void expend2ui_voiceparams(Voice_Params Voice_Params_);
+    void expend2ui_speechparams(Speech_Params speech_Params_);
 
    private slots:
-    void voice_enable_change();  //用户点击启用声音选项响应
-    void voice_source_change();  //用户切换音源响应
+    void speech_enable_change();  //用户点击启用声音选项响应
+    void speech_source_change();  //用户切换音源响应
 
     //-------------------------------------------------------------------------
     //----------------------------------记忆相关--------------------------------
