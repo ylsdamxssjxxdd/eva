@@ -15,6 +15,7 @@ option(GGML_CUDA                     "ggml: use CUDA"                           
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
+option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(BODY_32BIT "build 32 bit" OFF) # 编译32位的选项！不能装载超过1G的模型
 # 这几个标志是互斥的
 if(BODY_32BIT)
@@ -23,12 +24,10 @@ elseif(GGML_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
-    list(APPEND extra_INCLUDES ui/utils/gpuchecker.h)
 elseif(GGML_VULKAN)
     find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
     add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
     add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
-    list(APPEND extra_INCLUDES ui/utils/gpuchecker.h)
 else() 
     # 什么都没有默认编译cpu版本
 endif()
@@ -43,7 +42,6 @@ endif()
 
 # msvc设置编译选项
 if(MSVC)
-    option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 如果用msvc编译器就动态链接
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # 支持代码中的中文
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8") # 支持代码中的中文
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
@@ -62,20 +60,15 @@ if(MSVC)
 
 # mingw设置编译选项
 elseif(MINGW)
-    option(BUILD_SHARED_LIBS        "build shared libraries"           OFF)
     set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version") # 原项目适配mingw
     add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER}) # 原项目适配mingw
     add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
     
-    set(CMAKE_CXX_FLAGS_RELEASE "-static") # 使用静态编译
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
-    
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
-    option(BUILD_SHARED_LIBS        "build shared libraries"           ON)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
@@ -158,7 +151,7 @@ ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 ui/main.cpp ui/utils.cpp ui/dialog.cpp ui/widget.cpp ui/expend.cpp ui/xbot.cpp ui/xnet.cpp ui/xtool.cpp
 ui/widget.h ui/xbot.h ui/xtool.h ui/expend.h ui/xnet.h ui/xconfig.h
 ui/widget.ui ui/expend.ui
-ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui/utils/customqplaintextedit.h ui/utils/doubleqprogressbar.h ui/utils/cutscreendialog.h ui/utils/customtabwidget.h ui/utils/customswitchbutton.h
+ui/utils/gpuchecker.h ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui/utils/customqplaintextedit.h ui/utils/doubleqprogressbar.h ui/utils/cutscreendialog.h ui/utils/customtabwidget.h ui/utils/customswitchbutton.h
 llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
 
@@ -219,6 +212,13 @@ if(MSVC)
         )
     endif()
 elseif(MINGW)
+
+        # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}"
+        COMMENT "custom Windeployqt ..."
+    )
+
     if(BODY_PACK)
         # 使用winrar打包为一个自解压程序，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD

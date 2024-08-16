@@ -46,10 +46,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                     //设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL);  //初始提示
 
-#ifndef BODY_USE_GPU
-    ui->vcore_bar->setVisible(0);  //如果没有使用cuda则不显示gpu_bar
-    ui->vram_bar->setVisible(0);
-#endif
     init_movie();                             //初始化动画参数
     QFile file(":/QSS-master/MacOS.qss");  //加载皮肤
     file.open(QFile::ReadOnly);
@@ -164,14 +160,9 @@ void Widget::recv_freeover() {
     ui_mode = LOCAL_MODE;                 //只要点击装载有东西就不再是链接模式
     ui_SETTINGS.modelpath = currentpath;  //模型路径变化则重置参数
 
-#ifdef BODY_USE_GPU
     //分析显存，如果可用显存比模型大1.1倍则自动将gpu负载设置为999
     emit gpu_reflash();  //强制刷新gpu信息
     gpu_wait_load = true;
-#else
-    //发送设置参数给bot
-    emit ui2bot_set(ui_SETTINGS, 1);  //设置应用完会触发preLoad
-#endif
 }
 
 // 装载前动作
@@ -589,10 +580,7 @@ void Widget::recv_setreset() {
     reflash_state("· " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp), USUAL_SIGNAL);
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat), USUAL_SIGNAL);
     reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict), USUAL_SIGNAL);
-
-#if defined(BODY_USE_GPU)
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl), USUAL_SIGNAL);
-#endif
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread), USUAL_SIGNAL);
     reflash_state("· " + jtr("ctx") + jtr("length") + " " + QString::number(ui_SETTINGS.nctx), USUAL_SIGNAL);
     reflash_state("· " + jtr("batch size") + " " + QString::number(ui_SETTINGS.batch), USUAL_SIGNAL);
@@ -760,9 +748,7 @@ void Widget::on_set_clicked() {
     }
     //展示最近一次设置值
     temp_slider->setValue(ui_SETTINGS.temp * 100);
-#if defined(BODY_USE_GPU)
     ngl_slider->setValue(ui_SETTINGS.ngl);
-#endif
     nctx_slider->setValue(ui_SETTINGS.nctx);
     batch_slider->setValue(ui_SETTINGS.batch);
     repeat_slider->setValue(ui_SETTINGS.repeat * 100.00);
@@ -889,9 +875,7 @@ void Widget::serverControl() {
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.batch);           //批大小
     arguments << "--log-disable";                                      //不要日志
-#if defined(BODY_USE_GPU)
     arguments << "-fa";  // 开启flash attention加速
-#endif
     // arguments << "-np";//设置进程请求的槽数 默认：1
     if (ui_SETTINGS.lorapath != "") {
         arguments << "--no-mmap";
@@ -934,9 +918,7 @@ void Widget::recv_params(MODEL_PARAMS p) {
     ui_n_ctx_train = p.n_ctx_train;
     nctx_slider->setMaximum(p.n_ctx_train);  // 没有拓展4倍,因为批解码时还是会失败
     ui_maxngl = p.max_ngl;  // gpu负载层数是n_layer+1
-#if defined(BODY_USE_GPU)
     ngl_slider->setMaximum(ui_maxngl);
-#endif
     if (ui_SETTINGS.ngl == 999) {
         ui_SETTINGS.ngl = ui_maxngl;
     }  //及时修正999值
@@ -961,7 +943,6 @@ void Widget::recv_play() {
     load_play();  //开始播放动画
 }
 
-#ifdef BODY_USE_GPU
 //更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_) {
     vfree = vfree_;  //剩余显存
@@ -989,7 +970,6 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
         emit ui2bot_set(ui_SETTINGS, 1);  //设置应用完会触发preLoad
     }
 }
-#endif
 
 //传递cpu信息
 void Widget::recv_cpu_status(double cpuload, double memload) {

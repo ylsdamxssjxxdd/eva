@@ -217,10 +217,8 @@ class Widget : public QWidget {
     QSlider *repeat_slider;
 
     QGroupBox *decode_box;
-#if defined(BODY_USE_GPU)
     QLabel *ngl_label;
     QSlider *ngl_slider;
-#endif
     QLabel *nctx_label;
     QSlider *nctx_slider;
     QLabel *nthread_label;
@@ -406,9 +404,7 @@ class Widget : public QWidget {
    public slots:
     void serverControl();                      //服务状态启动服务
     void switch_lan_change();  //切换行动纲领的语言
-#ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率
-#endif
     void recv_cpu_status(double cpuload, double memload);  //传递cpu信息
 
     //自用的槽

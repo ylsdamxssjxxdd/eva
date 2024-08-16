@@ -222,11 +222,11 @@ void Widget::load_over_handleTimeout() {
 
 // 装载完毕强制预处理
 void Widget::unlockLoad() {
-#if defined(BODY_USE_GPU)
+
     if (ui_SETTINGS.ngl < ui_maxngl) {
         reflash_state("ui:" + jtr("ngl tips"), USUAL_SIGNAL);
     }
-#endif
+
     reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time, 'f', 2) + " s " + jtr("right click and check model log"), SUCCESS_SIGNAL);
     if (ui_SETTINGS.ngl > 0) {
         QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));
@@ -465,9 +465,9 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state) {
 void Widget::temp_change() { temp_label->setText(jtr("temperature") + " " + QString::number(temp_slider->value() / 100.0)); }
 // ngl滑块响应
 void Widget::ngl_change() {
-#if defined(BODY_USE_GPU)
+
     ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ngl_slider->value()));
-#endif
+
 }
 // batch滑块响应
 void Widget::batch_change() { batch_label->setText(jtr("batch size") + " " + QString::number(batch_slider->value())); }
@@ -663,7 +663,6 @@ void Widget::set_SetDialog() {
     decode_box->setFont(ui_font);
     QVBoxLayout *decode_layout = new QVBoxLayout();  //解码设置垂直布局器
 
-#if defined(BODY_USE_GPU)
     //加速支持
     QHBoxLayout *layout_H2 = new QHBoxLayout();  //水平布局器
     ngl_label = new QLabel("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
@@ -677,7 +676,7 @@ void Widget::set_SetDialog() {
     layout_H2->addWidget(ngl_slider);
     decode_layout->addLayout(layout_H2);  //将布局添加到总布局
     connect(ngl_slider, &QSlider::valueChanged, this, &Widget::ngl_change);
-#endif
+
     // cpu线程数设置
     QHBoxLayout *layout_H16 = new QHBoxLayout();  //水平布局器
     nthread_label = new QLabel("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
@@ -786,16 +785,6 @@ void Widget::set_SetDialog() {
 
     mode_box->setLayout(mode_layout);
     layout->addWidget(mode_box);
-
-#ifdef BODY_USE_32BIT
-    lora_label->setVisible(0);
-    lora_LineEdit->setVisible(0);
-#endif
-
-#if defined(BODY_USE_GPU)
-    lora_label->setVisible(0);
-    lora_LineEdit->setVisible(0);
-#endif
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);  // 创建 QDialogButtonBox 用于确定和取消按钮
     layout->addWidget(buttonBox);
@@ -1210,13 +1199,10 @@ void Widget::change_api_dialog(bool enable) {
     // batch_label->setVisible(enable);batch_slider->setVisible(enable);
     mmproj_label->setVisible(enable);
     mmproj_LineEdit->setVisible(enable);
-#if defined(BODY_USE_GPU)
     ngl_label->setVisible(enable);
     ngl_slider->setVisible(enable);
-#else
     lora_label->setVisible(enable);
     lora_LineEdit->setVisible(enable);
-#endif
     port_label->setVisible(enable);
     port_lineEdit->setVisible(enable);
     web_btn->setVisible(enable);
@@ -1535,9 +1521,7 @@ void Widget::get_set() {
     ui_SETTINGS.nthread = nthread_slider->value();
     ui_SETTINGS.nctx = nctx_slider->value();    //获取nctx滑块的值
     ui_SETTINGS.batch = batch_slider->value();  //获取nctx滑块的值
-#if defined(BODY_USE_GPU)
     ui_SETTINGS.ngl = ngl_slider->value();  //获取npl滑块的值
-#endif
 
     ui_SETTINGS.lorapath = lora_LineEdit->text();
     ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();

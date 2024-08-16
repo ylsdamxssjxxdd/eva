@@ -151,10 +151,10 @@ void Expend::init_expend() {
     ui->tabWidget->setTabText(7, jtr("text2speech"));               //文转声
     ui->tabWidget->setTabText(8, jtr("sync rate"));                //同步率
 
-    //大量的工作...来写吧
     //模型记忆
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
     ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
+
     //软件介绍
     showReadme();
 
@@ -288,7 +288,8 @@ void Expend::recv_expend_show(int index_) {
     if (index_ == 999) {
         this->close();
         return;
-    } else if (index_ == 8 && is_first_show_sync)  //第一次点模型增殖
+    } 
+    else if (index_ == 8 && is_first_show_sync)  //第一次点同步率
     {
         is_first_show_sync = false;
         ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "action_name", "action_input", jtr("pass")});  //设置列名
@@ -297,12 +298,11 @@ void Expend::recv_expend_show(int index_) {
     if (is_first_show_expend)  //第一次显示的话
     {
         is_first_show_expend = false;
-        if (vocab == "") {
-            vocab = jtr("lode model first");
-        }
-        if (ui->modellog_card->toPlainText() == "") {
-            ui->modellog_card->setPlainText(jtr("lode model first"));
-        }
+        this->init_expend();
+
+        if (vocab == "") { vocab = jtr("lode model first"); }
+
+        if (ui->modellog_card->toPlainText() == "") { ui->modellog_card->setPlainText(jtr("lode model first")); }
     }
 
     //打开指定页数窗口

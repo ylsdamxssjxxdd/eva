@@ -25,9 +25,7 @@ log_disable();                                    //禁止llama.cpp输出日志�
     gpt_params_.sparams.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
-#if defined(BODY_USE_GPU)
     gpt_params_.flash_attn = true;  // gpu默认开启flash_attn
-#endif
 
     qDebug() << "bot init over";
 }
@@ -646,11 +644,9 @@ void xBot::load(QString modelpath_) {
     } else {
         gpt_params_.use_mmap = false;
     }
-#if defined(BODY_USE_GPU)
     //使用mmp后gpu负载无法分担内存占用
     gpt_params_.use_mmap = true;
 
-#endif
 #ifdef BODY_USE_32BIT
     gpt_params_.use_mmap = false;  // 32位不能mmp
 #endif
@@ -1030,7 +1026,6 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
 
     bool reload_flag = false;  //重载标签
     // qDebug()<<"settings.ngl"<<settings.ngl<<"gpt_params_.n_gpu_layers"<<gpt_params_.n_gpu_layers<<reload_flag<<maxngl;
-#if defined(BODY_USE_GPU)
     if (settings.ngl == 999)  //传过来的是999表示检测到显存充足
     {
         gpt_params_.n_gpu_layers = 999;
@@ -1043,7 +1038,6 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
         reload_flag = true;
     }
 
-#endif
     //如果线程数改变则重新加载模型
     if (gpt_params_.n_threads != settings.nthread) {
         gpt_params_.n_threads = settings.nthread;
@@ -1161,11 +1155,9 @@ void xBot::recv_free(bool loadlater) {
     }
 }
 
-#ifdef BODY_USE_GPU
 void xBot::recv_gpu_status(float vmem, float vram, float vcore, float vfree_) {
     vfree = vfree_;  //剩余显存
 }
-#endif
 
 //检测是否有不完整的utf8字符
 bool xBot::isIncompleteUTF8(const std::string &text) {

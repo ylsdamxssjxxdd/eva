@@ -10,9 +10,7 @@
 #include "xnet.h"
 #include "xtool.h"
 
-#ifdef BODY_USE_GPU
 #include "utils/gpuchecker.h"
-#endif
 #include "utils/cpuchecker.h"
 
 int main(int argc, char* argv[]) {
@@ -59,9 +57,7 @@ int main(int argc, char* argv[]) {
     xTool tool(applicationDirPath);              //工具实例
     xBot bot;                                    //模型实例
     xNet net;                                    //链接实例
-#ifdef BODY_USE_GPU
     gpuChecker gpuer;  //监测显卡信息
-#endif
     cpuChecker cpuer;  //监视系统信息
 
     //-----------------初始值设定-----------------------
@@ -71,7 +67,7 @@ int main(int argc, char* argv[]) {
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.speech_params = expend.speech_params;
     expend.set_sys_speech(w.sys_speech_list);  // 设置可用系统声源
-    expend.init_expend();                    //更新一次expend界面
+    // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");  //注册PARAMS作为信号传递变量
@@ -89,9 +85,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<APIS>("APIS");
 
     //------------------开启多线程 todo ------------------------
-#ifdef BODY_USE_GPU
     QThread* gpuer_thread = new QThread;gpuer.moveToThread(gpuer_thread);gpuer_thread->start();
-#endif
     QThread* cpuer_thread = new QThread;cpuer.moveToThread(cpuer_thread);cpuer_thread->start();
     QThread* bot_thread = new QThread;bot.moveToThread(bot_thread);bot_thread->start();
     QThread* tool_thread = new QThread;tool.moveToThread(tool_thread);tool_thread->start();
@@ -128,11 +122,10 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_debuging, &bot, &xBot::recv_debuging);        //传递debug中状态
 
     //------------------监测gpu信息-------------------
-#ifdef BODY_USE_GPU
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);    //传递gpu信息
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &bot, &xBot::recv_gpu_status);    //传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::chekGpu);  //强制刷新gpu信息
-#endif
+
     //------------------监测系统信息-------------------
     QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status);    //传递cpu信息
     QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);  //强制刷新cpu信息
@@ -223,9 +216,7 @@ int main(int argc, char* argv[]) {
             w.nthread_slider->setValue(settings.value("nthread", "").toInt());
             w.nctx_slider->setValue(settings.value("nctx", "").toInt());
             w.batch_slider->setValue(settings.value("batch", "").toInt());
-#if defined(BODY_USE_GPU)
             w.ngl_slider->setValue(settings.value("ngl", "").toInt());
-#endif
             QFile checkFile(settings.value("lorapath", "").toString());
             if (checkFile.exists()) {
                 w.lora_LineEdit->setText(settings.value("lorapath", "").toString());

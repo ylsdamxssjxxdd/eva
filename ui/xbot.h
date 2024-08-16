@@ -135,9 +135,7 @@ class xBot : public QObject {
     void recv_set(SETTINGS settings, bool can_reload);          //接受设置内容
     void recv_date(DATES date);                                 //接受约定内容
     void recv_free(bool loadlater);                             //释放
-#ifdef BODY_USE_GPU
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
-#endif
 
    signals:
     void bot2ui_freeover();                                   // 模型释放完毕
