@@ -310,7 +310,7 @@ static struct ggml_backend_metal_context * ggml_metal_init(int n_cb) {
     GGML_METAL_LOG_INFO("%s: picking default device: %s\n", __func__, [[device name] UTF8String]);
 
     // Configure context
-    struct ggml_backend_metal_context * ctx = malloc(sizeof(struct ggml_backend_metal_context));
+    struct ggml_backend_metal_context * ctx = calloc(1, sizeof(struct ggml_backend_metal_context));
     ctx->device = device;
     ctx->n_cb   = MIN(n_cb, GGML_METAL_MAX_BUFFERS);
     ctx->queue  = [ctx->device newCommandQueue];
@@ -2313,7 +2313,7 @@ static enum ggml_status ggml_metal_graph_compute(
                         memcpy(&beta_fast,   (int32_t *) dst->op_params +  9, sizeof(float));
                         memcpy(&beta_slow,   (int32_t *) dst->op_params + 10, sizeof(float));
 
-                        const bool is_neox = mode & 2;
+                        const bool is_neox = mode & GGML_ROPE_TYPE_NEOX;
 
                         id<MTLComputePipelineState> pipeline = nil;
 
