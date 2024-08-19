@@ -167,6 +167,8 @@
 
 ## 增强功能
 
+https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
+
 <details>
 
 <summary> 视觉 </summary>
