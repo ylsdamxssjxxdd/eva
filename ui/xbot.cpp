@@ -4,7 +4,7 @@
 #include "xbot.h"
 
 xBot::xBot() {
-log_disable();                                    //禁止llama.cpp输出日志文件
+    log_disable();                                    //禁止llama.cpp输出日志文件
     llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
     showSpecial = true;  // 是否显示特殊标志 <bos> <eos> <eot>
