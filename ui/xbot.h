@@ -138,7 +138,7 @@ class xBot : public QObject {
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
 
    signals:
-    void bot2ui_freeover();                                   // 模型释放完毕
+    void bot2ui_freeover_loadlater();                                   // 模型释放完毕
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash = 0);
     void bot2expend_vocab(QString model_vocab);                                                    //传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);                                                 //传递模型预解码内容

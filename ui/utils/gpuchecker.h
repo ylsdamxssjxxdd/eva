@@ -164,7 +164,7 @@ class gpuChecker : public QObject {
         } else if (gpu_vendor == "AMD") {
             getAmdGpuInfo();
         } else {
-            emit gpu_status(0, 0, 0, 0);
+            emit gpu_status(0, 0, 0, 0); // 没有支持显卡的情况
         }
 #endif
     }

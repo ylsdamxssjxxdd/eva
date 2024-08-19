@@ -373,7 +373,7 @@ class Widget : public QWidget {
 
     //处理模型信号的槽
    public slots:
-    void recv_freeover();                                                         //模型释放完毕并重新装载
+    void recv_freeover_loadlater();                                                         //模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_);                                  //传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                 //处理tool推理完毕的槽
     void reflash_output(const QString result, bool is_while, QColor color);       //更新输出区,is_while表示从流式输出的token

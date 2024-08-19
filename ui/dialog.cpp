@@ -229,10 +229,10 @@ void Widget::unlockLoad() {
 
     reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time, 'f', 2) + " s " + jtr("right click and check model log"), SUCCESS_SIGNAL);
     if (ui_SETTINGS.ngl > 0) {
-        QApplication::setWindowIcon(QIcon(":/ui/green_logo.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/green_logo.png"));
     }  // 设置应用程序图标
     else {
-        QApplication::setWindowIcon(QIcon(":/ui/blue_logo.png"));
+        QApplication::setWindowIcon(QIcon(":/logo/blue_logo.png"));
     }  // 设置应用程序图标
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
     ui->kv_bar->show_text = jtr("brain");
@@ -1126,7 +1126,7 @@ void Widget::onConnected() {
     }
     reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
     this->setWindowTitle(jtr("current api") + " " + current_api);
-    QApplication::setWindowIcon(QIcon(":/ui/dark_logo.png"));  //设置应用程序图标
+    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
     ui->kv_bar->show_text = jtr("delay");
     ui->kv_bar->setToolTip("");
 
@@ -1466,7 +1466,7 @@ void Widget::create_right_menu() {
         }
 
         makeTestIndex();                                        //构建测试问题索引
-        QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));  // 设置应用程序图标
+        QApplication::setWindowIcon(QIcon(":/logo/c-eval.png"));  // 设置应用程序图标
         this->setWindowTitle(jtr("test") + "0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());
 
         reflash_state("ui:" + jtr("Question bank construction completed") + " " + QString::number(test_list_question.size()) + jtr("question"), USUAL_SIGNAL);
@@ -1498,7 +1498,7 @@ void Widget::create_right_menu() {
             reflash_state("ui:0" + jtr("question"), WRONG_SIGNAL);
             return;
         }
-        QApplication::setWindowIcon(QIcon(":/ui/c-eval.png"));  // 设置应用程序图标
+        QApplication::setWindowIcon(QIcon(":/logo/c-eval.png"));  // 设置应用程序图标
         this->setWindowTitle(jtr("test") + "0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());
 
         reflash_state("ui:" + jtr("Question bank construction completed") + " " + QString::number(test_list_question.size()) + jtr("question"), USUAL_SIGNAL);

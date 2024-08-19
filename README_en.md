@@ -223,9 +223,11 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 ## Build
 
-1. Configure the environment
+<details>
 
-    - install compiler msvc or mingw
+<summary> expand </summary>
+
+1. Configure the environment
 
     - install Qt5.15 https://download.qt.io/
 
@@ -255,6 +257,8 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
 
+</details>
+
 ## DATE template
 
 - In local mode and chat state, eva uses the same set of prompt template (DATE template) for all models. The overall structure is: system prompt + input prefix + you input + input suffix
@@ -268,6 +272,10 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 ```
 
 ## Guideline
+
+<details>
+
+<summary> expand </summary>
 
 - Load process
 
@@ -315,7 +323,13 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
     - [ui] -> The you can pull up the status area to pop up a debug button -> the you can open the debug button -> click send -> enter the debugging state ->send process, only decode and sample once -> click Next -> send process, only decode and sample once -> ··· -> exit the debugging state when a stop flag is detected/the maximum output length is reached/manual stop is reached -> END
 
+</details>
+
 ## Concepts
+
+<details>
+
+<summary> expand </summary>
 
 - model: Composed of a formula and a set of parameters
 
@@ -345,6 +359,8 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 
 - prob: The final selection probability of all tokens in the vocabulary in this sampling
 
+</details>
+
 ## To do
 
 - Auto State (EVA autonomously controls the screen, mouse, and keyboard to complete user-preset tasks)
@@ -354,6 +370,10 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 - ~~English version (completed)~~
 
 ## Bugs
+
+<details>
+
+<summary> expand </summary>
 
 - There is a memory leak in model inference, located in the stream function of xbot.cpp, to be fixed
 
@@ -371,3 +391,5 @@ stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
 - The version compiled by Mingw cannot recognize the Chinese path during loading, and is located in the fp=std:: fopen (fname, mode); of llama.cpp;, Fixed (using QTextCodec:: codecForName ("GB2312") to transcode characters)
 
 - CSV files cannot be parsed correctly when there are special symbols, located in the readCsvFile function of utils.cpp, fixed (using an improved parsing method that relies on a simple state machine to track whether text segments are inside quotation marks and correctly handle line breaks within fields)
+
+</details>

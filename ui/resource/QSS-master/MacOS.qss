@@ -140,10 +140,10 @@ QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover, QTimeEdit::down-
     background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #84afe5, stop:1 #1168e4);
 }
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow, QTimeEdit::up-arrow, QDateEdit::up-arrow, QDateTimeEdit::up-arrow {
-    image: url(:/ui/QSS-master/QSS_IMG/go-up-symbolic.symbolic.png);
+    image: url(:/QSS-master/QSS_IMG/go-up-symbolic.symbolic.png);
 }
 QSpinBox::down-arrow, QDoubleSpinBox::down-arrow, QTimeEdit::down-arrow, QDateEdit::down-arrow, QDateTimeEdit::down-arrow {
-    image: url(:/ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png);
+    image: url(:/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png);
 }
 QSlider::groove {
     border: 1px solid #bbbbbb;
@@ -221,7 +221,7 @@ QComboBox::drop-down {
     border-bottom-right-radius: 3px;
 }
 QComboBox::down-arrow {
-    image: url(:/ui/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png); /*Adawaita icon thene*/
+    image: url(:/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png); /*Adawaita icon thene*/
 }
 
 QComboBox::down-arrow:on {

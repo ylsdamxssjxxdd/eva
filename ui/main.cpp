@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_setreset, &w, &Widget::recv_setreset);          // bot发信号请求ui触发reset
     QObject::connect(&bot, &xBot::bot2ui_tokens, &w, &Widget::recv_tokens);              //传递测试解码token数量
     QObject::connect(&bot, &xBot::bot2ui_predecode, &w, &Widget::recv_predecode);        //传递模型预解码的内容
-    QObject::connect(&bot, &xBot::bot2ui_freeover, &w, &Widget::recv_freeover);          //模型释放完毕并重新装载
+    QObject::connect(&bot, &xBot::bot2ui_freeover_loadlater, &w, &Widget::recv_freeover_loadlater);          //模型释放完毕并重新装载
     QObject::connect(&w, &Widget::ui2bot_stop,&bot,&xBot::recv_stop);//传递停止信号
     QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                  //开始加载模型
     QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                 //开始推理
@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
     QObject::connect(&bot, &xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector);  //传递记忆向量和上下文长度
     QObject::connect(&bot, &xBot::bot_llama_log, &expend, &Expend::recv_llama_log);
+
     //------------------连接net和窗口-------------------
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output);    //窗口输出区更新
     QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state);      //窗口状态区更新

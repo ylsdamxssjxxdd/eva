@@ -1151,7 +1151,7 @@ void xBot::recv_free(bool loadlater) {
     }
 
     if (loadlater) {
-        emit bot2ui_freeover();
+        emit bot2ui_freeover_loadlater();
     }
 }
 

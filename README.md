@@ -229,9 +229,11 @@
 
 ## 源码编译
 
-1. 配置环境
+<details>
 
-    - 安装编译器msvc或者mingw
+<summary> 展开 </summary>
+
+1. 配置环境
 
     - 安装Qt5.15 https://download.qt.io/
 
@@ -261,6 +263,8 @@
 
     - GGML_VULKAN：是否需要启用vulkan加速的标志
 
+</details>
+
 ## 约定模板
 
 - 本地模式 + 对话状态 下机体对所有模型使用同一套提示词模板（约定模板）其总体结构为：系统提示+输入前缀+用户输入+输入后缀
@@ -282,6 +286,10 @@
 ```
 
 ## 行动纲领
+
+<details>
+
+<summary> 展开 </summary>
 
 - 装载流程
 
@@ -328,8 +336,13 @@
 - debug流程
     - 【ui】->用户拉动状态区向上可弹出debug按钮->用户开启debug按钮->点击发送->进入debuging状态->发送流程，只解码采样一次->点击Next->发送流程，只解码采样一次->···->当 检测到停止标志/达到最大输出长度/手动停止 时退出debuging状态->END
 
+</details>
 
 ## 概念
+
+<details>
+
+<summary> 展开 </summary>
 
 - model（模型）: 由一个公式和一组参数组成
 
@@ -359,6 +372,8 @@
 
 - prob（概率表）: 本次采样中词表里所有token的最终选用概率
 
+</details>
+
 ## 待办事项
 
 - 自行状态（机体自主控制屏幕、鼠标、键盘，完成用户预设的任务）
@@ -368,6 +383,10 @@
 - ~~英文版本（已完成）~~
 
 ## 已知BUG
+
+<details>
+
+<summary> 展开 </summary>
 
 - 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复
 
@@ -386,3 +405,5 @@
 - mingw编译的版本装载时无法识别中文路径，定位在llama.cpp的fp = std::fopen(fname, mode);，已修复（利用QTextCodec::codecForName("GB2312")将字符转码）
 
 - csv文件存在特殊符号时不能正确解析，定位在utils.cpp的readCsvFile函数，已修复（利用一个改进的解析方法，依赖于一个简单的状态机来跟踪文本段是否位于引号内部，以正确处理字段内的换行符）
+
+</details>

@@ -130,39 +130,28 @@ Widget::~Widget() {
 
 //用户点击装载按钮处理
 void Widget::on_load_clicked() {
+
     reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
     //用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
-
-    if (currentpath == "") {
-        return;
-    }  //如果路径没选好就让它等于上一次的路径
-
-    if(currentpath == historypath)
-    {
-        return; // 如果模型路径是一样的，则不操作
-    }
-    else
-    {
-        historypath = currentpath;    // 记录这个路径，方便下次对比
-        ui_SETTINGS.mmprojpath = "";  // 清空mmproj模型路径
-        ui_SETTINGS.lorapath = "";    // 清空lora模型路径
-        //释放旧的模型和上下文
-        emit ui2bot_free(1);
-        is_load = false;
-    }
     
+    if (currentpath == "" || currentpath == historypath) {return;}  //如果路径没选好或者模型路径是一样的，则不操作
+
+    ui_mode = LOCAL_MODE;         //只要点击装载有东西就不再是链接模式
+    historypath = currentpath;    // 记录这个路径，方便下次对比
+    ui_SETTINGS.modelpath = currentpath;
+    ui_SETTINGS.mmprojpath = "";  // 清空mmproj模型路径
+    ui_SETTINGS.lorapath = "";    // 清空lora模型路径
+    is_load = false;
+    //先释放旧的模型和上下文
+    emit ui2bot_free(1); // 1表示重载
 }
 
 //模型释放完毕并重新装载
-void Widget::recv_freeover() {
-    ui_mode = LOCAL_MODE;                 //只要点击装载有东西就不再是链接模式
-    ui_SETTINGS.modelpath = currentpath;  //模型路径变化则重置参数
-
-    //分析显存，如果可用显存比模型大1.1倍则自动将gpu负载设置为999
-    emit gpu_reflash();  //强制刷新gpu信息
+void Widget::recv_freeover_loadlater() {
     gpu_wait_load = true;
+    emit gpu_reflash();  //强制刷新gpu信息
 }
 
 // 装载前动作
@@ -948,7 +937,8 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     vfree = vfree_;  //剩余显存
     ui->vcore_bar->setValue(vcore);
     //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
-    if (is_first_getvram) {
+    if (is_first_getvram) 
+    {
         is_first_getvram = false;
         first_vramp = vramp;
         ui->vram_bar->setValue(first_vramp);
@@ -957,15 +947,19 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 
     if (gpu_wait_load) {
         gpu_wait_load = false;
-        QFileInfo fileInfo(ui_SETTINGS.modelpath);  //获取文件大小
-        int modelsize_MB = fileInfo.size() / 1024 / 1024;
+#ifdef BODY_USE_GPU    
+        int modelsize_MB;
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);  //获取模型文件大小
+        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);  //获取mmproj文件大小
+        modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
         // qDebug()<<vfree<<modelsize_MB * 1.2;
+
         if (vfree > modelsize_MB * 1.2) {
             ui_SETTINGS.ngl = 999;
         } else {
             ui_SETTINGS.ngl = 0;
         }
-
+#endif
         //发送设置参数给bot
         emit ui2bot_set(ui_SETTINGS, 1);  //设置应用完会触发preLoad
     }
@@ -1032,27 +1026,6 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
         emit ui2expend_show(-1);  // 2是模型日志页
         return true;
     }
-
-    // if (obj == ui->state && event->type() == QEvent::Wheel)
-    // {
-    //     QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
-    //     if (wheelEvent->modifiers() == Qt::ControlModifier)
-    //     {
-    //         // 放大或缩小文本的逻辑
-    //         if (wheelEvent->angleDelta().y() > 0)
-    //         {
-    //             // 向上滚动，放大文本
-    //             ui->state->zoomIn(2);
-    //             return true; // 表示事件已经被处理
-    //         }
-    //         else
-    //         {
-    //             // 向下滚动，缩小文本
-    //             ui->state->zoomOut(2);
-    //             return true; // 表示事件已经被处理
-    //         }
-    //     }
-    // }
 
     return QObject::eventFilter(obj, event);
 }
