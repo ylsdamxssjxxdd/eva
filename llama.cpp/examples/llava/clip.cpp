@@ -2276,7 +2276,8 @@ bool clip_image_encode(struct clip_ctx * ctx, const int n_threads, clip_image_f3
     clip_image_f32_batch imgs{};
     imgs.size = 1;
     imgs.data = img;
-    return clip_image_batch_encode(ctx, n_threads, &imgs, vec);
+    bool ok = clip_image_batch_encode(ctx, n_threads, &imgs, vec);
+    return ok;
 }
 
 bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_image_f32_batch * imgs, float * vec) {
@@ -2296,7 +2297,7 @@ bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_ima
     // build the inference graph
     ggml_cgraph * gf = clip_image_build_graph(ctx, imgs, ctx->load_image_size, true);
     ggml_gallocr_alloc_graph(ctx->compute_alloc, gf);
-
+    
     // set inputs
     const auto & model = ctx->vision_model;
     const auto & hparams = model.hparams;
@@ -2443,7 +2444,6 @@ bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_ima
 
     // copy the embeddings to the location passed by the user
     ggml_backend_tensor_get(embeddings, vec, 0, ggml_nbytes(embeddings));
-
     return true;
 }
 

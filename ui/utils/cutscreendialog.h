@@ -150,21 +150,73 @@ class CutScreenDialog : public QDialog {
     }
 
    public:
+    // 为了适配llava，判断截取的图像长边除以短边如果比值大于3，则向图像的短边的下面或右面添加空白部分直到比值小于等于3，请使用原子操作每个像素避免损失
+    QImage adjustImageAspectRatio(const QImage &originalImage) {
+        int width = originalImage.width();
+        int height = originalImage.height();
+        
+        int longSide = qMax(width, height);
+        int shortSide = qMin(width, height);
+        
+        // 计算长短边比值
+        double aspectRatio = static_cast<double>(longSide) / shortSide;
+        
+        // 如果长短边比值大于3，则添加空白部分
+        if (aspectRatio > 3) {
+            // 计算需要扩展的大小
+            int newShortSide = longSide / 3;
+            int padding = newShortSide - shortSide;
+            
+            QImage newImage;
+            
+            if (width < height) {
+                // 宽度短，增加宽度
+                newImage = QImage(width + padding, height, originalImage.format());
+            } else {
+                // 高度短，增加高度
+                newImage = QImage(width, height + padding, originalImage.format());
+            }
+            
+            // 填充空白部分为白色
+            newImage.fill(Qt::white);
+            
+            // 逐像素复制原图像数据到新图像
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    newImage.setPixel(x, y, originalImage.pixel(x, y));
+                }
+            }
+            
+            return newImage;
+        }
+        
+        return originalImage;
+    }
+
     void slot_saveCapturedScreen()  //保存图片动作被点击
     {
         QClipboard *clipboard = QApplication::clipboard();
         QRect rect(getCapturedRect(m_startPos_fixed, m_endPos));
-        clipboard->setPixmap(m_screenPicture.copy(rect));
-        clearinformation();
-
-        createTempDirectory("./EVA_TEMP");
-
+        QImage capturedImage = m_screenPicture.copy(rect).toImage();
+        
+        // 调整图像的宽高比
+        QImage adjustedImage = adjustImageAspectRatio(capturedImage);
+        
+        // 保存调整后的图像
         QDateTime currentDateTime = QDateTime::currentDateTime();
         QString dateTimeString = currentDateTime.toString("yyyy-hh-mm-ss");
         QString currentDir = QDir::currentPath();
         QString cut_qimagepath = currentDir + "/EVA_TEMP/" + "EVA_" + dateTimeString + ".png";
-        m_screenPicture.copy(rect).toImage().save(cut_qimagepath);
+        adjustedImage.save(cut_qimagepath);
+        
+        // 传递保存路径
         cut2ui_qimagepath(cut_qimagepath);
+        
+        // 更新剪贴板内容
+        clipboard->setPixmap(QPixmap::fromImage(adjustedImage));
+        
+        // 清除临时信息
+        clearinformation();
 
         this->hide();
     }
@@ -174,7 +226,6 @@ class CutScreenDialog : public QDialog {
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setPixmap(m_screenPicture);
 
-        createTempDirectory("./EVA_TEMP");
 
         QDateTime currentDateTime = QDateTime::currentDateTime();
         QString dateTimeString = currentDateTime.toString("hh-mm-ss");

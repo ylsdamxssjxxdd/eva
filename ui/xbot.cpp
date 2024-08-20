@@ -573,7 +573,7 @@ void xBot::preDecodeImage(QString image_path)
 
         // 将图像转为token
         llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, imagepath.c_str());
-
+        
         // 预处理图像(分隔+预解码)
         bool ok_ = process_image(ctx, ctx_clip, image_embeds, gpt_params_, n_past);
         

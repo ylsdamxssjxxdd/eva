@@ -752,6 +752,7 @@ void Widget::on_set_clicked() {
 //用户按下F1键响应
 void Widget::onShortcutActivated_F1() {
     if (!is_debuging) {
+        createTempDirectory("./EVA_TEMP");
         cutscreen_dialog->showFullScreen();  //处理截图事件
     }
 }
