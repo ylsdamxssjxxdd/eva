@@ -10,8 +10,8 @@ set(version b3600) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
@@ -167,7 +167,7 @@ else()
 endif()
 
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
+target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech Threads::Threads)
 
 add_dependencies(${TARGET} llama-server whisper llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
 
@@ -212,10 +212,13 @@ if(MSVC)
         )
     endif()
 elseif(MINGW)
-
+        get_filename_component(COMPILER_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY) # 获取编译器路径
+        message(STATUS "Compiler bin directory: ${COMPILER_BIN_DIR}")
         # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}"
+        # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
+        COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libgomp-1.dll"
         COMMENT "custom Windeployqt ..."
     )
 
