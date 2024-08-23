@@ -70,9 +70,10 @@ int main(int argc, char* argv[]) {
     // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
-    qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");  //注册PARAMS作为信号传递变量
-    qRegisterMetaType<QColor>("QColor");              //注册QColor作为信号传递变量
-    qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");  //注册STATE作为信号传递变量
+    qRegisterMetaType<CHATS>("CHATS");
+    qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");
+    qRegisterMetaType<QColor>("QColor");
+    qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");
     qRegisterMetaType<DATES>("DATES");
     qRegisterMetaType<SETTINGS>("SETTINGS");
     qRegisterMetaType<INPUTS>("INPUTS");
@@ -83,6 +84,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
+    
 
     //------------------开启多线程 todo ------------------------
     QThread* gpuer_thread = new QThread;gpuer.moveToThread(gpuer_thread);gpuer_thread->start();
@@ -110,7 +112,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_stop,&bot,&xBot::recv_stop);//传递停止信号
     QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                  //开始加载模型
     QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                 //开始推理
-    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::preDecode);             //开始预解码
+    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::preDecodeSystemPrompt);             //开始预解码
     QObject::connect(&w, &Widget::ui2bot_preDecodeImage, &bot, &xBot::preDecodeImage); //开始预解码图像
     QObject::connect(&w, &Widget::ui2bot_reset, &bot, &xBot::recv_reset);              //传递重置信号
     QObject::connect(&w, &Widget::ui2bot_date, &bot, &xBot::recv_date);                //传递约定内容
@@ -118,6 +120,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_language, &bot, &xBot::recv_language);        //传递使用的语言
     QObject::connect(&w, &Widget::ui2bot_free, &bot, &xBot::recv_free);                //释放模型和上下文
     QObject::connect(&bot, &xBot::bot2ui_kv, &w, &Widget::recv_kv);                    //传递缓存量
+    QObject::connect(&bot, &xBot::bot2ui_chat_format, &w, &Widget::recv_chat_format);  //传递格式化后的对话内容
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);          //自动装载
     QObject::connect(&w, &Widget::ui2bot_debuging, &bot, &xBot::recv_debuging);        //传递debug中状态
 
@@ -187,18 +190,18 @@ int main(int argc, char* argv[]) {
             // 读取配置文件中的值
             w.ui_SETTINGS.modelpath = modelpath;
             w.currentpath = w.historypath = expend.currentpath = modelpath;
-            w.custom1_system_prompt = settings.value("custom1_system_prompt", "").toString();
-            w.custom1_input_pfx = settings.value("custom1_input_pfx", "").toString();
-            w.custom1_input_sfx = settings.value("custom1_input_sfx", "").toString();
-            w.custom2_system_prompt = settings.value("custom2_system_prompt", "").toString();
-            w.custom2_input_pfx = settings.value("custom2_input_pfx", "").toString();
-            w.custom2_input_sfx = settings.value("custom2_input_sfx", "").toString();
+            w.custom1_date_system = settings.value("custom1_date_system", "").toString();
+            w.custom1_user_name = settings.value("custom1_user_name", "").toString();
+            w.custom1_model_name = settings.value("custom1_model_name", "").toString();
+            w.custom2_date_system = settings.value("custom2_date_system", "").toString();
+            w.custom2_user_name = settings.value("custom2_user_name", "").toString();
+            w.custom2_model_name = settings.value("custom2_model_name", "").toString();
 
             // ui显示值
             w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
             w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
-            w.input_pfx_LineEdit->setText(settings.value("input_pfx", "").toString());
-            w.input_sfx_LineEdit->setText(settings.value("input_sfx", "").toString());
+            w.user_name_LineEdit->setText(settings.value("user_name", "").toString());
+            w.model_name_LineEdit->setText(settings.value("model_name", "").toString());
             w.terminal_checkbox->setChecked(settings.value("terminal_checkbox", "").toBool());
             w.calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
             w.knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
@@ -268,7 +271,7 @@ int main(int argc, char* argv[]) {
 
     //传递停止词和约定，因为第一次没有传递约定参数给bot
     bot.extra_stop_words = w.ui_DATES.extra_stop_words;               // 同步
-    bot.gpt_params_.prompt = w.ui_DATES.system_prompt.toStdString();  // 同步
+    bot.gpt_params_.prompt = w.ui_DATES.date_prompt.toStdString();  // 同步
 
     return a.exec();  //进入事件循环
 }

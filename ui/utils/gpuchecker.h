@@ -158,7 +158,7 @@ class gpuChecker : public QObject {
         float vcore = utilization.gpu;                                  // gpu核心利用率
         float vfree_ = float(memory.free) / 1024.0 / 1024.0;            //剩余显存MB
         emit gpu_status(vmem, vram, vcore, vfree_);
-#else
+#elif BODY_USE_GPU
         if (gpu_vendor == "NVIDIA") {
             getNvidiaGpuInfo();
         } else if (gpu_vendor == "AMD") {
@@ -166,6 +166,8 @@ class gpuChecker : public QObject {
         } else {
             emit gpu_status(0, 0, 0, 0); // 没有支持显卡的情况
         }
+#else
+        emit gpu_status(0, 0, 0, 0); // cpu版本不检测
 #endif
     }
 

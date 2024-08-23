@@ -31,8 +31,8 @@ class xBot : public QObject {
    public slots:
     void load(QString modelpath);  //装载模型
     void reset(bool is_clear_all);      //重置模型上下文和缓存等
-    void predict(INPUTS input);         //开始预测推理
-    void preDecode();                   //预解码
+    void predict(INPUTS inputs);         //开始预测推理
+    void preDecodeSystemPrompt();                   //预解码
     void preDecodeImage(QString image_path);              //预解码图像
     QString viewVocab();                                                     //获取模型词表
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
@@ -51,6 +51,11 @@ class xBot : public QObject {
     llama_model *model;  //模型
     llama_context *ctx;  //上下文
     clip_ctx *ctx_clip;  // clip模型上下文, 编码图像用
+
+    // 对话模板相关
+    DATES bot_date;// 约定内容
+    CHATS bot_chat;// 经过模型自带模板格式化后的内容
+    void get_default_templete_chat_format();// 构建并提取系统指令、输入前缀、输入后缀
 
     // 快捷预解码token
     bool eval_tokens(struct llama_context * ctx_llama, std::vector<llama_token> tokens, int n_batch, int * n_past);
@@ -138,6 +143,7 @@ class xBot : public QObject {
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
 
    signals:
+    void bot2ui_chat_format(CHATS chat); // 发送格式化的对话内容
     void bot2ui_freeover_loadlater();                                   // 模型释放完毕
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash = 0);
     void bot2expend_vocab(QString model_vocab);                                                    //传递模型总词表
@@ -160,3 +166,46 @@ class xBot : public QObject {
 };
 
 #endif  // XBOT_H
+
+
+//-------------------------------------------------------------------------
+//----------------------------------多后端支持--------------------------------
+//-------------------------------------------------------------------------
+
+// // 定义函数指针类型
+// typedef struct llama_model* (*llama_load_model_from_file_t)(const char *path_model, struct llama_model_params params);
+// typedef struct llama_context* (*llama_new_context_with_model_t)(struct llama_model * model, struct llama_context_params params);
+// typedef bool (*llava_eval_image_embed_t)(struct llama_context * ctx_llama, const struct llava_image_embed * embed, int n_batch, int * n_past);
+// typedef struct clip_ctx * (*clip_model_load_t)(const char * fname, int verbosity);
+
+// 定义函数指针
+// llama_load_model_from_file_t llama_load_model_from_file_;
+// llama_new_context_with_model_t llama_new_context_with_model_;
+// llava_eval_image_embed_t llava_eval_image_embed_;
+// clip_model_load_t clip_model_load_;
+
+// // 动态加载
+// QString accelerate = "cuda";
+// QString libraryPath_ggml = applicationDirPath_ + "/llama-dll/ggml-" + accelerate;
+// QString libraryPath_llama = applicationDirPath_ + "/llama-dll/llama-" + accelerate;
+// QString libraryPath_llava_shared = applicationDirPath_ + "/llama-dll/llava_shared-" + accelerate;
+
+// QLibrary ggml_Lib(libraryPath_ggml);// 加载DLL
+// if (!ggml_Lib.load()) {qDebug()<<"Failed to load the DLL." << ggml_Lib.errorString();}
+
+// QLibrary llama_Lib(libraryPath_llama);// 加载DLL
+// if (!llama_Lib.load()) {qDebug()<<"Failed to load the DLL." << llama_Lib.errorString();}
+
+// QLibrary llava_shared_Lib(libraryPath_llava_shared);// 加载DLL
+// if (!llava_shared_Lib.load()) {qDebug()<<"Failed to load the DLL." << llava_shared_Lib.errorString();}
+
+// // 获取函数指针
+// llama_load_model_from_file_ = (llama_load_model_from_file_t)llama_Lib.resolve("llama_load_model_from_file");
+// llama_new_context_with_model_ = (llama_new_context_with_model_t)llama_Lib.resolve("llama_new_context_with_model");
+// if (!llama_load_model_from_file_) {qDebug()<<"Failed to resolve the function llama_load_model_from_file_.";}
+// if (!llama_new_context_with_model_) {qDebug()<<"Failed to resolve the function llama_new_context_with_model_.";}
+
+// llava_eval_image_embed_ = (llava_eval_image_embed_t)llava_shared_Lib.resolve("llava_eval_image_embed");
+// if (!llava_eval_image_embed_) {qDebug()<<"Failed to resolve the function llava_eval_image_embed.";}
+// clip_model_load_ = (clip_model_load_t)llava_shared_Lib.resolve("clip_model_load");
+// if (!clip_model_load_) {qDebug()<<"Failed to resolve the function clip_model_load.";}

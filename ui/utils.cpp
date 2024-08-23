@@ -137,17 +137,9 @@ QString Widget::create_extra_prompt() {
 //添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords() {
     ui_DATES.extra_stop_words.clear();  //重置额外停止标志
-    if (ui_mode == LOCAL_MODE)          // 链接模式不对用户和模型昵称停词，因为openai api 格式不关注用户和模型昵称
-    {
-        ui_DATES.extra_stop_words << ui_DATES.input_pfx.toLower() + DEFAULT_SPLITER;  //默认第一个是用户昵称，检测出来后下次回答将不再添加前缀
-        ui_DATES.extra_stop_words << ui_DATES.input_sfx.toLower() + DEFAULT_SPLITER;  //可以说相当严格了
-    }
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        ui_DATES.extra_stop_words << "observation:";   //可以说相当严格了
-        ui_DATES.extra_stop_words << "observation：";  //可以说相当严格了
-
         if (ui_mode == LINK_MODE) {
             ui_DATES.extra_stop_words << "<|observation|>";  // 链接模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
         }
@@ -427,12 +419,12 @@ void Widget::apply_language(int language_flag_) {
     system_label->setText(jtr("system calling"));
     system_label->setToolTip(jtr("system_label_tooltip"));
     system_TextEdit->setToolTip(jtr("system_label_tooltip"));
-    input_pfx_label->setText(jtr("user name"));
-    input_pfx_label->setToolTip(jtr("input_pfx_label_tooltip"));
-    input_pfx_LineEdit->setToolTip(jtr("input_pfx_label_tooltip"));
-    input_sfx_label->setText(jtr("bot name"));
-    input_sfx_label->setToolTip(jtr("input_sfx_label_tooltip"));
-    input_sfx_LineEdit->setToolTip(jtr("input_sfx_label_tooltip"));
+    user_name_label->setText(jtr("user name"));
+    user_name_label->setToolTip(jtr("user_name_label_tooltip"));
+    user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
+    model_name_label->setText(jtr("bot name"));
+    model_name_label->setToolTip(jtr("model_name_label_tooltip"));
+    model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
     tool_box->setTitle(jtr("mount") + jtr("tool"));
     calculator_checkbox->setText(jtr("calculator"));
     calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
@@ -517,9 +509,9 @@ QString Widget::makeHelpInput() {
 
     for (int i = 1; i < 3; ++i)  // 2个
     {
-        help_input = help_input + "\n" + ui_DATES.input_pfx + DEFAULT_SPLITER;  //前缀,用户昵称
+        help_input = help_input + DEFAULT_SPLITER;  //前缀
         help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";            //问题
-        help_input = help_input + "\n" + ui_DATES.input_sfx + DEFAULT_SPLITER;  //后缀,模型昵称
+        help_input = help_input + DEFAULT_SPLITER;  //后缀
         help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";            //答案
     }
 
@@ -644,8 +636,8 @@ void Widget::auto_save_user() {
     settings.setValue("chattemplate", chattemplate_comboBox->currentText());               //对话模板
     settings.setValue("system_prompt", system_TextEdit->toPlainText());                    //系统指令
     settings.setValue("extra_prompt", extra_TextEdit->toPlainText());                      //额外指令
-    settings.setValue("input_pfx", ui_DATES.input_pfx);                                    //用户昵称
-    settings.setValue("input_sfx", ui_DATES.input_sfx);                                    //模型昵称
+    settings.setValue("user_name", ui_DATES.user_name);                                    //用户昵称
+    settings.setValue("model_name", ui_DATES.model_name);                                    //模型昵称
     settings.setValue("calculator_checkbox", calculator_checkbox->isChecked());            //计算器工具
     settings.setValue("terminal_checkbox", terminal_checkbox->isChecked());                // terminal工具
     settings.setValue("knowledge_checkbox", knowledge_checkbox->isChecked());              // knowledge工具
@@ -656,12 +648,12 @@ void Widget::auto_save_user() {
     settings.setValue("extra_lan", ui_extra_lan);                                          //额外指令语种
 
     //保存自定义的约定模板
-    settings.setValue("custom1_system_prompt", custom1_system_prompt);
-    settings.setValue("custom1_input_pfx", custom1_input_pfx);
-    settings.setValue("custom1_input_sfx", custom1_input_sfx);
-    settings.setValue("custom2_system_prompt", custom2_system_prompt);
-    settings.setValue("custom2_input_pfx", custom2_input_pfx);
-    settings.setValue("custom2_input_sfx", custom2_input_sfx);
+    settings.setValue("custom1_date_system", custom1_date_system);
+    settings.setValue("custom1_user_name", custom1_user_name);
+    settings.setValue("custom1_model_name", custom1_model_name);
+    settings.setValue("custom2_date_system", custom2_date_system);
+    settings.setValue("custom2_user_name", custom2_user_name);
+    settings.setValue("custom2_model_name", custom2_model_name);
 
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }

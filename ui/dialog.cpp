@@ -240,7 +240,7 @@ void Widget::unlockLoad() {
     auto_save_user();  //保存ui配置
     //如果是对话模式则预解码约定
     if (ui_state == CHAT_STATE) {
-        history_prompt = ui_DATES.system_prompt;  //同步历史约定内容
+        history_prompt = ui_DATES.date_prompt;  //同步历史约定内容
         ui_need_predecode = true;
         on_send_clicked();
     }
@@ -518,27 +518,27 @@ void Widget::web_change() {
 void Widget::prompt_template_change() {
     if (chattemplate_comboBox->currentText() == jtr("custom set1")) {
         system_TextEdit->setEnabled(1);
-        input_pfx_LineEdit->setEnabled(1);
-        input_sfx_LineEdit->setEnabled(1);
+        user_name_LineEdit->setEnabled(1);
+        model_name_LineEdit->setEnabled(1);
 
-        system_TextEdit->setText(custom1_system_prompt);
-        input_pfx_LineEdit->setText(custom1_input_pfx);
-        input_sfx_LineEdit->setText(custom1_input_sfx);
+        system_TextEdit->setText(custom1_date_system);
+        user_name_LineEdit->setText(custom1_user_name);
+        model_name_LineEdit->setText(custom1_model_name);
     } else if (chattemplate_comboBox->currentText() == jtr("custom set2")) {
         system_TextEdit->setEnabled(1);
-        input_pfx_LineEdit->setEnabled(1);
-        input_sfx_LineEdit->setEnabled(1);
+        user_name_LineEdit->setEnabled(1);
+        model_name_LineEdit->setEnabled(1);
 
-        system_TextEdit->setText(custom2_system_prompt);
-        input_pfx_LineEdit->setText(custom2_input_pfx);
-        input_sfx_LineEdit->setText(custom2_input_sfx);
+        system_TextEdit->setText(custom2_date_system);
+        user_name_LineEdit->setText(custom2_user_name);
+        model_name_LineEdit->setText(custom2_model_name);
     } else {
-        system_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].system_prompt);
+        system_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].date_prompt);
         system_TextEdit->setEnabled(0);
-        input_pfx_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].input_pfx);
-        input_pfx_LineEdit->setEnabled(0);
-        input_sfx_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].input_sfx);
-        input_sfx_LineEdit->setEnabled(0);
+        user_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].user_name);
+        user_name_LineEdit->setEnabled(0);
+        model_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].model_name);
+        model_name_LineEdit->setEnabled(0);
     }
 }
 
@@ -829,7 +829,7 @@ void Widget::set_DateDialog() {
     }
     chattemplate_comboBox->addItem(jtr("custom set1"));  //添加自定义模板
     chattemplate_comboBox->addItem(jtr("custom set2"));  //添加自定义模板
-    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用qwen的提示词模板
+    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
     connect(chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
     layout_H9->addWidget(chattemplate_comboBox);
     prompt_layout->addLayout(layout_H9);  //将布局添加到总布局
@@ -851,25 +851,25 @@ void Widget::set_DateDialog() {
     prompt_layout->addLayout(layout_H11);  //将布局添加到总布局
     //输入前缀设置
     QHBoxLayout *layout_H5 = new QHBoxLayout();  //水平布局器
-    input_pfx_label = new QLabel(jtr("user name"));
-    input_pfx_label->setToolTip(jtr("input_pfx_label_tooltip"));
-    input_pfx_label->setFixedSize(60, 30);
-    layout_H5->addWidget(input_pfx_label);
-    input_pfx_LineEdit = new QLineEdit();
-    input_pfx_LineEdit->setToolTip(jtr("input_pfx_label_tooltip"));
-    input_pfx_LineEdit->setText(ui_DATES.input_pfx);
-    layout_H5->addWidget(input_pfx_LineEdit);
+    user_name_label = new QLabel(jtr("user name"));
+    user_name_label->setToolTip(jtr("user_name_label_tooltip"));
+    user_name_label->setFixedSize(60, 30);
+    layout_H5->addWidget(user_name_label);
+    user_name_LineEdit = new QLineEdit();
+    user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
+    user_name_LineEdit->setText(ui_DATES.user_name);
+    layout_H5->addWidget(user_name_LineEdit);
     prompt_layout->addLayout(layout_H5);  //将布局添加到总布局
     //输入后缀设置
     QHBoxLayout *layout_H6 = new QHBoxLayout();  //水平布局器
-    input_sfx_label = new QLabel(jtr("bot name"));
-    input_sfx_label->setToolTip(jtr("input_sfx_label_tooltip"));
-    input_sfx_label->setFixedSize(60, 30);
-    layout_H6->addWidget(input_sfx_label);
-    input_sfx_LineEdit = new QLineEdit();
-    input_sfx_LineEdit->setToolTip(jtr("input_sfx_label_tooltip"));
-    input_sfx_LineEdit->setText(ui_DATES.input_sfx);
-    layout_H6->addWidget(input_sfx_LineEdit);
+    model_name_label = new QLabel(jtr("bot name"));
+    model_name_label->setToolTip(jtr("model_name_label_tooltip"));
+    model_name_label->setFixedSize(60, 30);
+    layout_H6->addWidget(model_name_label);
+    model_name_LineEdit = new QLineEdit();
+    model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
+    model_name_LineEdit->setText(ui_DATES.model_name);
+    layout_H6->addWidget(model_name_LineEdit);
     prompt_layout->addLayout(layout_H6);  //将布局添加到垂直布局
 
     prompt_box->setLayout(prompt_layout);
@@ -956,7 +956,7 @@ void Widget::set_DateDialog() {
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);
     connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);
     prompt_template_change();  //先应用提示词模板
-    system_TextEdit->setText(ui_system_prompt);
+    system_TextEdit->setText(ui_date_prompt);
     date_dialog->setWindowTitle(jtr("date"));
 }
 
@@ -1131,7 +1131,7 @@ void Widget::onConnected() {
     ui->kv_bar->setToolTip("");
 
     emit ui2net_apis(apis);
-    reflash_output(ui_DATES.system_prompt, 0, Qt::black);
+    reflash_output(ui_DATES.date_prompt, 0, Qt::black);
     ui_state_normal();
 
     api_dialog->setDisabled(0);
@@ -1151,9 +1151,9 @@ void Widget::onError(QAbstractSocket::SocketError socketError) {
 //链接模式下工具返回结果时延迟发送
 void Widget::tool_testhandleTimeout() {
     ENDPOINT_DATA data;
-    data.date_prompt = ui_DATES.system_prompt;
-    data.input_pfx = ui_DATES.input_pfx;
-    data.input_sfx = ui_DATES.input_sfx;
+    data.date_prompt = ui_DATES.date_prompt;
+    data.input_pfx = ui_DATES.user_name;
+    data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     if (ui_state == COMPLETE_STATE) {
         data.complete_state = true;
@@ -1416,7 +1416,7 @@ void Widget::create_right_menu() {
         debugButton->setChecked(0);
 
         // 自动约定，挂载所有工具
-        chattemplate_comboBox->setCurrentText("qwen");  //默认使用qwen的提示词模板
+        chattemplate_comboBox->setCurrentText("default");  //默认使用default的提示词模板
         calculator_checkbox->setChecked(1);
         terminal_checkbox->setChecked(1);
         controller_checkbox->setChecked(1);
@@ -1542,16 +1542,16 @@ void Widget::get_set() {
 //获取约定中的纸面值
 void Widget::get_date() {
     ui_extra_prompt = extra_TextEdit->toPlainText();
-    ui_system_prompt = system_TextEdit->toPlainText();
+    ui_date_prompt = system_TextEdit->toPlainText();
     //合并附加指令
     if (ui_extra_prompt != "") {
-        ui_DATES.system_prompt = ui_system_prompt + "\n\n" + ui_extra_prompt;
+        ui_DATES.date_prompt = ui_date_prompt + "\n\n" + ui_extra_prompt;
     } else {
-        ui_DATES.system_prompt = ui_system_prompt;
+        ui_DATES.date_prompt = ui_date_prompt;
     }
 
-    ui_DATES.input_pfx = input_pfx_LineEdit->text();
-    ui_DATES.input_sfx = input_sfx_LineEdit->text();
+    ui_DATES.user_name = user_name_LineEdit->text();
+    ui_DATES.model_name = model_name_LineEdit->text();
 
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = chattemplate_comboBox->currentText();
@@ -1567,13 +1567,13 @@ void Widget::get_date() {
 
     //记录自定义模板
     if (ui_template == jtr("custom set1")) {
-        custom1_system_prompt = ui_system_prompt;
-        custom1_input_pfx = ui_DATES.input_pfx;
-        custom1_input_sfx = ui_DATES.input_sfx;
+        custom1_date_system = ui_date_prompt;
+        custom1_user_name = ui_DATES.user_name;
+        custom1_model_name = ui_DATES.model_name;
     } else if (ui_template == jtr("custom set2")) {
-        custom2_system_prompt = ui_system_prompt;
-        custom2_input_pfx = ui_DATES.input_pfx;
-        custom2_input_sfx = ui_DATES.input_sfx;
+        custom2_date_system = ui_date_prompt;
+        custom2_user_name = ui_DATES.user_name;
+        custom2_model_name = ui_DATES.model_name;
     }
 
     //添加额外停止标志

@@ -9,37 +9,42 @@
 #include <thread>
 #include <vector>
 
-//约定内容
-struct DATES {
-    QString system_prompt;
-    QString input_pfx;
-    QString input_sfx;
-    bool is_load_tool;
-    QStringList extra_stop_words;  //额外停止标志
-};
-
 //默认约定
-#define DEFAULT_PROMPT "You are a helpful assistant."
-#define DEFAULT_PREFIX "User"
-#define DEFAULT_SUFFIX "Assistant"
+#define DEFAULT_DATE_PROMPT "You are a helpful assistant"
+#define DEFAULT_USER_NAME "user"
+#define DEFAULT_MODEL_NAME "assistant"
 #define DEFAULT_SPLITER "\n"  // 分隔符
 #define DEFAULT_THOUGHT "thought: "  // 思考词
 #define DEFAULT_OBSERVATION "observation: "  // 观察词
 
+//约定内容
+struct DATES {
+    QString date_prompt = DEFAULT_DATE_PROMPT; // 约定指令 影响 系统指令
+    QString user_name = DEFAULT_USER_NAME; // 用户昵称 影响 输入前缀
+    QString model_name = DEFAULT_MODEL_NAME; // 模型昵称 影响 输入后缀
+    bool is_load_tool = false; // 是否挂载了工具
+    QStringList extra_stop_words = {};  //额外停止标志
+};
+
+// 经过模型自带模板格式化后的内容
+struct CHATS {
+    QString system_prompt; // 系统指令
+    QString input_prefix; // 输入前缀
+    QString input_suffix; // 输入后缀
+};
+
 //发送内容的源
 enum ROLE {
-    ROLE_USER,     // 加前缀后缀输入。                       构成形式：<bos>{{user_name}}{{spliter}}{{user_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
-    ROLE_TOOL,     // 不加前缀后缀，用天蓝色输出用户输入部分。 构成形式：{{spliter}}{{observation}}{{tool_content}}{{spliter}}{{thought}}
-    ROLE_TEST,     // 同时改变is_test标志。                 构成形式：<bos>{{user_name}}{{spliter}}{{user_content}}<bos>{{model_name}}{{spliter}}
-    ROLE_DEBUG,    // 不加前缀后缀输入。                    构成形式：
-    ROLE_THOUGHT,  // 后缀末尾的分隔符用 thought: 代替    构成形式：{{spliter}}<bos>{{user_name}}{{spliter}}{{user_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}{{thought}}
+    ROLE_USER,     // 加前缀后缀输入。     
+    ROLE_TOOL,     // 不加前缀后缀，用天蓝色输出用户输入部分。 
+    ROLE_TEST,     // 同时改变is_test标志。             
+    ROLE_DEBUG,    // 不加前缀后缀输入。
+    ROLE_THOUGHT,  // 后缀末尾的分隔符用 thought: 代替   
 };
 
 //传递的前缀/输入/后缀
 struct INPUTS {
-    QString input_prefix;
     QString input;
-    QString input_suffix;
     ROLE role;
 };
 
@@ -118,7 +123,7 @@ struct SETTINGS {
     int ngl = DEFAULT_NGL;
     int nctx = DEFAULT_NCTX;
     int batch = DEFAULT_BATCH;
-    int nthread = std::thread::hardware_concurrency() * 0.7;
+    int nthread = std::thread::hardware_concurrency() * 0.5;
 
     QString modelpath = "";
     QString lorapath = "";
@@ -272,7 +277,7 @@ struct SD_Params {
     int height = 512;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                //图像高度
     int steps = 20;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  //采样步数
     int seed = -1;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   //随机数种子 -1随机
-    int nthreads = std::thread::hardware_concurrency() * 0.7;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        //线程数
+    int nthreads = std::thread::hardware_concurrency() * 0.5;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        //线程数
     float cfg_scale = 7.5;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           //提示词与图像相关系数
     float noise_strength = 0.75;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     //噪声系数
     float clip_skip = 2;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             //跳层

@@ -543,7 +543,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
     arguments << "-m" << QString::fromStdString(whisper_params.model);             //模型路径
     arguments << "-f" << wavpath;                                                  // wav文件路径
     arguments << "--language" << QString::fromStdString(whisper_params.language);  //识别语种
-    arguments << "--threads" << QString::number(max_thread * 0.7);
+    arguments << "--threads" << QString::number(max_thread * 0.5);
     if (out_format == "txt") {
         arguments << "--output-txt";
     }  //结果输出为一个txt
@@ -1345,7 +1345,7 @@ void Expend::quantize(QString in_modelpath, QString out_modelpath, QString impor
     arguments << in_modelpath;                       //待量化模型路径
     arguments << out_modelpath;                      //输出路径
     arguments << quantize_type;                      //量化方法
-    arguments << QString::number(max_thread * 0.7);  //使用线程数
+    arguments << QString::number(max_thread * 0.5);  //使用线程数
 
     //连接信号和槽,获取程序的输出
     connect(quantize_process, &QProcess::readyReadStandardOutput, [=]() {

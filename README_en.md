@@ -259,18 +259,6 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 </details>
 
-## DATE template
-
-- In local mode and chat state, eva uses the same set of prompt template (DATE template) for all models. The overall structure is: system prompt + input prefix + you input + input suffix
-
-```txt
-DATE template format：
-<bos>{{system_prompt}}<eos>{{spliter}}<bos>{{you_name}}{{spliter}}{{you_content}}<eos>{{spliter}}<bos>{{model_name}}{{spliter}}
-
-Eva will decode the system prompt in advance, and after each you clicks send, it will concatenate the sent content into a DATE template format and send it to the model. Then, it will continuously predict the next word, and the model will terminate in the following situations: output stop word/reach maximum output length/receive termination signal
-stop words：{{you_name}}{{spliter}} <eos> <eot> <eos> extra_stop_words
-```
-
 ## Guideline
 
 <details>

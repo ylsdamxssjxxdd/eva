@@ -28,15 +28,13 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     }
     getWords(":/language.json");
     //-------------初始化约定模板-------------
-    ui_system_prompt = DEFAULT_PROMPT;
-    ui_DATES.system_prompt = DEFAULT_PROMPT;
-    ui_DATES.input_pfx = DEFAULT_PREFIX;
-    ui_DATES.input_sfx = DEFAULT_SUFFIX;
+    ui_date_prompt = DEFAULT_DATE_PROMPT;
+    ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
+    ui_DATES.user_name = DEFAULT_USER_NAME;
+    ui_DATES.model_name = DEFAULT_MODEL_NAME;
     ui_DATES.is_load_tool = false;
-    addStopwords();  //添加停止词
-    date_map.insert("qwen", {DEFAULT_PROMPT, DEFAULT_PREFIX, DEFAULT_SUFFIX, false, QStringList{}});
+    date_map.insert("default", {DEFAULT_DATE_PROMPT, DEFAULT_USER_NAME, DEFAULT_MODEL_NAME, false, QStringList{}});
     date_map.insert(jtr("troll"), {jtr("you are a troll please respect any question for user"), jtr("user"), jtr("troll"), false, QStringList{}});
-    date_map.insert("chatglm", {"[gMASK]<|system|>\nYou are a helpful assistant", "<|user|>", "<|assistant|>", false, QStringList{}});
 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空
@@ -53,6 +51,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     this->setStyleSheet(stylesheet);
     file.close();
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
+
     //-------------初始化各种控件-------------
     setApiDialog();                                      //设置api选项
     set_DateDialog();                                    //设置约定选项
@@ -172,6 +171,7 @@ void Widget::preLoad() {
     }
     reflash_state("ui:" + jtr("model location") + " " + ui_SETTINGS.modelpath, USUAL_SIGNAL);
     emit ui2bot_loadmodel(ui_SETTINGS.modelpath);  //开始装载模型
+    
 }
 
 //完成加载模型
@@ -207,8 +207,8 @@ void Widget::on_send_clicked() {
     INPUTS inputs;
 
     if (is_debug) {
-        ui->reset->setEnabled(0);
-    }  // debug模式下刚点击next时要解码，所以禁止重置，否则重置失效会一直输出
+        ui->reset->setEnabled(0);// debug模式下刚点击next时要解码，所以禁止重置，否则重置失效会一直输出
+    }  
 
     //链接模式的处理
     if (ui_mode == LINK_MODE) {
@@ -246,10 +246,10 @@ void Widget::on_send_clicked() {
                 input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));
                 //添加引导题
                 if (help_input) {
-                    inputs = {makeHelpInput() + DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST};
+                    inputs = {makeHelpInput() + DEFAULT_SPLITER + input, ROLE_TEST};
                     help_input = false;
                 } else {
-                    inputs = {DEFAULT_SPLITER + ui_DATES.input_pfx, input, ui_DATES.input_sfx + DEFAULT_SPLITER + jtr("answer") + ":", ROLE_TEST};
+                    inputs = {input, ROLE_TEST};
                 }
             } else  //完成测试完成,没有题目剩余
             {
@@ -272,7 +272,7 @@ void Widget::on_send_clicked() {
             if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
-                inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT};
+                inputs = {input, ROLE_THOUGHT};
             } else  //完成同步率测试完成,没有问题剩余
             {
                 qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
@@ -293,7 +293,7 @@ void Widget::on_send_clicked() {
             input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
             input += "\n" + QString(DEFAULT_THOUGHT);
-            inputs = {"", input, "", ROLE_USER};
+            inputs = {input, ROLE_USER};
         } else  //正常情况!!!
         {
             if (tool_result == "") {
@@ -324,7 +324,7 @@ void Widget::on_send_clicked() {
                 if (tool_result != "") {
                     input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + DEFAULT_THOUGHT;
                     tool_result = "";
-                    inputs = {"", input, "", ROLE_TOOL};
+                    inputs = {input, ROLE_TOOL};
 
                     //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
                     if (ui->send->text() == "Next") {
@@ -342,7 +342,7 @@ void Widget::on_send_clicked() {
                     if (ui->send->text() == "Next") {
                         ui->send->setEnabled(0);
                         reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                        inputs = {"", "", "", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+                        inputs = {"", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
                         emit ui2bot_predict(inputs);  //开始推理
                         debuging_times++;
                         return;
@@ -350,9 +350,9 @@ void Widget::on_send_clicked() {
 
                     // 如果挂载了工具则强制先思考
                     if (is_load_tool) {
-                        inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_THOUGHT};
+                        inputs = {input, ROLE_THOUGHT};
                     } else {
-                        inputs = {ui_DATES.input_pfx, input, ui_DATES.input_sfx, ROLE_USER};
+                        inputs = {input, ROLE_USER};
                     }
                 }
             }
@@ -362,14 +362,14 @@ void Widget::on_send_clicked() {
         if (ui->send->text() == "Next") {
             ui->send->setEnabled(0);
             reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-            inputs = {"", "", "", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
+            inputs = {"", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
             emit ui2bot_predict(inputs);  //开始推理
             debuging_times++;
             return;
         }
 
         input = ui->output->toPlainText().toUtf8().data();                  //直接用output上的文本进行推理
-        inputs = {"<complete>", input, "<complete>", ROLE_USER};  //传递用户输入
+        inputs = {input, ROLE_USER};  //传递用户输入
     }
     // qDebug()<<input;
     is_run = true;       //模型正在运行标签
@@ -518,7 +518,7 @@ void Widget::recv_resetover() {
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
     //如果是对话模式且约定有变或第一次装载则预解码约定
     if (ui_state == CHAT_STATE) {
-        history_prompt = ui_DATES.system_prompt;  //同步
+        history_prompt = ui_DATES.date_prompt;  //同步
         //约定系统指令有变才预解码，同步率测试时强制预解码
         if (is_datereset) {
             ui_need_predecode = true;
@@ -550,9 +550,11 @@ void Widget::recv_datereset() {
         //展示额外停止标志
         QString stop_str;
         stop_str = jtr("extra stop words") + " ";
+        stop_str += bot_chat.input_prefix + " ";
         for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
             stop_str += ui_DATES.extra_stop_words.at(i) + " ";
         }
+
         reflash_state("· " + stop_str + " ", USUAL_SIGNAL);
     }
     reflash_state("···········" + jtr("date") + "···········", USUAL_SIGNAL);
@@ -629,7 +631,7 @@ void Widget::on_reset_clicked() {
         if (ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() > 0) {
             qDebug() << "为了下一次回答而重置";
             ui->output->clear();
-            reflash_output(bot_predecode, 0, SYSTEM_BLUE);  //直接展示预解码的内容
+            reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
             emit ui2bot_reset(0);                           //传递重置信号,删除约定以外的kv缓存
             return;
         }
@@ -655,7 +657,7 @@ void Widget::on_reset_clicked() {
     if (ui_mode == LINK_MODE) {
         ui_insert_history.clear();
         if (ui_state == CHAT_STATE) {
-            reflash_output(ui_DATES.system_prompt, 0, SYSTEM_BLUE);
+            reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
         } else {
             current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;
@@ -671,12 +673,12 @@ void Widget::on_reset_clicked() {
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
 
     //如果约定没有变则不需要预解码
-    if (ui_state == CHAT_STATE && ui_DATES.system_prompt == history_prompt) {
+    if (ui_state == CHAT_STATE && ui_DATES.date_prompt == history_prompt) {
         if (ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode) {
             is_datereset = true;   //预解码准备
             emit ui2bot_reset(1);  //传递重置信号,清空kv缓存
         } else {
-            reflash_output(bot_predecode, 0, SYSTEM_BLUE);  //直接展示预解码的内容
+            reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
             is_datereset = false;
             emit ui2bot_reset(0);  //传递重置信号,删除约定以外的kv缓存
         }
@@ -693,10 +695,10 @@ void Widget::on_date_clicked() {
     reflash_state("ui:" + jtr("clicked date"), SIGNAL_SIGNAL);
 
     //展示最近一次设置值
-    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用qwen的提示词模板
-    system_TextEdit->setText(ui_system_prompt);
-    input_pfx_LineEdit->setText(ui_DATES.input_pfx);
-    input_sfx_LineEdit->setText(ui_DATES.input_sfx);
+    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
+    system_TextEdit->setText(ui_date_prompt);
+    user_name_LineEdit->setText(ui_DATES.user_name);
+    model_name_LineEdit->setText(ui_DATES.model_name);
 
     calculator_checkbox->setChecked(ui_calculator_ischecked);
     terminal_checkbox->setChecked(ui_terminal_ischecked);
@@ -963,6 +965,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 #endif
         //发送设置参数给bot
         emit ui2bot_set(ui_SETTINGS, 1);  //设置应用完会触发preLoad
+        
     }
 }
 
@@ -1032,7 +1035,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
 }
 
 //传递模型预解码的内容
-void Widget::recv_predecode(QString bot_predecode_) { bot_predecode = bot_predecode_; }
+void Widget::recv_predecode(QString bot_predecode_content_) { bot_predecode_content = bot_predecode_content_; }
 
 //接收whisper解码后的结果
 void Widget::recv_speechdecode_over(QString result) {
@@ -1051,9 +1054,9 @@ void Widget::api_send_clicked_slove() {
 
     emit ui2net_stop(0);
     ENDPOINT_DATA data;
-    data.date_prompt = ui_DATES.system_prompt;
-    data.input_pfx = ui_DATES.input_pfx;
-    data.input_sfx = ui_DATES.input_sfx;
+    data.date_prompt = ui_DATES.date_prompt;
+    data.input_pfx = ui_DATES.user_name;
+    data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     if (ui_state == COMPLETE_STATE) {
         data.complete_state = true;
@@ -1077,8 +1080,8 @@ void Widget::api_send_clicked_slove() {
                     ui_insert_history.append({jtr(QString("H%1").arg(i)), API_ROLE_USER});                                  //问题
                     ui_insert_history.append({jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), API_ROLE_ASSISANT});  //答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
-                    reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
+                    reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
                 }
                 help_input = false;
             }
@@ -1105,9 +1108,9 @@ void Widget::api_send_clicked_slove() {
         data.insert_history = ui_insert_history;
         data.n_predict = 1;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+        reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
         reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
-        reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+        reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
     } else if (is_toolguy)                                                            //如果你是工具人
     {
         is_toolguy = false;
@@ -1146,9 +1149,9 @@ void Widget::api_send_clicked_slove() {
             } else {
                 ui_insert_history.append({input, API_ROLE_USER});
                 data.insert_history = ui_insert_history;
-                reflash_output("\n" + ui_DATES.input_pfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+                reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
                 reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
-                reflash_output("\n" + ui_DATES.input_sfx + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+                reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
                 data.n_predict = ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             }
@@ -1418,21 +1421,7 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
 //检测是否含有中文
 bool Widget::checkChinese(QString str_) {
     QStringList chinesePunctuation;  // 定义一个包含常见中文标点符号的集合
-    chinesePunctuation << "，"
-                       << "。"
-                       << "："
-                       << "？"
-                       << "！"
-                       << "、"
-                       << "；"
-                       << "“"
-                       << "”"
-                       << "‘"
-                       << "’"
-                       << "（"
-                       << "）"
-                       << "【"
-                       << "】";
+    chinesePunctuation << "，"<< "。"<< "："<< "？"<< "！"<< "、"<< "；"<< "“"<< "”"<< "‘"<< "’"<< "（"<< "）"<< "【"<< "】";
     for (int i = 0; i < str_.length(); ++i) {
         QChar ch = str_[i];
         // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5
@@ -1445,4 +1434,10 @@ bool Widget::checkChinese(QString str_) {
         }
     }
     return 0;
+}
+
+//传递格式化后的对话内容
+void Widget::recv_chat_format(CHATS chats)
+{
+    bot_chat = chats;
 }

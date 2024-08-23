@@ -82,6 +82,7 @@ class Widget : public QWidget {
     void getWords(QString json_file_path);  //中文英文
     int language_flag = 0;                  // 0是中文1是英文
     QString jtr(QString customstr);         // 根据language.json(wordsObj)和language_flag中找到对应的文字
+
     // ui相关
     QString ui_output, ui_state_info;
     void output_scroll(QString output, QColor color = QColor(0, 0, 0));  //向output末尾添加文本并滚动
@@ -127,13 +128,14 @@ class Widget : public QWidget {
     bool checkChinese(QString str_);                    //检测是否含有中文
 
     //模型控制相关
+    CHATS bot_chat;// 经过模型自带模板格式化后的内容
     QMap<QString, DATES> date_map;  //约定模板
-    QString custom1_system_prompt;
-    QString custom1_input_pfx;
-    QString custom1_input_sfx;  //自定义约定模板1
-    QString custom2_system_prompt;
-    QString custom2_input_pfx;
-    QString custom2_input_sfx;        //自定义约定模板2
+    QString custom1_date_system;
+    QString custom1_user_name;
+    QString custom1_model_name;  //自定义约定模板1
+    QString custom2_date_system;
+    QString custom2_user_name;
+    QString custom2_model_name;        //自定义约定模板2
     void preLoad();                   //装载前动作
     bool is_load = false;             //模型装载标签
     bool is_load_play_over = false;   //模型装载动画结束后
@@ -143,8 +145,8 @@ class Widget : public QWidget {
     bool ui_need_predecode = false;   //需要预解码标签
     QString history_lorapath = "";
     QString history_mmprojpath = "";
-    QString ui_template = "qwen";   //模板
-    QString bot_predecode = "";     //模型预解码的内容
+    QString ui_template = "default";   //模板
+    QString bot_predecode_content = "";     //模型预解码的内容
     void normal_finish_pushover();  //正常情况处理推理完毕
     bool gpu_wait_load = false;     // 等待检测完显存信息重新装载的标签
 
@@ -243,10 +245,10 @@ class Widget : public QWidget {
     QTextEdit *system_TextEdit;
     QRadioButton *complete_btn, *web_btn, *chat_btn;
 
-    QLabel *input_pfx_label;
-    QLineEdit *input_pfx_LineEdit;
-    QLabel *input_sfx_label;
-    QLineEdit *input_sfx_LineEdit;
+    QLabel *user_name_label;
+    QLineEdit *user_name_LineEdit;
+    QLabel *model_name_label;
+    QLineEdit *model_name_LineEdit;
     QLabel *chattemplate_label;
     QComboBox *chattemplate_comboBox;
     void change_api_dialog(bool enable);
@@ -259,7 +261,7 @@ class Widget : public QWidget {
     QString ui_extra_lan = "zh";
     QTextEdit *extra_TextEdit;
     QString ui_extra_prompt;
-    QString ui_system_prompt;
+    QString ui_date_prompt;
     QString create_extra_prompt();                     //构建附加指令
     void tool_change();                                //响应工具选择
     void addStopwords();                               //添加额外停止标志
@@ -373,8 +375,9 @@ class Widget : public QWidget {
 
     //处理模型信号的槽
    public slots:
+    void recv_chat_format(CHATS chats);  //传递格式化后的对话内容
     void recv_freeover_loadlater();                                                         //模型释放完毕并重新装载
-    void recv_predecode(QString bot_predecode_);                                  //传递模型预解码的内容
+    void recv_predecode(QString bot_predecode_content_);                                  //传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                 //处理tool推理完毕的槽
     void reflash_output(const QString result, bool is_while, QColor color);       //更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL);  //更新状态区
