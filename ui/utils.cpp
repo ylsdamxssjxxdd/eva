@@ -419,13 +419,13 @@ void Widget::apply_language(int language_flag_) {
     chattemplate_label->setText(jtr("chat template"));
     chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
     chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
-    system_label->setText(jtr("system calling"));
-    system_label->setToolTip(jtr("system_label_tooltip"));
-    system_TextEdit->setToolTip(jtr("system_label_tooltip"));
+    date_prompt_label->setText(jtr("date prompt"));
+    date_prompt_label->setToolTip(jtr("date_prompt_label_tooltip"));
+    date_prompt_TextEdit->setToolTip(jtr("date_prompt_label_tooltip"));
     user_name_label->setText(jtr("user name"));
     user_name_label->setToolTip(jtr("user_name_label_tooltip"));
     user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
-    model_name_label->setText(jtr("bot name"));
+    model_name_label->setText(jtr("model name"));
     model_name_label->setToolTip(jtr("model_name_label_tooltip"));
     model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
     tool_box->setTitle(jtr("mount") + jtr("tool"));
@@ -637,7 +637,7 @@ void Widget::auto_save_user() {
 
     //保存约定参数
     settings.setValue("chattemplate", chattemplate_comboBox->currentText());               //对话模板
-    settings.setValue("system_prompt", system_TextEdit->toPlainText());                    //系统指令
+    settings.setValue("date_prompt_prompt", date_prompt_TextEdit->toPlainText());                    //系统指令
     settings.setValue("extra_prompt", extra_TextEdit->toPlainText());                      //额外指令
     settings.setValue("user_name", ui_DATES.user_name);                                    //用户昵称
     settings.setValue("model_name", ui_DATES.model_name);                                    //模型昵称

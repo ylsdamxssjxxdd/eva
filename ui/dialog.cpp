@@ -517,24 +517,24 @@ void Widget::web_change() {
 //提示词模板下拉框响应
 void Widget::prompt_template_change() {
     if (chattemplate_comboBox->currentText() == jtr("custom set1")) {
-        system_TextEdit->setEnabled(1);
+        date_prompt_TextEdit->setEnabled(1);
         user_name_LineEdit->setEnabled(1);
         model_name_LineEdit->setEnabled(1);
 
-        system_TextEdit->setText(custom1_date_system);
+        date_prompt_TextEdit->setText(custom1_date_system);
         user_name_LineEdit->setText(custom1_user_name);
         model_name_LineEdit->setText(custom1_model_name);
     } else if (chattemplate_comboBox->currentText() == jtr("custom set2")) {
-        system_TextEdit->setEnabled(1);
+        date_prompt_TextEdit->setEnabled(1);
         user_name_LineEdit->setEnabled(1);
         model_name_LineEdit->setEnabled(1);
 
-        system_TextEdit->setText(custom2_date_system);
+        date_prompt_TextEdit->setText(custom2_date_system);
         user_name_LineEdit->setText(custom2_user_name);
         model_name_LineEdit->setText(custom2_model_name);
     } else {
-        system_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].date_prompt);
-        system_TextEdit->setEnabled(0);
+        date_prompt_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].date_prompt);
+        date_prompt_TextEdit->setEnabled(0);
         user_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].user_name);
         user_name_LineEdit->setEnabled(0);
         model_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].model_name);
@@ -835,19 +835,19 @@ void Widget::set_DateDialog() {
     prompt_layout->addLayout(layout_H9);  //将布局添加到总布局
     //系统指令
     QHBoxLayout *layout_H11 = new QHBoxLayout();  //水平布局器
-    system_label = new QLabel(jtr("system calling"));
-    system_label->setToolTip(jtr("system_label_tooltip"));
-    system_label->setFixedSize(60, 30);
-    layout_H11->addWidget(system_label);
-    system_TextEdit = new QTextEdit();
-    system_TextEdit->setToolTip(jtr("system_label_tooltip"));
+    date_prompt_label = new QLabel(jtr("date prompt"));
+    date_prompt_label->setToolTip(jtr("date_prompt_label_tooltip"));
+    date_prompt_label->setFixedSize(60, 30);
+    layout_H11->addWidget(date_prompt_label);
+    date_prompt_TextEdit = new QTextEdit();
+    date_prompt_TextEdit->setToolTip(jtr("date_prompt_label_tooltip"));
     // 设置样式表
-    // system_TextEdit->setStyleSheet("QTextEdit {"
+    // date_prompt_TextEdit->setStyleSheet("QTextEdit {"
     //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
     //                     "border-radius: 5px;"        // 边框圆角为5px
     //                     "padding: 1px;"              // 内边距为1px
     //                     "}");
-    layout_H11->addWidget(system_TextEdit);
+    layout_H11->addWidget(date_prompt_TextEdit);
     prompt_layout->addLayout(layout_H11);  //将布局添加到总布局
     //输入前缀设置
     QHBoxLayout *layout_H5 = new QHBoxLayout();  //水平布局器
@@ -862,7 +862,7 @@ void Widget::set_DateDialog() {
     prompt_layout->addLayout(layout_H5);  //将布局添加到总布局
     //输入后缀设置
     QHBoxLayout *layout_H6 = new QHBoxLayout();  //水平布局器
-    model_name_label = new QLabel(jtr("bot name"));
+    model_name_label = new QLabel(jtr("model name"));
     model_name_label->setToolTip(jtr("model_name_label_tooltip"));
     model_name_label->setFixedSize(60, 30);
     layout_H6->addWidget(model_name_label);
@@ -956,7 +956,7 @@ void Widget::set_DateDialog() {
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);
     connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);
     prompt_template_change();  //先应用提示词模板
-    system_TextEdit->setText(ui_date_prompt);
+    date_prompt_TextEdit->setText(ui_date_prompt);
     date_dialog->setWindowTitle(jtr("date"));
 }
 
@@ -1542,7 +1542,7 @@ void Widget::get_set() {
 //获取约定中的纸面值
 void Widget::get_date() {
     ui_extra_prompt = extra_TextEdit->toPlainText();
-    ui_date_prompt = system_TextEdit->toPlainText();
+    ui_date_prompt = date_prompt_TextEdit->toPlainText();
     //合并附加指令
     if (ui_extra_prompt != "") {
         ui_DATES.date_prompt = ui_date_prompt + "\n\n" + ui_extra_prompt;

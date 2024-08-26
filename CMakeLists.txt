@@ -10,7 +10,7 @@ set(version b3622) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
@@ -99,11 +99,13 @@ elseif(UNIX)
     set(sfx_NAME "") # linux下生成的第三方程序带后缀
 endif()
 
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # sd原项目支持必须
+add_definitions(-DGGML_MAX_NAME=128) # sd原项目支持必须
+
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
+
 # stable-diffusion.cpp-master-f5997a1
 option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # 原项目支持必须
-add_definitions(-DGGML_MAX_NAME=128) # 原项目支持必须
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 

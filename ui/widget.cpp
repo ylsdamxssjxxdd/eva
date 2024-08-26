@@ -547,7 +547,7 @@ void Widget::recv_datereset() {
     if (ui_state == COMPLETE_STATE) {
         reflash_state("· " + jtr("complete mode") + jtr("on") + " ", USUAL_SIGNAL);
     } else {
-        reflash_state("· " + jtr("system calling") + " " + system_TextEdit->toPlainText() + extra_TextEdit->toPlainText(), USUAL_SIGNAL);
+        reflash_state("· " + jtr("system calling") + " " + date_prompt_TextEdit->toPlainText() + extra_TextEdit->toPlainText(), USUAL_SIGNAL);
         //展示额外停止标志
         QString stop_str;
         stop_str = jtr("extra stop words") + " ";
@@ -697,7 +697,7 @@ void Widget::on_date_clicked() {
 
     //展示最近一次设置值
     chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
-    system_TextEdit->setText(ui_date_prompt);
+    date_prompt_TextEdit->setText(ui_date_prompt);
     user_name_LineEdit->setText(ui_DATES.user_name);
     model_name_LineEdit->setText(ui_DATES.model_name);
 

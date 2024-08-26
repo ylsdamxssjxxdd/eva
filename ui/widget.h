@@ -241,8 +241,8 @@ class Widget : public QWidget {
     void set_DateDialog();  //设置约定选项
     QDialog *date_dialog;
     QGroupBox *prompt_box;
-    QLabel *system_label;
-    QTextEdit *system_TextEdit;
+    QLabel *date_prompt_label;
+    QTextEdit *date_prompt_TextEdit;
     QRadioButton *complete_btn, *web_btn, *chat_btn;
 
     QLabel *user_name_label;

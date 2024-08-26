@@ -199,7 +199,7 @@ int main(int argc, char* argv[]) {
 
             // ui显示值
             w.chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
-            w.system_TextEdit->setText(settings.value("system_prompt", "").toString());
+            w.date_prompt_TextEdit->setText(settings.value("date_prompt_prompt", "").toString());
             w.user_name_LineEdit->setText(settings.value("user_name", "").toString());
             w.model_name_LineEdit->setText(settings.value("model_name", "").toString());
             w.terminal_checkbox->setChecked(settings.value("terminal_checkbox", "").toBool());
