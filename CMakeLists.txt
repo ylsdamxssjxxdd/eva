@@ -6,12 +6,12 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3600) # 打包版本
+set(version b3622) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
@@ -99,8 +99,15 @@ elseif(UNIX)
     set(sfx_NAME "") # linux下生成的第三方程序带后缀
 endif()
 
-# 添加llama相关项目,将会强制应用父项目的编译设置
-add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
+add_subdirectory(llama.cpp/ggml) # 添加ggml库
+# stable-diffusion.cpp-master-f5997a1
+option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # 原项目支持必须
+add_definitions(-DGGML_MAX_NAME=128) # 原项目支持必须
+add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
+add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
+
+add_subdirectory(llama.cpp) # 添加llama库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
 if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
@@ -119,13 +126,6 @@ whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
 whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml/include/ggml.h llama.cpp/ggml/src/ggml-quants.h)
 target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT}) # 这里直接将whisper链接llama.cpp的llama库
-
-# stable-diffusion.cpp-master-f5997a1
-option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # 原项目支持必须
-add_definitions(-DGGML_MAX_NAME=128) # 原项目支持必须
-add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
-add_subdirectory(stable-diffusion.cpp/examples) # 添加sd
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
@@ -250,6 +250,7 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 

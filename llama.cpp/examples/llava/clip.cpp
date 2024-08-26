@@ -20,6 +20,10 @@
 #include "ggml-cann.h"
 #endif
 
+#ifdef GGML_USE_VULKAN
+#include "ggml-vulkan.h"
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -1108,7 +1112,7 @@ struct clip_ctx * clip_model_load(const char * fname, const int verbosity = 1) {
         }
     }
 
-    clip_ctx * new_clip = new clip_ctx;
+    clip_ctx * new_clip = new clip_ctx{};
 
     // update projector type
     {
@@ -1142,6 +1146,10 @@ struct clip_ctx * clip_model_load(const char * fname, const int verbosity = 1) {
     LOG_TEE("%s: CLIP using CANN backend\n", __func__);
 #endif
 
+#ifdef GGML_USE_VULKAN
+    new_clip->backend = ggml_backend_vk_init(0);
+    LOG_TEE("%s: CLIP using Vulkan backend\n", __func__);
+#endif
 
     if (!new_clip->backend) {
         new_clip->backend = ggml_backend_cpu_init();
@@ -2276,8 +2284,7 @@ bool clip_image_encode(struct clip_ctx * ctx, const int n_threads, clip_image_f3
     clip_image_f32_batch imgs{};
     imgs.size = 1;
     imgs.data = img;
-    bool ok = clip_image_batch_encode(ctx, n_threads, &imgs, vec);
-    return ok;
+    return clip_image_batch_encode(ctx, n_threads, &imgs, vec);
 }
 
 bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_image_f32_batch * imgs, float * vec) {
@@ -2297,7 +2304,7 @@ bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_ima
     // build the inference graph
     ggml_cgraph * gf = clip_image_build_graph(ctx, imgs, ctx->load_image_size, true);
     ggml_gallocr_alloc_graph(ctx->compute_alloc, gf);
-    
+
     // set inputs
     const auto & model = ctx->vision_model;
     const auto & hparams = model.hparams;
@@ -2444,6 +2451,7 @@ bool clip_image_batch_encode(clip_ctx * ctx, const int n_threads, const clip_ima
 
     // copy the embeddings to the location passed by the user
     ggml_backend_tensor_get(embeddings, vec, 0, ggml_nbytes(embeddings));
+
     return true;
 }
 

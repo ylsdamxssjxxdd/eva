@@ -273,11 +273,13 @@ static bool encode_image_with_clip(clip_ctx * ctx_clip, int n_threads, const cli
         }
         const int64_t t_img_enc_batch_us = ggml_time_us();
         LOG_TEE("%s: all %d segments encoded in %8.2f ms\n", __func__, (int)img_res_v.size, (t_img_enc_batch_us - t_img_enc_start_us) / 1000.0);
+
         int n_img_pos_out = 0;
         for (size_t i = 0; i < image_embd_v.size(); i++) {
             std::memcpy(image_embd + n_img_pos_out * clip_n_mmproj_embd(ctx_clip), image_embd_v[i], clip_embd_nbytes(ctx_clip));
             n_img_pos_out += clip_n_patches(ctx_clip);
-        }        *n_img_pos = n_img_pos_out;
+        }
+        *n_img_pos = n_img_pos_out;
         for (size_t i = 0; i < image_embd_v.size(); i++) {
             free(image_embd_v[i]);
         }

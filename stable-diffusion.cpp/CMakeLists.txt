@@ -77,7 +77,7 @@ file(GLOB SD_LIB_SOURCES
 if(SD_BUILD_SHARED_LIBS)
     message("Build shared library")
     message(${SD_LIB_SOURCES})
-    set(BUILD_SHARED_LIBS OFF)
+    set(BUILD_SHARED_LIBS ON)
     add_library(${SD_LIB} SHARED ${SD_LIB_SOURCES})
     add_definitions(-DSD_BUILD_SHARED_LIB)
     target_compile_definitions(${SD_LIB} PRIVATE -DSD_BUILD_DLL)

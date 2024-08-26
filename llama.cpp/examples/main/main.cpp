@@ -132,12 +132,6 @@ int main(int argc, char ** argv) {
     gpt_params params;
     g_params = &params;
 
-    // params.model = "D:\\soul\\qwen2-7b-Q3_K_M.gguf";
-    // params.model = "D:\\soul\\gemma-2-2b-Q4_0.gguf";
-    // params.interactive = true;
-    // params.n_gpu_layers = 999;
-    // params.conversation = true;
-
     if (!gpt_params_parse(argc, argv, params)) {
         gpt_params_print_usage(argc, argv, params);
         return 1;
@@ -217,7 +211,6 @@ int main(int argc, char ** argv) {
 
     model = llama_init.model;
     ctx = llama_init.context;
-
     if (sparams.cfg_scale > 1.f) {
         struct llama_context_params lparams = llama_context_params_from_gpt_params(params);
         ctx_guidance = llama_new_context_with_model(model, lparams);
