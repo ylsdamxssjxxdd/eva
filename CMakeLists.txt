@@ -99,9 +99,6 @@ elseif(UNIX)
     set(sfx_NAME "") # linux下生成的第三方程序带后缀
 endif()
 
-add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion和sd-ggml库
-add_subdirectory(stable-diffusion.cpp/examples) # 添加sd
-
 # 添加llama相关项目,将会强制应用父项目的编译设置
 add_subdirectory(llama.cpp) # 添加llama库, 包含了更基础的ggml库
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
@@ -122,6 +119,13 @@ whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
 whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
 llama.cpp/ggml/include/ggml.h llama.cpp/ggml/src/ggml-quants.h)
 target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT}) # 这里直接将whisper链接llama.cpp的llama库
+
+# stable-diffusion.cpp-master-f5997a1
+option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # 原项目支持必须
+add_definitions(-DGGML_MAX_NAME=128) # 原项目支持必须
+add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
+add_subdirectory(stable-diffusion.cpp/examples) # 添加sd
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器

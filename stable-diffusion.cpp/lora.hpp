@@ -5,19 +5,21 @@
 
 #define LORA_GRAPH_SIZE 10240
 
-struct LoraModel : public GGMLModule {
+struct LoraModel : public GGMLRunner {
     float multiplier = 1.0f;
     std::map<std::string, struct ggml_tensor*> lora_tensors;
     std::string file_path;
     ModelLoader model_loader;
-    bool load_failed = false;
-    bool applied     = false;
+    bool load_failed                = false;
+    bool applied                    = false;
+    std::vector<int> zero_index_vec = {0};
+    ggml_tensor* zero_index         = NULL;
 
     LoraModel(ggml_backend_t backend,
               ggml_type wtype,
               const std::string& file_path = "",
               const std::string& prefix    = "")
-        : file_path(file_path), GGMLModule(backend, wtype) {
+        : file_path(file_path), GGMLRunner(backend, wtype) {
         if (!model_loader.init_from_file(file_path, prefix)) {
             load_failed = true;
         }
@@ -68,8 +70,18 @@ struct LoraModel : public GGMLModule {
         return true;
     }
 
+    ggml_tensor* to_f32(ggml_context* ctx, ggml_tensor* a) {
+        auto out = ggml_reshape_1d(ctx, a, ggml_nelements(a));
+        out      = ggml_get_rows(ctx, out, zero_index);
+        out      = ggml_reshape(ctx, out, a);
+        return out;
+    }
+
     struct ggml_cgraph* build_lora_graph(std::map<std::string, struct ggml_tensor*> model_tensors) {
         struct ggml_cgraph* gf = ggml_new_graph_custom(compute_ctx, LORA_GRAPH_SIZE, false);
+
+        zero_index = ggml_new_tensor_1d(compute_ctx, GGML_TYPE_I32, 1);
+        set_backend_tensor_data(zero_index, zero_index_vec.data());
 
         std::set<std::string> applied_lora_tensors;
         for (auto it : model_tensors) {
@@ -141,15 +153,16 @@ struct LoraModel : public GGMLModule {
             GGML_ASSERT(ggml_nelements(updown) == ggml_nelements(weight));
             updown = ggml_scale_inplace(compute_ctx, updown, scale_value);
             ggml_tensor* final_weight;
-            // if (weight->type != GGML_TYPE_F32 && weight->type != GGML_TYPE_F16) {
-            //     final_weight = ggml_new_tensor(compute_ctx, GGML_TYPE_F32, weight->n_dims, weight->ne);
-            //     final_weight = ggml_cpy_inplace(compute_ctx, weight, final_weight);
-            //     final_weight = ggml_add_inplace(compute_ctx, final_weight, updown);
-            //     final_weight = ggml_cpy_inplace(compute_ctx, final_weight, weight);
-            // } else {
-            //     final_weight = ggml_add_inplace(compute_ctx, weight, updown);
-            // }
-            final_weight = ggml_add_inplace(compute_ctx, weight, updown);  // apply directly
+            if (weight->type != GGML_TYPE_F32 && weight->type != GGML_TYPE_F16) {
+                // final_weight = ggml_new_tensor(compute_ctx, GGML_TYPE_F32, ggml_n_dims(weight), weight->ne);
+                // final_weight = ggml_cpy(compute_ctx, weight, final_weight);
+                final_weight = to_f32(compute_ctx, weight);
+                final_weight = ggml_add_inplace(compute_ctx, final_weight, updown);
+                final_weight = ggml_cpy(compute_ctx, final_weight, weight);
+            } else {
+                final_weight = ggml_add_inplace(compute_ctx, weight, updown);
+            }
+            // final_weight = ggml_add_inplace(compute_ctx, weight, updown);  // apply directly
             ggml_build_forward_expand(gf, final_weight);
         }
 
@@ -182,7 +195,7 @@ struct LoraModel : public GGMLModule {
         auto get_graph = [&]() -> struct ggml_cgraph* {
             return build_lora_graph(model_tensors);
         };
-        GGMLModule::compute(get_graph, n_threads, true);
+        GGMLRunner::compute(get_graph, n_threads, true);
     }
 };
 

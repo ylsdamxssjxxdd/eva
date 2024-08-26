@@ -159,9 +159,9 @@ struct PhotoMakerIDEncoderBlock : public CLIPVisionModelProjection {
     }
 };
 
-struct PhotoMakerIDEncoder : public GGMLModule {
+struct PhotoMakerIDEncoder : public GGMLRunner {
 public:
-    SDVersion version = VERSION_XL;
+    SDVersion version = VERSION_SDXL;
     PhotoMakerIDEncoderBlock id_encoder;
     float style_strength;
 
@@ -175,8 +175,8 @@ public:
     std::vector<float> zeros_right;
 
 public:
-    PhotoMakerIDEncoder(ggml_backend_t backend, ggml_type wtype, SDVersion version = VERSION_XL, float sty = 20.f)
-        : GGMLModule(backend, wtype),
+    PhotoMakerIDEncoder(ggml_backend_t backend, ggml_type wtype, SDVersion version = VERSION_SDXL, float sty = 20.f)
+        : GGMLRunner(backend, wtype),
           version(version),
           style_strength(sty) {
         id_encoder.init(params_ctx, wtype);
@@ -287,8 +287,8 @@ public:
             return build_graph(id_pixel_values, prompt_embeds, class_tokens_mask);
         };
 
-        // GGMLModule::compute(get_graph, n_threads, updated_prompt_embeds);
-        GGMLModule::compute(get_graph, n_threads, true, updated_prompt_embeds, output_ctx);
+        // GGMLRunner::compute(get_graph, n_threads, updated_prompt_embeds);
+        GGMLRunner::compute(get_graph, n_threads, true, updated_prompt_embeds, output_ctx);
     }
 };
 

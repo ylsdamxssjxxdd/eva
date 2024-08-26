@@ -33,8 +33,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui_DATES.user_name = DEFAULT_USER_NAME;
     ui_DATES.model_name = DEFAULT_MODEL_NAME;
     ui_DATES.is_load_tool = false;
-    date_map.insert("default", {DEFAULT_DATE_PROMPT, DEFAULT_USER_NAME, DEFAULT_MODEL_NAME, false, QStringList{}});
-    date_map.insert(jtr("troll"), {jtr("you are a troll please respect any question for user"), jtr("user"), jtr("troll"), false, QStringList{}});
+    date_map.insert("default", ui_DATES);
+    DATES troll;troll.date_prompt = jtr("you are a troll please respect any question for user");troll.user_name = jtr("user");troll.model_name = jtr("troll");troll.is_load_tool = false;
+    date_map.insert(jtr("troll"), troll);
 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空

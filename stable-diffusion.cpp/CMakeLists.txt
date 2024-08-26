@@ -2,12 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project("stable-diffusion")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# if(MINGW)
-#     set(CMAKE_CXX_FLAGS_RELEASE "-static")#对齐静态编译的标志
-#     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -march=native -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")    
-#     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") #编译优化
-#     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a") # 这里是强制静态链接libgomp.a以支持openmp算法
-# endif()
+
 if (NOT XCODE AND NOT MSVC AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
@@ -32,19 +27,20 @@ option(SD_BUILD_EXAMPLES             "sd: build examples" ${SD_STANDALONE})
 option(SD_CUBLAS                     "sd: cuda backend" OFF)
 option(SD_HIPBLAS                    "sd: rocm backend" OFF)
 option(SD_METAL                      "sd: metal backend" OFF)
+option(SD_SYCL                       "sd: sycl backend" OFF)
 option(SD_FLASH_ATTN                 "sd: use flash attention for x4 less memory usage" OFF)
 option(SD_FAST_SOFTMAX               "sd: x1.5 faster softmax, indeterministic (sometimes, same seed don't generate same image), cuda only" OFF)
 option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" OFF)
 #option(SD_BUILD_SERVER               "sd: build server example"                           ON)
 
 if(SD_CUBLAS)
-	message("Use CUBLAS as backend stable-diffusion")
+    message("Use CUBLAS as backend stable-diffusion")
     set(GGML_CUDA ON)
     add_definitions(-DSD_USE_CUBLAS)
 endif()
 
 if(SD_METAL)
-	message("Use Metal as backend stable-diffusion")
+    message("Use Metal as backend stable-diffusion")
     set(GGML_METAL ON)
     add_definitions(-DSD_USE_METAL)
 endif()
@@ -57,6 +53,12 @@ if (SD_HIPBLAS)
         set(GGML_CUDA_FAST_SOFTMAX ON)
     endif()
 endif ()
+
+if(SD_SYCL)
+    message("Use SYCL as backend stable-diffusion")
+    set(GGML_SYCL ON)
+    add_definitions(-DSD_USE_SYCL)
+endif()
 
 if(SD_FLASH_ATTN)
     message("Use Flash Attention for memory optimization")
@@ -93,11 +95,10 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 add_definitions(-DGGML_MAX_NAME=128)
 
 # deps
-add_subdirectory(ggml)
 
 add_subdirectory(thirdparty)
 
-target_link_libraries(${SD_LIB} PUBLIC sd-ggml zip)
+target_link_libraries(${SD_LIB} PUBLIC ggml zip)
 target_include_directories(${SD_LIB} PUBLIC . thirdparty)
 target_compile_features(${SD_LIB} PUBLIC cxx_std_11)
 

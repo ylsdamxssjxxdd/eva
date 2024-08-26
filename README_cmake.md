@@ -61,9 +61,8 @@ inline bool mmap::open(const char *path) {
 ```
 
 ### stable-diffusion.cpp
-- 所有cmakelists.txt中的ggml库更名为sd-ggml
+- cmakelists.txt中删除add_subdirectory(ggml)
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
-- 注释掉stable-diffusion.cpp\ggml\src\CMakeLists.txt中的vulkan部分
 
 ### whisper.cpp
 - 只需要部分文件即可

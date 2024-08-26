@@ -54,7 +54,7 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
                     }
 
                     // 替换所有的 \" 为 "
-                    content3.replace("\\\"", "\"");
+                    content3 = content3.replace("\\\"", "\"");
                 }
 
                 func_arg_list.second = content3;
