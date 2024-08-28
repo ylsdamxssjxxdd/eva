@@ -175,12 +175,13 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
-    SD_Params sd_params;
+    QString sd_current_template = "default"; // 当前使用的模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
+    QMap<QString, SD_PARAMS> sd_params_templates; // sd参数模板们
+    void sd_apply_template(SD_PARAMS sd_params);// 应用sd参数模板
+    QString sd_outputpath;//最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
-    bool uploadimaging = false;    //是否正在上传图像
-    QString uploadimagepath = "";  //上传图像的路径
     bool img2img = false;          //是否是图生图操作
    public slots:
     void sd_onProcessStarted();   //进程开始响应
@@ -192,10 +193,12 @@ class Expend : public QWidget {
    private slots:
     void on_sd_modelpath_pushButton_clicked();      //用户点击选择sd模型路径时响应
     void on_sd_vaepath_pushButton_clicked();        //用户点击选择vae模型路径时响应
+    void on_sd_clippath_pushButton_clicked();        //用户点击选择clip模型路径时响应
+    void on_sd_t5path_pushButton_clicked();        //用户点击选择t5模型路径时响应
+    void on_sd_lorapath_pushButton_clicked();        //用户点击选择lora模型路径时响应
     void on_sd_draw_pushButton_clicked();           //用户点击文生图时响应
-    void on_sd_modelpath_lineEdit_textChanged();    // sd模型路径改变响应
-    void on_sd_uploadimage_textEdit_textChanged();  //上传图像文本区改变响应
-    void on_sd_draw_pushButton_2_clicked();         //用户点击图生图时响应
+    void on_sd_img2img_pushButton_clicked();         //用户点击图生图时响应
+    void on_params_template_comboBox_currentIndexChanged(int index); //参数模板改变响应
 
     //-------------------------------------------------------------------------
     //----------------------------------文转声相关--------------------------------
