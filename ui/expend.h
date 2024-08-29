@@ -183,6 +183,10 @@ class Expend : public QWidget {
     bool is_handle_sd = true;
     QString sd_process_output;
     bool img2img = false;          //是否是图生图操作
+    QStringList listFiles(const QString &path); // 遍历目录
+    bool is_sd_custom1 = false;// 当前是否为自定义的参数模板
+    bool is_sd_custom2 = false;// 当前是否为自定义的参数模板
+    void sd_save_template(QString template_name);// 保存参数到自定义模板
    public slots:
     void sd_onProcessStarted();   //进程开始响应
     void sd_onProcessFinished();  //进程结束响应
@@ -199,7 +203,7 @@ class Expend : public QWidget {
     void on_sd_draw_pushButton_clicked();           //用户点击文生图时响应
     void on_sd_img2img_pushButton_clicked();         //用户点击图生图时响应
     void on_params_template_comboBox_currentIndexChanged(int index); //参数模板改变响应
-
+     
     //-------------------------------------------------------------------------
     //----------------------------------文转声相关--------------------------------
     //-------------------------------------------------------------------------

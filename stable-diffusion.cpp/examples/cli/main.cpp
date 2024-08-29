@@ -557,7 +557,7 @@ void parse_args(int argc, const char** argv, SDParams& params) {
     }
 
     if (params.width <= 0 || params.width % 64 != 0) {
-        fprintf(stderr, "error: the width must be a multiple of 64\n");
+        fprintf(stderr, "error: \n");
         exit(1);
     }
 

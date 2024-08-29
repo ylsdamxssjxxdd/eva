@@ -289,7 +289,7 @@ struct Syncrate_Manager {
 #define DEFAULT_SD_NOISE "0.75"   //噪声系数
 
 struct SD_PARAMS {
-    QString sample_type = "euler_a"; //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
+    QString sample_type = "euler"; //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
     QString negative_prompt = "";  //反向提示词
     QString modify_prompt = "";  //修饰词
     int width = 512; //图像宽度
@@ -297,17 +297,8 @@ struct SD_PARAMS {
     int steps = 20;  //采样步数
     int batch_count = 1; //出图张数
     int seed = -1; //随机数种子 -1随机
+    int clip_skip = -1;  //跳层 
     float cfg_scale = 7.5; //提示词与图像相关系数
-    float clip_skip = 2;  //跳层 
-};
-
-// 文生图模型路径
-struct SD_PATHS {
-    QString diffusion_modelpath;
-    QString vae_modelpath;
-    QString t5_modelpath;
-    QString clip_modelpath;
-    QString lora_modelpath;
 };
 
 #endif

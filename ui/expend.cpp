@@ -19,6 +19,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                 //安装事件过滤器
     ui->sd_negative_lineEdit->installEventFilter(this);             //安装事件过滤器
+    ui->sd_modify_lineEdit->installEventFilter(this);             //安装事件过滤器
     ui->sd_img2img_lineEdit->installEventFilter(this);             //安装事件过滤器
 
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
@@ -76,7 +77,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     //添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
-    ui->sd_sampletype->setCurrentText("euler_a");
+    ui->sd_sampletype->setCurrentText("euler");
     //添加输出格式
     ui->whisper_output_format->addItems({"txt", "srt", "csv", "json"});
 
@@ -86,13 +87,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     // 文生图相关
     // 构建模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
-    SD_PARAMS sd_default_template = {"euler","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_sd1_5_anything_3_template = {"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_sdxl_animagine_3_1_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_sd3_medium_template = {"euler","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_flux1_dev_template = {"euler","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_custom1_template = {"euler","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_custom2_template = {"euler","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_default_template = {"euler","","",512,512,20,1,-1,-1,7.5};
+    SD_PARAMS sd_sd1_5_anything_3_template = {"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
+    SD_PARAMS sd_sdxl_animagine_3_1_template = {"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,20,1,-1,2,7.5};
+    SD_PARAMS sd_sd3_medium_template = {"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,30,1,-1,-1,7.0};
+    SD_PARAMS sd_flux1_dev_template = {"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,-1,1.0};
+    SD_PARAMS sd_custom1_template = {"euler","","",512,512,20,1,-1,-1,7.5};
+    SD_PARAMS sd_custom2_template = {"euler","","",512,512,20,1,-1,-1,7.5};
 
     sd_params_templates.insert("default", sd_default_template);
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
@@ -395,12 +396,12 @@ void Expend::readConfig() {
         QString modify = settings.value("modify", "").toString();  //修饰词
         int image_width = settings.value("image_width", 512).toInt();                      //图像宽度
         int image_height = settings.value("image_height", 512).toInt();                    //图像高度
-        QString sample_type = settings.value("sample_type", "euler_a").toString();         //采样方式
+        QString sample_type = settings.value("sample_type", "euler").toString();         //采样方式
         int sample_steps = settings.value("sample_steps", 20).toInt();                     //采样步数
         float cfg = settings.value("cfg", 7.5).toFloat();                                  //相关系数
         int seed = settings.value("seed", -1).toInt();                                     //随机数种子
         int image_nums = settings.value("image_nums", 1).toInt();                          //生成图像数目
-        int clip_skip = settings.value("clip_skip", 2).toInt();                            //跳层数
+        int clip_skip = settings.value("clip_skip", -1).toInt();                            //跳层数
         QString sd_prompt = settings.value("sd_prompt", "").toString();                    // sd提示词
 
         QString whisper_modelpath = settings.value("whisper_modelpath", "").toString();  // whisper模型路径
@@ -436,6 +437,28 @@ void Expend::readConfig() {
         ui->sd_batch_count->setValue(image_nums);
         ui->sd_clipskip->setValue(clip_skip);
         ui->sd_prompt_textEdit->setText(sd_prompt);
+
+        sd_params_templates["custom1"].batch_count = settings.value("sd_custom1_image_nums", 1).toInt();
+        sd_params_templates["custom1"].cfg_scale = settings.value("sd_custom1_cfg", 7.5).toFloat();
+        sd_params_templates["custom1"].clip_skip = settings.value("sd_custom1_clip_skip", -1).toInt();
+        sd_params_templates["custom1"].height = settings.value("sd_custom1_image_height", 512).toInt();
+        sd_params_templates["custom1"].width = settings.value("sd_custom1_image_width", 512).toInt();
+        sd_params_templates["custom1"].seed = settings.value("sd_custom1_seed", -1).toInt();
+        sd_params_templates["custom1"].steps = settings.value("sd_custom1_sample_steps", 20).toInt();
+        sd_params_templates["custom1"].sample_type = settings.value("sd_custom1_sample_type", "euler").toString();
+        sd_params_templates["custom1"].negative_prompt = settings.value("sd_custom1_negative", "").toString();
+        sd_params_templates["custom1"].modify_prompt = settings.value("sd_custom1_modify", "").toString();
+
+        sd_params_templates["custom2"].batch_count = settings.value("sd_custom2_image_nums", 1).toInt();
+        sd_params_templates["custom2"].cfg_scale = settings.value("sd_custom2_cfg", 7.5).toFloat();
+        sd_params_templates["custom2"].clip_skip = settings.value("sd_custom2_clip_skip", -1).toInt();
+        sd_params_templates["custom2"].height = settings.value("sd_custom2_image_height", 512).toInt();
+        sd_params_templates["custom2"].width = settings.value("sd_custom2_image_width", 512).toInt();
+        sd_params_templates["custom2"].seed = settings.value("sd_custom2_seed", -1).toInt();
+        sd_params_templates["custom2"].steps = settings.value("sd_custom2_sample_steps", 20).toInt();
+        sd_params_templates["custom2"].sample_type = settings.value("sd_custom2_sample_type", "euler").toString();
+        sd_params_templates["custom2"].negative_prompt = settings.value("sd_custom2_negative", "").toString();
+        sd_params_templates["custom2"].modify_prompt = settings.value("sd_custom2_modify", "").toString();
 
         QFile whisper_load_modelpath_file(whisper_modelpath);
         if (whisper_load_modelpath_file.exists()) {
@@ -517,9 +540,12 @@ bool Expend::eventFilter(QObject *obj, QEvent *event) {
         ui->sd_prompt_textEdit->setText("full body, Ayanami Rei, beautiful face, Blue hair, 1 girl");
         return true;
     } else if (obj == ui->sd_negative_lineEdit && event->type() == QEvent::ContextMenu) {
-        //还原反提示
-        ui->sd_negative_lineEdit->setText("");
+        //还原负面词
+        ui->sd_negative_lineEdit->setText(sd_params_templates[ui->params_template_comboBox->currentText()].negative_prompt);
         return true;
+    } else if (obj == ui->sd_modify_lineEdit && event->type() == QEvent::ContextMenu) {
+        //还原修饰词
+        ui->sd_modify_lineEdit->setText(sd_params_templates[ui->params_template_comboBox->currentText()].modify_prompt);
     } else if (obj == ui->sd_img2img_lineEdit && event->type() == QEvent::ContextMenu) {
         //选择图像
         currentpath = customOpenfile(currentpath, "choose an imgage", "(*.png *.jpg *.bmp)");
@@ -531,9 +557,8 @@ bool Expend::eventFilter(QObject *obj, QEvent *event) {
         else{ui->sd_img2img_pushButton->setEnabled(0);}
 
         return true;
-    }
+    } 
     
-
     return QObject::eventFilter(obj, event);
 }
 
@@ -551,6 +576,9 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("clip_modelpath", ui->sd_clippath_lineEdit->text());
     settings.setValue("t5_modelpath", ui->sd_t5path_lineEdit->text());
     settings.setValue("lora_modelpath", ui->sd_lorapath_lineEdit->text());
+    settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
+    settings.setValue("sd_params_template", ui->params_template_comboBox->currentText());
+
     settings.setValue("negative", ui->sd_negative_lineEdit->text());
     settings.setValue("modify", ui->sd_modify_lineEdit->text());
     settings.setValue("image_width", ui->sd_imagewidth->value());
@@ -561,7 +589,28 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("seed", ui->sd_seed->value());
     settings.setValue("image_nums", ui->sd_batch_count->value());
     settings.setValue("clip_skip", ui->sd_clipskip->value());
-    settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
+
+    settings.setValue("sd_custom1_negative", sd_params_templates["custom1"].negative_prompt);
+    settings.setValue("sd_custom1_modify", sd_params_templates["custom1"].modify_prompt);
+    settings.setValue("sd_custom1_image_width", sd_params_templates["custom1"].width);
+    settings.setValue("sd_custom1_image_height", sd_params_templates["custom1"].height);
+    settings.setValue("sd_custom1_sample_type", sd_params_templates["custom1"].sample_type);
+    settings.setValue("sd_custom1_sample_steps", sd_params_templates["custom1"].steps);
+    settings.setValue("sd_custom1_cfg", sd_params_templates["custom1"].cfg_scale);
+    settings.setValue("sd_custom1_seed", sd_params_templates["custom1"].seed);
+    settings.setValue("sd_custom1_image_nums", sd_params_templates["custom1"].batch_count);
+    settings.setValue("sd_custom1_clip_skip", sd_params_templates["custom1"].clip_skip);
+
+    settings.setValue("sd_custom2_negative", sd_params_templates["custom2"].negative_prompt);
+    settings.setValue("sd_custom2_modify", sd_params_templates["custom2"].modify_prompt);
+    settings.setValue("sd_custom2_image_width", sd_params_templates["custom2"].width);
+    settings.setValue("sd_custom2_image_height", sd_params_templates["custom2"].height);
+    settings.setValue("sd_custom2_sample_type", sd_params_templates["custom2"].sample_type);
+    settings.setValue("sd_custom2_sample_steps", sd_params_templates["custom2"].steps);
+    settings.setValue("sd_custom2_cfg", sd_params_templates["custom2"].cfg_scale);
+    settings.setValue("sd_custom2_seed", sd_params_templates["custom2"].seed);
+    settings.setValue("sd_custom2_image_nums", sd_params_templates["custom2"].batch_count);
+    settings.setValue("sd_custom2_clip_skip", sd_params_templates["custom2"].clip_skip);
 
     settings.setValue("whisper_modelpath", ui->whisper_load_modelpath_linedit->text());
 
@@ -1458,6 +1507,25 @@ void Expend::quantize_onProcessFinished() {
 //----------------------------------文生图相关--------------------------------
 //-------------------------------------------------------------------------
 
+// 遍历目录
+QStringList Expend::listFiles(const QString &path) {
+    QStringList file_paths;
+    QDir dir(path);
+
+    // Set the filter to include files and no special files/links
+    dir.setFilter(QDir::Files | QDir::NoSymLinks);
+
+    // Get the list of files in the directory
+    QFileInfoList fileList = dir.entryInfoList();
+
+    // Iterate through the list and print the absolute file paths
+    foreach (const QFileInfo &fileInfo, fileList) {
+        file_paths << fileInfo.absoluteFilePath();
+    }
+    
+    return file_paths;
+}
+
 //用户点击选择sd模型路径时响应
 void Expend::on_sd_modelpath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose diffusion model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -1465,34 +1533,37 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
 
     QString modelpath = currentpath;
     ui->sd_modelpath_lineEdit->setText(currentpath);
-    ui->sd_lorapath_lineEdit->setText("");
+    
     // 自动寻找其它模型
     if (QFile::exists(modelpath)) {
 
-        QString vae_modelpath = modelpath;
-        vae_modelpath = vae_modelpath.replace("f16", "vae");
-        vae_modelpath = vae_modelpath.replace("q8_0", "vae");
-        vae_modelpath = vae_modelpath.replace("q4_0", "vae");
-        vae_modelpath = vae_modelpath.replace("gguf", "safetensors");
-        if (QFile::exists(vae_modelpath) && vae_modelpath != modelpath) {ui->sd_vaepath_lineEdit->setText(vae_modelpath);}
-        else{ui->sd_vaepath_lineEdit->setText("");}
+        //先清空其它路径
+        ui->sd_lorapath_lineEdit->setText("");
+        ui->sd_vaepath_lineEdit->setText("");
+        ui->sd_clippath_lineEdit->setText("");
+        ui->sd_t5path_lineEdit->setText("");
 
-        QString clip_modelpath = modelpath;;
-        clip_modelpath = clip_modelpath.replace("f16", "clip_l");
-        clip_modelpath = clip_modelpath.replace("q8_0", "clip_l");
-        clip_modelpath = clip_modelpath.replace("q4_0", "clip_l");
-        clip_modelpath = clip_modelpath.replace("gguf", "safetensors");
-        if (QFile::exists(clip_modelpath) && clip_modelpath != modelpath) {ui->sd_clippath_lineEdit->setText(clip_modelpath);}
-        else{ui->sd_clippath_lineEdit->setText("");}
+        // 遍历当前目录
+        QFileInfo modelfileInfo(modelpath);
+        QString model_directoryPath = modelfileInfo.absolutePath();// 提取目录路径
+        QStringList file_list = listFiles(model_directoryPath);
 
-        QString t5_modelpath = modelpath;;
-        t5_modelpath = t5_modelpath.replace("f16", "t5xxl");
-        t5_modelpath = t5_modelpath.replace("q8_0", "t5xxl");
-        t5_modelpath = t5_modelpath.replace("q4_0", "t5xxl");
-        t5_modelpath = t5_modelpath.replace("gguf", "safetensors");
-        if (QFile::exists(t5_modelpath) && t5_modelpath != modelpath) {ui->sd_t5path_lineEdit->setText(t5_modelpath);}
-        else{ui->sd_t5path_lineEdit->setText("");}
-
+        for(int i = 0; i < file_list.size(); ++i)
+        {
+            QString file_path_name = file_list.at(i);
+            if(file_path_name.contains("vae"))
+            {
+                ui->sd_vaepath_lineEdit->setText(file_path_name);
+            }
+            else if(file_path_name.contains("clip"))
+            {
+                ui->sd_clippath_lineEdit->setText(file_path_name);
+            }
+            else if(file_path_name.contains("t5"))
+            {
+                ui->sd_t5path_lineEdit->setText(file_path_name);
+            }
+        }
     }
 
     // 自动设置参数模板
@@ -1501,8 +1572,8 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
     else if(modelpath.contains("sd3-medium")){ui->params_template_comboBox->setCurrentText("sd3-medium");}
     else if(modelpath.contains("flux1-dev")){ui->params_template_comboBox->setCurrentText("flux1-dev");}
 
-
 }
+
 //用户点击选择vae模型路径时响应
 void Expend::on_sd_vaepath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose vae model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -1549,6 +1620,7 @@ void Expend::on_sd_draw_pushButton_clicked() {
         img2img = false;
         return;
     }
+
     ui->sd_img2img_pushButton->setText("stop");
     ui->sd_draw_pushButton->setText("stop");
 
@@ -1561,12 +1633,6 @@ void Expend::on_sd_draw_pushButton_clicked() {
     } else if (!is_handle_sd) {
         emit expend2ui_state(QString("expend:sd") + SFX_NAME + " " + jtr("drawing"), USUAL_SIGNAL);
     }
-
-    //锁定界面
-    ui->sd_frame_modelpath->setEnabled(0);
-    ui->sd_frame_vaepath->setEnabled(0);
-    ui->sd_frame_negative->setEnabled(0);
-    ui->sd_frame_param->setEnabled(0);
 
     QTime currentTime = QTime::currentTime();                // 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss");  // 格式化时间为时-分-秒
@@ -1603,9 +1669,17 @@ void Expend::on_sd_draw_pushButton_clicked() {
     if(QFile::exists(ui->sd_vaepath_lineEdit->text())){arguments << "--vae" << ui->sd_vaepath_lineEdit->text();}// vae路径
     if(QFile::exists(ui->sd_clippath_lineEdit->text())){arguments << "--clip_l" << ui->sd_clippath_lineEdit->text();}// clip路径
     if(QFile::exists(ui->sd_t5path_lineEdit->text())){arguments << "--t5xxl" << ui->sd_t5path_lineEdit->text();}// vae路径
-    QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
-    QString lora_directoryPath = lorafileInfo.absolutePath();// 提取lora目录路径
-    if(lora_directoryPath != ""){arguments << "--lora-model-dir" << lora_directoryPath;}
+    QString lora_prompt = "<lora:{model}:1>";// 应用lora的提示，将会添加到提示词的最后
+    if(QFile::exists(ui->sd_lorapath_lineEdit->text()))
+    {
+        QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
+        QString lora_directoryPath = lorafileInfo.absolutePath();// 提取lora目录路径
+        if(lora_directoryPath != "")
+        {
+            arguments << "--lora-model-dir" << lora_directoryPath;
+            lora_prompt.replace("{model}",lorafileInfo.fileName());
+        }
+    }
 
     arguments << "-W" << QString::number(ui->sd_imagewidth->value()); //图像宽
     arguments << "-H" << QString::number(ui->sd_imageheight->value()); //图像长
@@ -1617,7 +1691,14 @@ void Expend::on_sd_draw_pushButton_clicked() {
     arguments << "-b" << QString::number(ui->sd_batch_count->value());//出图张数
     arguments << "-n" << ui->sd_negative_lineEdit->text();;//反向提示词
 
-    arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText(); //提示词
+    //提示词
+    if(arguments.contains("--lora-model-dir"))
+    {
+        // 应用lora的情况
+        arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText() + lora_prompt;
+    }
+    else{arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();}
+     
     arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5);            //线程数
     arguments << "-o" << sd_outputpath;  //输出路径
     arguments << "--strength" << DEFAULT_SD_NOISE;  //噪声系数
@@ -1652,11 +1733,6 @@ void Expend::on_sd_draw_pushButton_clicked() {
 void Expend::sd_onProcessStarted() {}
 //进程结束响应
 void Expend::sd_onProcessFinished() {
-    //解锁界面
-    ui->sd_frame_modelpath->setEnabled(1);
-    ui->sd_frame_vaepath->setEnabled(1);
-    ui->sd_frame_negative->setEnabled(1);
-    ui->sd_frame_param->setEnabled(1);
 
     ui->sd_draw_pushButton->setText(jtr("text to image"));
     ui->sd_img2img_pushButton->setText(jtr("image to image"));
@@ -1706,7 +1782,31 @@ void Expend::sd_onProcessFinished() {
 //参数模板改变响应
 void Expend::on_params_template_comboBox_currentIndexChanged(int index)
 {
+    // 以前是自定义模板，触发这个函数说明现在换了，保存以前的这个模板
+    if(is_sd_custom1){sd_save_template("custom1");}
+    else if(is_sd_custom2){sd_save_template("custom2");}
+
+    if(ui->params_template_comboBox->currentText().contains("custom1")){is_sd_custom1 = true;is_sd_custom2 = false;}
+    else if(ui->params_template_comboBox->currentText().contains("custom2")){is_sd_custom2 = true;is_sd_custom1 = false;}
+    else{is_sd_custom1 = false;is_sd_custom2 = false;}
+
     sd_apply_template(sd_params_templates[ui->params_template_comboBox->currentText()]);
+}
+
+// 保存参数到自定义模板
+void Expend::sd_save_template(QString template_name)
+{
+    sd_params_templates[template_name].batch_count = ui->sd_batch_count->value();
+    sd_params_templates[template_name].cfg_scale = ui->sd_cfgscale->value();
+    sd_params_templates[template_name].clip_skip = ui->sd_clipskip->value();
+    sd_params_templates[template_name].height = ui->sd_imageheight->value();
+    sd_params_templates[template_name].width = ui->sd_imagewidth->value();
+    sd_params_templates[template_name].seed = ui->sd_seed->value();
+    sd_params_templates[template_name].steps = ui->sd_samplesteps->value();
+    sd_params_templates[template_name].sample_type = ui->sd_sampletype->currentText();
+    sd_params_templates[template_name].negative_prompt = ui->sd_negative_lineEdit->text();
+    sd_params_templates[template_name].modify_prompt = ui->sd_modify_lineEdit->text();
+
 }
 
 // 应用sd参数模板
