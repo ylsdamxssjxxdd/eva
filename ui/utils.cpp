@@ -36,8 +36,8 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
 
                 QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");  // 获取第一个捕获组的内容
 
-                //代码解释器的话，去除文本段前后的标点，并且过滤里面的内容
-                if (!content3.isEmpty() && ui_interpreter_ischecked) {
+                //去除文本段前后的标点，并且过滤里面的内容
+                if (!content3.isEmpty()) {
                     // 去除最前面的标点 { " ' ` }
                     while (content3.at(0) == QChar('`') || content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{')) {
                         content3 = content3.mid(1);
@@ -52,9 +52,9 @@ QPair<QString, QString> Widget::JSONparser(QString text) {
                     while (content3.at(content3.length() - 1) == QChar('`') || content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}')) {
                         content3.chop(1);
                     }
-
                     // 替换所有的 \" 为 "
                     content3 = content3.replace("\\\"", "\"");
+
                 }
 
                 func_arg_list.second = content3;

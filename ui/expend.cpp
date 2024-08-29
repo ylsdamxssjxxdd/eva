@@ -86,13 +86,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     // 文生图相关
     // 构建模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
-    SD_PARAMS sd_default_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_default_template = {"euler","","",512,512,20,1,-1,7.5,2};
     SD_PARAMS sd_sd1_5_anything_3_template = {"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,7.5,2};
     SD_PARAMS sd_sdxl_animagine_3_1_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_sd3_medium_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_flux1_dev_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_custom1_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
-    SD_PARAMS sd_custom2_template = {"euler_a","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_sd3_medium_template = {"euler","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_flux1_dev_template = {"euler","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_custom1_template = {"euler","","",512,512,20,1,-1,7.5,2};
+    SD_PARAMS sd_custom2_template = {"euler","","",512,512,20,1,-1,7.5,2};
 
     sd_params_templates.insert("default", sd_default_template);
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
@@ -1473,6 +1473,7 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
         vae_modelpath = vae_modelpath.replace("f16", "vae");
         vae_modelpath = vae_modelpath.replace("q8_0", "vae");
         vae_modelpath = vae_modelpath.replace("q4_0", "vae");
+        vae_modelpath = vae_modelpath.replace("gguf", "safetensors");
         if (QFile::exists(vae_modelpath) && vae_modelpath != modelpath) {ui->sd_vaepath_lineEdit->setText(vae_modelpath);}
         else{ui->sd_vaepath_lineEdit->setText("");}
 
@@ -1480,6 +1481,7 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
         clip_modelpath = clip_modelpath.replace("f16", "clip_l");
         clip_modelpath = clip_modelpath.replace("q8_0", "clip_l");
         clip_modelpath = clip_modelpath.replace("q4_0", "clip_l");
+        clip_modelpath = clip_modelpath.replace("gguf", "safetensors");
         if (QFile::exists(clip_modelpath) && clip_modelpath != modelpath) {ui->sd_clippath_lineEdit->setText(clip_modelpath);}
         else{ui->sd_clippath_lineEdit->setText("");}
 
@@ -1487,6 +1489,7 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
         t5_modelpath = t5_modelpath.replace("f16", "t5xxl");
         t5_modelpath = t5_modelpath.replace("q8_0", "t5xxl");
         t5_modelpath = t5_modelpath.replace("q4_0", "t5xxl");
+        t5_modelpath = t5_modelpath.replace("gguf", "safetensors");
         if (QFile::exists(t5_modelpath) && t5_modelpath != modelpath) {ui->sd_t5path_lineEdit->setText(t5_modelpath);}
         else{ui->sd_t5path_lineEdit->setText("");}
 
