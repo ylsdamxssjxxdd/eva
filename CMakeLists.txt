@@ -11,8 +11,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -21,13 +21,15 @@ option(BODY_32BIT "build 32 bit" OFF) # 编译32位的选项！不能装载超�
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
 elseif(GGML_CUDA)
-    add_compile_definitions(BODY_USE_CUDA) # 编译cuda的标志
-    add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
-    add_compile_definitions(GGML_USE_CUDA) # whisper用编译cuda的标志
+    add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
+    add_compile_definitions(BODY_USE_GPU) # 机体用GPU的标志
+    add_compile_definitions(GGML_USE_CUDA) # ggml用cuda的标志
+    add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
 elseif(GGML_VULKAN)
     find_package(Vulkan) # 不清楚为什么要放到这里才能找到，llama.cpp作为子项目自己找找不到
-    add_compile_definitions(BODY_USE_VULKAN) # 编译VULKAN的标志
-    add_compile_definitions(BODY_USE_GPU) # 使用GPU的标志
+    add_compile_definitions(BODY_USE_VULKAN) # 机体用VULKAN的标志
+    add_compile_definitions(BODY_USE_GPU) # 机体用GPU的标志
+    add_definitions(-DSD_USE_VULKAN) # sd使用vulkan
 else() 
     # 什么都没有默认编译cpu版本
 endif()
@@ -49,7 +51,6 @@ if(MSVC)
         # 监视gpu部分
         list(APPEND extra_INCLUDES ui/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/nvml.lib) # 向extra_LIBS列表里添加文件
-        add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
         # 方便打包时找到cuda相关库
         find_package(CUDAToolkit)
         string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
@@ -76,7 +77,6 @@ elseif(UNIX)
         list(APPEND extra_INCLUDES ui/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
-        add_definitions(-DSD_USE_CUBLAS) # sd编译cuda版本的标志
         # 方便打包时找到cuda相关库
         find_package(CUDAToolkit)
         string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
@@ -104,7 +104,7 @@ add_definitions(-DGGML_MAX_NAME=128) # sd原项目支持必须
 
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
-# stable-diffusion.cpp-master-f5997a1
+# stable-diffusion.cpp-58d5473
 option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
@@ -115,8 +115,8 @@ if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
 endif()
 # add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
-add_subdirectory(llama.cpp/examples/main) # 测试用
-add_subdirectory(llama.cpp/examples/llava) # 测试用
+# add_subdirectory(llama.cpp/examples/main) # 测试用
+# add_subdirectory(llama.cpp/examples/llava) # 测试用
 # add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server

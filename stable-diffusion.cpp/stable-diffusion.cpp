@@ -41,6 +41,8 @@ const char* sampling_methods_str[] = {
     "DPM++ (2s)",
     "DPM++ (2M)",
     "modified DPM++ (2M)",
+    "iPNDM",
+    "iPNDM_v",
     "LCM",
 };
 
@@ -160,6 +162,15 @@ public:
         ggml_backend_metal_log_set_callback(ggml_log_callback_default, nullptr);
         backend = ggml_backend_metal_init();
 #endif
+#ifdef SD_USE_VULKAN
+        LOG_DEBUG("Using Vulkan backend");
+        for (int device = 0; device < ggml_backend_vk_get_device_count(); ++device) {
+            backend = ggml_backend_vk_init(device);
+        }
+        if(!backend) {
+            LOG_WARN("Failed to initialize Vulkan backend");
+        }
+#endif
 #ifdef SD_USE_SYCL
         LOG_DEBUG("Using SYCL backend");
         backend = ggml_backend_sycl_init(0);
@@ -170,7 +181,7 @@ public:
             backend = ggml_backend_cpu_init();
         }
 #ifdef SD_USE_FLASH_ATTENTION
-#if defined(SD_USE_CUBLAS) || defined(SD_USE_METAL) || defined(SD_USE_SYCL)
+#if defined(SD_USE_CUBLAS) || defined(SD_USE_METAL) || defined (SD_USE_SYCL) || defined(SD_USE_VULKAN)
         LOG_WARN("Flash Attention not supported with GPU Backend");
 #else
         LOG_INFO("Flash Attention enabled");
@@ -254,7 +265,7 @@ public:
 
         LOG_INFO("Weight type:                 %s", ggml_type_name(model_wtype));
         LOG_INFO("Conditioner weight type:     %s", ggml_type_name(conditioner_wtype));
-        LOG_INFO("Diffsuion model weight type: %s", ggml_type_name(diffusion_model_wtype));
+        LOG_INFO("Diffusion model weight type: %s", ggml_type_name(diffusion_model_wtype));
         LOG_INFO("VAE weight type:             %s", ggml_type_name(vae_wtype));
 
         LOG_DEBUG("ggml tensor size = %d bytes", (int)sizeof(ggml_tensor));
@@ -527,9 +538,18 @@ public:
                     LOG_INFO("running with Karras schedule");
                     denoiser->schedule = std::make_shared<KarrasSchedule>();
                     break;
+                case EXPONENTIAL:
+                    LOG_INFO("running exponential schedule");
+                    denoiser->schedule = std::make_shared<ExponentialSchedule>();
+                    break;
                 case AYS:
                     LOG_INFO("Running with Align-Your-Steps schedule");
                     denoiser->schedule          = std::make_shared<AYSSchedule>();
+                    denoiser->schedule->version = version;
+                    break;
+                case GITS:
+                    LOG_INFO("Running with GITS schedule");
+                    denoiser->schedule          = std::make_shared<GITSSchedule>();
                     denoiser->schedule->version = version;
                     break;
                 case DEFAULT:

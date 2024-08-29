@@ -32,6 +32,10 @@
 #include "ggml-metal.h"
 #endif
 
+#ifdef SD_USE_VULKAN
+#include "ggml-vulkan.h"
+#endif
+
 #ifdef SD_USE_SYCL
 #include "ggml-sycl.h"
 #endif
@@ -349,6 +353,12 @@ __STATIC_INLINE__ void ggml_split_tensor_2d(struct ggml_tensor* input,
     }
 }
 
+// unclamped -> expects x in the range [0-1]
+__STATIC_INLINE__ float ggml_smootherstep_f32(const float x) {
+    GGML_ASSERT(x >= 0.f && x <= 1.f);
+    return x * x * x * (x * (6.0f * x - 15.0f) + 10.0f);
+}
+
 __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
                                             struct ggml_tensor* output,
                                             int x,
@@ -357,6 +367,10 @@ __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
     int64_t width    = input->ne[0];
     int64_t height   = input->ne[1];
     int64_t channels = input->ne[2];
+
+    int64_t img_width    = output->ne[0];
+    int64_t img_height   = output->ne[1];
+
     GGML_ASSERT(input->type == GGML_TYPE_F32 && output->type == GGML_TYPE_F32);
     for (int iy = 0; iy < height; iy++) {
         for (int ix = 0; ix < width; ix++) {
@@ -364,16 +378,23 @@ __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
                 float new_value = ggml_tensor_get_f32(input, ix, iy, k);
                 if (overlap > 0) {  // blend colors in overlapped area
                     float old_value = ggml_tensor_get_f32(output, x + ix, y + iy, k);
-                    if (x > 0 && ix < overlap) {  // in overlapped horizontal
-                        ggml_tensor_set_f32(output, old_value + (new_value - old_value) * (ix / (1.0f * overlap)), x + ix, y + iy, k);
-                        continue;
-                    }
-                    if (y > 0 && iy < overlap) {  // in overlapped vertical
-                        ggml_tensor_set_f32(output, old_value + (new_value - old_value) * (iy / (1.0f * overlap)), x + ix, y + iy, k);
-                        continue;
-                    }
+
+                    const float x_f_0 = (x > 0) ? ix / float(overlap) : 1;
+                    const float x_f_1 = (x < (img_width - width)) ? (width - ix) / float(overlap) : 1 ;
+                    const float y_f_0 = (y > 0) ? iy / float(overlap) : 1;
+                    const float y_f_1 = (y < (img_height - height)) ? (height - iy) / float(overlap) : 1;
+
+                    const float x_f = std::min(std::min(x_f_0, x_f_1), 1.f);
+                    const float y_f = std::min(std::min(y_f_0, y_f_1), 1.f);
+
+                    ggml_tensor_set_f32(
+                        output,
+                        old_value + new_value * ggml_smootherstep_f32(y_f) * ggml_smootherstep_f32(x_f),
+                        x + ix, y + iy, k
+                    );
+                } else {
+                    ggml_tensor_set_f32(output, new_value, x + ix, y + iy, k);
                 }
-                ggml_tensor_set_f32(output, new_value, x + ix, y + iy, k);
             }
         }
     }
@@ -655,7 +676,7 @@ __STATIC_INLINE__ struct ggml_tensor* ggml_nn_attention(struct ggml_context* ctx
                                                         struct ggml_tensor* k,
                                                         struct ggml_tensor* v,
                                                         bool mask = false) {
-#if defined(SD_USE_FLASH_ATTENTION) && !defined(SD_USE_CUBLAS) && !defined(SD_USE_METAL) && !defined(SD_USE_SYCL)
+#if defined(SD_USE_FLASH_ATTENTION) && !defined(SD_USE_CUBLAS) && !defined(SD_USE_METAL) && !defined(SD_USE_VULKAN) && !defined(SD_USE_SYCL)
     struct ggml_tensor* kqv = ggml_flash_attn(ctx, q, k, v, false);  // [N * n_head, n_token, d_head]
 #else
     float d_head = (float)q->ne[0];

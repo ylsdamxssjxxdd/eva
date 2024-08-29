@@ -289,16 +289,32 @@ struct Syncrate_Manager {
 #define DEFAULT_SD_NOISE "0.75"   //噪声系数
 
 struct SD_PARAMS {
-    QString sample_type = "euler"; //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
-    QString negative_prompt = "";  //反向提示词
-    QString modify_prompt = "";  //修饰词
-    int width = 512; //图像宽度
-    int height = 512;  //图像高度
-    int steps = 20;  //采样步数
-    int batch_count = 1; //出图张数
-    int seed = -1; //随机数种子 -1随机
-    int clip_skip = -1;  //跳层 
-    float cfg_scale = 7.5; //提示词与图像相关系数
+    QString sample_type; //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
+    QString negative_prompt;  //反向提示词
+    QString modify_prompt;  //修饰词
+    int width; //图像宽度
+    int height;  //图像高度
+    int steps;  //采样步数
+    int batch_count; //出图张数
+    int seed; //随机数种子 -1随机
+    int clip_skip;  //跳层 
+    float cfg_scale; //提示词与图像相关系数
+
+    // 构造函数
+    SD_PARAMS(
+        QString sample_type = "euler", 
+        QString negative_prompt = "",  
+        QString modify_prompt = "",  
+        int width = 512, 
+        int height = 512,  
+        int steps = 20,  
+        int batch_count = 1, 
+        int seed = -1, 
+        int clip_skip = -1,  
+        float cfg_scale = 7.5
+    ) : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt),
+        width(width), height(height), steps(steps), batch_count(batch_count),
+        seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}
 };
 
 #endif

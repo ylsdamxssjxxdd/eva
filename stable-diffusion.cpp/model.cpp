@@ -21,6 +21,10 @@
 #include "ggml-metal.h"
 #endif
 
+#ifdef SD_USE_VULKAN
+#include "ggml-vulkan.h"
+#endif
+
 #define ST_HEADER_SIZE_LEN 8
 
 uint64_t read_u64(uint8_t* buffer) {
@@ -1740,11 +1744,14 @@ bool ModelLoader::tensor_should_be_converted(const TensorStorage& tensor_storage
             // Pass, do not convert
         } else if (ends_with(name, ".bias")) {
             // Pass, do not convert
+        } else if (ends_with(name, ".scale")) {
+            // Pass, do not convert
         } else if (contains(name, "img_in.") ||
-                   contains(name, "time_in.in_layer.") ||
-                   contains(name, "vector_in.in_layer.") ||
-                   contains(name, "guidance_in.in_layer.") ||
-                   contains(name, "final_layer.linear.")) {
+                   contains(name, "txt_in.") ||
+                   contains(name, "time_in.") ||
+                   contains(name, "vector_in.") ||
+                   contains(name, "guidance_in.") ||
+                   contains(name, "final_layer.")) {
             // Pass, do not convert. For FLUX
         } else if (contains(name, "x_embedder.") ||
                    contains(name, "t_embedder.") ||
