@@ -12,7 +12,7 @@ xBot::xBot() {
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;     // gpu负载层数
     gpt_params_.model = "";                     //模型路径
-    gpt_params_.n_threads = DEFAULT_NTHREAD;    //默认使用一半的线程数
+    gpt_params_.cpuparams.n_threads = DEFAULT_NTHREAD;    //默认使用一半的线程数
     gpt_params_.n_ctx = DEFAULT_NCTX;           //上下文最大长度
     gpt_params_.n_batch = DEFAULT_BATCH;        //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
 
@@ -555,7 +555,7 @@ void xBot::preDecodeImage(QString image_path)
         int n_past_orin = n_past;
 
         // 将图像转为token
-        llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.n_threads, imagepath.c_str());
+        llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, gpt_params_.cpuparams.n_threads, imagepath.c_str());
         
         // 预处理图像(分隔+预解码)
         bool ok_ = process_image(ctx, ctx_clip, image_embeds, gpt_params_, n_past);
@@ -1003,8 +1003,8 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     }
 
     //如果线程数改变则重新加载模型
-    if (gpt_params_.n_threads != settings.nthread) {
-        gpt_params_.n_threads = settings.nthread;
+    if (gpt_params_.cpuparams.n_threads != settings.nthread) {
+        gpt_params_.cpuparams.n_threads = settings.nthread;
         reload_flag = true;
     }
     //如果ctx改变则重新加载模型
