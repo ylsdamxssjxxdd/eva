@@ -129,7 +129,7 @@ class gpuChecker : public QObject {
 #ifdef BODY_USE_CUDA
         nvmlInit();                              // 初始化NVML库
         nvmlDeviceGetHandleByIndex(0, &device);  // 获取第一个GPU的句柄
-#else
+#elif BODY_USE_GPU
         // 判断显卡类型
         gpu_vendor = getGpuVendor();
         qDebug() << gpu_vendor;

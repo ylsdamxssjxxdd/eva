@@ -88,15 +88,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     // 文生图相关
     // 构建模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
 
-    SD_PARAMS sd_default_template{"euler","","",512,512,20,1,-1,-1,7.5};
     SD_PARAMS sd_sd1_5_anything_3_template{"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
-    SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,20,1,-1,2,7.5};
-    SD_PARAMS sd_sd3_medium_template{"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,30,1,-1,-1,7.0};
-    SD_PARAMS sd_flux1_dev_template{"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,-1,1.0};
+    SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,30,1,-1,2,7.5};
+    SD_PARAMS sd_sd3_medium_template{"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",768,768,30,1,-1,-1,5.0};
+    SD_PARAMS sd_flux1_dev_template{"euler","","",768,768,30,1,-1,-1,1.0};
     SD_PARAMS sd_custom1_template{"euler","","",512,512,20,1,-1,-1,7.5};
     SD_PARAMS sd_custom2_template{"euler","","",512,512,20,1,-1,-1,7.5};
 
-    sd_params_templates.insert("default", sd_default_template);
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
     sd_params_templates.insert("sdxl-animagine-3.1", sd_sdxl_animagine_3_1_template);
     sd_params_templates.insert("sd3-medium", sd_sd3_medium_template);
@@ -107,7 +105,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     for (const auto& key : sd_params_templates.keys()) {
         ui->params_template_comboBox->addItem(key); // 添加模板选项
     }
-
 
     //记忆矩阵相关
     ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  //让表格自动撑满所在区域
@@ -386,7 +383,7 @@ void Expend::readConfig() {
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         // 读取配置文件中的值
-        QString sd_params_template = settings.value("sd_params_template", "default").toString();       // 参数模板
+        QString sd_params_template = settings.value("sd_params_template", "custom1").toString();       // 参数模板
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();              // sd模型路径
         QString vae_modelpath = settings.value("vae_modelpath", "").toString();            // vae模型路径
         QString clip_modelpath = settings.value("clip_modelpath", "").toString();            // clip模型路径
@@ -1675,10 +1672,11 @@ void Expend::on_sd_draw_pushButton_clicked() {
     {
         QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
         QString lora_directoryPath = lorafileInfo.absolutePath();// 提取lora目录路径
+        QString lora_name = lorafileInfo.fileName().replace(".safetensors","");
         if(lora_directoryPath != "")
         {
             arguments << "--lora-model-dir" << lora_directoryPath;
-            lora_prompt.replace("{model}",lorafileInfo.fileName());
+            lora_prompt.replace("{model}",lora_name);
         }
     }
 

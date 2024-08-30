@@ -55,8 +55,8 @@ struct INPUTS {
 
 //推理
 #ifdef BODY_USE_32BIT
-#define DEFAULT_NCTX 256
-#define DEFAULT_BATCH 32
+#define DEFAULT_NCTX 1024
+#define DEFAULT_BATCH 64
 #else
 #define DEFAULT_NCTX 4096
 #define DEFAULT_BATCH 2048
@@ -298,7 +298,7 @@ struct SD_PARAMS {
     int batch_count; //出图张数
     int seed; //随机数种子 -1随机
     int clip_skip;  //跳层 
-    float cfg_scale; //提示词与图像相关系数
+    double cfg_scale; //提示词与图像相关系数
 
     // 构造函数
     SD_PARAMS(
@@ -311,7 +311,7 @@ struct SD_PARAMS {
         int batch_count = 1, 
         int seed = -1, 
         int clip_skip = -1,  
-        float cfg_scale = 7.5
+        double cfg_scale = 7.5
     ) : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt),
         width(width), height(height), steps(steps), batch_count(batch_count),
         seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}

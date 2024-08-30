@@ -12,11 +12,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
-option(BODY_32BIT "build 32 bit" OFF) # 编译32位的选项！不能装载超过1G的模型
+option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON)
+option(BODY_32BIT "build 32 bit" ON) # 已废弃不再支持，编译32位的选项！不能装载超过1G的模型
 # 这几个标志是互斥的
 if(BODY_32BIT)
     add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
@@ -67,6 +68,7 @@ elseif(MINGW)
     
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -std=c++11 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
+
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
@@ -105,7 +107,6 @@ add_definitions(-DGGML_MAX_NAME=128) # sd原项目支持必须
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
 # stable-diffusion.cpp-58d5473
-option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" ON)
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 
