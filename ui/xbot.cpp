@@ -630,9 +630,6 @@ void xBot::load(QString modelpath_) {
     //使用mmp后gpu负载无法分担内存占用
     gpt_params_.use_mmap = true;
 
-#ifdef BODY_USE_32BIT
-    gpt_params_.use_mmap = false;  // 32位不能mmp
-#endif
     if (vram_enough) {
         emit bot2ui_state("bot:" + jtr("vram enough, gpu offload auto set max"), SUCCESS_SIGNAL);
         vram_enough = false;

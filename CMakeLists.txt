@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3644) # 打包版本
+set(version b3645) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
@@ -17,11 +17,8 @@ option(GGML_VULKAN                   "ggml: use Vulkan"                         
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON)
-option(BODY_32BIT "build 32 bit" ON) # 已废弃不再支持，编译32位的选项！不能装载超过1G的模型
 # 这几个标志是互斥的
-if(BODY_32BIT)
-    add_compile_definitions(BODY_USE_32BIT) # 编译32位的标志
-elseif(GGML_CUDA)
+if(GGML_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 机体用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # ggml用cuda的标志
@@ -163,9 +160,7 @@ ui/utils/gpuchecker.h ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui
 llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
 
-if(BODY_32BIT)
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-32bit")
-elseif(GGML_VULKAN)
+if(GGML_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
 elseif(GGML_CUDA)
     message(STATUS "CUDA version: ${CUDA_VERSION}")

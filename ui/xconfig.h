@@ -54,13 +54,8 @@ struct INPUTS {
 #define DEFAULT_REPEAT 1.2
 
 //推理
-#ifdef BODY_USE_32BIT
-#define DEFAULT_NCTX 1024
-#define DEFAULT_BATCH 64
-#else
 #define DEFAULT_NCTX 4096
 #define DEFAULT_BATCH 2048
-#endif
 
 #define DEFAULT_NTHREAD 1
 #define DEFAULT_NGL 0
