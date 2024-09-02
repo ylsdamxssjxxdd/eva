@@ -47,6 +47,8 @@ class xBot : public QObject {
     llama_model_params hparams;       //模型内部参数
     gpt_params gpt_params_;           //控制模型的参数,内含控制采样的参数sparams
     llama_sampling_context *sparams;  //采样用参数
+    struct ggml_threadpool * threadpool = NULL; // 线程池，文字生成
+    struct ggml_threadpool * threadpool_batch = NULL; // 线程池，上文处理
 
     llama_model *model;  //模型
     llama_context *ctx;  //上下文
@@ -128,7 +130,6 @@ class xBot : public QObject {
     bool is_debuging = false;              // debug中状态
     int debuging_one = 0;                  // debuging时控制循环只进行一次
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
-    bool showSpecial = true;               // 是否显示特殊标志
 
    public slots:
     void recv_stop();//接受停止信号
@@ -166,46 +167,3 @@ class xBot : public QObject {
 };
 
 #endif  // XBOT_H
-
-
-//-------------------------------------------------------------------------
-//----------------------------------多后端支持--------------------------------
-//-------------------------------------------------------------------------
-
-// // 定义函数指针类型
-// typedef struct llama_model* (*llama_load_model_from_file_t)(const char *path_model, struct llama_model_params params);
-// typedef struct llama_context* (*llama_new_context_with_model_t)(struct llama_model * model, struct llama_context_params params);
-// typedef bool (*llava_eval_image_embed_t)(struct llama_context * ctx_llama, const struct llava_image_embed * embed, int n_batch, int * n_past);
-// typedef struct clip_ctx * (*clip_model_load_t)(const char * fname, int verbosity);
-
-// 定义函数指针
-// llama_load_model_from_file_t llama_load_model_from_file_;
-// llama_new_context_with_model_t llama_new_context_with_model_;
-// llava_eval_image_embed_t llava_eval_image_embed_;
-// clip_model_load_t clip_model_load_;
-
-// // 动态加载
-// QString accelerate = "cuda";
-// QString libraryPath_ggml = applicationDirPath_ + "/llama-dll/ggml-" + accelerate;
-// QString libraryPath_llama = applicationDirPath_ + "/llama-dll/llama-" + accelerate;
-// QString libraryPath_llava_shared = applicationDirPath_ + "/llama-dll/llava_shared-" + accelerate;
-
-// QLibrary ggml_Lib(libraryPath_ggml);// 加载DLL
-// if (!ggml_Lib.load()) {qDebug()<<"Failed to load the DLL." << ggml_Lib.errorString();}
-
-// QLibrary llama_Lib(libraryPath_llama);// 加载DLL
-// if (!llama_Lib.load()) {qDebug()<<"Failed to load the DLL." << llama_Lib.errorString();}
-
-// QLibrary llava_shared_Lib(libraryPath_llava_shared);// 加载DLL
-// if (!llava_shared_Lib.load()) {qDebug()<<"Failed to load the DLL." << llava_shared_Lib.errorString();}
-
-// // 获取函数指针
-// llama_load_model_from_file_ = (llama_load_model_from_file_t)llama_Lib.resolve("llama_load_model_from_file");
-// llama_new_context_with_model_ = (llama_new_context_with_model_t)llama_Lib.resolve("llama_new_context_with_model");
-// if (!llama_load_model_from_file_) {qDebug()<<"Failed to resolve the function llama_load_model_from_file_.";}
-// if (!llama_new_context_with_model_) {qDebug()<<"Failed to resolve the function llama_new_context_with_model_.";}
-
-// llava_eval_image_embed_ = (llava_eval_image_embed_t)llava_shared_Lib.resolve("llava_eval_image_embed");
-// if (!llava_eval_image_embed_) {qDebug()<<"Failed to resolve the function llava_eval_image_embed.";}
-// clip_model_load_ = (clip_model_load_t)llava_shared_Lib.resolve("clip_model_load");
-// if (!clip_model_load_) {qDebug()<<"Failed to resolve the function clip_model_load.";}

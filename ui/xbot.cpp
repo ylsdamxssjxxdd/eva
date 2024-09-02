@@ -4,15 +4,15 @@
 #include "xbot.h"
 
 xBot::xBot() {
-    log_disable();                                    //禁止llama.cpp输出日志文件
+    log_disable();                                //禁止llama.cpp输出日志文件
     llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
-    showSpecial = true;  // 是否显示特殊标志 <bos> <eos> <eot>
 
     //初始的模型参数
     gpt_params_.n_gpu_layers = DEFAULT_NGL;     // gpu负载层数
     gpt_params_.model = "";                     //模型路径
-    gpt_params_.cpuparams.n_threads = DEFAULT_NTHREAD;    //默认使用一半的线程数
+    gpt_params_.cpuparams.n_threads = DEFAULT_NTHREAD;  //文字生成线程数，默认使用一半的线程数
+    gpt_params_.cpuparams_batch.n_threads = DEFAULT_NTHREAD;  //上文处理线程数，为了简单，与文字生成线程数保持一致
     gpt_params_.n_ctx = DEFAULT_NCTX;           //上下文最大长度
     gpt_params_.n_batch = DEFAULT_BATCH;        //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
 
@@ -622,6 +622,8 @@ void xBot::load(QString modelpath_) {
         model = nullptr;
         emit bot2ui_kv(0, n_past);  //新增,当前没有缓存
         Brain_vector.clear();
+        ggml_threadpool_free(threadpool);
+        ggml_threadpool_free(threadpool_batch);
         emit bot2expend_brainvector(Brain_vector, gpt_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
         emit bot2ui_state("bot:" + jtr("free model and ctx"));
     } else {
@@ -653,6 +655,28 @@ void xBot::load(QString modelpath_) {
     llama_init_result llama_init = llama_init_from_gpt_params(gpt_params_);
     model = llama_init.model;
     ctx = llama_init.context;
+    
+    //创建线程池
+    struct ggml_threadpool_params tpp_batch = ggml_threadpool_params_from_cpu_params(gpt_params_.cpuparams_batch);
+    struct ggml_threadpool_params tpp = ggml_threadpool_params_from_cpu_params(gpt_params_.cpuparams);
+    if (!ggml_threadpool_params_match(&tpp, &tpp_batch)) 
+    {
+        threadpool_batch = ggml_threadpool_new(&tpp_batch);
+        if (!threadpool_batch) // 线程池创建失败
+        {
+            is_first_load = true;
+            emit bot2ui_loadover(false, 0);
+            emit bot2ui_state(jtr("eva broken"), EVA_SIGNAL);
+            emit bot2ui_state("bot:batch threadpool create failed", WRONG_SIGNAL);
+            return;
+        }
+        // Start the non-batch threadpool in the paused state
+        tpp.paused = true;
+    }
+    set_process_priority(gpt_params_.cpuparams.priority);
+    ggml_threadpool_params_match(&tpp, &tpp_batch);
+    threadpool = ggml_threadpool_new(&tpp);
+    llama_attach_threadpool(ctx, threadpool, threadpool_batch);
 
     //挂载视觉
     if (mmprojpath != "") {
@@ -855,10 +879,7 @@ void xBot::preDecodeSystemPrompt() {
 
         std::string str;
         str = llama_token_to_piece(ctx, token);
-        if (!showSpecial && (token == eos_token || token == eot_token || token == bos_token)) {
-        } else {
-            token_str += str;
-        }
+        token_str += str;
         Brain_vector.push_back({i + 1, token, QString::fromStdString(str)});
         // qDebug()<<token<<QString::fromStdString(llama_token_to_piece(ctx, token));
     }
@@ -954,10 +975,7 @@ void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int cont
         for (int i = 0; i < embd_output.size(); ++i) {
             const llama_token token = embd_output[i];
             std::string str = llama_token_to_piece(ctx, token);
-            if (!showSpecial && (token == eos_token || token == eot_token || token == bos_token)) {
-            } else {
-                token_str += str;
-            }
+            token_str += str;
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
         if (input.role == ROLE_TOOL) {
@@ -1013,6 +1031,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     //如果线程数改变则重新加载模型
     if (gpt_params_.cpuparams.n_threads != settings.nthread) {
         gpt_params_.cpuparams.n_threads = settings.nthread;
+        gpt_params_.cpuparams_batch.n_threads = settings.nthread;
         reload_flag = true;
     }
     //如果ctx改变则重新加载模型
