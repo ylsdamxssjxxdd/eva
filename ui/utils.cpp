@@ -536,23 +536,11 @@ bool Widget::createTempDirectory(const QString& path) {
         }
     }
 }
-//解决打开选择文件窗口异常大的问题
+
+// 打开文件夹
 QString Widget::customOpenfile(QString dirpath, QString describe, QString format) {
     QString filepath = "";
-#if defined(_WIN32)
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
-#else
-    QFileDialog dlg(NULL, describe);
-    dlg.setDirectory(dirpath);                              //默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);  //不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);
-    dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter(format);  //筛选格式
-    if (dlg.exec() == QDialog::Accepted) {
-        filepath = dlg.selectedFiles().first();
-    }  //只要一个文件
-#endif
-
     return filepath;
 }
 

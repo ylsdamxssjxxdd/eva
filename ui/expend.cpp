@@ -34,9 +34,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
 
-    // ui->sd_pathset_groupBox->setStyleSheet("QGroupBox::title { font-weight: bold;}");// 设置 QGroupBox 标题字体加粗
-    // ui->sd_pathset_groupBox->setStyleSheet(ui->sd_pathset_groupBox->styleSheet() + " QGroupBox { background-color: purple;}");// 设置 QGroupBox 的背景颜色
-
     //塞入第三方exe
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);                                              //连接开始信号
@@ -86,7 +83,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
 
     // 文生图相关
-    // 构建模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
+    // 构建模板 sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
 
     SD_PARAMS sd_sd1_5_anything_3_template{"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
     SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,30,1,-1,2,7.5};
@@ -139,20 +136,13 @@ bool Expend::createTempDirectory(const QString &path) {
     }
 }
 
-//传递llama.cpp的log
+//传递llama.cpp的log，显示模型日志
 void Expend::recv_llama_log(QString log) {
-    QDateTime currentDateTime = QDateTime::currentDateTime();
-    QString dateTimeString = currentDateTime.toString("hh:mm:ss  ");
+    QTextCursor cursor = ui->modellog_card->textCursor();
+    cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+    cursor.insertText(log);
+    ui->modellog_card->setTextCursor(cursor);
 
-    if (log.contains("failed to load model"))  //提示用户不能有中文
-    {
-        log = jtr("failed to load model mess");  //单条记录
-    } else {
-        log.remove("\n");
-        log = dateTimeString + log;  //单条记录
-    }
-
-    ui->modellog_card->appendPlainText(log);
 }
 
 // 根据language.json和language_flag中找到对应的文字
@@ -352,19 +342,7 @@ void Expend::recv_expend_show(int index_) {
 
 QString Expend::customOpenfile(QString dirpath, QString describe, QString format) {
     QString filepath = "";
-#if defined(_WIN32)
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
-#else
-    QFileDialog dlg(NULL, describe);
-    dlg.setDirectory(dirpath);                              //默认打开路径
-    dlg.setOption(QFileDialog::DontUseNativeDialog, true);  //不使用系统原生的窗口
-    dlg.setFileMode(QFileDialog::ExistingFile);
-    dlg.setAcceptMode(QFileDialog::AcceptOpen);
-    dlg.setNameFilter(format);  //筛选格式
-    if (dlg.exec() == QDialog::Accepted) {
-        filepath = dlg.selectedFiles().first();
-    }  //只要一个文件
-#endif
 
     return filepath;
 }

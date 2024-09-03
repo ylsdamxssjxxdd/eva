@@ -22,7 +22,7 @@ xBot::xBot() {
     gpt_params_.sparams.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
     gpt_params_.sparams.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
     gpt_params_.sparams.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
-    gpt_params_.flash_attn = true;  // gpu默认开启flash_attn
+    gpt_params_.flash_attn = true;  // 默认开启flash_attn
 
     qDebug() << "bot init over";
 }
@@ -1315,6 +1315,13 @@ void xBot::get_default_templete_chat_format()
 {
     // -------------提取原项目默认对话模板内容--------------
     if(!is_load){return;}
+
+    //处理用户给过来的约定指令、用户昵称和模型昵称为空的情况，用空格代替约定指令，避免闪退
+    if(bot_date.date_prompt == "" && bot_date.user_name == "" && bot_date.model_name == "")
+    {
+        bot_date.date_prompt = " ";
+    }
+
     // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
     std::vector<llama_chat_msg> msgs = {
         {"system",    bot_date.date_prompt.toStdString()},
@@ -1326,7 +1333,7 @@ void xBot::get_default_templete_chat_format()
 
     QString default_template_content = QString::fromStdString(llama_chat_apply_template(model, "", msgs, true));
     // std::cout << llama_chat_apply_template(model, "", msgs, true) << std::endl;
-
+    
     // 提取系统指令
     QStringList split1 = default_template_content.split(bot_date.date_prompt);
     bot_chat.system_prompt = split1[0] + bot_date.date_prompt;
@@ -1337,7 +1344,6 @@ void xBot::get_default_templete_chat_format()
     // 提取输入后缀
     QStringList split3 = split2[1].split("Hi2");
     bot_chat.input_suffix = split3[0];
-
     emit bot2ui_chat_format(bot_chat);
 
     // qDebug()<<system_prompt;
