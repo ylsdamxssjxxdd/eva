@@ -1276,7 +1276,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
     }
     int W = width / 8;
     int H = height / 8;
-    LOG_INFO("sampling using %s method", sampling_methods_str[sample_method]);
+    // LOG_INFO("sampling using %s method", sampling_methods_str[sample_method]);
     for (int b = 0; b < batch_count; b++) {
         int64_t sampling_start = ggml_time_ms();
         int64_t cur_seed       = seed + b;

@@ -61,7 +61,6 @@ inline bool mmap::open(const char *path) {
 ```
 
 ### stable-diffusion.cpp
-- cmakelists.txt中删除add_subdirectory(ggml)
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 
 ### whisper.cpp

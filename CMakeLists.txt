@@ -104,7 +104,7 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
-# stable-diffusion.cpp-58d5473
+# stable-diffusion.cpp-e410aeb
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 
