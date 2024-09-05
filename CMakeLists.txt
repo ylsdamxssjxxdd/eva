@@ -104,6 +104,7 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
+# whisper.cpp-5236f02
 add_subdirectory(whisper.cpp) # 添加whisper.dll
 add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
 
