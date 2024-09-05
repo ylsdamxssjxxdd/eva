@@ -3346,29 +3346,33 @@ static size_t llama_get_device_count(const llama_model & model) {
 static ggml_backend_buffer_type_t llama_default_buffer_type_offload(const llama_model & model, int gpu) {
     ggml_backend_buffer_type_t buft = nullptr;
 
-#if defined(GGML_USE_RPC)
-    int dev_count = (int)llama_get_device_count(model);
+#ifdef GGML_USE_RPC
     int rpc_count = (int)model.rpc_servers.size();
-    if (gpu >= dev_count - rpc_count) {
-        const char * endpoint = model.rpc_servers[gpu - dev_count + rpc_count].c_str();
+#else
+    int rpc_count = 0;
+#endif
+    int local_gpu = gpu - rpc_count;
+#if defined(GGML_USE_RPC)
+    if (gpu < rpc_count) {
+        const char * endpoint = model.rpc_servers[gpu].c_str();
         return ggml_backend_rpc_buffer_type(endpoint);
     }
 #endif
 #if defined(GGML_USE_METAL)
     buft = ggml_backend_metal_buffer_type();
 #elif defined(GGML_USE_CUDA)
-    buft = ggml_backend_cuda_buffer_type(gpu);
+    buft = ggml_backend_cuda_buffer_type(local_gpu);
 #elif defined(GGML_USE_VULKAN)
-    buft = ggml_backend_vk_buffer_type(gpu);
+    buft = ggml_backend_vk_buffer_type(local_gpu);
 #elif defined(GGML_USE_SYCL)
-    buft = ggml_backend_sycl_buffer_type(gpu);
+    buft = ggml_backend_sycl_buffer_type(local_gpu);
 #elif defined(GGML_USE_KOMPUTE)
-    buft = ggml_backend_kompute_buffer_type(gpu);
+    buft = ggml_backend_kompute_buffer_type(local_gpu);
     if (buft == nullptr) {
-        LLAMA_LOG_WARN("%s: cannot use GPU %d, check `vulkaninfo --summary`\n", __func__, gpu);
+        LLAMA_LOG_WARN("%s: cannot use GPU %d, check `vulkaninfo --summary`\n", __func__, local_gpu);
     }
 #elif defined(GGML_USE_CANN)
-    buft = ggml_backend_cann_buffer_type(gpu);
+    buft = ggml_backend_cann_buffer_type(local_gpu);
 #endif
 
     if (buft == nullptr) {
@@ -3376,7 +3380,7 @@ static ggml_backend_buffer_type_t llama_default_buffer_type_offload(const llama_
     }
     return buft;
     GGML_UNUSED(model);
-    GGML_UNUSED(gpu);
+    GGML_UNUSED(local_gpu);
 }
 
 static ggml_backend_buffer_type_t llama_default_buffer_type_split(const llama_model & model, int fallback_gpu, const float * tensor_split) {
@@ -3403,13 +3407,17 @@ static ggml_backend_buffer_type_t llama_default_buffer_type_split(const llama_mo
 }
 
 static size_t llama_get_device_memory(const llama_model & model, int device) {
-#if defined(GGML_USE_RPC)
-    int dev_count = (int)llama_get_device_count(model);
+#ifdef GGML_USE_RPC
     int rpc_count = (int)model.rpc_servers.size();
-    if (device >= dev_count - rpc_count) {
+#else
+    int rpc_count = 0;
+#endif
+    int local_device = device - rpc_count;
+#if defined(GGML_USE_RPC)
+    if (device < rpc_count) {
         size_t total;
         size_t free;
-        const char * endpoint = model.rpc_servers[device - dev_count + rpc_count].c_str();
+        const char * endpoint = model.rpc_servers[device].c_str();
         ggml_backend_rpc_get_device_memory(endpoint, &free, &total);
         return free;
     }
@@ -3417,28 +3425,28 @@ static size_t llama_get_device_memory(const llama_model & model, int device) {
 #if defined(GGML_USE_CUDA)
     size_t total;
     size_t free;
-    ggml_backend_cuda_get_device_memory(device, &free, &total);
+    ggml_backend_cuda_get_device_memory(local_device, &free, &total);
     return free;
 #elif defined(GGML_USE_SYCL)
     size_t total;
     size_t free;
-    ggml_backend_sycl_get_device_memory(device, &free, &total);
+    ggml_backend_sycl_get_device_memory(local_device, &free, &total);
     return free;
 #elif defined(GGML_USE_VULKAN)
     size_t total;
     size_t free;
-    ggml_backend_vk_get_device_memory(device, &free, &total);
+    ggml_backend_vk_get_device_memory(local_device, &free, &total);
     return free;
 #elif defined(GGML_USE_CANN)
     size_t total;
     size_t free;
-    ggml_backend_cann_get_device_memory(device, &free, &total);
+    ggml_backend_cann_get_device_memory(local_device, &free, &total);
     return free;
 #else
     return 1;
 #endif
     GGML_UNUSED(model);
-    GGML_UNUSED(device);
+    GGML_UNUSED(local_device);
 }
 
 //
@@ -3810,7 +3818,8 @@ static bool llama_kv_cache_seq_rm(
                 if ((0 < p0 && p0 <= cell.pos) || (0 < p1 && p1 <= cell.pos)) {
                     return false;
                 }
-                if (p0 <= cell.pos && p1 < cell.pos) {
+                // invalidate tails which will be cleared
+                if (p0 <= cell.pos && cell.pos < p1) {
                     tail_id = -1;
                 }
             }
@@ -8711,8 +8720,7 @@ static void llm_build_kv_store(
 
     GGML_ASSERT(kv.size == n_ctx);
 
-    struct ggml_tensor * k_cache_view = ggml_view_1d(ctx, kv.k_l[il], n_tokens*n_embd_k_gqa,
-            (ggml_row_size(kv.k_l[il]->type, n_embd_k_gqa))*kv_head);
+    struct ggml_tensor * k_cache_view = ggml_view_1d(ctx, kv.k_l[il], n_tokens*n_embd_k_gqa, ggml_row_size(kv.k_l[il]->type, n_embd_k_gqa)*kv_head);
     cb(k_cache_view, "k_cache_view", il);
 
     // note: storing RoPE-ed version of K in the KV cache
@@ -8723,8 +8731,7 @@ static void llm_build_kv_store(
     struct ggml_tensor * v_cache_view = nullptr;
 
     if (cparams.flash_attn) {
-        v_cache_view = ggml_view_1d(ctx, kv.v_l[il], n_tokens*n_embd_v_gqa,
-                (kv_head)*ggml_row_size(kv.v_l[il]->type, n_embd_v_gqa));
+        v_cache_view = ggml_view_1d(ctx, kv.v_l[il], n_tokens*n_embd_v_gqa, ggml_row_size(kv.v_l[il]->type, n_embd_v_gqa)*kv_head);
     } else {
         // note: the V cache is transposed when not using flash attention
         v_cache_view = ggml_view_2d(ctx, kv.v_l[il], n_tokens, n_embd_v_gqa,
@@ -9211,8 +9218,7 @@ static struct ggml_tensor * llm_build_kv(
 
     struct ggml_tensor * cur;
 
-    cur  = llm_build_kqv(ctx, lctx, kv, graph, wo, wo_b,
-            q_cur, kq_mask, n_tokens, n_kv, kq_scale, cb, il);
+    cur  = llm_build_kqv(ctx, lctx, kv, graph, wo, wo_b, q_cur, kq_mask, n_tokens, n_kv, kq_scale, cb, il);
     cb(cur, "kqv_out", il);
 
     return cur;
@@ -18188,6 +18194,20 @@ struct llama_context * llama_new_context_with_model(
 
     if (!hparams.vocab_only) {
         // initialize backends
+#if defined(GGML_USE_RPC)
+        if (model->n_gpu_layers > 0) {
+            for (const auto & endpoint : model->rpc_servers) {
+                ggml_backend_t backend = ggml_backend_rpc_init(endpoint.c_str());
+                if (backend == nullptr) {
+                    LLAMA_LOG_ERROR("%s: failed to initialize RPC to '%s'\n", __func__, endpoint.c_str());
+                    llama_free(ctx);
+                    return nullptr;
+                }
+                ctx->backends.push_back(backend);
+            }
+        }
+#endif
+
 #if defined(GGML_USE_METAL)
         if (model->n_gpu_layers > 0) {
             ctx->backend_metal = ggml_backend_metal_init();
@@ -18312,19 +18332,6 @@ struct llama_context * llama_new_context_with_model(
         }
 #endif
 
-#if defined(GGML_USE_RPC)
-        if (model->n_gpu_layers > 0) {
-            for (const auto & endpoint : model->rpc_servers) {
-                ggml_backend_t backend = ggml_backend_rpc_init(endpoint.c_str());
-                if (backend == nullptr) {
-                    LLAMA_LOG_ERROR("%s: failed to initialize RPC to '%s'\n", __func__, endpoint.c_str());
-                    llama_free(ctx);
-                    return nullptr;
-                }
-                ctx->backends.push_back(backend);
-            }
-        }
-#endif
         ctx->backend_cpu = ggml_backend_cpu_init();
         if (ctx->backend_cpu == nullptr) {
             LLAMA_LOG_ERROR("%s: failed to initialize CPU backend\n", __func__);

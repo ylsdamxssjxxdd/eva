@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<APIS>("APIS");
     
 
-    //------------------开启多线程 todo ------------------------
+    //------------------开启多线程 ------------------------
     QThread* gpuer_thread = new QThread;gpuer.moveToThread(gpuer_thread);gpuer_thread->start();
     QThread* cpuer_thread = new QThread;cpuer.moveToThread(cpuer_thread);cpuer_thread->start();
     QThread* bot_thread = new QThread;bot.moveToThread(bot_thread);bot_thread->start();
