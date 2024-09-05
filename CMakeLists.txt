@@ -12,7 +12,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
+option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -104,6 +104,9 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
+add_subdirectory(whisper.cpp) # 添加whisper.dll
+add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
+
 # stable-diffusion.cpp-e410aeb
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
@@ -119,14 +122,6 @@ endif()
 # add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
-
-set(TARGET_whisper whisper) # 添加whisper 当前版本 1.6.2
-find_package(Threads REQUIRED)
-add_executable(${TARGET_whisper} 
-whisper.cpp/main.cpp whisper.cpp/whisper.cpp whisper.cpp/common.cpp
-whisper.cpp/whisper.h whisper.cpp/common.h whisper.cpp/dr_wav.h
-llama.cpp/ggml/include/ggml.h llama.cpp/ggml/src/ggml-quants.h)
-target_link_libraries(${TARGET_whisper} PRIVATE llama ${CMAKE_THREAD_LIBS_INIT}) # 这里直接将whisper链接llama.cpp的llama库
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
@@ -170,9 +165,9 @@ else()
 endif()
 
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech Threads::Threads)
+target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper-cli llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
 
 # 后处理
 if(MSVC)
@@ -249,8 +244,9 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libwhisper.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
@@ -258,7 +254,7 @@ elseif(UNIX)
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper" "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
     endif()

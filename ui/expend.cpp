@@ -618,8 +618,8 @@ void Expend::closeEvent(QCloseEvent *event) {
 void Expend::on_whisper_load_modelpath_button_clicked() {
     currentpath = customOpenfile(currentpath, "choose whisper model", "(*.bin *.gguf)");
     whisper_params.model = currentpath.toStdString();
-    ui->whisper_load_modelpath_linedit->setText(QString::fromStdString(whisper_params.model));
-    emit expend2ui_whisper_modelpath(QString::fromStdString(whisper_params.model));
+    ui->whisper_load_modelpath_linedit->setText(currentpath);
+    emit expend2ui_whisper_modelpath(currentpath);
     ui->whisper_log->setPlainText(jtr("once selected, you can record by pressing f2"));
 }
 
@@ -629,32 +629,24 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
 
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/whisper") + SFX_NAME;
+    QString localPath = QString(appDirPath + "/usr/bin/whisper-cli") + SFX_NAME;
 #else
-    QString localPath = QString("./whisper") + SFX_NAME;
+    QString localPath = QString("./whisper-cli") + SFX_NAME;
 #endif
 
     // 设置要运行的exe文件的路径
     QString program = localPath;
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
+
     arguments << "-m" << QString::fromStdString(whisper_params.model);             //模型路径
     arguments << "-f" << wavpath;                                                  // wav文件路径
     arguments << "--language" << QString::fromStdString(whisper_params.language);  //识别语种
     arguments << "--threads" << QString::number(max_thread * 0.5);
-    if (out_format == "txt") {
-        arguments << "--output-txt";
-    }  //结果输出为一个txt
-    else if (out_format == "txt") {
-        arguments << "--output-txt";
-    }  //结果输出为一个txt
-    else if (out_format == "srt") {
-        arguments << "--output-srt";
-    } else if (out_format == "csv") {
-        arguments << "--output-csv";
-    } else if (out_format == "json") {
-        arguments << "--output-json";
-    }
+    if (out_format == "txt") { arguments << "--output-txt";}  //结果输出为一个txt
+    else if (out_format == "srt") {arguments << "--output-srt";} 
+    else if (out_format == "csv") {arguments << "--output-csv";} 
+    else if (out_format == "json") {arguments << "--output-json";}
 
     // 开始运行程序
     //连接信号和槽,获取程序的输出

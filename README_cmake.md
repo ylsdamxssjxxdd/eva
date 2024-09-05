@@ -64,7 +64,12 @@ inline bool mmap::open(const char *path) {
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 
 ### whisper.cpp
-- 只需要部分文件即可
+- 删除ggml文件夹
+- 删除examples中cmakelists.txt里的DefaultTargetOptions
+- 删除whisper.cpp中的whisper_init_from_file_with_params_no_state里的#ifdef _MSC_VER部分以支持中文
+- examples/main的taget名称改为whisper-cli
+- examples中cmakelists.txt里的common库改为common-whisper避免和主项目冲突
+
 
 ### libsndfile 读写wav文件
 ### libsamplerate 重采样wav
