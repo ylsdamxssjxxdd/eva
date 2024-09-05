@@ -11,12 +11,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON)
+
 # 这几个标志是互斥的
 if(GGML_CUDA)
     add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
@@ -247,7 +248,6 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libwhisper.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
