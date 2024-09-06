@@ -619,7 +619,7 @@ void Widget::set_SetDialog() {
     temp_label->setMinimumWidth(100);
     layout_H1->addWidget(temp_label);
     temp_slider = new QSlider(Qt::Horizontal);
-    temp_slider->setRange(0, 99);  // 设置范围为0到99
+    temp_slider->setRange(1, 99);  // 设置范围为1到99
     temp_slider->setMinimumWidth(150);
     temp_slider->setValue(ui_SETTINGS.temp * 100.0);
     temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
