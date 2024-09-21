@@ -98,6 +98,26 @@ __STATIC_INLINE__ ggml_fp16_t ggml_tensor_get_f16(const ggml_tensor* tensor, int
     return *(ggml_fp16_t*)((char*)(tensor->data) + i * tensor->nb[3] + j * tensor->nb[2] + k * tensor->nb[1] + l * tensor->nb[0]);
 }
 
+// typedef uint32_t ggml_bitset_t;
+// struct ggml_hash_set {
+//     size_t size;
+//     ggml_bitset_t * used;       // whether or not the keys are in use i.e. set
+//     struct ggml_tensor ** keys; // actual tensors in the set, keys[i] is only defined if ggml_bitset_get(used, i)
+// };
+// struct ggml_cgraph {
+//     int size;
+//     int n_nodes;
+//     int n_leafs;
+
+//     struct ggml_tensor ** nodes;
+//     struct ggml_tensor ** grads;
+//     struct ggml_tensor ** leafs;
+
+//     struct ggml_hash_set visited_hash_set;
+
+//     enum ggml_cgraph_eval_order order;
+// };
+
 static struct ggml_tensor* get_tensor_from_graph(struct ggml_cgraph* gf, const char* name) {
     struct ggml_tensor* res = NULL;
     for (int i = 0; i < gf->n_nodes; i++) {

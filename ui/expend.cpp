@@ -750,7 +750,7 @@ void Expend::embedding_server_start() {
     arguments << "--threads" << QString::number(max_thread * 0.5);  //使用线程
     arguments << "-cb";                                             //允许连续批处理
     arguments << "--embedding";                                     //允许词嵌入
-    arguments << "--log-disable";                                   //不要日志
+    // arguments << "--log-disable";                                   //不要日志
     // 开始运行程序
     server_process->start(program, arguments);
 
@@ -761,9 +761,15 @@ void Expend::embedding_server_start() {
 // 获取server_process日志输出
 void Expend::readyRead_server_process_StandardOutput() {
     QString server_output = server_process->readAllStandardOutput();
-    QString log_output;
+}
+
+// 获取server_process日志输出
+void Expend::readyRead_server_process_StandardError() {
+    QString server_output = server_process->readAllStandardError();
     // qDebug()<<server_output;
+
     //启动成功的标志
+    QString log_output;
     if (server_output.contains(SERVER_START)) {
         keep_embedding_server = true;
         embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
@@ -773,19 +779,11 @@ void Expend::readyRead_server_process_StandardOutput() {
         log_output += jtr("embd api") + ": " + embedding_server_api;
         log_output += "\n" + jtr("embd dim") + ": " + QString::number(embedding_server_dim);
 
-    }  //替换ip地址
+    }
     if (log_output != "") {
         ui->embedding_test_log->appendPlainText(log_output);
     }
-}
 
-// 获取server_process日志输出
-void Expend::readyRead_server_process_StandardError() {
-    QString server_output = server_process->readAllStandardError();
-    // qDebug()<<server_output;
-    if (server_output.contains("0.0.0.0")) {
-        server_output.replace("0.0.0.0", ipAddress);
-    }  //替换ip地址
     if (server_output.contains(LLM_EMBD)) {
         embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\r\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);

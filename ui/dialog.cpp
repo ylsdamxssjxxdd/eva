@@ -455,6 +455,7 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state) {
         format.clearForeground();                 //清除前景颜色
         ui->state->setCurrentCharFormat(format);  //设置光标格式
     }
+    
 }
 
 //-------------------------------------------------------------------------
@@ -619,7 +620,7 @@ void Widget::set_SetDialog() {
     temp_label->setMinimumWidth(100);
     layout_H1->addWidget(temp_label);
     temp_slider = new QSlider(Qt::Horizontal);
-    temp_slider->setRange(1, 99);  // 设置范围为1到99
+    temp_slider->setRange(0, 99);  // 设置范围为1到99
     temp_slider->setMinimumWidth(150);
     temp_slider->setValue(ui_SETTINGS.temp * 100.0);
     temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
@@ -1379,20 +1380,15 @@ void Widget::create_right_menu() {
     }
     right_menu = new QMenu(this);
     for (int i = 1; i < 14; ++i) {
+
         QString question;
-        if (i == 4) {
-            question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);
-        }  //历史中的今天
-        else {
-            question = jtr(QString("Q%1").arg(i));
-        }
+
+        if (i == 4) {question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);}  //历史中的今天
+        else {question = jtr(QString("Q%1").arg(i));}
         QAction *action = right_menu->addAction(question);
-        if (i == 6) {
-            connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question + DEFAULT_SHUDU); });
-        }  //数独题附带上题目
-        else {
-            connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question); });
-        }
+
+        connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question); });
+
     }
     //------------创建自动化问题菜单-------------
     // Q14同步率测试

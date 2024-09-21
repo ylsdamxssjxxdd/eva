@@ -63,11 +63,8 @@ struct INPUTS {
 #define DEFAULT_MODELPATH "D:/soul"  // 模型所在文件夹
 #define DEFAULT_EMBEDDING_PORT "7758"  // 嵌入端口
 
-//数独题目
-#define DEFAULT_SHUDU "\n+---+---+---+---+---+---+\n| 4 |   |   | 2 |   |   |\n+---+---+---+---+---+---+\n|   | 1 |   |   |   | 3 |\n+---+---+---+---+---+---+\n|   |   | 3 |   | 1 |   |\n+---+---+---+---+---+---+\n| 2 |   |   | 3 |   |   |\n+---+---+---+---+---+---+\n|   |   | 1 |   | 4 |   |\n+---+---+---+---+---+---+\n|   | 3 |   |   |   | 5 |\n+---+---+---+---+---+---+"
-
-// llama日志信号字样
-#define SERVER_START "model loaded"  // server启动成功返回的字样
+// llama日志信号字样，用来指示下一步动作
+#define SERVER_START "server is listening on"  // server启动成功返回的字样
 #define LLM_EMBD "llm_load_print_meta: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
 
 //颜色

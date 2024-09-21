@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import asyncio
 import json
 import os
@@ -202,17 +205,15 @@ def step_start_server(context):
             time.sleep(0.1)
 
 
-@step("the server is {expecting_status}")
-@async_run_until_complete
-async def step_wait_for_the_server_to_be_started(context, expecting_status: Literal['healthy', 'ready', 'idle', 'busy'] | str):
+async def wait_for_server_status_with_timeout(context, expecting_status: Literal['healthy', 'ready', 'idle', 'busy'] | str, timeout: int):
     match expecting_status:
         case 'healthy':
             await wait_for_slots_status(context, context.base_url, 200,
-                                        timeout=30)
+                                        timeout=timeout)
 
         case 'ready' | 'idle':
             await wait_for_slots_status(context, context.base_url, 200,
-                                        timeout=30,
+                                        timeout=timeout,
                                         params={'fail_on_no_slot': 1},
                                         slots_idle=context.n_slots,
                                         slots_processing=0)
@@ -223,6 +224,18 @@ async def step_wait_for_the_server_to_be_started(context, expecting_status: Lite
                                         slots_processing=context.n_slots)
         case _:
             assert False, "unknown status"
+
+
+@step("the server is {expecting_status} with timeout {timeout:d} seconds")
+@async_run_until_complete
+async def step_wait_for_server_status_with_timeout(context, expecting_status: Literal['healthy', 'ready', 'idle', 'busy'] | str, timeout: int):
+    await wait_for_server_status_with_timeout(context, expecting_status, timeout)
+
+
+@step("the server is {expecting_status}")
+@async_run_until_complete
+async def step_wait_for_server_status(context, expecting_status: Literal['healthy', 'ready', 'idle', 'busy'] | str):
+    await wait_for_server_status_with_timeout(context, expecting_status, 30)
 
 
 @step('all slots are {expected_slot_status_string}')
@@ -687,6 +700,32 @@ def step_tokenize_set_add_special(context):
     context.tokenize_add_special = True
 
 
+@step("tokenizing with pieces")
+@async_run_until_complete
+async def step_tokenize_with_pieces(context):
+    context.tokenized_text = context_text(context)
+    async with aiohttp.ClientSession() as session:
+        tokenize_args = {"content": context.tokenized_text, "with_pieces": True}
+        if getattr(context, "tokenize_add_special", None) is not None:
+            tokenize_args["add_special"] = context.tokenize_add_special
+
+        async with session.post(
+            f"{context.base_url}/tokenize", json=tokenize_args
+        ) as response:
+            assert response.status == 200
+            tokenize_json = await response.json()
+            context.tokens_with_pieces = tokenize_json["tokens"]
+
+
+@step("tokens are given with pieces")
+@async_run_until_complete
+async def step_tokenize_with_pieces(context):
+    # Verify that the response contains both token IDs and pieces
+    assert all(
+        "id" in token and "piece" in token for token in context.tokens_with_pieces
+    )
+
+
 @step('tokenizing')
 @async_run_until_complete
 async def step_tokenize(context):
@@ -981,6 +1020,8 @@ async def oai_chat_completions(user_prompt,
                             event_data = line.split(': ', 1)
                             assert event_data[0] == 'data', f'Bad event code received: ```{event_data}```'
                             chunk_raw = event_data[1]
+                            if chunk_raw == '[DONE]':
+                                break
 
                             chunk = json.loads(chunk_raw)
                             assert len(chunk['choices']) == 1, f"no choices provided, line ```{line}```"
@@ -1331,8 +1372,6 @@ def start_server_background(context):
         server_args.append('--verbose')
     if context.lora_file:
         server_args.extend(['--lora', context.lora_file])
-    if 'SERVER_LOG_FORMAT_JSON' not in os.environ:
-        server_args.extend(['--log-format', "text"])
 
     args = [str(arg) for arg in [context.server_path, *server_args]]
     print(f"bench: starting server with: {' '.join(args)}")

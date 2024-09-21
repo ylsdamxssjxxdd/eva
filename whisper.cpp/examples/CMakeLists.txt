@@ -62,6 +62,7 @@ add_library(${TARGET} STATIC
     )
 
 
+
 target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS})
 
 set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -110,7 +111,7 @@ elseif(CMAKE_JS_VERSION)
     set_target_properties(addon.node PROPERTIES FOLDER "examples")
 else()
     add_subdirectory(main)
-endif()
+    set_target_properties(whisper-cli PROPERTIES FOLDER "examples")
 # if (WHISPER_SDL2)
 #     add_subdirectory(stream)
 #     set_target_properties(stream PROPERTIES FOLDER "examples")
@@ -137,7 +138,7 @@ endif()
 #         set_target_properties(sycl PROPERTIES FOLDER "examples")
 #     endif()
 # endif (WHISPER_SDL2)
-
+endif()
 
 if (WHISPER_SDL2)
     add_subdirectory(wchess)

@@ -6,13 +6,13 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3667) # 打包版本
+set(version b3797) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%,暂不支持sd
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -105,8 +105,8 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
-# whisper.cpp-5236f02
-add_subdirectory(whisper.cpp) # 添加whisper.dll
+# whisper.cpp-34972db
+add_subdirectory(whisper.cpp) # 添加whisper.dll 附带了sd-ggml库待删除
 add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
 
 # stable-diffusion.cpp-e410aeb
@@ -114,6 +114,7 @@ add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 
 add_subdirectory(llama.cpp) # 添加llama库
+set_target_properties(llama PROPERTIES PUBLIC_HEADER llama.cpp/include/llama.h) # 包含llama.h头文件
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
 if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）

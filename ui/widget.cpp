@@ -454,10 +454,10 @@ void Widget::recv_pushover() {
             }
 
         }
+        
         //正常结束
-        else {
-            normal_finish_pushover();
-        }
+        else {normal_finish_pushover();}
+
     }
 }
 
@@ -867,7 +867,7 @@ void Widget::serverControl() {
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);           //使用最近一次应用的ngl作为服务的gpu负载
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.batch);           //批大小
-    arguments << "--log-disable";                                      //不要日志
+    // arguments << "--log-disable";                                      //不要日志
     arguments << "-fa";  // 开启flash attention加速
     // arguments << "-np";//设置进程请求的槽数 默认：1
     if (ui_SETTINGS.lorapath != "") {
@@ -880,12 +880,20 @@ void Widget::serverControl() {
 
     // 开始运行程序
     server_process->start(program, arguments);
+    
     setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
     reflash_state(jtr("eva expend"), EVA_SIGNAL);
 
     //连接信号和槽,获取程序的输出
     connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
         ui_output = server_process->readAllStandardOutput();
+        // qDebug()<<"readyReadStandardOutput"<<ui_output;
+        output_scroll(ui_output);
+    });
+    connect(server_process, &QProcess::readyReadStandardError, [=]() {
+        ui_output = server_process->readAllStandardError();
+        // qDebug()<<"readyReadStandardError"<<ui_output;
+        //启动成功的标志
         if (ui_output.contains(SERVER_START)) {
             ui_output += "\n" + jtr("browser at") + QString(" http://") + ipAddress + ":" + ui_port;
             ui_output += "\n" + jtr("chat") + jtr("endpoint") + " " + "/v1/chat/completions";
@@ -894,14 +902,8 @@ void Widget::serverControl() {
             auto_save_user();  //保存ui配置
             reflash_state(ui_state_info, SUCCESS_SIGNAL);
 
-        }  //替换ip地址
-        output_scroll(ui_output);
-    });
-    connect(server_process, &QProcess::readyReadStandardError, [=]() {
-        ui_output = server_process->readAllStandardError();
-        if (ui_output.contains("0.0.0.0")) {
-            ui_output.replace("0.0.0.0", ipAddress);
-        }  //替换ip地址
+        }
+
         output_scroll(ui_output);
     });
 }

@@ -4,7 +4,6 @@
 
 \[ 中文 | [English](README_en.md) \]
 
-视频介绍 https://www.bilibili.com/video/BV15r421h728/?share_source=copy_web&vd_source=569c126f2f63df7930affe9a2267a8f8
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
@@ -370,7 +369,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <summary> 展开 </summary>
 
-- 模型推理有内存泄漏，定位在xbot.cpp的stream函数，待修复
+- 模型推理有内存泄漏，定位在xbot.cpp的采样部分，与qt的qplaintextedit也有关，待修复
 
 - 链接模式下，无法无间隔的连续发送，通过定时100ms后触发来缓解，定位在xnet.cpp的QNetworkAccessManager不能及时释放，待修复
 

@@ -2,7 +2,6 @@
 
 Intuitive large model application (based on llama.cpp & qt5)
 
-Video Introduction https://www.bilibili.com/video/BV15r421h728/?share_source=copy_web&vd_source=569c126f2f63df7930affe9a2267a8f8
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
@@ -363,7 +362,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <summary> expand </summary>
 
-- There is a memory leak in model inference, located in the stream function of xbot.cpp, to be fixed
+- There is a memory leak in the model inference, located in the sampling part of xbot.cpp, which is also related to qt's qplaintextedit and needs to be fixed
 
 - In link mode, it is not possible to send continuously without intervals. It is alleviated by triggering after a timed 100ms. The QNetworkAccess Manager located in xnet.cpp cannot be released in a timely manner and needs to be fixed
 -Multimodal model output abnormality, needs to be aligned with llava.cpp, to be fixed

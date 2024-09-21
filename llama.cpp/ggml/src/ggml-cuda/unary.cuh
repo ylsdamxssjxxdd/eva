@@ -1,5 +1,7 @@
 #include "common.cuh"
 
+#define CUDA_NEG_BLOCK_SIZE 256
+#define CUDA_STEP_BLOCK_SIZE 256
 #define CUDA_GELU_BLOCK_SIZE 256
 #define CUDA_SILU_BLOCK_SIZE 256
 #define CUDA_TANH_BLOCK_SIZE 256
@@ -11,6 +13,10 @@
 #define CUDA_SQRT_BLOCK_SIZE 256
 #define CUDA_SIN_BLOCK_SIZE 256
 #define CUDA_COS_BLOCK_SIZE 256
+
+void ggml_cuda_op_neg(ggml_backend_cuda_context & ctx, ggml_tensor * dst);
+
+void ggml_cuda_op_step(ggml_backend_cuda_context & ctx, ggml_tensor * dst);
 
 void ggml_cuda_op_gelu(ggml_backend_cuda_context & ctx, ggml_tensor * dst);
 

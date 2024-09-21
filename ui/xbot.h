@@ -11,9 +11,10 @@
 #include <QTextCodec>
 #include <QThread>
 
-
+#include <cstring>
 #include "llama.cpp/common/common.h"
 #include "llama.cpp/common/stb_image.h"
+#include "llama.cpp/common/sampling.h"
 #include "llama.cpp/examples/llava/clip.h"
 #include "llama.cpp/examples/llava/llava.h"
 #include "llama.cpp/include/llama.h"
@@ -46,13 +47,21 @@ class xBot : public QObject {
     //实例相关
     llama_model_params hparams;       //模型内部参数
     gpt_params gpt_params_;           //控制模型的参数,内含控制采样的参数sparams
-    llama_sampling_context *sparams;  //采样用参数
     struct ggml_threadpool * threadpool = NULL; // 线程池，文字生成
     struct ggml_threadpool * threadpool_batch = NULL; // 线程池，上文处理
 
     llama_model *model;  //模型
     llama_context *ctx;  //上下文
     clip_ctx *ctx_clip;  // clip模型上下文, 编码图像用
+    gpt_sampler * smpl = nullptr; // 采样器
+
+    QElapsedTimer single_timer;
+    QElapsedTimer batch_timer;
+    QElapsedTimer debuging_timer;
+
+    void buildProbtable(llama_token *id);//构建概率表格
+    void completeUtf8(std::string *sstr, llama_token *id);// 处理不完整的utf8字符
+    bool checkStop(std::string *sstr, llama_token *id);// 检测停止词并将文本输出到ui
 
     // 对话模板相关
     DATES bot_date;// 约定内容
@@ -88,9 +97,7 @@ class xBot : public QObject {
     llama_token eos_token;                    //结束标志，end of sentence
     llama_token eot_token;                    //结束标志，end of turn
     llama_token bos_token;                    //开始标志，begin of sentence
-    std::vector<llama_token> spliter_token;   //分隔标志
-    llama_grammar *grammar = NULL;            //强制语法
-    std::vector<llama_token> pick_half_utf8;
+    QVector<llama_token> pick_half_utf8;
     int ga_i = 0;                            //记录拓展的上下文数量?
     int ga_n = 1;                            //拓展的倍数
     int ga_w = 512;                          //拓展时用于计算的宽度？group-attention width
@@ -126,7 +133,6 @@ class xBot : public QObject {
     bool is_load_tool = false;     //是否挂载了工具
     QStringList extra_stop_words;  //额外停止标志
     bool vram_enough = false;
-    std::string current_output;            //用来判断里面是否存在反向词
     bool is_debuging = false;              // debug中状态
     int debuging_one = 0;                  // debuging时控制循环只进行一次
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
@@ -149,8 +155,8 @@ class xBot : public QObject {
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash = 0);
     void bot2expend_vocab(QString model_vocab);                                                    //传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);                                                 //传递模型预解码内容
-    void bot2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL);             //发送的状态信号
-    void bot2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0));  //发送的输出信号,is_while表示从流式输出的token
+    void bot2ui_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL);             //发送的状态信号
+    void bot2ui_output(QString result, bool is_while = 1, QColor color = QColor(0, 0, 0));  //发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_, float load_time_);                                              //装载完成的信号
     void bot2ui_pushover();                                                                        //推理完成的信号
     void bot2ui_stopover();                                                                        //完成停止的信号

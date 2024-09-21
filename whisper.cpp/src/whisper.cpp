@@ -2800,6 +2800,33 @@ static struct ggml_cgraph * whisper_build_graph_decoder(
 //   - n_tokens:   number of tokens in the prompt
 //   - n_past:     number of past tokens to prefix the prompt with
 //
+
+typedef uint32_t ggml_bitset_t;
+struct ggml_hash_set {
+    size_t size;
+    ggml_bitset_t * used;       // whether or not the keys are in use i.e. set
+    struct ggml_tensor ** keys; // actual tensors in the set, keys[i] is only defined if ggml_bitset_get(used, i)
+};
+
+enum ggml_cgraph_eval_order {
+        GGML_CGRAPH_EVAL_ORDER_LEFT_TO_RIGHT = 0,
+        GGML_CGRAPH_EVAL_ORDER_RIGHT_TO_LEFT,
+        GGML_CGRAPH_EVAL_ORDER_COUNT
+    };
+struct ggml_cgraph {
+    int size;
+    int n_nodes;
+    int n_leafs;
+
+    struct ggml_tensor ** nodes;
+    struct ggml_tensor ** grads;
+    struct ggml_tensor ** leafs;
+
+    struct ggml_hash_set visited_hash_set;
+
+    enum ggml_cgraph_eval_order order;
+};
+
 static bool whisper_decode_internal(
         whisper_context & wctx,
           whisper_state & wstate,
