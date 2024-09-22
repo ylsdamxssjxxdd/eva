@@ -325,38 +325,23 @@ int xBot::stream()
         embd.clear();  //清空embd
 
         //--------------------------采样&输出----------------------------
-        if ((int)embd_inp.size() <= n_consumed) 
-        {
-            // 记录采样时间
-            if (is_debuging) {debuging_timer.restart();}  
-            // 采样获取下一个token的id
-            llama_token id = gpt_sampler_sample(smpl, ctx, -1);
-            gpt_sampler_accept(smpl, id, /* accept_grammar= */ true); // 记录token的id到采样器内部
-            embd.push_back(id);                             //把预测的词加到下一次的预测中,准备下一次预测
-            --n_remain;
-            std::string sstr = llama_token_to_piece(ctx, id);// 获取id对应的文本
 
-            // 构建概率表格
-            buildProbtable(&id);
-            // 处理不完整的utf8字符
-            completeUtf8(&sstr, &id);
-            // 检测停止词并将采样的文本输出到ui
-            if(!checkStop(&sstr, &id)){return 0;}
+        // 记录采样时间
+        if (is_debuging) {debuging_timer.restart();}  
+        // 采样获取下一个token的id
+        llama_token id = gpt_sampler_sample(smpl, ctx, -1);
+        // gpt_sampler_accept(smpl, id, /* accept_grammar= */ true); // 真正输出了才记录
+        embd.push_back(id);                             //把预测的词加到下一次的预测中,准备下一次预测
+        --n_remain;
+        std::string sstr = llama_token_to_piece(ctx, id);// 获取id对应的文本
 
-        }
-        //输入太多的特殊情况处理, 防止报错
-        else 
-        {
-            while ((int)embd_inp.size() > n_consumed) 
-            {
-                qDebug() << "stream out" << embd_inp.size() << n_consumed;
-                emit bot2ui_state("bot:stream out", SUCCESS_SIGNAL);
-                embd.push_back(embd_inp[n_consumed]);
-                gpt_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
-                ++n_consumed;
-                if ((int)embd.size() >= gpt_params_.n_batch) {break;}
-            }
-        }
+        // 构建概率表格
+        buildProbtable(&id);
+        // 处理不完整的utf8字符
+        completeUtf8(&sstr, &id);
+        // 检测停止词并将采样的文本输出到ui
+        if(!checkStop(&sstr, &id)){return 0;}
+
 
     }  //到这里推理循环结束
 
@@ -1267,7 +1252,7 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         if (is_debuging) {emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s", SUCCESS_SIGNAL);}
         
-        embd.clear(); // 不再显示和保留模型输出的停止词
+        embd.clear(); // 不再显示和保留模型输出的停止词，因为后缀里包含有
 
         QString fianl_state;
         fianl_state = "bot:" + jtr("predict") + jtr("over") + " ";
@@ -1281,6 +1266,8 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         if (is_debuging) {emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s", SUCCESS_SIGNAL);}
         
+        // 记录输出的token和词
+        gpt_sampler_accept(smpl, *id, /* accept_grammar= */ true);
         current_output += *sstr;
         if (current_output.length() > 16) 
         {
