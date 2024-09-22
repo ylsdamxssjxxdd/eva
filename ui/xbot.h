@@ -136,6 +136,7 @@ class xBot : public QObject {
     bool is_debuging = false;              // debug中状态
     int debuging_one = 0;                  // debuging时控制循环只进行一次
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
+    std::string current_output; // 模型最近输出的内容，用来判断里面是否存在反向词
 
    public slots:
     void recv_stop();//接受停止信号

@@ -680,7 +680,7 @@ int main(int argc, char ** argv) {
             }
 
             const llama_token id = gpt_sampler_sample(smpl, ctx, -1);
-
+            
             gpt_sampler_accept(smpl, id, /* accept_grammar= */ true);
 
             // LOG_DBG("last: %s\n", string_from(ctx, smpl->prev.to_vector()).c_str());

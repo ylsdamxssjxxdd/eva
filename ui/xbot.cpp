@@ -80,7 +80,7 @@ void xBot::predict(INPUTS inputs) {
     // qDebug()<<"插入前embd"<<view_embd(ctx,embd);
     while ((int)embd_inp.size() > n_consumed) {
         embd.push_back(embd_inp[n_consumed]);
-        gpt_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
+        // gpt_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
         ++n_consumed;
     }
     // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
@@ -93,6 +93,7 @@ void xBot::predict(INPUTS inputs) {
             if ((inputs.role != ROLE_DEBUG)) {
                 bot2ui_state("DEBUGING 0 ", DEBUGING_SIGNAL);
                 remain_n_remain = gpt_params_.n_predict;  //用来记录一次debuging过程的n_remain值
+                current_output = "";                      //清空上一轮的输出记录
             }
         }
     }
@@ -164,7 +165,7 @@ int xBot::stream()
 {
     is_stop = false;
     single_timer.restart();  //后面减去batch_timer记录的时间就是单解码用时
-
+    if (!is_debuging) {current_output = "";}
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain != 0) {
 
@@ -661,7 +662,7 @@ void xBot::preDecodeSystemPrompt() {
     //---------------------embd_inp插入到embd中----------------------
     while ((int)embd_inp.size() > n_consumed) {
         embd.push_back(embd_inp[n_consumed]);
-        gpt_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
+        // gpt_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
         ++n_consumed;
     }
 
@@ -1280,6 +1281,12 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         if (is_debuging) {emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s", SUCCESS_SIGNAL);}
         
+        current_output += *sstr;
+        if (current_output.length() > 16) 
+        {
+            current_output = current_output.substr(current_output.length() - 16, 16);  //只保留16个字符
+        }
+        
         emit bot2ui_output(QString::fromUtf8(sstr->c_str()));
     }
 
@@ -1287,7 +1294,6 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
     if (!is_complete)  // 补完模式不检测
     {
         int list_num = 0;  //记录第一个元素,只有第一个元素需要控制is_antiprompt = true
-        std::string current_output = gpt_sampler_prev_str(smpl, ctx, 3);// 对最近产生的3个token进行检视
         // qDebug() << QString::fromStdString(current_output);
         for (const std::string &antiprompt : gpt_params_.antiprompt) 
         {
