@@ -46,14 +46,14 @@ class xBot : public QObject {
     int get_Chinese_word_nums(QString str_);
     //实例相关
     llama_model_params hparams;       //模型内部参数
-    gpt_params gpt_params_;           //控制模型的参数,内含控制采样的参数sparams
+    common_params common_params_;           //控制模型的参数,内含控制采样的参数sparams
     struct ggml_threadpool * threadpool = NULL; // 线程池，文字生成
     struct ggml_threadpool * threadpool_batch = NULL; // 线程池，上文处理
 
     llama_model *model;  //模型
     llama_context *ctx;  //上下文
     clip_ctx *ctx_clip;  // clip模型上下文, 编码图像用
-    gpt_sampler * smpl = nullptr; // 采样器
+    common_sampler * smpl = nullptr; // 采样器
 
     QElapsedTimer single_timer;
     QElapsedTimer batch_timer;
@@ -75,7 +75,7 @@ class xBot : public QObject {
     // 预解码图像
     void process_eval_image_embed(llama_context * ctx_llama, clip_ctx * ctx_clip, const struct llava_image_embed * embeds, int n_batch, int * n_past, int idx);
     // 预处理图像
-    bool process_image(llama_context * ctx, clip_ctx * ctx_clip, struct llava_image_embed * image_embeds, gpt_params gpt_params_, int &n_past);
+    bool process_image(llama_context * ctx, clip_ctx * ctx_clip, struct llava_image_embed * image_embeds, common_params common_params_, int &n_past);
     //回调函数,获取llama的日志
     static void bot_log_callback(ggml_log_level level, const char *text, void *user_data);
     //解决半个utf8字符问题

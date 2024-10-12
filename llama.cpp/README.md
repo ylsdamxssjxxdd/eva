@@ -31,7 +31,7 @@ variety of hardware - locally and in the cloud.
 - Apple silicon is a first-class citizen - optimized via ARM NEON, Accelerate and Metal frameworks
 - AVX, AVX2 and AVX512 support for x86 architectures
 - 1.5-bit, 2-bit, 3-bit, 4-bit, 5-bit, 6-bit, and 8-bit integer quantization for faster inference and reduced memory use
-- Custom CUDA kernels for running LLMs on NVIDIA GPUs (support for AMD GPUs via HIP)
+- Custom CUDA kernels for running LLMs on NVIDIA GPUs (support for AMD GPUs via HIP and Moore Threads MTT GPUs via MUSA)
 - Vulkan and SYCL backend support
 - CPU+GPU hybrid inference to partially accelerate models larger than the total VRAM capacity
 
@@ -169,6 +169,7 @@ Unless otherwise noted these projects are open-source with permissive licensing:
 - [AIKit](https://github.com/sozercan/aikit) (MIT)
 - [LARS - The LLM & Advanced Referencing Solution](https://github.com/abgulati/LARS) (AGPL)
 - [LLMUnity](https://github.com/undreamai/LLMUnity) (MIT)
+- [Llama Assistant](https://github.com/vietanhdev/llama-assistant) (GPL)
 
 *(to have a project listed here, it should clearly state that it depends on `llama.cpp`)*
 
@@ -412,7 +413,7 @@ Please refer to [Build llama.cpp locally](./docs/build.md)
 | [BLAS](./docs/build.md#blas-build) | All |
 | [BLIS](./docs/backend/BLIS.md) | All |
 | [SYCL](./docs/backend/SYCL.md) | Intel and Nvidia GPU |
-| [MUSA](./docs/build.md#musa) | Moore Threads GPU |
+| [MUSA](./docs/build.md#musa) | Moore Threads MTT GPU |
 | [CUDA](./docs/build.md#cuda) | Nvidia GPU |
 | [hipBLAS](./docs/build.md#hipblas) | AMD GPU |
 | [Vulkan](./docs/build.md#vulkan) | GPU |
