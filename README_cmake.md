@@ -61,45 +61,17 @@ inline bool mmap::open(const char *path) {
 ```
 
 ### stable-diffusion.cpp
+- 修改cmakelists.txt中set(BUILD_SHARED_LIBS ON)以支持动态链接
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 - 目前不适配llama.cpp的ggml库，将自身ggml库改为sd-ggml以适应，权宜之计
+- 修改stable-diffusion.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 
 ### whisper.cpp
-- 删除ggml文件夹
 - 删除examples中cmakelists.txt里的DefaultTargetOptions
 - 删除whisper.cpp中的whisper_init_from_file_with_params_no_state里的#ifdef _MSC_VER部分以支持中文
-- whisper.cpp头文件中添加#include "ggml-cpu.h"
 - examples/main的taget名称改为whisper-cli
-- examples/main的链接部分common改为common-whisper
-- examples中cmakelists.txt里的common库改为common-whisper避免和主项目冲突
+- 其它步骤同stable-diffusion.cpp
 
-### 暂时在ggml_cgraph报错的前方加入以下
-'''txt
-typedef uint32_t ggml_bitset_t;
-struct ggml_hash_set {
-    size_t size;
-    ggml_bitset_t * used;       // whether or not the keys are in use i.e. set
-    struct ggml_tensor ** keys; // actual tensors in the set, keys[i] is only defined if ggml_bitset_get(used, i)
-};
-enum ggml_cgraph_eval_order {
-        GGML_CGRAPH_EVAL_ORDER_LEFT_TO_RIGHT = 0,
-        GGML_CGRAPH_EVAL_ORDER_RIGHT_TO_LEFT,
-        GGML_CGRAPH_EVAL_ORDER_COUNT
-    };
-struct ggml_cgraph {
-    int size;
-    int n_nodes;
-    int n_leafs;
-
-    struct ggml_tensor ** nodes;
-    struct ggml_tensor ** grads;
-    struct ggml_tensor ** leafs;
-
-    struct ggml_hash_set visited_hash_set;
-
-    enum ggml_cgraph_eval_order order;
-};
-'''
 
 ### libsndfile 读写wav文件
 ### libsamplerate 重采样wav

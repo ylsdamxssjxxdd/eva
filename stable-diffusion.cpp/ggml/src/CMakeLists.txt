@@ -827,7 +827,7 @@ if (GGML_CPU_HBM)
 
     add_compile_definitions(GGML_USE_CPU_HBM)
 
-    target_link_libraries(ggml PUBLIC memkind)
+    target_link_libraries(sd-ggml PUBLIC memkind)
 endif()
 
 if (GGML_CANN)

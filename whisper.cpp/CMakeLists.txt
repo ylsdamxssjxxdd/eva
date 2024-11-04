@@ -120,7 +120,7 @@ whisper_option_depr(WARNING     WHISPER_SYCL_F16            GGML_SYCL_F16)
 # build the library
 #
 
-if (NOT TARGET ggml)
+if (NOT TARGET whisper-ggml)
     add_subdirectory(ggml)
     # ... otherwise assume ggml is added by a parent CMakeLists.txt
 endif()

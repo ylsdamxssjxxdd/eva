@@ -78,7 +78,7 @@ file(GLOB SD_LIB_SOURCES
 if(SD_BUILD_SHARED_LIBS)
     message("-- Build shared library")
     message(${SD_LIB_SOURCES})
-    set(BUILD_SHARED_LIBS OFF)
+    set(BUILD_SHARED_LIBS ON)
     add_library(${SD_LIB} SHARED ${SD_LIB_SOURCES})
     add_definitions(-DSD_BUILD_SHARED_LIB)
     target_compile_definitions(${SD_LIB} PRIVATE -DSD_BUILD_DLL)
@@ -109,7 +109,12 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 # see https://github.com/ggerganov/ggml/pull/682
 add_definitions(-DGGML_MAX_NAME=128)
 
-add_subdirectory(ggml)
+# deps
+# Only add ggml if it hasn't been added yet
+if (NOT TARGET sd-ggml)
+    add_subdirectory(ggml)
+endif()
+
 add_subdirectory(thirdparty)
 
 target_link_libraries(${SD_LIB} PUBLIC sd-ggml zip)

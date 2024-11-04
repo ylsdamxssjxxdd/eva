@@ -98,26 +98,6 @@ __STATIC_INLINE__ ggml_fp16_t ggml_tensor_get_f16(const ggml_tensor* tensor, int
     return *(ggml_fp16_t*)((char*)(tensor->data) + i * tensor->nb[3] + j * tensor->nb[2] + k * tensor->nb[1] + l * tensor->nb[0]);
 }
 
-// typedef uint32_t ggml_bitset_t;
-// struct ggml_hash_set {
-//     size_t size;
-//     ggml_bitset_t * used;       // whether or not the keys are in use i.e. set
-//     struct ggml_tensor ** keys; // actual tensors in the set, keys[i] is only defined if ggml_bitset_get(used, i)
-// };
-// struct ggml_cgraph {
-//     int size;
-//     int n_nodes;
-//     int n_leafs;
-
-//     struct ggml_tensor ** nodes;
-//     struct ggml_tensor ** grads;
-//     struct ggml_tensor ** leafs;
-
-//     struct ggml_hash_set visited_hash_set;
-
-//     enum ggml_cgraph_eval_order order;
-// };
-
 static struct ggml_tensor* get_tensor_from_graph(struct ggml_cgraph* gf, const char* name) {
     struct ggml_tensor* res = NULL;
     for (int i = 0; i < gf->n_nodes; i++) {
@@ -388,8 +368,8 @@ __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
     int64_t height   = input->ne[1];
     int64_t channels = input->ne[2];
 
-    int64_t img_width    = output->ne[0];
-    int64_t img_height   = output->ne[1];
+    int64_t img_width  = output->ne[0];
+    int64_t img_height = output->ne[1];
 
     GGML_ASSERT(input->type == GGML_TYPE_F32 && output->type == GGML_TYPE_F32);
     for (int iy = 0; iy < height; iy++) {
@@ -400,7 +380,7 @@ __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
                     float old_value = ggml_tensor_get_f32(output, x + ix, y + iy, k);
 
                     const float x_f_0 = (x > 0) ? ix / float(overlap) : 1;
-                    const float x_f_1 = (x < (img_width - width)) ? (width - ix) / float(overlap) : 1 ;
+                    const float x_f_1 = (x < (img_width - width)) ? (width - ix) / float(overlap) : 1;
                     const float y_f_0 = (y > 0) ? iy / float(overlap) : 1;
                     const float y_f_1 = (y < (img_height - height)) ? (height - iy) / float(overlap) : 1;
 
@@ -410,8 +390,7 @@ __STATIC_INLINE__ void ggml_merge_tensor_2d(struct ggml_tensor* input,
                     ggml_tensor_set_f32(
                         output,
                         old_value + new_value * ggml_smootherstep_f32(y_f) * ggml_smootherstep_f32(x_f),
-                        x + ix, y + iy, k
-                    );
+                        x + ix, y + iy, k);
                 } else {
                     ggml_tensor_set_f32(output, new_value, x + ix, y + iy, k);
                 }

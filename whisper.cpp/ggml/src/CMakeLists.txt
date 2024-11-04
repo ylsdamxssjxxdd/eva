@@ -875,7 +875,7 @@ if (GGML_CPU_HBM)
 
     add_compile_definitions(GGML_USE_CPU_HBM)
 
-    target_link_libraries(ggml PUBLIC memkind)
+    target_link_libraries(whisper-ggml PUBLIC memkind)
 endif()
 
 if (GGML_CANN)
@@ -1362,7 +1362,7 @@ endif()
 
 # ggml
 
-add_library(ggml
+add_library(whisper-ggml
             ../include/ggml.h
             ../include/ggml-alloc.h
             ../include/ggml-backend.h
@@ -1387,14 +1387,14 @@ add_library(ggml
             )
 
 if (EMSCRIPTEN)
-    set_target_properties(ggml PROPERTIES COMPILE_FLAGS "-msimd128")
+    set_target_properties(whisper-ggml PROPERTIES COMPILE_FLAGS "-msimd128")
 endif()
 
-target_compile_definitions(ggml PUBLIC    ${GGML_CDEF_PUBLIC})
-target_include_directories(ggml PUBLIC  ../include)
-target_include_directories(ggml PRIVATE . ${GGML_EXTRA_INCLUDES})
-target_link_directories   (ggml PRIVATE   ${GGML_EXTRA_LIBDIRS})
-target_compile_features   (ggml PRIVATE c_std_11) # don't bump
+target_compile_definitions(whisper-ggml PUBLIC    ${GGML_CDEF_PUBLIC})
+target_include_directories(whisper-ggml PUBLIC  ../include)
+target_include_directories(whisper-ggml PRIVATE . ${GGML_EXTRA_INCLUDES})
+target_link_directories   (whisper-ggml PRIVATE   ${GGML_EXTRA_LIBDIRS})
+target_compile_features   (whisper-ggml PRIVATE c_std_11) # don't bump
 
 list(APPEND GGML_EXTRA_LIBS_PRIVATE Threads::Threads)
 
@@ -1411,9 +1411,9 @@ endif()
 
 list(REMOVE_DUPLICATES GGML_EXTRA_LIBS_PRIVATE)
 list(REMOVE_DUPLICATES GGML_EXTRA_LIBS_PUBLIC)
-target_link_libraries(ggml PRIVATE ${GGML_EXTRA_LIBS_PRIVATE} PUBLIC ${GGML_EXTRA_LIBS_PUBLIC})
+target_link_libraries(whisper-ggml PRIVATE ${GGML_EXTRA_LIBS_PRIVATE} PUBLIC ${GGML_EXTRA_LIBS_PUBLIC})
 
 if (BUILD_SHARED_LIBS)
-    set_target_properties(ggml PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    target_compile_definitions(ggml PRIVATE GGML_SHARED GGML_BUILD)
+    set_target_properties(whisper-ggml PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions(whisper-ggml PRIVATE GGML_SHARED GGML_BUILD)
 endif()

@@ -10,13 +10,13 @@ set(version b4020) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%,暂不支持sd
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
-option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON)
+option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 
 # 这几个标志是互斥的
 if(GGML_CUDA)
@@ -106,10 +106,10 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
 # whisper.cpp-4e10afb
-add_subdirectory(whisper.cpp) # 添加whisper.dll 附带了sd-ggml库待删除
+add_subdirectory(whisper.cpp) # 添加whisper.dll
 add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
 
-# stable-diffusion.cpp
+# stable-diffusion.cpp-ac54e00
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 
@@ -245,11 +245,17 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/eva"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
+            
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
+
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libwhisper.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libwhisper-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper-ggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
+
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
