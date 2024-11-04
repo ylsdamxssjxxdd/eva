@@ -177,7 +177,7 @@ static bool ggml_graph_compute_helper(
                          int   n_threads,
          ggml_abort_callback   abort_callback,
                         void * abort_callback_data) {
-    struct ggml_cplan plan = ggml_graph_plan(graph, n_threads, nullptr);
+    struct ggml_cplan plan = ggml_graph_plan(graph, n_threads, void*);
 
     plan.abort_callback      = abort_callback;
     plan.abort_callback_data = abort_callback_data;

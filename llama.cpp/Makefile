@@ -1,7 +1,6 @@
 # Define the default target now so that it is always the first target
 BUILD_TARGETS = \
 	libllava.a \
-	llama-baby-llama \
 	llama-batched \
 	llama-batched-bench \
 	llama-bench \
@@ -34,6 +33,7 @@ BUILD_TARGETS = \
 	llama-save-load-state \
 	llama-server \
 	llama-simple \
+	llama-simple-chat \
 	llama-speculative \
 	llama-tokenize \
 	llama-vdot \
@@ -55,7 +55,6 @@ TEST_TARGETS = \
 	tests/test-llama-grammar \
 	tests/test-log \
 	tests/test-model-load-cancel \
-	tests/test-opt \
 	tests/test-quantize-fns \
 	tests/test-quantize-perf \
 	tests/test-rope \
@@ -63,6 +62,7 @@ TEST_TARGETS = \
 	tests/test-tokenizer-0 \
 	tests/test-tokenizer-1-bpe \
 	tests/test-tokenizer-1-spm
+#	tests/test-opt \
 
 # Legacy build targets that were renamed in #7809, but should still be removed when the project is cleaned
 LEGACY_TARGETS_CLEAN = main quantize quantize-stats perplexity imatrix embedding vdot q8dot convert-llama2c-to-ggml \
@@ -90,11 +90,6 @@ endif
 
 ifdef LLAMA_METAL
 GGML_METAL := 1
-DEPRECATE_WARNING := 1
-endif
-
-ifdef LLAMA_OPENMP
-GGML_OPENMP := 1
 DEPRECATE_WARNING := 1
 endif
 
@@ -584,6 +579,11 @@ ifndef GGML_NO_LLAMAFILE
 	OBJ_GGML    += ggml/src/llamafile/sgemm.o
 endif
 
+ifndef GGML_NO_AMX
+	MK_CPPFLAGS += -DGGML_USE_AMX
+	OBJ_GGML    += ggml/src/ggml-amx.o ggml/src/ggml-amx/mmq.o
+endif
+
 ifdef GGML_RPC
 	MK_CPPFLAGS += -DGGML_USE_RPC
 	OBJ_GGML    += ggml/src/ggml-rpc.o
@@ -915,6 +915,7 @@ endif # GGML_METAL
 
 OBJ_GGML += \
 	ggml/src/ggml.o \
+	ggml/src/ggml-cpu.o \
 	ggml/src/ggml-alloc.o \
 	ggml/src/ggml-backend.o \
 	ggml/src/ggml-quants.o \
@@ -935,7 +936,6 @@ OBJ_COMMON = \
 	common/console.o \
 	common/ngram-cache.o \
 	common/sampling.o \
-	common/train.o \
 	common/build-info.o \
 	common/json-schema-to-grammar.o
 
@@ -1047,6 +1047,12 @@ ggml/src/ggml.o: \
 	ggml/include/ggml.h
 	$(CC)  $(CFLAGS)   -c $< -o $@
 
+ggml/src/ggml-cpu.o: \
+	ggml/src/ggml-cpu.c \
+	ggml/include/ggml.h \
+	ggml/src/ggml-common.h
+	$(CC)  $(CFLAGS)   -c $< -o $@
+
 ggml/src/ggml-alloc.o: \
 	ggml/src/ggml-alloc.c \
 	ggml/include/ggml.h \
@@ -1086,6 +1092,19 @@ ggml/src/llamafile/sgemm.o: \
 	ggml/include/ggml.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 endif # GGML_NO_LLAMAFILE
+
+ifndef GGML_NO_AMX
+ggml/src/ggml-amx.o: \
+	ggml/src/ggml-amx.cpp \
+	ggml/include/ggml-amx.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+ggml/src/ggml-amx/mmq.o: \
+	ggml/src/ggml-amx/mmq.cpp \
+	ggml/src/ggml-amx/mmq.h \
+	ggml/include/ggml.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+endif
 
 ifdef GGML_RPC
 ggml/src/ggml-rpc.o: \
@@ -1199,11 +1218,6 @@ common/json-schema-to-grammar.o: \
 	common/json-schema-to-grammar.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-common/train.o: \
-	common/train.cpp \
-	common/train.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
 common/ngram-cache.o: \
 	common/ngram-cache.cpp \
 	common/ngram-cache.h
@@ -1238,6 +1252,7 @@ clean:
 	rm -vrf ggml/src/ggml-metal-embed.metal
 	rm -vrf ggml/src/ggml-cuda/*.o
 	rm -vrf ggml/src/ggml-cuda/template-instances/*.o
+	rm -vrf ggml/src/ggml-amx/*.o
 	rm -rvf $(BUILD_TARGETS)
 	rm -rvf $(TEST_TARGETS)
 	rm -f vulkan-shaders-gen ggml/src/ggml-vulkan-shaders.hpp ggml/src/ggml-vulkan-shaders.cpp
@@ -1269,6 +1284,11 @@ llama-infill: examples/infill/infill.cpp \
 	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
 
 llama-simple: examples/simple/simple.cpp \
+	$(OBJ_ALL)
+	$(CXX) $(CXXFLAGS) -c $< -o $(call GET_OBJ_FILE, $<)
+	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
+
+llama-simple-chat: examples/simple-chat/simple-chat.cpp \
 	$(OBJ_ALL)
 	$(CXX) $(CXXFLAGS) -c $< -o $(call GET_OBJ_FILE, $<)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
@@ -1366,11 +1386,6 @@ llama-convert-llama2c-to-ggml: examples/convert-llama2c-to-ggml/convert-llama2c-
 	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
 
 llama-bench: examples/llama-bench/llama-bench.cpp \
-	$(OBJ_ALL)
-	$(CXX) $(CXXFLAGS) -c $< -o $(call GET_OBJ_FILE, $<)
-	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
-
-llama-baby-llama: examples/baby-llama/baby-llama.cpp \
 	$(OBJ_ALL)
 	$(CXX) $(CXXFLAGS) -c $< -o $(call GET_OBJ_FILE, $<)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)

@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b3909) # 打包版本
+set(version b4020) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
@@ -106,8 +106,8 @@ add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 add_subdirectory(llama.cpp/ggml) # 添加ggml库
 
 # whisper.cpp-34972db
-add_subdirectory(whisper.cpp) # 添加whisper.dll 附带了sd-ggml库待删除
-add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
+# add_subdirectory(whisper.cpp) # 添加whisper.dll 附带了sd-ggml库待删除
+# add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
 
 # stable-diffusion.cpp-e410aeb
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
@@ -171,7 +171,7 @@ endif()
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper-cli llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
+# add_dependencies(${TARGET} llama-server whisper-cli llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
 
 # 后处理
 if(MSVC)

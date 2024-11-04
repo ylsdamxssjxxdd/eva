@@ -200,7 +200,7 @@ int xBot::stream()
             int enc_input_size = embd_inp.size();
             llama_token *enc_input_buf = embd_inp.data();
 
-            if (llama_encode(ctx, llama_batch_get_one(enc_input_buf, enc_input_size, 0, 0))) {
+            if (llama_encode(ctx, llama_batch_get_one(enc_input_buf, enc_input_size))) {
                 emit bot2ui_state("bot: failed to eval in encoder", EVA_SIGNAL);
                 return 0;
             }
@@ -289,7 +289,7 @@ int xBot::stream()
 
                 //--------------解码----------------
                 if (is_debuging) {debuging_timer.restart();}
-                int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0));
+                int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval));
                 if (is_debuging) {emit bot2ui_state("bot:" + jtr("decode") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s " + jtr("caculate token") + " " + QString::number(n_eval), SUCCESS_SIGNAL);}
                 if (ret == 1)  //找不到槽的情况
                 {
@@ -663,7 +663,7 @@ void xBot::preDecodeSystemPrompt() {
                 n_eval = common_params_.n_batch;
             }
             //推理
-            if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval, n_past, 0)))  //将emd推理到ctx中,返回0表示推理正常
+            if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval)))  //将emd推理到ctx中,返回0表示推理正常
             {
                 emit bot2ui_state("bot:" + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
                 return;
@@ -1030,7 +1030,7 @@ bool xBot::eval_tokens(struct llama_context * ctx_llama, std::vector<llama_token
         if (n_eval > n_batch) {
             n_eval = n_batch;
         }
-        if (llama_decode(ctx_llama, llama_batch_get_one(&tokens[i], n_eval, *n_past, 0))) {
+        if (llama_decode(ctx_llama, llama_batch_get_one(&tokens[i], n_eval))) {
             // LOG_TEE("%s : failed to eval. token %d/%d (batch size %d, n_past %d)\n", __func__, i, N, n_batch, *n_past);
             qDebug()<<"failed to eval";
             return false;
