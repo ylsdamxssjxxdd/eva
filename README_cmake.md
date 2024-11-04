@@ -68,7 +68,9 @@ inline bool mmap::open(const char *path) {
 - 删除ggml文件夹
 - 删除examples中cmakelists.txt里的DefaultTargetOptions
 - 删除whisper.cpp中的whisper_init_from_file_with_params_no_state里的#ifdef _MSC_VER部分以支持中文
+- whisper.cpp头文件中添加#include "ggml-cpu.h"
 - examples/main的taget名称改为whisper-cli
+- examples/main的链接部分common改为common-whisper
 - examples中cmakelists.txt里的common库改为common-whisper避免和主项目冲突
 
 ### 暂时在ggml_cgraph报错的前方加入以下

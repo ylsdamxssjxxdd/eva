@@ -62,7 +62,6 @@ add_library(${TARGET} STATIC
     )
 
 
-
 target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS})
 
 set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
