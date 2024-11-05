@@ -62,7 +62,6 @@ while read c; do
         src/ggml*.m \
         src/ggml*.metal \
         src/ggml*.cu \
-        src/ggml-amx/* \
         src/ggml-cann/* \
         src/ggml-cuda/* \
         src/ggml-sycl/* \
@@ -99,23 +98,20 @@ if [ -f $SRC_WHISPER/ggml-src.patch ]; then
 
     # replace filenames:
     #
-    # CMakelists.txt       -> ggml/CMakeLists.txt
-    # src/CMakeLists.txt   -> ggml/src/CMakeLists.txt
-    # cmake/FindSIMD.cmake -> ggml/cmake/FindSIMD.cmake
+    # CMakelists.txt          -> ggml/CMakeLists.txt
+    # src/CMakeLists.txt      -> ggml/src/CMakeLists.txt
+    # cmake/FindSIMD.cmake    -> ggml/cmake/FindSIMD.cmake
     #
     # src/ggml.c              -> ggml/src/ggml.c
     # src/ggml-aarch64.c      -> ggml/src/ggml-aarch64.c
     # src/ggml-aarch64.h      -> ggml/src/ggml-aarch64.h
     # src/ggml-alloc.c        -> ggml/src/ggml-alloc.c
-    # src/ggml-amx/*          -> ggml/src/ggml-amx/
-    # src/ggml-amx.cpp        -> ggml/src/ggml-amx.cpp
     # src/ggml-backend-impl.h -> ggml/src/ggml-backend-impl.h
-    # src/ggml-backend.cpp    -> ggml/src/ggml-backend.cpp
+    # src/ggml-backend.c      -> ggml/src/ggml-backend.c
     # src/ggml-blas.cpp       -> ggml/src/ggml-blas.cpp
     # src/ggml-cann/*         -> ggml/src/ggml-cann/
     # src/ggml-cann.cpp       -> ggml/src/ggml-cann.cpp
     # src/ggml-common.h       -> ggml/src/ggml-common.h
-    # src/ggml-cpu-impl.h     -> ggml/src/ggml-cpu-impl.h
     # src/ggml-cuda/*         -> ggml/src/ggml-cuda/
     # src/ggml-cuda.cu        -> ggml/src/ggml-cuda.cu
     # src/ggml-impl.h         -> ggml/src/ggml-impl.h
@@ -131,7 +127,6 @@ if [ -f $SRC_WHISPER/ggml-src.patch ]; then
     #
     # include/ggml.h         -> ggml/include/ggml.h
     # include/ggml-alloc.h   -> ggml/include/ggml-alloc.h
-    # include/ggml-amx.h     -> ggml/include/ggml-amx.h
     # include/ggml-backend.h -> ggml/include/ggml-backend.h
     # include/ggml-blas.h    -> ggml/include/ggml-blas.h
     # include/ggml-cann.h    -> ggml/include/ggml-cann.h
@@ -142,10 +137,10 @@ if [ -f $SRC_WHISPER/ggml-src.patch ]; then
     # include/ggml-sycl.h    -> ggml/include/ggml-sycl.h
     # include/ggml-vulkan.h  -> ggml/include/ggml-vulkan.h
     #
-    # examples/common.h        -> examples/common.h
-    # examples/common.cpp      -> examples/common.cpp
-    # examples/common-ggml.h   -> examples/common-ggml.h
-    # examples/common-ggml.cpp -> examples/common-ggml.cpp
+    # examples/common.h                   -> examples/common.h
+    # examples/common.cpp                 -> examples/common.cpp
+    # examples/common-ggml.h              -> examples/common-ggml.h
+    # examples/common-ggml.cpp            -> examples/common-ggml.cpp
     #
     # LICENSE                     -> LICENSE
     # ggml/scripts/gen-authors.sh -> scripts/gen-authors.sh
@@ -158,15 +153,12 @@ if [ -f $SRC_WHISPER/ggml-src.patch ]; then
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-aarch64\.c/\1ggml\/src\/ggml-aarch64.c/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-aarch64\.h/\1ggml\/src\/ggml-aarch64.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-alloc\.c/\1ggml\/src\/ggml-alloc.c/g' \
-        -e 's/(^[[:space:]]|[ab]\/)src\/ggml-amx\//\1ggml\/src\/ggml-amx\//g' \
-        -e 's/(^[[:space:]]|[ab]\/)src\/ggml-amx\.cpp/\1ggml\/src\/ggml-amx.cpp/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-backend-impl\.h/\1ggml\/src\/ggml-backend-impl.h/g' \
-        -e 's/(^[[:space:]]|[ab]\/)src\/ggml-backend\.cpp/\1ggml\/src\/ggml-backend.cpp/g' \
+        -e 's/(^[[:space:]]|[ab]\/)src\/ggml-backend\.c/\1ggml\/src\/ggml-backend.c/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-blas\.cpp/\1ggml\/src\/ggml-blas.cpp/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-cann\//\1ggml\/src\/ggml-cann\//g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-cann\.cpp/\1ggml\/src\/ggml-cann.cpp/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-common\.h/\1ggml\/src\/ggml-common.h/g' \
-        -e 's/(^[[:space:]]|[ab]\/)src\/ggml-cpu-impl\.h/\1ggml\/src\/ggml-cpu-impl.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-cuda\//\1ggml\/src\/ggml-cuda\//g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-cuda\.cu/\1ggml\/src\/ggml-cuda.cu/g' \
         -e 's/(^[[:space:]]|[ab]\/)src\/ggml-impl\.h/\1ggml\/src\/ggml-impl.h/g' \
@@ -181,7 +173,6 @@ if [ -f $SRC_WHISPER/ggml-src.patch ]; then
         -e 's/(^[[:space:]]|[ab]\/)src\/vulkan-shaders\//\1ggml\/src\/vulkan-shaders\//g' \
         -e 's/(^[[:space:]]|[ab]\/)include\/ggml\.h/\1ggml\/include\/ggml.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)include\/ggml-alloc\.h/\1ggml\/include\/ggml-alloc.h/g' \
-        -e 's/(^[[:space:]]|[ab]\/)include\/ggml-amx\.h/\1ggml\/include\/ggml-amx.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)include\/ggml-backend\.h/\1ggml\/include\/ggml-backend.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)include\/ggml-blas\.h/\1ggml\/include\/ggml-blas.h/g' \
         -e 's/(^[[:space:]]|[ab]\/)include\/ggml-cann\.h/\1ggml\/include\/ggml-cann.h/g' \

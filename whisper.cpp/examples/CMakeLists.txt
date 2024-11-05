@@ -20,7 +20,7 @@ endif()
 
 # common
 
-set(TARGET common-whisper)
+set(TARGET whisper-common)
 
 unset(COMMON_EXTRA_LIBS)
 
@@ -62,6 +62,7 @@ add_library(${TARGET} STATIC
     )
 
 
+
 target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS})
 
 set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -101,8 +102,8 @@ if (EMSCRIPTEN)
     set_target_properties(libstream PROPERTIES FOLDER "libs")
     add_subdirectory(command.wasm)
     set_target_properties(libcommand PROPERTIES FOLDER "libs")
-    #add_subdirectory(talk.wasm)
-    #set_target_properties(libtalk PROPERTIES FOLDER "libs")
+    add_subdirectory(talk.wasm)
+    set_target_properties(libtalk PROPERTIES FOLDER "libs")
     add_subdirectory(bench.wasm)
     set_target_properties(libbench PROPERTIES FOLDER "libs")
 elseif(CMAKE_JS_VERSION)
@@ -126,10 +127,8 @@ else()
 #     add_subdirectory(quantize)
 #     set_target_properties(quantize PROPERTIES FOLDER "examples")
 # if (WHISPER_SDL2)
-#     # TODO: disabled until update
-#     #       https://github.com/ggerganov/whisper.cpp/issues/1818
-#     #add_subdirectory(talk)
-#     #set_target_properties(talk PROPERTIES FOLDER "examples")
+#     add_subdirectory(talk)
+#     set_target_properties(talk PROPERTIES FOLDER "examples")
 #     add_subdirectory(talk-llama)
 #     set_target_properties(talk-llama PROPERTIES FOLDER "examples")
 #     add_subdirectory(lsp)

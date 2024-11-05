@@ -3,11 +3,12 @@ BUILD_TARGETS = \
 	main \
 	bench \
 	quantize \
-	server
+	server \
+	tests/test-c.o
 
 # Binaries only useful for tests
 TEST_TARGETS = \
-	tests/test-c.o
+	tests/test-backend-ops
 
 # Deprecation aliases
 ifdef WHISPER_CUBLAS
@@ -134,18 +135,14 @@ ifdef GGML_RPC
 	BUILD_TARGETS += rpc-server
 endif
 
-ifdef GGML_VULKAN
-	BUILD_TARGETS += vulkan-shaders-gen
-endif
-
 ifeq ($(shell sdl2-config --cflags --libs 2>/dev/null),)
 else
 	BUILD_TARGETS += \
 		command \
 		stream \
 		lsp \
+		talk \
 		talk-llama
-	# talk (TODO: disalbed)
 endif
 
 default: $(BUILD_TARGETS)
@@ -516,6 +513,9 @@ ifdef GGML_CUDA
 	OBJ_GGML += ggml/src/ggml-cuda.o
 	OBJ_GGML += $(patsubst %.cu,%.o,$(wildcard ggml/src/ggml-cuda/*.cu))
 	OBJ_GGML += $(OBJ_CUDA_TMPL)
+
+	#OBJ_WHISPER += src/whisper-mel-cuda.o
+
 ifdef WHISPER_FATAL_WARNINGS
 	MK_NVCCFLAGS += -Werror all-warnings
 endif # WHISPER_FATAL_WARNINGS
@@ -624,12 +624,16 @@ ggml/src/ggml-cuda.o: \
 	ggml/src/ggml-common.h \
 	$(wildcard ggml/src/ggml-cuda/*.cuh)
 	$(NVCC_COMPILE)
+
+#src/whisper-mel-cuda.o: src/whisper-mel-cuda.cu src/whisper-mel-cuda.hpp
+#	$(NVCC) $(NVCCFLAGS) $(CPPFLAGS) -Xcompiler "$(CUDA_CXXFLAGS)" -c $< -o $@
+
 endif # GGML_CUDA
 
 ifdef GGML_VULKAN
 	MK_CPPFLAGS += -DGGML_USE_VULKAN
-	MK_LDFLAGS  += $(shell pkg-config --libs vulkan)
-	OBJ_GGML    += ggml/src/ggml-vulkan.o ggml/src/ggml-vulkan-shaders.o
+	MK_LDFLAGS  += -lvulkan
+	OBJ_GGML    += ggml/src/ggml-vulkan.o
 
 ifdef GGML_VULKAN_CHECK_RESULTS
 	MK_CPPFLAGS  += -DGGML_VULKAN_CHECK_RESULTS
@@ -643,10 +647,6 @@ ifdef GGML_VULKAN_MEMORY_DEBUG
 	MK_CPPFLAGS  += -DGGML_VULKAN_MEMORY_DEBUG
 endif
 
-ifdef GGML_VULKAN_PERF
-	MK_CPPFLAGS  += -DGGML_VULKAN_PERF
-endif
-
 ifdef GGML_VULKAN_VALIDATE
 	MK_CPPFLAGS  += -DGGML_VULKAN_VALIDATE
 endif
@@ -655,28 +655,10 @@ ifdef GGML_VULKAN_RUN_TESTS
 	MK_CPPFLAGS  += -DGGML_VULKAN_RUN_TESTS
 endif
 
-GLSLC_CMD  = glslc
-_ggml_vk_genshaders_cmd = $(shell pwd)/vulkan-shaders-gen
-_ggml_vk_header = ggml/src/ggml-vulkan-shaders.hpp
-_ggml_vk_source = ggml/src/ggml-vulkan-shaders.cpp
-_ggml_vk_input_dir = ggml/src/vulkan-shaders
-_ggml_vk_shader_deps = $(echo $(_ggml_vk_input_dir)/*.comp)
-
-ggml/src/ggml-vulkan.o: ggml/src/ggml-vulkan.cpp ggml/include/ggml-vulkan.h $(_ggml_vk_header) $(_ggml_vk_source)
-	$(CXX) $(CXXFLAGS) $(shell pkg-config --cflags vulkan) -c $< -o $@
-
-$(_ggml_vk_header): $(_ggml_vk_source)
-
-$(_ggml_vk_source): $(_ggml_vk_shader_deps) vulkan-shaders-gen
-	$(_ggml_vk_genshaders_cmd) \
-		--glslc      $(GLSLC_CMD) \
-		--input-dir  $(_ggml_vk_input_dir) \
-		--target-hpp $(_ggml_vk_header) \
-		--target-cpp $(_ggml_vk_source)
-
-vulkan-shaders-gen: ggml/src/vulkan-shaders/vulkan-shaders-gen.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $(LDFLAGS) ggml/src/vulkan-shaders/vulkan-shaders-gen.cpp
-
+ggml/src/ggml-vulkan.o: \
+	ggml/src/ggml-vulkan.cpp \
+	ggml/include/ggml-vulkan.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 endif # GGML_VULKAN
 
 ifdef GGML_HIPBLAS
@@ -923,10 +905,10 @@ ggml/src/ggml-alloc.o: \
 	$(CC)  $(CFLAGS)   -c $< -o $@
 
 ggml/src/ggml-backend.o: \
-	ggml/src/ggml-backend.cpp \
+	ggml/src/ggml-backend.c \
 	ggml/include/ggml.h \
 	ggml/include/ggml-backend.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CC)  $(CFLAGS)   -c $< -o $@
 
 ggml/src/ggml-quants.o: \
 	ggml/src/ggml-quants.c \
@@ -974,6 +956,7 @@ $(LIB_GGML_S): \
 
 src/whisper.o: \
 	src/whisper.cpp \
+	src/whisper-mel.hpp \
 	include/whisper.h \
 	ggml/include/ggml.h \
 	ggml/include/ggml-alloc.h \
@@ -1097,12 +1080,10 @@ lsp: examples/lsp/lsp.cpp \
 	$(CXX) $(CXXFLAGS) $(CFLAGS_SDL) -c $< -o $(call GET_OBJ_FILE, $<)
 	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS) $(LDFLAGS_SDL)
 
-# TODO: disabled until update
-#       https://github.com/ggerganov/whisper.cpp/issues/1818
-#talk: examples/talk/talk.cpp examples/talk/gpt-2.cpp \
-#	$(OBJ_GGML) $(OBJ_WHISPER) $(OBJ_COMMON) $(OBJ_SDL)
-#	$(CXX) $(CXXFLAGS) $(CFLAGS_SDL) -c $< -o $(call GET_OBJ_FILE, $<)
-#	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS) $(LDFLAGS_SDL)
+talk: examples/talk/talk.cpp examples/talk/gpt-2.cpp \
+	$(OBJ_GGML) $(OBJ_WHISPER) $(OBJ_COMMON) $(OBJ_SDL)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_SDL) -c $< -o $(call GET_OBJ_FILE, $<)
+	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS) $(LDFLAGS_SDL)
 
 talk-llama: examples/talk-llama/talk-llama.cpp examples/talk-llama/llama.cpp examples/talk-llama/llama-vocab.cpp examples/talk-llama/llama-grammar.cpp examples/talk-llama/llama-sampling.cpp examples/talk-llama/unicode.cpp examples/talk-llama/unicode-data.cpp \
 	$(OBJ_GGML) $(OBJ_WHISPER) $(OBJ_COMMON) $(OBJ_SDL)
@@ -1117,6 +1098,11 @@ tests: $(TEST_TARGETS)
 
 tests/test-c.o: tests/test-c.c include/whisper.h
 	$(CC) $(CFLAGS) -c $(filter-out %.h,$^) -o $@
+
+tests/test-backend-ops: tests/test-backend-ops.cpp \
+	$(OBJ_GGML)
+	$(CXX) $(CXXFLAGS) -c $< -o $(call GET_OBJ_FILE, $<)
+	$(CXX) $(CXXFLAGS) $(filter-out %.h $<,$^) $(call GET_OBJ_FILE, $<) -o $@ $(LDFLAGS)
 
 #
 # Audio samples
@@ -1163,9 +1149,8 @@ samples:
 .PHONY: large-v1
 .PHONY: large-v2
 .PHONY: large-v3
-.PHONY: large-v3-turbo
 
-tiny.en tiny base.en base small.en small medium.en medium large-v1 large-v2 large-v3 large-v3-turbo: main
+tiny.en tiny base.en base small.en small medium.en medium large-v1 large-v2 large-v3: main
 	bash ./models/download-ggml-model.sh $@
 	@echo ""
 	@echo "==============================================="

@@ -82,11 +82,7 @@ dir_out     = Path(sys.argv[3])
 
 encoder = json.load((dir_model / "vocab.json").open("r", encoding="utf8"))
 encoder_added = json.load((dir_model / "added_tokens.json").open( "r", encoding="utf8"))
-hparams = json.load((dir_model / "config.json").open("r", encoding="utf8"))
-
-# Add this block to handle missing 'max_length'
-if "max_length" not in hparams:
-    hparams["max_length"] = hparams.get("max_target_positions", 448)
+hparams = json.load((dir_model / "config.json").open("r", encoding="utf8") )
 
 model = WhisperForConditionalGeneration.from_pretrained(dir_model)
 

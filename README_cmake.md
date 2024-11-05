@@ -67,10 +67,11 @@ inline bool mmap::open(const char *path) {
 - 修改stable-diffusion.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 
 ### whisper.cpp
-- 删除examples中cmakelists.txt里的DefaultTargetOptions
+- 删除自己的ggml文件夹
 - 删除whisper.cpp中的whisper_init_from_file_with_params_no_state里的#ifdef _MSC_VER部分以支持中文
+- 将examples中的common库更名为whisper-common
 - examples/main的taget名称改为whisper-cli
-- 其它步骤同stable-diffusion.cpp
+- 让所以对ggml库的链接更名为sd-ggml
 
 
 ### libsndfile 读写wav文件

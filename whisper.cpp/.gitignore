@@ -3,13 +3,11 @@
 .cache/
 .coreml/
 .test/
-.venv/
 .vs/
 .vscode/
 .DS_Store
 .vimspector.json
 /CMakeSettings.json
-/talk-llama.dSYM/
 
 build/
 build-*/
