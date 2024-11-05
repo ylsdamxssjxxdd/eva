@@ -1739,7 +1739,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item>
-              <widget class="QFrame" name="sd_frame_clippath">
+              <widget class="QFrame" name="sd_frame_clip_l_path">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -1778,7 +1778,7 @@ p, li { white-space: pre-wrap; }
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QLabel" name="sd_clippath_label">
+                 <widget class="QLabel" name="sd_clip_l_path_label">
                   <property name="minimumSize">
                    <size>
                     <width>90</width>
@@ -1795,7 +1795,7 @@ p, li { white-space: pre-wrap; }
                    <number>0</number>
                   </property>
                   <property name="text">
-                   <string>clip模型</string>
+                   <string>clip_l模型</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -1803,7 +1803,7 @@ p, li { white-space: pre-wrap; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QLineEdit" name="sd_clippath_lineEdit">
+                 <widget class="QLineEdit" name="sd_clip_l_path_lineEdit">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -1822,7 +1822,112 @@ p, li { white-space: pre-wrap; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="sd_clippath_pushButton">
+                 <widget class="QPushButton" name="sd_clip_l_path_pushButton">
+                  <property name="minimumSize">
+                   <size>
+                    <width>30</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>30</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="sd_frame_clip_g_path">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <property name="lineWidth">
+                <number>0</number>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_29">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="sd_clip_g_path_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>90</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>90</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>clip_g模型</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="sd_clip_g_path_lineEdit">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="placeholderText">
+                   <string>没有可不选</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="sd_clip_g_path_pushButton">
                   <property name="minimumSize">
                    <size>
                     <width>30</width>

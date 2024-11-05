@@ -87,14 +87,14 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     SD_PARAMS sd_sd1_5_anything_3_template{"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
     SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,30,1,-1,2,7.5};
-    SD_PARAMS sd_sd3_medium_template{"euler","","masterpieces, best quality, beauty, detailed, Pixar, 8k",768,768,30,1,-1,-1,5.0};
+    SD_PARAMS sd_sd3_5_large_template{"euler","","",768,768,20,1,-1,-1,4.5};
     SD_PARAMS sd_flux1_dev_template{"euler","","",768,768,30,1,-1,-1,1.0};
     SD_PARAMS sd_custom1_template{"euler","","",512,512,20,1,-1,-1,7.5};
     SD_PARAMS sd_custom2_template{"euler","","",512,512,20,1,-1,-1,7.5};
 
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
     sd_params_templates.insert("sdxl-animagine-3.1", sd_sdxl_animagine_3_1_template);
-    sd_params_templates.insert("sd3-medium", sd_sd3_medium_template);
+    sd_params_templates.insert("sd3_5-large", sd_sd3_5_large_template);
     sd_params_templates.insert("flux1-dev", sd_flux1_dev_template);
     sd_params_templates.insert("custom1", sd_custom1_template);
     sd_params_templates.insert("custom2", sd_custom2_template);
@@ -211,12 +211,14 @@ void Expend::init_expend() {
 
     ui->sd_modelpath_label->setText(jtr("diffusion") + jtr("model"));
     ui->sd_vaepath_label->setText("vae " + jtr("model"));
-    ui->sd_clippath_label->setText("clip " + jtr("model"));
+    ui->sd_clip_l_path_label->setText("clip_l " + jtr("model"));
+    ui->sd_clip_g_path_label->setText("clip_g " + jtr("model"));
     ui->sd_t5path_label->setText("t5 " + jtr("model"));
     ui->sd_lorapath_label->setText("lora " + jtr("model"));
     ui->sd_modelpath_lineEdit->setPlaceholderText(jtr("sd_modelpath_lineEdit_placeholder"));
     ui->sd_vaepath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-    ui->sd_clippath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    ui->sd_clip_l_path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    ui->sd_clip_g_path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     ui->sd_t5path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     ui->sd_lorapath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
 
@@ -364,7 +366,8 @@ void Expend::readConfig() {
         QString sd_params_template = settings.value("sd_params_template", "custom1").toString();       // 参数模板
         QString sd_modelpath = settings.value("sd_modelpath", "").toString();              // sd模型路径
         QString vae_modelpath = settings.value("vae_modelpath", "").toString();            // vae模型路径
-        QString clip_modelpath = settings.value("clip_modelpath", "").toString();            // clip模型路径
+        QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();            // clip_l模型路径
+        QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();            // clip_g模型路径
         QString t5_modelpath = settings.value("t5_modelpath", "").toString();            // t5模型路径
         QString lora_modelpath = settings.value("lora_modelpath", "").toString();            // lora模型路径
 
@@ -392,8 +395,11 @@ void Expend::readConfig() {
         QFile vae_modelpath_file(vae_modelpath);
         if (vae_modelpath_file.exists()) {ui->sd_vaepath_lineEdit->setText(vae_modelpath);}
 
-        QFile clip_modelpath_file(clip_modelpath);
-        if (clip_modelpath_file.exists()) {ui->sd_clippath_lineEdit->setText(clip_modelpath);}
+        QFile clip_l_modelpath_file(clip_l_modelpath);
+        if (clip_l_modelpath_file.exists()) {ui->sd_clip_l_path_lineEdit->setText(clip_l_modelpath);}
+
+        QFile clip_g_modelpath_file(clip_g_modelpath);
+        if (clip_g_modelpath_file.exists()) {ui->sd_clip_g_path_lineEdit->setText(clip_g_modelpath);}
 
         QFile t5_modelpath_file(t5_modelpath);
         if (t5_modelpath_file.exists()) {ui->sd_t5path_lineEdit->setText(t5_modelpath);}
@@ -549,7 +555,8 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("sd_params_template", ui->params_template_comboBox->currentText());
     settings.setValue("sd_modelpath", ui->sd_modelpath_lineEdit->text());
     settings.setValue("vae_modelpath", ui->sd_vaepath_lineEdit->text());
-    settings.setValue("clip_modelpath", ui->sd_clippath_lineEdit->text());
+    settings.setValue("clip_l_modelpath", ui->sd_clip_l_path_lineEdit->text());
+    settings.setValue("clip_g_modelpath", ui->sd_clip_g_path_lineEdit->text());
     settings.setValue("t5_modelpath", ui->sd_t5path_lineEdit->text());
     settings.setValue("lora_modelpath", ui->sd_lorapath_lineEdit->text());
     settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
@@ -1506,7 +1513,8 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
         //先清空其它路径
         ui->sd_lorapath_lineEdit->setText("");
         ui->sd_vaepath_lineEdit->setText("");
-        ui->sd_clippath_lineEdit->setText("");
+        ui->sd_clip_l_path_lineEdit->setText("");
+        ui->sd_clip_g_path_lineEdit->setText("");
         ui->sd_t5path_lineEdit->setText("");
 
         // 遍历当前目录
@@ -1521,9 +1529,13 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
             {
                 ui->sd_vaepath_lineEdit->setText(file_path_name);
             }
-            else if(file_path_name.contains("clip"))
+            else if(file_path_name.contains("clip_l"))
             {
-                ui->sd_clippath_lineEdit->setText(file_path_name);
+                ui->sd_clip_l_path_lineEdit->setText(file_path_name);
+            }
+            else if(file_path_name.contains("clip_g"))
+            {
+                ui->sd_clip_g_path_lineEdit->setText(file_path_name);
             }
             else if(file_path_name.contains("t5"))
             {
@@ -1549,11 +1561,20 @@ void Expend::on_sd_vaepath_pushButton_clicked() {
 }
 
 //用户点击选择clip模型路径时响应
-void Expend::on_sd_clippath_pushButton_clicked()
+void Expend::on_sd_clip_l_path_pushButton_clicked()
 {
-    currentpath = customOpenfile(currentpath, "choose clip model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    currentpath = customOpenfile(currentpath, "choose clip_l model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if (currentpath != "") {
-        ui->sd_clippath_lineEdit->setText(currentpath);
+        ui->sd_clip_l_path_lineEdit->setText(currentpath);
+    }
+}
+
+//用户点击选择clip模型路径时响应
+void Expend::on_sd_clip_g_path_pushButton_clicked()
+{
+    currentpath = customOpenfile(currentpath, "choose clip_g model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    if (currentpath != "") {
+        ui->sd_clip_g_path_lineEdit->setText(currentpath);
     }
 }
 
@@ -1633,7 +1654,8 @@ void Expend::on_sd_draw_pushButton_clicked() {
     else {arguments << "-m" << ui->sd_modelpath_lineEdit->text();}
 
     if(QFile::exists(ui->sd_vaepath_lineEdit->text())){arguments << "--vae" << ui->sd_vaepath_lineEdit->text();}// vae路径
-    if(QFile::exists(ui->sd_clippath_lineEdit->text())){arguments << "--clip_l" << ui->sd_clippath_lineEdit->text();}// clip路径
+    if(QFile::exists(ui->sd_clip_l_path_lineEdit->text())){arguments << "--clip_l" << ui->sd_clip_l_path_lineEdit->text();}// clip_l路径
+    if(QFile::exists(ui->sd_clip_g_path_lineEdit->text())){arguments << "--clip_g" << ui->sd_clip_g_path_lineEdit->text();}// clip_g路径
     if(QFile::exists(ui->sd_t5path_lineEdit->text())){arguments << "--t5xxl" << ui->sd_t5path_lineEdit->text();}// vae路径
     QString lora_prompt = "<lora:{model}:1>";// 应用lora的提示，将会添加到提示词的最后
     if(QFile::exists(ui->sd_lorapath_lineEdit->text()))

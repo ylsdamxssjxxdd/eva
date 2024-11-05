@@ -197,7 +197,8 @@ class Expend : public QWidget {
    private slots:
     void on_sd_modelpath_pushButton_clicked();      //用户点击选择sd模型路径时响应
     void on_sd_vaepath_pushButton_clicked();        //用户点击选择vae模型路径时响应
-    void on_sd_clippath_pushButton_clicked();        //用户点击选择clip模型路径时响应
+    void on_sd_clip_l_path_pushButton_clicked();        //用户点击选择clip模型路径时响应
+    void on_sd_clip_g_path_pushButton_clicked();        //用户点击选择clip模型路径时响应
     void on_sd_t5path_pushButton_clicked();        //用户点击选择t5模型路径时响应
     void on_sd_lorapath_pushButton_clicked();        //用户点击选择lora模型路径时响应
     void on_sd_draw_pushButton_clicked();           //用户点击文生图时响应
