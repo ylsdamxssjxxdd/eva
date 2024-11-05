@@ -55,6 +55,8 @@ class Expend : public QWidget {
     QString applicationDirPath;
     void closeEvent(QCloseEvent *event) override;            //关闭事件
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
+    void setWhisperModelpath(QString modelpath); // 用于设置whisper模型路径
+    void setSdModelpath(QString modelpath); // 用于设置sd模型路径
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字

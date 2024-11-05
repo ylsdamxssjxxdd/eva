@@ -2010,3 +2010,17 @@ void Expend::init_syncrate() {
         ui->sync_tableWidget->setItem(i - 1, 0, newItem2);
     }
 }
+
+// 用于设置whisper模型路径
+void Expend::setWhisperModelpath(QString modelpath)
+{
+    ui->whisper_load_modelpath_linedit->setText(modelpath);
+    whisper_params.model = modelpath.toStdString();
+}
+
+// 用于设置sd模型路径
+void Expend::setSdModelpath(QString modelpath)
+{
+    ui->sd_modelpath_lineEdit->setText(modelpath);
+    ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");// 默认
+}
