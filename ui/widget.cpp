@@ -727,6 +727,45 @@ void Widget::set_date() {
     emit ui2bot_date(ui_DATES);
 }
 
+//用户取消约定
+void Widget::cancel_date()
+{
+    //还原工具选择
+    calculator_checkbox->setChecked(ui_calculator_ischecked);
+    terminal_checkbox->setChecked(ui_terminal_ischecked);
+    toolguy_checkbox->setChecked(ui_toolguy_ischecked);
+    controller_checkbox->setChecked(ui_controller_ischecked);
+    knowledge_checkbox->setChecked(ui_knowledge_ischecked);
+    stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
+    interpreter_checkbox->setChecked(ui_interpreter_ischecked);
+    switch_lan_button->setText(ui_extra_lan);
+    //复原语言
+    if (ui_extra_lan == "zh") {
+        language_flag = 0;
+    } else if (ui_extra_lan == "en") {
+        language_flag = 1;
+    }
+    apply_language(language_flag);
+    emit ui2bot_language(language_flag);
+    emit ui2tool_language(language_flag);
+    emit ui2net_language(language_flag);
+    emit ui2expend_language(language_flag);
+    extra_TextEdit->setText(ui_extra_prompt);
+    // 重新判断是否挂载了工具
+    if (calculator_checkbox->isChecked() || terminal_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked()) {
+        if (is_load_tool == false) {
+            reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
+        }
+        is_load_tool = true;
+    } else {
+        if (is_load_tool == true) {
+            reflash_state("ui:" + jtr("disable output parser"), SIGNAL_SIGNAL);
+        }
+        is_load_tool = false;
+    }
+
+}
+
 //用户点击设置按钮响应
 void Widget::on_set_clicked() {
     server_process->kill();

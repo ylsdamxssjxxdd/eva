@@ -954,8 +954,11 @@ void Widget::set_DateDialog() {
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);  // 创建 QDialogButtonBox 用于确定按钮
 
     layout->addWidget(buttonBox);
-    connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);
-    connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);// 点击确定按钮
+    connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);// 点击取消按钮，实现对话框关闭
+    connect(buttonBox, &QDialogButtonBox::rejected, this, &Widget::cancel_date);// 点击取消按钮，采取后续操作
+    connect(date_dialog, &QDialog::rejected, this, &Widget::cancel_date);// 点击关闭按钮，采取后续操作
+    
     prompt_template_change();  //先应用提示词模板
     date_prompt_TextEdit->setText(ui_date_prompt);
     date_dialog->setWindowTitle(jtr("date"));
@@ -1560,6 +1563,7 @@ void Widget::get_date() {
     ui_controller_ischecked = controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
     ui_interpreter_ischecked = interpreter_checkbox->isChecked();
+
 
     //记录自定义模板
     if (ui_template == jtr("custom set1")) {

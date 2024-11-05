@@ -380,6 +380,7 @@ void Widget::switch_lan_change() {
         language_flag = 0;
         switch_lan_button->setText("zh");
     }
+    
     apply_language(language_flag);
     emit ui2bot_language(language_flag);
     emit ui2tool_language(language_flag);

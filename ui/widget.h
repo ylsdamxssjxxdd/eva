@@ -428,6 +428,7 @@ class Widget : public QWidget {
     void output_scrollBarValueChanged(int value);                 //输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();                                               //设置用户设置内容
     void set_date();                                              //设置用户约定内容
+    void cancel_date();                                           //用户取消约定
     void calculator_change();                                     //选用计算器工具
     void interpreter_change();                                    //选用代码解释器工具
     void updateGpuStatus();                                       //更新gpu内存使用率
