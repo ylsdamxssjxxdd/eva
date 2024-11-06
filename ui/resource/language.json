@@ -53,7 +53,7 @@
         "Q9": ["写一个新闻稿，为运动会上健儿加油","Write a press release to cheer for the athletes at the sports meeting "],
         "Q10": ["写一个心得体会，关于一本无人机书籍的学习","Write a reflection on the study of a drone book "],
         "Q11": ["写一个实习报告，关于在气象台实习的","Write an internship report about interning at a meteorological station "],
-        "Q12": ["写一个开题报告和任务书，关于大模型在气象上的应用研究","Write a proposal and task book on the application research of large-scale models in meteorology "],
+        "Q12": ["请使用BOPPPS模型设计一堂课，题目为：神经网络原理","Please use the BOPPPS model to design a class titled: Principles of Neural Networks "],
         "Q13": ["写一个检讨书，关于工作失职，3000字","Write a 3000 word review on dereliction of duty at work "],
         "Q14": ["<机体同步率测试>","<Eva sync rate test>"],
         "Q15": ["<上传图像>","<Upload Image> "],
