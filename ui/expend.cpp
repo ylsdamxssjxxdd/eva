@@ -83,7 +83,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
 
     // 文生图相关
-    // 构建模板 sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
+    // 构建模板 sd1.5-anything-3,sdxl-animagine-3.1,sd3.5-large,flux1-dev,custom1,custom2
 
     SD_PARAMS sd_sd1_5_anything_3_template{"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
     SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,30,1,-1,2,7.5};
@@ -94,7 +94,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
     sd_params_templates.insert("sdxl-animagine-3.1", sd_sdxl_animagine_3_1_template);
-    sd_params_templates.insert("sd3_5-large", sd_sd3_5_large_template);
+    sd_params_templates.insert("sd3.5-large", sd_sd3_5_large_template);
     sd_params_templates.insert("flux1-dev", sd_flux1_dev_template);
     sd_params_templates.insert("custom1", sd_custom1_template);
     sd_params_templates.insert("custom2", sd_custom2_template);
@@ -1547,7 +1547,7 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
     // 自动设置参数模板
     if (modelpath.contains("sd1.5-anything-3")){ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");}
     else if(modelpath.contains("sdxl-animagine-3.1")){ui->params_template_comboBox->setCurrentText("sdxl-animagine-3.1");}
-    else if(modelpath.contains("sd3-medium")){ui->params_template_comboBox->setCurrentText("sd3-medium");}
+    else if(modelpath.contains("sd3.5-large")){ui->params_template_comboBox->setCurrentText("sd3.5-large");}
     else if(modelpath.contains("flux1-dev")){ui->params_template_comboBox->setCurrentText("flux1-dev");}
 
 }
