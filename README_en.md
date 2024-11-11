@@ -11,10 +11,6 @@ Intuitive large model application (based on llama.cpp & qt5)
 
     - Clearly show the process of the llm predicting the next word
 
-- Compatibility 🚀
-
-    - Support Windows & Linux
-
 - Multifunctional 🦾
 
 ```txt
@@ -51,7 +47,30 @@ Intuitive large model application (based on llama.cpp & qt5)
 
     - If running SD simultaneously, make sure to leave enough VRAM for SD
 
-## Foundation function
+
+## Core Gameplay
+
+1. Load soul into EVA
+
+    - Each model file is a unique soul. Choose one to load into the EVA and observe how the neurons establish connections!
+
+2. Decoding-Sampling Loop
+
+    - The essence of a large language model is predicting the next word. It achieves this through decoding and sampling, which will be an interesting process!
+
+3. DATE Framework Implementation
+
+    - How can we enable the llm to interact with and reflect on the outside world? Implement tools mounted on the EVA and open the door to reality for it!
+
+3. Automated Exploration
+
+    - Can the llm take over your daily tasks? Let your imagination run wild! 
+
+Remember, the important thing is never the outcome 😊
+
+## Function
+
+### Foundation function
 
 <details>
 
@@ -158,7 +177,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 </details>
 
-## Enhancements
+### Enhancements
 
 <details>
 
@@ -190,7 +209,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 </details>
 
-## Auxiliary functions
+### Auxiliary functions
 
 <details>
 
