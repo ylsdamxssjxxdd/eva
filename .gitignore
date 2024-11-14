@@ -13,3 +13,9 @@ widget_ui.py
 expend_ui.py
 stable-diffusion.cpp/build
 CMakeLists.txt.user
+llama.cpp/.devops
+llama.cpp/.github
+whisper.cpp/.devops
+whisper.cpp/.github
+stable-diffusion.cpp/.devops
+stable-diffusion.cpp/.github
