@@ -60,7 +60,7 @@ Intuitive large model application (based on llama.cpp & qt5)
 
 3. DATE Framework Implementation
 
-    - How can we enable the llm to interact with and reflect on the outside world? Implement tools mounted on the EVA and open the door to reality for it!
+    - How can we enable the llm to interact with and reflect on the outside world? Implement tools mounted on the EVA and open the window to reality for it!
 
 3. Automated Exploration
 
