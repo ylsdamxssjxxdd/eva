@@ -269,50 +269,50 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    //---------------如果没有配置文件但是有eva-models目录，则自动装载里面的模型------------------
-    else
-    {
-        QString modelspath = applicationDirPath + "/eva-models/";
-        QDir modelsdir(modelspath);
-        if(modelsdir.exists())
-        {
-            w.currentpath = w.historypath = expend.currentpath = modelspath;
+    // //---------------如果没有配置文件但是有eva-models目录，则自动装载里面的模型------------------
+    // else
+    // {
+    //     QString modelspath = applicationDirPath + "/eva-models/";
+    //     QDir modelsdir(modelspath);
+    //     if(modelsdir.exists())
+    //     {
+    //         w.currentpath = w.historypath = expend.currentpath = modelspath;
 
-            //主模型处理
-            {
-                QString modelpath = modelspath + "llama-model/Qwen2.5-7B-Q3_K_M.gguf";  //模型路径
-                QFile modelpath_file(modelpath);
-                if (modelpath_file.exists())  //模型存在的话才继续进行
-                {
-                    w.ui_SETTINGS.modelpath = modelpath;// 设置好模型路径
-                    emit w.ui2bot_free(1); // 释放已有模型后执行重载操作，会自动判断显存
-                }
-            }
+    //         //主模型处理
+    //         {
+    //             QString modelpath = modelspath + "llama-model/Qwen2.5-7B-Q3_K_M.gguf";  //模型路径
+    //             QFile modelpath_file(modelpath);
+    //             if (modelpath_file.exists())  //模型存在的话才继续进行
+    //             {
+    //                 w.ui_SETTINGS.modelpath = modelpath;// 设置好模型路径
+    //                 emit w.ui2bot_free(1); // 释放已有模型后执行重载操作，会自动判断显存
+    //             }
+    //         }
 
-            //whisper模型处理
-            {
-                QString modelpath = modelspath + "whisper-model/whisper-base-q5_1.bin";  //模型路径
-                QFile modelpath_file(modelpath);
-                if (modelpath_file.exists())  //模型存在的话才继续进行
-                {
-                    w.whisper_model_path = modelpath;
-                    expend.setWhisperModelpath(modelpath);
-                }
-            }
+    //         //whisper模型处理
+    //         {
+    //             QString modelpath = modelspath + "whisper-model/whisper-base-q5_1.bin";  //模型路径
+    //             QFile modelpath_file(modelpath);
+    //             if (modelpath_file.exists())  //模型存在的话才继续进行
+    //             {
+    //                 w.whisper_model_path = modelpath;
+    //                 expend.setWhisperModelpath(modelpath);
+    //             }
+    //         }
 
-            //sd模型处理
-            {
-                QString modelpath = modelspath + "sd-model/sd1.5-anything-3-q8_0.gguf";  //模型路径
-                QFile modelpath_file(modelpath);
-                if (modelpath_file.exists())  //模型存在的话才继续进行
-                {
-                    expend.setSdModelpath(modelpath);
-                }
-            }
+    //         //sd模型处理
+    //         {
+    //             QString modelpath = modelspath + "sd-model/sd1.5-anything-3-q8_0.gguf";  //模型路径
+    //             QFile modelpath_file(modelpath);
+    //             if (modelpath_file.exists())  //模型存在的话才继续进行
+    //             {
+    //                 expend.setSdModelpath(modelpath);
+    //             }
+    //         }
             
-        }
+    //     }
 
-    }
+    // }
 
     //传递停止词和约定，因为第一次没有传递约定参数给bot
     bot.extra_stop_words = w.ui_DATES.extra_stop_words;               // 同步
