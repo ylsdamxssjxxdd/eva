@@ -86,17 +86,6 @@ void xBot::predict(INPUTS inputs) {
     // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
     // qDebug()<<"历史token"<<view_embd(ctx,*history_tokens);
     // qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
-
-    // 用户刚点击发送按钮进入debuging状态时（inputs.role 是ROLE_DEBUG 意味着刚点击）
-    if (is_debuging) {
-        if (!is_test) {
-            if ((inputs.role != ROLE_DEBUG)) {
-                bot2ui_state("DEBUGING 0 ", DEBUGING_SIGNAL);
-                remain_n_remain = common_params_.n_predict;  //用来记录一次debuging过程的n_remain值
-                current_output = "";                      //清空上一轮的输出记录
-            }
-        }
-    }
     
     //-------------------------------------------------------------
     //---------------------------流式输出---------------------------
@@ -106,19 +95,19 @@ void xBot::predict(INPUTS inputs) {
     batch_count = 0;                   //被批解码的token数
     singl_count = 0;                   //被单解码的token数
     n_remain = common_params_.n_predict;  //-1的话可以无限输出
-    if (is_debuging) {
-        debuging_one = 1;
-        n_remain = remain_n_remain;
-    }  // debuging时控制循环只进行一次, n_remain使用上一次的
-    if (is_test) {
-        n_remain = 1;
-    }  //测试时最大输出长度强制为1
+    if (is_test) 
+    {
+        n_remain = 1;//测试时最大输出长度强制为1
+    }  
     //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
-    if (common_params_.n_ctx > n_ctx_train) {
+    if (common_params_.n_ctx > n_ctx_train) 
+    {
         ga_n = common_params_.n_ctx / n_ctx_train + 1;
         ga_w = 512 * ga_n;
         emit bot2ui_state("bot:" + jtr("extend ctx length") + QString::number(n_ctx_train) + "->" + QString::number(common_params_.n_ctx));
-    } else {
+    } 
+    else 
+    {
         ga_n = 1;
         ga_w = 512;
     }
@@ -130,68 +119,38 @@ void xBot::predict(INPUTS inputs) {
         Brain_vector.push_back({n_past, -1, ""});
         batch_count--;  //空的不算数
         emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);
-        if (is_debuging) {
-            emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);
-        }  // 1强制刷新记忆矩阵
-        else {
-            emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx);
-        }
+        emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx);
         o1 = stream();
         fail++;
         // qDebug()<<"fail times"<<fail<<"return "<<o1<<"n_past"<<n_past;
     }
 
-    // debuging状态输出额外的信息
-    if (is_debuging) {
-        //打印当前缓存的上下文
-        // emit bot2ui_state("bot:" + jtr("kv cache") + " " + QString::number(llama_get_kv_cache_token_count(ctx)) + " token");
-    }
+    emit bot2ui_pushover();                                           //推理完成的信号
+    emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
 
-    // qDebug()<<"-------------------------------------------------";
-    // for(int i=0;i<Brain_vector.size();++i)
-    // {
-    //     qDebug()<<Brain_vector.at(i).id<<Brain_vector.at(i).token<<Brain_vector.at(i).word;
-    // }
-
-    if (!is_debuging || o1 == -1)  // debuging状态就是不让bot发送pushover信号，如果是遇到停止标志或达到最大输出长度则可以
-    {
-        emit bot2ui_pushover();                                           //推理完成的信号
-        emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
-    }
 }
 
-//流式输出，0表示正常退出，-1表示遇到停止标志，1表示解码失败
+//流式输出，0表示遇到停止标签，-1表示遇到停止标志，1表示解码失败
 int xBot::stream() 
 {
     is_stop = false;
     single_timer.restart();  //后面减去batch_timer记录的时间就是单解码用时
-    if (!is_debuging) {current_output = "";}
+    current_output = "";
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain != 0) {
 
         QCoreApplication::processEvents();// 接收主线事件，主要是停止信号
-
-        // debuging时控制循环只进行一次
-        if (is_debuging) {
-            if (debuging_one == 0) {
-                return 0;
-            }
-            debuging_one--;
-            remain_n_remain--;  //用于下次debuging判断是否达到最大输出长度
-        }
 
         //模型停止
         if (is_stop) {
             pick_half_utf8.clear();
             QString fianl_state;
             fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-            if (!is_debuging) {
-                fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
-            }
+            fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
             emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
             emit bot2ui_stopover();  //完成停止的信号
             is_stop = false;
-            return 0;
+            return 0;//0表示遇到停止标签，-1表示遇到停止标志，1表示解码失败
         }
 
         //------------------------------解码-----------------------------------
@@ -288,12 +247,9 @@ int xBot::stream()
                 }
 
                 //--------------解码----------------
-                if (is_debuging) {debuging_timer.restart();}
                 int ret = llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval));
-                if (is_debuging) {emit bot2ui_state("bot:" + jtr("decode") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s " + jtr("caculate token") + " " + QString::number(n_eval), SUCCESS_SIGNAL);}
                 if (ret == 1)  //找不到槽的情况
                 {
-                    debuging_one = 1;  // 让测试的debug保持有次数
                     return 1;
                 } 
                 else {n_past += n_eval;}
@@ -303,8 +259,7 @@ int xBot::stream()
                     Brain_vector.push_back({n_past - int(embd.size()) + i + 1, embd.at(i), QString::fromStdString(common_token_to_piece(ctx, embd.at(i)))});
                 }
 
-                if (is_debuging) {emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);}  // 1强制刷新记忆矩阵
-                else {emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx);}
+                emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx);
                 emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);
             }
             if (is_test) {emit bot2ui_tokens(embd.size());}  //测试过程传递处理的token数量,用来计算批解码速度
@@ -325,9 +280,6 @@ int xBot::stream()
         embd.clear();  //清空embd
 
         //--------------------------采样&输出----------------------------
-
-        // 记录采样时间
-        if (is_debuging) {debuging_timer.restart();}  
         // 采样获取下一个token的id
         llama_token id = common_sampler_sample(smpl, ctx, -1);
         // common_sampler_accept(smpl, id, /* accept_grammar= */ true); // 真正输出了才记录
@@ -340,20 +292,18 @@ int xBot::stream()
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
-        if(!checkStop(&sstr, &id)){return 0;}
+        if(checkStop(&sstr, &id)){return -1;}
 
 
     }  //到这里推理循环结束
 
     //这里是达到最大预测长度的情况
-    if (!is_test && !is_debuging)  //测试的时候不输出这个
+    if (!is_test)  //测试的时候不输出这个
     {
         emit bot2ui_state("bot:" + jtr("arrive max predict length") + " " + QString::number(common_params_.n_predict));
         QString fianl_state;
         fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-        if (!is_debuging) {
-            fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
-        }
+        fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
         emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
     }
 
@@ -1010,9 +960,6 @@ void xBot::apply_date(DATES date) {
     get_default_templete_chat_format();// 获取系统指令、输入前缀、输入后缀
 }
 
-//传递debug中状态
-void xBot::recv_debuging(bool is_debuging_) { is_debuging = is_debuging_; }
-
 // 根据language.json和language_flag中找到对应的文字
 QString xBot::jtr(QString customstr) { return wordsObj[customstr].toArray()[language_flag].toString(); }
 
@@ -1250,21 +1197,17 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
     if (*id == eos_token || *id == eot_token || *id == bos_token)  //如果遇到结束则停止
     {
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
-        if (is_debuging) {emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s", SUCCESS_SIGNAL);}
-        
         embd.clear(); // 不再显示和保留模型输出的停止词，因为后缀里包含有
-
         QString fianl_state;
         fianl_state = "bot:" + jtr("predict") + jtr("over") + " ";
-        if (!is_debuging) {fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";}
+        fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
         emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
         // qDebug() << batch_count << batch_time << singl_count << single_timer.nsecsElapsed()/1000000000.0 - batch_time;
-        return false;
+        return true;
     } 
     else 
     {
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
-        if (is_debuging) {emit bot2ui_state("bot:" + jtr("sampling") + " " + jtr("use time") + " " + QString::number(debuging_timer.nsecsElapsed() / 1000000000.0, 'f', 4) + " s", SUCCESS_SIGNAL);}
         
         // 记录输出的token和词
         common_sampler_accept(smpl, *id, /* accept_grammar= */ true);
@@ -1299,13 +1242,10 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
 
                 QString fianl_state;
                 fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-                if (!is_debuging) 
-                {
-                    fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
-                }
+                fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
                 emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
                 // qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-                return false;
+                return true;
 
             }
 
@@ -1318,16 +1258,12 @@ bool xBot::checkStop(std::string *sstr, llama_token *id)
             emit bot2ui_state("bot:" + jtr("detected") + jtr("extra stop words") + " " + QString::fromStdString("<| |>"));
             QString fianl_state;
             fianl_state = "bot:" + jtr("predict") + jtr("stop") + " ";
-
-            if (!is_debuging) 
-            {
-                fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
-            }
+            fianl_state += jtr("single decode") + QString(":") + QString::number(singl_count / (single_timer.nsecsElapsed() / 1000000000.0 - batch_time), 'f', 2) + " token/s" + " " + jtr("batch decode") + QString(":") + QString::number(batch_count / batch_time, 'f', 2) + " token/s";
             emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
             // qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-            return false;
+            return true;
         }
     }
 
-    return true;
+    return false;
 }

@@ -221,16 +221,6 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <details>
 
-<summary> Debug output </summary>
-
-- To better demonstrate the process of the model predicting the next word, you can pull the status area up and click to open the debug tab in the local mode
-
-- After enabling, the prediction of the next word is manually controlled by the you, which can obtain more information about the model's operation
-
-</details>
-
-<details>
-
 <summary> Eva sync rate test </summary>
 
 - In local mode and chat state, the model can be tested for sync rate. Right click on the input area and select \<Eva sync rate test>

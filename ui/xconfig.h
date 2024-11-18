@@ -127,12 +127,17 @@ struct MODEL_PARAMS {
     int max_ngl;      // ngl的最大值
 };
 
+
+#define CHAT_ENDPOINT "/v1/chat/completions"
+#define COMPLETION_ENDPOINT "/completions"
+
 // api配置参数
 struct APIS {
+    QString api_endpoint = ""; // openai格式端点 = ip + port
     QString api_ip = "";
     QString api_port = "8080";
-    QString api_chat_endpoint = "/v1/chat/completions";
-    QString api_complete_endpoint = "/completion";
+    QString api_chat_endpoint = CHAT_ENDPOINT;
+    QString api_completion_endpoint = COMPLETION_ENDPOINT;
     bool is_cache = true;
 };
 
@@ -173,7 +178,6 @@ enum SIGNAL_STATE {
     EVA_SIGNAL,       //机体，紫色
     TOOL_SIGNAL,      //工具，天蓝色
     SYNC_SIGNAL,      //同步，橘黄色
-    DEBUGING_SIGNAL,  // debug，墨绿色
     MATRIX_SIGNAL,    //文本表格，黑色，不过滤回车符
 };
 

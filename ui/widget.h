@@ -113,15 +113,6 @@ class Widget : public QWidget {
     void ui_state_normal();     //待机界面状态
     void ui_state_recoding();   //录音界面状态
 
-    // debug相关
-    void debugButton_enable();        // 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
-    CustomSwitchButton *debugButton;  // debug按钮
-    bool is_debug = false;            // debug启用标志
-    bool is_debuging = false;         // debug运行中标志
-    int debuging_times = 1;           // debug运行中点击next的次数
-    bool is_debug_query = false;      // debug模式，处于query流程中的标签
-    bool is_debug_tool1 = false;      // debug模式，发送函数给tool的标签
-
     //同步率测试相关
     Syncrate_Manager ui_syncrate_manager;               //同步率测试管理器
     bool SyncRateTestCheck(QString assistant_history);  // 检测结果并赋分
@@ -313,8 +304,8 @@ class Widget : public QWidget {
     void startConnection(const QString &ip, int port);  //检测ip是否通畅
     void api_send_clicked_slove();                      //链接模式的发送处理
     QDialog *api_dialog;
-    QLabel *api_ip_label, *api_port_label, *api_chat_label, *api_complete_label;
-    QLineEdit *api_ip_LineEdit, *api_port_LineEdit, *api_chat_LineEdit, *api_complete_LineEdit;
+    QLabel *api_endpoint_label;
+    QLineEdit *api_endpoint_LineEdit;
     APIS apis;                                            // api配置参数
     QVector<QPair<QString, API_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history = "";                  //临时数据
@@ -335,7 +326,6 @@ class Widget : public QWidget {
 
     //发给模型的信号
    signals:
-    void ui2bot_debuging(bool is_debuging_);                                 //传递debug中状态
     void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);             //自动装载
     void ui2bot_language(int language_flag_);                                //传递使用的语言
     void ui2bot_loadmodel(QString modelpath);//开始装载模型
@@ -413,7 +403,6 @@ class Widget : public QWidget {
     //自用的槽
    private slots:
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
-    void ondebugButton_clicked();              // debug按钮点击响应
     void qspeech_process();                    //每半秒检查列表，列表中有文字就读然后删，直到读完
     void speechOver();                         //朗读结束后动作
     void stop_recordAudio();                   //停止录音

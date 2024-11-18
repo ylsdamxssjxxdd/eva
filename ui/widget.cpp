@@ -11,9 +11,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->splitter->setStretchFactor(0, 3);  //设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);  //设置分隔器中第二个元素初始高度占比为1
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
-    debugButton = new CustomSwitchButton();
-    debugButton->hide();  //用户拉动分割器时出现
-    connect(debugButton, &QAbstractButton::clicked, this, &Widget::ondebugButton_clicked);
     QFont font(DEFAULT_FONT);
     ui->state->setFont(font);                                                                     // 设置state区的字体
     QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);  // 注册发送的快捷键
@@ -61,7 +58,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->input->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->input->installEventFilter(this);                 //安装事件过滤器
     ui->load->installEventFilter(this);                  //安装事件过滤器
-    api_ip_LineEdit->installEventFilter(this);           //安装事件过滤器
+    api_endpoint_LineEdit->installEventFilter(this);     //安装事件过滤器
     ui->state->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键
     ui->state->installEventFilter(this);                 //安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);  // 禁用自动换行
@@ -207,10 +204,6 @@ void Widget::on_send_clicked() {
     QString input;
     INPUTS inputs;
 
-    if (is_debug) {
-        ui->reset->setEnabled(0);// debug模式下刚点击next时要解码，所以禁止重置，否则重置失效会一直输出
-    }  
-
     //链接模式的处理
     if (ui_mode == LINK_MODE) {
         api_send_clicked_slove();
@@ -218,7 +211,8 @@ void Widget::on_send_clicked() {
     }
 
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
-    if (ui_state == CHAT_STATE) {
+    if (ui_state == CHAT_STATE) 
+    {
         if (ui_need_predecode) {
             ui_need_predecode = false;
             ui->reset->setEnabled(0);                       //预解码时不允许重置
@@ -226,22 +220,9 @@ void Widget::on_send_clicked() {
             ui_state_pushing();  //推理中界面状态
             emit ui2bot_preDecode(); // 预解码
             return;
-        } else if (is_debug_tool1) {
-            ui->send->setEnabled(0);
-            reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-            is_debug_tool1 = false;
-            debuging_times++;
-
-            emit ui2tool_exec(func_arg_list);                   //调用tool
-            return;
-        } else if (is_test) {
-            // debug相关
-            if (ui->send->text() == "Next") {
-                ui->send->setEnabled(0);
-                reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                debuging_times++;
-            }
-
+        }  
+        else if (is_test) 
+        {
             if (test_question_index.size() > 0)  //测试中,还有题目剩余
             {
                 input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));
@@ -326,49 +307,24 @@ void Widget::on_send_clicked() {
                     input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + DEFAULT_THOUGHT;
                     tool_result = "";
                     inputs = {input, ROLE_TOOL};
-
-                    //如果是debuging中的状态, 这里处理工具返回了结果后点击next按钮
-                    if (ui->send->text() == "Next") {
-                        ui->send->setEnabled(0);
-                        ui->reset->setEnabled(1);
-                        ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
-                        ui->input->setPlaceholderText(jtr("debug_input_placeholder"));
-                        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                        emit ui2bot_predict(inputs);  //开始推理
-                        debuging_times++;
-                        return;
-                    }
-                } else {
-                    //如果是debuging中的状态
-                    if (ui->send->text() == "Next") {
-                        ui->send->setEnabled(0);
-                        reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-                        inputs = {"", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-                        emit ui2bot_predict(inputs);  //开始推理
-                        debuging_times++;
-                        return;
-                    }
-
+                } 
+                else 
+                {
                     // 如果挂载了工具则强制先思考
-                    if (is_load_tool) {
+                    if (is_load_tool) 
+                    {
                         inputs = {input, ROLE_THOUGHT};
-                    } else {
+                    } 
+                    else 
+                    {
                         inputs = {input, ROLE_USER};
                     }
                 }
             }
         }
-    } else if (ui_state == COMPLETE_STATE) {
-        //如果是debuging中的状态
-        if (ui->send->text() == "Next") {
-            ui->send->setEnabled(0);
-            reflash_state("DEBUGING " + QString::number(debuging_times) + " ", DEBUGING_SIGNAL);
-            inputs = {"", ROLE_DEBUG};  // 什么内容都不给，单纯让模型根据缓存的上下文预测下一个词
-            emit ui2bot_predict(inputs);  //开始推理
-            debuging_times++;
-            return;
-        }
-
+    } 
+    else if (ui_state == COMPLETE_STATE) 
+    {
         input = ui->output->toPlainText().toUtf8().data();                  //直接用output上的文本进行推理
         inputs = {input, ROLE_USER};  //传递用户输入
     }
@@ -390,10 +346,10 @@ void Widget::recv_pushover() {
             //待修复是net中maneger的问题
             // on_send_clicked();
             QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));  //链接模式不能立即发送
-        } else {
-            if (!is_debug) {
-                on_send_clicked();
-            }
+        } 
+        else 
+        {
+            on_send_clicked();
         }
     } else if (ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode)  // 继续同步率测试
     {
@@ -440,13 +396,6 @@ void Widget::recv_pushover() {
                 }
                 //正常调用情况
                 else {
-                    if (is_debuging) {
-                        ui->input->setPlaceholderText(jtr("debug_tool1") + " " + func_arg_list.first + "(" + func_arg_list.second + ")");
-                        ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 200);");
-                        ui->reset->setEnabled(0);
-                        is_debug_tool1 = true;
-                        return;
-                    }
 
                     emit ui2tool_exec(func_arg_list);                   //调用tool
                     //使用工具时解码动画不停
@@ -481,13 +430,6 @@ void Widget::recv_toolpushover(QString tool_result_) {
         tool_result = "stablediffusion " + jtr("call successful, image save at") + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     } else {
         tool_result = tool_result_;
-    }
-
-    if (is_debuging) {
-        ui->input->setPlaceholderText(tool_result);
-        ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 200);");
-        ui->send->setEnabled(1);
-        return;
     }
 
     on_send_clicked();  //触发发送继续预测下一个词
@@ -614,19 +556,6 @@ void Widget::on_reset_clicked() {
         speech->stop();  //停止朗读
     }
 
-    // debuging状态下，点击重置按钮直接退出debuging状态
-    if (is_debuging) {
-        reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
-        is_debuging = false;
-        is_run = false;
-        is_debug_query = false;
-        is_debug_tool1 = false;
-        debuging_times = 1;           //重置为一
-        ui_state_normal();            //待机界面状态
-        test_question_index.clear();  //清空待测试问题列表
-        return;
-    }
-
     //如果模型正在推理就改变模型的停止标签
     if (is_run) {
         if (ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() > 0) {
@@ -659,9 +588,9 @@ void Widget::on_reset_clicked() {
         ui_insert_history.clear();
         if (ui_state == CHAT_STATE) {
             reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
-            current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
+            current_api = "http://" + apis.api_endpoint + apis.api_chat_endpoint;
         } else {
-            current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;
+            current_api = "http://" + apis.api_endpoint + apis.api_completion_endpoint;
         }
 
         QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
@@ -792,11 +721,11 @@ void Widget::on_set_clicked() {
 }
 
 //用户按下F1键响应
-void Widget::onShortcutActivated_F1() {
-    if (!is_debuging) {
-        createTempDirectory("./EVA_TEMP");
-        cutscreen_dialog->showFullScreen();  //处理截图事件
-    }
+void Widget::onShortcutActivated_F1() 
+{
+    createTempDirectory("./EVA_TEMP");
+    cutscreen_dialog->showFullScreen();  //处理截图事件
+
 }
 
 //用户按下F2键响应
@@ -804,16 +733,14 @@ void Widget::onShortcutActivated_F2() {
     if (whisper_model_path == "")  //如果还未指定模型路径则先指定
     {
         emit ui2expend_show(6);  //语音增殖界面
-    } else if (!is_recodering) {
-        if (!is_debuging) {
-            recordAudio();  //开始录音
-            is_recodering = true;
-        }
-
-    } else if (is_recodering) {
-        if (!is_debuging) {
-            stop_recordAudio();  //停止录音
-        }
+    } else if (!is_recodering) 
+    {
+        recordAudio();  //开始录音
+        is_recodering = true;
+    } 
+    else if (is_recodering) 
+    {
+        stop_recordAudio();  //停止录音
     }
 }
 
@@ -934,9 +861,8 @@ void Widget::serverControl() {
         // qDebug()<<"readyReadStandardError"<<ui_output;
         //启动成功的标志
         if (ui_output.contains(SERVER_START)) {
-            ui_output += "\n" + jtr("browser at") + QString(" http://") + ipAddress + ":" + ui_port;
-            ui_output += "\n" + jtr("chat") + jtr("endpoint") + " " + "/v1/chat/completions";
-            ui_output += "\n" + jtr("complete") + jtr("endpoint") + " " + "/completion" + "\n";
+            ui_output += "\n" + jtr("api endpoint") + " " +  ipAddress + ":" + ui_port;
+            ui_output += "\n" + jtr("model") + jtr("name") + " " + "default" + "\n";
             ui_state_info = "ui:server " + jtr("on") + jtr("success") + "," + jtr("browser at") + ipAddress + ":" + ui_port;
             auto_save_user();  //保存ui配置
             reflash_state(ui_state_info, SUCCESS_SIGNAL);
@@ -1028,7 +954,7 @@ void Widget::recv_cpu_status(double cpuload, double memload) {
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Widget::eventFilter(QObject *obj, QEvent *event) {
     //响应已安装控件上的鼠标右击事件
-    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE && !is_debuging) {
+    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE) {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
         // 显示菜单
         right_menu->exec(contextMenuEvent->globalPos());
@@ -1055,16 +981,14 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
         //设置当前值
-        api_ip_LineEdit->setText(apis.api_ip);
-        api_port_LineEdit->setText(apis.api_port);
-        api_chat_LineEdit->setText(apis.api_chat_endpoint);
-        api_complete_LineEdit->setText(apis.api_complete_endpoint);
+        api_endpoint_LineEdit->setText(apis.api_endpoint);
         api_dialog->exec();
         return true;
     }
     //响应已安装控件上的鼠标右击事件
-    if (obj == api_ip_LineEdit && event->type() == QEvent::ContextMenu) {
-        api_ip_LineEdit->setText(getFirstNonLoopbackIPv4Address());
+    if (obj == api_endpoint_LineEdit && event->type() == QEvent::ContextMenu) {
+        QString api_endpoint = getFirstNonLoopbackIPv4Address() + ":8080";
+        api_endpoint_LineEdit->setText(api_endpoint);
         return true;
     }
     //响应已安装控件上的鼠标右击事件
@@ -1261,39 +1185,10 @@ void Widget::recv_controller(int num) {
     }
     emit recv_controller_over(result);
 }
+
 //分割器被用户拉动时响应
 void Widget::onSplitterMoved(int pos, int index) {
-    if (debugButton->isHidden() && ui_mode == LOCAL_MODE && ui_state != SERVER_STATE) {
-        // 获取各个部件的占比
-        QList<int> sizes = ui->splitter->sizes();
-        int topWidth = sizes.at(0);
-        int bottomWidth = sizes.at(1);
-        int totalWidth = topWidth + bottomWidth;
 
-        // 计算占比并输出
-        double topPercent = static_cast<double>(topWidth) / totalWidth * 100;
-        double bottomPercent = static_cast<double>(bottomWidth) / totalWidth * 100;
-        // qDebug() << "top widget:" << topPercent << "%, bottom widget:" << bottomPercent << "%";
-
-        // 40%以上显示debug
-        if (bottomPercent > 40) {
-            QVBoxLayout *frame_2_VLayout = ui->frame_2->findChild<QVBoxLayout *>();  // 获取frame_2的列布局对象
-            frame_2_VLayout->addWidget(debugButton);
-            debugButton->show();
-        }
-    }
-}
-
-// debug按钮点击响应，注意只是改变一个标签，尽量减少侵入
-void Widget::ondebugButton_clicked() {
-    is_debug = debugButton->isChecked();
-
-    //还原状态
-    if (!is_debug && ui_state == CHAT_STATE) {
-        ui->send->setText(jtr("send"));
-    } else if (!is_debug && ui_state == COMPLETE_STATE) {
-        ui->send->setText(jtr("complete"));
-    }
 }
 
 // 根据language.json和language_flag中找到对应的文字

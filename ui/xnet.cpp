@@ -21,7 +21,7 @@ void xNet::run() {
     //对话模式
     if (!endpoint_data.complete_state) {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl("http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint));
+        QNetworkRequest request(QUrl("http://" + apis.api_endpoint + apis.api_chat_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         QString api_key = "Bearer " + QString("sjxx");
@@ -66,10 +66,15 @@ void xNet::run() {
                             emit net2ui_output(content, 1);
                         }
                     }
-                } else {
+                } 
+                else if(data.contains("DONE"))
+                {
+                    emit net2ui_state("net: DONE");
+                }
+                else {
                     emit net2ui_state("net:resolve json fail", WRONG_SIGNAL);
                     qDebug() << jsonString;
-                    qDebug() << dataList;
+                    qDebug() << data;
                 }
             }
             if (is_stop) {
@@ -101,7 +106,7 @@ void xNet::run() {
     } else  //补完模式
     {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl("http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint));
+        QNetworkRequest request(QUrl("http://" + apis.api_endpoint + apis.api_completion_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", "Bearer no-key");

@@ -122,7 +122,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_kv, &w, &Widget::recv_kv);                    //传递缓存量
     QObject::connect(&bot, &xBot::bot2ui_chat_format, &w, &Widget::recv_chat_format);  //传递格式化后的对话内容
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);          //自动装载
-    QObject::connect(&w, &Widget::ui2bot_debuging, &bot, &xBot::recv_debuging);        //传递debug中状态
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);    //传递gpu信息

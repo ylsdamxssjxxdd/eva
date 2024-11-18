@@ -395,9 +395,7 @@ void Widget::apply_language(int language_flag_) {
     ui->date->setText(jtr("date"));
     ui->set->setToolTip(jtr("set"));
     ui->reset->setToolTip(jtr("reset"));
-    if (!is_debug) {
-        ui->send->setText(jtr("send"));
-    }
+    ui->send->setText(jtr("send"));
     ui->send->setToolTip(jtr("send_tooltip"));
     cutscreen_dialog->init_action(jtr("save cut image"), jtr("svae screen image"));
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(std::thread::hardware_concurrency()));
@@ -410,11 +408,9 @@ void Widget::apply_language(int language_flag_) {
     create_right_menu();  //添加右击问题
     // api设置语种
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
-    api_ip_label->setText("api " + jtr("address"));
-    api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
-    api_port_label->setText("api " + jtr("port"));
-    api_chat_label->setText(jtr("chat") + jtr("endpoint"));
-    api_complete_label->setText(jtr("complete") + jtr("endpoint"));
+    api_endpoint_label->setText(jtr("api endpoint"));
+    api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
     //约定选项语种
     prompt_box->setTitle(jtr("prompt") + jtr("template"));  //提示词模板设置区域
     chattemplate_label->setText(jtr("chat template"));

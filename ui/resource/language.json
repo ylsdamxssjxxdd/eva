@@ -156,9 +156,11 @@
         "chat": ["对话","chat "],
         "complete": ["补完","complete "],
         "endpoint": ["端点","endpoint "],
-        "input server ip": ["请输入已开启server服务的ip地址","input server ip "],
+        "input server ip": ["请输入服务的ip地址和端口","input server ip and port"],
         "blocked": ["不通","blocked "],
         "recv reply": ["接收到回复","recv reply "],
+        "api endpoint":["api端点","api endpoint"],
+        "api endpoint tool tip":["例如 192.168.1.1:8080","example 192.168.1.1:8080"],
         "current api": ["当前负载端点","current api "],
         "send message to api": ["向负载端点发送请求","send message to api "],
         "npredict": ["最长输出","npredict"],
@@ -394,9 +396,7 @@
         "decode over": ["解码完成","decode over"],
         "the result has been saved in the source wav file directory": ["结果已保存在源wav文件目录","the result has been saved in the source wav file directory"],
         "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
-        
-        "debug_input_placeholder": ["点击Next预测下一个词，或者按ctrl+enter连续预测","click Next to predict next word, or press Ctrl+enter to continuously predict"],
-        "debug_tool1": ["将解析的json发送给tool处理","Send the parsed JSON to the tool for processing "],
+
         "caculate token": ["处理token数量","Number of tokens processed"],
         "model brain": ["模型记忆","model brain "],
         "brain_groupBox_title": ["记忆 (缓存的上下文)","Brain (context cache)"],

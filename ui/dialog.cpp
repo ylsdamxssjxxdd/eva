@@ -315,10 +315,6 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color) {
             }
         }
 
-        if (is_debuging) {
-            ui->send->setEnabled(1);  // debug模式下发送按钮可以马上用
-            ui->reset->setEnabled(1);
-        }
     }
 }
 
@@ -438,22 +434,6 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state) {
         ui->state->appendPlainText(state_string);
         format.clearForeground();                 //清除前景颜色
         ui->state->setCurrentCharFormat(format);  //设置光标格式
-    } else if (state == DEBUGING_SIGNAL)          // debug墨绿色
-    {
-        QFont font = format.font();
-        font.setFamily(DEFAULT_FONT);
-        font.setPixelSize(14);
-        format.setFont(font);
-        format.setFontItalic(true);               // 设置斜体
-        format.setForeground(QColor(0, 100, 0));  //墨绿色
-        ui->state->setCurrentCharFormat(format);  //设置光标格式
-
-        ui->state->appendPlainText(state_string + jtr("cubes") + jtr("cubes"));
-
-        format.setFontWeight(QFont::Normal);      // 取消粗体
-        format.setFontItalic(false);              // 取消斜体
-        format.clearForeground();                 //清除前景颜色
-        ui->state->setCurrentCharFormat(format);  //设置光标格式
     }
     
 }
@@ -481,7 +461,7 @@ void Widget::npredict_change() { npredict_label->setText(jtr("npredict") + " " +
 
 void Widget::nthread_change() { nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(nthread_slider->value())); }
 
-//补完按钮响应
+//补完状态按钮响应
 void Widget::complete_change() {
     //选中则禁止约定输入
     if (complete_btn->isChecked()) {
@@ -494,7 +474,7 @@ void Widget::complete_change() {
     }
 }
 
-//对话按钮响应
+//对话状态按钮响应
 void Widget::chat_change() {
     if (chat_btn->isChecked()) {
         sample_box->setEnabled(1);
@@ -506,7 +486,7 @@ void Widget::chat_change() {
     }
 }
 
-//服务模式响应
+//服务状态按钮响应
 void Widget::web_change() {
     if (web_btn->isChecked()) {
         sample_box->setEnabled(0);
@@ -972,47 +952,25 @@ void Widget::setApiDialog() {
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);        //隐藏关闭按钮
-    api_dialog->resize(250, 200);                                                              // 设置宽度为400像素,高度为200像素
+    api_dialog->resize(250, 100);                                                              // 设置宽度为400像素,高度为200像素
 
     QVBoxLayout *layout = new QVBoxLayout(api_dialog);  //垂直布局器
 
     QHBoxLayout *layout_H1 = new QHBoxLayout();  //水平布局器
-    api_ip_label = new QLabel("api " + jtr("address"));
-    layout_H1->addWidget(api_ip_label);
-    api_ip_LineEdit = new QLineEdit();
-    api_ip_LineEdit->setPlaceholderText(jtr("input server ip"));
-    api_ip_LineEdit->setText(apis.api_ip);
-    QRegExp ipRegex("^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");  // IPv4的正则表达式限制
-    QRegExpValidator *validator_ipv4 = new QRegExpValidator(ipRegex, api_ip_LineEdit);
-    api_ip_LineEdit->setValidator(validator_ipv4);
-    layout_H1->addWidget(api_ip_LineEdit);
+    api_endpoint_label = new QLabel(jtr("api endpoint"));
+    layout_H1->addWidget(api_endpoint_label);
+    api_endpoint_LineEdit = new QLineEdit();
+    api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
+    api_endpoint_LineEdit->setText(apis.api_endpoint);
+    QRegExp ipRegex("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}"
+                      "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d):"
+                      "(6553[0-5]|655[0-2]\\d|65[0-4]\\d{2}|6[0-4]\\d{3}|"
+                      "[1-5]?\\d{1,4})$");  // IPv4地址冒号端口号的正则表达式限制
+    QRegExpValidator *validator_ipv4 = new QRegExpValidator(ipRegex, api_endpoint_LineEdit);
+    api_endpoint_LineEdit->setValidator(validator_ipv4);
+    layout_H1->addWidget(api_endpoint_LineEdit);
     layout->addLayout(layout_H1);  //将布局添加到总布局
-
-    QHBoxLayout *layout_H2 = new QHBoxLayout();  //水平布局器
-    api_port_label = new QLabel("api " + jtr("port"));
-    layout_H2->addWidget(api_port_label);
-    api_port_LineEdit = new QLineEdit();
-    api_port_LineEdit->setText(apis.api_port);
-    QIntValidator *validator_port = new QIntValidator(0, 65535);  //限制端口输入
-    api_port_LineEdit->setValidator(validator_port);
-    layout_H2->addWidget(api_port_LineEdit);
-    layout->addLayout(layout_H2);  //将布局添加到总布局
-
-    QHBoxLayout *layout_H3 = new QHBoxLayout();  //水平布局器
-    api_chat_label = new QLabel(jtr("chat") + jtr("endpoint"));
-    layout_H3->addWidget(api_chat_label);
-    api_chat_LineEdit = new QLineEdit();
-    api_chat_LineEdit->setText(apis.api_chat_endpoint);
-    layout_H3->addWidget(api_chat_LineEdit);
-    layout->addLayout(layout_H3);  //将布局添加到总布局
-
-    QHBoxLayout *layout_H4 = new QHBoxLayout();  //水平布局器
-    api_complete_label = new QLabel(jtr("complete") + jtr("endpoint"));
-    layout_H4->addWidget(api_complete_label);
-    api_complete_LineEdit = new QLineEdit();
-    api_complete_LineEdit->setText(apis.api_complete_endpoint);
-    layout_H4->addWidget(api_complete_LineEdit);
-    layout->addLayout(layout_H4);  //将布局添加到总布局
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, api_dialog);  // 创建 QDialogButtonBox 用于确定和取消按钮
     layout->addWidget(buttonBox);
@@ -1079,7 +1037,7 @@ void Widget::decode_handleTimeout() {
 //应用api设置
 void Widget::set_api() {
     //判断ip地址是否合理
-    if (api_ip_LineEdit->text().contains("0.0") || api_ip_LineEdit->text().split(".").size() < 3 || api_ip_LineEdit->text() == "0.0.0.0" || api_port_LineEdit->text() == "") {
+    if (api_endpoint_LineEdit->text().contains("0.0") || api_endpoint_LineEdit->text().split(".").size() < 3 || api_endpoint_LineEdit->text() == "0.0.0.0") {
         ui_state_info = "ui:api wrong";
         reflash_state(ui_state_info, WRONG_SIGNAL);
         return;
@@ -1089,11 +1047,16 @@ void Widget::set_api() {
     is_load = false;
 
     //获取设置值
-    apis.api_ip = api_ip_LineEdit->text();
-    apis.api_port = api_port_LineEdit->text();
-    apis.api_chat_endpoint = api_chat_LineEdit->text();
-    apis.api_complete_endpoint = api_complete_LineEdit->text();
-
+    apis.api_endpoint = api_endpoint_LineEdit->text();
+    if(apis.api_endpoint.contains(":"))
+    {
+        apis.api_ip = apis.api_endpoint.split(":")[0];
+        apis.api_port= apis.api_endpoint.split(":")[1];
+    }
+    else
+    {
+        apis.api_ip = apis.api_endpoint;
+    }
     startConnection(apis.api_ip, apis.api_port.toInt());  //检测ip是否通畅
 }
 
@@ -1124,9 +1087,9 @@ void Widget::onConnected() {
     ui_mode = LINK_MODE;  //按照链接模式的行为来
     reflash_state("ui:" + jtr("eva link"), EVA_SIGNAL);
     if (ui_state == CHAT_STATE) {
-        current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_chat_endpoint;
+        current_api = "http://" + apis.api_endpoint + apis.api_chat_endpoint;
     } else {
-        current_api = "http://" + apis.api_ip + ":" + apis.api_port + apis.api_complete_endpoint;
+        current_api = "http://" + apis.api_endpoint + apis.api_completion_endpoint;
     }
     reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
     this->setWindowTitle(jtr("current api") + " " + current_api);
@@ -1135,7 +1098,7 @@ void Widget::onConnected() {
     ui->kv_bar->setToolTip("");
 
     emit ui2net_apis(apis);
-    reflash_output(ui_DATES.date_prompt, 0, Qt::black);
+    reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
     ui_state_normal();
 
     api_dialog->setDisabled(0);
@@ -1226,7 +1189,6 @@ void Widget::ui_state_init() {
     ui->reset->setEnabled(0);  //重置按钮
     ui->send->setEnabled(0);   //发送按钮
     ui->output->setReadOnly(1);
-    debugButton_enable();
 }
 
 // 装载中界面状态
@@ -1237,7 +1199,6 @@ void Widget::ui_state_loading() {
     ui->set->setEnabled(0);    //设置按钮
     ui->load->setEnabled(0);   //装载按钮
     ui->input->setFocus();     //设置输入区为焦点
-    debugButton_enable();
 }
 
 //推理中界面状态
@@ -1253,16 +1214,6 @@ void Widget::ui_state_pushing() {
     }
 
     ui->send->setEnabled(0);
-    debugButton_enable();
-    if (is_debug) {
-        is_debuging = true;                 // 进入debug中状态
-        emit ui2bot_debuging(is_debuging);  //传递debug中状态
-        ui->reset->setEnabled(0);           // debuging时禁止重置
-        ui->send->setText("Next");
-        ui->input->setPlaceholderText(jtr("debug_input_placeholder"));
-        ui->input->setStyleSheet("background-color: rgba(77, 238, 77, 200);");
-        ui->input->setReadOnly(1);
-    }
 }
 
 //服务中界面状态
@@ -1273,12 +1224,10 @@ void Widget::ui_state_servering() {
     ui->reset->setEnabled(0);
     ui->input->setVisible(0);
     ui->send->setVisible(0);
-    debugButton_enable();
 }
 
 //待机界面状态
 void Widget::ui_state_normal() {
-    debugButton_enable();
     if (is_run)  //如果是模型正在运行的状态的话
     {
         ui->reset->setEnabled(1);
@@ -1349,9 +1298,6 @@ void Widget::ui_state_normal() {
         change_api_dialog(1);
     }
 
-    is_debuging = false;  // 退出debug中状态
-    debuging_times = 1;
-    emit ui2bot_debuging(is_debuging);  //传递debug中状态
 }
 
 //录音界面状态
@@ -1408,11 +1354,6 @@ void Widget::create_right_menu() {
             ui_syncrate_manager.sync_list_question << jtr(QString("sync_Q%1").arg(i));
             ui_syncrate_manager.sync_list_index.append(i);
         }
-
-        //强制取消debug模式
-        is_debug = false;
-        is_debuging = false;
-        debugButton->setChecked(0);
 
         // 自动约定，挂载所有工具
         chattemplate_comboBox->setCurrentText("default");  //默认使用default的提示词模板
@@ -1578,17 +1519,4 @@ void Widget::get_date() {
 
     //添加额外停止标志
     addStopwords();
-}
-
-//-------------------------------------------------------------------------
-//--------------------------------debuging状态-----------------------------
-//-------------------------------------------------------------------------
-
-// 只有在正常状态(不运行/不服务/不链接/不录音)才可以点击debug按钮
-void Widget::debugButton_enable() {
-    if (is_run || ui_state == SERVER_STATE || ui_mode == LINK_MODE || audio_time != 0 || ui_syncrate_manager.is_sync) {
-        debugButton->setEnabled(0);
-    } else {
-        debugButton->setEnabled(1);
-    }
 }

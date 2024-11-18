@@ -228,16 +228,6 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <details>
 
-<summary> debug输出 </summary>
-
-- 为了更好的展示模型预测下一个词的过程，本地模式中用户可以拉动状态区向上，点击开启debug输出标签
-
-- 开启后下一个词的预测由用户手动控制，可以获取更多模型运行的信息
-
-</details>
-
-<details>
-
 <summary> 机体同步率测试 </summary>
 
 - 在 本地模式 + 对话状态下 可以对模型进行机体同步率测试，右击输入区选择 <机体同步率测试>

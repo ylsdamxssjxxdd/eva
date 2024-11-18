@@ -57,7 +57,6 @@ class xBot : public QObject {
 
     QElapsedTimer single_timer;
     QElapsedTimer batch_timer;
-    QElapsedTimer debuging_timer;
 
     void buildProbtable(llama_token *id);//构建概率表格
     void completeUtf8(std::string *sstr, llama_token *id);// 处理不完整的utf8字符
@@ -133,15 +132,12 @@ class xBot : public QObject {
     bool is_load_tool = false;     //是否挂载了工具
     QStringList extra_stop_words;  //额外停止标志
     bool vram_enough = false;
-    bool is_debuging = false;              // debug中状态
-    int debuging_one = 0;                  // debuging时控制循环只进行一次
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
     std::string current_output; // 模型最近输出的内容，用来判断里面是否存在反向词
 
    public slots:
     void recv_stop();//接受停止信号
     void recv_llama_log(QString log_);                          //获取llama log
-    void recv_debuging(bool is_debuging_);                      //传递debug中状态
     void recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
     void recv_language(int language_flag_);                     //传递使用的语言
     void recv_reset(bool is_clear_all);                         //接受重置信号
