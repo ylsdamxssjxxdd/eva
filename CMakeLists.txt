@@ -205,15 +205,11 @@ if(MSVC)
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
             COMMENT "custom Removing ..."
-        )
-
-        # 使用winrar打包cuda版本的eva.exe为一个自解压程序，弃用
-        add_custom_command(TARGET ${TARGET} POST_BUILD
-            # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
             # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
             # COMMENT "custom Packing ..."
         )
+
     endif()
 elseif(MINGW)
         get_filename_component(COMPILER_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY) # 获取编译器路径
