@@ -121,7 +121,7 @@ if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
 endif()
 # add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
-add_subdirectory(llama.cpp/examples/main) # 测试用
+# add_subdirectory(llama.cpp/examples/main) # 测试用
 # add_subdirectory(llama.cpp/examples/llava) # 测试用
 # add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
@@ -249,14 +249,14 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
             # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
-            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
             # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
 
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1" # 这个是快捷方式
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1.6.2" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1.6.2" # 注意版本号
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1.7.2" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1.7.2" # 注意版本号
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
 
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
