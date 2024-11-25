@@ -130,7 +130,6 @@ class xBot : public QObject {
     float vfree = 0;
     bool is_multi = false;         //是否为多模态
     bool is_load_tool = false;     //是否挂载了工具
-    QStringList extra_stop_words;  //额外停止标志
     bool vram_enough = false;
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
     std::string current_output; // 模型最近输出的内容，用来判断里面是否存在反向词

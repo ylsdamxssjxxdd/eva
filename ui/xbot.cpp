@@ -520,7 +520,7 @@ void xBot::reset(bool is_clear_all) {
     }  
     else if (is_datetoolong) 
     {
-        system_tokens = common_tokenize(ctx, "You are a helpful assistant", true, true); // 系统指令太长的情况
+        system_tokens = common_tokenize(ctx, "You are a helpful assistant.", true, true); // 系统指令太长的情况
     } 
     else 
     {
@@ -532,18 +532,11 @@ void xBot::reset(bool is_clear_all) {
     common_params_.antiprompt.clear();  //清空反提示
     common_params_.antiprompt.push_back(bot_chat.input_prefix.toLower().toStdString());// 第一个默认是输入前缀，如果检测出来，下次对话就不添加了
     
-    for (int i = 0; i < extra_stop_words.size(); ++i) {
-        if (extra_stop_words.at(i) != "") {
-            common_params_.antiprompt.push_back(extra_stop_words.at(i).toStdString());
+    for (int i = 0; i < bot_date.extra_stop_words.size(); ++i) {
+        if (bot_date.extra_stop_words.at(i) != "") {
+            common_params_.antiprompt.push_back(bot_date.extra_stop_words.at(i).toStdString());
         }
     }
-
-    if(bot_date.is_load_tool)
-    {
-        common_params_.antiprompt.push_back("observation:");
-        common_params_.antiprompt.push_back("observation：");
-    }
-    
 
     if (is_clear_all)  //清空ctx kv缓存
     {
@@ -1075,7 +1068,9 @@ void xBot::get_default_templete_chat_format()
     //处理用户给过来的约定指令、用户昵称和模型昵称为空的情况，用空格代替约定指令，避免闪退
     if(bot_date.date_prompt == "" && bot_date.user_name == "" && bot_date.model_name == "")
     {
-        bot_date.date_prompt = " ";
+        bot_date.date_prompt = "You are a helpful assistant.";
+        bot_date.user_name = "user";
+        bot_date.model_name = "model";
     }
 
     // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
@@ -1088,18 +1083,25 @@ void xBot::get_default_templete_chat_format()
     };
 
     QString default_template_content = QString::fromStdString(common_chat_apply_template(model, "", msgs, true));
-    // std::cout << llama_chat_apply_template(model, "", msgs, true) << std::endl;
-    
+    // std::cout << common_chat_apply_template(model, "", msgs, true) << std::endl;
     // 提取系统指令
     QStringList split1 = default_template_content.split(bot_date.date_prompt);
-    bot_chat.system_prompt = split1[0] + bot_date.date_prompt;
-    // 提取输入前缀
-    QString split1_1 = split1[1].split("Hi1")[1];
-    QStringList split2 = split1_1.split("Hello2");
-    bot_chat.input_prefix = split2[0];
-    // 提取输入后缀
-    QStringList split3 = split2[1].split("Hi2");
-    bot_chat.input_suffix = split3[0];
+    qDebug()<<split1;
+    if(split1.size()<=1)
+    {
+        emit bot2ui_state("bot:" + QString("date prompt error"), WRONG_SIGNAL);
+    }
+    else
+    {
+        bot_chat.system_prompt = split1[0] + bot_date.date_prompt;
+        // 提取输入前缀
+        QString split1_1 = split1[1].split("Hi1")[1];
+        QStringList split2 = split1_1.split("Hello2");
+        bot_chat.input_prefix = split2[0];
+        // 提取输入后缀
+        QStringList split3 = split2[1].split("Hi2");
+        bot_chat.input_suffix = split3[0];
+    }
     emit bot2ui_chat_format(bot_chat);
 
     // qDebug()<<system_prompt;

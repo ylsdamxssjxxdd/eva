@@ -493,7 +493,7 @@ void Widget::recv_datereset() {
         //展示额外停止标志
         QString stop_str;
         stop_str = jtr("extra stop words") + " ";
-        stop_str += bot_chat.input_prefix + " ";
+        // stop_str += bot_chat.input_prefix + " ";
         for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
             stop_str += ui_DATES.extra_stop_words.at(i) + " ";
         }
@@ -651,7 +651,7 @@ void Widget::set_date() {
     if (ui_mode == LINK_MODE) {
         on_reset_clicked();
     }  //如果是链接模式就重置一下
-
+    
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
 }

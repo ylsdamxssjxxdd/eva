@@ -143,10 +143,11 @@ void Widget::addStopwords() {
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        if (ui_mode == LINK_MODE) {
-            ui_DATES.extra_stop_words << "<|observation|>";  // 链接模式应对glm4的工具停词标志，本地模式下已经对所有<||>标志过滤了所以不添加
-        }
+        ui_DATES.extra_stop_words << "<|observation|>";
+        ui_DATES.extra_stop_words << "observation:";
+        ui_DATES.extra_stop_words << "observation：";
     }
+
 }
 
 //获取本机第一个ip地址
