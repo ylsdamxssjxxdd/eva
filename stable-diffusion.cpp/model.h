@@ -26,7 +26,35 @@ enum SDVersion {
     VERSION_FLUX_DEV,
     VERSION_FLUX_SCHNELL,
     VERSION_SD3_5_8B,
+    VERSION_SD3_5_2B,
+    VERSION_FLUX_LITE,
     VERSION_COUNT,
+};
+
+static inline bool sd_version_is_flux(SDVersion version) {
+    if (version == VERSION_FLUX_DEV || version == VERSION_FLUX_SCHNELL || version == VERSION_FLUX_LITE) {
+        return true;
+    }
+    return false;
+}
+
+static inline bool sd_version_is_sd3(SDVersion version) {
+    if (version == VERSION_SD3_2B || version == VERSION_SD3_5_8B || version == VERSION_SD3_5_2B) {
+        return true;
+    }
+    return false;
+}
+
+static inline bool sd_version_is_dit(SDVersion version) {
+    if (sd_version_is_flux(version) || sd_version_is_sd3(version)) {
+        return true;
+    }
+    return false;
+}
+
+enum PMVersion {
+    PM_VERSION_1,
+    PM_VERSION_2,
 };
 
 struct TensorStorage {
@@ -34,6 +62,7 @@ struct TensorStorage {
     ggml_type type          = GGML_TYPE_F32;
     bool is_bf16            = false;
     bool is_f8_e4m3         = false;
+    bool is_f8_e5m2         = false;
     int64_t ne[SD_MAX_DIMS] = {1, 1, 1, 1, 1};
     int n_dims              = 0;
 
@@ -63,7 +92,7 @@ struct TensorStorage {
     }
 
     int64_t nbytes_to_read() const {
-        if (is_bf16 || is_f8_e4m3) {
+        if (is_bf16 || is_f8_e4m3 || is_f8_e5m2) {
             return nbytes() / 2;
         } else {
             return nbytes();
@@ -113,6 +142,8 @@ struct TensorStorage {
             type_name = "bf16";
         } else if (is_f8_e4m3) {
             type_name = "f8_e4m3";
+        } else if (is_f8_e5m2) {
+            type_name = "f8_e5m2";
         }
         ss << name << " | " << type_name << " | ";
         ss << n_dims << " [";
@@ -157,6 +188,7 @@ public:
     bool load_tensors(std::map<std::string, struct ggml_tensor*>& tensors,
                       ggml_backend_t backend,
                       std::set<std::string> ignore_tensors = {});
+
     bool save_to_gguf_file(const std::string& file_path, ggml_type type);
     bool tensor_should_be_converted(const TensorStorage& tensor_storage, ggml_type type);
     int64_t get_params_mem_size(ggml_backend_t backend, ggml_type type = GGML_TYPE_COUNT);

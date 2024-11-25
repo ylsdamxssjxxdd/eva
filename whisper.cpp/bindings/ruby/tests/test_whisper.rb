@@ -1,131 +1,127 @@
-TOPDIR = File.expand_path(File.join(File.dirname(__FILE__), '..'))
-EXTDIR = File.join(TOPDIR, 'ext')
-#$LIBDIR = File.join(TOPDIR, 'lib')
-#$:.unshift(LIBDIR)
-$:.unshift(EXTDIR)
+require_relative "helper"
+require "stringio"
 
-require 'whisper'
-require 'test/unit'
+# Exists to detect memory-related bug
+Whisper.log_set ->(level, buffer, user_data) {}, nil
 
-class TestWhisper < Test::Unit::TestCase
+class TestWhisper < TestBase
   def setup
     @params  = Whisper::Params.new
   end
 
-  def test_language
-    @params.language = "en"
-    assert_equal @params.language, "en"
-    @params.language = "auto"
-    assert_equal @params.language, "auto"
-  end
-
-  def test_offset
-    @params.offset = 10_000
-    assert_equal @params.offset, 10_000
-    @params.offset = 0
-    assert_equal @params.offset, 0
-  end
-
-  def test_duration
-    @params.duration = 60_000
-    assert_equal @params.duration, 60_000
-    @params.duration = 0
-    assert_equal @params.duration, 0
-  end
-
-  def test_max_text_tokens
-    @params.max_text_tokens = 300
-    assert_equal @params.max_text_tokens, 300
-    @params.max_text_tokens = 0
-    assert_equal @params.max_text_tokens, 0
-  end
-
-  def test_translate
-    @params.translate = true
-    assert @params.translate
-    @params.translate = false
-    assert !@params.translate
-  end
-
-  def test_no_context
-    @params.no_context = true
-    assert @params.no_context
-    @params.no_context = false
-    assert !@params.no_context
-  end
-
-  def test_single_segment
-    @params.single_segment = true
-    assert @params.single_segment
-    @params.single_segment = false
-    assert !@params.single_segment
-  end
-
-  def test_print_special
-    @params.print_special = true
-    assert @params.print_special
-    @params.print_special = false
-    assert !@params.print_special
-  end
-
-  def test_print_progress
-    @params.print_progress = true
-    assert @params.print_progress
-    @params.print_progress = false
-    assert !@params.print_progress
-  end
-
-  def test_print_realtime
-    @params.print_realtime = true
-    assert @params.print_realtime
-    @params.print_realtime = false
-    assert !@params.print_realtime
-  end
-
-  def test_print_timestamps
-    @params.print_timestamps = true
-    assert @params.print_timestamps
-    @params.print_timestamps = false
-    assert !@params.print_timestamps
-  end
-
-  def test_suppress_blank
-    @params.suppress_blank = true
-    assert @params.suppress_blank
-    @params.suppress_blank = false
-    assert !@params.suppress_blank
-  end
-
-  def test_suppress_non_speech_tokens
-    @params.suppress_non_speech_tokens = true
-    assert @params.suppress_non_speech_tokens
-    @params.suppress_non_speech_tokens = false
-    assert !@params.suppress_non_speech_tokens
-  end
-
-  def test_token_timestamps
-    @params.token_timestamps = true
-    assert @params.token_timestamps
-    @params.token_timestamps = false
-    assert !@params.token_timestamps
-  end
-
-  def test_split_on_word
-    @params.split_on_word = true
-    assert @params.split_on_word
-    @params.split_on_word = false
-    assert !@params.split_on_word
-  end
-
   def test_whisper
-    @whisper = Whisper::Context.new(File.join(TOPDIR, '..', '..', 'models', 'ggml-base.en.bin'))
+    @whisper = Whisper::Context.new(MODEL)
     params  = Whisper::Params.new
     params.print_timestamps = false
 
-    jfk = File.join(TOPDIR, '..', '..', 'samples', 'jfk.wav')
-    @whisper.transcribe(jfk, params) {|text|
+    @whisper.transcribe(AUDIO, params) {|text|
       assert_match /ask not what your country can do for you, ask what you can do for your country/, text
     }
   end
 
+  sub_test_case "After transcription" do
+    class << self
+      attr_reader :whisper
+
+      def startup
+        @whisper = Whisper::Context.new(TestBase::MODEL)
+        params = Whisper::Params.new
+        params.print_timestamps = false
+        @whisper.transcribe(TestBase::AUDIO, params)
+      end
+    end
+
+    def whisper
+      self.class.whisper
+    end
+
+    def test_full_n_segments
+      assert_equal 1, whisper.full_n_segments
+    end
+
+    def test_full_lang_id
+      assert_equal 0, whisper.full_lang_id
+    end
+
+    def test_full_get_segment_t0
+      assert_equal 0, whisper.full_get_segment_t0(0)
+      assert_raise IndexError do
+        whisper.full_get_segment_t0(whisper.full_n_segments)
+      end
+      assert_raise IndexError do
+        whisper.full_get_segment_t0(-1)
+      end
+    end
+
+    def test_full_get_segment_t1
+      t1 = whisper.full_get_segment_t1(0)
+      assert_kind_of Integer, t1
+      assert t1 > 0
+      assert_raise IndexError do
+        whisper.full_get_segment_t1(whisper.full_n_segments)
+      end
+    end
+
+    def test_full_get_segment_speaker_turn_next
+      assert_false whisper.full_get_segment_speaker_turn_next(0)
+    end
+
+    def test_full_get_segment_text
+      assert_match /ask not what your country can do for you, ask what you can do for your country/, whisper.full_get_segment_text(0)
+    end
+  end
+
+  def test_lang_max_id
+    assert_kind_of Integer, Whisper.lang_max_id
+  end
+
+  def test_lang_id
+    assert_equal 0, Whisper.lang_id("en")
+    assert_raise ArgumentError do
+      Whisper.lang_id("non existing language")
+    end
+  end
+
+  def test_lang_str
+    assert_equal "en", Whisper.lang_str(0)
+    assert_raise IndexError do
+      Whisper.lang_str(Whisper.lang_max_id + 1)
+    end
+  end
+
+  def test_lang_str_full
+    assert_equal "english", Whisper.lang_str_full(0)
+    assert_raise IndexError do
+      Whisper.lang_str_full(Whisper.lang_max_id + 1)
+    end
+  end
+
+  def test_log_set
+    user_data = Object.new
+    logs = []
+    log_callback = ->(level, buffer, udata) {
+      logs << [level, buffer, udata]
+    }
+    Whisper.log_set log_callback, user_data
+    Whisper::Context.new(MODEL)
+
+    assert logs.length > 30
+    logs.each do |log|
+      assert_include [Whisper::LOG_LEVEL_DEBUG, Whisper::LOG_LEVEL_INFO, Whisper::LOG_LEVEL_WARN], log[0]
+      assert_same user_data, log[2]
+    end
+  end
+
+  def test_log_suppress
+    stderr = $stderr
+    Whisper.log_set ->(level, buffer, user_data) {
+      # do nothing
+    }, nil
+    dev = StringIO.new("")
+    $stderr = dev
+    Whisper::Context.new(MODEL)
+    assert_empty dev.string
+  ensure
+    $stderr = stderr
+  end
 end

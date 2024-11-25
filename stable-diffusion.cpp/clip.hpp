@@ -343,6 +343,13 @@ public:
         }
     }
 
+    std::string clean_up_tokenization(std::string& text) {
+        std::regex pattern(R"( ,)");
+        // Replace " ," with ","
+        std::string result = std::regex_replace(text, pattern, ",");
+        return result;
+    }
+
     std::string decode(const std::vector<int>& tokens) {
         std::string text = "";
         for (int t : tokens) {
@@ -351,8 +358,12 @@ public:
             std::u32string ts = decoder[t];
             // printf("%d, %s \n", t,  utf32_to_utf8(ts).c_str());
             std::string s = utf32_to_utf8(ts);
-            if (s.length() >= 4 && ends_with(s, "</w>")) {
-                text += " " + s.replace(s.length() - 4, s.length() - 1, "");
+            if (s.length() >= 4) {
+                if (ends_with(s, "</w>")) {
+                    text += s.replace(s.length() - 4, s.length() - 1, "") + " ";
+                } else {
+                    text += s;
+                }
             } else {
                 text += " " + s;
             }
@@ -364,6 +375,7 @@ public:
 
         // std::string s((char *)bytes.data());
         // std::string s = "";
+        text = clean_up_tokenization(text);
         return trim(text);
     }
 
@@ -711,8 +723,12 @@ public:
         if (return_pooled) {
             auto text_projection = params["text_projection"];
             ggml_tensor* pooled  = ggml_view_1d(ctx, x, hidden_size, x->nb[1] * max_token_idx);
-            pooled               = ggml_mul_mat(ctx, ggml_cont(ctx, ggml_transpose(ctx, text_projection)), pooled);
-            return pooled;
+            if (text_projection != NULL) {
+                pooled = ggml_nn_linear(ctx, pooled, text_projection, NULL);
+            } else {
+                LOG_DEBUG("Missing text_projection matrix, assuming identity...");
+            }
+            return pooled;  // [hidden_size, 1, 1]
         }
 
         return x;  // [N, n_token, hidden_size]
@@ -761,14 +777,17 @@ public:
         auto x = embeddings->forward(ctx, pixel_values);  // [N, num_positions, embed_dim]
         x      = pre_layernorm->forward(ctx, x);
         x      = encoder->forward(ctx, x, -1, false);
-        x      = post_layernorm->forward(ctx, x);  // [N, n_token, hidden_size]
+        // print_ggml_tensor(x, true, "ClipVisionModel x: ");
+        auto last_hidden_state = x;
+        x                      = post_layernorm->forward(ctx, x);  // [N, n_token, hidden_size]
 
         GGML_ASSERT(x->ne[3] == 1);
         if (return_pooled) {
             ggml_tensor* pooled = ggml_cont(ctx, ggml_view_2d(ctx, x, x->ne[0], x->ne[2], x->nb[2], 0));
             return pooled;  // [N, hidden_size]
         } else {
-            return x;  // [N, n_token, hidden_size]
+            // return x;  // [N, n_token, hidden_size]
+            return last_hidden_state;  // [N, n_token, hidden_size]
         }
     }
 };

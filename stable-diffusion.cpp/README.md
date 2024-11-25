@@ -24,7 +24,7 @@ Inference of Stable Diffusion and Flux in pure C/C++
 - Full CUDA, Metal, Vulkan and SYCL backend for GPU acceleration.
 - Can load ckpt, safetensors and diffusers models/checkpoints. Standalone VAEs models
     - No need to convert to `.ggml` or `.gguf` anymore!
-- Flash Attention for memory usage optimization (only cpu for now)
+- Flash Attention for memory usage optimization
 - Original `txt2img` and `img2img` mode
 - Negative prompt
 - [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui) style tokenizer (not all the features, only token weighting for now)
@@ -182,11 +182,21 @@ Example of text2img by using SYCL backend:
 
 ##### Using Flash Attention
 
-Enabling flash attention reduces memory usage by at least 400 MB. At the moment, it is not supported when CUBLAS is enabled because the kernel implementation is missing.
+Enabling flash attention for the diffusion model reduces memory usage by varying amounts of MB.
+eg.:
+ - flux 768x768 ~600mb
+ - SD2 768x768 ~1400mb
 
+For most backends, it slows things down, but for cuda it generally speeds it up too.
+At the moment, it is only supported for some models and some backends (like cpu, cuda/rocm, metal).
+
+Run by adding `--diffusion-fa` to the arguments and watch for:
 ```
-cmake .. -DSD_FLASH_ATTN=ON
-cmake --build . --config Release
+[INFO ] stable-diffusion.cpp:312  - Using flash attention in the diffusion model
+```
+and the compute buffer shrink in the debug log:
+```
+[DEBUG] ggml_extend.hpp:1004 - flux compute buffer size: 650.00 MB(VRAM)
 ```
 
 ### Run
@@ -240,6 +250,9 @@ arguments:
   --vae-tiling                       process vae in tiles to reduce memory usage
   --vae-on-cpu                       keep vae in cpu (for low vram)
   --clip-on-cpu                      keep clip in cpu (for low vram)
+  --diffusion-fa                     use flash attention in the diffusion model (for low vram)
+                                     Might lower quality, since it implies converting k and v to f16.
+                                     This might crash if it is not supported by the backend.
   --control-net-cpu                  keep controlnet in cpu (for low vram)
   --canny                            apply canny preprocessor (edge detection)
   --color                            Colors the logging tags according to level
@@ -292,12 +305,15 @@ These projects wrap `stable-diffusion.cpp` for easier use in other languages/fra
 
 * Golang: [seasonjs/stable-diffusion](https://github.com/seasonjs/stable-diffusion)
 * C#: [DarthAffe/StableDiffusion.NET](https://github.com/DarthAffe/StableDiffusion.NET)
+* Python: [william-murray1204/stable-diffusion-cpp-python](https://github.com/william-murray1204/stable-diffusion-cpp-python)
+* Rust: [newfla/diffusion-rs](https://github.com/newfla/diffusion-rs)
 
 ## UIs
 
 These projects use `stable-diffusion.cpp` as a backend for their image generation.
 
 - [Jellybox](https://jellybox.com)
+- [Stable Diffusion GUI](https://github.com/fszontagh/sd.cpp.gui.wx)
 
 ## Contributors
 

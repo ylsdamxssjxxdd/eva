@@ -43,7 +43,8 @@ struct Conditioner {
 // ldm.modules.encoders.modules.FrozenCLIPEmbedder
 // Ref: https://github.com/AUTOMATIC1111/stable-diffusion-webui/blob/cad87bf4e3e0b0a759afa94e933527c3123d59bc/modules/sd_hijack_clip.py#L283
 struct FrozenCLIPEmbedderWithCustomWords : public Conditioner {
-    SDVersion version = VERSION_SD1;
+    SDVersion version    = VERSION_SD1;
+    PMVersion pm_version = PM_VERSION_1;
     CLIPTokenizer tokenizer;
     ggml_type wtype;
     std::shared_ptr<CLIPTextModelRunner> text_model;
@@ -59,8 +60,9 @@ struct FrozenCLIPEmbedderWithCustomWords : public Conditioner {
                                       ggml_type wtype,
                                       const std::string& embd_dir,
                                       SDVersion version = VERSION_SD1,
+                                      PMVersion pv      = PM_VERSION_1,
                                       int clip_skip     = -1)
-        : version(version), tokenizer(version == VERSION_SD2 ? 0 : 49407), embd_dir(embd_dir), wtype(wtype) {
+        : version(version), pm_version(pv), tokenizer(version == VERSION_SD2 ? 0 : 49407), embd_dir(embd_dir), wtype(wtype) {
         if (clip_skip <= 0) {
             clip_skip = 1;
             if (version == VERSION_SD2 || version == VERSION_SDXL) {
@@ -268,7 +270,7 @@ struct FrozenCLIPEmbedderWithCustomWords : public Conditioner {
                 std::vector<int> clean_input_ids_tmp;
                 for (uint32_t i = 0; i < class_token_index[0]; i++)
                     clean_input_ids_tmp.push_back(clean_input_ids[i]);
-                for (uint32_t i = 0; i < num_input_imgs; i++)
+                for (uint32_t i = 0; i < (pm_version == PM_VERSION_2 ? 2 * num_input_imgs : num_input_imgs); i++)
                     clean_input_ids_tmp.push_back(class_token);
                 for (uint32_t i = class_token_index[0] + 1; i < clean_input_ids.size(); i++)
                     clean_input_ids_tmp.push_back(clean_input_ids[i]);
@@ -279,13 +281,16 @@ struct FrozenCLIPEmbedderWithCustomWords : public Conditioner {
             tokens.insert(tokens.end(), clean_input_ids.begin(), clean_input_ids.end());
             weights.insert(weights.end(), clean_input_ids.size(), curr_weight);
         }
-        tokens.insert(tokens.begin(), tokenizer.BOS_TOKEN_ID);
-        weights.insert(weights.begin(), 1.0);
+        // BUG!! double couting, pad_tokens will add BOS at the beginning
+        // tokens.insert(tokens.begin(), tokenizer.BOS_TOKEN_ID);
+        // weights.insert(weights.begin(), 1.0);
 
         tokenizer.pad_tokens(tokens, weights, max_length, padding);
-
+        int offset = pm_version == PM_VERSION_2 ? 2 * num_input_imgs : num_input_imgs;
         for (uint32_t i = 0; i < tokens.size(); i++) {
-            if (class_idx + 1 <= i && i < class_idx + 1 + num_input_imgs)
+            // if (class_idx + 1 <= i && i < class_idx + 1 + 2*num_input_imgs) // photomaker V2 has num_tokens(=2)*num_input_imgs
+            if (class_idx + 1 <= i && i < class_idx + 1 + offset)  // photomaker V2 has num_tokens(=2)*num_input_imgs
+                                                                   // hardcode for now
                 class_token_mask.push_back(true);
             else
                 class_token_mask.push_back(false);
@@ -798,21 +803,16 @@ struct SD3CLIPEmbedder : public Conditioner {
                 }
 
                 if (chunk_idx == 0) {
-                    // auto it = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_l_tokenizer.EOS_TOKEN_ID);
-                    // max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
-                    // clip_l->compute(n_threads,
-                    //                 input_ids,
-                    //                 0,
-                    //                 NULL,
-                    //                 max_token_idx,
-                    //                 true,
-                    //                 &pooled_l,
-                    //                 work_ctx);
-
-                    // clip_l.transformer.text_model.text_projection no in file, ignore
-                    // TODO: use torch.eye(embed_dim) as default clip_l.transformer.text_model.text_projection
-                    pooled_l = ggml_new_tensor_1d(work_ctx, GGML_TYPE_F32, 768);
-                    ggml_set_f32(pooled_l, 0.f);
+                    auto it       = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_l_tokenizer.EOS_TOKEN_ID);
+                    max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
+                    clip_l->compute(n_threads,
+                                    input_ids,
+                                    0,
+                                    NULL,
+                                    max_token_idx,
+                                    true,
+                                    &pooled_l,
+                                    work_ctx);
                 }
             }
 
@@ -852,21 +852,16 @@ struct SD3CLIPEmbedder : public Conditioner {
                 }
 
                 if (chunk_idx == 0) {
-                    // auto it = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_g_tokenizer.EOS_TOKEN_ID);
-                    // max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
-                    // clip_g->compute(n_threads,
-                    //                 input_ids,
-                    //                 0,
-                    //                 NULL,
-                    //                 max_token_idx,
-                    //                 true,
-                    //                 &pooled_g,
-                    //                 work_ctx);
-                    // clip_l.transformer.text_model.text_projection no in file, ignore pooled_g too
-
-                    // TODO: fix pooled_g
-                    pooled_g = ggml_new_tensor_1d(work_ctx, GGML_TYPE_F32, 1280);
-                    ggml_set_f32(pooled_g, 0.f);
+                    auto it       = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_g_tokenizer.EOS_TOKEN_ID);
+                    max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
+                    clip_g->compute(n_threads,
+                                    input_ids,
+                                    0,
+                                    NULL,
+                                    max_token_idx,
+                                    true,
+                                    &pooled_g,
+                                    work_ctx);
                 }
             }
 
@@ -1104,21 +1099,17 @@ struct FluxCLIPEmbedder : public Conditioner {
                 auto input_ids       = vector_to_ggml_tensor_i32(work_ctx, chunk_tokens);
                 size_t max_token_idx = 0;
 
-                // auto it = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_l_tokenizer.EOS_TOKEN_ID);
-                // max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
-                // clip_l->compute(n_threads,
-                //                 input_ids,
-                //                 0,
-                //                 NULL,
-                //                 max_token_idx,
-                //                 true,
-                //                 &pooled,
-                //                 work_ctx);
+                auto it       = std::find(chunk_tokens.begin(), chunk_tokens.end(), clip_l_tokenizer.EOS_TOKEN_ID);
+                max_token_idx = std::min<size_t>(std::distance(chunk_tokens.begin(), it), chunk_tokens.size() - 1);
 
-                // clip_l.transformer.text_model.text_projection no in file, ignore
-                // TODO: use torch.eye(embed_dim) as default clip_l.transformer.text_model.text_projection
-                pooled = ggml_new_tensor_1d(work_ctx, GGML_TYPE_F32, 768);
-                ggml_set_f32(pooled, 0.f);
+                clip_l->compute(n_threads,
+                                input_ids,
+                                0,
+                                NULL,
+                                max_token_idx,
+                                true,
+                                &pooled,
+                                work_ctx);
             }
 
             // t5

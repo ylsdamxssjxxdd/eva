@@ -1,3 +1,5 @@
+require_relative "extsources"
+
 Gem::Specification.new do |s|
   s.name    = "whispercpp"
   s.authors = ["Georgi Gerganov", "Todd A. Fisher"]
@@ -7,19 +9,25 @@ Gem::Specification.new do |s|
   s.email   = 'todd.fisher@gmail.com'
   s.extra_rdoc_files = ['LICENSE', 'README.md']
   
-  s.files = ["LICENSE", "README.md", "Rakefile", "ext/extconf.rb", "ext/ggml.c", "ext/ruby_whisper.cpp", "ext/whisper.cpp", "ext/dr_wav.h", "ext/ggml.h", "ext/ruby_whisper.h", "ext/whisper.h"]
+  s.files = `git ls-files . -z`.split("\x0") +
+              EXTSOURCES.collect {|file|
+                basename = File.basename(file)
+                if s.extra_rdoc_files.include?(basename)
+                  basename
+                else
+                  file.sub("../..", "ext")
+                end
+              }
 
-  #### Load-time details
-  s.require_paths = ['lib','ext']
   s.summary = %q{Ruby whisper.cpp bindings}
-  s.test_files = ["tests/test_whisper.rb"]
+  s.test_files = s.files.select {|file| file.start_with? "tests/"}
   
   s.extensions << 'ext/extconf.rb'
   
 
   #### Documentation and testing.
   s.homepage = 'https://github.com/ggerganov/whisper.cpp'
-  s.rdoc_options = ['--main', '../../README.md']
+  s.rdoc_options = ['--main', 'README.md']
 
   
     s.platform = Gem::Platform::RUBY

@@ -29,7 +29,6 @@ option(SD_HIPBLAS                    "sd: rocm backend" OFF)
 option(SD_METAL                      "sd: metal backend" OFF)
 option(SD_VULKAN                     "sd: vulkan backend" OFF)
 option(SD_SYCL                       "sd: sycl backend" OFF)
-option(SD_FLASH_ATTN                 "sd: use flash attention for x4 less memory usage" OFF)
 option(SD_FAST_SOFTMAX               "sd: x1.5 faster softmax, indeterministic (sometimes, same seed don't generate same image), cuda only" OFF)
 option(SD_BUILD_SHARED_LIBS          "sd: build shared libs" OFF)
 #option(SD_BUILD_SERVER               "sd: build server example"                           ON)
@@ -61,11 +60,6 @@ if (SD_HIPBLAS)
     endif()
 endif ()
 
-if(SD_FLASH_ATTN)
-    message("-- Use Flash Attention for memory optimization")
-    add_definitions(-DSD_USE_FLASH_ATTENTION)
-endif()
-
 set(SD_LIB stable-diffusion)
 
 file(GLOB SD_LIB_SOURCES 
@@ -78,7 +72,7 @@ file(GLOB SD_LIB_SOURCES
 if(SD_BUILD_SHARED_LIBS)
     message("-- Build shared library")
     message(${SD_LIB_SOURCES})
-    set(BUILD_SHARED_LIBS ON)
+    set(BUILD_SHARED_LIBS OFF)
     add_library(${SD_LIB} SHARED ${SD_LIB_SOURCES})
     add_definitions(-DSD_BUILD_SHARED_LIB)
     target_compile_definitions(${SD_LIB} PRIVATE -DSD_BUILD_DLL)
@@ -111,13 +105,13 @@ add_definitions(-DGGML_MAX_NAME=128)
 
 # deps
 # Only add ggml if it hasn't been added yet
-if (NOT TARGET sd-ggml)
+if (NOT TARGET ggml)
     add_subdirectory(ggml)
 endif()
 
 add_subdirectory(thirdparty)
 
-target_link_libraries(${SD_LIB} PUBLIC sd-ggml zip)
+target_link_libraries(${SD_LIB} PUBLIC ggml zip)
 target_include_directories(${SD_LIB} PUBLIC . thirdparty)
 target_compile_features(${SD_LIB} PUBLIC cxx_std_11)
 

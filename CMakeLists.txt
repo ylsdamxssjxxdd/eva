@@ -109,7 +109,7 @@ add_subdirectory(llama.cpp/ggml) # 添加ggml库
 add_subdirectory(whisper.cpp) # 添加whisper.dll
 add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
 
-# stable-diffusion.cpp-ac54e00
+# stable-diffusion.cpp-4570715
 add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
 add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
 
