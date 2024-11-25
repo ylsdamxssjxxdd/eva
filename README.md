@@ -1,6 +1,6 @@
 # 机体
 
-直观的大模型应用软件：机体 (qt5+llama.cpp)
+一款以大模型为中心的软件：机体 (qt5+llama.cpp)
 
 \[ 中文 | [English](README_en.md) \]
 
