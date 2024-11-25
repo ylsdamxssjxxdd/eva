@@ -1,6 +1,6 @@
 # EVA
 
-Intuitive large model application (based on llama.cpp & qt5)
+A software centered around large models: EVA (based on llama.cpp & qt5)
 
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">

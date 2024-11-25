@@ -159,6 +159,7 @@ ui/utils/gpuchecker.h ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui
 llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
 )
 
+# 生成程序的名字
 if(GGML_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
 elseif(GGML_CUDA)
@@ -202,15 +203,16 @@ if(MSVC)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
             COMMENT "custom Removing ..."
         )
 
-        # 使用winrar打包cuda版本的eva.exe为一个自解压程序，这个动作在eva生产之后
+        # 使用winrar打包cuda版本的eva.exe为一个自解压程序，弃用
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
-            COMMENT "custom Packing ..."
+            # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
+            # COMMENT "custom Packing ..."
         )
     endif()
 elseif(MINGW)
@@ -225,13 +227,14 @@ elseif(MINGW)
     )
 
     if(BODY_PACK)
-        # 使用winrar打包为一个自解压程序，这个动作在eva生产之后
+        # 使用winrar打包为一个自解压程序，弃用
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
             # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}${sfx_NAME}" "./" "-r"
-            COMMENT "custom Packing ..."
+            # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}${sfx_NAME}" "./" "-r"
+            # COMMENT "custom Packing ..."
         )
     endif()
 elseif(UNIX)
@@ -245,11 +248,11 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/eva"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
 
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1" # 这个是快捷方式

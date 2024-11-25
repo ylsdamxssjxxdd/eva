@@ -47,10 +47,10 @@ if (WIN32)
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_compile_options("$<$<COMPILE_LANGUAGE:C>:/source-charset:utf-8>")
-    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/source-charset:utf-8>")
-    add_compile_options("$<$<COMPILE_LANGUAGE:C>:/execution-charset:utf-8>")
-    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/execution-charset:utf-8>")
+    # add_compile_options("$<$<COMPILE_LANGUAGE:C>:/source-charset:utf-8>")
+    # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/source-charset:utf-8>")
+    # add_compile_options("$<$<COMPILE_LANGUAGE:C>:/execution-charset:utf-8>")
+    # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/execution-charset:utf-8>")
 endif()
 
 #
