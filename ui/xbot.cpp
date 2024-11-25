@@ -1059,49 +1059,45 @@ std::string xBot::toLowerCaseASCII(const std::string &input) {
     return output;
 }
 
+
 // 获取系统指令、输入前缀、输入后缀
 void xBot::get_default_templete_chat_format()
 {
     // -------------提取原项目默认对话模板内容--------------
     if(!is_load){return;}
 
-    //处理用户给过来的约定指令、用户昵称和模型昵称为空的情况，用空格代替约定指令，避免闪退
-    if(bot_date.date_prompt == "" && bot_date.user_name == "" && bot_date.model_name == "")
-    {
-        bot_date.date_prompt = "You are a helpful assistant.";
-        bot_date.user_name = "user";
-        bot_date.model_name = "model";
-    }
+    // 用这些固定的词提取模板
+    QString format_prompt_name = "format_prompt_name";
+    QString format_user_name = "format_user_name";
+    QString format_model_name = "format_model_name";
+    QString format_user_msg1 = "format_user_msg1";
+    QString format_model_msg1 = "format_model_msg1";
+    QString format_user_msg2 = "format_user_msg2";
+    QString format_model_msg2 = "format_model_msg2";
 
     // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
     std::vector<common_chat_msg> msgs = {
-        {"system",    bot_date.date_prompt.toStdString()},
-        {bot_date.user_name.toStdString(),   "Hello1"},
-        {bot_date.model_name.toStdString(),  "Hi1"},
-        {bot_date.user_name.toStdString(),   "Hello2"},
-        {bot_date.model_name.toStdString(),  "Hi2"},
+        {"system",    format_prompt_name.toStdString()},
+        {format_user_name.toStdString(),   format_user_msg1.toStdString()},
+        {format_model_name.toStdString(),  format_model_msg1.toStdString()},
+        {format_user_name.toStdString(),   format_user_msg2.toStdString()},
+        {format_model_name.toStdString(),  format_model_msg2.toStdString()},
     };
 
     QString default_template_content = QString::fromStdString(common_chat_apply_template(model, "", msgs, true));
     // std::cout << common_chat_apply_template(model, "", msgs, true) << std::endl;
     // 提取系统指令
-    QStringList split1 = default_template_content.split(bot_date.date_prompt);
-    qDebug()<<split1;
-    if(split1.size()<=1)
-    {
-        emit bot2ui_state("bot:" + QString("date prompt error"), WRONG_SIGNAL);
-    }
-    else
-    {
-        bot_chat.system_prompt = split1[0] + bot_date.date_prompt;
-        // 提取输入前缀
-        QString split1_1 = split1[1].split("Hi1")[1];
-        QStringList split2 = split1_1.split("Hello2");
-        bot_chat.input_prefix = split2[0];
-        // 提取输入后缀
-        QStringList split3 = split2[1].split("Hi2");
-        bot_chat.input_suffix = split3[0];
-    }
+    QStringList split1 = default_template_content.split(format_prompt_name);
+    bot_chat.system_prompt = split1[0] + bot_date.date_prompt;// 拼接原来的约定指令
+    bot_chat.system_prompt = bot_chat.system_prompt.replace(format_user_name, bot_date.user_name);// 替换回原来的名称
+    // 提取输入前缀
+    QString split1_1 = split1[1].split(format_model_msg1)[1];
+    QStringList split2 = split1_1.split(format_user_msg2);
+    bot_chat.input_prefix = split2[0].replace(format_user_name,bot_date.user_name);// 替换回原来的名称
+    // 提取输入后缀
+    QStringList split3 = split2[1].split(format_model_msg2);
+    bot_chat.input_suffix = split3[0].replace(format_model_name,bot_date.model_name);// 替换回原来的名称
+
     emit bot2ui_chat_format(bot_chat);
 
     // qDebug()<<system_prompt;
