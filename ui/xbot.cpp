@@ -507,7 +507,7 @@ void xBot::reset(bool is_clear_all) {
     if (int(common_tokenize(ctx, bot_chat.system_prompt.toStdString(), true, true).size()) > common_params_.n_ctx - 4)  //如果系统指令长度太长则不约定
     {
         is_datetoolong = true;
-        emit bot2ui_state("bot:" + jtr("system calling too long use") + ":You are a helpful assistant.", WRONG_SIGNAL);
+        emit bot2ui_state("bot:" + jtr("system calling too long use") + ":" + DEFAULT_DATE_PROMPT, WRONG_SIGNAL);
     } else {
         is_datetoolong = false;
     }
@@ -520,7 +520,7 @@ void xBot::reset(bool is_clear_all) {
     }  
     else if (is_datetoolong) 
     {
-        system_tokens = common_tokenize(ctx, "You are a helpful assistant.", true, true); // 系统指令太长的情况
+        system_tokens = common_tokenize(ctx, DEFAULT_DATE_PROMPT, true, true); // 系统指令太长的情况
     } 
     else 
     {

@@ -10,7 +10,7 @@
 #include <vector>
 
 //默认约定
-#define DEFAULT_DATE_PROMPT "You are a helpful assistant"
+#define DEFAULT_DATE_PROMPT "You are a helpful assistant."
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
 #define DEFAULT_SPLITER "\n"  // 分隔符
