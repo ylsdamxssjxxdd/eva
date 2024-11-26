@@ -1,6 +1,6 @@
 # EVA
 
-A software centered around large models: EVA (based on llama.cpp & qt5)
+Large Language Model Tool: EVA (based on llama.cpp & qt5)
 
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
@@ -54,13 +54,13 @@ A software centered around large models: EVA (based on llama.cpp & qt5)
 
     - Each model file is a unique soul. Choose one to load into the EVA and observe how the neurons establish connections!
 
-2. Decoding-Sampling Loop
+2. Predicting the next word
 
     - The essence of a large language model is predicting the next word. It achieves this through decoding and sampling, which will be an interesting process!
 
-3. DATE Framework Implementation
+3. Call tools
 
-    - How can we enable the llm to interact with and reflect on the outside world? Implement tools mounted on the EVA and open the window to reality for it!
+    - How to enable llm to acquire the ability to interact with the outside world? Implement tools mounted on the EVA and open the window to reality for it!
 
 3. Automated Exploration
 
