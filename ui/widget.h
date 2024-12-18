@@ -258,7 +258,6 @@ class Widget : public QWidget {
     void addStopwords();                               //添加额外停止标志
     QMap<QString, TOOLS> tool_map;                     //工具包
     bool is_load_tool = false;                         //是否挂载了工具
-    bool is_toolguy = false;                           //是否为工具人
     QPair<QString, QString> JSONparser(QString text);  //手搓输出解析器，提取JSON
     QString tool_result;
     QString wait_to_show_image = "";  //文生图后待显示图像的图像路径

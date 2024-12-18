@@ -156,8 +156,8 @@ void Widget::preLoad() {
     is_load = false;  //重置is_load标签
     is_load_play_over = false;
     if (ui_state == CHAT_STATE) {
-        ui->output->clear();
-    }                    //清空输出区
+        ui->output->clear();//清空输出区
+    }                    
     ui->state->clear();  //清空状态区
     ui_state_loading();  //装载中界面状态
     if (is_config) {
@@ -233,7 +233,8 @@ void Widget::on_send_clicked() {
                 } else {
                     inputs = {input, ROLE_TEST};
                 }
-            } else  //完成测试完成,没有题目剩余
+            } 
+            else  //完成测试完成,没有题目剩余
             {
                 float acc = test_score / test_count * 100.0;  //回答准确率
                 ui_state_info = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("batch decode") + ":" + QString::number(test_tokens / (test_time.nsecsElapsed() / 1000000000.0)) + " token/s";
@@ -250,12 +251,15 @@ void Widget::on_send_clicked() {
                 ui_state_normal();  //待机界面状态
                 return;
             }
-        } else if (ui_syncrate_manager.is_sync) {
+        } 
+        else if (ui_syncrate_manager.is_sync) 
+        {
             if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
                 inputs = {input, ROLE_THOUGHT};
-            } else  //完成同步率测试完成,没有问题剩余
+            } 
+            else  //完成同步率测试完成,没有问题剩余
             {
                 qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
                 reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
@@ -268,17 +272,11 @@ void Widget::on_send_clicked() {
                 ui_syncrate_manager = syncrate_manager;  // 重置
                 return;
             }
-        } else if (is_toolguy)  //如果你是工具人
+        }
+        else  //正常情况!!!
         {
-            is_toolguy = false;
-            ui->input->installEventFilter(this);
-            input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
-            ui->input->clear();
-            input += "\n" + QString(DEFAULT_THOUGHT);
-            inputs = {input, ROLE_USER};
-        } else  //正常情况!!!
-        {
-            if (tool_result == "") {
+            if (tool_result == "") 
+            {
                 input = ui->input->toPlainText().toUtf8().data();
                 ui->input->clear();  // 获取用户输入
             }
@@ -385,14 +383,6 @@ void Widget::recv_pushover() {
                 //包含以下字段则停止调用
                 if (func_arg_list.first.contains("answer") || func_arg_list.first.contains("response") || func_arg_list.first.contains("最终回复") || func_arg_list.first.contains("final")) {
                     normal_finish_pushover();
-                }
-                //如果是toolguy的情况
-                else if (func_arg_list.first == "toolguy") {
-                    is_toolguy = true;
-                    ui->send->setEnabled(1);
-                    ui->input->setStyleSheet("background-color: rgba(TOOL_BLUE, 60);");  //输入区天蓝色
-                    ui->input->setPlaceholderText(jtr("toolguy_input_mess"));
-                    ui->input->removeEventFilter(this);  //禁用输入区右击
                 }
                 //正常调用情况
                 else {
@@ -1077,21 +1067,9 @@ void Widget::api_send_clicked_slove() {
         reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
         reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
         reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-    } else if (is_toolguy)                                                            //如果你是工具人
+    } 
+    else 
     {
-        is_toolguy = false;
-        ui->input->installEventFilter(this);
-        input = QString("toolguy ") + jtr("return") + " " + ui->input->toPlainText().toUtf8().data();
-        ui->input->clear();
-        input += "\n" + QString(DEFAULT_THOUGHT);
-        ui_insert_history.append({DEFAULT_OBSERVATION + input, API_ROLE_ASSISANT});
-        reflash_output(DEFAULT_OBSERVATION + input + "\n", 0, TOOL_BLUE);  //天蓝色表示工具返回结果
-
-        QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));  //链接模式不能立即发送
-        is_run = true;                                                  //模型正在运行标签
-        ui_state_pushing();
-        return;
-    } else {
         if (tool_result == "") {
             input = ui->input->toPlainText().toUtf8().data();
             ui->input->clear();

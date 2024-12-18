@@ -1233,15 +1233,9 @@ void Widget::ui_state_normal() {
         ui->reset->setEnabled(1);
         ui->input->setEnabled(1);
         ui->input->setReadOnly(0);
-        if (is_toolguy) {
-            ui->send->setEnabled(1);
-            ui->input->setStyleSheet("background-color: rgba(0, 191, 255, 60);");  //输入区天蓝色
-            ui->input->setPlaceholderText(jtr("toolguy_input_mess"));
-        } else {
-            ui->send->setEnabled(0);
-            ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
-            ui->input->setStyleSheet("background-color: white;");
-        }
+        ui->send->setEnabled(0);
+        ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
+        ui->input->setStyleSheet("background-color: white;");
         return;
     }
 
