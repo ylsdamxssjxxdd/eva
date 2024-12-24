@@ -16,11 +16,11 @@ xBot::xBot() {
     common_params_.n_batch = DEFAULT_BATCH;        //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
 
     //初始的采样参数
-    common_params_.sparams.top_p = 0.95;
-    common_params_.sparams.temp = DEFAULT_TEMP;              //温度
-    common_params_.sparams.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
-    common_params_.sparams.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
-    common_params_.sparams.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
+    common_params_.sampling.top_p = 0.95;
+    common_params_.sampling.temp = DEFAULT_TEMP;              //温度
+    common_params_.sampling.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
+    common_params_.sampling.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
+    common_params_.sampling.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
     common_params_.flash_attn = true;  // 默认开启flash_attn
 
     qDebug() << "bot init over";
@@ -417,7 +417,7 @@ void xBot::load(QString modelpath_) {
     common_init_result llama_init = common_init_from_params(common_params_);
     model = llama_init.model;
     ctx = llama_init.context;
-    smpl = common_sampler_init(model, common_params_.sparams);
+    smpl = common_sampler_init(model, common_params_.sampling);
     
     //创建线程池
     struct ggml_threadpool_params tpp_batch = ggml_threadpool_params_from_cpu_params(common_params_.cpuparams_batch);
@@ -559,7 +559,7 @@ void xBot::reset(bool is_clear_all) {
     
     //重置采样器
     common_sampler_free(smpl);smpl = nullptr;
-    smpl = common_sampler_init(model, common_params_.sparams);
+    smpl = common_sampler_init(model, common_params_.sampling);
 
     emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
     emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
@@ -764,8 +764,8 @@ void xBot::recv_reset(bool is_clear_all) {
 
 void xBot::recv_set(SETTINGS settings, bool can_reload) {
     is_complete = settings.complete_mode;
-    common_params_.sparams.temp = settings.temp;
-    common_params_.sparams.penalty_repeat = settings.repeat;
+    common_params_.sampling.temp = settings.temp;
+    common_params_.sampling.penalty_repeat = settings.repeat;
     common_params_.n_predict = settings.npredict;
 
     bool reload_flag = false;  //重载标签

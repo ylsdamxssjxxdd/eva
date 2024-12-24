@@ -105,13 +105,13 @@ add_definitions(-DGGML_MAX_NAME=128)
 
 # deps
 # Only add ggml if it hasn't been added yet
-if (NOT TARGET ggml)
+if (NOT TARGET sd-ggml)
     add_subdirectory(ggml)
 endif()
 
 add_subdirectory(thirdparty)
 
-target_link_libraries(${SD_LIB} PUBLIC ggml zip)
+target_link_libraries(${SD_LIB} PUBLIC sd-ggml zip)
 target_include_directories(${SD_LIB} PUBLIC . thirdparty)
 target_compile_features(${SD_LIB} PUBLIC cxx_std_11)
 

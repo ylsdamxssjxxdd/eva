@@ -46,11 +46,9 @@ if (WIN32)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    # add_compile_options("$<$<COMPILE_LANGUAGE:C>:/source-charset:utf-8>")
-    # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/source-charset:utf-8>")
-    # add_compile_options("$<$<COMPILE_LANGUAGE:C>:/execution-charset:utf-8>")
-    # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/execution-charset:utf-8>")
+if (MSVC)
+    add_compile_options("$<$<COMPILE_LANGUAGE:C>:/utf-8>")
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/utf-8>")
 endif()
 
 #
@@ -82,6 +80,7 @@ option(LLAMA_CURL "llama: use libcurl to download model from an URL" OFF)
 
 # Required for relocatable CMake package
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-info.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
 # override ggml options
 set(GGML_SANITIZE_THREAD    ${LLAMA_SANITIZE_THREAD})
@@ -93,10 +92,6 @@ set(GGML_FATAL_WARNINGS     ${LLAMA_FATAL_WARNINGS})
 # change the default for these ggml options
 if (NOT DEFINED GGML_LLAMAFILE)
     set(GGML_LLAMAFILE_DEFAULT ON)
-endif()
-
-if (NOT DEFINED GGML_AMX)
-    set(GGML_AMX ON)
 endif()
 
 if (NOT DEFINED GGML_CUDA_GRAPHS)
@@ -163,8 +158,11 @@ if (GGML_TARGET_DEFINES)
     list(APPEND GGML_TRANSIENT_DEFINES ${GGML_TARGET_DEFINES})
 endif()
 get_target_property(GGML_LINK_LIBRARIES ggml LINK_LIBRARIES)
-
-set_target_properties(llama PROPERTIES PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/llama.h)
+# all public headers
+set(LLAMA_PUBLIC_HEADERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/llama.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/llama-cpp.h)
+set_target_properties(llama PROPERTIES PUBLIC_HEADER "${LLAMA_PUBLIC_HEADERS}")
 install(TARGETS llama LIBRARY PUBLIC_HEADER)
 
 configure_package_config_file(

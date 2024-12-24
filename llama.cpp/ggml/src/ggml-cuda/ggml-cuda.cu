@@ -177,7 +177,7 @@ static ggml_cuda_device_info ggml_cuda_init() {
         info.devices[id].smpb  = prop.sharedMemPerBlock;
 #if defined(GGML_USE_HIP) && defined(__HIP_PLATFORM_AMD__)
         info.devices[id].smpbo = prop.sharedMemPerBlock;
-        info.devices[id].cc = 100*prop.major + 10*prop.minor + CC_OFFSET_AMD;
+        info.devices[id].cc = 100*prop.major + 10*prop.minor + GGML_CUDA_CC_OFFSET_AMD;
 #else
         info.devices[id].smpbo = prop.sharedMemPerBlockOptin;
         info.devices[id].cc = 100*prop.major + 10*prop.minor;
@@ -1081,7 +1081,7 @@ static void ggml_cuda_op_mul_mat_cublas(
 
     const int compute_capability = ggml_cuda_info().devices[id].cc;
 
-    if (compute_capability >= CC_VOLTA && (src0->type == GGML_TYPE_F16 || ggml_is_quantized(src0->type)) && ggml_is_contiguous(src0) && row_diff == src0->ne[1] && dst->op_params[0] == GGML_PREC_DEFAULT) {
+    if (compute_capability >= GGML_CUDA_CC_VOLTA && (src0->type == GGML_TYPE_F16 || ggml_is_quantized(src0->type)) && ggml_is_contiguous(src0) && row_diff == src0->ne[1] && dst->op_params[0] == GGML_PREC_DEFAULT) {
         // convert src0 and src1 to fp16, multiply as fp16, convert dst to fp32
         ggml_cuda_pool_alloc<half> src0_as_f16(ctx.pool(id));
         if (src0->type != GGML_TYPE_F16) {
@@ -1107,6 +1107,11 @@ static void ggml_cuda_op_mul_mat_cublas(
         const half alpha_f16 = 1.0f;
         const half beta_f16 = 0.0f;
 
+        cublasComputeType_t cu_compute_type = CUBLAS_COMPUTE_16F;
+        if (ggml_cuda_info().devices[ctx.device].cc == GGML_CUDA_CC_CDNA) {
+            cu_compute_type = CUBLAS_COMPUTE_32F;
+        }
+
         CUBLAS_CHECK(cublasSetStream(ctx.cublas_handle(id), stream));
         CUBLAS_CHECK(
             cublasGemmEx(ctx.cublas_handle(id), CUBLAS_OP_T, CUBLAS_OP_N,
@@ -1114,7 +1119,7 @@ static void ggml_cuda_op_mul_mat_cublas(
                     &alpha_f16, src0_ptr,       CUDA_R_16F, ne00,
                                 src1_ptr,       CUDA_R_16F, ne10,
                     &beta_f16,   dst_f16.get(), CUDA_R_16F, ldc,
-                    CUBLAS_COMPUTE_16F,
+                    cu_compute_type,
                     CUBLAS_GEMM_DEFAULT_TENSOR_OP));
 
         const to_fp32_cuda_t to_fp32_cuda = ggml_get_to_fp32_cuda(GGML_TYPE_F16);
@@ -1606,6 +1611,10 @@ static void ggml_cuda_mul_mat_batched_cublas(ggml_backend_cuda_context & ctx, co
 
     cublasComputeType_t cu_compute_type = CUBLAS_COMPUTE_16F;
     cudaDataType_t      cu_data_type    = CUDA_R_16F;
+
+    if (ggml_cuda_info().devices[ctx.device].cc == GGML_CUDA_CC_CDNA) {
+        cu_compute_type = CUBLAS_COMPUTE_32F;
+    }
 
     // dst strides
     size_t nbd2 = dst->nb[2];
@@ -2348,7 +2357,7 @@ static enum ggml_status ggml_backend_cuda_graph_compute(ggml_backend_t backend, 
     std::vector<void *> ggml_cuda_cpy_fn_ptrs;
 
     if (cuda_ctx->cuda_graph->graph == nullptr) {
-        if (ggml_cuda_info().devices[cuda_ctx->device].cc < CC_AMPERE) {
+        if (ggml_cuda_info().devices[cuda_ctx->device].cc < GGML_CUDA_CC_AMPERE) {
             cuda_ctx->cuda_graph->disable_due_to_gpu_arch = true;
 #ifndef NDEBUG
             GGML_LOG_DEBUG("%s: disabling CUDA graphs due to GPU architecture\n", __func__);
@@ -3019,7 +3028,7 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
                 return true;
             }
             const int cc = ggml_cuda_info().devices[dev_ctx->device].cc;
-            return cc >= CC_VOLTA && cc < CC_OFFSET_AMD && op->src[1]->type == GGML_TYPE_F16 && op->src[2]->type == GGML_TYPE_F16;
+            return cc >= GGML_CUDA_CC_VOLTA && cc < GGML_CUDA_CC_OFFSET_AMD && op->src[1]->type == GGML_TYPE_F16 && op->src[2]->type == GGML_TYPE_F16;
         }
         case GGML_OP_CROSS_ENTROPY_LOSS:
         case GGML_OP_CROSS_ENTROPY_LOSS_BACK:
@@ -3126,6 +3135,61 @@ static ggml_backend_dev_t ggml_backend_cuda_reg_get_device(ggml_backend_reg_t re
     return ctx->devices[index];
 }
 
+static ggml_backend_feature * ggml_backend_cuda_get_features(ggml_backend_reg_t reg) {
+    static std::vector<ggml_backend_feature> features = []() {
+        std::vector<ggml_backend_feature> features;
+    #define _STRINGIFY(...) #__VA_ARGS__
+    #define STRINGIFY(...) _STRINGIFY(__VA_ARGS__)
+
+    #ifdef __CUDA_ARCH_LIST__
+        features.push_back({ "ARCHS", STRINGIFY(__CUDA_ARCH_LIST__) });
+    #endif
+
+    #ifdef GGML_CUDA_FORCE_MMQ
+        features.push_back({ "FORCE_MMQ", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_FORCE_CUBLAS
+        features.push_back({ "FORCE_CUBLAS", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_NO_VMM
+        features.push_back({ "NO_VMM", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_NO_PEER_COPY
+        features.push_back({ "NO_PEER_COPY", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_F16
+        features.push_back({ "F16", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_USE_GRAPHS
+        features.push_back({ "USE_GRAPHS", "1" });
+    #endif
+
+    #ifdef GGML_CUDA_PEER_MAX_BATCH_SIZE
+        features.push_back({ "PEER_MAX_BATCH_SIZE", STRINGIFY(GGML_CUDA_PEER_MAX_BATCH_SIZE) });
+    #endif
+
+    #ifdef GGML_CUDA_FA_ALL_QUANTS
+        features.push_back({ "FA_ALL_QUANTS", "1" });
+    #endif
+
+    #undef _STRINGIFY
+    #undef STRINGIFY
+
+        features.push_back({ nullptr, nullptr });
+
+        return features;
+    }();
+
+    return features.data();
+
+    GGML_UNUSED(reg);
+}
+
 static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, const char * name) {
     GGML_UNUSED(reg);
     if (strcmp(name, "ggml_backend_split_buffer_type") == 0) {
@@ -3137,13 +3201,16 @@ static void * ggml_backend_cuda_reg_get_proc_address(ggml_backend_reg_t reg, con
     if (strcmp(name, "ggml_backend_unregister_host_buffer") == 0) {
         return (void *)ggml_backend_cuda_unregister_host_buffer;
     }
+    if (strcmp(name, "ggml_backend_get_features") == 0) {
+        return (void *)ggml_backend_cuda_get_features;
+    }
     return nullptr;
 }
 
 static const ggml_backend_reg_i ggml_backend_cuda_reg_interface = {
     /* .get_name          = */ ggml_backend_cuda_reg_get_name,
     /* .get_device_count  = */ ggml_backend_cuda_reg_get_device_count,
-    /* .get_device_get    = */ ggml_backend_cuda_reg_get_device,
+    /* .get_device        = */ ggml_backend_cuda_reg_get_device,
     /* .get_proc_address  = */ ggml_backend_cuda_reg_get_proc_address,
 };
 
@@ -3169,16 +3236,17 @@ ggml_backend_reg_t ggml_backend_cuda_reg() {
                 dev_ctx->description = prop.name;
 
                 ggml_backend_dev_t dev = new ggml_backend_device {
-                    /* .interface = */ ggml_backend_cuda_device_interface,
-                    /* .reg       = */ &reg,
-                    /* .context   = */ dev_ctx
+                    /* .iface   = */ ggml_backend_cuda_device_interface,
+                    /* .reg     = */ &reg,
+                    /* .context = */ dev_ctx
                 };
                 ctx->devices.push_back(dev);
             }
 
             reg = ggml_backend_reg {
-                /* .interface = */ ggml_backend_cuda_reg_interface,
-                /* .context   = */ ctx
+                /* .api_version = */ GGML_BACKEND_API_VERSION,
+                /* .iface       = */ ggml_backend_cuda_reg_interface,
+                /* .context     = */ ctx
             };
         }
 
@@ -3209,3 +3277,5 @@ ggml_backend_t ggml_backend_cuda_init(int device) {
 
     return cuda_backend;
 }
+
+GGML_BACKEND_DL_IMPL(ggml_backend_cuda_reg)

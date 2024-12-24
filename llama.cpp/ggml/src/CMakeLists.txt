@@ -24,7 +24,7 @@ if (NOT MSVC)
     endif()
 endif()
 
-function(get_flags CCID CCVER)
+function(ggml_get_flags CCID CCVER)
     set(C_FLAGS "")
     set(CXX_FLAGS "")
 
@@ -41,6 +41,7 @@ function(get_flags CCID CCVER)
     elseif (CCID STREQUAL "GNU")
         set(C_FLAGS   -Wdouble-promotion)
         set(CXX_FLAGS -Wno-array-bounds)
+
         if (CCVER VERSION_GREATER_EQUAL 8.1.0)
             list(APPEND CXX_FLAGS -Wextra-semi)
         endif()
@@ -69,7 +70,7 @@ if (GGML_ALL_WARNINGS)
         list(APPEND C_FLAGS   ${WARNING_FLAGS})
         list(APPEND CXX_FLAGS ${WARNING_FLAGS})
 
-        get_flags(${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION})
+        ggml_get_flags(${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION})
 
         add_compile_options("$<$<COMPILE_LANGUAGE:C>:${C_FLAGS};${GF_C_FLAGS}>"
                             "$<$<COMPILE_LANGUAGE:CXX>:${CXX_FLAGS};${GF_CXX_FLAGS}>")
@@ -193,14 +194,13 @@ endif()
 
 if (WIN32)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-
-    if (BUILD_SHARED_LIBS)
-        # TODO: should not use this
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    endif()
 endif()
 
 # ggml
+
+if (GGML_BACKEND_DL AND NOT BUILD_SHARED_LIBS)
+    message(FATAL_ERROR "GGML_BACKEND_DL requires BUILD_SHARED_LIBS")
+endif()
 
 add_library(ggml-base
             ../include/ggml.h
@@ -215,9 +215,7 @@ add_library(ggml-base
             ggml-threading.cpp
             ggml-threading.h
             ggml-quants.c
-            ggml-quants.h
-            ggml-aarch64.c
-            ggml-aarch64.h)
+            ggml-quants.h)
 
 target_include_directories(ggml-base PRIVATE .)
 
@@ -226,44 +224,95 @@ add_library(ggml
 
 target_link_libraries(ggml PUBLIC ggml-base)
 
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_link_libraries(ggml PRIVATE dl)
+endif()
+
+function(ggml_add_backend_library backend)
+    if (GGML_BACKEND_DL)
+        add_library(${backend} MODULE ${ARGN})
+        # write the shared library to the output directory
+        set_target_properties(${backend} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        target_compile_definitions(${backend} PRIVATE GGML_BACKEND_DL)
+    else()
+        add_library(${backend} ${ARGN})
+        target_link_libraries(ggml PUBLIC ${backend})
+        install(TARGETS ${backend} LIBRARY)
+    endif()
+
+    target_link_libraries(${backend} PRIVATE ggml-base)
+    target_include_directories(${backend} PRIVATE ..)
+
+    if (${BUILD_SHARED_LIBS})
+        target_compile_definitions(${backend} PRIVATE GGML_BACKEND_BUILD)
+        target_compile_definitions(${backend} PUBLIC  GGML_BACKEND_SHARED)
+    endif()
+endfunction()
+
 function(ggml_add_backend backend)
     string(TOUPPER "GGML_${backend}" backend_id)
     if (${backend_id})
         string(TOLOWER "ggml-${backend}" backend_target)
         add_subdirectory(${backend_target})
-        # check again in case the backend disabled itself
-        # note that this should NOT be the normal behavior, in case of errors the backend should fail the build
-        # however, currently it is necessary for AMX, since it is enabled by default on llama.cpp
-        if (${backend_id})
-            message(STATUS "Including ${backend} backend")
-            if (${BUILD_SHARED_LIBS})
-                target_compile_definitions(${backend_target} PRIVATE GGML_BACKEND_BUILD)
-                target_compile_definitions(${backend_target} PUBLIC  GGML_BACKEND_SHARED)
-            endif()
-            install(TARGETS ${backend_target} LIBRARY)
-            target_link_libraries(ggml PUBLIC ${backend_target})
+        message(STATUS "Including ${backend} backend")
+        if (NOT GGML_BACKEND_DL)
             string(TOUPPER "GGML_USE_${backend}" backend_use)
             target_compile_definitions(ggml PUBLIC ${backend_use})
         endif()
     endif()
 endfunction()
 
+function(ggml_add_cpu_backend_variant tag_name)
+    set(GGML_CPU_TAG_NAME ${tag_name})
+    # other: OPENMP LLAMAFILE CPU_HBM
+    foreach (feat NATIVE
+                  AVX AVX2 AVX_VNNI FMA F16C
+                  AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16
+                  AMX_TILE AMX_INT8 AMX_BF16)
+        set(GGML_${feat} OFF)
+    endforeach()
+
+    foreach (feat ${ARGN})
+        set(GGML_${feat} ON)
+    endforeach()
+
+    ggml_add_cpu_backend_variant_impl(${tag_name})
+endfunction()
+
 ggml_add_backend(CPU)
-ggml_add_backend(AMX)
+
+if (GGML_CPU_ALL_VARIANTS)
+    if (NOT GGML_BACKEND_DL)
+        message(FATAL_ERROR "GGML_CPU_ALL_VARIANTS requires GGML_BACKEND_DL")
+    endif()
+    ggml_add_cpu_backend_variant(sandybridge    AVX)
+    ggml_add_cpu_backend_variant(haswell        AVX F16C AVX2 FMA)
+    ggml_add_cpu_backend_variant(skylakex       AVX F16C AVX2 FMA AVX512)
+    ggml_add_cpu_backend_variant(icelake        AVX F16C AVX2 FMA AVX512 AVX512_VBMI AVX512_VNNI)
+    if (NOT MSVC)
+        # MSVC doesn't support AVX-VNNI or AMX
+        ggml_add_cpu_backend_variant(alderlake      AVX F16C AVX2 FMA AVX_VNNI)
+        ggml_add_cpu_backend_variant(sapphirerapids AVX F16C AVX2 FMA AVX512 AVX512_VBMI AVX512_VNNI AVX512_BF16 AMX_TILE AMX_INT8)
+    endif()
+else ()
+    ggml_add_cpu_backend_variant_impl("")
+endif()
+
 ggml_add_backend(BLAS)
 ggml_add_backend(CANN)
 ggml_add_backend(CUDA)
 ggml_add_backend(HIP)
 ggml_add_backend(Kompute)
 ggml_add_backend(METAL)
+ggml_add_backend(MUSA)
 ggml_add_backend(RPC)
 ggml_add_backend(SYCL)
 ggml_add_backend(Vulkan)
-ggml_add_backend(MUSA)
+ggml_add_backend(OpenCL)
 
 foreach (target ggml-base ggml)
     target_include_directories(${target} PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include> $<INSTALL_INTERFACE:include>)
-    target_compile_features   (${target} PRIVATE c_std_11) # don't bump
+    target_compile_features   (${target} PRIVATE c_std_11 cxx_std_17) # don't bump
 endforeach()
 
 target_link_libraries(ggml-base PRIVATE Threads::Threads)

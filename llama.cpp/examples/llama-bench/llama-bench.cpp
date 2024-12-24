@@ -1477,6 +1477,17 @@ int main(int argc, char ** argv) {
 
     cmd_params params = parse_cmd_params(argc, argv);
 
+    // initialize backends
+    ggml_backend_load_all();
+    auto * cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
+    if (!cpu_dev) {
+        fprintf(stderr, "%s: error: CPU backend is not loaded\n", __func__);
+        return 1;
+    }
+    auto * cpu_reg = ggml_backend_dev_backend_reg(cpu_dev);
+    auto * ggml_threadpool_new_fn = (decltype(ggml_threadpool_new) *) ggml_backend_reg_get_proc_address(cpu_reg, "ggml_threadpool_new");
+    auto * ggml_threadpool_free_fn = (decltype(ggml_threadpool_free) *) ggml_backend_reg_get_proc_address(cpu_reg, "ggml_threadpool_free");
+
     // initialize llama.cpp
     if (!params.verbose) {
         llama_log_set(llama_null_log_callback, NULL);
@@ -1510,7 +1521,7 @@ int main(int argc, char ** argv) {
     for (const auto & inst : params_instances) {
         params_idx++;
         if (params.progress) {
-            fprintf(stderr, "llama-bench: benchmark %d/%ld: starting\n", params_idx, params_count);
+            fprintf(stderr, "llama-bench: benchmark %d/%zu: starting\n", params_idx, params_count);
         }
         // keep the same model between tests when possible
         if (!lmodel || !prev_inst || !inst.equal_mparams(*prev_inst)) {
@@ -1551,7 +1562,7 @@ int main(int argc, char ** argv) {
         tpp.poll       = t.poll;
         tpp.prio       = params.prio;
 
-        struct ggml_threadpool * threadpool = ggml_threadpool_new(&tpp);
+        struct ggml_threadpool * threadpool = ggml_threadpool_new_fn(&tpp);
         if (!threadpool) {
             fprintf(stderr, "%s: threadpool create failed : n_threads %d\n", __func__, tpp.n_threads);
             exit(1);
@@ -1562,14 +1573,14 @@ int main(int argc, char ** argv) {
         // warmup run
         if (t.n_prompt > 0) {
             if (params.progress) {
-                fprintf(stderr, "llama-bench: benchmark %d/%ld: warmup prompt run\n", params_idx, params_count);
+                fprintf(stderr, "llama-bench: benchmark %d/%zu: warmup prompt run\n", params_idx, params_count);
             }
             //test_prompt(ctx, std::min(t.n_batch, std::min(t.n_prompt, 32)), 0, t.n_batch, t.n_threads);
             test_prompt(ctx, t.n_prompt, t.n_batch, t.n_threads);
         }
         if (t.n_gen > 0) {
             if (params.progress) {
-                fprintf(stderr, "llama-bench: benchmark %d/%ld: warmup generation run\n", params_idx, params_count);
+                fprintf(stderr, "llama-bench: benchmark %d/%zu: warmup generation run\n", params_idx, params_count);
             }
             test_gen(ctx, 1, t.n_threads);
         }
@@ -1581,14 +1592,14 @@ int main(int argc, char ** argv) {
 
             if (t.n_prompt > 0) {
                 if (params.progress) {
-                    fprintf(stderr, "llama-bench: benchmark %d/%ld: prompt run %d/%d\n", params_idx, params_count,
+                    fprintf(stderr, "llama-bench: benchmark %d/%zu: prompt run %d/%d\n", params_idx, params_count,
                             i + 1, params.reps);
                 }
                 test_prompt(ctx, t.n_prompt, t.n_batch, t.n_threads);
             }
             if (t.n_gen > 0) {
                 if (params.progress) {
-                    fprintf(stderr, "llama-bench: benchmark %d/%ld: generation run %d/%d\n", params_idx, params_count,
+                    fprintf(stderr, "llama-bench: benchmark %d/%zu: generation run %d/%d\n", params_idx, params_count,
                             i + 1, params.reps);
                 }
                 test_gen(ctx, t.n_gen, t.n_threads);
@@ -1612,7 +1623,7 @@ int main(int argc, char ** argv) {
 
         llama_free(ctx);
 
-        ggml_threadpool_free(threadpool);
+        ggml_threadpool_free_fn(threadpool);
     }
 
     llama_free_model(lmodel);

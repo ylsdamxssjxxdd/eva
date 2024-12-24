@@ -1,9 +1,4 @@
-# TODO: should not use this
-if (WIN32)
-    if (BUILD_SHARED_LIBS)
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    endif()
-endif()
+llama_add_compile_flags()
 
 #
 # libraries
@@ -23,7 +18,7 @@ add_library(llama
             )
 
 target_include_directories(llama PUBLIC . ../include)
-target_compile_features   (llama PUBLIC cxx_std_11) # don't bump
+target_compile_features   (llama PUBLIC cxx_std_17) # don't bump
 
 target_link_libraries(llama PUBLIC ggml)
 

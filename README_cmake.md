@@ -65,13 +65,14 @@ inline bool mmap::open(const char *path) {
 - 删除自己的ggml文件夹
 - 修改cmakelists.txt中set(BUILD_SHARED_LIBS ON)以支持动态链接
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
+- 如果要依赖本身的ggml，则改名为sd-前缀的所有ggml库，尤其是在链接时target_link_libraries要链接sd-前缀的库
 
 ### whisper.cpp
 - 删除自己的ggml文件夹
 - 删除whisper.cpp中的whisper_init_from_file_with_params_no_state里的#ifdef _MSC_VER部分以支持中文
 - 将examples中的common库更名为whisper-common
 - examples/main的taget名称改为whisper-cli
-
+- src里控制ggml库的链接
 
 ### libsndfile 读写wav文件
 ### libsamplerate 重采样wav

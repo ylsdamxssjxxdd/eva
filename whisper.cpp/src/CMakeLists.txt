@@ -74,7 +74,7 @@ if (WHISPER_OPENVINO)
     set_property(TARGET ${TARGET} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set(WHISPER_EXTRA_FLAGS ${WHISPER_EXTRA_FLAGS} -DWHISPER_USE_OPENVINO)
 
-    target_link_libraries(${TARGET} PRIVATE ggml openvino::runtime)
+    target_link_libraries(${TARGET} PRIVATE sd-ggml openvino::runtime)
     set_target_properties(${TARGET} PROPERTIES FOLDER "libs")
 endif()
 
@@ -98,7 +98,7 @@ if (WHISPER_EXTRA_FLAGS)
     target_compile_options(whisper PRIVATE ${WHISPER_EXTRA_FLAGS})
 endif()
 
-target_link_libraries(whisper PUBLIC ggml)
+target_link_libraries(whisper PUBLIC sd-ggml)
 
 if (WHISPER_COREML)
     target_link_libraries(whisper PRIVATE whisper.coreml)

@@ -32,7 +32,15 @@ else()
     endif()
 endif()
 
+# remove the lib prefix on win32 mingw
+if (WIN32)
+    set(CMAKE_STATIC_LIBRARY_PREFIX "")
+    set(CMAKE_SHARED_LIBRARY_PREFIX "")
+    set(CMAKE_SHARED_MODULE_PREFIX  "")
+endif()
+
 option(BUILD_SHARED_LIBS "ggml: build shared libraries" ${BUILD_SHARED_LIBS_DEFAULT})
+option(GGML_BACKEND_DL   "ggml: build backends as dynamic libraries (requires BUILD_SHARED_LIBS)" OFF)
 
 #
 # option list
@@ -66,10 +74,10 @@ if (NOT GGML_CUDA_GRAPHS_DEFAULT)
 endif()
 
 # general
-option(GGML_STATIC "ggml: static link libraries"         OFF)
-option(GGML_NATIVE "ggml: enable -march=native flag"     ${GGML_NATIVE_DEFAULT})
-option(GGML_LTO    "ggml: enable link time optimization" OFF)
-option(GGML_CCACHE "ggml: use ccache if available"       ON)
+option(GGML_STATIC "ggml: static link libraries"                     OFF)
+option(GGML_NATIVE "ggml: optimize the build for the current system" ${GGML_NATIVE_DEFAULT})
+option(GGML_LTO    "ggml: enable link time optimization"             OFF)
+option(GGML_CCACHE "ggml: use ccache if available"                   ON)
 
 # debug
 option(GGML_ALL_WARNINGS           "ggml: enable all compiler warnings"                   ON)
@@ -91,29 +99,34 @@ else()
     set(INS_ENB ON)
 endif()
 
-option(GGML_CPU_HBM     "ggml: use memkind for CPU HBM" OFF)
-option(GGML_CPU_AARCH64 "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" ON)
-
-option(GGML_AVX         "ggml: enable AVX"              ${INS_ENB})
-option(GGML_AVX2        "ggml: enable AVX2"             ${INS_ENB})
-option(GGML_AVX512      "ggml: enable AVX512"           OFF)
-option(GGML_AVX512_VBMI "ggml: enable AVX512-VBMI"      OFF)
-option(GGML_AVX512_VNNI "ggml: enable AVX512-VNNI"      OFF)
-option(GGML_AVX512_BF16 "ggml: enable AVX512-BF16"      OFF)
-option(GGML_AMX_TILE    "ggml: enable AMX-TILE"         OFF)
-option(GGML_AMX_INT8    "ggml: enable AMX-INT8"         OFF)
-option(GGML_AMX_BF16    "ggml: enable AMX-BF16"         OFF)
-option(GGML_FMA         "ggml: enable FMA"              ${INS_ENB})
+option(GGML_CPU_HBM          "ggml: use memkind for CPU HBM" OFF)
+option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" ON)
+option(GGML_AVX              "ggml: enable AVX"              ${INS_ENB})
+option(GGML_AVX_VNNI         "ggml: enable AVX-VNNI"         OFF)
+option(GGML_AVX2             "ggml: enable AVX2"             ${INS_ENB})
+option(GGML_AVX512           "ggml: enable AVX512F"          OFF)
+option(GGML_AVX512_VBMI      "ggml: enable AVX512-VBMI"      OFF)
+option(GGML_AVX512_VNNI      "ggml: enable AVX512-VNNI"      OFF)
+option(GGML_AVX512_BF16      "ggml: enable AVX512-BF16"      OFF)
 if (NOT MSVC)
-    option(GGML_F16C    "ggml: enable F16C"             ${INS_ENB}) # in MSVC F16C is implied with AVX2/AVX512
+    # in MSVC F16C and FMA is implied with AVX2/AVX512
+    option(GGML_FMA          "ggml: enable FMA"              ${INS_ENB})
+    option(GGML_F16C         "ggml: enable F16C"             ${INS_ENB})
+    # MSVC does not seem to support AMX
+    option(GGML_AMX_TILE     "ggml: enable AMX-TILE"         OFF)
+    option(GGML_AMX_INT8     "ggml: enable AMX-INT8"         OFF)
+    option(GGML_AMX_BF16     "ggml: enable AMX-BF16"         OFF)
 endif()
-option(GGML_LASX        "ggml: enable lasx"             ON)
-option(GGML_LSX         "ggml: enable lsx"              ON)
-option(GGML_RVV         "ggml: enable rvv"              ON)
-option(GGML_SVE         "ggml: enable SVE"              OFF)
+option(GGML_LASX             "ggml: enable lasx"             ON)
+option(GGML_LSX              "ggml: enable lsx"              ON)
+option(GGML_RVV              "ggml: enable rvv"              ON)
+
+option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" OFF)
+set(GGML_CPU_ARM_ARCH "" CACHE STRING "ggml: CPU architecture for ARM")
+
 
 if (WIN32)
-    set(GGML_WIN_VER "0x602" CACHE STRING "ggml: Windows Version")
+    set(GGML_WIN_VER "0x602" CACHE STRING   "ggml: Windows version")
 endif()
 
 # ggml core
@@ -160,13 +173,17 @@ set   (GGML_METAL_MACOSX_VERSION_MIN "" CACHE STRING
 set   (GGML_METAL_STD "" CACHE STRING       "ggml: metal standard version (-std flag)")
 option(GGML_OPENMP                          "ggml: use OpenMP"                                ON)
 option(GGML_RPC                             "ggml: use RPC"                                   OFF)
-option(GGML_AMX                             "ggml: use AMX"                                   OFF)
 option(GGML_SYCL                            "ggml: use SYCL"                                  OFF)
 option(GGML_SYCL_F16                        "ggml: use 16 bit floats for sycl calculations"   OFF)
 set   (GGML_SYCL_TARGET "INTEL" CACHE STRING
                                             "ggml: sycl target device")
 set   (GGML_SYCL_DEVICE_ARCH "" CACHE STRING
                                             "ggml: sycl device architecture")
+
+option(GGML_OPENCL                          "ggml: use OpenCL"                                OFF)
+option(GGML_OPENCL_PROFILING                "ggml: use OpenCL profiling (increases overhead)" OFF)
+option(GGML_OPENCL_EMBED_KERNELS            "ggml: embed kernels"                             ON)
+option(GGML_OPENCL_USE_ADRENO_KERNELS       "ggml: use optimized kernels for Adreno"          ON)
 
 # extra artifacts
 option(GGML_BUILD_TESTS    "ggml: build tests"    ${GGML_STANDALONE})
@@ -179,11 +196,7 @@ option(GGML_BUILD_EXAMPLES "ggml: build examples" ${GGML_STANDALONE})
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED true)
 
-if (GGML_SYCL)
-    set(CMAKE_CXX_STANDARD 17)
-else()
-    set(CMAKE_CXX_STANDARD 11)
-endif()
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
