@@ -94,21 +94,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
         connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
     }
 
-    //-------------朗读相关-------------
-    sys_speech = new QTextToSpeech();// 系统声源
 
-    // 检查是否成功创建
-    if (sys_speech->state() == QTextToSpeech::Ready) {
-        // 遍历所有可用音色
-        foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
-        connect(sys_speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);  //朗读结束后动作
-        is_sys_speech_available = true;
-    }
-    else{is_sys_speech_available = false;}
-
-    avaliable_speech_list << SPPECH_OUTETTS;// 模型声源
-    connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
-    speechtimer.start(500);  //每半秒检查一次是否需要朗读
 
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
@@ -338,7 +324,6 @@ void Widget::on_send_clicked() {
 void Widget::recv_pushover() {
     ui_insert_history.append({temp_assistant_history, API_ROLE_ASSISANT});
     temp_assistant_history = "";
-    temp_speech = "";  //清空缓存的待读的字
 
     if (is_test)  //继续测试
     {
@@ -542,11 +527,7 @@ void Widget::recv_setreset() {
 //用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked() {
     wait_to_show_image = "";  //清空待显示图像
-    temp_speech = "";         //清空待读列表
-    wait_speech_list.clear();      //清空待读列表
-    if (is_sys_speech_available) {
-        sys_speech->stop();  //停止朗读
-    }
+    emit ui2expend_resettts();//清空待读列表
 
     //如果模型正在推理就改变模型的停止标签
     if (is_run) {
@@ -1115,9 +1096,6 @@ void Widget::api_send_clicked_slove() {
 }
 //传递知识库的描述
 void Widget::recv_embeddingdb_describe(QString describe) { embeddingdb_describe = describe; }
-
-//传递文转声参数
-void Widget::recv_speechparams(Speech_Params speech_Params_) { speech_params = speech_Params_; }
 
 //传递控制信息
 void Widget::recv_controller(int num) {

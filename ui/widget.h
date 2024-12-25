@@ -40,7 +40,6 @@
 #include <QTextCodec>
 #include <QTextCursor>
 #include <QTextEdit>
-#include <QTextToSpeech>
 #include <QThread>
 #include <QTimer>
 #include <QWidget>
@@ -76,7 +75,7 @@ class Widget : public QWidget {
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
     QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
     bool checkAudio();           // 检测音频支持
-    QStringList avaliable_speech_list;  // 可用声源列表
+    
    public:
     QJsonObject wordsObj;                   //中文英文
     void getWords(QString json_file_path);  //中文英文
@@ -313,16 +312,6 @@ class Widget : public QWidget {
     QTimer *keeptimer;                                    //测试延迟定时器
     QElapsedTimer keeptime;                               //测量时间
 
-    //语音朗读相关 文转声相关
-    Speech_Params speech_params;
-    void qspeech(QString str);
-    QTextToSpeech *sys_speech;
-    bool is_sys_speech_available;  // 语音朗读是否可用
-    bool is_speech = false;
-    QTimer speechtimer;       //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
-    QStringList wait_speech_list;  //等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
-    QString temp_speech;
-
     //发给模型的信号
    signals:
     void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);             //自动装载
@@ -356,7 +345,7 @@ class Widget : public QWidget {
     void ui2expend_language(int language_flag_);                      //传递使用的语言
     void ui2expend_show(int index_);                                  //通知显示扩展窗口
     void ui2expend_speechdecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
-    void ui2expend_tts(QString str);//开始文字转语音
+    void ui2expend_resettts();//重置文字转语音
 
     //自用信号
    signals:
@@ -388,7 +377,6 @@ class Widget : public QWidget {
     void recv_speechdecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);     //传递模型路径
     void recv_embeddingdb_describe(QString describe);   //传递知识库的描述
-    void recv_speechparams(Speech_Params speech_Params_);  //传递文转声参数
 
     //处理tool信号的槽
     void recv_controller(int num);                      //传递控制信息
@@ -399,11 +387,9 @@ class Widget : public QWidget {
     void switch_lan_change();  //切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率
     void recv_cpu_status(double cpuload, double memload);  //传递cpu信息
-    void speechOver();                         //朗读结束后动作
     //自用的槽
    private slots:
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
-    void qspeech_process();                    //每半秒检查列表，列表中有文字就读然后删，直到读完
     void stop_recordAudio();                   //停止录音
     void unlockLoad();
     void send_testhandleTimeout();                                //链接模式下测试时延迟发送

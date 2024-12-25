@@ -28,6 +28,7 @@
 #include <QTextStream>
 #include <QTimer>
 #include <QWidget>
+#include <QTextToSpeech>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -212,16 +213,36 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
+    QStringList avaliable_speech_list;  // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list);  // 设置系统可用声源
     Speech_Params speech_params;
+    QTextToSpeech *sys_speech;
+    bool is_sys_speech_available;  // 语音朗读是否可用
+    bool is_speech = false;
+    QTimer speechtimer;       //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
+    QStringList wait_speech_list;  //等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
+    QString temp_speech;
+    void outettsProcess(QString str);//使用outetts进行文转声
+    QProcess *outetts_process;      //用来启动llama-tts
+
    signals:
     void expend2ui_speechparams(Speech_Params speech_Params_);
     void expend2ui_speechover();
    public slots:
-    void recv_tts(QString str);  //开始文字转语音
+    void start_tts(QString str);  //开始文字转语音
+    void speechOver();
+    void recv_output(const QString result, bool is_while, QColor color);//接收模型的输出
+    void recv_resettts();//重置文字转语音
+    void speech_process();                    //每半秒检查列表，列表中有文字就读然后删，直到读完
+    void readyRead_outetts_process_StandardOutput();
+    void readyRead_outetts_process_StandardError();
+    void outetts_onProcessStarted();   //进程开始响应
+    void outetts_onProcessFinished();  //进程结束响应
    private slots:
     void speech_enable_change();  //用户点击启用声音选项响应
     void speech_source_change();  //用户切换音源响应
+    void on_speech_outetts_modelpath_pushButton_clicked();
+    void on_speech_wavtokenizer_modelpath_pushButton_clicked();
 
     //-------------------------------------------------------------------------
     //----------------------------------记忆相关--------------------------------

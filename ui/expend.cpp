@@ -51,6 +51,12 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);                                              //连接开始信号
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::sd_onProcessFinished);  //连接结束信号
 
+    outetts_process = new QProcess(this);   
+    connect(outetts_process, &QProcess::started, this, &Expend::outetts_onProcessStarted);                                              //连接开始信号
+    connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished);  //连接结束信号
+    connect(outetts_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_outetts_process_StandardOutput);
+    connect(outetts_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_outetts_process_StandardError);
+
     ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu);  //添加右键菜单
     connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
 
@@ -106,6 +112,26 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //记忆矩阵相关
     ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  //让表格自动撑满所在区域
     ui->brain_tableWidget->verticalHeader()->setVisible(false);                             // 隐藏行头部
+
+    //文转声相关
+    sys_speech = new QTextToSpeech();// 系统声源
+
+    // 检查是否成功创建
+    if (sys_speech->state() == QTextToSpeech::Ready) {
+        // 遍历所有可用音色
+        foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
+        connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::speechOver);  //朗读结束后动作
+        is_sys_speech_available = true;
+    }
+    else{is_sys_speech_available = false;}
+
+    avaliable_speech_list << SPPECH_OUTETTS;// 模型声源
+    this->set_sys_speech(avaliable_speech_list);  // 设置可用声源
+
+    //-------------朗读相关-------------
+    connect(&speechtimer, SIGNAL(timeout()), this, SLOT(speech_process()));
+    speechtimer.start(500);  //每半秒检查一次是否需要朗读
+
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 
@@ -378,7 +404,10 @@ void Expend::readConfig() {
 
         speech_params.enable_speech = settings.value("speech_enable", "").toBool();    //是否启用语音朗读
         speech_params.speech_name = settings.value("speech_name", "").toString();  //朗读者
-        
+        QString outetts_modelpath = settings.value("outetts_modelpath", "").toString();  // outetts模型路径
+        QString wavtokenizer_modelpath = settings.value("wavtokenizer_modelpath", "").toString();  // wavtokenizer模型路径
+        ui->speech_outetts_modelpath_lineEdit->setText(outetts_modelpath);
+        ui->speech_wavtokenizer_modelpath_lineEdit->setText(wavtokenizer_modelpath);
 
         // 应用值
         QFile sd_modelpath_file(sd_modelpath);
@@ -591,6 +620,8 @@ void Expend::closeEvent(QCloseEvent *event) {
 
     settings.setValue("speech_enable", ui->speech_enable_radioButton->isChecked());
     settings.setValue("speech_name", ui->speech_source_comboBox->currentText());
+    settings.setValue("outetts_modelpath", ui->speech_outetts_modelpath_lineEdit->text());
+    settings.setValue("wavtokenizer_modelpath", ui->speech_wavtokenizer_modelpath_lineEdit->text());
 
     settings.setValue("embedding_modelpath", embedding_params.modelpath);
     settings.setValue("embedding_endpoint", ui->embedding_txt_api_lineedit->text());  //如果模型不存在则直接使用端点
@@ -1862,11 +1893,155 @@ void Expend::set_sys_speech(QStringList avaliable_speech_list) {
 }
 
 //开始文字转语音
-void Expend::recv_tts(QString str)
+void Expend::start_tts(QString str)
 {
-    qDebug()<<str;
+    //如果禁用了朗读则直接退出
+    // qDebug()<<speech_params.is_speech<<speech_params.speech_name;
+    if (!speech_params.enable_speech) 
+    {
+        speechOver();
+        return;
+    }
+
+    if (speech_params.speech_name != "") 
+    {
+        if(speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
+        {
+            qDebug()<<"outetts"<<str;
+            outettsProcess(str);
+        }
+        else
+        {
+            // 遍历所有可用音色
+            foreach (const QVoice& voice, sys_speech->availableVoices()) 
+            {
+                // qDebug() << "Name:" << speech.name();
+                // qDebug() << "Age:" << speech.age();
+                // qDebug() << "Gender:" << speech.gender();
+                //使用用户选择的音色
+                if (voice.name() == speech_params.speech_name) 
+                {
+                    sys_speech->setVoice(voice);
+                    break;
+                }
+            }
+            
+            // 设置语速，范围从-1到1
+            sys_speech->setRate(0.3);
+
+            // 设置音量，范围从0到1
+            sys_speech->setVolume(1.0);
+
+            // 开始文本到语音转换
+            sys_speech->say(str);
+        }
+
+    }
     
-    emit expend2ui_speechover();
+}
+
+void Expend::speechOver()
+{
+    speechtimer.stop();
+    speechtimer.start(500);
+    is_speech = false;  //解锁
+}
+
+//每半秒检查列表，列表中有文字就读然后删，直到读完
+void Expend::speech_process() {
+    if (!is_speech) {
+        if (wait_speech_list.size() > 0) {
+            speechtimer.stop();
+            is_speech = true;
+            start_tts(wait_speech_list.first());
+            // qDebug()<<wait_speech.first();
+            wait_speech_list.removeFirst();
+        }
+    }
+}
+
+void Expend::recv_output(const QString result, bool is_while, QColor color)
+{
+    if (is_while) 
+    {
+        //添加待朗读的文字
+        temp_speech += result;// 累计输出的文本
+        //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并等待朗读
+        // QRegularExpression re("[！；、，。？：!;,?:]");
+        QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s");//新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
+        QRegularExpressionMatch match = re.match(temp_speech);
+        if (match.hasMatch()) 
+        {
+            wait_speech_list << temp_speech;
+            temp_speech = "";
+        }
+    }
+}
+
+void Expend::recv_resettts()
+{
+    wait_speech_list.clear();      //清空待读列表
+    if (is_sys_speech_available) {
+        sys_speech->stop();  //停止朗读
+    }
+}
+
+//使用outetts进行文转声
+void Expend::outettsProcess(QString str)
+{
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/llama-tts") + SFX_NAME;
+    QString program = localPath;  // 设置要运行的exe文件的路径
+#else
+    QString localPath = QString("./llama-tts") + SFX_NAME;
+    QString program = localPath;  // 设置要运行的exe文件的路径
+#endif
+
+    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    QStringList arguments;
+    arguments << "-m" << ui->speech_outetts_modelpath_lineEdit->text();
+    arguments << "-mv" << ui->speech_wavtokenizer_modelpath_lineEdit->text();
+    //arguments << "-ngl" << "99";
+
+    // 开始运行程序
+    outetts_process->start(program, arguments);
+}
+
+//进程开始响应
+void Expend::outetts_onProcessStarted() 
+{
+
+}
+
+//进程结束响应
+void Expend::outetts_onProcessFinished()
+{
+    speechOver();
+}
+
+void Expend::readyRead_outetts_process_StandardOutput()
+{
+    QString outetts_output = outetts_process->readAllStandardOutput();
+    ui->speech_log->append(outetts_output);
+}
+
+void Expend::readyRead_outetts_process_StandardError()
+{
+    QString outetts_output = outetts_process->readAllStandardError();
+    ui->speech_log->append(outetts_output);
+}
+
+//用户点击选择模型路径时响应
+void Expend::on_speech_outetts_modelpath_pushButton_clicked() {
+    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
+    ui->speech_outetts_modelpath_lineEdit->setText(currentpath);
+}
+
+//用户点击选择模型路径时响应
+void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() {
+    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
+    ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
 }
 
 //-------------------------------------------------------------------------

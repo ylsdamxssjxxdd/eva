@@ -543,70 +543,8 @@ QString Widget::customOpenfile(QString dirpath, QString describe, QString format
 }
 
 //语音朗读相关 文转声相关
-void Widget::qspeech(QString str) 
-{
-    //如果禁用了朗读则直接退出
-    // qDebug()<<speech_params.is_speech<<speech_params.speech_name;
-    if (!speech_params.enable_speech) 
-    {
-        speechOver();
-        return;
-    }
 
-    if (speech_params.speech_name != "") 
-    {
-        if(speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
-        {
-            qDebug()<<"ui"<<str;
-            emit ui2expend_tts(str);
-        }
-        else
-        {
-            // 遍历所有可用音色
-            foreach (const QVoice& voice, sys_speech->availableVoices()) 
-            {
-                // qDebug() << "Name:" << speech.name();
-                // qDebug() << "Age:" << speech.age();
-                // qDebug() << "Gender:" << speech.gender();
-                //使用用户选择的音色
-                if (voice.name() == speech_params.speech_name) 
-                {
-                    sys_speech->setVoice(voice);
-                    break;
-                }
-            }
-            
-            // 设置语速，范围从-1到1
-            sys_speech->setRate(0.3);
 
-            // 设置音量，范围从0到1
-            sys_speech->setVolume(1.0);
-
-            // 开始文本到语音转换
-            sys_speech->say(str);
-        }
-
-    }
-}
-
-//每半秒检查列表，列表中有文字就读然后删，直到读完
-void Widget::qspeech_process() {
-    if (!is_speech) {
-        if (wait_speech_list.size() > 0) {
-            speechtimer.stop();
-            is_speech = true;
-            qspeech(wait_speech_list.first());
-            // qDebug()<<wait_speech.first();
-            wait_speech_list.removeFirst();
-        }
-    }
-}
-//朗读结束后动作
-void Widget::speechOver() {
-    speechtimer.stop();
-    speechtimer.start(500);
-    is_speech = false;  //解锁
-}
 
 //每次约定和设置后都保存配置到本地
 void Widget::auto_save_user() {
