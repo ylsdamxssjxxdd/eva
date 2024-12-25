@@ -129,8 +129,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     this->set_sys_speech(avaliable_speech_list);  // 设置可用声源
 
     //-------------朗读相关-------------
-    connect(&speechtimer, SIGNAL(timeout()), this, SLOT(speech_process()));
-    speechtimer.start(500);  //每半秒检查一次是否需要朗读
+    connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
+    connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
+    speechTimer.start(500);  //每半秒检查一次是否需要朗读
 
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
@@ -1942,20 +1943,40 @@ void Expend::start_tts(QString str)
 
 void Expend::speechOver()
 {
-    speechtimer.stop();
-    speechtimer.start(500);
+    speechTimer.stop();
+    speechTimer.start(500);
     is_speech = false;  //解锁
+}
+
+void Expend::speechPlayOver()
+{
+    speechPlayTimer.stop();
+    speechPlayTimer.start(500);
+    is_speech_play = false;  //解锁
 }
 
 //每半秒检查列表，列表中有文字就读然后删，直到读完
 void Expend::speech_process() {
     if (!is_speech) {
-        if (wait_speech_list.size() > 0) {
-            speechtimer.stop();
+        if (wait_speech_txt_list.size() > 0) {
+            speechTimer.stop();
             is_speech = true;
-            start_tts(wait_speech_list.first());
-            // qDebug()<<wait_speech.first();
-            wait_speech_list.removeFirst();
+            start_tts(wait_speech_txt_list.first());
+            wait_speech_txt_list.removeFirst();
+        }
+    }
+}
+
+//每半秒检查待播放列表，列表中有文字就读然后删，直到读完
+void Expend::speech_play_process()
+{
+    if (!is_speech_play) {
+        if (wait_speech_play_list.size() > 0) {
+            speechPlayTimer.stop();
+            is_speech_play = true;
+            // 播放第一路径的音频
+            QSound::play(wait_speech_play_list.first());
+            wait_speech_play_list.removeFirst();
         }
     }
 }
@@ -1965,22 +1986,22 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
     if (is_while) 
     {
         //添加待朗读的文字
-        temp_speech += result;// 累计输出的文本
+        temp_speech_txt += result;// 累计输出的文本
         //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并等待朗读
         // QRegularExpression re("[！；、，。？：!;,?:]");
         QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s");//新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
-        QRegularExpressionMatch match = re.match(temp_speech);
+        QRegularExpressionMatch match = re.match(temp_speech_txt);
         if (match.hasMatch()) 
         {
-            wait_speech_list << temp_speech;
-            temp_speech = "";
+            wait_speech_txt_list << temp_speech_txt;
+            temp_speech_txt = "";
         }
     }
 }
 
 void Expend::recv_resettts()
 {
-    wait_speech_list.clear();      //清空待读列表
+    wait_speech_txt_list.clear();      //清空待读列表
     if (is_sys_speech_available) {
         sys_speech->stop();  //停止朗读
     }
@@ -2002,7 +2023,8 @@ void Expend::outettsProcess(QString str)
     QStringList arguments;
     arguments << "-m" << ui->speech_outetts_modelpath_lineEdit->text();
     arguments << "-mv" << ui->speech_wavtokenizer_modelpath_lineEdit->text();
-    //arguments << "-ngl" << "99";
+    arguments << "-ngl" << "99";
+    arguments << "-p" << str;
 
     // 开始运行程序
     outetts_process->start(program, arguments);
@@ -2017,6 +2039,7 @@ void Expend::outetts_onProcessStarted()
 //进程结束响应
 void Expend::outetts_onProcessFinished()
 {
+    // 如果生成音频成功了则播放它，播放完毕再进入结束步骤
     speechOver();
 }
 

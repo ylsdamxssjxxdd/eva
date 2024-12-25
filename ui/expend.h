@@ -29,6 +29,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QTextToSpeech>
+#include <QSound>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -218,10 +219,13 @@ class Expend : public QWidget {
     Speech_Params speech_params;
     QTextToSpeech *sys_speech;
     bool is_sys_speech_available;  // 语音朗读是否可用
-    bool is_speech = false;
-    QTimer speechtimer;       //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
-    QStringList wait_speech_list;  //等待朗读的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
-    QString temp_speech;
+    bool is_speech = false;// 是否系统声源正在朗读
+    bool is_speech_play = false;// 是否音频正在播放
+    QTimer speechTimer;       //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
+    QTimer speechPlayTimer; // 用来控制播放outetts产生的音频，和wait_speech_play_list搭配使用
+    QStringList wait_speech_txt_list;  //等待的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
+    QStringList wait_speech_play_list; //等待播放的音频列表，存储的是路径
+    QString temp_speech_txt;
     void outettsProcess(QString str);//使用outetts进行文转声
     QProcess *outetts_process;      //用来启动llama-tts
 
@@ -231,9 +235,11 @@ class Expend : public QWidget {
    public slots:
     void start_tts(QString str);  //开始文字转语音
     void speechOver();
+    void speechPlayOver();
     void recv_output(const QString result, bool is_while, QColor color);//接收模型的输出
     void recv_resettts();//重置文字转语音
     void speech_process();                    //每半秒检查列表，列表中有文字就读然后删，直到读完
+    void speech_play_process();               //每半秒检查播放列表，列表中有文字就读然后删，直到读完
     void readyRead_outetts_process_StandardOutput();
     void readyRead_outetts_process_StandardError();
     void outetts_onProcessStarted();   //进程开始响应
