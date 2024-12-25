@@ -124,6 +124,7 @@ endif()
 # add_subdirectory(llama.cpp/examples/main) # 测试用
 # add_subdirectory(llama.cpp/examples/llava) # 测试用
 # add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
+add_subdirectory(llama.cpp/examples/tts) # 添加tts
 add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(llama.cpp/examples/server) # 添加server
 
@@ -172,7 +173,7 @@ endif()
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper-cli llama-quantize sd) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd) # 确保eva最后生产，保证后处理顺利进行
 
 # 后处理
 if(MSVC)

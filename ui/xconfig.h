@@ -258,9 +258,11 @@ struct QuantizeType {
 
 //文转声参数
 struct Speech_Params {
-    bool is_speech = false;
+    bool enable_speech = false;
     QString speech_name = "";
 };
+
+#define SPPECH_OUTETTS "outetts"
 
 //记忆单元（当前记忆）
 struct Brain_Cell {

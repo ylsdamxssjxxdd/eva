@@ -304,13 +304,14 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color) {
         temp_assistant_history += result;
         //添加待朗读的文字
         if (!is_test) {
-            temp_speech += result;
-            //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并朗读
-            QRegularExpression re("[！；、，。？：!;,.?:]");
+            temp_speech += result;// 累计输出的文本
+            //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并等待朗读
+            // QRegularExpression re("[！；、，。？：!;,?:]");
+            QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s");//新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
             QRegularExpressionMatch match = re.match(temp_speech);
             if (match.hasMatch()) {
                 // qDebug()<< temp_speech;
-                wait_speech << temp_speech;
+                wait_speech_list << temp_speech;
                 temp_speech = "";
             }
         }

@@ -212,11 +212,13 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
-    void set_sys_speech(QStringList sys_speech_list);  // 设置系统可用声源
+    void set_sys_speech(QStringList avaliable_speech_list);  // 设置系统可用声源
     Speech_Params speech_params;
    signals:
     void expend2ui_speechparams(Speech_Params speech_Params_);
-
+    void expend2ui_speechover();
+   public slots:
+    void recv_tts(QString str);  //开始文字转语音
    private slots:
     void speech_enable_change();  //用户点击启用声音选项响应
     void speech_source_change();  //用户切换音源响应

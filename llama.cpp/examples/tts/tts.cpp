@@ -428,7 +428,10 @@ static void prompt_init(llama_tokens & prompt, const llama_model * model) {
 int main(int argc, char ** argv) {
     common_params params;
 
-    params.prompt = "";
+    // params.prompt = "I don't know ni hao";
+    // params.model = "C:\\Users\\32138\\Desktop\\eva\\build\\Release\\OuteTTS-0.2-500M-Q8_0.gguf";
+    // params.vocoder.model = "C:\\Users\\32138\\Desktop\\eva\\build\\Release\\WavTokenizer-Large-75-F16.gguf";
+    // params.n_gpu_layers = 99;
 
     params.n_predict = 4096;
     params.n_batch   = 8192;

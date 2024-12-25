@@ -66,7 +66,8 @@ int main(int argc, char* argv[]) {
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
     w.speech_params = expend.speech_params;
-    expend.set_sys_speech(w.sys_speech_list);  // 设置可用系统声源
+    qDebug()<<expend.speech_params.enable_speech<<expend.speech_params.speech_name;
+    expend.set_sys_speech(w.avaliable_speech_list);  // 设置可用声源
     // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
@@ -137,11 +138,13 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                          //传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                           //通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                    //开始语音转文字
+    QObject::connect(&w, &Widget::ui2expend_tts, &expend, &Expend::recv_tts);                                     //开始文字转语音
     QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);          //转换完成返回结果
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);        //传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                             //窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);  //传递知识库的描述
     QObject::connect(&expend, &Expend::expend2ui_speechparams, &w, &Widget::recv_speechparams);                    //传递文转声参数
+    QObject::connect(&expend, &Expend::expend2ui_speechover, &w, &Widget::speechOver);                    //传递文转声结束
 
     //------------------连接bot和增殖窗口-------------------
     QObject::connect(&bot, &xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);

@@ -95,18 +95,20 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     }
 
     //-------------朗读相关-------------
-    speech = new QTextToSpeech();
+    sys_speech = new QTextToSpeech();// 系统声源
+
     // 检查是否成功创建
-    if (speech->state() == QTextToSpeech::Ready) {
-        is_speech_available = true;
+    if (sys_speech->state() == QTextToSpeech::Ready) {
         // 遍历所有可用音色
-        foreach (const QVoice &speech, speech->availableVoices()) { sys_speech_list << speech.name(); }
-        connect(speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);  //朗读结束后动作
-        connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
-        speechtimer.start(500);  //每半秒检查一次是否需要朗读
-    } else {
-        is_speech_available = false;
+        foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
+        connect(sys_speech, &QTextToSpeech::stateChanged, this, &Widget::speechOver);  //朗读结束后动作
+        is_sys_speech_available = true;
     }
+    else{is_sys_speech_available = false;}
+
+    avaliable_speech_list << SPPECH_OUTETTS;// 模型声源
+    connect(&speechtimer, SIGNAL(timeout()), this, SLOT(qspeech_process()));
+    speechtimer.start(500);  //每半秒检查一次是否需要朗读
 
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
@@ -541,9 +543,9 @@ void Widget::recv_setreset() {
 void Widget::on_reset_clicked() {
     wait_to_show_image = "";  //清空待显示图像
     temp_speech = "";         //清空待读列表
-    wait_speech.clear();      //清空待读列表
-    if (is_speech_available) {
-        speech->stop();  //停止朗读
+    wait_speech_list.clear();      //清空待读列表
+    if (is_sys_speech_available) {
+        sys_speech->stop();  //停止朗读
     }
 
     //如果模型正在推理就改变模型的停止标签

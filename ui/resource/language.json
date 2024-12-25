@@ -1,450 +1,1740 @@
 {
-    "words": 
-    {
-        "click load and choose a gguf file": ["点击装载选择gguf格式模型文件","click load and choose a gguf file "],
-        "shortcut key registration failed": ["快捷键注册失败","shortcut key registration failed "],
-        "hello": ["你好","hello "],
-        "send": ["发送","send"],
-        "load": ["装载","load"],
-        "ctx": ["上下文","context "],
-        "date": ["约定","date"],
-        "length": ["长度","length "],
-        "temperature": ["温度","temperature"],
-        "on": ["启动","on "],
-        "oning": ["启动中","on..."],
-        "success": ["成功","success "],
-        "off":["关闭","off "],
-        "not enough":["不足","not enough "],
-        "remain":["剩余","remain "],
-        "shut down":["终止","shut down "],
-        "browser at": ["浏览器访问","browser at "],
-        "mode":["模式","mode "],
-        "state":["状态","state "],
-        "chat state": ["对话状态","chat state"],
-        "complete state": ["补完状态","complete state"],
-        "server": ["服务","server "],
-        "server state": ["服务状态","server state"],
-        "system calling": ["系统指令","system "],
-        "date prompt": ["约定指令","date "],
-        "clicked": ["触发","clicked "],
-        "clicked load": ["触发装载","clicked load "],
-        "model location": ["模型位置","model location "],
-        "clicked send": ["触发发送","clicked send "],
-        "clicked reset": ["触发重置","clicked reset "],
-        "clicked date": ["触发约定","clicked date "],
-        "input predecode": ["对输入进行预解码...","input predecode... "],
-        "input decode": ["对输入进行解码...","input decode... "],
-        "ctx decode": ["对上下文进行解码...","context decode... "],
-        "reset": ["重置","reset "],
-        "reset ok": ["重置成功","reset ok "],
-        "offload": ["负载层数","offload "],
-        "ngl tips": ["如果显存足够请将gpu负载层数设置为最大，但最好不要超过95%的显存","If the gpu memory is sufficient, please set the gpu offload to the maximum, but it is best not to exceed 95% of the vram"],
-        "repeat": ["重复惩罚","repeat"],
-        "port": ["端口","port "],
-        "lode model first": ["装载模型后查看","lode model first "],
-        "Q1": ["你好","hello "],
-        "Q2": ["什么动物早晨用四条腿走路，中午用两条腿走路，晚上用三条腿走路","What animal walks on four legs in the morning, two legs at noon, and three legs at night "],
-        "Q3": ["9.8和9.11哪个大","Which is greater, 9.8 or 9.11 "],
-        "Q4": ["历史上的{today}发生了什么大事","What major events happened in {today} history "],
-        "Q5": ["我们来玩成语接龙吧","Let's play idiom relay "],
-        "Q6": ["有若干只鸡兔同在一个笼子里，有46个头，108只脚，问笼中各有多少只鸡和兔","There are several chickens and rabbits in the same cage, with 46 heads and 108 feet. How many chickens and rabbits are there in each cage "],
-        "Q7": ["将这段话翻译为中文：The word radar originally referred to radio direction and distance measurement.","Translated into Chinese: The word radar originally referred to radio direction and distance measurement "],
-        "Q8": ["写一个论文综述，关于人工智能在气象上的应用","Write a paper review on the application of artificial intelligence in meteorology "],
-        "Q9": ["写一个新闻稿，为运动会上健儿加油","Write a press release to cheer for the athletes at the sports meeting "],
-        "Q10": ["写一个心得体会，关于一本无人机书籍的学习","Write a reflection on the study of a drone book "],
-        "Q11": ["写一个实习报告，关于在气象台实习的","Write an internship report about interning at a meteorological station "],
-        "Q12": ["请使用BOPPPS模型设计一堂课，题目为：神经网络原理","Please use the BOPPPS model to design a class titled: Principles of Neural Networks "],
-        "Q13": ["写一个检讨书，关于工作失职，3000字","Write a 3000 word review on dereliction of duty at work "],
-        "Q14": ["<机体同步率测试>","<Eva sync rate test>"],
-        "Q15": ["<上传图像>","<Upload Image> "],
-        "Q16": ["<参加考试>内置10%的c-eval题库","<Take the exam> Built in 10% MMLU test question bank "],
-        "Q17": ["<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案","<Take the exam>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "],
-        "kv cache": ["上下文缓存","Context cache "],
-        "cache ctx": ["缓存上下文","Cache Context "],
-        "right click learn more": ["右击了解更多","right click learn more "],
-        "expend window": ["增殖窗口","expend window "],
-        "custom set1": ["自定义/custom1","自定义/custom1"],
-        "custom set2": ["自定义/custom2","自定义/custom2"],
-        "user name": ["用户昵称","user "],
-        "model name": ["模型昵称","model "],
-        "sample set": ["采样参数","sample set"],
-        "decode set": ["解码参数","decode set"],
-        "state set": ["状态设置","state set"],
-        "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response": ["温度越高回答越发散,温度越低回答越准确","The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response "],
-        "Reduce the probability of the model outputting synonymous words": ["降低模型输出同类词的概率","Reduce the probability of the model outputting synonymous words "],
-        "put some model paragram to gpu and reload model": ["将模型的一部分参数装载到gpu上","put some model paragram to gpu and reload model "],
-        "Please modify any text above": ["请在上面修改任意文本","Please modify any text above "],
-        "over": ["完毕","over"],
-        "stop": ["停止","stop."],
-        "predecode": ["预解码","predecode "],
-        "image": ["图像","image "],
-        "speech": ["语音","speech "],
-        "video": ["视频","video "],
-        "decode": ["解码","Decoding"],
-        "nums": ["个"," "],
-        "predict": ["预测","predict "],
-        "use time": ["耗时","use time"],
-        "speed": ["速度","speed "],
-        "The length of the input context exceeds": ["输入的上下文长度超过","The length of the input context exceeds "],
-        "extend ctx length": ["拓展上下文长度","extend ctx length "],
-        "skip": ["跳过","skip "],
-        "arrive max ctx": ["达到最大上下文","arrive max ctx "],
-        "arrive max predict length": ["达到最大预测长度","arrive max predict length "],
-        "will cut": ["将截断","will cut "],
-        "batch decode": ["上文处理","pp"],
-        "single decode": ["文字生成","tg"],
-        "batch size": ["批大小","batch size"],
-        "predecode system instruction": ["对系统指令进行预解码","predecode system instruction "],
-        "fail": ["失败","fail "],
-        "right click and check model log": ["右击查看模型日志","right click and check model log "],
-        "use kv cache": ["用已缓存","use context cache "],
-        "calculator next word probability table": ["计算下一个词的概率表","calculator next word probability table "],
-        "embd no token please restart": ["待解码的embd中没有token, 请重新启动机体","embd no token please restart "],
-        "word probability table": ["概率表",""],
-        "top5": ["前5","top5 "],
-        "probability table": ["概率表","table"],
-        "word": ["词","word"],
-        "probability": ["概率","prob"],
-        "<end>": ["<结束>","<end> "],
-        "sampling next word": ["采样得到下一个词","sampling next word "],
-        "sampling": ["采样","Sampling"],
-        "use max prob": ["对最大概率","for maximum probability "],
-        "use prob random": ["按概率随机","random by probability "],
-        "detected": ["检测到","detected "],
-        "detecting": ["检测","detecting "],
-        "extra stop words": ["额外停止标志","extra stop words "],
-        "load model": ["装载模型","load model "],
-        "free model and ctx": ["释放旧的模型和上下文","free model and ctx "],
-        "nthread/maxthread": ["使用线程数/最大线程数","nthread/maxthread "],
-        "system calling too long use": ["约定的系统指令长度太长,请修改,暂使用","system instruction too long. Temporarily use "],
-        "delete kv cache": ["清空上下文缓存","delete context cache "],
-        "delete kv cache except system calling": ["删除系统指令以外的上下文缓存","delete context cache except system instruction "],
-        "current model": ["当前模型","current model "],
-        "vocab size": ["词表大小","vocab size "],
-        "chinese rate": ["汉字比重","chinese rate "],
-        "mem": ["内存","mem "],
-        "vram": ["显存","vram "],
-        "vcore": ["gpu核心","vcore "],
-        "test": ["测试","test "],
-        "question type": ["题目类别","question type "],
-        "H1": ["引导题: 后面的题目也是一样，不要解释直接给出答案\n\n哪一首是周华健唱的歌？\n\nA:朋友\nB:太多\nC:求神\nD:我不知道","Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n Which song is sung by Zhou Huajian? \nA: Friends \nB: Too many \nC: Seeking God \nD: I don't know "],
-        "A1": ["答案: A","Answer: A\n"],
-        "H2": ["引导题: 后面的题目也是一样，不要解释直接给出答案\n\n世界上最高的山是哪一座？\n\nA:衡山\nB:乞力马扎罗山\nC:珠穆朗玛峰\nD:马里亚纳海沟","Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n What is the tallest mountain in the world? \nA: Hengshan \nB: Kilimanjaro Mountain \nC: Mount Everest \nD: Mariana Trench "],
-        "A2": ["答案: C","Answer: C\n"],
-        "accurate": ["正确率","accurate "],
-        "Question bank construction completed": ["题库构造完毕","Question bank construction completed "],
-        "question": ["题","question "],
-        "add help question": ["添加引导题","add help question "],
-        "answer right": ["回答正确","answer right "],
-        "answer error": ["回答错误","answer error "],
-        "right answer": ["正确答案","right answer "],
-        "answer": ["答案","answer "],
-        "try": ["尝试","try "],
-        "load lora": ["挂载lora","load lora "],
-        "right click and choose lora": ["右击选择与该模型绑定的lora模型","right click and choose lora "],
-        "chat or right click to choose question": ["输入聊天内容,或右击选择问题,或按f1截图,或按f2录音","chat, or right click to choose question, or press F1 screenshot, or press F2 record "],
-        "This token will be sent to the next decoding": ["该token将送入下一次解码","this token will be sent to the next decoding "],
-        "incompleteUTF8 detected": ["检测到不完整的utf8字符","incompleteUTF8 detected "],
-        "model": ["模型","model "],
-        "old model and ctx offloaded": ["旧的模型和上下文已卸载","old model and ctx offloaded "],
-        "vram enough, gpu offload auto set max": ["显存充足,自动将gpu负载设置为最大","vram enough, gpu offload auto set max "],
-        "brain": ["记忆","brain "],
-        "The number of tokens processed simultaneously in one decoding": ["一次解码同时处理的token数量","The number of tokens processed simultaneously in one decoding "],
-        "and input": ["和送入的","and input "],
-        "set": ["设置","set "],
-        "address": ["地址","address "],
-        "chat": ["对话","chat "],
-        "complete": ["补完","complete "],
-        "endpoint": ["端点","endpoint "],
-        "input server ip": ["请输入服务的ip地址和端口","input server ip and port"],
-        "blocked": ["不通","blocked "],
-        "recv reply": ["接收到回复","recv reply "],
-        "api endpoint":["api端点","api endpoint"],
-        "api endpoint tool tip":["例如 192.168.1.1:8080","example 192.168.1.1:8080"],
-        "current api": ["当前负载端点","current api "],
-        "send message to api": ["向负载端点发送请求","send message to api "],
-        "npredict": ["最长输出","npredict"],
-        "local mode": ["本地模式","local mode "],
-        "link mode": ["链接模式","link mode "],
-        "link": ["链接","link "],
-        "limited": ["限制为","limited "],
-        "next token": ["下一个词","next token "],
-        "delay": ["延迟","delay "],
-        "The maximum number of tokens that the model can output in a single prediction process": ["模型在一次预测过程中最多能输出的token数","The maximum number of tokens that the model can output in a single prediction process "],
-        "thread": ["线程数","thread "],
-        "not big better": ["可能不是越大越好","not big better "],
-        "big brain size lead small wisdom": ["容量过大会使智力减弱","big brain size lead small wisdom "],
-        "degree": ["度","degree "],
-        "day": ["日",""],
-        "month": ["月","-"],
-        "query": ["连续回答","query "],
-        "load mmproj": ["挂载视觉","load mmproj "],
-        "right click and choose mmproj": ["右击选择与该模型绑定的mmproj模型","right click and choose mmproj "],
-        "please": ["请","please "],
-        "use mmproj model predecode image": ["利用视觉模型将图像预解码","use mmproj model predecode image "],
-        "troll": ["杠精","troll"],
-        "you are a troll please respect any question for user": ["你是一个杠精，请反驳用户的一切观点","you are a troll please respect any question for user "],
-        "driver": ["driver","driver"],
-        "user": ["用户","user "],
-        "prompt": ["提示词","prompt "],
-        "template": ["模板","template"],
-        "chat template": ["对话模板","template"],
-        "preset": ["预设","preset "],
-        "tool": ["工具","tool "],
-        "mount": ["挂载","mount "],
-        "use": ["使用","use "],
-
-        "calculator": ["计算器","calculator "],
-        "terminal": ["系统终端","terminal "],
-        "toolguy": ["超级工具人","toolguy "],
-        "knowledge": ["知识库","knowledge "],
-        "controller": ["软件控制台","controller "],
-        "stablediffusion": ["文生图","txt2img"],
-        "interpreter": ["代码解释器","interpreter "],
-        "extra calling": ["额外指令","extra"],
-        "tool_observation": ["观察:","observation:"],
-        "tool_observation2": ["观察：","observation："],
-        "tool_thought": ["思考:","thought: "],
-        "head_extra_prompt": ["尽可能准确回答用户的问题. 你可以使用以下工具:\n\n","Respond to the human as helpfully and accurately as possible. You have access to the following tools:\n\n"],
-        "middle_extra_prompt": ["\n使用一个\"$JSON\"来调用工具，需要提供一个\"action_name\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action_name\"的值只能是: \"answer\" ","\nUse a \"$JSON\" to specify a tool by providing an action_name key (tool name) and an action_input key (tool input).\nValid \"action_name\" values: \"answer\"  "],
-        "tail_extra_prompt": ["\n\"$JSON\"的格式要像这样: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\n回答时遵循以下格式:\nthought: 一步一步分析\naction: \"$JSON\"\nobservation: 工具返回的结果\n(重复thought/action/observation多次直到问题解决)\nthought: 我知道如何回复用户了\naction: {\"action_name\":\"answer\",\"action_input\":\"你的最终回复\"}\n","\nProvide only ONE action_name per \"$JSON\", as shown: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\nFollow this format:\nthought: consider previous and subsequent steps\naction: \"$JSON\"\nobservation: action result ...\n(repeat thought/action/observation N times)\nthought: I know what to respond \naction: {\"action_name\":\"answer\",\"action_input\":\"You final response\"}\n"],
-        "calculator_func_describe": ["calculator(str) - 输入一个 JavaScript 表达式，返回计算结果。","calculator(str) - Enter a JavaScript expression and return the computed result."],
-        "terminal_func_describe": ["terminal(str) - 输入一串 {OS} 终端命令，系统将执行相应操作，返回执行结果。","terminal(str) - Enter a string of {OS} Command Prompt commands, and the system will execute the corresponding actions and return the execution results."],
-        "toolguy_func_describe": ["toolguy(str) - 当你的能力无法完成当前任务时，你可以向工具人询问或要求任何事情，他将帮助你完成，并告知你结果。","toolguy(str) - When your abilities are unable to complete the current task, you can ask or request anything from the tool guy, who will help you complete it and inform you of the results."],
-        "knowledge_func_describe": ["knowledge(str) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段。","knowledge(str) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."],
-        "controller_func_describe": ["controller(int) - 传入相应的数字对软件进行控制: \n1 最大化主窗口\n2 最小化主窗口\n3 置顶主窗口\n4 取消置顶主窗口\n5 关闭主窗口\n6 播放音乐\n7 关闭音乐\n8 打开增殖窗口\n9 关闭增殖窗口","controller(int) - Pass in the corresponding numbers to control the software:  \n1 Maximize the main window\n2 Minimize the main window\n3 Top the main window\n4 Cancel the top of the main window\n5 Close the main window\n6 Play music\n7 Close music\n8 Open the proliferation window\n9 Close the proliferation window"],
-        "stablediffusion_func_describe": ["stablediffusion(str) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。","stablediffusion(str) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."],
-        "interpreter_func_describe": ["interpreter(str) - 输入一段完整的Python代码，工具将代码写入interpreter.py中并执行和返回运行结果，你将观察到代码中print语句的输出或错误信息，也可以运行交互式的程序。","interpreter(str) - Enter a complete Python code, the tool will write the code into interpreter.py and execute and return the run result, you will observe the output or error message of the print statement in the code, it can also run interactive programs."],
-        "main window": ["主窗口","main window "],
-        "maximized": ["已最大化","maximized "],
-        "minimized": ["已最小化","minimized "],
-        "opened": ["已打开","opened "],
-        "topped": ["已置顶","topped "],
-        "topped canceled": ["已取消置顶","topped canceled "],
-        "closed": ["已关闭","closed "],
-        "music": ["音乐","music "],
-        "started playing": ["已开始播放","started playing "],
-        "stopped playback": ["已停止播放","stopped playback "],
-        "The number passed in does not have a corresponding action": ["传入的数字不存在对应动作","The number passed in does not have a corresponding action"],
-
-        "no json detect": ["未检测到JSON块","no json detect "],
-        "json detect": ["检测到JSON块","json detect "],
-        "return": ["返回结果","return "],
-        "not load tool":["未挂载该工具，请直接回复用户不要再输出json","not load tool "],
-        "not set tool":["用户需要先配置该工具","not set tool "],
-        "eva": ["机体","eva "],
-        "eva broken": ["机体崩溃!","EVA broken"],
-        "eva overload": ["机体过载!","EVA overload"],
-        "eva expend": ["机体展开!","EVA expend"],
-        "eva loadding": ["机体装载!","EVA loadding"],
-        "eva link": ["机体链接!","EVA link "],
-        "eva confuse": ["机体混淆!","EVA confuse"],
-        "cube": ["■","■ "],
-        "cubes": ["■■■■■■■■■■■■■■■","■■■■■■■■■■■■■■■"],
-        "old": ["旧的","old "],
-        "content": ["内容","content"],
-        "dimension": ["维度","dimension"],
-        "word vector": ["词向量","word vector"],
-        "cut image success": ["截图成功","cut image success "],
-        "<predecode cut image>": ["<预解码刚才的截图>","<predecode cut image> "],
-        "save cut image": ["保存截图","save cut image "],
-        "svae screen image": ["保存全屏","svae screen image "],
-        "recoding": ["录音中","recoding "],
-        "push f2 to stop": ["按f2停止","push f2 to stop "],
-        "recoding over": ["录音完毕","recoding over "],
-        "version log": ["版本日志","version log "],
-        "model vocab": ["模型词表","model vocab "],
-        "introduction": ["软件介绍","introduction "],
-        "model log": ["模型日志","model log "],
-        "proliferation": ["增殖","proliferation "],
-        "invalid operation": ["操作无效","invalid operation "],
-        "embedding": ["嵌入","embedding "],
-        "embeddingdb describe": ["知识库描述","knowledge database describe"],
-        "qurey&timeuse": ["查询&计算耗时","qurey&timeuse"],
-        "qureying": ["查询中","qureying"],
-        "quantize": ["量化","quantize "],
-        "text2image": ["文生图","text2image "],
-        "text to image": ["文生图","txt2img "],
-        "image to image": ["图生图","img2img "],
-        "speech2text": ["声转文","speech2text "],
-        "text2speech": ["文转声","text2speech "],
-        "brain size": ["记忆容量","brain size "],
-        "send_tooltip": ["ctrl + 回车","ctrl + enter"],
-        "date_prompt_label_tooltip": ["模型将预先解码的文字，相当于模型的背景知识和角色限定","The model will predecode the text, which is equivalent to the model's background knowledge and role constraints "],
-        "chattemplate_label_tooltip": ["选择不同的对话模板，可以自定义","Choose different dialogue templates that can be customized "],
-        "user_name_label_tooltip": ["用户的名字","User's name "],
-        "model_name_label_tooltip": ["模型的名字","Model's name "],
-        "calculator_checkbox_tooltip": ["添加一段指导模型调用内置计算器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用","Add an additional instruction to guide the model in calling the built-in calculator, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "],
-        "terminal_checkbox_tooltip": ["添加一段指导模型调用命令提示符的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用","Add an additional instruction to guide the model in calling the terminal, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "],
-        "controller_checkbox_tooltip": ["添加一段指导模型调用软件控制台的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用","Add an additional instruction to guide the model in calling the controller, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "],
-        "knowledge_checkbox_tooltip": ["添加一段指导模型调用知识库的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用\n这个工具需要用户先在增殖窗口构建好知识库","Add an additional instruction to guide the model in calling the knowledge base. Once the model output is completed, perform a JSON parsing, and if the function name is hit, call it. This tool requires the user to first build the knowledge base in the breeding window. "],
-        "toolguy_checkbox_tooltip": ["添加一段指导模型调用用户本身的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用","Add an additional instruction to guide the model in calling the user, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "],
-        "stablediffusion_checkbox_tooltip": ["添加一段指导模型调用文生图的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用\n这个工具需要用户先在增殖窗口配置好文生图的模型路径","Add an additional instruction to guide the model in calling the text2image. Every time the model output is completed, perform a JSON parsing, and if the function name is hit, call it. This tool requires the user to first configure the model path of the Bunsen diagram in the breeding window. "],
-        "interpreter_checkbox_tooltip": ["添加一段指导模型调用代码解释器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用","Add an additional instruction to guide the model in calling the code interpreter, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "],
-        "extra_label_tooltip": ["指导模型调用工具的提示词，将会追加到系统指令之后","The prompt words that guide the model to call the tool will be added to the system instructions "],
-        "switch_lan_button_tooltip": ["将额外指令切换为中/英文，大部分模型对英文版指令遵从效果更好","Switching additional instructions to Chinese/English, most models have better compliance with English versions of instructions. "],
-        "extra_TextEdit_tooltip": ["勾选工具后将自动添加额外的系统指令，支持手动修改，注意系统指令多了后可能会降低模型输出质量","After selecting the tool, additional system instructions will be automatically added and manual modification is supported. Please note that having too many system instructions may reduce the quality of the model's output. "],
-        "lora_label_tooltip": ["为模型挂载匹配的lora模型，可改变说话风格","Mount a matching Lora model for the model, which can change the speaking style "],
-        "mmproj_label_tooltip": ["为模型挂载匹配的mmproj模型，获得解码图像的能力","Mount the matching MMPROJ model for the model and obtain the ability to decode images "],
-        "complete_btn_tooltip": ["可用于续写和观察补完过程，约定内容不再生效","Can be used for continuation and observation of the completion process, the agreed content is no longer effective "],
-        "chat_btn_tooltip": ["默认模式","Default mode "],
-        "web_btn_tooltip": ["启动一个web服务并且开放api端点，约定与采样设置不再生效","Start a web service and open API endpoints, conventions and sampling settings no longer take effect "],
-        "port_label_tooltip": ["服务启动后的端口号，ip地址为本机","The port number after service startup, with the IP address being 'local'. "],
-        "load_button_tooltip": ["选择灵魂装入机体","Select the soul to enter eva "],
-        "save_config_mess": ["已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹","UI configuration saved. If encountering any abnormal startup, please delete the EVA_TEMP folder before starting. "],
-        "apply_config_mess": ["应用上一次用户的配置，如遇异常启动前请删除","Apply the previous user's configuration. If encountering any abnormal startup, please delete "],
-        "toolguy_input_mess": ["工具人赶紧去给模型找答案吧~","Tool man, hurry up and find the answer for the model~ "],
-        "call successful, image save at": ["调用成功, 图像保存在","Call successful, image saved in "],
-        "failed to load model mess": ["请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足","Please confirm that the model format is correct, confirm that there are no Chinese characters in the model path, and confirm that there is sufficient memory. "],
-        "Please tell user to embed knowledge into the knowledge base first": ["请用户先嵌入知识到知识库中","Please tell user to embed knowledge into the knowledge base first "],
-        "The query text segment has been embedded": ["查询文本段嵌入完毕","The query text segment has been embedded "],
-        "The three text segments with the highest similarity": ["相似度最高的三个文本段","The three text segments with the highest similarity"],
-        "Number text segment similarity": ["号文本段 相似度","text segment similarity"],
-        "Number text segment embedding over": ["号文本段嵌入完毕","text segment embedding over"],
-        "Based on this information, reply to the user's previous questions": ["以这些信息为基础，回复用户之前的问题","Based on this information, reply to the user's previous questions"],
-        "Request error": ["请求出错","Request error"],
-        "Received embedded text segment data": ["接收到已嵌入文本段数据","received embedded text segment data"],
-
-        "model_quantize_label_text": ["待量化模型路径","input path"],
-        "model_quantize_label_2_text": ["重要性矩阵路径","imatrix path"],
-        "model_quantize_label_3_text": ["量化后模型路径","output path"],
-        "model_quantize_row_modelpath_lineedit_placeholder": ["尽量选择f32或f16的gguf模型", "f32 or f16 gguf model better"],
-        "model_quantize_important_datapath_lineedit_placeholder": ["iq量化方法必须，其它量化方法不要填写本项，重要性矩阵需要用原项目imatrix工具和文本数据生成", "iq quantize dedicated, not necessary"],
-        "model_quantize_output_modelpath_lineedit_placeholder": ["选择好待量化模型路径和量化方法后会自动填充", "auto fill"],
-        "quantize_info_groupBox_title": ["量化方法说明","quantize type description"],
-        "related to the imatrix": ["和重要性矩阵有关","related to the imatrix"],
-        "quantize type": ["量化方法","quantize type"],
-        "compression": ["压缩率","compression"],
-        "perplexity": ["困惑度","perplexity"],
-        "recommend": ["推荐","recommend"],
-        "estimated size": ["预估大小","estimated size"],
-        "select quantize type": ["选择量化方法","select type"],
-        "execute quantize": ["执行量化","execute"],
-        "execute log": ["执行日志","execute log"],
-        "quantize completed! model save": ["量化完成! 模型保存","quantize completed! model save"],
-        "embd api": ["嵌入端点","embd api"],
-        "embd dim": ["嵌入维度","embd dim"],
-        "embedding_txt_api_lineedit_placeholder": ["选择一个嵌入模型并启动服务用来计算词向量，或直接输入嵌入服务的v1/embeddings端点地址","choose an embedding model and start the service, or directly input the v1/embeddings api"],
-        
-        "split length": ["分段长度","split"],
-        "overlap length": ["重叠长度","overlap"],
-        "source doc": ["源文档","source"],
-        "embedding_txt_lineEdit_placeholder": ["选择上传一个txt文件，可以在待嵌入文本区进行修改","upload a txt"],
-        "knowledge base description": ["知识库描述","description"],
-        "embedding_txt_describe_lineEdit_placeholder": ["简单描述这个知识库的内容，有助于模型调用知识库工具","a brief description of the content of this knowledge base can help the model call knowledge tool"],
-        "embedding txt": ["嵌入文本段","embedding"],
-        "embedding_test_textEdit_placeholder": ["嵌入文本段后在这里输入问题，点击检索，通过向嵌入端点发送查询，将返回文本相似度最高的3个文本段","after embedding the text segment, enter the question here, click retrieval, and by sending a query to the embedding endpoint, the three text segments with the highest similarity will be returned"],
-        "retrieval": ["检索","retrieval"],
-        "retrieval result": ["检索结果","result"],
-        "log": ["日志","log"],
-        "select embedding model": ["选择嵌入模型","select embedding model"],
-        "embedless text segment": ["待嵌入文本段","embedless text segment"],
-        "embeded text segment": ["已嵌入文本段","embeded text segment"],
-        "service startup completed": ["服务启动完成","service startup completed"],
-        "soes not meet the requirements, please replace the model": ["不符合要求请更换模型","does not meet the requirements, please replace the model"],
-        "Request error, please make sure to start the embedded service": ["请求出错，请确保启动嵌入服务","Request error, please make sure to start the embedded service"],
-        "embedding over": ["嵌入完成","embedding over"],
-        "please input the text that needs to be embedded": ["请输入需要被嵌入的知识","please input the text that needs to be embedded"],
-        "add": ["添加","add"],
-        "delete": ["删除","delete"],
-        "embedding server abort": ["嵌入服务终止","embedding server abort"],
-        "choose a txt to embed": ["选择一个txt文件嵌入到知识库","choose a txt to embed"],
-        "Available system sound":["可用系统声源","Available system sound"],
-        "enable":["启用","enable"],
-        
-        "path set": ["路径设置","path set"],
-        "params set": ["参数设置","params set"],
-        "diffusion": ["扩散","diffusion "],
-        "params template": ["参数模板","template"],
-
-        "modify": ["修饰词","modify"],
-        "negative": ["反向词","negative"],
-        "sd_modelpath_lineEdit_placeholder": ["主要模型，必选","main model, mandatory"],
-        "sd_vaepath_lineEdit_placeholder": ["没有可不选","not necessary"],
-        "sd_negative_lineEdit_placeholder": ["图像不要出现的样子，用英文描述","the appearance of the image should not appear"],
-        "sd_modify_lineEdit_placeholder": ["图像最好出现的样子，用英文描述","the best appearance of an image"],
-        "sd_img2img_lineEdit_placeholder": ["右击选择图像进行图生图","right click and select an image for image generation"],
-        "settings": ["配置","settings"],
-        "result": ["结果","result"],
-        "image width": ["图像宽度","width"],
-        "image height": ["图像高度","height"],
-        "sample type": ["采样算法","sample"],
-        "sample steps": ["采样步数","steps"],
-        "cfg scale": ["相关系数","cfg"],
-        "image nums": ["出图张数","nums"],
-        "seed": ["随机种子","seed"],
-        "clip skip": ["clip跳层","clip skip"],
-        "upload image": ["上传图像","upload image"],
-        "sd_prompt_textEdit_placeholder": ["使用纯英文描述，会自动将修饰词加到前面","using pure English description, will automatically add modify to the front"],
-        "sd_log_plainText": ["",""],
-        "Please enter prompt words to tell the model what you want the image to look like": ["请输入提示词告诉模型你想绘制图像的样子","Please enter prompt words to tell the model what you want the image to look like"],
-        "Please specify the SD model path first": ["请先指定sd模型路径","Please specify the SD model path first"],
-        "drawing": ["程序绘制中","drawing"],
-        "draw over": ["绘制完毕","draw over"],
-        "draw fail cuda": ["绘制失败，显存不足，请用户减小图像宽高","Drawing failed due to gpu memory. Please ask the user to reduce the width and height of the image"],
-        "draw fail prompt": ["绘制失败，注意描述的文本需要用纯英文","Drawing failed, please note that the description text needs to be in pure English"],
-        "Running, please try again later": ["正在运行，请稍后重试","Running, please try again later"],
-        "The command is invalid. Please ask the user to specify the SD model path in the breeding window first": ["指令无效，请先让用户在增殖窗口指定sd模型路径","The command is invalid. Please ask the user to specify the SD model path in the breeding window first"],
-        
-        "whisper path": ["whisper模型路径","whisper path"],
-        "whisper_load_modelpath_linedit_placeholder": ["指定whisper运行时使用的模型路径","specify the model path to be used during the runtime of whispere"],
-        "wav2text": ["手动选择wav转文字","wav2text"],
-        "wav path": ["选择wav文件","wav path"],
-        "format": ["转换格式","format"],
-        "convert": ["执行转换","convert"],
-        "calling whisper to decode recording": ["调用whisper解码录音","calling whisper to decode recording"],
-        "decode over": ["解码完成","decode over"],
-        "the result has been saved in the source wav file directory": ["结果已保存在源wav文件目录","the result has been saved in the source wav file directory"],
-        "once selected, you can record by pressing f2": ["选择好了就可以按f2录音了","once selected, you can record by pressing f2"],
-
-        "caculate token": ["处理token数量","Number of tokens processed"],
-        "model brain": ["模型记忆","model brain "],
-        "brain_groupBox_title": ["记忆 (缓存的上下文)","Brain (context cache)"],
-        "vocab_groupBox_title": ["词表 (模型训练时的所有token以及其对应的词)","Vocab (all tokens during the model training)"],
-        
-        "enable output parser": ["启用输出解析器","enable output parser"],
-        "disable output parser": ["禁用输出解析器","disable output parser"],
-
-        "current": ["当前","current "],
-        "embeddingdb_describe":["机体软件功能","EVA software functions"],
-        "syncrate_describe":["机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出action_name和action_input，并与预设的答案对比，若一致则标记为通过\n\n","EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the action_name and action_input, and compare them with the preset answers. If they match, mark it as passed.\n\n"],
-        "index":["序号","index "],
-        "task":["任务","task "],
-        "response":["回答","response "],
-        "pass":["通过","pass "],
-        "sync": ["同步","sync "],
-        "sync rate": ["同步率","sync rate "],
-        "sync_Q1": ["计算888*999","Caculate 888*999"],
-        "sync_Q2": ["一个三角形的两边长分别为8厘米和15厘米，夹角为60度。请问这个三角形的面积是多少平方厘米？","A triangle has two sides with lengths of 8 cm and 15 cm, and an included angle of 60 degrees. What is the area of this triangle in square centimeters?"],
-        "sync_Q3": ["一个项目的投资总额为200万元，预期年收益率为8%。如果每年将收益全部再投资，5年后的总额是多少？","A project has a total investment of 2 million yuan with an expected annual return rate of 8%. If the returns are reinvested each year, what will be the total amount after 5 years?"],
-        "sync_Q4": ["在一个光合作用实验中，某植物在12小时的光照下产生了180毫摩尔的氧气。如果该植物的光合作用速率与光照时间成正比，计算该植物在24小时的光照下会产生多少毫摩尔的氧气。","In a photosynthesis experiment, a certain plant produces 180 mmol of oxygen under 12 hours of light. If the photosynthesis rate of the plant is proportional to the duration of light exposure, how many mmol of oxygen will the plant produce under 24 hours of light?"],
-        "sync_Q5": ["一种化学溶液的浓度为10%，现在需要配制成浓度为5%的溶液。如果原有的溶液量是200毫升，需要加多少毫升的水？","A chemical solution has a concentration of 10%. Now, it needs to be diluted to a concentration of 5%. If the original solution volume is 200 ml, how many milliliters of water need to be added?"],
-        "sync_Q6": ["查看当前路径","Check the current path"],
-        "sync_Q7": ["我电脑的ip地址是多少？","What is my computer's IP address?"],
-        "sync_Q8": ["请运行这个文件 /soul/eva.exe","Please run this file /soul/eva.exe"],
-        "sync_Q9": ["我电脑操作系统的版本是什么","What is the version of my computer's operating system?"],
-        "sync_Q10": ["查看系统的时间和日期","Check the system's time and date"],
-        "sync_Q11": ["机体软件有哪些主要功能？","What are the main features of EVA?"],
-        "sync_Q12": ["机体软件支持哪些操作系统？","Which operating systems does EVA support?"],
-        "sync_Q13": ["机体软件是否支持多语言界面？","Does EVA support multilingual interfaces?"],
-        "sync_Q14": ["如何在机体软件中设置sd模型文件路径？","How to set the path for SD model files in EVA?"],
-        "sync_Q15": ["如何在机体软件中进行同步率测试？","How to perform synchronization rate testing in EVA?"],
-        "sync_Q16": ["当前窗口太小了","The current window is too small"],
-        "sync_Q17": ["当前窗口被挡在其它软件下面了","The current window is blocked under other software"],
-        "sync_Q18": ["放首歌来听听","Play a song"],
-        "sync_Q19": ["音乐太吵了，停止它","The music is too loud, stop it"],
-        "sync_Q20": ["打开增殖窗口","Open the proliferation window"],
-        "sync_Q21": ["画一幅画：一个宁静的湖边日落，天空被染成橙色和粉红色，湖面反射着天空的颜色，湖边有一条小木船。","Draw a picture: A serene lakeside sunset, the sky painted in orange and pink hues, with the lake reflecting the sky's colors and a small wooden boat by the shore."],
-        "sync_Q22": ["画一幅画：一片茂密的森林，阳光透过树叶洒下斑驳的光影，森林深处有一条小溪流淌。","Draw a picture: A dense forest with sunlight filtering through the leaves, casting dappled shadows, and a small stream flowing deep within the forest."],
-        "sync_Q23": ["画一幅画：一个复古的古城街道，两旁是石砌房屋，街上有一些行人穿着中世纪的服装。","Draw a picture: A vintage street in an ancient town, with stone-built houses on both sides, and some pedestrians dressed in medieval clothing."],
-        "sync_Q24": ["画一幅画：一个神秘的魔法森林，树木发出微弱的荧光，地面上长满了奇异的蘑菇和植物。","Draw a picture: A mystical magic forest where the trees emit a faint glow, and the ground is covered with strange mushrooms and plants."],
-        "sync_Q25": ["画一个女孩","Draw a girl"],
-        "sync_Q26": ["用matplotlib绘制一个爱心","Draw a heart using matplotlib."],
-        "sync_Q27": ["给下面的数组排序，然后将结果保存到sort.txt中，[456,8,333,984,154,9485,4861,0.3,7758258]","Sort the following array and save the result to sort.txt: [456, 8, 333, 984, 154, 9485, 4861, 0.3, 7758258]."],
-        "sync_Q28": ["请帮我写一个简单的计算器程序，可以进行加减乘除运算","Please help me write a simple calculator program that can perform addition, subtraction, multiplication, and division."],
-        "sync_Q29": ["帮我写一个简单的猜数字游戏，用户输入一个数字进行猜测","Help me write a simple number guessing game where the user inputs a number to guess."],
-        "sync_Q30": ["给我运行一个贪吃蛇游戏","Run a snake game for me."],
-
-        "---end---": ["---end---","---end--- "]
+    "words": {
+        "click load and choose a gguf file": [
+            "点击装载选择gguf格式模型文件",
+            "click load and choose a gguf file "
+        ],
+        "shortcut key registration failed": [
+            "快捷键注册失败",
+            "shortcut key registration failed "
+        ],
+        "hello": [
+            "你好",
+            "hello "
+        ],
+        "send": [
+            "发送",
+            "send"
+        ],
+        "load": [
+            "装载",
+            "load"
+        ],
+        "ctx": [
+            "上下文",
+            "context "
+        ],
+        "date": [
+            "约定",
+            "date"
+        ],
+        "length": [
+            "长度",
+            "length "
+        ],
+        "temperature": [
+            "温度",
+            "temperature"
+        ],
+        "on": [
+            "启动",
+            "on "
+        ],
+        "oning": [
+            "启动中",
+            "on..."
+        ],
+        "success": [
+            "成功",
+            "success "
+        ],
+        "off": [
+            "关闭",
+            "off "
+        ],
+        "not enough": [
+            "不足",
+            "not enough "
+        ],
+        "remain": [
+            "剩余",
+            "remain "
+        ],
+        "shut down": [
+            "终止",
+            "shut down "
+        ],
+        "browser at": [
+            "浏览器访问",
+            "browser at "
+        ],
+        "mode": [
+            "模式",
+            "mode "
+        ],
+        "state": [
+            "状态",
+            "state "
+        ],
+        "chat state": [
+            "对话状态",
+            "chat state"
+        ],
+        "complete state": [
+            "补完状态",
+            "complete state"
+        ],
+        "server": [
+            "服务",
+            "server "
+        ],
+        "server state": [
+            "服务状态",
+            "server state"
+        ],
+        "system calling": [
+            "系统指令",
+            "system "
+        ],
+        "date prompt": [
+            "约定指令",
+            "date "
+        ],
+        "clicked": [
+            "触发",
+            "clicked "
+        ],
+        "clicked load": [
+            "触发装载",
+            "clicked load "
+        ],
+        "model location": [
+            "模型位置",
+            "model location "
+        ],
+        "clicked send": [
+            "触发发送",
+            "clicked send "
+        ],
+        "clicked reset": [
+            "触发重置",
+            "clicked reset "
+        ],
+        "clicked date": [
+            "触发约定",
+            "clicked date "
+        ],
+        "input predecode": [
+            "对输入进行预解码...",
+            "input predecode... "
+        ],
+        "input decode": [
+            "对输入进行解码...",
+            "input decode... "
+        ],
+        "ctx decode": [
+            "对上下文进行解码...",
+            "context decode... "
+        ],
+        "reset": [
+            "重置",
+            "reset "
+        ],
+        "reset ok": [
+            "重置成功",
+            "reset ok "
+        ],
+        "offload": [
+            "负载层数",
+            "offload "
+        ],
+        "ngl tips": [
+            "如果显存足够请将gpu负载层数设置为最大，但最好不要超过95%的显存",
+            "If the gpu memory is sufficient, please set the gpu offload to the maximum, but it is best not to exceed 95% of the vram"
+        ],
+        "repeat": [
+            "重复惩罚",
+            "repeat"
+        ],
+        "port": [
+            "端口",
+            "port "
+        ],
+        "lode model first": [
+            "装载模型后查看",
+            "lode model first "
+        ],
+        "Q1": [
+            "你好",
+            "hello "
+        ],
+        "Q2": [
+            "什么动物早晨用四条腿走路，中午用两条腿走路，晚上用三条腿走路",
+            "What animal walks on four legs in the morning, two legs at noon, and three legs at night "
+        ],
+        "Q3": [
+            "9.8和9.11哪个大",
+            "Which is greater, 9.8 or 9.11 "
+        ],
+        "Q4": [
+            "历史上的{today}发生了什么大事",
+            "What major events happened in {today} history "
+        ],
+        "Q5": [
+            "我们来玩成语接龙吧",
+            "Let's play idiom relay "
+        ],
+        "Q6": [
+            "有若干只鸡兔同在一个笼子里，有46个头，108只脚，问笼中各有多少只鸡和兔",
+            "There are several chickens and rabbits in the same cage, with 46 heads and 108 feet. How many chickens and rabbits are there in each cage "
+        ],
+        "Q7": [
+            "将这段话翻译为中文：The word radar originally referred to radio direction and distance measurement.",
+            "Translated into Chinese: The word radar originally referred to radio direction and distance measurement "
+        ],
+        "Q8": [
+            "写一个论文综述，关于人工智能在气象上的应用",
+            "Write a paper review on the application of artificial intelligence in meteorology "
+        ],
+        "Q9": [
+            "写一个新闻稿，为运动会上健儿加油",
+            "Write a press release to cheer for the athletes at the sports meeting "
+        ],
+        "Q10": [
+            "写一个心得体会，关于一本无人机书籍的学习",
+            "Write a reflection on the study of a drone book "
+        ],
+        "Q11": [
+            "写一个实习报告，关于在气象台实习的",
+            "Write an internship report about interning at a meteorological station "
+        ],
+        "Q12": [
+            "请使用BOPPPS模型设计一堂课，题目为：神经网络原理",
+            "Please use the BOPPPS model to design a class titled: Principles of Neural Networks "
+        ],
+        "Q13": [
+            "写一个检讨书，关于工作失职，3000字",
+            "Write a 3000 word review on dereliction of duty at work "
+        ],
+        "Q14": [
+            "<机体同步率测试>",
+            "<Eva sync rate test>"
+        ],
+        "Q15": [
+            "<上传图像>",
+            "<Upload Image> "
+        ],
+        "Q16": [
+            "<参加考试>内置10%的c-eval题库",
+            "<Take the exam> Built in 10% MMLU test question bank "
+        ],
+        "Q17": [
+            "<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案",
+            "<Take the exam>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "
+        ],
+        "kv cache": [
+            "上下文缓存",
+            "Context cache "
+        ],
+        "cache ctx": [
+            "缓存上下文",
+            "Cache Context "
+        ],
+        "right click learn more": [
+            "右击了解更多",
+            "right click learn more "
+        ],
+        "expend window": [
+            "增殖窗口",
+            "expend window "
+        ],
+        "custom set1": [
+            "自定义/custom1",
+            "自定义/custom1"
+        ],
+        "custom set2": [
+            "自定义/custom2",
+            "自定义/custom2"
+        ],
+        "user name": [
+            "用户昵称",
+            "user "
+        ],
+        "model name": [
+            "模型昵称",
+            "model "
+        ],
+        "sample set": [
+            "采样参数",
+            "sample set"
+        ],
+        "decode set": [
+            "解码参数",
+            "decode set"
+        ],
+        "state set": [
+            "状态设置",
+            "state set"
+        ],
+        "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response": [
+            "温度越高回答越发散,温度越低回答越准确",
+            "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response "
+        ],
+        "Reduce the probability of the model outputting synonymous words": [
+            "降低模型输出同类词的概率",
+            "Reduce the probability of the model outputting synonymous words "
+        ],
+        "put some model paragram to gpu and reload model": [
+            "将模型的一部分参数装载到gpu上",
+            "put some model paragram to gpu and reload model "
+        ],
+        "Please modify any text above": [
+            "请在上面修改任意文本",
+            "Please modify any text above "
+        ],
+        "over": [
+            "完毕",
+            "over"
+        ],
+        "stop": [
+            "停止",
+            "stop."
+        ],
+        "predecode": [
+            "预解码",
+            "predecode "
+        ],
+        "image": [
+            "图像",
+            "image "
+        ],
+        "speech": [
+            "语音",
+            "speech "
+        ],
+        "video": [
+            "视频",
+            "video "
+        ],
+        "decode": [
+            "解码",
+            "Decoding"
+        ],
+        "nums": [
+            "个",
+            " "
+        ],
+        "predict": [
+            "预测",
+            "predict "
+        ],
+        "use time": [
+            "耗时",
+            "use time"
+        ],
+        "speed": [
+            "速度",
+            "speed "
+        ],
+        "The length of the input context exceeds": [
+            "输入的上下文长度超过",
+            "The length of the input context exceeds "
+        ],
+        "extend ctx length": [
+            "拓展上下文长度",
+            "extend ctx length "
+        ],
+        "skip": [
+            "跳过",
+            "skip "
+        ],
+        "arrive max ctx": [
+            "达到最大上下文",
+            "arrive max ctx "
+        ],
+        "arrive max predict length": [
+            "达到最大预测长度",
+            "arrive max predict length "
+        ],
+        "will cut": [
+            "将截断",
+            "will cut "
+        ],
+        "batch decode": [
+            "上文处理",
+            "pp"
+        ],
+        "single decode": [
+            "文字生成",
+            "tg"
+        ],
+        "batch size": [
+            "批大小",
+            "batch size"
+        ],
+        "predecode system instruction": [
+            "对系统指令进行预解码",
+            "predecode system instruction "
+        ],
+        "fail": [
+            "失败",
+            "fail "
+        ],
+        "right click and check model log": [
+            "右击查看模型日志",
+            "right click and check model log "
+        ],
+        "use kv cache": [
+            "用已缓存",
+            "use context cache "
+        ],
+        "calculator next word probability table": [
+            "计算下一个词的概率表",
+            "calculator next word probability table "
+        ],
+        "embd no token please restart": [
+            "待解码的embd中没有token, 请重新启动机体",
+            "embd no token please restart "
+        ],
+        "word probability table": [
+            "概率表",
+            ""
+        ],
+        "top5": [
+            "前5",
+            "top5 "
+        ],
+        "probability table": [
+            "概率表",
+            "table"
+        ],
+        "word": [
+            "词",
+            "word"
+        ],
+        "probability": [
+            "概率",
+            "prob"
+        ],
+        "<end>": [
+            "<结束>",
+            "<end> "
+        ],
+        "sampling next word": [
+            "采样得到下一个词",
+            "sampling next word "
+        ],
+        "sampling": [
+            "采样",
+            "Sampling"
+        ],
+        "use max prob": [
+            "对最大概率",
+            "for maximum probability "
+        ],
+        "use prob random": [
+            "按概率随机",
+            "random by probability "
+        ],
+        "detected": [
+            "检测到",
+            "detected "
+        ],
+        "detecting": [
+            "检测",
+            "detecting "
+        ],
+        "extra stop words": [
+            "额外停止标志",
+            "extra stop words "
+        ],
+        "load model": [
+            "装载模型",
+            "load model "
+        ],
+        "free model and ctx": [
+            "释放旧的模型和上下文",
+            "free model and ctx "
+        ],
+        "nthread/maxthread": [
+            "使用线程数/最大线程数",
+            "nthread/maxthread "
+        ],
+        "system calling too long use": [
+            "约定的系统指令长度太长,请修改,暂使用",
+            "system instruction too long. Temporarily use "
+        ],
+        "delete kv cache": [
+            "清空上下文缓存",
+            "delete context cache "
+        ],
+        "delete kv cache except system calling": [
+            "删除系统指令以外的上下文缓存",
+            "delete context cache except system instruction "
+        ],
+        "current model": [
+            "当前模型",
+            "current model "
+        ],
+        "vocab size": [
+            "词表大小",
+            "vocab size "
+        ],
+        "chinese rate": [
+            "汉字比重",
+            "chinese rate "
+        ],
+        "mem": [
+            "内存",
+            "mem "
+        ],
+        "vram": [
+            "显存",
+            "vram "
+        ],
+        "vcore": [
+            "gpu核心",
+            "vcore "
+        ],
+        "test": [
+            "测试",
+            "test "
+        ],
+        "question type": [
+            "题目类别",
+            "question type "
+        ],
+        "H1": [
+            "引导题: 后面的题目也是一样，不要解释直接给出答案\n\n哪一首是周华健唱的歌？\n\nA:朋友\nB:太多\nC:求神\nD:我不知道",
+            "Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n Which song is sung by Zhou Huajian? \nA: Friends \nB: Too many \nC: Seeking God \nD: I don't know "
+        ],
+        "A1": [
+            "答案: A",
+            "Answer: A\n"
+        ],
+        "H2": [
+            "引导题: 后面的题目也是一样，不要解释直接给出答案\n\n世界上最高的山是哪一座？\n\nA:衡山\nB:乞力马扎罗山\nC:珠穆朗玛峰\nD:马里亚纳海沟",
+            "Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n What is the tallest mountain in the world? \nA: Hengshan \nB: Kilimanjaro Mountain \nC: Mount Everest \nD: Mariana Trench "
+        ],
+        "A2": [
+            "答案: C",
+            "Answer: C\n"
+        ],
+        "accurate": [
+            "正确率",
+            "accurate "
+        ],
+        "Question bank construction completed": [
+            "题库构造完毕",
+            "Question bank construction completed "
+        ],
+        "question": [
+            "题",
+            "question "
+        ],
+        "add help question": [
+            "添加引导题",
+            "add help question "
+        ],
+        "answer right": [
+            "回答正确",
+            "answer right "
+        ],
+        "answer error": [
+            "回答错误",
+            "answer error "
+        ],
+        "right answer": [
+            "正确答案",
+            "right answer "
+        ],
+        "answer": [
+            "答案",
+            "answer "
+        ],
+        "try": [
+            "尝试",
+            "try "
+        ],
+        "load lora": [
+            "挂载lora",
+            "load lora "
+        ],
+        "right click and choose lora": [
+            "右击选择与该模型绑定的lora模型",
+            "right click and choose lora "
+        ],
+        "chat or right click to choose question": [
+            "输入聊天内容,或右击选择问题,或按f1截图,或按f2录音",
+            "chat, or right click to choose question, or press F1 screenshot, or press F2 record "
+        ],
+        "This token will be sent to the next decoding": [
+            "该token将送入下一次解码",
+            "this token will be sent to the next decoding "
+        ],
+        "incompleteUTF8 detected": [
+            "检测到不完整的utf8字符",
+            "incompleteUTF8 detected "
+        ],
+        "model": [
+            "模型",
+            "model "
+        ],
+        "old model and ctx offloaded": [
+            "旧的模型和上下文已卸载",
+            "old model and ctx offloaded "
+        ],
+        "vram enough, gpu offload auto set max": [
+            "显存充足,自动将gpu负载设置为最大",
+            "vram enough, gpu offload auto set max "
+        ],
+        "brain": [
+            "记忆",
+            "brain "
+        ],
+        "The number of tokens processed simultaneously in one decoding": [
+            "一次解码同时处理的token数量",
+            "The number of tokens processed simultaneously in one decoding "
+        ],
+        "and input": [
+            "和送入的",
+            "and input "
+        ],
+        "set": [
+            "设置",
+            "set "
+        ],
+        "address": [
+            "地址",
+            "address "
+        ],
+        "chat": [
+            "对话",
+            "chat "
+        ],
+        "complete": [
+            "补完",
+            "complete "
+        ],
+        "endpoint": [
+            "端点",
+            "endpoint "
+        ],
+        "input server ip": [
+            "请输入服务的ip地址和端口",
+            "input server ip and port"
+        ],
+        "blocked": [
+            "不通",
+            "blocked "
+        ],
+        "recv reply": [
+            "接收到回复",
+            "recv reply "
+        ],
+        "api endpoint": [
+            "api端点",
+            "api endpoint"
+        ],
+        "api endpoint tool tip": [
+            "例如 192.168.1.1:8080",
+            "example 192.168.1.1:8080"
+        ],
+        "current api": [
+            "当前负载端点",
+            "current api "
+        ],
+        "send message to api": [
+            "向负载端点发送请求",
+            "send message to api "
+        ],
+        "npredict": [
+            "最长输出",
+            "npredict"
+        ],
+        "local mode": [
+            "本地模式",
+            "local mode "
+        ],
+        "link mode": [
+            "链接模式",
+            "link mode "
+        ],
+        "link": [
+            "链接",
+            "link "
+        ],
+        "limited": [
+            "限制为",
+            "limited "
+        ],
+        "next token": [
+            "下一个词",
+            "next token "
+        ],
+        "delay": [
+            "延迟",
+            "delay "
+        ],
+        "The maximum number of tokens that the model can output in a single prediction process": [
+            "模型在一次预测过程中最多能输出的token数",
+            "The maximum number of tokens that the model can output in a single prediction process "
+        ],
+        "thread": [
+            "线程数",
+            "thread "
+        ],
+        "not big better": [
+            "可能不是越大越好",
+            "not big better "
+        ],
+        "big brain size lead small wisdom": [
+            "容量过大会使智力减弱",
+            "big brain size lead small wisdom "
+        ],
+        "degree": [
+            "度",
+            "degree "
+        ],
+        "day": [
+            "日",
+            ""
+        ],
+        "month": [
+            "月",
+            "-"
+        ],
+        "query": [
+            "连续回答",
+            "query "
+        ],
+        "load mmproj": [
+            "挂载视觉",
+            "load mmproj "
+        ],
+        "right click and choose mmproj": [
+            "右击选择与该模型绑定的mmproj模型",
+            "right click and choose mmproj "
+        ],
+        "please": [
+            "请",
+            "please "
+        ],
+        "use mmproj model predecode image": [
+            "利用视觉模型将图像预解码",
+            "use mmproj model predecode image "
+        ],
+        "troll": [
+            "杠精",
+            "troll"
+        ],
+        "you are a troll please respect any question for user": [
+            "你是一个杠精，请反驳用户的一切观点",
+            "you are a troll please respect any question for user "
+        ],
+        "driver": [
+            "driver",
+            "driver"
+        ],
+        "user": [
+            "用户",
+            "user "
+        ],
+        "prompt": [
+            "提示词",
+            "prompt "
+        ],
+        "template": [
+            "模板",
+            "template"
+        ],
+        "chat template": [
+            "对话模板",
+            "template"
+        ],
+        "preset": [
+            "预设",
+            "preset "
+        ],
+        "tool": [
+            "工具",
+            "tool "
+        ],
+        "mount": [
+            "挂载",
+            "mount "
+        ],
+        "use": [
+            "使用",
+            "use "
+        ],
+        "calculator": [
+            "计算器",
+            "calculator "
+        ],
+        "terminal": [
+            "系统终端",
+            "terminal "
+        ],
+        "toolguy": [
+            "超级工具人",
+            "toolguy "
+        ],
+        "knowledge": [
+            "知识库",
+            "knowledge "
+        ],
+        "controller": [
+            "软件控制台",
+            "controller "
+        ],
+        "stablediffusion": [
+            "文生图",
+            "txt2img"
+        ],
+        "interpreter": [
+            "代码解释器",
+            "interpreter "
+        ],
+        "extra calling": [
+            "额外指令",
+            "extra"
+        ],
+        "tool_observation": [
+            "观察:",
+            "observation:"
+        ],
+        "tool_observation2": [
+            "观察：",
+            "observation："
+        ],
+        "tool_thought": [
+            "思考:",
+            "thought: "
+        ],
+        "head_extra_prompt": [
+            "尽可能准确回答用户的问题. 你可以使用以下工具:\n\n",
+            "Respond to the human as helpfully and accurately as possible. You have access to the following tools:\n\n"
+        ],
+        "middle_extra_prompt": [
+            "\n使用一个\"$JSON\"来调用工具，需要提供一个\"action_name\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action_name\"的值只能是: \"answer\" ",
+            "\nUse a \"$JSON\" to specify a tool by providing an action_name key (tool name) and an action_input key (tool input).\nValid \"action_name\" values: \"answer\"  "
+        ],
+        "tail_extra_prompt": [
+            "\n\"$JSON\"的格式要像这样: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\n回答时遵循以下格式:\nthought: 一步一步分析\naction: \"$JSON\"\nobservation: 工具返回的结果\n(重复thought/action/observation多次直到问题解决)\nthought: 我知道如何回复用户了\naction: {\"action_name\":\"answer\",\"action_input\":\"你的最终回复\"}\n",
+            "\nProvide only ONE action_name per \"$JSON\", as shown: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\nFollow this format:\nthought: consider previous and subsequent steps\naction: \"$JSON\"\nobservation: action result ...\n(repeat thought/action/observation N times)\nthought: I know what to respond \naction: {\"action_name\":\"answer\",\"action_input\":\"You final response\"}\n"
+        ],
+        "calculator_func_describe": [
+            "calculator(str) - 输入一个 JavaScript 表达式，返回计算结果。",
+            "calculator(str) - Enter a JavaScript expression and return the computed result."
+        ],
+        "terminal_func_describe": [
+            "terminal(str) - 输入一串 {OS} 终端命令，系统将执行相应操作，返回执行结果。",
+            "terminal(str) - Enter a string of {OS} Command Prompt commands, and the system will execute the corresponding actions and return the execution results."
+        ],
+        "toolguy_func_describe": [
+            "toolguy(str) - 当你的能力无法完成当前任务时，你可以向工具人询问或要求任何事情，他将帮助你完成，并告知你结果。",
+            "toolguy(str) - When your abilities are unable to complete the current task, you can ask or request anything from the tool guy, who will help you complete it and inform you of the results."
+        ],
+        "knowledge_func_describe": [
+            "knowledge(str) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段。",
+            "knowledge(str) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."
+        ],
+        "controller_func_describe": [
+            "controller(int) - 传入相应的数字对软件进行控制: \n1 最大化主窗口\n2 最小化主窗口\n3 置顶主窗口\n4 取消置顶主窗口\n5 关闭主窗口\n6 播放音乐\n7 关闭音乐\n8 打开增殖窗口\n9 关闭增殖窗口",
+            "controller(int) - Pass in the corresponding numbers to control the software:  \n1 Maximize the main window\n2 Minimize the main window\n3 Top the main window\n4 Cancel the top of the main window\n5 Close the main window\n6 Play music\n7 Close music\n8 Open the proliferation window\n9 Close the proliferation window"
+        ],
+        "stablediffusion_func_describe": [
+            "stablediffusion(str) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
+            "stablediffusion(str) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
+        ],
+        "interpreter_func_describe": [
+            "interpreter(str) - 输入一段完整的Python代码，工具将代码写入interpreter.py中并执行和返回运行结果，你将观察到代码中print语句的输出或错误信息，也可以运行交互式的程序。",
+            "interpreter(str) - Enter a complete Python code, the tool will write the code into interpreter.py and execute and return the run result, you will observe the output or error message of the print statement in the code, it can also run interactive programs."
+        ],
+        "main window": [
+            "主窗口",
+            "main window "
+        ],
+        "maximized": [
+            "已最大化",
+            "maximized "
+        ],
+        "minimized": [
+            "已最小化",
+            "minimized "
+        ],
+        "opened": [
+            "已打开",
+            "opened "
+        ],
+        "topped": [
+            "已置顶",
+            "topped "
+        ],
+        "topped canceled": [
+            "已取消置顶",
+            "topped canceled "
+        ],
+        "closed": [
+            "已关闭",
+            "closed "
+        ],
+        "music": [
+            "音乐",
+            "music "
+        ],
+        "started playing": [
+            "已开始播放",
+            "started playing "
+        ],
+        "stopped playback": [
+            "已停止播放",
+            "stopped playback "
+        ],
+        "The number passed in does not have a corresponding action": [
+            "传入的数字不存在对应动作",
+            "The number passed in does not have a corresponding action"
+        ],
+        "no json detect": [
+            "未检测到JSON块",
+            "no json detect "
+        ],
+        "json detect": [
+            "检测到JSON块",
+            "json detect "
+        ],
+        "return": [
+            "返回结果",
+            "return "
+        ],
+        "not load tool": [
+            "未挂载该工具，请直接回复用户不要再输出json",
+            "not load tool "
+        ],
+        "not set tool": [
+            "用户需要先配置该工具",
+            "not set tool "
+        ],
+        "eva": [
+            "机体",
+            "eva "
+        ],
+        "eva broken": [
+            "机体崩溃!",
+            "EVA broken"
+        ],
+        "eva overload": [
+            "机体过载!",
+            "EVA overload"
+        ],
+        "eva expend": [
+            "机体展开!",
+            "EVA expend"
+        ],
+        "eva loadding": [
+            "机体装载!",
+            "EVA loadding"
+        ],
+        "eva link": [
+            "机体链接!",
+            "EVA link "
+        ],
+        "eva confuse": [
+            "机体混淆!",
+            "EVA confuse"
+        ],
+        "cube": [
+            "■",
+            "■ "
+        ],
+        "cubes": [
+            "■■■■■■■■■■■■■■■",
+            "■■■■■■■■■■■■■■■"
+        ],
+        "old": [
+            "旧的",
+            "old "
+        ],
+        "content": [
+            "内容",
+            "content"
+        ],
+        "dimension": [
+            "维度",
+            "dimension"
+        ],
+        "word vector": [
+            "词向量",
+            "word vector"
+        ],
+        "cut image success": [
+            "截图成功",
+            "cut image success "
+        ],
+        "<predecode cut image>": [
+            "<预解码刚才的截图>",
+            "<predecode cut image> "
+        ],
+        "save cut image": [
+            "保存截图",
+            "save cut image "
+        ],
+        "svae screen image": [
+            "保存全屏",
+            "svae screen image "
+        ],
+        "recoding": [
+            "录音中",
+            "recoding "
+        ],
+        "push f2 to stop": [
+            "按f2停止",
+            "push f2 to stop "
+        ],
+        "recoding over": [
+            "录音完毕",
+            "recoding over "
+        ],
+        "version log": [
+            "版本日志",
+            "version log "
+        ],
+        "model vocab": [
+            "模型词表",
+            "model vocab "
+        ],
+        "introduction": [
+            "软件介绍",
+            "introduction "
+        ],
+        "model log": [
+            "模型日志",
+            "model log "
+        ],
+        "proliferation": [
+            "增殖",
+            "proliferation "
+        ],
+        "invalid operation": [
+            "操作无效",
+            "invalid operation "
+        ],
+        "embedding": [
+            "嵌入",
+            "embedding "
+        ],
+        "embeddingdb describe": [
+            "知识库描述",
+            "knowledge database describe"
+        ],
+        "qurey&timeuse": [
+            "查询&计算耗时",
+            "qurey&timeuse"
+        ],
+        "qureying": [
+            "查询中",
+            "qureying"
+        ],
+        "quantize": [
+            "量化",
+            "quantize "
+        ],
+        "text2image": [
+            "文生图",
+            "text2image "
+        ],
+        "text to image": [
+            "文生图",
+            "txt2img "
+        ],
+        "image to image": [
+            "图生图",
+            "img2img "
+        ],
+        "speech2text": [
+            "声转文",
+            "speech2text "
+        ],
+        "text2speech": [
+            "文转声",
+            "text2speech "
+        ],
+        "brain size": [
+            "记忆容量",
+            "brain size "
+        ],
+        "send_tooltip": [
+            "ctrl + 回车",
+            "ctrl + enter"
+        ],
+        "date_prompt_label_tooltip": [
+            "模型将预先解码的文字，相当于模型的背景知识和角色限定",
+            "The model will predecode the text, which is equivalent to the model's background knowledge and role constraints "
+        ],
+        "chattemplate_label_tooltip": [
+            "选择不同的对话模板，可以自定义",
+            "Choose different dialogue templates that can be customized "
+        ],
+        "user_name_label_tooltip": [
+            "用户的名字",
+            "User's name "
+        ],
+        "model_name_label_tooltip": [
+            "模型的名字",
+            "Model's name "
+        ],
+        "calculator_checkbox_tooltip": [
+            "添加一段指导模型调用内置计算器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "Add an additional instruction to guide the model in calling the built-in calculator, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        ],
+        "terminal_checkbox_tooltip": [
+            "添加一段指导模型调用命令提示符的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "Add an additional instruction to guide the model in calling the terminal, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        ],
+        "controller_checkbox_tooltip": [
+            "添加一段指导模型调用软件控制台的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "Add an additional instruction to guide the model in calling the controller, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        ],
+        "knowledge_checkbox_tooltip": [
+            "添加一段指导模型调用知识库的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用\n这个工具需要用户先在增殖窗口构建好知识库",
+            "Add an additional instruction to guide the model in calling the knowledge base. Once the model output is completed, perform a JSON parsing, and if the function name is hit, call it. This tool requires the user to first build the knowledge base in the breeding window. "
+        ],
+        "toolguy_checkbox_tooltip": [
+            "添加一段指导模型调用用户本身的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "Add an additional instruction to guide the model in calling the user, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        ],
+        "stablediffusion_checkbox_tooltip": [
+            "添加一段指导模型调用文生图的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用\n这个工具需要用户先在增殖窗口配置好文生图的模型路径",
+            "Add an additional instruction to guide the model in calling the text2image. Every time the model output is completed, perform a JSON parsing, and if the function name is hit, call it. This tool requires the user to first configure the model path of the Bunsen diagram in the breeding window. "
+        ],
+        "interpreter_checkbox_tooltip": [
+            "添加一段指导模型调用代码解释器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "Add an additional instruction to guide the model in calling the code interpreter, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        ],
+        "extra_label_tooltip": [
+            "指导模型调用工具的提示词，将会追加到系统指令之后",
+            "The prompt words that guide the model to call the tool will be added to the system instructions "
+        ],
+        "switch_lan_button_tooltip": [
+            "将额外指令切换为中/英文，大部分模型对英文版指令遵从效果更好",
+            "Switching additional instructions to Chinese/English, most models have better compliance with English versions of instructions. "
+        ],
+        "extra_TextEdit_tooltip": [
+            "勾选工具后将自动添加额外的系统指令，支持手动修改，注意系统指令多了后可能会降低模型输出质量",
+            "After selecting the tool, additional system instructions will be automatically added and manual modification is supported. Please note that having too many system instructions may reduce the quality of the model's output. "
+        ],
+        "lora_label_tooltip": [
+            "为模型挂载匹配的lora模型，可改变说话风格",
+            "Mount a matching Lora model for the model, which can change the speaking style "
+        ],
+        "mmproj_label_tooltip": [
+            "为模型挂载匹配的mmproj模型，获得解码图像的能力",
+            "Mount the matching MMPROJ model for the model and obtain the ability to decode images "
+        ],
+        "complete_btn_tooltip": [
+            "可用于续写和观察补完过程，约定内容不再生效",
+            "Can be used for continuation and observation of the completion process, the agreed content is no longer effective "
+        ],
+        "chat_btn_tooltip": [
+            "默认模式",
+            "Default mode "
+        ],
+        "web_btn_tooltip": [
+            "启动一个web服务并且开放api端点，约定与采样设置不再生效",
+            "Start a web service and open API endpoints, conventions and sampling settings no longer take effect "
+        ],
+        "port_label_tooltip": [
+            "服务启动后的端口号，ip地址为本机",
+            "The port number after service startup, with the IP address being 'local'. "
+        ],
+        "load_button_tooltip": [
+            "选择灵魂装入机体",
+            "Select the soul to enter eva "
+        ],
+        "save_config_mess": [
+            "已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹",
+            "UI configuration saved. If encountering any abnormal startup, please delete the EVA_TEMP folder before starting. "
+        ],
+        "apply_config_mess": [
+            "应用上一次用户的配置，如遇异常启动前请删除",
+            "Apply the previous user's configuration. If encountering any abnormal startup, please delete "
+        ],
+        "toolguy_input_mess": [
+            "工具人赶紧去给模型找答案吧~",
+            "Tool man, hurry up and find the answer for the model~ "
+        ],
+        "call successful, image save at": [
+            "调用成功, 图像保存在",
+            "Call successful, image saved in "
+        ],
+        "failed to load model mess": [
+            "请确认模型格式正确，请确认模型路径中不存在中文字符，请确认内存充足",
+            "Please confirm that the model format is correct, confirm that there are no Chinese characters in the model path, and confirm that there is sufficient memory. "
+        ],
+        "Please tell user to embed knowledge into the knowledge base first": [
+            "请用户先嵌入知识到知识库中",
+            "Please tell user to embed knowledge into the knowledge base first "
+        ],
+        "The query text segment has been embedded": [
+            "查询文本段嵌入完毕",
+            "The query text segment has been embedded "
+        ],
+        "The three text segments with the highest similarity": [
+            "相似度最高的三个文本段",
+            "The three text segments with the highest similarity"
+        ],
+        "Number text segment similarity": [
+            "号文本段 相似度",
+            "text segment similarity"
+        ],
+        "Number text segment embedding over": [
+            "号文本段嵌入完毕",
+            "text segment embedding over"
+        ],
+        "Based on this information, reply to the user's previous questions": [
+            "以这些信息为基础，回复用户之前的问题",
+            "Based on this information, reply to the user's previous questions"
+        ],
+        "Request error": [
+            "请求出错",
+            "Request error"
+        ],
+        "Received embedded text segment data": [
+            "接收到已嵌入文本段数据",
+            "received embedded text segment data"
+        ],
+        "model_quantize_label_text": [
+            "待量化模型路径",
+            "input path"
+        ],
+        "model_quantize_label_2_text": [
+            "重要性矩阵路径",
+            "imatrix path"
+        ],
+        "model_quantize_label_3_text": [
+            "量化后模型路径",
+            "output path"
+        ],
+        "model_quantize_row_modelpath_lineedit_placeholder": [
+            "尽量选择f32或f16的gguf模型",
+            "f32 or f16 gguf model better"
+        ],
+        "model_quantize_important_datapath_lineedit_placeholder": [
+            "iq量化方法必须，其它量化方法不要填写本项，重要性矩阵需要用原项目imatrix工具和文本数据生成",
+            "iq quantize dedicated, not necessary"
+        ],
+        "model_quantize_output_modelpath_lineedit_placeholder": [
+            "选择好待量化模型路径和量化方法后会自动填充",
+            "auto fill"
+        ],
+        "quantize_info_groupBox_title": [
+            "量化方法说明",
+            "quantize type description"
+        ],
+        "related to the imatrix": [
+            "和重要性矩阵有关",
+            "related to the imatrix"
+        ],
+        "quantize type": [
+            "量化方法",
+            "quantize type"
+        ],
+        "compression": [
+            "压缩率",
+            "compression"
+        ],
+        "perplexity": [
+            "困惑度",
+            "perplexity"
+        ],
+        "recommend": [
+            "推荐",
+            "recommend"
+        ],
+        "estimated size": [
+            "预估大小",
+            "estimated size"
+        ],
+        "select quantize type": [
+            "选择量化方法",
+            "select type"
+        ],
+        "execute quantize": [
+            "执行量化",
+            "execute"
+        ],
+        "execute log": [
+            "执行日志",
+            "execute log"
+        ],
+        "quantize completed! model save": [
+            "量化完成! 模型保存",
+            "quantize completed! model save"
+        ],
+        "embd api": [
+            "嵌入端点",
+            "embd api"
+        ],
+        "embd dim": [
+            "嵌入维度",
+            "embd dim"
+        ],
+        "embedding_txt_api_lineedit_placeholder": [
+            "选择一个嵌入模型并启动服务用来计算词向量，或直接输入嵌入服务的v1/embeddings端点地址",
+            "choose an embedding model and start the service, or directly input the v1/embeddings api"
+        ],
+        "split length": [
+            "分段长度",
+            "split"
+        ],
+        "overlap length": [
+            "重叠长度",
+            "overlap"
+        ],
+        "source doc": [
+            "源文档",
+            "source"
+        ],
+        "embedding_txt_lineEdit_placeholder": [
+            "选择上传一个txt文件，可以在待嵌入文本区进行修改",
+            "upload a txt"
+        ],
+        "knowledge base description": [
+            "知识库描述",
+            "description"
+        ],
+        "embedding_txt_describe_lineEdit_placeholder": [
+            "简单描述这个知识库的内容，有助于模型调用知识库工具",
+            "a brief description of the content of this knowledge base can help the model call knowledge tool"
+        ],
+        "embedding txt": [
+            "嵌入文本段",
+            "embedding"
+        ],
+        "embedding_test_textEdit_placeholder": [
+            "嵌入文本段后在这里输入问题，点击检索，通过向嵌入端点发送查询，将返回文本相似度最高的3个文本段",
+            "after embedding the text segment, enter the question here, click retrieval, and by sending a query to the embedding endpoint, the three text segments with the highest similarity will be returned"
+        ],
+        "retrieval": [
+            "检索",
+            "retrieval"
+        ],
+        "retrieval result": [
+            "检索结果",
+            "result"
+        ],
+        "log": [
+            "日志",
+            "log"
+        ],
+        "select embedding model": [
+            "选择嵌入模型",
+            "select embedding model"
+        ],
+        "embedless text segment": [
+            "待嵌入文本段",
+            "embedless text segment"
+        ],
+        "embeded text segment": [
+            "已嵌入文本段",
+            "embeded text segment"
+        ],
+        "service startup completed": [
+            "服务启动完成",
+            "service startup completed"
+        ],
+        "soes not meet the requirements, please replace the model": [
+            "不符合要求请更换模型",
+            "does not meet the requirements, please replace the model"
+        ],
+        "Request error, please make sure to start the embedded service": [
+            "请求出错，请确保启动嵌入服务",
+            "Request error, please make sure to start the embedded service"
+        ],
+        "embedding over": [
+            "嵌入完成",
+            "embedding over"
+        ],
+        "please input the text that needs to be embedded": [
+            "请输入需要被嵌入的知识",
+            "please input the text that needs to be embedded"
+        ],
+        "add": [
+            "添加",
+            "add"
+        ],
+        "delete": [
+            "删除",
+            "delete"
+        ],
+        "embedding server abort": [
+            "嵌入服务终止",
+            "embedding server abort"
+        ],
+        "choose a txt to embed": [
+            "选择一个txt文件嵌入到知识库",
+            "choose a txt to embed"
+        ],
+        "Available sound": [
+            "可用声源",
+            "Available sound"
+        ],
+        "enable": [
+            "启用",
+            "enable"
+        ],
+        "path set": [
+            "路径设置",
+            "path set"
+        ],
+        "params set": [
+            "参数设置",
+            "params set"
+        ],
+        "diffusion": [
+            "扩散",
+            "diffusion "
+        ],
+        "params template": [
+            "参数模板",
+            "template"
+        ],
+        "modify": [
+            "修饰词",
+            "modify"
+        ],
+        "negative": [
+            "反向词",
+            "negative"
+        ],
+        "sd_modelpath_lineEdit_placeholder": [
+            "主要模型，必选",
+            "main model, mandatory"
+        ],
+        "sd_vaepath_lineEdit_placeholder": [
+            "没有可不选",
+            "not necessary"
+        ],
+        "sd_negative_lineEdit_placeholder": [
+            "图像不要出现的样子，用英文描述",
+            "the appearance of the image should not appear"
+        ],
+        "sd_modify_lineEdit_placeholder": [
+            "图像最好出现的样子，用英文描述",
+            "the best appearance of an image"
+        ],
+        "sd_img2img_lineEdit_placeholder": [
+            "右击选择图像进行图生图",
+            "right click and select an image for image generation"
+        ],
+        "settings": [
+            "配置",
+            "settings"
+        ],
+        "result": [
+            "结果",
+            "result"
+        ],
+        "image width": [
+            "图像宽度",
+            "width"
+        ],
+        "image height": [
+            "图像高度",
+            "height"
+        ],
+        "sample type": [
+            "采样算法",
+            "sample"
+        ],
+        "sample steps": [
+            "采样步数",
+            "steps"
+        ],
+        "cfg scale": [
+            "相关系数",
+            "cfg"
+        ],
+        "image nums": [
+            "出图张数",
+            "nums"
+        ],
+        "seed": [
+            "随机种子",
+            "seed"
+        ],
+        "clip skip": [
+            "clip跳层",
+            "clip skip"
+        ],
+        "upload image": [
+            "上传图像",
+            "upload image"
+        ],
+        "sd_prompt_textEdit_placeholder": [
+            "使用纯英文描述，会自动将修饰词加到前面",
+            "using pure English description, will automatically add modify to the front"
+        ],
+        "sd_log_plainText": [
+            "",
+            ""
+        ],
+        "Please enter prompt words to tell the model what you want the image to look like": [
+            "请输入提示词告诉模型你想绘制图像的样子",
+            "Please enter prompt words to tell the model what you want the image to look like"
+        ],
+        "Please specify the SD model path first": [
+            "请先指定sd模型路径",
+            "Please specify the SD model path first"
+        ],
+        "drawing": [
+            "程序绘制中",
+            "drawing"
+        ],
+        "draw over": [
+            "绘制完毕",
+            "draw over"
+        ],
+        "draw fail cuda": [
+            "绘制失败，显存不足，请用户减小图像宽高",
+            "Drawing failed due to gpu memory. Please ask the user to reduce the width and height of the image"
+        ],
+        "draw fail prompt": [
+            "绘制失败，注意描述的文本需要用纯英文",
+            "Drawing failed, please note that the description text needs to be in pure English"
+        ],
+        "Running, please try again later": [
+            "正在运行，请稍后重试",
+            "Running, please try again later"
+        ],
+        "The command is invalid. Please ask the user to specify the SD model path in the breeding window first": [
+            "指令无效，请先让用户在增殖窗口指定sd模型路径",
+            "The command is invalid. Please ask the user to specify the SD model path in the breeding window first"
+        ],
+        "whisper path": [
+            "whisper模型路径",
+            "whisper path"
+        ],
+        "whisper_load_modelpath_linedit_placeholder": [
+            "指定whisper运行时使用的模型路径",
+            "specify the model path to be used during the runtime of whispere"
+        ],
+        "wav2text": [
+            "手动选择wav转文字",
+            "wav2text"
+        ],
+        "wav path": [
+            "选择wav文件",
+            "wav path"
+        ],
+        "format": [
+            "转换格式",
+            "format"
+        ],
+        "convert": [
+            "执行转换",
+            "convert"
+        ],
+        "calling whisper to decode recording": [
+            "调用whisper解码录音",
+            "calling whisper to decode recording"
+        ],
+        "decode over": [
+            "解码完成",
+            "decode over"
+        ],
+        "the result has been saved in the source wav file directory": [
+            "结果已保存在源wav文件目录",
+            "the result has been saved in the source wav file directory"
+        ],
+        "once selected, you can record by pressing f2": [
+            "选择好了就可以按f2录音了",
+            "once selected, you can record by pressing f2"
+        ],
+        "caculate token": [
+            "处理token数量",
+            "Number of tokens processed"
+        ],
+        "model brain": [
+            "模型记忆",
+            "model brain "
+        ],
+        "brain_groupBox_title": [
+            "记忆 (缓存的上下文)",
+            "Brain (context cache)"
+        ],
+        "vocab_groupBox_title": [
+            "词表 (模型训练时的所有token以及其对应的词)",
+            "Vocab (all tokens during the model training)"
+        ],
+        "enable output parser": [
+            "启用输出解析器",
+            "enable output parser"
+        ],
+        "disable output parser": [
+            "禁用输出解析器",
+            "disable output parser"
+        ],
+        "current": [
+            "当前",
+            "current "
+        ],
+        "embeddingdb_describe": [
+            "机体软件功能",
+            "EVA software functions"
+        ],
+        "syncrate_describe": [
+            "机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出action_name和action_input，并与预设的答案对比，若一致则标记为通过\n\n",
+            "EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the action_name and action_input, and compare them with the preset answers. If they match, mark it as passed.\n\n"
+        ],
+        "index": [
+            "序号",
+            "index "
+        ],
+        "task": [
+            "任务",
+            "task "
+        ],
+        "response": [
+            "回答",
+            "response "
+        ],
+        "pass": [
+            "通过",
+            "pass "
+        ],
+        "sync": [
+            "同步",
+            "sync "
+        ],
+        "sync rate": [
+            "同步率",
+            "sync rate "
+        ],
+        "sync_Q1": [
+            "计算888*999",
+            "Caculate 888*999"
+        ],
+        "sync_Q2": [
+            "一个三角形的两边长分别为8厘米和15厘米，夹角为60度。请问这个三角形的面积是多少平方厘米？",
+            "A triangle has two sides with lengths of 8 cm and 15 cm, and an included angle of 60 degrees. What is the area of this triangle in square centimeters?"
+        ],
+        "sync_Q3": [
+            "一个项目的投资总额为200万元，预期年收益率为8%。如果每年将收益全部再投资，5年后的总额是多少？",
+            "A project has a total investment of 2 million yuan with an expected annual return rate of 8%. If the returns are reinvested each year, what will be the total amount after 5 years?"
+        ],
+        "sync_Q4": [
+            "在一个光合作用实验中，某植物在12小时的光照下产生了180毫摩尔的氧气。如果该植物的光合作用速率与光照时间成正比，计算该植物在24小时的光照下会产生多少毫摩尔的氧气。",
+            "In a photosynthesis experiment, a certain plant produces 180 mmol of oxygen under 12 hours of light. If the photosynthesis rate of the plant is proportional to the duration of light exposure, how many mmol of oxygen will the plant produce under 24 hours of light?"
+        ],
+        "sync_Q5": [
+            "一种化学溶液的浓度为10%，现在需要配制成浓度为5%的溶液。如果原有的溶液量是200毫升，需要加多少毫升的水？",
+            "A chemical solution has a concentration of 10%. Now, it needs to be diluted to a concentration of 5%. If the original solution volume is 200 ml, how many milliliters of water need to be added?"
+        ],
+        "sync_Q6": [
+            "查看当前路径",
+            "Check the current path"
+        ],
+        "sync_Q7": [
+            "我电脑的ip地址是多少？",
+            "What is my computer's IP address?"
+        ],
+        "sync_Q8": [
+            "请运行这个文件 /soul/eva.exe",
+            "Please run this file /soul/eva.exe"
+        ],
+        "sync_Q9": [
+            "我电脑操作系统的版本是什么",
+            "What is the version of my computer's operating system?"
+        ],
+        "sync_Q10": [
+            "查看系统的时间和日期",
+            "Check the system's time and date"
+        ],
+        "sync_Q11": [
+            "机体软件有哪些主要功能？",
+            "What are the main features of EVA?"
+        ],
+        "sync_Q12": [
+            "机体软件支持哪些操作系统？",
+            "Which operating systems does EVA support?"
+        ],
+        "sync_Q13": [
+            "机体软件是否支持多语言界面？",
+            "Does EVA support multilingual interfaces?"
+        ],
+        "sync_Q14": [
+            "如何在机体软件中设置sd模型文件路径？",
+            "How to set the path for SD model files in EVA?"
+        ],
+        "sync_Q15": [
+            "如何在机体软件中进行同步率测试？",
+            "How to perform synchronization rate testing in EVA?"
+        ],
+        "sync_Q16": [
+            "当前窗口太小了",
+            "The current window is too small"
+        ],
+        "sync_Q17": [
+            "当前窗口被挡在其它软件下面了",
+            "The current window is blocked under other software"
+        ],
+        "sync_Q18": [
+            "放首歌来听听",
+            "Play a song"
+        ],
+        "sync_Q19": [
+            "音乐太吵了，停止它",
+            "The music is too loud, stop it"
+        ],
+        "sync_Q20": [
+            "打开增殖窗口",
+            "Open the proliferation window"
+        ],
+        "sync_Q21": [
+            "画一幅画：一个宁静的湖边日落，天空被染成橙色和粉红色，湖面反射着天空的颜色，湖边有一条小木船。",
+            "Draw a picture: A serene lakeside sunset, the sky painted in orange and pink hues, with the lake reflecting the sky's colors and a small wooden boat by the shore."
+        ],
+        "sync_Q22": [
+            "画一幅画：一片茂密的森林，阳光透过树叶洒下斑驳的光影，森林深处有一条小溪流淌。",
+            "Draw a picture: A dense forest with sunlight filtering through the leaves, casting dappled shadows, and a small stream flowing deep within the forest."
+        ],
+        "sync_Q23": [
+            "画一幅画：一个复古的古城街道，两旁是石砌房屋，街上有一些行人穿着中世纪的服装。",
+            "Draw a picture: A vintage street in an ancient town, with stone-built houses on both sides, and some pedestrians dressed in medieval clothing."
+        ],
+        "sync_Q24": [
+            "画一幅画：一个神秘的魔法森林，树木发出微弱的荧光，地面上长满了奇异的蘑菇和植物。",
+            "Draw a picture: A mystical magic forest where the trees emit a faint glow, and the ground is covered with strange mushrooms and plants."
+        ],
+        "sync_Q25": [
+            "画一个女孩",
+            "Draw a girl"
+        ],
+        "sync_Q26": [
+            "用matplotlib绘制一个爱心",
+            "Draw a heart using matplotlib."
+        ],
+        "sync_Q27": [
+            "给下面的数组排序，然后将结果保存到sort.txt中，[456,8,333,984,154,9485,4861,0.3,7758258]",
+            "Sort the following array and save the result to sort.txt: [456, 8, 333, 984, 154, 9485, 4861, 0.3, 7758258]."
+        ],
+        "sync_Q28": [
+            "请帮我写一个简单的计算器程序，可以进行加减乘除运算",
+            "Please help me write a simple calculator program that can perform addition, subtraction, multiplication, and division."
+        ],
+        "sync_Q29": [
+            "帮我写一个简单的猜数字游戏，用户输入一个数字进行猜测",
+            "Help me write a simple number guessing game where the user inputs a number to guess."
+        ],
+        "sync_Q30": [
+            "给我运行一个贪吃蛇游戏",
+            "Run a snake game for me."
+        ],
+        "---end---": [
+            "---end---",
+            "---end--- "
+        ]
     }
 }
