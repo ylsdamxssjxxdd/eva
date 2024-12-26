@@ -29,7 +29,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QTextToSpeech>
-#include <QSound>
+#include <QMediaPlayer>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -77,6 +77,7 @@ class Expend : public QWidget {
     void readConfig();  //读取配置文件并应用
     QString currentpath = DEFAULT_MODELPATH;
     void showReadme();  //展示readme内容
+    bool removeDir(const QString &dirName);//删除文件夹
 
    signals:
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
@@ -214,10 +215,12 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
+    QString outettsDir;// outetts生成的音频存放目录
     QStringList avaliable_speech_list;  // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list);  // 设置系统可用声源
     Speech_Params speech_params;
     QTextToSpeech *sys_speech;
+    QMediaPlayer *speech_player;
     bool is_sys_speech_available;  // 语音朗读是否可用
     bool is_speech = false;// 是否系统声源正在朗读
     bool is_speech_play = false;// 是否音频正在播放
@@ -230,9 +233,9 @@ class Expend : public QWidget {
     QProcess *outetts_process;      //用来启动llama-tts
 
    signals:
-    void expend2ui_speechparams(Speech_Params speech_Params_);
     void expend2ui_speechover();
    public slots:
+    void speech_player_over(QMediaPlayer::MediaStatus status);//音频播放完响应
     void start_tts(QString str);  //开始文字转语音
     void speechOver();
     void speechPlayOver();

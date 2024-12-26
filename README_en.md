@@ -203,9 +203,9 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <summary> Speech </summary>
 
-- Introduction: Using the speech function of the Windows system, the model's output text can be converted to speech and automatically played.
+- Introduction: Using the speech function of the Windows system or outetts model, the llm's output text can be converted to speech and automatically played.
 
-- Activation: Right-click the status area to open the expansion window, select the text2speech tab, and enable the system sound source.
+- Activation: Right-click the status area to open the expansion window, select the text2speech tab, and enable a sound source.
 
 </details>
 

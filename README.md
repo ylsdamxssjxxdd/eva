@@ -210,9 +210,9 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <summary> 语音 </summary>
 
-- 介绍：借助windows系统的语音功能将模型输出的文本转为语音并自动播放
+- 介绍：借助windows系统的语音功能将模型输出的文本转为语音并自动播放，或者可以自己配置outetts模型进行文转声
 
-- 激活方法：右击状态区打开增殖窗口，选择文转声选项卡，选择启用系统声源
+- 激活方法：右击状态区打开增殖窗口，选择文转声选项卡，选择一个声源并启动。
 
 </details>
 

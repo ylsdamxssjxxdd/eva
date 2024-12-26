@@ -84,9 +84,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //添加输出格式
     ui->whisper_output_format->addItems({"txt", "srt", "csv", "json"});
 
-    //声转文相关
-    connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
-    connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
+
 
     // 文生图相关
     // 构建模板 sd1.5-anything-3,sdxl-animagine-3.1,sd3.5-large,flux1-dev,custom1,custom2
@@ -114,8 +112,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->brain_tableWidget->verticalHeader()->setVisible(false);                             // 隐藏行头部
 
     //文转声相关
+    connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
+    connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
     sys_speech = new QTextToSpeech();// 系统声源
-
     // 检查是否成功创建
     if (sys_speech->state() == QTextToSpeech::Ready) {
         // 遍历所有可用音色
@@ -128,10 +127,15 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     avaliable_speech_list << SPPECH_OUTETTS;// 模型声源
     this->set_sys_speech(avaliable_speech_list);  // 设置可用声源
 
-    //-------------朗读相关-------------
+    // 创建播放器对象
+    speech_player = new QMediaPlayer;
+    // 连接 mediaStatusChanged 信号到槽函数
+    QObject::connect(speech_player, &QMediaPlayer::mediaStatusChanged, this, &Expend::speech_player_over);
+    outettsDir = applicationDirPath + "/EVA_TEMP/outetts/";// outetts生成的音频存放目录
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
     speechTimer.start(500);  //每半秒检查一次是否需要朗读
+    speechPlayTimer.start(500);  //每半秒检查一次是否有音频需要朗读
 
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
@@ -1875,13 +1879,11 @@ void Expend::speech_enable_change() {
         speech_params.enable_speech = false;
     }
 
-    emit expend2ui_speechparams(speech_params);
 }
 
 //用户切换声源响应
 void Expend::speech_source_change() {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
-    emit expend2ui_speechparams(speech_params);
 }
 
 // 添加可用声源
@@ -1908,7 +1910,6 @@ void Expend::start_tts(QString str)
     {
         if(speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
         {
-            qDebug()<<"outetts"<<str;
             outettsProcess(str);
         }
         else
@@ -1975,7 +1976,8 @@ void Expend::speech_play_process()
             speechPlayTimer.stop();
             is_speech_play = true;
             // 播放第一路径的音频
-            QSound::play(wait_speech_play_list.first());
+            speech_player->setMedia(QUrl(wait_speech_play_list.first()));
+            speech_player->play();
             wait_speech_play_list.removeFirst();
         }
     }
@@ -1999,12 +2001,18 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
     }
 }
 
+// 收到重置信号
 void Expend::recv_resettts()
 {
     wait_speech_txt_list.clear();      //清空待读列表
+    wait_speech_play_list.clear();
     if (is_sys_speech_available) {
         sys_speech->stop();  //停止朗读
     }
+
+    outetts_process->kill();//终止继续生成
+    speech_player->stop();
+    removeDir(outettsDir);//清空产生的音频
 }
 
 //使用outetts进行文转声
@@ -2039,8 +2047,21 @@ void Expend::outetts_onProcessStarted()
 //进程结束响应
 void Expend::outetts_onProcessFinished()
 {
-    // 如果生成音频成功了则播放它，播放完毕再进入结束步骤
-    speechOver();
+    //修改生成的音频名称，添加一个时间后缀
+    createTempDirectory(outettsDir);
+    // 获取当前日期和时间，精确到分钟
+    QString currentDateTime = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz"); // 格式化为 20241226_1430
+    QString destinationPath = outettsDir + currentDateTime + ".wav";
+    // 使用 QFile 移动并重命名文件
+    QFile file("output.wav");
+    if (file.rename(destinationPath)) {
+        qDebug() << "File moved and renamed successfully.";
+        wait_speech_play_list << destinationPath;
+    } else {
+        qDebug() << "Failed to move and rename file." << file.errorString();
+    }
+
+    speechOver();// 利用speechOver再次进入文转声生成处理流程
 }
 
 void Expend::readyRead_outetts_process_StandardOutput()
@@ -2065,6 +2086,15 @@ void Expend::on_speech_outetts_modelpath_pushButton_clicked() {
 void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
     ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
+}
+
+//音频播放完响应
+void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
+{
+    if (status == QMediaPlayer::MediaStatus::EndOfMedia) {
+        // 播放停止时执行的操作
+        speechPlayOver();
+    }
 }
 
 //-------------------------------------------------------------------------
@@ -2209,4 +2239,31 @@ void Expend::setSdModelpath(QString modelpath)
 {
     ui->sd_modelpath_lineEdit->setText(modelpath);
     ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");// 默认
+}
+
+// 递归删除文件夹及其内容的函数
+bool Expend::removeDir(const QString &dirName) {
+    QDir dir(dirName);
+
+    if (!dir.exists()) {
+        return false;
+    }
+
+    // 删除目录中的所有文件和子目录
+    foreach (QFileInfo item, dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllEntries)) {
+        if (item.isDir()) {
+            // 如果是子目录，递归删除
+            if (!removeDir(item.absoluteFilePath())) {
+                return false;
+            }
+        } else {
+            // 如果是文件，删除文件
+            if (!QFile::remove(item.absoluteFilePath())) {
+                return false;
+            }
+        }
+    }
+
+    // 删除目录自身
+    return dir.rmdir(dirName);
 }
