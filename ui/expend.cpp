@@ -292,6 +292,8 @@ void Expend::init_expend() {
     ui->speech_log_groupBox->setTitle(jtr("log"));
     ui->speech_outetts_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
     ui->speech_wavtokenizer_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
+    ui->speech_manual_plainTextEdit->setPlaceholderText(jtr("speech_manual_plainTextEdit placehold"));
+    ui->speech_manual_pushButton->setText(jtr("convert to audio"));
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
 
@@ -674,6 +676,15 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
     QString localPath = QString("./whisper-cli") + SFX_NAME;
 #endif
 
+    //将wav文件重采样为16khz音频文件
+#ifdef _WIN32
+    QTextCodec* code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+    std::string wav_path_c = code->fromUnicode(wavpath).data();
+#elif __linux__
+    std::string wav_path_c = wav_path.toStdString();
+#endif
+    resampleWav(wav_path_c, wav_path_c);
+
     // 设置要运行的exe文件的路径
     QString program = localPath;
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
@@ -733,7 +744,7 @@ void Expend::whisper_onProcessFinished() {
 
 //用户点击选择wav路径时响应
 void Expend::on_whisper_wavpath_pushButton_clicked() {
-    currentpath = customOpenfile(currentpath, "choose whisper model", "(*.wav)");
+    currentpath = customOpenfile(currentpath, "choose a .wav file", "(*.wav)");
     wavpath = currentpath;
     if (wavpath == "") {
         return;
@@ -1994,7 +2005,7 @@ void Expend::speech_play_process()
             speechPlayTimer.stop();
             is_speech_play = true;
             // 播放第一路径的音频
-            speech_player->setMedia(QUrl(wait_speech_play_list.first()));
+            speech_player->setMedia(QUrl::fromLocalFile(wait_speech_play_list.first()));
             speech_player->play();
             wait_speech_play_list.removeFirst();
         }
@@ -2105,6 +2116,15 @@ void Expend::on_speech_outetts_modelpath_pushButton_clicked() {
 void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
     ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
+}
+
+//用户点击转为音频按钮时响应
+void Expend::on_speech_manual_pushButton_clicked()
+{
+    if(ui->speech_outetts_modelpath_lineEdit->text()!=""&&ui->speech_wavtokenizer_modelpath_lineEdit->text()!="")
+    {
+        outettsProcess(ui->speech_manual_plainTextEdit->toPlainText());
+    }
 }
 
 //音频播放完响应

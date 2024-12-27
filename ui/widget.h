@@ -51,8 +51,7 @@
 
 #endif
 
-#include <samplerate.h>  // 音频重采样
-#include <sndfile.h>
+
 
 #include "utils/customswitchbutton.h"
 #include "utils/cutscreendialog.h"
@@ -172,7 +171,6 @@ class Widget : public QWidget {
     //语音相关
     QAudioRecorder audioRecorder;
     QAudioEncoderSettings audioSettings;
-    bool resampleWav(const std::string &inputPath, const std::string &outputPath);  // 对音频重采样为16khz
     void recordAudio();                                                             //开始录音
     bool is_recodering = false;                                                     //是否正在录音
     int audio_time = 0;

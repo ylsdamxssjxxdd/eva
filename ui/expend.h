@@ -252,6 +252,7 @@ class Expend : public QWidget {
     void speech_source_change();  //用户切换音源响应
     void on_speech_outetts_modelpath_pushButton_clicked();
     void on_speech_wavtokenizer_modelpath_pushButton_clicked();
+    void on_speech_manual_pushButton_clicked();
 
     //-------------------------------------------------------------------------
     //----------------------------------记忆相关--------------------------------
