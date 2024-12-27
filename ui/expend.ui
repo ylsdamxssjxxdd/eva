@@ -3671,7 +3671,7 @@ p, li { white-space: pre-wrap; }
              <number>0</number>
             </property>
             <property name="text">
-             <string>OuteTTS模型</string>
+             <string>OuteTTS 模型</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3680,6 +3680,9 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QLineEdit" name="speech_outetts_modelpath_lineEdit">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -3699,6 +3702,9 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QPushButton" name="speech_outetts_modelpath_pushButton">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="minimumSize">
              <size>
               <width>60</width>
@@ -3776,7 +3782,7 @@ p, li { white-space: pre-wrap; }
              <number>0</number>
             </property>
             <property name="text">
-             <string>WavTokenizer模型</string>
+             <string>WavTokenizer 模型</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3785,6 +3791,9 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QLineEdit" name="speech_wavtokenizer_modelpath_lineEdit">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -3804,6 +3813,9 @@ p, li { white-space: pre-wrap; }
           </item>
           <item>
            <widget class="QPushButton" name="speech_wavtokenizer_modelpath_pushButton">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="minimumSize">
              <size>
               <width>60</width>

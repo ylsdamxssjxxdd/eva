@@ -287,6 +287,11 @@ void Expend::init_expend() {
     //文转声
     ui->speech_available_label->setText(jtr("Available sound"));
     ui->speech_enable_radioButton->setText(jtr("enable"));
+    ui->speech_outetts_modelpath_label->setText("OuteTTS " + jtr("model"));
+    ui->speech_wavtokenizer_modelpath_label->setText("WavTokenizer " + jtr("model"));
+    ui->speech_log_groupBox->setTitle(jtr("log"));
+    ui->speech_outetts_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
+    ui->speech_wavtokenizer_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
 
@@ -1884,6 +1889,16 @@ void Expend::speech_enable_change() {
 //用户切换声源响应
 void Expend::speech_source_change() {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
+    if(speech_params.speech_name==SPPECH_OUTETTS)
+    {
+        ui->speech_outetts_modelpath_frame->setEnabled(1);
+        ui->speech_wavtokenizer_modelpath_frame->setEnabled(1);
+    }
+    else
+    {
+        ui->speech_outetts_modelpath_frame->setEnabled(0);
+        ui->speech_wavtokenizer_modelpath_frame->setEnabled(0);
+    }
 }
 
 // 添加可用声源
@@ -1910,7 +1925,10 @@ void Expend::start_tts(QString str)
     {
         if(speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
         {
-            outettsProcess(str);
+            if(ui->speech_outetts_modelpath_lineEdit->text()!=""&&ui->speech_wavtokenizer_modelpath_lineEdit->text()!="")
+            {
+                outettsProcess(str);
+            }
         }
         else
         {
@@ -2004,8 +2022,9 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
 // 收到重置信号
 void Expend::recv_resettts()
 {
-    wait_speech_txt_list.clear();      //清空待读列表
-    wait_speech_play_list.clear();
+    temp_speech_txt = "";//清空待读列表
+    wait_speech_txt_list.clear();//清空待读列表
+    wait_speech_play_list.clear();//清空待读列表
     if (is_sys_speech_available) {
         sys_speech->stop();  //停止朗读
     }
@@ -2055,7 +2074,7 @@ void Expend::outetts_onProcessFinished()
     // 使用 QFile 移动并重命名文件
     QFile file("output.wav");
     if (file.rename(destinationPath)) {
-        qDebug() << "File moved and renamed successfully.";
+        // qDebug() << "File moved and renamed successfully.";
         wait_speech_play_list << destinationPath;
     } else {
         qDebug() << "Failed to move and rename file." << file.errorString();

@@ -372,6 +372,10 @@
             "批大小",
             "batch size"
         ],
+        "speech_outetts_modelpath_lineEdit placehold" : [
+            "选择outetts声源时必填",
+            "Required when selecting outetts sound source"
+        ],
         "predecode system instruction": [
             "对系统指令进行预解码",
             "predecode system instruction "
