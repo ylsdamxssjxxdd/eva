@@ -681,7 +681,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
     QTextCodec* code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
     std::string wav_path_c = code->fromUnicode(wavpath).data();
 #elif __linux__
-    std::string wav_path_c = wav_path.toStdString();
+    std::string wav_path_c = wavpath.toStdString();
 #endif
     resampleWav(wav_path_c, wav_path_c);
 
