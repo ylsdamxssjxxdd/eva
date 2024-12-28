@@ -6,7 +6,6 @@
 
 ## 如果要更换第三方库的话尝试按如下规则修改
 ### llama.cpp
-- 注释掉 cmakelists.txt中 "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" 部分
 - 修改llama.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/llama.cpp/scripts/xxd.cmake"
 - 修改llama.cpp/examples/server/httplib.h的mmap::open函数

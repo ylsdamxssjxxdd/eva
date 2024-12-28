@@ -534,7 +534,6 @@ FILE * ggml_fopen(const char * fname, const char * mode) {
 
     return fopen(fname, mode);
 
-
 }
 static void ggml_vec_dot_f32(int n, float * restrict s, size_t bs, const float * restrict x, size_t bx, const float * restrict y, size_t by, int nrc);
 static void ggml_vec_dot_f16(int n, float * restrict s, size_t bs, ggml_fp16_t * restrict x, size_t bx, ggml_fp16_t * restrict y, size_t by, int nrc);
