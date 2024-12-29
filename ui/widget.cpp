@@ -168,9 +168,6 @@ void Widget::recv_loadover(bool ok_, float load_time_) {
         all_fps++;               //补上最后一帧,表示上下文也创建了
         load_pTimer->stop();     //停止动画,但是动作计数load_action保留
         load_pTimer->start(10);  //快速播放完剩下的动画,播放完再做一些后续动作
-        if (ui_state == COMPLETE_STATE) {
-            ui_state_normal();
-        }  //待机界面状态
     } else {
         ui->state->clear();
         load_begin_pTimer->stop();  //停止动画
@@ -201,15 +198,7 @@ void Widget::on_send_clicked() {
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if (ui_state == CHAT_STATE) 
     {
-        if (ui_need_predecode) {
-            ui_need_predecode = false;
-            ui->reset->setEnabled(0);                       //预解码时不允许重置
-            is_run = true;       //模型正在运行标签
-            ui_state_pushing();  //推理中界面状态
-            emit ui2bot_preDecode(); // 预解码
-            return;
-        }  
-        else if (is_test) 
+        if (is_test) 
         {
             if (test_question_index.size() > 0)  //测试中,还有题目剩余
             {
@@ -242,6 +231,13 @@ void Widget::on_send_clicked() {
         } 
         else if (ui_syncrate_manager.is_sync) 
         {
+            if(ui_syncrate_manager.is_first_sync)
+            {
+                setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
+                emit ui2expend_show(8);                               // 打开同步率选项卡
+                ui_syncrate_manager.is_first_sync = false;
+            }
+
             if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
@@ -328,7 +324,7 @@ void Widget::recv_pushover() {
         {
             on_send_clicked();
         }
-    } else if (ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode)  // 继续同步率测试
+    } else if (ui_syncrate_manager.is_sync)  // 继续同步率测试
     {
         // 检测结果并赋分
         SyncRateTestCheck(ui_insert_history.last().first);
@@ -338,13 +334,6 @@ void Widget::recv_pushover() {
             is_run = false;  // 同步率测试将要完成
         }
         on_reset_clicked();                                                       // 每次测试重置上下文
-    } else if (ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode)  // 开始第一次同步率测试
-    {
-        // qDebug()<<"开始同步率测试";
-        setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
-        emit ui2expend_show(8);                               // 打开同步率选项卡
-        ui_syncrate_manager.is_predecode = true;
-        on_send_clicked();
     } else if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
     {
         normal_finish_pushover();
@@ -428,20 +417,9 @@ void Widget::recv_resetover() {
         QApplication::setWindowIcon(QIcon(":/logo/green_logo.png"));
     }  //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
-    //如果是对话模式且约定有变或第一次装载则预解码约定
-    if (ui_state == CHAT_STATE) {
-        history_prompt = ui_DATES.date_prompt;  //同步
-        //约定系统指令有变才预解码，同步率测试时强制预解码
-        if (is_datereset) {
-            ui_need_predecode = true;
-            ui->send->click();
-        }
-    }
-    is_datereset = false;  //恢复
 
-    if (ui_syncrate_manager.is_sync && ui_syncrate_manager.is_predecode) {
-        qDebug() << "重置完成下一次sync";
-        on_send_clicked();
+    if (ui_syncrate_manager.is_sync) {
+        on_send_clicked();//总是尝试触发一下
     }
 }
 
@@ -527,7 +505,7 @@ void Widget::on_reset_clicked() {
             qDebug() << "为了下一次回答而重置";
             ui->output->clear();
             reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
-            emit ui2bot_reset(0);                           //传递重置信号,删除约定以外的kv缓存
+            emit ui2bot_reset();                           //传递重置信号,删除约定以外的kv缓存
             return;
         }
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
@@ -566,23 +544,9 @@ void Widget::on_reset_clicked() {
     }
 
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
+    
+    emit ui2bot_reset();  //传递重置信号,清空kv缓存,并预解码约定指令
 
-    //如果约定没有变则不需要预解码
-    if (ui_state == CHAT_STATE && ui_DATES.date_prompt == history_prompt) {
-        if (ui_syncrate_manager.is_sync && !ui_syncrate_manager.is_predecode) {
-            is_datereset = true;   //预解码准备
-            emit ui2bot_reset(1);  //传递重置信号,清空kv缓存
-        } else {
-            reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
-            is_datereset = false;
-            emit ui2bot_reset(0);  //传递重置信号,删除约定以外的kv缓存
-        }
-    }
-    //需要预解码
-    else {
-        is_datereset = true;   //预解码准备
-        emit ui2bot_reset(1);  //传递重置信号,清空kv缓存
-    }
 }
 
 //用户点击约定按钮处理

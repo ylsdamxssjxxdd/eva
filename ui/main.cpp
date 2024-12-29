@@ -110,7 +110,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_stop,&bot,&xBot::recv_stop);//传递停止信号
     QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                  //开始加载模型
     QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                 //开始推理
-    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::preDecodeSystemPrompt);             //开始预解码
     QObject::connect(&w, &Widget::ui2bot_preDecodeImage, &bot, &xBot::preDecodeImage); //开始预解码图像
     QObject::connect(&w, &Widget::ui2bot_reset, &bot, &xBot::recv_reset);              //传递重置信号
     QObject::connect(&w, &Widget::ui2bot_date, &bot, &xBot::recv_date);                //传递约定内容

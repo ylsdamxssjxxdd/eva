@@ -31,7 +31,7 @@ class xBot : public QObject {
 
    public slots:
     void load(QString modelpath);  //装载模型
-    void reset(bool is_clear_all);      //重置模型上下文和缓存等
+    void reset();      //重置模型上下文和缓存等
     void predict(INPUTS inputs);         //开始预测推理
     void preDecodeSystemPrompt();                   //预解码
     void preDecodeImage(QString image_path);              //预解码图像
@@ -118,7 +118,7 @@ class xBot : public QObject {
     std::string bot_modelpath = "";                                                                        //模型路径
     std::string lorapath = "";                                                                             // lora模型路径
     std::string mmprojpath = "";                                                                           // mmproj模型路径                                                                                         //用户输入
-    bool is_stop = false, is_load = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
+    bool is_stop = false, is_load = false, is_load_predecode = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
     bool is_complete = false;                                                                              //补完模式标签
     bool is_antiprompt = false;                                                                            //上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
     bool is_datetoolong = false;                                                                           //如果约定的系统指令长度太长则不约定
@@ -133,13 +133,14 @@ class xBot : public QObject {
     bool vram_enough = false;
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
     std::string current_output; // 模型最近输出的内容，用来判断里面是否存在反向词
+    QString history_prompt = "";                                         //记录历史约定
 
    public slots:
     void recv_stop();//接受停止信号
     void recv_llama_log(QString log_);                          //获取llama log
     void recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
     void recv_language(int language_flag_);                     //传递使用的语言
-    void recv_reset(bool is_clear_all);                         //接受重置信号
+    void recv_reset();                         //接受重置信号
     void recv_set(SETTINGS settings, bool can_reload);          //接受设置内容
     void recv_date(DATES date);                                 //接受约定内容
     void recv_free(bool loadlater);                             //释放

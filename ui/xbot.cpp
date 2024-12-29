@@ -480,10 +480,11 @@ void xBot::load(QString modelpath_) {
     // qDebug()<<"load后"<<common_params_.n_gpu_layers<<maxngl;
 
     is_load = true;          //标记已完成装载
+    is_load_predecode = false; //标记装载后是否经过一次预解码
     get_default_templete_chat_format();// 获取系统指令、输入前缀、输入后缀
-    is_first_reset = false;  //模型装载后首次重置完成标签,控制是否输出清空的消息
-    reset(1);                //初始化模型,1表示清空上下文
-    is_first_reset = true;   //模型装载后首次重置完成标签,控制是否输出清空的消息
+    is_first_reset = true;  //模型装载后首次重置完成标签,控制是否输出清空的消息
+    reset();                //初始化模型,1表示清空上下文并预解码
+    is_first_reset = false;   //模型装载后首次重置完成标签,控制是否输出清空的消息
     is_first_load = false;   //标记是否是打开软件后第一次装载
     is_free = false;
 
@@ -492,11 +493,11 @@ void xBot::load(QString modelpath_) {
     emit bot2expend_vocab(viewVocab());                               //发出模型词表，词表太大导致卡顿
 }
 
-//重置上下文等
 //----------------------------------------------------------------------
 //-------------------------------初始化----------------------------------
 //----------------------------------------------------------------------
-void xBot::reset(bool is_clear_all) {
+//重置上下文，如果是第一次装载这个模型或者约定指令有变则先预解码
+void xBot::reset() {
     
     QElapsedTimer time1;
     time1.start();
@@ -534,30 +535,10 @@ void xBot::reset(bool is_clear_all) {
             common_params_.antiprompt.push_back(bot_date.extra_stop_words.at(i).toStdString());
         }
     }
-
-    if (is_clear_all)  //清空ctx kv缓存
-    {
-        llama_kv_cache_clear(ctx);  //清空ctx kv缓存
-        n_past = 0;                 //已推理字符数
-        n_consumed = 0;             //已推理字符数
-        Brain_vector.clear();
-    } else  //删除prompt以外的kv缓存
-    {
-        if (n_past > int(system_tokens.size())) {
-            llama_kv_cache_seq_rm(ctx, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
-            n_past = system_tokens.size();
-            n_consumed = system_tokens.size();
-            Brain_vector.clear();
-            for (int i = 0; i < system_tokens.size(); ++i) {
-                Brain_vector.push_back({i + 1, system_tokens.at(i), QString::fromStdString(common_token_to_piece(ctx, system_tokens.at(i)))});
-            }
-        }
-    }
     
     //重置采样器
     common_sampler_free(smpl);smpl = nullptr;
     smpl = common_sampler_init(model, common_params_.sampling);
-
     emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
     emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
     ga_i = 0;
@@ -566,7 +547,46 @@ void xBot::reset(bool is_clear_all) {
     embd_inp.clear();
     embd_inp.insert(embd_inp.end(), system_tokens.begin(), system_tokens.end());  //预解码的约定词向量
 
-    if (is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
+    bool is_clear_all = false;
+    if(history_prompt != bot_chat.system_prompt || !is_load_predecode){is_clear_all=true;}
+
+    if(is_clear_all)//清空ctx kv缓存
+    {
+        llama_kv_cache_clear(ctx);  //清空ctx kv缓存
+        n_past = 0;                 //已推理字符数
+        n_consumed = 0;             //已推理字符数
+        preDecodeSystemPrompt();//预解码约定指令
+        is_load_predecode = true;
+    } 
+    else  //删除prompt以外的kv缓存
+    {
+        if (n_past > int(system_tokens.size())) {
+            llama_kv_cache_seq_rm(ctx, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
+            n_past = system_tokens.size();
+            n_consumed = system_tokens.size();
+            for (int i = 0; i < system_tokens.size(); ++i) {
+                Brain_vector.push_back({i + 1, system_tokens.at(i), QString::fromStdString(common_token_to_piece(ctx, system_tokens.at(i)))});
+            }
+        }
+    }
+
+    // 构建记忆矩阵
+    std::string token_str;
+    Brain_vector.clear();
+    for (int i = 0; i < embd_inp.size(); ++i) {
+        const llama_token token = embd_inp[i];
+        std::string str;
+        str = common_token_to_piece(ctx, token);
+        token_str += str;
+        Brain_vector.push_back({i + 1, token, QString::fromStdString(str)});
+        // qDebug()<<token<<QString::fromStdString(common_token_to_piece(ctx, token));
+    }
+    emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
+    emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
+    emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);   //将预解码内容贴到输出区
+    emit bot2ui_predecode(QString::fromStdString(token_str));                //传递模型预解码内容
+
+    if (!is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
     {
         if (is_clear_all) {
             emit bot2ui_state("bot:" + jtr("delete kv cache") + " " + QString::number(time1.nsecsElapsed() / 1000000000.0, 'f', 2) + " s ");
@@ -581,7 +601,7 @@ void xBot::reset(bool is_clear_all) {
 void xBot::preDecodeSystemPrompt() {
     QElapsedTimer time2;
     time2.start();
-    const size_t history_past = Brain_vector.size();  //上一次对话的上下文长度
+    int predecode_num = embd_inp.size();
 
     // view_embd(ctx,embd_inp);//看看到底推理了什么
     //---------------------embd_inp插入到embd中----------------------
@@ -618,40 +638,13 @@ void xBot::preDecodeSystemPrompt() {
         emit bot2ui_state("bot:" + jtr("embd no token please restart"), WRONG_SIGNAL);
         return;
     }
-
-    for (size_t i = 0; i < embd_inp.size(); ++i) {
-        const llama_token token = embd_inp[i];
-    }
-
-    std::string token_str;
-
-    for (int i = 0; i < embd_inp.size(); ++i) {
-        const llama_token token = embd_inp[i];
-
-        std::string str;
-        str = common_token_to_piece(ctx, token);
-        token_str += str;
-        Brain_vector.push_back({i + 1, token, QString::fromStdString(str)});
-        // qDebug()<<token<<QString::fromStdString(common_token_to_piece(ctx, token));
-    }
-
-    emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
-    emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
-    emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);   //将预解码内容贴到输出区
-    emit bot2ui_predecode(QString::fromStdString(token_str));                //传递模型预解码内容
-
     embd.clear();  //清空embd
 
-    is_first_reset = false;
-    reset(0);
-    is_first_reset = true;
-
     float time_ = time2.nsecsElapsed() / 1000000000.0;
-    float speed_ = (Brain_vector.size() - history_past) / time_;
+    float speed_ = predecode_num / time_;
     emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);
-    
-    emit bot2ui_pushover();  //推理完成的信号
     is_stop = false;
+    history_prompt = bot_chat.system_prompt;//同步
     return;
 
 }
@@ -755,8 +748,8 @@ void xBot::recv_stop()
 }
 
 //接受重置信号
-void xBot::recv_reset(bool is_clear_all) {
-    reset(is_clear_all);  //重置上下文等
+void xBot::recv_reset() {
+    reset();  //重置上下文等
 }
 
 void xBot::recv_set(SETTINGS settings, bool can_reload) {

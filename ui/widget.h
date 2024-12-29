@@ -85,8 +85,6 @@ class Widget : public QWidget {
     QString ui_output, ui_state_info;
     void output_scroll(QString output, QColor color = QColor(0, 0, 0));  //向output末尾添加文本并滚动
     bool is_stop_output_scroll = false;                                  //输出区滚动标签
-    QString history_prompt = "";                                         //记录历史约定
-    bool is_datereset = false;                                           //从约定传来的重置信号
     QMenu *right_menu;                                                   //输入区右击菜单
     QScrollBar *output_scrollBar;                                        //输出区滑动条
     bool createTempDirectory(const QString &path);                       //创建临时文件夹
@@ -131,7 +129,6 @@ class Widget : public QWidget {
     bool is_run = false;              //模型运行标签,方便设置界面的状态
     EVA_MODE ui_mode = LOCAL_MODE;    //机体的模式
     EVA_STATE ui_state = CHAT_STATE;  //机体的状态
-    bool ui_need_predecode = false;   //需要预解码标签
     QString history_lorapath = "";
     QString history_mmprojpath = "";
     QString ui_template = "default";   //模板
@@ -316,10 +313,9 @@ class Widget : public QWidget {
     void ui2bot_language(int language_flag_);                                //传递使用的语言
     void ui2bot_loadmodel(QString modelpath);//开始装载模型
     void ui2bot_predict(INPUTS input);//开始推理
-    void ui2bot_preDecode();//开始预解码
     void ui2bot_preDecodeImage(QString image_path);//开始预解码图像
     void ui2bot_stop();                                                      //传递推理停止信号
-    void ui2bot_reset(bool is_clear_all);                                    //传递重置信号
+    void ui2bot_reset();                                    //传递重置信号
     void ui2bot_date(DATES date);                                            //传递约定内容
     void ui2bot_set(SETTINGS settings, bool can_reload);                     //传递设置内容
     void ui2bot_free(bool loadlater);                                        //释放

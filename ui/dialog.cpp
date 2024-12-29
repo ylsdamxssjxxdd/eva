@@ -238,14 +238,9 @@ void Widget::unlockLoad() {
     ui->kv_bar->show_text = jtr("brain");
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
     auto_save_user();  //保存ui配置
-    //如果是对话模式则预解码约定
-    if (ui_state == CHAT_STATE) {
-        history_prompt = ui_DATES.date_prompt;  //同步历史约定内容
-        ui_need_predecode = true;
-        on_send_clicked();
-    }
     force_unlockload_pTimer->stop();
     is_load_play_over = true;  //标记模型动画已经完成
+    ui_state_normal();//解锁界面
 }
 
 // 按日志显示装载进度
@@ -1329,6 +1324,7 @@ void Widget::create_right_menu() {
         }  //只在空闲的本地模式和对话状态中生效
 
         ui_syncrate_manager.is_sync = true;
+        ui_syncrate_manager.is_first_sync = true;
 
         //插入任务
         for (int i = 1; i < 31; ++i) {
@@ -1452,7 +1448,6 @@ void Widget::get_set() {
         ui_state = CHAT_STATE;
     } else if (complete_btn->isChecked()) {
         ui_state = COMPLETE_STATE;
-        history_prompt = "";
     }  // history_prompt置空是为了下一次切换为对话模式时正确处理预解码
     else if (web_btn->isChecked()) {
         ui_state = SERVER_STATE;

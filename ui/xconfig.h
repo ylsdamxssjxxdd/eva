@@ -275,7 +275,7 @@ struct Brain_Cell {
 //同步率测试管理器
 struct Syncrate_Manager {
     bool is_sync = false;       // 是否在测试同步率
-    bool is_predecode = false;  // 是否预解码过
+    bool is_first_sync = false;  // 是否第一次进入
     QList<int> correct_list;    // 通过回答的题目序号
     float score = 0;            // 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
 
