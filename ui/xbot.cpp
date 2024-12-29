@@ -47,7 +47,7 @@ void xBot::predict(INPUTS inputs) {
     std::vector<llama_token> line_sfx;  //后缀 向量
 
     //---插入前缀---
-    if ((!is_complete && !is_antiprompt) && (inputs.role == ROLE_USER || inputs.role == ROLE_THOUGHT || inputs.role == ROLE_TEST))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
+    if ((!is_complete && !is_antiprompt) && (inputs.role == ROLE_USER || inputs.role == ROLE_TEST))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
     {
         line_pfx = ::common_tokenize(ctx, bot_chat.input_prefix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
@@ -58,12 +58,9 @@ void xBot::predict(INPUTS inputs) {
     embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
 
     //---插入后缀---
-    if (!is_complete && (inputs.role == ROLE_USER))  // 补完模式则不加后缀
+    if (!is_complete && (inputs.role == ROLE_USER || inputs.role == ROLE_OBSERVATION))  // 补完模式则不加后缀
     {
         line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString(), false, true);
-        embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-    } else if (inputs.role == ROLE_THOUGHT) {
-        line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString() + DEFAULT_THOUGHT, false, true);
         embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
     } else if (inputs.role == ROLE_TEST) {
         line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString() + jtr("answer").toStdString() + ": ", false, true);
@@ -732,7 +729,7 @@ void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int cont
             token_str += str;
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
-        if (input.role == ROLE_TOOL) {
+        if (input.role == ROLE_OBSERVATION) {
             emit bot2ui_output(QString::fromStdString(token_str), 0, TOOL_BLUE);
         } else if (context_pos == 0)  //用户昵称
         {

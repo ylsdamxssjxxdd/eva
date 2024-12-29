@@ -245,7 +245,7 @@ void Widget::on_send_clicked() {
             if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
-                inputs = {input, ROLE_THOUGHT};
+                inputs = {input, ROLE_USER};
             } 
             else  //完成同步率测试完成,没有问题剩余
             {
@@ -288,23 +288,15 @@ void Widget::on_send_clicked() {
             }
             //-----------------------一般情况----------------------------
             else {
-                //如果工具返回的结果不为空,加思考而不加前缀和后缀
+                //如果工具返回的结果不为空，则认为输入源是观察者
                 if (tool_result != "") {
-                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + DEFAULT_THOUGHT;
+                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result;
                     tool_result = "";
-                    inputs = {input, ROLE_TOOL};
+                    inputs = {input, ROLE_OBSERVATION};
                 } 
                 else 
                 {
-                    // 如果挂载了工具则强制先思考
-                    if (is_load_tool) 
-                    {
-                        inputs = {input, ROLE_THOUGHT};
-                    } 
-                    else 
-                    {
-                        inputs = {input, ROLE_USER};
-                    }
+                    inputs = {input, ROLE_USER};
                 }
             }
         }
@@ -834,8 +826,8 @@ void Widget::serverControl() {
         // qDebug()<<"readyReadStandardError"<<ui_output;
         //启动成功的标志
         if (ui_output.contains(SERVER_START)) {
-            ui_output += "\n" + jtr("api endpoint") + " " +  ipAddress + ":" + ui_port;
-            ui_output += "\n" + jtr("model") + jtr("name") + " " + "default" + "\n";
+            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + " " +  ipAddress + ":" + ui_port;
+            ui_output += QString(DEFAULT_SPLITER) + jtr("model") + jtr("name") + " " + "default" + QString(DEFAULT_SPLITER);
             ui_state_info = "ui:server " + jtr("on") + jtr("success") + "," + jtr("browser at") + ipAddress + ":" + ui_port;
             auto_save_user();  //保存ui配置
             reflash_state(ui_state_info, SUCCESS_SIGNAL);
@@ -1019,8 +1011,8 @@ void Widget::api_send_clicked_slove() {
                     ui_insert_history.append({jtr(QString("H%1").arg(i)), API_ROLE_USER});                                  //问题
                     ui_insert_history.append({jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), API_ROLE_ASSISANT});  //答案不要答案:这三个字
                     //贴出引导题
-                    reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
-                    reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
+                    reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
+                    reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
                 }
                 help_input = false;
             }
@@ -1047,9 +1039,9 @@ void Widget::api_send_clicked_slove() {
         data.insert_history = ui_insert_history;
         data.n_predict = 1;
         emit ui2net_data(data);
-        reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
         reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
-        reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
     } 
     else 
     {
@@ -1065,7 +1057,7 @@ void Widget::api_send_clicked_slove() {
             //如果工具返回的结果不为空,则发送工具结果给net
             if (tool_result != "") {
                 ui_insert_history.append({DEFAULT_OBSERVATION + tool_result, API_ROLE_OBSERVATION});
-                reflash_output(DEFAULT_OBSERVATION + tool_result + "\n", 0, TOOL_BLUE);  //天蓝色表示工具返回结果
+                reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
                 tool_result = "";
 
@@ -1076,9 +1068,9 @@ void Widget::api_send_clicked_slove() {
             } else {
                 ui_insert_history.append({input, API_ROLE_USER});
                 data.insert_history = ui_insert_history;
-                reflash_output("\n" + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
                 reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
-                reflash_output("\n" + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
                 data.n_predict = ui_SETTINGS.npredict;
                 emit ui2net_data(data);
             }

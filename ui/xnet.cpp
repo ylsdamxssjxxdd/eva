@@ -194,6 +194,7 @@ QByteArray xNet::createChatBody() {
     // userMessage.insert("image_url", "C:\\Users\\32138\\Desktop\\ayanami.png");
     // messagesArray.append(userMessage);
     QJsonObject roleMessage;
+    // qDebug()<<endpoint_data.insert_history;
     for (int i = 0; i < endpoint_data.insert_history.size(); ++i) {
         if (endpoint_data.insert_history.at(i).second == API_ROLE_USER)  // 如果是用户发送的
         {

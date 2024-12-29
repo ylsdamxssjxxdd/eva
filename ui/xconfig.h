@@ -38,11 +38,9 @@ struct CHATS {
 
 //发送内容的源
 enum ROLE {
-    ROLE_USER,     // 加前缀后缀输入。     
-    ROLE_TOOL,     // 不加前缀后缀，用天蓝色输出用户输入部分。 
-    ROLE_TEST,     // 同时改变is_test标志。             
-    ROLE_DEBUG,    // 不加前缀后缀输入。
-    ROLE_THOUGHT,  // 后缀末尾的分隔符用 thought: 代替   
+    ROLE_USER,     // 加前缀后缀输入     
+    ROLE_OBSERVATION, // 只加后缀，引导模型回答
+    ROLE_TEST,     // 同时改变is_test标志             
 };
 
 //传递的前缀/输入/后缀

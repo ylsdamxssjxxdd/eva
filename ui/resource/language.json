@@ -812,29 +812,17 @@
             "额外指令",
             "extra"
         ],
-        "tool_observation": [
-            "观察:",
-            "observation:"
-        ],
-        "tool_observation2": [
-            "观察：",
-            "observation："
-        ],
-        "tool_thought": [
-            "思考:",
-            "thought: "
-        ],
         "head_extra_prompt": [
-            "尽可能准确回答用户的问题. 你可以使用以下工具:\n\n",
-            "Respond to the human as helpfully and accurately as possible. You have access to the following tools:\n\n"
+            "尽可能准确简洁的回答用户的问题. 你可以使用以下工具:\n\n",
+            "Answer users' questions as accurately and concisely as possible. You have access to the following tools:\n\n"
         ],
         "middle_extra_prompt": [
-            "\n使用一个\"$JSON\"来调用工具，需要提供一个\"action_name\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action_name\"的值只能是: \"answer\" ",
-            "\nUse a \"$JSON\" to specify a tool by providing an action_name key (tool name) and an action_input key (tool input).\nValid \"action_name\" values: \"answer\"  "
+            "\n使用一段JSON文本来调用工具，需要提供一个\"action_name\"关键字(工具名)和一个\"action_input\"关键字(参数)\n\"action_name\"的值只能是: \"answer\" ",
+            "\nUse a JSON text to call a tool by providing an action_name key (tool name) and an action_input key (tool input).\nValid \"action_name\" values: \"answer\"  "
         ],
         "tail_extra_prompt": [
-            "\n\"$JSON\"的格式要像这样: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\n回答时遵循以下格式:\nthought: 一步一步分析\naction: \"$JSON\"\nobservation: 工具返回的结果\n(重复thought/action/observation多次直到问题解决)\nthought: 我知道如何回复用户了\naction: {\"action_name\":\"answer\",\"action_input\":\"你的最终回复\"}\n",
-            "\nProvide only ONE action_name per \"$JSON\", as shown: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\nFollow this format:\nthought: consider previous and subsequent steps\naction: \"$JSON\"\nobservation: action result ...\n(repeat thought/action/observation N times)\nthought: I know what to respond \naction: {\"action_name\":\"answer\",\"action_input\":\"You final response\"}\n"
+            "\n格式要像这样: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\n",
+            "\nProvide only ONE action_name per JSON text, as shown: {\"action_name\": \"$TOOL_NAME\",\"action_input\": \"$INPUT\"}\n"
         ],
         "calculator_func_describe": [
             "calculator(str) - 输入一个 JavaScript 表达式，返回计算结果。",
@@ -861,8 +849,8 @@
             "stablediffusion(str) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
         ],
         "interpreter_func_describe": [
-            "interpreter(str) - 输入一段完整的Python代码，工具将代码写入interpreter.py中并执行和返回运行结果，你将观察到代码中print语句的输出或错误信息，也可以运行交互式的程序。",
-            "interpreter(str) - Enter a complete Python code, the tool will write the code into interpreter.py and execute and return the run result, you will observe the output or error message of the print statement in the code, it can also run interactive programs."
+            "interpreter(str) - 传入一段完整的Python代码，工具将执行和返回运行结果，你将观察到代码中print语句的输出或错误信息，也可以运行交互式的程序。",
+            "interpreter(str) - Enter a complete Python code, the tool will execute and return the run result, you will observe the output or error message of the print statement in the code, it can also run interactive programs."
         ],
         "main window": [
             "主窗口",
