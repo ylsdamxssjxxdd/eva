@@ -264,6 +264,10 @@
             "模型昵称",
             "model "
         ],
+        "name": [
+            "名称",
+            "name "
+        ],
         "sample set": [
             "采样参数",
             "sample set"
@@ -275,6 +279,22 @@
         "state set": [
             "状态设置",
             "state set"
+        ],
+        "EVA_VERSION": [
+            "eva型号",
+            "EVA_VERSION"
+        ],
+        "COMPILE_VERSION": [
+            "编译器版本",
+            "COMPILE_VERSION"
+        ],
+        "QT_VERSION_": [
+            "QT版本",
+            "QT_VERSION"
+        ],
+        "EVA_PRODUCT_TIME": [
+            "eva生产时间",
+            "EVA_PRODUCT_TIME"
         ],
         "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response": [
             "温度越高回答越发散,温度越低回答越准确",

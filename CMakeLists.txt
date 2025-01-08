@@ -17,9 +17,9 @@ option(GGML_VULKAN                   "ggml: use Vulkan"                         
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
-
 # 这几个标志是互斥的
 if(GGML_CUDA)
+    set(GGML_NATIVE OFF) # 不使用本机加速优化，会使cuda版本体积变大但是兼容性变强
     add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 机体用GPU的标志
     add_compile_definitions(GGML_USE_CUDA) # ggml用cuda的标志
@@ -174,6 +174,17 @@ endif()
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
 add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd) # 确保eva最后生产，保证后处理顺利进行
+
+# 定义传递给.cpp的变量
+set(EVA_VERSION ${eva_OUTPUT_NAME}) # eva型号
+set(COMPILE_VERSION "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}") # 编译器版本
+set(QT_VERSION_ ${Qt5Core_VERSION}) # qt版本
+string(TIMESTAMP COMPILE_TIME "%Y-%m-%d %H:%M:%S")
+set(EVA_PRODUCT_TIME ${COMPILE_TIME}) # eva编译时间
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmakeconfig.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmakeconfig.h
+)
 
 # 后处理
 if(MSVC)

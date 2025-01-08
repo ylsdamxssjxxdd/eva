@@ -41,7 +41,7 @@
 #endif
 
 #include "xconfig.h"
-
+#include "cmakeconfig.h"
 namespace Ui {
 class Expend;
 }

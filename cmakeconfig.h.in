@@ -1,0 +1,5 @@
+// config.h.in
+#define EVA_VERSION "@EVA_VERSION@"
+#define COMPILE_VERSION "@COMPILE_VERSION@"
+#define QT_VERSION_ "@QT_VERSION_@"
+#define EVA_PRODUCT_TIME "@EVA_PRODUCT_TIME@"

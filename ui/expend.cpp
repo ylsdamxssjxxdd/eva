@@ -10,7 +10,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     QString stylesheet = tr(file.readAll());
     this->setStyleSheet(stylesheet);
     file.close();
-
     //初始化选项卡
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);  //这样才能滚轮放大
@@ -526,6 +525,13 @@ void Expend::showReadme() {
     readme_content.replace(regExp, "");// 使用replace函数去掉所有<summary>和</summary>标记
     readme_content.remove("<details>");
     readme_content.remove("</details>");
+
+    // 添加编译信息
+    readme_content.push_front(jtr("EVA_PRODUCT_TIME") + " " +QString(EVA_PRODUCT_TIME) + "; " + DEFAULT_SPLITER);
+    readme_content.push_front(jtr("QT_VERSION_") + " " +QString(QT_VERSION_) + "; ");
+    readme_content.push_front(jtr("COMPILE_VERSION") + " " +QString(COMPILE_VERSION) + "; ");
+    readme_content.push_front(jtr("EVA_VERSION") + " " +QString(EVA_VERSION) + "; ");
+    
     ui->info_card->setMarkdown(readme_content);
 
     // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
@@ -545,6 +551,7 @@ void Expend::showReadme() {
     cursor.insertImage(imageFormat);
 
     cursor.insertText("\n\n");
+    
 }
 
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
