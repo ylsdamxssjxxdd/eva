@@ -287,7 +287,7 @@ int xBot::stream()
         // 构建概率表格
         buildProbtable(&id);
         // 处理不完整的utf8字符
-        completeUtf8(&sstr, &id);
+         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
         if(checkStop(&sstr, &id)){return -1;}
 
@@ -306,6 +306,7 @@ int xBot::stream()
 
     return -1;
 }
+
 
 //预解码图像
 void xBot::preDecodeImage(QString image_path)
@@ -374,6 +375,7 @@ void xBot::load(QString modelpath_) {
     //如果不是打开软件后第一次装载则释放模型和上下文
     if (!is_first_load && !is_free)  //如果已经释放则不再释放
     {
+        is_model_load = false;          //标记未完成装载
         llama_kv_cache_clear(ctx);  //清空ctx kv缓存
         n_past = 0;
         common_sampler_free(smpl);smpl = nullptr;
@@ -479,7 +481,7 @@ void xBot::load(QString modelpath_) {
     }
     // qDebug()<<"load后"<<common_params_.n_gpu_layers<<maxngl;
 
-    is_load = true;          //标记已完成装载
+    is_model_load = true;          //标记已完成装载
     is_load_predecode = false; //标记装载后是否经过一次预解码
     get_default_templete_chat_format();// 获取系统指令、输入前缀、输入后缀
     is_first_reset = true;  //模型装载后首次重置完成标签,控制是否输出清空的消息
@@ -583,8 +585,8 @@ void xBot::reset() {
     }
     emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
     emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
-    emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);   //将预解码内容贴到输出区
-    emit bot2ui_predecode(QString::fromStdString(token_str));                //传递模型预解码内容
+    emit bot2ui_predecode(QString::fromStdString(token_str)); //传递模型预解码内容
+    if(!is_first_reset){emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);}   //将预解码内容贴到输出区
 
     if (!is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
     {
@@ -614,7 +616,7 @@ void xBot::preDecodeSystemPrompt() {
     //------------------------------推理-----------------------------------
     if (!embd.empty()) {
         //按批处理,直到处理完
-        if (embd.size() > 1) {
+        if (embd.size() > 1 && !is_first_reset) {
             bot2ui_state("bot:" + jtr("predecode system instruction"));
         }
         for (int i = 0; i < (int)embd.size(); i += common_params_.n_batch) {
@@ -642,7 +644,7 @@ void xBot::preDecodeSystemPrompt() {
 
     float time_ = time2.nsecsElapsed() / 1000000000.0;
     float speed_ = predecode_num / time_;
-    emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+    if(!is_first_reset){emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);}
     is_stop = false;
     history_prompt = bot_chat.system_prompt;//同步
     return;
@@ -828,7 +830,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
         return;
     }
     //如果是第一次装载或从网络模式转回来则重新加载模型
-    if (!is_load) {
+    if (!is_model_load) {
         reload_flag = true;
         is_first_load = true;
     }
@@ -853,7 +855,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
 
     //是否重载
     if (reload_flag) {
-        is_load = false;       //开放重载标签，允许重载
+        is_model_load = false;       //开放重载标签，允许重载
         emit bot2ui_reload();  // bot发信号请求ui触发reload
         
     } else {
@@ -870,7 +872,7 @@ void xBot::recv_date(DATES date) {
 
 //释放旧的模型和上下文
 void xBot::recv_free(bool loadlater) {
-    if (is_load) {
+    if (is_model_load) {
         QElapsedTimer time2;
         time2.start();
         llama_kv_cache_clear(ctx);  //清空ctx kv缓存
@@ -879,7 +881,7 @@ void xBot::recv_free(bool loadlater) {
         llama_free_model(model);
         model = nullptr;
         is_free = true;
-        is_load = false;
+        is_model_load = false;
         Brain_vector.clear();
         emit bot2ui_kv(0, 0);
         emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);                                                                                            // 1强制刷新记忆矩阵
@@ -1054,7 +1056,7 @@ std::string xBot::toLowerCaseASCII(const std::string &input) {
 void xBot::get_default_templete_chat_format()
 {
     // -------------提取原项目默认对话模板内容--------------
-    if(!is_load){return;}
+    if(!is_model_load){return;}
 
     // 用这些固定的词提取模板
     QString format_prompt_name = "format_prompt_name";
@@ -1151,7 +1153,7 @@ void xBot::buildProbtable(llama_token *id)
 
 }
 
-// 处理不完整的utf8字符
+// 处理不完整的utf8字符 
 void xBot::completeUtf8(std::string *sstr, llama_token *id)
 {
     if (pick_half_utf8.size() > 0 && pick_half_utf8.size() < 3) 
@@ -1165,14 +1167,22 @@ void xBot::completeUtf8(std::string *sstr, llama_token *id)
         if (!is_test) pick_half_utf8.push_back(*id);
         *sstr = "";
         emit bot2ui_state("bot:" + jtr("incompleteUTF8 detected"), WRONG_SIGNAL);
+        
+    }
+    // 支持处理多个字节
+    if (pick_half_utf8.size() > 1) 
+    {
+        std::string tmpstr = tokens_to_str(ctx, pick_half_utf8.cbegin(), pick_half_utf8.cend());
+        if(!isIncompleteUTF8(tmpstr))
+        {
+            *sstr = tmpstr;
+            pick_half_utf8.clear();
+            emit bot2ui_state("bot:utf8" + jtr("complete") + " " + QString::fromStdString(*sstr), USUAL_SIGNAL);
+        }
+        
     }
 
-    if (pick_half_utf8.size() == 3) 
-    {
-        *sstr = tokens_to_str(ctx, pick_half_utf8.cbegin(), pick_half_utf8.cend());
-        pick_half_utf8.clear();
-        emit bot2ui_state("bot:utf8" + jtr("complete") + " " + QString::fromStdString(*sstr), USUAL_SIGNAL);
-    }
+
 }
 
 // 检测停止词并将文本输出到ui

@@ -48,26 +48,6 @@ Large Language Model Tool: EVA (based on llama.cpp & qt5)
     - If running SD simultaneously, make sure to leave enough VRAM for SD
 
 
-## Core Gameplay
-
-1. Load soul into EVA
-
-    - Each model file is a unique soul. Choose one to load into the EVA and observe how the neurons establish connections!
-
-2. Predicting the next word
-
-    - The essence of a large language model is predicting the next word. It achieves this through decoding and sampling, which will be an interesting process!
-
-3. Call tools
-
-    - How to enable llm to acquire the ability to interact with the outside world? Implement tools mounted on the EVA and open the window to reality for it!
-
-3. Automated Exploration
-
-    - Can the llm take over your daily tasks? Let your imagination run wild! 
-
-Remember, the important thing is never the outcome 😊
-
 ## Function
 
 ### Foundation function
@@ -275,7 +255,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Load process
 
-    - [ui] -> you clicks on load -> Select path -> Send setting parameters -> [bot] -> Processing parameters -> Send overload signal -> [ui] -> Pre load -> Loading interface status -> Send loading signal -> [bot] -> Start loading -> Send loading animation signal -> After loading reset -> Send loading completion signal -> [ui] -> Accelerate loading animation -> Loading animation end -> Rolling animation start -> Animation end -> Force unlocking -> Trigger sending -> Send pre decoding (only decoding but not sampling output) instruction -> [bot] -> Pre decoding system instruction -> Send decoding completion signal -> [ui] -> Normal interface status -> END
+    - [ui] -> you clicks on load -> Select path -> Send setting parameters -> [bot] -> Processing parameters -> Send overload signal -> [ui] -> Pre load -> Loading interface status -> Send loading signal -> [bot] -> Start loading -> Send loading animation signal -> After loading reset -> Pre decoding system instruction -> Send loading completion signal -> [ui] -> Accelerate loading animation -> Loading animation end -> Rolling animation start -> Animation end -> Force unlocking -> Trigger sending -> Send pre decoding (only decoding but not sampling output) instruction -> Normal interface status -> END
 
 - Send process
 

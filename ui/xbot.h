@@ -118,7 +118,7 @@ class xBot : public QObject {
     std::string bot_modelpath = "";                                                                        //模型路径
     std::string lorapath = "";                                                                             // lora模型路径
     std::string mmprojpath = "";                                                                           // mmproj模型路径                                                                                         //用户输入
-    bool is_stop = false, is_load = false, is_load_predecode = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
+    bool is_stop = false, is_model_load = false, is_load_predecode = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
     bool is_complete = false;                                                                              //补完模式标签
     bool is_antiprompt = false;                                                                            //上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
     bool is_datetoolong = false;                                                                           //如果约定的系统指令长度太长则不约定

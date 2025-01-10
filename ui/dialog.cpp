@@ -241,6 +241,7 @@ void Widget::unlockLoad() {
     force_unlockload_pTimer->stop();
     is_load_play_over = true;  //标记模型动画已经完成
     ui_state_normal();//解锁界面
+    reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);;//显示预解码内容
 }
 
 // 按日志显示装载进度
