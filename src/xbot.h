@@ -12,12 +12,12 @@
 #include <QThread>
 
 #include <cstring>
-#include "llama.cpp/common/common.h"
-#include "llama.cpp/common/stb_image.h"
-#include "llama.cpp/common/sampling.h"
-#include "llama.cpp/examples/llava/clip.h"
-#include "llama.cpp/examples/llava/llava.h"
-#include "llama.cpp/include/llama.h"
+#include "thirdparty/llama.cpp/common/common.h"
+#include "thirdparty/llama.cpp/common/stb_image.h"
+#include "thirdparty/llama.cpp/common/sampling.h"
+#include "thirdparty/llama.cpp/examples/llava/clip.h"
+#include "thirdparty/llama.cpp/examples/llava/llava.h"
+#include "thirdparty/llama.cpp/include/llama.h"
 #include "xconfig.h"  //ui和bot都要导入的共有配置
 
 // llama模型类

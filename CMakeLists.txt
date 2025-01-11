@@ -10,7 +10,7 @@ set(version b4393) # 打包版本
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 
@@ -48,8 +48,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8") # 支持代码中的中文
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
         # 监视gpu部分
-        list(APPEND extra_INCLUDES ui/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
-        list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/nvml.lib) # 向extra_LIBS列表里添加文件
+        list(APPEND extra_INCLUDES src/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        list(APPEND extra_LIBS ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/nvml.lib) # 向extra_LIBS列表里添加文件
         # 方便打包时找到cuda相关库
         find_package(CUDAToolkit)
         string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
@@ -73,8 +73,8 @@ elseif(UNIX)
     option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
-        #list(APPEND extra_INCLUDES ui/utils/gpuchecker.h ui/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
-        list(APPEND extra_INCLUDES ui/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
+        #list(APPEND extra_INCLUDES src/utils/gpuchecker.h src/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
+        list(APPEND extra_INCLUDES src/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
         find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
         list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
         # 方便打包时找到cuda相关库
@@ -89,8 +89,8 @@ endif()
 
 ##################################### 第三方程序相关 #####################################
 
-add_subdirectory(ui/utils/audio/libsamplerate) # 添加libsamplerate音频重采样库
-add_subdirectory(ui/utils/audio/libsndfile) # 添加libsndfile读取音频文件
+add_subdirectory(thirdparty/libsamplerate) # 添加libsamplerate音频重采样库
+add_subdirectory(thirdparty/libsndfile) # 添加libsndfile读取音频文件
 list(APPEND extra_LIBS samplerate sndfile)
 
 if(WIN32)
@@ -103,30 +103,30 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # sd原项目支持必须
 add_definitions(-DGGML_MAX_NAME=128) # sd原项目支持必须
 add_definitions(-DGGML_MAX_N_THREADS=512) # llama原项目支持必须
 
-add_subdirectory(llama.cpp/ggml) # 添加ggml库
+add_subdirectory(thirdparty/llama.cpp/ggml) # 添加ggml库
 
 # whisper.cpp-34972db
-add_subdirectory(whisper.cpp) # 添加whisper.dll
-add_subdirectory(whisper.cpp/examples) # 添加whisper执行程序
+add_subdirectory(thirdparty/whisper.cpp) # 添加whisper.dll
+add_subdirectory(thirdparty/whisper.cpp/examples) # 添加whisper执行程序
 
 # stable-diffusion.cpp-4570715
-add_subdirectory(stable-diffusion.cpp) # 添加stable-diffusion.dll
-add_subdirectory(stable-diffusion.cpp/examples) # 添加sd执行程序
+add_subdirectory(thirdparty/stable-diffusion.cpp) # 添加stable-diffusion.dll
+add_subdirectory(thirdparty/stable-diffusion.cpp/examples) # 添加sd执行程序
 
-add_subdirectory(llama.cpp) # 添加llama库
-add_subdirectory(llama.cpp/common) # 添加common库
-set_target_properties(llama PROPERTIES PUBLIC_HEADER llama.cpp/include/llama.h) # 包含llama.h头文件
+add_subdirectory(thirdparty/llama.cpp) # 添加llama库
+add_subdirectory(thirdparty/llama.cpp/common) # 添加common库
+set_target_properties(llama PROPERTIES PUBLIC_HEADER thirdparty/llama.cpp/include/llama.h) # 包含llama.h头文件
 set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
 if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
 endif()
-# add_subdirectory(llama.cpp/examples/imatrix) # 生成重要性矩阵用
-# add_subdirectory(llama.cpp/examples/main) # 测试用
-# add_subdirectory(llama.cpp/examples/llava) # 测试用
-# add_subdirectory(llama.cpp/examples/llama-bench) # 添加llama-bench
-add_subdirectory(llama.cpp/examples/tts) # 添加tts
-add_subdirectory(llama.cpp/examples/quantize) # 添加quantize
-add_subdirectory(llama.cpp/examples/server) # 添加server
+# add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
+# add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
+# add_subdirectory(thirdparty/llama.cpp/examples/llava) # 测试用
+# add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
+add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
+add_subdirectory(thirdparty/llama.cpp/examples/quantize) # 添加quantize
+add_subdirectory(thirdparty/llama.cpp/examples/server) # 添加server
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
@@ -143,21 +143,21 @@ message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
-set(resource_FILES ui/resource/res.qrc ui/resource/ceval.qrc ui/resource/mmlu.qrc)
+set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc)
 
 # 应用程序图标windows
-set(logo_FILES ui/resource/logo/ico.rc)
+set(logo_FILES resource/logo/ico.rc)
 
 # 创建eva.exe,添加源文件
 add_executable(
 ${TARGET}
 ${BODY_PACK_EXE}
 ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
-ui/main.cpp ui/utils.cpp ui/dialog.cpp ui/widget.cpp ui/expend.cpp ui/xbot.cpp ui/xnet.cpp ui/xtool.cpp
-ui/widget.h ui/xbot.h ui/xtool.h ui/expend.h ui/xnet.h ui/xconfig.h
-ui/widget.ui ui/expend.ui
-ui/utils/gpuchecker.h ui/utils/waterwaveplaintextedit.h ui/utils/cpuchecker.h ui/utils/customqplaintextedit.h ui/utils/doubleqprogressbar.h ui/utils/cutscreendialog.h ui/utils/customtabwidget.h ui/utils/customswitchbutton.h
-llama.cpp/examples/llava/clip.cpp llama.cpp/examples/llava/clip.h llama.cpp/examples/llava/llava.cpp llama.cpp/examples/llava/llava.h
+src/main.cpp src/utils.cpp src/dialog.cpp src/widget.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp
+src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h
+src/widget.ui src/expend.ui
+src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h
+thirdparty/llama.cpp/examples/llava/clip.cpp thirdparty/llama.cpp/examples/llava/clip.h thirdparty/llama.cpp/examples/llava/llava.cpp thirdparty/llama.cpp/examples/llava/llava.h
 )
 
 # 生成程序的名字
@@ -257,7 +257,7 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-tts"
-            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
@@ -268,14 +268,14 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1.7.2" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1.7.2" # 注意版本号
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/ui/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/llama.cpp/ggml/src/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
     endif()

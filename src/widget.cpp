@@ -23,7 +23,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     } else {
         language_flag = 1;  //英文
     }
-    getWords(":/language.json");
+    getWords(":/src/utils/language.json");
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
