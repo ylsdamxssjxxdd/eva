@@ -4,8 +4,8 @@ find_package(Threads REQUIRED)
 
 llama_add_compile_flags()
 
-# # Build info header
-# #
+# Build info header
+#
 
 # if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
 #     set(GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
@@ -35,6 +35,7 @@ llama_add_compile_flags()
 
 # # Add a custom command to rebuild build-info.cpp when .git/index changes
 # add_custom_command(
+    
 #     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build-info.cpp"
 #     COMMENT "Generating build details from Git"
 #     COMMAND ${CMAKE_COMMAND} -DMSVC=${MSVC} -DCMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}
@@ -44,11 +45,11 @@ llama_add_compile_flags()
 #     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build-info.cpp.in" ${GIT_INDEX}
 #     VERBATIM
 # )
-# set(TARGET build_info)
-# add_library(${TARGET} OBJECT build-info.cpp)
-# if (BUILD_SHARED_LIBS)
-#     set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-# endif()
+set(TARGET build_info)
+add_library(${TARGET} OBJECT build-info.cpp)
+if (BUILD_SHARED_LIBS)
+    set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 set(TARGET common)
 
