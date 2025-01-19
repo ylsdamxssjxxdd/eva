@@ -30,7 +30,7 @@ xBot::~xBot() { ; }
 
 //模型预测推理过程
 void xBot::predict(INPUTS inputs) {
-
+    
     //--------------------预处理用户输入---------------------
     if (inputs.role == ROLE_TEST) {
         is_test = true;
@@ -72,7 +72,7 @@ void xBot::predict(INPUTS inputs) {
     push_out(inputs, line_pfx, 0);  //在输出区贴上用户昵称
     push_out(inputs, line_inp, 1);  //在输出区贴上输入内容
     push_out(inputs, line_sfx, 2);  //在输出区贴上模型昵称
-
+    
     //---------------------embd_inp插入到embd中----------------------
     // qDebug()<<"插入前embd"<<view_embd(ctx,embd);
     while ((int)embd_inp.size() > n_consumed) {
@@ -163,7 +163,7 @@ int xBot::stream()
 
             llama_token decoder_start_token_id = llama_model_decoder_start_token(model);
             if (decoder_start_token_id == -1) {
-                decoder_start_token_id = llama_token_bos(model);
+                decoder_start_token_id = bos_token;
             }
 
             embd_inp.clear();
@@ -371,7 +371,7 @@ void xBot::load(QString modelpath_) {
 #elif __linux__
     std::string modelpath = modelpath_.toStdString();
 #endif
-
+    
     //如果不是打开软件后第一次装载则释放模型和上下文
     if (!is_first_load && !is_free)  //如果已经释放则不再释放
     {
@@ -380,7 +380,7 @@ void xBot::load(QString modelpath_) {
         n_past = 0;
         common_sampler_free(smpl);smpl = nullptr;
         llama_free(ctx);ctx = nullptr;
-        llama_free_model(model);model = nullptr;
+        llama_model_free(model);model = nullptr;
 
         emit bot2ui_kv(0, n_past);  //新增,当前没有缓存
         Brain_vector.clear();
@@ -413,32 +413,15 @@ void xBot::load(QString modelpath_) {
     emit bot2ui_play();  //播放动画
 
     //装载模型
-    common_init_result llama_init = common_init_from_params(common_params_);
-    model = llama_init.model;
-    ctx = llama_init.context;
+    llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = common_params_.n_gpu_layers;
+    model = llama_model_load_from_file(common_params_.model.c_str(), model_params);
+    vocab = llama_model_get_vocab(model);
+    llama_context_params ctx_params = llama_context_default_params();
+    ctx_params.n_ctx = common_params_.n_ctx;
+    ctx_params.n_threads = common_params_.cpuparams.n_threads;
+    ctx = llama_init_from_model(model, ctx_params);
     smpl = common_sampler_init(model, common_params_.sampling);
-    
-    //创建线程池
-    struct ggml_threadpool_params tpp_batch = ggml_threadpool_params_from_cpu_params(common_params_.cpuparams_batch);
-    struct ggml_threadpool_params tpp = ggml_threadpool_params_from_cpu_params(common_params_.cpuparams);
-    if (!ggml_threadpool_params_match(&tpp, &tpp_batch)) 
-    {
-        threadpool_batch = ggml_threadpool_new(&tpp_batch);
-        if (!threadpool_batch) // 线程池创建失败
-        {
-            is_first_load = true;
-            emit bot2ui_loadover(false, 0);
-            emit bot2ui_state(jtr("eva broken"), EVA_SIGNAL);
-            emit bot2ui_state("bot:batch threadpool create failed", WRONG_SIGNAL);
-            return;
-        }
-        // Start the non-batch threadpool in the paused state
-        tpp.paused = true;
-    }
-    set_process_priority(common_params_.cpuparams.priority);
-    ggml_threadpool_params_match(&tpp, &tpp_batch);
-    threadpool = ggml_threadpool_new(&tpp);
-    llama_attach_threadpool(ctx, threadpool, threadpool_batch);
 
     //挂载视觉
     if (mmprojpath != "") {
@@ -465,12 +448,12 @@ void xBot::load(QString modelpath_) {
         return;
     }
 
-    eos_token = llama_token_eos(model);  // 结束标志
-    eot_token = llama_token_eot(model);  // 结束标志
-    bos_token = llama_token_bos(model);  // 开始标志
-    n_vocab = llama_n_vocab(model);          //词表总大小
-    n_ctx_train = llama_n_ctx_train(model);  //模型支持的最大上下文
-    maxngl = llama_n_layer(model) + 1;  // ngl的最大值为模型层数+1
+    eos_token = llama_vocab_eos(vocab);  // 结束标志
+    eot_token = llama_vocab_eot(vocab);  // 结束标志
+    bos_token = llama_vocab_bos(vocab);  // 开始标志
+    n_vocab = llama_vocab_n_tokens(vocab);          //词表总大小
+    n_ctx_train = llama_model_n_ctx_train(model);  //模型支持的最大上下文
+    maxngl = llama_model_n_layer(model) + 1;  // ngl的最大值为模型层数+1
     //返回装载时获取的模型参数
     MODEL_PARAMS p;
     p.n_ctx_train = n_ctx_train;
@@ -500,7 +483,6 @@ void xBot::load(QString modelpath_) {
 //----------------------------------------------------------------------
 //重置上下文，如果是第一次装载这个模型或者约定指令有变则先预解码
 void xBot::reset() {
-    
     QElapsedTimer time1;
     time1.start();
 
@@ -558,6 +540,7 @@ void xBot::reset() {
         n_past = 0;                 //已推理字符数
         n_consumed = 0;             //已推理字符数
         preDecodeSystemPrompt();//预解码约定指令
+        
         is_load_predecode = true;
     } 
     else  //删除prompt以外的kv缓存
@@ -604,7 +587,7 @@ void xBot::preDecodeSystemPrompt() {
     QElapsedTimer time2;
     time2.start();
     int predecode_num = embd_inp.size();
-
+    
     // view_embd(ctx,embd_inp);//看看到底推理了什么
     //---------------------embd_inp插入到embd中----------------------
     while ((int)embd_inp.size() > n_consumed) {
@@ -818,7 +801,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     if (settings_lorapath != lorapath) {
         lorapath = settings_lorapath;
         if (lorapath != "") {
-            common_lora_adapter_info element = {lorapath, 1.0};  // 1.0是lora的影响系数
+            common_adapter_lora_info element = {lorapath, 1.0};  // 1.0是lora的影响系数
             common_params_.lora_adapters.push_back(element);
         } else {
             common_params_.lora_adapters.clear();
@@ -878,7 +861,7 @@ void xBot::recv_free(bool loadlater) {
         llama_kv_cache_clear(ctx);  //清空ctx kv缓存
         llama_free(ctx);
         ctx = nullptr;
-        llama_free_model(model);
+        llama_model_free(model);
         model = nullptr;
         is_free = true;
         is_model_load = false;

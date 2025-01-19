@@ -51,6 +51,7 @@ class xBot : public QObject {
     struct ggml_threadpool * threadpool_batch = NULL; // 线程池，上文处理
 
     llama_model *model;  //模型
+    const llama_vocab* vocab;
     llama_context *ctx;  //上下文
     clip_ctx *ctx_clip;  // clip模型上下文, 编码图像用
     common_sampler * smpl = nullptr; // 采样器
