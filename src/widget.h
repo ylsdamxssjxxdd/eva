@@ -348,6 +348,8 @@ class Widget : public QWidget {
 
     //处理模型信号的槽
    public slots:
+    void recv_predecoding();          // 正在预解码
+    void recv_predecoding_over();    // 完成预解码
     void recv_chat_format(CHATS chats);  //传递格式化后的对话内容
     void recv_freeover_loadlater();                                                         //模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                                  //传递模型预解码的内容

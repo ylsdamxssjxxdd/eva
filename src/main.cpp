@@ -97,6 +97,8 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_state, &w, &Widget::reflash_state);             //窗口状态区更新
     QObject::connect(&bot, &xBot::bot2ui_play, &w, &Widget::recv_play);                  //播放加载动画
     QObject::connect(&bot, &xBot::bot2ui_loadover, &w, &Widget::recv_loadover);          //完成加载模型
+    QObject::connect(&bot, &xBot::bot2ui_predecoding, &w, &Widget::recv_predecoding);    // 正在预解码
+    QObject::connect(&bot, &xBot::bot2ui_predecoding_over, &w, &Widget::recv_predecoding_over);    // 完成预解码
     QObject::connect(&bot, &xBot::bot2ui_pushover, &w, &Widget::recv_pushover);          //完成推理
     QObject::connect(&bot, &xBot::bot2ui_resetover, &w, &Widget::recv_resetover);        //完成重置,预解码约定
     QObject::connect(&bot, &xBot::bot2ui_stopover, &w, &Widget::recv_stopover);          //完成停止

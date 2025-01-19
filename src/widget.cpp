@@ -1292,3 +1292,15 @@ void Widget::recv_chat_format(CHATS chats)
 {
     bot_chat = chats;
 }
+
+// 正在预解码
+void Widget::recv_predecoding()
+{
+    ui_state_pushing();
+}          
+
+// 完成预解码
+void Widget::recv_predecoding_over()
+{
+    ui_state_normal();
+}    

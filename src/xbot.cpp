@@ -54,7 +54,8 @@ void xBot::predict(INPUTS inputs) {
     }
 
     //---插入输入---
-    line_inp = ::common_tokenize(ctx, inputs.input.toStdString(), false, true);  //用户输入,最后一个true表示会将特殊token整个分词
+    if(is_complete){line_inp = ::common_tokenize(ctx, inputs.input.toStdString(), true, true);}
+    else{line_inp = ::common_tokenize(ctx, inputs.input.toStdString(), false, true);}  //用户输入,最后一个true表示会将特殊token整个分词
     embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
 
     //---插入后缀---
@@ -496,15 +497,12 @@ void xBot::reset() {
 
     //---插入系统提示词---
     system_tokens.clear();
-    if (is_complete) 
-    {
-        system_tokens = common_tokenize(ctx, "", true, true);//补完模式预解码空的约定词向量
-    }  
-    else if (is_datetoolong) 
+
+    if (is_datetoolong) 
     {
         system_tokens = common_tokenize(ctx, DEFAULT_DATE_PROMPT, true, true); // 系统指令太长的情况
     } 
-    else 
+    else if(!is_complete)
     {
         system_tokens = common_tokenize(ctx, bot_chat.system_prompt.toStdString(), true, true);
     }
@@ -529,6 +527,7 @@ void xBot::reset() {
     pick_half_utf8.clear();
     embd.clear();
     embd_inp.clear();
+
     embd_inp.insert(embd_inp.end(), system_tokens.begin(), system_tokens.end());  //预解码的约定词向量
 
     bool is_clear_all = false;
@@ -539,7 +538,10 @@ void xBot::reset() {
         llama_kv_cache_clear(ctx);  //清空ctx kv缓存
         n_past = 0;                 //已推理字符数
         n_consumed = 0;             //已推理字符数
-        preDecodeSystemPrompt();//预解码约定指令
+        if(!is_complete)
+        {
+            preDecodeSystemPrompt();//预解码约定指令
+        }
         
         is_load_predecode = true;
     } 
@@ -569,6 +571,7 @@ void xBot::reset() {
     emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量为系统指令token量
     emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);         // 1强制刷新记忆矩阵
     emit bot2ui_predecode(QString::fromStdString(token_str)); //传递模型预解码内容
+
     if(!is_first_reset){emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);}   //将预解码内容贴到输出区
 
     if (!is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
@@ -601,6 +604,7 @@ void xBot::preDecodeSystemPrompt() {
         //按批处理,直到处理完
         if (embd.size() > 1 && !is_first_reset) {
             bot2ui_state("bot:" + jtr("predecode system instruction"));
+            emit bot2ui_predecoding();
         }
         for (int i = 0; i < (int)embd.size(); i += common_params_.n_batch) {
             int n_eval = (int)embd.size() - i;  //待验证
@@ -611,6 +615,7 @@ void xBot::preDecodeSystemPrompt() {
             if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval)))  //将emd推理到ctx中,返回0表示推理正常
             {
                 emit bot2ui_state("bot:" + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+                emit bot2ui_predecoding_over();
                 return;
             }
 
@@ -621,6 +626,7 @@ void xBot::preDecodeSystemPrompt() {
     {
         emit bot2ui_state(jtr("eva confuse"), EVA_SIGNAL);
         emit bot2ui_state("bot:" + jtr("embd no token please restart"), WRONG_SIGNAL);
+        emit bot2ui_predecoding_over();
         return;
     }
     embd.clear();  //清空embd
@@ -630,6 +636,7 @@ void xBot::preDecodeSystemPrompt() {
     if(!is_first_reset){emit bot2ui_state("bot:" + jtr("system calling") + jtr("predecode") + jtr("over") + " " + jtr("batch decode") + ":" + QString::number(speed_, 'f', 2) + " token/s", SUCCESS_SIGNAL);}
     is_stop = false;
     history_prompt = bot_chat.system_prompt;//同步
+    emit bot2ui_predecoding_over();
     return;
 
 }
