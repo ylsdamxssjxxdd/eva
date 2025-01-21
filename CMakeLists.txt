@@ -57,16 +57,6 @@ if(MSVC)
         message(STATUS "cuda主版本 " ${CUDA_VERSION_MAJOR})
         message(STATUS "cuda库路径 " ${CUDAToolkit_BIN_DIR})
     endif()
-
-# mingw设置编译选项
-elseif(MINGW)
-    set(LLAMA_WIN_VER "0x602" CACHE STRING "llama: Windows Version") # 原项目适配mingw
-    add_compile_definitions(_WIN32_WINNT=${LLAMA_WIN_VER}) # 原项目适配mingw
-    add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
-    
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
-
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
@@ -121,7 +111,7 @@ if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
 endif()
 # add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
-add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
+# add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
 # add_subdirectory(thirdparty/llama.cpp/examples/llava) # 测试用
 # add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
@@ -222,28 +212,6 @@ if(MSVC)
             # COMMENT "custom Packing ..."
         )
 
-    endif()
-elseif(MINGW)
-        get_filename_component(COMPILER_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY) # 获取编译器路径
-        message(STATUS "Compiler bin directory: ${COMPILER_BIN_DIR}")
-        # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
-        add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}"
-        # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
-        COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libgomp-1.dll"
-        COMMENT "custom Windeployqt ..."
-    )
-
-    if(BODY_PACK)
-        # 使用winrar打包为一个自解压程序，弃用
-        add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
-            # -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} 切换到输出目录执行后面的命令
-            # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}${sfx_NAME}" "./" "-r"
-            # COMMENT "custom Packing ..."
-        )
     endif()
 elseif(UNIX)
 # 使用linuxdeployqt打包所有组件为一个appimage

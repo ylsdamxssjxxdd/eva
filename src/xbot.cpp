@@ -414,12 +414,10 @@ void xBot::load(QString modelpath_) {
     emit bot2ui_play();  //播放动画
 
     //装载模型
-    llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = common_params_.n_gpu_layers;
+    llama_model_params model_params = common_model_params_to_llama(common_params_);
     model = llama_model_load_from_file(common_params_.model.c_str(), model_params);
     vocab = llama_model_get_vocab(model);
-    llama_context_params ctx_params = llama_context_default_params();
-    ctx_params.n_ctx = common_params_.n_ctx;
+    llama_context_params ctx_params = common_context_params_to_llama(common_params_);
     ctx_params.n_threads = common_params_.cpuparams.n_threads;
     ctx = llama_init_from_model(model, ctx_params);
     smpl = common_sampler_init(model, common_params_.sampling);
@@ -1016,8 +1014,12 @@ bool xBot::process_image(llama_context * ctx, clip_ctx * ctx_clip, struct llava_
 
 //回调函数,获取llama的日志
 void xBot::bot_log_callback(ggml_log_level level, const char *text, void *user_data) {
-    xBot *bot = static_cast<xBot *>(user_data);  //类型转换操作,不消耗资源,重新解释了现有内存地址的类型
-    emit bot->bot_llama_log(QString::fromStdString(text));
+    if(level == GGML_LOG_LEVEL_INFO)//只保留常规输出信息，不要debug信息
+    {
+        xBot *bot = static_cast<xBot *>(user_data);  //类型转换操作,不消耗资源,重新解释了现有内存地址的类型
+        emit bot->bot_llama_log(QString::fromStdString(text));
+    }
+
 }
 
 template <class Iter>

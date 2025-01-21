@@ -10,6 +10,8 @@
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 注释掉 llama.cpp/examples/server/httplib.h的 CreateFileW2
 - 禁用掉thirdparty\llama.cpp\common\CMakeLists.txt 里的add_custom_command相关 但是确保存在build-info.cpp文件
+- thirdparty\llama.cpp\ggml\src\ggml-vulkan\CMakeLists.txt 
+${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}
 
 ### stable-diffusion.cpp
 - 删除自己的ggml文件夹
