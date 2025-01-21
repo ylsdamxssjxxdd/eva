@@ -7,12 +7,18 @@ project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
 set(version b4508) # 打包版本
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release) # 设置最终eva的输出目录
+
+# 设置所有构建类型下的可执行文件的输出目录
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -106,9 +112,8 @@ add_subdirectory(thirdparty/stable-diffusion.cpp/examples) # 添加sd执行程�
 add_subdirectory(thirdparty/llama.cpp) # 添加llama库
 add_subdirectory(thirdparty/llama.cpp/common) # 添加common库
 set_target_properties(llama PROPERTIES PUBLIC_HEADER thirdparty/llama.cpp/include/llama.h) # 包含llama.h头文件
-set_target_properties(llama PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}) # 使llama.dll在build/Release目录下
 if(UNIX AND NOT APPLE)
-    set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})# 针对 Linux 平台（生成 .so 文件）
+    set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})# 针对 Linux 平台（生成 .so 文件）
 endif()
 # add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
 # add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
@@ -130,7 +135,7 @@ get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE) # 获取Q
 
 message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
-message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}")
+message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc)
@@ -180,7 +185,7 @@ configure_file(
 if(MSVC)
     # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
-        COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}"
+        COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
         COMMENT "custom Windeployqt ..."
     )
 
@@ -189,13 +194,13 @@ if(MSVC)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
                 "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublas64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cublas64_${CUDA_VERSION_MAJOR}.dll"
             COMMAND ${CMAKE_COMMAND} -E copy
                 "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cudart64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cudart64_${CUDA_VERSION_MAJOR}.dll"
             COMMAND ${CMAKE_COMMAND} -E copy
                 "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
+                "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
             COMMENT "Copying CUDA libraries to output directory"
             )
     endif()
@@ -203,12 +208,12 @@ if(MSVC)
     if(BODY_PACK)
         # 删除msvc编译器生成共享库产生的辅助文件以及一些非必须文件，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/vc_redist.x64.exe"
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/EVA_TEMP"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/vc_redist.x64.exe"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/EVA_TEMP"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
             COMMENT "custom Removing ..."
             # rar需要在环境变量中 -sfx是创建自解压程序 sfxconfig.txt是配置文件
-            # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
+            # COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "rar" "a" "-sfx" "-z..\\..\\ui\\utils\\sfxconfig.txt" "${eva_OUTPUT_NAME}.exe" "./" "-r"
             # COMMENT "custom Packing ..."
         )
 
@@ -220,30 +225,30 @@ elseif(UNIX)
         # 自动打包操作，这个动作在eva生产之后
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # 挪动文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/eva"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-server"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-quantize"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/llama-tts"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/eva"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-server"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-quantize"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-tts"
             # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
             
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
             # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/AppDir/usr/bin/sd"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/sd"
 
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1" # 这个是快捷方式
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1.7.2" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1.7.2" # 注意版本号
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
 
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
-            COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
+            COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
     endif()
