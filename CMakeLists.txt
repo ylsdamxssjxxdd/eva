@@ -116,7 +116,7 @@ if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})# 针对 Linux 平台（生成 .so 文件）
 endif()
 # add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
-# add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
+add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
 # add_subdirectory(thirdparty/llama.cpp/examples/llava) # 测试用
 # add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts

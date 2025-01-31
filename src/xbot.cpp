@@ -4,7 +4,7 @@
 #include "xbot.h"
 
 xBot::xBot() {
-    llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
+    // llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
 
     //初始的模型参数
@@ -466,9 +466,12 @@ void xBot::load(QString modelpath_) {
 
     is_model_load = true;                //标记已完成装载
     is_load_predecode = false;           //标记装载后是否经过一次预解码
+    
     get_default_templete_chat_format();  // 获取系统指令、输入前缀、输入后缀
     is_first_reset = true;               //模型装载后首次重置完成标签,控制是否输出清空的消息
+    
     reset();                             //初始化模型,1表示清空上下文并预解码
+
     is_first_reset = false;              //模型装载后首次重置完成标签,控制是否输出清空的消息
     is_first_load = false;               //标记是否是打开软件后第一次装载
     is_free = false;
@@ -1063,11 +1066,11 @@ void xBot::get_default_templete_chat_format() {
 
     // 用这些固定的词提取模板
     QString format_prompt_name = "format_prompt_name";
-    QString format_user_name = "format_user_name";
-    QString format_model_name = "format_model_name";
-    QString format_user_msg1 = "format_user_msg1";
+    QString format_user_name = "user";
+    QString format_model_name = "assistant";
+    QString format_user_msg1 = "format_use_msg1";//故意用use避免user替换
     QString format_model_msg1 = "format_model_msg1";
-    QString format_user_msg2 = "format_user_msg2";
+    QString format_user_msg2 = "format_use_msg2";
     QString format_model_msg2 = "format_model_msg2";
 
     // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀

@@ -93,7 +93,7 @@ int main(int argc, char ** argv) {
     }
 
     common_init();
-
+    params.model = "D:\\soul\\DeepSeek-R1-Distill-Qwen-7B-Q3_K_M.gguf";
     auto & sparams = params.sampling;
 
     // save choice to use color for later
