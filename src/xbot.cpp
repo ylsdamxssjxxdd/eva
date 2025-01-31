@@ -1072,11 +1072,10 @@ void xBot::get_default_templete_chat_format() {
 
     // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
     std::vector<common_chat_msg> msgs = {
-        {"system", format_prompt_name.toStdString()}, {format_user_name.toStdString(), format_user_msg1.toStdString()}, {format_model_name.toStdString(), format_model_msg1.toStdString()}, {format_user_name.toStdString(), format_user_msg2.toStdString()}, {format_model_name.toStdString(), format_model_msg2.toStdString()},
+        {"system", format_prompt_name.toStdString(), {}}, {format_user_name.toStdString(), format_user_msg1.toStdString(), {}}, {format_model_name.toStdString(), format_model_msg1.toStdString(), {}}, {format_user_name.toStdString(), format_user_msg2.toStdString(), {}}, {format_model_name.toStdString(), format_model_msg2.toStdString(), {}},
     };
-
-    QString default_template_content = QString::fromStdString(common_chat_apply_template(model, "", msgs, true));
-    // std::cout << common_chat_apply_template(model, "", msgs, true) << std::endl;
+    auto chat_templates = common_chat_templates_from_model(model, common_params_.chat_template);
+    QString default_template_content = QString::fromStdString(common_chat_apply_template(*chat_templates.template_default, msgs, true, false));
     // 提取系统指令
     QStringList split1 = default_template_content.split(format_prompt_name);
     bot_chat.system_prompt = split1[0] + bot_date.date_prompt;                                      // 拼接原来的约定指令

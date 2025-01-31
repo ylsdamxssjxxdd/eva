@@ -12,6 +12,7 @@
 #include <QThread>
 #include <cstring>
 
+#include "thirdparty/llama.cpp/common/chat-template.hpp"
 #include "thirdparty/llama.cpp/common/common.h"
 #include "thirdparty/llama.cpp/common/sampling.h"
 #include "thirdparty/llama.cpp/common/stb_image.h"

@@ -3,7 +3,8 @@
 #include "common.h"
 #include "log.h"
 #include "llama.h"
-#include "common/base64.hpp"
+
+#include "thirdparty/llama.cpp/common/base64.hpp"
 
 #ifndef NDEBUG
 // crash the server in debug mode, otherwise send an http 500 error
