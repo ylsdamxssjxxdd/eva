@@ -126,7 +126,7 @@ The project is under active development, and we are [looking for feedback and co
 | `--grammar GRAMMAR` | BNF-like grammar to constrain generations (see samples in grammars/ dir) (default: '') |
 | `--grammar-file FNAME` | file to read grammar from |
 | `-j, --json-schema SCHEMA` | JSON schema to constrain generations (https://json-schema.org/), e.g. `{}` for any JSON object<br/>For schemas w/ external $refs, use --grammar + example/json_schema_to_grammar.py instead |
-
+| `--jinja` | Enable experimental Jinja templating engine (needed for tool use) |
 
 **Example-specific params**
 
@@ -236,9 +236,13 @@ npm i
 # to run the dev server
 npm run dev
 
-# to build the public/index.html
+# to build the public/index.html.gz
 npm run build
 ```
+After `public/index.html.gz` has been generated we need to generate the c++
+headers (like build/examples/server/index.html.gz.hpp) that will be included
+by server.cpp. This is done by building `llama-server` as described in the
+[build](#build) section above.
 
 NOTE: if you are using the vite dev server, you can change the API base URL to llama.cpp. To do that, run this code snippet in browser's console:
 
@@ -456,7 +460,7 @@ These words will not be included in the completion, so make sure to add them to 
 - Note: In streaming mode (`stream`), only `content`, `tokens` and `stop` will be returned until end of completion. Responses are sent using the [Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html) standard. Note: the browser's `EventSource` interface cannot be used due to its lack of `POST` request support.
 
 - `completion_probabilities`: An array of token probabilities for each completion. The array's length is `n_predict`. Each item in the array has a nested array `top_logprobs`. It contains at **maximum** `n_probs` elements:
-  ```json
+  ```
   {
     "content": "<the generated completion text>",
     "tokens": [ generated token ids if requested ],
@@ -557,7 +561,7 @@ If `with_pieces` is `true`:
 ```
 
 With input 'á' (utf8 hex: C3 A1) on tinyllama/stories260k
-```json
+```
 {
   "tokens": [
     {"id": 198, "piece": [195]}, // hex C3
@@ -571,6 +575,18 @@ With input 'á' (utf8 hex: C3 A1) on tinyllama/stories260k
 *Options:*
 
 `tokens`: Set the tokens to detokenize.
+
+### POST `/apply-template`: Apply chat template to a conversation
+
+Uses the server's prompt template formatting functionality to convert chat messages to a single string expected by a chat model as input, but does not perform inference. Instead, the prompt string is returned in the `prompt` field of the JSON response. The prompt can then be modified as desired (for example, to insert "Sure!" at the beginning of the model's response) before sending to `/completion` to generate the chat response.
+
+*Options:*
+
+`messages`: (Required) Chat turns in the same format as `/v1/chat/completions`.
+
+**Response format**
+
+Returns a JSON object with a field `prompt` containing a string of the input messages formatted according to the model's chat template format.
 
 ### POST `/embedding`: Generate embedding of a given text
 
@@ -764,7 +780,7 @@ Same as the `/v1/embeddings` endpoint.
 
 **Response format**
 
-```json
+```
 [
   {
     "index": 0,
@@ -1100,6 +1116,82 @@ curl http://localhost:8080/v1/chat/completions \
 ]
 }'
 ```
+
+... and even tool usage (needs `--jinja` flag):
+
+  ```shell
+  llama-server --jinja -hfr lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF -hff Meta-Llama-3.1-8B-Instruct-Q5_K_M.gguf -fa
+
+  # https://huggingface.co/meetkai/functionary-medium-v3.2
+  llama-server --jinja -hfr bartowski/functionary-medium-v3.2-GGUF -hff functionary-medium-v3.2-IQ4_XS.gguf -fa
+
+  # https://huggingface.co/meetkai/functionary-medium-v3.1
+  llama-server --jinja -hfr meetkai/functionary-medium-v3.1-GGUF -hff functionary-medium-llama-3.1.Q4_0.gguf -fa
+
+  curl http://localhost:8080/v1/chat/completions -d '{
+    "model": "gpt-3.5-turbo",
+    "tools": [
+      {
+        "type":"function",
+        "function":{
+          "name":"get_current_weather",
+          "description":"Get the current weather in a given location",
+          "parameters":{
+            "type":"object",
+            "properties":{
+              "location":{
+                "type":"string",
+                "description":"The city and state, e.g. San Francisco, CA"
+              }
+            },
+            "required":["location"]
+          }
+        }
+      }
+    ],
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the weather like in Istanbul?."
+      }
+    ]
+  }'
+  ```
+
+  <details>
+  <summary>Show output</summary>
+
+  ```json
+  {
+    "choices": [
+      {
+        "finish_reason": "tool",
+        "index": 0,
+        "message": {
+          "content": null,
+          "tool_calls": [
+            {
+              "name": "python",
+              "arguments": "{\"code\":\" \\nprint(\\\"Hello, World!\\\")\"}"
+            }
+          ],
+          "role": "assistant"
+        }
+      }
+    ],
+    "created": 1727287211,
+    "model": "gpt-3.5-turbo",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 16,
+      "prompt_tokens": 44,
+      "total_tokens": 60
+    },
+    "id": "chatcmpl-Htbgh9feMmGM0LEH2hmQvwsCxq3c6Ni8"
+  }
+  ```
+
+  </details>
 
 ### POST `/v1/embeddings`: OpenAI-compatible embeddings API
 
