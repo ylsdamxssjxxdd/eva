@@ -1,46 +1,46 @@
 #ifndef XCONFIG_H
 #define XCONFIG_H
 
-#include <QCoreApplication>
+#include <samplerate.h>  // 音频重采样
+#include <sndfile.h>
+
 #include <QColor>
+#include <QCoreApplication>
 #include <QDebug>
 #include <array>
 #include <iostream>
 #include <thread>
 #include <vector>
 
-#include <samplerate.h>  // 音频重采样
-#include <sndfile.h>
-
 //默认约定
 #define DEFAULT_DATE_PROMPT "You are a helpful assistant."
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
-#define DEFAULT_SPLITER "\n"  // 分隔符
-#define DEFAULT_THOUGHT "thought: "  // 思考词
+#define DEFAULT_SPLITER "\n"                 // 分隔符
+#define DEFAULT_THOUGHT "thought: "          // 思考词
 #define DEFAULT_OBSERVATION "observation: "  // 观察词
 
 //约定内容
 struct DATES {
-    QString date_prompt = DEFAULT_DATE_PROMPT; // 约定指令 影响 系统指令
-    QString user_name = DEFAULT_USER_NAME; // 用户昵称 影响 输入前缀
-    QString model_name = DEFAULT_MODEL_NAME; // 模型昵称 影响 输入后缀
-    bool is_load_tool = false; // 是否挂载了工具
-    QStringList extra_stop_words = {};  //额外停止标志
+    QString date_prompt = DEFAULT_DATE_PROMPT;  // 约定指令 影响 系统指令
+    QString user_name = DEFAULT_USER_NAME;      // 用户昵称 影响 输入前缀
+    QString model_name = DEFAULT_MODEL_NAME;    // 模型昵称 影响 输入后缀
+    bool is_load_tool = false;                  // 是否挂载了工具
+    QStringList extra_stop_words = {};          //额外停止标志
 };
 
 // 经过模型自带模板格式化后的内容
 struct CHATS {
-    QString system_prompt; // 系统指令
-    QString input_prefix; // 输入前缀
-    QString input_suffix; // 输入后缀
+    QString system_prompt;  // 系统指令
+    QString input_prefix;   // 输入前缀
+    QString input_suffix;   // 输入后缀
 };
 
 //发送内容的源
 enum ROLE {
-    ROLE_USER,     // 加前缀后缀输入     
-    ROLE_OBSERVATION, // 只加后缀，引导模型回答
-    ROLE_TEST,     // 同时改变is_test标志             
+    ROLE_USER,         // 加前缀后缀输入
+    ROLE_OBSERVATION,  // 只加后缀，引导模型回答
+    ROLE_TEST,         // 同时改变is_test标志
 };
 
 //传递的前缀/输入/后缀
@@ -128,13 +128,12 @@ struct MODEL_PARAMS {
     int max_ngl;      // ngl的最大值
 };
 
-
 #define CHAT_ENDPOINT "/v1/chat/completions"
 #define COMPLETION_ENDPOINT "/completions"
 
 // api配置参数
 struct APIS {
-    QString api_endpoint = ""; // openai格式端点 = ip + port
+    QString api_endpoint = "";  // openai格式端点 = ip + port
     QString api_ip = "";
     QString api_port = "8080";
     QString api_chat_endpoint = CHAT_ENDPOINT;
@@ -172,14 +171,14 @@ struct TOOLS {
 
 //状态区信号枚举
 enum SIGNAL_STATE {
-    USUAL_SIGNAL,     //一般输出，黑色
-    SIGNAL_SIGNAL,    //信号，蓝色
-    SUCCESS_SIGNAL,   //成功，绿色
-    WRONG_SIGNAL,     //错误，红色
-    EVA_SIGNAL,       //机体，紫色
-    TOOL_SIGNAL,      //工具，天蓝色
-    SYNC_SIGNAL,      //同步，橘黄色
-    MATRIX_SIGNAL,    //文本表格，黑色，不过滤回车符
+    USUAL_SIGNAL,    //一般输出，黑色
+    SIGNAL_SIGNAL,   //信号，蓝色
+    SUCCESS_SIGNAL,  //成功，绿色
+    WRONG_SIGNAL,    //错误，红色
+    EVA_SIGNAL,      //机体，紫色
+    TOOL_SIGNAL,     //工具，天蓝色
+    SYNC_SIGNAL,     //同步，橘黄色
+    MATRIX_SIGNAL,   //文本表格，黑色，不过滤回车符
 };
 
 // whisper可以传入的参数
@@ -274,10 +273,10 @@ struct Brain_Cell {
 
 //同步率测试管理器
 struct Syncrate_Manager {
-    bool is_sync = false;       // 是否在测试同步率
+    bool is_sync = false;        // 是否在测试同步率
     bool is_first_sync = false;  // 是否第一次进入
-    QList<int> correct_list;    // 通过回答的题目序号
-    float score = 0;            // 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
+    QList<int> correct_list;     // 通过回答的题目序号
+    float score = 0;             // 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
 
     // 1-5：计算器使用，6-10：系统终端使用，11-15：知识库使用，16-20：软件控制台使用，21-25：文生图使用，26-30：代码解释器使用
     QList<int> sync_list_index;      // 待完成的回答任务的索引
@@ -285,35 +284,22 @@ struct Syncrate_Manager {
 };
 
 // 文生图参数
-#define DEFAULT_SD_NOISE "0.75"   //噪声系数
+#define DEFAULT_SD_NOISE "0.75"  //噪声系数
 
 struct SD_PARAMS {
-    QString sample_type; //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
+    QString sample_type;      //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
     QString negative_prompt;  //反向提示词
-    QString modify_prompt;  //修饰词
-    int width; //图像宽度
-    int height;  //图像高度
-    int steps;  //采样步数
-    int batch_count; //出图张数
-    int seed; //随机数种子 -1随机
-    int clip_skip;  //跳层 
-    double cfg_scale; //提示词与图像相关系数
+    QString modify_prompt;    //修饰词
+    int width;                //图像宽度
+    int height;               //图像高度
+    int steps;                //采样步数
+    int batch_count;          //出图张数
+    int seed;                 //随机数种子 -1随机
+    int clip_skip;            //跳层
+    double cfg_scale;         //提示词与图像相关系数
 
     // 构造函数
-    SD_PARAMS(
-        QString sample_type = "euler", 
-        QString negative_prompt = "",  
-        QString modify_prompt = "",  
-        int width = 512, 
-        int height = 512,  
-        int steps = 20,  
-        int batch_count = 1, 
-        int seed = -1, 
-        int clip_skip = -1,  
-        double cfg_scale = 7.5
-    ) : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt),
-        width(width), height(height), steps(steps), batch_count(batch_count),
-        seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}
+    SD_PARAMS(QString sample_type = "euler", QString negative_prompt = "", QString modify_prompt = "", int width = 512, int height = 512, int steps = 20, int batch_count = 1, int seed = -1, int clip_skip = -1, double cfg_scale = 7.5) : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt), width(width), height(height), steps(steps), batch_count(batch_count), seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}
 };
 
 // 对音频重采样为16khz

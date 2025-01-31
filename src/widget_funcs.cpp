@@ -1,5 +1,4 @@
-//设置界面控件和槽函数
-
+//功能函数
 #include "ui_widget.h"
 #include "widget.h"
 
@@ -222,7 +221,6 @@ void Widget::load_over_handleTimeout() {
 
 // 装载完毕强制预处理
 void Widget::unlockLoad() {
-
     if (ui_SETTINGS.ngl < ui_maxngl) {
         reflash_state("ui:" + jtr("ngl tips"), USUAL_SIGNAL);
     }
@@ -240,8 +238,9 @@ void Widget::unlockLoad() {
     auto_save_user();  //保存ui配置
     force_unlockload_pTimer->stop();
     is_load_play_over = true;  //标记模型动画已经完成
-    ui_state_normal();//解锁界面
-    reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);;//显示预解码内容
+    ui_state_normal();         //解锁界面
+    reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);
+    ;  //显示预解码内容
 }
 
 // 按日志显示装载进度
@@ -418,7 +417,6 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state) {
         format.clearForeground();                 //清除前景颜色
         ui->state->setCurrentCharFormat(format);  //设置光标格式
     }
-    
 }
 
 //-------------------------------------------------------------------------
@@ -426,83 +424,77 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state) {
 //-------------------------------------------------------------------------
 
 //温度滑块响应
-void Widget::temp_change() { temp_label->setText(jtr("temperature") + " " + QString::number(temp_slider->value() / 100.0)); }
+void Widget::temp_change() { settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0)); }
 // ngl滑块响应
-void Widget::ngl_change() {
-
-    ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ngl_slider->value()));
-
-}
-// batch滑块响应
-void Widget::batch_change() { batch_label->setText(jtr("batch size") + " " + QString::number(batch_slider->value())); }
+void Widget::ngl_change() { settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(settings_ui->ngl_slider->value())); }
 // nctx滑块响应
-void Widget::nctx_change() { nctx_label->setText(jtr("brain size") + " " + QString::number(nctx_slider->value())); }
+void Widget::nctx_change() { settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value())); }
 // repeat滑块响应
-void Widget::repeat_change() { repeat_label->setText(jtr("repeat") + " " + QString::number(repeat_slider->value() / 100.0)); }
+void Widget::repeat_change() { settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0)); }
 
-void Widget::npredict_change() { npredict_label->setText(jtr("npredict") + " " + QString::number(npredict_slider->value())); }
+void Widget::npredict_change() { settings_ui->npredict_label->setText(jtr("npredict") + " " + QString::number(settings_ui->npredict_slider->value())); }
 
-void Widget::nthread_change() { nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(nthread_slider->value())); }
+void Widget::nthread_change() { settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value())); }
 
 //补完状态按钮响应
 void Widget::complete_change() {
     //选中则禁止约定输入
-    if (complete_btn->isChecked()) {
-        sample_box->setEnabled(1);
+    if (settings_ui->complete_btn->isChecked()) {
+        settings_ui->sample_box->setEnabled(1);
 
-        nthread_slider->setEnabled(1);
-        nctx_slider->setEnabled(1);
+        settings_ui->nthread_slider->setEnabled(1);
+        settings_ui->nctx_slider->setEnabled(1);
 
-        port_lineEdit->setEnabled(0);
+        settings_ui->port_lineEdit->setEnabled(0);
     }
 }
 
 //对话状态按钮响应
 void Widget::chat_change() {
-    if (chat_btn->isChecked()) {
-        sample_box->setEnabled(1);
+    if (settings_ui->chat_btn->isChecked()) {
+        settings_ui->sample_box->setEnabled(1);
 
-        nctx_slider->setEnabled(1);
-        nthread_slider->setEnabled(1);
+        settings_ui->nctx_slider->setEnabled(1);
+        settings_ui->nthread_slider->setEnabled(1);
 
-        port_lineEdit->setEnabled(0);
+        settings_ui->port_lineEdit->setEnabled(0);
     }
 }
 
 //服务状态按钮响应
 void Widget::web_change() {
-    if (web_btn->isChecked()) {
-        sample_box->setEnabled(0);
+    if (settings_ui->web_btn->isChecked()) {
+        settings_ui->sample_box->setEnabled(0);
 
-        port_lineEdit->setEnabled(1);
+        settings_ui->port_lineEdit->setEnabled(1);
     }
 }
 
 //提示词模板下拉框响应
 void Widget::prompt_template_change() {
-    if (chattemplate_comboBox->currentText() == jtr("custom set1")) {
-        date_prompt_TextEdit->setEnabled(1);
-        user_name_LineEdit->setEnabled(1);
-        model_name_LineEdit->setEnabled(1);
+    if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set1")) {
+        date_ui->date_prompt_TextEdit->setEnabled(1);
+        date_ui->user_name_LineEdit->setEnabled(1);
+        date_ui->model_name_LineEdit->setEnabled(1);
 
-        date_prompt_TextEdit->setText(custom1_date_system);
-        user_name_LineEdit->setText(custom1_user_name);
-        model_name_LineEdit->setText(custom1_model_name);
-    } else if (chattemplate_comboBox->currentText() == jtr("custom set2")) {
-        date_prompt_TextEdit->setEnabled(1);
-        user_name_LineEdit->setEnabled(1);
-        model_name_LineEdit->setEnabled(1);
+        date_ui->date_prompt_TextEdit->setPlainText(custom1_date_system);
+        date_ui->user_name_LineEdit->setText(custom1_user_name);
+        date_ui->model_name_LineEdit->setText(custom1_model_name);
+    } else if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set2")) {
+        date_ui->date_prompt_TextEdit->setEnabled(1);
+        date_ui->user_name_LineEdit->setEnabled(1);
+        date_ui->model_name_LineEdit->setEnabled(1);
 
-        date_prompt_TextEdit->setText(custom2_date_system);
-        user_name_LineEdit->setText(custom2_user_name);
-        model_name_LineEdit->setText(custom2_model_name);
+        date_ui->date_prompt_TextEdit->setPlainText(custom2_date_system);
+        date_ui->user_name_LineEdit->setText(custom2_user_name);
+        date_ui->model_name_LineEdit->setText(custom2_model_name);
     } else {
-        date_prompt_TextEdit->setText(date_map[chattemplate_comboBox->currentText()].date_prompt);
-        date_prompt_TextEdit->setEnabled(0);
-        user_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].user_name);
-        user_name_LineEdit->setEnabled(0);
-        model_name_LineEdit->setText(date_map[chattemplate_comboBox->currentText()].model_name);
-        model_name_LineEdit->setEnabled(0);
+        date_ui->date_prompt_TextEdit->setPlainText(date_map[date_ui->chattemplate_comboBox->currentText()].date_prompt);
+        date_ui->date_prompt_TextEdit->setEnabled(0);
+        date_ui->user_name_LineEdit->setText(date_map[date_ui->chattemplate_comboBox->currentText()].user_name);
+        date_ui->user_name_LineEdit->setEnabled(0);
+        date_ui->model_name_LineEdit->setText(date_map[date_ui->chattemplate_comboBox->currentText()].model_name);
+        date_ui->model_name_LineEdit->setEnabled(0);
     }
 }
 
@@ -510,20 +502,20 @@ void Widget::chooseLorapath() {
     //用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("choose lora model"), "(*.bin *.gguf)");
 
-    lora_LineEdit->setText(currentpath);
+    settings_ui->lora_LineEdit->setText(currentpath);
 }
 
 void Widget::chooseMmprojpath() {
     //用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("choose mmproj model"), "(*.bin *.gguf)");
 
-    mmproj_LineEdit->setText(currentpath);
+    settings_ui->mmproj_LineEdit->setText(currentpath);
 }
 
 //响应工具选择
 void Widget::tool_change() {
     // 判断是否挂载了工具
-    if (calculator_checkbox->isChecked() || terminal_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked()) {
+    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->webengine_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
         if (is_load_tool == false) {
             reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
         }
@@ -534,401 +526,157 @@ void Widget::tool_change() {
         }
         is_load_tool = false;
     }
-    extra_TextEdit->setText(create_extra_prompt());
+    ui_extra_prompt = create_extra_prompt();
 }
 
-//选用计算器工具
-void Widget::calculator_change() { tool_change(); }
-
-//选用代码解释器工具
-void Widget::interpreter_change() { tool_change(); }
-
-//选用系统终端工具
-void Widget::terminal_change() { tool_change(); }
-
-void Widget::toolguy_change() { tool_change(); }
-
-void Widget::knowledge_change() { tool_change(); }
-
-void Widget::controller_change() { tool_change(); }
-
-void Widget::stablediffusion_change() { tool_change(); }
-
 //-------------------------------------------------------------------------
-//--------------------------------设置设置选项------------------------------
+//--------------------------------设置选项相关------------------------------
 //-------------------------------------------------------------------------
 void Widget::set_SetDialog() {
-    set_dialog = new QDialog(this);
-    set_dialog->setWindowFlags(set_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
-    set_dialog->resize(150, 200);                                                              // 设置宽度,高度
-
-    QFile file(":/QSS-master/Ubuntu.qss");  //加载皮肤
-    file.open(QFile::ReadOnly);
-    QString stylesheet = tr(file.readAll());
-    set_dialog->setStyleSheet(stylesheet);
-    file.close();
-
-    QVBoxLayout *layout = new QVBoxLayout(set_dialog);  //总垂直布局器
-    layout->setSpacing(6);                              // 设置布局中子项之间的间隔为0
-    layout->setContentsMargins(3, 3, 3, 3);             // 设置布局的边缘间隔为0 (左, 上, 右, 下)
-    //------------采样设置---------------
-    sample_box = new QGroupBox(jtr("sample set"));  //采样设置区域
-    sample_box->setFont(ui_font);
-    QVBoxLayout *samlpe_layout = new QVBoxLayout();  //采样设置垂直布局器
-
+    settings_dialog = new QDialog(this);
+    settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
+    settings_ui = new Ui::Settings_Dialog_Ui;
+    settings_ui->setupUi(settings_dialog);
     //温度控制
-    QHBoxLayout *layout_H1 = new QHBoxLayout();  //水平布局器
-    temp_label = new QLabel(jtr("temperature") + " " + QString::number(ui_SETTINGS.temp));
-    temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
-    temp_label->setMinimumWidth(100);
-    layout_H1->addWidget(temp_label);
-    temp_slider = new QSlider(Qt::Horizontal);
-    temp_slider->setRange(0, 99);  // 设置范围为1到99
-    temp_slider->setMinimumWidth(150);
-    temp_slider->setValue(ui_SETTINGS.temp * 100.0);
-    temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
-    connect(temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
-    layout_H1->addWidget(temp_slider);
-    samlpe_layout->addLayout(layout_H1);
-
+    settings_ui->temp_slider->setRange(0, 100);  // 设置范围为1到99
+    settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
+    connect(settings_ui->temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
     //重复惩罚控制
-    QHBoxLayout *layout_H4 = new QHBoxLayout();  //水平布局器
-    repeat_label = new QLabel(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
-    repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
-    repeat_label->setMinimumWidth(100);
-    layout_H4->addWidget(repeat_label);
-    repeat_slider = new QSlider(Qt::Horizontal);
-    repeat_slider->setRange(0, 200);  // 设置范围
-    repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
-    repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
-    connect(repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
-    layout_H4->addWidget(repeat_slider);
-    samlpe_layout->addLayout(layout_H4);
-
+    settings_ui->repeat_slider->setRange(0, 200);  // 设置范围
+    settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
+    connect(settings_ui->repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
     //最大输出长度设置
-    QHBoxLayout *layout_H15 = new QHBoxLayout();  //水平布局器
-    npredict_label = new QLabel(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
-    npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
-    npredict_label->setMinimumWidth(100);
-    layout_H15->addWidget(npredict_label);
-    npredict_slider = new QSlider(Qt::Horizontal);
-    npredict_slider->setRange(1, 8192);  // 设置范围
-    npredict_slider->setValue(ui_SETTINGS.npredict);
-    npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
-    connect(npredict_slider, &QSlider::valueChanged, this, &Widget::npredict_change);
-    layout_H15->addWidget(npredict_slider);
-    samlpe_layout->addLayout(layout_H15);
-
-    sample_box->setLayout(samlpe_layout);
-    layout->addWidget(sample_box);
-
-    //------------解码设置---------------
-    decode_box = new QGroupBox(jtr("decode set"));  //解码设置区域
-    decode_box->setFont(ui_font);
-    QVBoxLayout *decode_layout = new QVBoxLayout();  //解码设置垂直布局器
-
+    settings_ui->npredict_slider->setRange(1, 8192);  // 设置范围
+    settings_ui->npredict_slider->setValue(ui_SETTINGS.npredict);
+    connect(settings_ui->npredict_slider, &QSlider::valueChanged, this, &Widget::npredict_change);
     //加速支持
-    QHBoxLayout *layout_H2 = new QHBoxLayout();  //水平布局器
-    ngl_label = new QLabel("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
-    ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
-    ngl_label->setMinimumWidth(100);
-    layout_H2->addWidget(ngl_label);
-    ngl_slider = new QSlider(Qt::Horizontal);
-    ngl_slider->setRange(0, 99);
-    ngl_slider->setValue(ui_SETTINGS.ngl);
-    ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
-    layout_H2->addWidget(ngl_slider);
-    decode_layout->addLayout(layout_H2);  //将布局添加到总布局
-    connect(ngl_slider, &QSlider::valueChanged, this, &Widget::ngl_change);
-
+    settings_ui->ngl_slider->setRange(0, 99);
+    settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
+    connect(settings_ui->ngl_slider, &QSlider::valueChanged, this, &Widget::ngl_change);
     // cpu线程数设置
-    QHBoxLayout *layout_H16 = new QHBoxLayout();  //水平布局器
-    nthread_label = new QLabel("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
-    nthread_label->setToolTip(jtr("not big better"));
-    nthread_label->setMinimumWidth(100);
-    layout_H16->addWidget(nthread_label);
-    nthread_slider = new QSlider(Qt::Horizontal);
-    nthread_slider->setToolTip(jtr("not big better"));
-
-    nthread_slider->setValue(ui_SETTINGS.nthread);
-    layout_H16->addWidget(nthread_slider);
-    decode_layout->addLayout(layout_H16);  //将布局添加到总布局
-    connect(nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
+    settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
+    connect(settings_ui->nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
     // ctx length 记忆容量
-    QHBoxLayout *layout_H3 = new QHBoxLayout();  //水平布局器
-    nctx_label = new QLabel(jtr("brain size") + " " + QString::number(ui_SETTINGS.nctx));
-    nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
-    nctx_label->setMinimumWidth(100);
-    layout_H3->addWidget(nctx_label);
-    nctx_slider = new QSlider(Qt::Horizontal);
-    nctx_slider->setRange(128, 32768);
-    nctx_slider->setValue(ui_SETTINGS.nctx);
-    nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
-    layout_H3->addWidget(nctx_slider);
-    decode_layout->addLayout(layout_H3);  //将布局添加到总布局
-    connect(nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
-    // batch size 批大小
-    QHBoxLayout *layout_H13 = new QHBoxLayout();  //水平布局器
-    batch_label = new QLabel(jtr("batch size") + " " + QString::number(ui_SETTINGS.batch));
-    batch_label->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
-    batch_label->setMinimumWidth(100);
-    // layout_H13->addWidget(batch_label);//暂时不显示
-    batch_slider = new QSlider(Qt::Horizontal);
-    batch_slider->setRange(1, 2048);
-    batch_slider->setValue(ui_SETTINGS.batch);
-    batch_slider->setToolTip(jtr("The number of tokens processed simultaneously in one decoding"));
-    // layout_H13->addWidget(batch_slider);//暂时不显示
-    // decode_layout->addLayout(layout_H13);//暂时不显示
-    connect(batch_slider, &QSlider::valueChanged, this, &Widget::batch_change);
-
+    settings_ui->nctx_slider->setRange(128, 32768);
+    settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
+    connect(settings_ui->nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
     // load lora
-    QHBoxLayout *layout_H12 = new QHBoxLayout();  //水平布局器
-    lora_label = new QLabel(jtr("load lora"));
-    lora_label->setToolTip(jtr("lora_label_tooltip"));
-    lora_LineEdit = new QLineEdit();
-    lora_LineEdit->setToolTip(jtr("lora_label_tooltip"));
-    lora_LineEdit->setPlaceholderText(jtr("right click and choose lora"));
-
-    layout_H12->addWidget(lora_label);
-    layout_H12->addWidget(lora_LineEdit);
-    decode_layout->addLayout(layout_H12);                    //将布局添加到总布局
-    lora_LineEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
-    lora_LineEdit->installEventFilter(this);
-
+    settings_ui->lora_LineEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
+    settings_ui->lora_LineEdit->installEventFilter(this);
     // load mmproj
-    QHBoxLayout *layout_H17 = new QHBoxLayout();  //水平布局器
-    mmproj_label = new QLabel(jtr("load mmproj"));
-    mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
-    mmproj_LineEdit = new QLineEdit();
-    mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
-    mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
-    layout_H17->addWidget(mmproj_label);
-    layout_H17->addWidget(mmproj_LineEdit);
-    decode_layout->addLayout(layout_H17);                      //将布局添加到总布局
-    mmproj_LineEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
-    mmproj_LineEdit->installEventFilter(this);
-
-    decode_box->setLayout(decode_layout);
-    layout->addWidget(decode_box);
-
-    //------------状态设置---------------
-    mode_box = new QGroupBox(jtr("state set"));  //状态设置区域
-    mode_box->setFont(ui_font);
-    QVBoxLayout *mode_layout = new QVBoxLayout();  //状态设置垂直布局器
-
+    settings_ui->mmproj_LineEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
+    settings_ui->mmproj_LineEdit->installEventFilter(this);
     //补完控制
-    complete_btn = new QRadioButton(jtr("complete state"));
-    complete_btn->setToolTip(jtr("complete_btn_tooltip"));
-    complete_btn->setMinimumHeight(20);
-    mode_layout->addWidget(complete_btn);
-    connect(complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
+    connect(settings_ui->complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
     //多轮对话
-    chat_btn = new QRadioButton(jtr("chat state"));
-    chat_btn->setToolTip(jtr("chat_btn_tooltip"));
-    chat_btn->setMinimumHeight(20);
-    mode_layout->addWidget(chat_btn);
-    chat_btn->setChecked(1);
-    connect(chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
+    settings_ui->chat_btn->setChecked(1);
+    connect(settings_ui->chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
     //网页服务控制
     QHBoxLayout *layout_H10 = new QHBoxLayout();  //水平布局器
-    web_btn = new QRadioButton(jtr("server state"));
-    web_btn->setToolTip(jtr("web_btn_tooltip"));
-    web_btn->setMinimumHeight(20);
-    layout_H10->addWidget(web_btn);
-    port_label = new QLabel(jtr("port"));
-    port_label->setToolTip(jtr("port_label_tooltip"));
-    layout_H10->addWidget(port_label);
-    port_lineEdit = new QLineEdit();
-    port_lineEdit->setToolTip(jtr("port_label_tooltip"));
-    port_lineEdit->setText(ui_port);
+    settings_ui->port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535);  //限制端口输入
-    port_lineEdit->setValidator(validator);
-    layout_H10->addWidget(port_lineEdit);
-    mode_layout->addLayout(layout_H10);  //将布局添加到总布局
-    connect(web_btn, &QRadioButton::clicked, this, &Widget::web_change);
+    settings_ui->port_lineEdit->setValidator(validator);
+    connect(settings_ui->web_btn, &QRadioButton::clicked, this, &Widget::web_change);
 
-    mode_box->setLayout(mode_layout);
-    layout->addWidget(mode_box);
-
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);  // 创建 QDialogButtonBox 用于确定和取消按钮
-    layout->addWidget(buttonBox);
-    connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_set);
-    connect(buttonBox, &QDialogButtonBox::rejected, set_dialog, &QDialog::reject);
-    set_dialog->setWindowTitle(jtr("set"));
+    connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
+    connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
+    settings_dialog->setWindowTitle(jtr("set"));
 }
 
+// 设置选项卡确认按钮响应
+void Widget::settings_ui_confirm_button_clicked() {
+    settings_dialog->close();
+    set_set();
+}
+
+// 设置选项卡取消按钮响应
+void Widget::settings_ui_cancel_button_clicked() {
+    settings_dialog->close();
+}
+
+// 设置用户设置内容
+void Widget::set_set() {
+    get_set();  //获取设置中的纸面值
+
+    //如果不是对话模式则禁用约定
+    if (ui_state != CHAT_STATE) {
+        date_ui->prompt_box->setEnabled(0);
+        date_ui->tool_box->setEnabled(0);
+    } else {
+        date_ui->prompt_box->setEnabled(1);
+        date_ui->tool_box->setEnabled(1);
+    }
+
+    //从服务模式回来强行重载
+    if (current_server && ui_state != SERVER_STATE) {
+        current_server = false;
+        emit ui2bot_set(ui_SETTINGS, 1);
+    } else if (ui_state != SERVER_STATE) {
+        emit ui2bot_set(ui_SETTINGS, is_load);
+    }
+
+    // llama-server接管,不需要告知bot约定
+    if (ui_state == SERVER_STATE) {
+        serverControl();
+    } else {
+        if (ui_mode == LINK_MODE)  //链接模式不发信号
+        {
+            on_reset_clicked();
+        }
+    }
+}
+
+
 //-------------------------------------------------------------------------
-//--------------------------------设置约定选项------------------------------
+//--------------------------------约定选项相关------------------------------
 //-------------------------------------------------------------------------
 void Widget::set_DateDialog() {
+    //初始化约定窗口
     date_dialog = new QDialog(this);
+    date_dialog->setWindowTitle(jtr("date"));
     date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
-    // date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);//隐藏关闭按钮
-    date_dialog->resize(150, 200);  // 设置宽度,高度
-
-    // QFile file(":/QSS-master/MacOS.qss");//加载皮肤
-    // file.open(QFile::ReadOnly);QString stylesheet = tr(file.readAll());
-    // date_dialog->setStyleSheet(stylesheet);file.close();
-
-    QVBoxLayout *layout = new QVBoxLayout(date_dialog);  //垂直布局器
-    layout->setSpacing(6);                               // 设置布局中子项之间的间隔为0
-    layout->setContentsMargins(3, 3, 3, 3);              // 设置布局的边缘间隔为0 (左, 上, 右, 下)
-    // layout->setSizeConstraint(QLayout::SetFixedSize);//使得自动调整紧凑布局
-    //------------提示词模板设置---------------
-    prompt_box = new QGroupBox(jtr("prompt") + jtr("template"));  //提示词模板设置区域
-    prompt_box->setFont(ui_font);
-    QVBoxLayout *prompt_layout = new QVBoxLayout();  //提示词模板设置垂直布局器
-
-    //预设模板
-    QHBoxLayout *layout_H9 = new QHBoxLayout();  //水平布局器
-    chattemplate_label = new QLabel(jtr("chat template"));
-    chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
-    chattemplate_label->setFixedSize(60, 30);
-    layout_H9->addWidget(chattemplate_label);
-    chattemplate_comboBox = new QComboBox();
-    chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
-    chattemplate_comboBox->setMinimumWidth(200);
+    date_ui = new Ui::Date_Dialog_Ui;
+    date_ui->setupUi(date_dialog);
     for (const QString &key : date_map.keys()) {
-        chattemplate_comboBox->addItem(key);
+        date_ui->chattemplate_comboBox->addItem(key);
     }
-    chattemplate_comboBox->addItem(jtr("custom set1"));  //添加自定义模板
-    chattemplate_comboBox->addItem(jtr("custom set2"));  //添加自定义模板
-    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
-    connect(chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
-    layout_H9->addWidget(chattemplate_comboBox);
-    prompt_layout->addLayout(layout_H9);  //将布局添加到总布局
-    //系统指令
-    QHBoxLayout *layout_H11 = new QHBoxLayout();  //水平布局器
-    date_prompt_label = new QLabel(jtr("date prompt"));
-    date_prompt_label->setToolTip(jtr("date_prompt_label_tooltip"));
-    date_prompt_label->setFixedSize(60, 30);
-    layout_H11->addWidget(date_prompt_label);
-    date_prompt_TextEdit = new QTextEdit();
-    date_prompt_TextEdit->setToolTip(jtr("date_prompt_label_tooltip"));
-    // 设置样式表
-    // date_prompt_TextEdit->setStyleSheet("QTextEdit {"
-    //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
-    //                     "border-radius: 5px;"        // 边框圆角为5px
-    //                     "padding: 1px;"              // 内边距为1px
-    //                     "}");
-    layout_H11->addWidget(date_prompt_TextEdit);
-    prompt_layout->addLayout(layout_H11);  //将布局添加到总布局
-    //输入前缀设置
-    QHBoxLayout *layout_H5 = new QHBoxLayout();  //水平布局器
-    user_name_label = new QLabel(jtr("user name"));
-    user_name_label->setToolTip(jtr("user_name_label_tooltip"));
-    user_name_label->setFixedSize(60, 30);
-    layout_H5->addWidget(user_name_label);
-    user_name_LineEdit = new QLineEdit();
-    user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
-    user_name_LineEdit->setText(ui_DATES.user_name);
-    layout_H5->addWidget(user_name_LineEdit);
-    prompt_layout->addLayout(layout_H5);  //将布局添加到总布局
-    //输入后缀设置
-    QHBoxLayout *layout_H6 = new QHBoxLayout();  //水平布局器
-    model_name_label = new QLabel(jtr("model name"));
-    model_name_label->setToolTip(jtr("model_name_label_tooltip"));
-    model_name_label->setFixedSize(60, 30);
-    layout_H6->addWidget(model_name_label);
-    model_name_LineEdit = new QLineEdit();
-    model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
-    model_name_LineEdit->setText(ui_DATES.model_name);
-    layout_H6->addWidget(model_name_LineEdit);
-    prompt_layout->addLayout(layout_H6);  //将布局添加到垂直布局
-
-    prompt_box->setLayout(prompt_layout);
-    layout->addWidget(prompt_box);
-
-    //------------工具设置---------------
-    tool_box = new QGroupBox(jtr("mount") + jtr("tool"));  //提示词模板设置区域
-    tool_box->setFont(ui_font);
-    QVBoxLayout *tool_layout = new QVBoxLayout();  //提示词模板设置垂直布局器
-    //可用工具
-    QHBoxLayout *layout_H44 = new QHBoxLayout();  //水平布局器
-    calculator_checkbox = new QCheckBox(jtr("calculator"));
-    calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
-    terminal_checkbox = new QCheckBox(jtr("terminal"));
-    terminal_checkbox->setToolTip(jtr("terminal_checkbox_tooltip"));
-    layout_H44->addWidget(calculator_checkbox);
-    layout_H44->addWidget(terminal_checkbox);
-    tool_layout->addLayout(layout_H44);  //将布局添加到垂直布局
-
-    QHBoxLayout *layout_H45 = new QHBoxLayout();  //水平布局器
-    controller_checkbox = new QCheckBox(jtr("controller"));
-    controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
-    knowledge_checkbox = new QCheckBox(jtr("knowledge"));
-    knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
-    layout_H45->addWidget(knowledge_checkbox);
-    layout_H45->addWidget(controller_checkbox);
-    tool_layout->addLayout(layout_H45);  //将布局添加到垂直布局
-
-    QHBoxLayout *layout_H46 = new QHBoxLayout();  //水平布局器
-    toolguy_checkbox = new QCheckBox(jtr("toolguy"));
-    toolguy_checkbox->setToolTip(jtr("toolguy_checkbox_tooltip"));
-    interpreter_checkbox = new QCheckBox(jtr("interpreter"));
-    interpreter_checkbox->setToolTip(jtr("interpreter_checkbox_tooltip"));
-    stablediffusion_checkbox = new QCheckBox(jtr("stablediffusion"));
-    stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
-    layout_H46->addWidget(stablediffusion_checkbox);
-    // layout_H46->addWidget(toolguy_checkbox);//暂不显示
-    layout_H46->addWidget(interpreter_checkbox);
-    tool_layout->addLayout(layout_H46);  //将布局添加到垂直布局
-
-    connect(calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::calculator_change);
-    connect(terminal_checkbox, &QCheckBox::stateChanged, this, &Widget::terminal_change);
-    connect(toolguy_checkbox, &QCheckBox::stateChanged, this, &Widget::toolguy_change);
-    connect(knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::knowledge_change);
-    connect(controller_checkbox, &QCheckBox::stateChanged, this, &Widget::controller_change);
-    connect(stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::stablediffusion_change);
-    connect(interpreter_checkbox, &QCheckBox::stateChanged, this, &Widget::interpreter_change);
-
-    //附加指令
-    QHBoxLayout *layout_H55 = new QHBoxLayout();  //水平布局器
-    extra_label = new QLabel(jtr("extra calling"));
-    extra_label->setToolTip(jtr("extra_label_tooltip"));
-    layout_H55->addWidget(extra_label);
+    date_ui->chattemplate_comboBox->addItem(jtr("custom set1"));  //添加自定义模板
+    date_ui->chattemplate_comboBox->addItem(jtr("custom set2"));  //添加自定义模板
+    date_ui->chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
+    connect(date_ui->chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
+    connect(date_ui->confirm_button, &QPushButton::clicked, this, &Widget::date_ui_confirm_button_clicked);
+    connect(date_ui->cancel_button, &QPushButton::clicked, this, &Widget::date_ui_cancel_button_clicked);
+    connect(date_ui->switch_lan_button, &QPushButton::clicked, this, &Widget::switch_lan_change);
+    connect(date_ui->knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->webengine_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     if (language_flag == 0) {
         ui_extra_lan = "zh";
     }
     if (language_flag == 1) {
         ui_extra_lan = "en";
     }
-    switch_lan_button = new QPushButton(ui_extra_lan);
-    switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
-    switch_lan_button->setMinimumWidth(200);
-    switch_lan_button->setMinimumHeight(20);
-    layout_H55->addWidget(switch_lan_button);
-    extra_TextEdit = new QTextEdit();
-    extra_TextEdit->setPlaceholderText(jtr("extra_TextEdit_tooltip"));
-    extra_TextEdit->setToolTip(jtr("extra_TextEdit_tooltip"));
-    // 设置样式表
-    // extra_TextEdit->setStyleSheet("QTextEdit {"
-    //                     "border: 1px solid black;"   // 边框宽度为1px, 颜色为黑色
-    //                     "border-radius: 5px;"        // 边框圆角为5px
-    //                     "padding: 1px;"              // 内边距为1px
-    //                     "}");
-    tool_layout->addLayout(layout_H55);  //将布局添加到总布局
-    tool_layout->addWidget(extra_TextEdit);
 
-    tool_box->setLayout(tool_layout);
-    layout->addWidget(tool_box);
-    connect(switch_lan_button, &QPushButton::clicked, this, &Widget::switch_lan_change);
-
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, date_dialog);  // 创建 QDialogButtonBox 用于确定按钮
-
-    layout->addWidget(buttonBox);
-    connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_date);// 点击确定按钮
-    connect(buttonBox, &QDialogButtonBox::rejected, date_dialog, &QDialog::reject);// 点击取消按钮，实现对话框关闭
-    connect(buttonBox, &QDialogButtonBox::rejected, this, &Widget::cancel_date);// 点击取消按钮，采取后续操作
-    connect(date_dialog, &QDialog::rejected, this, &Widget::cancel_date);// 点击关闭按钮，采取后续操作
-    
     prompt_template_change();  //先应用提示词模板
-    date_prompt_TextEdit->setText(ui_date_prompt);
-    date_dialog->setWindowTitle(jtr("date"));
+}
+
+// 约定选项卡确认按钮响应
+void Widget::date_ui_confirm_button_clicked() {
+    date_dialog->close();
+    set_date();
+}
+
+// 约定选项卡取消按钮响应
+void Widget::date_ui_cancel_button_clicked() {
+    date_dialog->close();
+    cancel_date();
 }
 
 //-------------------------------------------------------------------------
-//--------------------------------设置api选项------------------------------
+//--------------------------------api选项相关------------------------------
 //-------------------------------------------------------------------------
 void Widget::setApiDialog() {
     api_dialog = new QDialog();
@@ -946,10 +694,11 @@ void Widget::setApiDialog() {
     api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
     api_endpoint_LineEdit->setText(apis.api_endpoint);
-    QRegExp ipRegex("^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}"
-                      "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d):"
-                      "(6553[0-5]|655[0-2]\\d|65[0-4]\\d{2}|6[0-4]\\d{3}|"
-                      "[1-5]?\\d{1,4})$");  // IPv4地址冒号端口号的正则表达式限制
+    QRegExp ipRegex(
+        "^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}"
+        "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d):"
+        "(6553[0-5]|655[0-2]\\d|65[0-4]\\d{2}|6[0-4]\\d{3}|"
+        "[1-5]?\\d{1,4})$");  // IPv4地址冒号端口号的正则表达式限制
     QRegExpValidator *validator_ipv4 = new QRegExpValidator(ipRegex, api_endpoint_LineEdit);
     api_endpoint_LineEdit->setValidator(validator_ipv4);
     layout_H1->addWidget(api_endpoint_LineEdit);
@@ -1031,13 +780,10 @@ void Widget::set_api() {
 
     //获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
-    if(apis.api_endpoint.contains(":"))
-    {
+    if (apis.api_endpoint.contains(":")) {
         apis.api_ip = apis.api_endpoint.split(":")[0];
-        apis.api_port= apis.api_endpoint.split(":")[1];
-    }
-    else
-    {
+        apis.api_port = apis.api_endpoint.split(":")[1];
+    } else {
         apis.api_ip = apis.api_endpoint;
     }
     startConnection(apis.api_ip, apis.api_port.toInt());  //检测ip是否通畅
@@ -1140,22 +886,22 @@ void Widget::keep_onError(QAbstractSocket::SocketError socketError) {
 
 //链接模式切换时某些控件可见状态
 void Widget::change_api_dialog(bool enable) {
-    repeat_label->setVisible(enable);
-    repeat_slider->setVisible(enable);
-    nctx_label->setVisible(enable);
-    nctx_slider->setVisible(enable);
-    nthread_label->setVisible(enable);
-    nthread_slider->setVisible(enable);
+    settings_ui->repeat_label->setVisible(enable);
+    settings_ui->repeat_slider->setVisible(enable);
+    settings_ui->nctx_label->setVisible(enable);
+    settings_ui->nctx_slider->setVisible(enable);
+    settings_ui->nthread_label->setVisible(enable);
+    settings_ui->nthread_slider->setVisible(enable);
     // batch_label->setVisible(enable);batch_slider->setVisible(enable);
-    mmproj_label->setVisible(enable);
-    mmproj_LineEdit->setVisible(enable);
-    ngl_label->setVisible(enable);
-    ngl_slider->setVisible(enable);
-    lora_label->setVisible(enable);
-    lora_LineEdit->setVisible(enable);
-    port_label->setVisible(enable);
-    port_lineEdit->setVisible(enable);
-    web_btn->setVisible(enable);
+    settings_ui->mmproj_label->setVisible(enable);
+    settings_ui->mmproj_LineEdit->setVisible(enable);
+    settings_ui->ngl_label->setVisible(enable);
+    settings_ui->ngl_slider->setVisible(enable);
+    settings_ui->lora_label->setVisible(enable);
+    settings_ui->lora_LineEdit->setVisible(enable);
+    settings_ui->port_label->setVisible(enable);
+    settings_ui->port_lineEdit->setVisible(enable);
+    settings_ui->web_btn->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
@@ -1274,7 +1020,6 @@ void Widget::ui_state_normal() {
     else {
         change_api_dialog(1);
     }
-
 }
 
 //录音界面状态
@@ -1306,15 +1051,17 @@ void Widget::create_right_menu() {
     }
     right_menu = new QMenu(this);
     for (int i = 1; i < 14; ++i) {
-
         QString question;
 
-        if (i == 4) {question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);}  //历史中的今天
-        else {question = jtr(QString("Q%1").arg(i));}
+        if (i == 4) {
+            question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);
+        }  //历史中的今天
+        else {
+            question = jtr(QString("Q%1").arg(i));
+        }
         QAction *action = right_menu->addAction(question);
 
         connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question); });
-
     }
     //------------创建自动化问题菜单-------------
     // Q14同步率测试
@@ -1334,14 +1081,14 @@ void Widget::create_right_menu() {
         }
 
         // 自动约定，挂载所有工具
-        chattemplate_comboBox->setCurrentText("default");  //默认使用default的提示词模板
-        calculator_checkbox->setChecked(1);
-        terminal_checkbox->setChecked(1);
-        controller_checkbox->setChecked(1);
-        knowledge_checkbox->setChecked(0);
-        knowledge_checkbox->setChecked(1);  // 刷新一下
-        stablediffusion_checkbox->setChecked(1);
-        interpreter_checkbox->setChecked(1);
+        date_ui->chattemplate_comboBox->setCurrentText("default");  //默认使用default的提示词模板
+        date_ui->calculator_checkbox->setChecked(1);
+        date_ui->engineer_checkbox->setChecked(1);
+        date_ui->controller_checkbox->setChecked(1);
+        date_ui->knowledge_checkbox->setChecked(0);
+        date_ui->knowledge_checkbox->setChecked(1);  // 刷新一下
+        date_ui->stablediffusion_checkbox->setChecked(1);
+        date_ui->webengine_checkbox->setChecked(1);
         get_date();                  //获取约定中的纸面值
         emit ui2bot_date(ui_DATES);  // 注意在开始同步率测试前会强制预解码一次
     });
@@ -1360,12 +1107,11 @@ void Widget::create_right_menu() {
         }
 
         if (ui->send->isEnabled()) {
-            showImage(currentpath);//显示文件名和图像
-            is_run = true;       //模型正在运行标签
-            ui_state_pushing();  //推理中界面状态
-            emit ui2bot_preDecodeImage(currentpath); //预解码图像
-        }                   
-        
+            showImage(currentpath);                   //显示文件名和图像
+            is_run = true;                            //模型正在运行标签
+            ui_state_pushing();                       //推理中界面状态
+            emit ui2bot_preDecodeImage(currentpath);  //预解码图像
+        }
     });
     // Q16测试相关,ceval数据集
     QAction *action16 = right_menu->addAction(jtr("Q16"));
@@ -1383,7 +1129,7 @@ void Widget::create_right_menu() {
             makeTestQuestion(":/mmlu-exam/val");
         }
 
-        makeTestIndex();                                        //构建测试问题索引
+        makeTestIndex();                                          //构建测试问题索引
         QApplication::setWindowIcon(QIcon(":/logo/c-eval.png"));  // 设置应用程序图标
         this->setWindowTitle(jtr("test") + "0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());
 
@@ -1432,34 +1178,32 @@ void Widget::create_right_menu() {
 
 //获取设置中的纸面值
 void Widget::get_set() {
-    ui_SETTINGS.temp = temp_slider->value() / 100.0;
-    ui_SETTINGS.repeat = repeat_slider->value() / 100.0;
-    ui_SETTINGS.npredict = npredict_slider->value();
+    ui_SETTINGS.temp = settings_ui->temp_slider->value() / 100.0;
+    ui_SETTINGS.repeat = settings_ui->repeat_slider->value() / 100.0;
+    ui_SETTINGS.npredict = settings_ui->npredict_slider->value();
 
-    ui_SETTINGS.nthread = nthread_slider->value();
-    ui_SETTINGS.nctx = nctx_slider->value();    //获取nctx滑块的值
-    ui_SETTINGS.batch = batch_slider->value();  //获取nctx滑块的值
-    ui_SETTINGS.ngl = ngl_slider->value();  //获取npl滑块的值
+    ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
+    ui_SETTINGS.nctx = settings_ui->nctx_slider->value();    //获取nctx滑块的值
+    ui_SETTINGS.ngl = settings_ui->ngl_slider->value();      //获取ngl滑块的值
 
-    ui_SETTINGS.lorapath = lora_LineEdit->text();
-    ui_SETTINGS.mmprojpath = mmproj_LineEdit->text();
+    ui_SETTINGS.lorapath = settings_ui->lora_LineEdit->text();
+    ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
 
-    ui_SETTINGS.complete_mode = complete_btn->isChecked();
-    if (chat_btn->isChecked()) {
+    ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
+    if (settings_ui->chat_btn->isChecked()) {
         ui_state = CHAT_STATE;
-    } else if (complete_btn->isChecked()) {
+    } else if (settings_ui->complete_btn->isChecked()) {
         ui_state = COMPLETE_STATE;
     }  // history_prompt置空是为了下一次切换为对话模式时正确处理预解码
-    else if (web_btn->isChecked()) {
+    else if (settings_ui->web_btn->isChecked()) {
         ui_state = SERVER_STATE;
     }
-    ui_port = port_lineEdit->text();
+    ui_port = settings_ui->port_lineEdit->text();
 }
 
 //获取约定中的纸面值
 void Widget::get_date() {
-    ui_extra_prompt = extra_TextEdit->toPlainText();
-    ui_date_prompt = date_prompt_TextEdit->toPlainText();
+    ui_date_prompt = date_ui->date_prompt_TextEdit->toPlainText();
     //合并附加指令
     if (ui_extra_prompt != "") {
         ui_DATES.date_prompt = ui_date_prompt + "\n\n" + ui_extra_prompt;
@@ -1467,21 +1211,19 @@ void Widget::get_date() {
         ui_DATES.date_prompt = ui_date_prompt;
     }
 
-    ui_DATES.user_name = user_name_LineEdit->text();
-    ui_DATES.model_name = model_name_LineEdit->text();
+    ui_DATES.user_name = date_ui->user_name_LineEdit->text();
+    ui_DATES.model_name = date_ui->model_name_LineEdit->text();
 
     ui_DATES.is_load_tool = is_load_tool;
-    ui_template = chattemplate_comboBox->currentText();
-    ui_extra_lan = switch_lan_button->text();
+    ui_template = date_ui->chattemplate_comboBox->currentText();
+    ui_extra_lan = date_ui->switch_lan_button->text();
 
-    ui_calculator_ischecked = calculator_checkbox->isChecked();
-    ui_terminal_ischecked = terminal_checkbox->isChecked();
-    ui_toolguy_ischecked = toolguy_checkbox->isChecked();
-    ui_knowledge_ischecked = knowledge_checkbox->isChecked();
-    ui_controller_ischecked = controller_checkbox->isChecked();
-    ui_stablediffusion_ischecked = stablediffusion_checkbox->isChecked();
-    ui_interpreter_ischecked = interpreter_checkbox->isChecked();
-
+    ui_calculator_ischecked = date_ui->calculator_checkbox->isChecked();
+    ui_engineer_ischecked = date_ui->engineer_checkbox->isChecked();
+    ui_webengine_ischecked = date_ui->webengine_checkbox->isChecked();
+    ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
+    ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
+    ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
 
     //记录自定义模板
     if (ui_template == jtr("custom set1")) {
@@ -1496,4 +1238,579 @@ void Widget::get_date() {
 
     //添加额外停止标志
     addStopwords();
+}
+
+//手搓输出解析器，提取可能的JSON
+QPair<QString, QString> Widget::JSONparser(QString text) {
+    QPair<QString, QString> func_arg_list;
+    // ----------匹配花括号中的内容----------
+    QRegularExpression re;
+    re.setPattern("\\{(.*)\\}");  // 匹配第一个 { 至最后一个 } 中的内容
+    re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
+    QRegularExpressionMatch match = re.match(text);
+
+    if (match.hasMatch()) {
+        QString content = match.captured(1);  // 获取第一个捕获组的内容
+        // qDebug() << "花括号中的内容是：" << content;
+        // ----------匹配"action:"至逗号----------
+        // \\s*的意思是允许忽略空格
+        QRegularExpression re2("\"tool_name\"\\s*[:：]\\s*\"([^\"]*)\"");
+        QRegularExpressionMatch match2 = re2.match(content);
+        if (match2.hasMatch()) {
+            QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
+            func_arg_list.first = content2;
+            // qDebug() << "action_name中的内容是：" << content2;
+            // ----------匹配"action_input:"至最后----------
+            QRegularExpression re3("\"tool_input\"\\s*[:：]\\s*(.*)");
+            re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
+            QRegularExpressionMatch match3 = re3.match(content);
+            if (match3.hasMatch()) {
+                QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");  // 获取第一个捕获组的内容
+
+                //去除文本段前后的标点，并且过滤里面的内容
+                if (!content3.isEmpty()) {
+                    // 去除最前面的标点 { " ' ` }
+                    while (content3.at(0) == QChar('`') || content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{')) {
+                        content3 = content3.mid(1);
+                    }
+
+                    // 去除最前面的字段 python
+                    while (content3.indexOf("python") == 0) {
+                        content3 = content3.mid(6);  // 去除前 6 个字符, 即 "python"
+                    }
+
+                    // 去除最后面的标点 { " ' ` }
+                    while (content3.at(content3.length() - 1) == QChar('`') || content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}')) {
+                        content3.chop(1);
+                    }
+                    // 替换所有的 \" 为 "
+                    content3 = content3.replace("\\\"", "\"");
+                    // 替换所有的 \t 为 \n
+                    content3 = content3.replace("\t", "\n");
+                    content3 = content3.replace("\r", "\n");
+                }
+
+                func_arg_list.second = content3;
+                // qDebug() << "action_input中的内容是：" << content3;
+            } else {
+                // qDebug() << "没有找到action_input中的内容。";
+            }
+
+        } else {
+            // qDebug() << "没有找到action_name中的内容。";
+        }
+    } else {
+        // qDebug() << "没有找到花括号中的内容。";
+    }
+
+    // qDebug()<<func_arg_list;
+    return func_arg_list;
+}
+
+//构建额外指令
+QString Widget::create_extra_prompt() {
+    QString extra_prompt_;//额外指令
+    QString available_tools_describe;//工具名和描述
+    QString engineer_info;//软件工程师信息
+    extra_prompt_ = jtr("extra_prompt_format");
+    if (is_load_tool) {
+        available_tools_describe += tool_map["answer"].func_describe + "\n";
+        if (date_ui->calculator_checkbox->isChecked()) {
+            available_tools_describe += tool_map["calculator"].func_describe + "\n";
+        }
+        if (date_ui->knowledge_checkbox->isChecked()) {
+            if (ui_syncrate_manager.is_sync) {
+                available_tools_describe += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + jtr("embeddingdb_describe") + "\n";
+            } else {
+                available_tools_describe += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";
+            }
+        }
+        if (date_ui->stablediffusion_checkbox->isChecked()) {
+            available_tools_describe += tool_map["stablediffusion"].func_describe + "\n";
+        }
+        if (date_ui->controller_checkbox->isChecked()) {
+            available_tools_describe += tool_map["controller"].func_describe + "\n";
+        }
+        if (date_ui->webengine_checkbox->isChecked()) {
+            available_tools_describe += tool_map["webengine"].func_describe + "\n";
+        }
+        if (date_ui->engineer_checkbox->isChecked()) {
+            available_tools_describe += tool_map["execute_command"].func_describe + "\n";
+            available_tools_describe += tool_map["read_file"].func_describe + "\n";
+            available_tools_describe += tool_map["write_file"].func_describe + "\n";
+            // 这里添加更多工程师的工具
+            engineer_info = create_engineer_info();//构建工程师信息
+        }
+        extra_prompt_.replace("{available_tools_describe}",available_tools_describe);//替换相应内容
+        extra_prompt_.replace("{engineer_info}",engineer_info);//替换相应内容
+    } else {
+        extra_prompt_ = "";//没有挂载工具则为空
+    }
+    return extra_prompt_;
+}
+
+QString Widget::create_engineer_info()
+{
+    QString engineer_info = jtr("engineer_info");
+    QString engineer_system_info = jtr("engineer_system_info");
+    QDate currentDate = QDate::currentDate();  //今天日期
+    QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "MM" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
+    engineer_system_info.replace("{OS}", OS);
+    engineer_system_info.replace("{DATE}", dateString);
+    engineer_system_info.replace("{DIR}", applicationDirPath);
+
+    engineer_info.replace("{engineer_system_info}", engineer_system_info);
+    return engineer_info;
+}
+
+//添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
+void Widget::addStopwords() {
+    ui_DATES.extra_stop_words.clear();  //重置额外停止标志
+
+    if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
+    {
+        ui_DATES.extra_stop_words << "<|observation|>";
+        ui_DATES.extra_stop_words << "observation:";
+        ui_DATES.extra_stop_words << "observation：";
+    }
+}
+
+//获取本机第一个ip地址
+QString Widget::getFirstNonLoopbackIPv4Address() {
+    QList<QHostAddress> list = QNetworkInterface::allAddresses();
+    for (int i = 0; i < list.count(); i++) {
+        if (!list[i].isLoopback() && list[i].protocol() == QAbstractSocket::IPv4Protocol) {
+            return list[i].toString();
+        }
+    }
+    return QString();
+}
+
+//第三方程序开始
+void Widget::server_onProcessStarted() {
+    if (ui_SETTINGS.ngl == 0) {
+        QApplication::setWindowIcon(QIcon(":/logo/connection-point-blue.png"));
+    } else {
+        QApplication::setWindowIcon(QIcon(":/logo/connection-point-green.png"));
+    }
+    ipAddress = getFirstNonLoopbackIPv4Address();
+    reflash_state("ui:server " + jtr("oning"), SIGNAL_SIGNAL);
+}
+
+//第三方程序结束
+void Widget::server_onProcessFinished() {
+    if (current_server) {
+        ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
+        reflash_state(ui_state_info, SIGNAL_SIGNAL);
+    } else {
+        QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
+        reflash_state("ui:server" + jtr("off"), SIGNAL_SIGNAL);
+        ui_output = "\nserver" + jtr("shut down");
+        output_scroll(ui_output);
+    }
+}
+
+// llama-bench进程结束响应
+void Widget::bench_onProcessFinished() { qDebug() << "llama-bench进程结束响应"; }
+
+// 构建测试问题
+void Widget::makeTestQuestion(QString dirPath) {
+    getAllFiles(dirPath);
+    for (int i = 0; i < filePathList.size(); ++i) {
+        QString fileName = filePathList.at(i);
+        readCsvFile(fileName);
+    }
+}
+
+//显示文件名和图像
+void Widget::showImage(QString imagepath) {
+    ui_output = "\nfile:///" + imagepath + "\n";
+    output_scroll(ui_output);
+
+    // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+    QImage image(imagepath);
+    int originalWidth = image.width() / devicePixelRatioF();
+    int originalHeight = image.height() / devicePixelRatioF();
+
+    QTextCursor cursor(ui->output->textCursor());
+    cursor.movePosition(QTextCursor::End);
+
+    QTextImageFormat imageFormat;
+    imageFormat.setWidth(originalWidth);    // 设置图片的宽度
+    imageFormat.setHeight(originalHeight);  // 设置图片的高度
+    imageFormat.setName(imagepath);         // 图片资源路径
+
+    cursor.insertImage(imageFormat);
+    //滚动到底部展示
+    ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());  //滚动条滚动到最下面
+}
+
+//开始录音
+void Widget::recordAudio() {
+    reflash_state("ui:" + jtr("recoding") + "... ");
+    ui_state_recoding();
+
+    audioRecorder.record();   // 在这之前检查是否可用
+    audio_timer->start(100);  // 每隔100毫秒刷新一次输入区
+}
+
+// 每隔100毫秒刷新一次监视录音
+void Widget::monitorAudioLevel() {
+    audio_time += 100;
+    ui_state_recoding();  //更新输入区
+}
+
+//停止录音
+void Widget::stop_recordAudio() {
+    QString wav_path = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
+    is_recodering = false;
+    audioRecorder.stop();
+    audio_timer->stop();
+    reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s");
+    audio_time = 0;
+    //将录制的wav文件重采样为16khz音频文件
+#ifdef _WIN32
+    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+    std::string wav_path_c = code->fromUnicode(wav_path).data();
+#elif __linux__
+    std::string wav_path_c = wav_path.toStdString();
+#endif
+    resampleWav(wav_path_c, wav_path_c);
+    emit ui2expend_speechdecode(wav_path, "txt");  //传一个wav文件开始解码
+}
+
+// 清空题库
+void Widget::clearQuestionlist() {
+    test_score = 0;  // 答对的个数
+    test_count = 0;  // 回答的次数
+    filePathList.clear();
+    test_list_answer.clear();
+    test_list_question.clear();
+}
+
+//读取csv文件
+void Widget::readCsvFile(const QString &fileName) {
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open file for reading:" << file.errorString();
+        return;
+    }
+    QString questiontitle = jtr("question type") + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
+    QTextStream in(&file);
+    in.setCodec("UTF-8");                //要求csv文件的格式必须是utf-8 不能是ansi
+    QString headerLine = in.readLine();  // 读取并忽略标题行
+    bool inQuotes = false;
+    QString currentField;
+    QStringList currentRow;
+
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        for (int i = 0; i < line.length(); ++i) {
+            QChar currentChar = line[i];
+            if (currentChar == '\"') {
+                inQuotes = !inQuotes;  // Toggle the inQuotes state
+            } else if (currentChar == ',' && !inQuotes) {
+                // We've reached the end of a field
+                currentRow.append(currentField);
+                currentField.clear();
+            } else {
+                currentField += currentChar;
+            }
+        }
+        if (!inQuotes) {
+            // End of line and not in quotes, add the last field to the row
+            currentRow.append(currentField);
+            currentField.clear();
+
+            if (currentRow.size() >= 7) {
+                // 输出题目和答案
+                // qDebug() << "id:" << currentRow.at(0).trimmed();
+                // qDebug() << "Question:" << currentRow.at(1).trimmed();
+                // qDebug() << "A:" << currentRow.at(2).trimmed();
+                // qDebug() << "B:" << currentRow.at(3).trimmed();
+                // qDebug() << "C:" << currentRow.at(4).trimmed();
+                // qDebug() << "D:" << currentRow.at(5).trimmed();
+                // qDebug() << "Answer:" << currentRow.at(6).trimmed();
+                test_list_question << questiontitle + currentRow.at(1).trimmed() + "\n\n" + "A:" + currentRow.at(2).trimmed() + "\n" + "B:" + currentRow.at(3).trimmed() + "\n" + "C:" + currentRow.at(4).trimmed() + "\n" + "D:" + currentRow.at(5).trimmed() + "\n";
+                test_list_answer << currentRow.at(6).trimmed();
+            } else if (currentRow.size() == 6)  //题库没有序号的情况 针对mmlu
+            {
+                test_list_question << questiontitle + currentRow.at(0).trimmed() + "\n\n" + "A:" + currentRow.at(1).trimmed() + "\n" + "B:" + currentRow.at(2).trimmed() + "\n" + "C:" + currentRow.at(3).trimmed() + "\n" + "D:" + currentRow.at(4).trimmed() + "\n";
+                test_list_answer << currentRow.at(5).trimmed();
+            }
+
+            currentRow.clear();  // Prepare for the next row
+        } else {
+            // Line ends but we're inside quotes, this means the field continues to the next line
+            currentField += '\n';  // Add the newline character that was part of the field
+        }
+    }
+
+    file.close();
+}
+
+void Widget::makeTestIndex() {
+    test_question_index.clear();
+    for (int i = 0; i < test_list_question.size(); ++i) {
+        test_question_index << i;
+    }
+    // std::random_shuffle(test_question_index.begin(), test_question_index.end());//随机打乱顺序
+}
+
+//遍历文件
+void Widget::getAllFiles(const QString &floderPath) {
+    QDir folder(floderPath);
+    folder.setFilter(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
+    QFileInfoList entries = folder.entryInfoList();
+
+    for (const QFileInfo &entry : entries) {
+        if (entry.isDir()) {
+            childPathList.append(entry.filePath());
+        } else if (entry.isFile()) {
+            filePathList.append(entry.filePath());
+        }
+    }
+}
+
+//更新gpu内存使用率
+void Widget::updateGpuStatus() { emit gpu_reflash(); }
+
+//更新cpu内存使用率
+void Widget::updateCpuStatus() { emit cpu_reflash(); }
+
+//拯救中文
+void Widget::getWords(QString json_file_path) {
+    QFile jfile(json_file_path);
+    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open file for reading.";
+        return;
+    }
+
+    QTextStream in(&jfile);
+    in.setCodec("UTF-8");  // 确保使用UTF-8编码读取文件
+    QString data = in.readAll();
+    jfile.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+    QJsonObject jsonObj = doc.object();
+    wordsObj = jsonObj["words"].toObject();
+}
+
+//切换额外指令的语言
+void Widget::switch_lan_change() {
+    if (date_ui->switch_lan_button->text() == "zh") {
+        language_flag = 1;
+        date_ui->switch_lan_button->setText("en");
+
+    } else if (date_ui->switch_lan_button->text() == "en") {
+        language_flag = 0;
+        date_ui->switch_lan_button->setText("zh");
+    }
+
+    apply_language(language_flag);
+    ui_extra_prompt = create_extra_prompt();
+    emit ui2bot_language(language_flag);
+    emit ui2tool_language(language_flag);
+    emit ui2net_language(language_flag);
+    emit ui2expend_language(language_flag);
+}
+//改变语种相关
+void Widget::apply_language(int language_flag_) {
+    //主界面语种
+    ui->load->setText(jtr("load"));
+    ui->load->setToolTip(jtr("load_button_tooltip"));
+    ui->date->setText(jtr("date"));
+    ui->set->setToolTip(jtr("set"));
+    ui->reset->setToolTip(jtr("reset"));
+    ui->send->setText(jtr("send"));
+    ui->send->setToolTip(jtr("send_tooltip"));
+    cutscreen_dialog->init_action(jtr("save cut image"), jtr("svae screen image"));
+    ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(std::thread::hardware_concurrency()));
+    ui->mem_bar->set_show_text(jtr("mem"));    //进度条里面的文本,强制重绘
+    ui->vram_bar->set_show_text(jtr("vram"));  //进度条里面的文本,强制重绘
+    ui->kv_bar->set_show_text(jtr("brain"));   //进度条里面的文本,强制重绘
+    ui->cpu_bar->show_text = "cpu ";           //进度条里面的文本
+    ui->vcore_bar->show_text = "gpu ";         //进度条里面的文本
+    //输入区右击菜单语种
+    create_right_menu();  //添加右击问题
+    // api设置语种
+    api_dialog->setWindowTitle(jtr("link") + jtr("set"));
+    api_endpoint_label->setText(jtr("api endpoint"));
+    api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
+    //约定选项语种
+    date_ui->prompt_box->setTitle(jtr("character"));  //提示词模板设置区域
+    date_ui->chattemplate_label->setText(jtr("chat template"));
+    date_ui->chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
+    date_ui->chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
+    date_ui->date_prompt_label->setText(jtr("date prompt"));
+    date_ui->date_prompt_label->setToolTip(jtr("date_prompt_label_tooltip"));
+    date_ui->date_prompt_TextEdit->setToolTip(jtr("date_prompt_label_tooltip"));
+    date_ui->user_name_label->setText(jtr("user name"));
+    date_ui->user_name_label->setToolTip(jtr("user_name_label_tooltip"));
+    date_ui->user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
+    date_ui->model_name_label->setText(jtr("model name"));
+    date_ui->model_name_label->setToolTip(jtr("model_name_label_tooltip"));
+    date_ui->model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
+    date_ui->tool_box->setTitle(jtr("mount") + jtr("tool"));
+    date_ui->calculator_checkbox->setText(jtr("calculator"));
+    date_ui->calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
+    date_ui->engineer_checkbox->setText(jtr("engineer"));
+    date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
+    date_ui->controller_checkbox->setText(jtr("controller"));
+    date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
+    date_ui->knowledge_checkbox->setText(jtr("knowledge"));
+    date_ui->knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
+    date_ui->webengine_checkbox->setText(jtr("webengine"));
+    date_ui->webengine_checkbox->setToolTip(jtr("webengine_checkbox_tooltip"));
+    date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
+    date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
+    date_ui->switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
+    date_ui->confirm_button->setText(jtr("ok"));
+    date_ui->cancel_button->setText(jtr("cancel"));
+    tool_map.clear();
+    tool_map.insert("execute_command", {jtr("execute_command"), "execute_command", jtr("execute_command_func_describe")});
+    tool_map.insert("read_file", {jtr("read_file"), "read_file", jtr("read_file_func_describe")});
+    tool_map.insert("write_file", {jtr("write_file"), "write_file", jtr("write_file_func_describe")});
+    tool_map.insert("answer", {jtr("answer"), "answer", jtr("answer_func_describe")});
+    tool_map.insert("calculator", {jtr("calculator"), "calculator", jtr("calculator_func_describe")});
+    tool_map.insert("webengine", {jtr("webengine"), "webengine", jtr("webengine_func_describe")});
+    tool_map.insert("knowledge", {jtr("knowledge"), "knowledge", jtr("knowledge_func_describe")});
+    tool_map.insert("controller", {jtr("controller"), "controller", jtr("controller_func_describe")});
+    tool_map.insert("stablediffusion", {jtr("stablediffusion"), "stablediffusion", jtr("stablediffusion_func_describe")});
+    tool_map.insert("interpreter", {jtr("interpreter"), "interpreter", jtr("interpreter_func_describe")});
+    date_dialog->setWindowTitle(jtr("date"));
+    //设置选项语种
+    settings_ui->sample_box->setTitle(jtr("sample set"));  //采样设置区域
+    settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(ui_SETTINGS.temp));
+    settings_ui->temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
+    settings_ui->temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
+    settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
+    settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
+    settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
+    settings_ui->npredict_label->setText(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
+    settings_ui->npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
+    settings_ui->npredict_label->setMinimumWidth(100);
+    settings_ui->npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
+    settings_ui->decode_box->setTitle(jtr("decode set"));  //解码设置区域
+    settings_ui->ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
+    settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
+    settings_ui->ngl_label->setMinimumWidth(100);
+    settings_ui->ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
+    settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
+    settings_ui->nthread_label->setToolTip(jtr("not big better"));
+    settings_ui->nthread_slider->setToolTip(jtr("not big better"));
+    settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(ui_SETTINGS.nctx));
+    settings_ui->nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
+    settings_ui->nctx_label->setMinimumWidth(100);
+    settings_ui->nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
+    settings_ui->lora_label->setText(jtr("load lora"));
+    settings_ui->lora_label->setToolTip(jtr("lora_label_tooltip"));
+    settings_ui->lora_LineEdit->setToolTip(jtr("lora_label_tooltip"));
+    settings_ui->lora_LineEdit->setPlaceholderText(jtr("right click and choose lora"));
+    settings_ui->mmproj_label->setText(jtr("load mmproj"));
+    settings_ui->mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
+    settings_ui->mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
+    settings_ui->mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
+    settings_ui->mode_box->setTitle(jtr("state set"));  //状态设置区域
+    settings_ui->complete_btn->setText(jtr("complete state"));
+    settings_ui->complete_btn->setToolTip(jtr("complete_btn_tooltip"));
+    settings_ui->chat_btn->setText(jtr("chat state"));
+    settings_ui->chat_btn->setToolTip(jtr("chat_btn_tooltip"));
+    settings_ui->web_btn->setText(jtr("server state"));
+    settings_ui->web_btn->setToolTip(jtr("web_btn_tooltip"));
+    settings_ui->port_label->setText(jtr("port"));
+    settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
+    settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    settings_dialog->setWindowTitle(jtr("set"));
+}
+
+QString Widget::makeHelpInput() {
+    QString help_input;
+
+    for (int i = 1; i < 3; ++i)  // 2个
+    {
+        help_input = help_input + DEFAULT_SPLITER;                    //前缀
+        help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";  //问题
+        help_input = help_input + DEFAULT_SPLITER;                    //后缀
+        help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";  //答案
+    }
+
+    return help_input;
+}
+
+//创建临时文件夹EVA_TEMP
+bool Widget::createTempDirectory(const QString &path) {
+    QDir dir;
+    // 检查路径是否存在
+    if (dir.exists(path)) {
+        return false;
+    } else {
+        // 尝试创建目录
+        if (dir.mkpath(path)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+// 打开文件夹
+QString Widget::customOpenfile(QString dirpath, QString describe, QString format) {
+    QString filepath = "";
+    filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
+    return filepath;
+}
+
+//语音朗读相关 文转声相关
+
+//每次约定和设置后都保存配置到本地
+void Widget::auto_save_user() {
+    //--------------保存当前用户配置---------------
+    // 创建 QSettings 对象，指定配置文件的名称和格式
+
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    //保存设置参数
+    settings.setValue("modelpath", ui_SETTINGS.modelpath);  //模型路径
+    settings.setValue("temp", ui_SETTINGS.temp);            //惩罚系数
+    settings.setValue("repeat", ui_SETTINGS.repeat);        //惩罚系数
+    settings.setValue("npredict", ui_SETTINGS.npredict);    //最大输出长度
+    settings.setValue("ngl", ui_SETTINGS.ngl);              // gpu负载层数
+    settings.setValue("nthread", ui_SETTINGS.nthread);      // cpu线程数
+    if (ui_SETTINGS.nctx > ui_n_ctx_train) {
+        settings.setValue("nctx", ui_n_ctx_train);
+    }  //防止溢出
+    else {
+        settings.setValue("nctx", ui_SETTINGS.nctx);
+    }
+    settings.setValue("batch", ui_SETTINGS.batch);            //批大小
+    settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath);  //视觉
+    settings.setValue("lorapath", ui_SETTINGS.lorapath);      // lora
+    settings.setValue("ui_state", ui_state);                  //模式
+    settings.setValue("port", ui_port);                       //服务端口
+
+    //保存约定参数
+    settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());               //对话模板
+    settings.setValue("date_prompt_prompt", date_ui->date_prompt_TextEdit->toPlainText());          //系统指令
+    settings.setValue("user_name", ui_DATES.user_name);                                             //用户昵称
+    settings.setValue("model_name", ui_DATES.model_name);                                           //模型昵称
+    settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());            //计算器工具
+    settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());              // knowledge工具
+    settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());            // controller工具
+    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked());  //计算器工具
+    settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());                // engineer工具
+    settings.setValue("webengine_checkbox", date_ui->webengine_checkbox->isChecked());              // webengine工具
+    settings.setValue("extra_lan", ui_extra_lan);                                                   //额外指令语种
+
+    //保存自定义的约定模板
+    settings.setValue("custom1_date_system", custom1_date_system);
+    settings.setValue("custom1_user_name", custom1_user_name);
+    settings.setValue("custom1_model_name", custom1_model_name);
+    settings.setValue("custom2_date_system", custom2_date_system);
+    settings.setValue("custom2_user_name", custom2_user_name);
+    settings.setValue("custom2_model_name", custom2_model_name);
+
+    reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }

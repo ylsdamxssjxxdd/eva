@@ -16,41 +16,54 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         // qDebug()<<"tool:" + QString("calculator ") + jtr("return") + "\n" + result;
         if (result == "nan")  //计算失败的情况
         {
-            emit tool2ui_pushover(QString("calculator ") + jtr("return") + "计算失败，请确认计算公式是否合理");
+            emit tool2ui_pushover(QString("calculator ") + jtr("return") + "Calculation failed, please confirm if the calculation formula is reasonable");
         } else {
             emit tool2ui_pushover(QString("calculator ") + jtr("return") + "\n" + result);
         }
         emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
     }
     //----------------------命令提示符------------------
-    else if (func_arg_list.first == "terminal") {
+    else if (func_arg_list.first == "execute_command") {
         QProcess* process = new QProcess();
-
-#ifdef Q_OS_WIN
+    #ifdef Q_OS_WIN
         // 在Windows上执行
-
-        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);  //使用start()方法来执行命令。Windows中的命令提示符是terminal.exe，参数/c指示命令提示符执行完毕后关闭，后面跟着的是实际要执行的命令。
+        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);
         emit tool2ui_state(QString("tool: ") + "cmd.exe " + "/c " + func_arg_list.second);
-#else
+    #else
         // 在Unix-like系统上执行
         process->start("/bin/sh", QStringList() << "-c" << func_arg_list.second);
-        emit tool2ui_state(QString("tool: ") + "/bin/sh " + "/c " + func_arg_list.second);
-#endif
+        emit tool2ui_state(QString("tool: ") + "/bin/sh " + "-c " + func_arg_list.second);
+    #endif
 
         if (!process->waitForFinished()) {
             // 处理错误
-            emit tool2ui_state("tool:" + QString("terminal ") + jtr("return") + "\n" + process->errorString(), TOOL_SIGNAL);
-            emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + process->errorString());
-            qDebug() << QString("terminal ") + jtr("return") + "\n" + process->errorString();
-        } else {
+            QString errorString = process->errorString();
+            emit tool2ui_state("tool:" + QString("execute_command ") + jtr("return") + "\n" + errorString, TOOL_SIGNAL);
+            emit tool2ui_pushover(QString("execute_command ") + jtr("return") + "\n" + errorString);
+            qDebug() << QString("execute_command ") + jtr("return") + "\n" + errorString;
+        } 
+        else 
+        {
             // 获取命令的输出
             QByteArray byteArray = process->readAll();
             QString output = QString::fromLocal8Bit(byteArray);
-            emit tool2ui_state("tool:" + QString("terminal ") + jtr("return") + "\n" + output, TOOL_SIGNAL);
-            emit tool2ui_pushover(QString("terminal ") + jtr("return") + "\n" + output);
-            qDebug() << QString("terminal ") + jtr("return") + "\n" + output;
-        }
 
+            // 获取标准错误输出
+            QByteArray errorByteArray = process->readAllStandardError();
+            QString errorOutput = QString::fromLocal8Bit(errorByteArray);
+
+            // 如果有错误输出，打印并发送
+            if (!errorOutput.isEmpty()) {
+                emit tool2ui_state("tool:" + QString("execute_command ") + jtr("stderr") + "\n" + errorOutput, TOOL_SIGNAL);
+                emit tool2ui_pushover(QString("execute_command ") + jtr("stderr") + "\n" + errorOutput);
+                qDebug() << QString("execute_command ") + jtr("stderr") + "\n" + errorOutput;
+            }
+
+            // 获取标准输出
+            emit tool2ui_state("tool:" + QString("execute_command ") + jtr("stdout") + "\n" + output, TOOL_SIGNAL);
+            emit tool2ui_pushover(QString("execute_command ") + jtr("stdout") + "\n" + output);
+            qDebug() << QString("execute_command ") + jtr("stdout") + "\n" + output;
+        }
     }
     //----------------------知识库------------------
     else if (func_arg_list.first == "knowledge") {
@@ -81,6 +94,41 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     else if (func_arg_list.first == "stablediffusion") {
         //告诉expend开始绘制
         emit tool2expend_draw(func_arg_list.second);
+    }
+    //----------------------读取文件------------------
+    else if (func_arg_list.first == "read_file") {
+        QString result;
+        QFile file(func_arg_list.second);
+        // 尝试打开文件
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            emit tool2ui_pushover(QString("read_file ") + jtr("return") + "can not open this file");//返回错误
+            return ;
+        }
+
+        // 使用 QTextStream 读取文件内容
+        QTextStream in(&file);
+        in.setCodec("UTF-8");  // 设置编码为UTF-8
+        result = in.readAll();
+
+        emit tool2ui_state("tool:" + QString("read_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("read_file ") + jtr("return") + "\n" + result);//返回结果
+    }
+    //----------------------写入文件------------------
+    else if (func_arg_list.first == "write_file") {
+        QString filename = func_arg_list.second.split(">>>")[0];
+        QString content = func_arg_list.second.split(">>>")[1];
+        QFile file(applicationDirPath + QString("/") + filename);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            emit tool2ui_pushover(QString("read_file ") + jtr("return") + "Could not open file for writing" + file.errorString());//返回错误
+            return;  // or handle the error as appropriate
+        }
+        QTextStream out(&file);
+        out.setCodec("UTF-8");  // 设置编码为UTF-8
+        out << content;
+        file.close();
+        QString result = "write over";
+        emit tool2ui_state("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("write_file ") + jtr("return") + "\n" + result);
     }
     //----------------------代码解释器------------------
     else if (func_arg_list.first == "interpreter") {

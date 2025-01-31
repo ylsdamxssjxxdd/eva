@@ -51,8 +51,8 @@
 
 #endif
 
-
-
+#include "ui_date_dialog.h"
+#include "ui_settings_dialog.h"
 #include "utils/customswitchbutton.h"
 #include "utils/cutscreendialog.h"
 #include "utils/doubleqprogressbar.h"
@@ -73,8 +73,8 @@ class Widget : public QWidget {
     QString applicationDirPath;
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
     QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
-    bool checkAudio();           // 检测音频支持
-    
+    bool checkAudio();  // 检测音频支持
+
    public:
     QJsonObject wordsObj;                   //中文英文
     void getWords(QString json_file_path);  //中文英文
@@ -115,14 +115,14 @@ class Widget : public QWidget {
     bool checkChinese(QString str_);                    //检测是否含有中文
 
     //模型控制相关
-    CHATS bot_chat;// 经过模型自带模板格式化后的内容
+    CHATS bot_chat;                 // 经过模型自带模板格式化后的内容
     QMap<QString, DATES> date_map;  //约定模板
     QString custom1_date_system;
     QString custom1_user_name;
     QString custom1_model_name;  //自定义约定模板1
     QString custom2_date_system;
     QString custom2_user_name;
-    QString custom2_model_name;        //自定义约定模板2
+    QString custom2_model_name;       //自定义约定模板2
     void preLoad();                   //装载前动作
     bool is_load = false;             //模型装载标签
     bool is_load_play_over = false;   //模型装载动画结束后
@@ -131,10 +131,10 @@ class Widget : public QWidget {
     EVA_STATE ui_state = CHAT_STATE;  //机体的状态
     QString history_lorapath = "";
     QString history_mmprojpath = "";
-    QString ui_template = "default";   //模板
-    QString bot_predecode_content = "";     //模型预解码的内容
-    void normal_finish_pushover();  //正常情况处理推理完毕
-    bool gpu_wait_load = false;     // 等待检测完显存信息重新装载的标签
+    QString ui_template = "default";     //模板
+    QString bot_predecode_content = "";  //模型预解码的内容
+    void normal_finish_pushover();       //正常情况处理推理完毕
+    bool gpu_wait_load = false;          // 等待检测完显存信息重新装载的标签
 
     DATES ui_DATES;        // ui的约定
     SETTINGS ui_SETTINGS;  // ui的设置
@@ -158,8 +158,6 @@ class Widget : public QWidget {
 
     //服务相关
     QProcess *server_process;
-    QLabel *port_label;
-    QLineEdit *port_lineEdit;
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address();  //获取本机第一个ip地址
@@ -168,8 +166,8 @@ class Widget : public QWidget {
     //语音相关
     QAudioRecorder audioRecorder;
     QAudioEncoderSettings audioSettings;
-    void recordAudio();                                                             //开始录音
-    bool is_recodering = false;                                                     //是否正在录音
+    void recordAudio();          //开始录音
+    bool is_recodering = false;  //是否正在录音
     int audio_time = 0;
     QString outFilePath;
     QTimer *audio_timer;
@@ -194,61 +192,30 @@ class Widget : public QWidget {
 
     //设置按钮相关
     void set_SetDialog();  //设置设置选项
-    QDialog *set_dialog;
-    QGroupBox *sample_box;
-    QSlider *temp_slider;
-    QLabel *temp_label;
-    QSlider *npredict_slider;
-    QLabel *npredict_label;
-    QLabel *repeat_label;
-    QSlider *repeat_slider;
-
-    QGroupBox *decode_box;
-    QLabel *ngl_label;
-    QSlider *ngl_slider;
-    QLabel *nctx_label;
-    QSlider *nctx_slider;
-    QLabel *nthread_label;
-    QSlider *nthread_slider;
-    QLabel *batch_label;
-    QSlider *batch_slider;
-
-    QLabel *lora_label;
-    QLineEdit *lora_LineEdit;
-    QLabel *mmproj_label;
-    QLineEdit *mmproj_LineEdit;
+    Ui::Settings_Dialog_Ui *settings_ui;
+    QDialog *settings_dialog;
     void chooseLorapath();
     void chooseMmprojpath();
 
-    QGroupBox *mode_box;
-
-    //约定按钮相关
+    //约定选项相关
     void set_DateDialog();  //设置约定选项
+    Ui::Date_Dialog_Ui *date_ui;
     QDialog *date_dialog;
-    QGroupBox *prompt_box;
-    QLabel *date_prompt_label;
-    QTextEdit *date_prompt_TextEdit;
-    QRadioButton *complete_btn, *web_btn, *chat_btn;
-
-    QLabel *user_name_label;
-    QLineEdit *user_name_LineEdit;
-    QLabel *model_name_label;
-    QLineEdit *model_name_LineEdit;
-    QLabel *chattemplate_label;
-    QComboBox *chattemplate_comboBox;
-    void change_api_dialog(bool enable);
-
-    QGroupBox *tool_box;
-    QCheckBox *calculator_checkbox, *terminal_checkbox, *toolguy_checkbox, *knowledge_checkbox, *controller_checkbox, *stablediffusion_checkbox, *interpreter_checkbox;
-    bool ui_calculator_ischecked = 0, ui_terminal_ischecked = 0, ui_toolguy_ischecked = 0, ui_knowledge_ischecked = 0, ui_controller_ischecked = 0, ui_stablediffusion_ischecked = 0, ui_interpreter_ischecked = 0;
-    QLabel *extra_label;             //附加指令
-    QPushButton *switch_lan_button;  //切换附加指令的语言
     QString ui_extra_lan = "zh";
-    QTextEdit *extra_TextEdit;
     QString ui_extra_prompt;
     QString ui_date_prompt;
-    QString create_extra_prompt();                     //构建附加指令
-    void tool_change();                                //响应工具选择
+    bool ui_calculator_ischecked = false;
+    bool ui_knowledge_ischecked = false;
+    bool ui_stablediffusion_ischecked = false;
+    bool ui_controller_ischecked = false;
+    bool ui_webengine_ischecked = false;
+    bool ui_engineer_ischecked = false;
+    QString create_extra_prompt();  //构建附加指令
+    QString create_engineer_info();  //构建工程师指令
+    void tool_change();             //响应工具选择
+    void change_api_dialog(bool enable);
+
+    //工具相关
     void addStopwords();                               //添加额外停止标志
     QMap<QString, TOOLS> tool_map;                     //工具包
     bool is_load_tool = false;                         //是否挂载了工具
@@ -309,37 +276,37 @@ class Widget : public QWidget {
 
     //发给模型的信号
    signals:
-    void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);             //自动装载
-    void ui2bot_language(int language_flag_);                                //传递使用的语言
-    void ui2bot_loadmodel(QString modelpath);//开始装载模型
-    void ui2bot_predict(INPUTS input);//开始推理
-    void ui2bot_preDecodeImage(QString image_path);//开始预解码图像
-    void ui2bot_stop();                                                      //传递推理停止信号
-    void ui2bot_reset();                                    //传递重置信号
-    void ui2bot_date(DATES date);                                            //传递约定内容
-    void ui2bot_set(SETTINGS settings, bool can_reload);                     //传递设置内容
-    void ui2bot_free(bool loadlater);                                        //释放
+    void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
+    void ui2bot_language(int language_flag_);                     //传递使用的语言
+    void ui2bot_loadmodel(QString modelpath);                     //开始装载模型
+    void ui2bot_predict(INPUTS input);                            //开始推理
+    void ui2bot_preDecodeImage(QString image_path);               //开始预解码图像
+    void ui2bot_stop();                                           //传递推理停止信号
+    void ui2bot_reset();                                          //传递重置信号
+    void ui2bot_date(DATES date);                                 //传递约定内容
+    void ui2bot_set(SETTINGS settings, bool can_reload);          //传递设置内容
+    void ui2bot_free(bool loadlater);                             //释放
     void ui2bot_maxngl(int maxngl_);
 
     //发给net的信号
    signals:
-    void ui2net_language(int language_flag_);                      //传递使用的语言
-    void ui2net_push();                                            //开始推理
-    void ui2net_data(ENDPOINT_DATA data);                          //传递端点参数
-    void ui2net_apis(APIS apis);                                   //传递api设置参数
-    void ui2net_stop(bool stop);                                   //传递停止信号
+    void ui2net_language(int language_flag_);  //传递使用的语言
+    void ui2net_push();                        //开始推理
+    void ui2net_data(ENDPOINT_DATA data);      //传递端点参数
+    void ui2net_apis(APIS apis);               //传递api设置参数
+    void ui2net_stop(bool stop);               //传递停止信号
 
     //发送给tool的信号
-    void ui2tool_language(int language_flag_);                     //传递使用的语言
-    void ui2tool_exec(QPair<QString, QString> func_arg_list);      //开始推理
+    void ui2tool_language(int language_flag_);                 //传递使用的语言
+    void ui2tool_exec(QPair<QString, QString> func_arg_list);  //开始推理
     void recv_controller_over(QString result);
 
     //发送给expend的信号
     void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);
-    void ui2expend_language(int language_flag_);                      //传递使用的语言
-    void ui2expend_show(int index_);                                  //通知显示扩展窗口
+    void ui2expend_language(int language_flag_);                       //传递使用的语言
+    void ui2expend_show(int index_);                                   //通知显示扩展窗口
     void ui2expend_speechdecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
-    void ui2expend_resettts();//重置文字转语音
+    void ui2expend_resettts();                                         //重置文字转语音
 
     //自用信号
    signals:
@@ -348,11 +315,11 @@ class Widget : public QWidget {
 
     //处理模型信号的槽
    public slots:
-    void recv_predecoding();          // 正在预解码
-    void recv_predecoding_over();    // 完成预解码
-    void recv_chat_format(CHATS chats);  //传递格式化后的对话内容
-    void recv_freeover_loadlater();                                                         //模型释放完毕并重新装载
-    void recv_predecode(QString bot_predecode_content_);                                  //传递模型预解码的内容
+    void recv_predecoding();                                                      // 正在预解码
+    void recv_predecoding_over();                                                 // 完成预解码
+    void recv_chat_format(CHATS chats);                                           //传递格式化后的对话内容
+    void recv_freeover_loadlater();                                               //模型释放完毕并重新装载
+    void recv_predecode(QString bot_predecode_content_);                          //传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                 //处理tool推理完毕的槽
     void reflash_output(const QString result, bool is_while, QColor color);       //更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL);  //更新状态区
@@ -371,19 +338,19 @@ class Widget : public QWidget {
 
     //处理expend信号的槽
     void recv_speechdecode_over(QString result);
-    void recv_whisper_modelpath(QString modelpath);     //传递模型路径
-    void recv_embeddingdb_describe(QString describe);   //传递知识库的描述
+    void recv_whisper_modelpath(QString modelpath);    //传递模型路径
+    void recv_embeddingdb_describe(QString describe);  //传递知识库的描述
 
     //处理tool信号的槽
-    void recv_controller(int num);                      //传递控制信息
+    void recv_controller(int num);  //传递控制信息
 
     //自用的槽
    public slots:
-    void serverControl();                      //服务状态启动服务
-    void switch_lan_change();  //切换行动纲领的语言
+    void serverControl();                                                      //服务状态启动服务
+    void switch_lan_change();                                                  //切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率
-    void recv_cpu_status(double cpuload, double memload);  //传递cpu信息
-    //自用的槽
+    void recv_cpu_status(double cpuload, double memload);                      //传递cpu信息
+                                                                               //自用的槽
    private slots:
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
     void stop_recordAudio();                   //停止录音
@@ -399,15 +366,12 @@ class Widget : public QWidget {
     void set_set();                                               //设置用户设置内容
     void set_date();                                              //设置用户约定内容
     void cancel_date();                                           //用户取消约定
-    void calculator_change();                                     //选用计算器工具
-    void interpreter_change();                                    //选用代码解释器工具
     void updateGpuStatus();                                       //更新gpu内存使用率
     void updateCpuStatus();                                       //更新cpu内存使用率
-    void terminal_change();                                       //选用系统终端工具
-    void toolguy_change();                                        //选用搜索引擎工具
-    void knowledge_change();                                      //选用知识库工具
-    void controller_change();                                     //选用阳电子炮工具
-    void stablediffusion_change();                                //选用大模型工具
+    void date_ui_cancel_button_clicked();                         // 约定选项卡取消按钮响应
+    void date_ui_confirm_button_clicked();                        // 约定选项卡确认按钮响应
+    void settings_ui_cancel_button_clicked();  
+    void settings_ui_confirm_button_clicked();  
 
     void prompt_template_change();                 //提示词模板下拉框响应
     void complete_change();                        //补完模式响应
@@ -418,7 +382,6 @@ class Widget : public QWidget {
     void bench_onProcessFinished();                // llama-bench进程结束响应
     void temp_change();                            //温度滑块响应
     void ngl_change();                             // ngl滑块响应
-    void batch_change();                           // batch滑块响应
     void nctx_change();                            // nctx滑块响应
     void repeat_change();                          // repeat滑块响应
     void npredict_change();                        //最大输出长度响应

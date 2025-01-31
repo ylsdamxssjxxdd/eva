@@ -5,11 +5,10 @@
 Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), ui(new Ui::Expend) {
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
-    QFile file(":/QSS-master/Aqua.qss");  //加载皮肤
+    QFile file(":/QSS-master/eva.qss");  //加载皮肤
     file.open(QFile::ReadOnly);
-    QString stylesheet = tr(file.readAll());
+    QString stylesheet = file.readAll();
     this->setStyleSheet(stylesheet);
-    file.close();
     //初始化选项卡
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);  //这样才能滚轮放大
@@ -17,9 +16,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->tabWidget->setCurrentIndex(2);                                //默认显示模型日志
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                 //安装事件过滤器
-    ui->sd_negative_lineEdit->installEventFilter(this);             //安装事件过滤器
-    ui->sd_modify_lineEdit->installEventFilter(this);             //安装事件过滤器
-    ui->sd_img2img_lineEdit->installEventFilter(this);             //安装事件过滤器
+    ui->sd_negative_lineEdit->installEventFilter(this);               //安装事件过滤器
+    ui->sd_modify_lineEdit->installEventFilter(this);                 //安装事件过滤器
+    ui->sd_img2img_lineEdit->installEventFilter(this);                //安装事件过滤器
 
     ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                       //灰色
@@ -50,7 +49,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);                                              //连接开始信号
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::sd_onProcessFinished);  //连接结束信号
 
-    outetts_process = new QProcess(this);   
+    outetts_process = new QProcess(this);
     connect(outetts_process, &QProcess::started, this, &Expend::outetts_onProcessStarted);                                              //连接开始信号
     connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished);  //连接结束信号
     connect(outetts_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_outetts_process_StandardOutput);
@@ -83,17 +82,15 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //添加输出格式
     ui->whisper_output_format->addItems({"txt", "srt", "csv", "json"});
 
-
-
     // 文生图相关
     // 构建模板 sd1.5-anything-3,sdxl-animagine-3.1,sd3.5-large,flux1-dev,custom1,custom2
 
-    SD_PARAMS sd_sd1_5_anything_3_template{"euler_a","EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure","masterpieces, best quality, beauty, detailed, Pixar, 8k",512,512,20,1,-1,2,7.5};
-    SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a","nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]","masterpiece, best quality",768,768,30,1,-1,2,7.5};
-    SD_PARAMS sd_sd3_5_large_template{"euler","","",768,768,20,1,-1,-1,4.5};
-    SD_PARAMS sd_flux1_dev_template{"euler","","",768,768,30,1,-1,-1,1.0};
-    SD_PARAMS sd_custom1_template{"euler","","",512,512,20,1,-1,-1,7.5};
-    SD_PARAMS sd_custom2_template{"euler","","",512,512,20,1,-1,-1,7.5};
+    SD_PARAMS sd_sd1_5_anything_3_template{"euler_a", "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure", "masterpieces, best quality, beauty, detailed, Pixar, 8k", 512, 512, 20, 1, -1, 2, 7.5};
+    SD_PARAMS sd_sdxl_animagine_3_1_template{"euler_a", "nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]", "masterpiece, best quality", 768, 768, 30, 1, -1, 2, 7.5};
+    SD_PARAMS sd_sd3_5_large_template{"euler", "", "", 768, 768, 20, 1, -1, -1, 4.5};
+    SD_PARAMS sd_flux1_dev_template{"euler", "", "", 768, 768, 30, 1, -1, -1, 1.0};
+    SD_PARAMS sd_custom1_template{"euler", "", "", 512, 512, 20, 1, -1, -1, 7.5};
+    SD_PARAMS sd_custom2_template{"euler", "", "", 512, 512, 20, 1, -1, -1, 7.5};
 
     sd_params_templates.insert("sd1.5-anything-3", sd_sd1_5_anything_3_template);
     sd_params_templates.insert("sdxl-animagine-3.1", sd_sdxl_animagine_3_1_template);
@@ -102,8 +99,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     sd_params_templates.insert("custom1", sd_custom1_template);
     sd_params_templates.insert("custom2", sd_custom2_template);
 
-    for (const auto& key : sd_params_templates.keys()) {
-        ui->params_template_comboBox->addItem(key); // 添加模板选项
+    for (const auto &key : sd_params_templates.keys()) {
+        ui->params_template_comboBox->addItem(key);  // 添加模板选项
     }
 
     //记忆矩阵相关
@@ -113,27 +110,28 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //文转声相关
     connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
-    sys_speech = new QTextToSpeech();// 系统声源
+    sys_speech = new QTextToSpeech();  // 系统声源
     // 检查是否成功创建
     if (sys_speech->state() == QTextToSpeech::Ready) {
         // 遍历所有可用音色
         foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
         connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::speechOver);  //朗读结束后动作
         is_sys_speech_available = true;
+    } else {
+        is_sys_speech_available = false;
     }
-    else{is_sys_speech_available = false;}
 
-    avaliable_speech_list << SPPECH_OUTETTS;// 模型声源
+    avaliable_speech_list << SPPECH_OUTETTS;      // 模型声源
     this->set_sys_speech(avaliable_speech_list);  // 设置可用声源
 
     // 创建播放器对象
     speech_player = new QMediaPlayer;
     // 连接 mediaStatusChanged 信号到槽函数
     QObject::connect(speech_player, &QMediaPlayer::mediaStatusChanged, this, &Expend::speech_player_over);
-    outettsDir = applicationDirPath + "/EVA_TEMP/outetts/";// outetts生成的音频存放目录
+    outettsDir = applicationDirPath + "/EVA_TEMP/outetts/";  // outetts生成的音频存放目录
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
-    speechTimer.start(500);  //每半秒检查一次是否需要朗读
+    speechTimer.start(500);      //每半秒检查一次是否需要朗读
     speechPlayTimer.start(500);  //每半秒检查一次是否有音频需要朗读
 
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
@@ -172,7 +170,6 @@ void Expend::recv_llama_log(QString log) {
     cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
     cursor.insertText(log);
     ui->modellog_card->setTextCursor(cursor);
-
 }
 
 // 根据language.json和language_flag中找到对应的文字
@@ -191,8 +188,8 @@ void Expend::init_expend() {
     ui->tabWidget->setTabText(3, jtr("model") + jtr("quantize"));  //模型量化
     ui->tabWidget->setTabText(4, jtr("knowledge"));                //知识库
     ui->tabWidget->setTabText(5, jtr("text2image"));               //文生图
-    ui->tabWidget->setTabText(6, jtr("speech2text"));               //声转文
-    ui->tabWidget->setTabText(7, jtr("text2speech"));               //文转声
+    ui->tabWidget->setTabText(6, jtr("speech2text"));              //声转文
+    ui->tabWidget->setTabText(7, jtr("text2speech"));              //文转声
     ui->tabWidget->setTabText(8, jtr("sync rate"));                //同步率
 
     //模型记忆
@@ -265,13 +262,13 @@ void Expend::init_expend() {
     ui->sd_negative_lineEdit->setPlaceholderText(jtr("sd_negative_lineEdit_placeholder"));
     ui->sd_modify_label->setText(jtr("modify"));
     ui->sd_modify_lineEdit->setPlaceholderText(jtr("sd_modify_lineEdit_placeholder"));
-    
+
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
     ui->sd_draw_pushButton->setText(jtr("text to image"));
 
     ui->sd_img2img_pushButton->setText(jtr("image to image"));
     ui->sd_img2img_lineEdit->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
-    
+
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
 
     //声转文
@@ -298,7 +295,6 @@ void Expend::init_expend() {
 
     //同步率
     init_syncrate();
-
 }
 
 //用户切换选项卡时响应
@@ -346,8 +342,7 @@ void Expend::recv_expend_show(int index_) {
     if (index_ == 999) {
         this->close();
         return;
-    } 
-    else if (index_ == 8 && is_first_show_sync)  //第一次点同步率
+    } else if (index_ == 8 && is_first_show_sync)  //第一次点同步率
     {
         is_first_show_sync = false;
         ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "action_name", "action_input", jtr("pass")});  //设置列名
@@ -358,9 +353,13 @@ void Expend::recv_expend_show(int index_) {
         is_first_show_expend = false;
         this->init_expend();
 
-        if (vocab == "") { vocab = jtr("lode model first"); }
+        if (vocab == "") {
+            vocab = jtr("lode model first");
+        }
 
-        if (ui->modellog_card->toPlainText() == "") { ui->modellog_card->setPlainText(jtr("lode model first")); }
+        if (ui->modellog_card->toPlainText() == "") {
+            ui->modellog_card->setPlainText(jtr("lode model first"));
+        }
     }
 
     //打开指定页数窗口
@@ -391,53 +390,65 @@ void Expend::readConfig() {
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         // 读取配置文件中的值
-        QString sd_params_template = settings.value("sd_params_template", "custom1").toString();       // 参数模板
-        QString sd_modelpath = settings.value("sd_modelpath", "").toString();              // sd模型路径
-        QString vae_modelpath = settings.value("vae_modelpath", "").toString();            // vae模型路径
-        QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();            // clip_l模型路径
-        QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();            // clip_g模型路径
-        QString t5_modelpath = settings.value("t5_modelpath", "").toString();            // t5模型路径
-        QString lora_modelpath = settings.value("lora_modelpath", "").toString();            // lora模型路径
+        QString sd_params_template = settings.value("sd_params_template", "custom1").toString();  // 参数模板
+        QString sd_modelpath = settings.value("sd_modelpath", "").toString();                     // sd模型路径
+        QString vae_modelpath = settings.value("vae_modelpath", "").toString();                   // vae模型路径
+        QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();             // clip_l模型路径
+        QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();             // clip_g模型路径
+        QString t5_modelpath = settings.value("t5_modelpath", "").toString();                     // t5模型路径
+        QString lora_modelpath = settings.value("lora_modelpath", "").toString();                 // lora模型路径
 
-        QString negative = settings.value("negative", "").toString();  //反提示
-        QString modify = settings.value("modify", "").toString();  //修饰词
-        int image_width = settings.value("image_width", 512).toInt();                      //图像宽度
-        int image_height = settings.value("image_height", 512).toInt();                    //图像高度
-        QString sample_type = settings.value("sample_type", "euler").toString();         //采样方式
-        int sample_steps = settings.value("sample_steps", 20).toInt();                     //采样步数
-        float cfg = settings.value("cfg", 7.5).toFloat();                                  //相关系数
-        int seed = settings.value("seed", -1).toInt();                                     //随机数种子
-        int image_nums = settings.value("image_nums", 1).toInt();                          //生成图像数目
-        int clip_skip = settings.value("clip_skip", -1).toInt();                            //跳层数
-        QString sd_prompt = settings.value("sd_prompt", "").toString();                    // sd提示词
+        QString negative = settings.value("negative", "").toString();             //反提示
+        QString modify = settings.value("modify", "").toString();                 //修饰词
+        int image_width = settings.value("image_width", 512).toInt();             //图像宽度
+        int image_height = settings.value("image_height", 512).toInt();           //图像高度
+        QString sample_type = settings.value("sample_type", "euler").toString();  //采样方式
+        int sample_steps = settings.value("sample_steps", 20).toInt();            //采样步数
+        float cfg = settings.value("cfg", 7.5).toFloat();                         //相关系数
+        int seed = settings.value("seed", -1).toInt();                            //随机数种子
+        int image_nums = settings.value("image_nums", 1).toInt();                 //生成图像数目
+        int clip_skip = settings.value("clip_skip", -1).toInt();                  //跳层数
+        QString sd_prompt = settings.value("sd_prompt", "").toString();           // sd提示词
 
         QString whisper_modelpath = settings.value("whisper_modelpath", "").toString();  // whisper模型路径
 
-        speech_params.enable_speech = settings.value("speech_enable", "").toBool();    //是否启用语音朗读
-        speech_params.speech_name = settings.value("speech_name", "").toString();  //朗读者
-        QString outetts_modelpath = settings.value("outetts_modelpath", "").toString();  // outetts模型路径
+        speech_params.enable_speech = settings.value("speech_enable", "").toBool();                //是否启用语音朗读
+        speech_params.speech_name = settings.value("speech_name", "").toString();                  //朗读者
+        QString outetts_modelpath = settings.value("outetts_modelpath", "").toString();            // outetts模型路径
         QString wavtokenizer_modelpath = settings.value("wavtokenizer_modelpath", "").toString();  // wavtokenizer模型路径
         ui->speech_outetts_modelpath_lineEdit->setText(outetts_modelpath);
         ui->speech_wavtokenizer_modelpath_lineEdit->setText(wavtokenizer_modelpath);
 
         // 应用值
         QFile sd_modelpath_file(sd_modelpath);
-        if (sd_modelpath_file.exists()) {ui->sd_modelpath_lineEdit->setText(sd_modelpath);}
+        if (sd_modelpath_file.exists()) {
+            ui->sd_modelpath_lineEdit->setText(sd_modelpath);
+        }
 
         QFile vae_modelpath_file(vae_modelpath);
-        if (vae_modelpath_file.exists()) {ui->sd_vaepath_lineEdit->setText(vae_modelpath);}
+        if (vae_modelpath_file.exists()) {
+            ui->sd_vaepath_lineEdit->setText(vae_modelpath);
+        }
 
         QFile clip_l_modelpath_file(clip_l_modelpath);
-        if (clip_l_modelpath_file.exists()) {ui->sd_clip_l_path_lineEdit->setText(clip_l_modelpath);}
+        if (clip_l_modelpath_file.exists()) {
+            ui->sd_clip_l_path_lineEdit->setText(clip_l_modelpath);
+        }
 
         QFile clip_g_modelpath_file(clip_g_modelpath);
-        if (clip_g_modelpath_file.exists()) {ui->sd_clip_g_path_lineEdit->setText(clip_g_modelpath);}
+        if (clip_g_modelpath_file.exists()) {
+            ui->sd_clip_g_path_lineEdit->setText(clip_g_modelpath);
+        }
 
         QFile t5_modelpath_file(t5_modelpath);
-        if (t5_modelpath_file.exists()) {ui->sd_t5path_lineEdit->setText(t5_modelpath);}
+        if (t5_modelpath_file.exists()) {
+            ui->sd_t5path_lineEdit->setText(t5_modelpath);
+        }
 
         QFile lora_modelpath_file(lora_modelpath);
-        if (lora_modelpath_file.exists()) {ui->sd_lorapath_lineEdit->setText(lora_modelpath);}
+        if (lora_modelpath_file.exists()) {
+            ui->sd_lorapath_lineEdit->setText(lora_modelpath);
+        }
 
         ui->params_template_comboBox->setCurrentText(sd_params_template);
         ui->sd_negative_lineEdit->setText(negative);
@@ -517,21 +528,21 @@ void Expend::showReadme() {
         readme_content = in.readAll();  // 读取文件内容
     }
     file.close();
-    
+
     //正则表达式,删除<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/直到>的所有文本
     QRegularExpression re("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
     readme_content.remove(re);
-    QRegExp regExp("<summary>|</summary>");// 使用QRegExp创建正则表达式来匹配<summary>和</summary>标记
-    readme_content.replace(regExp, "");// 使用replace函数去掉所有<summary>和</summary>标记
+    QRegExp regExp("<summary>|</summary>");  // 使用QRegExp创建正则表达式来匹配<summary>和</summary>标记
+    readme_content.replace(regExp, "");      // 使用replace函数去掉所有<summary>和</summary>标记
     readme_content.remove("<details>");
     readme_content.remove("</details>");
 
     // 添加编译信息
-    readme_content.push_front(jtr("EVA_PRODUCT_TIME") + " " +QString(EVA_PRODUCT_TIME) + "; " + DEFAULT_SPLITER);
-    readme_content.push_front(jtr("QT_VERSION_") + " " +QString(QT_VERSION_) + "; ");
-    readme_content.push_front(jtr("COMPILE_VERSION") + " " +QString(COMPILE_VERSION) + "; ");
-    readme_content.push_front(jtr("EVA_VERSION") + " " +QString(EVA_VERSION) + "; ");
-    
+    readme_content.push_front(jtr("EVA_PRODUCT_TIME") + " " + QString(EVA_PRODUCT_TIME) + "; " + DEFAULT_SPLITER);
+    readme_content.push_front(jtr("QT_VERSION_") + " " + QString(QT_VERSION_) + "; ");
+    readme_content.push_front(jtr("COMPILE_VERSION") + " " + QString(COMPILE_VERSION) + "; ");
+    readme_content.push_front(jtr("EVA_VERSION") + " " + QString(EVA_VERSION) + "; ");
+
     ui->info_card->setMarkdown(readme_content);
 
     // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
@@ -551,7 +562,6 @@ void Expend::showReadme() {
     cursor.insertImage(imageFormat);
 
     cursor.insertText("\n\n");
-    
 }
 
 //事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
@@ -571,16 +581,16 @@ bool Expend::eventFilter(QObject *obj, QEvent *event) {
     } else if (obj == ui->sd_img2img_lineEdit && event->type() == QEvent::ContextMenu) {
         //选择图像
         currentpath = customOpenfile(currentpath, "choose an imgage", "(*.png *.jpg *.bmp)");
-        if(currentpath != "")
-        {
+        if (currentpath != "") {
             ui->sd_img2img_pushButton->setEnabled(1);
             ui->sd_img2img_lineEdit->setText(currentpath);
+        } else {
+            ui->sd_img2img_pushButton->setEnabled(0);
         }
-        else{ui->sd_img2img_pushButton->setEnabled(0);}
 
         return true;
-    } 
-    
+    }
+
     return QObject::eventFilter(obj, event);
 }
 
@@ -685,7 +695,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
 
     //将wav文件重采样为16khz音频文件
 #ifdef _WIN32
-    QTextCodec* code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
     std::string wav_path_c = code->fromUnicode(wavpath).data();
 #elif __linux__
     std::string wav_path_c = wavpath.toStdString();
@@ -701,10 +711,16 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format) {
     arguments << "-f" << wavpath;                                                  // wav文件路径
     arguments << "--language" << QString::fromStdString(whisper_params.language);  //识别语种
     arguments << "--threads" << QString::number(max_thread * 0.5);
-    if (out_format == "txt") { arguments << "--output-txt";}  //结果输出为一个txt
-    else if (out_format == "srt") {arguments << "--output-srt";} 
-    else if (out_format == "csv") {arguments << "--output-csv";} 
-    else if (out_format == "json") {arguments << "--output-json";}
+    if (out_format == "txt") {
+        arguments << "--output-txt";
+    }  //结果输出为一个txt
+    else if (out_format == "srt") {
+        arguments << "--output-srt";
+    } else if (out_format == "csv") {
+        arguments << "--output-csv";
+    } else if (out_format == "json") {
+        arguments << "--output-json";
+    }
 
     // 开始运行程序
     //连接信号和槽,获取程序的输出
@@ -817,9 +833,7 @@ void Expend::embedding_server_start() {
 }
 
 // 获取server_process日志输出
-void Expend::readyRead_server_process_StandardOutput() {
-    QString server_output = server_process->readAllStandardOutput();
-}
+void Expend::readyRead_server_process_StandardOutput() { QString server_output = server_process->readAllStandardOutput(); }
 
 // 获取server_process日志输出
 void Expend::readyRead_server_process_StandardError() {
@@ -836,7 +850,6 @@ void Expend::readyRead_server_process_StandardError() {
         log_output += jtr("embedding") + jtr("service startup completed") + "\n";
         log_output += jtr("embd api") + ": " + embedding_server_api;
         log_output += "\n" + jtr("embd dim") + ": " + QString::number(embedding_server_dim);
-
     }
     if (log_output != "") {
         ui->embedding_test_log->appendPlainText(log_output);
@@ -1543,24 +1556,23 @@ QStringList Expend::listFiles(const QString &path) {
     QFileInfoList fileList = dir.entryInfoList();
 
     // Iterate through the list and print the absolute file paths
-    foreach (const QFileInfo &fileInfo, fileList) {
-        file_paths << fileInfo.absoluteFilePath();
-    }
-    
+    foreach (const QFileInfo &fileInfo, fileList) { file_paths << fileInfo.absoluteFilePath(); }
+
     return file_paths;
 }
 
 //用户点击选择sd模型路径时响应
 void Expend::on_sd_modelpath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose diffusion model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if(currentpath == ""){return ;}
+    if (currentpath == "") {
+        return;
+    }
 
     QString modelpath = currentpath;
     ui->sd_modelpath_lineEdit->setText(currentpath);
-    
+
     // 自动寻找其它模型
     if (QFile::exists(modelpath)) {
-
         //先清空其它路径
         ui->sd_lorapath_lineEdit->setText("");
         ui->sd_vaepath_lineEdit->setText("");
@@ -1570,37 +1582,33 @@ void Expend::on_sd_modelpath_pushButton_clicked() {
 
         // 遍历当前目录
         QFileInfo modelfileInfo(modelpath);
-        QString model_directoryPath = modelfileInfo.absolutePath();// 提取目录路径
+        QString model_directoryPath = modelfileInfo.absolutePath();  // 提取目录路径
         QStringList file_list = listFiles(model_directoryPath);
 
-        for(int i = 0; i < file_list.size(); ++i)
-        {
+        for (int i = 0; i < file_list.size(); ++i) {
             QString file_path_name = file_list.at(i);
-            if(file_path_name.contains("vae"))
-            {
+            if (file_path_name.contains("vae")) {
                 ui->sd_vaepath_lineEdit->setText(file_path_name);
-            }
-            else if(file_path_name.contains("clip_l"))
-            {
+            } else if (file_path_name.contains("clip_l")) {
                 ui->sd_clip_l_path_lineEdit->setText(file_path_name);
-            }
-            else if(file_path_name.contains("clip_g"))
-            {
+            } else if (file_path_name.contains("clip_g")) {
                 ui->sd_clip_g_path_lineEdit->setText(file_path_name);
-            }
-            else if(file_path_name.contains("t5"))
-            {
+            } else if (file_path_name.contains("t5")) {
                 ui->sd_t5path_lineEdit->setText(file_path_name);
             }
         }
     }
 
     // 自动设置参数模板
-    if (modelpath.contains("sd1.5-anything-3")){ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");}
-    else if(modelpath.contains("sdxl-animagine-3.1")){ui->params_template_comboBox->setCurrentText("sdxl-animagine-3.1");}
-    else if(modelpath.contains("sd3.5-large")){ui->params_template_comboBox->setCurrentText("sd3.5-large");}
-    else if(modelpath.contains("flux1-dev")){ui->params_template_comboBox->setCurrentText("flux1-dev");}
-
+    if (modelpath.contains("sd1.5-anything-3")) {
+        ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");
+    } else if (modelpath.contains("sdxl-animagine-3.1")) {
+        ui->params_template_comboBox->setCurrentText("sdxl-animagine-3.1");
+    } else if (modelpath.contains("sd3.5-large")) {
+        ui->params_template_comboBox->setCurrentText("sd3.5-large");
+    } else if (modelpath.contains("flux1-dev")) {
+        ui->params_template_comboBox->setCurrentText("flux1-dev");
+    }
 }
 
 //用户点击选择vae模型路径时响应
@@ -1612,8 +1620,7 @@ void Expend::on_sd_vaepath_pushButton_clicked() {
 }
 
 //用户点击选择clip模型路径时响应
-void Expend::on_sd_clip_l_path_pushButton_clicked()
-{
+void Expend::on_sd_clip_l_path_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose clip_l model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if (currentpath != "") {
         ui->sd_clip_l_path_lineEdit->setText(currentpath);
@@ -1621,17 +1628,15 @@ void Expend::on_sd_clip_l_path_pushButton_clicked()
 }
 
 //用户点击选择clip模型路径时响应
-void Expend::on_sd_clip_g_path_pushButton_clicked()
-{
+void Expend::on_sd_clip_g_path_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose clip_g model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if (currentpath != "") {
         ui->sd_clip_g_path_lineEdit->setText(currentpath);
     }
 }
 
-//用户点击选择t5模型路径时响应       
-void Expend::on_sd_t5path_pushButton_clicked()
-{
+//用户点击选择t5模型路径时响应
+void Expend::on_sd_t5path_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose t5 model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if (currentpath != "") {
         ui->sd_t5path_lineEdit->setText(currentpath);
@@ -1639,8 +1644,7 @@ void Expend::on_sd_t5path_pushButton_clicked()
 }
 
 //用户点击选择lora模型路径时响应
-void Expend::on_sd_lorapath_pushButton_clicked()
-{
+void Expend::on_sd_lorapath_pushButton_clicked() {
     currentpath = customOpenfile(currentpath, "choose lora model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
     if (currentpath != "") {
         ui->sd_lorapath_lineEdit->setText(currentpath);
@@ -1692,8 +1696,8 @@ void Expend::on_sd_draw_pushButton_clicked() {
 
     if (img2img) {
         arguments << "-M"
-                  << "img2img";  //运行模式 图生图
-        arguments << "-i" << ui->sd_img2img_lineEdit->text();// 传入图像路径
+                  << "img2img";                                //运行模式 图生图
+        arguments << "-i" << ui->sd_img2img_lineEdit->text();  // 传入图像路径
         img2img = false;
     } else {
         arguments << "-M"
@@ -1701,48 +1705,58 @@ void Expend::on_sd_draw_pushButton_clicked() {
     }
 
     //模型路径 sd系列模型用-m flux模型用--diffusion-model
-    if(ui->sd_modelpath_lineEdit->text().contains("flux")){arguments << "--diffusion-model" << ui->sd_modelpath_lineEdit->text();}
-    else {arguments << "-m" << ui->sd_modelpath_lineEdit->text();}
+    if (ui->sd_modelpath_lineEdit->text().contains("flux")) {
+        arguments << "--diffusion-model" << ui->sd_modelpath_lineEdit->text();
+    } else {
+        arguments << "-m" << ui->sd_modelpath_lineEdit->text();
+    }
 
-    if(QFile::exists(ui->sd_vaepath_lineEdit->text())){arguments << "--vae" << ui->sd_vaepath_lineEdit->text();}// vae路径
-    if(QFile::exists(ui->sd_clip_l_path_lineEdit->text())){arguments << "--clip_l" << ui->sd_clip_l_path_lineEdit->text();}// clip_l路径
-    if(QFile::exists(ui->sd_clip_g_path_lineEdit->text())){arguments << "--clip_g" << ui->sd_clip_g_path_lineEdit->text();}// clip_g路径
-    if(QFile::exists(ui->sd_t5path_lineEdit->text())){arguments << "--t5xxl" << ui->sd_t5path_lineEdit->text();}// vae路径
-    QString lora_prompt = "<lora:{model}:1>";// 应用lora的提示，将会添加到提示词的最后
-    if(QFile::exists(ui->sd_lorapath_lineEdit->text()))
-    {
+    if (QFile::exists(ui->sd_vaepath_lineEdit->text())) {
+        arguments << "--vae" << ui->sd_vaepath_lineEdit->text();
+    }  // vae路径
+    if (QFile::exists(ui->sd_clip_l_path_lineEdit->text())) {
+        arguments << "--clip_l" << ui->sd_clip_l_path_lineEdit->text();
+    }  // clip_l路径
+    if (QFile::exists(ui->sd_clip_g_path_lineEdit->text())) {
+        arguments << "--clip_g" << ui->sd_clip_g_path_lineEdit->text();
+    }  // clip_g路径
+    if (QFile::exists(ui->sd_t5path_lineEdit->text())) {
+        arguments << "--t5xxl" << ui->sd_t5path_lineEdit->text();
+    }                                          // vae路径
+    QString lora_prompt = "<lora:{model}:1>";  // 应用lora的提示，将会添加到提示词的最后
+    if (QFile::exists(ui->sd_lorapath_lineEdit->text())) {
         QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
-        QString lora_directoryPath = lorafileInfo.absolutePath();// 提取lora目录路径
-        QString lora_name = lorafileInfo.fileName().replace(".safetensors","");
-        if(lora_directoryPath != "")
-        {
+        QString lora_directoryPath = lorafileInfo.absolutePath();  // 提取lora目录路径
+        QString lora_name = lorafileInfo.fileName().replace(".safetensors", "");
+        if (lora_directoryPath != "") {
             arguments << "--lora-model-dir" << lora_directoryPath;
-            lora_prompt.replace("{model}",lora_name);
+            lora_prompt.replace("{model}", lora_name);
         }
     }
 
-    arguments << "-W" << QString::number(ui->sd_imagewidth->value()); //图像宽
-    arguments << "-H" << QString::number(ui->sd_imageheight->value()); //图像长
-    arguments << "--sampling-method" << ui->sd_sampletype->currentText(); //采样方法
-    arguments << "--clip-skip" << QString::number(ui->sd_clipskip->value()); //跳层
-    arguments << "--cfg-scale" << QString::number(ui->sd_cfgscale->value());//相关系数
-    arguments << "--steps" << QString::number(ui->sd_samplesteps->value()); //采样步数
-    arguments << "-s" << QString::number(ui->sd_seed->value()); //随机种子
-    arguments << "-b" << QString::number(ui->sd_batch_count->value());//出图张数
-    arguments << "-n" << ui->sd_negative_lineEdit->text();;//反向提示词
+    arguments << "-W" << QString::number(ui->sd_imagewidth->value());         //图像宽
+    arguments << "-H" << QString::number(ui->sd_imageheight->value());        //图像长
+    arguments << "--sampling-method" << ui->sd_sampletype->currentText();     //采样方法
+    arguments << "--clip-skip" << QString::number(ui->sd_clipskip->value());  //跳层
+    arguments << "--cfg-scale" << QString::number(ui->sd_cfgscale->value());  //相关系数
+    arguments << "--steps" << QString::number(ui->sd_samplesteps->value());   //采样步数
+    arguments << "-s" << QString::number(ui->sd_seed->value());               //随机种子
+    arguments << "-b" << QString::number(ui->sd_batch_count->value());        //出图张数
+    arguments << "-n" << ui->sd_negative_lineEdit->text();
+    ;  //反向提示词
 
     //提示词
-    if(arguments.contains("--lora-model-dir"))
-    {
+    if (arguments.contains("--lora-model-dir")) {
         // 应用lora的情况
         arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText() + lora_prompt;
+    } else {
+        arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();
     }
-    else{arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();}
-     
-    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5);            //线程数
-    arguments << "-o" << sd_outputpath;  //输出路径
-    arguments << "--strength" << DEFAULT_SD_NOISE;  //噪声系数
-    arguments << "-v"; // 打印细节
+
+    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5);  //线程数
+    arguments << "-o" << sd_outputpath;                                               //输出路径
+    arguments << "--strength" << DEFAULT_SD_NOISE;                                    //噪声系数
+    arguments << "-v";                                                                // 打印细节
 
     //连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
@@ -1773,7 +1787,6 @@ void Expend::on_sd_draw_pushButton_clicked() {
 void Expend::sd_onProcessStarted() {}
 //进程结束响应
 void Expend::sd_onProcessFinished() {
-
     ui->sd_draw_pushButton->setText(jtr("text to image"));
     ui->sd_img2img_pushButton->setText(jtr("image to image"));
 
@@ -1785,17 +1798,17 @@ void Expend::sd_onProcessFinished() {
     cursor.movePosition(QTextCursor::End);
 
     QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);     // 设置图片的宽度
-    imageFormat.setHeight(originalHeight);   // 设置图片的高度
-    imageFormat.setName(sd_outputpath);  // 图片资源路径
+    imageFormat.setWidth(originalWidth);    // 设置图片的宽度
+    imageFormat.setHeight(originalHeight);  // 设置图片的高度
+    imageFormat.setName(sd_outputpath);     // 图片资源路径
     cursor.insertImage(imageFormat);
     ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum());  //滚动条滚动到最下面
     //如果是多幅
     if (ui->sd_batch_count->value() > 1) {
         for (int i = 1; i < ui->sd_batch_count->value(); ++i) {
             QTextImageFormat imageFormats;
-            imageFormats.setWidth(originalWidth);                                                              // 设置图片的宽度
-            imageFormats.setHeight(originalHeight);                                                            // 设置图片的高度
+            imageFormats.setWidth(originalWidth);                                                          // 设置图片的宽度
+            imageFormats.setHeight(originalHeight);                                                        // 设置图片的高度
             imageFormats.setName(sd_outputpath.split(".png")[0] + "_" + QString::number(i + 1) + ".png");  // 图片资源路径
             cursor.insertImage(imageFormats);
             ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum());  //滚动条滚动到最下面
@@ -1820,22 +1833,30 @@ void Expend::sd_onProcessFinished() {
 }
 
 //参数模板改变响应
-void Expend::on_params_template_comboBox_currentIndexChanged(int index)
-{
+void Expend::on_params_template_comboBox_currentIndexChanged(int index) {
     // 以前是自定义模板，触发这个函数说明现在换了，保存以前的这个模板
-    if(is_sd_custom1){sd_save_template("custom1");}
-    else if(is_sd_custom2){sd_save_template("custom2");}
+    if (is_sd_custom1) {
+        sd_save_template("custom1");
+    } else if (is_sd_custom2) {
+        sd_save_template("custom2");
+    }
 
-    if(ui->params_template_comboBox->currentText().contains("custom1")){is_sd_custom1 = true;is_sd_custom2 = false;}
-    else if(ui->params_template_comboBox->currentText().contains("custom2")){is_sd_custom2 = true;is_sd_custom1 = false;}
-    else{is_sd_custom1 = false;is_sd_custom2 = false;}
+    if (ui->params_template_comboBox->currentText().contains("custom1")) {
+        is_sd_custom1 = true;
+        is_sd_custom2 = false;
+    } else if (ui->params_template_comboBox->currentText().contains("custom2")) {
+        is_sd_custom2 = true;
+        is_sd_custom1 = false;
+    } else {
+        is_sd_custom1 = false;
+        is_sd_custom2 = false;
+    }
 
     sd_apply_template(sd_params_templates[ui->params_template_comboBox->currentText()]);
 }
 
 // 保存参数到自定义模板
-void Expend::sd_save_template(QString template_name)
-{
+void Expend::sd_save_template(QString template_name) {
     sd_params_templates[template_name].batch_count = ui->sd_batch_count->value();
     sd_params_templates[template_name].cfg_scale = ui->sd_cfgscale->value();
     sd_params_templates[template_name].clip_skip = ui->sd_clipskip->value();
@@ -1846,12 +1867,10 @@ void Expend::sd_save_template(QString template_name)
     sd_params_templates[template_name].sample_type = ui->sd_sampletype->currentText();
     sd_params_templates[template_name].negative_prompt = ui->sd_negative_lineEdit->text();
     sd_params_templates[template_name].modify_prompt = ui->sd_modify_lineEdit->text();
-
 }
 
 // 应用sd参数模板
-void Expend::sd_apply_template(SD_PARAMS sd_params)
-{
+void Expend::sd_apply_template(SD_PARAMS sd_params) {
     ui->sd_imagewidth->setValue(sd_params.width);
     ui->sd_imageheight->setValue(sd_params.height);
     ui->sd_sampletype->setCurrentText(sd_params.sample_type);
@@ -1895,25 +1914,20 @@ void Expend::recv_draw(QString prompt_) {
 
 //用户点击启用声音选项响应
 void Expend::speech_enable_change() {
-
     if (ui->speech_enable_radioButton->isChecked()) {
         speech_params.enable_speech = true;
     } else {
         speech_params.enable_speech = false;
     }
-
 }
 
 //用户切换声源响应
 void Expend::speech_source_change() {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
-    if(speech_params.speech_name==SPPECH_OUTETTS)
-    {
+    if (speech_params.speech_name == SPPECH_OUTETTS) {
         ui->speech_outetts_modelpath_frame->setEnabled(1);
         ui->speech_wavtokenizer_modelpath_frame->setEnabled(1);
-    }
-    else
-    {
+    } else {
         ui->speech_outetts_modelpath_frame->setEnabled(0);
         ui->speech_wavtokenizer_modelpath_frame->setEnabled(0);
     }
@@ -1924,46 +1938,38 @@ void Expend::set_sys_speech(QStringList avaliable_speech_list) {
     for (int i = 0; i < avaliable_speech_list.size(); ++i) {
         ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i));  //添加到下拉框
     }
-    ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);  
+    ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
 }
 
 //开始文字转语音
-void Expend::start_tts(QString str)
-{
+void Expend::start_tts(QString str) {
     //如果禁用了朗读则直接退出
     // qDebug()<<speech_params.is_speech<<speech_params.speech_name;
-    if (!speech_params.enable_speech) 
-    {
+    if (!speech_params.enable_speech) {
         speechOver();
         return;
     }
 
-    if (speech_params.speech_name != "") 
-    {
-        if(speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
+    if (speech_params.speech_name != "") {
+        if (speech_params.speech_name == SPPECH_OUTETTS)  // 使用模型声源
         {
-            if(ui->speech_outetts_modelpath_lineEdit->text()!=""&&ui->speech_wavtokenizer_modelpath_lineEdit->text()!="")
-            {
+            if (ui->speech_outetts_modelpath_lineEdit->text() != "" && ui->speech_wavtokenizer_modelpath_lineEdit->text() != "") {
                 outettsProcess(str);
             }
-        }
-        else
-        {
+        } else {
             // 遍历所有可用音色
-            foreach (const QVoice& voice, sys_speech->availableVoices()) 
-            {
+            foreach (const QVoice &voice, sys_speech->availableVoices()) {
                 // qDebug() << "Name:" << speech.name();
                 // qDebug() << "Age:" << speech.age();
                 // qDebug() << "Gender:" << speech.gender();
                 //使用用户选择的音色
-                if (voice.name() == speech_params.speech_name) 
-                {
+                if (voice.name() == speech_params.speech_name) {
                     sys_speech->setVoice(voice);
                     break;
                 }
             }
-            
+
             // 设置语速，范围从-1到1
             sys_speech->setRate(0.3);
 
@@ -1973,20 +1979,16 @@ void Expend::start_tts(QString str)
             // 开始文本到语音转换
             sys_speech->say(str);
         }
-
     }
-    
 }
 
-void Expend::speechOver()
-{
+void Expend::speechOver() {
     speechTimer.stop();
     speechTimer.start(500);
     is_speech = false;  //解锁
 }
 
-void Expend::speechPlayOver()
-{
+void Expend::speechPlayOver() {
     speechPlayTimer.stop();
     speechPlayTimer.start(500);
     is_speech_play = false;  //解锁
@@ -2005,8 +2007,7 @@ void Expend::speech_process() {
 }
 
 //每半秒检查待播放列表，列表中有文字就读然后删，直到读完
-void Expend::speech_play_process()
-{
+void Expend::speech_play_process() {
     if (!is_speech_play) {
         if (wait_speech_play_list.size() > 0) {
             speechPlayTimer.stop();
@@ -2019,18 +2020,15 @@ void Expend::speech_play_process()
     }
 }
 
-void Expend::recv_output(const QString result, bool is_while, QColor color)
-{
-    if (is_while) 
-    {
+void Expend::recv_output(const QString result, bool is_while, QColor color) {
+    if (is_while) {
         //添加待朗读的文字
-        temp_speech_txt += result;// 累计输出的文本
+        temp_speech_txt += result;  // 累计输出的文本
         //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并等待朗读
         // QRegularExpression re("[！；、，。？：!;,?:]");
-        QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s");//新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
+        QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s");  //新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
         QRegularExpressionMatch match = re.match(temp_speech_txt);
-        if (match.hasMatch()) 
-        {
+        if (match.hasMatch()) {
             wait_speech_txt_list << temp_speech_txt;
             temp_speech_txt = "";
         }
@@ -2038,23 +2036,21 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
 }
 
 // 收到重置信号
-void Expend::recv_resettts()
-{
-    temp_speech_txt = "";//清空待读列表
-    wait_speech_txt_list.clear();//清空待读列表
-    wait_speech_play_list.clear();//清空待读列表
+void Expend::recv_resettts() {
+    temp_speech_txt = "";           //清空待读列表
+    wait_speech_txt_list.clear();   //清空待读列表
+    wait_speech_play_list.clear();  //清空待读列表
     if (is_sys_speech_available) {
         sys_speech->stop();  //停止朗读
     }
 
-    outetts_process->kill();//终止继续生成
+    outetts_process->kill();  //终止继续生成
     speech_player->stop();
-    removeDir(outettsDir);//清空产生的音频
+    removeDir(outettsDir);  //清空产生的音频
 }
 
 //使用outetts进行文转声
-void Expend::outettsProcess(QString str)
-{
+void Expend::outettsProcess(QString str) {
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");
     QString localPath = QString(appDirPath + "/usr/bin/llama-tts") + SFX_NAME;
@@ -2068,7 +2064,8 @@ void Expend::outettsProcess(QString str)
     QStringList arguments;
     arguments << "-m" << ui->speech_outetts_modelpath_lineEdit->text();
     arguments << "-mv" << ui->speech_wavtokenizer_modelpath_lineEdit->text();
-    arguments << "-ngl" << "99";
+    arguments << "-ngl"
+              << "99";
     arguments << "-p" << str;
 
     // 开始运行程序
@@ -2076,18 +2073,14 @@ void Expend::outettsProcess(QString str)
 }
 
 //进程开始响应
-void Expend::outetts_onProcessStarted() 
-{
-
-}
+void Expend::outetts_onProcessStarted() {}
 
 //进程结束响应
-void Expend::outetts_onProcessFinished()
-{
+void Expend::outetts_onProcessFinished() {
     //修改生成的音频名称，添加一个时间后缀
     createTempDirectory(outettsDir);
     // 获取当前日期和时间，精确到分钟
-    QString currentDateTime = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz"); // 格式化为 20241226_1430
+    QString currentDateTime = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz");  // 格式化为 20241226_1430
     QString destinationPath = outettsDir + currentDateTime + ".wav";
     // 使用 QFile 移动并重命名文件
     QFile file("output.wav");
@@ -2098,17 +2091,15 @@ void Expend::outetts_onProcessFinished()
         qDebug() << "Failed to move and rename file." << file.errorString();
     }
 
-    speechOver();// 利用speechOver再次进入文转声生成处理流程
+    speechOver();  // 利用speechOver再次进入文转声生成处理流程
 }
 
-void Expend::readyRead_outetts_process_StandardOutput()
-{
+void Expend::readyRead_outetts_process_StandardOutput() {
     QString outetts_output = outetts_process->readAllStandardOutput();
     ui->speech_log->append(outetts_output);
 }
 
-void Expend::readyRead_outetts_process_StandardError()
-{
+void Expend::readyRead_outetts_process_StandardError() {
     QString outetts_output = outetts_process->readAllStandardError();
     ui->speech_log->append(outetts_output);
 }
@@ -2126,17 +2117,14 @@ void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() {
 }
 
 //用户点击转为音频按钮时响应
-void Expend::on_speech_manual_pushButton_clicked()
-{
-    if(ui->speech_outetts_modelpath_lineEdit->text()!=""&&ui->speech_wavtokenizer_modelpath_lineEdit->text()!="")
-    {
+void Expend::on_speech_manual_pushButton_clicked() {
+    if (ui->speech_outetts_modelpath_lineEdit->text() != "" && ui->speech_wavtokenizer_modelpath_lineEdit->text() != "") {
         outettsProcess(ui->speech_manual_plainTextEdit->toPlainText());
     }
 }
 
 //音频播放完响应
-void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
-{
+void Expend::speech_player_over(QMediaPlayer::MediaStatus status) {
     if (status == QMediaPlayer::MediaStatus::EndOfMedia) {
         // 播放停止时执行的操作
         speechPlayOver();
@@ -2274,17 +2262,15 @@ void Expend::init_syncrate() {
 }
 
 // 用于设置whisper模型路径
-void Expend::setWhisperModelpath(QString modelpath)
-{
+void Expend::setWhisperModelpath(QString modelpath) {
     ui->whisper_load_modelpath_linedit->setText(modelpath);
     whisper_params.model = modelpath.toStdString();
 }
 
 // 用于设置sd模型路径
-void Expend::setSdModelpath(QString modelpath)
-{
+void Expend::setSdModelpath(QString modelpath) {
     ui->sd_modelpath_lineEdit->setText(modelpath);
-    ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");// 默认
+    ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");  // 默认
 }
 
 // 递归删除文件夹及其内容的函数

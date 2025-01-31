@@ -34,8 +34,8 @@ class xTool : public QObject {
     //拯救中文
     QJsonObject wordsObj;
     int language_flag = 0;
-    QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
-    void Exec(QPair<QString, QString> func_arg_list);// 运行
+    QString jtr(QString customstr);                    // 根据language.json(wordsObj)和language_flag中找到对应的文字
+    void Exec(QPair<QString, QString> func_arg_list);  // 运行
 
    public:
     QPair<QString, QString> func_arg_list;

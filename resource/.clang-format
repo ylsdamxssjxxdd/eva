@@ -1,7 +1,7 @@
 ---
 Language:        Cpp
 # .clang-format放到项目根目录处
-# clang-format -i utils/gpuchecker.h main.cpp utils.cpp dialog.cpp widget.cpp expend.cpp xbot.cpp xnet.cpp xtool.cpp widget.h xbot.h xtool.h expend.h xnet.h xconfig.h widget.ui expend.ui utils/waterwaveplaintextedit.h utils/cpuchecker.h utils/customqplaintextedit.h utils/doubleqprogressbar.h utils/cutscreendialog.h utils/customtabwidget.h utils/customswitchbutton.h -style=file
+# clang-format -i src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h -style=file
 # BasedOnStyle:  Google
 AccessModifierOffset: -1
 AlignAfterOpenBracket: Align

@@ -16,7 +16,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
 
@@ -148,9 +148,9 @@ add_executable(
 ${TARGET}
 ${BODY_PACK_EXE}
 ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
-src/main.cpp src/utils.cpp src/dialog.cpp src/widget.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp
+src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp
 src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h
-src/widget.ui src/expend.ui
+src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
 src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h
 thirdparty/llama.cpp/examples/llava/clip.cpp thirdparty/llama.cpp/examples/llava/clip.h thirdparty/llama.cpp/examples/llava/llava.cpp thirdparty/llama.cpp/examples/llava/llava.h
 )

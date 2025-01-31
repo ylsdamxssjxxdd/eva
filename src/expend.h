@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMediaPlayer>
 #include <QMenu>
 #include <QNetworkAccessManager>
 #include <QNetworkInterface>
@@ -26,10 +27,9 @@
 #include <QShortcut>
 #include <QTextCodec>
 #include <QTextStream>
+#include <QTextToSpeech>
 #include <QTimer>
 #include <QWidget>
-#include <QTextToSpeech>
-#include <QMediaPlayer>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -40,8 +40,8 @@
 #include <string>
 #endif
 
-#include "xconfig.h"
 #include "cmakeconfig.h"
+#include "xconfig.h"
 namespace Ui {
 class Expend;
 }
@@ -57,8 +57,8 @@ class Expend : public QWidget {
     QString applicationDirPath;
     void closeEvent(QCloseEvent *event) override;            //关闭事件
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
-    void setWhisperModelpath(QString modelpath); // 用于设置whisper模型路径
-    void setSdModelpath(QString modelpath); // 用于设置sd模型路径
+    void setWhisperModelpath(QString modelpath);             // 用于设置whisper模型路径
+    void setSdModelpath(QString modelpath);                  // 用于设置sd模型路径
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
@@ -76,8 +76,8 @@ class Expend : public QWidget {
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();  //读取配置文件并应用
     QString currentpath = DEFAULT_MODELPATH;
-    void showReadme();  //展示readme内容
-    bool removeDir(const QString &dirName);//删除文件夹
+    void showReadme();                       //展示readme内容
+    bool removeDir(const QString &dirName);  //删除文件夹
 
    signals:
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
@@ -180,18 +180,18 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
 
    public:
-    QString sd_current_template = "default"; // 当前使用的模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
-    QMap<QString, SD_PARAMS> sd_params_templates; // sd参数模板们
-    void sd_apply_template(SD_PARAMS sd_params);// 应用sd参数模板
-    QString sd_outputpath;//最终的绘制结果保存路径
+    QString sd_current_template = "default";       // 当前使用的模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
+    QMap<QString, SD_PARAMS> sd_params_templates;  // sd参数模板们
+    void sd_apply_template(SD_PARAMS sd_params);   // 应用sd参数模板
+    QString sd_outputpath;                         //最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
-    bool img2img = false;          //是否是图生图操作
-    QStringList listFiles(const QString &path); // 遍历目录
-    bool is_sd_custom1 = false;// 当前是否为自定义的参数模板
-    bool is_sd_custom2 = false;// 当前是否为自定义的参数模板
-    void sd_save_template(QString template_name);// 保存参数到自定义模板
+    bool img2img = false;                          //是否是图生图操作
+    QStringList listFiles(const QString &path);    // 遍历目录
+    bool is_sd_custom1 = false;                    // 当前是否为自定义的参数模板
+    bool is_sd_custom2 = false;                    // 当前是否为自定义的参数模板
+    void sd_save_template(QString template_name);  // 保存参数到自定义模板
    public slots:
     void sd_onProcessStarted();   //进程开始响应
     void sd_onProcessFinished();  //进程结束响应
@@ -200,49 +200,49 @@ class Expend : public QWidget {
    signals:
     void expend2tool_drawover(QString result_, bool ok_);  //绘制完成信号
    private slots:
-    void on_sd_modelpath_pushButton_clicked();      //用户点击选择sd模型路径时响应
-    void on_sd_vaepath_pushButton_clicked();        //用户点击选择vae模型路径时响应
-    void on_sd_clip_l_path_pushButton_clicked();        //用户点击选择clip模型路径时响应
-    void on_sd_clip_g_path_pushButton_clicked();        //用户点击选择clip模型路径时响应
-    void on_sd_t5path_pushButton_clicked();        //用户点击选择t5模型路径时响应
-    void on_sd_lorapath_pushButton_clicked();        //用户点击选择lora模型路径时响应
-    void on_sd_draw_pushButton_clicked();           //用户点击文生图时响应
-    void on_sd_img2img_pushButton_clicked();         //用户点击图生图时响应
-    void on_params_template_comboBox_currentIndexChanged(int index); //参数模板改变响应
-     
+    void on_sd_modelpath_pushButton_clicked();                        //用户点击选择sd模型路径时响应
+    void on_sd_vaepath_pushButton_clicked();                          //用户点击选择vae模型路径时响应
+    void on_sd_clip_l_path_pushButton_clicked();                      //用户点击选择clip模型路径时响应
+    void on_sd_clip_g_path_pushButton_clicked();                      //用户点击选择clip模型路径时响应
+    void on_sd_t5path_pushButton_clicked();                           //用户点击选择t5模型路径时响应
+    void on_sd_lorapath_pushButton_clicked();                         //用户点击选择lora模型路径时响应
+    void on_sd_draw_pushButton_clicked();                             //用户点击文生图时响应
+    void on_sd_img2img_pushButton_clicked();                          //用户点击图生图时响应
+    void on_params_template_comboBox_currentIndexChanged(int index);  //参数模板改变响应
+
     //-------------------------------------------------------------------------
     //----------------------------------文转声相关--------------------------------
     //-------------------------------------------------------------------------
 
    public:
-    QString outettsDir;// outetts生成的音频存放目录
-    QStringList avaliable_speech_list;  // 可用声源列表
+    QString outettsDir;                                      // outetts生成的音频存放目录
+    QStringList avaliable_speech_list;                       // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list);  // 设置系统可用声源
     Speech_Params speech_params;
     QTextToSpeech *sys_speech;
     QMediaPlayer *speech_player;
-    bool is_sys_speech_available;  // 语音朗读是否可用
-    bool is_speech = false;// 是否系统声源正在朗读
-    bool is_speech_play = false;// 是否音频正在播放
-    QTimer speechTimer;       //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
-    QTimer speechPlayTimer; // 用来控制播放outetts产生的音频，和wait_speech_play_list搭配使用
-    QStringList wait_speech_txt_list;  //等待的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
-    QStringList wait_speech_play_list; //等待播放的音频列表，存储的是路径
+    bool is_sys_speech_available;       // 语音朗读是否可用
+    bool is_speech = false;             // 是否系统声源正在朗读
+    bool is_speech_play = false;        // 是否音频正在播放
+    QTimer speechTimer;                 //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
+    QTimer speechPlayTimer;             // 用来控制播放outetts产生的音频，和wait_speech_play_list搭配使用
+    QStringList wait_speech_txt_list;   //等待的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
+    QStringList wait_speech_play_list;  //等待播放的音频列表，存储的是路径
     QString temp_speech_txt;
-    void outettsProcess(QString str);//使用outetts进行文转声
-    QProcess *outetts_process;      //用来启动llama-tts
+    void outettsProcess(QString str);  //使用outetts进行文转声
+    QProcess *outetts_process;         //用来启动llama-tts
 
    signals:
     void expend2ui_speechover();
    public slots:
-    void speech_player_over(QMediaPlayer::MediaStatus status);//音频播放完响应
-    void start_tts(QString str);  //开始文字转语音
+    void speech_player_over(QMediaPlayer::MediaStatus status);  //音频播放完响应
+    void start_tts(QString str);                                //开始文字转语音
     void speechOver();
     void speechPlayOver();
-    void recv_output(const QString result, bool is_while, QColor color);//接收模型的输出
-    void recv_resettts();//重置文字转语音
-    void speech_process();                    //每半秒检查列表，列表中有文字就读然后删，直到读完
-    void speech_play_process();               //每半秒检查播放列表，列表中有文字就读然后删，直到读完
+    void recv_output(const QString result, bool is_while, QColor color);  //接收模型的输出
+    void recv_resettts();                                                 //重置文字转语音
+    void speech_process();                                                //每半秒检查列表，列表中有文字就读然后删，直到读完
+    void speech_play_process();                                           //每半秒检查播放列表，列表中有文字就读然后删，直到读完
     void readyRead_outetts_process_StandardOutput();
     void readyRead_outetts_process_StandardError();
     void outetts_onProcessStarted();   //进程开始响应

@@ -5,7 +5,6 @@ xNet::xNet() { qDebug() << "net init over"; }
 xNet::~xNet() { ; }
 
 void xNet::run() {
-    
     emit net2ui_state("net:" + jtr("send message to api"));
 
     QElapsedTimer time;
@@ -66,12 +65,9 @@ void xNet::run() {
                             emit net2ui_output(content, 1);
                         }
                     }
-                } 
-                else if(data.contains("DONE"))
-                {
+                } else if (data.contains("DONE")) {
                     emit net2ui_state("net: DONE");
-                }
-                else {
+                } else {
                     emit net2ui_state("net:resolve json fail", WRONG_SIGNAL);
                     qDebug() << jsonString;
                     qDebug() << data;

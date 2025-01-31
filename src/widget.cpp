@@ -31,23 +31,29 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui_DATES.model_name = DEFAULT_MODEL_NAME;
     ui_DATES.is_load_tool = false;
     date_map.insert("default", ui_DATES);
-    DATES troll;troll.date_prompt = jtr("you are a troll please respect any question for user");troll.user_name = jtr("user");troll.model_name = jtr("troll");troll.is_load_tool = false;
+    DATES troll;
+    troll.date_prompt = jtr("you are a troll please respect any question for user");
+    troll.user_name = jtr("user");
+    troll.model_name = jtr("troll");
+    troll.is_load_tool = false;
     date_map.insert(jtr("troll"), troll);
 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空
     ui_font.setPointSize(10);                                                       // 将设置控件的字体大小设置为10
-    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));                       //设置应用程序图标
-    ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                          //设置设置图标
-    ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                     //设置重置图标
+    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));                     //设置应用程序图标
+    ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                        //设置设置图标
+    ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                   //设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL);  //初始提示
 
-    init_movie();                             //初始化动画参数
-    QFile file(":/QSS-master/MacOS.qss");  //加载皮肤
-    file.open(QFile::ReadOnly);
-    QString stylesheet = tr(file.readAll());
-    this->setStyleSheet(stylesheet);
-    file.close();
+    init_movie();  //初始化动画参数
+
+    // QFile file(":/QSS-master/MacOS.qss");  //加载皮肤
+    // file.open(QFile::ReadOnly);
+    // QString stylesheet = tr(file.readAll());
+    // this->setStyleSheet(stylesheet);
+    // file.close();
+
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
 
     //-------------初始化各种控件-------------
@@ -66,7 +72,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
-    nthread_slider->setRange(1, max_thread);  //设置线程数滑块的范围
+    settings_ui->nthread_slider->setRange(1, max_thread);  //设置线程数滑块的范围
     QTimer *cpucheck_timer = new QTimer(this);
     connect(cpucheck_timer, &QTimer::timeout, this, &Widget::updateCpuStatus);
     cpucheck_timer->start(500);  // 多少ms更新一次
@@ -94,8 +100,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
         connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
     }
 
-
-
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);                                              //连接开始信号
@@ -103,6 +107,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
+    QFile file(":/QSS-master/eva.qss");  //加载皮肤
+    file.open(QFile::ReadOnly);
+    QString stylesheet = file.readAll();
+    this->setStyleSheet(stylesheet);
 
     qDebug() << "widget init over";
 }
@@ -115,22 +123,23 @@ Widget::~Widget() {
 
 //用户点击装载按钮处理
 void Widget::on_load_clicked() {
-
     reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
     //用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
-    
-    if (currentpath == "" || currentpath == historypath) {return;}  //如果路径没选好或者模型路径是一样的，则不操作
 
-    ui_mode = LOCAL_MODE;         //只要点击装载有东西就不再是链接模式
-    historypath = currentpath;    // 记录这个路径，方便下次对比
+    if (currentpath == "" || currentpath == historypath) {
+        return;
+    }  //如果路径没选好或者模型路径是一样的，则不操作
+
+    ui_mode = LOCAL_MODE;       //只要点击装载有东西就不再是链接模式
+    historypath = currentpath;  // 记录这个路径，方便下次对比
     ui_SETTINGS.modelpath = currentpath;
     ui_SETTINGS.mmprojpath = "";  // 清空mmproj模型路径
     ui_SETTINGS.lorapath = "";    // 清空lora模型路径
     is_load = false;
     //先释放旧的模型和上下文
-    emit ui2bot_free(1); // 1表示重载
+    emit ui2bot_free(1);  // 1表示重载
 }
 
 //模型释放完毕并重新装载
@@ -144,8 +153,8 @@ void Widget::preLoad() {
     is_load = false;  //重置is_load标签
     is_load_play_over = false;
     if (ui_state == CHAT_STATE) {
-        ui->output->clear();//清空输出区
-    }                    
+        ui->output->clear();  //清空输出区
+    }
     ui->state->clear();  //清空状态区
     ui_state_loading();  //装载中界面状态
     if (is_config) {
@@ -157,7 +166,6 @@ void Widget::preLoad() {
     }
     reflash_state("ui:" + jtr("model location") + " " + ui_SETTINGS.modelpath, USUAL_SIGNAL);
     emit ui2bot_loadmodel(ui_SETTINGS.modelpath);  //开始装载模型
-    
 }
 
 //完成加载模型
@@ -196,10 +204,8 @@ void Widget::on_send_clicked() {
     }
 
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
-    if (ui_state == CHAT_STATE) 
-    {
-        if (is_test) 
-        {
+    if (ui_state == CHAT_STATE) {
+        if (is_test) {
             if (test_question_index.size() > 0)  //测试中,还有题目剩余
             {
                 input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));
@@ -210,8 +216,7 @@ void Widget::on_send_clicked() {
                 } else {
                     inputs = {input, ROLE_TEST};
                 }
-            } 
-            else  //完成测试完成,没有题目剩余
+            } else  //完成测试完成,没有题目剩余
             {
                 float acc = test_score / test_count * 100.0;  //回答准确率
                 ui_state_info = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("batch decode") + ":" + QString::number(test_tokens / (test_time.nsecsElapsed() / 1000000000.0)) + " token/s";
@@ -228,11 +233,8 @@ void Widget::on_send_clicked() {
                 ui_state_normal();  //待机界面状态
                 return;
             }
-        } 
-        else if (ui_syncrate_manager.is_sync) 
-        {
-            if(ui_syncrate_manager.is_first_sync)
-            {
+        } else if (ui_syncrate_manager.is_sync) {
+            if (ui_syncrate_manager.is_first_sync) {
                 setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
                 emit ui2expend_show(8);                               // 打开同步率选项卡
                 ui_syncrate_manager.is_first_sync = false;
@@ -242,8 +244,7 @@ void Widget::on_send_clicked() {
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
                 inputs = {input, ROLE_USER};
-            } 
-            else  //完成同步率测试完成,没有问题剩余
+            } else  //完成同步率测试完成,没有问题剩余
             {
                 qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
                 reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
@@ -256,30 +257,28 @@ void Widget::on_send_clicked() {
                 ui_syncrate_manager = syncrate_manager;  // 重置
                 return;
             }
-        }
-        else  //正常情况!!!
+        } else  //正常情况!!!
         {
-            if (tool_result == "") 
-            {
+            if (tool_result == "") {
                 input = ui->input->toPlainText().toUtf8().data();
                 ui->input->clear();  // 获取用户输入
             }
-            
+
             //-----------------------如果是拖进来的文件-------------------------
             if (input.contains("file:///") && (input.contains(".png") || input.contains(".jpg"))) {
                 QString imagepath = input.split("file:///")[1];
-                showImage(imagepath);  //显示文件名和图像
-                is_run = true;       //模型正在运行标签
-                ui_state_pushing();  //推理中界面状态
-                emit ui2bot_preDecodeImage(imagepath); //预解码图像
+                showImage(imagepath);                   //显示文件名和图像
+                is_run = true;                          //模型正在运行标签
+                ui_state_pushing();                     //推理中界面状态
+                emit ui2bot_preDecodeImage(imagepath);  //预解码图像
                 return;
             }
             //-----------------------截图的情况-------------------------
             else if (input == jtr("<predecode cut image>")) {
-                showImage(cut_imagepath); //显示文件名和图像
-                is_run = true;       //模型正在运行标签
-                ui_state_pushing();  //推理中界面状态
-                emit ui2bot_preDecodeImage(cut_imagepath); //预解码图像
+                showImage(cut_imagepath);                   //显示文件名和图像
+                is_run = true;                              //模型正在运行标签
+                ui_state_pushing();                         //推理中界面状态
+                emit ui2bot_preDecodeImage(cut_imagepath);  //预解码图像
                 return;
             }
             //-----------------------一般情况----------------------------
@@ -289,22 +288,18 @@ void Widget::on_send_clicked() {
                     input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result;
                     tool_result = "";
                     inputs = {input, ROLE_OBSERVATION};
-                } 
-                else 
-                {
+                } else {
                     inputs = {input, ROLE_USER};
                 }
             }
         }
-    } 
-    else if (ui_state == COMPLETE_STATE) 
-    {
-        input = ui->output->toPlainText().toUtf8().data();                  //直接用output上的文本进行推理
-        inputs = {input, ROLE_USER};  //传递用户输入
+    } else if (ui_state == COMPLETE_STATE) {
+        input = ui->output->toPlainText().toUtf8().data();  //直接用output上的文本进行推理
+        inputs = {input, ROLE_USER};                        //传递用户输入
     }
     // qDebug()<<input;
-    is_run = true;       //模型正在运行标签
-    ui_state_pushing();  //推理中界面状态
+    is_run = true;                //模型正在运行标签
+    ui_state_pushing();           //推理中界面状态
     emit ui2bot_predict(inputs);  //开始推理
 }
 
@@ -319,9 +314,7 @@ void Widget::recv_pushover() {
             //待修复是net中maneger的问题
             // on_send_clicked();
             QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));  //链接模式不能立即发送
-        } 
-        else 
-        {
+        } else {
             on_send_clicked();
         }
     } else if (ui_syncrate_manager.is_sync)  // 继续同步率测试
@@ -333,7 +326,7 @@ void Widget::recv_pushover() {
         if (ui_syncrate_manager.sync_list_index.size() == 0) {
             is_run = false;  // 同步率测试将要完成
         }
-        on_reset_clicked();                                                       // 每次测试重置上下文
+        on_reset_clicked();                 // 每次测试重置上下文
     } else if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
     {
         normal_finish_pushover();
@@ -341,6 +334,7 @@ void Widget::recv_pushover() {
     } else {
         //如果挂载了工具,则尝试提取里面的json
         if (is_load_tool) {
+            qDebug()<<ui_insert_history.last().first;
             QString tool_str = ui_insert_history.last().first;
             func_arg_list = JSONparser(tool_str);  //取巧预解码的系统指令故意不让解析出json
             if (func_arg_list.first == "") {
@@ -354,17 +348,17 @@ void Widget::recv_pushover() {
                 }
                 //正常调用情况
                 else {
-
-                    emit ui2tool_exec(func_arg_list);                   //调用tool
+                    emit ui2tool_exec(func_arg_list);  //调用tool
                     //使用工具时解码动画不停
                 }
             }
 
         }
-        
-        //正常结束
-        else {normal_finish_pushover();}
 
+        //正常结束
+        else {
+            normal_finish_pushover();
+        }
     }
 }
 
@@ -419,7 +413,7 @@ void Widget::recv_resetover() {
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 
     if (ui_syncrate_manager.is_sync) {
-        on_send_clicked();//总是尝试触发一下
+        on_send_clicked();  //总是尝试触发一下
     }
 }
 
@@ -436,7 +430,7 @@ void Widget::recv_datereset() {
     if (ui_state == COMPLETE_STATE) {
         reflash_state("· " + jtr("complete mode") + jtr("on") + " ", USUAL_SIGNAL);
     } else {
-        reflash_state("· " + jtr("system calling") + " " + date_prompt_TextEdit->toPlainText() + extra_TextEdit->toPlainText(), USUAL_SIGNAL);
+        reflash_state("· " + jtr("system calling") + " " + date_ui->date_prompt_TextEdit->toPlainText() + ui_extra_prompt, USUAL_SIGNAL);
         //展示额外停止标志
         QString stop_str;
         stop_str = jtr("extra stop words") + " ";
@@ -496,8 +490,8 @@ void Widget::recv_setreset() {
 
 //用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked() {
-    wait_to_show_image = "";  //清空待显示图像
-    emit ui2expend_resettts();//清空待读列表
+    wait_to_show_image = "";    //清空待显示图像
+    emit ui2expend_resettts();  //清空待读列表
 
     //如果模型正在推理就改变模型的停止标签
     if (is_run) {
@@ -505,7 +499,7 @@ void Widget::on_reset_clicked() {
             qDebug() << "为了下一次回答而重置";
             ui->output->clear();
             reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
-            emit ui2bot_reset();                           //传递重置信号,删除约定以外的kv缓存
+            emit ui2bot_reset();                                    //传递重置信号,删除约定以外的kv缓存
             return;
         }
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
@@ -544,9 +538,8 @@ void Widget::on_reset_clicked() {
     }
 
     this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
-    
-    emit ui2bot_reset();  //传递重置信号,清空kv缓存,并预解码约定指令
 
+    emit ui2bot_reset();  //传递重置信号,清空kv缓存,并预解码约定指令
 }
 
 //用户点击约定按钮处理
@@ -554,21 +547,19 @@ void Widget::on_date_clicked() {
     reflash_state("ui:" + jtr("clicked date"), SIGNAL_SIGNAL);
 
     //展示最近一次设置值
-    chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
-    date_prompt_TextEdit->setText(ui_date_prompt);
-    user_name_LineEdit->setText(ui_DATES.user_name);
-    model_name_LineEdit->setText(ui_DATES.model_name);
+    date_ui->chattemplate_comboBox->setCurrentText(ui_template);  //默认使用default的提示词模板
+    date_ui->date_prompt_TextEdit->setPlainText(ui_date_prompt);
+    date_ui->user_name_LineEdit->setText(ui_DATES.user_name);
+    date_ui->model_name_LineEdit->setText(ui_DATES.model_name);
 
-    calculator_checkbox->setChecked(ui_calculator_ischecked);
-    terminal_checkbox->setChecked(ui_terminal_ischecked);
-    toolguy_checkbox->setChecked(ui_toolguy_ischecked);
-    controller_checkbox->setChecked(ui_controller_ischecked);
-    knowledge_checkbox->setChecked(ui_knowledge_ischecked);
-    stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
-    interpreter_checkbox->setChecked(ui_interpreter_ischecked);
+    date_ui->calculator_checkbox->setChecked(ui_calculator_ischecked);
+    date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
+    date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
+    date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
+    date_ui->webengine_checkbox->setChecked(ui_webengine_ischecked);
+    date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
 
-    switch_lan_button->setText(ui_extra_lan);
-    extra_TextEdit->setText(ui_extra_prompt);  //这个要放到各个checkbox的后面来，可以保护用户的修改
+    date_ui->switch_lan_button->setText(ui_extra_lan);
 
     date_dialog->exec();
 }
@@ -580,23 +571,21 @@ void Widget::set_date() {
     if (ui_mode == LINK_MODE) {
         on_reset_clicked();
     }  //如果是链接模式就重置一下
-    
+
     date_dialog->close();
     emit ui2bot_date(ui_DATES);
 }
 
 //用户取消约定
-void Widget::cancel_date()
-{
+void Widget::cancel_date() {
     //还原工具选择
-    calculator_checkbox->setChecked(ui_calculator_ischecked);
-    terminal_checkbox->setChecked(ui_terminal_ischecked);
-    toolguy_checkbox->setChecked(ui_toolguy_ischecked);
-    controller_checkbox->setChecked(ui_controller_ischecked);
-    knowledge_checkbox->setChecked(ui_knowledge_ischecked);
-    stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
-    interpreter_checkbox->setChecked(ui_interpreter_ischecked);
-    switch_lan_button->setText(ui_extra_lan);
+    date_ui->calculator_checkbox->setChecked(ui_calculator_ischecked);
+    date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
+    date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
+    date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
+    date_ui->webengine_checkbox->setChecked(ui_webengine_ischecked);
+    date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
+    date_ui->switch_lan_button->setText(ui_extra_lan);
     //复原语言
     if (ui_extra_lan == "zh") {
         language_flag = 0;
@@ -608,9 +597,8 @@ void Widget::cancel_date()
     emit ui2tool_language(language_flag);
     emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
-    extra_TextEdit->setText(ui_extra_prompt);
     // 重新判断是否挂载了工具
-    if (calculator_checkbox->isChecked() || terminal_checkbox->isChecked() || toolguy_checkbox->isChecked() || knowledge_checkbox->isChecked() || controller_checkbox->isChecked() || stablediffusion_checkbox->isChecked() || interpreter_checkbox->isChecked()) {
+    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->webengine_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
         if (is_load_tool == false) {
             reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
         }
@@ -621,7 +609,6 @@ void Widget::cancel_date()
         }
         is_load_tool = false;
     }
-
 }
 
 //用户点击设置按钮响应
@@ -629,32 +616,29 @@ void Widget::on_set_clicked() {
     server_process->kill();
     reflash_state("ui:" + jtr("clicked") + jtr("set"), SIGNAL_SIGNAL);
     if (ui_state == CHAT_STATE) {
-        chat_btn->setChecked(1), chat_change();
+        settings_ui->chat_btn->setChecked(1), chat_change();
     } else if (ui_state == COMPLETE_STATE) {
-        complete_btn->setChecked(1), complete_change();
+        settings_ui->complete_btn->setChecked(1), complete_change();
     } else if (ui_state == SERVER_STATE) {
-        web_btn->setChecked(1), web_change();
+        settings_ui->web_btn->setChecked(1), web_change();
     }
     //展示最近一次设置值
-    temp_slider->setValue(ui_SETTINGS.temp * 100);
-    ngl_slider->setValue(ui_SETTINGS.ngl);
-    nctx_slider->setValue(ui_SETTINGS.nctx);
-    batch_slider->setValue(ui_SETTINGS.batch);
-    repeat_slider->setValue(ui_SETTINGS.repeat * 100.00);
-    lora_LineEdit->setText(ui_SETTINGS.lorapath);
-    mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
-    npredict_slider->setValue(ui_SETTINGS.npredict);
-    nthread_slider->setValue(ui_SETTINGS.nthread);
-    port_lineEdit->setText(ui_port);
-    set_dialog->exec();
+    settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100);
+    settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
+    settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
+    settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.00);
+    settings_ui->lora_LineEdit->setText(ui_SETTINGS.lorapath);
+    settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
+    settings_ui->npredict_slider->setValue(ui_SETTINGS.npredict);
+    settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
+    settings_ui->port_lineEdit->setText(ui_port);
+    settings_dialog->exec();
 }
 
 //用户按下F1键响应
-void Widget::onShortcutActivated_F1() 
-{
+void Widget::onShortcutActivated_F1() {
     createTempDirectory("./EVA_TEMP");
     cutscreen_dialog->showFullScreen();  //处理截图事件
-
 }
 
 //用户按下F2键响应
@@ -662,13 +646,10 @@ void Widget::onShortcutActivated_F2() {
     if (whisper_model_path == "")  //如果还未指定模型路径则先指定
     {
         emit ui2expend_show(6);  //语音增殖界面
-    } else if (!is_recodering) 
-    {
+    } else if (!is_recodering) {
         recordAudio();  //开始录音
         is_recodering = true;
-    } 
-    else if (is_recodering) 
-    {
+    } else if (is_recodering) {
         stop_recordAudio();  //停止录音
     }
 }
@@ -683,40 +664,6 @@ void Widget::recv_qimagepath(QString cut_imagepath_) {
     ui->input->setPlainText(jtr("<predecode cut image>"));
     if (is_load && ui_state == CHAT_STATE) {
         // on_send_clicked();//如果装载了模型直接发送截图
-    }
-}
-
-// 设置用户设置内容
-void Widget::set_set() {
-    get_set();  //获取设置中的纸面值
-
-    set_dialog->close();
-
-    //如果不是对话模式则禁用约定
-    if (ui_state != CHAT_STATE) {
-        prompt_box->setEnabled(0);
-        tool_box->setEnabled(0);
-    } else {
-        prompt_box->setEnabled(1);
-        tool_box->setEnabled(1);
-    }
-
-    //从服务模式回来强行重载
-    if (current_server && ui_state != SERVER_STATE) {
-        current_server = false;
-        emit ui2bot_set(ui_SETTINGS, 1);
-    } else if (ui_state != SERVER_STATE) {
-        emit ui2bot_set(ui_SETTINGS, is_load);
-    }
-
-    // llama-server接管,不需要告知bot约定
-    if (ui_state == SERVER_STATE) {
-        serverControl();
-    } else {
-        if (ui_mode == LINK_MODE)  //链接模式不发信号
-        {
-            on_reset_clicked();
-        }
     }
 }
 
@@ -775,7 +722,7 @@ void Widget::serverControl() {
 
     // 开始运行程序
     server_process->start(program, arguments);
-    
+
     setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
     reflash_state(jtr("eva expend"), EVA_SIGNAL);
 
@@ -790,12 +737,11 @@ void Widget::serverControl() {
         // qDebug()<<"readyReadStandardError"<<ui_output;
         //启动成功的标志
         if (ui_output.contains(SERVER_START)) {
-            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + "    " + " http://" +  ipAddress + ":" + ui_port;
+            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + "    " + " http://" + ipAddress + ":" + ui_port;
             ui_output += QString(DEFAULT_SPLITER) + jtr("model") + jtr("name") + "   " + "default" + QString(DEFAULT_SPLITER);
             ui_state_info = "ui:server " + jtr("on") + jtr("success") + "," + jtr("browser at") + ipAddress + ":" + ui_port;
             auto_save_user();  //保存ui配置
             reflash_state(ui_state_info, SUCCESS_SIGNAL);
-
         }
 
         output_scroll(ui_output);
@@ -805,9 +751,9 @@ void Widget::serverControl() {
 // bot将模型参数传递给ui
 void Widget::recv_params(MODEL_PARAMS p) {
     ui_n_ctx_train = p.n_ctx_train;
-    nctx_slider->setMaximum(p.n_ctx_train);  // 没有拓展4倍,因为批解码时还是会失败
-    ui_maxngl = p.max_ngl;  // gpu负载层数是n_layer+1
-    ngl_slider->setMaximum(ui_maxngl);
+    settings_ui->nctx_slider->setMaximum(p.n_ctx_train);  // 没有拓展4倍,因为批解码时还是会失败
+    ui_maxngl = p.max_ngl;                   // gpu负载层数是n_layer+1
+    settings_ui->ngl_slider->setMaximum(ui_maxngl);
     if (ui_SETTINGS.ngl == 999) {
         ui_SETTINGS.ngl = ui_maxngl;
     }  //及时修正999值
@@ -837,8 +783,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     vfree = vfree_;  //剩余显存
     ui->vcore_bar->setValue(vcore);
     //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
-    if (is_first_getvram) 
-    {
+    if (is_first_getvram) {
         is_first_getvram = false;
         first_vramp = vramp;
         ui->vram_bar->setValue(first_vramp);
@@ -847,9 +792,9 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 
     if (gpu_wait_load) {
         gpu_wait_load = false;
-#ifdef BODY_USE_GPU    
+#ifdef BODY_USE_GPU
         int modelsize_MB;
-        QFileInfo fileInfo(ui_SETTINGS.modelpath);  //获取模型文件大小
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);    //获取模型文件大小
         QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);  //获取mmproj文件大小
         modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
         // qDebug()<<vfree<<modelsize_MB * 1.2;
@@ -862,7 +807,6 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 #endif
         //发送设置参数给bot
         emit ui2bot_set(ui_SETTINGS, 1);  //设置应用完会触发preLoad
-        
     }
 }
 
@@ -890,12 +834,12 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
         return true;
     }
     //响应已安装控件上的鼠标右击事件
-    if (obj == lora_LineEdit && event->type() == QEvent::ContextMenu) {
+    if (obj == settings_ui->lora_LineEdit && event->type() == QEvent::ContextMenu) {
         chooseLorapath();
         return true;
     }
     //响应已安装控件上的鼠标右击事件
-    if (obj == mmproj_LineEdit && event->type() == QEvent::ContextMenu) {
+    if (obj == settings_ui->mmproj_LineEdit && event->type() == QEvent::ContextMenu) {
         chooseMmprojpath();
         return true;
     }
@@ -1003,12 +947,10 @@ void Widget::api_send_clicked_slove() {
         data.insert_history = ui_insert_history;
         data.n_predict = 1;
         emit ui2net_data(data);
-        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-        reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
+        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
+        reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
         reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-    } 
-    else 
-    {
+    } else {
         if (tool_result == "") {
             input = ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
@@ -1032,8 +974,8 @@ void Widget::api_send_clicked_slove() {
             } else {
                 ui_insert_history.append({input, API_ROLE_USER});
                 data.insert_history = ui_insert_history;
-                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-                reflash_output(input, 0, NORMAL_BLACK);                                       //输入用黑色
+                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
+                reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
                 reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
                 data.n_predict = ui_SETTINGS.npredict;
                 emit ui2net_data(data);
@@ -1101,9 +1043,7 @@ void Widget::recv_controller(int num) {
 }
 
 //分割器被用户拉动时响应
-void Widget::onSplitterMoved(int pos, int index) {
-
-}
+void Widget::onSplitterMoved(int pos, int index) {}
 
 // 根据language.json和language_flag中找到对应的文字
 QString Widget::jtr(QString customstr) { return wordsObj[customstr].toArray()[language_flag].toString(); }
@@ -1272,7 +1212,21 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
 //检测是否含有中文
 bool Widget::checkChinese(QString str_) {
     QStringList chinesePunctuation;  // 定义一个包含常见中文标点符号的集合
-    chinesePunctuation << "，"<< "。"<< "："<< "？"<< "！"<< "、"<< "；"<< "“"<< "”"<< "‘"<< "’"<< "（"<< "）"<< "【"<< "】";
+    chinesePunctuation << "，"
+                       << "。"
+                       << "："
+                       << "？"
+                       << "！"
+                       << "、"
+                       << "；"
+                       << "“"
+                       << "”"
+                       << "‘"
+                       << "’"
+                       << "（"
+                       << "）"
+                       << "【"
+                       << "】";
     for (int i = 0; i < str_.length(); ++i) {
         QChar ch = str_[i];
         // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5
@@ -1288,19 +1242,10 @@ bool Widget::checkChinese(QString str_) {
 }
 
 //传递格式化后的对话内容
-void Widget::recv_chat_format(CHATS chats)
-{
-    bot_chat = chats;
-}
+void Widget::recv_chat_format(CHATS chats) { bot_chat = chats; }
 
 // 正在预解码
-void Widget::recv_predecoding()
-{
-    ui_state_pushing();
-}          
+void Widget::recv_predecoding() { ui_state_pushing(); }
 
 // 完成预解码
-void Widget::recv_predecoding_over()
-{
-    ui_state_normal();
-}    
+void Widget::recv_predecoding_over() { ui_state_normal(); }
