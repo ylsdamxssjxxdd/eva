@@ -90,7 +90,7 @@ Large Language Model Tool: EVA (based on llama.cpp & qt5)
 
 <details>
 
-<summary> Six tool </summary>
+<summary> Five tool </summary>
 
 In local mode and chat state, you can click on the date button to mount the tool
 
@@ -115,23 +115,15 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - Difficulty of calling: ⭐
 
-3. terminal
+3. engineer
 
-    - Model output terminal instructions to the terminal tool, which will return the execution result of the instructions
+    - An automated tool execution chain similar to Cline
 
-    - Example: what is the IP address of my computer
-
-    - Difficulty of calling: ⭐⭐⭐
-
-4. interpreter
-
-    - Model output complete Python code to the interpreter tool, which will return the execution result
-
-    - Example: please use matplotlib to draw a heart
+    - Example: help me build an initial project for cmake qt
 
     - Difficulty of calling: ⭐⭐⭐⭐⭐
 
-5. knowledge
+4. knowledge
 
     - Model output query text to the knowledge tool, which will return the three most relevant embedded knowledge items
 
@@ -143,7 +135,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
 
-6. stablediffusion
+5. stablediffusion
 
     - Model output drawing prompt words to the stablediffusion tool, which will return the drawn 
 

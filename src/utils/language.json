@@ -193,7 +193,7 @@
             "What animal walks on four legs in the morning, two legs at noon, and three legs at night "
         ],
         "Q3": [
-            "9.8和9.11哪个大",
+            "鲁迅和周树人是什么关系",
             "Which is greater, 9.8 or 9.11 "
         ],
         "Q4": [
@@ -217,8 +217,8 @@
             "Write a paper review on the application of artificial intelligence in meteorology "
         ],
         "Q9": [
-            "写一个新闻稿，为运动会上健儿加油",
-            "Write a press release to cheer for the athletes at the sports meeting "
+            "讲一个你认为最好笑的笑话",
+            "Tell a joke that you think is the funniest "
         ],
         "Q10": [
             "写一个心得体会，关于一本无人机书籍的学习",
@@ -848,10 +848,6 @@
             "文生图",
             "txt2img"
         ],
-        "interpreter": [
-            "代码解释器",
-            "interpreter "
-        ],
         "extra calling": [
             "额外指令",
             "extra"
@@ -1140,9 +1136,13 @@
             "添加一段指导模型调用内置计算器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
             "Add an additional instruction to guide the model in calling the built-in calculator, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
         ],
-        "terminal_checkbox_tooltip": [
-            "添加一段指导模型调用命令提示符的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
-            "Add an additional instruction to guide the model in calling the terminal, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
+        "webengine_checkbox_tooltip": [
+            "暂未实现",
+            "Not yet implemented"
+        ],
+        "engineer_checkbox_tooltip": [
+            "使模型化身软件工程师，获得执行命令和修改文件的能力",
+            "Transform the model into a software engineer, gaining the ability to execute commands and modify files"
         ],
         "controller_checkbox_tooltip": [
             "添加一段指导模型调用软件控制台的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
@@ -1657,23 +1657,23 @@
             "Caculate 888*999"
         ],
         "sync_Q2": [
-            "一个三角形的两边长分别为8厘米和15厘米，夹角为60度。请问这个三角形的面积是多少平方厘米？",
-            "A triangle has two sides with lengths of 8 cm and 15 cm, and an included angle of 60 degrees. What is the area of this triangle in square centimeters?"
+            "小明去超市买了一些水果。他买了3公斤苹果，每公斤苹果的价格是15元；他还买了2公斤橙子，每公斤橙子的价格是12元。请问小明总共花了多少钱？",
+            "Xiao Ming went to the supermarket and bought some fruits. He bought 3 kg of apples, and each kg of apples costs 15 yuan. He also bought 2 kg of oranges, and each kg of oranges costs 12 yuan. How much did Xiao Ming spend in total?"
         ],
         "sync_Q3": [
-            "一个项目的投资总额为200万元，预期年收益率为8%。如果每年将收益全部再投资，5年后的总额是多少？",
+            "A car travels from City A to City B, covering a distance of 240 km in 3 hours. What is the average speed of the car in km per hour?",
             "A project has a total investment of 2 million yuan with an expected annual return rate of 8%. If the returns are reinvested each year, what will be the total amount after 5 years?"
         ],
         "sync_Q4": [
-            "在一个光合作用实验中，某植物在12小时的光照下产生了180毫摩尔的氧气。如果该植物的光合作用速率与光照时间成正比，计算该植物在24小时的光照下会产生多少毫摩尔的氧气。",
-            "In a photosynthesis experiment, a certain plant produces 180 mmol of oxygen under 12 hours of light. If the photosynthesis rate of the plant is proportional to the duration of light exposure, how many mmol of oxygen will the plant produce under 24 hours of light?"
+            "小李存入银行一笔定期存款，金额为10000元，年利率为3%。请问一年后小李可以得到的利息是多少元？",
+            "Xiao Li deposits 10,000 yuan in the bank with an annual interest rate of 3%. How much interest will Xiao Li earn in one year?"
         ],
         "sync_Q5": [
-            "一种化学溶液的浓度为10%，现在需要配制成浓度为5%的溶液。如果原有的溶液量是200毫升，需要加多少毫升的水？",
-            "A chemical solution has a concentration of 10%. Now, it needs to be diluted to a concentration of 5%. If the original solution volume is 200 ml, how many milliliters of water need to be added?"
+            " 一个班级有40名学生，其中男生有15名。请问男生占全班学生的百分比是多少？",
+            "A class has 40 students, and 15 of them are boys. What percentage of the students are boys?"
         ],
         "sync_Q6": [
-            "查看当前路径",
+            "查看当前路径下的文件",
             "Check the current path"
         ],
         "sync_Q7": [
@@ -1685,12 +1685,12 @@
             "Please run this file /soul/eva.exe"
         ],
         "sync_Q9": [
-            "我电脑操作系统的版本是什么",
-            "What is the version of my computer's operating system?"
+            "我电脑的GPU型号是什么？",
+            "What is the GPU model of my computer?"
         ],
         "sync_Q10": [
-            "查看系统的时间和日期",
-            "Check the system's time and date"
+            "ping 百度网站",
+            "Ping Baidu website"
         ],
         "sync_Q11": [
             "机体软件有哪些主要功能？",
@@ -1749,28 +1749,28 @@
             "Draw a picture: A mystical magic forest where the trees emit a faint glow, and the ground is covered with strange mushrooms and plants."
         ],
         "sync_Q25": [
-            "画一个女孩",
-            "Draw a girl"
+            "画一个女孩。",
+            "Draw a girl."
         ],
         "sync_Q26": [
-            "用matplotlib绘制一个爱心",
-            "Draw a heart using matplotlib."
+            "创建一个abc.txt文件",
+            "Create an abc.txt file"
         ],
         "sync_Q27": [
-            "给下面的数组排序，然后将结果保存到sort.txt中，[456,8,333,984,154,9485,4861,0.3,7758258]",
-            "Sort the following array and save the result to sort.txt: [456, 8, 333, 984, 154, 9485, 4861, 0.3, 7758258]."
+            "读取abc.txt文件内容",
+            "Read the contents of abc.txt file."
         ],
         "sync_Q28": [
-            "请帮我写一个简单的计算器程序，可以进行加减乘除运算",
-            "Please help me write a simple calculator program that can perform addition, subtraction, multiplication, and division."
+            "构建一个C++的基础项目",
+            "Building a C++ Foundation Project."
         ],
         "sync_Q29": [
-            "帮我写一个简单的猜数字游戏，用户输入一个数字进行猜测",
-            "Help me write a simple number guessing game where the user inputs a number to guess."
+            "构建一个docker的基础项目",
+            "Building a Docker infrastructure project."
         ],
         "sync_Q30": [
-            "给我运行一个贪吃蛇游戏",
-            "Run a snake game for me."
+            "写一个贪吃蛇游戏到snake.py中",
+            "Write a snake game to snake.py ."
         ],
         "---end---": [
             "---end---",

@@ -1088,7 +1088,7 @@ void Widget::create_right_menu() {
         date_ui->knowledge_checkbox->setChecked(0);
         date_ui->knowledge_checkbox->setChecked(1);  // 刷新一下
         date_ui->stablediffusion_checkbox->setChecked(1);
-        date_ui->webengine_checkbox->setChecked(1);
+        // date_ui->webengine_checkbox->setChecked(1); // 暂未实现
         get_date();                  //获取约定中的纸面值
         emit ui2bot_date(ui_DATES);  // 注意在开始同步率测试前会强制预解码一次
     });
@@ -1678,7 +1678,6 @@ void Widget::apply_language(int language_flag_) {
     tool_map.insert("knowledge", {jtr("knowledge"), "knowledge", jtr("knowledge_func_describe")});
     tool_map.insert("controller", {jtr("controller"), "controller", jtr("controller_func_describe")});
     tool_map.insert("stablediffusion", {jtr("stablediffusion"), "stablediffusion", jtr("stablediffusion_func_describe")});
-    tool_map.insert("interpreter", {jtr("interpreter"), "interpreter", jtr("interpreter_func_describe")});
     date_dialog->setWindowTitle(jtr("date"));
     //设置选项语种
     settings_ui->sample_box->setTitle(jtr("sample set"));  //采样设置区域

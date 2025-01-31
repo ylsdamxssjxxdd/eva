@@ -62,17 +62,14 @@ QPushButton:disabled {
 QComboBox {
     background-color: #FFFFFF; /* 纯白背景 */
     border: 1px solid #B0B0B0; /* 更深的灰色边框 */
-    color: #444444; /* 较深的灰色文字 */
     padding: 3px 6px; /* 内边距，保证按钮不显得过于紧凑 */
     border-radius: 5px; /* 圆角 */
     outline: none; /* 去掉焦点时的外部边框 */
-    min-width: 150px; /* 设置一个最小宽度 */
 }
 
 QComboBox:hover {
     background-color: #F2F2F2; /* 悬停时的浅灰色背景 */
     border: 1px solid #A0A0A0; /* 略微加深的灰色边框 */
-    color: #555555; /* 略浅的文字颜色 */
 }
 
 QComboBox:editable {
@@ -85,7 +82,6 @@ QComboBox:!editable {
 
 QComboBox:focus {
     border: 1px solid #90CAF9; /* 聚焦时的蓝色边框 */
-    color: #333333; /* 深灰色文字 */
 }
 
 QComboBox::drop-down {
@@ -104,7 +100,6 @@ QComboBox::down-arrow {
 QComboBox QAbstractItemView {
     border: 1px solid #B0B0B0; /* 下拉列表的边框 */
     background-color: #FFFFFF; /* 下拉列表背景色 */
-    color: #444444; /* 下拉列表文字颜色 */
     selection-background-color: #BBDEFB; /* 选中项的背景色 */
     selection-color: #333333; /* 选中项的文字颜色 */
     border-radius: 5px;
@@ -113,57 +108,79 @@ QComboBox QAbstractItemView {
 
 QComboBox QAbstractItemView::item:hover {
     background-color: #E3F2FD; /* 悬停时的背景色 */
-    color: #333333; /* 悬停时的文字颜色 */
 }
 
 QComboBox QAbstractItemView::item:selected {
     background-color: #64B5F6; /* 选中项的背景色 */
-    color: #333333; /* 选中项的文字颜色 */
 }
 
 
+/* QTabWidget 样式 */
 QTabWidget {
-    color:rgb(0,0,0);
-    background-color:#000000;
+    background-color: #FFFFFF; /* 纯白背景 */
+    border: none; /* 移除整体边框 */
 }
+
 QTabWidget::pane {
-    border-color: #050a0e;
-    background-color: #e0e0e0;
-    border-width: 1px;
-    border-radius: 4px;
-    position: absolute;
-    top: -0.5em;
-    padding-top: 0.5em;
+    border-top: 2px solid #E0E0E0; /* 添加顶部边框作为底部线条 */
+    top: -1px; /* 将边框稍微向上移动，确保标签的顶部和面板底部边框无缝对接 */
 }
 
-QTabWidget::tab-bar {
-    alignment: center;
-}
-
+/* 标签栏样式 */
 QTabBar::tab {
-    border-bottom: 1px solid #c0c0c0;
-    padding: 3px;
-    color: #272727;
-    background-color: #fefefc;
-    margin-left:0px;
+    background-color: #F7F7F7; /* 浅灰色背景 */
+    color: #333333; /* 深灰色文字 */
+    padding: 8px 20px;
+    margin-right: 5px; /* 增加右侧间距 */
+    border: 1px solid #E0E0E0; /* 添加边框 */
+    border-top-left-radius: 5px; /* 圆角 */
+    border-top-right-radius: 5px; /* 圆角 */
+    border-bottom: none; /* 移除底部边框 */
 }
-QTabBar::tab:!last {
-    border-right: 1px solid;
-    border-right-color: #c0c0c0;
-    border-bottom-color: #c0c0c0;
+
+/* 鼠标悬停在标签上的样式 */
+QTabBar::tab:hover {
+    background-color: #FFF9C4; /* 更浅的黄色背景 */
 }
-QTabBar::tab:first {
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
+
+/* 选中的标签样式 */
+QTabBar::tab:selected {
+    background-color: #FFC107; /* 醒目的黄色背景 */
+    color: #333333; /* 保持深色文字以确保可读性 */
+    border-bottom: 2px solid #E0E0E0; /* 使用与面板相同的颜色进行底部边框 */
+    margin-bottom: -2px; /* 使选中的标签略微突出 */
 }
-QTabBar::tab:last {
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
+
+/* 禁用的标签样式 */
+QTabBar::tab:disabled {
+    background-color: #F0F0F0;
+    color: #A0A0A0;
 }
-QTabBar::tab:selected, QTabBar::tab:last:selected, QTabBar::tab:hover {
-    color: #FFFFFF;
-    background-color: qlineargradient(spread:pad, x1:0.5, y1:0, x2:0.5, y2:1, stop:0 #84afe5, stop:1 #1168e4);
+
+/* 关闭按钮样式 */
+QTabBar::close-button {
+    image: url(close.png); /* 需要提供关闭图标 */
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+    margin-right: 4px;
 }
+
+QTabBar::close-button:hover {
+    background-color: #FF5722; /* 悬停时的背景色改为橙红色 */
+    border-radius: 2px;
+}
+
+/* 标签栏滚动按钮样式 */
+QTabBar QToolButton {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 3px;
+}
+
+QTabBar QToolButton:hover {
+    background-color: #F7F7F7;
+}
+
 
 QCheckBox {
     background-color: #FFFFFF; /* 纯白背景 */

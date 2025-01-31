@@ -57,7 +57,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <property name="spacing">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item>
           <widget class="QPushButton" name="load">
@@ -201,7 +201,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item>
           <widget class="QTextEdit" name="input">

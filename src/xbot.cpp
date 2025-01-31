@@ -268,11 +268,12 @@ int xBot::stream() {
                 singl_count++;
             }
             // qDebug()<<batch_count<<batch_time;
-        } else {
-            emit bot2ui_state(jtr("eva confuse"), EVA_SIGNAL);
-            emit bot2ui_state("bot:" + jtr("embd no token please restart"), WRONG_SIGNAL);
-            return 0;
-        }  //待推理的embd没有token则退出
+        }
+        // else {
+        //     emit bot2ui_state(jtr("eva confuse"), EVA_SIGNAL);
+        //     emit bot2ui_state("bot:" + jtr("embd no token please restart"), WRONG_SIGNAL);
+        //     return 0;
+        // }  //待推理的embd没有token则退出
 
         embd.clear();  //清空embd
 

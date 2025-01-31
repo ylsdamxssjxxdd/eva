@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>6</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -553,7 +553,7 @@ p, li { white-space: pre-wrap; }
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_16">
           <property name="spacing">
-           <number>0</number>
+           <number>3</number>
           </property>
           <property name="leftMargin">
            <number>0</number>
@@ -606,13 +606,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QComboBox" name="model_quantize_type">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>100</width>
               <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>100</width>
               <height>30</height>
              </size>
             </property>
@@ -678,13 +678,13 @@ p, li { white-space: pre-wrap; }
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>130</height>
+              <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>130</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="readOnly">
@@ -1297,13 +1297,13 @@ p, li { white-space: pre-wrap; }
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="placeholderText">
@@ -1316,13 +1316,13 @@ p, li { white-space: pre-wrap; }
                <property name="minimumSize">
                 <size>
                  <width>50</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>50</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="text">
@@ -1371,13 +1371,13 @@ p, li { white-space: pre-wrap; }
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="readOnly">
@@ -1426,13 +1426,13 @@ p, li { white-space: pre-wrap; }
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>100</height>
+                 <height>80</height>
                 </size>
                </property>
                <property name="readOnly">
@@ -1493,7 +1493,7 @@ p, li { white-space: pre-wrap; }
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <property name="spacing">
-           <number>6</number>
+           <number>3</number>
           </property>
           <property name="leftMargin">
            <number>0</number>
@@ -2237,13 +2237,13 @@ p, li { white-space: pre-wrap; }
                  <widget class="QLabel" name="params_template_label">
                   <property name="minimumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
@@ -2301,145 +2301,20 @@ p, li { white-space: pre-wrap; }
                 <property name="bottomMargin">
                  <number>0</number>
                 </property>
-                <property name="horizontalSpacing">
+                <property name="spacing">
                  <number>0</number>
-                </property>
-                <property name="verticalSpacing">
-                 <number>3</number>
                 </property>
                 <item row="4" column="1">
                  <widget class="QSpinBox" name="sd_imageheight">
                   <property name="minimumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="minimum">
-                   <number>64</number>
-                  </property>
-                  <property name="maximum">
-                   <number>4096</number>
-                  </property>
-                  <property name="singleStep">
-                   <number>64</number>
-                  </property>
-                  <property name="value">
-                   <number>512</number>
-                  </property>
-                 </widget>
-                </item>
-                <item row="5" column="3">
-                 <widget class="QSpinBox" name="sd_batch_count">
-                  <property name="minimumSize">
-                   <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="minimum">
-                   <number>1</number>
-                  </property>
-                  <property name="maximum">
-                   <number>4096</number>
-                  </property>
-                  <property name="singleStep">
-                   <number>1</number>
-                  </property>
-                  <property name="value">
-                   <number>1</number>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="3">
-                 <widget class="QComboBox" name="sd_sampletype">
-                  <property name="minimumSize">
-                   <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                 </widget>
-                </item>
-                <item row="6" column="2">
-                 <widget class="QLabel" name="sd_clipskip_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>clip跳层</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="2">
-                 <widget class="QLabel" name="sd_sampletype_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>采样算法</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="1">
-                 <widget class="QSpinBox" name="sd_imagewidth">
-                  <property name="minimumSize">
-                   <size>
-                    <width>80</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
@@ -2461,13 +2336,13 @@ p, li { white-space: pre-wrap; }
                  <widget class="QDoubleSpinBox" name="sd_cfgscale">
                   <property name="minimumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
@@ -2482,117 +2357,17 @@ p, li { white-space: pre-wrap; }
                   </property>
                  </widget>
                 </item>
-                <item row="5" column="0">
-                 <widget class="QLabel" name="sd_cfg_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>相关系数</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="6" column="0">
-                 <widget class="QLabel" name="sd_seed_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>随机种子</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="4" column="0">
-                 <widget class="QLabel" name="sd_imageheight_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>图像高度</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
-                <item row="4" column="2">
-                 <widget class="QLabel" name="sd_samplesteps_label">
-                  <property name="minimumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>90</width>
-                    <height>30</height>
-                   </size>
-                  </property>
-                  <property name="lineWidth">
-                   <number>0</number>
-                  </property>
-                  <property name="text">
-                   <string>采样步数</string>
-                  </property>
-                  <property name="alignment">
-                   <set>Qt::AlignCenter</set>
-                  </property>
-                 </widget>
-                </item>
                 <item row="5" column="2">
                  <widget class="QLabel" name="sd_imagenums_label">
                   <property name="minimumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
@@ -2607,53 +2382,81 @@ p, li { white-space: pre-wrap; }
                   </property>
                  </widget>
                 </item>
-                <item row="4" column="3">
-                 <widget class="QSpinBox" name="sd_samplesteps">
+                <item row="3" column="1">
+                 <widget class="QSpinBox" name="sd_imagewidth">
                   <property name="minimumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="minimum">
-                   <number>1</number>
+                   <number>64</number>
                   </property>
                   <property name="maximum">
-                   <number>100</number>
+                   <number>4096</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>64</number>
                   </property>
                   <property name="value">
-                   <number>20</number>
+                   <number>512</number>
                   </property>
                  </widget>
                 </item>
-                <item row="6" column="3">
-                 <widget class="QSpinBox" name="sd_clipskip">
+                <item row="4" column="2">
+                 <widget class="QLabel" name="sd_samplesteps_label">
                   <property name="minimumSize">
                    <size>
                     <width>80</width>
-                    <height>25</height>
+                    <height>30</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
                     <width>80</width>
-                    <height>25</height>
+                    <height>30</height>
                    </size>
                   </property>
-                  <property name="minimum">
-                   <number>-1</number>
+                  <property name="lineWidth">
+                   <number>0</number>
                   </property>
-                  <property name="maximum">
-                   <number>5</number>
+                  <property name="text">
+                   <string>采样步数</string>
                   </property>
-                  <property name="value">
-                   <number>-1</number>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="0">
+                 <widget class="QLabel" name="sd_cfg_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>相关系数</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -2661,13 +2464,13 @@ p, li { white-space: pre-wrap; }
                  <widget class="QSpinBox" name="sd_seed">
                   <property name="minimumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>80</width>
+                    <width>60</width>
                     <height>25</height>
                    </size>
                   </property>
@@ -2682,17 +2485,70 @@ p, li { white-space: pre-wrap; }
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="0">
-                 <widget class="QLabel" name="sd_imagewidth_label">
+                <item row="6" column="2">
+                 <widget class="QLabel" name="sd_clipskip_label">
                   <property name="minimumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>clip跳层</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="3">
+                 <widget class="QSpinBox" name="sd_batch_count">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>4096</number>
+                  </property>
+                  <property name="singleStep">
+                   <number>1</number>
+                  </property>
+                  <property name="value">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="0">
+                 <widget class="QLabel" name="sd_imagewidth_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
@@ -2701,6 +2557,147 @@ p, li { white-space: pre-wrap; }
                   </property>
                   <property name="text">
                    <string>图像宽度</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="0">
+                 <widget class="QLabel" name="sd_imageheight_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>图像高度</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="3">
+                 <widget class="QSpinBox" name="sd_samplesteps">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>100</number>
+                  </property>
+                  <property name="value">
+                   <number>20</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="0">
+                 <widget class="QLabel" name="sd_seed_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>随机种子</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item row="6" column="3">
+                 <widget class="QSpinBox" name="sd_clipskip">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>60</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>-1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>5</number>
+                  </property>
+                  <property name="value">
+                   <number>-1</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="3">
+                 <widget class="QComboBox" name="sd_sampletype">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="2">
+                 <widget class="QLabel" name="sd_sampletype_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="lineWidth">
+                   <number>0</number>
+                  </property>
+                  <property name="text">
+                   <string>采样算法</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -2753,13 +2750,13 @@ p, li { white-space: pre-wrap; }
                  <widget class="QLabel" name="sd_negative_label">
                   <property name="minimumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>30</height>
                    </size>
                   </property>
@@ -2842,13 +2839,13 @@ p, li { white-space: pre-wrap; }
                  <widget class="QLabel" name="sd_modify_label">
                   <property name="minimumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>25</height>
                    </size>
                   </property>
                   <property name="maximumSize">
                    <size>
-                    <width>90</width>
+                    <width>80</width>
                     <height>25</height>
                    </size>
                   </property>
@@ -2972,7 +2969,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <layout class="QHBoxLayout" name="horizontalLayout_20">
              <property name="spacing">
-              <number>4</number>
+              <number>3</number>
              </property>
              <property name="leftMargin">
               <number>0</number>
@@ -3138,13 +3135,13 @@ p, li { white-space: pre-wrap; }
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>150</height>
+                 <height>0</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>150</height>
+                 <height>16777215</height>
                 </size>
                </property>
                <property name="lineWidth">

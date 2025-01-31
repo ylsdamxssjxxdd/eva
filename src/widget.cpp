@@ -1114,6 +1114,7 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
         if (func_arg_list.first == "calculator") {
             if (func_arg_list.second != "") {
                 QScriptEngine enging;
+
                 QScriptValue result_ = enging.evaluate(func_arg_list.second.remove("\""));  //手动去除公式中的引号
                 QString result = QString::number(result_.toNumber());
                 if (result != "nan")  // 结果不是nan说明计算成功
@@ -1126,9 +1127,9 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
             }
         }
     }
-    // 验证 系统终端 使用
+    // 验证 execute_command 使用
     if (index >= 6 && index <= 10) {
-        if (func_arg_list.first == "terminal") {
+        if (func_arg_list.first == "execute_command") {
             if (func_arg_list.second != "") {
                 if (!checkChinese(func_arg_list.second))  // 不包含中文就通过
                 {
@@ -1188,7 +1189,7 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
 
     // 验证 代码解释器 使用
     if (index >= 26 && index <= 30) {
-        if (func_arg_list.first == "interpreter") {
+        if (func_arg_list.first == "write_file" || func_arg_list.first == "read_file" ) {
             if (func_arg_list.second != "")  // 敢输出就是好样的
             {
                 qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
