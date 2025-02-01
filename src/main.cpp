@@ -56,6 +56,13 @@ int main(int argc, char* argv[]) {
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath;  // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
+    //-----------------加载皮肤-----------------------
+    QFile file(":/QSS-master/eva.qss");  
+    file.open(QFile::ReadOnly);
+    QString stylesheet = file.readAll();
+    w.setStyleSheet(stylesheet);
+    expend.setStyleSheet(stylesheet);
+
     // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
@@ -121,6 +128,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_kv, &w, &Widget::recv_kv);                                  //传递缓存量
     QObject::connect(&bot, &xBot::bot2ui_chat_format, &w, &Widget::recv_chat_format);                //传递格式化后的对话内容
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);                        //自动装载
+    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::recv_preDecode);                    //从补完模式回来强行预解码
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);  //传递gpu信息

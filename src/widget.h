@@ -89,7 +89,7 @@ class Widget : public QWidget {
     QScrollBar *output_scrollBar;                                        //输出区滑动条
     bool createTempDirectory(const QString &path);                       //创建临时文件夹
     void create_right_menu();                                            //添加右击问题
-    QPair<QString, QString> func_arg_list;                               //提取出来的函数和参数
+    QPair<QString, QString> ui_func_arg_list;                            //提取出来的函数和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;  //约定和设置的字体大小
     QMediaPlayer music_player;
@@ -129,6 +129,7 @@ class Widget : public QWidget {
     bool is_run = false;              //模型运行标签,方便设置界面的状态
     EVA_MODE ui_mode = LOCAL_MODE;    //机体的模式
     EVA_STATE ui_state = CHAT_STATE;  //机体的状态
+
     QString history_lorapath = "";
     QString history_mmprojpath = "";
     QString ui_template = "default";     //模板
@@ -161,7 +162,6 @@ class Widget : public QWidget {
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address();  //获取本机第一个ip地址
-    bool current_server = false;               //从服务模式回来要重载
 
     //语音相关
     QAudioRecorder audioRecorder;
@@ -219,7 +219,7 @@ class Widget : public QWidget {
     void addStopwords();                               //添加额外停止标志
     QMap<QString, TOOLS> tool_map;                     //工具包
     bool is_load_tool = false;                         //是否挂载了工具
-    QPair<QString, QString> JSONparser(QString text);  //手搓输出解析器，提取JSON
+    QPair<QString, QString> XMLparser(QString text);  //手搓输出解析器，提取XMLparser
     QString tool_result;
     QString wait_to_show_image = "";  //文生图后待显示图像的图像路径
 
@@ -287,6 +287,7 @@ class Widget : public QWidget {
     void ui2bot_set(SETTINGS settings, bool can_reload);          //传递设置内容
     void ui2bot_free(bool loadlater);                             //释放
     void ui2bot_maxngl(int maxngl_);
+    void ui2bot_preDecode();                                      //从补完模式回来强行预解码
 
     //发给net的信号
    signals:

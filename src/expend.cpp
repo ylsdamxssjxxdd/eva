@@ -5,10 +5,7 @@
 Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), ui(new Ui::Expend) {
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
-    QFile file(":/QSS-master/eva.qss");  //加载皮肤
-    file.open(QFile::ReadOnly);
-    QString stylesheet = file.readAll();
-    this->setStyleSheet(stylesheet);
+
     //初始化选项卡
     ui->info_card->setReadOnly(1);
     ui->vocab_card->setReadOnly(1);  //这样才能滚轮放大
@@ -326,7 +323,7 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
     } else if (index == 8 && is_first_show_sync)  //第一次点模型增殖
     {
         is_first_show_sync = false;
-        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "action_name", "action_input", jtr("pass")});  //设置列名
+        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
     }
 }
 

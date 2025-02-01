@@ -25,6 +25,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     //----------------------命令提示符------------------
     else if (func_arg_list.first == "execute_command") {
         QProcess* process = new QProcess();
+        process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
     #ifdef Q_OS_WIN
         // 在Windows上执行
         process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);
@@ -98,7 +99,10 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     //----------------------读取文件------------------
     else if (func_arg_list.first == "read_file") {
         QString result;
-        QFile file(func_arg_list.second);
+        QString filepath = func_arg_list.second;
+        filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
+        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+        QFile file(filepath);
         // 尝试打开文件
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             emit tool2ui_pushover(QString("read_file ") + jtr("return") + "can not open this file");//返回错误
@@ -109,19 +113,42 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         QTextStream in(&file);
         in.setCodec("UTF-8");  // 设置编码为UTF-8
         result = in.readAll();
-
+        file.close();
         emit tool2ui_state("tool:" + QString("read_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("read_file ") + jtr("return") + "\n" + result);//返回结果
     }
     //----------------------写入文件------------------
     else if (func_arg_list.first == "write_file") {
-        QString filename = func_arg_list.second.split(">>>")[0];
+        QString filepath = func_arg_list.second.split(">>>")[0];
+        if(func_arg_list.second.split(">>>").size()<2){
+            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "no content");//返回错误
+            return;
+        }
         QString content = func_arg_list.second.split(">>>")[1];
-        QFile file(applicationDirPath + QString("/") + filename);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            emit tool2ui_pushover(QString("read_file ") + jtr("return") + "Could not open file for writing" + file.errorString());//返回错误
+        filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
+        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+        // Extract the directory path from the file path
+        QFileInfo fileInfo(filepath);
+        QString dirPath = fileInfo.absolutePath();
+        
+        // Create the directory structure if it doesn't exist
+        QDir dir;
+        if (!dir.mkpath(dirPath)) {
+            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "Failed to create directory");//返回错误
             return;  // or handle the error as appropriate
         }
+        
+        QFile file(filepath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString());//返回错误
+            return;  // or handle the error as appropriate
+        }
+        //处理换行符
+        content.replace("\r", "\n");
+        content.replace("\t", "\n");
+        content.replace("\\\n", "\n");
+        content.replace("\\n", "\n");
+
         QTextStream out(&file);
         out.setCodec("UTF-8");  // 设置编码为UTF-8
         out << content;

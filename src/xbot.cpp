@@ -4,7 +4,7 @@
 #include "xbot.h"
 
 xBot::xBot() {
-    // llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
+    llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
 
     //初始的模型参数
@@ -469,7 +469,7 @@ void xBot::load(QString modelpath_) {
     
     get_default_templete_chat_format();  // 获取系统指令、输入前缀、输入后缀
     is_first_reset = true;               //模型装载后首次重置完成标签,控制是否输出清空的消息
-    
+
     reset();                             //初始化模型,1表示清空上下文并预解码
 
     is_first_reset = false;              //模型装载后首次重置完成标签,控制是否输出清空的消息
@@ -531,16 +531,17 @@ void xBot::reset() {
     embd_inp.insert(embd_inp.end(), system_tokens.begin(), system_tokens.end());  //预解码的约定词向量
 
     bool is_clear_all = false;
-    if (history_prompt != bot_chat.system_prompt || !is_load_predecode) {
+    if (history_prompt != bot_chat.system_prompt || !is_load_predecode || is_need_preDecodeSystemPrompt) {
         is_clear_all = true;
     }
-
     if (is_clear_all)  //清空ctx kv缓存
     {
         llama_kv_cache_clear(ctx);  //清空ctx kv缓存
         n_past = 0;                 //已推理字符数
         n_consumed = 0;             //已推理字符数
         if (!is_complete) {
+            is_need_preDecodeSystemPrompt = false;
+            
             preDecodeSystemPrompt();  //预解码约定指令
         }
 
@@ -578,6 +579,7 @@ void xBot::reset() {
 
     if (!is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
     {
+        
         if (is_clear_all) {
             emit bot2ui_state("bot:" + jtr("delete kv cache") + " " + QString::number(time1.nsecsElapsed() / 1000000000.0, 'f', 2) + " s ");
         } else {
@@ -640,7 +642,7 @@ void xBot::preDecodeSystemPrompt() {
     }
     is_stop = false;
     history_prompt = bot_chat.system_prompt;  //同步
-    emit bot2ui_predecoding_over();
+    if(!is_first_reset){emit bot2ui_predecoding_over();} // 装载的那一次不发送这个    
     return;
 }
 
@@ -900,6 +902,12 @@ void xBot::recv_free(bool loadlater) {
 
 void xBot::recv_gpu_status(float vmem, float vram, float vcore, float vfree_) {
     vfree = vfree_;  //剩余显存
+}
+
+ //从补完模式回来强行预解码
+void xBot::recv_preDecode()
+{
+    is_need_preDecodeSystemPrompt = true;
 }
 
 //检测是否有不完整的utf8字符

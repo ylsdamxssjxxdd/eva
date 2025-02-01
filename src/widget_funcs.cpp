@@ -596,6 +596,7 @@ void Widget::settings_ui_cancel_button_clicked() {
 
 // 设置用户设置内容
 void Widget::set_set() {
+    EVA_STATE current_ui_state = ui_state;  //上一次机体的状态
     get_set();  //获取设置中的纸面值
 
     //如果不是对话模式则禁用约定
@@ -607,9 +608,14 @@ void Widget::set_set() {
         date_ui->tool_box->setEnabled(1);
     }
 
+    //从补完模式回来强行预解码
+    if(current_ui_state == COMPLETE_STATE && ui_state == CHAT_STATE)
+    {
+        emit ui2bot_preDecode();
+    }
+
     //从服务模式回来强行重载
-    if (current_server && ui_state != SERVER_STATE) {
-        current_server = false;
+    if (current_ui_state == SERVER_STATE && ui_state != SERVER_STATE) {
         emit ui2bot_set(ui_SETTINGS, 1);
     } else if (ui_state != SERVER_STATE) {
         emit ui2bot_set(ui_SETTINGS, is_load);
@@ -1192,11 +1198,14 @@ void Widget::get_set() {
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
     if (settings_ui->chat_btn->isChecked()) {
         ui_state = CHAT_STATE;
+
     } else if (settings_ui->complete_btn->isChecked()) {
         ui_state = COMPLETE_STATE;
-    }  // history_prompt置空是为了下一次切换为对话模式时正确处理预解码
+
+    }
     else if (settings_ui->web_btn->isChecked()) {
         ui_state = SERVER_STATE;
+
     }
     ui_port = settings_ui->port_lineEdit->text();
 }
@@ -1240,70 +1249,41 @@ void Widget::get_date() {
     addStopwords();
 }
 
-//手搓输出解析器，提取可能的JSON
-QPair<QString, QString> Widget::JSONparser(QString text) {
+//手搓输出解析器，提取可能的xml，目前只支持一个参数
+QPair<QString, QString> Widget::XMLparser(QString text)
+{
     QPair<QString, QString> func_arg_list;
-    // ----------匹配花括号中的内容----------
-    QRegularExpression re;
-    re.setPattern("\\{(.*)\\}");  // 匹配第一个 { 至最后一个 } 中的内容
-    re.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
-    QRegularExpressionMatch match = re.match(text);
+    // 定义正则表达式来匹配工具名、参数名和值
+    // 该正则表达式匹配形如 <tool_name><parameter_name>value</parameter_name></tool_name> 的结构
+    // 工具名和参数名都是可变的，甚至参数名可能不存在
 
-    if (match.hasMatch()) {
-        QString content = match.captured(1);  // 获取第一个捕获组的内容
-        // qDebug() << "花括号中的内容是：" << content;
-        // ----------匹配"action:"至逗号----------
-        // \\s*的意思是允许忽略空格
-        QRegularExpression re2("\"tool_name\"\\s*[:：]\\s*\"([^\"]*)\"");
-        QRegularExpressionMatch match2 = re2.match(content);
-        if (match2.hasMatch()) {
-            QString content2 = match2.captured(1);  // 获取第一个捕获组的内容
-            func_arg_list.first = content2;
-            // qDebug() << "action_name中的内容是：" << content2;
-            // ----------匹配"action_input:"至最后----------
-            QRegularExpression re3("\"tool_input\"\\s*[:：]\\s*(.*)");
-            re3.setPatternOptions(QRegularExpression::DotMatchesEverythingOption);  //允许包含换行符
-            QRegularExpressionMatch match3 = re3.match(content);
-            if (match3.hasMatch()) {
-                QString content3 = match3.captured(1).trimmed().replace("\\n", "\n");  // 获取第一个捕获组的内容
+    // 首先匹配工具名
+    QRegularExpression toolRegex("<(\\w+)>(.*)</\\1>");
+    QRegularExpressionMatch toolMatch = toolRegex.match(text);
+    if (toolMatch.hasMatch()) {
+        QString toolName = toolMatch.captured(1);
+        QString toolContent = toolMatch.captured(2);
+        func_arg_list.first = toolName;
+        qDebug() << "工具名:" << toolName;
 
-                //去除文本段前后的标点，并且过滤里面的内容
-                if (!content3.isEmpty()) {
-                    // 去除最前面的标点 { " ' ` }
-                    while (content3.at(0) == QChar('`') || content3.at(0) == QChar('\"') || content3.at(0) == QChar('\'') || content3.at(0) == QChar('{')) {
-                        content3 = content3.mid(1);
-                    }
-
-                    // 去除最前面的字段 python
-                    while (content3.indexOf("python") == 0) {
-                        content3 = content3.mid(6);  // 去除前 6 个字符, 即 "python"
-                    }
-
-                    // 去除最后面的标点 { " ' ` }
-                    while (content3.at(content3.length() - 1) == QChar('`') || content3.at(content3.length() - 1) == QChar('\"') || content3.at(content3.length() - 1) == QChar('\'') || content3.at(content3.length() - 1) == QChar('}')) {
-                        content3.chop(1);
-                    }
-                    // 替换所有的 \" 为 "
-                    content3 = content3.replace("\\\"", "\"");
-                    // 替换所有的 \t 为 \n
-                    content3 = content3.replace("\t", "\n");
-                    content3 = content3.replace("\r", "\n");
-                }
-
-                func_arg_list.second = content3;
-                // qDebug() << "action_input中的内容是：" << content3;
-            } else {
-                // qDebug() << "没有找到action_input中的内容。";
-            }
-
+        // 尝试匹配参数名和参数值
+        QRegularExpression paramRegex("<(\\w+)>(.*)</\\1>");
+        QRegularExpressionMatch paramMatch = paramRegex.match(toolContent);
+        if (paramMatch.hasMatch()) {
+            QString paramName = paramMatch.captured(1);
+            QString paramValue = paramMatch.captured(2);
+            qDebug() << "参数名:" << paramName;
+            qDebug() << "值:" << paramValue;
+            func_arg_list.second = paramValue;
         } else {
-            // qDebug() << "没有找到action_name中的内容。";
+            // 如果没有参数名，直接将工具内容作为值
+            QString value = toolContent.trimmed();
+            qDebug() << "值:" << value;
+            func_arg_list.second = value;
         }
     } else {
-        // qDebug() << "没有找到花括号中的内容。";
+        qDebug() << "未能匹配到工具名。";
     }
-
-    // qDebug()<<func_arg_list;
     return func_arg_list;
 }
 
@@ -1357,7 +1337,7 @@ QString Widget::create_engineer_info()
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "MM" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info.replace("{OS}", OS);
     engineer_system_info.replace("{DATE}", dateString);
-    engineer_system_info.replace("{DIR}", applicationDirPath);
+    engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
 
     engineer_info.replace("{engineer_system_info}", engineer_system_info);
     return engineer_info;
@@ -1399,7 +1379,7 @@ void Widget::server_onProcessStarted() {
 
 //第三方程序结束
 void Widget::server_onProcessFinished() {
-    if (current_server) {
+    if (ui_state == SERVER_STATE) {
         ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
     } else {

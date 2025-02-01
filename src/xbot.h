@@ -122,7 +122,8 @@ class xBot : public QObject {
     bool is_stop = false, is_model_load = false, is_load_predecode = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
     bool is_complete = false;                                                                                                               //补完模式标签
     bool is_antiprompt = false;                                                                                                             //上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
-    bool is_datetoolong = false;                                                                                                            //如果约定的系统指令长度太长则不约定
+    bool is_datetoolong = false;    
+    bool is_need_preDecodeSystemPrompt = false;                                                                                                        //如果约定的系统指令长度太长则不约定
     int n_past = 0;                                                                                                                         //已推理个数
     int n_consumed = 0;                                                                                                                     //已编码字符数
     bool is_test = false;                                                                                                                   //是否正在测试
@@ -146,6 +147,7 @@ class xBot : public QObject {
     void recv_date(DATES date);                                               //接受约定内容
     void recv_free(bool loadlater);                                           //释放
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
+    void recv_preDecode();                                                    //从补完模式回来强行预解码
 
    signals:
     void bot2ui_predecoding_over();       // 完成推理，预解码

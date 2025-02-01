@@ -221,8 +221,8 @@
             "Tell a joke that you think is the funniest "
         ],
         "Q10": [
-            "写一个心得体会，关于一本无人机书籍的学习",
-            "Write a reflection on the study of a drone book "
+            "构建一个C++的hello world项目",
+            "Build a C++ hello world project "
         ],
         "Q11": [
             "来玩猜人名游戏，我在心里已经想好了，你可以一次问一个问题来向我寻找答案",
@@ -853,8 +853,8 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段JSON文本来调用工具，需要提供一个\"tool_name\"关键字 (工具名)和一个\"tool_input\"关键字 (传入工具的参数)，\"tool_input\"的值必须是一段纯文本。\n调用工具的JSON文本格式要像这样:\n{\"tool_name\":\"$TOOL_NAME\",\"tool_input\":\"$INPUT\"}\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nTo call a tool, use a JSON format, providing the \"tool_name\" keyword (tool name) and the \"tool_input\" keyword (parameters of the tool). The value of \"tool_input\" must be a plain text string.\nThe JSON format for calling a tool should look like this:\n{\"tool_name\":\"$TOOL_NAME\",\"tool_input\":\"$INPUT\"}\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，结构如下: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \n例如: ```<answer><str>请问您有什么需要帮助的？</str></answer>```\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. The structure should look like this: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \nFor example: ```<answer><str>How can I assist you?</str></answer>```\n{engineer_info}"
         ],
         "answer_func_describe": [
             "answer(str) - 最终的回复或询问。",
@@ -869,16 +869,16 @@
             "read_file(str) - Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file."
         ],
         "write_file_func_describe": [
-            "write_file(str) - 请求将内容写入指定路径下的文件。如果文件存在，它将被提供的内容覆盖。如果文件不存在，将创建它。该工具将自动创建写入文件所需的任何目录。传入工具参数的格式为 \"文件名>>>文件内容\"。",
-            "write_file(str) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filename>>>file content\"."
+            "write_file(str) - 请求将内容写入指定路径下的文件。如果文件存在，它将被提供的内容覆盖。如果文件不存在，将创建它。该工具将自动创建写入文件所需的任何目录。传入工具参数的格式为 \"文件路径>>>文件内容\"。",
+            "write_file(str) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filepath>>>file content\"."
         ],
         "engineer_info": [
             "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，并将收到该工具使用后的结果。你需要逐步使用工具来完成给定的任务，每次工具使用都要基于上一次工具使用的结果。如果有需要用户答复的情况，请直接使用\"answer\"工具询问。当前的环境为：{engineer_system_info}",
             "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time and will receive the results of using that tool. You need to gradually use the tool to complete the given task, and each use of the tool should be based on the results of the previous use of the tool. If there is a need for user response, please use the \"answer\" tool directly to inquire. The current environment is: {engineer_system_info}"
         ],
         "engineer_system_info": [
-            "\n操作系统: {OS}\n日期: {DATE}\n当前工作目录: {DIR}\n",
-            "\nOperating System: {OS}\nDate: {DATE}\nCurrent working directory: {DIR}\n"
+            "\n操作系统: {OS}\n日期: {DATE}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
+            "\nOperating System: {OS}\nDate: {DATE}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
         "webengine_func_describe": [
             "webengine(str) - 搜索引擎。。。",
@@ -1761,8 +1761,8 @@
             "Read the contents of abc.txt file."
         ],
         "sync_Q28": [
-            "构建一个C++的基础项目",
-            "Building a C++ Foundation Project."
+            "构建一个C++的hello world项目",
+            "Building a C++ hello world Project."
         ],
         "sync_Q29": [
             "构建一个docker的基础项目",
