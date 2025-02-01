@@ -266,13 +266,15 @@ class Widget : public QWidget {
     QDialog *api_dialog;
     QLabel *api_endpoint_label;
     QLineEdit *api_endpoint_LineEdit;
+    QLabel *api_key_label;
+    QLineEdit *api_key_LineEdit;
+    QLabel *api_model_label;
+    QLineEdit *api_model_LineEdit;
     APIS apis;                                            // api配置参数
     QVector<QPair<QString, API_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history = "";                  //临时数据
     QString current_api;                                  //当前负载端点
-    float keeptesttime = 0.1;                             //回应时间/keeptest*100为延迟量
-    QTimer *keeptimer;                                    //测试延迟定时器
-    QElapsedTimer keeptime;                               //测量时间
+
 
     //发给模型的信号
    signals:
@@ -358,11 +360,6 @@ class Widget : public QWidget {
     void unlockLoad();
     void send_testhandleTimeout();                                //链接模式下测试时延迟发送
     void tool_testhandleTimeout();                                //链接模式下测试时延迟发送
-    void keepConnection();                                        //持续检测ip是否通畅
-    void keep_onConnected();                                      //检测ip是否通畅
-    void keep_onError(QAbstractSocket::SocketError socketError);  //检测ip是否通畅
-    void onConnected();                                           //检测ip是否通畅
-    void onError(QAbstractSocket::SocketError socketError);       //检测ip是否通畅
     void output_scrollBarValueChanged(int value);                 //输出区滚动条点击事件响应,如果滚动条不在最下面就停止滚动
     void set_set();                                               //设置用户设置内容
     void set_date();                                              //设置用户约定内容

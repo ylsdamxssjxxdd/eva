@@ -20,11 +20,11 @@ void xNet::run() {
     //对话模式
     if (!endpoint_data.complete_state) {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl("http://" + apis.api_endpoint + apis.api_chat_endpoint));
+        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_chat_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        QString api_key = "Bearer " + QString("sjxx");
-        request.setRawHeader("Authorization", api_key.toUtf8());
+        // QString api_key = "Bearer " + QString("sjxx");
+        request.setRawHeader("Authorization", apis.api_key.toUtf8());
         //构造请求的数据体
         QByteArray data = createChatBody();
         // 发送 POST 请求
@@ -102,7 +102,7 @@ void xNet::run() {
     } else  //补完模式
     {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl("http://" + apis.api_endpoint + apis.api_completion_endpoint));
+        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_completion_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", "Bearer no-key");
@@ -168,7 +168,7 @@ QByteArray xNet::createChatBody() {
     if (apis.is_cache) {
         json.insert("cache_prompt", apis.is_cache);
     }  // 缓存上文
-    json.insert("model", "default");
+    json.insert("model", apis.api_model);
     json.insert("stream", true);
     json.insert("temperature", 2 * endpoint_data.temp);  // openai 的温度是从0-2，机体是从0-1所以乘2
     json.insert("max_tokens", endpoint_data.n_predict);
@@ -224,6 +224,7 @@ QByteArray xNet::createCompleteBody() {
     if (apis.is_cache) {
         json.insert("cache_prompt", apis.is_cache);
     }  // 缓存上文
+    json.insert("model", apis.api_model);
     json.insert("seed", 1996);
     json.insert("ignore_eos", false);  //是否无视结束标志
     json.insert("prompt", endpoint_data.input_prompt);

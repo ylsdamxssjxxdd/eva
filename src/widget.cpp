@@ -139,6 +139,7 @@ void Widget::on_load_clicked() {
     is_load = false;
     //先释放旧的模型和上下文
     emit ui2bot_free(1);  // 1表示重载
+
 }
 
 //模型释放完毕并重新装载
@@ -525,9 +526,9 @@ void Widget::on_reset_clicked() {
         ui_insert_history.clear();
         if (ui_state == CHAT_STATE) {
             reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
-            current_api = "http://" + apis.api_endpoint + apis.api_chat_endpoint;
+            current_api = apis.api_endpoint + apis.api_chat_endpoint;
         } else {
-            current_api = "http://" + apis.api_endpoint + apis.api_completion_endpoint;
+            current_api = apis.api_endpoint + apis.api_completion_endpoint;
         }
 
         QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
@@ -845,22 +846,18 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
     }
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->load && ui->load->isEnabled() && event->type() == QEvent::ContextMenu) {
-        //防止点不了
-        if (!api_dialog->isEnabled()) {
-            api_dialog->setWindowFlags(api_dialog->windowFlags() & Qt::WindowCloseButtonHint);
-        } else {
-            api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);
-        }  //隐藏关闭按钮
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
         //设置当前值
         api_endpoint_LineEdit->setText(apis.api_endpoint);
+        api_key_LineEdit->setText(apis.api_key);
+        api_model_LineEdit->setText(apis.api_model);
         api_dialog->exec();
         return true;
     }
     //响应已安装控件上的鼠标右击事件
     if (obj == api_endpoint_LineEdit && event->type() == QEvent::ContextMenu) {
-        QString api_endpoint = getFirstNonLoopbackIPv4Address() + ":8080";
+        QString api_endpoint = "http://" + getFirstNonLoopbackIPv4Address() + ":8080";
         api_endpoint_LineEdit->setText(api_endpoint);
         return true;
     }

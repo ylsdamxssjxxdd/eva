@@ -134,8 +134,8 @@ struct MODEL_PARAMS {
 // api配置参数
 struct APIS {
     QString api_endpoint = "";  // openai格式端点 = ip + port
-    QString api_ip = "";
-    QString api_port = "8080";
+    QString api_key = "";
+    QString api_model = "default";
     QString api_chat_endpoint = CHAT_ENDPOINT;
     QString api_completion_endpoint = COMPLETION_ENDPOINT;
     bool is_cache = true;

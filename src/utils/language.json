@@ -673,12 +673,16 @@
             "endpoint "
         ],
         "input server ip": [
-            "请输入服务的ip地址和端口",
-            "input server ip and port"
+            "请输入服务的ip地址和端口，右击使用本机ip",
+            "input server ip and port, right click to use local IP address"
         ],
-        "blocked": [
-            "不通",
-            "blocked "
+        "input api key": [
+            "请输入api密钥",
+            "input api key"
+        ],
+        "input api model": [
+            "请输入需要使用的模型名称",
+            "input the model name"
         ],
         "recv reply": [
             "接收到回复",
@@ -688,9 +692,17 @@
             "api端点",
             "api endpoint"
         ],
+        "api key": [
+            "api key",
+            "api key"
+        ],
+        "api model": [
+            "api 模型",
+            "api model"
+        ],
         "api endpoint tool tip": [
-            "例如 192.168.1.1:8080",
-            "example 192.168.1.1:8080"
+            "例如 http://192.168.1.1:8080",
+            "example http://192.168.1.1:8080"
         ],
         "current api": [
             "当前负载端点",

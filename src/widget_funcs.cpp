@@ -72,8 +72,6 @@ void Widget::init_movie() {
     connect(force_unlockload_pTimer, SIGNAL(timeout()), this, SLOT(unlockLoad()));          //新开一个线程
 
     decode_pTimer = new QTimer(this);  //启动后,达到规定时间将发射终止信号
-    keeptimer = new QTimer(this);      //持续检测延迟
-    connect(keeptimer, SIGNAL(timeout()), this, SLOT(keepConnection()));
     connect(decode_pTimer, SIGNAL(timeout()), this, SLOT(decode_handleTimeout()));  //设置终止信号触发的槽函数
 }
 
@@ -214,7 +212,6 @@ void Widget::load_over_handleTimeout() {
     }
     //滚到最下面才解锁按钮,真正装载完毕
     else {
-        keeptimer->stop();
         force_unlockload_pTimer->start(0);  //强制解锁
     }
 }
@@ -688,11 +685,11 @@ void Widget::setApiDialog() {
     api_dialog = new QDialog();
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
-    api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);        //隐藏关闭按钮
-    api_dialog->resize(250, 100);                                                              // 设置宽度为400像素,高度为200像素
+    // api_dialog->setWindowFlags(api_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);        //隐藏关闭按钮
+    api_dialog->resize(400, 100);                                                              // 设置宽度,高度
 
     QVBoxLayout *layout = new QVBoxLayout(api_dialog);  //垂直布局器
-
+    // api_endpoint
     QHBoxLayout *layout_H1 = new QHBoxLayout();  //水平布局器
     api_endpoint_label = new QLabel(jtr("api endpoint"));
     layout_H1->addWidget(api_endpoint_label);
@@ -700,19 +697,33 @@ void Widget::setApiDialog() {
     api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
     api_endpoint_LineEdit->setText(apis.api_endpoint);
-    QRegExp ipRegex(
-        "^((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}"
-        "(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d):"
-        "(6553[0-5]|655[0-2]\\d|65[0-4]\\d{2}|6[0-4]\\d{3}|"
-        "[1-5]?\\d{1,4})$");  // IPv4地址冒号端口号的正则表达式限制
-    QRegExpValidator *validator_ipv4 = new QRegExpValidator(ipRegex, api_endpoint_LineEdit);
-    api_endpoint_LineEdit->setValidator(validator_ipv4);
     layout_H1->addWidget(api_endpoint_LineEdit);
     layout->addLayout(layout_H1);  //将布局添加到总布局
+    // api_key
+    QHBoxLayout *layout_H2 = new QHBoxLayout();  //水平布局器
+    api_key_label = new QLabel(jtr("api key"));
+    layout_H2->addWidget(api_key_label);
+    api_key_LineEdit = new QLineEdit();
+    api_key_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    api_key_LineEdit->setToolTip(jtr("input api key"));
+    api_key_LineEdit->setText(apis.api_key);
+    layout_H2->addWidget(api_key_LineEdit);
+    layout->addLayout(layout_H2);  //将布局添加到总布局
+    // api_model
+    QHBoxLayout *layout_H3 = new QHBoxLayout();  //水平布局器
+    api_model_label = new QLabel(jtr("api model"));
+    layout_H3->addWidget(api_model_label);
+    api_model_LineEdit = new QLineEdit();
+    api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    api_model_LineEdit->setToolTip(jtr("input api model"));
+    api_model_LineEdit->setText(apis.api_model);
+    layout_H3->addWidget(api_model_LineEdit);
+    layout->addLayout(layout_H3);  //将布局添加到总布局
 
     QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, api_dialog);  // 创建 QDialogButtonBox 用于确定和取消按钮
     layout->addWidget(buttonBox);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Widget::set_api);
+    connect(buttonBox, &QDialogButtonBox::accepted, api_dialog, &QDialog::reject);// 点击确定后直接退出
     connect(buttonBox, &QDialogButtonBox::rejected, api_dialog, &QDialog::reject);
 }
 
@@ -774,82 +785,33 @@ void Widget::decode_handleTimeout() {
 
 //应用api设置
 void Widget::set_api() {
-    //判断ip地址是否合理
-    if (api_endpoint_LineEdit->text().contains("0.0") || api_endpoint_LineEdit->text().split(".").size() < 3 || api_endpoint_LineEdit->text() == "0.0.0.0") {
-        ui_state_info = "ui:api wrong";
-        reflash_state(ui_state_info, WRONG_SIGNAL);
-        return;
-    }
-    reflash_state("ui:" + jtr("detecting") + "api...", SIGNAL_SIGNAL);
     emit ui2bot_free(0);  //释放原来的模型
-    is_load = false;
+    is_load = false;// 重置
+    historypath = "";// 重置
 
     //获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
-    if (apis.api_endpoint.contains(":")) {
-        apis.api_ip = apis.api_endpoint.split(":")[0];
-        apis.api_port = apis.api_endpoint.split(":")[1];
-    } else {
-        apis.api_ip = apis.api_endpoint;
-    }
-    startConnection(apis.api_ip, apis.api_port.toInt());  //检测ip是否通畅
-}
+    apis.api_key = api_key_LineEdit->text();
+    apis.api_model = api_model_LineEdit->text();
 
-void Widget::startConnection(const QString &ip, int port) {
-    // socket should be a member variable or should be managed to ensure its lifetime
-    // during the asynchronous operation
-    api_dialog->setDisabled(1);  //阻塞界面
-    QTcpSocket *socket = new QTcpSocket(this);
-    connect(socket, &QTcpSocket::connected, this, &Widget::onConnected);  //链接成功的后处理动作
-    connect(socket, &QTcpSocket::errorOccurred, this, &Widget::onError);  //链接失败的后处理动作
-    socket->connectToHost(ip, port);
-}
-
-void Widget::keepConnection() {
-    keeptime.restart();
-    QTcpSocket *socket = new QTcpSocket(this);
-    connect(socket, &QTcpSocket::connected, this, &Widget::keep_onConnected);
-    connect(socket, &QTcpSocket::errorOccurred, this, &Widget::keep_onError);
-    socket->connectToHost(apis.api_ip, apis.api_port.toInt());
-}
-
-// 连接成功
-void Widget::onConnected() {
-    QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
-    if (socket) {
-        socket->disconnectFromHost();
-    }                     //中断访问
     ui_mode = LINK_MODE;  //按照链接模式的行为来
     reflash_state("ui:" + jtr("eva link"), EVA_SIGNAL);
     if (ui_state == CHAT_STATE) {
-        current_api = "http://" + apis.api_endpoint + apis.api_chat_endpoint;
+        current_api = apis.api_endpoint + apis.api_chat_endpoint;
     } else {
-        current_api = "http://" + apis.api_endpoint + apis.api_completion_endpoint;
+        current_api = apis.api_endpoint + apis.api_completion_endpoint;
     }
     reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
     this->setWindowTitle(jtr("current api") + " " + current_api);
     QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
-    ui->kv_bar->show_text = jtr("delay");
     ui->kv_bar->setToolTip("");
 
     emit ui2net_apis(apis);
     reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
     ui_state_normal();
 
-    api_dialog->setDisabled(0);
-    api_dialog->close();
+}
 
-    keeptimer->start(3000);  //每多少秒测一次延迟，频率太高会让服务端爆炸
-}
-//连接失败
-void Widget::onError(QAbstractSocket::SocketError socketError) {
-    // Handle the error
-    ui_mode = LOCAL_MODE;
-    reflash_state("ui:api" + jtr("port") + jtr("blocked"), WRONG_SIGNAL);
-    this->setWindowTitle(jtr("eva"));
-    api_dialog->setDisabled(0);
-    api_dialog->close();
-}
 //链接模式下工具返回结果时延迟发送
 void Widget::tool_testhandleTimeout() {
     ENDPOINT_DATA data;
@@ -872,23 +834,6 @@ void Widget::tool_testhandleTimeout() {
 }
 
 void Widget::send_testhandleTimeout() { on_send_clicked(); }
-
-// 每多少秒测一次延迟,回应时间/keeptest*100为延迟量
-void Widget::keep_onConnected() {
-    float percent = keeptime.nsecsElapsed() / 1000000000.0 / keeptesttime;
-    // qDebug() << keeptime.nsecsElapsed()/1000000000.0<<keeptesttime<<percent;
-    if (percent < 1 && percent > 0) {
-        percent = 1;
-    }
-    ui->kv_bar->setSecondValue(percent);
-}
-
-//每多少秒测一次延迟,回应时间/keeptest*100为延迟量
-void Widget::keep_onError(QAbstractSocket::SocketError socketError) {
-    if (socketError != QAbstractSocket::RemoteHostClosedError) {
-        ui->kv_bar->setSecondValue(100);
-    }
-}
 
 //链接模式切换时某些控件可见状态
 void Widget::change_api_dialog(bool enable) {
@@ -1618,6 +1563,12 @@ void Widget::apply_language(int language_flag_) {
     api_endpoint_label->setText(jtr("api endpoint"));
     api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
     api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
+    api_key_label = new QLabel(jtr("api key"));
+    api_key_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    api_key_LineEdit->setToolTip(jtr("input api key"));
+    api_model_label = new QLabel(jtr("api model"));
+    api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
+    api_model_LineEdit->setToolTip(jtr("input api model"));
     //约定选项语种
     date_ui->prompt_box->setTitle(jtr("character"));  //提示词模板设置区域
     date_ui->chattemplate_label->setText(jtr("chat template"));
