@@ -26,14 +26,16 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     //----------------------命令提示符------------------
     else if (func_arg_list.first == "execute_command") {
         QProcess* process = new QProcess();
+        createTempDirectory(applicationDirPath + "/EVA_WORK");//防止没有这个目录
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
     #ifdef Q_OS_WIN
         // 在Windows上执行
-        process->start("cmd.exe", QStringList() << "/c" << func_arg_list.second);
+        process->start(SHELL, QStringList("/c") << func_arg_list.second);
+        qDebug()<<SHELL<<QStringList("/c") << func_arg_list.second;
         emit tool2ui_state(QString("tool: ") + "cmd.exe " + "/c " + func_arg_list.second);
     #else
         // 在Unix-like系统上执行
-        process->start("/bin/sh", QStringList() << "-c" << func_arg_list.second);
+        process->start(SHELL, QStringList() << "-c" << func_arg_list.second);
         emit tool2ui_state(QString("tool: ") + "/bin/sh " + "-c " + func_arg_list.second);
     #endif
 
@@ -145,10 +147,8 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
             return;  // or handle the error as appropriate
         }
         //处理换行符
-        content.replace("\r", "\n");
-        content.replace("\t", "\n");
-        content.replace("\\\n", "\n");
-        content.replace("\\n", "\n");
+        qDebug()<<content;
+
 
         QTextStream out(&file);
         out.setCodec("UTF-8");  // 设置编码为UTF-8

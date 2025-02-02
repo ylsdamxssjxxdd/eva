@@ -20,7 +20,7 @@ void xNet::run() {
     //对话模式
     if (!endpoint_data.complete_state) {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_chat_endpoint));
+        QNetworkRequest request(QUrl(apis.api_endpoint.remove(apis.api_chat_endpoint) + apis.api_chat_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());

@@ -491,6 +491,7 @@ void Widget::recv_setreset() {
 void Widget::on_reset_clicked() {
     wait_to_show_image = "";    //清空待显示图像
     emit ui2expend_resettts();  //清空待读列表
+    tool_result = "";//清空工具结果
 
     //如果模型正在推理就改变模型的停止标签
     if (is_run) {

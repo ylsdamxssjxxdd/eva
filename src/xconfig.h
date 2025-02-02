@@ -80,9 +80,11 @@ const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
 #ifdef _WIN32
 #define SFX_NAME ".exe"  // 第三方程序后缀名
 #define OS "windows"
+#define SHELL "cmd.exe"
 #elif __linux__
 #define SFX_NAME ""  //第三方程序后缀名
 #define OS "linux"
+#define SHELL "/bin/sh"
 #endif
 
 // 字体

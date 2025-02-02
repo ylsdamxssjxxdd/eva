@@ -221,8 +221,8 @@
             "Tell a joke that you think is the funniest "
         ],
         "Q10": [
-            "构建一个C++的hello world项目",
-            "Build a C++ hello world project "
+            "构建一个简单的C++ 终端代码雨项目",
+            "Building a Simple C++Terminal Code Rain Project "
         ],
         "Q11": [
             "来玩猜人名游戏，我在心里已经想好了，你可以一次问一个问题来向我寻找答案",
@@ -865,52 +865,52 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，结构如下: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \n例如: ```<answer><str>请问您有什么需要帮助的？</str></answer>```\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. The structure should look like this: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \nFor example: ```<answer><str>How can I assist you?</str></answer>```\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，结构如下: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \n工具使用示例1: ```<answer><content>请问您有什么需要帮助的？</content></answer>```\n工具使用示例2: ```<write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>```\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. The structure should look like this: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \nExample of tool usage 1: ```<answer><content>How can I assist you?</content></answer>```\nExample of tool usage 1: ```<write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>```\n{engineer_info}"
         ],
         "answer_func_describe": [
-            "answer(str) - 最终的回复或询问。",
-            "answer(str) - The final response or inquiry."
+            "answer(content) - 最终的回复或询问。",
+            "answer(content) - The final response or inquiry."
         ],
         "execute_command_func_describe": [
-            "execute_command(str) - 请求在系统上执行CLI命令。当你需要执行系统操作或运行特定命令以完成用户任务的任何步骤时使用此命令。你必须根据用户系统调整命令。优先执行复杂的CLI命令而不是创建可执行脚本，因为它们更灵活且更易运行。命令将在当前工作目录中执行。",
-            "execute_command(str) - Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory."
+            "execute_command(content) - 请求在系统上执行CLI命令。当你需要执行系统操作或运行特定命令以完成用户任务的任何步骤时使用此命令。你必须根据用户系统调整命令。优先执行复杂的CLI命令而不是创建可执行脚本，因为它们更灵活且更易运行。命令将在当前工作目录中执行。",
+            "execute_command(content) - Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory."
         ],
         "read_file_func_describe": [
-            "read_file(str) - 请求读取指定路径下文件的内容，当你需要检查现有文件的内容时使用，例如分析代码、审查文本文件或从配置文件中提取信息。",
-            "read_file(str) - Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file."
+            "read_file(path) - 请求读取指定路径下文件的内容，当你需要检查现有文件的内容时使用，例如分析代码、审查文本文件或从配置文件中提取信息。",
+            "read_file(path) - Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file."
         ],
         "write_file_func_describe": [
-            "write_file(str) - 请求将内容写入指定路径下的文件。如果文件存在，它将被提供的内容覆盖。如果文件不存在，将创建它。该工具将自动创建写入文件所需的任何目录。传入工具参数的格式为 \"文件路径>>>文件内容\"。",
-            "write_file(str) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filepath>>>file content\"."
+            "write_file(path_and_content) - 请求将内容写入指定路径下的文件。如果文件存在，它将被提供的内容覆盖。如果文件不存在，将创建它。该工具将自动创建写入文件所需的任何目录。传入工具参数的格式为 \"文件路径>>>文件内容\"。",
+            "write_file(path_and_content) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filepath>>>file content\"."
         ],
         "engineer_info": [
-            "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，并将收到该工具使用后的结果。你需要逐步使用工具来完成给定的任务，每次工具使用都要基于上一次工具使用的结果。尽可能自主解决问题，实在有需要用户答复的情况，请直接使用\"answer\"工具询问。当前的环境为：{engineer_system_info}",
-            "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time and will receive the results of using that tool. You need to gradually use the tool to complete the given task, and each use of the tool should be based on the results of the previous use of the tool. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The current environment is: {engineer_system_info}"
+            "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，并将收到该工具使用后的结果。逐步进行，等待每个工具使用后的用户消息后再继续任务。这种方法可以确保: 1.确认每一步成功后再继续。2.立即处理出现的任何问题或错误。3.根据新信息或意外结果调整你的方法。4.确保每个操作都正确构建在前一个操作上。通过等待并仔细考虑用户每次工具使用后的回复，可以相应地做出反应，并就如何推进任务做出明智决策。这种迭代过程有助于确保工作的整体成功和准确性。尽可能自主解决问题，实在有需要用户答复的情况，请直接使用\"answer\"工具询问。需要写入到文件中的内容，不需要展示出来直接写入即可。当前的环境为：{engineer_system_info}",
+            "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time and will receive the results of using that tool. Step by step, wait for user messages after each tool is used before continuing the task. This method can ensure: 1. Confirm each step is successful before continuing. 2. Immediately address any issues or errors that arise. 3. Adjust your methods based on new information or unexpected results. 4. Ensure that each operation is correctly built upon the previous operation. By waiting and carefully considering the user's response after each use of the tool, one can react accordingly and make wise decisions on how to proceed with the task. This iterative process helps ensure the overall success and accuracy of the work. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The content that needs to be written to the file does not need to be displayed and can be written directly. The current environment is: {engineer_system_info}"
         ],
         "engineer_system_info": [
-            "\n操作系统: {OS}\n日期: {DATE}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
-            "\nOperating System: {OS}\nDate: {DATE}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
+            "\n操作系统: {OS}\n日期: {DATE}\n默认Shell: {SHELL}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
+            "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
         "webengine_func_describe": [
-            "webengine(str) - 使用搜索引擎进行搜索，将返回搜索结果。",
-            "webengine(str) - Using a search engine to conduct a search will return search result."
+            "webengine(request) - 使用搜索引擎进行搜索，将返回搜索结果。",
+            "webengine(request) - Using a search engine to conduct a search will return search result."
         ],
         "calculator_func_describe": [
-            "calculator(str) - 输入一个 JavaScript 表达式，返回计算结果。",
-            "calculator(str) - Enter a JavaScript expression and return the computed result."
+            "calculator(expression) - 输入一个 JavaScript 表达式，返回计算结果。",
+            "calculator(expression) - Enter a JavaScript expression and return the computed result."
         ],
         "knowledge_func_describe": [
-            "knowledge(str) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段。",
-            "knowledge(str) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."
+            "knowledge(request) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段。",
+            "knowledge(request) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."
         ],
         "controller_func_describe": [
-            "controller(str) - 传入相应的数字对软件进行控制: \n1 最大化主窗口\n2 最小化主窗口\n3 置顶主窗口\n4 取消置顶主窗口\n5 关闭主窗口\n6 播放音乐\n7 关闭音乐\n8 打开增殖窗口\n9 关闭增殖窗口",
-            "controller(str) - Pass in the corresponding numbers to control the software:  \n1 Maximize the main window\n2 Minimize the main window\n3 Top the main window\n4 Cancel the top of the main window\n5 Close the main window\n6 Play music\n7 Close music\n8 Open the proliferation window\n9 Close the proliferation window"
+            "controller(number) - 传入相应的数字对软件进行控制: \n1 最大化主窗口\n2 最小化主窗口\n3 置顶主窗口\n4 取消置顶主窗口\n5 关闭主窗口\n6 播放音乐\n7 关闭音乐\n8 打开增殖窗口\n9 关闭增殖窗口",
+            "controller(number) - Pass in the corresponding numbers to control the software:  \n1 Maximize the main window\n2 Minimize the main window\n3 Top the main window\n4 Cancel the top of the main window\n5 Close the main window\n6 Play music\n7 Close music\n8 Open the proliferation window\n9 Close the proliferation window"
         ],
         "stablediffusion_func_describe": [
-            "stablediffusion(str) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
-            "stablediffusion(str) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
+            "stablediffusion(content) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
+            "stablediffusion(content) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
         ],
         "main window": [
             "主窗口",

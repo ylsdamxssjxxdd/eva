@@ -706,6 +706,7 @@ void Widget::setApiDialog() {
     api_key_label->setFixedWidth(80);
     layout_H2->addWidget(api_key_label);
     api_key_LineEdit = new QLineEdit(this);
+    api_key_LineEdit->setEchoMode(QLineEdit::Password);
     api_key_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_key_LineEdit->setToolTip(jtr("input api key"));
     api_key_LineEdit->setText(apis.api_key);
@@ -1285,6 +1286,7 @@ QString Widget::create_engineer_info()
     QDate currentDate = QDate::currentDate();  //今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info.replace("{OS}", OS);
+    engineer_system_info.replace("{SHELL}", SHELL);
     engineer_system_info.replace("{DATE}", dateString);
     engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
 
