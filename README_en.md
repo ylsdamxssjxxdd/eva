@@ -96,7 +96,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 ```txt
     The principle is to add an additional instruction in the system instruction to guide the model to call the corresponding tool
-    After each model prediction is completed, eva will automatically detects whether it contains the JSON field of the calling tool. If it does, the corresponding tool is called. After the tool is executed, the result is sent to the model for further prediction
+    After each model prediction is completed, eva will automatically detects whether it contains the XML field of the calling tool. If it does, the corresponding tool is called. After the tool is executed, the result is sent to the model for further prediction
 ```
 
 1. calculator
@@ -271,7 +271,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Tool call process
 
-    - [ui] -> you click to send -> Mode/tag/content analysis -> Dialogue mode situation -> Inference interface status -> Send input parameters -> Send inference signal -> [bot] -> Preprocess you input -> Streaming loop output -> Loop termination -> Send inference end signal -> [ui] -> Extract JSON field from the current output of the model -> Send JSON field -> Send tool inference signal -> [tool] -> Execute corresponding function based on JSON field -> Return result after execution -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ·· -> No reasonable JSON field -> Normal interface state -> END
+    - [ui] -> you click to send -> Mode/tag/content analysis -> Dialogue mode situation -> Inference interface status -> Send input parameters -> Send inference signal -> [bot] -> Preprocess you input -> Streaming loop output -> Loop termination -> Send inference end signal -> [ui] -> Extract XML field from the current output of the model -> Send XML field -> Send tool inference signal -> [tool] -> Execute corresponding function based on XML field -> Return result after execution -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ·· -> No reasonable XML field -> Normal interface state -> END
 
 - Building a knowledge base process
 
@@ -279,7 +279,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Knowledge base Q&A process
 
-    - [ui] -> Tool invocation process -> JSON field contains knowledge keyword -> Send JSON field -> Send tool inference signal -> [tool] -> Execute knowledge function -> Send query field to embedded endpoint -> [server] -> Return calculated word vector -> [tool] -> Calculate cosine similarity between query segment word vector and each embedded text segment word vector -> Return the three most similar text segments -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ··· -> No reasonable JSON field -> Normal interface state -> END
+    - [ui] -> Tool invocation process -> XML field contains knowledge keyword -> Send XML field -> Send tool inference signal -> [tool] -> Execute knowledge function -> Send query field to embedded endpoint -> [server] -> Return calculated word vector -> [tool] -> Calculate cosine similarity between query segment word vector and each embedded text segment word vector -> Return the three most similar text segments -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ··· -> No reasonable XML field -> Normal interface state -> END
 
 - Link process
 

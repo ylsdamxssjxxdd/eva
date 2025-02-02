@@ -17,8 +17,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -219,6 +219,7 @@ if(MSVC)
 
     endif()
 elseif(UNIX)
+
 # 使用linuxdeployqt打包所有组件为一个appimage
     if(BODY_PACK)
 
@@ -230,27 +231,42 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-quantize"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-tts"
-            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libggml.so"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libllama.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libllama.so"
             
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libstable-diffusion.so"
-            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libsd-ggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libstable-diffusion.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libstable-diffusion.so"
+            # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/libsd-ggml.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/sd"
 
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1" # 这个是快捷方式
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/whisper.cpp/src/libwhisper.so.1.7.2" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/lib/libwhisper.so.1.7.2" # 注意版本号
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/bin/whisper-cli"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/whisper.cpp/src/libwhisper.so.1" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libwhisper.so.1" # 这个是快捷方式
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/thirdparty/whisper.cpp/src/libwhisper.so.1.7.2" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libwhisper.so.1.7.2" # 注意版本号
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/whisper-cli"
 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml.so"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cpu.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cpu.so"
+            COMMAND ${COMMAND_TO_RUN}
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-base.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-base.so"
+
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
             # 开始打包 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}/Release "linuxdeployqt" "${CMAKE_BINARY_DIR}/Release/AppDir/usr/share/applications/eva.desktop" "-appimage"
+            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
             COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
+        # 有条件打包相应组件
+        if(GGML_CUDA)
+            add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cuda.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cuda.so\"
+            )
+        elseif(GGML_VULKAN)   
+            add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-vulkan.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-vulkan.so\"
+            )
+        endif()
     endif()
 endif()
 
