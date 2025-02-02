@@ -107,7 +107,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
-
     qDebug() << "widget init over";
 }
 
@@ -285,7 +284,7 @@ void Widget::on_send_clicked() {
             else {
                 //如果工具返回的结果不为空，则认为输入源是观察者
                 if (tool_result != "") {
-                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result;
+                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION_NAME + ": " + tool_result;
                     tool_result = "";
                     inputs = {input, ROLE_OBSERVATION};
                 } else {
@@ -334,7 +333,7 @@ void Widget::recv_pushover() {
     } else {
         //如果挂载了工具,则尝试提取里面的json
         if (is_load_tool) {
-            qDebug()<<ui_insert_history.last().first;
+            // qDebug()<<ui_insert_history.last().first;
             QString tool_str = ui_insert_history.last().first;
             ui_func_arg_list = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
             if (ui_func_arg_list.first == "") {
@@ -887,7 +886,7 @@ void Widget::recv_whisper_modelpath(QString modelpath) { whisper_model_path = mo
 void Widget::api_send_clicked_slove() {
     //注意链接模式不发送前后缀
     QString input;
-
+    
     emit ui2net_stop(0);
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;
@@ -957,10 +956,11 @@ void Widget::api_send_clicked_slove() {
         //
         //-----------------------正常情况----------------------------
         if (ui_state == CHAT_STATE) {
-            //如果工具返回的结果不为空,则发送工具结果给net
+            //如果工具返回的结果不为空,则发送工具的结果给net
             if (tool_result != "") {
-                ui_insert_history.append({DEFAULT_OBSERVATION + tool_result, API_ROLE_OBSERVATION});
-                reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
+                //目前通过user这个角色给net
+                ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, API_ROLE_USER});
+                reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
                 tool_result = "";
 

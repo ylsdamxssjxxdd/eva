@@ -23,8 +23,7 @@ void xNet::run() {
         QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_chat_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        // QString api_key = "Bearer " + QString("sjxx");
-        request.setRawHeader("Authorization", apis.api_key.toUtf8());
+        request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());
         //构造请求的数据体
         QByteArray data = createChatBody();
         // 发送 POST 请求
@@ -36,6 +35,7 @@ void xNet::run() {
                 time2.start();  //从接收到第一个token开始计时
             }
             QString jsonString = reply->readAll();
+            // qDebug()<<"jsonString  "<<jsonString;
             // 由于原始字符串包含非JSON格式的前缀"data: "，我们需要去除这些部分
             QStringList dataList = jsonString.split("\n\n", QString::SkipEmptyParts);
             for (QString &data : dataList) {
@@ -181,7 +181,7 @@ QByteArray xNet::createChatBody() {
     QJsonArray messagesArray;  //总消息
     //构造系统指令
     QJsonObject systemMessage;
-    systemMessage.insert("role", "system");
+    systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", endpoint_data.date_prompt);
     messagesArray.append(systemMessage);  //添加消息
     // qDebug()<<"--------------------------------";
@@ -194,15 +194,15 @@ QByteArray xNet::createChatBody() {
     for (int i = 0; i < endpoint_data.insert_history.size(); ++i) {
         if (endpoint_data.insert_history.at(i).second == API_ROLE_USER)  // 如果是用户发送的
         {
-            roleMessage.insert("role", "user");
-        } else if (endpoint_data.insert_history.at(i).second == API_ROLE_OBSERVATION)  // 如果是工具发送的
-        {
-            roleMessage.insert("role", "observation");
-        }
-
+            roleMessage.insert("role", DEFAULT_USER_NAME);
+        } 
+        // else if (endpoint_data.insert_history.at(i).second == API_ROLE_OBSERVATION)  // 如果是工具发送的
+        // {
+        //     roleMessage.insert("role", DEFAULT_OBSERVATION_NAME);
+        // }
         else if (endpoint_data.insert_history.at(i).second == API_ROLE_ASSISANT)  // 如果是模型发送的
         {
-            roleMessage.insert("role", "assistant");
+            roleMessage.insert("role", DEFAULT_MODEL_NAME);
         }
 
         roleMessage.insert("content", endpoint_data.insert_history.at(i).first);

@@ -115,16 +115,7 @@ QComboBox QAbstractItemView::item:selected {
 }
 
 
-/* QTabWidget 样式 */
-QTabWidget {
-    background-color: #FFFFFF; /* 纯白背景 */
-    border: none; /* 移除整体边框 */
-}
 
-QTabWidget::pane {
-    border-top: 2px solid #E0E0E0; /* 添加顶部边框作为底部线条 */
-    top: -1px; /* 将边框稍微向上移动，确保标签的顶部和面板底部边框无缝对接 */
-}
 
 /* 标签栏样式 */
 QTabBar::tab {

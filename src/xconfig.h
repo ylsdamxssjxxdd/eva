@@ -14,11 +14,12 @@
 
 //默认约定
 #define DEFAULT_DATE_PROMPT "You are a helpful assistant."
+#define DEFAULT_SYSTEM_NAME "system"
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
+#define DEFAULT_OBSERVATION_NAME "tool"
 #define DEFAULT_SPLITER "\n"                 // 分隔符
-#define DEFAULT_THOUGHT "thought: "          // 思考词
-#define DEFAULT_OBSERVATION "observation: "  // 观察词
+
 
 //约定内容
 struct DATES {
@@ -93,15 +94,15 @@ const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
 
 //机体模式枚举
 enum EVA_MODE {
-    LOCAL_MODE,  //对话模式
+    LOCAL_MODE,  //本地模式
     LINK_MODE,   //链接模式
 };
 
 //机体状态枚举
 enum EVA_STATE {
-    CHAT_STATE,      //对话模式
-    COMPLETE_STATE,  //补完模式
-    SERVER_STATE,    //服务模式
+    CHAT_STATE,      //对话状态
+    COMPLETE_STATE,  //补完状态
+    SERVER_STATE,    //服务状态
 };
 
 //设置参数
@@ -145,7 +146,7 @@ struct APIS {
 enum API_ROLE {
     API_ROLE_USER,
     API_ROLE_ASSISANT,
-    API_ROLE_OBSERVATION,
+    // API_ROLE_OBSERVATION, // 暂时不会用
 };
 
 //端点接收参数

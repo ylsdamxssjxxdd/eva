@@ -691,19 +691,21 @@ void Widget::setApiDialog() {
     QVBoxLayout *layout = new QVBoxLayout(api_dialog);  //垂直布局器
     // api_endpoint
     QHBoxLayout *layout_H1 = new QHBoxLayout();  //水平布局器
-    api_endpoint_label = new QLabel(jtr("api endpoint"));
+    api_endpoint_label = new QLabel(jtr("api endpoint"),this);
+    api_endpoint_label->setFixedWidth(80);
     layout_H1->addWidget(api_endpoint_label);
-    api_endpoint_LineEdit = new QLineEdit();
-    api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_endpoint_LineEdit = new QLineEdit(this);
+    api_endpoint_LineEdit->setPlaceholderText(jtr("input api endpoint"));
     api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
     api_endpoint_LineEdit->setText(apis.api_endpoint);
     layout_H1->addWidget(api_endpoint_LineEdit);
     layout->addLayout(layout_H1);  //将布局添加到总布局
     // api_key
     QHBoxLayout *layout_H2 = new QHBoxLayout();  //水平布局器
-    api_key_label = new QLabel(jtr("api key"));
+    api_key_label = new QLabel(jtr("api key"),this);
+    api_key_label->setFixedWidth(80);
     layout_H2->addWidget(api_key_label);
-    api_key_LineEdit = new QLineEdit();
+    api_key_LineEdit = new QLineEdit(this);
     api_key_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_key_LineEdit->setToolTip(jtr("input api key"));
     api_key_LineEdit->setText(apis.api_key);
@@ -711,9 +713,10 @@ void Widget::setApiDialog() {
     layout->addLayout(layout_H2);  //将布局添加到总布局
     // api_model
     QHBoxLayout *layout_H3 = new QHBoxLayout();  //水平布局器
-    api_model_label = new QLabel(jtr("api model"));
+    api_model_label = new QLabel(jtr("api model"),this);
+    api_model_label->setFixedWidth(80);
     layout_H3->addWidget(api_model_label);
-    api_model_LineEdit = new QLineEdit();
+    api_model_LineEdit = new QLineEdit(this);
     api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_model_LineEdit->setToolTip(jtr("input api model"));
     api_model_LineEdit->setText(apis.api_model);
@@ -807,9 +810,10 @@ void Widget::set_api() {
     ui->kv_bar->setToolTip("");
 
     emit ui2net_apis(apis);
+    ui->output->clear();
     reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
     ui_state_normal();
-
+    auto_save_user();
 }
 
 //链接模式下工具返回结果时延迟发送
@@ -995,7 +999,7 @@ void Widget::ui_state_recoding() {
 //添加右击问题
 void Widget::create_right_menu() {
     QDate currentDate = QDate::currentDate();  //历史中的今天
-    QString dateString = currentDate.toString("MM" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
+    QString dateString = currentDate.toString("M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     //---------------创建一般问题菜单--------------
     if (right_menu != nullptr) {
         delete right_menu;
@@ -1203,7 +1207,7 @@ QPair<QString, QString> Widget::XMLparser(QString text)
     // 工具名和参数名都是可变的，甚至参数名可能不存在
 
     // 首先匹配工具名
-    QRegularExpression toolRegex("<(\\w+)>(.*)</\\1>");
+    QRegularExpression toolRegex("<(\\w+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
     QRegularExpressionMatch toolMatch = toolRegex.match(text);
     if (toolMatch.hasMatch()) {
         QString toolName = toolMatch.captured(1);
@@ -1212,7 +1216,7 @@ QPair<QString, QString> Widget::XMLparser(QString text)
         qDebug() << "工具名:" << toolName;
 
         // 尝试匹配参数名和参数值
-        QRegularExpression paramRegex("<(\\w+)>(.*)</\\1>");
+        QRegularExpression paramRegex("<(\\w+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
         QRegularExpressionMatch paramMatch = paramRegex.match(toolContent);
         if (paramMatch.hasMatch()) {
             QString paramName = paramMatch.captured(1);
@@ -1279,7 +1283,7 @@ QString Widget::create_engineer_info()
     QString engineer_info = jtr("engineer_info");
     QString engineer_system_info = jtr("engineer_system_info");
     QDate currentDate = QDate::currentDate();  //今天日期
-    QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "MM" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
+    QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info.replace("{OS}", OS);
     engineer_system_info.replace("{DATE}", dateString);
     engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
@@ -1294,9 +1298,9 @@ void Widget::addStopwords() {
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        ui_DATES.extra_stop_words << "<|observation|>";
-        ui_DATES.extra_stop_words << "observation:";
-        ui_DATES.extra_stop_words << "observation：";
+        // ui_DATES.extra_stop_words << "<|observation|>";
+        // ui_DATES.extra_stop_words << "observation:";
+        // ui_DATES.extra_stop_words << "observation：";
     }
 }
 
@@ -1561,12 +1565,12 @@ void Widget::apply_language(int language_flag_) {
     // api设置语种
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_endpoint_label->setText(jtr("api endpoint"));
-    api_endpoint_LineEdit->setPlaceholderText(jtr("input server ip"));
+    api_endpoint_LineEdit->setPlaceholderText(jtr("input api endpoint"));
     api_endpoint_LineEdit->setToolTip(jtr("api endpoint tool tip"));
-    api_key_label = new QLabel(jtr("api key"));
+    api_key_label->setText(jtr("api key"));
     api_key_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_key_LineEdit->setToolTip(jtr("input api key"));
-    api_model_label = new QLabel(jtr("api model"));
+    api_model_label->setText(jtr("api model"));
     api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_model_LineEdit->setToolTip(jtr("input api model"));
     //约定选项语种
@@ -1702,6 +1706,7 @@ void Widget::auto_save_user() {
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
+    settings.setValue("ui_mode", ui_mode);  //模型路径
     //保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath);  //模型路径
     settings.setValue("temp", ui_SETTINGS.temp);            //惩罚系数
@@ -1741,6 +1746,11 @@ void Widget::auto_save_user() {
     settings.setValue("custom2_date_system", custom2_date_system);
     settings.setValue("custom2_user_name", custom2_user_name);
     settings.setValue("custom2_model_name", custom2_model_name);
+
+    //保存api参数
+    settings.setValue("api_endpoint", apis.api_endpoint);
+    settings.setValue("api_key", apis.api_key);
+    settings.setValue("api_model", apis.api_model);
 
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }

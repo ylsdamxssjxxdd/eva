@@ -2248,6 +2248,7 @@ void Expend::init_syncrate() {
     ui->sync_plainTextEdit->appendPlainText(jtr("syncrate_describe"));
 
     ui->sync_tableWidget->clearContents();
+    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
     //插入任务列表
     for (int i = 1; i < 31; ++i) {
         // QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));

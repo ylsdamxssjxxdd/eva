@@ -19,6 +19,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
             emit tool2ui_pushover(QString("calculator ") + jtr("return") + "Calculation failed, please confirm if the calculation formula is reasonable");
         } else {
             emit tool2ui_pushover(QString("calculator ") + jtr("return") + "\n" + result);
+            
         }
         emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
     }

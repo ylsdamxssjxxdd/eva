@@ -672,9 +672,9 @@
             "端点",
             "endpoint "
         ],
-        "input server ip": [
+        "input api endpoint": [
             "请输入服务的ip地址和端口，右击使用本机ip",
-            "input server ip and port, right click to use local IP address"
+            "input api endpoint, right click to use local IP address"
         ],
         "input api key": [
             "请输入api密钥",
@@ -697,7 +697,7 @@
             "api key"
         ],
         "api model": [
-            "api 模型",
+            "api模型",
             "api model"
         ],
         "api endpoint tool tip": [
@@ -885,16 +885,16 @@
             "write_file(str) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filepath>>>file content\"."
         ],
         "engineer_info": [
-            "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，并将收到该工具使用后的结果。你需要逐步使用工具来完成给定的任务，每次工具使用都要基于上一次工具使用的结果。如果有需要用户答复的情况，请直接使用\"answer\"工具询问。当前的环境为：{engineer_system_info}",
-            "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time and will receive the results of using that tool. You need to gradually use the tool to complete the given task, and each use of the tool should be based on the results of the previous use of the tool. If there is a need for user response, please use the \"answer\" tool directly to inquire. The current environment is: {engineer_system_info}"
+            "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，并将收到该工具使用后的结果。你需要逐步使用工具来完成给定的任务，每次工具使用都要基于上一次工具使用的结果。尽可能自主解决问题，实在有需要用户答复的情况，请直接使用\"answer\"工具询问。当前的环境为：{engineer_system_info}",
+            "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time and will receive the results of using that tool. You need to gradually use the tool to complete the given task, and each use of the tool should be based on the results of the previous use of the tool. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The current environment is: {engineer_system_info}"
         ],
         "engineer_system_info": [
             "\n操作系统: {OS}\n日期: {DATE}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
             "\nOperating System: {OS}\nDate: {DATE}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
         "webengine_func_describe": [
-            "webengine(str) - 搜索引擎。。。",
-            "webengine(str) - 搜索引擎。。。"
+            "webengine(str) - 使用搜索引擎进行搜索，将返回搜索结果。",
+            "webengine(str) - Using a search engine to conduct a search will return search result."
         ],
         "calculator_func_describe": [
             "calculator(str) - 输入一个 JavaScript 表达式，返回计算结果。",

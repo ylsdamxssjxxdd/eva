@@ -195,6 +195,8 @@ int main(int argc, char* argv[]) {
         if (modelpath_file.exists())  //模型存在的话才继续进行
         {
             // 读取配置文件中的值
+            w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "").toInt());//整形还原为枚举
+
             w.ui_SETTINGS.modelpath = modelpath;
             w.currentpath = w.historypath = expend.currentpath = modelpath;
             w.custom1_date_system = settings.value("custom1_date_system", "").toString();
@@ -218,13 +220,14 @@ int main(int argc, char* argv[]) {
             if (settings.value("extra_lan", "").toString() != "zh") {
                 w.switch_lan_change();
             }  
-            //切换为英文
+            
             w.settings_ui->temp_slider->setValue(settings.value("temp", "").toFloat() * 100);
             w.settings_ui->repeat_slider->setValue(settings.value("repeat", "").toFloat() * 100);
             w.settings_ui->npredict_slider->setValue(settings.value("npredict", "").toFloat());
             w.settings_ui->nthread_slider->setValue(settings.value("nthread", "").toInt());
             w.settings_ui->nctx_slider->setValue(settings.value("nctx", "").toInt());
             w.settings_ui->ngl_slider->setValue(settings.value("ngl", "").toInt());
+
             QFile checkFile(settings.value("lorapath", "").toString());
             if (checkFile.exists()) {
                 w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString());
@@ -243,17 +246,31 @@ int main(int argc, char* argv[]) {
             }
             w.settings_ui->port_lineEdit->setText(settings.value("port", "").toString());
 
+            w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
+            w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
+            w.api_model_LineEdit->setText(settings.value("api_model", "").toString());
+            w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
+            w.apis.api_key = w.api_key_LineEdit->text();
+            w.apis.api_model = w.api_model_LineEdit->text();
+
             // ui显示值传给ui内部值
             w.get_date();  //获取约定中的纸面值
             w.get_set();   //获取设置中的纸面值
             w.is_config = true;
 
-            if (w.ui_state == SERVER_STATE) {
-                w.serverControl();
-            }  //自动启动服务
-            else {
-                emit w.ui2bot_dateset(w.ui_DATES, w.ui_SETTINGS);
-            }  //自动装载模型
+            if(w.ui_mode == LOCAL_MODE)
+            {
+                if (w.ui_state == SERVER_STATE) {
+                    w.serverControl();
+                }  //自动启动服务
+                else {
+                    emit w.ui2bot_dateset(w.ui_DATES, w.ui_SETTINGS);
+                }  //自动装载模型
+            }
+            else if (w.ui_mode == LINK_MODE) {
+                w.set_api();
+            }
+
         }
 
         //是否需要自动重构知识库, 源文档在expend实例化时已经完成
