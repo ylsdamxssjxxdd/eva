@@ -1243,6 +1243,7 @@ QString Widget::create_extra_prompt() {
     QString available_tools_describe;//工具名和描述
     QString engineer_info;//软件工程师信息
     extra_prompt_ = jtr("extra_prompt_format");
+    extra_prompt_.replace("{OBSERVATION_STOPWORD}",DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool) {
         available_tools_describe += tool_map["answer"].func_describe + "\n";
         if (date_ui->calculator_checkbox->isChecked()) {
@@ -1300,7 +1301,7 @@ void Widget::addStopwords() {
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        // ui_DATES.extra_stop_words << "<|observation|>";
+        ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;
         // ui_DATES.extra_stop_words << "observation:";
         // ui_DATES.extra_stop_words << "observation：";
     }

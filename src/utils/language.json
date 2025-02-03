@@ -865,8 +865,8 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，结构如下: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \n工具使用示例1: ```<answer><content>请问您有什么需要帮助的？</content></answer>```\n工具使用示例2: ```<write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>```\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. The structure should look like this: ```<tool_name><parameter_name>value</parameter_name></tool_name>``` \nExample of tool usage 1: ```<answer><content>How can I assist you?</content></answer>```\nExample of tool usage 1: ```<write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>```\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，每次调用工具后记得输出{OBSERVATION_STOPWORD}以观察工具返回的输出结果。结构如下: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD} \n工具使用示例1: <answer><content>请问您有什么需要帮助的？</content></answer>{OBSERVATION_STOPWORD}\n工具使用示例2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>{OBSERVATION_STOPWORD}\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. Remember to output {OBSERVATIN_STOPWORD} after each tool call to observe the output results returned by the tool. The structure should look like this: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD}\nExample of tool usage 1: <answer><content>How can I assist you?</content></answer>{OBSERVATION_STOPWORD}\nExample of tool usage 2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></answer>{OBSERVATION_STOPWORD}\n{engineer_info}"
         ],
         "answer_func_describe": [
             "answer(content) - 最终的回复或询问。",
@@ -956,20 +956,12 @@
             "传入的数字不存在对应动作",
             "The number passed in does not have a corresponding action"
         ],
-        "no json detect": [
-            "未检测到JSON块",
-            "no json detect "
-        ],
-        "json detect": [
-            "检测到JSON块",
-            "json detect "
-        ],
         "return": [
             "返回结果",
             "return "
         ],
         "not load tool": [
-            "未挂载该工具，请直接回复用户不要再输出json",
+            "未挂载该工具",
             "not load tool "
         ],
         "not set tool": [

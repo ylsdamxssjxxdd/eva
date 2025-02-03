@@ -1203,8 +1203,8 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
         // 记录输出的token和词
         common_sampler_accept(smpl, *id, /* accept_grammar= */ true);
         current_output += *sstr;
-        if (current_output.length() > 16) {
-            current_output = current_output.substr(current_output.length() - 16, 16);  //只保留16个字符
+        if (current_output.length() > 32) {
+            current_output = current_output.substr(current_output.length() - 32, 32);  //只保留32个字符
         }
 
         emit bot2ui_output(QString::fromUtf8(sstr->c_str()));

@@ -18,6 +18,7 @@
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
 #define DEFAULT_OBSERVATION_NAME "tool"
+#define DEFAULT_OBSERVATION_STOPWORD "<|observation|>"
 #define DEFAULT_SPLITER "\n"                 // 分隔符
 
 
