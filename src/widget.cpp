@@ -1102,7 +1102,7 @@ bool Widget::checkAudio() {
 
 // 检测结果并赋分
 bool Widget::SyncRateTestCheck(QString assistant_history) {
-    ui_func_arg_list = XMLparser(assistant_history);
+    ui_func_arg_list = XMLparser(assistant_history.remove(DEFAULT_THINKWORK));//移除think标签
     int index = ui_syncrate_manager.sync_list_index.first();  // 根据问题序号对答案
     bool pass = false;
     // qDebug() << index << ui_func_arg_list.first << ui_func_arg_list.second;
