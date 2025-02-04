@@ -1804,7 +1804,7 @@ void Widget::llama_bench_test()
 
     // 开始运行程序
     llama_bench_process->start(program, arguments);
-    reflash_state(jtr("In performance testing"), SIGNAL_SIGNAL);
+    reflash_state("ui: " + jtr("performance test"), SIGNAL_SIGNAL);
     pp_speed = "";
     tg_speed = "";
     //连接信号和槽,获取程序的输出
