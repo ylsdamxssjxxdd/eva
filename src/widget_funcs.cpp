@@ -1809,12 +1809,13 @@ void Widget::llama_bench_test()
     tg_speed = "";
     //连接信号和槽,获取程序的输出
     connect(llama_bench_process, &QProcess::readyReadStandardOutput, [=]() {
-        ui_output = llama_bench_process->readAllStandardOutput();
-        // qDebug()<<"readyReadStandardOutput"<<ui_output;
+        QString output;
+        output = llama_bench_process->readAllStandardOutput();
+        // qDebug()<<"readyReadStandardOutput"<<output;
         // Regular expression to match the "test" field and the "t/s" field
         QRegExp testRegex("\\|\\s+(\\w+)\\s+\\|\\s+([0-9.]+ ± [0-9.]+)\\s+\\|");
 
-        if (testRegex.indexIn(ui_output) != -1) {
+        if (testRegex.indexIn(output) != -1) {
             QString testField = testRegex.cap(1);//testRegex.cap(1)提取测试字段（例如pp512）
             QString tsField = testRegex.cap(2);//testRegex.cap(2)提取t/s字段（例如5722.23 ± 47.19）
             
@@ -1829,14 +1830,15 @@ void Widget::llama_bench_test()
                 tg_speed = jtr("single decode") + " " + tsField + " t/s";
             }
         } else {
-            qDebug() << "No match found";
+            // qDebug() << "No match found";
         }
-        settings_ui->bench_plaintextedit->appendPlainText(ui_output);
+        settings_ui->bench_plaintextedit->appendPlainText(output);
     });
     connect(llama_bench_process, &QProcess::readyReadStandardError, [=]() {
-        ui_output = llama_bench_process->readAllStandardError();
-        // qDebug()<<"readyReadStandardError"<<ui_output;
-        settings_ui->bench_plaintextedit->appendPlainText(ui_output);
+        QString output;
+        output = llama_bench_process->readAllStandardError();
+        // qDebug()<<"readyReadStandardError"<<output;
+        settings_ui->bench_plaintextedit->appendPlainText(output);
     });
 }
 
