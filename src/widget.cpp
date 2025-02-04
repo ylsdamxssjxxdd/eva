@@ -104,6 +104,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);                                              //连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Widget::server_onProcessFinished);  //连接结束信号
+    
+    llama_bench_process = new QProcess(this);                                                                                                   // 创建一个QProcess实例用来启动llama-server
+    connect(llama_bench_process, &QProcess::started, this, &Widget::llama_bench_onProcessStarted);                                              //连接开始信号
+    connect(llama_bench_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Widget::llama_bench_onProcessFinished);  //连接结束信号
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
@@ -1249,3 +1253,4 @@ void Widget::recv_predecoding() { ui_state_pushing(); }
 
 // 完成预解码
 void Widget::recv_predecoding_over() { ui_state_normal(); }
+

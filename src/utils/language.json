@@ -136,6 +136,11 @@
             "对输入进行解码...",
             "input decode... "
         ],
+
+        "performance test": [
+            "性能测试",
+            "performance test "
+        ],
         "ctx decode": [
             "对上下文进行解码...",
             "context decode... "

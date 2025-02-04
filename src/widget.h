@@ -258,6 +258,11 @@ class Widget : public QWidget {
     float first_vramp = 0;         //%
     float first_memp = 0;          //%
 
+    //性能测试相关
+    QProcess *llama_bench_process;
+    void llama_bench_test();
+    QString pp_speed,tg_speed;
+
     //链接模式相关，EVA_MODE为LINK_时的行为
     void setApiDialog();                                //初始化设置api选项
     void set_api();                                     //应用api设置
@@ -353,8 +358,10 @@ class Widget : public QWidget {
     void switch_lan_change();                                                  //切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率
     void recv_cpu_status(double cpuload, double memload);                      //传递cpu信息
-                                                                               //自用的槽
+
+    //自用的槽
    private slots:
+    void bench_btn_clicked(); 
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
     void stop_recordAudio();                   //停止录音
     void unlockLoad();
@@ -375,6 +382,8 @@ class Widget : public QWidget {
     void complete_change();                        //补完模式响应
     void chat_change();                            //对话模式响应
     void web_change();                             //服务模式响应
+    void llama_bench_onProcessStarted();           //进程开始响应
+    void llama_bench_onProcessFinished();          //进程结束响应
     void server_onProcessStarted();                //进程开始响应
     void server_onProcessFinished();               //进程结束响应
     void bench_onProcessFinished();                // llama-bench进程结束响应

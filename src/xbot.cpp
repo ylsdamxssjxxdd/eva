@@ -1156,7 +1156,8 @@ void xBot::buildProbtable(llama_token *id) {
     //过滤回车和换行符
     word_5.replace("\n", "\\n");
     word_5.replace("\r", "\\r");
-    emit bot2ui_state(separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator, MATRIX_SIGNAL);
+    QString Probtable = separator + "\n" + header + "\n" + separator + "\n" + prob_5 + "\n" + id_5 + "\n" + word_5 + "\n" + separator;
+    emit bot2ui_state(Probtable, MATRIX_SIGNAL);
 }
 
 // 处理不完整的utf8字符

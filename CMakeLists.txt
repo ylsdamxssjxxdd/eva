@@ -118,7 +118,7 @@ endif()
 # add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
 # add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
 # add_subdirectory(thirdparty/llama.cpp/examples/llava) # 测试用
-# add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
+add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
 add_subdirectory(thirdparty/llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(thirdparty/llama.cpp/examples/server) # 添加server
@@ -168,7 +168,7 @@ endif()
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
-add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts llama-bench sd) # 确保eva最后生产，保证后处理顺利进行
 
 # 定义传递给.cpp的变量
 set(EVA_VERSION ${eva_OUTPUT_NAME}) # eva型号
@@ -228,6 +228,7 @@ elseif(UNIX)
             # 挪动文件
             COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/eva"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-bench" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-bench"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-quantize"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-tts"
@@ -254,7 +255,7 @@ elseif(UNIX)
             # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
             COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
             # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
+            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-bench" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
             COMMENT "custom linuxdeployqt ..."
         )
         # 有条件打包相应组件

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>242</width>
-    <height>380</height>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -391,6 +391,16 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QPushButton" name="bench_btn">
+        <property name="text">
+         <string>性能测试</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPlainTextEdit" name="bench_plaintextedit"/>
       </item>
      </layout>
     </widget>

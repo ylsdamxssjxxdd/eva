@@ -532,8 +532,14 @@ void Widget::tool_change() {
 void Widget::set_SetDialog() {
     settings_dialog = new QDialog(this);
     settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
+    settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);// 隐藏关闭按钮
     settings_ui = new Ui::Settings_Dialog_Ui;
     settings_ui->setupUi(settings_dialog);
+
+    //性能测试
+    settings_ui->bench_plaintextedit->setVisible(0);//性能测试结果暂不显示
+    connect(settings_ui->bench_btn,&QPushButton::clicked,this,&Widget::bench_btn_clicked);
+
     //温度控制
     settings_ui->temp_slider->setRange(0, 100);  // 设置范围为1到99
     settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
@@ -546,6 +552,8 @@ void Widget::set_SetDialog() {
     settings_ui->npredict_slider->setRange(1, 8192);  // 设置范围
     settings_ui->npredict_slider->setValue(ui_SETTINGS.npredict);
     connect(settings_ui->npredict_slider, &QSlider::valueChanged, this, &Widget::npredict_change);
+    settings_ui->npredict_slider->setVisible(0);//暂不显示
+    settings_ui->npredict_label->setVisible(0);//暂不显示
     //加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
@@ -577,6 +585,7 @@ void Widget::set_SetDialog() {
 
     connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
+
     settings_dialog->setWindowTitle(jtr("set"));
 }
 
@@ -589,6 +598,10 @@ void Widget::settings_ui_confirm_button_clicked() {
 // 设置选项卡取消按钮响应
 void Widget::settings_ui_cancel_button_clicked() {
     settings_dialog->close();
+    if(!is_load)//如果没有装载模型则装载
+    {
+        set_set();
+    }
 }
 
 // 设置用户设置内容
@@ -611,12 +624,8 @@ void Widget::set_set() {
         emit ui2bot_preDecode();
     }
 
-    //从服务模式回来强行重载
-    if (current_ui_state == SERVER_STATE && ui_state != SERVER_STATE) {
-        emit ui2bot_set(ui_SETTINGS, 1);
-    } else if (ui_state != SERVER_STATE) {
-        emit ui2bot_set(ui_SETTINGS, is_load);
-    }
+    //发送设置参数给模型
+    emit ui2bot_set(ui_SETTINGS, 1);
 
     // llama-server接管,不需要告知bot约定
     if (ui_state == SERVER_STATE) {
@@ -1659,6 +1668,7 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->port_label->setText(jtr("port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    settings_ui->bench_btn->setText(jtr("performance test"));
     settings_dialog->setWindowTitle(jtr("set"));
 }
 
@@ -1757,3 +1767,91 @@ void Widget::auto_save_user() {
 
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
+
+//性能测试按钮点击响应
+void Widget::bench_btn_clicked()
+{
+    settings_ui->bench_plaintextedit->setVisible(1);
+    //释放旧的模型
+    emit ui2bot_free(0);
+    is_load = false;
+    //禁止用户点击
+    settings_dialog->setEnabled(0);
+    //运行llama-bench
+    llama_bench_test();
+}
+
+//性能测试相关
+void Widget::llama_bench_test()
+{
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/bin/llama-bench") + SFX_NAME;
+    QString program = localPath;  // 设置要运行的exe文件的路径
+#else
+    QString localPath = QString("./llama-bench") + SFX_NAME;
+    QString program = localPath;  // 设置要运行的exe文件的路径
+#endif
+
+    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    QStringList arguments;
+    arguments << "-m" << ui_SETTINGS.modelpath;
+    arguments << "-ngl" << QString::number(settings_ui->ngl_slider->value());           //使用最近一次应用的ngl
+    arguments << "--threads" << QString::number(settings_ui->nthread_slider->value());  //使用线程
+    arguments << "-b" << QString::number(ui_SETTINGS.batch);           //批大小
+    arguments << "-fa" << QString::number(1);  // 开启flash attention加速
+    arguments << "-o" << QString("md");
+
+    // 开始运行程序
+    llama_bench_process->start(program, arguments);
+    reflash_state(jtr("In performance testing"), SIGNAL_SIGNAL);
+    pp_speed = "";
+    tg_speed = "";
+    //连接信号和槽,获取程序的输出
+    connect(llama_bench_process, &QProcess::readyReadStandardOutput, [=]() {
+        ui_output = llama_bench_process->readAllStandardOutput();
+        // qDebug()<<"readyReadStandardOutput"<<ui_output;
+        // Regular expression to match the "test" field and the "t/s" field
+        QRegExp testRegex("\\|\\s+(\\w+)\\s+\\|\\s+([0-9.]+ ± [0-9.]+)\\s+\\|");
+
+        if (testRegex.indexIn(ui_output) != -1) {
+            QString testField = testRegex.cap(1);//testRegex.cap(1)提取测试字段（例如pp512）
+            QString tsField = testRegex.cap(2);//testRegex.cap(2)提取t/s字段（例如5722.23 ± 47.19）
+            
+            qDebug() << "Test Field:" << testField; // Output should be "pp512"
+            qDebug() << "T/S Field:" << tsField;   // Output should be "5722.23 ± 47.19"
+            if(testField=="pp512")
+            {
+                pp_speed = jtr("batch decode") + " " + tsField + " t/s";
+            }
+            else if(testField=="tg128")
+            {
+                tg_speed = jtr("single decode") + " " + tsField + " t/s";
+            }
+        } else {
+            qDebug() << "No match found";
+        }
+        settings_ui->bench_plaintextedit->appendPlainText(ui_output);
+    });
+    connect(llama_bench_process, &QProcess::readyReadStandardError, [=]() {
+        ui_output = llama_bench_process->readAllStandardError();
+        // qDebug()<<"readyReadStandardError"<<ui_output;
+        settings_ui->bench_plaintextedit->appendPlainText(ui_output);
+    });
+}
+
+//进程开始响应
+void Widget::llama_bench_onProcessStarted()
+{
+
+}     
+
+//进程结束响应
+void Widget::llama_bench_onProcessFinished()
+{
+    //解锁界面
+    settings_dialog->setEnabled(1);
+    //显示速度
+    settings_ui->bench_plaintextedit->appendPlainText(pp_speed);
+    settings_ui->bench_plaintextedit->appendPlainText(tg_speed);
+}          

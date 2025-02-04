@@ -1508,6 +1508,7 @@ int main(int argc, char ** argv) {
 
     cmd_params params = parse_cmd_params(argc, argv);
 
+    // params.model = {"D:\\soul\\Qwen2.5-7B-Q3_K_M.gguf"};
     // initialize backends
     ggml_backend_load_all();
     auto * cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
