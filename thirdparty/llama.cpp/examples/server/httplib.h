@@ -3031,12 +3031,12 @@ inline bool mmap::open(const char *path) {
   }
   size_ = static_cast<size_t>(size.QuadPart);
 
-#if _WIN32_WINNT >= _WIN32_WINNT_WIN8
-  hMapping_ =
-      ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
-#else
-  hMapping_ = ::CreateFileMappingW(hFile_, NULL, PAGE_READONLY, 0, 0, NULL);
-#endif
+// #if _WIN32_WINNT >= _WIN32_WINNT_WIN8
+//   hMapping_ =
+//       ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
+// #else
+    hMapping_ = ::CreateFileMappingW(hFile_, NULL, PAGE_READONLY, 0, 0, NULL);
+// #endif
 
   // Special treatment for an empty file...
   if (hMapping_ == NULL && size_ == 0) {
