@@ -625,7 +625,7 @@ void Widget::set_set() {
     }
 
     //发送设置参数给模型
-    if(ui_state != SERVER_STATE){emit ui2bot_set(ui_SETTINGS, 1);}
+    if(ui_state != SERVER_STATE && ui_mode != LINK_MODE){emit ui2bot_set(ui_SETTINGS, 1);}
     
     // llama-server接管,不需要告知bot约定
     if (ui_state == SERVER_STATE) {
@@ -857,7 +857,6 @@ void Widget::change_api_dialog(bool enable) {
     settings_ui->nctx_slider->setVisible(enable);
     settings_ui->nthread_label->setVisible(enable);
     settings_ui->nthread_slider->setVisible(enable);
-    // batch_label->setVisible(enable);batch_slider->setVisible(enable);
     settings_ui->mmproj_label->setVisible(enable);
     settings_ui->mmproj_LineEdit->setVisible(enable);
     settings_ui->ngl_label->setVisible(enable);
@@ -867,6 +866,7 @@ void Widget::change_api_dialog(bool enable) {
     settings_ui->port_label->setVisible(enable);
     settings_ui->port_lineEdit->setVisible(enable);
     settings_ui->web_btn->setVisible(enable);
+    settings_ui->bench_btn->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
@@ -1032,13 +1032,26 @@ void Widget::create_right_menu() {
     // Q14同步率测试
     QAction *action14 = right_menu->addAction(jtr("Q14"));
     connect(action14, &QAction::triggered, this, [=]() {
-        if (is_run || !is_load || !is_load_play_over || ui_mode != LOCAL_MODE || ui_state != CHAT_STATE) {
-            return;
-        }  //只在空闲的本地模式和对话状态中生效
+        if(ui_mode == LINK_MODE)
+        {
+            //只在空闲和对话状态中生效
+            if (is_run || ui_state != CHAT_STATE) 
+            {
+                return;
+            }  
+        }
+        else if(ui_mode == LOCAL_MODE)
+        {
+            //只在空闲和对话状态中生效
+            if (is_run || !is_load || !is_load_play_over || ui_state != CHAT_STATE) 
+            {
+                return;
+            }  
+        }
 
         ui_syncrate_manager.is_sync = true;
         ui_syncrate_manager.is_first_sync = true;
-
+        
         //插入任务
         for (int i = 1; i < 31; ++i) {
             ui_syncrate_manager.sync_list_question << jtr(QString("sync_Q%1").arg(i));
@@ -1055,7 +1068,9 @@ void Widget::create_right_menu() {
         date_ui->stablediffusion_checkbox->setChecked(1);
         // date_ui->webengine_checkbox->setChecked(1); // 暂未实现
         get_date();                  //获取约定中的纸面值
-        emit ui2bot_date(ui_DATES);  // 注意在开始同步率测试前会强制预解码一次
+        if(ui_mode == LOCAL_MODE) {emit ui2bot_date(ui_DATES);}// 注意在开始同步率测试前会强制预解码一次
+        else if(ui_mode == LINK_MODE) {on_send_clicked();}
+        
     });
     //上传图像
     QAction *action15 = right_menu->addAction(jtr("Q15"));

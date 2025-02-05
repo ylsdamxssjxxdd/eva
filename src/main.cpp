@@ -186,97 +186,78 @@ int main(int argc, char* argv[]) {
     //---------------读取配置文件并执行------------------
     emit w.gpu_reflash();  //强制刷新gpu信息，为了获取未装载时的显存占用
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
-    if (configfile.exists()) {
+
+
+    //如果存在配置文件
+    if (configfile.exists()) 
+    {
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
+        // 读取配置文件中的值
         QString modelpath = settings.value("modelpath", "").toString();  //模型路径
+        w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "").toInt());//整形还原为枚举
+        w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
+        w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
+        w.api_model_LineEdit->setText(settings.value("api_model", "").toString());
+        w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
+        w.apis.api_key = w.api_key_LineEdit->text();
+        w.apis.api_model = w.api_model_LineEdit->text();
+        w.ui_SETTINGS.modelpath = modelpath;
+        w.currentpath = w.historypath = expend.currentpath = modelpath;
+        w.custom1_date_system = settings.value("custom1_date_system", "").toString();
+        w.custom1_user_name = settings.value("custom1_user_name", "").toString();
+        w.custom1_model_name = settings.value("custom1_model_name", "").toString();
+        w.custom2_date_system = settings.value("custom2_date_system", "").toString();
+        w.custom2_user_name = settings.value("custom2_user_name", "").toString();
+        w.custom2_model_name = settings.value("custom2_model_name", "").toString();
+        w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
+        w.date_ui->date_prompt_TextEdit->setPlainText(settings.value("date_prompt_prompt", "").toString());
+        w.date_ui->user_name_LineEdit->setText(settings.value("user_name", "").toString());
+        w.date_ui->model_name_LineEdit->setText(settings.value("model_name", "").toString());
+        w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
+        w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
+        w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", "").toBool());
+        w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", "").toBool());
+        w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", "").toBool());
+        w.date_ui->webengine_checkbox->setChecked(settings.value("webengine_checkbox", "").toBool());
+        w.settings_ui->repeat_slider->setValue(settings.value("repeat", "").toFloat() * 100);
+        w.settings_ui->npredict_slider->setValue(settings.value("npredict", "").toFloat());
+        w.settings_ui->nthread_slider->setValue(settings.value("nthread", "").toInt());
+        w.settings_ui->nctx_slider->setValue(settings.value("nctx", "").toInt());
+        w.settings_ui->ngl_slider->setValue(settings.value("ngl", "").toInt());
+        w.settings_ui->port_lineEdit->setText(settings.value("port", "").toString());
+        bool embedding_need = settings.value("embedding_need", "").toBool();
+        QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
+        if (settings.value("extra_lan", "").toString() != "zh") {w.switch_lan_change();}  
+        w.settings_ui->temp_slider->setValue(settings.value("temp", "").toFloat() * 100);
+        QFile checkFile(settings.value("lorapath", "").toString());
+        if (checkFile.exists()) {w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString());}
+        QFile checkFile2(settings.value("mmprojpath", "").toString());
+        if (checkFile2.exists()) {w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString());}
+        int mode_num = settings.value("ui_state", "").toInt();
+        if (mode_num == 0) {w.settings_ui->chat_btn->setChecked(1);} 
+        else if (mode_num == 1) {w.settings_ui->complete_btn->setChecked(1);} 
+        else if (mode_num == 2) {w.settings_ui->web_btn->setChecked(1);}
+        
+        // ui显示值传给ui内部值
+        w.get_date();  //获取约定中的纸面值
+        w.get_set();   //获取设置中的纸面值
+        w.is_config = true;
 
+        //处理模型装载相关
         QFile modelpath_file(modelpath);
-        if (modelpath_file.exists())  //模型存在的话才继续进行
+        if(w.ui_mode == LOCAL_MODE && modelpath_file.exists())
         {
-            // 读取配置文件中的值
-            w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "").toInt());//整形还原为枚举
-
-            w.ui_SETTINGS.modelpath = modelpath;
-            w.currentpath = w.historypath = expend.currentpath = modelpath;
-            w.custom1_date_system = settings.value("custom1_date_system", "").toString();
-            w.custom1_user_name = settings.value("custom1_user_name", "").toString();
-            w.custom1_model_name = settings.value("custom1_model_name", "").toString();
-            w.custom2_date_system = settings.value("custom2_date_system", "").toString();
-            w.custom2_user_name = settings.value("custom2_user_name", "").toString();
-            w.custom2_model_name = settings.value("custom2_model_name", "").toString();
-
-            // ui显示值
-            w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "").toString());
-            w.date_ui->date_prompt_TextEdit->setPlainText(settings.value("date_prompt_prompt", "").toString());
-            w.date_ui->user_name_LineEdit->setText(settings.value("user_name", "").toString());
-            w.date_ui->model_name_LineEdit->setText(settings.value("model_name", "").toString());
-            w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", "").toBool());
-            w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", "").toBool());
-            w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", "").toBool());
-            w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", "").toBool());
-            w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", "").toBool());
-            w.date_ui->webengine_checkbox->setChecked(settings.value("webengine_checkbox", "").toBool());
-            if (settings.value("extra_lan", "").toString() != "zh") {
-                w.switch_lan_change();
-            }  
-            
-            w.settings_ui->temp_slider->setValue(settings.value("temp", "").toFloat() * 100);
-            w.settings_ui->repeat_slider->setValue(settings.value("repeat", "").toFloat() * 100);
-            w.settings_ui->npredict_slider->setValue(settings.value("npredict", "").toFloat());
-            w.settings_ui->nthread_slider->setValue(settings.value("nthread", "").toInt());
-            w.settings_ui->nctx_slider->setValue(settings.value("nctx", "").toInt());
-            w.settings_ui->ngl_slider->setValue(settings.value("ngl", "").toInt());
-
-            QFile checkFile(settings.value("lorapath", "").toString());
-            if (checkFile.exists()) {
-                w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString());
-            }
-            QFile checkFile2(settings.value("mmprojpath", "").toString());
-            if (checkFile2.exists()) {
-                w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString());
-            }
-            int mode_num = settings.value("ui_state", "").toInt();
-            if (mode_num == 0) {
-                w.settings_ui->chat_btn->setChecked(1);
-            } else if (mode_num == 1) {
-                w.settings_ui->complete_btn->setChecked(1);
-            } else if (mode_num == 2) {
-                w.settings_ui->web_btn->setChecked(1);
-            }
-            w.settings_ui->port_lineEdit->setText(settings.value("port", "").toString());
-
-            w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
-            w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
-            w.api_model_LineEdit->setText(settings.value("api_model", "").toString());
-            w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
-            w.apis.api_key = w.api_key_LineEdit->text();
-            w.apis.api_model = w.api_model_LineEdit->text();
-
-            // ui显示值传给ui内部值
-            w.get_date();  //获取约定中的纸面值
-            w.get_set();   //获取设置中的纸面值
-            w.is_config = true;
-
-            if(w.ui_mode == LOCAL_MODE)
-            {
-                if (w.ui_state == SERVER_STATE) {
-                    w.serverControl();
-                }  //自动启动服务
-                else {
-                    emit w.ui2bot_dateset(w.ui_DATES, w.ui_SETTINGS);
-                }  //自动装载模型
-            }
-            else if (w.ui_mode == LINK_MODE) {
-                w.set_api();
-            }
-
+            if (w.ui_state == SERVER_STATE) { w.serverControl();}        
+            else {emit w.ui2bot_dateset(w.ui_DATES, w.ui_SETTINGS);}  //自动装载模型
+        }
+        else if (w.ui_mode == LINK_MODE) 
+        {
+            w.set_api();
         }
 
         //是否需要自动重构知识库, 源文档在expend实例化时已经完成
-        bool embedding_need = settings.value("embedding_need", "").toBool();
         if (embedding_need) {
-            QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
             QFile embedding_modelpath_file(embedding_modelpath);
             if (embedding_modelpath_file.exists()) {
                 expend.embedding_need_auto = true;

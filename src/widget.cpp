@@ -499,12 +499,23 @@ void Widget::on_reset_clicked() {
     tool_result = "";//清空工具结果
 
     //如果模型正在推理就改变模型的停止标签
-    if (is_run) {
+    if (is_run) 
+    {
         if (ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() > 0) {
             qDebug() << "为了下一次回答而重置";
             ui->output->clear();
             reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
-            emit ui2bot_reset();                                    //传递重置信号,删除约定以外的kv缓存
+            if(ui_mode == LOCAL_MODE) 
+            {
+                emit ui2bot_reset();//传递重置信号,删除约定以外的kv缓存
+            }        
+            else if(ui_mode == LINK_MODE) 
+            {
+                //清理
+                ui_insert_history.clear();
+                reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+                on_send_clicked();
+            } 
             return;
         }
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
@@ -517,6 +528,18 @@ void Widget::on_reset_clicked() {
             qDebug()<<"emit ui2bot_stop()";
         }  //传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
+    }
+    else if(ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() == 0)  //链接模式完成同步率测试完成,没有问题剩余
+    {
+        qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
+        reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
+        reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
+
+        //恢复
+        decode_pTimer->stop();
+        ui_state_normal();  //待机界面状态
+        Syncrate_Manager syncrate_manager;
+        ui_syncrate_manager = syncrate_manager;  // 重置
     }
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
@@ -952,7 +975,30 @@ void Widget::api_send_clicked_slove() {
         reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
         reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
         reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-    } else {
+    } 
+    else if (ui_syncrate_manager.is_sync && ui_state == CHAT_STATE) 
+    {
+        if (ui_syncrate_manager.is_first_sync) {
+            setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
+            emit ui2expend_show(8);                               // 打开同步率选项卡
+            ui_syncrate_manager.is_first_sync = false;
+        }
+
+        if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
+        {
+            input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
+            ui_insert_history.append({input, API_ROLE_USER});
+            data.insert_history = ui_insert_history;
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
+            reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
+            data.n_predict = ui_SETTINGS.npredict;
+            emit ui2net_data(data);
+            // qDebug()<<"hello"<<input;
+        } 
+
+    }
+    else {
         if (tool_result == "") {
             input = ui->input->toPlainText().toUtf8().data();
             ui->input->clear();
