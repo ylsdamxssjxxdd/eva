@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
+    qRegisterMetaType<APIS>("EXPEND_WINDOW");
 
     //------------------开启多线程 ------------------------
     QThread* gpuer_thread = new QThread;

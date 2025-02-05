@@ -7,10 +7,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     applicationDirPath = applicationDirPath_;
 
     //初始化选项卡
-    ui->info_card->setReadOnly(1);
-    ui->vocab_card->setReadOnly(1);  //这样才能滚轮放大
-    ui->modellog_card->setReadOnly(1);
-    ui->tabWidget->setCurrentIndex(2);                                //默认显示模型日志
+    ui->modelinfo->setReadOnly(1); // 只读
+    ui->info_card->setReadOnly(1); // 只读
+    ui->vocab_card->setReadOnly(1); // 只读
+    ui->modellog_card->setReadOnly(1); // 只读
+    ui->tabWidget->setCurrentIndex(1);                                //默认显示模型信息
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                 //安装事件过滤器
     ui->sd_negative_lineEdit->installEventFilter(this);               //安装事件过滤器
@@ -24,6 +25,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");               //灰色
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
+    
+    ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
@@ -180,18 +183,19 @@ QString Expend::jtr(QString customstr) { return wordsObj[customstr].toArray()[la
 void Expend::init_expend() {
     this->setWindowTitle(jtr("expend window"));                    //标题
     ui->tabWidget->setTabText(0, jtr("introduction"));             //软件介绍
-    ui->tabWidget->setTabText(1, jtr("model brain"));              //模型记忆
-    ui->tabWidget->setTabText(2, jtr("model log"));                //模型日志
-    ui->tabWidget->setTabText(3, jtr("model") + jtr("quantize"));  //模型量化
-    ui->tabWidget->setTabText(4, jtr("knowledge"));                //知识库
-    ui->tabWidget->setTabText(5, jtr("text2image"));               //文生图
-    ui->tabWidget->setTabText(6, jtr("speech2text"));              //声转文
-    ui->tabWidget->setTabText(7, jtr("text2speech"));              //文转声
-    ui->tabWidget->setTabText(8, jtr("sync rate"));                //同步率
+    ui->tabWidget->setTabText(1, jtr("model info"));              //模型信息
+    ui->tabWidget->setTabText(2, jtr("model") + jtr("quantize"));  //模型量化
+    ui->tabWidget->setTabText(3, jtr("knowledge"));                //知识库
+    ui->tabWidget->setTabText(4, jtr("text2image"));               //文生图
+    ui->tabWidget->setTabText(5, jtr("speech2text"));              //声转文
+    ui->tabWidget->setTabText(6, jtr("text2speech"));              //文转声
+    ui->tabWidget->setTabText(7, jtr("sync rate"));                //同步率
 
-    //模型记忆
+    //模型信息
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
     ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
+    ui->modelinfo_groupBox->setTitle(jtr("info"));
+    ui->modellog_groupBox->setTitle(jtr("brain_groupBox_title"));
 
     //软件介绍
     showReadme();
@@ -295,9 +299,9 @@ void Expend::init_expend() {
 }
 
 //用户切换选项卡时响应
-// 0软件介绍,1模型记忆,2模型日志
+// 0软件介绍,1模型信息
 void Expend::on_tabWidget_tabBarClicked(int index) {
-    if (index == 1)  //点模型记忆
+    if (index == 1)  //点模型信息
     {
         if (is_first_show_this_vocab) {
             ui->vocab_card->setPlainText(vocab);
@@ -316,11 +320,12 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
             ui->info_card->verticalScrollBar()->setValue(0);
             ui->info_card->horizontalScrollBar()->setValue(0);
         });
-    } else if (index == 3 && is_first_show_modelproliferation)  //第一次点模型增殖
+    } 
+    else if (index == 2 && is_first_show_modelproliferation)  //第一次展示量化方法
     {
         is_first_show_modelproliferation = false;
-        show_quantize_types();                    //展示量化方法
-    } else if (index == 8 && is_first_show_sync)  //第一次点模型增殖
+        show_quantize_types();                    
+    } else if (index == 7 && is_first_show_sync)  //第一次展示同步率
     {
         is_first_show_sync = false;
         ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
@@ -335,11 +340,11 @@ void Expend::recv_vocab(QString vocab_) {
 }
 
 //通知显示增殖窗口
-void Expend::recv_expend_show(int index_) {
-    if (index_ == 999) {
+void Expend::recv_expend_show(EXPEND_WINDOW window) {
+    if (window == NO_WINDOW) {
         this->close();
         return;
-    } else if (index_ == 8 && is_first_show_sync)  //第一次点同步率
+    } else if (window == SYNC_WINDOW && is_first_show_sync)  //第一次点同步率
     {
         is_first_show_sync = false;
         ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "action_name", "action_input", jtr("pass")});  //设置列名
@@ -360,7 +365,7 @@ void Expend::recv_expend_show(int index_) {
     }
 
     //打开指定页数窗口
-    ui->tabWidget->setCurrentIndex(index_);
+    ui->tabWidget->setCurrentIndex(window_map[window]);
     this->setWindowState(Qt::WindowActive);  // 激活窗口并恢复正常状态
     this->show();
     this->activateWindow();  // 激活增殖窗口

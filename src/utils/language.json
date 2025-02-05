@@ -1605,6 +1605,14 @@
             "处理token数量",
             "Number of tokens processed"
         ],
+        "info": [
+            "信息",
+            "info "
+        ],
+        "model info": [
+            "模型信息",
+            "model info "
+        ],
         "model brain": [
             "模型记忆",
             "model brain "

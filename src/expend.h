@@ -85,7 +85,7 @@ class Expend : public QWidget {
    public slots:
     void recv_language(int language_flag_);  //传递语言标志
     void recv_vocab(QString vocab);
-    void recv_expend_show(int index_);  //通知显示增殖窗口
+    void recv_expend_show(EXPEND_WINDOW window);  //通知显示增殖窗口
     void recv_llama_log(QString log);   //传递llama.cpp的log
    private slots:
     void on_tabWidget_tabBarClicked(int index);  //用户切换选项卡时响应

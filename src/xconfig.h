@@ -109,6 +109,23 @@ enum EVA_STATE {
     SERVER_STATE,    //服务状态
 };
 
+//增殖窗口枚举
+enum EXPEND_WINDOW {
+    INTRODUCTION_WINDOW,      //软件介绍窗口
+    MODELINFO_WINDOW,         //模型信息窗口
+    QUANTIZE_WINDOW,          //模型量化窗口
+    KNOWLEDGE_WINDOW,          //知识库窗口
+    TXT2IMG_WINDOW,          //文生图窗口
+    WHISPER_WINDOW,          //声转文窗口
+    TTS_WINDOW,             //文转声窗口
+    SYNC_WINDOW,          //同步率窗口
+    NO_WINDOW,             //关闭窗口
+    PREV_WINDOW,             //上一次的窗口
+};
+
+//窗口索引
+const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{QUANTIZE_WINDOW,2},{KNOWLEDGE_WINDOW,3},{TXT2IMG_WINDOW,4},{WHISPER_WINDOW,5},{TTS_WINDOW,6},{SYNC_WINDOW,7},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+
 //设置参数
 struct SETTINGS {
     double temp = DEFAULT_TEMP;

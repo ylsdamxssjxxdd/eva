@@ -239,7 +239,7 @@ void Widget::on_send_clicked() {
         } else if (ui_syncrate_manager.is_sync) {
             if (ui_syncrate_manager.is_first_sync) {
                 setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
-                emit ui2expend_show(8);                               // 打开同步率选项卡
+                emit ui2expend_show(SYNC_WINDOW);                               // 打开同步率选项卡
                 ui_syncrate_manager.is_first_sync = false;
             }
 
@@ -674,7 +674,7 @@ void Widget::onShortcutActivated_F1() {
 void Widget::onShortcutActivated_F2() {
     if (whisper_model_path == "")  //如果还未指定模型路径则先指定
     {
-        emit ui2expend_show(6);  //语音增殖界面
+        emit ui2expend_show(WHISPER_WINDOW);  //语音增殖界面
     } else if (!is_recodering) {
         recordAudio();  //开始录音
         is_recodering = true;
@@ -891,7 +891,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event) {
     }
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->state && event->type() == QEvent::ContextMenu) {
-        emit ui2expend_show(-1);  // 2是模型日志页
+        emit ui2expend_show(PREV_WINDOW);  // 1是模型信息页
         return true;
     }
 
@@ -980,7 +980,7 @@ void Widget::api_send_clicked_slove() {
     {
         if (ui_syncrate_manager.is_first_sync) {
             setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
-            emit ui2expend_show(8);                               // 打开同步率选项卡
+            emit ui2expend_show(SYNC_WINDOW);                               // 打开同步率选项卡
             ui_syncrate_manager.is_first_sync = false;
         }
 
@@ -1079,11 +1079,11 @@ void Widget::recv_controller(int num) {
         result = jtr("music") + jtr("stopped playback");
     } else if (num == 8)  //打开增殖窗口
     {
-        emit ui2expend_show(-1);
+        emit ui2expend_show(PREV_WINDOW);
         result = jtr("expend window") + jtr("opened");
     } else if (num == 9)  //关闭增殖窗口
     {
-        emit ui2expend_show(999);
+        emit ui2expend_show(NO_WINDOW);
         result = jtr("expend window") + jtr("closed");
     } else {
         result = jtr("The number passed in does not have a corresponding action");
