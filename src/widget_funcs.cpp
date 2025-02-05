@@ -625,8 +625,8 @@ void Widget::set_set() {
     }
 
     //发送设置参数给模型
-    emit ui2bot_set(ui_SETTINGS, 1);
-
+    if(ui_state != SERVER_STATE){emit ui2bot_set(ui_SETTINGS, 1);}
+    
     // llama-server接管,不需要告知bot约定
     if (ui_state == SERVER_STATE) {
         serverControl();
