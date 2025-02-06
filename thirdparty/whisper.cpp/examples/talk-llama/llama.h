@@ -136,7 +136,7 @@ extern "C" {
         LLAMA_TOKEN_ATTR_SINGLE_WORD  = 1 << 9,
     };
 
-    // model file types
+    // model s
     enum llama_ftype {
         LLAMA_FTYPE_ALL_F32              = 0,
         LLAMA_FTYPE_MOSTLY_F16           = 1,  // except 1d tensors

@@ -19,6 +19,7 @@
 #include "thirdparty/llama.cpp/examples/llava/clip.h"
 #include "thirdparty/llama.cpp/examples/llava/llava.h"
 #include "thirdparty/llama.cpp/include/llama.h"
+#include "thirdparty/llama.cpp/src/llama-model.h" // 暂时不用太底层的api
 #include "xconfig.h"  //ui和bot都要导入的共有配置
 
 // llama模型类
@@ -150,6 +151,7 @@ class xBot : public QObject {
     void recv_preDecode();                                                    //从补完模式回来强行预解码
 
    signals:
+    void bot2expend_modelinfo(MODELINFO modelinfo_);
     void bot2ui_predecoding_over();       // 完成推理，预解码
     void bot2ui_predecoding();            // 正在推理，预解码
     void bot2ui_chat_format(CHATS chat);  // 发送格式化的对话内容

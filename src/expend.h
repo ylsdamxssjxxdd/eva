@@ -62,12 +62,9 @@ class Expend : public QWidget {
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
-    QString vocab;
-    QString model_logs;
     bool is_first_show_modelproliferation = true;
     bool is_first_show_sync = true;
     bool is_first_show_expend = true;
-    bool is_first_show_this_vocab = true;
     bool is_first_show_logs = true;
     bool is_first_show_info = true;
     bool load_percent_tag = false;
@@ -255,16 +252,22 @@ class Expend : public QWidget {
     void on_speech_manual_pushButton_clicked();
 
     //-------------------------------------------------------------------------
-    //----------------------------------记忆相关--------------------------------
+    //----------------------------------模型信息相关--------------------------------
     //-------------------------------------------------------------------------
 
    public:
+    QString vocab;
+    QString model_logs;
+    MODELINFO modelinfo;// 模型评级信息
     int nctx = 0;
     std::vector<Brain_Cell> Brain_vector;
     void init_brain_matrix();     //重置记忆矩阵(新词表过来时/nctx变化时)
     void reflash_brain_matrix();  //刷新一次记忆矩阵
+    void set_modelinfo();
 
    public slots:
+    void recv_bot_modelinfo(MODELINFO modelinfo_);
+    void recv_ui_modelinfo(MODELINFO modelinfo_);
     void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);  //传递记忆向量和上下文长度
 
     //-------------------------------------------------------------------------

@@ -7,11 +7,10 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     applicationDirPath = applicationDirPath_;
 
     //初始化选项卡
-    ui->modelinfo->setReadOnly(1); // 只读
     ui->info_card->setReadOnly(1); // 只读
     ui->vocab_card->setReadOnly(1); // 只读
     ui->modellog_card->setReadOnly(1); // 只读
-    ui->tabWidget->setCurrentIndex(1);                                //默认显示模型信息
+    ui->tabWidget->setCurrentIndex(1);                                //默认显示模型信息窗口
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                 //安装事件过滤器
     ui->sd_negative_lineEdit->installEventFilter(this);               //安装事件过滤器
@@ -31,6 +30,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
+    
+    //模型信息相关
+    ui->modelgrade_tableWidget->setColumnCount(1);//设置列数
+    ui->modelgrade_tableWidget->setRowCount(7);//设置行数
+    ui->modelgrade_tableWidget->horizontalHeader()->setVisible(false);// 隐藏列头
+    ui->modelgrade_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 列充满
+    ui->modelgrade_tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 行充满
 
     //塞入第三方exe
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
@@ -170,6 +176,7 @@ void Expend::recv_llama_log(QString log) {
     cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
     cursor.insertText(log);
     ui->modellog_card->setTextCursor(cursor);
+
 }
 
 // 根据language.json和language_flag中找到对应的文字
@@ -194,9 +201,10 @@ void Expend::init_expend() {
     //模型信息
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
     ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
-    ui->modelinfo_groupBox->setTitle(jtr("info"));
-    ui->modellog_groupBox->setTitle(jtr("brain_groupBox_title"));
-
+    ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
+    ui->modellog_groupBox->setTitle(jtr("model log"));
+    ui->modelgrade_tableWidget->setVerticalHeaderLabels(QStringList{jtr("model location"),jtr("model size"),jtr("max brain size"),jtr("Q16"),jtr("Q14"),jtr("batch decode"),jtr("single decode")});//设置行名
+    
     //软件介绍
     showReadme();
 
@@ -301,14 +309,7 @@ void Expend::init_expend() {
 //用户切换选项卡时响应
 // 0软件介绍,1模型信息
 void Expend::on_tabWidget_tabBarClicked(int index) {
-    if (index == 1)  //点模型信息
-    {
-        if (is_first_show_this_vocab) {
-            ui->vocab_card->setPlainText(vocab);
-            is_first_show_this_vocab = false;
-        }
-        reflash_brain_matrix();
-    } else if (index == 0 && is_first_show_info)  //第一次点软件介绍
+    if (index == 0 && is_first_show_info)  //第一次点软件介绍
     {
         is_first_show_info = false;
 
@@ -335,8 +336,10 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
 // 接收模型词表
 void Expend::recv_vocab(QString vocab_) {
     vocab = vocab_;
-    is_first_show_this_vocab = true;
+    ui->vocab_card->setPlainText(vocab);
     init_brain_matrix();
+    reflash_brain_matrix();
+    
 }
 
 //通知显示增殖窗口
@@ -858,8 +861,9 @@ void Expend::readyRead_server_process_StandardError() {
     }
 
     if (server_output.contains(LLM_EMBD)) {
-        embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\r\n").at(0).toInt();
+        embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+        qDebug()<<embedding_server_dim<<ui->embedding_dim_spinBox->value();
         if (embedding_need_auto)  //用来自动构建知识库
         {
             embedding_need_auto = false;
@@ -2301,4 +2305,70 @@ bool Expend::removeDir(const QString &dirName) {
 
     // 删除目录自身
     return dir.rmdir(dirName);
+}
+
+void Expend::recv_bot_modelinfo(MODELINFO modelinfo_)
+{
+    modelinfo.location = modelinfo_.location;
+    modelinfo.brainsize = modelinfo_.brainsize;
+    modelinfo.modelsize = modelinfo_.modelsize;
+    set_modelinfo();
+}
+
+void Expend::recv_ui_modelinfo(MODELINFO modelinfo_)
+{
+    modelinfo.test_acc = modelinfo_.test_acc;
+    modelinfo.sync_acc = modelinfo_.sync_acc;
+    modelinfo.pp_bench_speed = modelinfo_.pp_bench_speed;
+    modelinfo.tg_bench_speed = modelinfo_.tg_bench_speed;
+    set_modelinfo();
+}
+
+void Expend::set_modelinfo()
+{
+    //计算总分 = (题库测试准确率+同步率测试准确率+上文处理/10+文字生成)/4
+    float pp_bench_score = modelinfo.pp_bench_speed / 10;
+    float tg_bench_score = modelinfo.tg_bench_speed;
+    if(pp_bench_score>100){pp_bench_score=100;}//不能超过100
+    if(tg_bench_score>100){tg_bench_score=100;}//不能超过100
+    // qDebug()<<pp_bench_score<<tg_bench_score;
+    modelinfo.score = (modelinfo.test_acc + modelinfo.sync_acc + pp_bench_score + tg_bench_score)/4;
+    modelinfo.grade = getGrade(modelinfo.score);
+
+    QTableWidgetItem *newItem0 = new QTableWidgetItem(modelinfo.location);
+    newItem0->setFlags(newItem0->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem0->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(0, 0, newItem0);
+
+    QTableWidgetItem *newItem1 = new QTableWidgetItem(modelinfo.modelsize);
+    newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem1->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(1, 0, newItem1);
+
+    QTableWidgetItem *newItem2 = new QTableWidgetItem(QString::number(modelinfo.brainsize));
+    newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem2->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(2, 0, newItem2);
+
+    QTableWidgetItem *newItem3 = new QTableWidgetItem((modelinfo.test_acc <0 ) ? jtr("test tip1") : QString::number(modelinfo.test_acc,'f',1));
+    newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem3->setBackground(grade_color_map[getGrade(modelinfo.test_acc)]); // 根据评级设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(3, 0, newItem3);
+
+    QTableWidgetItem *newItem4 = new QTableWidgetItem((modelinfo.sync_acc <0 ) ? jtr("test tip1") : QString::number(modelinfo.sync_acc,'f',1));
+    newItem4->setFlags(newItem4->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem4->setBackground(grade_color_map[getGrade(modelinfo.sync_acc)]); // 根据评级设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(4, 0, newItem4);
+
+    QTableWidgetItem *newItem5 = new QTableWidgetItem((modelinfo.pp_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.pp_bench_speed,'f',1));
+    newItem5->setFlags(newItem5->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem5->setBackground(grade_color_map[getGrade(modelinfo.pp_bench_speed)]); // 根据评级设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(5, 0, newItem5);
+
+    QTableWidgetItem *newItem6 = new QTableWidgetItem((modelinfo.tg_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.tg_bench_speed,'f',1));
+    newItem6->setFlags(newItem6->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
+    newItem6->setBackground(grade_color_map[getGrade(modelinfo.tg_bench_speed)]); // 根据评级设置单元格背景颜色
+    ui->modelgrade_tableWidget->setItem(6, 0, newItem6);
+    
+    ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
 }

@@ -143,6 +143,10 @@ void Widget::on_load_clicked() {
     //先释放旧的模型和上下文
     emit ui2bot_free(1);  // 1表示重载
 
+    //重置评级
+    MODELINFO model_info_;
+    modelinfo = model_info_;
+    emit ui2expend_modelinfo(modelinfo);
 }
 
 //模型释放完毕并重新装载
@@ -224,6 +228,9 @@ void Widget::on_send_clicked() {
                 float acc = test_score / test_count * 100.0;  //回答准确率
                 ui_state_info = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("batch decode") + ":" + QString::number(test_tokens / (test_time.nsecsElapsed() / 1000000000.0)) + " token/s";
                 reflash_state(ui_state_info, SUCCESS_SIGNAL);
+                
+                modelinfo.test_acc = acc;
+                emit ui2expend_modelinfo(modelinfo);
 
                 //恢复
                 decode_pTimer->stop();
@@ -247,12 +254,14 @@ void Widget::on_send_clicked() {
             {
                 input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
                 inputs = {input, ROLE_USER};
-            } else  //完成同步率测试完成,没有问题剩余
+            } 
+            else  //完成同步率测试完成,没有问题剩余
             {
                 qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
                 reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
                 reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
-
+                modelinfo.sync_acc = ui_syncrate_manager.score;
+                emit ui2expend_modelinfo(modelinfo);
                 //恢复
                 decode_pTimer->stop();
                 ui_state_normal();  //待机界面状态
@@ -534,7 +543,8 @@ void Widget::on_reset_clicked() {
         qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
         reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
         reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
-
+        modelinfo.sync_acc = ui_syncrate_manager.score;
+        emit ui2expend_modelinfo(modelinfo);
         //恢复
         decode_pTimer->stop();
         ui_state_normal();  //待机界面状态
@@ -954,6 +964,9 @@ void Widget::api_send_clicked_slove() {
             float acc = test_score / test_count * 100.0;  //回答准确率
             decode_pTimer->stop();
             reflash_state("ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s ", SUCCESS_SIGNAL);
+            modelinfo.test_acc = acc;
+            emit ui2expend_modelinfo(modelinfo);
+            
             //恢复
             test_question_index.clear();
             test_count = 0;

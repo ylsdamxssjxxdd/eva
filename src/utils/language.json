@@ -242,20 +242,28 @@
             "Write a 3000 word review on dereliction of duty at work "
         ],
         "Q14": [
-            "<机体同步率测试>",
-            "<Eva sync rate test>"
+            "<同步率测试>",
+            "<Sync rate test>"
         ],
         "Q15": [
             "<上传图像>",
             "<Upload Image> "
         ],
         "Q16": [
-            "<参加考试>内置10%的c-eval题库",
-            "<Take the exam> Built in 10% MMLU test question bank "
+            "<题库测试>",
+            "<Question test>"
         ],
         "Q17": [
-            "<参加考试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案",
-            "<Take the exam>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "
+            "<题库测试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案",
+            "<Question test>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "
+        ],
+        "test tip1": [
+            "请右击主窗口输入区选择测试",
+            "Please right click on the input area of the main window"
+        ],
+        "test tip2": [
+            "请打开设置窗口选择性能测试",
+            "Please open the settings window and select performance test "
         ],
         "kv cache": [
             "上下文缓存",
@@ -1097,6 +1105,10 @@
             "量化",
             "quantize "
         ],
+        "quantize level": [
+            "量化等级",
+            "quantize level "
+        ],
         "text2image": [
             "文生图",
             "text2image "
@@ -1116,6 +1128,14 @@
         "text2speech": [
             "文转声",
             "text2speech "
+        ],
+        "grade": [
+            "评级",
+            "grade "
+        ],
+        "max brain size": [
+            "最大记忆容量",
+            "max brain size "
         ],
         "brain size": [
             "记忆容量",
@@ -1300,6 +1320,10 @@
         "recommend": [
             "推荐",
             "recommend"
+        ],
+        "model size": [
+            "模型大小",
+            "model size "
         ],
         "estimated size": [
             "预估大小",
@@ -1642,8 +1666,8 @@
             "EVA software functions"
         ],
         "syncrate_describe": [
-            "机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出action_name和action_input，并与预设的答案对比，若一致则标记为通过\n\n",
-            "EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the action_name and action_input, and compare them with the preset answers. If they match, mark it as passed.\n\n"
+            "机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出tool和value，并与预设的答案对比，若一致则标记为通过\n\n",
+            "EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the tool and value, and compare them with the preset answers. If they match, mark it as passed.\n\n"
         ],
         "index": [
             "序号",

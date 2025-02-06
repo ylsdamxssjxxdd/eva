@@ -189,6 +189,7 @@ class Widget : public QWidget {
     float test_count = 0;                    //回答的次数
     bool help_input = false;                 //是否添加引导题
     QString makeHelpInput();                 //构建引导题
+    MODELINFO modelinfo;
 
     //设置按钮相关
     void set_SetDialog();  //设置设置选项
@@ -315,6 +316,7 @@ class Widget : public QWidget {
     void ui2expend_show(EXPEND_WINDOW window);                         //通知显示扩展窗口
     void ui2expend_speechdecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
     void ui2expend_resettts();                                         //重置文字转语音
+    void ui2expend_modelinfo(MODELINFO modelinfo_);
 
     //自用信号
    signals:

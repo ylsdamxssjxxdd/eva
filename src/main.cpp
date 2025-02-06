@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
     // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
+    qRegisterMetaType<MODELINFO>("MODELINFO");
     qRegisterMetaType<CHATS>("CHATS");
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");
     qRegisterMetaType<QColor>("QColor");
@@ -80,7 +81,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
-    qRegisterMetaType<APIS>("EXPEND_WINDOW");
+    qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
 
     //------------------开启多线程 ------------------------
     QThread* gpuer_thread = new QThread;
@@ -141,6 +142,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);         //强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
+    QObject::connect(&w, &Widget::ui2expend_modelinfo, &expend, &Expend::recv_ui_modelinfo);                     //传递测试得分
     QObject::connect(&w, &Widget::ui2expend_syncrate, &expend, &Expend::recv_syncrate);                          //传递同步率结果
     QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                          //传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                           //通知显示扩展窗口
@@ -152,10 +154,12 @@ int main(int argc, char* argv[]) {
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);  //传递知识库的描述
 
     //------------------连接bot和增殖窗口-------------------
+    QObject::connect(&bot, &xBot::bot2expend_modelinfo, &expend, &Expend::recv_bot_modelinfo);
     QObject::connect(&bot, &xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
     QObject::connect(&bot, &xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector);  //传递记忆向量和上下文长度
     QObject::connect(&bot, &xBot::bot_llama_log, &expend, &Expend::recv_llama_log);
     QObject::connect(&bot, &xBot::bot2ui_output, &expend, &Expend::recv_output);
+    
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output);   //窗口输出区更新

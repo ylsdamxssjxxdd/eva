@@ -801,6 +801,9 @@ void Widget::set_api() {
     emit ui2bot_free(0);  //释放原来的模型
     is_load = false;// 重置
     historypath = "";// 重置
+    //重置评级
+    MODELINFO model_info_;
+    modelinfo = model_info_;
 
     //获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
@@ -1838,11 +1841,11 @@ void Widget::llama_bench_test()
             qDebug() << "T/S Field:" << tsField;   // Output should be "5722.23 ± 47.19"
             if(testField=="pp512")
             {
-                pp_speed = jtr("batch decode") + " " + tsField + " t/s";
+                pp_speed = tsField + " t/s";
             }
             else if(testField=="tg128")
             {
-                tg_speed = jtr("single decode") + " " + tsField + " t/s";
+                tg_speed = tsField + " t/s";
             }
         } else {
             // qDebug() << "No match found";
@@ -1869,6 +1872,14 @@ void Widget::llama_bench_onProcessFinished()
     //解锁界面
     settings_dialog->setEnabled(1);
     //显示速度
-    settings_ui->bench_plaintextedit->appendPlainText(pp_speed);
-    settings_ui->bench_plaintextedit->appendPlainText(tg_speed);
+    settings_ui->bench_plaintextedit->appendPlainText(jtr("batch decode") + " " + pp_speed);
+    settings_ui->bench_plaintextedit->appendPlainText(jtr("single decode") + " " + tg_speed);
+
+    float pp_bench_speed = pp_speed.split(" ± ")[0].toFloat();
+    float tg_bench_speed = tg_speed.split(" ± ")[0].toFloat();
+    modelinfo.pp_bench_speed = pp_bench_speed;
+    modelinfo.tg_bench_speed = tg_bench_speed;
+    // qDebug()<<pp_speed.split(" ± ");
+    emit ui2expend_modelinfo(modelinfo);
+    
 }          

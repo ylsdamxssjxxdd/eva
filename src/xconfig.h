@@ -69,9 +69,11 @@ struct INPUTS {
 
 // llama日志信号字样，用来指示下一步动作
 #define SERVER_START "server is listening on"  // server启动成功返回的字样
-#define LLM_EMBD "llm_load_print_meta: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
+#define LLM_EMBD "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
+
 
 //颜色
+const QColor BODY_WHITE(255, 255, 240);       // 乳白色
 const QColor SIGNAL_BLUE(0, 0, 255);       // 蓝色
 const QColor SYSTEM_BLUE(0, 0, 255, 200);  // 蓝紫色
 const QColor TOOL_BLUE(0, 191, 255);       // 天蓝色
@@ -125,6 +127,30 @@ enum EXPEND_WINDOW {
 
 //窗口索引
 const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{QUANTIZE_WINDOW,2},{KNOWLEDGE_WINDOW,3},{TXT2IMG_WINDOW,4},{WHISPER_WINDOW,5},{TTS_WINDOW,6},{SYNC_WINDOW,7},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+
+//模型信息参数
+struct MODELINFO {
+    QString location = "";
+    QString modelsize = "";
+    int brainsize = 0;
+    QString grade = "D"; // 评级
+    float score = 0; // 评分分数 = (测试准确率 + 同步率 + 上文处理速度分 + 文字生成速度分) / 4
+    float test_acc = -1; // 测试准确率
+    float sync_acc = -1; // 同步率
+    float pp_bench_speed = -1; // 上文处理速度 1000 t/s 是满分 100
+    float tg_bench_speed = -1; // 文字生成速度 100 t/s 是满分 100
+};
+  
+inline QString getGrade(int score) {
+    if (score >= 90) {return "S";} 
+    else if (score >= 70) {return "A";} 
+    else if (score >= 50) {return "B";} 
+    else if (score >= 30) {return "C";} 
+    else {return "D";}
+}
+
+//评级颜色索引
+const QMap<QString, QColor> grade_color_map = {{"S",QColor(255, 215, 0)},{"A",QColor(255, 192, 203)},{"B",QColor(0, 0, 255, 200)},{"C",QColor(0, 255, 0)},{"D",QColor(128, 128, 128)}};
 
 //设置参数
 struct SETTINGS {

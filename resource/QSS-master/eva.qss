@@ -480,3 +480,10 @@ QMenu::item:selected {
     border-right-color:qlineargradient(spread:pad, x1:0, y1:0.5, x2:1, y2:0.5, stop:0 rgba(253,156,113,255), stop:1 rgba(205,90,46, 255));
     border-left-color:qlineargradient(spread:pad, x1:1, y1:0.5, x2:0, y2:0.5, stop:0 rgba(253,156,113,255), stop:1 rgba(205,90,46, 255));
 }
+
+
+QHeaderView::section {
+    background-color: #f0f0f0; /* 表头背景：浅灰色 */
+    padding: 8px;
+    border: 1px solid #d0d0d0; /* 表头边框：浅灰色 */
+}

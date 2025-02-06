@@ -454,6 +454,15 @@ void xBot::load(QString modelpath_) {
     n_vocab = llama_vocab_n_tokens(vocab);         //词表总大小
     n_ctx_train = llama_model_n_ctx_train(model);  //模型支持的最大上下文
     maxngl = llama_model_n_layer(model) + 1;       // ngl的最大值为模型层数+1
+
+    //发送模型信息给增殖窗口
+    MODELINFO modelinfo_;
+    modelinfo_.location = modelpath_;
+    modelinfo_.brainsize = n_ctx_train;
+    modelinfo_.modelsize = QString::number(double(llama_model_n_params(model)) / 1e9, 'f', 1) + " B";
+    emit bot2expend_modelinfo(modelinfo_);
+
+
     //返回装载时获取的模型参数
     MODEL_PARAMS p;
     p.n_ctx_train = n_ctx_train;
