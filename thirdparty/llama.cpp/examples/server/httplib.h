@@ -3035,7 +3035,7 @@ inline bool mmap::open(const char *path) {
 //   hMapping_ =
 //       ::CreateFileMappingFromApp(hFile_, NULL, PAGE_READONLY, size_, NULL);
 // #else
-    hMapping_ = ::CreateFileMappingW(hFile_, NULL, PAGE_READONLY, 0, 0, NULL);
+  hMapping_ = ::CreateFileMappingW(hFile_, NULL, PAGE_READONLY, 0, 0, NULL);
 // #endif
 
   // Special treatment for an empty file...

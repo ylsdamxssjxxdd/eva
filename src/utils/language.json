@@ -878,8 +878,8 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML风格的标签来调用工具，工具名称包含在开头和结束标签内，每次调用工具后记得输出{OBSERVATION_STOPWORD}以观察工具返回的输出结果。结构如下: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD} \n工具使用示例1: <answer><content>请问您有什么需要帮助的？</content></answer>{OBSERVATION_STOPWORD}\n工具使用示例2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style tag to call the tools, with the tool name included at the start and end of the tag. Remember to output {OBSERVATIN_STOPWORD} after each tool call to observe the output results returned by the tool. The structure should look like this: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD}\nExample of tool usage 1: <answer><content>How can I assist you?</content></answer>{OBSERVATION_STOPWORD}\nExample of tool usage 2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML文本来调用工具，工具名称包含在开头和结束标签内，每次调用工具后记得输出{OBSERVATION_STOPWORD}以观察工具返回的输出结果。调用工具的XML文本结构如下: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD} \n工具使用示例1: <answer><content>请问您有什么需要帮助的？</content></answer>{OBSERVATION_STOPWORD}\n工具使用示例2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style text to call the tools, with the tool name included at the start and end of the tag. Remember to output {OBSERVATIN_STOPWORD} after each tool call to observe the output results returned by the tool. The XML-style text for calling tools should look like this: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD}\nExample of tool usage 1: <answer><content>How can I assist you?</content></answer>{OBSERVATION_STOPWORD}\nExample of tool usage 2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}"
         ],
         "answer_func_describe": [
             "answer(content) - 最终的回复或询问。",
@@ -910,7 +910,7 @@
             "webengine(request) - Using a search engine to conduct a search will return search result."
         ],
         "calculator_func_describe": [
-            "calculator(expression) - 输入一个 JavaScript 表达式，返回计算结果。",
+            "calculator(expression) - 输入一个 JavaScript 表达式，将返回计算结果。",
             "calculator(expression) - Enter a JavaScript expression and return the computed result."
         ],
         "knowledge_func_describe": [
@@ -1702,8 +1702,8 @@
             "Xiao Ming went to the supermarket and bought some fruits. He bought 3 kg of apples, and each kg of apples costs 15 yuan. He also bought 2 kg of oranges, and each kg of oranges costs 12 yuan. How much did Xiao Ming spend in total?"
         ],
         "sync_Q3": [
-            "A car travels from City A to City B, covering a distance of 240 km in 3 hours. What is the average speed of the car in km per hour?",
-            "A project has a total investment of 2 million yuan with an expected annual return rate of 8%. If the returns are reinvested each year, what will be the total amount after 5 years?"
+            "一辆汽车从城市A行驶到城市B，在3小时内行驶240公里。汽车的平均时速是多少公里？",
+            "A car travels from City A to City B, covering a distance of 240 km in 3 hours. What is the average speed of the car in km per hour?"
         ],
         "sync_Q4": [
             "小李存入银行一笔定期存款，金额为10000元，年利率为3%。请问一年后小李可以得到的利息是多少元？",
@@ -1714,8 +1714,8 @@
             "A class has 40 students, and 15 of them are boys. What percentage of the students are boys?"
         ],
         "sync_Q6": [
-            "查看当前路径下的文件",
-            "Check the current path"
+            "当前路径下有哪些文件？",
+            "What files are in the current path?"
         ],
         "sync_Q7": [
             "我电脑的ip地址是多少？",

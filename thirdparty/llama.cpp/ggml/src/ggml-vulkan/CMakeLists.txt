@@ -95,7 +95,6 @@ if (Vulkan_FOUND)
                 string(TOUPPER ${CONFIG} CONFIG)
                 set_target_properties(vulkan-shaders-gen PROPERTIES
                     RUNTIME_OUTPUT_DIRECTORY_${CONFIG} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE})
-
             endforeach()
         endif()
     else()
