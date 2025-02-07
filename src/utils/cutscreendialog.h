@@ -1,244 +1,187 @@
-// CutScreenDialog
-// 自定义的Dialog 支持局部截图和全屏截图，截图完成保存在EVA_TEMP文件夹并发送信号传递图像路径
-// 使用时可直接包含此头文件
-// 依赖qt5.15
-
 #ifndef CUTSCREENDIALOG_H
 #define CUTSCREENDIALOG_H
 
-#include <math.h>
-#include <qapplication.h>
-#include <qmenu.h>
-#include <qscreen.h>
-
+#include <QApplication>
 #include <QClipboard>
 #include <QDateTime>
-#include <QDebug>
 #include <QDesktopWidget>
-#include <QDialog>
 #include <QDir>
 #include <QJsonObject>
+#include <QMenu>
 #include <QMouseEvent>
-#include <QObject>
 #include <QPainter>
-#include <QSize>
+#include <QPixmap>
 #include <QWidget>
-#include <string>
+#include <QScreen>
+#include <QImage>
+#include <QKeyEvent>
+#include <QContextMenuEvent>
 
 class CutScreenDialog : public QDialog {
     Q_OBJECT
 
-   private:
-    QPixmap m_screenPicture;
-    QPixmap backgroundPicture;
-    bool m_isMousePressed = false;
-    QPoint m_startPos, m_endPos, m_startPos_fixed;
-    QMenu m_screenMenu;
+private:
+    QPixmap m_screenPicture;            // 屏幕截图图片
+    QPixmap m_backgroundPicture;        // 背景图片（带遮罩的屏幕截图）
+    bool m_isMousePressed = false;      // 鼠标是否按下
+    QPoint m_startPos, m_endPos, m_fixedStartPos;   // 截图区域的起始、结束点以及固定起始点
+    QMenu m_screenMenu;                 // 截图时的右键菜单
 
-   public:
-    //初始化
-    CutScreenDialog(QWidget *parent) : QDialog(parent) {
-        this->setWindowFlags(this->windowFlags() | Qt::WindowStaysOnTopHint);  //无边框窗口
-    }
-    //析构函数
-    ~CutScreenDialog() { ; }
-
-    //获得截图动作的名称，主要为了转换中英文
-    void init_action(QString act1_name, QString act2_name) {
-        m_screenMenu.clear();
-        m_screenMenu.addAction(act1_name, this, &CutScreenDialog::slot_saveCapturedScreen);
-        m_screenMenu.addAction(act2_name, this, &CutScreenDialog::slot_saveFullScreen);
+public:
+    // 构造函数，初始化界面
+    explicit CutScreenDialog(QWidget *parent = nullptr)
+        : QDialog(parent) {
+        setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);  // 设置窗口总是显示在最上层
     }
 
-    //创建临时文件夹EVA_TEMP
+    // 析构函数，默认不做处理
+    ~CutScreenDialog() override = default;
+
+    // 初始化右键菜单的动作
+    void initAction(const QString &action1Name, const QString &action2Name) {
+        m_screenMenu.clear();  // 清除旧菜单
+        m_screenMenu.addAction(action1Name, this, &CutScreenDialog::saveCapturedScreen);  // 添加截图保存菜单项
+        m_screenMenu.addAction(action2Name, this, &CutScreenDialog::saveFullScreen);  // 添加全屏截图保存菜单项
+    }
+
+    // 如果临时目录不存在，则创建
     bool createTempDirectory(const QString &path) {
         QDir dir;
-        // 检查路径是否存在
-        if (dir.exists(path)) {
-            return false;
-        } else {
-            // 尝试创建目录
-            if (dir.mkpath(path)) {
-                return true;
-            } else {
-                return false;
-            }
+        if (!dir.exists(path)) {
+            return dir.mkpath(path);  // 创建目录
         }
+        return false;  // 目录已存在
     }
 
-    void clearinformation() { this->m_startPos = this->m_endPos = QPoint(); }
-
-    QRect getCapturedRect(QPoint startpos, QPoint endpos) {
-        QRect ret;
-
-        if (startpos.x() < endpos.x()) {
-            ret.setLeft(startpos.x());
-
-        } else {
-            ret.setLeft(endpos.x());
-        }
-
-        if (startpos.y() < endpos.y()) {
-            ret.setTop(startpos.y());
-
-        } else {
-            ret.setTop(endpos.y());
-        }
-
-        ret.setWidth(qAbs(startpos.x() - endpos.x()));
-        ret.setHeight(qAbs(startpos.y() - endpos.y()));
-
-        return ret;
+    // 清除截图区域信息
+    void clearInformation() {
+        m_startPos = m_endPos = QPoint();  // 重置起始和结束点
     }
 
-   protected:
-    void showEvent(QShowEvent *event) {
-        QSize desktopSize = QApplication::desktop()->size();
-        QScreen *pscreen = QApplication::primaryScreen();
-        m_screenPicture = pscreen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());
-        QPixmap pix(desktopSize.width(), desktopSize.height());
-        pix.fill((QColor(255, 0, 0, 150)));
-        backgroundPicture = m_screenPicture;
-        QPainter painter(&backgroundPicture);
-        painter.drawPixmap(0, 0, pix);
+    // 获取选定区域的矩形框
+    QRect getCapturedRect(const QPoint &start, const QPoint &end) const {
+        return QRect(QPoint(qMin(start.x(), end.x()), qMin(start.y(), end.y())), 
+                     QSize(qAbs(start.x() - end.x()), qAbs(start.y() - end.y())));
     }
 
-    void paintEvent(QPaintEvent *event) {
+protected:
+    // 显示事件处理，初始化截图背景
+    void showEvent(QShowEvent *event) override {
+        QSize desktopSize = QApplication::desktop()->size();  // 获取桌面尺寸
+        QScreen *screen = QApplication::primaryScreen();  // 获取主屏幕
+        m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());  // 截取屏幕
+        QPixmap overlay(desktopSize.width(), desktopSize.height());  // 创建一个与屏幕同尺寸的图层
+        overlay.fill(QColor(255, 0, 0, 150));  // 填充一个半透明的红色遮罩
+        m_backgroundPicture = m_screenPicture;  // 设置背景图片
+        QPainter painter(&m_backgroundPicture);  // 在背景图上绘制遮罩
+        painter.drawPixmap(0, 0, overlay);
+    }
+
+    // 绘制事件处理，绘制截图框和截图内容
+    void paintEvent(QPaintEvent *event) override {
         QPainter painter(this);
-        QPen pen;
-        pen.setColor(Qt::red);
-        pen.setWidth(1);
+        QPen pen(Qt::red);  // 设置绘制的笔为红色
+        pen.setWidth(1);  // 设置笔宽
         painter.setPen(pen);
-        painter.drawPixmap(0, 0, backgroundPicture);
-        QRect rect(getCapturedRect(m_startPos, m_endPos));
-
+        painter.drawPixmap(0, 0, m_backgroundPicture);  // 绘制背景图
+        QRect rect = getCapturedRect(m_startPos, m_endPos);  // 获取选定区域矩形
         if (rect.isValid()) {
-            painter.drawPixmap(rect.x() / devicePixelRatioF(), rect.y() / devicePixelRatioF(), m_screenPicture.copy(rect));
+            painter.drawPixmap(rect.x() / devicePixelRatioF(), rect.y() / devicePixelRatioF(), 
+                                m_screenPicture.copy(rect));  // 绘制选中的截图区域
         }
     }
 
-    void mousePressEvent(QMouseEvent *event) {
-        if (event->button() == Qt::LeftButton) {
+    // 鼠标按下事件处理，开始截图
+    void mousePressEvent(QMouseEvent *event) override {
+        if (event->button() == Qt::LeftButton) {  // 左键按下
             m_isMousePressed = true;
-            m_startPos = event->pos() * devicePixelRatioF();  // devicePixelRatioF()是缩放系数
-            // qDebug()<<"m_startPos"<<m_startPos;
+            m_startPos = event->pos() * devicePixelRatioF();  // 记录起始点
         }
     }
 
-    void mouseMoveEvent(QMouseEvent *event) {
+    // 鼠标移动事件处理，更新截图区域
+    void mouseMoveEvent(QMouseEvent *event) override {
         if (m_isMousePressed) {
-            m_endPos = event->pos() * devicePixelRatioF();  // devicePixelRatioF()是缩放系数
-            m_startPos_fixed = m_startPos;
-            // qDebug()<<"m_endPos"<<m_endPos;
-            update();  //产生绘图事件
+            m_endPos = event->pos() * devicePixelRatioF();  // 更新结束点
+            m_fixedStartPos = m_startPos;  // 固定起始点
+            update();  // 触发重绘
         }
     }
 
-    void mouseReleaseEvent(QMouseEvent *event) {
+    // 鼠标释放事件处理，显示右键菜单
+    void mouseReleaseEvent(QMouseEvent *event) override {
         m_isMousePressed = false;
-        m_screenMenu.exec(cursor().pos());
+        m_screenMenu.exec(cursor().pos());  // 弹出右键菜单
     }
 
-    void contextMenuEvent(QContextMenuEvent *event) {
-        this->setCursor(Qt::ArrowCursor);
-        m_screenMenu.exec(cursor().pos());
+    // 右键菜单事件处理
+    void contextMenuEvent(QContextMenuEvent *event) override {
+        setCursor(Qt::ArrowCursor);  // 设置箭头光标
+        m_screenMenu.exec(cursor().pos());  // 弹出右键菜单
     }
 
-    void keyPressEvent(QKeyEvent *event) {
-        clearinformation();
-        hide();
+    // 键盘按下事件处理，取消截图并隐藏窗口
+    void keyPressEvent(QKeyEvent *event) override {
+        clearInformation();  // 清除截图区域信息
+        hide();  // 隐藏窗口
     }
 
-   public:
-    // 为了适配llava，判断截取的图像长边除以短边如果比值大于3，则向图像的短边的下面或右面添加空白部分直到比值小于等于3，请使用原子操作每个像素避免损失
-    QImage adjustImageAspectRatio(const QImage &originalImage) {
-        int width = originalImage.width();
-        int height = originalImage.height();
-        
-        int longSide = qMax(width, height);
-        int shortSide = qMin(width, height);
-        
-        // 计算长短边比值
-        double aspectRatio = static_cast<double>(longSide) / shortSide;
-        
-        // 如果长短边比值大于3，则添加空白部分
+public:
+    // 调整图片的长宽比，如果长边与短边比大于3，则进行调整
+    QImage adjustImageAspectRatio(const QImage &image) {
+        int width = image.width();
+        int height = image.height();
+        int longSide = qMax(width, height);  // 长边
+        int shortSide = qMin(width, height);  // 短边
+        double aspectRatio = static_cast<double>(longSide) / shortSide;  // 计算长宽比
         if (aspectRatio > 3) {
-            // 计算需要扩展的大小
-            int newShortSide = longSide / 3;
-            int padding = newShortSide - shortSide;
-            
-            QImage newImage;
-            
-            if (width < height) {
-                // 宽度短，增加宽度
-                newImage = QImage(width + padding, height, originalImage.format());
-            } else {
-                // 高度短，增加高度
-                newImage = QImage(width, height + padding, originalImage.format());
-            }
-            
-            // 填充空白部分为白色
-            newImage.fill(Qt::white);
-            
-            // 逐像素复制原图像数据到新图像
+            int newShortSide = longSide / 3;  // 新的短边
+            int padding = newShortSide - shortSide;  // 需要填充的宽度
+            QImage newImage = (width < height) 
+                              ? QImage(width + padding, height, image.format()) 
+                              : QImage(width, height + padding, image.format());
+            newImage.fill(Qt::white);  // 用白色填充
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
-                    newImage.setPixel(x, y, originalImage.pixel(x, y));
+                    newImage.setPixel(x, y, image.pixel(x, y));  // 将原图像素复制到新图像
                 }
             }
-            
             return newImage;
         }
-        
-        return originalImage;
+        return image;  // 长宽比不需要调整时，返回原图
     }
 
-    void slot_saveCapturedScreen()  //保存图片动作被点击
-    {
+    // 保存图片到文件和剪贴板
+    void saveImage(const QImage &image) {
         QClipboard *clipboard = QApplication::clipboard();
-        QRect rect(getCapturedRect(m_startPos_fixed, m_endPos));
-        QImage capturedImage = m_screenPicture.copy(rect).toImage();
-        
-        // 调整图像的宽高比
-        QImage adjustedImage = adjustImageAspectRatio(capturedImage);
-        
-        // 保存调整后的图像
-        QDateTime currentDateTime = QDateTime::currentDateTime();
-        QString dateTimeString = currentDateTime.toString("yyyy-hh-mm-ss");
-        QString currentDir = QDir::currentPath();
-        QString cut_qimagepath = currentDir + "/EVA_TEMP/" + "EVA_" + dateTimeString + ".png";
-        adjustedImage.save(cut_qimagepath);
-        
-        // 传递保存路径
-        cut2ui_qimagepath(cut_qimagepath);
-        
-        // 更新剪贴板内容
-        clipboard->setPixmap(QPixmap::fromImage(adjustedImage));
-        
-        // 清除临时信息
-        clearinformation();
-
-        this->hide();
+        clipboard->setPixmap(QPixmap::fromImage(image));  // 将图片复制到剪贴板
+        QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss");  // 获取当前时间戳
+        QString filePath = QDir::currentPath() + "/EVA_TEMP/" + "EVA_" + timestamp + ".png";  // 生成文件路径
+        image.save(filePath);  // 保存图片到文件
+        emit cut2ui_qimagepath(filePath);  // 发送图片路径信号
     }
 
-    void slot_saveFullScreen()  //保存整个屏幕的图片
-    {
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setPixmap(m_screenPicture);
-
-
-        QDateTime currentDateTime = QDateTime::currentDateTime();
-        QString dateTimeString = currentDateTime.toString("hh-mm-ss");
-        QString currentDir = QDir::currentPath();
-        QString cut_qimagepath = currentDir + "/EVA_TEMP/" + "EVA_" + dateTimeString + ".png";
-        m_screenPicture.toImage().save(cut_qimagepath);
-        cut2ui_qimagepath(cut_qimagepath);
-
-        this->hide();
+public slots:
+    // 保存选定区域截图
+    void saveCapturedScreen() {
+        QRect rect = getCapturedRect(m_fixedStartPos, m_endPos);  // 获取选定区域矩形
+        QImage capturedImage = m_screenPicture.copy(rect).toImage();  // 获取选定区域的图像
+        QImage adjustedImage = adjustImageAspectRatio(capturedImage);  // 调整长宽比
+        saveImage(adjustedImage);  // 保存图片
+        clearInformation();  // 清除截图信息
+        hide();  // 隐藏窗口
     }
 
-   signals:
-    void cut2ui_qimagepath(QString cut_imagepath_);
+    // 保存全屏截图
+    void saveFullScreen() {
+        saveImage(m_screenPicture.toImage());  // 保存全屏截图
+        hide();  // 隐藏窗口
+    }
+
+signals:
+    // 发送截图路径信号
+    void cut2ui_qimagepath(const QString &cutImagePath);
+
 };
 
 #endif  // CUTSCREENDIALOG_H
