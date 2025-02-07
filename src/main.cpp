@@ -135,7 +135,7 @@ int main(int argc, char* argv[]) {
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);  //传递gpu信息
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &bot, &xBot::recv_gpu_status);  //传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::chekGpu);         //强制刷新gpu信息
+    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);         //强制刷新gpu信息
 
     //------------------监测系统信息-------------------
     QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status);  //传递cpu信息

@@ -1334,15 +1334,29 @@ void Widget::addStopwords() {
     }
 }
 
-//获取本机第一个ip地址
+//获取本机第一个ip地址 排除以.1结尾的地址 如果只有一个.1结尾的则保留它
 QString Widget::getFirstNonLoopbackIPv4Address() {
     QList<QHostAddress> list = QNetworkInterface::allAddresses();
+    QString ipWithDot1; // 用于存储以.1结尾的IP地址
+
     for (int i = 0; i < list.count(); i++) {
+        QString ip = list[i].toString();
+        // 排除回环地址和非IPv4地址
         if (!list[i].isLoopback() && list[i].protocol() == QAbstractSocket::IPv4Protocol) {
-            return list[i].toString();
+            if (ip.endsWith(".1")) {
+                ipWithDot1 = ip; // 记录以.1结尾的IP地址
+            } else {
+                return ip; // 返回第一个不以.1结尾的IP地址
+            }
         }
     }
-    return QString();
+
+    // 如果没有找到不以.1结尾的IP地址，则返回以.1结尾的IP地址
+    if (!ipWithDot1.isEmpty()) {
+        return ipWithDot1;
+    }
+
+    return QString(); // 如果没有找到任何符合条件的IP地址，返回空字符串
 }
 
 //第三方程序开始

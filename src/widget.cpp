@@ -776,7 +776,7 @@ void Widget::serverControl() {
         // qDebug()<<"readyReadStandardError"<<ui_output;
         //启动成功的标志
         if (ui_output.contains(SERVER_START)) {
-            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + "    " + " http://" + ipAddress + ":" + ui_port;
+            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + "   " + " http://" + ipAddress + ":" + ui_port;
             ui_output += QString(DEFAULT_SPLITER) + jtr("model") + jtr("name") + "   " + "default" + QString(DEFAULT_SPLITER);
             ui_state_info = "ui:server " + jtr("on") + jtr("success") + "," + jtr("browser at") + ipAddress + ":" + ui_port;
             auto_save_user();  //保存ui配置
