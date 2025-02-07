@@ -336,10 +336,31 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
 // 接收模型词表
 void Expend::recv_vocab(QString vocab_) {
     vocab = vocab_;
-    ui->vocab_card->setPlainText(vocab);
+
+    // 开始分块加载
+    m_currentPosition = 0;
+    ui->vocab_card->clear();
+    QTimer::singleShot(0, this, &Expend::loadNextChunk);
+
     init_brain_matrix();
     reflash_brain_matrix();
+}
+
+// 分块加载函数
+void Expend::loadNextChunk() {
+    const int chunkSize = 4096; // 根据实际情况调整块大小
+    int endPos = m_currentPosition + chunkSize;
+    endPos = qMin(endPos, vocab.size());
     
+    QString chunk = vocab.mid(m_currentPosition, endPos - m_currentPosition);
+    ui->vocab_card->appendPlainText(chunk);
+    m_currentPosition = endPos;
+    
+    if (m_currentPosition < vocab.size()) {
+        QTimer::singleShot(100, this, &Expend::loadNextChunk); // 继续加载下一块
+    } else {
+        vocab.clear(); // 清理
+    }
 }
 
 //通知显示增殖窗口
@@ -367,6 +388,9 @@ void Expend::recv_expend_show(EXPEND_WINDOW window) {
         }
     }
 
+    //词表滑动到底部
+    QScrollBar *vScrollBar = ui->vocab_card->verticalScrollBar();
+    vScrollBar->setValue(vScrollBar->maximum());
     //打开指定页数窗口
     ui->tabWidget->setCurrentIndex(window_map[window]);
     this->setWindowState(Qt::WindowActive);  // 激活窗口并恢复正常状态
@@ -513,59 +537,63 @@ void Expend::readConfig() {
     }
 }
 
-//展示readme内容
 void Expend::showReadme() {
     QString readme_content;
     QFile file;
-    QString imagefile;
+    QString imagefile = ":/logo/ui_demo.png";  // 图片路径固定
+
+    // 根据语言标志选择不同的 README 文件
     if (language_flag == 0) {
         file.setFileName(":/README.md");
-        imagefile = ":/logo/ui_demo.png";
     } else if (language_flag == 1) {
         file.setFileName(":/README_en.md");
-        imagefile = ":/logo/ui_demo.png";
     }
 
-    // 打开文件
+    // 打开文件并读取内容
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);  // 创建 QTextStream 对象
+        QTextStream in(&file);
         in.setCodec("UTF-8");
-        readme_content = in.readAll();  // 读取文件内容
+        readme_content = in.readAll();
+        file.close();
     }
-    file.close();
 
-    //正则表达式,删除<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/直到>的所有文本
-    QRegularExpression re("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
-    readme_content.remove(re);
-    QRegExp regExp("<summary>|</summary>");  // 使用QRegExp创建正则表达式来匹配<summary>和</summary>标记
-    readme_content.replace(regExp, "");      // 使用replace函数去掉所有<summary>和</summary>标记
+    // 使用正则表达式删除指定的 HTML 内容
+    QRegularExpression imgRegex("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
+    readme_content.remove(imgRegex);
+
+    // 删除 <summary> 和 </summary> 标签
+    readme_content.remove(QRegularExpression("<summary>|</summary>"));
+
+    // 删除 <details> 和 </details> 标签
     readme_content.remove("<details>");
     readme_content.remove("</details>");
 
     // 添加编译信息
-    readme_content.push_front(jtr("EVA_PRODUCT_TIME") + " " + QString(EVA_PRODUCT_TIME) + "; " + DEFAULT_SPLITER);
-    readme_content.push_front(jtr("QT_VERSION_") + " " + QString(QT_VERSION_) + "; ");
-    readme_content.push_front(jtr("COMPILE_VERSION") + " " + QString(COMPILE_VERSION) + "; ");
-    readme_content.push_front(jtr("EVA_VERSION") + " " + QString(EVA_VERSION) + "; ");
+    QString compileInfo = QString("%1: %2\n\n %3: %4\n\n %5: %6\n\n %7: %8\n\n")
+                             .arg(jtr("EVA_PRODUCT_TIME"), QString(EVA_PRODUCT_TIME))
+                             .arg(jtr("QT_VERSION_"), QString(QT_VERSION_))
+                             .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
+                             .arg(jtr("EVA_VERSION"), QString(EVA_VERSION));
 
+    readme_content.prepend(compileInfo);  // 将编译信息放在文件内容前
+
+    // 设置 Markdown 内容
     ui->info_card->setMarkdown(readme_content);
 
-    // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-
+    // 加载并缩放图片
     QImage image(imagefile);
-
     int originalWidth = image.width() / devicePixelRatioF() / 1.5;
     int originalHeight = image.height() / devicePixelRatioF() / 1.5;
 
+    // 插入图片到 QTextEdit
     QTextCursor cursor(ui->info_card->textCursor());
     cursor.movePosition(QTextCursor::Start);
-
     QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);    // 设置图片的宽度
-    imageFormat.setHeight(originalHeight);  // 设置图片的高度
-    imageFormat.setName(imagefile);         // 图片资源路径
-    cursor.insertImage(imageFormat);
+    imageFormat.setWidth(originalWidth);
+    imageFormat.setHeight(originalHeight);
+    imageFormat.setName(imagefile);
 
+    cursor.insertImage(imageFormat);
     cursor.insertText("\n\n");
 }
 

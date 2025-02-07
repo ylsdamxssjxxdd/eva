@@ -2,7 +2,7 @@
 #define EXPEND_H
 
 #include <math.h>
-
+#include <algorithm>
 #include <QAbstractSocket>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -257,8 +257,10 @@ class Expend : public QWidget {
 
    public:
     QString vocab;
+    int m_currentPosition;
     QString model_logs;
     MODELINFO modelinfo;// 模型评级信息
+    
     int nctx = 0;
     std::vector<Brain_Cell> Brain_vector;
     void init_brain_matrix();     //重置记忆矩阵(新词表过来时/nctx变化时)
@@ -266,6 +268,7 @@ class Expend : public QWidget {
     void set_modelinfo();
 
    public slots:
+    void loadNextChunk();//分块加载显示文本
     void recv_bot_modelinfo(MODELINFO modelinfo_);
     void recv_ui_modelinfo(MODELINFO modelinfo_);
     void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);  //传递记忆向量和上下文长度
