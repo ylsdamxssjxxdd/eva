@@ -1492,8 +1492,8 @@ static std::unique_ptr<printer> create_printer(output_formats format) {
 
 int main(int argc, char ** argv) {
     // try to set locale for unicode characters in markdown
-    setlocale(LC_CTYPE, ".UTF-8");
-
+    // setlocale(LC_CTYPE, ".UTF-8");
+    
 #if !defined(NDEBUG)
     fprintf(stderr, "warning: asserts enabled, performance may be affected\n");
 #endif
