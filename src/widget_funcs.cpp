@@ -429,8 +429,6 @@ void Widget::nctx_change() { settings_ui->nctx_label->setText(jtr("brain size") 
 // repeat滑块响应
 void Widget::repeat_change() { settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0)); }
 
-void Widget::npredict_change() { settings_ui->npredict_label->setText(jtr("npredict") + " " + QString::number(settings_ui->npredict_slider->value())); }
-
 void Widget::nthread_change() { settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value())); }
 
 //补完状态按钮响应
@@ -548,12 +546,6 @@ void Widget::set_SetDialog() {
     settings_ui->repeat_slider->setRange(0, 200);  // 设置范围
     settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
     connect(settings_ui->repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
-    //最大输出长度设置
-    settings_ui->npredict_slider->setRange(1, 8192);  // 设置范围
-    settings_ui->npredict_slider->setValue(ui_SETTINGS.npredict);
-    connect(settings_ui->npredict_slider, &QSlider::valueChanged, this, &Widget::npredict_change);
-    settings_ui->npredict_slider->setVisible(0);//暂不显示
-    settings_ui->npredict_label->setVisible(0);//暂不显示
     //加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
@@ -1166,7 +1158,6 @@ void Widget::create_right_menu() {
 void Widget::get_set() {
     ui_SETTINGS.temp = settings_ui->temp_slider->value() / 100.0;
     ui_SETTINGS.repeat = settings_ui->repeat_slider->value() / 100.0;
-    ui_SETTINGS.npredict = settings_ui->npredict_slider->value();
 
     ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
     ui_SETTINGS.nctx = settings_ui->nctx_slider->value();    //获取nctx滑块的值
@@ -1669,10 +1660,6 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
     settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
-    settings_ui->npredict_label->setText(jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict));
-    settings_ui->npredict_label->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
-    settings_ui->npredict_label->setMinimumWidth(100);
-    settings_ui->npredict_slider->setToolTip(jtr("The maximum number of tokens that the model can output in a single prediction process"));
     settings_ui->decode_box->setTitle(jtr("decode set"));  //解码设置区域
     settings_ui->ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
     settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));

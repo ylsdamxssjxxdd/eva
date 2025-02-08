@@ -220,7 +220,6 @@ int main(int argc, char* argv[]) {
     w.date_ui->webengine_checkbox->setChecked(settings.value("webengine_checkbox", 0).toBool());
     if (settings.value("extra_lan", "zh").toString() != "zh") {w.switch_lan_change();}  
     w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
-    w.settings_ui->npredict_slider->setValue(settings.value("npredict", DEFAULT_NPREDICT).toFloat());
     w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());
     w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());
     w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());

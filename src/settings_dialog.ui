@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>242</width>
-    <height>480</height>
+    <height>395</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -115,48 +115,6 @@
         </item>
         <item>
          <widget class="QSlider" name="repeat_slider">
-          <property name="minimumSize">
-           <size>
-            <width>100</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>100</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QLabel" name="npredict_label">
-          <property name="minimumSize">
-           <size>
-            <width>120</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>120</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>最大输出</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSlider" name="npredict_slider">
           <property name="minimumSize">
            <size>
             <width>100</width>

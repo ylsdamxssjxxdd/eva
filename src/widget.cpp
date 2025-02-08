@@ -663,7 +663,6 @@ void Widget::on_set_clicked() {
     settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.00);
     settings_ui->lora_LineEdit->setText(ui_SETTINGS.lorapath);
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
-    settings_ui->npredict_slider->setValue(ui_SETTINGS.npredict);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
     settings_ui->port_lineEdit->setText(ui_port);
     settings_dialog->exec();
