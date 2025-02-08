@@ -22,6 +22,47 @@
 #define DEFAULT_THINKWORD "<think>"
 #define DEFAULT_SPLITER "\n"                 // 分隔符
 
+//采样
+#define DEFAULT_NPREDICT 4096
+#define DEFAULT_TEMP 0.5
+#define DEFAULT_REPEAT 1.2
+
+//推理
+#define DEFAULT_NCTX 4096
+#define DEFAULT_BATCH 2048
+#define DEFAULT_NTHREAD 1
+#define DEFAULT_NGL 99
+#define DEFAULT_SERVER_PORT "8080"  // 嵌入端口
+#define DEFAULT_EMBEDDING_PORT "7758"  // 嵌入端口
+
+// llama日志信号字样，用来指示下一步动作
+#define SERVER_START "server is listening on"  // server启动成功返回的字样
+#define LLM_EMBD "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
+
+//默认的模型路径
+#define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen2.5-7B-Q3_K_M.gguf"
+#define DEFAULT_SD_MODEL_PATH "/EVA_MODELS/文生图模型/sd1.5-anything-3/sd1.5-anything-3-q8_0.gguf"
+#define DEFAULT_WHISPER_MODEL_PATH "/EVA_MODELS/声转文模型/whisper-base-q5_1.bin"
+#define DEFAULT_OUTETTS_MODEL_PATH "/EVA_MODELS/文转声模型/OuteTTS-0.2-500M-Q8_0.gguf"
+#define DEFAULT_WAVTOKENIZER_MODEL_PATH "/EVA_MODELS/文转声模型/WavTokenizer-Large-75-F16.gguf"
+
+//不同操作系统相关
+#ifdef _WIN32
+#define SFX_NAME ".exe"  // 第三方程序后缀名
+#define OS "windows"
+#define SHELL "cmd.exe"
+#elif __linux__
+#define SFX_NAME ""  //第三方程序后缀名
+#define OS "linux"
+#define SHELL "/bin/sh"
+#endif
+
+// 字体
+#ifdef _WIN32
+#define DEFAULT_FONT "SimSun"
+#elif __linux__
+#define DEFAULT_FONT "Ubuntu Mono"
+#endif
 
 //约定内容
 struct DATES {
@@ -52,26 +93,6 @@ struct INPUTS {
     ROLE role;
 };
 
-//采样
-#define DEFAULT_NPREDICT 4096
-#define DEFAULT_TEMP 0.5
-#define DEFAULT_REPEAT 1.2
-
-//推理
-#define DEFAULT_NCTX 4096
-#define DEFAULT_BATCH 2048
-
-#define DEFAULT_NTHREAD 1
-#define DEFAULT_NGL 0
-
-#define DEFAULT_MODELPATH "D:/soul"  // 模型所在文件夹
-#define DEFAULT_EMBEDDING_PORT "7758"  // 嵌入端口
-
-// llama日志信号字样，用来指示下一步动作
-#define SERVER_START "server is listening on"  // server启动成功返回的字样
-#define LLM_EMBD "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
-
-
 //颜色
 const QColor BODY_WHITE(255, 255, 240);       // 乳白色
 const QColor SIGNAL_BLUE(0, 0, 255);       // 蓝色
@@ -79,24 +100,6 @@ const QColor SYSTEM_BLUE(0, 0, 255, 200);  // 蓝紫色
 const QColor TOOL_BLUE(0, 191, 255);       // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0);        // 黑色
 const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
-
-//不同操作系统相关
-#ifdef _WIN32
-#define SFX_NAME ".exe"  // 第三方程序后缀名
-#define OS "windows"
-#define SHELL "cmd.exe"
-#elif __linux__
-#define SFX_NAME ""  //第三方程序后缀名
-#define OS "linux"
-#define SHELL "/bin/sh"
-#endif
-
-// 字体
-#ifdef _WIN32
-#define DEFAULT_FONT "SimSun"
-#elif __linux__
-#define DEFAULT_FONT "Ubuntu Mono"
-#endif
 
 //机体模式枚举
 enum EVA_MODE {

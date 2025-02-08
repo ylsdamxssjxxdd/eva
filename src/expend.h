@@ -72,7 +72,7 @@ class Expend : public QWidget {
     bool createTempDirectory(const QString &path);
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();  //读取配置文件并应用
-    QString currentpath = DEFAULT_MODELPATH;
+    QString currentpath;
     void showReadme();                       //展示readme内容
     bool removeDir(const QString &dirName);  //删除文件夹
 
@@ -184,8 +184,9 @@ class Expend : public QWidget {
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
-    bool img2img = false;                          //是否是图生图操作
+    bool img2img = false;                          // 是否是图生图操作
     QStringList listFiles(const QString &path);    // 遍历目录
+    bool is_readconfig = false;                    // 用于控制模板的应用
     bool is_sd_custom1 = false;                    // 当前是否为自定义的参数模板
     bool is_sd_custom2 = false;                    // 当前是否为自定义的参数模板
     void sd_save_template(QString template_name);  // 保存参数到自定义模板

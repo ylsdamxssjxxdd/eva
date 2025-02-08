@@ -93,7 +93,7 @@ class Widget : public QWidget {
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;  //约定和设置的字体大小
     QMediaPlayer music_player;
-    QString currentpath = DEFAULT_MODELPATH;
+    QString currentpath;
     QString historypath;
     void apply_language(int language_flag_);  //改变语种相关
 

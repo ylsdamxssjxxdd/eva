@@ -23,6 +23,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     } else {
         language_flag = 1;  //英文
     }
+
     getWords(":/src/utils/language.json");
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
@@ -47,12 +48,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL);  //初始提示
 
     init_movie();  //初始化动画参数
-
-    // QFile file(":/QSS-master/MacOS.qss");  //加载皮肤
-    // file.open(QFile::ReadOnly);
-    // QString stylesheet = tr(file.readAll());
-    // this->setStyleSheet(stylesheet);
-    // file.close();
 
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
 

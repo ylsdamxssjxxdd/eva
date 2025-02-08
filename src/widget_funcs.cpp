@@ -946,8 +946,11 @@ void Widget::ui_state_normal() {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
         }
-        ui->date->setEnabled(1);
-        ui->set->setEnabled(1);
+        if(is_load)
+        {
+            ui->date->setEnabled(1);
+            ui->set->setEnabled(1);
+        }
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
@@ -1773,9 +1776,6 @@ void Widget::auto_save_user() {
 
     //保存约定参数
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());               //对话模板
-    settings.setValue("date_prompt_prompt", date_ui->date_prompt_TextEdit->toPlainText());          //系统指令
-    settings.setValue("user_name", ui_DATES.user_name);                                             //用户昵称
-    settings.setValue("model_name", ui_DATES.model_name);                                           //模型昵称
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());            //计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());              // knowledge工具
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());            // controller工具
