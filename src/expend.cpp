@@ -2381,12 +2381,12 @@ void Expend::set_modelinfo()
 
     QTableWidgetItem *newItem5 = new QTableWidgetItem((modelinfo.pp_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.pp_bench_speed,'f',1));
     newItem5->setFlags(newItem5->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem5->setBackground(grade_color_map[getGrade(modelinfo.pp_bench_speed)]); // 根据评级设置单元格背景颜色
+    newItem5->setBackground(grade_color_map[getGrade(pp_bench_score)]); // 根据评级设置单元格背景颜色
     ui->modelgrade_tableWidget->setItem(5, 0, newItem5);
 
     QTableWidgetItem *newItem6 = new QTableWidgetItem((modelinfo.tg_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.tg_bench_speed,'f',1));
     newItem6->setFlags(newItem6->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem6->setBackground(grade_color_map[getGrade(modelinfo.tg_bench_speed)]); // 根据评级设置单元格背景颜色
+    newItem6->setBackground(grade_color_map[getGrade(tg_bench_score)]); // 根据评级设置单元格背景颜色
     ui->modelgrade_tableWidget->setItem(6, 0, newItem6);
     
     ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
