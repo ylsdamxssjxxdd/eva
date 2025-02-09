@@ -64,7 +64,7 @@
 
 1. 本地模式：用户左键单击装载按钮，通过装载本地的模型进行交互
 
-2. 链接模式：用户右键单击装载按钮，输入某个模型服务的api端点进行交互（要求服务可以提供default模型且没有设置API-KEY）
+2. 链接模式：用户右键单击装载按钮，输入某个模型服务的api端点进行交互（目前支持openai类型兼容接口）
 
 </details>
 
@@ -239,7 +239,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
     cmake --build build --config Release
     ```
 
-    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件打包为一个自解压程序，linux下将所有组件打包为一个AppImage文件
+    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下，linux下将所有组件打包为一个AppImage文件
 
     - GGML_CUDA：是否需要启用cuda加速的标志
 

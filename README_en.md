@@ -58,7 +58,7 @@ Large Language Model Tool: EVA (based on llama.cpp & qt5)
 
 1. Local mode: you left clicks the load button to interact by loading the local model
 
-2. Link mode: you right clicks the load button and inputs the API endpoint of a certain model service for interaction (the service is required to provide a default model and not set API-KEY)
+2. Link mode: you right clicks the load button and inputs the API endpoint of a certain model service for interaction (Currently supports openai type compatible interfaces)
 
 </details>
 
@@ -231,7 +231,7 @@ In local mode and chat state, you can click on the date button to mount the tool
     cmake --build build --config Release
     ```
 
-    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be packaged as a self extracting program in Windows, and all components will be packaged as an AppImage file in Linux
+    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be place in the bin directory in Windows, and all components will be packaged as an AppImage file in Linux
 
     - GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
 
