@@ -16,9 +16,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
@@ -223,7 +223,7 @@ elseif(UNIX)
 # 使用linuxdeployqt打包所有组件为一个appimage
     if(BODY_PACK)
 
-        # 自动打包操作，这个动作在eva生产之后
+        # 构建Appdir目录
         add_custom_command(TARGET ${TARGET} POST_BUILD
             # 挪动文件
             COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage"
@@ -247,25 +247,35 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cpu.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cpu.so"
             COMMAND ${COMMAND_TO_RUN}
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-base.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-base.so"
-
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
-            # 开始打包 
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
-            # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
-            COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
-            # 删除不需要的文件
-            COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-bench" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sd" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libllama.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/whisper-cli" "${CMAKE_BINARY_DIR}/thirdparty/llama.cpp/ggml/src/libggml.so"
-            COMMENT "custom linuxdeployqt ..."
         )
-        # 有条件打包相应组件
+
+        # 执行打包
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|i[3-6]86)$")
+            add_custom_command(TARGET ${TARGET} POST_BUILD
+                # x86架构下使用linuxdeployqt打包 
+                COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
+                # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
+            )
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$") 
+            add_custom_command(TARGET ${TARGET} POST_BUILD
+                # arm架构下使用linuxdeploy打包 
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
+            )
+        endif()
+
+        # 有条件打包其它组件
         if(GGML_CUDA)
             add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cuda.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cuda.so\"
+                COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cuda.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cuda.so\"
             )
         elseif(GGML_VULKAN)   
             add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-vulkan.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-vulkan.so\"
+                COMMAND ${CMAKE_COMMAND} -E copy \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-vulkan.so\" \"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-vulkan.so\"
             )
         endif()
     endif()
