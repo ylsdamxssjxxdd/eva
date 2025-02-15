@@ -1,6 +1,6 @@
 # 机体
 
-一款本地跑大模型的工具：机体 (qt5+llama.cpp)
+一款展示大模型特性的便捷工具：机体 (qt5+llama.cpp)
 
 \[ 中文 | [English](README_en.md) \]
 
