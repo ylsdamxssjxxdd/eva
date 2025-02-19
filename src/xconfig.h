@@ -31,7 +31,11 @@
 #define DEFAULT_NCTX 4096
 #define DEFAULT_BATCH 2048
 #define DEFAULT_NTHREAD 1
+#ifdef BODY_USE_GPU // 如果支持GPU则默认设置为最大
 #define DEFAULT_NGL 99
+#else
+#define DEFAULT_NGL 0
+#endif
 #define DEFAULT_SERVER_PORT "8080"  // 嵌入端口
 #define DEFAULT_EMBEDDING_PORT "7758"  // 嵌入端口
 

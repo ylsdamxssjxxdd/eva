@@ -7,33 +7,33 @@ llama_add_compile_flags()
 # Build info header
 #
 
-# if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
-#     set(GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
+    set(GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../.git")
 
-#     # Is git submodule
-#     if(NOT IS_DIRECTORY "${GIT_DIR}")
-#         file(READ ${GIT_DIR} REAL_GIT_DIR_LINK)
-#         string(REGEX REPLACE "gitdir: (.*)\n$" "\\1" REAL_GIT_DIR ${REAL_GIT_DIR_LINK})
-#         string(FIND "${REAL_GIT_DIR}" "/" SLASH_POS)
-#         if (SLASH_POS EQUAL 0)
-#             set(GIT_DIR "${REAL_GIT_DIR}")
-#         else()
-#             set(GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${REAL_GIT_DIR}")
-#         endif()
-#     endif()
+    # Is git submodule
+    if(NOT IS_DIRECTORY "${GIT_DIR}")
+        file(READ ${GIT_DIR} REAL_GIT_DIR_LINK)
+        string(REGEX REPLACE "gitdir: (.*)\n$" "\\1" REAL_GIT_DIR ${REAL_GIT_DIR_LINK})
+        string(FIND "${REAL_GIT_DIR}" "/" SLASH_POS)
+        if (SLASH_POS EQUAL 0)
+            set(GIT_DIR "${REAL_GIT_DIR}")
+        else()
+            set(GIT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../${REAL_GIT_DIR}")
+        endif()
+    endif()
 
-#     if(EXISTS "${GIT_DIR}/index")
-#         set(GIT_INDEX "${GIT_DIR}/index")
-#     else()
-#         message(WARNING "Git index not found in git repository.")
-#         set(GIT_INDEX "")
-#     endif()
-# else()
-#     message(WARNING "Git repository not found; to enable automatic generation of build info, make sure Git is installed and the project is a Git repository.")
-#     set(GIT_INDEX "")
-# endif()
+    if(EXISTS "${GIT_DIR}/index")
+        set(GIT_INDEX "${GIT_DIR}/index")
+    else()
+        message(WARNING "Git index not found in git repository.")
+        set(GIT_INDEX "")
+    endif()
+else()
+    message(WARNING "Git repository not found; to enable automatic generation of build info, make sure Git is installed and the project is a Git repository.")
+    set(GIT_INDEX "")
+endif()
 
-# # Add a custom command to rebuild build-info.cpp when .git/index changes
+# Add a custom command to rebuild build-info.cpp when .git/index changes
 # add_custom_command(
 #     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build-info.cpp"
 #     COMMENT "Generating build details from Git"
@@ -57,8 +57,7 @@ add_library(${TARGET} STATIC
     arg.h
     base64.hpp
     chat.cpp
-    chat.hpp
-    chat-template.hpp
+    chat.h
     common.cpp
     common.h
     console.cpp
@@ -68,7 +67,8 @@ add_library(${TARGET} STATIC
     llguidance.cpp
     log.cpp
     log.h
-    minja.hpp
+    minja/chat-template.hpp
+    minja/minja.hpp
     ngram-cache.cpp
     ngram-cache.h
     sampling.cpp
@@ -96,6 +96,22 @@ if (LLAMA_LLGUIDANCE)
     include(ExternalProject)
     set(LLGUIDANCE_SRC ${CMAKE_BINARY_DIR}/llguidance/source)
     set(LLGUIDANCE_PATH ${LLGUIDANCE_SRC}/target/release)
+
+    # Set the correct library file extension based on platform
+    if (WIN32)
+        set(LLGUIDANCE_LIB_NAME "llguidance.lib")
+        # Add Windows-specific libraries
+        set(LLGUIDANCE_PLATFORM_LIBS
+            ws2_32    # Windows Sockets API
+            userenv   # For GetUserProfileDirectoryW
+            ntdll     # For NT functions
+            bcrypt    # For BCryptGenRandom
+        )
+    else()
+        set(LLGUIDANCE_LIB_NAME "libllguidance.a")
+        set(LLGUIDANCE_PLATFORM_LIBS "")
+    endif()
+
     ExternalProject_Add(llguidance_ext
         GIT_REPOSITORY https://github.com/guidance-ai/llguidance
         # v0.6.12:
@@ -106,17 +122,18 @@ if (LLAMA_LLGUIDANCE)
         CONFIGURE_COMMAND ""
         BUILD_COMMAND cargo build --release
         INSTALL_COMMAND ""
-        BUILD_BYPRODUCTS ${LLGUIDANCE_PATH}/libllguidance.a ${LLGUIDANCE_PATH}/llguidance.h
+        BUILD_BYPRODUCTS ${LLGUIDANCE_PATH}/${LLGUIDANCE_LIB_NAME} ${LLGUIDANCE_PATH}/llguidance.h
         UPDATE_COMMAND ""
     )
     target_compile_definitions(${TARGET} PUBLIC LLAMA_USE_LLGUIDANCE)
 
     add_library(llguidance STATIC IMPORTED)
-    set_target_properties(llguidance PROPERTIES IMPORTED_LOCATION ${LLGUIDANCE_PATH}/libllguidance.a)
+    set_target_properties(llguidance PROPERTIES IMPORTED_LOCATION ${LLGUIDANCE_PATH}/${LLGUIDANCE_LIB_NAME})
     add_dependencies(llguidance llguidance_ext)
 
     target_include_directories(${TARGET} PRIVATE ${LLGUIDANCE_PATH})
-    set(LLAMA_COMMON_EXTRA_LIBS ${LLAMA_COMMON_EXTRA_LIBS} llguidance)
+    # Add platform libraries to the main target
+    set(LLAMA_COMMON_EXTRA_LIBS ${LLAMA_COMMON_EXTRA_LIBS} llguidance ${LLGUIDANCE_PLATFORM_LIBS})
 endif ()
 
 target_include_directories(${TARGET} PUBLIC .)

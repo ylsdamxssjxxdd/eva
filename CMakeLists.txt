@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b4658) # 打包版本
+set(version b4739) # 打包版本
 
 # 设置所有构建类型下的可执行文件的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -66,7 +66,6 @@ if(MSVC)
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
-    option(LLAMA_STATIC             "llama: static link libraries"     OFF)
 
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
         #list(APPEND extra_INCLUDES src/utils/gpuchecker.h src/utils/nvml.h) # 向extra_INCLUDES列表里添加文件

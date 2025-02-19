@@ -1077,7 +1077,7 @@ void xBot::get_default_templete_chat_format() {
         return;
     }
 
-    // 用这些固定的词提取模板
+    // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
     QString format_prompt_name = "format_prompt_name";
     QString format_user_name = "user";
     QString format_model_name = "assistant";
@@ -1085,13 +1085,23 @@ void xBot::get_default_templete_chat_format() {
     QString format_model_msg1 = "format_model_msg1";
     QString format_user_msg2 = "format_use_msg2";
     QString format_model_msg2 = "format_model_msg2";
-
-    // 构建一个有一定深度的对话样例，从原项目给出的对话结果中提取 系统指令、输入前缀、输入后缀
-    std::vector<common_chat_msg> msgs = {
-        {"system", format_prompt_name.toStdString(), {}}, {format_user_name.toStdString(), format_user_msg1.toStdString(), {}}, {format_model_name.toStdString(), format_model_msg1.toStdString(), {}}, {format_user_name.toStdString(), format_user_msg2.toStdString(), {}}, {format_model_name.toStdString(), format_model_msg2.toStdString(), {}},
+    common_chat_templates_inputs inputs;
+    auto add_simple_msg = [&](auto role, auto content) {
+        common_chat_msg msg;
+        msg.role = role;
+        msg.content = content;
+        inputs.messages.push_back(msg);
     };
-    auto chat_templates = common_chat_templates_from_model(model, common_params_.chat_template);
-    QString default_template_content = QString::fromStdString(common_chat_apply_template(*chat_templates.template_default, msgs, true, false));
+    add_simple_msg("system",   format_prompt_name.toStdString());
+    add_simple_msg("user",     format_user_name.toStdString());
+    add_simple_msg("assistant",   format_model_name.toStdString());
+    add_simple_msg("user",   format_user_msg1.toStdString());
+    add_simple_msg("assistant",   format_model_msg1.toStdString());
+    add_simple_msg("user",   format_user_msg2.toStdString());
+    add_simple_msg("assistant",   format_model_msg2.toStdString());
+
+    auto chat_templates = common_chat_templates_init(model, common_params_.chat_template);
+    QString default_template_content = QString::fromStdString(common_chat_templates_apply(chat_templates.get(), inputs).prompt);
     // 提取系统指令
     QStringList split1 = default_template_content.split(format_prompt_name);
     bot_chat.system_prompt = split1[0] + bot_date.date_prompt;                                      // 拼接原来的约定指令
