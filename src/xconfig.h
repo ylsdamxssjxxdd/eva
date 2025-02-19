@@ -6,6 +6,7 @@
 
 #include <QColor>
 #include <QCoreApplication>
+#include <QOperatingSystemVersion>
 #include <QDebug>
 #include <array>
 #include <iostream>
@@ -59,13 +60,13 @@
 //不同操作系统相关
 #ifdef _WIN32
 #define SFX_NAME ".exe"  // 第三方程序后缀名
-#define OS "windows"
 #define SHELL "cmd.exe"
 #elif __linux__
 #define SFX_NAME ""  //第三方程序后缀名
-#define OS "linux"
 #define SHELL "/bin/sh"
 #endif
+//操作系统版本
+const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
 
 // 字体
 #ifdef _WIN32

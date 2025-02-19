@@ -1307,7 +1307,7 @@ QString Widget::create_engineer_info()
     QString engineer_system_info = jtr("engineer_system_info");
     QDate currentDate = QDate::currentDate();  //今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
-    engineer_system_info.replace("{OS}", OS);
+    engineer_system_info.replace("{OS}", USEROS);
     engineer_system_info.replace("{SHELL}", SHELL);
     engineer_system_info.replace("{DATE}", dateString);
     engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");

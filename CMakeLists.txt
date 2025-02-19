@@ -154,16 +154,27 @@ src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h
 thirdparty/llama.cpp/examples/llava/clip.cpp thirdparty/llama.cpp/examples/llava/clip.h thirdparty/llama.cpp/examples/llava/llava.cpp thirdparty/llama.cpp/examples/llava/llava.h
 )
 
-# 生成程序的名字
-if(GGML_VULKAN)
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan")
-elseif(GGML_CUDA)
-    message(STATUS "CUDA version: ${CUDA_VERSION}")
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}")
-else() 
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-cpu")
+# 获取处理器架构信息
+set(ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+
+# 根据不同架构简化处理
+if(ARCHITECTURE MATCHES "x86_64|AMD64|i[3-6]86")
+    set(ARCHITECTURE "x86")
+elseif(ARCHITECTURE MATCHES "aarch64|arm")
+    set(ARCHITECTURE "arm")
 endif()
 
+
+# 生成程序的名字
+if(GGML_VULKAN)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan-${ARCHITECTURE}")
+elseif(GGML_CUDA)
+    message(STATUS "CUDA version: ${CUDA_VERSION}")
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}-${ARCHITECTURE}")
+else() 
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-cpu-${ARCHITECTURE}")
+endif()
+message(STATUS ${eva_OUTPUT_NAME})
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
 
@@ -251,19 +262,19 @@ elseif(UNIX)
         )
 
         # 执行打包
-        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|i[3-6]86)$")
+        if(ARCHITECTURE MATCHES "^(x86|i[3-6]86)$")
             add_custom_command(TARGET ${TARGET} POST_BUILD
                 # x86架构下使用linuxdeployqt打包 
                 COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
-                # 重命名appimage文件，${CMAKE_SYSTEM_PROCESSOR}是系统架构
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
+                # 重命名appimage文件，${ARCHITECTURE}是系统架构
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${ARCHITECTURE}.AppImage"
             )
-        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$") 
+        elseif(ARCHITECTURE MATCHES "^(arm|aarch64)$") 
             add_custom_command(TARGET ${TARGET} POST_BUILD
                 # arm架构下使用linuxdeploy打包 
                 COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
                 COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}-${CMAKE_SYSTEM_PROCESSOR}.AppImage"
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}-${ARCHITECTURE}.AppImage"
             )
         endif()
 
