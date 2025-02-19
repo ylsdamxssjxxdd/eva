@@ -7,22 +7,22 @@ xBot::xBot() {
     llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
 
-    //初始的模型参数
-    common_params_.n_gpu_layers = DEFAULT_NGL;                   // gpu负载层数
-    common_params_.model = "";                                   //模型路径
-    common_params_.cpuparams.n_threads = DEFAULT_NTHREAD;        //文字生成线程数，默认使用一半的线程数
-    common_params_.cpuparams_batch.n_threads = DEFAULT_NTHREAD;  //上文处理线程数，为了简单，与文字生成线程数保持一致
-    common_params_.n_ctx = DEFAULT_NCTX;                         //上下文最大长度
-    common_params_.n_batch = DEFAULT_BATCH;                      //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
-
     //初始的采样参数
     common_params_.sampling.top_p = 0.95;
     common_params_.sampling.temp = DEFAULT_TEMP;              //温度
     common_params_.sampling.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
     common_params_.sampling.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
     common_params_.sampling.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
-    common_params_.flash_attn = true;                         // 默认开启flash_attn
 
+    //初始的模型参数
+    common_params_.n_gpu_layers = DEFAULT_NGL;                   // gpu负载层数
+    common_params_.model = "";                                   //模型路径
+    common_params_.cpuparams.n_threads = DEFAULT_NTHREAD;        //文字生成线程数，默认使用一半的线程数
+    common_params_.cpuparams_batch.n_threads = DEFAULT_NTHREAD;  //上文处理线程数，为了简单，与文字生成线程数保持一致
+    common_params_.n_ctx = DEFAULT_NCTX;                         //上下文最大长度
+
+    common_params_.n_batch = DEFAULT_BATCH;                      //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
+    common_params_.flash_attn = true;                         // 默认开启flash_attn
     common_params_.use_mmap = false;                          // 默认关闭快速装载
 
     qDebug() << "bot init over";

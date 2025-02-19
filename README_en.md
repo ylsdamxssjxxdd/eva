@@ -1,21 +1,23 @@
 # EVA
 
-A convenient tool for showcasing the features of LLMs: EVA (based on llama.cpp & qt5)
+Embedding Vector Agent: EVA (based on llama.cpp & qt5)
 
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
 ## Feature
 
-- Intuitive 👁️
+- Easy to use operating interface
 
-    - Clearly show the process of the llm predicting the next word
+- Native operational efficiency
 
-- Multifunctional 🦾
+- Intuitive running process
 
-```txt
-    local model chat, online model chat, API services, WEB services, agent, multimodal, knowledge base QA, code interpreter, software control, text2img, speech2text, model quantize, model evaluation
-```
+- Comprehensive model support
+
+- Concise implementation of agent
+
+- Rich proliferation function
 
 ## Quick start
 
