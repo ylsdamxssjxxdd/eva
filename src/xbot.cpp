@@ -23,6 +23,8 @@ xBot::xBot() {
     common_params_.sampling.penalty_present = 0.00;           //同类惩罚 0.0 = disabled openai
     common_params_.flash_attn = true;                         // 默认开启flash_attn
 
+    common_params_.use_mmap = false;                          // 默认关闭快速装载
+
     qDebug() << "bot init over";
 }
 
@@ -396,15 +398,7 @@ void xBot::load(QString modelpath_) {
     }
 
     common_params_.model = modelpath;  //传递模型路径
-
-    // lora不支持mmp
-    if (common_params_.lora_adapters.size() == 0) {
-        common_params_.use_mmap = true;
-    } else {
-        common_params_.use_mmap = false;
-    }
-    //使用mmp后gpu负载无法分担内存占用
-    common_params_.use_mmap = true;
+    
 
     if (vram_enough) {
         emit bot2ui_state("bot:" + jtr("vram enough, gpu offload auto set max"), SUCCESS_SIGNAL);
