@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+	<file>simsun.ttc</file>
         <file>../README.md</file>
         <file>../README_en.md</file>
         <file>../src/utils/language.json</file>

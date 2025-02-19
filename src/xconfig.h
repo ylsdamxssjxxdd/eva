@@ -68,13 +68,6 @@
 //操作系统版本
 const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
 
-// 字体
-#ifdef _WIN32
-#define DEFAULT_FONT "SimSun"
-#elif __linux__
-#define DEFAULT_FONT "Ubuntu Mono"
-#endif
-
 //约定内容
 struct DATES {
     QString date_prompt = DEFAULT_DATE_PROMPT;  // 约定指令 影响 系统指令

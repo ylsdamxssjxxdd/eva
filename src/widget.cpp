@@ -11,8 +11,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->splitter->setStretchFactor(0, 3);  //设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);  //设置分隔器中第二个元素初始高度占比为1
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
-    QFont font(DEFAULT_FONT);
-    ui->state->setFont(font);                                                                     // 设置state区的字体
+    // QFont font(DEFAULT_FONT);
+    // ui->state->setFont(font);                                                                     // 设置state区的字体
     QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);  // 注册发送的快捷键
     connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
     //--------------初始化语言--------------
