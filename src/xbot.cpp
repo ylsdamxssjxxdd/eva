@@ -8,7 +8,7 @@ xBot::xBot() {
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
 
     //初始的采样参数
-    common_params_.sampling.top_p = 0.95;
+    common_params_.sampling.top_p = DEFAULT_TOP_P;
     common_params_.sampling.temp = DEFAULT_TEMP;              //温度
     common_params_.sampling.penalty_repeat = DEFAULT_REPEAT;  //重复惩罚 1.0 = disabled
     common_params_.sampling.penalty_freq = 0.00;              //频率惩罚 0.0 = disabled openai
@@ -22,8 +22,8 @@ xBot::xBot() {
     common_params_.n_ctx = DEFAULT_NCTX;                         //上下文最大长度
 
     common_params_.n_batch = DEFAULT_BATCH;                      //一次最大处理批量,主要分批次推理用户的输入,新增似乎和推理时内存泄露有关
-    common_params_.flash_attn = true;                         // 默认开启flash_attn
-    common_params_.use_mmap = false;                          // 默认关闭快速装载
+    common_params_.flash_attn = DEFAULT_FLASH_ATTN;              // 默认开启flash_attn
+    common_params_.use_mmap = DEFAULT_USE_MMAP;                  // 默认关闭快速装载
 
     qDebug() << "bot init over";
 }
@@ -285,7 +285,7 @@ int xBot::stream() {
         // common_sampler_accept(smpl, id, /* accept_grammar= */ true); // 真正输出了才记录
         embd.push_back(id);  //把预测的词加到下一次的预测中,准备下一次预测
         --n_remain;
-        std::string sstr = common_token_to_piece(ctx, id);  // 获取id对应的文本
+        std::string sstr = common_token_to_piece(ctx, id, common_params_.special);  // 获取id对应的文本
 
         // 构建概率表格
         buildProbtable(&id);
@@ -770,7 +770,14 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     is_complete = settings.complete_mode;
     common_params_.sampling.temp = settings.temp;
     common_params_.sampling.penalty_repeat = settings.repeat;
-    common_params_.n_predict = settings.npredict;
+    common_params_.n_predict = settings.hid_npredict;
+    common_params_.special = settings.hid_special;
+    common_params_.sampling.top_p = settings.hid_top_p;
+    common_params_.n_batch = settings.hid_batch;
+    common_params_.n_ubatch = settings.hid_n_ubatch;
+    common_params_.use_mmap  = settings.hid_use_mmap;
+    common_params_.use_mlock = settings.hid_use_mlock;
+    common_params_.flash_attn = settings.hid_flash_attn;
 
     bool reload_flag = false;  //重载标签
     // qDebug()<<"settings.ngl"<<settings.ngl<<"common_params_.n_gpu_layers"<<common_params_.n_gpu_layers<<reload_flag<<maxngl;
@@ -798,8 +805,8 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
         reload_flag = true;
     }
     //如果batch改变则重新加载模型
-    if (common_params_.n_batch != settings.batch) {
-        common_params_.n_batch = settings.batch;
+    if (common_params_.n_batch != settings.hid_batch) {
+        common_params_.n_batch = settings.hid_batch;
         reload_flag = true;
     }
 

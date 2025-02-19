@@ -235,6 +235,16 @@ int main(int argc, char* argv[]) {
     if (mode_num == 0) {w.settings_ui->chat_btn->setChecked(1);} 
     else if (mode_num == 1) {w.settings_ui->complete_btn->setChecked(1);} 
     else if (mode_num == 2) {w.settings_ui->web_btn->setChecked(1);}
+
+    //初次启动强制赋予隐藏的设定值
+    w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
+    w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
+    w.ui_SETTINGS.hid_top_p = settings.value("hid_top_p", DEFAULT_TOP_P).toFloat();
+    w.ui_SETTINGS.hid_batch = settings.value("hid_batch", DEFAULT_BATCH).toInt();
+    w.ui_SETTINGS.hid_n_ubatch  = settings.value("hid_n_ubatch", DEFAULT_UBATCH).toInt();
+    w.ui_SETTINGS.hid_use_mmap = settings.value("hid_use_mmap", DEFAULT_USE_MMAP).toBool();
+    w.ui_SETTINGS.hid_use_mlock = settings.value("hid_use_mlock", DEFAULT_USE_MLOCCK).toBool();
+    w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
     
     // ui显示值传给ui内部值
     w.get_date();  //获取约定中的纸面值

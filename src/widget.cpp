@@ -462,11 +462,11 @@ void Widget::recv_setreset() {
 
     reflash_state("· " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp), USUAL_SIGNAL);
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat), USUAL_SIGNAL);
-    reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.npredict), USUAL_SIGNAL);
+    reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.hid_npredict), USUAL_SIGNAL);
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl), USUAL_SIGNAL);
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread), USUAL_SIGNAL);
     reflash_state("· " + jtr("ctx") + jtr("length") + " " + QString::number(ui_SETTINGS.nctx), USUAL_SIGNAL);
-    reflash_state("· " + jtr("batch size") + " " + QString::number(ui_SETTINGS.batch), USUAL_SIGNAL);
+    reflash_state("· " + jtr("batch size") + " " + QString::number(ui_SETTINGS.hid_batch), USUAL_SIGNAL);
 
     if (ui_SETTINGS.lorapath != "") {
         reflash_state("ui:" + jtr("load lora") + " " + ui_SETTINGS.lorapath, USUAL_SIGNAL);
@@ -741,17 +741,16 @@ void Widget::serverControl() {
     arguments << "-c" << QString::number(ui_SETTINGS.nctx);            //使用最近一次应用的nctx作为服务的上下文长度
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);           //使用最近一次应用的ngl作为服务的gpu负载
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
-    arguments << "-b" << QString::number(ui_SETTINGS.batch);           //批大小
+    arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     // arguments << "--log-disable";                                      //不要日志
-    arguments << "-fa";  // 开启flash attention加速
-    // arguments << "-np";//设置进程请求的槽数 默认：1
+    if(ui_SETTINGS.hid_flash_attn){arguments << "-fa";}// 开启flash attention加速
     if (ui_SETTINGS.lorapath != "") {
-        arguments << "--no-mmap";
+        arguments << "--no-mmap";//挂载lora不能开启mmp
         arguments << "--lora" << ui_SETTINGS.lorapath;
-    }  //挂载lora不能开启mmp
-    if (ui_SETTINGS.mmprojpath != "") {
-        arguments << "--mmproj" << ui_SETTINGS.mmprojpath;
-    }
+    }  
+    else {if(!ui_SETTINGS.hid_use_mmap){arguments << "--no-mmap";}}
+
+    if (ui_SETTINGS.mmprojpath != "") {arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
     // 开始运行程序
     server_process->start(program, arguments);
@@ -932,7 +931,7 @@ void Widget::api_send_clicked_slove() {
         data.complete_state = false;
     }
     data.temp = ui_SETTINGS.temp;
-    data.n_predict = ui_SETTINGS.npredict;
+    data.n_predict = ui_SETTINGS.hid_npredict;
     data.repeat = ui_SETTINGS.repeat;
     data.insert_history = ui_insert_history;
 
@@ -999,7 +998,7 @@ void Widget::api_send_clicked_slove() {
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
             reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-            data.n_predict = ui_SETTINGS.npredict;
+            data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
             // qDebug()<<"hello"<<input;
         } 
@@ -1033,13 +1032,13 @@ void Widget::api_send_clicked_slove() {
                 reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
                 reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
                 reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-                data.n_predict = ui_SETTINGS.npredict;
+                data.n_predict = ui_SETTINGS.hid_npredict;
                 emit ui2net_data(data);
             }
         } else if (ui_state == COMPLETE_STATE)  //直接用output上的文本进行推理
         {
             data.input_prompt = ui->output->toPlainText();
-            data.n_predict = ui_SETTINGS.npredict;
+            data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
         }
     }

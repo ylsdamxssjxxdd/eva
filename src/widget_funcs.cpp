@@ -835,7 +835,7 @@ void Widget::tool_testhandleTimeout() {
     }
     data.temp = ui_SETTINGS.temp;
     data.repeat = ui_SETTINGS.repeat;
-    data.n_predict = ui_SETTINGS.npredict;
+    data.n_predict = ui_SETTINGS.hid_npredict;
     data.insert_history = ui_insert_history;
 
     emit ui2net_data(data);
@@ -1741,12 +1741,13 @@ void Widget::auto_save_user() {
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    settings.setValue("ui_mode", ui_mode);  //模型路径
+
+    settings.setValue("ui_mode", ui_mode);  //机体模式
+    settings.setValue("ui_state", ui_state);  //机体状态
     //保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath);  //模型路径
-    settings.setValue("temp", ui_SETTINGS.temp);            //惩罚系数
+    settings.setValue("temp", ui_SETTINGS.temp);            //温度
     settings.setValue("repeat", ui_SETTINGS.repeat);        //惩罚系数
-    settings.setValue("npredict", ui_SETTINGS.npredict);    //最大输出长度
     settings.setValue("ngl", ui_SETTINGS.ngl);              // gpu负载层数
     settings.setValue("nthread", ui_SETTINGS.nthread);      // cpu线程数
     if (ui_SETTINGS.nctx > ui_n_ctx_train) {
@@ -1755,12 +1756,19 @@ void Widget::auto_save_user() {
     else {
         settings.setValue("nctx", ui_SETTINGS.nctx);
     }
-    settings.setValue("batch", ui_SETTINGS.batch);            //批大小
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath);  //视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);      // lora
-    settings.setValue("ui_state", ui_state);                  //模式
+    
+    //保存隐藏设置
+    settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict);    //最大输出长度
+    settings.setValue("hid_special", ui_SETTINGS.hid_special);
+    settings.setValue("hid_top_p", ui_SETTINGS.hid_top_p);
+    settings.setValue("hid_batch", ui_SETTINGS.hid_batch);
+    settings.setValue("hid_n_ubatch", ui_SETTINGS.hid_n_ubatch);
+    settings.setValue("hid_use_mmap", ui_SETTINGS.hid_use_mmap);
+    settings.setValue("hid_use_mlock", ui_SETTINGS.hid_use_mlock);
+    settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("port", ui_port);                       //服务端口
-
     //保存约定参数
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());               //对话模板
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());            //计算器工具
@@ -1817,7 +1825,7 @@ void Widget::llama_bench_test()
     arguments << "-m" << ui_SETTINGS.modelpath;
     arguments << "-ngl" << QString::number(settings_ui->ngl_slider->value());           //使用最近一次应用的ngl
     arguments << "--threads" << QString::number(settings_ui->nthread_slider->value());  //使用线程
-    arguments << "-b" << QString::number(ui_SETTINGS.batch);           //批大小
+    arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     arguments << "-fa" << QString::number(1);  // 开启flash attention加速
     arguments << "-o" << QString("md");
 
