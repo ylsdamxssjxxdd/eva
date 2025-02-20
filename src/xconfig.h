@@ -65,8 +65,6 @@
 #define SFX_NAME ""  //第三方程序后缀名
 #define SHELL "/bin/sh"
 #endif
-//操作系统版本
-const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
 
 //约定内容
 struct DATES {
@@ -418,5 +416,35 @@ inline bool resampleWav(const std::string& inputPath, const std::string& outputP
 
     return true;
 }
+
+inline QString getLinuxOSName() {
+    QFile file("/etc/os-release");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+
+    QTextStream in(&file);
+    QString osName;
+    QString osVersion;
+
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        if (line.startsWith("NAME=")) {
+            osName = line.section('=', 1, 1).remove('"');
+        } else if (line.startsWith("VERSION_ID=")) {
+            osVersion = line.section('=', 1, 1).remove('"');
+        }
+    }
+
+    file.close();
+    return osName + " " + osVersion;
+}
+//操作系统版本
+#ifdef Q_OS_LINUX
+const QString USEROS = getLinuxOSName();
+#else
+const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
+#endif
+
+
 
 #endif XCONFIG_H

@@ -137,7 +137,11 @@ message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
-set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc)
+if(WIN32)
+    set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc)
+else() # linux下打包字体
+    set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc resource/font.qrc)
+endif()
 
 # 应用程序图标windows
 set(logo_FILES resource/logo/ico.rc)
