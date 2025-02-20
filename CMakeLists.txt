@@ -185,22 +185,27 @@ target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets 
 add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts llama-bench sd) # 确保eva最后生产，保证后处理顺利进行
 
 
+# 获取操作系统版本信息
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     execute_process(COMMAND lsb_release -d OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     execute_process(COMMAND cmd.exe /C ver OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-    # 去除 Windows 输出中的回车符 (\r)
-    string(REPLACE "\r" "" OS_VERSION ${OS_VERSION})
+    # 去除残留的回车符和空白
+    string(REGEX REPLACE "\r" "" OS_VERSION "${OS_VERSION}")  # 移除所有回车符
+    string(STRIP "${OS_VERSION}" OS_VERSION)                  # 去除首尾空格
 else()
     set(OS_VERSION "未知操作系统")
 endif()
 
-set(PROCESSOR_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
 # 获取处理器架构信息
+set(PROCESSOR_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+
+# 拼接环境信息
 string(CONCAT eva_ENVIRONMENT "${OS_VERSION} ${PROCESSOR_ARCHITECTURE}")
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
+
 
 
 # 定义传递给.cpp的变量
