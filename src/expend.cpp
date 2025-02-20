@@ -24,11 +24,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");               //灰色
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
-    
+    ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
+
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
+    ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap); 
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
     
     //模型信息相关
@@ -2122,12 +2124,12 @@ void Expend::outetts_onProcessFinished() {
 
 void Expend::readyRead_outetts_process_StandardOutput() {
     QString outetts_output = outetts_process->readAllStandardOutput();
-    ui->speech_log->append(outetts_output);
+    ui->speech_log->appendPlainText(outetts_output);
 }
 
 void Expend::readyRead_outetts_process_StandardError() {
     QString outetts_output = outetts_process->readAllStandardError();
-    ui->speech_log->append(outetts_output);
+    ui->speech_log->appendPlainText(outetts_output);
 }
 
 //用户点击选择模型路径时响应

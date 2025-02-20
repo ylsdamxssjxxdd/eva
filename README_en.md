@@ -7,17 +7,17 @@ Embedding Vector Agent: EVA (based on llama.cpp & qt5)
 
 ## Feature
 
-- Easy to use operating interface
+- Easy to use operating interface 🎛️
 
-- Native operational efficiency
+- Native operational efficiency 🚀
 
-- Intuitive running process
+- Intuitive running process 👀
 
-- Comprehensive model support
+- Comprehensive model support 🐳
 
-- Concise implementation of agent
+- Concise implementation of agent 🤖
 
-- Rich proliferation function
+- Rich proliferation function 🐣
 
 ## Quick start
 
