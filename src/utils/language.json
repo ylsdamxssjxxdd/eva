@@ -329,6 +329,10 @@
             "eva生产时间",
             "EVA_PRODUCT_TIME"
         ],
+        "EVA_ENVIRONMENT": [
+            "eva生产环境",
+            "EVA_ENVIRONMENT"
+        ],
         "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response": [
             "温度越高回答越发散,温度越低回答越准确",
             "The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response "

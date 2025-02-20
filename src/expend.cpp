@@ -568,7 +568,8 @@ void Expend::showReadme() {
     readme_content.remove("</details>");
 
     // 添加编译信息
-    QString compileInfo = QString("%1: %2\n\n %3: %4\n\n %5: %6\n\n %7: %8\n\n")
+    QString compileInfo = QString("%1: %2\n\n %3: %4\n\n %5: %6\n\n %7: %8\n\n %9: %10\n\n")
+                             .arg(jtr("EVA_ENVIRONMENT"), QString(EVA_ENVIRONMENT))
                              .arg(jtr("EVA_PRODUCT_TIME"), QString(EVA_PRODUCT_TIME))
                              .arg(jtr("QT_VERSION_"), QString(QT_VERSION_))
                              .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
