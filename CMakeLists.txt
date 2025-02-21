@@ -16,10 +16,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
-option(BODY_WIN7                     "support windows 7"                          ON) # 速度-50%
+option(BODY_WIN7                     "support windows 7"                          OFF) # 速度-50%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
