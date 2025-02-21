@@ -224,6 +224,7 @@ elseif(MINGW)
     COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
     # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
     COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libgomp-1.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
     COMMENT "custom Windeployqt ..."
     )
 
