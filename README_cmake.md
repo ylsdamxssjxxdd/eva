@@ -12,7 +12,6 @@
 - thirdparty\llama.cpp\ggml\src\ggml-vulkan\CMakeLists.txt 
 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文
-注意#11626 pr后server.exe不再支持win7 原因是index.html.gz的变化，使用b4604的暂时可以
 
 ### stable-diffusion.cpp
 - 删除自己的ggml文件夹

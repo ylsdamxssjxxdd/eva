@@ -120,6 +120,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
     sys_speech = new QTextToSpeech();  // 系统声源
     // 检查是否成功创建
+#ifndef BODY_USE_WIN7 // win7就不用检查了
     if (sys_speech->state() == QTextToSpeech::Ready) {
         // 遍历所有可用音色
         foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
@@ -128,7 +129,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     } else {
         is_sys_speech_available = false;
     }
-
+#endif
     avaliable_speech_list << SPPECH_OUTETTS;      // 模型声源
     this->set_sys_speech(avaliable_speech_list);  // 设置可用声源
 
@@ -139,9 +140,10 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     outettsDir = applicationDirPath + "/EVA_TEMP/outetts/";  // outetts生成的音频存放目录
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
+#ifndef BODY_USE_WIN7
     speechTimer.start(500);      //每半秒检查一次是否需要朗读
     speechPlayTimer.start(500);  //每半秒检查一次是否有音频需要朗读
-
+#endif
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 

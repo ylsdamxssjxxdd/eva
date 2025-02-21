@@ -49,8 +49,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 
     init_movie();  //初始化动画参数
 
-    music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
-
     //-------------初始化各种控件-------------
     setApiDialog();                                      //设置api选项
     set_DateDialog();                                    //设置约定选项
@@ -89,12 +87,14 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                            //录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);  // 每隔100毫秒刷新一次输入区
+#ifndef BODY_USE_WIN7 // win7就不用检查声音输入了
+    music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
     if (checkAudio())                                                          // 如果支持音频输入则注册f2快捷键
     {
         QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
         connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
     }
-
+#endif
     //----------------第三方进程相关------------------
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);                                              //连接开始信号

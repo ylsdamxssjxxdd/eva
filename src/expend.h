@@ -219,7 +219,7 @@ class Expend : public QWidget {
     Speech_Params speech_params;
     QTextToSpeech *sys_speech;
     QMediaPlayer *speech_player;
-    bool is_sys_speech_available;       // 语音朗读是否可用
+    bool is_sys_speech_available = false;       // 语音朗读是否可用
     bool is_speech = false;             // 是否系统声源正在朗读
     bool is_speech_play = false;        // 是否音频正在播放
     QTimer speechTimer;                 //朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
