@@ -141,6 +141,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
 #ifndef BODY_USE_WIN7
+
     speechTimer.start(500);      //每半秒检查一次是否需要朗读
     speechPlayTimer.start(500);  //每半秒检查一次是否有音频需要朗读
 #endif
