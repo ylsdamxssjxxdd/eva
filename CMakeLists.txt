@@ -19,12 +19,21 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
+option(BODY_WIN7                     "support windows 7"                          OFF) # 速度-50%
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 # 这几个标志是互斥的
-if(GGML_CUDA)
+if(BODY_WIN7)
+# 如果开启对win7的支持，那么只能使用mingw编译器，并且关闭所有gpu加速
+    # 检查是否是 MinGW 编译器
+    if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
+        message(FATAL_ERROR "This project requires MinGW.")
+    endif()
+    set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
+    add_compile_definitions(BODY_USE_WIN7) # 机体只支持win7的标志
+elseif(GGML_CUDA)
     set(GGML_NATIVE OFF) # 不使用本机加速优化，会使cuda版本体积变大但是兼容性变强
     add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
     add_compile_definitions(BODY_USE_GPU) # 机体用GPU的标志
@@ -63,6 +72,11 @@ if(MSVC)
         message(STATUS "cuda主版本 " ${CUDA_VERSION_MAJOR})
         message(STATUS "cuda库路径 " ${CUDAToolkit_BIN_DIR})
     endif()
+# mingw设置编译选项
+elseif(MINGW)
+    add_compile_definitions(_XOPEN_SOURCE=600) # 原项目适配mingw
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads") # 编译优化
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s") # 链接优化，减少体积
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
@@ -81,6 +95,7 @@ elseif(UNIX)
     endif()
 
 endif()
+
 
 ##################################### 第三方程序相关 #####################################
 
@@ -131,7 +146,7 @@ set(CMAKE_AUTOUIC ON)
 # 查找Qt相关库，qt库的bin目录需要在环境变量中
 find_package(Qt5 COMPONENTS Widgets Network Script Multimedia TextToSpeech REQUIRED)
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE) # 获取Qt5的bin目录
-
+add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
 message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -158,69 +173,11 @@ src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h
 thirdparty/llama.cpp/examples/llava/clip.cpp thirdparty/llama.cpp/examples/llava/clip.h thirdparty/llama.cpp/examples/llava/llava.cpp thirdparty/llama.cpp/examples/llava/llava.h
 )
 
-# 获取处理器架构信息
-set(ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
-
-# 根据不同架构简化处理
-if(ARCHITECTURE MATCHES "x86_64|AMD64|i[3-6]86")
-    set(ARCHITECTURE "x86")
-elseif(ARCHITECTURE MATCHES "aarch64|arm")
-    set(ARCHITECTURE "arm")
-endif()
-
-
-# 生成程序的名字
-if(GGML_VULKAN)
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan-${ARCHITECTURE}")
-elseif(GGML_CUDA)
-    message(STATUS "CUDA version: ${CUDA_VERSION}")
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-cuda${CUDA_VERSION}-${ARCHITECTURE}")
-else() 
-    set(eva_OUTPUT_NAME "${TARGET}-${version}-cpu-${ARCHITECTURE}")
-endif()
-message(STATUS ${eva_OUTPUT_NAME})
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech)
-
 add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts llama-bench sd) # 确保eva最后生产，保证后处理顺利进行
-
-
-# 获取操作系统版本信息
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    execute_process(COMMAND lsb_release -d OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    execute_process(COMMAND cmd.exe /C ver OUTPUT_VARIABLE OS_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-    # 去除残留的回车符和空白
-    string(REGEX REPLACE "\r" "" OS_VERSION "${OS_VERSION}")  # 移除所有回车符
-    string(STRIP "${OS_VERSION}" OS_VERSION)                  # 去除首尾空格
-else()
-    set(OS_VERSION "未知操作系统")
-endif()
-
-# 获取处理器架构信息
-set(PROCESSOR_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
-
-# 拼接环境信息
-string(CONCAT eva_ENVIRONMENT "${OS_VERSION} ${PROCESSOR_ARCHITECTURE}")
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
-
-
-
-# 定义传递给.cpp的变量
-set(EVA_ENVIRONMENT ${eva_ENVIRONMENT}) # eva型号
-set(EVA_VERSION ${eva_OUTPUT_NAME}) # eva型号
-set(COMPILE_VERSION "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}") # 编译器版本
-set(QT_VERSION_ ${Qt5Core_VERSION}) # qt版本
-string(TIMESTAMP COMPILE_TIME "%Y-%m-%d %H:%M:%S")
-set(EVA_PRODUCT_TIME ${COMPILE_TIME}) # eva编译时间
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmakeconfig.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmakeconfig.h
-)
-
-
+message(STATUS "eva型号：${eva_OUTPUT_NAME}")
 # 后处理
 if(MSVC)
     # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
@@ -258,8 +215,19 @@ if(MSVC)
         )
 
     endif()
-elseif(UNIX)
 
+elseif(MINGW)
+    get_filename_component(COMPILER_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY) # 获取编译器路径
+    message(STATUS "Compiler bin directory: ${COMPILER_BIN_DIR}")
+    # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+    COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
+    # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
+    COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libgomp-1.dll"
+    COMMENT "custom Windeployqt ..."
+    )
+
+elseif(UNIX)
 # 使用linuxdeployqt打包所有组件为一个appimage
     if(BODY_PACK)
 
@@ -320,7 +288,4 @@ elseif(UNIX)
         endif()
     endif()
 endif()
-
-# linuxdeployqt排除cuda相关库
-# "-exclude-libs=libcublasLt.so.12,libcudart.so.12,libcublas.so.12,libcuda.so.1" 
 

@@ -40,7 +40,7 @@
 #include <string>
 #endif
 
-#include "cmakeconfig.h"
+#include "./src/utils/cmakeconfig.h"
 #include "xconfig.h"
 namespace Ui {
 class Expend;

@@ -35,9 +35,15 @@
 #define DEFAULT_NTHREAD 1 // 默认线程数为1，但是后面会变的
 #define DEFAULT_TOP_P 0 // 默认top_p值为0
 #define DEFAULT_SPECIAL true // 默认显示特殊token
+#ifdef BODY_USE_WIN7
 #define DEFAULT_USE_MMAP false // 默认关闭内存映射
-#define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
+#define DEFAULT_FLASH_ATTN false // 默认开启注意力加速
+#else 
+#define DEFAULT_USE_MMAP true // 默认开启内存映射
 #define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
+#endif
+#define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
+
 #ifdef BODY_USE_GPU // 如果支持GPU则默认设置为最大
 #define DEFAULT_NGL 99
 #else
