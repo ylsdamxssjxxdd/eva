@@ -31,6 +31,7 @@ if(BODY_WIN7)
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
         message(FATAL_ERROR "This project requires MinGW.")
     endif()
+    add_compile_definitions(_WIN32_WINNT=0x0601)
     set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
     add_compile_definitions(BODY_USE_WIN7) # 机体只支持win7的标志
 elseif(GGML_CUDA)
