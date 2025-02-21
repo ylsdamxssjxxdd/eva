@@ -211,7 +211,9 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 1. Configure the environment
 
-    - install Qt5.15 https://download.qt.io/
+    - installing the compiler for Windows can be done using MSVC or MingW, while Linux requires g++ or Clang
+
+    - install Qt5 https://download.qt.io/
 
     - install cmake https://cmake.org/
 
@@ -233,7 +235,7 @@ In local mode and chat state, you can click on the date button to mount the tool
     cmake --build build --config Release
     ```
 
-    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be place in the bin directory in Windows, and all components will be packaged as an AppImage file in Linux
+    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be place in the bin directory in Windows; and all components will be packaged as an AppImage file in Linux. Note that tools such as linuxdeploy need to be configured by oneself
 
     - GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
 

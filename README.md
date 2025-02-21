@@ -218,7 +218,9 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 1. 配置环境
 
-    - 安装Qt5.15 https://download.qt.io/
+    - 安装编译器 windows可以用msvc或mingw，linux需要g++或clang
+
+    - 安装Qt5库 https://download.qt.io/
 
     - 安装cmake https://cmake.org/
 
@@ -240,7 +242,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
     cmake --build build --config Release
     ```
 
-    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下，linux下将所有组件打包为一个AppImage文件
+    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
 
     - GGML_CUDA：是否需要启用cuda加速的标志
 
