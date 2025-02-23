@@ -103,7 +103,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR 
                 OUTPUT_VARIABLE PCI_GPU_OUTPUT
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
-            if(PCI_GPU_OUTPUT MATCHES "Intel Corporation (.*)\[")
+            if(PCI_GPU_OUTPUT MATCHES "Intel Corporation (.*)\\[")
                 set(GPU_ARCH "Intel ${CMAKE_MATCH_1}")
             endif()
         elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -145,3 +145,4 @@ configure_file(
 
 set(eva_OUTPUT_NAME ${eva_OUTPUT_NAME} PARENT_SCOPE) # 将子项目的变量传递给父项目
 set(eva_ENVIRONMENT ${eva_ENVIRONMENT} PARENT_SCOPE) # 将子项目的变量传递给父项目
+set(ARCHITECTURE ${ARCHITECTURE} PARENT_SCOPE) # 将子项目的变量传递给父项目

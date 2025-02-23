@@ -267,14 +267,14 @@ elseif(UNIX)
                 # x86架构下使用linuxdeployqt打包 
                 COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
                 # 重命名appimage文件，${ARCHITECTURE}是系统架构
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}-${ARCHITECTURE}.AppImage"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}.AppImage"
             )
         elseif(ARCHITECTURE MATCHES "^(arm|aarch64)$") 
             add_custom_command(TARGET ${TARGET} POST_BUILD
                 # arm架构下使用linuxdeploy打包 
                 COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
                 COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}-${ARCHITECTURE}.AppImage"
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}.AppImage"
             )
         endif()
 
