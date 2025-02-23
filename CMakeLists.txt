@@ -265,9 +265,9 @@ elseif(UNIX)
         if(ARCHITECTURE MATCHES "^(x86|i[3-6]86)$")
             add_custom_command(TARGET ${TARGET} POST_BUILD
                 # x86架构下使用linuxdeployqt打包 
-                COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
+                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
                 # 重命名appimage文件，${ARCHITECTURE}是系统架构
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}.AppImage"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/${eva_OUTPUT_NAME}.AppImage"
             )
         elseif(ARCHITECTURE MATCHES "^(arm|aarch64)$") 
             add_custom_command(TARGET ${TARGET} POST_BUILD
