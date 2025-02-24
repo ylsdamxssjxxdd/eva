@@ -261,22 +261,21 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
         )
 
-        # 执行打包
-        if(ARCHITECTURE MATCHES "^(x86|i[3-6]86)$")
-            add_custom_command(TARGET ${TARGET} POST_BUILD
-                # x86架构下使用linuxdeployqt打包 
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeployqt" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop" "-appimage"
-                # 重命名appimage文件，${ARCHITECTURE}是系统架构
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/eva-*.AppImage" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/${eva_OUTPUT_NAME}.AppImage"
-            )
-        elseif(ARCHITECTURE MATCHES "^(arm|aarch64)$") 
-            add_custom_command(TARGET ${TARGET} POST_BUILD
-                # arm架构下使用linuxdeploy打包 
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
-                COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}.AppImage"
-            )
+        #手动复制libz.so.1 如果你的qt在源码编译配置时指定了-qt-zlib就不用这样了
+        execute_process(COMMAND find /usr/lib /lib -name "libz.so.1" OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if (LIBZ_PATH)
+            execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${LIBZ_PATH} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/")
+        else()
+            message(FATAL_ERROR "libz.so.1 not found!")
         endif()
+
+
+        # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包 
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
+            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
+            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}.AppImage"
+        )
 
         # 有条件打包其它组件
         if(GGML_CUDA)
