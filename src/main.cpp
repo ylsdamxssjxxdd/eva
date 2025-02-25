@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
     w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
     w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
     w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
-    bool embedding_need = settings.value("embedding_need", 0).toBool();//默认不主动嵌入词向量
+    bool embedding_server_need = settings.value("embedding_server_need", 0).toBool();//默认不主动嵌入词向量
     QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
     QFile checkFile(settings.value("lorapath", "").toString());
     if (checkFile.exists()) {w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString());}
@@ -277,12 +277,12 @@ int main(int argc, char* argv[]) {
     }
 
     //是否需要自动重构知识库, 源文档在expend实例化时已经完成
-    if (embedding_need) {
+    if (embedding_server_need) {
         QFile embedding_modelpath_file(embedding_modelpath);
         if (embedding_modelpath_file.exists()) {
-            expend.embedding_need_auto = true;
+            expend.embedding_embed_need = true;
             expend.embedding_params.modelpath = embedding_modelpath;
-            expend.embedding_server_start();  //启动嵌入服务,并执行嵌入
+            expend.embedding_server_start();  //启动嵌入服务
         } else                                //借助端点直接嵌入
         {
             expend.embedding_processing();                                                    //执行嵌入

@@ -116,8 +116,8 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
    public:
     Embedding_Params embedding_params;
-    bool embedding_need = false;         // 下一次打开是否需要自动构建知识库
-    bool embedding_need_auto = false;    // 下一次打开是否需要自启动嵌入服务
+    bool embedding_server_need = false;         // 下一次打开是否需要自启动嵌入服务
+    bool embedding_embed_need = false;    // 下一次打开是否需要自动构建知识库
     bool keep_embedding_server = false;  // 确保嵌入服务不会因为刚启动就停止
     QProcess *server_process;
     QString ipAddress = "";

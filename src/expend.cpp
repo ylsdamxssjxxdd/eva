@@ -683,13 +683,13 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("embedding_modelpath", embedding_params.modelpath);
     settings.setValue("embedding_endpoint", ui->embedding_txt_api_lineedit->text());  //如果模型不存在则直接使用端点
     settings.setValue("embedding_dim", ui->embedding_dim_spinBox->text());
-    if (embedding_need) {
-        if (ui->embedding_txt_api_lineedit->text() == "")  //如果用户删除了嵌入端点的内容则不自动嵌入
+    if (embedding_server_need) {
+        if (ui->embedding_txt_api_lineedit->text() == "")  //如果用户删除了嵌入端点的内容则不自动启动嵌入服务
         {
-            embedding_need = false;
+            embedding_server_need = false;
         }
     }
-    settings.setValue("embedding_need", embedding_need);
+    settings.setValue("embedding_server_need", embedding_server_need);
     settings.setValue("embedding_split", ui->embedding_split_spinbox->value());
     settings.setValue("embedding_overlap", ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
@@ -888,9 +888,9 @@ void Expend::readyRead_server_process_StandardError() {
         embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);
         qDebug()<<"该模型的嵌入维度为: "<<embedding_server_dim<<ui->embedding_dim_spinBox->value();
-        if (embedding_need_auto)  //用来自动构建知识库
+        if (embedding_embed_need)  //用来自动构建知识库
         {
-            embedding_need_auto = false;
+            embedding_embed_need = false;
             embedding_processing();                                                                                            //执行嵌入
             emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());  //传递嵌入服务端点
         }
@@ -1292,11 +1292,11 @@ void Expend::embedding_processing() {
                 ui->embedding_txt_over->resizeRowsToContents();                                         // 自动调整行高
                 ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);        // 滚动到新添加的行
                 show_chunk_index++;
-                embedding_need = true;
+                embedding_server_need = true;
             } else {
                 // 请求出错
                 ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
-                embedding_need = false;
+                embedding_server_need = false;
             }
 
             reply->abort();  //终止
