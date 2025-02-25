@@ -19,18 +19,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
-option(BODY_WIN7                     "support windows 7"                          OFF) # 速度-50%
+option(BODY_WIN7                     "support windows 7"                          OFF) # 速度-50% /(ㄒoㄒ)/~~
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 # 这几个标志是互斥的
 if(BODY_WIN7)
-# 如果开启对win7的支持，那么只能使用mingw编译器，并且关闭所有gpu加速
+# 如果开启对win7的支持，那么只能使用mingw编译器，并且关闭所有gpu cpu加速
     # 检查是否是 MinGW 编译器
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
         message(FATAL_ERROR "This project requires MinGW.")
     endif()
+    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
+    option(GGML_FMA          "ggml: enable FMA"              OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_AVX          "ggml: enable AVX"              OFF)
+    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
     add_compile_definitions(_WIN32_WINNT=0x0601)
     set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
     add_compile_definitions(BODY_USE_WIN7) # 机体只支持win7的标志
@@ -261,20 +266,12 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
         )
 
-        #手动复制libz.so.1 如果你的qt在源码编译配置时指定了-qt-zlib就不用这样了
-        execute_process(COMMAND find /usr/lib /lib -name "libz.so.1" OUTPUT_VARIABLE LIBZ_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if (LIBZ_PATH)
-            execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${LIBZ_PATH} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/")
-        else()
-            message(FATAL_ERROR "libz.so.1 not found!")
-        endif()
-
 
         # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包 
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
             COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
-            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "${eva_OUTPUT_NAME}.AppImage"
+            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.AppImage"
         )
 
         # 有条件打包其它组件
