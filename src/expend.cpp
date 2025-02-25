@@ -120,7 +120,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
     sys_speech = new QTextToSpeech();  // 系统声源
     // 检查是否成功创建
-#ifndef BODY_USE_WIN7 // win7就不用检查了
+#ifndef BODY_USE_32BIT // win7就不用检查了
     if (sys_speech->state() == QTextToSpeech::Ready) {
         // 遍历所有可用音色
         foreach (const QVoice &speech, sys_speech->availableVoices()) { avaliable_speech_list << speech.name(); }
@@ -140,7 +140,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     outettsDir = applicationDirPath + "/EVA_TEMP/outetts/";  // outetts生成的音频存放目录
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
-#ifndef BODY_USE_WIN7
+#ifndef BODY_USE_32BIT
 
     speechTimer.start(500);      //每半秒检查一次是否需要朗读
     speechPlayTimer.start(500);  //每半秒检查一次是否有音频需要朗读

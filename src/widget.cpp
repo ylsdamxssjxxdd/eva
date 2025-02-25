@@ -87,7 +87,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                            //录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel);  // 每隔100毫秒刷新一次输入区
-#ifndef BODY_USE_WIN7 // win7就不用检查声音输入了
+#ifndef BODY_USE_32BIT // win7就不用检查声音输入了
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
     if (checkAudio())                                                          // 如果支持音频输入则注册f2快捷键
     {

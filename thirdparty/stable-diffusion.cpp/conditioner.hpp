@@ -454,7 +454,7 @@ struct FrozenCLIPEmbedderWithCustomWords : public Conditioner {
             }
 
             int64_t t1 = ggml_time_ms();
-            LOG_DEBUG("computing condition graph completed, taking %" PRId64 " ms", t1 - t0);
+
             ggml_tensor* result = ggml_dup_tensor(work_ctx, chunk_hidden_states);
             {
                 float original_mean = ggml_tensor_mean(chunk_hidden_states);
@@ -920,7 +920,7 @@ struct SD3CLIPEmbedder : public Conditioner {
             }
 
             int64_t t1 = ggml_time_ms();
-            LOG_DEBUG("computing condition graph completed, taking %" PRId64 " ms", t1 - t0);
+
             if (force_zero_embeddings) {
                 float* vec = (float*)chunk_hidden_states->data;
                 for (int i = 0; i < ggml_nelements(chunk_hidden_states); i++) {
@@ -1139,7 +1139,7 @@ struct FluxCLIPEmbedder : public Conditioner {
             }
 
             int64_t t1 = ggml_time_ms();
-            LOG_DEBUG("computing condition graph completed, taking %" PRId64 " ms", t1 - t0);
+
             if (force_zero_embeddings) {
                 float* vec = (float*)chunk_hidden_states->data;
                 for (int i = 0; i < ggml_nelements(chunk_hidden_states); i++) {

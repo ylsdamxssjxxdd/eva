@@ -763,7 +763,7 @@ public:
             set_timestep_embedding(timesteps, y, out_dim);
         }
         int64_t t1 = ggml_time_ms();
-        LOG_DEBUG("computing svd condition graph completed, taking %" PRId64 " ms", t1 - t0);
+        // LOG_DEBUG("computing svd condition graph completed, taking %" PRId64 " ms", t1 - t0);
         return {c_crossattn, y, c_concat};
     }
 
@@ -1280,7 +1280,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
             }
             id_cond.c_crossattn = sd_ctx->sd->id_encoder(work_ctx, init_img, id_cond.c_crossattn, id_embeds, class_tokens_mask);
             t1                  = ggml_time_ms();
-            LOG_INFO("Photomaker ID Stacking, taking %" PRId64 " ms", t1 - t0);
+            // LOG_INFO("Photomaker ID Stacking, taking %" PRId64 " ms", t1 - t0);
             if (sd_ctx->sd->free_params_immediately) {
                 sd_ctx->sd->pmid_model->free_params_buffer();
             }
@@ -1329,7 +1329,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
                                                                      force_zero_embeddings);
     }
     t1 = ggml_time_ms();
-    LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
+    // LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
 
     if (sd_ctx->sd->free_params_immediately) {
         sd_ctx->sd->cond_stage_model->free_params_buffer();
@@ -1356,7 +1356,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
     for (int b = 0; b < batch_count; b++) {
         int64_t sampling_start = ggml_time_ms();
         int64_t cur_seed       = seed + b;
-        LOG_INFO("generating image: %i/%i - seed %" PRId64, b + 1, batch_count, cur_seed);
+        // LOG_INFO("generating image: %i/%i - seed %" PRId64, b + 1, batch_count, cur_seed);
 
         sd_ctx->sd->rng->manual_seed(cur_seed);
         struct ggml_tensor* x_t   = init_latent;
@@ -1400,7 +1400,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
         sd_ctx->sd->diffusion_model->free_params_buffer();
     }
     int64_t t3 = ggml_time_ms();
-    LOG_INFO("generating %" PRId64 " latent images completed, taking %.2fs", final_latents.size(), (t3 - t1) * 1.0f / 1000);
+    // LOG_INFO("generating %" PRId64 " latent images completed, taking %.2fs", final_latents.size(), (t3 - t1) * 1.0f / 1000);
 
     // Decode to image
     LOG_INFO("decoding %zu latents", final_latents.size());
@@ -1413,7 +1413,7 @@ sd_image_t* generate_image(sd_ctx_t* sd_ctx,
             decoded_images.push_back(img);
         }
         int64_t t2 = ggml_time_ms();
-        LOG_INFO("latent %" PRId64 " decoded, taking %.2fs", i + 1, (t2 - t1) * 1.0f / 1000);
+        // LOG_INFO("latent %" PRId64 " decoded, taking %.2fs", i + 1, (t2 - t1) * 1.0f / 1000);
     }
 
     int64_t t4 = ggml_time_ms();
@@ -1715,7 +1715,7 @@ SD_API sd_image_t* img2vid(sd_ctx_t* sd_ctx,
     SDCondition uncond = SDCondition(uc_crossattn, uc_vector, uc_concat);
 
     int64_t t1 = ggml_time_ms();
-    LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
+    // LOG_INFO("get_learned_condition completed, taking %" PRId64 " ms", t1 - t0);
     if (sd_ctx->sd->free_params_immediately) {
         sd_ctx->sd->clip_vision->free_params_buffer();
     }

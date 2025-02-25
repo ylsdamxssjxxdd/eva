@@ -29,16 +29,19 @@
 #define DEFAULT_REPEAT 1.2
 
 //推理
-#define DEFAULT_NCTX 4096 // 默认上下文长度4096
-#define DEFAULT_BATCH 2048 // 默认虚拟批处理大小2048
-#define DEFAULT_UBATCH 512 // 默认物理批处理大小512
 #define DEFAULT_NTHREAD 1 // 默认线程数为1，但是后面会变的
 #define DEFAULT_TOP_P 0 // 默认top_p值为0
 #define DEFAULT_SPECIAL true // 默认显示特殊token
-#ifdef BODY_USE_WIN7
+#ifdef BODY_USE_32BIT
 #define DEFAULT_USE_MMAP false // 默认关闭内存映射
 #define DEFAULT_FLASH_ATTN false // 默认开启注意力加速
+#define DEFAULT_NCTX 256 // 默认上下文长度
+#define DEFAULT_BATCH 128 // 默认虚拟批处理大小
+#define DEFAULT_UBATCH 128 // 默认物理批处理大小
 #else 
+#define DEFAULT_NCTX 4096 // 默认上下文长度
+#define DEFAULT_BATCH 2048 // 默认虚拟批处理大小
+#define DEFAULT_UBATCH 512 // 默认物理批处理大小
 #define DEFAULT_USE_MMAP true // 默认开启内存映射
 #define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
 #endif

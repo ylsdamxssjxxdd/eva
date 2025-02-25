@@ -19,14 +19,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
-option(BODY_WIN7                     "support windows 7"                          OFF) # 速度-50% /(ㄒoㄒ)/~~
+option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 # 这几个标志是互斥的
-if(BODY_WIN7)
-# 如果开启对win7的支持，那么只能使用mingw编译器，并且关闭所有gpu cpu加速
+if(BODY_32BIT)
+# 如果开启对32位 win7的支持，那么只能使用mingw编译器，并且关闭所有gpu cpu加速
     # 检查是否是 MinGW 编译器
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
         message(FATAL_ERROR "This project requires MinGW.")
@@ -38,7 +38,7 @@ if(BODY_WIN7)
     option(GGML_AVX2         "ggml: enable AVX2"             OFF)
     add_compile_definitions(_WIN32_WINNT=0x0601)
     set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
-    add_compile_definitions(BODY_USE_WIN7) # 机体只支持win7的标志
+    add_compile_definitions(BODY_USE_32BIT) # 机体只支持32位的标志
 elseif(GGML_CUDA)
     set(GGML_NATIVE OFF) # 不使用本机加速优化，会使cuda版本体积变大但是兼容性变强
     add_compile_definitions(BODY_USE_CUDA) # 机体用cuda的标志
