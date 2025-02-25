@@ -42,7 +42,7 @@
 #define DEFAULT_NCTX 4096 // 默认上下文长度
 #define DEFAULT_BATCH 2048 // 默认虚拟批处理大小
 #define DEFAULT_UBATCH 512 // 默认物理批处理大小
-#define DEFAULT_USE_MMAP true // 默认开启内存映射
+#define DEFAULT_USE_MMAP false // 默认关闭内存映射
 #define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
 #endif
 #define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定

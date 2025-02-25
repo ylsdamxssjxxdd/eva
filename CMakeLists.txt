@@ -24,6 +24,8 @@ option(BODY_32BIT                    "support 32 BIT"                           
 ##################################### 处理编译选项 ####################################
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
+add_compile_definitions(_WIN32_WINNT=0x0601)
+set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
 # 这几个标志是互斥的
 if(BODY_32BIT)
 # 如果开启对32位 win7的支持，那么只能使用mingw编译器，并且关闭所有gpu cpu加速
@@ -36,8 +38,6 @@ if(BODY_32BIT)
     option(GGML_F16C         "ggml: enable F16C"             OFF)
     option(GGML_AVX          "ggml: enable AVX"              OFF)
     option(GGML_AVX2         "ggml: enable AVX2"             OFF)
-    add_compile_definitions(_WIN32_WINNT=0x0601)
-    set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7
     add_compile_definitions(BODY_USE_32BIT) # 机体只支持32位的标志
 elseif(GGML_CUDA)
     set(GGML_NATIVE OFF) # 不使用本机加速优化，会使cuda版本体积变大但是兼容性变强

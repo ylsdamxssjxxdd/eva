@@ -853,6 +853,7 @@ void Expend::embedding_server_start() {
     arguments << "-cb";                                             //允许连续批处理
     arguments << "--embedding";                                     //允许词嵌入
     // arguments << "--log-disable";                                   //不要日志
+    if(!DEFAULT_USE_MMAP){arguments << "--no-mmap";}
     // 开始运行程序
     server_process->start(program, arguments);
 
@@ -886,7 +887,7 @@ void Expend::readyRead_server_process_StandardError() {
     if (server_output.contains(LLM_EMBD)) {
         embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);
-        qDebug()<<embedding_server_dim<<ui->embedding_dim_spinBox->value();
+        qDebug()<<"该模型的嵌入维度为: "<<embedding_server_dim<<ui->embedding_dim_spinBox->value();
         if (embedding_need_auto)  //用来自动构建知识库
         {
             embedding_need_auto = false;

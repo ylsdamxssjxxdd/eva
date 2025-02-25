@@ -17,10 +17,6 @@
 #include "nvml.h"
 #endif
 
-
-
-
-
 class GpuInfoProvider : public QObject {
     Q_OBJECT
 public:
@@ -52,12 +48,12 @@ public:
 
                     emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization, freeMemory);
                 } else {
-                    qDebug() << "Failed to parse NVIDIA GPU information.";
+                    // qDebug() << "Failed to parse NVIDIA GPU information.";
                     emit gpu_status(0, 0, 0, 0);
                 }
             }
         } else {
-            qDebug() << "Failed to retrieve NVIDIA GPU information.";
+            // qDebug() << "Failed to retrieve NVIDIA GPU information.";
             emit gpu_status(0, 0, 0, 0);
         }
     }
@@ -87,14 +83,14 @@ public:
                     emit gpu_status(totalMemory, float(usedMemory) / float(totalMemory) * 100.0, utilization, freeMemory);
                     foundMemoryInfo = true;
                 } else {
-                    qDebug() << "Failed to parse AMD GPU information.";
+                    // qDebug() << "Failed to parse AMD GPU information.";
                     emit gpu_status(0, 0, 0, 0);
                 }
             }
         }
 
         if (!foundMemoryInfo) {
-            qDebug() << "Failed to retrieve AMD GPU information.";
+            // qDebug() << "Failed to retrieve AMD GPU information.";
             emit gpu_status(0, 0, 0, 0);
         }
     }
@@ -107,7 +103,9 @@ public:
     gpuChecker() {
 #ifdef BODY_USE_CUDA
         nvmlInit();
-        nvmlDeviceGetHandleByIndex(0, &device);
+        nvmlDeviceGetHandleByIndex(0, &device);   
+#elif BODY_USE_32BIT
+        gpuInfoProvider = nullptr;
 #else
         QString gpuVendor = getGpuVendor();
         if (gpuVendor == "NVIDIA") {

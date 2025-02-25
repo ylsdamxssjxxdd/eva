@@ -15,6 +15,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     // ui->state->setFont(font);                                                                     // 设置state区的字体
     QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);  // 注册发送的快捷键
     connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
+#ifdef BODY_USE_32BIT
+    ui->vcore_bar->setVisible(0);
+    ui->vram_bar->setVisible(0);
+#endif
     //--------------初始化语言--------------
     QLocale locale = QLocale::system();              // 获取系统locale
     QLocale::Language language = locale.language();  // 获取语言
