@@ -267,12 +267,13 @@ elseif(UNIX)
         )
 
 
-        # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包 
+        # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
         add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy" "--appdir" "."
-            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "linuxdeploy-plugin-qt" "--appdir" "."
-            COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" "appimagetool" "AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.AppImage"
-        )
+            COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
+            COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
+            COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.AppImage"
+        
+            )
 
         # 有条件打包其它组件
         if(GGML_CUDA)
