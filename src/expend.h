@@ -132,12 +132,13 @@ class Expend : public QWidget {
     Embedding_vector user_embedding_vector;
     double cosine_similarity(const std::vector<double> &a, const std::vector<double> &b);
     std::vector<std::pair<int, double>> similar_indices(const std::vector<double> &user_vector, const QVector<Embedding_vector> &embedding_DB);
-    void embedding_processing();  //知识库构建过程
+    
    signals:
     void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);  //发送已嵌入文本段数据给tool
     void expend2ui_embeddingdb_describe(QString describe);                  //传递知识库的描述
     void expend2tool_embedding_serverapi(QString serverapi, int dim);       //传递嵌入服务端点
    public slots:
+    void embedding_processing();  //知识库构建过程
     void readyRead_server_process_StandardOutput();
     void readyRead_server_process_StandardError();
     void server_onProcessStarted();   //进程开始响应

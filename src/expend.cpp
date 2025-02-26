@@ -862,13 +862,16 @@ void Expend::embedding_server_start() {
 }
 
 // 获取server_process日志输出
-void Expend::readyRead_server_process_StandardOutput() { QString server_output = server_process->readAllStandardOutput(); }
+void Expend::readyRead_server_process_StandardOutput() 
+{ 
+    QString server_output = server_process->readAllStandardOutput(); 
+    // qDebug()<<"std "<<server_output;
+}
 
 // 获取server_process日志输出
 void Expend::readyRead_server_process_StandardError() {
     QString server_output = server_process->readAllStandardError();
-    // qDebug()<<server_output;
-
+    // qDebug()<<"error "<<server_output;
     //启动成功的标志
     QString log_output;
     if (server_output.contains(SERVER_START)) {
@@ -891,7 +894,7 @@ void Expend::readyRead_server_process_StandardError() {
         if (embedding_embed_need)  //用来自动构建知识库
         {
             embedding_embed_need = false;
-            embedding_processing();                                                                                            //执行嵌入
+            QTimer::singleShot(1000, this, SLOT(embedding_processing()));       //1s后再执行构建以免冲突                                                                               //执行嵌入
             emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());  //传递嵌入服务端点
         }
     }  //截获n_embd嵌入维度
@@ -924,7 +927,8 @@ void Expend::on_embedding_txt_upload_clicked() {
 
 //预处理文件内容
 void Expend::preprocessTXT() {
-    //读取
+
+    // 读取文件内容
     QString content;
     QFile file(txtpath);
     // 打开文件
@@ -935,28 +939,54 @@ void Expend::preprocessTXT() {
     }
     file.close();
 
-    //-------------------分词&分段-----------------
+    // -------------------分词&分段-----------------
     QStringList paragraphs;
     int splitLength = ui->embedding_split_spinbox->value();
     int overlap = ui->embedding_overlap_spinbox->value();
     int splitNums = 0;
     int start = 0;
     int actualNewLength = splitLength - overlap;  // 实际上每次新增加的字符长度
+
     if (splitLength <= overlap) {
         paragraphs << content;
         splitNums++;
     }
 
     while (start < content.length()) {
-        if (!content.isEmpty()) {
+        if (splitNums > 0 && overlap > 0) {  // 如果不是第一段且有重叠部分
             start -= overlap;
-        }  // 如果不是第一段，则保留前一段的部分字符
+            // 确保 start 不小于 0
+            if (start < 0) start = 0;
+        }
 
+        // 初始分割长度
         int endLength = qMin(splitLength, content.length() - start);
-        paragraphs << content.mid(start, endLength);
+
+        // 调整分割长度以避免拆分代理对
+        if (start + endLength < content.length()) {
+            // 检查分割点是否在高代理字符上
+            QChar lastChar = content.at(start + endLength - 1);
+            if (lastChar.isHighSurrogate()) {
+                // 如果是高代理字符，则包括下一个低代理字符
+                if (start + endLength < content.length()) {
+                    endLength += 1;
+                }
+            }
+        }
+
+        // 提取子字符串
+        QString segment = content.mid(start, endLength);
+        paragraphs << segment;
+        // qDebug() << segment;
         splitNums++;
         start += actualNewLength;
     }
+
+    // 可选：处理最后一段可能的剩余内容（如果需要）
+
+    // 打印总分段数
+    qDebug() << "分段数:" << splitNums;
+
 
     //显示在待嵌入表格中
     ui->embedding_txt_wait->clear();
@@ -1040,7 +1070,7 @@ void Expend::on_embedding_test_pushButton_clicked() {
     request.setRawHeader("Authorization", api_key.toUtf8());
     //构造请求的数据体
     QJsonObject json;
-    json.insert("model", "gpt-3.5-turbo");
+    json.insert("model", "default");
     json.insert("encoding_format", "float");
     json.insert("input", ui->embedding_test_textEdit->toPlainText());
     QJsonDocument doc(json);
@@ -1065,9 +1095,13 @@ void Expend::on_embedding_test_pushButton_clicked() {
             if (dataObj.contains("embedding")) {
                 QJsonArray embeddingArray = dataObj["embedding"].toArray();
                 user_embedding_vector.value.resize(ui->embedding_dim_spinBox->value());  // 分配空间
+
                 // 处理"embedding"数组
-                for (int j = 0; j < embeddingArray.size(); ++j) {
-                    user_embedding_vector.value[j] = embeddingArray[j].toDouble();
+                int arraySize = embeddingArray.size();
+                if(arraySize != ui->embedding_dim_spinBox->value()){ui->embedding_test_log->appendPlainText(QString::number(arraySize) + " query embedding dim not match! Fill with 0");}
+                for (int j = 0; j < ui->embedding_dim_spinBox->value(); ++j) {
+                    if (j < arraySize) {user_embedding_vector.value[j] = embeddingArray[j].toDouble();} 
+                    else {user_embedding_vector.value[j] = 0.0;}//返回的向量不足的维度用0填充
                     vector_str += QString::number(user_embedding_vector.value[j], 'f', 4) + ", ";
                 }
             }
@@ -1115,6 +1149,7 @@ double Expend::cosine_similarity(const std::vector<double> &a, const std::vector
     // 确保两个向量维度相同
     if (a.size() != b.size()) {
         throw std::invalid_argument("Vectors must be of the same length");
+        return 0;
     }
 
     double dot_product = 0.0, norm_a = 0.0, norm_b = 0.0;
@@ -1220,7 +1255,15 @@ void Expend::embedding_processing() {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key = "Bearer " + QString("sjxx");
     request.setRawHeader("Authorization", api_key.toUtf8());
+
     //-------------------循环发送请求直到文本段处理完-------------------
+    // QStringList remain_txt;
+
+    // while (condition)
+    // {
+    //     /* code */
+    // }
+    
     for (int o = 0; o < Embedding_DB.size(); o++) {
         //已经嵌入的就不处理了
         if (save_list.contains(Embedding_DB.at(o).index)) {
@@ -1238,12 +1281,12 @@ void Expend::embedding_processing() {
 
         //构造请求的数据体
         QJsonObject json;
-        json.insert("model", "gpt-3.5-turbo");
+        json.insert("model", "default");
         json.insert("encoding_format", "float");
         json.insert("input", Embedding_DB.at(o).chunk);  //待嵌入文本段
         QJsonDocument doc(json);
         QByteArray data = doc.toJson();
-
+        
         // POST 请求
         QNetworkReply *reply = manager.post(request, data);
 
@@ -1265,8 +1308,11 @@ void Expend::embedding_processing() {
                     QJsonArray embeddingArray = dataObj["embedding"].toArray();
                     Embedding_DB[o].value.resize(ui->embedding_dim_spinBox->value());  // 分配空间
                     // 处理"embedding"数组
-                    for (int j = 0; j < embeddingArray.size(); ++j) {
-                        Embedding_DB[o].value[j] = embeddingArray[j].toDouble();
+                    int arraySize = embeddingArray.size();
+                    if(arraySize != ui->embedding_dim_spinBox->value()){ui->embedding_test_log->appendPlainText(QString::number(arraySize) + " query embedding dim not match! Fill with 0");}
+                    for (int j = 0; j < ui->embedding_dim_spinBox->value(); ++j) {
+                        if (j < arraySize) {Embedding_DB[o].value[j] = embeddingArray[j].toDouble();} 
+                        else {Embedding_DB[o].value[j] = 0.0;}//返回的向量不足的维度用0填充
                         vector_str += QString::number(Embedding_DB[o].value[j], 'f', 4) + ", ";
                     }
                 }
@@ -1302,7 +1348,7 @@ void Expend::embedding_processing() {
             reply->abort();  //终止
             reply->deleteLater();
         });
-
+        
         // 回复完成时退出事件循环
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
         // 进入事件循环
