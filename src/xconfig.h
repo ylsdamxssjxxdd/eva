@@ -56,6 +56,9 @@
 #define DEFAULT_EMBEDDING_PORT "7758"  // 默认嵌入端口
 #define DEFAULT_EMBEDDING_IP "127.0.0.1" // 嵌入端点ip
 #define DEFAULT_EMBEDDING_API "/v1/embeddings"  // 嵌入端点地址
+#define DEFAULT_EMBEDDING_SPLITLENTH 300
+#define DEFAULT_EMBEDDING_OVERLAP 20
+#define DEFAULT_EMBEDDING_RESULTNUMB 3
 
 // llama日志信号字样，用来指示下一步动作
 #define SERVER_START "server is listening on"  // server启动成功返回的字样

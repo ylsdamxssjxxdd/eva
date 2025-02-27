@@ -115,6 +115,7 @@ class Expend : public QWidget {
     //----------------------------------知识库相关--------------------------------
     //-------------------------------------------------------------------------
    public:
+    QStringList Expend::tokenizeContent(const QString& content);// 分词函数
     Embedding_Params embedding_params;
     int embedding_resultnumb = 3; //嵌入结果返回个数
     bool embedding_server_need = false;         // 下一次打开是否需要自启动嵌入服务

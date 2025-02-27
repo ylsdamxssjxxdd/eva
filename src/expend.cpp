@@ -527,9 +527,9 @@ void Expend::readConfig() {
 
     //知识库，在main.cpp里有启动的部分
     ui->embedding_txt_describe_lineEdit->setText(settings.value("embedding_describe", "").toString());  //知识库描述
-    ui->embedding_split_spinbox->setValue(settings.value("embedding_split", 300).toInt());
-    ui->embedding_resultnumb_spinBox->setValue(settings.value("embedding_resultnumb", 3).toInt());
-    ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", 50).toInt());
+    ui->embedding_split_spinbox->setValue(settings.value("embedding_split", DEFAULT_EMBEDDING_SPLITLENTH).toInt());
+    ui->embedding_resultnumb_spinBox->setValue(settings.value("embedding_resultnumb", DEFAULT_EMBEDDING_RESULTNUMB).toInt());
+    ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", DEFAULT_EMBEDDING_OVERLAP).toInt());
     ui->embedding_dim_spinBox->setValue(settings.value("embedding_dim", 1024).toInt());
 
     QString embedding_sourcetxt = settings.value("embedding_sourcetxt", "").toString();  //源文档路径
@@ -915,6 +915,47 @@ void Expend::on_embedding_txt_upload_clicked() {
     preprocessTXT();  //预处理文件内容
 }
 
+// 分词函数
+QStringList Expend::tokenizeContent(const QString& content)
+{
+    QStringList tokens;
+    // 正则表达式匹配中文、英文单词、Emoji及其他字符
+    QRegularExpression re(
+        "(\\p{Han}+)"                    // 中文字符
+        "|([A-Za-z]+)"                   // 英文单词
+        "|([\\x{1F300}-\\x{1F5FF}])"    // Emoji 范围1
+        "|([\\x{1F600}-\\x{1F64F}])"    // Emoji 范围2
+        "|([\\x{1F680}-\\x{1F6FF}])"    // Emoji 范围3
+        "|([\\x{2600}-\\x{26FF}])"      // 其他符号
+        "|(\\s+)"                        // 空白字符
+        "|(.)",                          // 其他任意单字符
+        QRegularExpression::UseUnicodePropertiesOption
+    );
+
+    QRegularExpressionMatchIterator it = re.globalMatch(content);
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        if (match.hasMatch()) {
+            QString token;
+            if (match.captured(1).length() > 0)
+                token = match.captured(1); // 中文
+            else if (match.captured(2).length() > 0)
+                token = match.captured(2); // 英文单词
+            else if (match.captured(3).length() > 0 ||
+                     match.captured(4).length() > 0 ||
+                     match.captured(5).length() > 0 ||
+                     match.captured(6).length() > 0)
+                token = match.captured();  // Emoji
+            else if (match.captured(7).length() > 0)
+                token = match.captured(7); // 空白
+            else
+                token = match.captured(8); // 其他字符
+            tokens << token;
+        }
+    }
+    return tokens;
+}
+
 //预处理文件内容
 void Expend::preprocessTXT() {
 
@@ -929,50 +970,53 @@ void Expend::preprocessTXT() {
     }
     file.close();
 
-    // -------------------分词&分段-----------------
+    // -------------------分词-----------------
+    QStringList tokens = tokenizeContent(content);
+
+    // -------------------分段-----------------
     QStringList paragraphs;
     int splitLength = ui->embedding_split_spinbox->value();
     int overlap = ui->embedding_overlap_spinbox->value();
     int splitNums = 0;
-    int start = 0;
-    int actualNewLength = splitLength - overlap;  // 实际上每次新增加的字符长度
+    int startTokenIndex = 0;
 
-    if (splitLength <= overlap) {
-        paragraphs << content;
-        splitNums++;
-    }
+    while (startTokenIndex < tokens.size()) {
+        int currentLength = 0;
+        int endTokenIndex = startTokenIndex;
 
-    while (start < content.length()) {
-        if (splitNums > 0 && overlap > 0) {  // 如果不是第一段且有重叠部分
-            start -= overlap;
-            // 确保 start 不小于 0
-            if (start < 0) start = 0;
-        }
-
-        // 初始分割长度
-        int endLength = qMin(splitLength, content.length() - start);
-
-        // 调整分割长度以避免拆分代理对
-        if (start + endLength < content.length()) {
-            // 检查分割点是否在高代理字符上
-            QChar lastChar = content.at(start + endLength - 1);
-            if (lastChar.isHighSurrogate()) {
-                // 如果是高代理字符，则包括下一个低代理字符
-                if (start + endLength < content.length()) {
-                    endLength += 1;
-                }
+        // 构建当前段落，确保不超过splitLength
+        while (endTokenIndex < tokens.size()) {
+            int tokenLength = tokens[endTokenIndex].length();
+            if (currentLength + tokenLength > splitLength) {
+                break;
             }
+            currentLength += tokenLength;
+            endTokenIndex++;
         }
 
-        // 提取子字符串
-        QString segment = content.mid(start, endLength);
-        paragraphs << segment;
-        // qDebug() << segment;
+        // 提取当前段落的tokens
+        QString paragraph;
+        for(int i = startTokenIndex; i < endTokenIndex; ++i){
+            paragraph += tokens[i];
+        }
+        paragraphs << paragraph;
         splitNums++;
-        start += actualNewLength;
-    }
 
-    // 可选：处理最后一段可能的剩余内容（如果需要）
+        // 计算下一段的起始index，考虑重叠部分
+        if(endTokenIndex < tokens.size()) {
+            int overlapLength = 0;
+            int overlapTokens = 0;
+            // 从当前结束位置回退，直到覆盖至少'overlap'个字符
+            while(endTokenIndex - overlapTokens > startTokenIndex && overlapLength < overlap) {
+                overlapLength += tokens[endTokenIndex - 1 - overlapTokens].length();
+                overlapTokens++;
+            }
+            startTokenIndex = endTokenIndex - overlapTokens;
+        }
+        else {
+            break;
+        }
+    }
 
     // 打印总分段数
     qDebug() << "分段数:" << splitNums;
@@ -1107,7 +1151,7 @@ void Expend::on_embedding_test_pushButton_clicked() {
             // A向量点积B向量除以(A模乘B模)
             std::vector<std::pair<int, double>> score;
             score = similar_indices(user_embedding_vector.value, Embedding_DB);
-            ui->embedding_test_result->appendPlainText(jtr("The three text segments with the highest similarity") + ":");
+            ui->embedding_test_result->appendPlainText(jtr("The text segments with the highest similarity") + ":");
             //将分数前几的结果显示出来
             for (int i = 0; i < embedding_resultnumb && i < score.size(); ++i) {
                 // qDebug()<<score[i].first<<score[i].second;

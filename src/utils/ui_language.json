@@ -549,10 +549,6 @@
             "词表大小",
             "vocab size "
         ],
-        "chinese rate": [
-            "汉字比重",
-            "chinese rate "
-        ],
         "mem": [
             "内存",
             "mem "
@@ -1253,9 +1249,9 @@
             "查询文本段嵌入完毕",
             "The query text segment has been embedded "
         ],
-        "The three text segments with the highest similarity": [
-            "相似度最高的三个文本段",
-            "The three text segments with the highest similarity"
+        "The text segments with the highest similarity": [
+            "相似度最高的几个文本段",
+            "The text segments with the highest similarity"
         ],
         "Number text segment similarity": [
             "号文本段 相似度",

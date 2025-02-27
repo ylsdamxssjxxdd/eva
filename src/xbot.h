@@ -42,6 +42,7 @@ class xBot : public QObject {
    public:
     //拯救中文
     QJsonObject wordsObj;
+    void getWords(QString json_file_path);
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
     int get_Chinese_word_nums(QString str_);

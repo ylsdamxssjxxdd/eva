@@ -6,7 +6,7 @@
 xBot::xBot() {
     llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
-
+    getWords(":/src/utils/bot_language.json");
     //初始的采样参数
     common_params_.sampling.top_p = DEFAULT_TOP_P;
     common_params_.sampling.temp = DEFAULT_TEMP;              //温度
@@ -235,7 +235,7 @@ int xBot::stream() {
             }
 
             //按批处理,直到处理完
-            emit bot2ui_state("bot:" + jtr("decode") + "·" + jtr("use kv cache") + "(" + QString::number(n_past) + jtr("nums") + ")" + jtr("and input") + "(" + QString::number(embd.size()) + jtr("nums") + ")" + "token" + jtr("caculate next word probability table") + " ");
+            emit bot2ui_state("bot:" + jtr("decode") + "·" + jtr("use kv cache") + "(" + QString::number(n_past) + jtr("nums") + ")" + jtr("and input") + "(" + QString::number(embd.size()) + jtr("nums") + ")" + "token");
             //+ jtr("batch size") + QString::number(common_params_.n_batch));
 
             for (int i = 0; i < (int)embd.size(); i += common_params_.n_batch) {
@@ -1272,4 +1272,22 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
     }
 
     return false;
+}
+
+//拯救中文
+void xBot::getWords(QString json_file_path) {
+    QFile jfile(json_file_path);
+    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open file for reading.";
+        return;
+    }
+
+    QTextStream in(&jfile);
+    in.setCodec("UTF-8");  // 确保使用UTF-8编码读取文件
+    QString data = in.readAll();
+    jfile.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+    QJsonObject jsonObj = doc.object();
+    wordsObj = jsonObj["words"].toObject();
 }

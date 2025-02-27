@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     cpuChecker cpuer;                            //监视系统信息
 
     //-----------------初始值设定-----------------------
-    expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;  //传递语言
+    expend.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;  //传递语言
     expend.max_thread = w.max_thread;
     tool.embedding_server_resultnumb = expend.embedding_resultnumb; //同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath;  // 默认打开路径
