@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
     //-----------------初始值设定-----------------------
     expend.wordsObj = bot.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj;  //传递语言
     expend.max_thread = w.max_thread;
+    tool.embedding_server_resultnumb = expend.embedding_resultnumb; //同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath;  // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
@@ -194,7 +195,7 @@ int main(int argc, char* argv[]) {
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                  //传递已嵌入文本段数据
-    QObject::connect(&expend, &Expend::expend2tool_embedding_serverapi, &tool, &xTool::recv_embedding_serverapi);  //传递嵌入服务端点
+    QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb);  //传递嵌入结果返回个数
 
     QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);          //开始绘制图像
     QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover);  //图像绘制完成
@@ -286,7 +287,6 @@ int main(int argc, char* argv[]) {
         } else                                //借助端点直接嵌入
         {
             expend.embedding_processing();                                                    //执行嵌入
-            tool.embedding_server_api = settings.value("embedding_endpoint", "").toString();  //要让tool拿到api端点地址
         }
     }
 

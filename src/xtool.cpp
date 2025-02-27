@@ -245,14 +245,15 @@ QString xTool::embedding_query_process(QString query_str) {
     QEventLoop loop;  // 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(embedding_server_api + ""));  //加一个""是为了避免语法解析错误
+    QString embedding_server_api = "http://" + QString(DEFAULT_EMBEDDING_IP) + ":" + DEFAULT_EMBEDDING_PORT + DEFAULT_EMBEDDING_API;
+    QNetworkRequest request(QUrl(embedding_server_api + QString("")));  //加一个""是为了避免语法解析错误
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key = "Bearer " + QString("sjxx");
     request.setRawHeader("Authorization", api_key.toUtf8());
     //构造请求的数据体
     QJsonObject json;
-    json.insert("model", "gpt-3.5-turbo");
+    json.insert("model", "defult");
     json.insert("encoding_format", "float");
     json.insert("input", query_str);
     QJsonDocument doc(json);
@@ -300,8 +301,8 @@ QString xTool::embedding_query_process(QString query_str) {
                 knowledge_result += jtr("The three text segments with the highest similarity") + DEFAULT_SPLITER;
             }
 
-            //将分数前三的结果显示出来
-            for (int i = 0; i < 3 && i < score.size(); ++i) {
+            //将分数前几的结果显示出来
+            for (int i = 0; i < embedding_server_resultnumb && i < score.size(); ++i) {
                 knowledge_result += QString::number(score[i].first + 1) + jtr("Number text segment similarity") + ": " + QString::number(score[i].second);
                 knowledge_result += " " + jtr("content") + DEFAULT_SPLITER + Embedding_DB.at(score[i].first).chunk + "\n";
             }
@@ -376,10 +377,9 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_) {
     emit tool2ui_state("tool:" + jtr("Received embedded text segment data"), USUAL_SIGNAL);
 }
 
-//传递嵌入服务端点和嵌入维度
-void xTool::recv_embedding_serverapi(QString serverapi, int dim) {
-    embedding_server_api = serverapi;
-    embedding_server_dim = dim;  //开启嵌入服务的嵌入维度
+//传递嵌入结果返回个数
+void xTool::recv_embedding_resultnumb(int resultnumb) {
+    embedding_server_resultnumb = resultnumb;
 }
 
 //接收图像绘制完成信号

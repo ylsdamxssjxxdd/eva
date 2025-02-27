@@ -52,12 +52,14 @@
 #else
 #define DEFAULT_NGL 0
 #endif
-#define DEFAULT_SERVER_PORT "8080"  // 嵌入端口
-#define DEFAULT_EMBEDDING_PORT "7758"  // 嵌入端口
+#define DEFAULT_SERVER_PORT "8080"  // 默认服务端口
+#define DEFAULT_EMBEDDING_PORT "7758"  // 默认嵌入端口
+#define DEFAULT_EMBEDDING_IP "127.0.0.1" // 嵌入端点ip
+#define DEFAULT_EMBEDDING_API "/v1/embeddings"  // 嵌入端点地址
 
 // llama日志信号字样，用来指示下一步动作
 #define SERVER_START "server is listening on"  // server启动成功返回的字样
-#define LLM_EMBD "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
+#define SERVER_EMBD_INFO "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
 
 //默认的模型路径
 #define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen2.5-7B-Q3_K_M.gguf"

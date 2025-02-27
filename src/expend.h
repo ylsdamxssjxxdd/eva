@@ -116,13 +116,12 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
    public:
     Embedding_Params embedding_params;
+    int embedding_resultnumb = 3; //嵌入结果返回个数
     bool embedding_server_need = false;         // 下一次打开是否需要自启动嵌入服务
     bool embedding_embed_need = false;    // 下一次打开是否需要自动构建知识库
     bool keep_embedding_server = false;  // 确保嵌入服务不会因为刚启动就停止
+    QString embedding_server_api = "http://" + QString(DEFAULT_EMBEDDING_IP) + ":" + DEFAULT_EMBEDDING_PORT + DEFAULT_EMBEDDING_API;
     QProcess *server_process;
-    QString ipAddress = "";
-    QString embedding_server_api = "";
-    QString getFirstNonLoopbackIPv4Address();
     void embedding_server_start();           //尝试启动server
     QString txtpath;                         //用户上传的txt文件路径
     int embedding_server_dim = 1024;         //开启嵌入服务的嵌入维度
@@ -136,7 +135,7 @@ class Expend : public QWidget {
    signals:
     void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_);  //发送已嵌入文本段数据给tool
     void expend2ui_embeddingdb_describe(QString describe);                  //传递知识库的描述
-    void expend2tool_embedding_serverapi(QString serverapi, int dim);       //传递嵌入服务端点
+    void expend2ui_embedding_resultnumb(int resultnumb); //传递嵌入结果返回个数
    public slots:
     void embedding_processing();  //知识库构建过程
     void readyRead_server_process_StandardOutput();
@@ -151,10 +150,9 @@ class Expend : public QWidget {
     void on_embedding_txt_upload_clicked();                 //用户点击上传文档时响应
     void on_embedding_txt_embedding_clicked();              //用户点击嵌入时响应
     void on_embedding_test_pushButton_clicked();            //用户点击检索时响应
-    void on_embedding_txt_api_lineedit_textChanged();       //嵌入端点改变响应
-    void on_embedding_dim_spinBox_textChanged();            //嵌入维度改变响应
+    void on_embedding_model_lineedit_textChanged();       //嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();  //知识库描述改变响应
-
+    void on_embedding_resultnumb_spinBox_valueChanged(int value);    //嵌入结果返回个数改变响应
     //-------------------------------------------------------------------------
     //----------------------------------模型量化相关--------------------------------
     //-------------------------------------------------------------------------

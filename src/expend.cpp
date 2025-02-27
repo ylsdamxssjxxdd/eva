@@ -228,12 +228,12 @@ void Expend::init_expend() {
     //知识库
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});    //设置列名
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});  //设置列名
-    ui->embedding_endpoint_label->setText(jtr("embd api"));
+    ui->embedding_model_label->setText(jtr("embd model"));
     ui->embedding_dim_label->setText(jtr("embd dim"));
-    ui->embedding_txt_api_lineedit->setPlaceholderText(jtr("embedding_txt_api_lineedit_placeholder"));
+    ui->embedding_model_lineedit->setPlaceholderText(jtr("embedding_model_lineedit_placeholder"));
     ui->embedding_split_label->setText(jtr("split length"));
     ui->embedding_overlap_label->setText(jtr("overlap length"));
-    ui->embedding_source_doc_label->setText(jtr("source doc"));
+    ui->embedding_source_doc_label->setText(jtr("source txt"));
     ui->embedding_txt_lineEdit->setPlaceholderText(jtr("embedding_txt_lineEdit_placeholder"));
     ui->embedding_describe_label->setText(jtr("knowledge base description"));
     ui->embedding_txt_describe_lineEdit->setPlaceholderText(jtr("embedding_txt_describe_lineEdit_placeholder"));
@@ -243,6 +243,7 @@ void Expend::init_expend() {
     ui->embedding_test_pushButton->setText(jtr("retrieval"));
     ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
     ui->embedding_log_groupBox->setTitle(jtr("log"));
+    ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
     //文生图
     ui->sd_pathset_groupBox->setTitle(jtr("path set"));
     ui->sd_paramsset_groupBox->setTitle(jtr("params set"));
@@ -525,9 +526,9 @@ void Expend::readConfig() {
     }
 
     //知识库，在main.cpp里有启动的部分
-    ui->embedding_txt_api_lineedit->setText(settings.value("embedding_endpoint", "").toString());       //如果模型不存在则直接使用端点
     ui->embedding_txt_describe_lineEdit->setText(settings.value("embedding_describe", "").toString());  //知识库描述
     ui->embedding_split_spinbox->setValue(settings.value("embedding_split", 300).toInt());
+    ui->embedding_resultnumb_spinBox->setValue(settings.value("embedding_resultnumb", 3).toInt());
     ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", 50).toInt());
     ui->embedding_dim_spinBox->setValue(settings.value("embedding_dim", 1024).toInt());
 
@@ -679,18 +680,11 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("speech_name", ui->speech_source_comboBox->currentText());
     settings.setValue("outetts_modelpath", ui->speech_outetts_modelpath_lineEdit->text());
     settings.setValue("wavtokenizer_modelpath", ui->speech_wavtokenizer_modelpath_lineEdit->text());
-
     settings.setValue("embedding_modelpath", embedding_params.modelpath);
-    settings.setValue("embedding_endpoint", ui->embedding_txt_api_lineedit->text());  //如果模型不存在则直接使用端点
     settings.setValue("embedding_dim", ui->embedding_dim_spinBox->text());
-    if (embedding_server_need) {
-        if (ui->embedding_txt_api_lineedit->text() == "")  //如果用户删除了嵌入端点的内容则不自动启动嵌入服务
-        {
-            embedding_server_need = false;
-        }
-    }
     settings.setValue("embedding_server_need", embedding_server_need);
     settings.setValue("embedding_split", ui->embedding_split_spinbox->value());
+    settings.setValue("embedding_resultnumb", embedding_resultnumb);
     settings.setValue("embedding_overlap", ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
@@ -825,11 +819,13 @@ void Expend::on_embedding_txt_modelpath_button_clicked() {
     currentpath = customOpenfile(currentpath, jtr("select embedding model"), "(*.bin *.gguf)");
     embedding_params.modelpath = currentpath;
     if (embedding_params.modelpath == "") {
+        ui->embedding_model_lineedit->setText("");//清空启动的服务
         return;
     }
 
     // 100 ms后尝试启动服务, 因为要等待server_process->kill()
     QTimer::singleShot(100, this, &Expend::embedding_server_start);
+
 }
 
 // 尝试启动server
@@ -856,9 +852,6 @@ void Expend::embedding_server_start() {
     if(!DEFAULT_USE_MMAP){arguments << "--no-mmap";}
     // 开始运行程序
     server_process->start(program, arguments);
-
-    //连接信号和槽,获取程序的输出
-    ipAddress = getFirstNonLoopbackIPv4Address();
 }
 
 // 获取server_process日志输出
@@ -876,9 +869,12 @@ void Expend::readyRead_server_process_StandardError() {
     QString log_output;
     if (server_output.contains(SERVER_START)) {
         keep_embedding_server = true;
-        embedding_server_api = "http://" + ipAddress + ":" + DEFAULT_EMBEDDING_PORT + "/v1/embeddings";
-        ui->embedding_txt_api_lineedit->setText(embedding_server_api);  //启动成功后将端点地址写进去
+        ui->embedding_model_lineedit->setText(embedding_params.modelpath);
         keep_embedding_server = false;
+
+        ui->embedding_txt_modelpath_button->setText(jtr("abort server"));
+
+        qDebug()<<"嵌入服务启动成功"<<embedding_server_api;
         log_output += jtr("embedding") + jtr("service startup completed") + "\n";
         log_output += jtr("embd api") + ": " + embedding_server_api;
         log_output += "\n" + jtr("embd dim") + ": " + QString::number(embedding_server_dim);
@@ -887,35 +883,29 @@ void Expend::readyRead_server_process_StandardError() {
         ui->embedding_test_log->appendPlainText(log_output);
     }
 
-    if (server_output.contains(LLM_EMBD)) {
-        embedding_server_dim = server_output.split(LLM_EMBD).at(1).split("\n").at(0).toInt();
+    if (server_output.contains(SERVER_EMBD_INFO)) {
+        embedding_server_dim = server_output.split(SERVER_EMBD_INFO).at(1).split("\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);
         qDebug()<<"该模型的嵌入维度为: "<<embedding_server_dim<<ui->embedding_dim_spinBox->value();
         if (embedding_embed_need)  //用来自动构建知识库
         {
             embedding_embed_need = false;
-            QTimer::singleShot(1000, this, SLOT(embedding_processing()));       //1s后再执行构建以免冲突                                                                               //执行嵌入
-            emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());  //传递嵌入服务端点
+            QTimer::singleShot(1000, this, SLOT(embedding_processing()));       //1s后再执行构建以免冲突
         }
-    }  //截获n_embd嵌入维度
+    }
 }
 
 //进程开始响应
 void Expend::server_onProcessStarted() {}
 
 //进程结束响应
-void Expend::server_onProcessFinished() { ui->embedding_test_log->appendPlainText(jtr("embedding server abort")); }
-
-//获取本机第一个ip地址
-QString Expend::getFirstNonLoopbackIPv4Address() {
-    QList<QHostAddress> list = QNetworkInterface::allAddresses();
-    for (int i = 0; i < list.count(); i++) {
-        if (!list[i].isLoopback() && list[i].protocol() == QAbstractSocket::IPv4Protocol) {
-            return list[i].toString();
-        }
-    }
-    return QString();
+void Expend::server_onProcessFinished() 
+{ 
+    ui->embedding_test_log->appendPlainText(jtr("embedding server abort"));
+    ui->embedding_txt_modelpath_button->setText("...");
+    qDebug()<<"嵌入服务终止";
 }
+
 //用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked() {
     currentpath = customOpenfile(currentpath, jtr("choose a txt to embed"), "(*.txt)");
@@ -1063,7 +1053,7 @@ void Expend::on_embedding_test_pushButton_clicked() {
     QEventLoop loop;  // 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(ui->embedding_txt_api_lineedit->text()));
+    QNetworkRequest request(QUrl(embedding_server_api + QString("")));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key = "Bearer " + QString("sjxx");
@@ -1118,8 +1108,8 @@ void Expend::on_embedding_test_pushButton_clicked() {
             std::vector<std::pair<int, double>> score;
             score = similar_indices(user_embedding_vector.value, Embedding_DB);
             ui->embedding_test_result->appendPlainText(jtr("The three text segments with the highest similarity") + ":");
-            //将分数前三的结果显示出来
-            for (int i = 0; i < 3 && i < score.size(); ++i) {
+            //将分数前几的结果显示出来
+            for (int i = 0; i < embedding_resultnumb && i < score.size(); ++i) {
                 // qDebug()<<score[i].first<<score[i].second;
                 ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + " " + jtr("Number text segment similarity") + ": " + QString::number(score[i].second));
             }
@@ -1127,6 +1117,7 @@ void Expend::on_embedding_test_pushButton_clicked() {
         } else {
             // 请求出错
             ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
+            
         }
 
         reply->abort();  //终止
@@ -1250,32 +1241,35 @@ void Expend::embedding_processing() {
     QEventLoop loop;  // 进入事件循环，等待回复
     QNetworkAccessManager manager;
     // 设置请求的端点 URL
-    QNetworkRequest request(QUrl(ui->embedding_txt_api_lineedit->text()));
+    QNetworkRequest request(QUrl(embedding_server_api + QString("")));
     // 设置请求头
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key = "Bearer " + QString("sjxx");
     request.setRawHeader("Authorization", api_key.toUtf8());
 
     //-------------------循环发送请求直到文本段处理完-------------------
-    // QStringList remain_txt;
+    int toleran_times = 3;//最大重试次数
+    QList<int> remain_index;
+    for (int o = 0; o < Embedding_DB.size(); o++)
+    {
+        remain_index << o;
+    }
 
-    // while (condition)
-    // {
-    //     /* code */
-    // }
-    
-    for (int o = 0; o < Embedding_DB.size(); o++) {
+    // 一直向服务发送请求，直到所有数据被正确处理
+    while (remain_index.size()!=0 && toleran_times!=0)
+    {
         //已经嵌入的就不处理了
-        if (save_list.contains(Embedding_DB.at(o).index)) {
+        if (save_list.contains(Embedding_DB.at(remain_index.front()).index)) {
             ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());  // 在表格末尾添加新行
-            QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(o).chunk);
+            QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(remain_index.front()).chunk);
             newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
             newItem->setBackground(QColor(255, 165, 0, 60));            // 设置单元格背景颜色,橘黄色
-            ui->embedding_txt_over->setItem(o, 0, newItem);
+            ui->embedding_txt_over->setItem(remain_index.front(), 0, newItem);
             ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400));  // 列宽保持控件宽度
             ui->embedding_txt_over->resizeRowsToContents();                                         // 自动调整行高
             ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);        // 滚动到新添加的行
             show_chunk_index++;
+            remain_index.removeFirst();
             continue;
         }
 
@@ -1283,7 +1277,7 @@ void Expend::embedding_processing() {
         QJsonObject json;
         json.insert("model", "default");
         json.insert("encoding_format", "float");
-        json.insert("input", Embedding_DB.at(o).chunk);  //待嵌入文本段
+        json.insert("input", Embedding_DB.at(remain_index.front()).chunk);  //待嵌入文本段
         QJsonDocument doc(json);
         QByteArray data = doc.toJson();
         
@@ -1306,19 +1300,19 @@ void Expend::embedding_processing() {
                 // 检查"data"对象中是否存在"embedding"
                 if (dataObj.contains("embedding")) {
                     QJsonArray embeddingArray = dataObj["embedding"].toArray();
-                    Embedding_DB[o].value.resize(ui->embedding_dim_spinBox->value());  // 分配空间
+                    Embedding_DB[remain_index.front()].value.resize(ui->embedding_dim_spinBox->value());  // 分配空间
                     // 处理"embedding"数组
                     int arraySize = embeddingArray.size();
                     if(arraySize != ui->embedding_dim_spinBox->value()){ui->embedding_test_log->appendPlainText(QString::number(arraySize) + " query embedding dim not match! Fill with 0");}
                     for (int j = 0; j < ui->embedding_dim_spinBox->value(); ++j) {
-                        if (j < arraySize) {Embedding_DB[o].value[j] = embeddingArray[j].toDouble();} 
-                        else {Embedding_DB[o].value[j] = 0.0;}//返回的向量不足的维度用0填充
-                        vector_str += QString::number(Embedding_DB[o].value[j], 'f', 4) + ", ";
+                        if (j < arraySize) {Embedding_DB[remain_index.front()].value[j] = embeddingArray[j].toDouble();} 
+                        else {Embedding_DB[remain_index.front()].value[j] = 0.0;}//返回的向量不足的维度用0填充
+                        vector_str += QString::number(Embedding_DB[remain_index.front()].value[j], 'f', 4) + ", ";
                     }
                 }
             }
             vector_str += "]";
-            QString message = QString::number(Embedding_DB.at(o).index + 1) + " " + jtr("Number text segment embedding over") + "! " + jtr("dimension") + ": " + QString::number(Embedding_DB.at(o).value.size()) + " " + jtr("word vector") + ": " + vector_str;
+            QString message = QString::number(Embedding_DB.at(remain_index.front()).index + 1) + " " + jtr("Number text segment embedding over") + "! " + jtr("dimension") + ": " + QString::number(Embedding_DB.at(remain_index.front()).value.size()) + " " + jtr("word vector") + ": " + vector_str;
             ui->embedding_test_log->appendPlainText(message);
             ui->embedding_test_log->verticalScrollBar()->setValue(ui->embedding_test_log->verticalScrollBar()->maximum());      //滚动条滚动到最下面
             ui->embedding_test_log->horizontalScrollBar()->setValue(ui->embedding_test_log->horizontalScrollBar()->minimum());  // 水平滚动条滚动到最左边
@@ -1338,11 +1332,13 @@ void Expend::embedding_processing() {
                 ui->embedding_txt_over->resizeRowsToContents();                                         // 自动调整行高
                 ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);        // 滚动到新添加的行
                 show_chunk_index++;
-                embedding_server_need = true;
+                embedding_server_need = true;// 下次启动自动执行嵌入
+                remain_index.removeFirst();
             } else {
                 // 请求出错
                 ui->embedding_test_log->appendPlainText(jtr("Request error, please make sure to start the embedded service"));
                 embedding_server_need = false;
+                toleran_times --;
             }
 
             reply->abort();  //终止
@@ -1366,7 +1362,7 @@ void Expend::embedding_processing() {
 }
 
 //嵌入服务端点改变响应
-void Expend::on_embedding_txt_api_lineedit_textChanged() {
+void Expend::on_embedding_model_lineedit_textChanged() {
     if (!keep_embedding_server) {
         server_process->kill();                                                                       // 终止server
         Embedding_DB.clear();                                                                         // 清空向量数据库
@@ -1375,17 +1371,17 @@ void Expend::on_embedding_txt_api_lineedit_textChanged() {
         ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});  //设置列名
     }
 
-    emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());  //传递嵌入服务端点
-}
-
-//嵌入服务端点改变响应
-void Expend::on_embedding_dim_spinBox_textChanged() {
-    emit expend2tool_embedding_serverapi(ui->embedding_txt_api_lineedit->text(), ui->embedding_dim_spinBox->value());  //传递嵌入服务端点
 }
 
 //知识库描述改变响应
 void Expend::on_embedding_txt_describe_lineEdit_textChanged() {
     emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text());  //传递知识库的描述
+}
+
+//嵌入结果返回个数改变响应
+void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value) {
+    embedding_resultnumb = value;
+    emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
 
 //-------------------------------------------------------------------------

@@ -1353,13 +1353,17 @@
             "嵌入端点",
             "embd api"
         ],
+        "embd model": [
+            "嵌入模型",
+            "embd model"
+        ],
         "embd dim": [
             "嵌入维度",
             "embd dim"
         ],
-        "embedding_txt_api_lineedit_placeholder": [
-            "选择一个嵌入模型并启动服务用来计算词向量，或直接输入嵌入服务的v1/embeddings端点地址",
-            "choose an embedding model and start the service, or directly input the v1/embeddings api"
+        "embedding_model_lineedit_placeholder": [
+            "选择一个嵌入模型并启动服务用来计算词向量",
+            "choose an embedding model and start the service"
         ],
         "split length": [
             "分段长度",
@@ -1369,9 +1373,17 @@
             "重叠长度",
             "overlap"
         ],
-        "source doc": [
+        "resultnumb": [
+            "结果个数",
+            "result numb"
+        ],
+        "source txt": [
             "源文档",
-            "source"
+            "source txt"
+        ],
+        "abort server": [
+            "终止服务",
+            "abort server"
         ],
         "embedding_txt_lineEdit_placeholder": [
             "选择上传一个txt文件，可以在待嵌入文本区进行修改",
