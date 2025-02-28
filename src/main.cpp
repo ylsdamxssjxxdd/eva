@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
     QApplication a(argc, argv);                                                                               //事件实例
     // 加载资源文件中的字体, 统一使用宋体
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
-    if (fontId == -1) {
-        QFont font("SimSun");//如果没有说明是在window下
+    if (fontId == -1) {//如果没有说明是在window下
+        QFont font("SimSun");
         QApplication::setFont(font);
         // qDebug() << "Loaded font:" << "windows SimSun";
     } else {

@@ -1649,6 +1649,10 @@
             "转换格式",
             "format"
         ],
+        "Model path must be specified!": [
+            "请指定原始模型的路径，可以在https://hf-mirror.com下载",
+            "Model path must be specified!"
+        ],
         "exec convert": [
             "执行转换",
             "convert"

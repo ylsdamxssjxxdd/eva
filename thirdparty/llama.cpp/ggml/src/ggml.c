@@ -240,7 +240,11 @@ void ggml_log_callback_default(enum ggml_log_level level, const char * text, voi
 
 
 void * ggml_aligned_malloc(size_t size) {
+#if defined(__s390x__)
+    const int alignment = 256;
+#else
     const int alignment = 64;
+#endif
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
     return _aligned_malloc(size, alignment);
@@ -537,7 +541,6 @@ static wchar_t * ggml_mbstowcs(const char * mbs) {
 FILE * ggml_fopen(const char * fname, const char * mode) {
 
     return fopen(fname, mode);
-
 
 }
 static void ggml_vec_dot_f32(int n, float * restrict s, size_t bs, const float * restrict x, size_t bx, const float * restrict y, size_t by, int nrc);

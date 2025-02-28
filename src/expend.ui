@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>8</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -101,6 +101,12 @@ p, li { white-space: pre-wrap; }
           </property>
           <item>
            <widget class="QTableWidget" name="modelgrade_tableWidget">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="lineWidth">
              <number>0</number>
             </property>
@@ -135,7 +141,7 @@ p, li { white-space: pre-wrap; }
             <property name="font">
              <font>
               <family>Arial</family>
-              <pointsize>10</pointsize>
+              <pointsize>9</pointsize>
              </font>
             </property>
             <property name="lineWidth">
@@ -175,6 +181,12 @@ p, li { white-space: pre-wrap; }
           </property>
           <item>
            <widget class="QTableWidget" name="brain_tableWidget">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="lineWidth">
              <number>0</number>
             </property>
@@ -209,7 +221,7 @@ p, li { white-space: pre-wrap; }
             <property name="font">
              <font>
               <family>Arial</family>
-              <pointsize>10</pointsize>
+              <pointsize>9</pointsize>
              </font>
             </property>
             <property name="lineWidth">
@@ -562,6 +574,12 @@ p, li { white-space: pre-wrap; }
               <height>16777215</height>
              </size>
             </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -901,7 +919,14 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
-           <widget class="QTableWidget" name="model_quantize_info"/>
+           <widget class="QTableWidget" name="model_quantize_info">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -1064,6 +1089,12 @@ p, li { white-space: pre-wrap; }
               <width>16777215</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
             </property>
             <property name="readOnly">
              <bool>true</bool>
@@ -1636,6 +1667,12 @@ p, li { white-space: pre-wrap; }
           </property>
           <item>
            <widget class="QTableWidget" name="embedding_txt_wait">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="lineWidth">
              <number>0</number>
             </property>
@@ -1645,6 +1682,12 @@ p, li { white-space: pre-wrap; }
            <widget class="QTableWidget" name="embedding_txt_over">
             <property name="enabled">
              <bool>true</bool>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
             </property>
             <property name="lineWidth">
              <number>0</number>
@@ -1740,6 +1783,12 @@ p, li { white-space: pre-wrap; }
                  <height>80</height>
                 </size>
                </property>
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
                <property name="placeholderText">
                 <string>嵌入文本段后在这里输入问题，点击检索，通过向嵌入端点发送查询，将返回文本相似度最高的3个文本段</string>
                </property>
@@ -1814,6 +1863,12 @@ p, li { white-space: pre-wrap; }
                  <height>80</height>
                 </size>
                </property>
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
                <property name="readOnly">
                 <bool>true</bool>
                </property>
@@ -1868,6 +1923,12 @@ p, li { white-space: pre-wrap; }
                  <width>16777215</width>
                  <height>80</height>
                 </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
                </property>
                <property name="readOnly">
                 <bool>true</bool>
@@ -3345,6 +3406,12 @@ p, li { white-space: pre-wrap; }
              </property>
              <item>
               <widget class="QTextEdit" name="sd_prompt_textEdit">
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
                <property name="toolTip">
                 <string>右击来画凌波丽</string>
                </property>
@@ -3430,6 +3497,12 @@ p, li { white-space: pre-wrap; }
                  <width>16777215</width>
                  <height>30</height>
                 </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
                </property>
                <property name="placeholderText">
                 <string>右击选择图像进行图生图</string>
@@ -3520,6 +3593,12 @@ p, li { white-space: pre-wrap; }
              </property>
              <item>
               <widget class="QTextEdit" name="sd_result">
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
+               </property>
                <property name="lineWidth">
                 <number>0</number>
                </property>
@@ -3577,6 +3656,12 @@ p, li { white-space: pre-wrap; }
                  <width>16777215</width>
                  <height>16777215</height>
                 </size>
+               </property>
+               <property name="font">
+                <font>
+                 <family>Arial</family>
+                 <pointsize>9</pointsize>
+                </font>
                </property>
                <property name="lineWidth">
                 <number>0</number>
@@ -3754,7 +3839,7 @@ p, li { white-space: pre-wrap; }
             <property name="font">
              <font>
               <family>Arial</family>
-              <pointsize>10</pointsize>
+              <pointsize>9</pointsize>
              </font>
             </property>
             <property name="readOnly">
@@ -4290,6 +4375,12 @@ p, li { white-space: pre-wrap; }
           </property>
           <item>
            <widget class="QPlainTextEdit" name="speech_log">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -4402,7 +4493,14 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="sync_tableWidget"/>
+        <widget class="QTableWidget" name="sync_tableWidget">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+           <pointsize>9</pointsize>
+          </font>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

@@ -25,6 +25,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
     ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
+    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
 
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
@@ -2553,7 +2554,7 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
 
     if(ui->modelconvert_modelpath_lineEdit->text()=="")
     {
-        ui->modelconvert_log->appendPlainText("Model path must be specified!");
+        ui->modelconvert_log->appendPlainText(jtr("Model path must be specified!"));
         return;
     }
 
