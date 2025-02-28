@@ -7,7 +7,7 @@ Embedding Vector Agent: EVA (based on llama.cpp & qt5)
 
 ## Feature
 
-- Easy to use operating interface 🎛️
+- Easy to use operating interface 🧮
 
 - Native operational efficiency 🚀
 
@@ -33,7 +33,7 @@ Embedding Vector Agent: EVA (based on llama.cpp & qt5)
 
 2. Download gguf model
 
-    - https://huggingface.c , eva supports almost all open-source llms
+    - https://huggingface.com , eva supports almost all open-source llms
 
 3. Load！
 
@@ -213,7 +213,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - installing the compiler for Windows can be done using MSVC or MingW, while Linux requires g++ or Clang
 
-    - install Qt5 https://download.qt.io/
+    - install Qt5.15 https://download.qt.io/
 
     - install cmake https://cmake.org/
 

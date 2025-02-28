@@ -1297,6 +1297,10 @@
             "选到模型readme所在目录即可",
             "select the directory where the model readme is located"
         ],
+        "modelconvert_log_placeholder": [
+            "使用机体内置的python脚本将原始模型转换为gguf格式，用于装载到机体或者进一步执行模型量化操作\n请确保计算机安装了python且有tourch库\n原始模型可以在https://hf-mirror.com中下载",
+            "Convert the original model to gguf format for loading onto the EVA or further performing model quantization operations\nPlease ensure that Python is installed on the computer and there is tourch library available\nThe original model can be download in https://huggingface.com"
+        ],
         "modelconvert_outputname_lineEdit_placeholder": [
             "选择原始模型目录后会自动填充",
             "it will automatically filled in"

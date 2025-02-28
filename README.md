@@ -10,7 +10,7 @@
 
 ## 特点
 
-- 易用的操作界面 🎛️
+- 易用的操作界面 🧮
 
 - 原生的运行效率 🚀
 
@@ -220,7 +220,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
     - 安装编译器 windows可以用msvc或mingw，linux需要g++或clang
 
-    - 安装Qt5库 https://download.qt.io/
+    - 安装Qt5.15库 https://download.qt.io/
 
     - 安装cmake https://cmake.org/
 

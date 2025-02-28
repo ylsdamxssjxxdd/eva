@@ -237,6 +237,7 @@ void Expend::init_expend() {
     ui->modelconvert_outputname_label->setText(jtr("modelconvert_outputname_label_text"));
     ui->modelconvert_modelpath_lineEdit->setPlaceholderText(jtr("modelconvert_modelpath_lineEdit_placeholder"));
     ui->modelconvert_outputname_lineEdit->setPlaceholderText(jtr("modelconvert_outputname_lineEdit_placeholder"));
+    ui->modelconvert_log->setPlaceholderText(jtr("modelconvert_log_placeholder"));
     ui->modelconvert_log_groupBox->setTitle(jtr("log"));
 
     if(ui->modelconvert_exec_pushButton->text()==wordsObj["exec convert"].toArray()[0].toString()||ui->modelconvert_exec_pushButton->text()==wordsObj["exec convert"].toArray()[1].toString()){ui->modelconvert_exec_pushButton->setText(jtr("exec convert"));}
