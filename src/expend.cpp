@@ -40,6 +40,19 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->modelgrade_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 列充满
     ui->modelgrade_tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 行充满
 
+    //模型转换相关
+    // ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
+    ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
+    ui->modelconvert_converttype_comboBox->addItems({modelquantize_map[MODEL_QUANTIZE_F32],modelquantize_map[MODEL_QUANTIZE_F16],modelquantize_map[MODEL_QUANTIZE_BF16]});
+    ui->modelconvert_converttype_comboBox->setCurrentText(modelquantize_map[MODEL_QUANTIZE_F16]);//默认转换为f16的模型
+    ui->modelconvert_script_comboBox->addItems({CONVERT_HF_TO_GGUF_SCRIPT});
+    convert_command_process = new QProcess(this);
+    connect(convert_command_process, &QProcess::started, this, &Expend::convert_command_onProcessStarted);                                              //连接开始信号
+    connect(convert_command_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::convert_command_onProcessFinished);  //连接结束信号
+    connect(convert_command_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_convert_command_process_StandardOutput);
+    connect(convert_command_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_convert_command_process_StandardError);
+    
+    
     //塞入第三方exe
     server_process = new QProcess(this);                                                                                              // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);                                              //连接开始信号
@@ -69,6 +82,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //知识库相关
     ui->embedding_txt_wait->setColumnCount(1);  //设置一列
     ui->embedding_txt_over->setColumnCount(1);  //设置一列
+    ui->embedding_txt_wait->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 充满
+    ui->embedding_txt_over->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 充满
     connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput);
     connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
 
@@ -194,14 +209,15 @@ QString Expend::jtr(QString customstr) { return wordsObj[customstr].toArray()[la
 //初始化增殖窗口
 void Expend::init_expend() {
     this->setWindowTitle(jtr("expend window"));                    //标题
-    ui->tabWidget->setTabText(0, jtr("introduction"));             //软件介绍
-    ui->tabWidget->setTabText(1, jtr("model info"));              //模型信息
-    ui->tabWidget->setTabText(2, jtr("model") + jtr("quantize"));  //模型量化
-    ui->tabWidget->setTabText(3, jtr("knowledge"));                //知识库
-    ui->tabWidget->setTabText(4, jtr("text2image"));               //文生图
-    ui->tabWidget->setTabText(5, jtr("speech2text"));              //声转文
-    ui->tabWidget->setTabText(6, jtr("text2speech"));              //文转声
-    ui->tabWidget->setTabText(7, jtr("sync rate"));                //同步率
+    ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));             //软件介绍
+    ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));               //模型信息
+    ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model")+jtr("convert"));     //模型转换
+    ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));  //模型量化
+    ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));                //知识库
+    ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));               //文生图
+    ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              //声转文
+    ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));              //文转声
+    ui->tabWidget->setTabText(window_map[SYNC_WINDOW], jtr("sync rate"));                //同步率
 
     //模型信息
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
@@ -213,6 +229,15 @@ void Expend::init_expend() {
     //软件介绍
     showReadme();
 
+    //模型转换
+    ui->modelconvert_modeltype_label->setText(jtr("modelconvert_modeltype_label_text"));
+    ui->modelconvert_script_label->setText(jtr("modelconvert_script_label_text"));
+    ui->modelconvert_modelpath_label->setText(jtr("modelconvert_modelpath_label_text"));
+    ui->modelconvert_converttype_label->setText(jtr("modelconvert_converttype_label_text"));
+    ui->modelconvert_outputname_label->setText(jtr("modelconvert_outputname_label_text"));
+    ui->modelconvert_modelpath_lineEdit->setPlaceholderText(jtr("modelconvert_modelpath_lineEdit_placeholder"));
+    ui->modelconvert_outputname_lineEdit->setPlaceholderText(jtr("modelconvert_outputname_lineEdit_placeholder"));
+    ui->modelconvert_log_groupBox->setTitle(jtr("log"));
     //模型量化
     ui->model_quantize_label->setText(jtr("model_quantize_label_text"));
     ui->model_quantize_label_2->setText(jtr("model_quantize_label_2_text"));
@@ -293,7 +318,7 @@ void Expend::init_expend() {
     ui->whisper_wav2text_label->setText(jtr("wav2text"));
     ui->whisper_wavpath_pushButton->setText(jtr("wav path"));
     ui->whisper_format_label->setText(jtr("format"));
-    ui->whisper_execute_pushbutton->setText(jtr("convert"));
+    ui->whisper_execute_pushbutton->setText(jtr("exec convert"));
 
     //文转声
     ui->speech_available_label->setText(jtr("Available sound"));
@@ -2483,4 +2508,117 @@ void Expend::set_modelinfo()
     ui->modelgrade_tableWidget->setItem(6, 0, newItem6);
     
     ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
+}
+
+
+//-------------------------------------------------------------------------
+//----------------------------------模型转换相关--------------------------------
+//-------------------------------------------------------------------------
+
+//用户点击选择原始模型目录响应
+void Expend::on_modelconvert_modelpath_pushButton_clicked()
+{
+    currentpath = QFileDialog::getExistingDirectory(this, jtr("modelconvert_modelpath_lineEdit_placeholder"), currentpath);
+    ui->modelconvert_modelpath_lineEdit->setText(currentpath);
+
+    
+    get_convertmodel_name();//自动构建输出文件名
+
+}
+
+//用户点击执行转换响应
+void Expend::on_modelconvert_exec_pushButton_clicked()
+{
+    if(ui->modelconvert_exec_pushButton->text()==jtr("shut down"))
+    {
+        convert_command_process->kill();
+        ui->modelconvert_exec_pushButton->setText(jtr("exec convert"));
+        return;
+    }
+
+    if(ui->modelconvert_modelpath_lineEdit->text()=="")
+    {
+        ui->modelconvert_log->appendPlainText("Model path must be specified!");
+        return;
+    }
+
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    QString localPath = QString(appDirPath + "/usr/scripts/");// 脚本目录所在位置
+#else
+    QString localPath = QString("./scripts/"); // 脚本目录所在位置
+#endif
+
+    if(ui->modelconvert_modeltype_comboBox->currentText()==modeltype_map[MODEL_TYPE_LLM])
+    {
+        QStringList cmdline;
+    #ifdef Q_OS_WIN
+        cmdline << "/c";// 在Windows上执行
+    #else
+        cmdline << "-c";// 在Unix-like系统上执行
+    #endif
+        cmdline << "python";
+        cmdline << localPath + ui->modelconvert_script_comboBox->currentText();
+        cmdline << ui->modelconvert_modelpath_lineEdit->text();
+        cmdline << "--outtype" << ui->modelconvert_converttype_comboBox->currentText();
+        cmdline << "--outfile" << ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
+        convert_command_process->start(SHELL, cmdline);
+        ui->modelconvert_exec_pushButton->setText(jtr("shut down"));
+        qDebug() << "Running command: " << cmdline.join(" ");
+
+    }
+
+}
+
+//命令行程序开始
+void Expend::convert_command_onProcessStarted()
+{
+    //锁定界面
+    ui->modelconvert_modeltype_comboBox->setEnabled(0);
+    ui->modelconvert_script_comboBox->setEnabled(0);
+    ui->modelconvert_modelpath_pushButton->setEnabled(0);
+    ui->modelconvert_converttype_comboBox->setEnabled(0);
+    ui->modelconvert_outputname_lineEdit->setEnabled(0);
+}
+//命令行程序结束
+void Expend::convert_command_onProcessFinished()
+{
+    //解锁界面
+    ui->modelconvert_modeltype_comboBox->setEnabled(1);
+    ui->modelconvert_script_comboBox->setEnabled(1);
+    ui->modelconvert_modelpath_pushButton->setEnabled(1);
+    ui->modelconvert_converttype_comboBox->setEnabled(1);
+    ui->modelconvert_outputname_lineEdit->setEnabled(1);
+}
+//获取标准输出
+void Expend::readyRead_convert_command_process_StandardOutput()
+{
+    QString convert_command_output = convert_command_process->readAllStandardOutput();
+    ui->modelconvert_log->appendPlainText(convert_command_output);
+}
+//获取错误输出
+void Expend::readyRead_convert_command_process_StandardError()
+{
+    QString convert_command_output = convert_command_process->readAllStandardError();
+    ui->modelconvert_log->appendPlainText(convert_command_output);
+}
+
+//用户改变转换类型响应
+void Expend::on_modelconvert_converttype_comboBox_currentTextChanged(QString text)
+{
+    get_convertmodel_name();//自动构建输出文件名
+}
+
+//自动构建输出文件名
+void Expend::get_convertmodel_name()
+{
+    //自动构建输出文件名
+    if(ui->modelconvert_modelpath_lineEdit->text()!="")
+    {
+        QFileInfo fileInfo(currentpath);
+        QString fileName = fileInfo.fileName();
+        QString outFileName = fileName + "-" + ui->modelconvert_converttype_comboBox->currentText() + ".gguf";
+
+        ui->modelconvert_outputname_lineEdit->setText(outFileName);
+    }
 }

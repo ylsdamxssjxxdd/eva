@@ -154,6 +154,21 @@ class Expend : public QWidget {
     void on_embedding_model_lineedit_textChanged();       //嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();  //知识库描述改变响应
     void on_embedding_resultnumb_spinBox_valueChanged(int value);    //嵌入结果返回个数改变响应
+
+    //-------------------------------------------------------------------------
+    //----------------------------------模型转换相关--------------------------------
+    //-------------------------------------------------------------------------
+    public:
+      QProcess* convert_command_process;
+      void get_convertmodel_name();//自动构建输出文件名
+    private slots:
+      void on_modelconvert_modelpath_pushButton_clicked(); //用户点击选择原始模型目录响应
+      void on_modelconvert_exec_pushButton_clicked(); //用户点击执行转换响应
+      void convert_command_onProcessStarted();//命令行程序开始
+      void convert_command_onProcessFinished();//命令行程序结束
+      void readyRead_convert_command_process_StandardOutput();//获取标准输出
+      void readyRead_convert_command_process_StandardError();//获取错误输出
+      void on_modelconvert_converttype_comboBox_currentTextChanged(QString text);//用户改变转换类型响应
     //-------------------------------------------------------------------------
     //----------------------------------模型量化相关--------------------------------
     //-------------------------------------------------------------------------

@@ -1273,6 +1273,34 @@
             "接收到已嵌入文本段数据",
             "received embedded text segment data"
         ],
+        "modelconvert_modeltype_label_text": [
+            "模型类型",
+            "model type"
+        ],
+        "modelconvert_script_label_text": [
+            "待使用的内置转换脚本",
+            "conversion script"
+        ],
+        "modelconvert_modelpath_label_text": [
+            "原始模型目录",
+            "model directory"
+        ],
+        "modelconvert_converttype_label_text": [
+            "转换类型",
+            "convert type"
+        ],
+        "modelconvert_outputname_label_text": [
+            "转换后的gguf模型名称",
+            "converted gguf name"
+        ],
+        "modelconvert_modelpath_lineEdit_placeholder": [
+            "选到模型readme所在目录即可",
+            "select the directory where the model readme is located"
+        ],
+        "modelconvert_outputname_lineEdit_placeholder": [
+            "选择原始模型目录后会自动填充",
+            "it will automatically filled in"
+        ],
         "model_quantize_label_text": [
             "待量化模型路径",
             "input path"
@@ -1617,7 +1645,7 @@
             "转换格式",
             "format"
         ],
-        "convert": [
+        "exec convert": [
             "执行转换",
             "convert"
         ],
@@ -1648,6 +1676,10 @@
         "model info": [
             "模型信息",
             "model info "
+        ],
+        "convert": [
+            "转换",
+            "convert"
         ],
         "model brain": [
             "模型记忆",

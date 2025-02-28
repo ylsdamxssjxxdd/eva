@@ -134,6 +134,7 @@ enum EVA_STATE {
 enum EXPEND_WINDOW {
     INTRODUCTION_WINDOW,      //软件介绍窗口
     MODELINFO_WINDOW,         //模型信息窗口
+    MODELCONVERT_WINDOW,         //模型转换窗口
     QUANTIZE_WINDOW,          //模型量化窗口
     KNOWLEDGE_WINDOW,          //知识库窗口
     TXT2IMG_WINDOW,          //文生图窗口
@@ -145,7 +146,28 @@ enum EXPEND_WINDOW {
 };
 
 //窗口索引
-const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{QUANTIZE_WINDOW,2},{KNOWLEDGE_WINDOW,3},{TXT2IMG_WINDOW,4},{WHISPER_WINDOW,5},{TTS_WINDOW,6},{SYNC_WINDOW,7},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{MODELCONVERT_WINDOW,2},{QUANTIZE_WINDOW,3},{KNOWLEDGE_WINDOW,4},{TXT2IMG_WINDOW,5},{WHISPER_WINDOW,6},{TTS_WINDOW,7},{SYNC_WINDOW,8},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+
+//模型类型枚举
+enum MODEL_TYPE {
+    MODEL_TYPE_LLM,      //大语言模型
+    MODEL_TYPE_WHISPER,      //WHISPER模型
+    MODEL_TYPE_SD,      //SD模型
+    MODEL_TYPE_OUTETTS,      //OUTETTS模型
+};
+
+//模型量化级别枚举
+enum MODEL_QUANTIZE {
+    MODEL_QUANTIZE_F32,
+    MODEL_QUANTIZE_BF16,
+    MODEL_QUANTIZE_F16,
+};
+
+//模型转换脚本
+#define CONVERT_HF_TO_GGUF_SCRIPT "convert_hf_to_gguf.py"
+
+const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM,"llm"},{MODEL_TYPE_WHISPER,"whisper"},{MODEL_TYPE_SD,"sd"},{MODEL_TYPE_OUTETTS,"outetts"}};
+const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32,"f32"},{MODEL_QUANTIZE_F16,"f16"},{MODEL_QUANTIZE_BF16,"bf16"},};
 
 //模型信息参数
 struct MODELINFO {

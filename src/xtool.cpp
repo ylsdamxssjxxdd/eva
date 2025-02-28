@@ -38,36 +38,16 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         process->start(SHELL, QStringList() << "-c" << func_arg_list.second);
         emit tool2ui_state(QString("tool: ") + "/bin/sh " + "-c " + func_arg_list.second);
     #endif
+        process->waitForFinished();//process->waitForFinished()程序将会阻塞
+        QByteArray byteArray = process->readAll();  // 获取标准输出
+        QByteArray errorByteArray = process->readAllStandardError();  // 获取标准错误输出
+        QByteArray combinedOutput = byteArray + errorByteArray; // 合并输出
+        QString output = QString::fromLocal8Bit(combinedOutput);// 转换为QString
 
-        if (!process->waitForFinished()) {
-            // 处理错误
-            QString errorString = process->errorString();
-            emit tool2ui_state("tool:" + QString("execute_command ") + jtr("return") + "\n" + errorString, TOOL_SIGNAL);
-            emit tool2ui_pushover(QString("execute_command ") + jtr("return") + "\n" + errorString);
-            qDebug() << QString("execute_command ") + jtr("return") + "\n" + errorString;
-        } 
-        else 
-        {
-            // 获取命令的输出
-            QByteArray byteArray = process->readAll();
-            QString output = QString::fromLocal8Bit(byteArray);
+        emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + output, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("execute_command ") + "\n" + output);
+        qDebug() << QString("execute_command ") + "\n" + output;
 
-            // 获取标准错误输出
-            QByteArray errorByteArray = process->readAllStandardError();
-            QString errorOutput = QString::fromLocal8Bit(errorByteArray);
-
-            // 如果有错误输出，打印并发送
-            if (!errorOutput.isEmpty()) {
-                emit tool2ui_state("tool:" + QString("execute_command ") + jtr("stderr") + "\n" + errorOutput, TOOL_SIGNAL);
-                emit tool2ui_pushover(QString("execute_command ") + jtr("stderr") + "\n" + errorOutput);
-                qDebug() << QString("execute_command ") + jtr("stderr") + "\n" + errorOutput;
-            }
-
-            // 获取标准输出
-            emit tool2ui_state("tool:" + QString("execute_command ") + jtr("stdout") + "\n" + output, TOOL_SIGNAL);
-            emit tool2ui_pushover(QString("execute_command ") + jtr("stdout") + "\n" + output);
-            qDebug() << QString("execute_command ") + jtr("stdout") + "\n" + output;
-        }
     }
     //----------------------知识库------------------
     else if (func_arg_list.first == "knowledge") {
