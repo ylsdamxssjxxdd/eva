@@ -43,7 +43,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //模型转换相关
     // ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
     ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
-    ui->modelconvert_converttype_comboBox->addItems({modelquantize_map[MODEL_QUANTIZE_F32],modelquantize_map[MODEL_QUANTIZE_F16],modelquantize_map[MODEL_QUANTIZE_BF16]});
+    ui->modelconvert_converttype_comboBox->addItems({modelquantize_map[MODEL_QUANTIZE_F32],modelquantize_map[MODEL_QUANTIZE_F16],modelquantize_map[MODEL_QUANTIZE_BF16],modelquantize_map[MODEL_QUANTIZE_Q8_0]});
     ui->modelconvert_converttype_comboBox->setCurrentText(modelquantize_map[MODEL_QUANTIZE_F16]);//默认转换为f16的模型
     ui->modelconvert_script_comboBox->addItems({CONVERT_HF_TO_GGUF_SCRIPT});
     convert_command_process = new QProcess(this);
@@ -238,6 +238,9 @@ void Expend::init_expend() {
     ui->modelconvert_modelpath_lineEdit->setPlaceholderText(jtr("modelconvert_modelpath_lineEdit_placeholder"));
     ui->modelconvert_outputname_lineEdit->setPlaceholderText(jtr("modelconvert_outputname_lineEdit_placeholder"));
     ui->modelconvert_log_groupBox->setTitle(jtr("log"));
+
+    if(ui->modelconvert_exec_pushButton->text()==wordsObj["exec convert"].toArray()[0].toString()||ui->modelconvert_exec_pushButton->text()==wordsObj["exec convert"].toArray()[1].toString()){ui->modelconvert_exec_pushButton->setText(jtr("exec convert"));}
+    else{ui->modelconvert_exec_pushButton->setText(jtr("shut down"));}
     //模型量化
     ui->model_quantize_label->setText(jtr("model_quantize_label_text"));
     ui->model_quantize_label_2->setText(jtr("model_quantize_label_2_text"));
@@ -304,9 +307,10 @@ void Expend::init_expend() {
     ui->sd_modify_lineEdit->setPlaceholderText(jtr("sd_modify_lineEdit_placeholder"));
 
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
-    ui->sd_draw_pushButton->setText(jtr("text to image"));
-
-    ui->sd_img2img_pushButton->setText(jtr("image to image"));
+    if(ui->sd_draw_pushButton->text()==wordsObj["text to image"].toArray()[0].toString()||ui->sd_draw_pushButton->text()==wordsObj["text to image"].toArray()[1].toString()){ui->sd_draw_pushButton->setText(jtr("text to image"));}
+    else{ui->sd_draw_pushButton->setText("stop");}
+    if(ui->sd_img2img_pushButton->text()==wordsObj["image to image"].toArray()[0].toString()||ui->sd_img2img_pushButton->text()==wordsObj["image to image"].toArray()[1].toString()){ui->sd_img2img_pushButton->setText(jtr("image to image"));}
+    else{ui->sd_img2img_pushButton->setText("stop");}
     ui->sd_img2img_lineEdit->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
 
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
@@ -1900,7 +1904,13 @@ void Expend::on_sd_draw_pushButton_clicked() {
 
     //连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
-        sd_process_output = sd_process->readAllStandardOutput();
+        QByteArray sd_process_output_byte = sd_process->readAllStandardOutput();// 读取子进程的标准错误输出
+    #ifdef Q_OS_WIN
+        QString sd_process_output = QString::fromLocal8Bit(sd_process_output_byte);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
+    #else
+        QString sd_process_output = QString::fromUtf8(sd_process_output_byte);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
+    #endif
+
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
         cursor.insertText(sd_process_output);
@@ -1910,7 +1920,12 @@ void Expend::on_sd_draw_pushButton_clicked() {
         }
     });
     connect(sd_process, &QProcess::readyReadStandardError, [=]() {
-        sd_process_output = sd_process->readAllStandardError();
+        QByteArray sd_process_output_byte = sd_process->readAllStandardError();// 读取子进程的标准错误输出
+    #ifdef Q_OS_WIN
+        QString sd_process_output = QString::fromLocal8Bit(sd_process_output_byte);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
+    #else
+        QString sd_process_output = QString::fromUtf8(sd_process_output_byte);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
+    #endif
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
         cursor.insertText(sd_process_output);
@@ -2518,9 +2533,8 @@ void Expend::set_modelinfo()
 //用户点击选择原始模型目录响应
 void Expend::on_modelconvert_modelpath_pushButton_clicked()
 {
-    currentpath = QFileDialog::getExistingDirectory(this, jtr("modelconvert_modelpath_lineEdit_placeholder"), currentpath);
-    ui->modelconvert_modelpath_lineEdit->setText(currentpath);
-
+    convertmodeldir = QFileDialog::getExistingDirectory(this, jtr("modelconvert_modelpath_lineEdit_placeholder"), convertmodeldir);
+    ui->modelconvert_modelpath_lineEdit->setText(convertmodeldir);
     
     get_convertmodel_name();//自动构建输出文件名
 
@@ -2589,18 +2603,30 @@ void Expend::convert_command_onProcessFinished()
     ui->modelconvert_modelpath_pushButton->setEnabled(1);
     ui->modelconvert_converttype_comboBox->setEnabled(1);
     ui->modelconvert_outputname_lineEdit->setEnabled(1);
+    ui->modelconvert_exec_pushButton->setText(jtr("exec convert"));//恢复成执行转换
 }
 //获取标准输出
 void Expend::readyRead_convert_command_process_StandardOutput()
 {
-    QString convert_command_output = convert_command_process->readAllStandardOutput();
-    ui->modelconvert_log->appendPlainText(convert_command_output);
+    QByteArray convert_command_output = convert_command_process->readAllStandardOutput();// 读取子进程的标准输出
+#ifdef Q_OS_WIN
+    QString output_text = QString::fromLocal8Bit(convert_command_output);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
+#else
+    QString output_text = QString::fromUtf8(convert_command_output);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
+#endif
+    ui->modelconvert_log->appendPlainText(output_text);// 将转换后的文本附加到UI的文本框中
 }
+
 //获取错误输出
 void Expend::readyRead_convert_command_process_StandardError()
 {
-    QString convert_command_output = convert_command_process->readAllStandardError();
-    ui->modelconvert_log->appendPlainText(convert_command_output);
+    QByteArray convert_command_output = convert_command_process->readAllStandardError();// 读取子进程的标准错误输出
+#ifdef Q_OS_WIN
+    QString output_text = QString::fromLocal8Bit(convert_command_output);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
+#else
+    QString output_text = QString::fromUtf8(convert_command_output);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
+#endif
+    ui->modelconvert_log->appendPlainText(output_text);// 将转换后的文本附加到UI的文本框中
 }
 
 //用户改变转换类型响应
@@ -2615,7 +2641,7 @@ void Expend::get_convertmodel_name()
     //自动构建输出文件名
     if(ui->modelconvert_modelpath_lineEdit->text()!="")
     {
-        QFileInfo fileInfo(currentpath);
+        QFileInfo fileInfo(convertmodeldir);
         QString fileName = fileInfo.fileName();
         QString outFileName = fileName + "-" + ui->modelconvert_converttype_comboBox->currentText() + ".gguf";
 

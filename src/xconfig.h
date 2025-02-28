@@ -161,13 +161,14 @@ enum MODEL_QUANTIZE {
     MODEL_QUANTIZE_F32,
     MODEL_QUANTIZE_BF16,
     MODEL_QUANTIZE_F16,
+    MODEL_QUANTIZE_Q8_0,
 };
 
 //模型转换脚本
 #define CONVERT_HF_TO_GGUF_SCRIPT "convert_hf_to_gguf.py"
 
 const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM,"llm"},{MODEL_TYPE_WHISPER,"whisper"},{MODEL_TYPE_SD,"sd"},{MODEL_TYPE_OUTETTS,"outetts"}};
-const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32,"f32"},{MODEL_QUANTIZE_F16,"f16"},{MODEL_QUANTIZE_BF16,"bf16"},};
+const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32,"f32"},{MODEL_QUANTIZE_F16,"f16"},{MODEL_QUANTIZE_BF16,"bf16"},{MODEL_QUANTIZE_Q8_0,"q8_0"}};
 
 //模型信息参数
 struct MODELINFO {

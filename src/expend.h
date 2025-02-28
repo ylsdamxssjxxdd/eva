@@ -73,6 +73,7 @@ class Expend : public QWidget {
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();  //读取配置文件并应用
     QString currentpath;
+    QString convertmodeldir;
     void showReadme();                       //展示readme内容
     bool removeDir(const QString &dirName);  //删除文件夹
 

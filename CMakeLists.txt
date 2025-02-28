@@ -184,12 +184,20 @@ target_link_libraries(${TARGET} PRIVATE common llama ${extra_LIBS} Qt5::Widgets 
 add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts llama-bench sd) # 确保eva最后生产，保证后处理顺利进行
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
+
+
 # 后处理
 if(MSVC)
     # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
         COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
         COMMENT "custom Windeployqt ..."
+    )
+    # 复制转换脚本到scripts目录下
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/gguf-py"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/convert_hf_to_gguf.py"
+        COMMENT "copy scripts"
     )
 
     # 复制cuda组件过来
@@ -227,15 +235,28 @@ elseif(MINGW)
     message(STATUS "Compiler bin directory: ${COMPILER_BIN_DIR}")
     # 在生成目标之后执行 windeployqt，这个动作在eva生产之后
     add_custom_command(TARGET ${TARGET} POST_BUILD
-    COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
-    # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
-    COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libgomp-1.dll"
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
-    COMMENT "custom Windeployqt ..."
+        COMMAND "${Qt5_BIN_DIR}/windeployqt.exe" "--release" "--no-translations" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}"
+        # 从编译器路径复制libgomp-1.dll到输出目录，ggml库依赖它
+        COMMAND ${CMAKE_COMMAND} -E copy "${COMPILER_BIN_DIR}/libgomp-1.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libgomp-1.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}${sfx_NAME}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${eva_OUTPUT_NAME}${sfx_NAME}" # 复制并重命名
+        COMMENT "custom Windeployqt ..."
+    )
+    # 复制转换脚本到scripts目录下
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/gguf-py"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/convert_hf_to_gguf.py"
+        COMMENT "copy scripts"
     )
 
 elseif(UNIX)
 # 使用linuxdeployqt打包所有组件为一个appimage
+    # 复制转换脚本到scripts目录下
+    add_custom_command(TARGET ${TARGET} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/gguf-py"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/scripts/convert_hf_to_gguf.py"
+        COMMENT "copy scripts"
+    )
+
     if(BODY_PACK)
 
         # 构建Appdir目录
@@ -266,6 +287,12 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
         )
 
+        # 复制转换脚本到scripts目录下
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/scripts/gguf-py"
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/scripts/convert_hf_to_gguf.py"
+            COMMENT "copy scripts"
+        )
 
         # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
         add_custom_command(TARGET ${TARGET} POST_BUILD
