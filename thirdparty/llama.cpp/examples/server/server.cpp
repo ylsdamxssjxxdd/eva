@@ -3354,6 +3354,7 @@ inline void signal_handler(int signal) {
 int main(int argc, char ** argv) {
     // own arguments required by this example
     common_params params;
+
     if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_SERVER)) {
         return 1;
     }
