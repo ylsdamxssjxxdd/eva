@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                        //自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);  //适配非整数倍缩放
     QApplication a(argc, argv);                                                                               //事件实例
+
     // 加载资源文件中的字体, 统一使用宋体
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1) {//如果没有说明是在window下
@@ -52,11 +53,14 @@ int main(int argc, char* argv[]) {
     const QString appImagePath = env.value("APPIMAGE");
     const QFileInfo fileInfo(appImagePath);
     const QString applicationDirPath = fileInfo.absolutePath();  // 在打包程序运行时所在目录创建EVA_TEMP文件夹
+    const QString appPath = fileInfo.absolutePath()+ "/" + EVA_VERSION+".AppImage";  // .AppImage所在路径
 #else
     const QString applicationDirPath = QCoreApplication::applicationDirPath();  // 就在当前目录创建EVA_TEMP文件夹
+    const QString appPath = applicationDirPath;
 #endif
-    qDebug() << "EVA_TEMP: " + applicationDirPath;
-
+    //linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
+    createDesktopShortcut(appPath);
+    qDebug()<<"EVA_PATH"<<appPath;
     //------------------实例化主要节点------------------
     Widget w(nullptr, applicationDirPath);       //窗口实例
     Expend expend(nullptr, applicationDirPath);  //增殖窗口实例
@@ -79,8 +83,6 @@ int main(int argc, char* argv[]) {
     QString stylesheet = file.readAll();
     w.setStyleSheet(stylesheet);
     expend.setStyleSheet(stylesheet);
-
-    // expend.init_expend();                    //更新一次expend界面
 
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<MODELINFO>("MODELINFO");

@@ -31,8 +31,11 @@
 
     ```txt
         windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
-        linux下需要在终端中输入这个命令以使机体获得运行权限：chmod 777 ***.AppImage 
+        
         其中cpu版本使用avx加速，兼容性较好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，速度不如cuda版本
+        
+        linux下需要在终端中输入这个命令以使机体获得运行权限：chmod 777 ***.AppImage 
+        最好将.AppImage放到一个稳定的纯英文路径中，只要运行一次.AppImage就会自动配置桌面快捷方式和开始菜单
     ```
 
 2. 下载一个gguf格式模型

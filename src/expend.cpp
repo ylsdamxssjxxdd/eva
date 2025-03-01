@@ -2606,6 +2606,7 @@ void Expend::convert_command_onProcessStarted()
     ui->modelconvert_modelpath_pushButton->setEnabled(0);
     ui->modelconvert_converttype_comboBox->setEnabled(0);
     ui->modelconvert_outputname_lineEdit->setEnabled(0);
+    ui->modelconvert_exec_pushButton->setText(jtr("shut down"));//恢复成执行转换
 
 }
 //命令行程序结束
