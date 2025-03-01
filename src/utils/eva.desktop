@@ -4,4 +4,5 @@ Name=eva
 Comment=llm software
 Exec=eva
 Icon=blue_logo
-Categories=Application;
+Categories=Utility;Development;
+Comment=EVA

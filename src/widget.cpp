@@ -29,6 +29,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     }
 
     getWords(":/src/utils/ui_language.json");
+
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;

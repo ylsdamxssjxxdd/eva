@@ -116,7 +116,7 @@ class Expend : public QWidget {
     //----------------------------------知识库相关--------------------------------
     //-------------------------------------------------------------------------
    public:
-    QStringList Expend::tokenizeContent(const QString& content);// 分词函数
+    QStringList tokenizeContent(const QString& content);// 分词函数
     Embedding_Params embedding_params;
     int embedding_resultnumb = 3; //嵌入结果返回个数
     bool embedding_server_need = false;         // 下一次打开是否需要自启动嵌入服务
@@ -160,6 +160,8 @@ class Expend : public QWidget {
     //----------------------------------模型转换相关--------------------------------
     //-------------------------------------------------------------------------
     public:
+      QString shell = DEFAULT_SHELL;
+      QString python = DEFAULT_PYTHON;
       QProcess* convert_command_process;
       void get_convertmodel_name();//自动构建输出文件名
     private slots:

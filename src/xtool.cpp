@@ -28,22 +28,28 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         QProcess* process = new QProcess();
         createTempDirectory(applicationDirPath + "/EVA_WORK");//防止没有这个目录
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
+
+        QStringList shellArgs;
     #ifdef Q_OS_WIN
         // 在Windows上执行
-        process->start(SHELL, QStringList("/c") << func_arg_list.second);
-        qDebug()<<SHELL<<QStringList("/c") << func_arg_list.second;
-        emit tool2ui_state(QString("tool: ") + "cmd.exe " + "/c " + func_arg_list.second);
+        shellArgs << "/c" << func_arg_list.second;
     #else
         // 在Unix-like系统上执行
-        process->start(SHELL, QStringList() << "-c" << func_arg_list.second);
-        emit tool2ui_state(QString("tool: ") + "/bin/sh " + "-c " + func_arg_list.second);
+        shellArgs << "-c"<< func_arg_list.second;
     #endif
+        process->start(shell, shellArgs);
+        qDebug() << "Executing command:" << shell << shellArgs;
+        emit tool2ui_state(QString("tool: ") + shell + " " + shellArgs.join(" "));
+
         process->waitForFinished();//process->waitForFinished()程序将会阻塞
         QByteArray byteArray = process->readAll();  // 获取标准输出
         QByteArray errorByteArray = process->readAllStandardError();  // 获取标准错误输出
         QByteArray combinedOutput = byteArray + errorByteArray; // 合并输出
+    #ifdef Q_OS_WIN
         QString output = QString::fromLocal8Bit(combinedOutput);// 转换为QString
-
+    #else
+        QString output = QString::fromUtf8(combinedOutput);// 转换为QString
+    #endif
         emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + output, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("execute_command ") + "\n" + output);
         qDebug() << QString("execute_command ") + "\n" + output;

@@ -281,7 +281,6 @@ elseif(UNIX)
 
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml.so"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-cpu.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-cpu.so"
-            COMMAND ${COMMAND_TO_RUN}
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/libsd-ggml-base.so" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libsd-ggml-base.so"
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src/utils ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/resource ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png

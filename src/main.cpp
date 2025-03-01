@@ -3,6 +3,7 @@
 #include <QProcessEnvironment>
 #include <QStyleFactory>
 #include <locale>
+#include <QFont>
 
 #include "expend.h"
 #include "utils/cpuchecker.h"
@@ -33,12 +34,14 @@ int main(int argc, char* argv[]) {
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1) {//如果没有说明是在window下
         QFont font("SimSun");
+        font.setStyleStrategy(QFont::PreferAntialias);//应用反锯齿
         QApplication::setFont(font);
         // qDebug() << "Loaded font:" << "windows SimSun";
     } else {
         QStringList loadedFonts = QFontDatabase::applicationFontFamilies(fontId);
         if (!loadedFonts.empty()) {
             QFont customFont(loadedFonts.at(0));
+            customFont.setStyleStrategy(QFont::PreferAntialias);//应用反锯齿
             QApplication::setFont(customFont);
             // qDebug() << "Loaded font:" << customFont.family();
         }
@@ -209,6 +212,8 @@ int main(int argc, char* argv[]) {
     // 读取配置文件中的值
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
+    w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();// 读取记录在配置文件中的shell路径
+    w.python = tool.python = expend.python = settings.value("python", DEFAULT_PYTHON).toString();// 读取记录在配置文件中的python版本
     QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();  //模型路径
     w.currentpath = w.historypath = expend.currentpath = modelpath;
     w.ui_SETTINGS.modelpath = modelpath;

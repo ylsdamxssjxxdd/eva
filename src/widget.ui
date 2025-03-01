@@ -471,8 +471,9 @@
          </property>
          <property name="font">
           <font>
-           <family>SimSun-ExtB</family>
-           <pointsize>9</pointsize>
+           <family>黑体</family>
+           <pointsize>10</pointsize>
+           <stylestrategy>PreferDefault</stylestrategy>
           </font>
          </property>
          <property name="frameShape">

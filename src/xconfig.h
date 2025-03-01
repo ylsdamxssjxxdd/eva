@@ -74,10 +74,12 @@
 //不同操作系统相关
 #ifdef _WIN32
 #define SFX_NAME ".exe"  // 第三方程序后缀名
-#define SHELL "cmd.exe"
+#define DEFAULT_SHELL "cmd.exe"
+#define DEFAULT_PYTHON "python"
 #elif __linux__
 #define SFX_NAME ""  //第三方程序后缀名
-#define SHELL "/bin/sh"
+#define DEFAULT_SHELL "/bin/sh"
+#define DEFAULT_PYTHON "python3"
 #endif
 
 //约定内容

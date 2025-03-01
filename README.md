@@ -31,6 +31,7 @@
 
     ```txt
         windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
+        linux下需要在终端中输入这个命令以使机体获得运行权限：chmod 777 ***.AppImage 
         其中cpu版本使用avx加速，兼容性较好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，速度不如cuda版本
     ```
 
@@ -352,6 +353,8 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 <details>
 
 <summary> 展开 </summary>
+
+- 银河麒麟系统下服务状态和性能测试功能不支持在中文路径下进行，定位在ggml_backend_load_all()的宽字符处理，待修复
 
 - 模型推理有内存泄漏，定位在xbot.cpp的采样部分，与qt的qplaintextedit也有关，待修复
 

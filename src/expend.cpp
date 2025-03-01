@@ -719,6 +719,8 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("embedding_overlap", ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
+
+    settings.setValue("python", python);  //python版本
     // event->accept();
 }
 
@@ -2567,22 +2569,31 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
 
     if(ui->modelconvert_modeltype_comboBox->currentText()==modeltype_map[MODEL_TYPE_LLM])
     {
+        QString command;
         QStringList cmdline;
     #ifdef Q_OS_WIN
-        cmdline << "/c";// 在Windows上执行
+        command = python + " " +
+                  localPath + ui->modelconvert_script_comboBox->currentText() + " " +
+                  ui->modelconvert_modelpath_lineEdit->text() + " " +
+                  "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +
+                  "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
+        cmdline << "/c" << command;
     #else
-        cmdline << "-c";// 在Unix-like系统上执行
+        command = python + " " +
+                  localPath + ui->modelconvert_script_comboBox->currentText() + " " +
+                  ui->modelconvert_modelpath_lineEdit->text() + " " +
+                  "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +
+                  "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
+        cmdline << "-c" << command;
     #endif
-        cmdline << "python";
-        cmdline << localPath + ui->modelconvert_script_comboBox->currentText();
-        cmdline << ui->modelconvert_modelpath_lineEdit->text();
-        cmdline << "--outtype" << ui->modelconvert_converttype_comboBox->currentText();
-        cmdline << "--outfile" << ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
-        convert_command_process->start(SHELL, cmdline);
-        ui->modelconvert_exec_pushButton->setText(jtr("shut down"));
-        qDebug() << "Running command: " << cmdline.join(" ");
+        qDebug()<<shell<<command;
+        convert_command_process->start(shell, cmdline);
 
     }
+
+    connect(convert_command_process, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
+        qDebug() << "Process Error: " << error;
+    });
 
 }
 
@@ -2595,6 +2606,7 @@ void Expend::convert_command_onProcessStarted()
     ui->modelconvert_modelpath_pushButton->setEnabled(0);
     ui->modelconvert_converttype_comboBox->setEnabled(0);
     ui->modelconvert_outputname_lineEdit->setEnabled(0);
+
 }
 //命令行程序结束
 void Expend::convert_command_onProcessFinished()
@@ -2606,10 +2618,12 @@ void Expend::convert_command_onProcessFinished()
     ui->modelconvert_converttype_comboBox->setEnabled(1);
     ui->modelconvert_outputname_lineEdit->setEnabled(1);
     ui->modelconvert_exec_pushButton->setText(jtr("exec convert"));//恢复成执行转换
+
 }
 //获取标准输出
 void Expend::readyRead_convert_command_process_StandardOutput()
 {
+
     QByteArray convert_command_output = convert_command_process->readAllStandardOutput();// 读取子进程的标准输出
 #ifdef Q_OS_WIN
     QString output_text = QString::fromLocal8Bit(convert_command_output);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
@@ -2617,11 +2631,13 @@ void Expend::readyRead_convert_command_process_StandardOutput()
     QString output_text = QString::fromUtf8(convert_command_output);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
 #endif
     ui->modelconvert_log->appendPlainText(output_text);// 将转换后的文本附加到UI的文本框中
+
 }
 
 //获取错误输出
 void Expend::readyRead_convert_command_process_StandardError()
 {
+
     QByteArray convert_command_output = convert_command_process->readAllStandardError();// 读取子进程的标准错误输出
 #ifdef Q_OS_WIN
     QString output_text = QString::fromLocal8Bit(convert_command_output);// 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
@@ -2629,6 +2645,7 @@ void Expend::readyRead_convert_command_process_StandardError()
     QString output_text = QString::fromUtf8(convert_command_output);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
 #endif
     ui->modelconvert_log->appendPlainText(output_text);// 将转换后的文本附加到UI的文本框中
+
 }
 
 //用户改变转换类型响应

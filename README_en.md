@@ -28,7 +28,8 @@ Embedding Vector Agent: EVA (based on llama.cpp & qt5)
     - download programs with the .exe suffix for Windows or .AppImage suffix for Linux
 
     ```txt
-        The 64bit version uses CPU inference for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
+        The cpu version for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
+        Under Linux, this command needs to be entered in the terminal to grant EVA permission to run: chmod 777 ***** AppImage 
     ```
 
 2. Download gguf model
