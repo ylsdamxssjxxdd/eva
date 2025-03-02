@@ -1830,6 +1830,8 @@ void Widget::llama_bench_test()
     arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     arguments << "-fa" << QString::number(1);  // 开启flash attention加速
     arguments << "-o" << QString("md");
+    if(ui_SETTINGS.hid_use_mmap){arguments << "--mmap" << "1";}
+    else{arguments << "--mmap" << "0";}
 
     // 开始运行程序
     llama_bench_process->start(program, arguments);
