@@ -69,7 +69,9 @@ class Expend : public QWidget {
     bool is_first_show_info = true;
     bool load_percent_tag = false;
     void init_expend();  //初始化增殖窗口
+    bool copyFile(const QString &src, const QString &dst);
     bool createTempDirectory(const QString &path);
+    bool copyRecursively(const QString &srcFilePath, const QString &tgtFilePath);//复制一个目录里的文件夹所有东西到另一个文件夹
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig();  //读取配置文件并应用
     QString currentpath;

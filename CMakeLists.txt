@@ -16,7 +16,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
+option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
@@ -57,6 +57,7 @@ endif()
 if(BODY_PACK)
     if(WIN32)
         set(BODY_PACK_EXE WIN32) # 使用WIN32可以去掉控制台黑框
+        add_compile_definitions(BODY_WIN_PACK)
     elseif(UNIX)
         add_compile_definitions(BODY_LINUX_PACK) # 让第三方程序能找到appimage正确根路径
     endif()

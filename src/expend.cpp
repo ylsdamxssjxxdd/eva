@@ -719,7 +719,7 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("embedding_overlap", ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
-
+    settings.setValue("shell", shell);  //shell路径
     settings.setValue("python", python);  //python版本
     // event->accept();
 }
@@ -2563,6 +2563,12 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");
     QString localPath = QString(appDirPath + "/usr/scripts/");// 脚本目录所在位置
+#elif BODY_WIN_PACK
+    //先把脚本复制出来
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    QString localPath = QString(applicationDirPath + "/EVA_TEMP/scripts/"); // 脚本目录所在位置
+    copyRecursively("./scripts", localPath);
+    convert_command_process->setWorkingDirectory(applicationDirPath + "/EVA_TEMP/scripts");//设置cmd程序运行的目录
 #else
     QString localPath = QString("./scripts/"); // 脚本目录所在位置
 #endif
@@ -2586,8 +2592,10 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
                   "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
         cmdline << "-c" << command;
     #endif
+        ui->modelconvert_log->appendPlainText(shell + " > " + command + "\n");
         qDebug()<<shell<<command;
         convert_command_process->start(shell, cmdline);
+        // convert_command_process->start(shell, {"/c","pip","list"});
 
     }
 
@@ -2667,4 +2675,52 @@ void Expend::get_convertmodel_name()
 
         ui->modelconvert_outputname_lineEdit->setText(outFileName);
     }
+}
+
+//逐字节读写文件
+bool Expend::copyFile(const QString &src, const QString &dst) {
+    QFile srcFile(src);
+    if (!srcFile.open(QIODevice::ReadOnly)) return false;
+
+    QFile dstFile(dst);
+    if (!dstFile.open(QIODevice::WriteOnly)) return false;
+
+    while (!srcFile.atEnd()) {
+        QByteArray data = srcFile.read(4096);
+        if (data.contains('\x00')) {
+            qWarning() << "Null byte detected in file:" << src;
+            return false;
+        }
+        if (dstFile.write(data) == -1) return false;
+    }
+
+    return true;
+}
+
+//复制一个目录里的文件夹所有东西到另一个文件夹
+bool Expend::copyRecursively(const QString &srcFilePath, const QString &tgtFilePath)
+{
+    QFileInfo srcFileInfo(srcFilePath);
+    if (srcFileInfo.isDir()) {
+        QDir targetDir(tgtFilePath);
+        targetDir.mkpath(tgtFilePath);
+
+        QDir sourceDir(srcFilePath);
+        QStringList files = sourceDir.entryList(QDir::Files);
+        foreach (QString file, files) {
+            QString srcName = srcFilePath + QDir::separator() + file;
+            QString tgtName = tgtFilePath + QDir::separator() + file;
+            copyFile(srcName, tgtName);
+        }
+
+        QStringList subdirs = sourceDir.entryList(QDir::AllDirs | QDir::NoDotAndDotDot);
+        foreach (QString subdir, subdirs) {
+            QString srcName = srcFilePath + QDir::separator() + subdir;
+            QString tgtName = tgtFilePath + QDir::separator() + subdir;
+            copyRecursively(srcName, tgtName);
+        }
+    } else {
+        copyFile(srcFilePath, tgtFilePath);
+    }
+    return true;
 }
