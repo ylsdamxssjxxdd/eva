@@ -278,7 +278,7 @@ class Expend : public QWidget {
 
    public:
     QString vocab;
-    int m_currentPosition;
+    bool is_first_show_modelinfo = true;
     QString model_logs;
     MODELINFO modelinfo;// 模型评级信息
     
@@ -289,7 +289,6 @@ class Expend : public QWidget {
     void set_modelinfo();
 
    public slots:
-    void loadNextChunk();//分块加载显示文本
     void recv_bot_modelinfo(MODELINFO modelinfo_);
     void recv_ui_modelinfo(MODELINFO modelinfo_);
     void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);  //传递记忆向量和上下文长度

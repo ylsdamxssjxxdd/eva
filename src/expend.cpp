@@ -10,7 +10,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->info_card->setReadOnly(1); // 只读
     ui->vocab_card->setReadOnly(1); // 只读
     ui->modellog_card->setReadOnly(1); // 只读
-    ui->tabWidget->setCurrentIndex(1);                                //默认显示模型信息窗口
+    ui->tabWidget->setCurrentIndex(0);                                //默认显示模机体介绍窗口
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                 //安装事件过滤器
     ui->sd_negative_lineEdit->installEventFilter(this);               //安装事件过滤器
@@ -346,7 +346,7 @@ void Expend::init_expend() {
 //用户切换选项卡时响应
 // 0软件介绍,1模型信息
 void Expend::on_tabWidget_tabBarClicked(int index) {
-    if (index == 0 && is_first_show_info)  //第一次点软件介绍
+    if (index == window_map[INTRODUCTION_WINDOW] && is_first_show_info)  //第一次点软件介绍
     {
         is_first_show_info = false;
 
@@ -359,46 +359,31 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
             ui->info_card->horizontalScrollBar()->setValue(0);
         });
     } 
-    else if (index == 2 && is_first_show_modelproliferation)  //第一次展示量化方法
+    else if (index == window_map[QUANTIZE_WINDOW] && is_first_show_modelproliferation)  //第一次展示量化方法
     {
         is_first_show_modelproliferation = false;
         show_quantize_types();                    
-    } else if (index == 7 && is_first_show_sync)  //第一次展示同步率
+    } 
+    else if (index == window_map[SYNC_WINDOW] && is_first_show_sync)  //第一次展示同步率
     {
         is_first_show_sync = false;
         ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
+    }
+    else if(index == window_map[MODELINFO_WINDOW] && is_first_show_modelinfo)//第一次展示模型信息窗口
+    {
+        is_first_show_modelinfo = false;
+        ui->vocab_card->setPlainText(vocab);//更新一次模型词表
     }
 }
 
 // 接收模型词表
 void Expend::recv_vocab(QString vocab_) {
     vocab = vocab_;
-
-    // 开始分块加载
-    m_currentPosition = 0;
-    ui->vocab_card->clear();
-    QTimer::singleShot(0, this, &Expend::loadNextChunk);
-
+    if(!is_first_show_modelinfo){ui->vocab_card->setPlainText(vocab);}
     init_brain_matrix();
     reflash_brain_matrix();
 }
 
-// 分块加载函数
-void Expend::loadNextChunk() {
-    const int chunkSize = 4096; // 根据实际情况调整块大小
-    int endPos = m_currentPosition + chunkSize;
-    endPos = qMin(endPos, vocab.size());
-    
-    QString chunk = vocab.mid(m_currentPosition, endPos - m_currentPosition);
-    ui->vocab_card->appendPlainText(chunk);
-    m_currentPosition = endPos;
-    
-    if (m_currentPosition < vocab.size()) {
-        QTimer::singleShot(100, this, &Expend::loadNextChunk); // 继续加载下一块
-    } else {
-        vocab.clear(); // 清理
-    }
-}
 
 //通知显示增殖窗口
 void Expend::recv_expend_show(EXPEND_WINDOW window) {

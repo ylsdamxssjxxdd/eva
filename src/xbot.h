@@ -42,6 +42,7 @@ class xBot : public QObject {
    public:
     //拯救中文
     QJsonObject wordsObj;
+    QStringList chinesePunctuation = {"，", "。", "：", "？", "！", "、", "；", "“", "”", "‘", "’", "（", "）", "【", "】"}; // 定义一个包含常见中文标点符号的集合
     void getWords(QString json_file_path);
     int language_flag = 0;
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
