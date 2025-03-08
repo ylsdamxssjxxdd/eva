@@ -347,7 +347,7 @@ void Widget::recv_pushover() {
         //如果挂载了工具,则尝试提取里面的json
         if (is_load_tool) {
             // qDebug()<<ui_insert_history.last().first;
-            QString tool_str = ui_insert_history.last().first.remove(DEFAULT_THINKWORD);//移除think标签;
+            QString tool_str = ui_insert_history.last().first;//移除think标签;
 
             ui_func_arg_list = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
             if (ui_func_arg_list.first == "") {
@@ -1164,7 +1164,7 @@ bool Widget::checkAudio() {
 
 // 检测结果并赋分
 bool Widget::SyncRateTestCheck(QString assistant_history) {
-    ui_func_arg_list = XMLparser(assistant_history.remove(DEFAULT_THINKWORD));//移除think标签
+    ui_func_arg_list = XMLparser(assistant_history);//移除think标签
     int index = ui_syncrate_manager.sync_list_index.first();  // 根据问题序号对答案
     bool pass = false;
     // qDebug() << index << ui_func_arg_list.first << ui_func_arg_list.second;

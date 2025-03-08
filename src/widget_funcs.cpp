@@ -1223,6 +1223,11 @@ void Widget::get_date() {
 //手搓输出解析器，提取可能的xml，目前只支持一个参数
 QPair<QString, QString> Widget::XMLparser(QString text)
 {
+    if(text.contains("</think>"))
+    {
+        text = text.split("</think>")[1];//移除思考标签前面的所有内容
+    }
+    // qDebug()<<text;
     QPair<QString, QString> func_arg_list;
     // 定义正则表达式来匹配工具名、参数名和值
     // 该正则表达式匹配形如 <tool_name><parameter_name>value</parameter_name></tool_name> 的结构

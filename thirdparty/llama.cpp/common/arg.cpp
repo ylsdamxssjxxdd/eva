@@ -950,6 +950,15 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_examples({LLAMA_EXAMPLE_MAIN}));
     add_opt(common_arg(
+        {"-st", "--single-turn"},
+        "run conversation for a single turn only, then exit when done\n"
+        "will not be interactive if first turn is predefined with --prompt\n"
+        "(default: false)",
+        [](common_params & params) {
+            params.single_turn = true;
+        }
+    ).set_examples({LLAMA_EXAMPLE_MAIN}));
+    add_opt(common_arg(
         {"-i", "--interactive"},
         string_format("run in interactive mode (default: %s)", params.interactive ? "true" : "false"),
         [](common_params & params) {
@@ -2452,6 +2461,13 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.vocoder.use_guide_tokens = true;
         }
     ).set_examples({LLAMA_EXAMPLE_TTS, LLAMA_EXAMPLE_SERVER}));
+    add_opt(common_arg(
+        {"--tts-speaker-file"}, "FNAME",
+        "speaker file path for audio generation",
+        [](common_params & params, const std::string & value) {
+            params.vocoder.speaker_file = value;
+        }
+    ).set_examples({LLAMA_EXAMPLE_TTS}));
 
     // model-specific
     add_opt(common_arg(

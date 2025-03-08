@@ -290,14 +290,46 @@ int xBot::stream() {
         embd.push_back(id);  //把预测的词加到下一次的预测中,准备下一次预测
         --n_remain;
         std::string sstr = common_token_to_piece(ctx, id, common_params_.special);  // 获取id对应的文本
+        
         // 构建概率表格
         buildProbtable(&id);
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
-        if (checkStop(&sstr, &id)) {
-            return -1;
+        if(sstr==DEFAULT_THINK_BEGIN){checkStopFlag = false;}//思考时关闭检测
+        QString sample_str = jtr("sampling") + "·";  //采样打印信息
+        bool is_output = false;
+
+        if(checkStopFlag)
+        {
+            if (checkStop(&sstr, &id)) 
+            {
+                return -1;
+            }
+            else // 正常输出到ui
+            {
+                is_output = true;
+                emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
+            }
         }
+        else // 思考过程输出到ui
+        {
+            is_output = true;
+            emit bot2ui_output(QString::fromUtf8(sstr.c_str()),true,THINK_GRAY);// 灰色内容表示思考过程
+        }
+
+        if(is_output) // 记录输出的词
+        {
+            emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
+            // 记录输出的token和词
+            common_sampler_accept(smpl, id, /* accept_grammar= */ true);
+            current_output += sstr;
+            if (current_output.length() > 32) {
+                current_output = current_output.substr(current_output.length() - 32, 32);  //只保留32个字符
+            }
+        }
+        
+        if(sstr==DEFAULT_THINK_END){checkStopFlag = true;}//思考结束时关闭检测
 
     }  //到这里推理循环结束
 
@@ -517,6 +549,7 @@ void xBot::reset() {
     is_antiprompt = false;  //用户昵称检测标签
 
     //添加额外停止词
+    checkStopFlag = true;
     common_params_.antiprompt.clear();                                                   //清空反提示
     common_params_.antiprompt.push_back(bot_chat.input_prefix.toLower().toStdString());  // 第一个默认是输入前缀，如果检测出来，下次对话就不添加了
 
@@ -583,7 +616,7 @@ void xBot::reset() {
     emit bot2ui_predecode(QString::fromStdString(token_str));                   //传递模型预解码内容
 
     if (!is_first_reset) {
-        emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);
+        emit bot2ui_output(QString::fromStdString(token_str), false, SYSTEM_BLUE);
     }  //将预解码内容贴到输出区
 
     if (!is_first_reset)  //模型装载后首次重置完成标签,控制是否输出清空的消息
@@ -730,16 +763,16 @@ void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int cont
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
         if (input.role == ROLE_OBSERVATION) {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, TOOL_BLUE);
+            emit bot2ui_output(QString::fromStdString(token_str), false, TOOL_BLUE);
         } else if (context_pos == 0)  //用户昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);
+            emit bot2ui_output(QString::fromStdString(token_str), false, SYSTEM_BLUE);
         } else if (context_pos == 1)  //输入内容
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, NORMAL_BLACK);
+            emit bot2ui_output(QString::fromStdString(token_str), false, NORMAL_BLACK);
         } else if (context_pos == 2)  //模型昵称
         {
-            emit bot2ui_output(QString::fromStdString(token_str), 0, SYSTEM_BLUE);
+            emit bot2ui_output(QString::fromStdString(token_str), false, SYSTEM_BLUE);
         }
     }
 }
@@ -1084,6 +1117,7 @@ void xBot::get_default_templete_chat_format() {
     QString format_user_msg2 = "format_use_msg2";
     QString format_model_msg2 = "format_model_msg2";
     common_chat_templates_inputs inputs;
+    inputs.use_jinja = false;// 不使用jinja
     auto add_simple_msg = [&](auto role, auto content) {
         common_chat_msg msg;
         msg.role = role;
@@ -1099,34 +1133,43 @@ void xBot::get_default_templete_chat_format() {
     add_simple_msg("assistant",   format_model_msg2.toStdString());
 
     auto chat_templates = common_chat_templates_init(model, common_params_.chat_template);
-    QString default_template_content = QString::fromStdString(common_chat_templates_apply(chat_templates.get(), inputs).prompt);
-    // 提取系统指令
-    QStringList split1 = default_template_content.split(format_prompt_name);
-    bot_chat.system_prompt = split1[0] + bot_date.date_prompt;                                      // 拼接原来的约定指令
-    bot_chat.system_prompt = bot_chat.system_prompt.replace(format_user_name, bot_date.user_name);  // 替换回原来的名称
-    // 提取输入前缀
-    QString split1_1 = split1[1].split(format_model_msg1)[1];
-    QStringList split2 = split1_1.split(format_user_msg2);
-    bot_chat.input_prefix = split2[0].replace(format_user_name, bot_date.user_name);  // 替换回原来的名称
-    // 提取输入后缀
-    QStringList split3 = split2[1].split(format_model_msg2);
-    bot_chat.input_suffix = split3[0].replace(format_model_name, bot_date.model_name);  // 替换回原来的名称
+    const bool has_chat_template = common_chat_templates_was_explicit(chat_templates.get());
+    if(has_chat_template)
+    {
+        QString default_template_content = QString::fromStdString(common_chat_templates_apply(chat_templates.get(), inputs).prompt);
+        // 提取系统指令
+        QStringList split1 = default_template_content.split(format_prompt_name);
+        bot_chat.system_prompt = split1[0] + bot_date.date_prompt;                                      // 拼接原来的约定指令
+        bot_chat.system_prompt = bot_chat.system_prompt.replace(format_user_name, bot_date.user_name);  // 替换回原来的名称
+        // 提取输入前缀
+        QString split1_1 = split1[1].split(format_model_msg1)[1];
+        QStringList split2 = split1_1.split(format_user_msg2);
+        bot_chat.input_prefix = split2[0].replace(format_user_name, bot_date.user_name);  // 替换回原来的名称
+        // 提取输入后缀
+        QStringList split3 = split2[1].split(format_model_msg2);
+        bot_chat.input_suffix = split3[0].replace(format_model_name, bot_date.model_name);  // 替换回原来的名称
 
-    emit bot2ui_chat_format(bot_chat);
+        emit bot2ui_chat_format(bot_chat);
 
-    // qDebug()<<system_prompt;
-    // qDebug()<<input_prefix;
-    // qDebug()<<input_suffix;
+        // qDebug()<<system_prompt;
+        // qDebug()<<input_prefix;
+        // qDebug()<<input_suffix;
 
-    // //看看可以打印的关于模型信息
-    // for(int i = 0;i<llama_model_meta_count(model);++i)
-    // {
-    //     char value[128];
-    //     char key[128];
-    //     int32_t res1 = llama_model_meta_key_by_index(model, i, key, sizeof(key));
-    //     int32_t res2 = llama_model_meta_val_str_by_index(model, i, value, sizeof(value));
-    //     printf("%d %s %s\n", i, key, value);
-    // }
+        // //看看可以打印的关于模型信息
+        // for(int i = 0;i<llama_model_meta_count(model);++i)
+        // {
+        //     char value[128];
+        //     char key[128];
+        //     int32_t res1 = llama_model_meta_key_by_index(model, i, key, sizeof(key));
+        //     int32_t res2 = llama_model_meta_val_str_by_index(model, i, value, sizeof(value));
+        //     printf("%d %s %s\n", i, key, value);
+        // }
+    }
+    else
+    {
+        emit bot2ui_state("no chat template", WRONG_SIGNAL);
+    }
+
 }
 
 //构建概率表格
@@ -1210,12 +1253,12 @@ void xBot::completeUtf8(std::string *sstr, llama_token *id) {
     }
 }
 
-// 检测停止词并将文本输出到ui
+// 检测停止词
 bool xBot::checkStop(std::string *sstr, llama_token *id) {
     QString sample_str;  //采样打印信息
     sample_str = jtr("sampling") + "·";
 
-    if (*id == eos_token || *id == eot_token || *id == bos_token)  //如果遇到结束则停止
+    if (*id == eos_token || *id == eot_token)  //如果遇到结束则停止
     {
         emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         embd.clear();  // 不再显示和保留模型输出的停止词，因为后缀里包含有
@@ -1228,18 +1271,7 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
         emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
         // qDebug() << batch_count << batch_time << singl_count << single_timer.nsecsElapsed()/1000000000.0 - batch_time;
         return true;
-    } else {
-        emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
-
-        // 记录输出的token和词
-        common_sampler_accept(smpl, *id, /* accept_grammar= */ true);
-        current_output += *sstr;
-        if (current_output.length() > 32) {
-            current_output = current_output.substr(current_output.length() - 32, 32);  //只保留32个字符
-        }
-
-        emit bot2ui_output(QString::fromUtf8(sstr->c_str()));
-    }
+    } 
 
     //检测输出的内容中是否包含反提示和额外停止词,如果有则停止
     if (!is_complete)  // 补完模式不检测
@@ -1268,20 +1300,6 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
             }
 
             list_num++;
-        }
-
-        // 若同时包含"<|" 和 "|>"也停止
-        if (current_output.find("<|") != std::string::npos && current_output.find("|>") != std::string::npos) {
-            emit bot2ui_state("bot:" + jtr("detected") + jtr("extra stop words") + " " + QString::fromStdString("<| |>"));
-            QString fianl_state = QString("bot:%1 %2 %3 token/s %4 %5 token/s")
-            .arg(jtr("predict") + jtr("stop"))
-            .arg(jtr("single decode"))
-            .arg(singl_count / (single_timer.nsecsElapsed() / 1e9 - batch_time), 0, 'f', 2)
-            .arg(jtr("batch decode"))
-            .arg(batch_count / batch_time, 0, 'f', 2);
-            emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
-            // qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
-            return true;
         }
     }
 

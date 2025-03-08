@@ -24,7 +24,8 @@
 #define DEFAULT_MODEL_NAME "assistant"
 #define DEFAULT_OBSERVATION_NAME "tool"
 #define DEFAULT_OBSERVATION_STOPWORD "<|observation|>"
-#define DEFAULT_THINKWORD "<think>"
+#define DEFAULT_THINK_BEGIN "<think>"
+#define DEFAULT_THINK_END "</think>"
 #define DEFAULT_SPLITER "\n"                 // 分隔符
 
 //采样
@@ -122,6 +123,7 @@ const QColor SYSTEM_BLUE(0, 0, 255, 200);  // 蓝紫色
 const QColor TOOL_BLUE(0, 191, 255);       // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0);        // 黑色
 const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
+const QColor THINK_GRAY(128, 128, 128); // 灰色
 
 //机体模式枚举
 enum EVA_MODE {

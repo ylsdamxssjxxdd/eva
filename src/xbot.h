@@ -64,7 +64,7 @@ class xBot : public QObject {
 
     void buildProbtable(llama_token *id);                   //构建概率表格
     void completeUtf8(std::string *sstr, llama_token *id);  // 处理不完整的utf8字符
-    bool checkStop(std::string *sstr, llama_token *id);     // 检测停止词并将文本输出到ui
+    bool checkStop(std::string *sstr, llama_token *id);     // 检测停止词
 
     // 对话模板相关
     DATES bot_date;                           // 约定内容
@@ -136,6 +136,7 @@ class xBot : public QObject {
     bool is_multi = false;      //是否为多模态
     bool is_load_tool = false;  //是否挂载了工具
     bool vram_enough = false;
+    bool checkStopFlag = true; // 是否要检测停止词
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
     std::string current_output;            // 模型最近输出的内容，用来判断里面是否存在反向词
     QString history_prompt = "";           //记录历史约定
@@ -162,7 +163,7 @@ class xBot : public QObject {
     void bot2expend_vocab(QString model_vocab);                                             //传递模型总词表
     void bot2ui_predecode(QString bot_predecode_);                                          //传递模型预解码内容
     void bot2ui_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL);             //发送的状态信号
-    void bot2ui_output(QString result, bool is_while = 1, QColor color = QColor(0, 0, 0));  //发送的输出信号,is_while表示从流式输出的token
+    void bot2ui_output(QString result, bool is_while = true, QColor color = QColor(0, 0, 0));  //发送的输出信号,is_while表示从流式输出的token
     void bot2ui_loadover(bool ok_, float load_time_);                                       //装载完成的信号
     void bot2ui_pushover();                                                                 //推理完成的信号
     void bot2ui_stopover();                                                                 //完成停止的信号

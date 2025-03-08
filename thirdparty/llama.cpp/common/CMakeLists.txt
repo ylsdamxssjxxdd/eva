@@ -34,7 +34,16 @@ else()
 endif()
 
 # Add a custom command to rebuild build-info.cpp when .git/index changes
-
+# add_custom_command(
+#     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/build-info.cpp"
+#     COMMENT "Generating build details from Git"
+#     COMMAND ${CMAKE_COMMAND} -DMSVC=${MSVC} -DCMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}
+#             -DCMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID} -DCMAKE_VS_PLATFORM_NAME=${CMAKE_VS_PLATFORM_NAME}
+#             -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/build-info-gen-cpp.cmake"
+#     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+#     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/build-info.cpp.in" ${GIT_INDEX}
+#     VERBATIM
+# )
 set(TARGET build_info)
 add_library(${TARGET} OBJECT build-info.cpp)
 if (BUILD_SHARED_LIBS)
