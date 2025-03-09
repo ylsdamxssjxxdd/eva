@@ -515,6 +515,7 @@ void Widget::tool_change() {
     if (QCheckBox* checkbox = qobject_cast<QCheckBox*>(senderObj)) {
         if (checkbox == date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked()) {
                 python_env = checkPython();
+                compile_env = checkCompile();
             } 
     }
 
@@ -1343,9 +1344,9 @@ QString Widget::checkPython()
     QString pythonExecutable = DEFAULT_PYTHON;
 
     QProcess process;
-
-    // Check if 'python' command is available
-    process.start(pythonExecutable + " --version");
+    QStringList shellArgs;
+    shellArgs << "/c" << pythonExecutable + " --version";
+    process.start(shell, shellArgs);
     process.waitForFinished();
 
     QString versionOutput = process.readAllStandardOutput();
@@ -1357,15 +1358,18 @@ QString Widget::checkPython()
         result += "Python interpreter not found in the system environment.\n";
         return result;
     } else {
-        process.start(pythonExecutable + " -c \"import sys; print(sys.executable)\"");
+        QStringList shellArgs2;
+        shellArgs2 << "/c" << pythonExecutable << "-c" << "import sys; print(sys.executable)";
+        process.start(shell, shellArgs2);
         process.waitForFinished();
         QString python_absolutePath = process.readAllStandardOutput().trimmed();
         result += versionInfo + " " + python_absolutePath + "\n";
     }
 
-    // Now, get the list of installed libraries using pip
-    // Use '-m pip' to ensure we're using the pip associated with the detected Python executable
-    process.start(pythonExecutable + " -m pip list");
+    // 获取安装库信息
+    QStringList shellArgs3;
+    shellArgs3 << "/c" << pythonExecutable + " -m pip list";
+    process.start(shell, shellArgs3);
     process.waitForFinished();
 
     QString pipOutput = process.readAllStandardOutput();
@@ -1417,6 +1421,108 @@ QString Widget::checkPython()
     return result;
 }
 
+QString Widget::checkCompile() {
+    QString compilerInfo;
+    QProcess process;
+    // Windows平台的编译器检查
+#ifdef Q_OS_WIN
+    // 尝试检查 MinGW
+    {
+        QStringList shellArgs;
+        shellArgs << "/c" << "g++ --version";
+        process.start(shell, shellArgs);
+        process.waitForFinished();
+        QString output = process.readAllStandardOutput();
+        if (!output.isEmpty()) {
+            compilerInfo += "MinGW version: ";
+            QStringList lines = output.split('\n');
+            QString versionLine = lines.first();
+            QRegExp regExp("\\s*\\(.*\\)");  // 使用正则表达式去除括号中的内容 匹配括号及其中的内容
+            versionLine = versionLine.replace(regExp, "");
+            compilerInfo += versionLine.trimmed();  // 去除前后的空格
+            compilerInfo += "\n";
+        }
+    }
+
+    // 检查 MSVC
+    {
+        QStringList shellArgs;
+        shellArgs << "/c" << "cl /Bv";
+        process.start(shell, shellArgs);
+        process.waitForFinished();
+        QByteArray output = process.readAllStandardOutput();
+        output += process.readAllStandardError();
+        if (!output.isEmpty()) {
+            compilerInfo += "MSVC version: ";
+            QString outputStr = QString::fromLocal8Bit(output);
+            QStringList lines = outputStr.split('\n');
+            compilerInfo += lines.first();
+            compilerInfo += "\n";
+        }
+    }
+
+    // 检查 Clang
+    {
+        QStringList shellArgs;
+        shellArgs << "/c" << "clang --version";
+        process.start(shell, shellArgs);
+        process.waitForFinished();
+        QString output = process.readAllStandardOutput();
+        if (!output.isEmpty()) {
+            compilerInfo += "Clang version: ";
+            QStringList lines = output.split('\n');
+            compilerInfo += lines.first();
+            compilerInfo += "\n";
+        }
+    }
+
+#endif
+
+    // Linux平台的编译器检查
+#ifdef Q_OS_LINUX
+    QProcess process;
+    
+    // 检查 GCC
+    {
+        QStringList shellArgs;
+        shellArgs << "/c" << "gcc --version";
+        process.start(shell, shellArgs);
+        process.waitForFinished();
+        QString output = process.readAllStandardOutput();
+        if (!output.isEmpty()) {
+            compilerInfo += "GCC version: ";
+            QStringList lines = output.split('\n');
+            compilerInfo += lines.first();
+            compilerInfo += "\n";
+        }
+
+    }
+
+    // 检查 Clang
+    {
+        QStringList shellArgs;
+        shellArgs << "/c" << "clang --version";
+        process.start(shell, shellArgs);
+        process.waitForFinished();
+        output = process.readAllStandardOutput();
+        if (!output.isEmpty()) {
+            compilerInfo += "Clang version: ";
+            QStringList lines = output.split('\n');
+            compilerInfo += lines.first();
+            compilerInfo += "\n";
+        }
+    }
+
+#endif
+
+    // 如果没有找到任何编译器信息
+    if (compilerInfo.isEmpty()) {
+        compilerInfo = "No compiler detected.\n";
+    }
+
+    return compilerInfo;
+}
+
 QString Widget::create_engineer_info()
 {
     QString engineer_info = jtr("engineer_info");
@@ -1424,9 +1530,10 @@ QString Widget::create_engineer_info()
     QDate currentDate = QDate::currentDate();  //今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info.replace("{OS}", USEROS);
-    engineer_system_info.replace("{SHELL}", shell);
-    engineer_system_info.replace("{PYTHON_ENV}", python_env);
     engineer_system_info.replace("{DATE}", dateString);
+    engineer_system_info.replace("{SHELL}", shell);
+    engineer_system_info.replace("{COMPILE_ENV}", compile_env);
+    engineer_system_info.replace("{PYTHON_ENV}", python_env);
     engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
 
     engineer_info.replace("{engineer_system_info}", engineer_system_info);

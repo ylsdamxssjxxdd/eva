@@ -902,8 +902,8 @@
             "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time, wait and observe the results returned by the tool before proceeding to the next step. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The content that needs to be written to the file does not need to be displayed and can be written directly. The current environment is: {engineer_system_info}"
         ],
         "engineer_system_info": [
-            "\n操作系统: {OS}\n日期: {DATE}\n默认Shell: {SHELL}\nPython环境: {PYTHON_ENV}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
-            "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
+            "\n操作系统: {OS}\n日期: {DATE}\n默认Shell: {SHELL}\n编译器环境: {COMPILE_ENV}\nPython环境: {PYTHON_ENV}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
+            "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCompile env: {COMPILE_ENV}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
         "webengine_func_describe": [
             "webengine(request) - 使用搜索引擎进行搜索，将返回搜索结果。",

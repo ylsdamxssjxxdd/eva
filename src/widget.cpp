@@ -4,6 +4,8 @@
 
 #include "ui_widget.h"
 
+
+
 Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), ui(new Ui::Widget) {
     //---------------初始化ui--------------
     ui->setupUi(this);

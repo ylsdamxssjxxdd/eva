@@ -141,6 +141,7 @@ class xBot : public QObject {
     std::string current_output;            // 模型最近输出的内容，用来判断里面是否存在反向词
     QString history_prompt = "";           //记录历史约定
 
+
    public slots:
     void recv_stop();                                                         //接受停止信号
     void recv_llama_log(QString log_);                                        //获取llama log

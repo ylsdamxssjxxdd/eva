@@ -32,6 +32,28 @@ xBot::~xBot() { ; }
 
 //模型预测推理过程
 void xBot::predict(INPUTS inputs) {
+    // 删除思考部分的记忆
+    int thinkStartIndex = -1;
+    int thinkEndIndex = -1;
+    for (int i = 0; i < Brain_vector.size(); ++i) {
+        if (Brain_vector[i].word == DEFAULT_THINK_BEGIN && thinkStartIndex == -1) {
+            thinkStartIndex = i;//寻找最后一个
+        }
+        if (Brain_vector[i].word == DEFAULT_THINK_END) {
+            thinkEndIndex = i;//寻找最后一个
+        }
+    }
+    // 如果找到了两个标记的索引，且它们的顺序正确
+    if (thinkStartIndex != -1 && thinkEndIndex != -1 && thinkStartIndex < thinkEndIndex) {
+        // 删除两个标记之间的所有元素
+        Brain_vector.erase(Brain_vector.begin() + thinkStartIndex, Brain_vector.begin() + thinkEndIndex + 1);
+        llama_kv_cache_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
+        n_past -= thinkEndIndex - thinkStartIndex + 1;
+        n_consumed = 0;
+        // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
+        emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
+    }    
+
     //--------------------预处理用户输入---------------------
     if (inputs.role == ROLE_TEST) {
         is_test = true;
