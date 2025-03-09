@@ -348,7 +348,7 @@ void Widget::recv_pushover() {
         if (is_load_tool) {
             // qDebug()<<ui_insert_history.last().first;
             QString tool_str = ui_insert_history.last().first;//移除think标签;
-
+            
             ui_func_arg_list = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
             if (ui_func_arg_list.first == "") {
                 normal_finish_pushover();
@@ -395,6 +395,7 @@ void Widget::recv_toolpushover(QString tool_result_) {
         tool_result = "stablediffusion " + jtr("call successful, image save at") + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     } else {
         tool_result = tool_result_;
+        tool_result = truncateString(tool_result, MAX_INPUT);//超出最大输入的部分截断
     }
 
     on_send_clicked();  //触发发送继续预测下一个词

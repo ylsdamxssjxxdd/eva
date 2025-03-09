@@ -217,6 +217,9 @@ class Widget : public QWidget {
     QString create_engineer_info();  //构建工程师指令
     void tool_change();             //响应工具选择
     void change_api_dialog(bool enable);
+    QString checkPython();//获取环境中的python版本以及库信息
+    QString python_env = "";
+    QString truncateString(const QString& str, int maxLength);
 
     //工具相关
     void addStopwords();                               //添加额外停止标志
@@ -225,6 +228,7 @@ class Widget : public QWidget {
     QPair<QString, QString> XMLparser(QString text);  //手搓输出解析器，提取XMLparser
     QString tool_result;
     QString wait_to_show_image = "";  //文生图后待显示图像的图像路径
+    
 
     //装载动画相关
     int all_fps = 142;     //总帧数

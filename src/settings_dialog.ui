@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>242</width>
+    <width>262</width>
     <height>453</height>
    </rect>
   </property>
@@ -56,13 +56,13 @@
          <widget class="QLabel" name="temp_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -98,13 +98,13 @@
          <widget class="QLabel" name="repeat_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -164,13 +164,13 @@
          <widget class="QLabel" name="ngl_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -206,13 +206,13 @@
          <widget class="QLabel" name="nthread_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -248,13 +248,13 @@
          <widget class="QLabel" name="nctx_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -290,13 +290,13 @@
          <widget class="QLabel" name="lora_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>
@@ -323,13 +323,13 @@
          <widget class="QLabel" name="mmproj_label">
           <property name="minimumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>0</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>120</width>
+            <width>140</width>
             <height>16777215</height>
            </size>
           </property>

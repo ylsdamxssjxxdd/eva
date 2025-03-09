@@ -509,6 +509,15 @@ void Widget::chooseMmprojpath() {
 
 //响应工具选择
 void Widget::tool_change() {
+    QObject* senderObj = sender(); // gets the object that sent the signal
+    
+    // 如果是软件工程师则查询python环境
+    if (QCheckBox* checkbox = qobject_cast<QCheckBox*>(senderObj)) {
+        if (checkbox == date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked()) {
+                python_env = checkPython();
+            } 
+    }
+
     // 判断是否挂载了工具
     if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->webengine_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
         if (is_load_tool == false) {
@@ -657,6 +666,7 @@ void Widget::set_DateDialog() {
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     connect(date_ui->webengine_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+
     if (language_flag == 0) {
         ui_extra_lan = "zh";
     }
@@ -1306,6 +1316,107 @@ QString Widget::create_extra_prompt() {
     return extra_prompt_;
 }
 
+QString Widget::truncateString(const QString& str, int maxLength) {
+    if (str.size() <= maxLength) {
+        return str;
+    }
+    
+    // 使用QTextStream来处理多字节字符
+    QTextStream stream(const_cast<QString*>(&str), QIODevice::ReadOnly);
+    stream.setCodec("UTF-8");
+    
+    // 找到开始截取的位置
+    int startIndex = str.size() - maxLength;
+    
+    // 确保不截断多字节字符
+    stream.seek(startIndex);
+    
+    return QString(stream.readAll());
+}
+
+//获取环境中的python版本以及库信息
+QString Widget::checkPython()
+{
+    QString result;
+
+    // Initialize the python executable name
+    QString pythonExecutable = DEFAULT_PYTHON;
+
+    QProcess process;
+
+    // Check if 'python' command is available
+    process.start(pythonExecutable + " --version");
+    process.waitForFinished();
+
+    QString versionOutput = process.readAllStandardOutput();
+    QString versionError = process.readAllStandardError();
+    QString versionInfo = versionOutput + versionError;
+
+    // If still not found, return an error message
+    if (versionInfo.isEmpty()) {
+        result += "Python interpreter not found in the system environment.\n";
+        return result;
+    } else {
+        process.start(pythonExecutable + " -c \"import sys; print(sys.executable)\"");
+        process.waitForFinished();
+        QString python_absolutePath = process.readAllStandardOutput().trimmed();
+        result += versionInfo + " " + python_absolutePath + "\n";
+    }
+
+    // Now, get the list of installed libraries using pip
+    // Use '-m pip' to ensure we're using the pip associated with the detected Python executable
+    process.start(pythonExecutable + " -m pip list");
+    process.waitForFinished();
+
+    QString pipOutput = process.readAllStandardOutput();
+    QString pipError = process.readAllStandardError();
+    QString pipList = pipOutput + pipError;
+
+    // 不想展示的库
+    QStringList excludeLibraries = {
+        "anyio", "appdirs", "archspec", "arrow", "astroid", "astropy", "astropy-iers-data", "asttokens", "async-lru", "attrs", "autopep8", "Babel", "black", "bleach", "bokeh", "botocore", "Bottleneck",
+        "aiohttp", "aioitertools", "altair", "anaconda-anon-usage", "anaconda-catalogs", "anaconda-client", "anaconda-cloud-auth", "anaconda-navigator", "anaconda-project",
+        "aiobotocore", "aiohappyeyeballs", "aiosignal", "alabaster", "annotated-types", "argon2-cffi", "argon2-cffi-bindings", "atomicwrites", "Automat", "bcrypt", "binaryornot", 
+        "blinker", "boltons", "Brotli", "cachetools", "cffi", "chardet", "charset-normalizer", "colorama", "cssselect", "cycler", "cytoolz", "decorator", "defusedxml", "diff-match-patch", 
+        "distro", "docstring-to-markdown", "et-xmlfile", "executing", "frozenlist", "frozendict", "h11", "HeapDict", "hyperlink", "idna", "imagecodecs", "imagesize", "importlib-metadata", 
+        "incremental", "iniconfig", "intervaltree", "ipython-genutils", "jaraco.classes", "jmespath", "jsonpointer", "jsonpatch", "json5", "lazy-object-proxy", "lazy_loader", "locket",
+        "mdit-py-plugins", "mdurl", "mkl_fft", "mkl_random", "mkl-service", "more-itertools", "mpmath", "multidict", "multipledispatch", "mypy-extensions", "navigator-updater", "nest-asyncio", "overrides", 
+        "pkce", "platformdirs", "pluggy", "pure-eval", "py-cpuinfo", "pyasn1", "pyasn1-modules", "pycosat", "pyct", "pydocstyle", "pyerfa", "pylint-venv", "pyls-spyder", "pytoolconfig", "pyviz_comms", 
+        "pywin32-ctypes", "pywinpty", "queuelib", "referencing", "rfc3339-validator", "rfc3986-validator", "rope", "rpds-py", "ruamel.yaml.clib", "ruamel-yaml-conda", "safetensors", "semver",
+        "service-identity", "sip", "smmap", "sniffio", "snowballstemmer", "sortedcontainers", "stack-data", "tblib", "tenacity", "text-unidecode", "textdistance", "threadpoolctl", "three-merge", "tinycss2", "tldextract", 
+        "tomli", "toolz", "truststore", "twisted-iocpsupport", "ua-parser", "ua-parser-builtins", "uc-micro-py", "unicodedata2", "user-agents", "w3lib", "whatthepatch", "windows-curses", "zict", "zope.interface", "zstandard"
+    };
+    
+    // If pip output is empty, pip may not be installed
+    if (pipList.contains("No module named pip")) {
+        result += "pip is not installed for the detected Python interpreter.\n";
+    } else if (pipList.isEmpty()) {
+        result += "No Python libraries installed or unable to retrieve the list.\n";
+    } else {
+        // Extract package names from the pip list output
+        QStringList lines = pipList.split('\n');
+        QStringList packageNames;
+
+        // Skip the first line (header) and process the rest
+        for (int i = 2; i < lines.size(); ++i) {  // Start from the second line
+            QString line = lines[i].trimmed();
+            if (line.isEmpty()) continue;  // Skip empty lines
+
+            QStringList parts = line.split(QRegExp("\\s+"));  // Split by whitespace
+            if (parts.size() > 0) {
+                QString packageName = parts[0];
+                if (!excludeLibraries.contains(packageName)) {  // Exclude foundational libraries
+                    packageNames.append(packageName);
+                }
+            }
+        }
+
+        // Join the package names into a single string, separated by spaces
+        result += "Part Installed Python Libraries: " + truncateString(packageNames.join(" "),MAX_INPUT);
+    }
+    return result;
+}
+
 QString Widget::create_engineer_info()
 {
     QString engineer_info = jtr("engineer_info");
@@ -1314,6 +1425,7 @@ QString Widget::create_engineer_info()
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info.replace("{OS}", USEROS);
     engineer_system_info.replace("{SHELL}", shell);
+    engineer_system_info.replace("{PYTHON_ENV}", python_env);
     engineer_system_info.replace("{DATE}", dateString);
     engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
 
