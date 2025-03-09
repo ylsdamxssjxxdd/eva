@@ -747,6 +747,7 @@ void Widget::serverControl() {
     arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);           //使用最近一次应用的ngl作为服务的gpu负载
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
+    arguments << "--jinja"; // 使用jinja引擎支持工具调用
     // arguments << "--log-disable";                                      //不要日志
     if(ui_SETTINGS.hid_flash_attn){arguments << "-fa";}// 开启flash attention加速
     if (ui_SETTINGS.lorapath != "") {
