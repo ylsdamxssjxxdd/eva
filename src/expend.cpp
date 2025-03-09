@@ -2562,25 +2562,17 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
     {
         QString command;
         QStringList cmdline;
-    #ifdef Q_OS_WIN
+
         command = pythonExecutable + " " +
                   localPath + ui->modelconvert_script_comboBox->currentText() + " " +
                   ui->modelconvert_modelpath_lineEdit->text() + " " +
                   "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +
                   "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
-        cmdline << "/c" << command;
-    #else
-        command = pythonExecutable + " " +
-                  localPath + ui->modelconvert_script_comboBox->currentText() + " " +
-                  ui->modelconvert_modelpath_lineEdit->text() + " " +
-                  "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +
-                  "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
-        cmdline << "-c" << command;
-    #endif
+        cmdline << CMDGUID << command;
+
         ui->modelconvert_log->appendPlainText(shell + " > " + command + "\n");
         qDebug()<<shell<<command;
         convert_command_process->start(shell, cmdline);
-        // convert_command_process->start(shell, {"/c","pip","list"});
 
     }
 

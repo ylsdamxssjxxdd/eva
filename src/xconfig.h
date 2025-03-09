@@ -487,7 +487,9 @@ inline QString getLinuxOSName() {
 //操作系统版本
 #ifdef Q_OS_LINUX
 const QString USEROS = getLinuxOSName();
+const QString CMDGUID = "-c";
 #else
+const QString CMDGUID = "/c";
 const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
 #endif
 

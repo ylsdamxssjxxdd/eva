@@ -1345,7 +1345,7 @@ QString Widget::checkPython()
 
     QProcess process;
     QStringList shellArgs;
-    shellArgs << "/c" << pythonExecutable + " --version";
+    shellArgs << CMDGUID << pythonExecutable + " --version";
     process.start(shell, shellArgs);
     process.waitForFinished();
 
@@ -1359,7 +1359,7 @@ QString Widget::checkPython()
         return result;
     } else {
         QStringList shellArgs2;
-        shellArgs2 << "/c" << pythonExecutable << "-c" << "import sys; print(sys.executable)";
+        shellArgs2 << CMDGUID << pythonExecutable << "-c" << "import sys; print(sys.executable)";
         process.start(shell, shellArgs2);
         process.waitForFinished();
         QString python_absolutePath = process.readAllStandardOutput().trimmed();
@@ -1368,7 +1368,7 @@ QString Widget::checkPython()
 
     // 获取安装库信息
     QStringList shellArgs3;
-    shellArgs3 << "/c" << pythonExecutable + " -m pip list";
+    shellArgs3 << CMDGUID << pythonExecutable + " -m pip list";
     process.start(shell, shellArgs3);
     process.waitForFinished();
 
@@ -1429,7 +1429,7 @@ QString Widget::checkCompile() {
     // 尝试检查 MinGW
     {
         QStringList shellArgs;
-        shellArgs << "/c" << "g++ --version";
+        shellArgs << CMDGUID << "g++ --version";
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
@@ -1447,7 +1447,7 @@ QString Widget::checkCompile() {
     // 检查 MSVC
     {
         QStringList shellArgs;
-        shellArgs << "/c" << "cl /Bv";
+        shellArgs << CMDGUID << "cl /Bv";
         process.start(shell, shellArgs);
         process.waitForFinished();
         QByteArray output = process.readAllStandardOutput();
@@ -1464,7 +1464,7 @@ QString Widget::checkCompile() {
     // 检查 Clang
     {
         QStringList shellArgs;
-        shellArgs << "/c" << "clang --version";
+        shellArgs << CMDGUID << "clang --version";
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
@@ -1480,12 +1480,10 @@ QString Widget::checkCompile() {
 
     // Linux平台的编译器检查
 #ifdef Q_OS_LINUX
-    QProcess process;
-    
     // 检查 GCC
     {
         QStringList shellArgs;
-        shellArgs << "/c" << "gcc --version";
+        shellArgs << CMDGUID << "gcc --version";
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
@@ -1501,7 +1499,7 @@ QString Widget::checkCompile() {
     // 检查 Clang
     {
         QStringList shellArgs;
-        shellArgs << "/c" << "clang --version";
+        shellArgs << CMDGUID << "clang --version";
         process.start(shell, shellArgs);
         process.waitForFinished();
         output = process.readAllStandardOutput();

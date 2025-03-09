@@ -30,13 +30,8 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
 
         QStringList shellArgs;
-    #ifdef Q_OS_WIN
-        // 在Windows上执行
-        shellArgs << "/c" << func_arg_list.second;
-    #else
-        // 在Unix-like系统上执行
-        shellArgs << "-c"<< func_arg_list.second;
-    #endif
+        shellArgs << CMDGUID << func_arg_list.second;
+
         process->start(shell, shellArgs);
         qDebug() << "Executing command:" << shell << shellArgs;
         emit tool2ui_state(QString("tool: ") + shell + " " + shellArgs.join(" "));
