@@ -357,8 +357,6 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <summary> 展开 </summary>
 
-- 银河麒麟系统下服务状态和性能测试功能不支持在中文路径下进行，定位在ggml_backend_load_all()的宽字符处理，待修复
-
 - 模型推理有内存泄漏，定位在xbot.cpp的采样部分，与qt的qplaintextedit也有关，待修复
 
 - 链接模式下，无法无间隔的连续发送，通过定时100ms后触发来缓解，定位在xnet.cpp的QNetworkAccessManager不能及时释放，待修复
@@ -366,6 +364,8 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 - 多模态模型输出异常，需要向llava.cpp对齐，待修复
 
 ---
+
+- 银河麒麟系统下服务状态和性能测试功能不支持在中文路径下进行，定位在ggml_backend_load_all()的宽字符处理，已修复（使用std::string）
 
 - 达到最大上下文长度后截断一次后再达到，解码会失败，通过暂时置入空的记忆来缓解，定位在xbot.cpp的llama_decode返回1（找不到kv槽），没修复（实际上是截断后，送入的token数量与保留的部分依旧超过最大上下文长度，需要再截断一次）
 
