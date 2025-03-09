@@ -1359,7 +1359,12 @@ QString Widget::checkPython()
         return result;
     } else {
         QStringList shellArgs2;
+#ifdef Q_OS_WIN
         shellArgs2 << CMDGUID << pythonExecutable << "-c" << "import sys; print(sys.executable)";
+#elif Q_OS_LINUX
+        // 注意linux下不能有两个-c
+        shellArgs2 << CMDGUID << pythonExecutable + "-c \"import sys; print(sys.executable)\"";
+#endif
         process.start(shell, shellArgs2);
         process.waitForFinished();
         QString python_absolutePath = process.readAllStandardOutput().trimmed();
@@ -1502,7 +1507,7 @@ QString Widget::checkCompile() {
         shellArgs << CMDGUID << "clang --version";
         process.start(shell, shellArgs);
         process.waitForFinished();
-        output = process.readAllStandardOutput();
+        QString output = process.readAllStandardOutput();
         if (!output.isEmpty()) {
             compilerInfo += "Clang version: ";
             QStringList lines = output.split('\n');
