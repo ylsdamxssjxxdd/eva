@@ -200,7 +200,7 @@ class Widget : public QWidget {
 
     //约定选项相关
     QString shell = DEFAULT_SHELL;
-    QString python = DEFAULT_PYTHON;
+    QString pythonExecutable = DEFAULT_PYTHON;
     void set_DateDialog();  //设置约定选项
     Ui::Date_Dialog_Ui *date_ui;
     QDialog *date_dialog;

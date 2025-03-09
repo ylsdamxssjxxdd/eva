@@ -163,7 +163,7 @@ class Expend : public QWidget {
     //-------------------------------------------------------------------------
     public:
       QString shell = DEFAULT_SHELL;
-      QString python = DEFAULT_PYTHON;
+      QString pythonExecutable = DEFAULT_PYTHON;
       QProcess* convert_command_process;
       void get_convertmodel_name();//自动构建输出文件名
     private slots:

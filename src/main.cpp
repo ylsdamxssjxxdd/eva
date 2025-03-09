@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();// 读取记录在配置文件中的shell路径
-    w.python = tool.python = expend.python = settings.value("python", DEFAULT_PYTHON).toString();// 读取记录在配置文件中的python版本
+    w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString();// 读取记录在配置文件中的python版本
     QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();  //模型路径
     w.currentpath = w.historypath = expend.currentpath = modelpath;
     w.ui_SETTINGS.modelpath = modelpath;

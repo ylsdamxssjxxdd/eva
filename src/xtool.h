@@ -38,7 +38,7 @@ class xTool : public QObject {
     void Exec(QPair<QString, QString> func_arg_list);  // 运行
    public:
     QString shell = DEFAULT_SHELL;
-    QString python = DEFAULT_PYTHON;
+    QString pythonExecutable = DEFAULT_PYTHON;
     QPair<QString, QString> func_arg_list;
     bool createTempDirectory(const QString& path);  //创建临时文件夹
     int embedding_server_dim = 1024;  //开启嵌入服务的嵌入维度

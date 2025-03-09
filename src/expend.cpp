@@ -705,7 +705,7 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
     settings.setValue("shell", shell);  //shell路径
-    settings.setValue("python", python);  //python版本
+    settings.setValue("python", pythonExecutable);  //python版本
     // event->accept();
 }
 
@@ -2563,14 +2563,14 @@ void Expend::on_modelconvert_exec_pushButton_clicked()
         QString command;
         QStringList cmdline;
     #ifdef Q_OS_WIN
-        command = python + " " +
+        command = pythonExecutable + " " +
                   localPath + ui->modelconvert_script_comboBox->currentText() + " " +
                   ui->modelconvert_modelpath_lineEdit->text() + " " +
                   "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +
                   "--outfile " + ui->modelconvert_modelpath_lineEdit->text() + "/" + ui->modelconvert_outputname_lineEdit->text();
         cmdline << "/c" << command;
     #else
-        command = python + " " +
+        command = pythonExecutable + " " +
                   localPath + ui->modelconvert_script_comboBox->currentText() + " " +
                   ui->modelconvert_modelpath_lineEdit->text() + " " +
                   "--outtype " + ui->modelconvert_converttype_comboBox->currentText() + " " +

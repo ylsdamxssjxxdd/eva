@@ -1862,7 +1862,7 @@ void Widget::auto_save_user() {
     settings.setValue("ui_mode", ui_mode);  //机体模式
     settings.setValue("ui_state", ui_state);  //机体状态
     settings.setValue("shell", shell);  //shell路径
-    settings.setValue("python", python);  //python版本
+    settings.setValue("python", pythonExecutable);  //python版本
     //保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath);  //模型路径
     settings.setValue("temp", ui_SETTINGS.temp);            //温度
