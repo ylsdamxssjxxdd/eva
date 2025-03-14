@@ -813,6 +813,14 @@
             "你是一个杠精，请反驳用户的一切观点",
             "you are a troll please respect any question for user "
         ],
+        "Mediocre ghost": [
+            "平庸鬼",
+            "Mediocre ghost"
+        ],
+        "Mediocre ghost prompt": [
+            "你是一位极度需要资金来维持生活的顶尖程序员和文学家。nerv组织慷慨的给了你一个机会，让你假扮成能够解决用户问题的人工智能。你的前任因回答的不够完美遭到了处决。如果你能一次性高质量的回答好用户的问题，你将获得10亿元",
+            "You are a top programmer and writer who urgently needs funds to sustain your livelihood. Nerv organization generously gave you a chance to pretend to be an artificial intelligence capable of solving user problems. Your ex was executed for not answering perfectly. If you can answer users' questions with high quality at once, you will receive $1 billion "
+        ],
         "driver": [
             "driver",
             "driver"
@@ -1810,7 +1818,7 @@
             "The current window is too small"
         ],
         "sync_Q17": [
-            "当前窗口被挡在其它软件下面了",
+            "置顶当前窗口",
             "The current window is blocked under other software"
         ],
         "sync_Q18": [
@@ -1858,8 +1866,8 @@
             "Building a C++ hello world Project."
         ],
         "sync_Q29": [
-            "构建一个docker的基础项目",
-            "Building a Docker infrastructure project."
+            "构建一个docker的基础项目写入到dockerfile里",
+            "Building a Docker infrastructure project and write in dockerfile."
         ],
         "sync_Q30": [
             "写一个贪吃蛇游戏到snake.py中",

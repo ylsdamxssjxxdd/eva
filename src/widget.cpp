@@ -45,6 +45,12 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     troll.model_name = jtr("troll");
     troll.is_load_tool = false;
     date_map.insert(jtr("troll"), troll);
+    DATES ghost;
+    ghost.date_prompt = jtr("Mediocre ghost prompt");
+    ghost.user_name = jtr("user");
+    ghost.model_name = jtr("Mediocre ghost");
+    ghost.is_load_tool = false;
+    date_map.insert(jtr("Mediocre ghost"), ghost);
 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空

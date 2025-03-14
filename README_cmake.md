@@ -12,7 +12,6 @@ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 禁用掉thirdparty\llama.cpp\common\CMakeLists.txt 里的add_custom_command相关 但是确保手动加上build-info.cpp文件
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文
-- 解除 thirdparty\llama.cpp\examples\llava\clip.cpp 中对GPU后端的注释，支持图像加速解码，但是部分模型会闪退
 
 ### stable-diffusion.cpp
 - 删除自己的ggml文件夹

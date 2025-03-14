@@ -47,7 +47,7 @@ void xBot::predict(INPUTS inputs) {
     if (thinkStartIndex != -1 && thinkEndIndex != -1 && thinkStartIndex < thinkEndIndex) {
         // 删除两个标记之间的所有元素
         Brain_vector.erase(Brain_vector.begin() + thinkStartIndex, Brain_vector.begin() + thinkEndIndex + 1);
-        llama_kv_cache_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
+        llama_kv_self_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
         n_past -= thinkEndIndex - thinkStartIndex + 1;
         n_consumed = 0;
         // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
@@ -209,8 +209,8 @@ int xBot::stream() {
                     const int n_discard = n_left / 2;         //待删除的token长度
                     // qDebug()<<"n_past"<<n_past<<"n_keep"<<n_keep<<"n_left"<<n_left<<"n_discard"<<n_discard;
                     //导致批解码失败的元首
-                    llama_kv_cache_seq_rm(ctx, 0, n_keep, n_keep + n_discard);               //删除中间一段缓存(n_keep -> n_keep + n_discard)
-                    llama_kv_cache_seq_add(ctx, 0, n_keep + n_discard, n_past, -n_discard);  //把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
+                    llama_kv_self_seq_rm(ctx, 0, n_keep, n_keep + n_discard);               //删除中间一段缓存(n_keep -> n_keep + n_discard)
+                    llama_kv_self_seq_add(ctx, 0, n_keep + n_discard, n_past, -n_discard);  //把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
 
                     //重构记忆向量
                     std::vector<Brain_Cell> temp_vector = Brain_vector;
@@ -243,9 +243,9 @@ int xBot::stream() {
                     const int ib = (ga_n * ga_i) / ga_w;
                     const int bd = (ga_w / ga_n) * (ga_n - 1);
                     const int dd = (ga_w / ga_n) - ib * bd - ga_w;
-                    llama_kv_cache_seq_add(ctx, 0, ga_i, n_past, ib * bd);
-                    llama_kv_cache_seq_div(ctx, 0, ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n);
-                    llama_kv_cache_seq_add(ctx, 0, ga_i + ib * bd + ga_w, n_past + ib * bd, dd);
+                    llama_kv_self_seq_add(ctx, 0, ga_i, n_past, ib * bd);
+                    llama_kv_self_seq_div(ctx, 0, ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n);
+                    llama_kv_self_seq_add(ctx, 0, ga_i + ib * bd + ga_w, n_past + ib * bd, dd);
                     n_past -= bd;
                     ga_i += ga_w / ga_n;
                     // qDebug()<<n_past<<bd<<ga_i;
@@ -437,7 +437,7 @@ void xBot::load(QString modelpath_) {
     if (!is_first_load && !is_free)  //如果已经释放则不再释放
     {
         is_model_load = false;      //标记未完成装载
-        llama_kv_cache_clear(ctx);  //清空ctx kv缓存
+        llama_kv_self_clear(ctx);  //清空ctx kv缓存
         n_past = 0;
         common_sampler_free(smpl);
         smpl = nullptr;
@@ -600,7 +600,7 @@ void xBot::reset() {
     }
     if (is_clear_all)  //清空ctx kv缓存
     {
-        llama_kv_cache_clear(ctx);  //清空ctx kv缓存
+        llama_kv_self_clear(ctx);  //清空ctx kv缓存
         n_past = 0;                 //已推理字符数
         n_consumed = 0;             //已推理字符数
         if (!is_complete) {
@@ -613,7 +613,7 @@ void xBot::reset() {
     } else  //删除prompt以外的kv缓存
     {
         if (n_past > int(system_tokens.size())) {
-            llama_kv_cache_seq_rm(ctx, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
+            llama_kv_self_seq_rm(ctx, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
             n_past = system_tokens.size();
             n_consumed = system_tokens.size();
             for (int i = 0; i < system_tokens.size(); ++i) {
@@ -940,7 +940,7 @@ void xBot::recv_free(bool loadlater) {
     if (is_model_load) {
         QElapsedTimer time2;
         time2.start();
-        llama_kv_cache_clear(ctx);  //清空ctx kv缓存
+        llama_kv_self_clear(ctx);  //清空ctx kv缓存
         llama_free(ctx);
         ctx = nullptr;
         llama_model_free(model);
