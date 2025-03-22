@@ -170,7 +170,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <summary> Auditory </summary>
 
-- Introduction: With the help of the whisper.cpp project, the user's speech can be converted to text.
+- Introduction: With the help of the whisper.cpp project, the user's speech can be converted to text.You can also directly input audio and convert it into subtitle files
 
 - Activation: Right-click the status area to open the expansion window, select the speech2text tab, and choose the path where the whisper model is located. Return to the main interface, press the F2 shortcut to start recording, press F2 again to end the recording, and it will automatically convert to text and fill into the input area.
 

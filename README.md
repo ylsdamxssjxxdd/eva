@@ -178,7 +178,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <summary> 听觉 </summary>
 
-- 介绍：借助whisper.cpp项目将用户的声音转为文本
+- 介绍：借助whisper.cpp项目将用户的声音转为文本，也可以直接传入音频转为字幕文件
 
 - 激活方法：右击状态区打开增殖窗口，选择声转文选项卡，选择whisper模型所在路径。回到主界面按f2快捷键即可录音，再按f2结束录音，并自动转为文本填入到输入区
 
