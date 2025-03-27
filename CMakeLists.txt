@@ -17,11 +17,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
 ##################################### 处理编译选项 ####################################
+
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 add_compile_definitions(_WIN32_WINNT=0x0601)
@@ -33,11 +34,16 @@ if(BODY_32BIT)
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
         message(FATAL_ERROR "This project requires MinGW.")
     endif()
+    message(STATUS "32bit关闭所有加速")
     set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
     option(GGML_FMA          "ggml: enable FMA"              OFF)
     option(GGML_F16C         "ggml: enable F16C"             OFF)
     option(GGML_AVX          "ggml: enable AVX"              OFF)
     option(GGML_AVX2         "ggml: enable AVX2"             OFF)
+    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
+
     add_compile_definitions(BODY_USE_32BIT) # 机体只支持32位的标志
 elseif(GGML_CUDA)
     set(GGML_NATIVE OFF) # 不使用本机加速优化，会使cuda版本体积变大但是兼容性变强
@@ -143,6 +149,18 @@ add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
 add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
 add_subdirectory(thirdparty/llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(thirdparty/llama.cpp/examples/server) # 添加server
+
+if(ARCHITECTURE MATCHES "aarch64|arm")
+    message(STATUS "arm下关闭所有加速")
+    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
+    option(GGML_FMA          "ggml: enable FMA"              OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_AVX          "ggml: enable AVX"              OFF)
+    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
+    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
+endif()
 
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器

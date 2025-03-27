@@ -99,6 +99,7 @@ if (GGML_NATIVE OR NOT GGML_NATIVE_DEFAULT)
 else()
     set(INS_ENB ON)
 endif()
+message(STATUS "GGML_CUDA_GRAPHS_DEFAULT" ${GGML_CUDA_GRAPHS_DEFAULT}${INS_ENB})
 
 option(GGML_CPU_HBM          "ggml: use memkind for CPU HBM" OFF)
 option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" ON)
