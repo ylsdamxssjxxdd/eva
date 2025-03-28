@@ -109,7 +109,19 @@ elseif(UNIX)
 
 endif()
 
+add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
 
+if(ARCHITECTURE MATCHES "aarch64|arm")
+    message(STATUS "arm下关闭所有cpu加速")
+    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
+    option(GGML_FMA          "ggml: enable FMA"              OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_AVX          "ggml: enable AVX"              OFF)
+    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
+    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
+endif()
 ##################################### 第三方程序相关 #####################################
 
 add_subdirectory(thirdparty/libsamplerate) # 添加libsamplerate音频重采样库
@@ -159,7 +171,7 @@ set(CMAKE_AUTOUIC ON)
 # 查找Qt相关库，qt库的bin目录需要在环境变量中
 find_package(Qt5 COMPONENTS Widgets Network Script Multimedia TextToSpeech REQUIRED)
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE) # 获取Qt5的bin目录
-add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
+
 message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -192,17 +204,7 @@ add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts lla
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
 
-if(ARCHITECTURE MATCHES "aarch64|arm")
-    message(STATUS "arm下关闭所有cpu加速")
-    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
-    option(GGML_FMA          "ggml: enable FMA"              OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_AVX          "ggml: enable AVX"              OFF)
-    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
-    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
-endif()
+
 
 # 后处理
 if(MSVC)

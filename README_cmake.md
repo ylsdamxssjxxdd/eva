@@ -41,6 +41,7 @@ inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
 - 修改cmakelists.txt中set(BUILD_SHARED_LIBS ON)以支持动态链接
 - 删除更改stable-diffusion.cpp中的几处LOG_DEBUG以支持mingw
 - 如果要依赖本身的ggml，则改名为sd-前缀的所有ggml库，尤其是在链接时target_link_libraries要链接sd-前缀的库
+- 以及ggml-blas
 
 ### whisper.cpp
 - 删除自己的ggml文件夹
