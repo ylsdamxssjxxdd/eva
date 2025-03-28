@@ -12,6 +12,29 @@ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 禁用掉thirdparty\llama.cpp\common\CMakeLists.txt 里的add_custom_command相关 但是确保手动加上build-info.cpp文件
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文
+- thirdparty\llama.cpp\ggml\src\ggml-cpu\ggml-cpu-impl.h 中添加这段代码以支持飞腾cpu的编译
+
+```txt
+// 替代vld1q_s8_x4
+inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
+    int8x16x4_t ret;
+    ret.val[0] = vld1q_s8(ptr);
+    ret.val[1] = vld1q_s8(ptr + 16);
+    ret.val[2] = vld1q_s8(ptr + 32);
+    ret.val[3] = vld1q_s8(ptr + 48);
+    return ret;
+}
+
+// 替代 vld1q_u8_x4 的实现
+inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
+    uint8x16x4_t ret;
+    ret.val[0] = vld1q_u8(ptr);      // 加载第 0-15 字节
+    ret.val[1] = vld1q_u8(ptr + 16); // 加载第 16-31 字节
+    ret.val[2] = vld1q_u8(ptr + 32); // 加载第 32-47 字节
+    ret.val[3] = vld1q_u8(ptr + 48); // 加载第 48-63 字节
+    return ret;
+}
+```
 
 ### stable-diffusion.cpp
 - 删除自己的ggml文件夹

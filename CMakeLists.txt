@@ -150,18 +150,6 @@ add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
 add_subdirectory(thirdparty/llama.cpp/examples/quantize) # 添加quantize
 add_subdirectory(thirdparty/llama.cpp/examples/server) # 添加server
 
-if(ARCHITECTURE MATCHES "aarch64|arm")
-    message(STATUS "arm下关闭所有加速")
-    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
-    option(GGML_FMA          "ggml: enable FMA"              OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_AVX          "ggml: enable AVX"              OFF)
-    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
-    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
-endif()
-
 ###################################### eva相关 ######################################
 # 启用moc rcc uic编译器
 set(CMAKE_AUTOMOC ON)
@@ -204,6 +192,17 @@ add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts lla
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
 
+if(ARCHITECTURE MATCHES "aarch64|arm")
+    message(STATUS "arm下关闭所有cpu加速")
+    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
+    option(GGML_FMA          "ggml: enable FMA"              OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_AVX          "ggml: enable AVX"              OFF)
+    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
+    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
+    option(GGML_F16C         "ggml: enable F16C"             OFF)
+    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
+endif()
 
 # 后处理
 if(MSVC)
