@@ -41,7 +41,6 @@ if(BODY_32BIT)
     option(GGML_AVX          "ggml: enable AVX"              OFF)
     option(GGML_AVX2         "ggml: enable AVX2"             OFF)
     option(GGML_BMI2         "ggml: enable BMI2"             OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
     option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
 
     add_compile_definitions(BODY_USE_32BIT) # 机体只支持32位的标志
@@ -112,15 +111,8 @@ endif()
 add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
 
 if(ARCHITECTURE MATCHES "aarch64|arm")
-    message(STATUS "arm下关闭所有cpu加速")
-    set(GGML_NATIVE OFF) # 不使用本机加速优化,提升兼容性
-    option(GGML_FMA          "ggml: enable FMA"              OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_AVX          "ggml: enable AVX"              OFF)
-    option(GGML_AVX2         "ggml: enable AVX2"             OFF)
-    option(GGML_BMI2         "ggml: enable BMI2"             OFF)
-    option(GGML_F16C         "ggml: enable F16C"             OFF)
-    option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
+    message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
+    set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 银河麒麟不支持
 endif()
 ##################################### 第三方程序相关 #####################################
 

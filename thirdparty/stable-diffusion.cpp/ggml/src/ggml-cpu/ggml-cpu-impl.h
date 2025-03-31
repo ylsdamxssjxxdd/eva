@@ -287,6 +287,14 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #define ggml_int8x16x2_t  int8x16x2_t
 #define ggml_int8x16x4_t  int8x16x4_t
 
+// 取消原有定义
+#ifdef vld1q_s8_x4
+#undef vld1q_s8_x4
+#endif
+#ifdef vld1q_u8_x4
+#undef vld1q_u8_x4
+#endif
+
 // 替代vld1q_s8_x4
 inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     int8x16x4_t ret;
