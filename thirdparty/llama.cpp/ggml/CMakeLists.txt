@@ -99,7 +99,10 @@ if (GGML_NATIVE OR NOT GGML_NATIVE_DEFAULT)
 else()
     set(INS_ENB ON)
 endif()
-message(STATUS "GGML_CUDA_GRAPHS_DEFAULT" ${GGML_CUDA_GRAPHS_DEFAULT}${INS_ENB})
+
+message(DEBUG "GGML_NATIVE         : ${GGML_NATIVE}")
+message(DEBUG "GGML_NATIVE_DEFAULT : ${GGML_NATIVE_DEFAULT}")
+message(DEBUG "INS_ENB             : ${INS_ENB}")
 
 option(GGML_CPU_HBM          "ggml: use memkind for CPU HBM" OFF)
 option(GGML_CPU_AARCH64      "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" ON)
@@ -124,10 +127,12 @@ endif()
 option(GGML_LASX             "ggml: enable lasx"             ON)
 option(GGML_LSX              "ggml: enable lsx"              ON)
 option(GGML_RVV              "ggml: enable rvv"              ON)
+option(GGML_RV_ZFH           "ggml: enable riscv zfh"        OFF)
 option(GGML_VXE              "ggml: enable vxe"              ON)
 
 option(GGML_CPU_ALL_VARIANTS "ggml: build all variants of the CPU backend (requires GGML_BACKEND_DL)" OFF)
-set(GGML_CPU_ARM_ARCH "" CACHE STRING "ggml: CPU architecture for ARM")
+set(GGML_CPU_ARM_ARCH        "" CACHE STRING "ggml: CPU architecture for ARM")
+set(GGML_CPU_POWERPC_CPUTYPE "" CACHE STRING "ggml: CPU type for PowerPC")
 
 
 if (WIN32)

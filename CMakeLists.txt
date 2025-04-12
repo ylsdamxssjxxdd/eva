@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b4938) # 打包版本
+set(version b5121) # 打包版本
 
 # 设置所有构建类型下的可执行文件的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -25,6 +25,7 @@ option(BODY_32BIT                    "support 32 BIT"                           
 
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
+option(LLAMA_CURL       "llama: use libcurl to download model from an URL" OFF) #关闭联网下载功能
 add_compile_definitions(_WIN32_WINNT=0x0601)
 set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7,但是这样做再也不能支持mmap加速模型装载
 # 这几个标志是互斥的

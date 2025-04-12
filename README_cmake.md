@@ -12,9 +12,19 @@ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 - 修改llama.cpp/examples/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 禁用掉thirdparty\llama.cpp\common\CMakeLists.txt 里的add_custom_command相关 但是确保手动加上build-info.cpp文件
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文
-- thirdparty\llama.cpp\ggml\src\ggml-cpu\ggml-cpu-impl.h 中添加这段代码以支持飞腾cpu的编译
+- thirdparty\llama.cpp\ggml\src\ggml-cpu\ggml-cpu-impl.h 中这段代码下#define ggml_int8x16x4_t  int8x16x4_t 添加以下代码以支持飞腾cpu的编译
 
 ```txt
+
+// 取消原有定义
+#ifdef vld1q_s8_x4
+#undef vld1q_s8_x4
+#endif
+#ifdef vld1q_u8_x4
+#undef vld1q_u8_x4
+#endif
+
+
 // 替代vld1q_s8_x4
 inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     int8x16x4_t ret;

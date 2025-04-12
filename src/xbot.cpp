@@ -16,7 +16,6 @@ xBot::xBot() {
 
     //初始的模型参数
     common_params_.n_gpu_layers = DEFAULT_NGL;                   // gpu负载层数
-    common_params_.model = "";                                   //模型路径
     common_params_.cpuparams.n_threads = DEFAULT_NTHREAD;        //文字生成线程数，默认使用一半的线程数
     common_params_.cpuparams_batch.n_threads = DEFAULT_NTHREAD;  //上文处理线程数，为了简单，与文字生成线程数保持一致
     common_params_.n_ctx = DEFAULT_NCTX;                         //上下文最大长度
@@ -457,7 +456,7 @@ void xBot::load(QString modelpath_) {
         llama_backend_init();
     }
 
-    common_params_.model = modelpath;  //传递模型路径
+    common_params_.model.path = modelpath;  //传递模型路径
     
 
     if (vram_enough) {
@@ -470,7 +469,7 @@ void xBot::load(QString modelpath_) {
 
     //装载模型
     llama_model_params model_params = common_model_params_to_llama(common_params_);
-    model = llama_model_load_from_file(common_params_.model.c_str(), model_params);
+    model = llama_model_load_from_file(common_params_.model.path.c_str(), model_params);
     vocab = llama_model_get_vocab(model);
     llama_context_params ctx_params = common_context_params_to_llama(common_params_);
     ctx_params.n_threads = common_params_.cpuparams.n_threads;
