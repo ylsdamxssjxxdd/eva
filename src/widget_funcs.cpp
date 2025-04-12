@@ -949,7 +949,7 @@ void Widget::ui_state_normal() {
             ui->reset->setEnabled(1);
             ui->send->setEnabled(1);
         }
-        if(is_load)
+        if(is_load || ui_mode == LINK_MODE)
         {
             ui->date->setEnabled(1);
             ui->set->setEnabled(1);
