@@ -926,12 +926,12 @@
             "knowledge(request) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."
         ],
         "controller_func_describe": [
-            "controller(number) - 传入相应的数字对软件进行控制: \n1 最大化主窗口\n2 最小化主窗口\n3 置顶主窗口\n4 取消置顶主窗口\n5 关闭主窗口\n6 播放音乐\n7 关闭音乐\n8 打开增殖窗口\n9 关闭增殖窗口",
-            "controller(number) - Pass in the corresponding numbers to control the software:  \n1 Maximize the main window\n2 Minimize the main window\n3 Top the main window\n4 Cancel the top of the main window\n5 Close the main window\n6 Play music\n7 Close music\n8 Open the proliferation window\n9 Close the proliferation window"
+            "controller(number) - 传入相应的数字对软件进行控制: 1(最大化主窗口); 2(最小化主窗口); 3(置顶主窗口); 4(取消置顶主窗口); 5(关闭主窗口); 6(播放音乐); 7(关闭音乐); 8(打开增殖窗口); 9(关闭增殖窗口)",
+            "controller(number) - Pass in the corresponding numbers to control the software: 1(Maximize the main window); 2(Minimize the main window); 3(Top the main window); 4(Cancel the top of the main window); 5(Close the main window); 6(Play music); 7(Close music); 8(Open the proliferation window); 9(Close the proliferation window)"
         ],
         "stablediffusion_func_describe": [
-            "stablediffusion(content) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
-            "stablediffusion(content) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
+            "stablediffusion(prompt) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
+            "stablediffusion(prompt) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
         ],
         "main window": [
             "主窗口",
