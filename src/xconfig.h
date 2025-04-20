@@ -102,6 +102,7 @@ struct CHATS {
     QString system_prompt;  // 系统指令
     QString input_prefix;   // 输入前缀
     QString input_suffix;   // 输入后缀
+    QString tool_prefix;   // 输入前缀（工具）
 };
 
 //发送内容的源
@@ -461,6 +462,29 @@ inline bool resampleWav(const std::string& inputPath, const std::string& outputP
     sf_close(outputFile);
 
     return true;
+}
+
+inline QString parseFirstKeyValue(const QString& jsonString) {
+    QByteArray jsonData = jsonString.toUtf8();
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError) {
+        // qDebug() << "JSON 解析错误：" << parseError.errorString();
+        return jsonString;
+    }
+    
+    QJsonObject jsonObj = jsonDoc.object();
+    QStringList keys = jsonObj.keys();
+    
+    if (!keys.isEmpty()) {
+        QString firstKey = keys.first();
+        if (jsonObj[firstKey].isString()) {
+            return jsonObj[firstKey].toString();
+        }
+    }
+    
+    return jsonString;
 }
 
 inline QString getLinuxOSName() {

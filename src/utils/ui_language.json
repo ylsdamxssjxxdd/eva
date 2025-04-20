@@ -886,8 +886,8 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n使用一段XML文本来调用工具，工具名称包含在开头和结束标签内，每次调用工具后记得输出{OBSERVATION_STOPWORD}以观察工具返回的输出结果。调用工具的XML文本结构如下: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD} \n工具使用示例1: <answer><content>请问您有什么需要帮助的？</content></answer>{OBSERVATION_STOPWORD}\n工具使用示例2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nUse an XML-style text to call the tools, with the tool name included at the start and end of the tag. Remember to output {OBSERVATIN_STOPWORD} after each tool call to observe the output results returned by the tool. The XML-style text for calling tools should look like this: <tool_name><parameter_name>value</parameter_name></tool_name>{OBSERVATION_STOPWORD}\nExample of tool usage 1: <answer><content>How can I assist you?</content></answer>{OBSERVATION_STOPWORD}\nExample of tool usage 2: <write_file><path_and_content>test.txt>>>hello world</path_and_content></write_file>{OBSERVATION_STOPWORD}\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n工具调用的方式为: <tool_name>argBody</tool_name>\n请遵照inputSchema的要求构建argBody进行传参，argBody的形式为: {\"arg1\":value1,\"arg2\":value2}\n调用示例: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nThe way to call the tool is as follows: <tool_name>argBody</tool_name>\nPlease follow the requirements of inputSchema to construct argBody for parameter passing. The form of argBody is: {\"arg1\":value1,\"arg2\":value2}\nCall example: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}"
         ],
         "answer_func_describe": [
             "answer(content) - 最终的回复或询问。",

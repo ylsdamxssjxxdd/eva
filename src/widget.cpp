@@ -305,9 +305,10 @@ void Widget::on_send_clicked() {
             else {
                 //如果工具返回的结果不为空，则认为输入源是观察者
                 if (tool_result != "") {
-                    input = QString(DEFAULT_SPLITER) + DEFAULT_OBSERVATION_NAME + ": " + tool_result;
+                    input = tool_result;
                     tool_result = "";
                     inputs = {input, ROLE_OBSERVATION};
+
                 } else {
                     inputs = {input, ROLE_USER};
                 }
@@ -1178,14 +1179,14 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     int index = ui_syncrate_manager.sync_list_index.first();  // 根据问题序号对答案
     bool pass = false;
     // qDebug() << index << ui_func_arg_list.first << ui_func_arg_list.second;
-
+    QString build_in_tool_arg = parseFirstKeyValue(ui_func_arg_list.second);//解析出第一个键对应的值用于内置工具的参数，因为内置工具都是一个参数
     // 验证 计算器 使用
     if (index >= 1 && index <= 5) {
         if (ui_func_arg_list.first == "calculator") {
-            if (ui_func_arg_list.second != "") {
+            if (build_in_tool_arg != "") {
                 QScriptEngine enging;
 
-                QScriptValue result_ = enging.evaluate(ui_func_arg_list.second.remove("\""));  //手动去除公式中的引号
+                QScriptValue result_ = enging.evaluate(build_in_tool_arg.remove("\""));  //手动去除公式中的引号
                 QString result = QString::number(result_.toNumber());
                 if (result != "nan")  // 结果不是nan说明计算成功
                 {
@@ -1200,8 +1201,8 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     // 验证 execute_command 使用
     if (index >= 6 && index <= 10) {
         if (ui_func_arg_list.first == "execute_command") {
-            if (ui_func_arg_list.second != "") {
-                if (!checkChinese(ui_func_arg_list.second))  // 不包含中文就通过
+            if (build_in_tool_arg != "") {
+                if (!checkChinese(build_in_tool_arg))  // 不包含中文就通过
                 {
                     qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
@@ -1214,7 +1215,7 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     // 验证 知识库 使用
     if (index >= 11 && index <= 15) {
         if (ui_func_arg_list.first == "knowledge") {
-            if (ui_func_arg_list.second != "")  // 不为空就通过
+            if (build_in_tool_arg != "")  // 不为空就通过
             {
                 qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                 reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
@@ -1226,12 +1227,12 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     // 验证 软件控制台 使用
     if (index >= 16 && index <= 20) {
         if (ui_func_arg_list.first == "controller") {
-            if (ui_func_arg_list.second != "") {
-                if (index == 16 && ui_func_arg_list.second == "1" ||  // 主窗口最大化
-                    index == 17 && ui_func_arg_list.second == "3" ||  // 主窗口置顶
-                    index == 18 && ui_func_arg_list.second == "6" ||  // 播放音乐
-                    index == 19 && ui_func_arg_list.second == "7" ||  // 关闭音乐
-                    index == 20 && ui_func_arg_list.second == "8"     // 打开增殖窗口
+            if (build_in_tool_arg != "") {
+                if (index == 16 && build_in_tool_arg == "1" ||  // 主窗口最大化
+                    index == 17 && build_in_tool_arg == "3" ||  // 主窗口置顶
+                    index == 18 && build_in_tool_arg == "6" ||  // 播放音乐
+                    index == 19 && build_in_tool_arg == "7" ||  // 关闭音乐
+                    index == 20 && build_in_tool_arg == "8"     // 打开增殖窗口
                 ) {
                     qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
@@ -1245,8 +1246,8 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     // 验证 文生图 使用
     if (index >= 21 && index <= 25) {
         if (ui_func_arg_list.first == "stablediffusion") {
-            if (ui_func_arg_list.second != "") {
-                if (!checkChinese(ui_func_arg_list.second))  // 不包含中文就通过
+            if (build_in_tool_arg != "") {
+                if (!checkChinese(build_in_tool_arg))  // 不包含中文就通过
                 {
                     qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                     reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
@@ -1260,7 +1261,7 @@ bool Widget::SyncRateTestCheck(QString assistant_history) {
     // 验证 代码解释器 使用
     if (index >= 26 && index <= 30) {
         if (ui_func_arg_list.first == "write_file" || ui_func_arg_list.first == "read_file" || ui_func_arg_list.first == "execute_command") {
-            if (ui_func_arg_list.second != "")  // 敢输出就是好样的
+            if (build_in_tool_arg != "")  // 敢输出就是好样的
             {
                 qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
                 reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);

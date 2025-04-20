@@ -1260,12 +1260,12 @@ QPair<QString, QString> Widget::XMLparser(QString text)
             QString paramName = paramMatch.captured(1);
             QString paramValue = paramMatch.captured(2);
             qDebug() << "参数名:" << paramName;
-            qDebug() << "值:" << paramValue;
+            qDebug() << "参数值:" << paramValue;
             func_arg_list.second = paramValue;
         } else {
-            // 如果没有参数名，直接将工具内容作为值
+            // 如果没有参数名，直接将工具内容作为值 目前主要是这种情况
             QString value = toolContent.trimmed();
-            qDebug() << "值:" << value;
+            qDebug() << "参数值:" << value;
             func_arg_list.second = value;
         }
     } else {
@@ -1550,9 +1550,7 @@ void Widget::addStopwords() {
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;
-        // ui_DATES.extra_stop_words << "observation:";
-        // ui_DATES.extra_stop_words << "observation：";
+        // ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;
     }
 }
 

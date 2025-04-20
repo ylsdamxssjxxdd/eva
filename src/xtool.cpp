@@ -7,11 +7,12 @@ xTool::xTool(QString applicationDirPath_) {
 xTool::~xTool() { ; }
 
 void xTool::Exec(QPair<QString, QString> func_arg_list) {
+    QString build_in_tool_arg = parseFirstKeyValue(func_arg_list.second);//解析出第一个键对应的值用于内置工具的参数，因为内置工具都是一个参数
     //----------------------计算器------------------
     if (func_arg_list.first == "calculator") {
-        emit tool2ui_state("tool:" + QString("calculator(") + func_arg_list.second + ")");
+        emit tool2ui_state("tool:" + QString("calculator(") + build_in_tool_arg + ")");
         QScriptEngine enging;
-        QScriptValue result_ = enging.evaluate(func_arg_list.second.remove("\""));  //手动去除公式中的引号
+        QScriptValue result_ = enging.evaluate(build_in_tool_arg.remove("\""));  //手动去除公式中的引号
         QString result = QString::number(result_.toNumber());
         // qDebug()<<"tool:" + QString("calculator ") + jtr("return") + "\n" + result;
         if (result == "nan")  //计算失败的情况
@@ -30,7 +31,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
 
         QStringList shellArgs;
-        shellArgs << CMDGUID << func_arg_list.second;
+        shellArgs << CMDGUID << build_in_tool_arg;
 
         process->start(shell, shellArgs);
         qDebug() << "Executing command:" << shell << shellArgs;
@@ -62,7 +63,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         } else {
             //查询计算词向量和计算相似度，返回匹配的文本段
             emit tool2ui_state("tool:" + jtr("qureying"));
-            result = embedding_query_process(func_arg_list.second);
+            result = embedding_query_process(build_in_tool_arg);
             emit tool2ui_state("tool:" + jtr("qurey&timeuse") + QString(": ") + QString::number(time4.nsecsElapsed() / 1000000000.0, 'f', 2) + " s");
             emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
             emit tool2ui_pushover(QString("knowledge ") + jtr("return") + "\n" + result);
@@ -71,19 +72,19 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     }
     //----------------------控制台------------------
     else if (func_arg_list.first == "controller") {
-        emit tool2ui_state("tool:" + QString("controller(") + func_arg_list.second + ")");
+        emit tool2ui_state("tool:" + QString("controller(") + build_in_tool_arg + ")");
         //执行相应界面控制
-        emit tool2ui_controller(func_arg_list.second.toInt());
+        emit tool2ui_controller(build_in_tool_arg.toInt());
     }
     //----------------------文生图------------------
     else if (func_arg_list.first == "stablediffusion") {
         //告诉expend开始绘制
-        emit tool2expend_draw(func_arg_list.second);
+        emit tool2expend_draw(build_in_tool_arg);
     }
     //----------------------读取文件------------------
     else if (func_arg_list.first == "read_file") {
         QString result;
-        QString filepath = func_arg_list.second;
+        QString filepath = build_in_tool_arg;
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
         filepath = applicationDirPath + "/EVA_WORK/" + filepath;
         QFile file(filepath);
@@ -103,12 +104,12 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
     }
     //----------------------写入文件------------------
     else if (func_arg_list.first == "write_file") {
-        QString filepath = func_arg_list.second.split(">>>")[0];
-        if(func_arg_list.second.split(">>>").size()<2){
+        QString filepath = build_in_tool_arg.split(">>>")[0];
+        if(build_in_tool_arg.split(">>>").size()<2){
             emit tool2ui_pushover(QString("write_file ") + jtr("return") + "no content");//返回错误
             return;
         }
-        QString content = func_arg_list.second.split(">>>")[1];
+        QString content = build_in_tool_arg.split(">>>")[1];
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
         filepath = applicationDirPath + "/EVA_WORK/" + filepath;
         // Extract the directory path from the file path
@@ -148,7 +149,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&file);
             out.setCodec("UTF-8");  // 设置编码为UTF-8
-            out << func_arg_list.second;
+            out << build_in_tool_arg;
             file.close();
             //---运行interpreter.py---
             QProcess* process = new QProcess();

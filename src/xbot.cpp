@@ -74,6 +74,11 @@ void xBot::predict(INPUTS inputs) {
         line_pfx = ::common_tokenize(ctx, bot_chat.input_prefix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
     }
+    else if(inputs.role == ROLE_OBSERVATION)
+    {
+        line_pfx = ::common_tokenize(ctx, bot_chat.tool_prefix.toStdString(), false, true);
+        embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
+    }
 
     //---插入输入---
     if (is_complete) {
@@ -1166,6 +1171,7 @@ void xBot::get_default_templete_chat_format() {
         QString split1_1 = split1[1].split(format_model_msg1)[1];
         QStringList split2 = split1_1.split(format_user_msg2);
         bot_chat.input_prefix = split2[0].replace(format_user_name, bot_date.user_name);  // 替换回原来的名称
+        bot_chat.tool_prefix = split2[0].replace(format_user_name, DEFAULT_OBSERVATION_NAME);  // 替换回原来的名称
         // 提取输入后缀
         QStringList split3 = split2[1].split(format_model_msg2);
         bot_chat.input_suffix = split3[0].replace(format_model_name, bot_date.model_name);  // 替换回原来的名称
