@@ -42,6 +42,7 @@
 
 #include "./src/utils/cmakeconfig.h"
 #include "xconfig.h"
+#include "mcp_tools.h"
 namespace Ui {
 class Expend;
 }
@@ -302,5 +303,17 @@ class Expend : public QWidget {
 
    public slots:
     void recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);  //传递同步率结果
+    
+    //-------------------------------------------------------------------------
+    //--------------------------------mcp服务器相关-----------------------------
+    //-------------------------------------------------------------------------
+
+  public:
+    McpToolManager toolManager;// mcp工具管理器
+
+  public slots:
+    
+
+
 };
 #endif  // EXPEND_H

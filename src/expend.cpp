@@ -26,7 +26,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
     ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
     ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
-
+    ui->mcp_server_config_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
+    ui->mcp_server_config_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                          // 禁用自动换行
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行

@@ -3,6 +3,9 @@
 
 #include <samplerate.h>  // 音频重采样
 #include <sndfile.h>
+#include <QJsonParseError>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QDir>
 #include <QFile>
@@ -146,6 +149,7 @@ enum EXPEND_WINDOW {
     MODELINFO_WINDOW,         //模型信息窗口
     MODELCONVERT_WINDOW,         //模型转换窗口
     QUANTIZE_WINDOW,          //模型量化窗口
+    MCP_WINDOW,          //MCP服务器窗口
     KNOWLEDGE_WINDOW,          //知识库窗口
     TXT2IMG_WINDOW,          //文生图窗口
     WHISPER_WINDOW,          //声转文窗口
@@ -156,7 +160,7 @@ enum EXPEND_WINDOW {
 };
 
 //窗口索引
-const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{MODELCONVERT_WINDOW,2},{QUANTIZE_WINDOW,3},{KNOWLEDGE_WINDOW,4},{TXT2IMG_WINDOW,5},{WHISPER_WINDOW,6},{TTS_WINDOW,7},{SYNC_WINDOW,8},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{MODELCONVERT_WINDOW,2},{QUANTIZE_WINDOW,3},{MCP_WINDOW,4},{KNOWLEDGE_WINDOW,5},{TXT2IMG_WINDOW,6},{WHISPER_WINDOW,7},{TTS_WINDOW,8},{SYNC_WINDOW,9},{NO_WINDOW,999},{PREV_WINDOW,-1}};
 
 //模型类型枚举
 enum MODEL_TYPE {

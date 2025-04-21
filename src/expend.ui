@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>860</width>
+    <width>1000</width>
     <height>594</height>
    </rect>
   </property>
@@ -1100,6 +1100,72 @@ p, li { white-space: pre-wrap; }
              <bool>true</bool>
             </property>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="mcp_server_tab">
+      <attribute name="title">
+       <string>MCP服务器</string>
+      </attribute>
+      <layout class="QHBoxLayout" name="horizontalLayout_38">
+       <item>
+        <widget class="QGroupBox" name="mcp_server_config_groupBox">
+         <property name="title">
+          <string>MCP服务配置</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_20">
+          <item>
+           <widget class="QTextEdit" name="mcp_server_config_textEdit"/>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="mcp_server_config_plainTextEdit">
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="plainText">
+             <string>参考模板
+{
+    &quot;mcpServers&quot;: {
+        &quot;sse-server&quot;: {
+            &quot;type&quot;: &quot;sse&quot;,
+            &quot;url&quot;: &quot;http://192.168.104.67:3001&quot;
+        },
+        &quot;stdio-server&quot;: {
+            &quot;type&quot;: &quot;stdio&quot;,
+            &quot;command&quot;: &quot;npx&quot;,
+            &quot;args&quot;: [&quot;-y&quot;, &quot;@modelcontextprotocol/server-everything&quot;],
+            &quot;env&quot;: {&quot;MCP_DEBUG&quot;: &quot;1&quot;}
+        }
+    }
+}
+
+sse-server为服务名，自定义
+type为服务类型，可以是sse（远程）或stdio（本地）
+sse要求填入url
+stdio要求填入command和args，可以附带env环境</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="mcp_server_state_groupBox">
+         <property name="title">
+          <string>MCP服务状态</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_21">
+          <item>
+           <widget class="QListView" name="mcp_server_state_listView"/>
           </item>
          </layout>
         </widget>

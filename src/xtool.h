@@ -25,6 +25,7 @@
 #include <QTimer>
 
 #include "xconfig.h"
+
 class xTool : public QObject {
     Q_OBJECT
    public:
@@ -36,6 +37,7 @@ class xTool : public QObject {
     int language_flag = 0;
     QString jtr(QString customstr);                    // 根据language.json(wordsObj)和language_flag中找到对应的文字
     void Exec(QPair<QString, QString> func_arg_list);  // 运行
+
    public:
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
