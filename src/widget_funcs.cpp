@@ -1245,7 +1245,7 @@ QPair<QString, QString> Widget::XMLparser(QString text)
     // 工具名和参数名都是可变的，甚至参数名可能不存在
 
     // 首先匹配工具名
-    QRegularExpression toolRegex("<(\\w+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression toolRegex("<([^>]+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
     QRegularExpressionMatch toolMatch = toolRegex.match(text);
     if (toolMatch.hasMatch()) {
         QString toolName = toolMatch.captured(1);
@@ -1283,7 +1283,7 @@ QString Widget::create_extra_prompt() {
     extra_prompt_.replace("{OBSERVATION_STOPWORD}",DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool) {
         available_tools_describe += tool_map["answer"].func_describe + "\n";
-        qDebug()<< MCP_TOOLS_INFO_LIST.size();
+        // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked()) {
             for (const MCP_TOOLS_INFO& tool_info : MCP_TOOLS_INFO_LIST) {
                 QString name = tool_info.server_tool_name;
