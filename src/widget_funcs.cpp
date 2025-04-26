@@ -520,7 +520,7 @@ void Widget::tool_change() {
     }
 
     // 判断是否挂载了工具
-    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->webengine_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
+    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->MCPtools_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
         if (is_load_tool == false) {
             reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
         }
@@ -665,7 +665,7 @@ void Widget::set_DateDialog() {
     connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
-    connect(date_ui->webengine_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
+    connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); //点击工具响应
 
     if (language_flag == 0) {
@@ -1075,7 +1075,7 @@ void Widget::create_right_menu() {
         date_ui->knowledge_checkbox->setChecked(0);
         date_ui->knowledge_checkbox->setChecked(1);  // 刷新一下
         date_ui->stablediffusion_checkbox->setChecked(1);
-        // date_ui->webengine_checkbox->setChecked(1); // 暂未实现
+        // date_ui->MCPtools_checkbox->setChecked(1); // 暂未实现
         get_date();                  //获取约定中的纸面值
         if(ui_mode == LOCAL_MODE) {emit ui2bot_date(ui_DATES);}// 注意在开始同步率测试前会强制预解码一次
         else if(ui_mode == LINK_MODE) {on_send_clicked();}
@@ -1211,7 +1211,7 @@ void Widget::get_date() {
 
     ui_calculator_ischecked = date_ui->calculator_checkbox->isChecked();
     ui_engineer_ischecked = date_ui->engineer_checkbox->isChecked();
-    ui_webengine_ischecked = date_ui->webengine_checkbox->isChecked();
+    ui_MCPtools_ischecked = date_ui->MCPtools_checkbox->isChecked();
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
@@ -1283,6 +1283,16 @@ QString Widget::create_extra_prompt() {
     extra_prompt_.replace("{OBSERVATION_STOPWORD}",DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool) {
         available_tools_describe += tool_map["answer"].func_describe + "\n";
+        qDebug()<< MCP_TOOLS_INFO_LIST.size();
+        if (date_ui->MCPtools_checkbox->isChecked()) {
+            for (const MCP_TOOLS_INFO& tool_info : MCP_TOOLS_INFO_LIST) {
+                QString name = tool_info.server_tool_name;
+                QString desc = tool_info.description;
+                QString schema = tool_info.inputSchema;
+                QString func_describe = tool_info.server_tool_name + " - " + desc + " " + "inputSchema: " + schema + "\n";
+                available_tools_describe += func_describe;
+            }
+        }
         if (date_ui->calculator_checkbox->isChecked()) {
             available_tools_describe += tool_map["calculator"].func_describe + "\n";
         }
@@ -1298,9 +1308,6 @@ QString Widget::create_extra_prompt() {
         }
         if (date_ui->controller_checkbox->isChecked()) {
             available_tools_describe += tool_map["controller"].func_describe + "\n";
-        }
-        if (date_ui->webengine_checkbox->isChecked()) {
-            available_tools_describe += tool_map["webengine"].func_describe + "\n";
         }
         if (date_ui->engineer_checkbox->isChecked()) {
             available_tools_describe += tool_map["execute_command"].func_describe + "\n";
@@ -1860,8 +1867,8 @@ void Widget::apply_language(int language_flag_) {
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
     date_ui->knowledge_checkbox->setText(jtr("knowledge"));
     date_ui->knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
-    date_ui->webengine_checkbox->setText(jtr("webengine"));
-    date_ui->webengine_checkbox->setToolTip(jtr("webengine_checkbox_tooltip"));
+    date_ui->MCPtools_checkbox->setText(jtr("MCPtools"));
+    date_ui->MCPtools_checkbox->setToolTip(jtr("MCPtools_checkbox_tooltip"));
     date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
     date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
     date_ui->switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
@@ -1873,7 +1880,7 @@ void Widget::apply_language(int language_flag_) {
     tool_map.insert("write_file", {jtr("write_file"), "write_file", jtr("write_file_func_describe")});
     tool_map.insert("answer", {jtr("answer"), "answer", jtr("answer_func_describe")});
     tool_map.insert("calculator", {jtr("calculator"), "calculator", jtr("calculator_func_describe")});
-    tool_map.insert("webengine", {jtr("webengine"), "webengine", jtr("webengine_func_describe")});
+    tool_map.insert("MCPtools", {jtr("MCPtools"), "MCPtools", jtr("MCPtools_func_describe")});
     tool_map.insert("knowledge", {jtr("knowledge"), "knowledge", jtr("knowledge_func_describe")});
     tool_map.insert("controller", {jtr("controller"), "controller", jtr("controller_func_describe")});
     tool_map.insert("stablediffusion", {jtr("stablediffusion"), "stablediffusion", jtr("stablediffusion_func_describe")});
@@ -2004,7 +2011,7 @@ void Widget::auto_save_user() {
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());            // controller工具
     settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked());  //计算器工具
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());                // engineer工具
-    settings.setValue("webengine_checkbox", date_ui->webengine_checkbox->isChecked());              // webengine工具
+    settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());              // MCPtools工具
     settings.setValue("extra_lan", ui_extra_lan);                                                   //额外指令语种
 
     //保存自定义的约定模板

@@ -318,7 +318,7 @@ int xBot::stream() {
         std::string sstr = common_token_to_piece(ctx, id, common_params_.special);  // 获取id对应的文本
         
         // 构建概率表格
-        buildProbtable(&id);
+        // buildProbtable(&id);// 精简输出，暂时不用
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui

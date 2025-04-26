@@ -206,6 +206,9 @@ int main(int argc, char* argv[]) {
     QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);          //开始绘制图像
     QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover);  //图像绘制完成
 
+    QObject::connect(&tool, &xTool::tool2expend_mcpcall, &expend, &Expend::recv_mcpcall);          //开始调用mcp
+    QObject::connect(&expend, &Expend::expend2tool_mcpcallover, &tool, &xTool::recv_mcpcallover);  //mcp调用完成
+
     w.show();  //展示窗口
 
     //---------------读取配置文件并执行------------------
@@ -239,7 +242,7 @@ int main(int argc, char* argv[]) {
     w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", 0).toBool());
     w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", 0).toBool());
     w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
-    w.date_ui->webengine_checkbox->setChecked(settings.value("webengine_checkbox", 0).toBool());
+    w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
     if (settings.value("extra_lan", "zh").toString() != "zh") {w.switch_lan_change();}  
     w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
     w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());

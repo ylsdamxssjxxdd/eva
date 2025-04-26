@@ -173,9 +173,9 @@
             "装载模型后查看",
             "lode model first "
         ],
-        "webengine": [
-            "搜索引擎",
-            "webengine "
+        "MCPtools": [
+            "MCP工具",
+            "MCPtools "
         ],
         "engineer": [
             "软件工程师",
@@ -886,8 +886,8 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n工具调用的方式为: <tool_name>argBody</tool_name>\n请遵照inputSchema的要求构建argBody进行传参，argBody的形式为: {\"arg1\":value1,\"arg2\":value2}\n调用示例: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nThe way to call the tool is as follows: <tool_name>argBody</tool_name>\nPlease follow the requirements of inputSchema to construct argBody for parameter passing. The form of argBody is: {\"arg1\":value1,\"arg2\":value2}\nCall example: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}"
+            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n工具调用的方式为: <tool_name>argBody</tool_name>\nargBody的形式为: {\"arg1\":value1,\"arg2\":value2}\n如果工具描述中存在inputSchema，请遵照inputSchema的要求构建argBody进行传参\n调用示例: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}",
+            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nThe way to call the tool is as follows: <tool_name>argBody</tool_name>\nThe form of argBody is: {\"arg1\":value1,\"arg2\":value2}\nIf there is an inputSchema in the tool description, please follow the requirements of inputSchema to construct argBody for parameter passing.\nCall example: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}"
         ],
         "answer_func_describe": [
             "answer(content) - 最终的回复或询问。",
@@ -913,9 +913,9 @@
             "\n操作系统: {OS}\n日期: {DATE}\n默认Shell: {SHELL}\n编译器环境: {COMPILE_ENV}\nPython环境: {PYTHON_ENV}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
             "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCompile env: {COMPILE_ENV}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
-        "webengine_func_describe": [
-            "webengine(request) - 使用搜索引擎进行搜索，将返回搜索结果。",
-            "webengine(request) - Using a search engine to conduct a search will return search result."
+        "MCPtools_func_describe": [
+            "MCPtools(request) - 使用搜索引擎进行搜索，将返回搜索结果。",
+            "MCPtools(request) - Using a search engine to conduct a search will return search result."
         ],
         "calculator_func_describe": [
             "calculator(expression) - 输入一个 JavaScript 表达式，将返回计算结果。",
@@ -1173,9 +1173,9 @@
             "添加一段指导模型调用内置计算器的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
             "Add an additional instruction to guide the model in calling the built-in calculator, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
         ],
-        "webengine_checkbox_tooltip": [
-            "暂未实现",
-            "Not yet implemented"
+        "MCPtools_checkbox_tooltip": [
+            "需要先在增殖窗口配置MCP服务和工具",
+            "MCP services and tools need to be configured in the expend window first"
         ],
         "engineer_checkbox_tooltip": [
             "使模型化身软件工程师，获得执行命令和修改文件的能力",

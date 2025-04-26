@@ -605,7 +605,7 @@ void Widget::on_date_clicked() {
     date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
-    date_ui->webengine_checkbox->setChecked(ui_webengine_ischecked);
+    date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
 
     date_ui->switch_lan_button->setText(ui_extra_lan);
@@ -632,7 +632,7 @@ void Widget::cancel_date() {
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
     date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
-    date_ui->webengine_checkbox->setChecked(ui_webengine_ischecked);
+    date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
     date_ui->switch_lan_button->setText(ui_extra_lan);
     //复原语言
@@ -647,7 +647,7 @@ void Widget::cancel_date() {
     emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
     // 重新判断是否挂载了工具
-    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->webengine_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
+    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->MCPtools_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked()) {
         if (is_load_tool == false) {
             reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
         }

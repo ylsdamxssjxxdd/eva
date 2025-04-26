@@ -211,7 +211,7 @@ class Widget : public QWidget {
     bool ui_knowledge_ischecked = false;
     bool ui_stablediffusion_ischecked = false;
     bool ui_controller_ischecked = false;
-    bool ui_webengine_ischecked = false;
+    bool ui_MCPtools_ischecked = false;
     bool ui_engineer_ischecked = false;
     QString create_extra_prompt();  //构建附加指令
     QString create_engineer_info();  //构建工程师指令

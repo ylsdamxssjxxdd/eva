@@ -192,10 +192,11 @@ public:
     mcp::json callTool(const std::string& serviceName, 
                         const std::string& toolName, 
                         const mcp::json& params = {}) {
+        if (clients_.empty()) {return mcp::json{{"error", "No clients available."}};}
         // 查找客户端
         auto client_it = clients_.find(serviceName);
         if (client_it == clients_.end()) {
-            throw client_exception("Service '" + serviceName + "' not registered.");
+            return mcp::json{{"error", "Service '" + serviceName + "' not registered."}};
         }
 
         // 检查工具是否存在
@@ -204,17 +205,23 @@ public:
             [&toolName](const mcp::tool& t) { return t.name == toolName; });
         
         if (tool_it == tools.end()) {
-            throw client_exception("Tool '" + toolName + 
-                                    "' not found in service '" + serviceName + "'.");
+            return mcp::json{{"error", "Tool '" + toolName + "' not found in service '" + serviceName + "'."}};
         }
 
-        // 调用工具
-        return client_it->second->call_tool(toolName, params);
+        // 调用工具并捕获可能的异常
+        try {
+            return client_it->second->call_tool(toolName, params);
+        } catch (const std::exception& e) {
+            return mcp::json{{"error", std::string("Tool call failed: ") + e.what()}};
+        } catch (...) {
+            return mcp::json{{"error", "Unknown error occurred during tool call."}};
+        }
     }
 
     // 获取所有服务名称
     std::vector<std::string> getServiceNames() const {
         std::vector<std::string> names;
+        if(clients_.empty()){return names;}
         for (const auto& pair : clients_) {
             names.push_back(pair.first);
         }
@@ -224,9 +231,9 @@ public:
     // 获取服务的工具列表
     const std::vector<mcp::tool>& getTools(const std::string& serviceName) const {
         auto it = tools_cache_.find(serviceName);
-        if (it == tools_cache_.end()) {
-            throw client_exception("Service '" + serviceName + "' not found.");
-        }
+        // if (it == tools_cache_.end()) {
+        //     throw client_exception("Service '" + serviceName + "' not found.");
+        // }
         return it->second;
     }
 
@@ -246,6 +253,17 @@ public:
         return result;
     }
 
+    // 清空所有已添加的服务
+    void clear() noexcept {
+        clients_.clear();
+        tools_cache_.clear();
+    }
+
+    // 获取已添加服务的个数
+    size_t getServiceCount() const noexcept {
+        if(clients_.empty()){return 0;}
+        return clients_.size();
+    }
 private:
     std::unordered_map<std::string, std::unique_ptr<ClientWrapper>> clients_;
     std::unordered_map<std::string, std::vector<mcp::tool>> tools_cache_;

@@ -25,8 +25,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
     ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
-    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
-    ui->mcp_server_config_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
+    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                    //灰色
+    ui->mcp_server_config_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");     
+    ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");        //灰色
+    ui->mcp_server_config_textEdit->setLineWrapMode(QTextEdit::NoWrap);                              // 禁用自动换行
+    ui->mcp_server_log_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                              // 禁用自动换行
     ui->mcp_server_config_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                          // 禁用自动换行
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
@@ -166,6 +169,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     readConfig();
 
     qDebug() << "expend init over";
+
 }
 
 Expend::~Expend() {
@@ -2701,4 +2705,184 @@ bool Expend::copyRecursively(const QString &srcFilePath, const QString &tgtFileP
         copyFile(srcFilePath, tgtFilePath);
     }
     return true;
+}
+
+//-------------------------------------------------------------------------
+//----------------------------------MCP服务器相关--------------------------------
+//-------------------------------------------------------------------------
+
+void Expend::on_mcp_server_reflash_pushButton_clicked()
+{
+    if(toolManager.getServiceCount()!=0)
+    {
+        toolManager.clear();//清空工具
+        MCP_TOOLS_INFO_LIST.clear();//清空缓存的工具信息列表
+        ui->mcp_server_state_listWidget->clear();//清空展示的工具选项
+        set_mcp_connect_state(MCP_CONNECT_MISS);
+    }
+    else
+    {
+        //处理mcp服务相关
+        try {
+            // 连接所有的mcp服务器
+            std::string mcp_json = ui->mcp_server_config_textEdit->toPlainText().toStdString();//获取用户的mcp服务配置
+            if (mcp_json.empty()) {return;}
+            mcp::json config = mcp::json::parse(mcp_json); // JSON解析可能抛出异常
+            int ok_num = 0;
+            for (auto& [name, serverConfig] : config["mcpServers"].items()) {
+                try {
+                    toolManager.addServer(name, serverConfig);
+                    ui->mcp_server_log_plainTextEdit->appendPlainText("addServer success: " + QString::fromStdString(name));
+                    ok_num++;
+                    
+                } catch (const client_exception& e) {
+                    ui->mcp_server_log_plainTextEdit->appendPlainText("addServer fail (" + QString::fromStdString(name) + "): " + QString::fromStdString(e.what()));
+                }
+                
+            }
+            if(ok_num==config["mcpServers"].size()){set_mcp_connect_state(MCP_CONNECT_LINK);}
+            else if(ok_num==0){set_mcp_connect_state(MCP_CONNECT_MISS);}
+            else{set_mcp_connect_state(MCP_CONNECT_WIP);}
+    
+            // 获取所有可用工具信息
+            auto tools_info = toolManager.getAllToolsInfo();
+            add_mcp_tool_iteration(tools_info);
+    
+        } catch (const mcp::json::parse_error& e) { // 捕获JSON解析异常
+            ui->mcp_server_log_plainTextEdit->appendPlainText("json parse error " + QString::fromStdString(e.what()));
+            // 可选：在UI上显示错误信息，例如：
+            QMessageBox::critical(this, "错误", "JSON格式无效，请检查配置！");
+            return;
+        } catch (const std::exception& e) { // 捕获其他异常
+            ui->mcp_server_log_plainTextEdit->appendPlainText("unknow error " + QString::fromStdString(e.what()));
+            return;
+        }
+    }
+
+}
+
+//暂时做测试
+void Expend::on_mcp_server_help_pushButton_clicked()
+{
+    // 遍历所有工具信息
+    for (const MCP_TOOLS_INFO& tool_info : MCP_TOOLS_INFO_LIST) {
+        QString name = tool_info.server_tool_name;
+        QString desc = tool_info.description;
+        QString schema = tool_info.inputSchema;
+
+        // 示例：打印信息到控制台
+        // qDebug() << "工具名称:" << name;
+        // qDebug() << "描述:" << desc;
+        // qDebug() << "参数结构:" << schema;
+        // qDebug() << "-------------------";
+    }
+
+}
+
+// 设置mcp连接状态按钮
+void Expend::set_mcp_connect_state(MCP_CONNECT_STATE connect_state)
+{
+    if(connect_state==MCP_CONNECT_LINK){ui->mcp_server_statusLed->setState(MCP_CONNECT_LINK);}
+    else if(connect_state==MCP_CONNECT_WIP){ui->mcp_server_statusLed->setState(MCP_CONNECT_WIP);}
+    else if(connect_state==MCP_CONNECT_MISS){ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);}
+}
+
+//添加mcp可用工具选项
+void Expend::add_mcp_tool_iteration(mcp::json toolsinfo)
+{
+    ui->mcp_server_state_listWidget->clear();
+    for (const auto& tool : toolsinfo) 
+    {
+        MCP_TOOLS_INFO mcp_tools_info;
+        mcp_tools_info.server_tool_name = QString::fromStdString(tool["service"].get<std::string>() + "_" + tool["name"].get<std::string>());
+        mcp_tools_info.description = QString::fromStdString(tool["description"]);
+        mcp_tools_info.inputSchema = QString::fromStdString(tool["inputSchema"].dump());
+        QListWidgetItem *item = new QListWidgetItem();
+        item->setData(Qt::UserRole, mcp_tools_info.server_tool_name);  // 存储工具名称
+        item->setData(Qt::UserRole + 1, mcp_tools_info.description);     // 存储工具描述
+        item->setData(Qt::UserRole + 2, mcp_tools_info.inputSchema);     // 存储工具参数结构
+        item->setSizeHint(QSize(300, 50));          // 设置项大小
+        QWidget *itemWidget = new QWidget();
+        QHBoxLayout *layout = new QHBoxLayout(itemWidget);
+        layout->setSpacing(3);                        // 设置间距为0
+        layout->setContentsMargins(3, 3, 3, 3);       // 设置外部间距为0
+        QPlainTextEdit *label = new QPlainTextEdit(mcp_tools_info.server_tool_name + ": " + mcp_tools_info.description);
+        label->setLineWrapMode(QPlainTextEdit::NoWrap);
+        label->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+        label->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+        label->setReadOnly(1);
+        ToggleSwitch *toggleSwitch = new ToggleSwitch(this);
+        toggleSwitch->setFixedSize(40, 20);
+        layout->addWidget(label);
+        layout->addWidget(toggleSwitch);
+        itemWidget->setLayout(layout);
+        ui->mcp_server_state_listWidget->addItem(item);
+        ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
+        connect(toggleSwitch, &QAbstractButton::toggled, this, [this, item](bool checked) {
+            QString toolName = item->data(Qt::UserRole).toString();
+            QString description = item->data(Qt::UserRole + 1).toString();
+            QString inputSchema = item->data(Qt::UserRole + 2).toString();
+        
+            if (checked) {
+                // 检查是否已存在，避免重复添加
+                bool exists = false;
+                for (const auto& info : MCP_TOOLS_INFO_LIST) {
+                    if (info.server_tool_name == toolName) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    MCP_TOOLS_INFO_LIST.push_back({toolName, description, inputSchema});
+                }
+            } else {
+                // 移除所有匹配的工具
+                MCP_TOOLS_INFO_LIST.erase(
+                    std::remove_if(
+                        MCP_TOOLS_INFO_LIST.begin(),
+                        MCP_TOOLS_INFO_LIST.end(),
+                        [&toolName](const MCP_TOOLS_INFO& info) {
+                            return info.server_tool_name == toolName;
+                        }
+                    ),
+                    MCP_TOOLS_INFO_LIST.end()
+                );
+            }
+        
+            // qDebug() << "切换状态：" << checked;
+            // qDebug() << "工具名称：" << toolName;
+            // qDebug() << "工具描述：" << description;
+            // qDebug() << "工具参数结构：" << inputSchema;
+        });
+    }
+}
+
+void Expend::recv_mcpcall(QString tool_name, QString tool_args)
+{
+    QString result;
+    //拆分出服务名和工具名
+    std::string llm_tool_name = tool_name.toStdString();// 大模型输出的要调用的工具名
+    std::string mcp_server_name;
+    std::string mcp_tool_name;
+    size_t pos = llm_tool_name.rfind('_');// 如果找到_则视为mcp服务器提供的工具
+
+    if (pos != std::string::npos) {
+        mcp_server_name = llm_tool_name.substr(0, pos);
+        mcp_tool_name = llm_tool_name.substr(pos + 1);
+        // std::cout << "Name: " << mcp_server_name << "\nFunction: " << mcp_tool_name << std::endl;
+    } 
+    else {std::cout << "No '_' found!" << std::endl;expend2tool_mcpcallover(result);return;}
+
+    mcp::json params;
+    try {params = mcp::json::parse(tool_args.toStdString());} 
+    catch (const std::exception& e) 
+    {   
+        params = mcp::json::object(); // 可选：初始化为空对象
+        result = "JSON parse fail: " + QString::fromStdString(e.what());
+        expend2tool_mcpcallover(result);
+        return;
+    }
+    auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params);
+    result = QString::fromStdString(result2.dump());
+    expend2tool_mcpcallover(result);
 }

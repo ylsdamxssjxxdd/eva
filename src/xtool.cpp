@@ -197,6 +197,10 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         emit tool2ui_state("tool:" + QString("interpreter ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("interpreter ") + jtr("return") + "\n" + result);
     }
+    else if(func_arg_list.first.contains("_"))//如果工具名包含下划线则假设他是mcp工具
+    {
+        emit tool2expend_mcpcall(func_arg_list.first,func_arg_list.second);
+    }
     //----------------------没有该工具------------------
     else {
         emit tool2ui_pushover(jtr("not load tool"));
@@ -388,3 +392,18 @@ void xTool::recv_language(int language_flag_) { language_flag = language_flag_; 
 
 // 根据language.json和language_flag中找到对应的文字
 QString xTool::jtr(QString customstr) { return wordsObj[customstr].toArray()[language_flag].toString(); }
+
+
+void xTool::recv_mcpcallover(QString result)
+{
+    if(result=="")
+    {
+        emit tool2ui_pushover(jtr("not load tool"));
+    }
+    else
+    {
+        emit tool2ui_state("tool:" + QString("mcp ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("mcp ") + jtr("return") + "\n" + result);
+    }
+
+}

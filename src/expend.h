@@ -30,7 +30,8 @@
 #include <QTextToSpeech>
 #include <QTimer>
 #include <QWidget>
-
+#include <QCheckBox>
+#include <QMessageBox>
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
@@ -41,6 +42,7 @@
 #endif
 
 #include "./src/utils/cmakeconfig.h"
+#include "./src/utils/toggleswitch.h"
 #include "xconfig.h"
 #include "mcp_tools.h"
 namespace Ui {
@@ -310,10 +312,14 @@ class Expend : public QWidget {
 
   public:
     McpToolManager toolManager;// mcp工具管理器
-
+  signals:
+    void expend2tool_mcpcallover(QString result);
   public slots:
-    
-
+    void recv_mcpcall(QString tool_name, QString tool_args);
+    void on_mcp_server_reflash_pushButton_clicked();
+    void on_mcp_server_help_pushButton_clicked();
+    void set_mcp_connect_state(MCP_CONNECT_STATE connect_state);// 设置mcp连接状态按钮
+    void add_mcp_tool_iteration(mcp::json toolsinfo);//添加mcp可用工具选项
 
 };
 #endif  // EXPEND_H

@@ -1111,35 +1111,99 @@ p, li { white-space: pre-wrap; }
        <string>MCP服务器</string>
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_38">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>3</number>
+       </property>
+       <property name="topMargin">
+        <number>3</number>
+       </property>
+       <property name="rightMargin">
+        <number>3</number>
+       </property>
+       <property name="bottomMargin">
+        <number>3</number>
+       </property>
        <item>
         <widget class="QGroupBox" name="mcp_server_config_groupBox">
          <property name="title">
           <string>MCP服务配置</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_20">
+         <layout class="QHBoxLayout" name="horizontalLayout_39">
+          <property name="spacing">
+           <number>3</number>
+          </property>
+          <property name="leftMargin">
+           <number>3</number>
+          </property>
+          <property name="topMargin">
+           <number>3</number>
+          </property>
+          <property name="rightMargin">
+           <number>3</number>
+          </property>
+          <property name="bottomMargin">
+           <number>3</number>
+          </property>
           <item>
-           <widget class="QTextEdit" name="mcp_server_config_textEdit"/>
-          </item>
-          <item>
-           <widget class="QPlainTextEdit" name="mcp_server_config_plainTextEdit">
-            <property name="font">
-             <font>
-              <family>Arial</family>
-              <pointsize>9</pointsize>
-             </font>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-            <property name="plainText">
-             <string>参考模板
-{
+           <layout class="QVBoxLayout" name="verticalLayout_21">
+            <item>
+             <widget class="QTextEdit" name="mcp_server_config_textEdit">
+              <property name="html">
+               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Arial'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;{&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;    &amp;quot;mcpServers&amp;quot;: {&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;        &amp;quot;sse_server&amp;quot;: {&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;type&amp;quot;: &amp;quot;sse&amp;quot;,&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;url&amp;quot;: &amp;quot;http://192.168.238.67:3001&amp;quot;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;        },&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;        &amp;quot;stdio_server&amp;quot;: {&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;type&amp;quot;: &amp;quot;stdio&amp;quot;,&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;command&amp;quot;: &amp;quot;npx&amp;quot;,&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;args&amp;quot;: [&amp;quot;-y&amp;quot;, &amp;quot;@modelcontextprotocol/server-everything&amp;quot;],&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;            &amp;quot;env&amp;quot;: {&amp;quot;MCP_DEBUG&amp;quot;: &amp;quot;1&amp;quot;}&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;        }&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;    }&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;}&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="mcp_server_config_plainTextEdit">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>200</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>200</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <family>Arial</family>
+                <pointsize>9</pointsize>
+               </font>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+              <property name="plainText">
+               <string>{
     &quot;mcpServers&quot;: {
-        &quot;sse-server&quot;: {
+        &quot;sse_server&quot;: {
             &quot;type&quot;: &quot;sse&quot;,
-            &quot;url&quot;: &quot;http://192.168.104.67:3001&quot;
+            &quot;url&quot;: &quot;http://192.168.238.67:3001&quot;
         },
-        &quot;stdio-server&quot;: {
+        &quot;stdio_server&quot;: {
             &quot;type&quot;: &quot;stdio&quot;,
             &quot;command&quot;: &quot;npx&quot;,
             &quot;args&quot;: [&quot;-y&quot;, &quot;@modelcontextprotocol/server-everything&quot;],
@@ -1152,8 +1216,87 @@ sse-server为服务名，自定义
 type为服务类型，可以是sse（远程）或stdio（本地）
 sse要求填入url
 stdio要求填入command和args，可以附带env环境</string>
-            </property>
-           </widget>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_20">
+            <item>
+             <widget class="StatusLed" name="mcp_server_statusLed" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="mcp_server_reflash_pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>连接</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="mcp_server_help_pushButton">
+              <property name="minimumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>30</width>
+                <height>30</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>测试</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -1161,11 +1304,54 @@ stdio要求填入command和args，可以附带env环境</string>
        <item>
         <widget class="QGroupBox" name="mcp_server_state_groupBox">
          <property name="title">
-          <string>MCP服务状态</string>
+          <string>MCP可用工具</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_21">
+         <layout class="QVBoxLayout" name="verticalLayout_22">
+          <property name="spacing">
+           <number>3</number>
+          </property>
+          <property name="leftMargin">
+           <number>3</number>
+          </property>
+          <property name="topMargin">
+           <number>3</number>
+          </property>
+          <property name="rightMargin">
+           <number>3</number>
+          </property>
+          <property name="bottomMargin">
+           <number>3</number>
+          </property>
           <item>
-           <widget class="QListView" name="mcp_server_state_listView"/>
+           <widget class="QListWidget" name="mcp_server_state_listWidget"/>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="mcp_server_log_plainTextEdit">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>200</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>200</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <family>Arial</family>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="plainText">
+             <string/>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -4584,6 +4770,12 @@ stdio要求填入command和args，可以附带env环境</string>
    <class>WaterWavePlainTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>src/utils/waterwaveplaintextedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>StatusLed</class>
+   <extends>QWidget</extends>
+   <header>src/utils/statusindicator.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

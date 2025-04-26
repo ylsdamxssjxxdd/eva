@@ -19,6 +19,7 @@
 #include <vector>
 #include <QProcessEnvironment>
 #include "./src/utils/cmakeconfig.h"
+#include "mcp_message.h"
 
 //默认约定
 #define DEFAULT_DATE_PROMPT "You are a helpful assistant."
@@ -278,6 +279,22 @@ struct TOOLS {
     QString func_name;      //函数名
     QString func_describe;  //功能描述
 };
+
+//MCP连接状态枚举
+enum MCP_CONNECT_STATE{
+    MCP_CONNECT_LINK, // 正常连接
+    MCP_CONNECT_WIP, // 等待重连
+    MCP_CONNECT_MISS,// 未连接
+};
+
+//MCP工具
+struct MCP_TOOLS_INFO {
+    QString server_tool_name;      //工具名
+    QString description;  //工具描述
+    QString inputSchema;      //工具参数结构
+};
+
+inline std::vector<MCP_TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有要用的mcp工具，全局变量
 
 //状态区信号枚举
 enum SIGNAL_STATE {
