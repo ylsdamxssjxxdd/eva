@@ -59,9 +59,9 @@ class xTool : public QObject {
     void recv_drawover(QString result_, bool ok_);              //接收图像绘制完成信号
     void tool2ui_controller_over(QString result);               //传递控制完成结果
     void recv_language(int language_flag_);
-    void recv_mcpcallover(QString result);
+    void recv_callTool_over(QString result);
    signals:
-    void tool2expend_mcpcall(QString tool_name, QString tool_args);
+    void tool2mcp_toolcall(QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString& state_string, SIGNAL_STATE state = USUAL_SIGNAL);  //发送的状态信号
     void tool2expend_draw(QString prompt_);

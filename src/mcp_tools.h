@@ -1,3 +1,6 @@
+#ifndef MCP_TOOLS_H
+#define MCP_TOOLS_H
+
 #include <iostream>
 #include <memory>
 #include <unordered_map>
@@ -269,86 +272,4 @@ private:
     std::unordered_map<std::string, std::vector<mcp::tool>> tools_cache_;
 };
 
-// 使用示例
-
-// #include <iostream>
-// #include "mcp_tools.h"
-
-
-// int main() {
-//     // 示例配置（包含多个服务）
-//     const std::string config_text = R"({
-//         "mcpServers": {
-//             "sse-server": {
-//                 "type": "sse",
-//                 "url": "http://192.168.104.67:3001",
-//                 "timeout": 10
-//             },
-//             "stdio-server": {
-//                 "type": "stdio",
-//                 "command": "npx",
-//                 "args": ["-y", "@modelcontextprotocol/server-everything"],
-//                 "env": {"MCP_DEBUG": "1"}
-//             }
-//         }
-//     })";
-
-//     // 创建并初始化所有客户端, 并将客户端全部视作工具
-//     mcp::json config = mcp::json::parse(config_text);
-//     McpToolManager toolManager;// 初始化工具管理器
-//     for (auto& [name, serverConfig] : config["mcpServers"].items()) {
-//         try {
-//             toolManager.addServer(name, serverConfig);
-//             std::cout << "addServer success: " << name << std::endl;
-//         } catch (const client_exception& e) {
-//             std::cerr << "addServer fail (" << name << "): " << e.what() << std::endl;
-//         }
-//     }
-
-//     // 获取所有工具信息
-//     auto tools_info = toolManager.getAllToolsInfo();
-//     // 展示某个工具信息
-//     int k = 3;
-//     std::cout << "tool_name: " << tools_info.at(k)["service"].get<std::string>() + "@" + tools_info.at(k)["name"].get<std::string>() << std::endl;
-//     std::cout << "description: " << tools_info.at(k)["description"] << std::endl;
-//     std::cout << "inputSchema: " << tools_info.at(k)["inputSchema"].dump() << std::endl;// 参数结构说明
-//     std::cout << "---" << std::endl;
-
-//     // 示例调用
-//     try {
-//         // 调用stdio服务的加法工具
-//         mcp::json params;
-//         params["a"] = 1;
-//         params["b"] = 2;
-//         auto result1 = toolManager.callTool("stdio-server", "add", params);
-//         std::cout << result1 << std::endl;
-
-//         // 调用sse服务的计算工具
-//         std::string llm_tool_name = "sse-server@calculate";// 大模型输出的要调用的工具名
-//         std::string mcp_server_name;
-//         std::string mcp_tool_name;
-//         size_t pos = llm_tool_name.find('@');// 如果找到@则视为mcp服务器提供的工具
-
-//         if (pos != std::string::npos) {
-//             mcp_server_name = llm_tool_name.substr(0, pos);
-//             mcp_tool_name = llm_tool_name.substr(pos + 1);
-//             // std::cout << "Name: " << mcp_server_name << "\nFunction: " << mcp_tool_name << std::endl;
-//         } else {std::cout << "No '@' found!" << std::endl;}
-
-//         std::string llm_argBody="{\"expression\":\"2^8\"}";// 大模型输出的要传入的参数
-//         mcp::json params2;
-//         try {params2 = mcp::json::parse(llm_argBody);} 
-//         catch (const std::exception& e) 
-//         {   
-//             std::cerr << "JSON parse fail: " << e.what() << std::endl;
-//             params2 = mcp::json::object(); // 可选：初始化为空对象
-//         }
-//         auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params2);
-//         std::cout << result2 << std::endl;
-
-//     } catch (const client_exception& e) {
-//         std::cerr << "callTool fail: " << e.what() << std::endl;
-//     }
-
-//     return 0;
-// }
+#endif

@@ -222,8 +222,8 @@ QCheckBox::indicator:checked:hover {
 
 QGroupBox {
     background-color: #FAFAFA; /* 背景颜色为浅灰色，和单选按钮保持一致 */
-    border: 2px dashed #D0D0D0; /* 边框设置为灰色虚线 */
-    border-radius: 8px; /* 圆角边框 */
+    border: 1px dashed #D0D0D0; /* 边框设置为灰色虚线 */
+    border-radius: 3px; /* 圆角边框 */
     padding: 12px; /* 内边距，确保控件间有足够的空间 */
     font-size: 16px; /* 文字大小 */
     font-family: "Comic Sans MS", cursive; /* 可爱的字体，与按钮一致 */
@@ -237,7 +237,7 @@ QGroupBox::title {
     padding: 0 10px;
     font-weight: bold;
     font-size: 18px; /* 标题字体大小 */
-    color: #555555; /* 标题文字颜色 */
+    color: #0b0b0b; /* 标题文字颜色 */
     background-color: #FFFFFF; /* 标题背景颜色 */
     border-radius: 5px;
     border: 1px solid #E0E0E0; /* 轻微的边框 */

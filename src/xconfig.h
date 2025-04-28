@@ -14,6 +14,7 @@
 #include <QOperatingSystemVersion>
 #include <QDebug>
 #include <array>
+#include <QThread>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -294,7 +295,8 @@ struct MCP_TOOLS_INFO {
     QString inputSchema;      //工具参数结构
 };
 
-inline std::vector<MCP_TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有要用的mcp工具，全局变量
+inline std::vector<MCP_TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有用户要用的mcp工具，全局变量
+inline mcp::json MCP_TOOLS_INFO_ALL;//当前服务可用的所有工具，全局变量
 
 //状态区信号枚举
 enum SIGNAL_STATE {

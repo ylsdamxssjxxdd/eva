@@ -313,9 +313,10 @@ class Expend : public QWidget {
   public:
     McpToolManager toolManager;// mcp工具管理器
   signals:
-    void expend2tool_mcpcallover(QString result);
+    void expend2mcp_addService(QString mcp_json_str);
+
   public slots:
-    void recv_mcpcall(QString tool_name, QString tool_args);
+    void recv_addService_over(MCP_CONNECT_STATE state);
     void on_mcp_server_reflash_pushButton_clicked();
     void on_mcp_server_help_pushButton_clicked();
     void set_mcp_connect_state(MCP_CONNECT_STATE connect_state);// 设置mcp连接状态按钮

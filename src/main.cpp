@@ -12,6 +12,7 @@
 #include "xbot.h"
 #include "xnet.h"
 #include "xtool.h"
+#include "xmcp.h"
 
 
 int main(int argc, char* argv[]) {
@@ -68,6 +69,7 @@ int main(int argc, char* argv[]) {
     xTool tool(applicationDirPath);              //工具实例
     xBot bot;                                    //模型实例
     xNet net;                                    //链接实例
+    xMcp mcp;                                    //mcp管理实例
     gpuChecker gpuer;                            //监测显卡信息
     cpuChecker cpuer;                            //监视系统信息
 
@@ -102,7 +104,7 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
-
+    qRegisterMetaType<MCP_CONNECT_STATE>("MCP_CONNECT_STATE");
     //------------------开启多线程 ------------------------
     QThread* gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
@@ -119,6 +121,10 @@ int main(int argc, char* argv[]) {
     QThread* net_thread = new QThread;
     net.moveToThread(net_thread);
     net_thread->start();
+    QThread* mcp_thread = new QThread;
+    mcp.moveToThread(mcp_thread);
+    mcp_thread->start();
+
 
     //------------------连接bot和窗口-------------------
     QObject::connect(&bot, &xBot::bot2ui_params, &w, &Widget::recv_params);                          // bot将模型参数传递给ui
@@ -206,8 +212,12 @@ int main(int argc, char* argv[]) {
     QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);          //开始绘制图像
     QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover);  //图像绘制完成
 
-    QObject::connect(&tool, &xTool::tool2expend_mcpcall, &expend, &Expend::recv_mcpcall);          //开始调用mcp
-    QObject::connect(&expend, &Expend::expend2tool_mcpcallover, &tool, &xTool::recv_mcpcallover);  //mcp调用完成
+
+    //------------------连接mcp管理器-------------------
+    QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);  
+    QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
+    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);          //开始调用mcp
+    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over);  //mcp调用完成
 
     w.show();  //展示窗口
 

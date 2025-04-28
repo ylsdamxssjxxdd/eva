@@ -1254,7 +1254,7 @@ QPair<QString, QString> Widget::XMLparser(QString text)
         qDebug() << "工具名:" << toolName;
 
         // 尝试匹配参数名和参数值
-        QRegularExpression paramRegex("<(\\w+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
+        QRegularExpression paramRegex("<([^>]+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
         QRegularExpressionMatch paramMatch = paramRegex.match(toolContent);
         if (paramMatch.hasMatch()) {
             QString paramName = paramMatch.captured(1);

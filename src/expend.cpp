@@ -2713,51 +2713,55 @@ bool Expend::copyRecursively(const QString &srcFilePath, const QString &tgtFileP
 
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
-    if(toolManager.getServiceCount()!=0)
-    {
-        toolManager.clear();//清空工具
-        MCP_TOOLS_INFO_LIST.clear();//清空缓存的工具信息列表
-        ui->mcp_server_state_listWidget->clear();//清空展示的工具选项
-        set_mcp_connect_state(MCP_CONNECT_MISS);
-    }
-    else
-    {
-        //处理mcp服务相关
-        try {
-            // 连接所有的mcp服务器
-            std::string mcp_json = ui->mcp_server_config_textEdit->toPlainText().toStdString();//获取用户的mcp服务配置
-            if (mcp_json.empty()) {return;}
-            mcp::json config = mcp::json::parse(mcp_json); // JSON解析可能抛出异常
-            int ok_num = 0;
-            for (auto& [name, serverConfig] : config["mcpServers"].items()) {
-                try {
-                    toolManager.addServer(name, serverConfig);
-                    ui->mcp_server_log_plainTextEdit->appendPlainText("addServer success: " + QString::fromStdString(name));
-                    ok_num++;
+    ui->mcp_server_state_listWidget->clear();//清空展示的工具选项
+    set_mcp_connect_state(MCP_CONNECT_MISS);
+    QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText();//获取用户的mcp服务配置
+    emit expend2mcp_addService(mcp_json_str);
+    // if(toolManager.getServiceCount()!=0)
+    // {
+    //     toolManager.clear();//清空工具
+    //     MCP_TOOLS_INFO_LIST.clear();//清空缓存的工具信息列表
+    //     ui->mcp_server_state_listWidget->clear();//清空展示的工具选项
+    //     set_mcp_connect_state(MCP_CONNECT_MISS);
+    // }
+    // else
+    // {
+    //     //处理mcp服务相关
+    //     try {
+    //         // 连接所有的mcp服务器
+    //         std::string mcp_json = ui->mcp_server_config_textEdit->toPlainText().toStdString();//获取用户的mcp服务配置
+    //         if (mcp_json.empty()) {return;}
+    //         mcp::json config = mcp::json::parse(mcp_json); // JSON解析可能抛出异常
+    //         int ok_num = 0;
+    //         for (auto& [name, serverConfig] : config["mcpServers"].items()) {
+    //             try {
+    //                 toolManager.addServer(name, serverConfig);
+    //                 ui->mcp_server_log_plainTextEdit->appendPlainText("addServer success: " + QString::fromStdString(name));
+    //                 ok_num++;
                     
-                } catch (const client_exception& e) {
-                    ui->mcp_server_log_plainTextEdit->appendPlainText("addServer fail (" + QString::fromStdString(name) + "): " + QString::fromStdString(e.what()));
-                }
+    //             } catch (const client_exception& e) {
+    //                 ui->mcp_server_log_plainTextEdit->appendPlainText("addServer fail (" + QString::fromStdString(name) + "): " + QString::fromStdString(e.what()));
+    //             }
                 
-            }
-            if(ok_num==config["mcpServers"].size()){set_mcp_connect_state(MCP_CONNECT_LINK);}
-            else if(ok_num==0){set_mcp_connect_state(MCP_CONNECT_MISS);}
-            else{set_mcp_connect_state(MCP_CONNECT_WIP);}
+    //         }
+    //         if(ok_num==config["mcpServers"].size()){set_mcp_connect_state(MCP_CONNECT_LINK);}
+    //         else if(ok_num==0){set_mcp_connect_state(MCP_CONNECT_MISS);}
+    //         else{set_mcp_connect_state(MCP_CONNECT_WIP);}
     
-            // 获取所有可用工具信息
-            auto tools_info = toolManager.getAllToolsInfo();
-            add_mcp_tool_iteration(tools_info);
+    //         // 获取所有可用工具信息
+    //         auto tools_info = toolManager.getAllToolsInfo();
+    //         add_mcp_tool_iteration(tools_info);
     
-        } catch (const mcp::json::parse_error& e) { // 捕获JSON解析异常
-            ui->mcp_server_log_plainTextEdit->appendPlainText("json parse error " + QString::fromStdString(e.what()));
-            // 可选：在UI上显示错误信息，例如：
-            QMessageBox::critical(this, "错误", "JSON格式无效，请检查配置！");
-            return;
-        } catch (const std::exception& e) { // 捕获其他异常
-            ui->mcp_server_log_plainTextEdit->appendPlainText("unknow error " + QString::fromStdString(e.what()));
-            return;
-        }
-    }
+    //     } catch (const mcp::json::parse_error& e) { // 捕获JSON解析异常
+    //         ui->mcp_server_log_plainTextEdit->appendPlainText("json parse error " + QString::fromStdString(e.what()));
+    //         // 可选：在UI上显示错误信息，例如：
+    //         QMessageBox::critical(this, "错误", "JSON格式无效，请检查配置！");
+    //         return;
+    //     } catch (const std::exception& e) { // 捕获其他异常
+    //         ui->mcp_server_log_plainTextEdit->appendPlainText("unknow error " + QString::fromStdString(e.what()));
+    //         return;
+    //     }
+    // }
 
 }
 
@@ -2794,7 +2798,7 @@ void Expend::add_mcp_tool_iteration(mcp::json toolsinfo)
     for (const auto& tool : toolsinfo) 
     {
         MCP_TOOLS_INFO mcp_tools_info;
-        mcp_tools_info.server_tool_name = QString::fromStdString(tool["service"].get<std::string>() + "_" + tool["name"].get<std::string>());
+        mcp_tools_info.server_tool_name = QString::fromStdString(tool["service"].get<std::string>() + "@" + tool["name"].get<std::string>());
         mcp_tools_info.description = QString::fromStdString(tool["description"]);
         mcp_tools_info.inputSchema = QString::fromStdString(tool["inputSchema"].dump());
         QListWidgetItem *item = new QListWidgetItem();
@@ -2857,32 +2861,40 @@ void Expend::add_mcp_tool_iteration(mcp::json toolsinfo)
     }
 }
 
-void Expend::recv_mcpcall(QString tool_name, QString tool_args)
+// void Expend::recv_mcpcall(QString tool_name, QString tool_args)
+// {
+//     QString result;
+//     //拆分出服务名和工具名
+//     std::string llm_tool_name = tool_name.toStdString();// 大模型输出的要调用的工具名
+//     std::string mcp_server_name;
+//     std::string mcp_tool_name;
+//     size_t pos = llm_tool_name.find('@');// 如果找到_则视为mcp服务器提供的工具
+
+//     if (pos != std::string::npos) {
+//         mcp_server_name = llm_tool_name.substr(0, pos);
+//         mcp_tool_name = llm_tool_name.substr(pos + 1);
+//         // std::cout << "Name: " << mcp_server_name << "\nFunction: " << mcp_tool_name << std::endl;
+//     } 
+//     else {std::cout << "No '@' found!" << std::endl;expend2tool_mcpcallover(result);return;}
+
+//     mcp::json params;
+//     if(tool_args==""){tool_args="{}";}//处理tool_args为空的情况
+//     try {params = mcp::json::parse(tool_args.toStdString());} 
+//     catch (const std::exception& e) 
+//     {   
+//         params = mcp::json::object(); // 可选：初始化为空对象
+//         result = "JSON parse fail: " + QString::fromStdString(e.what());
+//         expend2tool_mcpcallover(result);
+//         return;
+//     }
+//     auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params);
+//     result = QString::fromStdString(result2.dump());
+//     expend2tool_mcpcallover(result);
+// }
+
+//响应mcp添加服务完毕时事件
+void Expend::recv_addService_over(MCP_CONNECT_STATE state)
 {
-    QString result;
-    //拆分出服务名和工具名
-    std::string llm_tool_name = tool_name.toStdString();// 大模型输出的要调用的工具名
-    std::string mcp_server_name;
-    std::string mcp_tool_name;
-    size_t pos = llm_tool_name.rfind('_');// 如果找到_则视为mcp服务器提供的工具
-
-    if (pos != std::string::npos) {
-        mcp_server_name = llm_tool_name.substr(0, pos);
-        mcp_tool_name = llm_tool_name.substr(pos + 1);
-        // std::cout << "Name: " << mcp_server_name << "\nFunction: " << mcp_tool_name << std::endl;
-    } 
-    else {std::cout << "No '_' found!" << std::endl;expend2tool_mcpcallover(result);return;}
-
-    mcp::json params;
-    try {params = mcp::json::parse(tool_args.toStdString());} 
-    catch (const std::exception& e) 
-    {   
-        params = mcp::json::object(); // 可选：初始化为空对象
-        result = "JSON parse fail: " + QString::fromStdString(e.what());
-        expend2tool_mcpcallover(result);
-        return;
-    }
-    auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params);
-    result = QString::fromStdString(result2.dump());
-    expend2tool_mcpcallover(result);
+    add_mcp_tool_iteration(MCP_TOOLS_INFO_ALL);
+    set_mcp_connect_state(state);
 }

@@ -1,0 +1,32 @@
+// xmcp.h
+#ifndef XMCP_H
+#define XMCP_H
+
+#include <QObject>
+#include <QVariantMap>
+#include <QVariantList>
+#include "mcp_tools.h"
+#include "xconfig.h"
+
+class xMcp : public QObject
+{
+    Q_OBJECT
+public:
+    explicit xMcp(QObject *parent = nullptr);
+
+public slots:
+    void addService(const QString mcp_json_str);
+    void callTool(QString tool_name, QString tool_args);
+
+
+signals:
+    void callTool_over(QString result);
+    void addService_over(MCP_CONNECT_STATE state);
+    void toolResult(const QString &serviceName, const QString &toolName, const QVariantMap &result);
+
+private:
+    McpToolManager toolManager;
+
+};
+
+#endif // XMCP_H
