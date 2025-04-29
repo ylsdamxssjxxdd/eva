@@ -47,9 +47,9 @@ void xBot::predict(INPUTS inputs) {
         // 删除两个标记之间的所有元素
         Brain_vector.erase(Brain_vector.begin() + thinkStartIndex, Brain_vector.begin() + thinkEndIndex + 1);
         llama_kv_self_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
+        qDebug()<<n_past<<n_consumed;
         n_past -= thinkEndIndex - thinkStartIndex + 1;
-        n_consumed = 0;
-        // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
+        qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
         emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
     }    
 
@@ -111,8 +111,11 @@ void xBot::predict(INPUTS inputs) {
         // common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false); //记录token的id
         ++n_consumed;
     }
-    // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
-    // qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
+
+    qDebug()<<"插入后embd"<<view_embd(ctx,embd);
+    qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
+    qDebug()<<"-------------------------------";
+    
 
     //-------------------------------------------------------------
     //---------------------------流式输出---------------------------
