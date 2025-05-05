@@ -26,7 +26,7 @@ option(BODY_32BIT                    "support 32 BIT"                           
 option(BUILD_SHARED_LIBS        "build shared libraries"           ON) # 都用动态链接
 option(SD_BUILD_SHARED_LIBS      "sd: build shared libs" ON) # 强制sd用动态链接
 option(LLAMA_CURL       "llama: use libcurl to download model from an URL" OFF) #关闭联网下载功能
-option(MCP_SSL "Enable SSL support" ON) # 允许mcp https连接
+option(MCP_SSL "Enable SSL support" OFF) # 允许mcp https连接
 add_compile_definitions(_WIN32_WINNT=0x0601)
 set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7,但是这样做再也不能支持mmap加速模型装载
 # 这几个标志是互斥的
