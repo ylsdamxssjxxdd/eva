@@ -914,8 +914,8 @@
             "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCompile env: {COMPILE_ENV}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
         ],
         "MCPtools_func_describe": [
-            "MCPtools(request) - 使用搜索引擎进行搜索，将返回搜索结果。",
-            "MCPtools(request) - Using a search engine to conduct a search will return search result."
+            "MCPtools(request) - 使",
+            "MCPtools(request) - Using"
         ],
         "calculator_func_describe": [
             "calculator(expression) - 输入一个 JavaScript 表达式，将返回计算结果。",
@@ -1872,6 +1872,22 @@
         "sync_Q30": [
             "写一个贪吃蛇游戏到snake.py中",
             "Write a snake game to snake.py ."
+        ],
+        "link": [
+            "连接",
+            "link"
+        ],
+        "mcp_server_config": [
+            "MCP服务配置",
+            "MCP server config"
+        ],
+        "mcp_server_tools": [
+            "MCP可用工具",
+            "MCP available tools"
+        ],
+        "mcp_server": [
+            "MCP服务器",
+            "MCP Server"
         ],
         "---end---": [
             "---end---",

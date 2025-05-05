@@ -15,9 +15,7 @@
 #include "thirdparty/llama.cpp/common/chat.h"
 #include "thirdparty/llama.cpp/common/common.h"
 #include "thirdparty/llama.cpp/common/sampling.h"
-#include "thirdparty/llama.cpp/common/stb_image.h"
-#include "thirdparty/llama.cpp/tools/llava/clip.h"
-#include "thirdparty/llama.cpp/tools/llava/llava.h"
+#include "thirdparty/llama.cpp/tools/llava/mtmd.h"
 #include "thirdparty/llama.cpp/include/llama.h"
 #include "thirdparty/llama.cpp/src/llama-model.h" // 暂时不用太底层的api
 #include "xconfig.h"  //ui和bot都要导入的共有配置
@@ -56,7 +54,8 @@ class xBot : public QObject {
     llama_model *model;  //模型
     const llama_vocab *vocab;
     llama_context *ctx;              //上下文
-    clip_ctx *ctx_clip;              // clip模型上下文, 编码图像用
+    mtmd::context_ptr ctx_vision;   // 图像上下文指针
+    mtmd::bitmaps bitmaps; // 存储图像
     common_sampler *smpl = nullptr;  // 采样器
 
     QElapsedTimer single_timer;
@@ -75,10 +74,10 @@ class xBot : public QObject {
     bool eval_tokens(struct llama_context *ctx_llama, std::vector<llama_token> tokens, int n_batch, int *n_past);
     // 快捷预解码文本
     bool eval_string(struct llama_context *ctx_llama, const char *str, int n_batch, int *n_past, bool add_bos);
-    // 预解码图像
-    void process_eval_image_embed(llama_context *ctx_llama, clip_ctx *ctx_clip, const struct llava_image_embed *embeds, int n_batch, int *n_past, int idx);
-    // 预处理图像
-    bool process_image(llama_context *ctx, clip_ctx *ctx_clip, struct llava_image_embed *image_embeds, common_params common_params_, int &n_past);
+    // 加载图像
+    bool load_image(const std::string & fname);
+    // 初始化图像上下文
+    void init_vision_context(common_params & params);
     //回调函数,获取llama的日志
     static void bot_log_callback(ggml_log_level level, const char *text, void *user_data);
     //解决半个utf8字符问题
@@ -120,8 +119,7 @@ class xBot : public QObject {
 
     //标签相关
     std::string bot_modelpath = "";                                                                                                         //模型路径
-    std::string lorapath = "";                                                                                                              // lora模型路径
-    std::string mmprojpath = "";                                                                                                            // mmproj模型路径                                                                                         //用户输入
+    std::string lorapath = "";                                                                                                              // lora模型路径                                                                                                         // mmproj模型路径                                                                                         //用户输入
     bool is_stop = false, is_model_load = false, is_load_predecode = false, is_first_load = true, is_free = false, is_first_reset = false;  //一些状态控制标签
     bool is_complete = false;                                                                                                               //补完模式标签
     bool is_antiprompt = false;                                                                                                             //上一次是否有用户昵称,,如果已经检测出用户昵称则不加前缀
@@ -179,5 +177,4 @@ class xBot : public QObject {
     void bot_llama_log(QString log);                                                        //传递llama.cpp的log
     void bot2ui_play();
 };
-
 #endif  // XBOT_H

@@ -709,6 +709,7 @@ int32_t mtmd_helper_eval_chunks(mtmd_context * ctx,
         return 0;
     }
 
+
     for (size_t i = 0; i < n_chunks; i++) {
         bool chunk_logits_last = (i == n_chunks - 1) && logits_last;
         auto chunk = mtmd_input_chunks_get(chunks, i);

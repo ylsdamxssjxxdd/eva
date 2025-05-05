@@ -7,7 +7,7 @@
 #include "console.h"
 #include "chat.h"
 #include "mtmd.h"
-
+#include <iostream>
 #include <vector>
 #include <limits.h>
 #include <cinttypes>
@@ -225,7 +225,7 @@ static int eval_message(mtmd_cli_context & ctx, common_chat_msg & msg, bool add_
         LOG_ERR("Unable to eval prompt\n");
         return 1;
     }
-
+    // std::cout<<"ctx.n_past"<<ctx.n_past<<"new_n_past"<<new_n_past<<std::endl;
     ctx.n_past = new_n_past;
 
     LOG("\n");
@@ -238,6 +238,13 @@ int main(int argc, char ** argv) {
 
     common_params params;
     params.sampling.temp = 0.2; // lower temp by default for better quality
+    params.use_mmap = false;
+    // params.model.path = "D:\\EVA_MODELS\\Qwen2-VL-7B-Q3_K_M.gguf";
+    // params.mmproj.path = "D:\\EVA_MODELS\\mmproj-Qwen2-VL-7B-f16.gguf";
+    params.model.path = "D:\\EVA_MODELS\\MiniCPM-V2.6-Q4_0.gguf";
+    params.mmproj.path = "D:\\EVA_MODELS\\MiniCPM-V2.6-mmproj-f16.gguf";
+    params.prompt = "Which anime character is this?";
+    params.image.push_back("C:\\Users\\32138\\Desktop\\sd_output-19-49-27.png");
 
     if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_LLAVA, show_additional_info)) {
         return 1;

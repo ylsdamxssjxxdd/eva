@@ -92,6 +92,10 @@
             "用已缓存",
             "use context cache "
         ],
+        "kv cache": [
+            "上下文缓存",
+            "Context cache "
+        ],
         "calculator next word probability table": [
             "计算下一个词的概率表",
             "calculator next word probability table "

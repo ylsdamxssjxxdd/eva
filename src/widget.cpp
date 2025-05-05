@@ -766,7 +766,8 @@ void Widget::serverControl() {
     }  
     else {if(!ui_SETTINGS.hid_use_mmap){arguments << "--no-mmap";}}
 
-    if (ui_SETTINGS.mmprojpath != "") {arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
+    // 服务目前还是不支持视觉
+    // if (ui_SETTINGS.mmprojpath != "") {arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
     // 开始运行程序
     server_process->start(program, arguments);

@@ -1279,7 +1279,7 @@ stdio要求填入command和args，可以附带env环境</string>
                </size>
               </property>
               <property name="text">
-               <string>测试</string>
+               <string>？</string>
               </property>
              </widget>
             </item>

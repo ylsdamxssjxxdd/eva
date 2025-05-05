@@ -382,7 +382,6 @@ int xBot::stream() {
 void xBot::preDecodeImage(QString image_path) {
     QElapsedTimer time2;
     time2.start();
-
 #ifdef _WIN32
     QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
     std::string imagepath = code->fromUnicode(image_path).data();
@@ -394,30 +393,61 @@ void xBot::preDecodeImage(QString image_path) {
         emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
         int n_past_orin = n_past;
 
-        // 将图像转为token
-        llava_image_embed *image_embeds = llava_image_embed_make_with_filename(ctx_clip, common_params_.cpuparams.n_threads, imagepath.c_str());
+        // 加载图像
+        load_image(imagepath.c_str());
 
-        // 预处理图像(分隔+预解码)
-        bool ok_ = process_image(ctx, ctx_clip, image_embeds, common_params_, n_past);
+        // 构造输入token
+        mtmd_input_text text;
+        text.text          = " <__image__> ";//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
+        text.add_special   = true;
+        text.parse_special = true;
+        mtmd::input_chunks chunks(mtmd_input_chunks_init());
+        auto bitmaps_c_ptr = bitmaps.c_ptr();
+        int32_t res = mtmd_tokenize(ctx_vision.get(),
+                        chunks.ptr.get(), // output
+                        &text, // text
+                        bitmaps_c_ptr.data(),
+                        bitmaps_c_ptr.size());
 
+        bitmaps.entries.clear(); // 释放图片缓存
+
+        if(chunks.size() == 0)// 未正确解析图片的情况
+        {
+            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+            return;
+        }
+
+        // 预解码图像token
+        llama_pos new_n_past;
+        if(mtmd_helper_eval_chunks(ctx_vision.get(),
+                    ctx, // lctx
+                    chunks.ptr.get(), // chunks
+                    n_past, // n_past
+                    0, // seq_id
+                    common_params_.n_batch, // n_batch
+                    true, // logits_last
+                    &new_n_past))
+        {
+            // 未正确解码的情况
+            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+            return;
+        }
+
+        n_past = new_n_past;
         emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量
 
         for (int i = Brain_vector.size(); i < n_past; ++i) {
-            Brain_vector.push_back({i + 1, -2, "<|image|>"});
+            Brain_vector.push_back({i + 1, -2, "<__image__>"});
         }  // 添加到记忆矩阵
 
         emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1 表示强制刷新记忆矩阵
-        llava_image_embed_free(image_embeds);                                // 释放图像token
 
-        if (ok_) {
-            float time_ = time2.nsecsElapsed() / 1000000000.0;
-            int n_past_new = n_past - n_past_orin;  // 新增的token数
-            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + "+" + QString::number(n_past_new), SUCCESS_SIGNAL);
-        } else {
-            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-        }
+        float time_ = time2.nsecsElapsed() / 1000000000.0;
+        int n_past_new = n_past - n_past_orin;  // 新增的token数
+        emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + " +" + QString::number(n_past_new), SUCCESS_SIGNAL);
 
-    } else {
+    } 
+    else {
         emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
     }
 
@@ -485,18 +515,16 @@ void xBot::load(QString modelpath_) {
 
 
     //挂载视觉
-    if (mmprojpath != "") {
+    if (common_params_.mmproj.path != "") {
         if (is_multi)  //如果之前是多模态则先释放,但是显存没有返还
         {
-            clip_free(ctx_clip);
-            ctx_clip = nullptr;
+            ctx_vision.reset();//释放视觉模块
         }
-        ctx_clip = clip_model_load(mmprojpath.c_str(), /*verbosity=*/1);
+        init_vision_context(common_params_);
         is_multi = true;
     } else {
         if (is_multi) {
-            clip_free(ctx_clip);
-            ctx_clip = nullptr;
+            ctx_vision.reset();//释放视觉模块
             is_multi = false;
         }  //如果之前是多模态则先释放
     }
@@ -871,8 +899,8 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
 #elif __linux__
     settings_mmprojpath = settings.mmprojpath.toStdString();
 #endif
-    if (settings_mmprojpath != mmprojpath) {
-        mmprojpath = settings_mmprojpath;
+    if (settings_mmprojpath != common_params_.mmproj.path) {
+        common_params_.mmproj.path = settings_mmprojpath;
         // qDebug() << settings.mmprojpath << QString::fromStdString(mmprojpath);
         reload_flag = true;
     }
@@ -951,6 +979,7 @@ void xBot::recv_free(bool loadlater) {
         llama_free(ctx);
         ctx = nullptr;
         llama_model_free(model);
+        ctx_vision.reset();//释放视觉模块
         model = nullptr;
         is_free = true;
         is_model_load = false;
@@ -1056,49 +1085,6 @@ bool xBot::eval_string(struct llama_context *ctx_llama, const char *str, int n_b
     return eval_tokens(ctx_llama, embd_inp, n_batch, n_past);
 }
 
-// 预解码图像，参照的是minicpmv-cli.cpp，llava_context拆解成了ctx_llama ctx_clip
-void xBot::process_eval_image_embed(llama_context *ctx_llama, clip_ctx *ctx_clip, const struct llava_image_embed *embeds, int n_batch, int *n_past, int idx) {
-    float *image_embed = (float *)malloc(clip_embd_nbytes(ctx_clip));
-    std::memcpy(image_embed, embeds->embed + idx * clip_n_patches(ctx_clip) * clip_n_mmproj_embd(ctx_clip), clip_embd_nbytes(ctx_clip));
-    auto slice_embed = (llava_image_embed *)malloc(sizeof(llava_image_embed));
-    slice_embed->embed = image_embed;
-    slice_embed->n_image_pos = clip_n_patches(ctx_clip);
-    llava_eval_image_embed(ctx_llama, slice_embed, n_batch, n_past);
-    llava_image_embed_free(slice_embed);
-}
-
-// 预处理图像，参照的是minicpmv-cli.cpp
-bool xBot::process_image(llama_context *ctx, clip_ctx *ctx_clip, struct llava_image_embed *image_embeds, common_params common_params_, int &n_past) {
-    QElapsedTimer time;
-    time.start();
-    int idx = 0;
-    int num_image_embeds = image_embeds->n_image_pos / clip_n_patches(ctx_clip);
-    eval_string(ctx, std::string("<image>").c_str(), common_params_.n_batch, &n_past, false);
-    process_eval_image_embed(ctx, ctx_clip, image_embeds, common_params_.n_batch, &n_past, idx++);
-    eval_string(ctx, std::string("</image>").c_str(), common_params_.n_batch, &n_past, false);
-    // float time_ = time.nsecsElapsed() / 1000000000.0;
-    // qDebug()<<QString::number(time_, 'f', 2) + " s ";
-
-    if (num_image_embeds > 1) {
-        size_t num_image_embeds_col = clip_uhd_num_image_embeds_col(ctx_clip);
-        eval_string(ctx, std::string("<slice>").c_str(), common_params_.n_batch, &n_past, false);
-        for (size_t i = 0; i < (num_image_embeds - 1) / num_image_embeds_col; ++i) {
-            for (size_t j = 0; j < num_image_embeds_col; ++j) {
-                eval_string(ctx, std::string("<image>").c_str(), common_params_.n_batch, &n_past, false);
-                process_eval_image_embed(ctx, ctx_clip, image_embeds, common_params_.n_batch, &n_past, idx++);
-                // float time_ = time.nsecsElapsed() / 1000000000.0;
-                // qDebug()<<QString::number(time_, 'f', 2) + " s ";
-                eval_string(ctx, std::string("</image>").c_str(), common_params_.n_batch, &n_past, false);
-                if (j == num_image_embeds_col - 1) {
-                    eval_string(ctx, std::string("\n").c_str(), common_params_.n_batch, &n_past, false);
-                }
-            }
-        }
-        eval_string(ctx, std::string("</slice>").c_str(), common_params_.n_batch, &n_past, false);
-    }
-
-    return true;
-}
 
 //回调函数,获取llama的日志
 void xBot::bot_log_callback(ggml_log_level level, const char *text, void *user_data) {
@@ -1352,4 +1338,27 @@ void xBot::getWords(QString json_file_path) {
     QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
     QJsonObject jsonObj = doc.object();
     wordsObj = jsonObj["words"].toObject();
+}
+
+void xBot::init_vision_context(common_params & params) {
+    const char * clip_path = params.mmproj.path.c_str();
+    mtmd_context_params mparams = mtmd_context_params_default();
+    mparams.use_gpu = params.mmproj_use_gpu;
+    mparams.print_timings = true;
+    mparams.n_threads = params.cpuparams.n_threads;
+    mparams.verbosity = params.verbosity > 0 ? GGML_LOG_LEVEL_DEBUG : GGML_LOG_LEVEL_INFO;
+    ctx_vision.reset(mtmd_init_from_file(clip_path, model, mparams));
+    if (!ctx_vision.get()) {
+        // LOG_ERR("Failed to load vision model from %s\n", clip_path);
+        // exit(1);
+    }
+}
+
+bool xBot::load_image(const std::string & fname) {
+    mtmd::bitmap bmp(mtmd_helper_bitmap_init_from_file(fname.c_str()));
+    if (!bmp.ptr) {
+        return false;
+    }
+    bitmaps.entries.push_back(std::move(bmp));
+    return true;
 }
