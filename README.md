@@ -1,6 +1,6 @@
 # 机体
 
-一款轻量的大模型工具：机体 (qt5+llama.cpp)
+为大模型抽象出一具简单、直观的肉体，以便更好的观察和控制 (qt5+llama.cpp)
 
 \[ 中文 | [English](README_en.md) \]
 

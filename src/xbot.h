@@ -16,8 +16,8 @@
 #include "thirdparty/llama.cpp/common/common.h"
 #include "thirdparty/llama.cpp/common/sampling.h"
 #include "thirdparty/llama.cpp/common/stb_image.h"
-#include "thirdparty/llama.cpp/examples/llava/clip.h"
-#include "thirdparty/llama.cpp/examples/llava/llava.h"
+#include "thirdparty/llama.cpp/tools/llava/clip.h"
+#include "thirdparty/llama.cpp/tools/llava/llava.h"
 #include "thirdparty/llama.cpp/include/llama.h"
 #include "thirdparty/llama.cpp/src/llama-model.h" // 暂时不用太底层的api
 #include "xconfig.h"  //ui和bot都要导入的共有配置

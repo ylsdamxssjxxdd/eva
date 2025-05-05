@@ -112,9 +112,9 @@ void xBot::predict(INPUTS inputs) {
         ++n_consumed;
     }
 
-    qDebug()<<"插入后embd"<<view_embd(ctx,embd);
-    qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
-    qDebug()<<"-------------------------------";
+    // qDebug()<<"插入后embd"<<view_embd(ctx,embd);
+    // qDebug()<<"embd_inp插入到embd中 "<<"n_consumed "<<n_consumed<<" embd_inp.size() "<<embd_inp.size()<<" embd.size() "<<embd.size();
+    // qDebug()<<"-------------------------------";
     
 
     //-------------------------------------------------------------
@@ -321,7 +321,7 @@ int xBot::stream() {
         std::string sstr = common_token_to_piece(ctx, id, common_params_.special);  // 获取id对应的文本
         
         // 构建概率表格
-        // buildProbtable(&id);// 精简输出，暂时不用
+        buildProbtable(&id);
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
@@ -482,7 +482,7 @@ void xBot::load(QString modelpath_) {
     llama_context_params ctx_params = common_context_params_to_llama(common_params_);
     ctx_params.n_threads = common_params_.cpuparams.n_threads;
     ctx = llama_init_from_model(model, ctx_params);
-    smpl = common_sampler_init(model, common_params_.sampling);
+
 
     //挂载视觉
     if (mmprojpath != "") {

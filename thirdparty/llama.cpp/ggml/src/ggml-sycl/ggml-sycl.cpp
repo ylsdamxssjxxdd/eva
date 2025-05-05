@@ -38,6 +38,7 @@
 
 #include "ggml-sycl/backend.hpp"
 #include "ggml-sycl/common.hpp"
+#include "ggml-sycl/element_wise.hpp"
 #include "ggml-sycl/presets.hpp"
 #include "ggml-sycl/gemm.hpp"
 #include "ggml-sycl/sycl_hw.hpp"
@@ -192,7 +193,7 @@ static void ggml_check_sycl() try {
 
     if (!initialized) {
         g_ggml_sycl_debug = get_sycl_env("GGML_SYCL_DEBUG", 0);
-        g_ggml_sycl_disable_optimize= get_sycl_env("GGML_SYCL_DISABLE_OPT", 1);
+        g_ggml_sycl_disable_optimize= get_sycl_env("GGML_SYCL_DISABLE_OPT", 0);
         g_ggml_sycl_disable_graph = get_sycl_env("GGML_SYCL_DISABLE_GRAPH", 1);
         GGML_SYCL_DEBUG("[SYCL] call ggml_check_sycl\n");
         GGML_LOG_INFO("Running with Environment Variables:\n");
@@ -1967,11 +1968,6 @@ catch (sycl::exception const &exc) {
   std::exit(1);
 }
 
-static void ggml_sycl_op_repeat(ggml_backend_sycl_context & ctx, ggml_tensor *dst) {
-    ggml_sycl_op_bin_bcast<bin_bcast_sycl<op_repeat>>(ctx, dst, dst->src[0], dst);
-}
-
-
 inline void ggml_sycl_op_mul_mat_sycl(
     ggml_backend_sycl_context & ctx,
     const ggml_tensor *src0, const ggml_tensor *src1, ggml_tensor *dst,
@@ -2600,12 +2596,6 @@ catch (sycl::exception const &exc) {
 }
 
 
-static void ggml_sycl_repeat(ggml_backend_sycl_context & ctx, ggml_tensor * dst) {
-    GGML_SYCL_DEBUG("call %s\n", __func__);
-    ggml_sycl_op_repeat(ctx, dst);
-    GGML_SYCL_DEBUG("call %s done\n", __func__);
-}
-
 static void ggml_sycl_get_rows(ggml_backend_sycl_context & ctx, ggml_tensor * dst) {
     GGML_SYCL_DEBUG("call %s\n", __func__);
     ggml_sycl_op_get_rows(ctx, dst);
@@ -2863,6 +2853,64 @@ static bool ggml_sycl_supports_dmmv(enum ggml_type type) {
     }
 }
 
+static void reorder_qw(char *data_device, const int ncols, const int nrows,
+                size_t size, size_t offset, dpct::queue_ptr stream) {
+    auto tmp_buf = sycl::malloc_shared<char>(size, *stream);
+    SYCL_CHECK(
+        CHECK_TRY_ERROR((*stream).memcpy(tmp_buf, data_device, size)
+            .wait()));
+    GGML_ASSERT((size % sizeof(block_q4_0) == 0));
+    GGML_ASSERT((offset % sizeof(block_q4_0) == 0));
+    int offset_blks = offset / sizeof(block_q4_0);
+    auto qs_ptr = (uint8_t*)data_device + offset_blks * QK4_0 / 2;;
+    auto d_ptr = (sycl::half*)(qs_ptr + ncols * nrows / 2) + offset_blks;
+
+    stream->parallel_for(
+        size / sizeof(block_q4_0),
+            [=](auto i) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
+            const block_q4_0* x = (const block_q4_0*)tmp_buf;
+            const int ib = i;
+
+            for (int j = 0; j < QK4_0/2; j ++)
+            {
+                *(qs_ptr + ib * QK4_0 / 2 + j) = x[ib].qs[j];
+            }
+            *(d_ptr + ib) = x[ib].d;
+        });
+
+    sycl::free(tmp_buf, *stream);
+}
+
+static void reorder_qw(const ggml_tensor * src0, dpct::queue_ptr stream) {
+    char*data_device = (char*)src0->data;
+    size_t ncols = src0->ne[0];
+    size_t nrows = src0->ne[1];
+    size_t size = ggml_nbytes(src0);
+
+    reorder_qw(data_device, ncols, nrows, size, 0, stream);
+}
+
+/*
+* This function could be called when the OP (mul_mat) function support reorder optimizition.
+*/
+static void opt_for_reorder(ggml_backend_sycl_context * ctx, const ggml_tensor * src0, const ggml_tensor * src1,
+    ggml_tensor * dst) {
+    if (!g_ggml_sycl_disable_optimize && //allow optimize, controlled by $GGML_SYCL_DISABLE_OPT
+        ctx->opt_feature.reorder &&      //allow this device due to good perf, skip the devices with bad perf.
+        dst->op == GGML_OP_MUL_MAT &&    //limit to some supported cases of Q4_0, to do for more cases.
+        src0->type == GGML_TYPE_Q4_0 &&
+        src1->ne[2]==1 && src1->ne[3]==1) {
+
+        ggml_tensor_extra_gpu* extra = (ggml_tensor_extra_gpu*)src0->extra;
+        if (!extra) return; //only happen in CI/UT permute case.
+
+        if (extra->optimized_feature.reorder) return; //skip the tensor which is handled for reorder.
+
+        reorder_qw(src0, ctx->stream());
+        extra->optimized_feature.reorder = true; //used to decode/dequan in next steps.
+    }
+}
+
 static void ggml_sycl_mul_mat(ggml_backend_sycl_context & ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
 
     const bool split = ggml_backend_buffer_is_sycl_split(src0->buffer);
@@ -2925,6 +2973,7 @@ static void ggml_sycl_mul_mat(ggml_backend_sycl_context & ctx, const ggml_tensor
         // KQ + KQV multi-batch
         ggml_sycl_mul_mat_batched_sycl(ctx, src0, src1, dst);
     } else if (use_dequantize_mul_mat_vec) {
+        opt_for_reorder(&ctx, src0, src1, dst); //the OP function in this branch support reorder.
         ggml_sycl_op_mul_mat(ctx, src0, src1, dst, ggml_sycl_op_dequantize_mul_mat_vec, false);
         // save_tensor_txt("1/dst_1.txt", (float*) dst->data, src0->ne[1], sizeof(float), ctx.stream());
     } else if (use_mul_mat_vec_q) {
@@ -2932,6 +2981,7 @@ static void ggml_sycl_mul_mat(ggml_backend_sycl_context & ctx, const ggml_tensor
     } else if (use_mul_mat_q) {
         ggml_sycl_op_mul_mat(ctx, src0, src1, dst, ggml_sycl_op_mul_mat_q, true);
     } else {
+        opt_for_reorder(&ctx, src0, src1, dst); //the OP function in this branch support reorder.
         ggml_sycl_op_mul_mat(ctx, src0, src1, dst, ggml_sycl_op_mul_mat_sycl, false);
     }
 }
@@ -3179,11 +3229,6 @@ static void ggml_sycl_diag_mask_inf(ggml_backend_sycl_context & ctx, ggml_tensor
     ggml_sycl_op_diag_mask_inf(ctx, dst);
 }
 
-static void ggml_sycl_rope(ggml_backend_sycl_context & ctx, ggml_tensor * dst) {
-    GGML_ASSERT(ggml_is_contiguous(dst->src[0])); // TODO: this restriction is temporary until non-cont support is implemented
-    ggml_sycl_op_rope(ctx, dst);
-}
-
 static void ggml_sycl_pool2d(ggml_backend_sycl_context & ctx, ggml_tensor * dst) {
     ggml_sycl_op_pool2d(ctx, dst);
 }
@@ -3310,6 +3355,15 @@ static bool ggml_sycl_compute_forward(ggml_backend_sycl_context & ctx, struct gg
                     break;
                 case GGML_UNARY_OP_EXP:
                     ggml_sycl_exp(ctx, dst);
+                    break;
+                case GGML_UNARY_OP_SGN:
+                    ggml_sycl_sgn(ctx, dst);
+                    break;
+                case GGML_UNARY_OP_ABS:
+                    ggml_sycl_abs(ctx, dst);
+                    break;
+                case GGML_UNARY_OP_ELU:
+                    ggml_sycl_elu(ctx, dst);
                     break;
                 default:
                     return false;
@@ -3561,71 +3615,8 @@ catch (sycl::exception const &exc) {
   std::exit(1);
 }
 
-static void reorder_qw(char *data_device, const int ncols, const int nrows,
-                size_t size, size_t offset, dpct::queue_ptr stream) {
-    auto tmp_buf = sycl::malloc_shared<char>(size, *stream);
-    SYCL_CHECK(
-        CHECK_TRY_ERROR((*stream).memcpy(tmp_buf, data_device, size)
-            .wait()));
-    GGML_ASSERT((size % sizeof(block_q4_0) == 0));
-    GGML_ASSERT((offset % sizeof(block_q4_0) == 0));
-    int offset_blks = offset / sizeof(block_q4_0);
-    auto qs_ptr = (uint8_t*)data_device + offset_blks * QK4_0 / 2;;
-    auto d_ptr = (sycl::half*)(qs_ptr + ncols * nrows / 2) + offset_blks;
-
-    stream->parallel_for(
-        size / sizeof(block_q4_0),
-            [=](auto i) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
-            const block_q4_0* x = (const block_q4_0*)tmp_buf;
-            const int ib = i;
-
-            for (int j = 0; j < QK4_0/2; j ++)
-            {
-                *(qs_ptr + ib * QK4_0 / 2 + j) = x[ib].qs[j];
-            }
-            *(d_ptr + ib) = x[ib].d;
-        });
-
-    sycl::free(tmp_buf, *stream);
-}
-
-static void reorder_qw(ggml_tensor * src0, dpct::queue_ptr stream) {
-    char*data_device = (char*)src0->data;
-    size_t ncols = src0->ne[0];
-    size_t nrows = src0->ne[1];
-    size_t size = ggml_nbytes(src0);
-
-    reorder_qw(data_device, ncols, nrows, size, 0, stream);
-}
-
-static void opt_for_reorder(ggml_tensor * dst, dpct::queue_ptr stream) {
-    ggml_tensor *src0 = dst->src[0];
-    ggml_tensor *src1 = dst->src[1];
-
-    if (dst->op == GGML_OP_MUL_MAT && src0->type == GGML_TYPE_Q4_0 &&
-        src1->ne[2]==1 && src1->ne[3]==1) {
-        reorder_qw(src0, stream);
-        ggml_tensor_extra_gpu* extra = (ggml_tensor_extra_gpu*)src0->extra;
-        GGML_ASSERT(extra);
-        extra->optimized_feature.reorder = true; //used to decode/dequan in next steps.
-    }
-}
-
-static void optimize_graph_once(ggml_cgraph * cgraph, ggml_backend_sycl_context * ctx) {
-    dpct::queue_ptr stream = ctx->stream();
-    if (ctx->optimized_graph) {
-       return;
-    }
-    ctx->optimized_graph = true;
-
-    for (int i = 0; i < cgraph->n_nodes; i++) {
-        if (ctx->opt_feature.reorder) opt_for_reorder(cgraph->nodes[i], stream);
-    }
-}
-
 static void ggml_backend_sycl_graph_compute_impl(ggml_backend_sycl_context * sycl_ctx, ggml_cgraph * cgraph) {
     ggml_sycl_set_main_device(sycl_ctx->device);
-    if (!g_ggml_sycl_disable_optimize) optimize_graph_once(cgraph, sycl_ctx);
 
     for (int i = 0; i < cgraph->n_nodes; i++) {
         ggml_tensor * node = cgraph->nodes[i];
@@ -3856,6 +3847,9 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
                 case GGML_UNARY_OP_GELU_QUICK:
                 case GGML_UNARY_OP_TANH:
                 case GGML_UNARY_OP_EXP:
+                case GGML_UNARY_OP_SGN:
+                case GGML_UNARY_OP_ABS:
+                case GGML_UNARY_OP_ELU:
 #if defined (GGML_SYCL_F16)
                     return ggml_is_contiguous(op->src[0]) && (op->type == op->src[0]->type);
 #else
@@ -3972,7 +3966,6 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_ARGMAX:
         case GGML_OP_NONE:
         case GGML_OP_RESHAPE:
-        case GGML_OP_REPEAT:
         case GGML_OP_VIEW:
         case GGML_OP_PERMUTE:
         case GGML_OP_TRANSPOSE:
@@ -3982,7 +3975,8 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_SUB:
         case GGML_OP_MUL:
         case GGML_OP_DIV:
-            return (op->src[0]->type == GGML_TYPE_F32);
+        case GGML_OP_REPEAT:
+            return true;
         case GGML_OP_SQR:
         case GGML_OP_SQRT:
         case GGML_OP_SIN:
@@ -4009,17 +4003,14 @@ static bool ggml_backend_sycl_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_ROPE:
             {
                 const int mode = ((const int32_t *) op->op_params)[2];
-                if (mode & GGML_ROPE_TYPE_MROPE) {
+                // mode is not used as a bitmask in practice, the various rope type modes are independent implementations
+                if (mode == GGML_ROPE_TYPE_MROPE) {
                     return false;
                 }
-                if (mode & GGML_ROPE_TYPE_VISION) {
-                    return false;
-                }
-                return ggml_is_contiguous(op->src[0]);
+                return true;
             }
         case GGML_OP_IM2COL:
-            // TODO: add support for the new F32 operations
-            return op->src[0]->type == GGML_TYPE_F16;
+            return true;
         case GGML_OP_UPSCALE:
             return op->src[0]->type == GGML_TYPE_F32 && op->op_params[0] == GGML_SCALE_MODE_NEAREST;
         case GGML_OP_POOL_2D:

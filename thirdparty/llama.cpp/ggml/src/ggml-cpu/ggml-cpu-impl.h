@@ -289,7 +289,6 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #define ggml_uint8x16x2_t uint8x16x2_t
 #define ggml_uint8x16x4_t uint8x16x4_t
 #define ggml_int8x16x2_t  int8x16x2_t
-#define ggml_int8x16x4_t  int8x16x4_t
 
 // 取消原有定义
 #ifdef vld1q_s8_x4
@@ -298,6 +297,7 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #ifdef vld1q_u8_x4
 #undef vld1q_u8_x4
 #endif
+
 
 // 替代vld1q_s8_x4
 inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
@@ -319,6 +319,7 @@ inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
     return ret;
 }
 
+
 #define ggml_vld1q_s16_x2 vld1q_s16_x2
 #define ggml_vld1q_u8_x2  vld1q_u8_x2
 #define ggml_vld1q_u8_x4  vld1q_u8_x4
@@ -326,7 +327,6 @@ inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
 #define ggml_vld1q_s8_x4  vld1q_s8_x4
 #define ggml_vqtbl1q_s8   vqtbl1q_s8
 #define ggml_vqtbl1q_u8   vqtbl1q_u8
-
 
 #endif // !defined(__aarch64__)
 

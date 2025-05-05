@@ -35,12 +35,12 @@
 
 //采样
 #define DEFAULT_NPREDICT 4096
-#define DEFAULT_TEMP 0.5
+#define DEFAULT_TEMP 0.7
 #define DEFAULT_REPEAT 1.2
+#define DEFAULT_TOP_P 0.95 // 默认top_p值为0.95
 
 //推理
 #define DEFAULT_NTHREAD 1 // 默认线程数为1，但是后面会变的
-#define DEFAULT_TOP_P 0 // 默认top_p值为0
 #define DEFAULT_SPECIAL true // 默认显示特殊token
 #ifdef BODY_USE_32BIT
 #define DEFAULT_USE_MMAP false // 默认关闭内存映射

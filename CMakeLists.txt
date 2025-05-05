@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b5121) # 打包版本
+set(version b5280) # 打包版本
 
 # 设置所有构建类型下的可执行文件的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -17,7 +17,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
@@ -149,13 +149,13 @@ set_target_properties(llama PROPERTIES PUBLIC_HEADER thirdparty/llama.cpp/includ
 if(UNIX AND NOT APPLE)
     set_target_properties(llama PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})# 针对 Linux 平台（生成 .so 文件）
 endif()
-# add_subdirectory(thirdparty/llama.cpp/examples/imatrix) # 生成重要性矩阵用
-# add_subdirectory(thirdparty/llama.cpp/examples/main) # 测试用
-# add_subdirectory(thirdparty/llama.cpp/examples/llava) # 测试用
-add_subdirectory(thirdparty/llama.cpp/examples/llama-bench) # 添加llama-bench
-add_subdirectory(thirdparty/llama.cpp/examples/tts) # 添加tts
-add_subdirectory(thirdparty/llama.cpp/examples/quantize) # 添加quantize
-add_subdirectory(thirdparty/llama.cpp/examples/server) # 添加server
+# add_subdirectory(thirdparty/llama.cpp/tools/imatrix) # 生成重要性矩阵用
+# add_subdirectory(thirdparty/llama.cpp/tools/main) # 测试用
+# add_subdirectory(thirdparty/llama.cpp/tools/llava) # 测试用
+add_subdirectory(thirdparty/llama.cpp/tools/llama-bench) # 添加llama-bench
+add_subdirectory(thirdparty/llama.cpp/tools/tts) # 添加tts
+add_subdirectory(thirdparty/llama.cpp/tools/quantize) # 添加quantize
+add_subdirectory(thirdparty/llama.cpp/tools/server) # 添加server
 
 add_subdirectory(thirdparty/cpp-mcp)
 include_directories(thirdparty/cpp-mcp/include)
@@ -194,7 +194,7 @@ src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src
 src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h
 src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
 src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
-thirdparty/llama.cpp/examples/llava/clip.cpp thirdparty/llama.cpp/examples/llava/clip.h thirdparty/llama.cpp/examples/llava/llava.cpp thirdparty/llama.cpp/examples/llava/llava.h
+thirdparty/llama.cpp/tools/llava/clip.cpp thirdparty/llama.cpp/tools/llava/clip.h thirdparty/llama.cpp/tools/llava/llava.cpp thirdparty/llama.cpp/tools/llava/llava.h
 )
 
 # 链接相关库,生成可执行文件

@@ -1,6 +1,6 @@
 # EVA
 
-Embedding Vector Agent: EVA (based on llama.cpp & qt5)
+Create a simple and intuitive body for llm, to better observe and control (based on llama.cpp & qt5)
 
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
