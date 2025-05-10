@@ -289,7 +289,6 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #define ggml_uint8x16x2_t uint8x16x2_t
 #define ggml_uint8x16x4_t uint8x16x4_t
 #define ggml_int8x16x2_t  int8x16x2_t
-
 // 取消原有定义
 #ifdef vld1q_s8_x4
 #undef vld1q_s8_x4
@@ -297,8 +296,6 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #ifdef vld1q_u8_x4
 #undef vld1q_u8_x4
 #endif
-
-
 // 替代vld1q_s8_x4
 inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     int8x16x4_t ret;
@@ -308,7 +305,6 @@ inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     ret.val[3] = vld1q_s8(ptr + 48);
     return ret;
 }
-
 // 替代 vld1q_u8_x4 的实现
 inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
     uint8x16x4_t ret;
@@ -318,15 +314,27 @@ inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
     ret.val[3] = vld1q_u8(ptr + 48); // 加载第 48-63 字节
     return ret;
 }
-
-
 #define ggml_vld1q_s16_x2 vld1q_s16_x2
 #define ggml_vld1q_u8_x2  vld1q_u8_x2
 #define ggml_vld1q_u8_x4  vld1q_u8_x4
 #define ggml_vld1q_s8_x2  vld1q_s8_x2
-#define ggml_vld1q_s8_x4  vld1q_s8_x4
+// #define ggml_vld1q_s8_x4  vld1q_s8_x4
 #define ggml_vqtbl1q_s8   vqtbl1q_s8
 #define ggml_vqtbl1q_u8   vqtbl1q_u8
+typedef struct ggml_int8x16x4_t {
+    int8x16_t val[4];
+} ggml_int8x16x4_t;
+inline static ggml_int8x16x4_t ggml_vld1q_s8_x4(const int8_t * ptr) {
+    ggml_int8x16x4_t res;
+
+    res.val[0] = vld1q_s8(ptr + 0);
+    res.val[1] = vld1q_s8(ptr + 16);
+    res.val[2] = vld1q_s8(ptr + 32);
+    res.val[3] = vld1q_s8(ptr + 48);
+
+    return res;
+}
+
 
 #endif // !defined(__aarch64__)
 

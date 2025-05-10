@@ -136,11 +136,6 @@
             "对输入进行解码...",
             "input decode... "
         ],
-
-        "performance test": [
-            "性能测试",
-            "performance test "
-        ],
         "ctx decode": [
             "对上下文进行解码...",
             "context decode... "
@@ -242,28 +237,8 @@
             "Write a 3000 word review on dereliction of duty at work "
         ],
         "Q14": [
-            "<同步率测试>",
-            "<Sync rate test>"
-        ],
-        "Q15": [
             "<上传图像>",
             "<Upload Image> "
-        ],
-        "Q16": [
-            "<题库测试>",
-            "<Question test>"
-        ],
-        "Q17": [
-            "<题库测试>手动加载csv题库,格式为 序号-题目-A-B-C-D-答案",
-            "<Question test>Manually load the CSV question bank in the format of serial number - question -A-B-C-D - answer "
-        ],
-        "test tip1": [
-            "请右击主窗口输入区选择测试",
-            "Please right click on the input area of the main window"
-        ],
-        "test tip2": [
-            "请打开设置窗口选择性能测试",
-            "Please open the settings window and select performance test "
         ],
         "kv cache": [
             "上下文缓存",
@@ -565,58 +540,6 @@
             "测试",
             "test "
         ],
-        "question type": [
-            "题目类别",
-            "question type "
-        ],
-        "H1": [
-            "引导题: 后面的题目也是一样，不要解释直接给出答案\n\n哪一首是周华健唱的歌？\n\nA:朋友\nB:太多\nC:求神\nD:我不知道",
-            "Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n Which song is sung by Zhou Huajian? \nA: Friends \nB: Too many \nC: Seeking God \nD: I don't know "
-        ],
-        "A1": [
-            "答案: A",
-            "Answer: A\n"
-        ],
-        "H2": [
-            "引导题: 后面的题目也是一样，不要解释直接给出答案\n\n世界上最高的山是哪一座？\n\nA:衡山\nB:乞力马扎罗山\nC:珠穆朗玛峰\nD:马里亚纳海沟",
-            "Introduction question: and the following questions are the same. Do not explain and provide the answer directly. \n\n What is the tallest mountain in the world? \nA: Hengshan \nB: Kilimanjaro Mountain \nC: Mount Everest \nD: Mariana Trench "
-        ],
-        "A2": [
-            "答案: C",
-            "Answer: C\n"
-        ],
-        "accurate": [
-            "正确率",
-            "accurate "
-        ],
-        "Question bank construction completed": [
-            "题库构造完毕",
-            "Question bank construction completed "
-        ],
-        "question": [
-            "题",
-            "question "
-        ],
-        "add help question": [
-            "添加引导题",
-            "add help question "
-        ],
-        "answer right": [
-            "回答正确",
-            "answer right "
-        ],
-        "answer error": [
-            "回答错误",
-            "answer error "
-        ],
-        "right answer": [
-            "正确答案",
-            "right answer "
-        ],
-        "answer": [
-            "答案",
-            "answer "
-        ],
         "try": [
             "尝试",
             "try "
@@ -886,52 +809,16 @@
             "extra"
         ],
         "extra_prompt_format": [
-            "尽可能准确简洁的回答用户的问题，你可以使用以下工具:\n\n{available_tools_describe}\n工具调用的方式为: <tool_name>argBody</tool_name>\nargBody的形式为: {\"arg1\":value1,\"arg2\":value2}\n如果工具描述中存在inputSchema，请遵照inputSchema的要求构建argBody进行传参\n调用示例: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}",
-            "Provide the most accurate and concise answers to the user's questions. You can use the following tools:\n\n{available_tools_describe}\nThe way to call the tool is as follows: <tool_name>argBody</tool_name>\nThe form of argBody is: {\"arg1\":value1,\"arg2\":value2}\nIf there is an inputSchema in the tool description, please follow the requirements of inputSchema to construct argBody for parameter passing.\nCall example: <answer>{\"content\":\"final answer content\"}</answer>\n{engineer_info}"
-        ],
-        "answer_func_describe": [
-            "answer(content) - 最终的回复或询问。",
-            "answer(content) - The final response or inquiry."
-        ],
-        "execute_command_func_describe": [
-            "execute_command(content) - 请求在系统上执行CLI命令。当你需要执行系统操作或运行特定命令以完成用户任务的任何步骤时使用此命令。你必须根据用户系统调整命令。优先执行复杂的CLI命令而不是创建可执行脚本，因为它们更灵活且更易运行。命令将在当前工作目录中执行。",
-            "execute_command(content) - Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory."
-        ],
-        "read_file_func_describe": [
-            "read_file(path) - 请求读取指定路径下文件的内容，当你需要检查现有文件的内容时使用，例如分析代码、审查文本文件或从配置文件中提取信息。",
-            "read_file(path) - Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file."
-        ],
-        "write_file_func_describe": [
-            "write_file(path_and_content) - 请求将内容写入指定路径下的文件。如果文件存在，它将被提供的内容覆盖。如果文件不存在，将创建它。该工具将自动创建写入文件所需的任何目录。传入工具参数的格式为 \"文件路径>>>文件内容\"。",
-            "write_file(path_and_content) - Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.The format for passing tool parameters is \"filepath>>>file content\"."
+            "You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags:\n{available_tools_describe}\nFor each function call, return a json object with function name and arguments within <tool_call> </tool_call> XML tags:\n<tool_call>\n{\"name\":<function-name>,\"arguments\":<args-json-object>}\n</tool_call>\nExample:\n<tool_call>\n{\"name\":\"answer\",\"arguments\":{\"content\":\"The task has been completed. Is there anything else I can help you with?\"}}\n</tool_call>\n\n{engineer_info}",
+            "You may call one or more functions to assist with the user query. You are provided with function signatures within <tools></tools> XML tags:\n{available_tools_describe}\nFor each function call, return a json object with function name and arguments within <tool_call> </tool_call> XML tags:\n<tool_call>\n{\"name\":<function-name>,\"arguments\":<args-json-object>}\n</tool_call>\nExample:\n<tool_call>\n{\"name\":\"answer\",\"arguments\":{\"content\":\"The task has been completed. Is there anything else I can help you with?\"}}\n</tool_call>\n\n{engineer_info}"
         ],
         "engineer_info": [
-            "\n你具备一名高级软件工程师的能力，精通多种编程语言、框架、设计模式和最佳实践。你每次只能使用一个工具，等待并观察工具返回的结果，再进行下一步操作。尽可能自主解决问题，实在有需要用户答复的情况，请直接使用\"answer\"工具询问。需要写入到文件中的内容，不需要展示出来直接写入即可。当前的环境为：{engineer_system_info}",
+            "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time, wait and observe the results returned by the tool before proceeding to the next step. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The content that needs to be written to the file does not need to be displayed and can be written directly. The current environment is: {engineer_system_info}",
             "\nYou possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices. You can only use one tool at a time, wait and observe the results returned by the tool before proceeding to the next step. Try to solve problems independently as much as possible. If there is a need for user response, please use the \"answer\" tool directly to inquire. The content that needs to be written to the file does not need to be displayed and can be written directly. The current environment is: {engineer_system_info}"
         ],
         "engineer_system_info": [
-            "\n操作系统: {OS}\n日期: {DATE}\n默认Shell: {SHELL}\n编译器环境: {COMPILE_ENV}\nPython环境: {PYTHON_ENV}\n当前工作目录: {DIR}\n只在当前工作目录执行命令，不要尝试切换到其他位置。\n",
+            "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCompile env: {COMPILE_ENV}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n",
             "\nOperating System: {OS}\nDate: {DATE}\nDefault Shell: {SHELL}\nCompile env: {COMPILE_ENV}\nPython env: {PYTHON_ENV}\nCurrent working directory: {DIR}\nExecute commands only in the current working directory and do not attempt to switch to other locations.\n"
-        ],
-        "MCPtools_func_describe": [
-            "MCPtools(request) - 使",
-            "MCPtools(request) - Using"
-        ],
-        "calculator_func_describe": [
-            "calculator(expression) - 输入一个 JavaScript 表达式，将返回计算结果。",
-            "calculator(expression) - Enter a JavaScript expression and return the computed result."
-        ],
-        "knowledge_func_describe": [
-            "knowledge(request) - 向知识库提问，问题越详细越好，知识库将返回3条与问题相似度最高的文本段。",
-            "knowledge(request) - Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question."
-        ],
-        "controller_func_describe": [
-            "controller(number) - 传入相应的数字对软件进行控制: 1(最大化主窗口); 2(最小化主窗口); 3(置顶主窗口); 4(取消置顶主窗口); 5(关闭主窗口); 6(播放音乐); 7(关闭音乐); 8(打开增殖窗口); 9(关闭增殖窗口)",
-            "controller(number) - Pass in the corresponding numbers to control the software: 1(Maximize the main window); 2(Minimize the main window); 3(Top the main window); 4(Cancel the top of the main window); 5(Close the main window); 6(Play music); 7(Close music); 8(Open the proliferation window); 9(Close the proliferation window)"
-        ],
-        "stablediffusion_func_describe": [
-            "stablediffusion(prompt) - 将想要绘制图像的样子用一段英文文本来描述，工具会把文本发送给绘图模型，然后返回绘制后的图像，注意要传入英文。可以在文本前添加提高出图质量的修饰词或短语，并用逗号分隔它们。",
-            "stablediffusion(prompt) - Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas."
         ],
         "main window": [
             "主窗口",
@@ -1706,8 +1593,8 @@
             "Brain (context cache)"
         ],
         "vocab_groupBox_title": [
-            "词表 (模型训练时的所有token以及其对应的词)",
-            "Vocab (all tokens during the model training)"
+            "词表",
+            "Vocab"
         ],
         "enable output parser": [
             "启用输出解析器",
@@ -1725,154 +1612,6 @@
             "机体软件功能",
             "EVA software functions"
         ],
-        "syncrate_describe": [
-            "机体同步率测试：可以检验模型的指令遵循能力以及对机体中内置的约定框架的适应性\n\n测试方法：自动挂载约定中的所有可用工具，让模型解决30个具有一定难度的任务。每次模型输出完毕，利用解析器提取出tool和value，并与预设的答案对比，若一致则标记为通过\n\n",
-            "EVA sync rate test: It can examine the model's ability to follow instructions and its adaptability to the built-in DATE framework within the system.\n\nTesting method: Automatically mount all available tools from the DATE, and have the model solve 30 moderately difficult tasks. Each time after the model outputs, use a parser to extract the tool and value, and compare them with the preset answers. If they match, mark it as passed.\n\n"
-        ],
-        "index": [
-            "序号",
-            "index "
-        ],
-        "task": [
-            "任务",
-            "task "
-        ],
-        "response": [
-            "回答",
-            "response "
-        ],
-        "pass": [
-            "通过",
-            "pass "
-        ],
-        "sync": [
-            "同步",
-            "sync "
-        ],
-        "sync rate": [
-            "同步率",
-            "sync rate "
-        ],
-        "sync_Q1": [
-            "计算888*999",
-            "Caculate 888*999"
-        ],
-        "sync_Q2": [
-            "小明去超市买了一些水果。他买了3公斤苹果，每公斤苹果的价格是15元；他还买了2公斤橙子，每公斤橙子的价格是12元。请问小明总共花了多少钱？",
-            "Xiao Ming went to the supermarket and bought some fruits. He bought 3 kg of apples, and each kg of apples costs 15 yuan. He also bought 2 kg of oranges, and each kg of oranges costs 12 yuan. How much did Xiao Ming spend in total?"
-        ],
-        "sync_Q3": [
-            "一辆汽车从城市A行驶到城市B，在3小时内行驶240公里。汽车的平均时速是多少公里？",
-            "A car travels from City A to City B, covering a distance of 240 km in 3 hours. What is the average speed of the car in km per hour?"
-        ],
-        "sync_Q4": [
-            "小李存入银行一笔定期存款，金额为10000元，年利率为3%。请问一年后小李可以得到的利息是多少元？",
-            "Xiao Li deposits 10,000 yuan in the bank with an annual interest rate of 3%. How much interest will Xiao Li earn in one year?"
-        ],
-        "sync_Q5": [
-            " 一个班级有40名学生，其中男生有15名。请问男生占全班学生的百分比是多少？",
-            "A class has 40 students, and 15 of them are boys. What percentage of the students are boys?"
-        ],
-        "sync_Q6": [
-            "当前路径下有哪些文件？",
-            "What files are in the current path?"
-        ],
-        "sync_Q7": [
-            "我电脑的ip地址是多少？",
-            "What is my computer's IP address?"
-        ],
-        "sync_Q8": [
-            "请运行这个文件 /soul/eva.exe",
-            "Please run this file /soul/eva.exe"
-        ],
-        "sync_Q9": [
-            "我电脑的GPU型号是什么？",
-            "What is the GPU model of my computer?"
-        ],
-        "sync_Q10": [
-            "ping 百度网站",
-            "Ping Baidu website"
-        ],
-        "sync_Q11": [
-            "机体软件有哪些主要功能？",
-            "What are the main features of EVA?"
-        ],
-        "sync_Q12": [
-            "机体软件支持哪些操作系统？",
-            "Which operating systems does EVA support?"
-        ],
-        "sync_Q13": [
-            "机体软件是否支持多语言界面？",
-            "Does EVA support multilingual interfaces?"
-        ],
-        "sync_Q14": [
-            "如何在机体软件中设置sd模型文件路径？",
-            "How to set the path for SD model files in EVA?"
-        ],
-        "sync_Q15": [
-            "如何在机体软件中进行同步率测试？",
-            "How to perform synchronization rate testing in EVA?"
-        ],
-        "sync_Q16": [
-            "当前窗口太小了",
-            "The current window is too small"
-        ],
-        "sync_Q17": [
-            "置顶当前窗口",
-            "The current window is blocked under other software"
-        ],
-        "sync_Q18": [
-            "放首歌来听听",
-            "Play a song"
-        ],
-        "sync_Q19": [
-            "音乐太吵了，停止它",
-            "The music is too loud, stop it"
-        ],
-        "sync_Q20": [
-            "打开增殖窗口",
-            "Open the proliferation window"
-        ],
-        "sync_Q21": [
-            "画一幅画：一个宁静的湖边日落，天空被染成橙色和粉红色，湖面反射着天空的颜色，湖边有一条小木船。",
-            "Draw a picture: A serene lakeside sunset, the sky painted in orange and pink hues, with the lake reflecting the sky's colors and a small wooden boat by the shore."
-        ],
-        "sync_Q22": [
-            "画一幅画：一片茂密的森林，阳光透过树叶洒下斑驳的光影，森林深处有一条小溪流淌。",
-            "Draw a picture: A dense forest with sunlight filtering through the leaves, casting dappled shadows, and a small stream flowing deep within the forest."
-        ],
-        "sync_Q23": [
-            "画一幅画：一个复古的古城街道，两旁是石砌房屋，街上有一些行人穿着中世纪的服装。",
-            "Draw a picture: A vintage street in an ancient town, with stone-built houses on both sides, and some pedestrians dressed in medieval clothing."
-        ],
-        "sync_Q24": [
-            "画一幅画：一个神秘的魔法森林，树木发出微弱的荧光，地面上长满了奇异的蘑菇和植物。",
-            "Draw a picture: A mystical magic forest where the trees emit a faint glow, and the ground is covered with strange mushrooms and plants."
-        ],
-        "sync_Q25": [
-            "画一个女孩。",
-            "Draw a girl."
-        ],
-        "sync_Q26": [
-            "创建一个abc.txt文件",
-            "Create an abc.txt file"
-        ],
-        "sync_Q27": [
-            "读取abc.txt文件内容",
-            "Read the contents of abc.txt file."
-        ],
-        "sync_Q28": [
-            "构建一个C++的hello world项目",
-            "Building a C++ hello world Project."
-        ],
-        "sync_Q29": [
-            "构建一个docker的基础项目写入到dockerfile里",
-            "Building a Docker infrastructure project and write in dockerfile."
-        ],
-        "sync_Q30": [
-            "写一个贪吃蛇游戏到snake.py中",
-            "Write a snake game to snake.py ."
-        ],
         "link": [
             "连接",
             "link"
@@ -1881,13 +1620,17 @@
             "MCP服务配置",
             "MCP server config"
         ],
-        "mcp_server_tools": [
-            "MCP可用工具",
-            "MCP available tools"
+        "mcp_available_servers": [
+            "MCP可用服务",
+            "MCP available servers"
         ],
         "mcp_server": [
             "MCP服务器",
             "MCP Server"
+        ],
+        "mcp_server_config_textEdit placehold": [
+            "请输入mcp配置文本后点击连接。（不清楚配置文本格式，可以点击help按钮获取示例）",
+            "Please enter the MCP configuration text and click on the link. (Not sure about configuring text format, you can click the help button to obtain examples)"
         ],
         "---end---": [
             "---end---",

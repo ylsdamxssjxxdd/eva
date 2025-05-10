@@ -9,7 +9,7 @@
 #include "mcp_sse_client.h"
 #include "mcp_stdio_client.h"
 #include <string>
-
+#include "xconfig.h"
 struct ParsedURL {
     std::string protocol;
     std::string host;
@@ -155,40 +155,46 @@ public:
 class ClientFactory {
 public:
     static std::unique_ptr<ClientWrapper> create(const mcp::json& config) {
-        const std::string type = config["type"];
-        
-        if (type == "sse") {
+        // 优先连接url
+        std::string url = get_string_safely(config,"url");
+        if(url!=""){
             std::string url = config["url"];
             auto parsed = parse_url(url);
-            int timeout = config.value("timeout", 10);
+            int timeout = get_int_safely(config,"timeout",10);
             mcp::json capabilities = {{"roots", {{"listChanged", true}}}};
-            
             return std::make_unique<SSEClientWrapper>(parsed.host, parsed.port, timeout, capabilities);
         }
-        else if (type == "stdio") {
-            std::string command = config["command"];
-            std::vector<std::string> args = config["args"];
-            mcp::json env = config.value("env", mcp::json::object());
-            
-            return std::make_unique<StdioClientWrapper>(command, args, env);
+        else
+        {
+            std::string command = get_string_safely(config,"command");
+            std::vector<std::string> args = get_string_list_safely(config,"args");//取文本列表
+            if(command!=""&&args.size()!=0){
+                mcp::json env = get_json_object_safely(config,"env");
+                return std::make_unique<StdioClientWrapper>(command, args, env);
+            }
+
+            throw client_exception("unsupported client");// 通过这个强制返回
         }
-        
-        throw client_exception("Unsupported client type: " + type);
     }
 };
 
 class McpToolManager {
 public:
     // 添加服务到管理器
-    void addServer(const std::string& name, const mcp::json& config) {
+    std::string addServer(const std::string& name, const mcp::json& config) {
+        std::string result="";
         try {
             auto client = ClientFactory::create(config);
             auto tools = client->get_tools();
             clients_.emplace(name, std::move(client));
             tools_cache_[name] = tools;
+            
         } catch (const client_exception& e) {
-            throw client_exception("Failed to add server '" + name + "': " + e.what());
+            // throw client_exception("Failed to add server '" + name + "': " + e.what());
+            result = "Failed to add server '" + name + "': " + e.what();
+            std::cout<<result<<std::endl;
         }
+        return result;
     }
 
     // 调用工具

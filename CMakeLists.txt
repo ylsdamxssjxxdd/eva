@@ -17,7 +17,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
@@ -194,11 +194,12 @@ src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src
 src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h
 src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
 src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
+thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 )
 
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Script Qt5::Multimedia Qt5::TextToSpeech mcp)
-add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts llama-bench sd) # 确保eva最后生产，保证后处理顺利进行
+target_link_libraries(${TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp)
+add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd) # 确保eva最后生产，保证后处理顺利进行
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
 

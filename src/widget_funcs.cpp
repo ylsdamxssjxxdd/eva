@@ -256,42 +256,7 @@ void Widget::load_log_play() {
 
 //更新输出区,is_while表示从流式输出的token
 void Widget::reflash_output(const QString result, bool is_while, QColor color) {
-    if (is_test && is_while)  //现在要知道是模型输出的答案还是预编码完成的结果,要将预编码完成的结果排除
-    {
-        test_count++;  //已经加一了
-        QString result_ = result;
-        //答对，remove(' ')移除答案中的空格
-        if (result_.remove(' ') == test_list_answer.at(test_question_index.at(0))) {
-            test_score++;
-            output_scroll(result + "\n", Qt::green);
-            ui_state_info = "ui:" + QString::number(test_count) + " " + jtr("answer right") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
-            reflash_state(ui_state_info, SUCCESS_SIGNAL);
-        }
-        //答错
-        else {
-            output_scroll(result + "\n", Qt::red);
-            ui_state_info = "ui:" + QString::number(test_count) + " " + jtr("answer error") + " " + jtr("right answer") + test_list_answer.at(test_question_index.at(0));
-            reflash_state(ui_state_info, WRONG_SIGNAL);
-        }
-        float acc = test_score / test_count * 100.0;  //回答准确率
-        test_question_index.removeAt(0);              //回答完毕删除开头的第一个问题
-        if (ui_mode == LINK_MODE) {
-            this->setWindowTitle(jtr("test") + QString::number(test_count) + "/" + QString::number(test_list_question.size()) + "   " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + "   " + jtr("current api") + " " + current_api);
-        } else {
-            this->setWindowTitle(jtr("test") + QString::number(test_count) + "/" + QString::number(test_list_question.size()) + "   " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + "   " + ui_SETTINGS.modelpath.split("/").last());
-        }
-
-        //每20次题加一次引导题
-        if (int(test_count) % 20 == 0) {
-            help_input = true;
-            ui_state_info = "ui:" + jtr("add help question");
-            reflash_state(ui_state_info, SIGNAL_SIGNAL);
-        }
-    } else {
-        //正常输出
-        output_scroll(result, color);
-    }
-
+    output_scroll(result, color);
     if (is_while) {
         temp_assistant_history += result;
     }
@@ -540,13 +505,9 @@ void Widget::tool_change() {
 void Widget::set_SetDialog() {
     settings_dialog = new QDialog(this);
     settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint);  //隐藏?按钮
-    settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);// 隐藏关闭按钮
+    // settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);// 隐藏关闭按钮
     settings_ui = new Ui::Settings_Dialog_Ui;
     settings_ui->setupUi(settings_dialog);
-
-    //性能测试
-    settings_ui->bench_plaintextedit->setVisible(0);//性能测试结果暂不显示
-    connect(settings_ui->bench_btn,&QPushButton::clicked,this,&Widget::bench_btn_clicked);
 
     //温度控制
     settings_ui->temp_slider->setRange(0, 100);  // 设置范围为1到99
@@ -804,9 +765,6 @@ void Widget::set_api() {
     emit ui2bot_free(0);  //释放原来的模型
     is_load = false;// 重置
     historypath = "";// 重置
-    //重置评级
-    MODELINFO model_info_;
-    modelinfo = model_info_;
 
     //获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
@@ -872,7 +830,6 @@ void Widget::change_api_dialog(bool enable) {
     settings_ui->port_label->setVisible(enable);
     settings_ui->port_lineEdit->setVisible(enable);
     settings_ui->web_btn->setVisible(enable);
-    settings_ui->bench_btn->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
@@ -907,12 +864,7 @@ void Widget::ui_state_pushing() {
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
     ui->set->setEnabled(0);
-    if (ui_syncrate_manager.is_sync) {
-        ui->reset->setEnabled(0);
-    } else {
-        ui->reset->setEnabled(1);
-    }
-
+    ui->reset->setEnabled(1);
     ui->send->setEnabled(0);
 }
 
@@ -1038,58 +990,15 @@ void Widget::create_right_menu() {
         connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question); });
     }
     //------------创建自动化问题菜单-------------
-    // Q14同步率测试
+    //上传图像
     QAction *action14 = right_menu->addAction(jtr("Q14"));
     connect(action14, &QAction::triggered, this, [=]() {
-        if(ui_mode == LINK_MODE)
-        {
-            //只在空闲和对话状态中生效
-            if (is_run || ui_state != CHAT_STATE) 
-            {
-                return;
-            }  
-        }
-        else if(ui_mode == LOCAL_MODE)
-        {
-            //只在空闲和对话状态中生效
-            if (is_run || !is_load || !is_load_play_over || ui_state != CHAT_STATE) 
-            {
-                return;
-            }  
-        }
-
-        ui_syncrate_manager.is_sync = true;
-        ui_syncrate_manager.is_first_sync = true;
-        
-        //插入任务
-        for (int i = 1; i < 31; ++i) {
-            ui_syncrate_manager.sync_list_question << jtr(QString("sync_Q%1").arg(i));
-            ui_syncrate_manager.sync_list_index.append(i);
-        }
-
-        // 自动约定，挂载所有工具
-        date_ui->chattemplate_comboBox->setCurrentText("default");  //默认使用default的提示词模板
-        date_ui->calculator_checkbox->setChecked(1);
-        date_ui->engineer_checkbox->setChecked(1);
-        date_ui->controller_checkbox->setChecked(1);
-        date_ui->knowledge_checkbox->setChecked(0);
-        date_ui->knowledge_checkbox->setChecked(1);  // 刷新一下
-        date_ui->stablediffusion_checkbox->setChecked(1);
-        // date_ui->MCPtools_checkbox->setChecked(1); // 暂未实现
-        get_date();                  //获取约定中的纸面值
-        if(ui_mode == LOCAL_MODE) {emit ui2bot_date(ui_DATES);}// 注意在开始同步率测试前会强制预解码一次
-        else if(ui_mode == LINK_MODE) {on_send_clicked();}
-        
-    });
-    //上传图像
-    QAction *action15 = right_menu->addAction(jtr("Q15"));
-    connect(action15, &QAction::triggered, this, [=]() {
         if (is_run || (ui_mode == LOCAL_MODE && !is_load)) {
             return;
         }  //只在空闲的对话模式生效
 
         //用户选择图片
-        currentpath = customOpenfile(currentpath, jtr("Q15"), "(*.png *.jpg *.bmp)");
+        currentpath = customOpenfile(currentpath, jtr("Q14"), "(*.png *.jpg *.bmp)");
 
         if (currentpath == "") {
             return;
@@ -1101,67 +1010,6 @@ void Widget::create_right_menu() {
             ui_state_pushing();                       //推理中界面状态
             emit ui2bot_preDecodeImage(currentpath);  //预解码图像
         }
-    });
-    // Q16测试相关,ceval数据集
-    QAction *action16 = right_menu->addAction(jtr("Q16"));
-    connect(action16, &QAction::triggered, this, [=]() {
-        if (is_run || (ui_mode == LOCAL_MODE && !is_load)) {
-            return;
-        }  //只在空闲的对话模式生效
-
-        clearQuestionlist();  //清空题库
-
-        //构建测试问题集
-        if (language_flag == 0) {
-            makeTestQuestion(":/ceval-exam/val");
-        } else {
-            makeTestQuestion(":/mmlu-exam/val");
-        }
-
-        makeTestIndex();                                          //构建测试问题索引
-        QApplication::setWindowIcon(QIcon(":/logo/c-eval.png"));  // 设置应用程序图标
-        this->setWindowTitle(jtr("test") + "0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());
-
-        reflash_state("ui:" + jtr("Question bank construction completed") + " " + QString::number(test_list_question.size()) + jtr("question"), USUAL_SIGNAL);
-        reflash_state("ui:" + jtr("clicked") + jtr("test") + " " + jtr("npredict") + jtr("limited") + "1", USUAL_SIGNAL);
-        reflash_state("ui:" + jtr("add help question"), SIGNAL_SIGNAL);
-
-        test_time.restart();
-        is_test = true;
-        help_input = true;
-        ui->send->click();  //触发一次发送
-    });
-    // Q17测试相关,自定义数据集
-    QAction *action17 = right_menu->addAction(jtr("Q17"));
-    connect(action17, &QAction::triggered, this, [=]() {
-        if (is_run || (ui_mode == LOCAL_MODE && !is_load)) {
-            return;
-        }  //只在空闲的对话模式生效
-        //用户选择自定义的csv文件
-        currentpath = customOpenfile(currentpath, jtr("Q17"), "CSV files (*.csv)");
-
-        if (currentpath == "") {
-            return;
-        }
-
-        clearQuestionlist();       //清空题库
-        readCsvFile(currentpath);  //构建测试问题集
-        makeTestIndex();           //构建测试问题索引
-        if (test_question_index.size() == 0) {
-            reflash_state("ui:0" + jtr("question"), WRONG_SIGNAL);
-            return;
-        }
-        QApplication::setWindowIcon(QIcon(":/logo/c-eval.png"));  // 设置应用程序图标
-        this->setWindowTitle(jtr("test") + "0/" + QString::number(test_list_question.size()) + "   " + ui_SETTINGS.modelpath.split("/").last());
-
-        reflash_state("ui:" + jtr("Question bank construction completed") + " " + QString::number(test_list_question.size()) + jtr("question"), USUAL_SIGNAL);
-        reflash_state("ui:" + jtr("clicked") + jtr("test") + " " + jtr("npredict") + jtr("limited") + "1", USUAL_SIGNAL);
-        reflash_state("ui:" + jtr("add help question"), SIGNAL_SIGNAL);
-
-        test_time.restart();
-        is_test = true;
-        help_input = true;
-        ui->send->click();  //触发一次发送
     });
 }
 
@@ -1232,46 +1080,35 @@ void Widget::get_date() {
 }
 
 //手搓输出解析器，提取可能的xml，目前只支持一个参数
-QPair<QString, QString> Widget::XMLparser(QString text)
+mcp::json Widget::XMLparser(QString text)
 {
     if(text.contains("</think>"))
     {
         text = text.split("</think>")[1];//移除思考标签前面的所有内容
     }
-    // qDebug()<<text;
-    QPair<QString, QString> func_arg_list;
-    // 定义正则表达式来匹配工具名、参数名和值
-    // 该正则表达式匹配形如 <tool_name><parameter_name>value</parameter_name></tool_name> 的结构
-    // 工具名和参数名都是可变的，甚至参数名可能不存在
-
-    // 首先匹配工具名
+    mcp::json toolsarg;// 提取出的工具名和参数
+    // 匹配<tool></tool>之间的内容
     QRegularExpression toolRegex("<([^>]+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
     QRegularExpressionMatch toolMatch = toolRegex.match(text);
-    if (toolMatch.hasMatch()) {
-        QString toolName = toolMatch.captured(1);
+    if (toolMatch.hasMatch()) 
+    {
         QString toolContent = toolMatch.captured(2);
-        func_arg_list.first = toolName;
-        qDebug() << "工具名:" << toolName;
-
-        // 尝试匹配参数名和参数值
-        QRegularExpression paramRegex("<([^>]+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
-        QRegularExpressionMatch paramMatch = paramRegex.match(toolContent);
-        if (paramMatch.hasMatch()) {
-            QString paramName = paramMatch.captured(1);
-            QString paramValue = paramMatch.captured(2);
-            qDebug() << "参数名:" << paramName;
-            qDebug() << "参数值:" << paramValue;
-            func_arg_list.second = paramValue;
-        } else {
-            // 如果没有参数名，直接将工具内容作为值 目前主要是这种情况
-            QString value = toolContent.trimmed();
-            qDebug() << "参数值:" << value;
-            func_arg_list.second = value;
+        qDebug() << "toolContent:" << toolContent;
+        try
+        {
+            toolsarg = mcp::json::parse(toolContent.toStdString());
         }
-    } else {
-        qDebug() << "未能匹配到工具名。";
+        catch(const std::exception& e)
+        {
+            qCritical() << "tool JSON parse error:" << e.what();
+        }
+    } 
+    else 
+    {
+        qDebug() << "no tool matched";
     }
-    return func_arg_list;
+
+    return toolsarg;
 }
 
 //构建额外指令
@@ -1282,37 +1119,27 @@ QString Widget::create_extra_prompt() {
     extra_prompt_ = jtr("extra_prompt_format");
     extra_prompt_.replace("{OBSERVATION_STOPWORD}",DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool) {
-        available_tools_describe += tool_map["answer"].func_describe + "\n";
+        available_tools_describe += Buildin_tools_answer.text + "\n";
         // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked()) {
-            for (const MCP_TOOLS_INFO& tool_info : MCP_TOOLS_INFO_LIST) {
-                QString name = tool_info.server_tool_name;
-                QString desc = tool_info.description;
-                QString schema = tool_info.inputSchema;
-                QString func_describe = tool_info.server_tool_name + " - " + desc + " " + "inputSchema: " + schema + "\n";
-                available_tools_describe += func_describe;
-            }
+            available_tools_describe += Buildin_tools_mcp_tools_list.text + "\n";
         }
         if (date_ui->calculator_checkbox->isChecked()) {
-            available_tools_describe += tool_map["calculator"].func_describe + "\n";
+            available_tools_describe += Buildin_tools_calculator.text + "\n";
         }
         if (date_ui->knowledge_checkbox->isChecked()) {
-            if (ui_syncrate_manager.is_sync) {
-                available_tools_describe += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + jtr("embeddingdb_describe") + "\n";
-            } else {
-                available_tools_describe += tool_map["knowledge"].func_describe + " " + jtr("embeddingdb describe") + ":" + embeddingdb_describe + "\n";
-            }
+            available_tools_describe += Buildin_tools_knowledge.text.replace("{embeddingdb describe}", embeddingdb_describe) + "\n";
         }
         if (date_ui->stablediffusion_checkbox->isChecked()) {
-            available_tools_describe += tool_map["stablediffusion"].func_describe + "\n";
+            available_tools_describe += Buildin_tools_stablediffusion.text + "\n";
         }
         if (date_ui->controller_checkbox->isChecked()) {
-            available_tools_describe += tool_map["controller"].func_describe + "\n";
+            available_tools_describe += Buildin_tools_controller.text + "\n";
         }
         if (date_ui->engineer_checkbox->isChecked()) {
-            available_tools_describe += tool_map["execute_command"].func_describe + "\n";
-            available_tools_describe += tool_map["read_file"].func_describe + "\n";
-            available_tools_describe += tool_map["write_file"].func_describe + "\n";
+            available_tools_describe += Buildin_tools_execute_command.text + "\n";
+            available_tools_describe += Buildin_tools_read_file.text + "\n";
+            available_tools_describe += Buildin_tools_write_file.text + "\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info();//构建工程师信息
         }
@@ -1613,15 +1440,6 @@ void Widget::server_onProcessFinished() {
 // llama-bench进程结束响应
 void Widget::bench_onProcessFinished() { qDebug() << "llama-bench进程结束响应"; }
 
-// 构建测试问题
-void Widget::makeTestQuestion(QString dirPath) {
-    getAllFiles(dirPath);
-    for (int i = 0; i < filePathList.size(); ++i) {
-        QString fileName = filePathList.at(i);
-        readCsvFile(fileName);
-    }
-}
-
 //显示文件名和图像
 void Widget::showImage(QString imagepath) {
     ui_output = "\nfile:///" + imagepath + "\n";
@@ -1677,99 +1495,6 @@ void Widget::stop_recordAudio() {
 #endif
     resampleWav(wav_path_c, wav_path_c);
     emit ui2expend_speechdecode(wav_path, "txt");  //传一个wav文件开始解码
-}
-
-// 清空题库
-void Widget::clearQuestionlist() {
-    test_score = 0;  // 答对的个数
-    test_count = 0;  // 回答的次数
-    filePathList.clear();
-    test_list_answer.clear();
-    test_list_question.clear();
-}
-
-//读取csv文件
-void Widget::readCsvFile(const QString &fileName) {
-    QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qDebug() << "Cannot open file for reading:" << file.errorString();
-        return;
-    }
-    QString questiontitle = jtr("question type") + ":" + fileName.split("/").last().split(".").at(0) + "\n\n";
-    QTextStream in(&file);
-    in.setCodec("UTF-8");                //要求csv文件的格式必须是utf-8 不能是ansi
-    QString headerLine = in.readLine();  // 读取并忽略标题行
-    bool inQuotes = false;
-    QString currentField;
-    QStringList currentRow;
-
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        for (int i = 0; i < line.length(); ++i) {
-            QChar currentChar = line[i];
-            if (currentChar == '\"') {
-                inQuotes = !inQuotes;  // Toggle the inQuotes state
-            } else if (currentChar == ',' && !inQuotes) {
-                // We've reached the end of a field
-                currentRow.append(currentField);
-                currentField.clear();
-            } else {
-                currentField += currentChar;
-            }
-        }
-        if (!inQuotes) {
-            // End of line and not in quotes, add the last field to the row
-            currentRow.append(currentField);
-            currentField.clear();
-
-            if (currentRow.size() >= 7) {
-                // 输出题目和答案
-                // qDebug() << "id:" << currentRow.at(0).trimmed();
-                // qDebug() << "Question:" << currentRow.at(1).trimmed();
-                // qDebug() << "A:" << currentRow.at(2).trimmed();
-                // qDebug() << "B:" << currentRow.at(3).trimmed();
-                // qDebug() << "C:" << currentRow.at(4).trimmed();
-                // qDebug() << "D:" << currentRow.at(5).trimmed();
-                // qDebug() << "Answer:" << currentRow.at(6).trimmed();
-                test_list_question << questiontitle + currentRow.at(1).trimmed() + "\n\n" + "A:" + currentRow.at(2).trimmed() + "\n" + "B:" + currentRow.at(3).trimmed() + "\n" + "C:" + currentRow.at(4).trimmed() + "\n" + "D:" + currentRow.at(5).trimmed() + "\n";
-                test_list_answer << currentRow.at(6).trimmed();
-            } else if (currentRow.size() == 6)  //题库没有序号的情况 针对mmlu
-            {
-                test_list_question << questiontitle + currentRow.at(0).trimmed() + "\n\n" + "A:" + currentRow.at(1).trimmed() + "\n" + "B:" + currentRow.at(2).trimmed() + "\n" + "C:" + currentRow.at(3).trimmed() + "\n" + "D:" + currentRow.at(4).trimmed() + "\n";
-                test_list_answer << currentRow.at(5).trimmed();
-            }
-
-            currentRow.clear();  // Prepare for the next row
-        } else {
-            // Line ends but we're inside quotes, this means the field continues to the next line
-            currentField += '\n';  // Add the newline character that was part of the field
-        }
-    }
-
-    file.close();
-}
-
-void Widget::makeTestIndex() {
-    test_question_index.clear();
-    for (int i = 0; i < test_list_question.size(); ++i) {
-        test_question_index << i;
-    }
-    // std::random_shuffle(test_question_index.begin(), test_question_index.end());//随机打乱顺序
-}
-
-//遍历文件
-void Widget::getAllFiles(const QString &floderPath) {
-    QDir folder(floderPath);
-    folder.setFilter(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot);
-    QFileInfoList entries = folder.entryInfoList();
-
-    for (const QFileInfo &entry : entries) {
-        if (entry.isDir()) {
-            childPathList.append(entry.filePath());
-        } else if (entry.isFile()) {
-            filePathList.append(entry.filePath());
-        }
-    }
 }
 
 //更新gpu内存使用率
@@ -1874,16 +1599,6 @@ void Widget::apply_language(int language_flag_) {
     date_ui->switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
     date_ui->confirm_button->setText(jtr("ok"));
     date_ui->cancel_button->setText(jtr("cancel"));
-    tool_map.clear();
-    tool_map.insert("execute_command", {jtr("execute_command"), "execute_command", jtr("execute_command_func_describe")});
-    tool_map.insert("read_file", {jtr("read_file"), "read_file", jtr("read_file_func_describe")});
-    tool_map.insert("write_file", {jtr("write_file"), "write_file", jtr("write_file_func_describe")});
-    tool_map.insert("answer", {jtr("answer"), "answer", jtr("answer_func_describe")});
-    tool_map.insert("calculator", {jtr("calculator"), "calculator", jtr("calculator_func_describe")});
-    tool_map.insert("MCPtools", {jtr("MCPtools"), "MCPtools", jtr("MCPtools_func_describe")});
-    tool_map.insert("knowledge", {jtr("knowledge"), "knowledge", jtr("knowledge_func_describe")});
-    tool_map.insert("controller", {jtr("controller"), "controller", jtr("controller_func_describe")});
-    tool_map.insert("stablediffusion", {jtr("stablediffusion"), "stablediffusion", jtr("stablediffusion_func_describe")});
     date_dialog->setWindowTitle(jtr("date"));
     //设置选项语种
     settings_ui->sample_box->setTitle(jtr("sample set"));  //采样设置区域
@@ -1923,22 +1638,7 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->port_label->setText(jtr("port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
-    settings_ui->bench_btn->setText(jtr("performance test"));
     settings_dialog->setWindowTitle(jtr("set"));
-}
-
-QString Widget::makeHelpInput() {
-    QString help_input;
-
-    for (int i = 1; i < 3; ++i)  // 2个
-    {
-        help_input = help_input + DEFAULT_SPLITER;                    //前缀
-        help_input = help_input + jtr(QString("H%1").arg(i)) + "\n";  //问题
-        help_input = help_input + DEFAULT_SPLITER;                    //后缀
-        help_input = help_input + jtr(QString("A%1").arg(i)) + "\n";  //答案
-    }
-
-    return help_input;
 }
 
 //创建临时文件夹EVA_TEMP
@@ -2029,103 +1729,3 @@ void Widget::auto_save_user() {
 
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
-
-//性能测试按钮点击响应
-void Widget::bench_btn_clicked()
-{
-    settings_ui->bench_plaintextedit->setVisible(1);
-    //释放旧的模型
-    emit ui2bot_free(0);
-    is_load = false;
-    //禁止用户点击
-    settings_dialog->setEnabled(0);
-    //运行llama-bench
-    llama_bench_test();
-}
-
-//性能测试相关
-void Widget::llama_bench_test()
-{
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/llama-bench") + SFX_NAME;
-    QString program = localPath;  // 设置要运行的exe文件的路径
-#else
-    QString localPath = QString("./llama-bench") + SFX_NAME;
-    QString program = localPath;  // 设置要运行的exe文件的路径
-#endif
-
-    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
-    QStringList arguments;
-    arguments << "-m" << ui_SETTINGS.modelpath;
-    arguments << "-ngl" << QString::number(settings_ui->ngl_slider->value());           //使用最近一次应用的ngl
-    arguments << "--threads" << QString::number(settings_ui->nthread_slider->value());  //使用线程
-    arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
-    arguments << "-fa" << QString::number(1);  // 开启flash attention加速
-    arguments << "-o" << QString("md");
-    if(ui_SETTINGS.hid_use_mmap){arguments << "--mmap" << "1";}
-    else{arguments << "--mmap" << "0";}
-
-    // 开始运行程序
-    llama_bench_process->start(program, arguments);
-    reflash_state("ui:" + jtr("performance test"), SIGNAL_SIGNAL);
-    pp_speed = "";
-    tg_speed = "";
-    //连接信号和槽,获取程序的输出
-    connect(llama_bench_process, &QProcess::readyReadStandardOutput, [=]() {
-        QString output;
-        output = llama_bench_process->readAllStandardOutput();
-        // qDebug()<<"readyReadStandardOutput"<<output;
-        // Regular expression to match the "test" field and the "t/s" field
-        QRegExp testRegex("\\|\\s+(\\w+)\\s+\\|\\s+([0-9.]+ ± [0-9.]+)\\s+\\|");
-
-        if (testRegex.indexIn(output) != -1) {
-            QString testField = testRegex.cap(1);//testRegex.cap(1)提取测试字段（例如pp512）
-            QString tsField = testRegex.cap(2);//testRegex.cap(2)提取t/s字段（例如5722.23 ± 47.19）
-            
-            qDebug() << "Test Field:" << testField; // Output should be "pp512"
-            qDebug() << "T/S Field:" << tsField;   // Output should be "5722.23 ± 47.19"
-            if(testField=="pp512")
-            {
-                pp_speed = tsField + " t/s";
-            }
-            else if(testField=="tg128")
-            {
-                tg_speed = tsField + " t/s";
-            }
-        } else {
-            // qDebug() << "No match found";
-        }
-        settings_ui->bench_plaintextedit->appendPlainText(output);
-    });
-    connect(llama_bench_process, &QProcess::readyReadStandardError, [=]() {
-        QString output;
-        output = llama_bench_process->readAllStandardError();
-        // qDebug()<<"readyReadStandardError"<<output;
-        settings_ui->bench_plaintextedit->appendPlainText(output);
-    });
-}
-
-//进程开始响应
-void Widget::llama_bench_onProcessStarted()
-{
-
-}     
-
-//进程结束响应
-void Widget::llama_bench_onProcessFinished()
-{
-    //解锁界面
-    settings_dialog->setEnabled(1);
-    //显示速度
-    settings_ui->bench_plaintextedit->appendPlainText(jtr("batch decode") + " " + pp_speed);
-    settings_ui->bench_plaintextedit->appendPlainText(jtr("single decode") + " " + tg_speed);
-
-    float pp_bench_speed = pp_speed.split(" ± ")[0].toFloat();
-    float tg_bench_speed = tg_speed.split(" ± ")[0].toFloat();
-    modelinfo.pp_bench_speed = pp_bench_speed;
-    modelinfo.tg_bench_speed = tg_bench_speed;
-    // qDebug()<<pp_speed.split(" ± ");
-    emit ui2expend_modelinfo(modelinfo);
-    
-}          

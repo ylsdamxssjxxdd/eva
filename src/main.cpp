@@ -88,7 +88,6 @@ int main(int argc, char* argv[]) {
     expend.setStyleSheet(stylesheet);
 
     //------------------注册信号传递变量-------------------
-    qRegisterMetaType<MODELINFO>("MODELINFO");
     qRegisterMetaType<CHATS>("CHATS");
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");
     qRegisterMetaType<QColor>("QColor");
@@ -99,8 +98,8 @@ int main(int argc, char* argv[]) {
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Speech_Params>("Speech_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
+    qRegisterMetaType<mcp::json>("mcp::json");
     qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
-    qRegisterMetaType<Syncrate_Manager>("Syncrate_Manager");
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
@@ -141,7 +140,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_reload, &w, &Widget::recv_reload);                          //设置参数改变,重载模型
     QObject::connect(&bot, &xBot::bot2ui_datereset, &w, &Widget::recv_datereset);                    // bot发信号请求ui触发reset
     QObject::connect(&bot, &xBot::bot2ui_setreset, &w, &Widget::recv_setreset);                      // bot发信号请求ui触发reset
-    QObject::connect(&bot, &xBot::bot2ui_tokens, &w, &Widget::recv_tokens);                          //传递测试解码token数量
     QObject::connect(&bot, &xBot::bot2ui_predecode, &w, &Widget::recv_predecode);                    //传递模型预解码的内容
     QObject::connect(&bot, &xBot::bot2ui_freeover_loadlater, &w, &Widget::recv_freeover_loadlater);  //模型释放完毕并重新装载
     QObject::connect(&w, &Widget::ui2bot_stop, &bot, &xBot::recv_stop);                              //传递停止信号
@@ -167,9 +165,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status);  //传递cpu信息
     QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);         //强制刷新cpu信息
 
-    //------------------连接窗口和增殖窗口-------------------
-    QObject::connect(&w, &Widget::ui2expend_modelinfo, &expend, &Expend::recv_ui_modelinfo);                     //传递测试得分
-    QObject::connect(&w, &Widget::ui2expend_syncrate, &expend, &Expend::recv_syncrate);                          //传递同步率结果
+    //------------------连接窗口和增殖窗口-------------------                   //传递测试得分
     QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                          //传递使用的语言
     QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                           //通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                  //开始语音转文字
@@ -180,7 +176,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe);  //传递知识库的描述
 
     //------------------连接bot和增殖窗口-------------------
-    QObject::connect(&bot, &xBot::bot2expend_modelinfo, &expend, &Expend::recv_bot_modelinfo);
     QObject::connect(&bot, &xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
     QObject::connect(&bot, &xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector);  //传递记忆向量和上下文长度
     QObject::connect(&bot, &xBot::bot_llama_log, &expend, &Expend::recv_llama_log);
@@ -214,10 +209,14 @@ int main(int argc, char* argv[]) {
 
 
     //------------------连接mcp管理器-------------------
+    QObject::connect(&mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
     QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);  
+    QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over);// 添加某个mcp服务完成
     QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
-    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);          //开始调用mcp
-    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over);  //mcp调用完成
+    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);          //查询mcp可用工具
+    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over);  //查询mcp可用工具完成
+    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);          //开始调用mcp可用工具
+    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over);  //mcp可用工具调用完成
 
     w.show();  //展示窗口
 
@@ -314,6 +313,5 @@ int main(int argc, char* argv[]) {
     //传递停止词和约定，因为第一次没有传递约定参数给bot
     bot.bot_date.extra_stop_words = w.ui_DATES.extra_stop_words;       // 同步
     bot.common_params_.prompt = w.ui_DATES.date_prompt.toStdString();  // 同步
-
     return a.exec();  //进入事件循环
 }

@@ -32,6 +32,8 @@
 #include <QWidget>
 #include <QCheckBox>
 #include <QMessageBox>
+#include <QApplication>
+#include <QClipboard>
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
@@ -283,28 +285,15 @@ class Expend : public QWidget {
     QString vocab;
     bool is_first_show_modelinfo = true;
     QString model_logs;
-    MODELINFO modelinfo;// 模型评级信息
     
     int nctx = 0;
     std::vector<Brain_Cell> Brain_vector;
     void init_brain_matrix();     //重置记忆矩阵(新词表过来时/nctx变化时)
     void reflash_brain_matrix();  //刷新一次记忆矩阵
-    void set_modelinfo();
 
    public slots:
-    void recv_bot_modelinfo(MODELINFO modelinfo_);
-    void recv_ui_modelinfo(MODELINFO modelinfo_);
     void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash);  //传递记忆向量和上下文长度
 
-    //-------------------------------------------------------------------------
-    //----------------------------------同步率相关--------------------------------
-    //-------------------------------------------------------------------------
-
-   public:
-    void init_syncrate();  // 重置同步率显示
-
-   public slots:
-    void recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);  //传递同步率结果
     
     //-------------------------------------------------------------------------
     //--------------------------------mcp服务器相关-----------------------------
@@ -316,11 +305,12 @@ class Expend : public QWidget {
     void expend2mcp_addService(QString mcp_json_str);
 
   public slots:
+    void recv_mcp_message(QString message);
+    void recv_addService_single_over(QString name, MCP_CONNECT_STATE state);// 添加某个mcp服务完成
     void recv_addService_over(MCP_CONNECT_STATE state);
     void on_mcp_server_reflash_pushButton_clicked();
     void on_mcp_server_help_pushButton_clicked();
-    void set_mcp_connect_state(MCP_CONNECT_STATE connect_state);// 设置mcp连接状态按钮
-    void add_mcp_tool_iteration(mcp::json toolsinfo);//添加mcp可用工具选项
+    void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state);//添加mcp服务信息
 
 };
 #endif  // EXPEND_H

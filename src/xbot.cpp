@@ -47,18 +47,13 @@ void xBot::predict(INPUTS inputs) {
         // 删除两个标记之间的所有元素
         Brain_vector.erase(Brain_vector.begin() + thinkStartIndex, Brain_vector.begin() + thinkEndIndex + 1);
         llama_kv_self_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
-        qDebug()<<n_past<<n_consumed;
+        // qDebug()<<n_past<<n_consumed;
         n_past -= thinkEndIndex - thinkStartIndex + 1;
-        qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
+        // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
         emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
     }    
 
     //--------------------预处理用户输入---------------------
-    if (inputs.role == ROLE_TEST) {
-        is_test = true;
-    } else {
-        is_test = false;
-    }
 
     const size_t original_size = embd_inp.size();  //输入原长度
     // qDebug()<<"原embd_inp.size() "<<embd_inp.size();//这里就是约定的tokens
@@ -69,7 +64,7 @@ void xBot::predict(INPUTS inputs) {
     std::vector<llama_token> line_sfx;  //后缀 向量
 
     //---插入前缀---
-    if ((!is_complete && !is_antiprompt) && (inputs.role == ROLE_USER || inputs.role == ROLE_TEST))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
+    if ((!is_complete && !is_antiprompt) && (inputs.role == ROLE_USER))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
     {
         line_pfx = ::common_tokenize(ctx, bot_chat.input_prefix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
@@ -93,10 +88,7 @@ void xBot::predict(INPUTS inputs) {
     {
         line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-    } else if (inputs.role == ROLE_TEST) {
-        line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString() + jtr("answer").toStdString() + ": ", false, true);
-        embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
-    }
+    } 
 
     is_antiprompt = false;  //重置反提示标签
 
@@ -125,9 +117,7 @@ void xBot::predict(INPUTS inputs) {
     batch_count = 0;                      //被批解码的token数
     singl_count = 0;                      //被单解码的token数
     n_remain = common_params_.n_predict;  //-1的话可以无限输出
-    if (is_test) {
-        n_remain = 1;  //测试时最大输出长度强制为1
-    }
+
     //以下判断未启用,因为多次批解码有问题,若要启用,在ui接收到模型发送的n_ctx_train参数后,选择要拓展的倍数
     if (common_params_.n_ctx > n_ctx_train) {
         ga_n = common_params_.n_ctx / n_ctx_train + 1;
@@ -293,9 +283,6 @@ int xBot::stream() {
                 emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx);
                 emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);
             }
-            if (is_test) {
-                emit bot2ui_tokens(embd.size());
-            }  //测试过程传递处理的token数量,用来计算批解码速度
             if (is_batch) {
                 batch_count += embd.size();
                 batch_time += batch_timer.nsecsElapsed() / 1000000000.0;
@@ -363,18 +350,14 @@ int xBot::stream() {
     }  //到这里推理循环结束
 
     //这里是达到最大预测长度的情况
-    if (!is_test)  //测试的时候不输出这个
-    {
-        emit bot2ui_state("bot:" + jtr("arrive max predict length") + " " + QString::number(common_params_.n_predict));
-        QString fianl_state = QString("bot:%1 %2 %3 token/s %4 %5 token/s")
-        .arg(jtr("predict") + jtr("stop"))
-        .arg(jtr("single decode"))
-        .arg(singl_count / (single_timer.nsecsElapsed() / 1e9 - batch_time), 0, 'f', 2)
-        .arg(jtr("batch decode"))
-        .arg(batch_count / batch_time, 0, 'f', 2);
-        emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
-    }
-
+    emit bot2ui_state("bot:" + jtr("arrive max predict length") + " " + QString::number(common_params_.n_predict));
+    QString fianl_state = QString("bot:%1 %2 %3 token/s %4 %5 token/s")
+    .arg(jtr("predict") + jtr("stop"))
+    .arg(jtr("single decode"))
+    .arg(singl_count / (single_timer.nsecsElapsed() / 1e9 - batch_time), 0, 'f', 2)
+    .arg(jtr("batch decode"))
+    .arg(batch_count / batch_time, 0, 'f', 2);
+    emit bot2ui_state(fianl_state, SUCCESS_SIGNAL);
     return -1;
 }
 
@@ -544,14 +527,6 @@ void xBot::load(QString modelpath_) {
     n_ctx_train = llama_model_n_ctx_train(model);  //模型支持的最大上下文
     maxngl = llama_model_n_layer(model) + 1;       // ngl的最大值为模型层数+1
 
-    //发送模型信息给增殖窗口
-    MODELINFO modelinfo_;
-    modelinfo_.location = modelpath_;
-    modelinfo_.brainsize = n_ctx_train;
-    modelinfo_.modelsize = QString::number(double(llama_model_n_params(model)) / 1e9, 'f', 1) + " B";
-    emit bot2expend_modelinfo(modelinfo_);
-
-
     //返回装载时获取的模型参数
     MODEL_PARAMS p;
     p.n_ctx_train = n_ctx_train;
@@ -633,6 +608,7 @@ void xBot::reset() {
     if (history_prompt != bot_chat.system_prompt || !is_load_predecode || is_need_preDecodeSystemPrompt) {
         is_clear_all = true;
     }
+    
     if (is_clear_all)  //清空ctx kv缓存
     {
         llama_kv_self_clear(ctx);  //清空ctx kv缓存
@@ -836,10 +812,9 @@ void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int cont
 
 //接受停止信号
 void xBot::recv_stop() {
-    if (!is_test)  //不测试时赋予停止标志,测试是通过test_list来判断是否结束
-    {
-        is_stop = true;
-    }
+
+    is_stop = true;
+
 }
 
 //接受重置信号
@@ -1254,7 +1229,7 @@ void xBot::completeUtf8(std::string *sstr, llama_token *id) {
     }
 
     if (isIncompleteUTF8(*sstr)) {
-        if (!is_test) pick_half_utf8.push_back(*id);
+        pick_half_utf8.push_back(*id);
         *sstr = "";
         emit bot2ui_state("bot:" + jtr("incompleteUTF8 detected"), WRONG_SIGNAL);
     }

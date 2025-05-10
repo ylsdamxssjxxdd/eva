@@ -126,8 +126,7 @@ class xBot : public QObject {
     bool is_datetoolong = false;    
     bool is_need_preDecodeSystemPrompt = false;                                                                                                        //如果约定的系统指令长度太长则不约定
     int n_past = 0;                                                                                                                         //已推理个数
-    int n_consumed = 0;                                                                                                                     //已编码字符数
-    bool is_test = false;                                                                                                                   //是否正在测试
+    int n_consumed = 0;                                                                                                                     //已编码字符数                                                                                                                //是否正在测试
     int fail = 0;
     bool isIncompleteUTF8(const std::string &text);  //检测是否有不完整的utf8字符
     float vfree = 0;
@@ -153,7 +152,6 @@ class xBot : public QObject {
     void recv_preDecode();                                                    //从补完模式回来强行预解码
 
    signals:
-    void bot2expend_modelinfo(MODELINFO modelinfo_);
     void bot2ui_predecoding_over();       // 完成推理，预解码
     void bot2ui_predecoding();            // 正在推理，预解码
     void bot2ui_chat_format(CHATS chat);  // 发送格式化的对话内容
@@ -173,8 +171,7 @@ class xBot : public QObject {
     void bot2ui_datereset();                                                                // bot发信号请求ui触发reset
     void bot2ui_params(MODEL_PARAMS p);                                                     // bot将模型参数传递给ui
     void bot2ui_kv(float percent, int n_past);                                              //传递缓存量
-    void bot2ui_tokens(int tokens);                                                         //传递测试解码token数量
     void bot_llama_log(QString log);                                                        //传递llama.cpp的log
     void bot2ui_play();
 };
-#endif  // XBOT_H
+#endif

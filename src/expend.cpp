@@ -25,26 +25,16 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                              //灰色
     ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                          //灰色
-    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                    //灰色
-    ui->mcp_server_config_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");     
+    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                    //灰色   
     ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);");        //灰色
     ui->mcp_server_config_textEdit->setLineWrapMode(QTextEdit::NoWrap);                              // 禁用自动换行
     ui->mcp_server_log_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                              // 禁用自动换行
-    ui->mcp_server_config_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                          // 禁用自动换行
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
-    ui->sync_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap); 
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
     
-    //模型信息相关
-    ui->modelgrade_tableWidget->setColumnCount(1);//设置列数
-    ui->modelgrade_tableWidget->setRowCount(7);//设置行数
-    ui->modelgrade_tableWidget->horizontalHeader()->setVisible(false);// 隐藏列头
-    ui->modelgrade_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 列充满
-    ui->modelgrade_tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 行充满
-
     //模型转换相关
     // ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
     ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
@@ -91,18 +81,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->embedding_txt_over->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 充满
     connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput);
     connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
-
-    //同步率相关
-    ui->sync_tableWidget->setColumnCount(5);  //设置列数
-    ui->sync_tableWidget->setRowCount(30);    //创建行数
-    // ui->sync_tableWidget->verticalHeader()->setVisible(false);// 隐藏行头部
-    ui->sync_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 充满
-
-    // 设置某几列的最大宽度
-    QHeaderView *header = ui->sync_tableWidget->horizontalHeader();  // 获取水平表头
-    header->setSectionResizeMode(2, QHeaderView::Interactive);       // action_name
-    header->setSectionResizeMode(4, QHeaderView::Interactive);       // pass
-    header->setMaximumSectionSize(80);
 
     //添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
@@ -224,15 +202,12 @@ void Expend::init_expend() {
     ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));               //文生图
     ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              //声转文
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));              //文转声
-    ui->tabWidget->setTabText(window_map[SYNC_WINDOW], jtr("sync rate"));                //同步率
 
     //模型信息
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
     ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
-    ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
     ui->modellog_groupBox->setTitle(jtr("model log"));
-    ui->modelgrade_tableWidget->setVerticalHeaderLabels(QStringList{jtr("model location"),jtr("model size"),jtr("max brain size"),jtr("Q16"),jtr("Q14"),jtr("batch decode"),jtr("single decode")});//设置行名
-    
+
     //软件介绍
     showReadme();
 
@@ -346,12 +321,11 @@ void Expend::init_expend() {
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
 
     // mcp服务器
-    ui->mcp_server_state_groupBox->setTitle(jtr("mcp_server_tools"));
+    ui->mcp_server_state_groupBox->setTitle(jtr("mcp_available_servers"));
     ui->mcp_server_config_groupBox->setTitle(jtr("mcp_server_config"));
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
+    ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
 
-    //同步率
-    init_syncrate();
 }
 
 //用户切换选项卡时响应
@@ -375,11 +349,6 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
         is_first_show_modelproliferation = false;
         show_quantize_types();                    
     } 
-    else if (index == window_map[SYNC_WINDOW] && is_first_show_sync)  //第一次展示同步率
-    {
-        is_first_show_sync = false;
-        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
-    }
     else if(index == window_map[MODELINFO_WINDOW] && is_first_show_modelinfo)//第一次展示模型信息窗口
     {
         is_first_show_modelinfo = false;
@@ -401,12 +370,7 @@ void Expend::recv_expend_show(EXPEND_WINDOW window) {
     if (window == NO_WINDOW) {
         this->close();
         return;
-    } else if (window == SYNC_WINDOW && is_first_show_sync)  //第一次点同步率
-    {
-        is_first_show_sync = false;
-        ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "action_name", "action_input", jtr("pass")});  //设置列名
     }
-
     if (is_first_show_expend)  //第一次显示的话
     {
         is_first_show_expend = false;
@@ -2343,82 +2307,6 @@ void Expend::reflash_brain_matrix() {
     }
 }
 
-//-------------------------------------------------------------------------
-//----------------------------------同步率相关--------------------------------
-//-------------------------------------------------------------------------
-
-//传递同步率结果
-void Expend::recv_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score) {
-    // 如果接收到的index是1，则先重置
-    if (index == 1) {
-        init_syncrate();
-        ui->sync_plainTextEdit->clearWaterWave();      // 清空水波
-        ui->sync_plainTextEdit->startWaveAnimation();  // 开始水波动画
-    }
-
-    ui->sync_plainTextEdit->setPlainText(jtr("syncrate_describe") + jtr("current") + jtr("sync rate") + ": " + QString::number(score) + "%");
-
-    QColor BackgroundColor;
-    if (pass) {
-        BackgroundColor.setRgba(qRgba(255, 165, 0, 255));  // 设置单元格背景颜色,橘黄色
-    } else {
-        BackgroundColor.setRgba(qRgba(128, 128, 128, 250));  // 设置单元格背景颜色,灰色
-    }
-
-    // // 序号
-    // QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(index));
-    // newItem1->setBackground(BackgroundColor);
-    // ui->sync_tableWidget->setItem(index - 1, 0, newItem1);
-
-    // 任务
-    QTableWidgetItem *newItem2 = new QTableWidgetItem(task);
-    newItem2->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 0, newItem2);
-
-    // 回答
-    QTableWidgetItem *newItem3 = new QTableWidgetItem(response);
-    newItem3->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 1, newItem3);
-
-    // action_name
-    QTableWidgetItem *newItem4 = new QTableWidgetItem(action_name);
-    newItem4->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 2, newItem4);
-
-    // action_input
-    QTableWidgetItem *newItem5 = new QTableWidgetItem(action_input);
-    newItem5->setBackground(BackgroundColor);
-    ui->sync_tableWidget->setItem(index - 1, 3, newItem5);
-
-    // pass
-    QTableWidgetItem *newItem6 = new QTableWidgetItem("√");
-    if (pass) {
-        newItem6 = new QTableWidgetItem("√");
-    } else {
-        newItem6 = new QTableWidgetItem("");
-    }
-    newItem6->setBackground(BackgroundColor);  // 设置单元格背景颜色,橘黄色
-    ui->sync_tableWidget->setItem(index - 1, 4, newItem6);
-
-    ui->sync_tableWidget->scrollToItem(newItem6, QAbstractItemView::PositionAtBottom);  // 滚动到新添加的行
-}
-
-// 重置同步率显示
-void Expend::init_syncrate() {
-    ui->sync_plainTextEdit->clear();
-    ui->sync_plainTextEdit->appendPlainText(jtr("syncrate_describe"));
-
-    ui->sync_tableWidget->clearContents();
-    ui->sync_tableWidget->setHorizontalHeaderLabels(QStringList{jtr("task"), jtr("response"), "tool", "value", jtr("pass")});  //设置列名
-    //插入任务列表
-    for (int i = 1; i < 31; ++i) {
-        // QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(i));
-        // ui->sync_tableWidget->setItem(i - 1, 0, newItem1);
-
-        QTableWidgetItem *newItem2 = new QTableWidgetItem(jtr(QString("sync_Q%1").arg(i)));
-        ui->sync_tableWidget->setItem(i - 1, 0, newItem2);
-    }
-}
 
 // 用于设置whisper模型路径
 void Expend::setWhisperModelpath(QString modelpath) {
@@ -2459,73 +2347,6 @@ bool Expend::removeDir(const QString &dirName) {
     return dir.rmdir(dirName);
 }
 
-void Expend::recv_bot_modelinfo(MODELINFO modelinfo_)
-{
-    modelinfo.location = modelinfo_.location;
-    modelinfo.brainsize = modelinfo_.brainsize;
-    modelinfo.modelsize = modelinfo_.modelsize;
-    set_modelinfo();
-}
-
-void Expend::recv_ui_modelinfo(MODELINFO modelinfo_)
-{
-    modelinfo.test_acc = modelinfo_.test_acc;
-    modelinfo.sync_acc = modelinfo_.sync_acc;
-    modelinfo.pp_bench_speed = modelinfo_.pp_bench_speed;
-    modelinfo.tg_bench_speed = modelinfo_.tg_bench_speed;
-    set_modelinfo();
-}
-
-void Expend::set_modelinfo()
-{
-    //计算总分 = (题库测试准确率+同步率测试准确率+上文处理/10+文字生成)/4
-    float pp_bench_score = modelinfo.pp_bench_speed / 10;
-    float tg_bench_score = modelinfo.tg_bench_speed;
-    if(pp_bench_score>100){pp_bench_score=100;}//不能超过100
-    if(tg_bench_score>100){tg_bench_score=100;}//不能超过100
-    // qDebug()<<pp_bench_score<<tg_bench_score;
-    modelinfo.score = (modelinfo.test_acc + modelinfo.sync_acc + pp_bench_score + tg_bench_score)/4;
-    modelinfo.grade = getGrade(modelinfo.score);
-
-    QTableWidgetItem *newItem0 = new QTableWidgetItem(modelinfo.location);
-    newItem0->setFlags(newItem0->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem0->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(0, 0, newItem0);
-
-    QTableWidgetItem *newItem1 = new QTableWidgetItem(modelinfo.modelsize);
-    newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem1->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(1, 0, newItem1);
-
-    QTableWidgetItem *newItem2 = new QTableWidgetItem(QString::number(modelinfo.brainsize));
-    newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem2->setBackground(BODY_WHITE);                         // 设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(2, 0, newItem2);
-
-    QTableWidgetItem *newItem3 = new QTableWidgetItem((modelinfo.test_acc <0 ) ? jtr("test tip1") : QString::number(modelinfo.test_acc,'f',1));
-    newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem3->setBackground(grade_color_map[getGrade(modelinfo.test_acc)]); // 根据评级设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(3, 0, newItem3);
-
-    QTableWidgetItem *newItem4 = new QTableWidgetItem((modelinfo.sync_acc <0 ) ? jtr("test tip1") : QString::number(modelinfo.sync_acc,'f',1));
-    newItem4->setFlags(newItem4->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem4->setBackground(grade_color_map[getGrade(modelinfo.sync_acc)]); // 根据评级设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(4, 0, newItem4);
-
-    QTableWidgetItem *newItem5 = new QTableWidgetItem((modelinfo.pp_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.pp_bench_speed,'f',1));
-    newItem5->setFlags(newItem5->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem5->setBackground(grade_color_map[getGrade(pp_bench_score)]); // 根据评级设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(5, 0, newItem5);
-
-    QTableWidgetItem *newItem6 = new QTableWidgetItem((modelinfo.tg_bench_speed <0 ) ? jtr("test tip2") : QString::number(modelinfo.tg_bench_speed,'f',1));
-    newItem6->setFlags(newItem6->flags() & ~Qt::ItemIsEditable);  //单元格不可编辑
-    newItem6->setBackground(grade_color_map[getGrade(tg_bench_score)]); // 根据评级设置单元格背景颜色
-    ui->modelgrade_tableWidget->setItem(6, 0, newItem6);
-    
-    ui->modelgrade_groupBox->setTitle(jtr("grade") + " " + modelinfo.grade);
-}
-
-
 //-------------------------------------------------------------------------
 //----------------------------------模型转换相关--------------------------------
 //-------------------------------------------------------------------------
@@ -2534,8 +2355,6 @@ void Expend::set_modelinfo()
 void Expend::on_modelconvert_modelpath_pushButton_clicked()
 {
     convertmodeldir = QFileDialog::getExistingDirectory(this, jtr("modelconvert_modelpath_lineEdit_placeholder"), convertmodeldir);
-    ui->modelconvert_modelpath_lineEdit->setText(convertmodeldir);
-    
     get_convertmodel_name();//自动构建输出文件名
 
 }
@@ -2719,114 +2538,139 @@ bool Expend::copyRecursively(const QString &srcFilePath, const QString &tgtFileP
 
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
-    ui->mcp_server_state_listWidget->clear();//清空展示的工具选项
-    set_mcp_connect_state(MCP_CONNECT_MISS);
+    ui->mcp_server_reflash_pushButton->setEnabled(false);
+    ui->mcp_server_state_listWidget->clear();//清空展示的服务选项
+    ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);
     QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText();//获取用户的mcp服务配置
+    ui->mcp_server_log_plainTextEdit->appendPlainText("start add servers...");
     emit expend2mcp_addService(mcp_json_str);
-
-
 }
 
-//暂时做测试用
+//帮助
 void Expend::on_mcp_server_help_pushButton_clicked()
 {
-    // 遍历所有工具信息
-    for (const MCP_TOOLS_INFO& tool_info : MCP_TOOLS_INFO_LIST) {
-        QString name = tool_info.server_tool_name;
-        QString desc = tool_info.description;
-        QString schema = tool_info.inputSchema;
-
-        // 示例：打印信息到控制台
-        // qDebug() << "工具名称:" << name;
-        // qDebug() << "描述:" << desc;
-        // qDebug() << "参数结构:" << schema;
-        // qDebug() << "-------------------";
+    QString config = R"({
+    "mcpServers": {
+        "sse_server": {
+            "url": "http://192.168.229.67:3001"
+        },
+        "stdio_server": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-everything"],
+            "env": {"MCP_DEBUG": "1"}
+        }
     }
-
-}
-
-// 设置mcp连接状态按钮
-void Expend::set_mcp_connect_state(MCP_CONNECT_STATE connect_state)
-{
-    if(connect_state==MCP_CONNECT_LINK){ui->mcp_server_statusLed->setState(MCP_CONNECT_LINK);}
-    else if(connect_state==MCP_CONNECT_WIP){ui->mcp_server_statusLed->setState(MCP_CONNECT_WIP);}
-    else if(connect_state==MCP_CONNECT_MISS){ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);}
-}
-
-//添加mcp可用工具选项
-void Expend::add_mcp_tool_iteration(mcp::json toolsinfo)
-{
-    ui->mcp_server_state_listWidget->clear();
-    for (const auto& tool : toolsinfo) 
-    {
-        MCP_TOOLS_INFO mcp_tools_info;
-        mcp_tools_info.server_tool_name = QString::fromStdString(tool["service"].get<std::string>() + "@" + tool["name"].get<std::string>());
-        mcp_tools_info.description = QString::fromStdString(tool["description"]);
-        mcp_tools_info.inputSchema = QString::fromStdString(tool["inputSchema"].dump());
-        QListWidgetItem *item = new QListWidgetItem();
-        item->setData(Qt::UserRole, mcp_tools_info.server_tool_name);  // 存储工具名称
-        item->setData(Qt::UserRole + 1, mcp_tools_info.description);     // 存储工具描述
-        item->setData(Qt::UserRole + 2, mcp_tools_info.inputSchema);     // 存储工具参数结构
-        item->setSizeHint(QSize(300, 50));          // 设置项大小
-        QWidget *itemWidget = new QWidget();
-        QHBoxLayout *layout = new QHBoxLayout(itemWidget);
-        layout->setSpacing(3);                        // 设置间距为0
-        layout->setContentsMargins(3, 3, 3, 3);       // 设置外部间距为0
-        QPlainTextEdit *label = new QPlainTextEdit(mcp_tools_info.server_tool_name + ": " + mcp_tools_info.description);
-        label->setLineWrapMode(QPlainTextEdit::NoWrap);
-        label->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
-        label->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
-        label->setReadOnly(1);
-        ToggleSwitch *toggleSwitch = new ToggleSwitch(this);
-        toggleSwitch->setFixedSize(40, 20);
-        layout->addWidget(label);
-        layout->addWidget(toggleSwitch);
-        itemWidget->setLayout(layout);
-        ui->mcp_server_state_listWidget->addItem(item);
-        ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
-        connect(toggleSwitch, &QAbstractButton::toggled, this, [this, item](bool checked) {
-            QString toolName = item->data(Qt::UserRole).toString();
-            QString description = item->data(Qt::UserRole + 1).toString();
-            QString inputSchema = item->data(Qt::UserRole + 2).toString();
-        
-            if (checked) {
-                // 检查是否已存在，避免重复添加
-                bool exists = false;
-                for (const auto& info : MCP_TOOLS_INFO_LIST) {
-                    if (info.server_tool_name == toolName) {
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists) {
-                    MCP_TOOLS_INFO_LIST.push_back({toolName, description, inputSchema});
-                }
-            } else {
-                // 移除所有匹配的工具
-                MCP_TOOLS_INFO_LIST.erase(
-                    std::remove_if(
-                        MCP_TOOLS_INFO_LIST.begin(),
-                        MCP_TOOLS_INFO_LIST.end(),
-                        [&toolName](const MCP_TOOLS_INFO& info) {
-                            return info.server_tool_name == toolName;
-                        }
-                    ),
-                    MCP_TOOLS_INFO_LIST.end()
-                );
-            }
-        
-            // qDebug() << "切换状态：" << checked;
-            // qDebug() << "工具名称：" << toolName;
-            // qDebug() << "工具描述：" << description;
-            // qDebug() << "工具参数结构：" << inputSchema;
-        });
-    }
+})";
+    ui->mcp_server_config_textEdit->setText(config);//直接将示例填入
 }
 
 
 //响应mcp添加服务完毕时事件
 void Expend::recv_addService_over(MCP_CONNECT_STATE state)
 {
-    add_mcp_tool_iteration(MCP_TOOLS_INFO_ALL);
-    set_mcp_connect_state(state);
+    ui->mcp_server_statusLed->setState(state);
+    ui->mcp_server_reflash_pushButton->setEnabled(true);
+    ui->mcp_server_log_plainTextEdit->appendPlainText("add servers over");
+    //列出所有可用工具
 }
+
+// 添加某个mcp服务完成
+void Expend::recv_addService_single_over(QString name, MCP_CONNECT_STATE state)
+{
+    add_mcp_server_iteration(name, state);
+}
+//添加mcp服务信息
+void Expend::add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state)
+{
+    QListWidgetItem *item = new QListWidgetItem();
+    item->setData(Qt::UserRole, name);  // 存储服务名称
+    item->setData(Qt::UserRole + 1, state);     // 存储服务连接状态
+    item->setSizeHint(QSize(300, 50));          // 设置项大小
+    QWidget *itemWidget = new QWidget();
+    QHBoxLayout *layout = new QHBoxLayout(itemWidget);
+    layout->setSpacing(3);                        // 设置间距为0
+    layout->setContentsMargins(3, 3, 3, 3);       // 设置外部间距为0
+    QPlainTextEdit *label = new QPlainTextEdit(name);
+    label->setLineWrapMode(QPlainTextEdit::NoWrap);
+    label->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+    label->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+    label->setReadOnly(1);
+    StatusLed *statusLed = new StatusLed(this);
+    statusLed->setState(state);
+    layout->addWidget(label);
+    layout->addWidget(statusLed);
+    itemWidget->setLayout(layout);
+    ui->mcp_server_state_listWidget->addItem(item);
+    ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
+}
+
+void Expend::recv_mcp_message(QString message)
+{
+    ui->mcp_server_log_plainTextEdit->appendPlainText(message);
+}
+
+// //添加mcp可用工具选项
+// void Expend::add_mcp_tool_iteration(mcp::json toolsinfo)
+// {
+//     ui->mcp_server_state_listWidget->clear();
+//     for (const auto& tool : toolsinfo) 
+//     {
+//         TOOLS_INFO mcp_tools_info(
+//             QString::fromStdString(tool["service"].get<std::string>() + "@" + tool["name"].get<std::string>()), // 工具名
+//             QString::fromStdString(tool["description"]), // 工具描述
+//             QString::fromStdString(tool["inputSchema"].dump()) // 参数结构
+//         );
+//         QListWidgetItem *item = new QListWidgetItem();
+//         item->setData(Qt::UserRole, mcp_tools_info.name);  // 存储工具名称
+//         item->setData(Qt::UserRole + 1, mcp_tools_info.description);     // 存储工具描述
+//         item->setData(Qt::UserRole + 2, mcp_tools_info.arguments);     // 存储工具参数结构
+//         item->setSizeHint(QSize(300, 50));          // 设置项大小
+//         QWidget *itemWidget = new QWidget();
+//         QHBoxLayout *layout = new QHBoxLayout(itemWidget);
+//         layout->setSpacing(3);                        // 设置间距为0
+//         layout->setContentsMargins(3, 3, 3, 3);       // 设置外部间距为0
+//         QPlainTextEdit *label = new QPlainTextEdit(mcp_tools_info.name + ": " + mcp_tools_info.description);
+//         label->setLineWrapMode(QPlainTextEdit::NoWrap);
+//         label->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+//         label->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 取消垂直滚动条
+//         label->setReadOnly(1);
+//         ToggleSwitch *toggleSwitch = new ToggleSwitch(this);
+//         toggleSwitch->setFixedSize(40, 20);
+//         layout->addWidget(label);
+//         layout->addWidget(toggleSwitch);
+//         itemWidget->setLayout(layout);
+//         ui->mcp_server_state_listWidget->addItem(item);
+//         ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
+//         connect(toggleSwitch, &QAbstractButton::toggled, this, [this, item](bool checked) {
+//             QString toolName = item->data(Qt::UserRole).toString();
+//             QString description = item->data(Qt::UserRole + 1).toString();
+//             QString parameters = item->data(Qt::UserRole + 2).toString();
+        
+//             if (checked) {
+//                 // 检查是否已存在，避免重复添加
+//                 bool exists = false;
+//                 for (const auto& info : MCP_TOOLS_INFO_LIST) {
+//                     if (info.name == toolName) {
+//                         exists = true;
+//                         break;
+//                     }
+//                 }
+//                 if (!exists) {
+//                     MCP_TOOLS_INFO_LIST.push_back({toolName, description, parameters});
+//                 }
+//             } else {
+//                 // 移除所有匹配的工具
+//                 MCP_TOOLS_INFO_LIST.erase(
+//                     std::remove_if(
+//                         MCP_TOOLS_INFO_LIST.begin(),
+//                         MCP_TOOLS_INFO_LIST.end(),
+//                         [&toolName](const TOOLS_INFO& info) {
+//                             return info.name == toolName;
+//                         }
+//                     ),
+//                     MCP_TOOLS_INFO_LIST.end()
+//                 );
+//             }
+//         });
+//     }
+// }

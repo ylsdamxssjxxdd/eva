@@ -29,7 +29,6 @@
 #include <QProgressBar>
 #include <QRadioButton>
 #include <QResource>
-#include <QScriptEngine>
 #include <QScrollBar>
 #include <QSettings>
 #include <QShortcut>
@@ -89,7 +88,7 @@ class Widget : public QWidget {
     QScrollBar *output_scrollBar;                                        //输出区滑动条
     bool createTempDirectory(const QString &path);                       //创建临时文件夹
     void create_right_menu();                                            //添加右击问题
-    QPair<QString, QString> ui_func_arg_list;                            //提取出来的函数和参数
+    mcp::json tools_call;                            //提取出来的工具名和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;  //约定和设置的字体大小
     QMediaPlayer music_player;
@@ -109,10 +108,6 @@ class Widget : public QWidget {
     void ui_state_normal();     //待机界面状态
     void ui_state_recoding();   //录音界面状态
 
-    //同步率测试相关
-    Syncrate_Manager ui_syncrate_manager;               //同步率测试管理器
-    bool SyncRateTestCheck(QString assistant_history);  // 检测结果并赋分
-    bool checkChinese(QString str_);                    //检测是否含有中文
 
     //模型控制相关
     CHATS bot_chat;                 // 经过模型自带模板格式化后的内容
@@ -142,7 +137,6 @@ class Widget : public QWidget {
 
     int ui_n_ctx_train = 2048;  //模型最大上下文长度
     int ui_maxngl = 0;          //模型可卸载到gpu上的层数
-    int test_tokens = 0;        //测试生产的token数量
     bool load_percent_tag;
     int max_thread = 1;  //最大线程数
 
@@ -172,24 +166,6 @@ class Widget : public QWidget {
     QString outFilePath;
     QTimer *audio_timer;
     QString whisper_model_path = "";
-
-    //测试相关
-    bool is_test = false;  //测试标签
-    QElapsedTimer test_time;
-    QList<int> test_question_index;                    //待测试题目索引
-    QStringList test_list_question, test_list_answer;  //测试题和答案
-    void clearQuestionlist();                          //清空题库
-    void readCsvFile(const QString &fileName);
-    void getAllFiles(const QString &floderPath);
-    QList<QString> childPathList;            //子文件夹路径
-    QList<QString> filePathList;             //绝对文件路径
-    void makeTestQuestion(QString dirPath);  //构建题库
-    void makeTestIndex();                    //构建出题索引
-    float test_score = 0;                    //答对的个数
-    float test_count = 0;                    //回答的次数
-    bool help_input = false;                 //是否添加引导题
-    QString makeHelpInput();                 //构建引导题
-    MODELINFO modelinfo;
 
     //设置按钮相关
     void set_SetDialog();  //设置设置选项
@@ -225,9 +201,8 @@ class Widget : public QWidget {
 
     //工具相关
     void addStopwords();                               //添加额外停止标志
-    QMap<QString, TOOLS> tool_map;                     //工具包
     bool is_load_tool = false;                         //是否挂载了工具
-    QPair<QString, QString> XMLparser(QString text);  //手搓输出解析器，提取XMLparser
+    mcp::json XMLparser(QString text);  //手搓输出解析器，提取XMLparser
     QString tool_result;
     QString wait_to_show_image = "";  //文生图后待显示图像的图像路径
     
@@ -267,11 +242,6 @@ class Widget : public QWidget {
     float first_vramp = 0;         //%
     float first_memp = 0;          //%
 
-    //性能测试相关
-    QProcess *llama_bench_process;
-    void llama_bench_test();
-    QString pp_speed,tg_speed;
-
     //链接模式相关，EVA_MODE为LINK_时的行为
     void setApiDialog();                                //初始化设置api选项
     void set_api();                                     //应用api设置
@@ -288,7 +258,6 @@ class Widget : public QWidget {
     QVector<QPair<QString, API_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history = "";                  //临时数据
     QString current_api;                                  //当前负载端点
-
 
     //发给模型的信号
    signals:
@@ -315,16 +284,14 @@ class Widget : public QWidget {
 
     //发送给tool的信号
     void ui2tool_language(int language_flag_);                 //传递使用的语言
-    void ui2tool_exec(QPair<QString, QString> func_arg_list);  //开始推理
+    void ui2tool_exec(mcp::json tools_call);  //开始推理
     void recv_controller_over(QString result);
 
     //发送给expend的信号
-    void ui2expend_syncrate(int index, QString task, QString response, QString action_name, QString action_input, bool pass, float score);
     void ui2expend_language(int language_flag_);                       //传递使用的语言
     void ui2expend_show(EXPEND_WINDOW window);                         //通知显示扩展窗口
     void ui2expend_speechdecode(QString wavpath, QString out_format);  //传一个wav文件开始解码
     void ui2expend_resettts();                                         //重置文字转语音
-    void ui2expend_modelinfo(MODELINFO modelinfo_);
 
     //自用信号
    signals:
@@ -351,7 +318,6 @@ class Widget : public QWidget {
     void recv_datereset();                                                        // bot发信号请求ui触发reset
     void recv_params(MODEL_PARAMS p);                                             // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                    //接收缓存量
-    void recv_tokens(int tokens);                                                 //传递测试解码token数量
     void recv_play();
 
     //处理expend信号的槽
@@ -371,7 +337,6 @@ class Widget : public QWidget {
 
     //自用的槽
    private slots:
-    void bench_btn_clicked(); 
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
     void stop_recordAudio();                   //停止录音
     void unlockLoad();
@@ -392,8 +357,6 @@ class Widget : public QWidget {
     void complete_change();                        //补完模式响应
     void chat_change();                            //对话模式响应
     void web_change();                             //服务模式响应
-    void llama_bench_onProcessStarted();           //进程开始响应
-    void llama_bench_onProcessFinished();          //进程结束响应
     void server_onProcessStarted();                //进程开始响应
     void server_onProcessFinished();               //进程结束响应
     void bench_onProcessFinished();                // llama-bench进程结束响应

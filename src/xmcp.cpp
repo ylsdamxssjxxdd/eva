@@ -8,25 +8,47 @@ xMcp::xMcp(QObject *parent) : QObject(parent)
 }
 
 void xMcp::addService(const QString mcp_json_str) {
-    if (mcp_json_str.isEmpty()) {return;}
     toolManager.clear();//清空工具
     MCP_TOOLS_INFO_LIST.clear();//清空缓存的工具信息列表
-    mcp::json config = mcp::json::parse(mcp_json_str.toStdString()); // JSON解析可能抛出异常
-    int ok_num = 0;
+    mcp::json config;
+    if (mcp_json_str.isEmpty()) {emit addService_over(MCP_CONNECT_MISS);return;}
+    try{
+        config = mcp::json::parse(mcp_json_str.toStdString()); // JSON解析可能抛出异常
+    }
+    catch(const std::exception& e) // 如果json解析失败
+    {
+        qCritical() << "tool JSON parse error:" << e.what();
+        emit mcp_message(QString("tool JSON parse error:") + e.what());
+        emit addService_over(MCP_CONNECT_MISS);
+        return;
+    }
+    int ok_num = 0;//用来记录服务是否全部连接成功
     for (auto& [name, serverConfig] : config["mcpServers"].items()) {
         try {
-            toolManager.addServer(name, serverConfig);
-            // ui->mcp_server_log_plainTextEdit->appendPlainText("addServer success: " + QString::fromStdString(name));
-            ok_num++;
-            
-        } catch (const client_exception& e) {
-            // ui->mcp_server_log_plainTextEdit->appendPlainText("addServer fail (" + QString::fromStdString(name) + "): " + QString::fromStdString(e.what()));
+            std::string res = toolManager.addServer(name, serverConfig);
+            if(res=="")
+            {
+                emit addService_single_over(QString::fromStdString(name), MCP_CONNECT_LINK);
+                emit mcp_message(QString::fromStdString(name) + " add success");
+                ok_num++;
+            }
+            else
+            {
+                emit addService_single_over(QString::fromStdString(name), MCP_CONNECT_MISS);
+                emit mcp_message(QString::fromStdString(name) + " add fail: " + QString::fromStdString(res));
+            }
+        } 
+        catch (const client_exception& e) {
+            emit addService_single_over(QString::fromStdString(name), MCP_CONNECT_MISS);
+            emit mcp_message(QString::fromStdString(name) + " add fail: " + e.what());
+            qCritical() << "client exception error:" << e.what();
         }
         
     }
     // 获取所有可用工具信息
     MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
-    if(ok_num==config["mcpServers"].size()){emit addService_over(MCP_CONNECT_LINK);}
+    mcp::json servers = get_json_object_safely(config,"mcpServers");
+    if(ok_num==servers.size()){emit addService_over(MCP_CONNECT_LINK);}
     else if(ok_num==0){emit addService_over(MCP_CONNECT_MISS);}
     else{emit addService_over(MCP_CONNECT_WIP);}
 }
@@ -61,3 +83,9 @@ void xMcp::callTool(QString tool_name, QString tool_args) {
     callTool_over(result);
 }
 
+//查询mcp可用工具
+void xMcp::callList()
+{
+    MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    emit callList_over();
+}

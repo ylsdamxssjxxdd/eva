@@ -2,18 +2,22 @@
 
 xTool::xTool(QString applicationDirPath_) {
     applicationDirPath = applicationDirPath_;
+    
     qDebug() << "tool init over";
 }
 xTool::~xTool() { ; }
 
-void xTool::Exec(QPair<QString, QString> func_arg_list) {
-    QString build_in_tool_arg = parseFirstKeyValue(func_arg_list.second);//解析出第一个键对应的值用于内置工具的参数，因为内置工具都是一个参数
+void xTool::Exec(mcp::json tools_call) {
+    QString tools_name = QString::fromStdString(get_string_safely(tools_call,"name"));
+    mcp::json tools_args_ = get_json_object_safely(tools_call,"arguments");
+    QString tools_args = QString::fromStdString(tools_args_.dump());//arguments字段提取出来还是一个对象所以用dump
+    qDebug()<<"tools_name"<<tools_name<<"tools_args"<<tools_args;
     //----------------------计算器------------------
-    if (func_arg_list.first == "calculator") {
+    if (tools_name == "calculator") 
+    {
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"expression"));
         emit tool2ui_state("tool:" + QString("calculator(") + build_in_tool_arg + ")");
-        QScriptEngine enging;
-        QScriptValue result_ = enging.evaluate(build_in_tool_arg.remove("\""));  //手动去除公式中的引号
-        QString result = QString::number(result_.toNumber());
+        QString result = QString::number(te_interp(build_in_tool_arg.toStdString().c_str(), 0));
         // qDebug()<<"tool:" + QString("calculator ") + jtr("return") + "\n" + result;
         if (result == "nan")  //计算失败的情况
         {
@@ -25,7 +29,8 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
     }
     //----------------------命令提示符------------------
-    else if (func_arg_list.first == "execute_command") {
+    else if (tools_name == "execute_command") {
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"content"));
         QProcess* process = new QProcess();
         createTempDirectory(applicationDirPath + "/EVA_WORK");//防止没有这个目录
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
@@ -52,9 +57,10 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
 
     }
     //----------------------知识库------------------
-    else if (func_arg_list.first == "knowledge") {
+    else if (tools_name == "knowledge") {
         QElapsedTimer time4;
         time4.start();
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"content"));
         QString result;
         if (Embedding_DB.size() == 0) {
             result = jtr("Please tell user to embed knowledge into the knowledge base first");
@@ -71,18 +77,21 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
 
     }
     //----------------------控制台------------------
-    else if (func_arg_list.first == "controller") {
+    else if (tools_name == "controller") {
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"number"));
         emit tool2ui_state("tool:" + QString("controller(") + build_in_tool_arg + ")");
         //执行相应界面控制
         emit tool2ui_controller(build_in_tool_arg.toInt());
     }
     //----------------------文生图------------------
-    else if (func_arg_list.first == "stablediffusion") {
+    else if (tools_name == "stablediffusion") {
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"prompt"));
         //告诉expend开始绘制
         emit tool2expend_draw(build_in_tool_arg);
     }
     //----------------------读取文件------------------
-    else if (func_arg_list.first == "read_file") {
+    else if (tools_name == "read_file") {
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"expression"));
         QString result;
         QString filepath = build_in_tool_arg;
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
@@ -103,13 +112,9 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         emit tool2ui_pushover(QString("read_file ") + jtr("return") + "\n" + result);//返回结果
     }
     //----------------------写入文件------------------
-    else if (func_arg_list.first == "write_file") {
-        QString filepath = build_in_tool_arg.split(">>>")[0];
-        if(build_in_tool_arg.split(">>>").size()<2){
-            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "no content");//返回错误
-            return;
-        }
-        QString content = build_in_tool_arg.split(">>>")[1];
+    else if (tools_name == "write_file") {
+        QString filepath = QString::fromStdString(get_string_safely(tools_args_,"path"));
+        QString content = QString::fromStdString(get_string_safely(tools_args_,"content"));
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
         filepath = applicationDirPath + "/EVA_WORK/" + filepath;
         // Extract the directory path from the file path
@@ -129,8 +134,7 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
             return;  // or handle the error as appropriate
         }
         //处理换行符
-        qDebug()<<content;
-
+        // qDebug()<<content;
 
         QTextStream out(&file);
         out.setCodec("UTF-8");  // 设置编码为UTF-8
@@ -140,66 +144,13 @@ void xTool::Exec(QPair<QString, QString> func_arg_list) {
         emit tool2ui_state("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("write_file ") + jtr("return") + "\n" + result);
     }
-    //----------------------代码解释器------------------
-    else if (func_arg_list.first == "interpreter") {
-        QString result;
-        //---内容写入interpreter.py---
-        createTempDirectory(applicationDirPath + "/EVA_TEMP");
-        QFile file(applicationDirPath + "/EVA_TEMP/interpreter.py");
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
-            out.setCodec("UTF-8");  // 设置编码为UTF-8
-            out << build_in_tool_arg;
-            file.close();
-            //---运行interpreter.py---
-            QProcess* process = new QProcess();
-            // 构建Python命令
-#ifdef Q_OS_WIN
-            // 在Windows上执行
-            QString command = "python";
-#else
-            // 在linux上执行 默认用python3
-            QString command = "python3";
-#endif
-            QStringList args;
-            args << applicationDirPath + "/EVA_TEMP/interpreter.py";
-
-            // 连接信号以获取输出
-            connect(process, &QProcess::readyReadStandardOutput, [&]() {
-                QByteArray rawOutput = process->readAllStandardOutput();
-                QTextCodec* codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
-                QString result_output = codec->toUnicode(rawOutput);
-                if (!result_output.contains("QFileSystem")) {
-                    result += result_output;
-                }
-            });
-            connect(process, &QProcess::readyReadStandardError, [&]() {
-                QByteArray rawOutput = process->readAllStandardError();
-                QTextCodec* codec = QTextCodec::codecForName("GBK");  // 使用GBK编码正确解析windows下内容
-                QString result_output = codec->toUnicode(rawOutput);
-                if (!result_output.contains("QFileSystem")) {
-                    result += result_output;
-                }
-            });
-
-            emit tool2ui_state("tool: " + command + " " + args.at(0));
-            // 开始运行脚本
-            process->start(command, args);
-
-            // 等待脚本结束（可选）
-            process->waitForFinished();
-            qDebug() << result;
-        } else {
-            result += "Failed to open file for writing";
-            qDebug() << "Failed to open file for writing";
-        }
-
-        emit tool2ui_state("tool:" + QString("interpreter ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
-        emit tool2ui_pushover(QString("interpreter ") + jtr("return") + "\n" + result);
-    }
-    else if(func_arg_list.first.contains("_"))//如果工具名包含下划线则假设他是mcp工具
+    else if(tools_name.contains("mcp_tools_list"))//查询mcp可用工具
     {
-        emit tool2mcp_toolcall(func_arg_list.first,func_arg_list.second);
+        emit tool2mcp_toollist();
+    }
+    else if(tools_name.contains("@"))//如果工具名包含@则假设他是mcp工具
+    {
+        emit tool2mcp_toolcall(tools_name,tools_args);
     }
     //----------------------没有该工具------------------
     else {
@@ -406,4 +357,30 @@ void xTool::recv_callTool_over(QString result)
         emit tool2ui_pushover(QString("mcp ") + jtr("return") + "\n" + result);
     }
 
+}
+
+// mcp列出工具完毕
+void xTool::recv_calllist_over()
+{
+    QString result= mcpToolParser(MCP_TOOLS_INFO_ALL);
+    emit tool2ui_state("tool:" + QString("mcp_tool_list ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+    emit tool2ui_pushover(QString("mcp_tool_list ") + jtr("return") + "\n" + result);
+
+}
+
+// 解析出所有mcp工具信息拼接为一段文本
+QString xTool::mcpToolParser(mcp::json toolsinfo)
+{
+    QString result = "";
+    for (const auto& tool : toolsinfo) 
+    {
+        TOOLS_INFO mcp_tools_info(
+            QString::fromStdString(tool["service"].get<std::string>() + "@" + tool["name"].get<std::string>()), // 工具名
+            QString::fromStdString(tool["description"]), // 工具描述
+            QString::fromStdString(tool["inputSchema"].dump()) // 参数结构
+        );
+
+        result += mcp_tools_info.text + "\n";
+    }
+    return result;
 }

@@ -31,7 +31,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     }
 
     getWords(":/src/utils/ui_language.json");
-
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
@@ -113,10 +112,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);                                              //连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Widget::server_onProcessFinished);  //连接结束信号
     
-    llama_bench_process = new QProcess(this);                                                                                                   // 创建一个QProcess实例用来启动llama-server
-    connect(llama_bench_process, &QProcess::started, this, &Widget::llama_bench_onProcessStarted);                                              //连接开始信号
-    connect(llama_bench_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Widget::llama_bench_onProcessFinished);  //连接结束信号
-
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
     qDebug() << "widget init over";
@@ -150,11 +145,6 @@ void Widget::on_load_clicked() {
     is_load = false;
     //先释放旧的模型和上下文
     emit ui2bot_free(1);  // 1表示重载
-
-    //重置评级
-    MODELINFO model_info_;
-    modelinfo = model_info_;
-    emit ui2expend_modelinfo(modelinfo);
 }
 
 //模型释放完毕并重新装载
@@ -220,101 +210,44 @@ void Widget::on_send_clicked() {
 
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if (ui_state == CHAT_STATE) {
-        if (is_test) {
-            if (test_question_index.size() > 0)  //测试中,还有题目剩余
-            {
-                input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));
-                //添加引导题
-                if (help_input) {
-                    inputs = {makeHelpInput() + DEFAULT_SPLITER + input, ROLE_TEST};
-                    help_input = false;
-                } else {
-                    inputs = {input, ROLE_TEST};
-                }
-            } else  //完成测试完成,没有题目剩余
-            {
-                float acc = test_score / test_count * 100.0;  //回答准确率
-                ui_state_info = "ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + " " + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("batch decode") + ":" + QString::number(test_tokens / (test_time.nsecsElapsed() / 1000000000.0)) + " token/s";
-                reflash_state(ui_state_info, SUCCESS_SIGNAL);
-                
-                modelinfo.test_acc = acc;
-                emit ui2expend_modelinfo(modelinfo);
+        if (tool_result == "") {
+            input = ui->input->toPlainText().toUtf8().data();
+            ui->input->clear();  // 获取用户输入
+        }
 
-                //恢复
-                decode_pTimer->stop();
-                is_test = false;
-                is_run = false;
-                test_question_index.clear();
-                test_count = 0;
-                test_score = 0;
-                test_tokens = 0;
-                ui_state_normal();  //待机界面状态
-                return;
-            }
-        } else if (ui_syncrate_manager.is_sync) {
-            if (ui_syncrate_manager.is_first_sync) {
-                setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
-                emit ui2expend_show(SYNC_WINDOW);                               // 打开同步率选项卡
-                ui_syncrate_manager.is_first_sync = false;
-            }
+        //-----------------------如果是拖进来的文件-------------------------
+        if (input.contains("file:///") && (input.contains(".png") || input.contains(".jpg"))) {
+            QString imagepath = input.split("file:///")[1];
+            showImage(imagepath);                   //显示文件名和图像
+            is_run = true;                          //模型正在运行标签
+            ui_state_pushing();                     //推理中界面状态
+            emit ui2bot_preDecodeImage(imagepath);  //预解码图像
+            return;
+        }
+        //-----------------------截图的情况-------------------------
+        else if (input == jtr("<predecode cut image>")) {
+            showImage(cut_imagepath);                   //显示文件名和图像
+            is_run = true;                              //模型正在运行标签
+            ui_state_pushing();                         //推理中界面状态
+            emit ui2bot_preDecodeImage(cut_imagepath);  //预解码图像
+            return;
+        }
+        //-----------------------一般情况----------------------------
+        else {
+            //如果工具返回的结果不为空，则认为输入源是观察者
+            if (tool_result != "") {
+                input = tool_result;
+                tool_result = "";
+                inputs = {input, ROLE_OBSERVATION};
 
-            if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
-            {
-                input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
+            } else {
                 inputs = {input, ROLE_USER};
-            } 
-            else  //完成同步率测试完成,没有问题剩余
-            {
-                qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
-                reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
-                reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
-                modelinfo.sync_acc = ui_syncrate_manager.score;
-                emit ui2expend_modelinfo(modelinfo);
-                //恢复
-                decode_pTimer->stop();
-                ui_state_normal();  //待机界面状态
-                Syncrate_Manager syncrate_manager;
-                ui_syncrate_manager = syncrate_manager;  // 重置
-                return;
-            }
-        } else  //正常情况!!!
-        {
-            if (tool_result == "") {
-                input = ui->input->toPlainText().toUtf8().data();
-                ui->input->clear();  // 获取用户输入
-            }
-
-            //-----------------------如果是拖进来的文件-------------------------
-            if (input.contains("file:///") && (input.contains(".png") || input.contains(".jpg"))) {
-                QString imagepath = input.split("file:///")[1];
-                showImage(imagepath);                   //显示文件名和图像
-                is_run = true;                          //模型正在运行标签
-                ui_state_pushing();                     //推理中界面状态
-                emit ui2bot_preDecodeImage(imagepath);  //预解码图像
-                return;
-            }
-            //-----------------------截图的情况-------------------------
-            else if (input == jtr("<predecode cut image>")) {
-                showImage(cut_imagepath);                   //显示文件名和图像
-                is_run = true;                              //模型正在运行标签
-                ui_state_pushing();                         //推理中界面状态
-                emit ui2bot_preDecodeImage(cut_imagepath);  //预解码图像
-                return;
-            }
-            //-----------------------一般情况----------------------------
-            else {
-                //如果工具返回的结果不为空，则认为输入源是观察者
-                if (tool_result != "") {
-                    input = tool_result;
-                    tool_result = "";
-                    inputs = {input, ROLE_OBSERVATION};
-
-                } else {
-                    inputs = {input, ROLE_USER};
-                }
             }
         }
-    } else if (ui_state == COMPLETE_STATE) {
+
+    } 
+    else if (ui_state == COMPLETE_STATE) 
+    {
         input = ui->output->toPlainText().toUtf8().data();  //直接用output上的文本进行推理
         inputs = {input, ROLE_USER};                        //传递用户输入
     }
@@ -329,50 +262,41 @@ void Widget::recv_pushover() {
     ui_insert_history.append({temp_assistant_history, API_ROLE_ASSISANT});
     temp_assistant_history = "";
 
-    if (is_test)  //继续测试
-    {
-        if (ui_mode == LINK_MODE) {
-            //待修复是net中maneger的问题
-            // on_send_clicked();
-            QTimer::singleShot(100, this, SLOT(send_testhandleTimeout()));  //链接模式不能立即发送
-        } else {
-            on_send_clicked();
-        }
-    } else if (ui_syncrate_manager.is_sync)  // 继续同步率测试
-    {
-        // 检测结果并赋分
-        SyncRateTestCheck(ui_insert_history.last().first);
-        // qDebug()<<"继续同步率测试";
-        ui_syncrate_manager.sync_list_index.removeAt(0);  //回答完毕删除开头的第一个问题
-        if (ui_syncrate_manager.sync_list_index.size() == 0) {
-            is_run = false;  // 同步率测试将要完成
-        }
-        on_reset_clicked();                 // 每次测试重置上下文
-    } else if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
+    if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
     {
         normal_finish_pushover();
         on_reset_clicked();  //触发重置
     } else {
         //如果挂载了工具,则尝试提取里面的json
-        if (is_load_tool) {
+        if (is_load_tool) 
+        {
             // qDebug()<<ui_insert_history.last().first;
             QString tool_str = ui_insert_history.last().first;//移除think标签;
             
-            ui_func_arg_list = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
-            if (ui_func_arg_list.first == "") {
+            tools_call = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
+            if (tools_call.empty()) 
+            {
                 normal_finish_pushover();
-            } else {
-                //调用工具
-                reflash_state("ui:" + jtr("clicked") + " " + ui_func_arg_list.first, SIGNAL_SIGNAL);
-                //包含以下字段则停止调用
-                if (ui_func_arg_list.first.contains("answer") || ui_func_arg_list.first.contains("response") || ui_func_arg_list.first.contains("最终回复") || ui_func_arg_list.first.contains("final")) {
-                    normal_finish_pushover();
+            } 
+            else
+            {
+                if(tools_call.contains("name") && tools_call.contains("arguments") )//要包含这两个字段才能调用工具
+                {
+                    QString tools_name = QString::fromStdString(tools_call.value("name", ""));
+                    reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
+                    //包含以下字段则停止调用
+                    if (tools_name =="answer" || tools_name=="response") 
+                    {
+                        normal_finish_pushover();
+                    }
+                    //正常调用情况
+                    else {
+                        emit ui2tool_exec(tools_call);  //调用tool
+                        //使用工具时解码动画不停
+                    }
                 }
-                //正常调用情况
-                else {
-                    emit ui2tool_exec(ui_func_arg_list);  //调用tool
-                    //使用工具时解码动画不停
-                }
+                
+
             }
 
         }
@@ -419,9 +343,7 @@ void Widget::recv_stopover() {
 
 //模型达到最大上下文的后处理
 void Widget::recv_arrivemaxctx(bool predecode) {
-    if (!is_test) {
-        QApplication::setWindowIcon(QIcon(":/logo/red_logo.png"));
-    }  // 设置应用程序图标
+    QApplication::setWindowIcon(QIcon(":/logo/red_logo.png"));// 设置应用程序图标
     // if(predecode){history_prompt = "";}//取巧使下一次重置触发预解码
 }
 
@@ -435,9 +357,6 @@ void Widget::recv_resetover() {
     }  //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 
-    if (ui_syncrate_manager.is_sync) {
-        on_send_clicked();  //总是尝试触发一下
-    }
 }
 
 //设置参数改变,重载模型
@@ -520,26 +439,7 @@ void Widget::on_reset_clicked() {
     //如果模型正在推理就改变模型的停止标签
     if (is_run) 
     {
-        if (ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() > 0) {
-            qDebug() << "为了下一次回答而重置";
-            ui->output->clear();
-            reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);  //直接展示预解码的内容
-            if(ui_mode == LOCAL_MODE) 
-            {
-                emit ui2bot_reset();//传递重置信号,删除约定以外的kv缓存
-            }        
-            else if(ui_mode == LINK_MODE) 
-            {
-                //清理
-                ui_insert_history.clear();
-                reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
-                on_send_clicked();
-            } 
-            return;
-        }
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
-        test_question_index.clear();                  //清空待测试问题列表
-        ui_syncrate_manager.sync_list_index.clear();  //清空待回答列表
         if (ui_mode == LINK_MODE) {
             emit ui2net_stop(1);
         } else {
@@ -547,19 +447,6 @@ void Widget::on_reset_clicked() {
             qDebug()<<"emit ui2bot_stop()";
         }  //传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
-    }
-    else if(ui_syncrate_manager.is_sync && ui_syncrate_manager.sync_list_index.size() == 0)  //链接模式完成同步率测试完成,没有问题剩余
-    {
-        qDebug() << "correct_list.size()" << ui_syncrate_manager.correct_list.size();
-        reflash_state("ui:" + jtr("Q14") + " " + jtr("over"), SYNC_SIGNAL);
-        reflash_state("ui:" + jtr("sync rate") + " " + QString::number(ui_syncrate_manager.score) + "%", SYNC_SIGNAL);
-        modelinfo.sync_acc = ui_syncrate_manager.score;
-        emit ui2expend_modelinfo(modelinfo);
-        //恢复
-        decode_pTimer->stop();
-        ui_state_normal();  //待机界面状态
-        Syncrate_Manager syncrate_manager;
-        ui_syncrate_manager = syncrate_manager;  // 重置
     }
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
@@ -816,11 +703,6 @@ void Widget::recv_kv(float percent, int ctx_size) {
     ui->kv_bar->setSecondValue(percent);
     ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + " token");
 }
-//接收测试的tokens
-void Widget::recv_tokens(int tokens) {
-    test_tokens += tokens;
-    // qDebug() <<test_tokens<< tokens;
-}
 
 //播放装载动画
 void Widget::recv_play() {
@@ -952,64 +834,28 @@ void Widget::api_send_clicked_slove() {
     data.repeat = ui_SETTINGS.repeat;
     data.insert_history = ui_insert_history;
 
-    if (is_test) {
-        QString input;
-        if (test_question_index.size() > 0)  //测试中
-        {
-            input = QString::number(test_count + 1) + ". " + test_list_question.at(test_question_index.at(0));  //题目
-            //添加引导题
-            if (help_input) {
-                for (int i = 1; i < 3; ++i)  // 2个引导题
-                {
-                    ui_insert_history.append({jtr(QString("H%1").arg(i)), API_ROLE_USER});                                  //问题
-                    ui_insert_history.append({jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), API_ROLE_ASSISANT});  //答案不要答案:这三个字
-                    //贴出引导题
-                    reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER + jtr(QString("H%1").arg(i)), 0, SYSTEM_BLUE);
-                    reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER + jtr(QString("A%1").arg(i)).remove(jtr("answer") + ":"), 0, SYSTEM_BLUE);
-                }
-                help_input = false;
-            }
-        } else  //完成测试完成
-        {
-            float acc = test_score / test_count * 100.0;  //回答准确率
-            decode_pTimer->stop();
-            reflash_state("ui:" + jtr("test") + jtr("over") + " " + QString::number(test_count) + jtr("question") + " " + jtr("accurate") + QString::number(acc, 'f', 1) + "% " + jtr("use time") + ":" + QString::number(test_time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s ", SUCCESS_SIGNAL);
-            modelinfo.test_acc = acc;
-            emit ui2expend_modelinfo(modelinfo);
-            
-            //恢复
-            test_question_index.clear();
-            test_count = 0;
-            test_score = 0;
-            test_tokens = 0;
-            is_test = false;
-            is_run = false;
-            ui->send->setEnabled(1);
-            ui->load->setEnabled(1);
-            ui->date->setEnabled(1);
-            ui->set->setEnabled(1);
+    if (tool_result == "") {
+        input = ui->input->toPlainText().toUtf8().data();
+        ui->input->clear();
+    }
+    //
+    //来补充链接模式的各种情况/上传图像/图像文件
+    //
+    //-----------------------正常情况----------------------------
+    if (ui_state == CHAT_STATE) {
+        //如果工具返回的结果不为空,则发送工具的结果给net
+        if (tool_result != "") {
+            //目前通过user这个角色给net
+            ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, API_ROLE_USER});
+            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
+            tool_result = "";
+
+            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));  //链接模式不能立即发送
+            is_run = true;                                                  //模型正在运行标签
+            ui_state_pushing();
             return;
-        }
-        ui_insert_history.append({input, API_ROLE_USER});
-        data.insert_history = ui_insert_history;
-        data.n_predict = 1;
-        emit ui2net_data(data);
-        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
-        reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
-        reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-    } 
-    else if (ui_syncrate_manager.is_sync && ui_state == CHAT_STATE) 
-    {
-        if (ui_syncrate_manager.is_first_sync) {
-            setWindowState(windowState() | Qt::WindowMaximized);  //设置窗口最大化
-            emit ui2expend_show(SYNC_WINDOW);                               // 打开同步率选项卡
-            ui_syncrate_manager.is_first_sync = false;
-        }
-
-        if (ui_syncrate_manager.sync_list_index.size() > 0)  //同步率测试中,还有问题剩余
-        {
-            input = ui_syncrate_manager.sync_list_question.at(ui_syncrate_manager.sync_list_index.at(0) - 1);
+        } else {
             ui_insert_history.append({input, API_ROLE_USER});
             data.insert_history = ui_insert_history;
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
@@ -1017,47 +863,13 @@ void Widget::api_send_clicked_slove() {
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
-            // qDebug()<<"hello"<<input;
-        } 
-
-    }
-    else {
-        if (tool_result == "") {
-            input = ui->input->toPlainText().toUtf8().data();
-            ui->input->clear();
         }
-        //
-        //来补充链接模式的各种情况/上传图像/图像文件
-        //
-        //-----------------------正常情况----------------------------
-        if (ui_state == CHAT_STATE) {
-            //如果工具返回的结果不为空,则发送工具的结果给net
-            if (tool_result != "") {
-                //目前通过user这个角色给net
-                ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, API_ROLE_USER});
-                reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
-
-                tool_result = "";
-
-                QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));  //链接模式不能立即发送
-                is_run = true;                                                  //模型正在运行标签
-                ui_state_pushing();
-                return;
-            } else {
-                ui_insert_history.append({input, API_ROLE_USER});
-                data.insert_history = ui_insert_history;
-                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
-                reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
-                reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-                data.n_predict = ui_SETTINGS.hid_npredict;
-                emit ui2net_data(data);
-            }
-        } else if (ui_state == COMPLETE_STATE)  //直接用output上的文本进行推理
-        {
-            data.input_prompt = ui->output->toPlainText();
-            data.n_predict = ui_SETTINGS.hid_npredict;
-            emit ui2net_data(data);
-        }
+    } 
+    else if (ui_state == COMPLETE_STATE)  //直接用output上的文本进行推理
+    {
+        data.input_prompt = ui->output->toPlainText();
+        data.n_predict = ui_SETTINGS.hid_npredict;
+        emit ui2net_data(data);
     }
 
     is_run = true;  //模型正在运行标签
@@ -1172,146 +984,6 @@ bool Widget::checkAudio() {
     // }
 
     return true;
-}
-
-// 检测结果并赋分
-bool Widget::SyncRateTestCheck(QString assistant_history) {
-    ui_func_arg_list = XMLparser(assistant_history);//移除think标签
-    int index = ui_syncrate_manager.sync_list_index.first();  // 根据问题序号对答案
-    bool pass = false;
-    // qDebug() << index << ui_func_arg_list.first << ui_func_arg_list.second;
-    QString build_in_tool_arg = parseFirstKeyValue(ui_func_arg_list.second);//解析出第一个键对应的值用于内置工具的参数，因为内置工具都是一个参数
-    // 验证 计算器 使用
-    if (index >= 1 && index <= 5) {
-        if (ui_func_arg_list.first == "calculator") {
-            if (build_in_tool_arg != "") {
-                QScriptEngine enging;
-
-                QScriptValue result_ = enging.evaluate(build_in_tool_arg.remove("\""));  //手动去除公式中的引号
-                QString result = QString::number(result_.toNumber());
-                if (result != "nan")  // 结果不是nan说明计算成功
-                {
-                    qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                    ui_syncrate_manager.correct_list.append(index);
-                    pass = true;
-                }
-            }
-        }
-    }
-    // 验证 execute_command 使用
-    if (index >= 6 && index <= 10) {
-        if (ui_func_arg_list.first == "execute_command") {
-            if (build_in_tool_arg != "") {
-                if (!checkChinese(build_in_tool_arg))  // 不包含中文就通过
-                {
-                    qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                    ui_syncrate_manager.correct_list.append(index);
-                    pass = true;
-                }
-            }
-        }
-    }
-    // 验证 知识库 使用
-    if (index >= 11 && index <= 15) {
-        if (ui_func_arg_list.first == "knowledge") {
-            if (build_in_tool_arg != "")  // 不为空就通过
-            {
-                qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                ui_syncrate_manager.correct_list.append(index);
-                pass = true;
-            }
-        }
-    }
-    // 验证 软件控制台 使用
-    if (index >= 16 && index <= 20) {
-        if (ui_func_arg_list.first == "controller") {
-            if (build_in_tool_arg != "") {
-                if (index == 16 && build_in_tool_arg == "1" ||  // 主窗口最大化
-                    index == 17 && build_in_tool_arg == "3" ||  // 主窗口置顶
-                    index == 18 && build_in_tool_arg == "6" ||  // 播放音乐
-                    index == 19 && build_in_tool_arg == "7" ||  // 关闭音乐
-                    index == 20 && build_in_tool_arg == "8"     // 打开增殖窗口
-                ) {
-                    qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                    ui_syncrate_manager.correct_list.append(index);
-                    pass = true;
-                }
-            }
-        }
-    }
-
-    // 验证 文生图 使用
-    if (index >= 21 && index <= 25) {
-        if (ui_func_arg_list.first == "stablediffusion") {
-            if (build_in_tool_arg != "") {
-                if (!checkChinese(build_in_tool_arg))  // 不包含中文就通过
-                {
-                    qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                    reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                    ui_syncrate_manager.correct_list.append(index);
-                    pass = true;
-                }
-            }
-        }
-    }
-
-    // 验证 代码解释器 使用
-    if (index >= 26 && index <= 30) {
-        if (ui_func_arg_list.first == "write_file" || ui_func_arg_list.first == "read_file" || ui_func_arg_list.first == "execute_command") {
-            if (build_in_tool_arg != "")  // 敢输出就是好样的
-            {
-                qDebug() << "ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success");
-                reflash_state("ui:" + jtr("index") + QString::number(index) + " " + jtr("sync") + jtr("success"), SYNC_SIGNAL);
-                ui_syncrate_manager.correct_list.append(index);
-                pass = true;
-            }
-        }
-    }
-
-    ui_syncrate_manager.score = float(ui_syncrate_manager.correct_list.size()) * 3.3;
-    if (ui_syncrate_manager.correct_list.size() == 30) {
-        ui_syncrate_manager.score = 400;
-    }  //当达到满分时为最高同步率400%
-
-    emit ui2expend_syncrate(index, ui_syncrate_manager.sync_list_question.at(index - 1), ui_insert_history.last().first, ui_func_arg_list.first, ui_func_arg_list.second, pass, ui_syncrate_manager.score);
-
-    return pass;
-}
-
-//检测是否含有中文
-bool Widget::checkChinese(QString str_) {
-    QStringList chinesePunctuation;  // 定义一个包含常见中文标点符号的集合
-    chinesePunctuation << "，"
-                       << "。"
-                       << "："
-                       << "？"
-                       << "！"
-                       << "、"
-                       << "；"
-                       << "“"
-                       << "”"
-                       << "‘"
-                       << "’"
-                       << "（"
-                       << "）"
-                       << "【"
-                       << "】";
-    for (int i = 0; i < str_.length(); ++i) {
-        QChar ch = str_[i];
-        // 检查当前字符是否为汉字，常用汉字的Unicode编码范围是从0x4E00到0x9FA5
-        if (ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FA5) {
-            return 1;
-        }
-        // 检查当前字符是否为中文标点
-        if (chinesePunctuation.contains(str_.at(i))) {
-            return 1;
-        }
-    }
-    return 0;
 }
 
 //传递格式化后的对话内容

@@ -92,7 +92,11 @@
 #define DEFAULT_SHELL "/bin/sh"
 #define DEFAULT_PYTHON "python3"
 #endif
+namespace mcp {
 
+// Use the nlohmann json library
+using json = nlohmann::ordered_json;
+};
 //约定内容
 struct DATES {
     QString date_prompt = DEFAULT_DATE_PROMPT;  // 约定指令 影响 系统指令
@@ -114,7 +118,6 @@ struct CHATS {
 enum ROLE {
     ROLE_USER,         // 加前缀后缀输入
     ROLE_OBSERVATION,  // 只加后缀，引导模型回答
-    ROLE_TEST,         // 同时改变is_test标志
 };
 
 //传递的前缀/输入/后缀
@@ -156,13 +159,12 @@ enum EXPEND_WINDOW {
     TXT2IMG_WINDOW,          //文生图窗口
     WHISPER_WINDOW,          //声转文窗口
     TTS_WINDOW,             //文转声窗口
-    SYNC_WINDOW,          //同步率窗口
     NO_WINDOW,             //关闭窗口
     PREV_WINDOW,             //上一次的窗口
 };
 
 //窗口索引
-const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{MODELCONVERT_WINDOW,2},{QUANTIZE_WINDOW,3},{MCP_WINDOW,4},{KNOWLEDGE_WINDOW,5},{TXT2IMG_WINDOW,6},{WHISPER_WINDOW,7},{TTS_WINDOW,8},{SYNC_WINDOW,9},{NO_WINDOW,999},{PREV_WINDOW,-1}};
+const QMap<EXPEND_WINDOW, int> window_map = {{INTRODUCTION_WINDOW,0},{MODELINFO_WINDOW,1},{MODELCONVERT_WINDOW,2},{QUANTIZE_WINDOW,3},{MCP_WINDOW,4},{KNOWLEDGE_WINDOW,5},{TXT2IMG_WINDOW,6},{WHISPER_WINDOW,7},{TTS_WINDOW,8},{NO_WINDOW,999},{PREV_WINDOW,-1}};
 
 //模型类型枚举
 enum MODEL_TYPE {
@@ -185,30 +187,6 @@ enum MODEL_QUANTIZE {
 
 const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM,"llm"},{MODEL_TYPE_WHISPER,"whisper"},{MODEL_TYPE_SD,"sd"},{MODEL_TYPE_OUTETTS,"outetts"}};
 const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32,"f32"},{MODEL_QUANTIZE_F16,"f16"},{MODEL_QUANTIZE_BF16,"bf16"},{MODEL_QUANTIZE_Q8_0,"q8_0"}};
-
-//模型信息参数
-struct MODELINFO {
-    QString location = "";
-    QString modelsize = "";
-    int brainsize = 0;
-    QString grade = "D"; // 评级
-    float score = 0; // 评分分数 = (测试准确率 + 同步率 + 上文处理速度分 + 文字生成速度分) / 4
-    float test_acc = -1; // 测试准确率
-    float sync_acc = -1; // 同步率
-    float pp_bench_speed = -1; // 上文处理速度 1000 t/s 是满分 100
-    float tg_bench_speed = -1; // 文字生成速度 100 t/s 是满分 100
-};
-  
-inline QString getGrade(int score) {
-    if (score >= 90) {return "S";} 
-    else if (score >= 70) {return "A";} 
-    else if (score >= 50) {return "B";} 
-    else if (score >= 30) {return "C";} 
-    else {return "D";}
-}
-
-//评级颜色索引
-const QMap<QString, QColor> grade_color_map = {{"S",QColor(255, 215, 0)},{"A",QColor(255, 192, 203)},{"B",QColor(0, 0, 255, 200)},{"C",QColor(0, 255, 0)},{"D",QColor(128, 128, 128)}};
 
 //设置参数
 struct SETTINGS {
@@ -281,6 +259,34 @@ struct TOOLS {
     QString func_describe;  //功能描述
 };
 
+struct TOOLS_INFO {
+    QString name;      // 工具名
+    QString description; // 功能描述
+    QString arguments;  // 参数结构
+    QString text;     // 信息文本
+
+    void generateToolText() {
+        // 使用QString格式化将三个字段合并为指定格式
+        text = QString("{\"name\":\"%1\",\"description\":\"%2\",\"arguments\":%3}")
+                  .arg(name)       // 插入工具名
+                  .arg(description)  // 插入功能描述
+                  .arg(arguments);  // 插入参数结构
+    }
+
+    // 手动实现默认构造函数
+    TOOLS_INFO() {} // 空实现
+
+    // 构造函数
+    TOOLS_INFO(const QString& n, const QString& desc, const QString& params) {
+        name = n;
+        description = desc;
+        arguments = params;
+        generateToolText(); // 自动生成text字段
+    }
+
+
+};
+
 //MCP连接状态枚举
 enum MCP_CONNECT_STATE{
     MCP_CONNECT_LINK, // 正常连接
@@ -288,14 +294,7 @@ enum MCP_CONNECT_STATE{
     MCP_CONNECT_MISS,// 未连接
 };
 
-//MCP工具
-struct MCP_TOOLS_INFO {
-    QString server_tool_name;      //工具名
-    QString description;  //工具描述
-    QString inputSchema;      //工具参数结构
-};
-
-inline std::vector<MCP_TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有用户要用的mcp工具，全局变量
+inline std::vector<TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有用户要用的mcp工具，全局变量
 inline mcp::json MCP_TOOLS_INFO_ALL;//当前服务可用的所有工具，全局变量
 
 //状态区信号枚举
@@ -400,17 +399,6 @@ struct Brain_Cell {
     QString word;  //词索引对应的词
 };
 
-//同步率测试管理器
-struct Syncrate_Manager {
-    bool is_sync = false;        // 是否在测试同步率
-    bool is_first_sync = false;  // 是否第一次进入
-    QList<int> correct_list;     // 通过回答的题目序号
-    float score = 0;             // 每个3.3分，满分99.9，当达到99.9时为最高同步率400%
-
-    // 1-5：计算器使用，6-10：系统终端使用，11-15：知识库使用，16-20：软件控制台使用，21-25：文生图使用，26-30：代码解释器使用
-    QList<int> sync_list_index;      // 待完成的回答任务的索引
-    QStringList sync_list_question;  // 待完成的回答任务
-};
 
 // 文生图参数
 #define DEFAULT_SD_NOISE "0.75"  //噪声系数
@@ -587,4 +575,154 @@ inline void createDesktopShortcut(QString appPath) {
 #endif
 }
 
+// 安全获取字符串列表（原函数增强版，支持任意键）
+inline std::vector<std::string> get_string_list_safely(const mcp::json& json_, const std::string& key) {
+    std::vector<std::string> result;
+    try {
+        result = json_.value(key, mcp::json::array()).get<std::vector<std::string>>();
+    } catch (const mcp::json::exception&) {
+        result.clear();
+    }
+    return result;
+}
+
+// 安全获取整数列表
+inline std::vector<int> get_int_list_safely(const mcp::json& json_, const std::string& key) {
+    std::vector<int> result;
+    try {
+        result = json_.value(key, mcp::json::array()).get<std::vector<int>>();
+    } catch (const mcp::json::exception&) {
+        result.clear();
+    }
+    return result;
+}
+
+// 安全获取JSON对象（返回mcp::json对象类型）
+inline mcp::json get_json_object_safely(const mcp::json& json_, const std::string& key) {
+    try {
+        auto obj = json_.value(key, mcp::json::object());
+        return obj.is_object() ? obj : mcp::json::object();
+    } catch (const mcp::json::exception&) {
+        return mcp::json::object();
+    }
+}
+
+// 安全获取字符串（支持默认值）
+inline std::string get_string_safely(const mcp::json& json_, const std::string& key, const std::string& default_val = "") {
+    try {
+        const mcp::json& value = json_.value(key, mcp::json(default_val));
+        if (value.is_string()) {
+            return value.get<std::string>();
+        } else if (value.is_number()) {
+            return value.dump(); // 将数值转换为字符串形式
+        } else {
+            return default_val;
+        }
+    } catch (const mcp::json::exception&) {
+        return default_val;
+    }
+}
+
+// 安全获取整数（支持默认值）
+inline int get_int_safely(const mcp::json& json_, const std::string& key, int default_val = 0) {
+    try {
+        return json_.value(key, mcp::json(default_val)).get<int>();
+    } catch (const mcp::json::exception&) {
+        return default_val;
+    }
+}
+
+// 安全获取双精度浮点数（支持默认值）
+inline double get_double_safely(const mcp::json& json_, const std::string& key, double default_val = 0.0) {
+    try {
+        return json_.value(key, mcp::json(default_val)).get<double>();
+    } catch (const mcp::json::exception&) {
+        return default_val;
+    }
+}
+
+// 安全获取布尔值（支持默认值）
+inline bool get_bool_safely(const mcp::json& json_, const std::string& key, bool default_val = false) {
+    try {
+        return json_.value(key, mcp::json(default_val)).get<bool>();
+    } catch (const mcp::json::exception&) {
+        return default_val;
+    }
+}
+
+// 安全获取通用JSON数组（元素类型为mcp::json）
+inline std::vector<mcp::json> get_json_array_safely(const mcp::json& json_, const std::string& key) {
+    try {
+        return json_.value(key, mcp::json::array()).get<std::vector<mcp::json>>();
+    } catch (const mcp::json::exception&) {
+        return {};
+    }
+}
+
+// 内置的回复工具
+static TOOLS_INFO Buildin_tools_answer(
+    "answer",
+    "The final response to the user",
+    "{""\"type\":\"object\",""\"properties\":{""\"content\":{""\"type\":\"string\",""\"description\":\"The final response to the user\"""}""},""\"required\":[\"content\"]""}"
+);
+
+// 内置的计算器工具
+static TOOLS_INFO Buildin_tools_calculator(
+    "calculator",
+    "Enter a expression to return the calculation result via using tinyexpr",
+    "{""\"type\":\"object\",""\"properties\":{""\"expression\":{""\"type\":\"string\",""\"description\":\"math expression\"""}""},""\"required\":[\"expression\"]""}"
+);
+
+// 内置的软件控制台工具
+static TOOLS_INFO Buildin_tools_controller(
+    "controller",
+    "Pass in the corresponding numbers to control the software",
+    "{""\"type\":\"object\",""\"properties\":{""\"number\":{""\"type\":\"int\",""\"description\":\"1(Maximize the main window); 2(Minimize the main window); 3(Top the main window); 4(Cancel the top of the main window); 5(Close the main window); 6(Play music); 7(Close music); 8(Open the proliferation window); 9(Close the proliferation window)\"""}""},""\"required\":[\"number\"]""}"
+);
+
+// 内置的列出MCP工具
+static TOOLS_INFO Buildin_tools_mcp_tools_list(
+    "mcp_tools_list",
+    "List all available tools in the current MCP service, which may include tools that you can use",
+    "{""\"type\":\"object\",""\"properties\":{""""}""}"
+);
+
+// 内置的知识库工具
+static TOOLS_INFO Buildin_tools_knowledge(
+    "knowledge",
+    "Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question. knowledge database describe: {embeddingdb describe}",
+    "{""\"type\":\"object\",""\"properties\":{""\"content\":{""\"type\":\"string\",""\"description\":\"Keywords to be queried\"""}""},""\"required\":[\"content\"]""}"
+);
+
+// 内置的文生图工具
+static TOOLS_INFO Buildin_tools_stablediffusion(
+    "stablediffusion",
+    "Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas.",
+    "{""\"type\":\"object\",""\"properties\":{""\"prompt\":{""\"type\":\"string\",""\"description\":\"Describe the image you want to draw with a paragraph of English text\"""}""},""\"required\":[\"prompt\"]""}"
+);
+
+// 内置的工程师-命令行工具
+static TOOLS_INFO Buildin_tools_execute_command(
+    "execute_command",
+    "Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory.",
+    "{""\"type\":\"object\",""\"properties\":{""\"content\":{""\"type\":\"string\",""\"description\":\"CLI commands\"""}""},""\"required\":[\"content\"]""}"
+);
+
+// 内置的工程师-读文件工具
+static TOOLS_INFO Buildin_tools_read_file(
+    "read_file",
+    "Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file.",
+    "{""\"type\":\"object\",""\"properties\":{""\"path\":{""\"type\":\"string\",""\"description\":\"The file path which you want to read\"""}""},""\"required\":[\"path\"]""}"
+);
+
+// 内置的工程师-写文件工具
+static TOOLS_INFO Buildin_tools_write_file(
+    "write_file",
+    "Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.",
+    "{""\"type\":\"object\",""\"properties\":{""\"path\":{""\"type\":\"string\",""\"description\":\"The file path which you want to write\"""},\"content\":{""\"type\":\"string\",""\"description\":\"The file content\"""}""},""\"required\":[\"path\",\"content\"]""}"
+);
+
+
 #endif XCONFIG_H
+
+

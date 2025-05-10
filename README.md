@@ -85,8 +85,6 @@
 
     - 可以使用挂载的工具
 
-    - 可以上传csv格式的题库进行测试
-
     - 可以按f1截图，按f2进行录音，截图和录音会发送给多模态或whisper模型进行相应处理
 
 2. 补完状态
@@ -101,7 +99,7 @@
 
 <details>
 
-<summary> 五个工具 </summary>
+<summary> 六个工具 </summary>
 
 在 本地模式 + 对话状态 下，用户可以点击约定为模型挂载工具
 
@@ -158,6 +156,14 @@
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
+6. MCP工具
+
+    - 通过MCP服务，获取到外部丰富的工具
+
+    - 说明：挂载工具后需要前往增殖窗口配置MCP服务
+
+    - 调用难度：⭐⭐⭐⭐⭐
+
 </details>
 
 ### 增强功能
@@ -201,16 +207,6 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 <summary> 模型量化 </summary>
 
 - 可以右击状态区弹出增殖窗口，在模型量化选项卡中对未经量化的fp32、fp16、bf16的gguf模型进行量化
-
-</details>
-
-<details>
-
-<summary> 机体同步率测试 </summary>
-
-- 在 对话状态下 可以对模型进行机体同步率测试，右击输入区选择 <机体同步率测试>
-
-- 主要测试模型的指令遵循能力，同步率越高，模型越强😊
 
 </details>
 
@@ -302,8 +298,6 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
     - 链接模式下的其它流程与上面类似，【bot】替换为【net】
 
-- debug流程
-    - 【ui】->用户拉动状态区向上可弹出debug按钮->用户开启debug按钮->点击发送->进入debuging状态->发送流程，只解码采样一次->点击Next->发送流程，只解码采样一次->···->当 检测到停止标志/达到最大输出长度/手动停止 时退出debuging状态->END
 
 </details>
 

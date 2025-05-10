@@ -18,13 +18,13 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QProcess>
-#include <QScriptEngine>
 #include <QTextCodec>
 #include <QThread>
 #include <QTime>
 #include <QTimer>
 
 #include "xconfig.h"
+#include "thirdparty\tinyexpr\tinyexpr.h"
 
 class xTool : public QObject {
     Q_OBJECT
@@ -36,12 +36,11 @@ class xTool : public QObject {
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr);                    // 根据language.json(wordsObj)和language_flag中找到对应的文字
-    void Exec(QPair<QString, QString> func_arg_list);  // 运行
+    void Exec(mcp::json tools_call);  // 运行
 
    public:
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
-    QPair<QString, QString> func_arg_list;
     bool createTempDirectory(const QString& path);  //创建临时文件夹
     int embedding_server_dim = 1024;  //开启嵌入服务的嵌入维度
     int embedding_server_resultnumb = 3; // 嵌入结果返回个数
@@ -52,7 +51,7 @@ class xTool : public QObject {
     QString getFirstNonLoopbackIPv4Address();
     double cosine_similarity_1024(const std::vector<double>& a, const std::vector<double>& b);
     std::vector<std::pair<int, double>> similar_indices(const std::vector<double>& user_vector, const QVector<Embedding_vector>& embedding_DB);
-
+    QString mcpToolParser(mcp::json toolsinfo);
    public slots:
     void recv_embedding_resultnumb(int resultnumb);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
@@ -60,7 +59,9 @@ class xTool : public QObject {
     void tool2ui_controller_over(QString result);               //传递控制完成结果
     void recv_language(int language_flag_);
     void recv_callTool_over(QString result);
+    void recv_calllist_over();
    signals:
+    void tool2mcp_toollist();
     void tool2mcp_toolcall(QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString& state_string, SIGNAL_STATE state = USUAL_SIGNAL);  //发送的状态信号

@@ -12,10 +12,13 @@ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 - 修改llama.cpp/tools/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 禁用掉thirdparty\llama.cpp\common\CMakeLists.txt 里的add_custom_command相关 但是确保手动加上build-info.cpp文件
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文
-- thirdparty\llama.cpp\ggml\src\ggml-cpu\ggml-cpu-impl.h 中这段代码下#define ggml_int8x16x4_t  int8x16x4_t 添加以下代码以支持飞腾cpu的编译
+- thirdparty\llama.cpp\ggml\src\ggml-cpu\ggml-cpu-impl.h 中这段代码下#define ggml_int16x8x2_t  int16x8x2_t 全部替换为以下代码以支持飞腾cpu的编译
 
 ```txt
-
+#define ggml_int16x8x2_t  int16x8x2_t
+#define ggml_uint8x16x2_t uint8x16x2_t
+#define ggml_uint8x16x4_t uint8x16x4_t
+#define ggml_int8x16x2_t  int8x16x2_t
 // 取消原有定义
 #ifdef vld1q_s8_x4
 #undef vld1q_s8_x4
@@ -23,8 +26,6 @@ ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTO
 #ifdef vld1q_u8_x4
 #undef vld1q_u8_x4
 #endif
-
-
 // 替代vld1q_s8_x4
 inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     int8x16x4_t ret;
@@ -34,7 +35,6 @@ inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
     ret.val[3] = vld1q_s8(ptr + 48);
     return ret;
 }
-
 // 替代 vld1q_u8_x4 的实现
 inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
     uint8x16x4_t ret;
@@ -44,6 +44,27 @@ inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
     ret.val[3] = vld1q_u8(ptr + 48); // 加载第 48-63 字节
     return ret;
 }
+#define ggml_vld1q_s16_x2 vld1q_s16_x2
+#define ggml_vld1q_u8_x2  vld1q_u8_x2
+#define ggml_vld1q_u8_x4  vld1q_u8_x4
+#define ggml_vld1q_s8_x2  vld1q_s8_x2
+// #define ggml_vld1q_s8_x4  vld1q_s8_x4
+#define ggml_vqtbl1q_s8   vqtbl1q_s8
+#define ggml_vqtbl1q_u8   vqtbl1q_u8
+typedef struct ggml_int8x16x4_t {
+    int8x16_t val[4];
+} ggml_int8x16x4_t;
+inline static ggml_int8x16x4_t ggml_vld1q_s8_x4(const int8_t * ptr) {
+    ggml_int8x16x4_t res;
+
+    res.val[0] = vld1q_s8(ptr + 0);
+    res.val[1] = vld1q_s8(ptr + 16);
+    res.val[2] = vld1q_s8(ptr + 32);
+    res.val[3] = vld1q_s8(ptr + 48);
+
+    return res;
+}
+
 ```
 
 ### stable-diffusion.cpp

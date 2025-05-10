@@ -79,8 +79,6 @@ Create a simple and intuitive body for llm, to better observe and control (based
 
     - You can mount tools for the model, but they may affect the model's intelligence
 
-    - You can upload a CSV format question bank for testing
-
     - You can take a screenshot by pressing f1 and record speech by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
 
 2. Completion state
@@ -152,6 +150,14 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
+6. MCPtools
+
+    - Through MCP services, access a wealth of external tools
+
+    - Explanation: After mounting the tool, you need to go to the proliferation window to configure the MCP service
+
+    - Difficulty of calling：⭐⭐⭐⭐⭐
+
 </details>
 
 ### Enhancements
@@ -193,16 +199,6 @@ In local mode and chat state, you can click on the date button to mount the tool
 <summary> Model quantification </summary>
 
 - You can right-click on the status area to pop up a proliferation window, and quantify the unquantized gguf models of fp32, fp16, and bf16 in the model quantization tab
-
-</details>
-
-<details>
-
-<summary> Eva sync rate test </summary>
-
-- In chat state, the model can be tested for sync rate. Right click on the input area and select \<Eva sync rate test>
-
-- The main test model's instruction following ability, the higher the sync rate, the stronger the model 😊
 
 </details>
 
