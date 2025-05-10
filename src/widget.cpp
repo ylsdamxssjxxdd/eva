@@ -373,15 +373,15 @@ void Widget::recv_datereset() {
         reflash_state("· " + jtr("complete mode") + jtr("on") + " ", USUAL_SIGNAL);
     } else {
         reflash_state("· " + jtr("system calling") + " " + date_ui->date_prompt_TextEdit->toPlainText() + ui_extra_prompt, USUAL_SIGNAL);
-        //展示额外停止标志
-        QString stop_str;
-        stop_str = jtr("extra stop words") + " ";
-        // stop_str += bot_chat.input_prefix + " ";
-        for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
-            stop_str += ui_DATES.extra_stop_words.at(i) + " ";
-        }
+        // //展示额外停止标志
+        // QString stop_str;
+        // stop_str = jtr("extra stop words") + " ";
+        // // stop_str += bot_chat.input_prefix + " ";
+        // for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
+        //     stop_str += ui_DATES.extra_stop_words.at(i) + " ";
+        // }
 
-        reflash_state("· " + stop_str + " ", USUAL_SIGNAL);
+        // reflash_state("· " + stop_str + " ", USUAL_SIGNAL);
     }
     reflash_state("···········" + jtr("date") + "···········", USUAL_SIGNAL);
     auto_save_user();  //保存ui配置
@@ -415,14 +415,14 @@ void Widget::recv_setreset() {
     }
 
     //展示额外停止标志
-    if (ui_state == CHAT_STATE) {
-        QString stop_str;
-        stop_str = jtr("extra stop words") + " ";
-        for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
-            stop_str += ui_DATES.extra_stop_words.at(i) + " ";
-        }
-        reflash_state("· " + stop_str + " ", USUAL_SIGNAL);
-    }
+    // if (ui_state == CHAT_STATE) {
+    //     QString stop_str;
+    //     stop_str = jtr("extra stop words") + " ";
+    //     for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
+    //         stop_str += ui_DATES.extra_stop_words.at(i) + " ";
+    //     }
+    //     reflash_state("· " + stop_str + " ", USUAL_SIGNAL);
+    // }
 
     reflash_state("···········" + jtr("set") + "···········", USUAL_SIGNAL);
     auto_save_user();  //保存ui配置
@@ -645,6 +645,8 @@ void Widget::serverControl() {
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     arguments << "--jinja"; // 使用jinja引擎支持工具调用
+    arguments << "--verbose-prompt"; // 每次对话时打印出提示词
+    arguments << "-v"; // 打印出全部日志信息
     // arguments << "--log-disable";                                      //不要日志
     if(ui_SETTINGS.hid_flash_attn){arguments << "-fa";}// 开启flash attention加速
     if (ui_SETTINGS.lorapath != "") {
@@ -653,8 +655,8 @@ void Widget::serverControl() {
     }  
     else {if(!ui_SETTINGS.hid_use_mmap){arguments << "--no-mmap";}}
 
-    // 服务目前还是不支持视觉
-    // if (ui_SETTINGS.mmprojpath != "") {arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
+    // 支持视觉
+    if (ui_SETTINGS.mmprojpath != "") {arguments << "--mmproj" << ui_SETTINGS.mmprojpath;}
 
     // 开始运行程序
     server_process->start(program, arguments);

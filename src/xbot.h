@@ -15,7 +15,7 @@
 #include "thirdparty/llama.cpp/common/chat.h"
 #include "thirdparty/llama.cpp/common/common.h"
 #include "thirdparty/llama.cpp/common/sampling.h"
-#include "thirdparty/llama.cpp/tools/llava/mtmd.h"
+#include "thirdparty/llama.cpp/tools/mtmd/mtmd.h"
 #include "thirdparty/llama.cpp/include/llama.h"
 #include "thirdparty/llama.cpp/src/llama-model.h" // 暂时不用太底层的api
 #include "xconfig.h"  //ui和bot都要导入的共有配置

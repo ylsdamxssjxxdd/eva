@@ -335,7 +335,6 @@ inline static ggml_int8x16x4_t ggml_vld1q_s8_x4(const int8_t * ptr) {
     return res;
 }
 
-
 #endif // !defined(__aarch64__)
 
 #if !defined(__ARM_FEATURE_DOTPROD)

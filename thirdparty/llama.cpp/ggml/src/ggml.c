@@ -498,30 +498,9 @@ static wchar_t * ggml_mbstowcs(const char * mbs) {
 #endif
 
 FILE * ggml_fopen(const char * fname, const char * mode) {
-// #ifdef _WIN32
-//     FILE * file = NULL;
 
-//     // convert fname (UTF-8)
-//     wchar_t * wfname = ggml_mbstowcs(fname);
-//     if (wfname) {
-//         // convert mode (ANSI)
-//         wchar_t * wmode = GGML_MALLOC((strlen(mode) + 1) * sizeof(wchar_t));
-//         wchar_t * wmode_p = wmode;
-//         do {
-//             *wmode_p++ = (wchar_t)*mode;
-//         } while (*mode++);
-
-//         // open file
-//         file = _wfopen(wfname, wmode);
-
-//         GGML_FREE(wfname);
-//         GGML_FREE(wmode);
-//     }
-
-//     return file;
-// #else
     return fopen(fname, mode);
-// #endif
+
 
 }
 static void ggml_vec_dot_f32(int n, float * GGML_RESTRICT s, size_t bs, const float * GGML_RESTRICT x, size_t bx, const float * GGML_RESTRICT y, size_t by, int nrc);
@@ -1297,6 +1276,10 @@ bool ggml_is_contiguous_1(const struct ggml_tensor * tensor) {
 
 bool ggml_is_contiguous_2(const struct ggml_tensor * tensor) {
     return ggml_is_contiguous_n(tensor, 2);
+}
+
+bool ggml_is_contiguously_allocated(const struct ggml_tensor * tensor) {
+    return ggml_nbytes(tensor) == ggml_nelements(tensor) * ggml_type_size(tensor->type)/ggml_blck_size(tensor->type);
 }
 
 bool ggml_is_permuted(const struct ggml_tensor * tensor) {
@@ -2728,11 +2711,11 @@ void ggml_mul_mat_set_prec(
     c = ggml_mul_mat_id(ctx, as, b, ids);
 
     as  -> [cols, rows, n_expert]
-    ids -> [n_experts_used, n_tokens] (i32)
     b   -> [cols, n_expert_used, n_tokens]
+    ids -> [n_expert_used, n_tokens] (i32)
     c   -> [rows, n_expert_used, n_tokens]
 
-    in b, n_experts_used can be broadcasted to match the n_expert_used of ids
+    in b, n_expert_used can be broadcasted to match the n_expert_used of ids
 
     c ~= as[:,:,i] @ b[:,i%r,t], i = ids[e,t] for all e,t in ids
 */
