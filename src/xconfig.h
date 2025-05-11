@@ -52,6 +52,7 @@
 #define DEFAULT_NCTX 4096 // 默认上下文长度
 #define DEFAULT_BATCH 2048 // 默认虚拟批处理大小
 #define DEFAULT_UBATCH 512 // 默认物理批处理大小
+#define DEFAULT_PARALLEL 1 // 默认并发数
 #define DEFAULT_USE_MMAP false // 默认关闭内存映射
 #define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
 #endif
@@ -209,6 +210,7 @@ struct SETTINGS {
     bool hid_use_mmap          = DEFAULT_USE_MMAP;  // use mmap for faster loads
     bool hid_use_mlock         = DEFAULT_USE_MLOCCK; // use mlock to keep model in memory
     bool hid_flash_attn        = DEFAULT_FLASH_ATTN; // flash attention
+    int hid_parallel = DEFAULT_PARALLEL;
 
 };
 

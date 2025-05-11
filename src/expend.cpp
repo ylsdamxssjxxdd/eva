@@ -32,6 +32,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                       // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
+    ui->vocab_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap); 
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
     

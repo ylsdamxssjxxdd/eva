@@ -279,6 +279,7 @@ int main(int argc, char* argv[]) {
     w.ui_SETTINGS.hid_use_mmap = settings.value("hid_use_mmap", DEFAULT_USE_MMAP).toBool();
     w.ui_SETTINGS.hid_use_mlock = settings.value("hid_use_mlock", DEFAULT_USE_MLOCCK).toBool();
     w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
+    w.ui_SETTINGS.hid_parallel  = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
     
     // ui显示值传给ui内部值
     w.get_date();  //获取约定中的纸面值

@@ -255,61 +255,6 @@ QGroupBox:pressed {
 }
 
 
-/* QSlider 水平滑块的样式 */
-QSlider::groove:horizontal {
-    border: 1px solid #E0E0E0; /* 柔和的灰色边框 */
-    background: #FFFFFF;       /* 纯白背景 */
-    height: 6px;               /* 滑槽高度 */
-    border-radius: 3px;        /* 圆角 */
-    margin: 0px 0;
-}
-QSlider::handle:horizontal {
-    background: #FFFFFF;       /* 纯白滑块 */
-    border: 1px solid #E0E0E0; /* 边框 */
-    width: 16px;               /* 滑块宽度 */
-    height: 16px;              /* 滑块高度 */
-    margin: -5px 0;            /* 使滑块居中对齐滑槽 */
-}
-QSlider::handle:horizontal:hover {
-    background: #F7F7F7;       /* 悬停时的浅灰色背景 */
-    border: 1px solid #D0D0D0; /* 边框颜色变化 */
-}
-QSlider::handle:horizontal:pressed {
-    background: #E0E0E0;       /* 按下时的稍深背景 */
-    border: 1px solid #C0C0C0; /* 边框颜色加深 */
-}
-
-/* QSlider 垂直滑块的样式 */
-QSlider::groove:vertical {
-    border: 1px solid #E0E0E0;
-    background: #FFFFFF;
-    width: 6px;
-    border-radius: 3px;
-    margin: 0 0px;
-}
-QSlider::handle:vertical {
-    background: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    width: 16px;
-    height: 16px;
-    margin: 0 -5px;           /* 使滑块居中对齐滑槽 */
-}
-QSlider::handle:vertical:hover {
-    background: #F7F7F7;
-    border: 1px solid #D0D0D0;
-}
-QSlider::handle:vertical:pressed {
-    background: #E0E0E0;
-    border: 1px solid #C0C0C0;
-}
-
-/* 更新后的橘黄色 */
-QSlider::sub-page:horizontal {
-    background: #FFA500; /* 橘黄色 */
-    height: 6px;
-    border-radius: 3px;
-}
-
 
 /* QRadioButton 选中时的样式 */
 QRadioButton::indicator:checked {
@@ -486,4 +431,80 @@ QHeaderView::section {
     background-color: #f0f0f0; /* 表头背景：浅灰色 */
     padding: 8px;
     border: 1px solid #d0d0d0; /* 表头边框：浅灰色 */
+}
+
+/* ===== 纤细水平滑块 ===== */
+QSlider::groove:horizontal {
+    border: 1px solid #D0D0D0;
+    background: qlineargradient(x1:0, y1:0.4, x2:0, y2:0.6,
+        stop:0 #F5F5F5, stop:1 #EAEAEA);
+    height: 2px;  /* 滑道高度减少 */
+    border-radius: 1px;
+    margin: 4px 0;
+}
+
+QSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FFD000, stop:0.7 #FF9000);
+    height: 2px;
+    border-radius: 1px;
+}
+
+QSlider::handle:horizontal {
+    background: qradialgradient(cx:0.3, cy:0.3, radius:0.6,
+        fx:0.35, fy:0.35,
+        stop:0 #FFFFFF, stop:1 #F0F0F0);
+    border: 1px solid;
+    border-color: #B0B0B0 #909090 #808080 #B0B0B0;
+    width: 12px;  /* 手柄缩小 */
+    height: 12px;
+    margin: -5px 0; /* 边距调整 */
+    border-radius: 6px;
+}
+
+/* ===== 垂直滑块适配 ===== */
+QSlider::groove:vertical {
+    border: 1px solid #D0D0D0;
+    background: qlineargradient(x1:0.4, y1:0, x2:0.6, y2:0,
+        stop:0 #F5F5F5, stop:1 #EAEAEA);
+    width: 2px;
+    border-radius: 1px;
+    margin: 0 4px;
+}
+
+QSlider::sub-page:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFD000, stop:0.7 #FF9000);
+    width: 2px;
+    border-radius: 1px;
+}
+
+QSlider::handle:vertical {
+    background: qradialgradient(cx:0.3, cy:0.3, radius:0.6,
+        fx:0.35, fy:0.35,
+        stop:0 #FFFFFF, stop:1 #F0F0F0);
+    border: 1px solid;
+    border-color: #B0B0B0 #909090 #808080 #B0B0B0;
+    width: 12px;
+    height: 12px;
+    margin: 0 -5px;
+    border-radius: 6px;
+}
+
+/* ===== 微交互状态 ===== */
+QSlider::handle:horizontal:hover,
+QSlider::handle:vertical:hover {
+    background: qradialgradient(cx:0.3, cy:0.3, radius:0.7,
+        fx:0.35, fy:0.35,
+        stop:0 #FFFFFF, stop:1 #F8F8F8);
+    border-color: #A0A0A0 #808080 #707070 #A0A0A0;
+}
+
+QSlider::handle:horizontal:pressed,
+QSlider::handle:vertical:pressed {
+    background: qradialgradient(cx:0.35, cy:0.35, radius:0.6,
+        fx:0.25, fy:0.25,
+        stop:0 #F0F0F0, stop:1 #E5E5E5);
+    border-color: #808080 #A0A0A0 #B0B0B0 #808080;
+    margin: horizontal:-4px 0; vertical:0 -4px; /* 按压位移微调 */
 }

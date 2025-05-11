@@ -870,6 +870,7 @@ void Widget::ui_state_pushing() {
 
 //服务中界面状态
 void Widget::ui_state_servering() {
+    ui->output->clear();
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
     ui->set->setEnabled(1);
@@ -1685,12 +1686,7 @@ void Widget::auto_save_user() {
     settings.setValue("repeat", ui_SETTINGS.repeat);        //惩罚系数
     settings.setValue("ngl", ui_SETTINGS.ngl);              // gpu负载层数
     settings.setValue("nthread", ui_SETTINGS.nthread);      // cpu线程数
-    if (ui_SETTINGS.nctx > ui_n_ctx_train) {
-        settings.setValue("nctx", ui_n_ctx_train);
-    }  //防止溢出
-    else {
-        settings.setValue("nctx", ui_SETTINGS.nctx);
-    }
+    settings.setValue("nctx", ui_SETTINGS.nctx);
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath);  //视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);      // lora
     
@@ -1703,6 +1699,7 @@ void Widget::auto_save_user() {
     settings.setValue("hid_use_mmap", ui_SETTINGS.hid_use_mmap);
     settings.setValue("hid_use_mlock", ui_SETTINGS.hid_use_mlock);
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
+    settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
     settings.setValue("port", ui_port);                       //服务端口
     //保存约定参数
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());               //对话模板

@@ -646,7 +646,9 @@ void Widget::serverControl() {
     arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     arguments << "--jinja"; // 使用jinja引擎支持工具调用
     arguments << "--verbose-prompt"; // 每次对话时打印出提示词
-    arguments << "-v"; // 打印出全部日志信息
+    // arguments << "-lv" << QString::number(1); // 打印日志等级
+    arguments << "-v"; // 打印全部日志
+    arguments << "--parallel" << QString::number(ui_SETTINGS.hid_parallel);
     // arguments << "--log-disable";                                      //不要日志
     if(ui_SETTINGS.hid_flash_attn){arguments << "-fa";}// 开启flash attention加速
     if (ui_SETTINGS.lorapath != "") {

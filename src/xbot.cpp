@@ -834,6 +834,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
     common_params_.use_mmap  = settings.hid_use_mmap;
     common_params_.use_mlock = settings.hid_use_mlock;
     common_params_.flash_attn = settings.hid_flash_attn;
+    common_params_.n_parallel = settings.hid_parallel;
 
     bool reload_flag = false;  //重载标签
     // qDebug()<<"settings.ngl"<<settings.ngl<<"common_params_.n_gpu_layers"<<common_params_.n_gpu_layers<<reload_flag<<maxngl;
