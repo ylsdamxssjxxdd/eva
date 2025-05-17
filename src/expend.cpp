@@ -35,7 +35,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->vocab_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                                   // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap); 
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }");  // 设置选中行的颜色为橘黄色
-    
+    ui->splitter->setStretchFactor(0, 2);  //设置分隔器中第一个元素初始宽度占比为3
+    ui->splitter->setStretchFactor(1, 1);  //设置分隔器中第二个元素初始宽度占比为1
     //模型转换相关
     // ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
     ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});

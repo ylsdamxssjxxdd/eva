@@ -855,7 +855,7 @@ void Widget::ui_state_loading() {
     ui->date->setEnabled(0);   //约定按钮
     ui->set->setEnabled(0);    //设置按钮
     ui->load->setEnabled(0);   //装载按钮
-    ui->input->setFocus();     //设置输入区为焦点
+    ui->input->textEdit->setFocus();     //设置输入区为焦点
 }
 
 //推理中界面状态
@@ -884,11 +884,11 @@ void Widget::ui_state_normal() {
     if (is_run)  //如果是模型正在运行的状态的话
     {
         ui->reset->setEnabled(1);
-        ui->input->setEnabled(1);
-        ui->input->setReadOnly(0);
+        ui->input->textEdit->setEnabled(1);
+        ui->input->textEdit->setReadOnly(0);
         ui->send->setEnabled(0);
-        ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
-        ui->input->setStyleSheet("background-color: white;");
+        ui->input->textEdit->setPlaceholderText(jtr("chat or right click to choose question"));
+        ui->input->textEdit->setStyleSheet("background-color: white;");
         return;
     }
 
@@ -910,10 +910,10 @@ void Widget::ui_state_normal() {
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
-        ui->input->setPlaceholderText(jtr("chat or right click to choose question"));
-        ui->input->setStyleSheet("background-color: white;");
-        ui->input->setReadOnly(0);
-        ui->input->setFocus();  //设置输入区为焦点
+        ui->input->textEdit->setPlaceholderText(jtr("chat or right click to choose question"));
+        ui->input->textEdit->setStyleSheet("background-color: white;");
+        ui->input->textEdit->setReadOnly(0);
+        ui->input->textEdit->setFocus();  //设置输入区为焦点
         ui->send->setText(jtr("send"));
 
         ui->output->setReadOnly(1);
@@ -930,10 +930,10 @@ void Widget::ui_state_normal() {
         ui->input->setVisible(1);
         ui->send->setVisible(1);
 
-        ui->input->clear();
-        ui->input->setPlaceholderText(jtr("Please modify any text above"));
-        ui->input->setStyleSheet("background-color: rgba(255, 165, 0, 127);");  //设置背景为橘黄色
-        ui->input->setReadOnly(1);
+        ui->input->textEdit->clear();
+        ui->input->textEdit->setPlaceholderText(jtr("Please modify any text above"));
+        ui->input->textEdit->setStyleSheet("background-color: rgba(255, 165, 0, 127);");  //设置背景为橘黄色
+        ui->input->textEdit->setReadOnly(1);
         ui->send->setText(jtr("complete"));
 
         ui->output->setReadOnly(0);
@@ -957,14 +957,14 @@ void Widget::ui_state_recoding() {
         ui->set->setEnabled(0);
         ui->reset->setEnabled(0);
         ui->send->setEnabled(0);
-        ui->input->setFocus();
-        ui->input->clear();
-        ui->input->setStyleSheet("background-color: rgba(144, 238, 144, 127);");  //透明绿色
-        ui->input->setReadOnly(1);
-        ui->input->setFocus();  //设置输入区为焦点
-        ui->input->setPlaceholderText(jtr("recoding") + "... " + jtr("push f2 to stop"));
+        ui->input->textEdit->setFocus();
+        ui->input->textEdit->clear();
+        ui->input->textEdit->setStyleSheet("background-color: rgba(144, 238, 144, 127);");  //透明绿色
+        ui->input->textEdit->setReadOnly(1);
+        ui->input->textEdit->setFocus();  //设置输入区为焦点
+        ui->input->textEdit->setPlaceholderText(jtr("recoding") + "... " + jtr("push f2 to stop"));
     } else {
-        ui->input->setPlaceholderText(jtr("recoding") + "... " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s " + jtr("push f2 to stop"));
+        ui->input->textEdit->setPlaceholderText(jtr("recoding") + "... " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s " + jtr("push f2 to stop"));
     }
 }
 
@@ -988,7 +988,7 @@ void Widget::create_right_menu() {
         }
         QAction *action = right_menu->addAction(question);
 
-        connect(action, &QAction::triggered, this, [=]() { ui->input->setPlainText(question); });
+        connect(action, &QAction::triggered, this, [=]() { ui->input->textEdit->setPlainText(question); });
     }
     //------------创建自动化问题菜单-------------
     //上传图像

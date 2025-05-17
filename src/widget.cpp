@@ -66,8 +66,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     set_DateDialog();                                    //设置约定选项
     set_SetDialog();                                     //设置设置选项
     ui_state_init();                                     //初始界面状态
-    ui->input->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
+    ui->input->textEdit->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键菜单
     ui->input->installEventFilter(this);                 //安装事件过滤器
+    ui->input->textEdit->installEventFilter(this);                 //安装事件过滤器
     ui->load->installEventFilter(this);                  //安装事件过滤器
     api_endpoint_LineEdit->installEventFilter(this);     //安装事件过滤器
     ui->state->setContextMenuPolicy(Qt::NoContextMenu);  //取消右键
@@ -211,8 +212,8 @@ void Widget::on_send_clicked() {
     //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
     if (ui_state == CHAT_STATE) {
         if (tool_result == "") {
-            input = ui->input->toPlainText().toUtf8().data();
-            ui->input->clear();  // 获取用户输入
+            input = ui->input->textEdit->toPlainText().toUtf8().data();
+            ui->input->textEdit->clear();  // 获取用户输入
         }
 
         //-----------------------如果是拖进来的文件-------------------------
@@ -596,7 +597,7 @@ void Widget::onShortcutActivated_CTRL_ENTER() { ui->send->click(); }
 void Widget::recv_qimagepath(QString cut_imagepath_) {
     cut_imagepath = cut_imagepath_;
     reflash_state("ui:" + jtr("cut image success"), USUAL_SIGNAL);
-    ui->input->setPlainText(jtr("<predecode cut image>"));
+    ui->input->textEdit->setPlainText(jtr("<predecode cut image>"));
     if (is_load && ui_state == CHAT_STATE) {
         // on_send_clicked();//如果装载了模型直接发送截图
     }
@@ -647,7 +648,7 @@ void Widget::serverControl() {
     arguments << "--jinja"; // 使用jinja引擎支持工具调用
     arguments << "--verbose-prompt"; // 每次对话时打印出提示词
     // arguments << "-lv" << QString::number(1); // 打印日志等级
-    arguments << "-v"; // 打印全部日志
+    // arguments << "-v"; // 打印全部日志，会导致速度变慢
     arguments << "--parallel" << QString::number(ui_SETTINGS.hid_parallel);
     // arguments << "--log-disable";                                      //不要日志
     if(ui_SETTINGS.hid_flash_attn){arguments << "-fa";}// 开启flash attention加速
@@ -810,7 +811,7 @@ void Widget::recv_predecode(QString bot_predecode_content_) { bot_predecode_cont
 //接收whisper解码后的结果
 void Widget::recv_speechdecode_over(QString result) {
     ui_state_normal();
-    ui->input->append(result);
+    ui->input->textEdit->append(result);
     // ui->send->click();//尝试一次发送
 }
 
@@ -839,8 +840,8 @@ void Widget::api_send_clicked_slove() {
     data.insert_history = ui_insert_history;
 
     if (tool_result == "") {
-        input = ui->input->toPlainText().toUtf8().data();
-        ui->input->clear();
+        input = ui->input->textEdit->toPlainText().toUtf8().data();
+        ui->input->textEdit->clear();
     }
     //
     //来补充链接模式的各种情况/上传图像/图像文件

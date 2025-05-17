@@ -17,8 +17,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
-option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
 ##################################### 处理编译选项 ####################################
@@ -29,6 +29,7 @@ option(LLAMA_CURL       "llama: use libcurl to download model from an URL" OFF) 
 option(MCP_SSL "Enable SSL support" OFF) # 允许mcp https连接
 add_compile_definitions(_WIN32_WINNT=0x0601)
 set(GGML_WIN_VER "0x601" CACHE STRING   "ggml: Windows version") # 控制ggml内部支持的windows版本为7,但是这样做再也不能支持mmap加速模型装载
+
 # 这几个标志是互斥的
 if(BODY_32BIT)
 # 如果开启对32位 win7的支持，那么只能使用mingw编译器，并且关闭所有gpu cpu加速
@@ -117,6 +118,14 @@ if(ARCHITECTURE MATCHES "aarch64|arm")
     message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
     set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 银河麒麟不支持
 endif()
+
+if (NOT DEFINED GGML_LLAMAFILE)
+    set(GGML_LLAMAFILE_DEFAULT ON) # 默认开启LLAMAFILE加速
+endif()
+
+if (NOT DEFINED GGML_CUDA_GRAPHS)
+    set(GGML_CUDA_GRAPHS_DEFAULT ON) # 默认开启CUDA_GRAPHS加速
+endif()
 ##################################### 第三方程序相关 #####################################
 
 add_subdirectory(thirdparty/libsamplerate) # 添加libsamplerate音频重采样库
@@ -193,7 +202,8 @@ ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp
 src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h
 src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
-src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
+src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h 
+src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
 thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 )
 
