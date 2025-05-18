@@ -387,8 +387,8 @@ bool stdio_client::start_server_process() {
         close(stdout_pipe_[1]);
         
         // Set non-blocking mode
-        int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+        // int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+        // fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
         
         // Execute command
         std::vector<std::string> args;

@@ -6,7 +6,7 @@ llama.cpp supports multimodal input via `libmtmd`. Currently, there are 2 tools 
 
 To enable it, can use use one of the 2 methods below:
 
-- Use `-hf` option with a [supported model](../../docs/multimodal.md)
+- Use `-hf` option with a supported model (see a list of pre-quantized model below)
     - To load a model using `-hf` while disabling multimodal, use `--no-mmproj`
     - To load a model using `-hf` while using a custom mmproj file, use `--mmproj local_file.gguf`
 - Use `-m model.gguf` option with `--mmproj file.gguf` to specify text and multimodal projector respectively
@@ -31,7 +31,7 @@ llama-server -hf ggml-org/gemma-3-4b-it-GGUF --no-mmproj-offload
 
 ## Pre-quantized models
 
-These are ready-to-use models, most of them come with `Q4_K_M` quantization by default.
+These are ready-to-use models, most of them come with `Q4_K_M` quantization by default. They can be found at the Hugging Face page of the ggml-org: https://huggingface.co/ggml-org
 
 Replaces the `(tool_name)` with the name of binary you want to use. For example, `llama-mtmd-cli` or `llama-server`
 
@@ -66,4 +66,12 @@ NOTE: some models may require large context window, for example: `-c 8192`
 
 # Mistral Small 3.1 24B (IQ2_M quantization)
 (tool_name) -hf ggml-org/Mistral-Small-3.1-24B-Instruct-2503-GGUF
+
+# InternVL 2.5 and 3
+(tool_name) -hf ggml-org/InternVL2_5-1B-GGUF
+(tool_name) -hf ggml-org/InternVL2_5-4B-GGUF
+(tool_name) -hf ggml-org/InternVL3-1B-Instruct-GGUF
+(tool_name) -hf ggml-org/InternVL3-2B-Instruct-GGUF
+(tool_name) -hf ggml-org/InternVL3-8B-Instruct-GGUF
+(tool_name) -hf ggml-org/InternVL3-14B-Instruct-GGUF
 ```

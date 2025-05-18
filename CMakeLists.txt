@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b5335) # 打包版本
+set(version b5415) # 打包版本
 
 # 设置所有构建类型下的可执行文件的输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -17,7 +17,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 
@@ -185,9 +185,9 @@ add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 if(WIN32)
-    set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc)
+    set(resource_FILES resource/res.qrc)
 else() # linux下打包字体
-    set(resource_FILES resource/res.qrc resource/ceval.qrc resource/mmlu.qrc resource/font.qrc)
+    set(resource_FILES resource/res.qrc resource/font.qrc)
 endif()
 
 # 应用程序图标windows

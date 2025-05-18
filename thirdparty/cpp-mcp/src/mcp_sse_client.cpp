@@ -522,7 +522,7 @@ json sse_client::send_jsonrpc(const request& req) {
         throw mcp_exception(error_code::internal_error, error_msg);
     }
     
-    if (result->status != 202) {
+    if (result->status / 100 != 2) {
         try {
             json res_json = json::parse(result->body);
             

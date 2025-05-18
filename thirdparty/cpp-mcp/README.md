@@ -26,6 +26,16 @@ cmake -B build -DMCP_BUILD_TESTS=ON
 cmake --build build --config Release
 ```
 
+## Adopters
+
+Here are some open-source projects that are using this repository.  
+If you're using it too, feel free to submit a PR to be featured here!
+
+- [humanus.cpp](https://github.com/WHU-MYTH-Lab/humanus.cpp): Lightweight C++ LLM agent framework
+- ...waiting for your contribution...
+
+
+
 ## Components
 
 The MCP C++ library includes the following main components:

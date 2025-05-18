@@ -341,6 +341,14 @@ void server::register_tool(const tool& tool, tool_handler handler) {
             
             json tool_args = params.contains("arguments") ? params["arguments"] : json::array();
 
+            if (tool_args.is_string()) {
+                try {
+                    tool_args = json::parse(tool_args.get<std::string>());
+                } catch (const json::exception& e) {
+                    throw mcp_exception(error_code::invalid_params, "Invalid JSON arguments: " + std::string(e.what()));
+                }
+            }
+
             json tool_result = {
                 {"isError", false}
             };

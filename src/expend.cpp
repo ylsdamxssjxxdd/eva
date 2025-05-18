@@ -455,6 +455,8 @@ void Expend::readConfig() {
     ui->speech_outetts_modelpath_lineEdit->setText(outetts_modelpath);
     ui->speech_wavtokenizer_modelpath_lineEdit->setText(wavtokenizer_modelpath);
 
+    ui->mcp_server_config_textEdit->setText(settings.value("Mcpconfig", "").toString());//mcp配置
+
     // 应用值
     QFile sd_modelpath_file(sd_modelpath);
     if (sd_modelpath_file.exists()) {
@@ -682,6 +684,7 @@ void Expend::closeEvent(QCloseEvent *event) {
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
     settings.setValue("shell", shell);  //shell路径
     settings.setValue("python", pythonExecutable);  //python版本
+    settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText());  //mcp配置
     // event->accept();
 }
 
