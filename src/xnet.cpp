@@ -18,7 +18,7 @@ void xNet::run() {
     QNetworkAccessManager manager;
 
     //对话模式
-    if (!endpoint_data.complete_state) {
+    if (!endpoint_data.is_complete_state) {
         // 设置请求的端点 URL
         QNetworkRequest request(QUrl(apis.api_endpoint.remove(apis.api_chat_endpoint) + apis.api_chat_endpoint));
         // 设置请求头
@@ -177,41 +177,9 @@ QByteArray xNet::createChatBody() {
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
-    // qDebug()<<"stop "<<stopkeys;
-    QJsonArray messagesArray;  //总消息
-    //构造系统指令
-    QJsonObject systemMessage;
-    systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-    systemMessage.insert("content", endpoint_data.date_prompt);
-    messagesArray.append(systemMessage);  //添加消息
-    // qDebug()<<"--------------------------------";
-    // QJsonObject userMessage;
-    // userMessage.insert("role", "user");
-    // userMessage.insert("image_url", "C:\\Users\\32138\\Desktop\\ayanami.png");
-    // messagesArray.append(userMessage);
-    QJsonObject roleMessage;
-    // qDebug()<<endpoint_data.insert_history;
-    for (int i = 0; i < endpoint_data.insert_history.size(); ++i) {
-        if (endpoint_data.insert_history.at(i).second == EVA_ROLE_USER)  // 如果是用户发送的
-        {
-            roleMessage.insert("role", DEFAULT_USER_NAME);
-        } 
-        // else if (endpoint_data.insert_history.at(i).second == API_ROLE_OBSERVATION)  // 如果是工具发送的
-        // {
-        //     roleMessage.insert("role", DEFAULT_OBSERVATION_NAME);
-        // }
-        else if (endpoint_data.insert_history.at(i).second == EVA_ROLE_MODEL)  // 如果是模型发送的
-        {
-            roleMessage.insert("role", DEFAULT_MODEL_NAME);
-        }
-
-        roleMessage.insert("content", endpoint_data.insert_history.at(i).first);
-        messagesArray.append(roleMessage);
-    }
-
-    // qDebug()<<"messages"<<messagesArray;
     // 将 JSON 对象转换为字节序列
-    json.insert("messages", messagesArray);  //插入总消息
+    json.insert("messages", endpoint_data.messagesArray);  //插入总消息
+    // qDebug()<<endpoint_data.messagesArray;
     QJsonDocument doc(json);
     QByteArray data = doc.toJson();
     return data;

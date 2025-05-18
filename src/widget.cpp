@@ -242,7 +242,10 @@ void Widget::on_send_clicked() {
 
 //模型输出完毕的后处理
 void Widget::recv_pushover() {
-    ui_insert_history.append({temp_assistant_history, EVA_ROLE_MODEL});
+    QJsonObject roleMessage;
+    roleMessage.insert("role",DEFAULT_MODEL_NAME);
+    roleMessage.insert("content",temp_assistant_history);
+    ui_messagesArray.append(roleMessage);
     temp_assistant_history = "";
 
     if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
@@ -253,8 +256,8 @@ void Widget::recv_pushover() {
         //如果挂载了工具,则尝试提取里面的json
         if (is_load_tool) 
         {
-            // qDebug()<<ui_insert_history.last().first;
-            QString tool_str = ui_insert_history.last().first;//移除think标签;
+            // qDebug()<<ui_messagesArray.last().first;
+            QString tool_str = ui_messagesArray.last().toObject().value("content").toString();//移除think标签;
             
             tools_call = XMLparser(tool_str);  //取巧预解码的系统指令故意不让解析出
             if (tools_call.empty()) 
@@ -441,7 +444,12 @@ void Widget::on_reset_clicked() {
 
     //如果是链接模式就简单处理
     if (ui_mode == LINK_MODE) {
-        ui_insert_history.clear();
+        ui_messagesArray = QJsonArray();//清空
+        //构造系统指令
+        QJsonObject systemMessage;
+        systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+        systemMessage.insert("content", ui_DATES.date_prompt);
+        ui_messagesArray.append(systemMessage);
         if (ui_state == CHAT_STATE) {
             reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
             current_api = apis.api_endpoint + apis.api_chat_endpoint;
@@ -808,28 +816,32 @@ void Widget::api_send_clicked_slove() {
     data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     if (ui_state == COMPLETE_STATE) {
-        data.complete_state = true;
+        data.is_complete_state = true;
     } else {
-        data.complete_state = false;
+        data.is_complete_state = false;
     }
     data.temp = ui_SETTINGS.temp;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.repeat = ui_SETTINGS.repeat;
-    data.insert_history = ui_insert_history;
+    data.messagesArray = ui_messagesArray;
 
     if (tool_result == "") {
         input = ui->input->textEdit->toPlainText().toUtf8().data();
         ui->input->textEdit->clear();
     }
-    //
-    //来补充链接模式的各种情况/上传图像/图像文件
-    //
-    //-----------------------正常情况----------------------------
+
+    QStringList images_filepath = ui->input->imagePaths;// 获取图像列表
+    ui->input->clearThumbnails();// 清空缩率图区
+
+    
     if (ui_state == CHAT_STATE) {
-        //如果工具返回的结果不为空,则发送工具的结果给net
+        //-----------------------构造工具消息----------------------------
         if (tool_result != "") {
             //目前通过user这个角色给net
-            ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, EVA_ROLE_USER});
+            QJsonObject roleMessage;
+            roleMessage.insert("role",DEFAULT_USER_NAME);
+            roleMessage.insert("content","tool: " + tool_result);
+            ui_messagesArray.append(roleMessage);
             reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
             tool_result = "";
@@ -838,9 +850,49 @@ void Widget::api_send_clicked_slove() {
             is_run = true;                                                  //模型正在运行标签
             ui_state_pushing();
             return;
-        } else {
-            ui_insert_history.append({input, EVA_ROLE_USER});
-            data.insert_history = ui_insert_history;
+        } 
+        //-----------------------构造用户消息----------------------------
+        else {
+            if(images_filepath.isEmpty())
+            {
+                QJsonObject roleMessage;
+                roleMessage.insert("role",DEFAULT_USER_NAME);
+                roleMessage.insert("content",input);
+                ui_messagesArray.append(roleMessage);
+            }
+            else // 有图片的情况
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+                // 添加图像消息
+                for(int i = 0;i<images_filepath.size();++i)
+                {
+                    //读取图像文件并转换为 Base64
+                    QFile imageFile(images_filepath[i]);
+                    if (!imageFile.open(QIODevice::ReadOnly)) {qDebug() << "Failed to open image file";}
+                    QByteArray imageData = imageFile.readAll();
+                    QByteArray base64Data = imageData.toBase64();
+                    QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+
+                    QJsonObject imageObject;
+                    imageObject["type"] = "image_url";
+                    QJsonObject imageUrlObject;
+                    imageUrlObject["url"] = base64String;
+                    imageObject["image_url"] = imageUrlObject;
+                    contentArray.append(imageObject);
+                    showImages({images_filepath[i]});// 展示图片
+                }
+                // 添加用户消息
+                QJsonObject textMessage;
+                textMessage.insert("type","text");
+                textMessage.insert("text",input);
+                contentArray.append(textMessage);
+                message["content"] = contentArray;
+                ui_messagesArray.append(message);
+            }
+
+            data.messagesArray = ui_messagesArray;
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
             reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色

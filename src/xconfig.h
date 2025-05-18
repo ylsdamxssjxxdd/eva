@@ -19,6 +19,7 @@
 #include <thread>
 #include <vector>
 #include <QProcessEnvironment>
+#include <QJsonArray>
 #include "./src/utils/cmakeconfig.h"
 #include "mcp_message.h"
 
@@ -228,15 +229,15 @@ struct APIS {
 
 //端点接收参数
 struct ENDPOINT_DATA {
-    QString date_prompt;
-    QString input_pfx;
-    QString input_sfx;
-    QString input_prompt;                              //续写模式用
-    QVector<QPair<QString, EVA_ROLE>> insert_history;  // 将要构造的历史数据，前面是内容后面是角色
-    bool complete_state;
-    float temp;
-    double repeat;
-    int n_predict;
+    QString date_prompt;// 约定指令
+    QString input_pfx;// 输入前缀
+    QString input_sfx;// 输入后缀
+    QString input_prompt;// 续写模式提示词
+    QJsonArray messagesArray;// 将要构造的历史数据
+    bool is_complete_state;// 是否为补完状态
+    float temp;// 温度
+    double repeat;// 重复惩罚
+    int n_predict;// 最大预测数
     QStringList stopwords;  //停止标志
 };
 

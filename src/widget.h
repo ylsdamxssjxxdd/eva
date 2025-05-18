@@ -253,7 +253,7 @@ class Widget : public QWidget {
     QLabel *api_model_label;
     QLineEdit *api_model_LineEdit;
     APIS apis;                                            // api配置参数
-    QVector<QPair<QString, EVA_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
+    QJsonArray ui_messagesArray;  // 将要构造的历史数据
     QString temp_assistant_history = "";                  //临时数据
     QString current_api;                                  //当前负载端点
 

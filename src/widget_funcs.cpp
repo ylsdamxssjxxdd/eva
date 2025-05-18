@@ -786,6 +786,11 @@ void Widget::set_api() {
     emit ui2net_apis(apis);
     ui->output->clear();
     reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+    //构造系统指令
+    QJsonObject systemMessage;
+    systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+    systemMessage.insert("content", ui_DATES.date_prompt);
+    ui_messagesArray.append(systemMessage);
     ui_state_normal();
     auto_save_user();
 }
@@ -798,14 +803,14 @@ void Widget::tool_testhandleTimeout() {
     data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     if (ui_state == COMPLETE_STATE) {
-        data.complete_state = true;
+        data.is_complete_state = true;
     } else {
-        data.complete_state = false;
+        data.is_complete_state = false;
     }
     data.temp = ui_SETTINGS.temp;
     data.repeat = ui_SETTINGS.repeat;
     data.n_predict = ui_SETTINGS.hid_npredict;
-    data.insert_history = ui_insert_history;
+    data.messagesArray = ui_messagesArray;
 
     emit ui2net_data(data);
     emit ui2net_push();
