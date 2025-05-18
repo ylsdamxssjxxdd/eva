@@ -932,10 +932,6 @@
             "截图成功",
             "cut image success "
         ],
-        "<predecode cut image>": [
-            "<预解码刚才的截图>",
-            "<predecode cut image> "
-        ],
         "save cut image": [
             "保存截图",
             "save cut image "

@@ -110,8 +110,8 @@ class Widget : public QWidget {
 
 
     //模型控制相关
-    CHATS bot_chat;                 // 经过模型自带模板格式化后的内容
-    QMap<QString, DATES> date_map;  //约定模板
+    EVA_CHATS_TEMPLATE bot_chat;                 // 经过模型自带模板格式化后的内容
+    QMap<QString, EVA_DATES> date_map;  //约定模板
     QString custom1_date_system;
     QString custom1_user_name;
     QString custom1_model_name;  //自定义约定模板1
@@ -132,7 +132,7 @@ class Widget : public QWidget {
     void normal_finish_pushover();       //正常情况处理推理完毕
     bool gpu_wait_load = false;          // 等待检测完显存信息重新装载的标签
 
-    DATES ui_DATES;        // ui的约定
+    EVA_DATES ui_DATES;        // ui的约定
     SETTINGS ui_SETTINGS;  // ui的设置
 
     int ui_n_ctx_train = 2048;  //模型最大上下文长度
@@ -147,9 +147,7 @@ class Widget : public QWidget {
     QString embeddingdb_describe;  //知识库的描述
 
     //视觉相关
-    void showImage(QString imagepath);  //显示文件名和图像
     CutScreenDialog *cutscreen_dialog;
-    QString cut_imagepath;
 
     //服务相关
     QProcess *server_process;
@@ -204,7 +202,7 @@ class Widget : public QWidget {
     bool is_load_tool = false;                         //是否挂载了工具
     mcp::json XMLparser(QString text);  //手搓输出解析器，提取XMLparser
     QString tool_result;
-    QString wait_to_show_image = "";  //文生图后待显示图像的图像路径
+    QStringList wait_to_show_images_filepath;  //文生图后待显示图像的图像路径
     
 
     //装载动画相关
@@ -255,20 +253,19 @@ class Widget : public QWidget {
     QLabel *api_model_label;
     QLineEdit *api_model_LineEdit;
     APIS apis;                                            // api配置参数
-    QVector<QPair<QString, API_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
+    QVector<QPair<QString, EVA_ROLE>> ui_insert_history;  // 将要构造的历史数据，前面是内容，后面是角色
     QString temp_assistant_history = "";                  //临时数据
     QString current_api;                                  //当前负载端点
 
     //发给模型的信号
    signals:
-    void ui2bot_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
+    void ui2bot_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS);  //自动装载
     void ui2bot_language(int language_flag_);                     //传递使用的语言
     void ui2bot_loadmodel(QString modelpath);                     //开始装载模型
-    void ui2bot_predict(INPUTS input);                            //开始推理
-    void ui2bot_preDecodeImage(QString image_path);               //开始预解码图像
+    void ui2bot_predict(EVA_INPUTS input);                            //开始推理
     void ui2bot_stop();                                           //传递推理停止信号
     void ui2bot_reset();                                          //传递重置信号
-    void ui2bot_date(DATES date);                                 //传递约定内容
+    void ui2bot_date(EVA_DATES date);                                 //传递约定内容
     void ui2bot_set(SETTINGS settings, bool can_reload);          //传递设置内容
     void ui2bot_free(bool loadlater);                             //释放
     void ui2bot_maxngl(int maxngl_);
@@ -302,7 +299,7 @@ class Widget : public QWidget {
    public slots:
     void recv_predecoding();                                                      // 正在预解码
     void recv_predecoding_over();                                                 // 完成预解码
-    void recv_chat_format(CHATS chats);                                           //传递格式化后的对话内容
+    void recv_chat_format(EVA_CHATS_TEMPLATE chats);                                           //传递格式化后的对话内容
     void recv_freeover_loadlater();                                               //模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                          //传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                 //处理tool推理完毕的槽
@@ -330,6 +327,7 @@ class Widget : public QWidget {
 
     //自用的槽
    public slots:
+    void showImages(QStringList images_filepath);  //显示文件名和图像
     void serverControl();                                                      //服务状态启动服务
     void switch_lan_change();                                                  //切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_);  //更新gpu内存使用率

@@ -112,9 +112,7 @@ elseif(UNIX)
 
 endif()
 
-add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
-
-if(ARCHITECTURE MATCHES "aarch64|arm")
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|arm")
     message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
     set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 银河麒麟不支持
 endif()
@@ -183,6 +181,7 @@ get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE) # 获取Q
 message(STATUS "Qt5的bin目录  ${Qt5_BIN_DIR}")
 message(STATUS "build目录  ${CMAKE_BINARY_DIR}")
 message(STATUS "eva输出目录  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+add_subdirectory(src/utils) # 利用这里面的cmakelists.txt检查系统环境等
 
 # 添加qt资源文件，因为启用了CMAKE_AUTORCC标志，所有resource_FILES添加到add_executable里就会自动生成.cpp文件
 if(WIN32)

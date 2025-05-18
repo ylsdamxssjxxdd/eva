@@ -994,23 +994,10 @@ void Widget::create_right_menu() {
     //上传图像
     QAction *action14 = right_menu->addAction(jtr("Q14"));
     connect(action14, &QAction::triggered, this, [=]() {
-        if (is_run || (ui_mode == LOCAL_MODE && !is_load)) {
-            return;
-        }  //只在空闲的对话模式生效
 
         //用户选择图片
-        currentpath = customOpenfile(currentpath, jtr("Q14"), "(*.png *.jpg *.bmp)");
-
-        if (currentpath == "") {
-            return;
-        }
-
-        if (ui->send->isEnabled()) {
-            showImage(currentpath);                   //显示文件名和图像
-            is_run = true;                            //模型正在运行标签
-            ui_state_pushing();                       //推理中界面状态
-            emit ui2bot_preDecodeImage(currentpath);  //预解码图像
-        }
+        QStringList paths = QFileDialog::getOpenFileNames(nullptr, jtr("Q14"), currentpath, "(*.png *.jpg *.bmp)");
+        ui->input->addImages(paths);
     });
 }
 
@@ -1442,26 +1429,30 @@ void Widget::server_onProcessFinished() {
 void Widget::bench_onProcessFinished() { qDebug() << "llama-bench进程结束响应"; }
 
 //显示文件名和图像
-void Widget::showImage(QString imagepath) {
-    ui_output = "\nfile:///" + imagepath + "\n";
-    output_scroll(ui_output);
+void Widget::showImages(QStringList images_filepath) {
+    for (int i = 0; i < images_filepath.size(); ++i) {
+        QString imagepath = images_filepath[i];
+        QString ui_output = imagepath + "\n";
+        output_scroll(ui_output);
 
-    // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-    QImage image(imagepath);
-    int originalWidth = image.width() / devicePixelRatioF();
-    int originalHeight = image.height() / devicePixelRatioF();
+        // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
+        QImage image(imagepath);
+        int originalWidth = image.width() / devicePixelRatioF();
+        int originalHeight = image.height() / devicePixelRatioF();
 
-    QTextCursor cursor(ui->output->textCursor());
-    cursor.movePosition(QTextCursor::End);
+        QTextCursor cursor(ui->output->textCursor());
+        cursor.movePosition(QTextCursor::End);
 
-    QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);    // 设置图片的宽度
-    imageFormat.setHeight(originalHeight);  // 设置图片的高度
-    imageFormat.setName(imagepath);         // 图片资源路径
+        QTextImageFormat imageFormat;
+        imageFormat.setWidth(originalWidth/2);    // 设置图片的宽度
+        imageFormat.setHeight(originalHeight/2);  // 设置图片的高度
+        imageFormat.setName(imagepath);         // 图片资源路径
 
-    cursor.insertImage(imageFormat);
-    //滚动到底部展示
-    ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());  //滚动条滚动到最下面
+        cursor.insertImage(imageFormat);
+        output_scroll("\n");
+        //滚动到底部展示
+        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());  //滚动条滚动到最下面
+    }
 }
 
 //开始录音
@@ -1610,7 +1601,7 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->decode_box->setTitle(jtr("decode set"));  //解码设置区域
-    settings_ui->ngl_label->setText("gpu " + jtr("offload") + QString::number(ui_SETTINGS.ngl));
+    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
     settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
     settings_ui->ngl_label->setMinimumWidth(100);
     settings_ui->ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));

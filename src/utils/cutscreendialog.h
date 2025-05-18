@@ -16,6 +16,7 @@
 #include <QImage>
 #include <QKeyEvent>
 #include <QContextMenuEvent>
+#include <QDialog>
 
 class CutScreenDialog : public QDialog {
     Q_OBJECT
@@ -71,7 +72,7 @@ protected:
         QScreen *screen = QApplication::primaryScreen();  // 获取主屏幕
         m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());  // 截取屏幕
         QPixmap overlay(desktopSize.width(), desktopSize.height());  // 创建一个与屏幕同尺寸的图层
-        overlay.fill(QColor(255, 0, 0, 150));  // 填充一个半透明的红色遮罩
+        overlay.fill(QColor(255, 165, 0, 150));  // 填充一个半透明的红色遮罩
         m_backgroundPicture = m_screenPicture;  // 设置背景图片
         QPainter painter(&m_backgroundPicture);  // 在背景图上绘制遮罩
         painter.drawPixmap(0, 0, overlay);
@@ -128,28 +129,28 @@ protected:
 
 public:
     // 调整图片的长宽比，如果长边与短边比大于3，则进行调整
-    QImage adjustImageAspectRatio(const QImage &image) {
-        int width = image.width();
-        int height = image.height();
-        int longSide = qMax(width, height);  // 长边
-        int shortSide = qMin(width, height);  // 短边
-        double aspectRatio = static_cast<double>(longSide) / shortSide;  // 计算长宽比
-        if (aspectRatio > 3) {
-            int newShortSide = longSide / 3;  // 新的短边
-            int padding = newShortSide - shortSide;  // 需要填充的宽度
-            QImage newImage = (width < height) 
-                              ? QImage(width + padding, height, image.format()) 
-                              : QImage(width, height + padding, image.format());
-            newImage.fill(Qt::white);  // 用白色填充
-            for (int y = 0; y < height; ++y) {
-                for (int x = 0; x < width; ++x) {
-                    newImage.setPixel(x, y, image.pixel(x, y));  // 将原图像素复制到新图像
-                }
-            }
-            return newImage;
-        }
-        return image;  // 长宽比不需要调整时，返回原图
-    }
+    // QImage adjustImageAspectRatio(const QImage &image) {
+    //     int width = image.width();
+    //     int height = image.height();
+    //     int longSide = qMax(width, height);  // 长边
+    //     int shortSide = qMin(width, height);  // 短边
+    //     double aspectRatio = static_cast<double>(longSide) / shortSide;  // 计算长宽比
+    //     if (aspectRatio > 3) {
+    //         int newShortSide = longSide / 3;  // 新的短边
+    //         int padding = newShortSide - shortSide;  // 需要填充的宽度
+    //         QImage newImage = (width < height) 
+    //                           ? QImage(width + padding, height, image.format()) 
+    //                           : QImage(width, height + padding, image.format());
+    //         newImage.fill(Qt::white);  // 用白色填充
+    //         for (int y = 0; y < height; ++y) {
+    //             for (int x = 0; x < width; ++x) {
+    //                 newImage.setPixel(x, y, image.pixel(x, y));  // 将原图像素复制到新图像
+    //             }
+    //         }
+    //         return newImage;
+    //     }
+    //     return image;  // 长宽比不需要调整时，返回原图
+    // }
 
     // 保存图片到文件和剪贴板
     void saveImage(const QImage &image) {
@@ -166,8 +167,8 @@ public slots:
     void saveCapturedScreen() {
         QRect rect = getCapturedRect(m_fixedStartPos, m_endPos);  // 获取选定区域矩形
         QImage capturedImage = m_screenPicture.copy(rect).toImage();  // 获取选定区域的图像
-        QImage adjustedImage = adjustImageAspectRatio(capturedImage);  // 调整长宽比
-        saveImage(adjustedImage);  // 保存图片
+        // QImage adjustedImage = adjustImageAspectRatio(capturedImage);  // 调整长宽比
+        saveImage(capturedImage);  // 保存图片
         clearInformation();  // 清除截图信息
         hide();  // 隐藏窗口
     }

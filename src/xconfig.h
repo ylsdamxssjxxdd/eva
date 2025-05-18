@@ -77,7 +77,7 @@
 #define SERVER_EMBD_INFO "print_info: n_embd           = "  // 模型装载成功返回的词嵌入维度字样
 
 //默认的模型路径
-#define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen2.5-7B-Q3_K_M.gguf"
+#define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen3-8B-Q3_K_M.gguf"
 #define DEFAULT_SD_MODEL_PATH "/EVA_MODELS/文生图模型/sd1.5-anything-3/sd1.5-anything-3-q8_0.gguf"
 #define DEFAULT_WHISPER_MODEL_PATH "/EVA_MODELS/声转文模型/whisper-base-q5_1.bin"
 #define DEFAULT_OUTETTS_MODEL_PATH "/EVA_MODELS/文转声模型/OuteTTS-0.2-500M-Q8_0.gguf"
@@ -93,13 +93,10 @@
 #define DEFAULT_SHELL "/bin/sh"
 #define DEFAULT_PYTHON "python3"
 #endif
-namespace mcp {
-
-// Use the nlohmann json library
-using json = nlohmann::ordered_json;
+namespace mcp {using json = nlohmann::ordered_json;
 };
 //约定内容
-struct DATES {
+struct EVA_DATES {
     QString date_prompt = DEFAULT_DATE_PROMPT;  // 约定指令 影响 系统指令
     QString user_name = DEFAULT_USER_NAME;      // 用户昵称 影响 输入前缀
     QString model_name = DEFAULT_MODEL_NAME;    // 模型昵称 影响 输入后缀
@@ -108,33 +105,29 @@ struct DATES {
 };
 
 // 经过模型自带模板格式化后的内容
-struct CHATS {
+struct EVA_CHATS_TEMPLATE {
     QString system_prompt;  // 系统指令
     QString input_prefix;   // 输入前缀
     QString input_suffix;   // 输入后缀
     QString tool_prefix;   // 输入前缀（工具）
 };
 
-//发送内容的源
-enum ROLE {
-    ROLE_USER,         // 加前缀后缀输入
-    ROLE_OBSERVATION,  // 只加后缀，引导模型回答
+//发送内容的角色
+enum EVA_ROLE {
+    EVA_ROLE_SYSTEM,         // 系统角色
+    EVA_ROLE_MODEL,         // 模型角色
+    EVA_ROLE_USER,         // 用户角色
+    EVA_ROLE_OBSERVATION,  // 工具角色
 };
 
-//传递的前缀/输入/后缀
-struct INPUTS {
-    QString input;
-    ROLE role;
+//一次发送的内容
+struct EVA_INPUTS {
+    EVA_ROLE role;// 角色
+    QString text_content;// 文本内容
+    QStringList images_filepath;// 图片路径
+    QStringList wavs_filepath;// 音频路径
+    
 };
-
-//颜色
-const QColor BODY_WHITE(255, 255, 240);       // 乳白色
-const QColor SIGNAL_BLUE(0, 0, 255);       // 蓝色
-const QColor SYSTEM_BLUE(0, 0, 255, 200);  // 蓝紫色
-const QColor TOOL_BLUE(0, 191, 255);       // 天蓝色
-const QColor NORMAL_BLACK(0, 0, 0);        // 黑色
-const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
-const QColor THINK_GRAY(128, 128, 128); // 灰色
 
 //机体模式枚举
 enum EVA_MODE {
@@ -233,20 +226,13 @@ struct APIS {
     bool is_cache = true;
 };
 
-// 链接模式下发送消息的对象枚举
-enum API_ROLE {
-    API_ROLE_USER,
-    API_ROLE_ASSISANT,
-    // API_ROLE_OBSERVATION, // 暂时不会用
-};
-
 //端点接收参数
 struct ENDPOINT_DATA {
     QString date_prompt;
     QString input_pfx;
     QString input_sfx;
     QString input_prompt;                              //续写模式用
-    QVector<QPair<QString, API_ROLE>> insert_history;  // 将要构造的历史数据，前面是内容后面是角色
+    QVector<QPair<QString, EVA_ROLE>> insert_history;  // 将要构造的历史数据，前面是内容后面是角色
     bool complete_state;
     float temp;
     double repeat;
@@ -724,6 +710,14 @@ static TOOLS_INFO Buildin_tools_write_file(
     "{""\"type\":\"object\",""\"properties\":{""\"path\":{""\"type\":\"string\",""\"description\":\"The file path which you want to write\"""},\"content\":{""\"type\":\"string\",""\"description\":\"The file content\"""}""},""\"required\":[\"path\",\"content\"]""}"
 );
 
+//颜色
+const QColor BODY_WHITE(255, 255, 240);       // 乳白色
+const QColor SIGNAL_BLUE(0, 0, 255);       // 蓝色
+const QColor SYSTEM_BLUE(0, 0, 255, 200);  // 蓝紫色
+const QColor TOOL_BLUE(0, 191, 255);       // 天蓝色
+const QColor NORMAL_BLACK(0, 0, 0);        // 黑色
+const QColor LCL_ORANGE(255, 165, 0);      // 橘黄色
+const QColor THINK_GRAY(128, 128, 128); // 灰色
 
 #endif XCONFIG_H
 

@@ -30,7 +30,7 @@ xBot::xBot() {
 xBot::~xBot() { ; }
 
 //模型预测推理过程
-void xBot::predict(INPUTS inputs) {
+void xBot::predict(EVA_INPUTS inputs) {
     // 删除思考部分的记忆
     int thinkStartIndex = -1;
     int thinkEndIndex = -1;
@@ -62,14 +62,15 @@ void xBot::predict(INPUTS inputs) {
     std::vector<llama_token> line_pfx;  //前缀 向量
     std::vector<llama_token> line_inp;  //用户输入 向量
     std::vector<llama_token> line_sfx;  //后缀 向量
-
+    
     //---插入前缀---
-    if ((!is_complete && !is_antiprompt) && (inputs.role == ROLE_USER))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
+    if ((!is_complete && !is_antiprompt) && (inputs.role == EVA_ROLE_USER))  //前缀,如果 检测出用户昵称/补完模式 则不加前缀
     {
         line_pfx = ::common_tokenize(ctx, bot_chat.input_prefix.toStdString(), false, true);
-        embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
+        //有图片的话就不在这里加入到解码队列，而是由preDecodeImage处理
+        if(inputs.images_filepath.isEmpty()){embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());}
     }
-    else if(inputs.role == ROLE_OBSERVATION)
+    else if(inputs.role == EVA_ROLE_OBSERVATION)
     {
         line_pfx = ::common_tokenize(ctx, bot_chat.tool_prefix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_pfx.begin(), line_pfx.end());
@@ -77,14 +78,14 @@ void xBot::predict(INPUTS inputs) {
 
     //---插入输入---
     if (is_complete) {
-        line_inp = ::common_tokenize(ctx, inputs.input.toStdString(), true, true);
+        line_inp = ::common_tokenize(ctx, inputs.text_content.toStdString(), true, true);
     } else {
-        line_inp = ::common_tokenize(ctx, inputs.input.toStdString(), false, true);
+        line_inp = ::common_tokenize(ctx, inputs.text_content.toStdString(), false, true);
     }  //common_tokenize 第一个bool表示添加起始词，据观察只对SPE分词的模型有效;第二个bool表示会将特殊token整个分词
     embd_inp.insert(embd_inp.end(), line_inp.begin(), line_inp.end());
 
     //---插入后缀---
-    if (!is_complete && (inputs.role == ROLE_USER || inputs.role == ROLE_OBSERVATION))  // 补完模式则不加后缀
+    if (!is_complete && (inputs.role == EVA_ROLE_USER || inputs.role == EVA_ROLE_OBSERVATION))  // 补完模式则不加后缀
     {
         line_sfx = ::common_tokenize(ctx, bot_chat.input_suffix.toStdString(), false, true);
         embd_inp.insert(embd_inp.end(), line_sfx.begin(), line_sfx.end());
@@ -92,9 +93,13 @@ void xBot::predict(INPUTS inputs) {
 
     is_antiprompt = false;  //重置反提示标签
 
-    push_out(inputs, line_pfx, 0);  //在输出区贴上用户昵称
+    push_out(inputs, line_pfx, 0);  //在输出区贴上用户昵称 前缀
+    if(!inputs.images_filepath.isEmpty())
+    {
+        preDecodeImage(inputs.images_filepath);//预解码图像和前缀
+    }
     push_out(inputs, line_inp, 1);  //在输出区贴上输入内容
-    push_out(inputs, line_sfx, 2);  //在输出区贴上模型昵称
+    push_out(inputs, line_sfx, 2);  //在输出区贴上模型昵称 后缀
 
     //---------------------embd_inp插入到embd中----------------------
     // qDebug()<<"插入前embd"<<view_embd(ctx,embd);
@@ -361,81 +366,94 @@ int xBot::stream() {
     return -1;
 }
 
-//预解码图像
-void xBot::preDecodeImage(QString image_path) {
-    QElapsedTimer time2;
-    time2.start();
+//预解码图像和前缀
+void xBot::preDecodeImage(QStringList images_filepath) {
+    int k =0;//计数用，只有第一张图片前添加前缀
+    for(int i=0;i<images_filepath.size();++i)
+    {
+        QElapsedTimer time2;
+        time2.start();
+        k++;
 #ifdef _WIN32
-    QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
-    std::string imagepath = code->fromUnicode(image_path).data();
+        QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
+        std::string imagepath = code->fromUnicode(images_filepath[i]).data();
 #elif __linux__
-    std::string imagepath = image_path.toStdString();
+        std::string imagepath = images_filepath[i].toStdString();
 #endif
 
-    if (is_multi) {
-        emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
-        int n_past_orin = n_past;
+        if (is_multi) {
+            emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
+            int n_past_orin = n_past;
 
-        // 加载图像
-        load_image(imagepath.c_str());
+            // 加载图像
+            load_image(imagepath.c_str());
+            std::string img_text;
+            if(k==1)
+            {img_text = bot_chat.input_prefix.toStdString() + "\n" + images_filepath[i].toStdString() + "\n<__image__>\n";}
+            else{img_text = images_filepath[i].toStdString() + "\n<__image__>\n";}//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
+            
+            // 构造输入token
+            // for example:
+            //   "here is an image: <__image__>\ndescribe it in detail."
+            //   this will gives 3 chunks:
+            //   1. "here is an image: <start_of_image>"
+            //   2. (image tokens)
+            //   3. "<end_of_image>\ndescribe it in detail."
+            mtmd_input_text text;
+            text.text          = img_text.c_str();
+            text.add_special   = true;
+            text.parse_special = true;
+            mtmd::input_chunks chunks(mtmd_input_chunks_init());
+            auto bitmaps_c_ptr = bitmaps.c_ptr();
+            int32_t res = mtmd_tokenize(ctx_vision.get(),
+                            chunks.ptr.get(), // output
+                            &text, // text
+                            bitmaps_c_ptr.data(),
+                            bitmaps_c_ptr.size());
 
-        // 构造输入token
-        mtmd_input_text text;
-        text.text          = " <__image__> ";//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
-        text.add_special   = true;
-        text.parse_special = true;
-        mtmd::input_chunks chunks(mtmd_input_chunks_init());
-        auto bitmaps_c_ptr = bitmaps.c_ptr();
-        int32_t res = mtmd_tokenize(ctx_vision.get(),
-                        chunks.ptr.get(), // output
-                        &text, // text
-                        bitmaps_c_ptr.data(),
-                        bitmaps_c_ptr.size());
+            bitmaps.entries.clear(); // 释放图片缓存
 
-        bitmaps.entries.clear(); // 释放图片缓存
+            if(chunks.size() == 0)// 未正确解析图片的情况
+            {
+                emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+                return;
+            }
 
-        if(chunks.size() == 0)// 未正确解析图片的情况
-        {
-            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-            return;
+            // 预解码图像token
+            llama_pos new_n_past;
+            if(mtmd_helper_eval_chunks(ctx_vision.get(),
+                        ctx, // lctx
+                        chunks.ptr.get(), // chunks
+                        n_past, // n_past
+                        0, // seq_id
+                        common_params_.n_batch, // n_batch
+                        true, // logits_last
+                        &new_n_past))
+            {
+                // 未正确解码的情况
+                emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+                return;
+            }
+
+            n_past = new_n_past;
+            emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量
+
+            for (int i = Brain_vector.size(); i < n_past; ++i) {
+                Brain_vector.push_back({i + 1, -2, "<__image__>"});
+            }  // 添加到记忆矩阵
+
+            emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1 表示强制刷新记忆矩阵
+
+            float time_ = time2.nsecsElapsed() / 1000000000.0;
+            int n_past_new = n_past - n_past_orin;  // 新增的token数
+            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + " +" + QString::number(n_past_new), SUCCESS_SIGNAL);
+            emit bot2ui_showImages({images_filepath[i]});//在输出区贴上图像
+        } 
+        else {
+            emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
         }
-
-        // 预解码图像token
-        llama_pos new_n_past;
-        if(mtmd_helper_eval_chunks(ctx_vision.get(),
-                    ctx, // lctx
-                    chunks.ptr.get(), // chunks
-                    n_past, // n_past
-                    0, // seq_id
-                    common_params_.n_batch, // n_batch
-                    true, // logits_last
-                    &new_n_past))
-        {
-            // 未正确解码的情况
-            emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-            return;
-        }
-
-        n_past = new_n_past;
-        emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量
-
-        for (int i = Brain_vector.size(); i < n_past; ++i) {
-            Brain_vector.push_back({i + 1, -2, "<__image__>"});
-        }  // 添加到记忆矩阵
-
-        emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1 表示强制刷新记忆矩阵
-
-        float time_ = time2.nsecsElapsed() / 1000000000.0;
-        int n_past_new = n_past - n_past_orin;  // 新增的token数
-        emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + " +" + QString::number(n_past_new), SUCCESS_SIGNAL);
-
-    } 
-    else {
-        emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
     }
 
-    emit bot2ui_pushover();  //推理完成的信号
-    is_stop = false;
     return;
 }
 
@@ -785,7 +803,7 @@ QString xBot::view_embd(llama_context *ctx_, std::vector<llama_token> embd_) {
 
 //先输出用户发送过来的东西
 // context_pos 0是用户昵称 1是输入内容 2是模型昵称
-void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int context_pos) {
+void xBot::push_out(EVA_INPUTS input, std::vector<llama_token> embd_output, int context_pos) {
     //如果是对话模式,先输出用户的输入,起到一个验证的作用
     if (!is_complete) {
         std::string token_str;
@@ -795,7 +813,7 @@ void xBot::push_out(INPUTS input, std::vector<llama_token> embd_output, int cont
             token_str += str;
         }
         //如果是工具输出的结果给过来的话，用天蓝色，前缀后缀都是\n则认为是工具
-        if (input.role == ROLE_OBSERVATION) {
+        if (input.role == EVA_ROLE_OBSERVATION) {
             emit bot2ui_output(QString::fromStdString(token_str), false, TOOL_BLUE);
         } else if (context_pos == 0)  //用户昵称
         {
@@ -940,7 +958,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload) {
 }
 
 //接受约定内容
-void xBot::recv_date(DATES date) {
+void xBot::recv_date(EVA_DATES date) {
     apply_date(date);  //应用约定
 
     emit bot2ui_datereset();  // bot发信号请求ui触发reset
@@ -1015,13 +1033,13 @@ bool xBot::isIncompleteUTF8(const std::string &text) {
 void xBot::recv_language(int language_flag_) { language_flag = language_flag_; }
 
 //自动装载
-void xBot::recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS) {
+void xBot::recv_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS) {
     apply_date(ini_DATES);      //应用约定
     recv_set(ini_SETTINGS, 1);  //触发设置引起重载
 }
 
 //应用约定
-void xBot::apply_date(DATES date) {
+void xBot::apply_date(EVA_DATES date) {
     bot_date.date_prompt = date.date_prompt;
     bot_date.user_name = date.user_name;
     bot_date.model_name = date.model_name;

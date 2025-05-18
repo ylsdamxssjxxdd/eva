@@ -573,7 +573,6 @@ void Expend::showReadme() {
                              .arg(jtr("QT_VERSION_"), QString(QT_VERSION_))
                              .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
                              .arg(jtr("EVA_VERSION"), QString(EVA_VERSION));
-
     readme_content.prepend(compileInfo);  // 将编译信息放在文件内容前
 
     // 设置 Markdown 内容

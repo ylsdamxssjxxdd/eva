@@ -42,9 +42,14 @@ public:
         connect(textEdit, &QTextEdit::textChanged, this, &ImageInputBox::adjustHeight);
     }
 
-    void addImage(const QString &path) {
-        addImageThumbnail(path);
+    void addImages(const QStringList &paths) {
+        for(int i =0;i<paths.size();++i)
+        {
+            QString path = paths[i];
+            addImageThumbnail(path);
+        }
     }
+
     bool isImageFile(const QString &path) const {
         static QStringList extensions = {"png", "jpg", "jpeg", "gif", "bmp"};
         return extensions.contains(QFileInfo(path).suffix().toLower());
@@ -109,24 +114,65 @@ public:
         adjustHeight();
     }
 
+        // 添加清空缩略图函数
+    void clearThumbnails() {
+        // 移除所有缩略图部件
+        QLayoutItem* child;
+        while ((child = thumbnailLayout->takeAt(0)) != nullptr) {
+            delete child->widget();
+            delete child;
+        }
+        imagePaths.clear();
+        updateLayout();
+        adjustHeight();
+    }
+
 private:
     const int THUMBNAIL_SIZE = 30;
     void setupUI() {
         mainLayout = new QVBoxLayout(this);
         mainLayout->setContentsMargins(0, 0, 0, 0);
         mainLayout->setSpacing(0);
+        
         // 缩略图滚动区域
         scrollArea = new QScrollArea;
         scrollArea->setWidgetResizable(true);
         scrollArea->setMinimumHeight(THUMBNAIL_SIZE + 20);
         scrollArea->setMaximumHeight(THUMBNAIL_SIZE + 20);
-        scrollArea->setStyleSheet("QScrollArea { border: none; }");
+        scrollArea->setStyleSheet(
+            "QScrollArea {"
+            "    border: 1px solid #3498db;"  // 现代蓝色边框
+            "    border-radius: 4px;"
+            "    background: #f8fafc;"
+            "}"
+            "QScrollBar:horizontal {"
+            "    height: 8px;"
+            "    background: transparent;"
+            "    margin: 0 2px;"
+            "}"
+            "QScrollBar::handle:horizontal {"
+            "    background: #a0c4e4;"  // 浅蓝色滚动条
+            "    border-radius: 4px;"
+            "    min-width: 30px;"
+            "}"
+            "QScrollBar::handle:horizontal:hover {"
+            "    background: #7fb2e0;"  // 悬停时稍深的蓝色
+            "}"
+            "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
+            "    background: none;"
+            "}"
+        );
 
-        // // 缩略图容器
+        // 缩略图容器
         thumbnailContainer = new QWidget;
+        thumbnailContainer->setStyleSheet(
+            "background: #f8fafc;"  // 非常浅的蓝色背景
+            "border: none;"
+        );
+
         thumbnailLayout = new QGridLayout(thumbnailContainer);
-        thumbnailLayout->setSpacing(0);
-        thumbnailLayout->setContentsMargins(10, 10, 10, 10);
+        thumbnailLayout->setSpacing(12);  // 增加间距
+        thumbnailLayout->setContentsMargins(12, 8, 12, 8);  // 调整边距
         thumbnailLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
         scrollArea->setWidget(thumbnailContainer);
@@ -198,7 +244,7 @@ private:
         if (mimeData->hasUrls()) {
             foreach (QUrl url, mimeData->urls()) {
                 QString path = url.toLocalFile();
-                qDebug()<<path;
+                // qDebug()<<path;
                 if (isImageFile(path)) {
                     addImageThumbnail(path);
                 }

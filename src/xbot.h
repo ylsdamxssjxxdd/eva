@@ -31,9 +31,9 @@ class xBot : public QObject {
    public slots:
     void load(QString modelpath);                                            //装载模型
     void reset();                                                            //重置模型上下文和缓存等
-    void predict(INPUTS inputs);                                             //开始预测推理
+    void predict(EVA_INPUTS inputs);                                             //开始预测推理
     void preDecodeSystemPrompt();                                            //预解码
-    void preDecodeImage(QString image_path);                                 //预解码图像
+    void preDecodeImage(QStringList images_filepath);                        //预解码图像
     QString viewVocab();                                                     //获取模型词表
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
 
@@ -66,8 +66,8 @@ class xBot : public QObject {
     bool checkStop(std::string *sstr, llama_token *id);     // 检测停止词
 
     // 对话模板相关
-    DATES bot_date;                           // 约定内容
-    CHATS bot_chat;                           // 经过模型自带模板格式化后的内容
+    EVA_DATES bot_date;                           // 约定内容
+    EVA_CHATS_TEMPLATE bot_chat;                           // 经过模型自带模板格式化后的内容
     void get_default_templete_chat_format();  // 构建并提取系统指令、输入前缀、输入后缀
 
     // 快捷预解码token
@@ -88,7 +88,7 @@ class xBot : public QObject {
 
     //先输出用户发送过来的东西
     // context_pos 0是用户昵称 1是输入内容 2是模型昵称
-    void push_out(INPUTS input, std::vector<llama_token> embd_output, int context_pos);
+    void push_out(EVA_INPUTS input, std::vector<llama_token> embd_output, int context_pos);
 
     int n_vocab;       //词表大小
     int n_ctx_train;   //模型最大上下文长度
@@ -105,7 +105,7 @@ class xBot : public QObject {
     int ga_w = 512;                          //拓展时用于计算的宽度？group-attention width
     std::vector<llama_token> system_tokens;  //系统指令的token
 
-    void apply_date(DATES date);  //应用约定
+    void apply_date(EVA_DATES date);  //应用约定
 
     //计算时间相关
     bool is_batch = false;
@@ -142,19 +142,20 @@ class xBot : public QObject {
    public slots:
     void recv_stop();                                                         //接受停止信号
     void recv_llama_log(QString log_);                                        //获取llama log
-    void recv_dateset(DATES ini_DATES, SETTINGS ini_SETTINGS);                //自动装载
+    void recv_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS);                //自动装载
     void recv_language(int language_flag_);                                   //传递使用的语言
     void recv_reset();                                                        //接受重置信号
     void recv_set(SETTINGS settings, bool can_reload);                        //接受设置内容
-    void recv_date(DATES date);                                               //接受约定内容
+    void recv_date(EVA_DATES date);                                               //接受约定内容
     void recv_free(bool loadlater);                                           //释放
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
     void recv_preDecode();                                                    //从补完模式回来强行预解码
 
    signals:
+    void bot2ui_showImages(QStringList images_filepath);//在输出区贴上图像
     void bot2ui_predecoding_over();       // 完成推理，预解码
     void bot2ui_predecoding();            // 正在推理，预解码
-    void bot2ui_chat_format(CHATS chat);  // 发送格式化的对话内容
+    void bot2ui_chat_format(EVA_CHATS_TEMPLATE chat);  // 发送格式化的对话内容
     void bot2ui_freeover_loadlater();     // 模型释放完毕
     void bot2expend_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx, bool reflash = 0);
     void bot2expend_vocab(QString model_vocab);                                             //传递模型总词表

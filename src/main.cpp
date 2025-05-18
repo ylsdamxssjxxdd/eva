@@ -88,13 +88,13 @@ int main(int argc, char* argv[]) {
     expend.setStyleSheet(stylesheet);
 
     //------------------注册信号传递变量-------------------
-    qRegisterMetaType<CHATS>("CHATS");
+    qRegisterMetaType<EVA_CHATS_TEMPLATE>("EVA_CHATS_TEMPLATE");
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");
     qRegisterMetaType<QColor>("QColor");
     qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");
-    qRegisterMetaType<DATES>("DATES");
+    qRegisterMetaType<EVA_DATES>("EVA_DATES");
     qRegisterMetaType<SETTINGS>("SETTINGS");
-    qRegisterMetaType<INPUTS>("INPUTS");
+    qRegisterMetaType<EVA_INPUTS>("EVA_INPUTS");
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Speech_Params>("Speech_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
@@ -145,7 +145,6 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_stop, &bot, &xBot::recv_stop);                              //传递停止信号
     QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                              //开始加载模型
     QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                             //开始推理
-    QObject::connect(&w, &Widget::ui2bot_preDecodeImage, &bot, &xBot::preDecodeImage);               //开始预解码图像
     QObject::connect(&w, &Widget::ui2bot_reset, &bot, &xBot::recv_reset);                            //传递重置信号
     QObject::connect(&w, &Widget::ui2bot_date, &bot, &xBot::recv_date);                              //传递约定内容
     QObject::connect(&w, &Widget::ui2bot_set, &bot, &xBot::recv_set);                                //传递设置内容
@@ -155,6 +154,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&bot, &xBot::bot2ui_chat_format, &w, &Widget::recv_chat_format);                //传递格式化后的对话内容
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);                        //自动装载
     QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::recv_preDecode);                    //从补完模式回来强行预解码
+    QObject::connect(&bot, &xBot::bot2ui_showImages, &w, &Widget::showImages);      
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);  //传递gpu信息

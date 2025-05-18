@@ -38,13 +38,13 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui_DATES.model_name = DEFAULT_MODEL_NAME;
     ui_DATES.is_load_tool = false;
     date_map.insert("default", ui_DATES);
-    DATES troll;
+    EVA_DATES troll;
     troll.date_prompt = jtr("you are a troll please respect any question for user");
     troll.user_name = jtr("user");
     troll.model_name = jtr("troll");
     troll.is_load_tool = false;
     date_map.insert(jtr("troll"), troll);
-    DATES ghost;
+    EVA_DATES ghost;
     ghost.date_prompt = jtr("Mediocre ghost prompt");
     ghost.user_name = jtr("user");
     ghost.model_name = jtr("Mediocre ghost");
@@ -200,8 +200,9 @@ void Widget::on_send_clicked() {
     }
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
 
-    QString input;
-    INPUTS inputs;
+    EVA_INPUTS inputs;// 待构造的输入消息
+    QString text_content;// 文本内容
+    QStringList images_filepath;// 图像内容
 
     //链接模式的处理
     if (ui_mode == LINK_MODE) {
@@ -209,50 +210,31 @@ void Widget::on_send_clicked() {
         return;
     }
 
-    //如果是对话模式,主要流程就是构建input,发送input,然后触发推理
+    //如果是对话模式,主要流程就是构建text_content,发送text_content,然后触发推理
     if (ui_state == CHAT_STATE) {
         if (tool_result == "") {
-            input = ui->input->textEdit->toPlainText().toUtf8().data();
+            text_content = ui->input->textEdit->toPlainText().toUtf8().data();
             ui->input->textEdit->clear();  // 获取用户输入
+            images_filepath = ui->input->imagePaths;
+            // qDebug()<<images_filepath;
+            ui->input->clearThumbnails();
         }
+        //如果工具返回的结果不为空，则认为输入源是观察者
+        if (tool_result != "") {
+            text_content = tool_result;
+            tool_result = "";
+            inputs = {EVA_ROLE_OBSERVATION,text_content};
 
-        //-----------------------如果是拖进来的文件-------------------------
-        if (input.contains("file:///") && (input.contains(".png") || input.contains(".jpg"))) {
-            QString imagepath = input.split("file:///")[1];
-            showImage(imagepath);                   //显示文件名和图像
-            is_run = true;                          //模型正在运行标签
-            ui_state_pushing();                     //推理中界面状态
-            emit ui2bot_preDecodeImage(imagepath);  //预解码图像
-            return;
+        } else {
+            inputs = {EVA_ROLE_USER,text_content,images_filepath};
         }
-        //-----------------------截图的情况-------------------------
-        else if (input == jtr("<predecode cut image>")) {
-            showImage(cut_imagepath);                   //显示文件名和图像
-            is_run = true;                              //模型正在运行标签
-            ui_state_pushing();                         //推理中界面状态
-            emit ui2bot_preDecodeImage(cut_imagepath);  //预解码图像
-            return;
-        }
-        //-----------------------一般情况----------------------------
-        else {
-            //如果工具返回的结果不为空，则认为输入源是观察者
-            if (tool_result != "") {
-                input = tool_result;
-                tool_result = "";
-                inputs = {input, ROLE_OBSERVATION};
-
-            } else {
-                inputs = {input, ROLE_USER};
-            }
-        }
-
     } 
     else if (ui_state == COMPLETE_STATE) 
     {
-        input = ui->output->toPlainText().toUtf8().data();  //直接用output上的文本进行推理
-        inputs = {input, ROLE_USER};                        //传递用户输入
+        text_content = ui->output->toPlainText().toUtf8().data();  //直接用output上的文本进行推理
+        inputs = {EVA_ROLE_USER,text_content};                        //传递用户输入
     }
-    // qDebug()<<input;
+    // qDebug()<<text_content;
     is_run = true;                //模型正在运行标签
     ui_state_pushing();           //推理中界面状态
     emit ui2bot_predict(inputs);  //开始推理
@@ -260,7 +242,7 @@ void Widget::on_send_clicked() {
 
 //模型输出完毕的后处理
 void Widget::recv_pushover() {
-    ui_insert_history.append({temp_assistant_history, API_ROLE_ASSISANT});
+    ui_insert_history.append({temp_assistant_history, EVA_ROLE_MODEL});
     temp_assistant_history = "";
 
     if (ui_state == COMPLETE_STATE)  //补完模式的话额外重置一下
@@ -315,9 +297,9 @@ void Widget::normal_finish_pushover() {
     ui_state_normal();  //待机界面状态
     decode_pTimer->stop();
     decode_action = 0;
-    if (wait_to_show_image != "") {
-        showImage(wait_to_show_image);
-        wait_to_show_image = "";
+    if (!wait_to_show_images_filepath.isEmpty()) {
+        showImages(wait_to_show_images_filepath);
+        wait_to_show_images_filepath.clear();
     }
 }
 
@@ -325,7 +307,7 @@ void Widget::normal_finish_pushover() {
 void Widget::recv_toolpushover(QString tool_result_) {
     if (tool_result_.contains("<ylsdamxssjxxdd:showdraw>"))  //有图像要显示的情况
     {
-        wait_to_show_image = tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];  //文生图后待显示图像的图像路径
+        wait_to_show_images_filepath.append(tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1]);  //文生图后待显示图像的图像路径
         tool_result = "stablediffusion " + jtr("call successful, image save at") + " " + tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1];
     } else {
         tool_result = tool_result_;
@@ -433,7 +415,7 @@ void Widget::recv_setreset() {
 
 //用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked() {
-    wait_to_show_image = "";    //清空待显示图像
+    wait_to_show_images_filepath.clear();    //清空待显示图像
     emit ui2expend_resettts();  //清空待读列表
     tool_result = "";//清空工具结果
 
@@ -595,12 +577,8 @@ void Widget::onShortcutActivated_CTRL_ENTER() { ui->send->click(); }
 
 //接收传来的图像
 void Widget::recv_qimagepath(QString cut_imagepath_) {
-    cut_imagepath = cut_imagepath_;
     reflash_state("ui:" + jtr("cut image success"), USUAL_SIGNAL);
-    ui->input->textEdit->setPlainText(jtr("<predecode cut image>"));
-    if (is_load && ui_state == CHAT_STATE) {
-        // on_send_clicked();//如果装载了模型直接发送截图
-    }
+    ui->input->addImageThumbnail(cut_imagepath_);
 }
 
 // llama-server接管
@@ -851,7 +829,7 @@ void Widget::api_send_clicked_slove() {
         //如果工具返回的结果不为空,则发送工具的结果给net
         if (tool_result != "") {
             //目前通过user这个角色给net
-            ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, API_ROLE_USER});
+            ui_insert_history.append({QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result, EVA_ROLE_USER});
             reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
             tool_result = "";
@@ -861,7 +839,7 @@ void Widget::api_send_clicked_slove() {
             ui_state_pushing();
             return;
         } else {
-            ui_insert_history.append({input, API_ROLE_USER});
+            ui_insert_history.append({input, EVA_ROLE_USER});
             data.insert_history = ui_insert_history;
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //前后缀用蓝色
             reflash_output(input, 0, NORMAL_BLACK);                                                            //输入用黑色
@@ -992,7 +970,7 @@ bool Widget::checkAudio() {
 }
 
 //传递格式化后的对话内容
-void Widget::recv_chat_format(CHATS chats) { bot_chat = chats; }
+void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats) { bot_chat = chats; }
 
 // 正在预解码
 void Widget::recv_predecoding() { ui_state_pushing(); }

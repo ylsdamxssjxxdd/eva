@@ -192,7 +192,7 @@ QByteArray xNet::createChatBody() {
     QJsonObject roleMessage;
     // qDebug()<<endpoint_data.insert_history;
     for (int i = 0; i < endpoint_data.insert_history.size(); ++i) {
-        if (endpoint_data.insert_history.at(i).second == API_ROLE_USER)  // 如果是用户发送的
+        if (endpoint_data.insert_history.at(i).second == EVA_ROLE_USER)  // 如果是用户发送的
         {
             roleMessage.insert("role", DEFAULT_USER_NAME);
         } 
@@ -200,7 +200,7 @@ QByteArray xNet::createChatBody() {
         // {
         //     roleMessage.insert("role", DEFAULT_OBSERVATION_NAME);
         // }
-        else if (endpoint_data.insert_history.at(i).second == API_ROLE_ASSISANT)  // 如果是模型发送的
+        else if (endpoint_data.insert_history.at(i).second == EVA_ROLE_MODEL)  // 如果是模型发送的
         {
             roleMessage.insert("role", DEFAULT_MODEL_NAME);
         }
