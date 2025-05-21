@@ -24,7 +24,7 @@
 #include <QTimer>
 
 #include "xconfig.h"
-#include "thirdparty\tinyexpr\tinyexpr.h"
+#include "thirdparty/tinyexpr/tinyexpr.h"
 
 class xTool : public QObject {
     Q_OBJECT

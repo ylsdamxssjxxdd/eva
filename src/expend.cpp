@@ -147,9 +147,18 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
 #endif
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
-
     qDebug() << "expend init over";
 
+}
+
+// 窗口状态变化处理
+void Expend::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::WindowStateChange) {
+        if (isMinimized()) {
+            setWindowFlags(Qt::Tool); // 隐藏任务栏条目
+        }
+    }
 }
 
 Expend::~Expend() {
@@ -393,7 +402,9 @@ void Expend::recv_expend_show(EXPEND_WINDOW window) {
     //打开指定页数窗口
     ui->tabWidget->setCurrentIndex(window_map[window]);
     this->setWindowState(Qt::WindowActive);  // 激活窗口并恢复正常状态
+    this->setWindowFlags(Qt::Window);
     this->show();
+    this->raise();
     this->activateWindow();  // 激活增殖窗口
 }
 

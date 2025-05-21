@@ -54,7 +54,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //-------------默认展示内容-------------
     right_menu = nullptr;                                                           //初始设置输入区右击菜单为空
     ui_font.setPointSize(10);                                                       // 将设置控件的字体大小设置为10
-    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));                     //设置应用程序图标
+    EVA_icon = QIcon(":/logo/dark_logo.png");
+    QApplication::setWindowIcon(EVA_icon);                     //设置应用程序图标
     ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                        //设置设置图标
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                   //设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL);  //初始提示
@@ -75,6 +76,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     ui->state->installEventFilter(this);                 //安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);  // 禁用自动换行
     ui->state->setFocus();                               //设为当前焦点
+    trayMenu = new QMenu(this);// 托盘菜单
 
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
@@ -115,6 +117,25 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
+
+    //----------------设置系统托盘-----------------------
+    // 创建托盘图标
+    trayIcon = new QSystemTrayIcon(this);
+    trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
+    trayIcon->setToolTip(EVA_title);
+    trayIcon->setContextMenu(trayMenu);
+    // 托盘图标点击事件
+    QObject::connect(trayIcon, &QSystemTrayIcon::activated, this, [&](QSystemTrayIcon::ActivationReason reason) 
+    {
+        if (reason == QSystemTrayIcon::Trigger) //单击
+        {
+            toggleWindowVisibility(this,true);// 显示窗体
+        }
+    });
+    EVA_title = jtr("eva");
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
+    trayIcon->show();
     qDebug() << "widget init over";
 }
 
@@ -125,6 +146,21 @@ Widget::~Widget() {
     delete date_ui;
     delete settings_ui;
 
+}
+// 窗口状态变化处理
+void Widget::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::WindowStateChange) {
+        if (isMinimized()) {
+            setWindowFlags(Qt::Tool); // 隐藏任务栏条目
+            trayIcon->showMessage(jtr("eva hide"),"",EVA_icon,1000);
+        }
+    }
+}
+
+//关闭事件
+void Widget::closeEvent(QCloseEvent *event) {
+    QApplication::quit();// 关闭主窗口就退出程序
 }
 
 //用户点击装载按钮处理
@@ -188,7 +224,9 @@ void Widget::recv_loadover(bool ok_, float load_time_) {
         load_pTimer->stop();        //停止动画
         is_load = false;            //标记模型未装载
         load_action = 0;
-        this->setWindowTitle(jtr("current model") + " ");
+        EVA_title = jtr("current model") + " ";
+        this->setWindowTitle(EVA_title);
+        trayIcon->setToolTip(EVA_title);
         ui_state_init();
     }
 }
@@ -329,17 +367,23 @@ void Widget::recv_stopover() {
 
 //模型达到最大上下文的后处理
 void Widget::recv_arrivemaxctx(bool predecode) {
-    QApplication::setWindowIcon(QIcon(":/logo/red_logo.png"));// 设置应用程序图标
+    EVA_icon = QIcon(":/logo/red_logo.png");
+    QApplication::setWindowIcon(EVA_icon);// 设置应用程序图标
+    trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     // if(predecode){history_prompt = "";}//取巧使下一次重置触发预解码
 }
 
 //重置完毕的后处理
 void Widget::recv_resetover() {
     if (ui_SETTINGS.ngl == 0) {
-        QApplication::setWindowIcon(QIcon(":/logo/blue_logo.png"));
+        EVA_icon = QIcon(":/logo/blue_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }  //恢复
     else {
-        QApplication::setWindowIcon(QIcon(":/logo/green_logo.png"));
+        EVA_icon = QIcon(":/logo/green_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }  //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 
@@ -456,15 +500,18 @@ void Widget::on_reset_clicked() {
         } else {
             current_api = apis.api_endpoint + apis.api_completion_endpoint;
         }
-
-        QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
-        reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
-        this->setWindowTitle(jtr("current api") + " " + current_api);
-
+        EVA_icon = QIcon(":/logo/dark_logo.png");
+        QApplication::setWindowIcon(EVA_icon);  //设置应用程序图标
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
+        EVA_title = jtr("current api") + " " + current_api;
+        reflash_state(QString("ui:") + EVA_title, USUAL_SIGNAL);
+        this->setWindowTitle(EVA_title);
+        trayIcon->setToolTip(EVA_title);
         return;
     }
-
-    this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
+    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
     
     emit ui2bot_reset();  //传递重置信号,清空kv缓存,并预解码约定指令
 }
@@ -592,6 +639,9 @@ void Widget::recv_qimagepath(QString cut_imagepath_) {
 // llama-server接管
 void Widget::serverControl() {
     ui_state_servering();  //服务中界面状态
+    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
     if (is_config) {
         QString relativePath = applicationDirPath + "/EVA_TEMP/eva_config.ini";
         QFileInfo fileInfo(relativePath);

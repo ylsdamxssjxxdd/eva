@@ -61,6 +61,7 @@ class Expend : public QWidget {
     ~Expend();
     QString applicationDirPath;
     void closeEvent(QCloseEvent *event) override;            //关闭事件
+    void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
     void setWhisperModelpath(QString modelpath);             // 用于设置whisper模型路径
     void setSdModelpath(QString modelpath);                  // 用于设置sd模型路径

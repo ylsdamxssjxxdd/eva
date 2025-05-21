@@ -224,12 +224,18 @@ void Widget::unlockLoad() {
 
     reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time, 'f', 2) + " s " + jtr("right click and check model log"), SUCCESS_SIGNAL);
     if (ui_SETTINGS.ngl > 0) {
-        QApplication::setWindowIcon(QIcon(":/logo/green_logo.png"));
+        EVA_icon = QIcon(":/logo/green_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }  // 设置应用程序图标
     else {
-        QApplication::setWindowIcon(QIcon(":/logo/blue_logo.png"));
+        EVA_icon = QIcon(":/logo/blue_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }  // 设置应用程序图标
-    this->setWindowTitle(jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last());
+    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
     ui->kv_bar->show_text = jtr("brain");
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
     auto_save_user();  //保存ui配置
@@ -778,9 +784,13 @@ void Widget::set_api() {
     } else {
         current_api = apis.api_endpoint + apis.api_completion_endpoint;
     }
-    reflash_state("ui:" + jtr("current api") + " " + current_api, USUAL_SIGNAL);
-    this->setWindowTitle(jtr("current api") + " " + current_api);
-    QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
+    EVA_title = jtr("current api") + " " + current_api;
+    reflash_state("ui:" + EVA_title, USUAL_SIGNAL);
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
+    EVA_icon = QIcon(":/logo/dark_logo.png");
+    QApplication::setWindowIcon(EVA_icon);  //设置应用程序图标
+    trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     ui->kv_bar->setToolTip("");
 
     emit ui2net_apis(apis);
@@ -882,6 +892,7 @@ void Widget::ui_state_servering() {
     ui->reset->setEnabled(0);
     ui->input->setVisible(0);
     ui->send->setVisible(0);
+
 }
 
 //待机界面状态
@@ -1004,6 +1015,36 @@ void Widget::create_right_menu() {
         QStringList paths = QFileDialog::getOpenFileNames(nullptr, jtr("Q14"), currentpath, "(*.png *.jpg *.bmp)");
         ui->input->addImages(paths);
     });
+}
+
+//添加托盘右击事件
+void Widget::create_tray_right_menu()
+{ 
+    trayMenu->clear();
+    QAction *showAction_shortcut = trayMenu->addAction(jtr("shortcut"));
+    QAction *blank1 = trayMenu->addAction("");//占位符
+    QAction *blank2 = trayMenu->addAction("");//占位符，目的是把截图顶出去，用户点击后才会隐藏
+    blank1->setEnabled(false);
+    blank2->setEnabled(false);
+    trayMenu->addSeparator();// 添加分割线
+    QAction *showAction_widget = trayMenu->addAction(jtr("show widget"));
+    QAction *showAction_expend = trayMenu->addAction(jtr("show expend"));
+    trayMenu->addSeparator();// 添加分割线
+    QAction *exitAction = trayMenu->addAction(jtr("quit"));
+    QObject::connect(showAction_widget, &QAction::triggered, this, [&]() 
+    {
+        toggleWindowVisibility(this,true);// 显示窗体
+    });
+    QObject::connect(showAction_expend, &QAction::triggered, this, [&]() 
+    {
+        emit ui2expend_show(PREV_WINDOW);
+    });
+    QObject::connect(showAction_shortcut, &QAction::triggered, this, [&]() 
+    {
+        trayMenu->hide();
+        QTimer::singleShot(100,[this](){onShortcutActivated_F1();});// 触发截图
+    });
+    QObject::connect(exitAction, &QAction::triggered, QApplication::quit);// 退出程序
 }
 
 //获取设置中的纸面值
@@ -1409,9 +1450,13 @@ QString Widget::getFirstNonLoopbackIPv4Address() {
 //第三方程序开始
 void Widget::server_onProcessStarted() {
     if (ui_SETTINGS.ngl == 0) {
-        QApplication::setWindowIcon(QIcon(":/logo/connection-point-blue.png"));
+        EVA_icon = QIcon(":/logo/connection-point-blue.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     } else {
-        QApplication::setWindowIcon(QIcon(":/logo/connection-point-green.png"));
+        EVA_icon = QIcon(":/logo/connection-point-green.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }
     ipAddress = getFirstNonLoopbackIPv4Address();
     reflash_state("ui:server " + jtr("oning"), SIGNAL_SIGNAL);
@@ -1423,7 +1468,9 @@ void Widget::server_onProcessFinished() {
         ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
     } else {
-        QApplication::setWindowIcon(QIcon(":/logo/dark_logo.png"));  //设置应用程序图标
+        EVA_icon = QIcon(":/logo/dark_logo.png");
+        QApplication::setWindowIcon(EVA_icon);  //设置应用程序图标
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
         reflash_state("ui:server" + jtr("off"), SIGNAL_SIGNAL);
         ui_output = "\nserver" + jtr("shut down");
         output_scroll(ui_output);
@@ -1555,6 +1602,7 @@ void Widget::apply_language(int language_flag_) {
     ui->vcore_bar->show_text = "gpu ";         //进度条里面的文本
     //输入区右击菜单语种
     create_right_menu();  //添加右击问题
+    create_tray_right_menu();
     // api设置语种
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
     api_endpoint_label->setText(jtr("api endpoint"));

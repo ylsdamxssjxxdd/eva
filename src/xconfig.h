@@ -15,6 +15,7 @@
 #include <QDebug>
 #include <array>
 #include <QThread>
+#include <QWidget>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -516,6 +517,20 @@ const QString CMDGUID = "-c";
 const QString CMDGUID = "/c";
 const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString::number(QOperatingSystemVersion::current().majorVersion());
 #endif
+
+// 设置窗口可见性
+inline void toggleWindowVisibility(QWidget *w, bool visible)
+{
+    if (visible) {
+        w->setWindowFlags(Qt::Window);  // 设置为普通窗口
+        w->showNormal();// 显示并激活窗口
+        w->raise();
+        w->activateWindow();
+
+    } else {
+        w->hide();
+    }
+};
 
 inline void createDesktopShortcut(QString appPath) {
     // 仅在 Linux 环境下执行

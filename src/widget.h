@@ -43,6 +43,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QtGlobal>
+#include <QSystemTrayIcon>
 #include <thread>
 #ifdef _WIN32
 #include <windows.h>
@@ -73,7 +74,8 @@ class Widget : public QWidget {
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
     QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
     bool checkAudio();  // 检测音频支持
-
+    void changeEvent(QEvent *event) override; // 处理窗口状态变化
+    void closeEvent(QCloseEvent *event) override;            //关闭事件
    public:
     QJsonObject wordsObj;                   //中文英文
     void getWords(QString json_file_path);  //中文英文
@@ -88,6 +90,7 @@ class Widget : public QWidget {
     QScrollBar *output_scrollBar;                                        //输出区滑动条
     bool createTempDirectory(const QString &path);                       //创建临时文件夹
     void create_right_menu();                                            //添加右击问题
+    void create_tray_right_menu();//添加托盘右击事件
     mcp::json tools_call;                            //提取出来的工具名和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font;  //约定和设置的字体大小
@@ -95,6 +98,10 @@ class Widget : public QWidget {
     QString currentpath;
     QString historypath;
     void apply_language(int language_flag_);  //改变语种相关
+    QSystemTrayIcon *trayIcon; // 系统托盘图标
+    QMenu *trayMenu; // 托盘右键菜单
+    QIcon EVA_icon;// 机体的图标
+    QString EVA_title;// 机体的标题
 
     bool is_config = false;  //是否是读取了配置进行的装载
     void auto_save_user();   //每次约定和设置后都保存配置到本地

@@ -8,6 +8,18 @@
             "快捷键注册失败",
             "shortcut key registration failed "
         ],
+        "shortcut": [
+            "截图",
+            "shortcut"
+        ],       
+        "show widget": [
+            "主窗口",
+            "widget"
+        ],     
+        "show expend": [
+            "增殖窗口",
+            "expend"
+        ],     
         "hello": [
             "你好",
             "hello "
@@ -79,6 +91,10 @@
         "state": [
             "状态",
             "state "
+        ],
+        "quit": [
+            "退出",
+            "quit"
         ],
         "chat state": [
             "对话状态",
@@ -1603,6 +1619,10 @@
         "current": [
             "当前",
             "current "
+        ],
+        "eva hide": [
+            "机体隐藏",
+            "EVA HIDE"
         ],
         "embeddingdb_describe": [
             "机体软件功能",

@@ -5,6 +5,7 @@
 #include <locale>
 #include <QFont>
 
+
 #include "expend.h"
 #include "utils/cpuchecker.h"
 #include "utils/gpuchecker.h"
@@ -32,7 +33,7 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                        //自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);  //适配非整数倍缩放
     QApplication a(argc, argv);                                                                               //事件实例
-
+    a.setQuitOnLastWindowClosed(false);//即使关闭所有窗口也不退出程序，为了保持系统托盘正常
     // 加载资源文件中的字体, 统一使用宋体
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1) {//如果没有说明是在window下
