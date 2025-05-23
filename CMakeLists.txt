@@ -159,7 +159,6 @@ endif()
 # add_subdirectory(thirdparty/llama.cpp/tools/imatrix) # 生成重要性矩阵用
 # add_subdirectory(thirdparty/llama.cpp/tools/main) # 测试用
 add_subdirectory(thirdparty/llama.cpp/tools/mtmd) # 添加llava
-add_subdirectory(thirdparty/llama.cpp/tools/llama-bench) # 添加llama-bench
 add_subdirectory(thirdparty/llama.cpp/tools/tts) # 添加tts
 add_subdirectory(thirdparty/llama.cpp/tools/quantize) # 添加quantize
 add_subdirectory(thirdparty/llama.cpp/tools/server) # 添加server
@@ -292,7 +291,6 @@ elseif(UNIX)
             # 挪动文件
             COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva-*.AppImage"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/eva" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/eva"
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-bench" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-bench"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-server" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-server"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-quantize" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-quantize"
             COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/llama-tts" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/bin/llama-tts"
