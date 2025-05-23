@@ -13,7 +13,8 @@ void xNet::run() {
 
     bool is_first_token = true;  //接收到第一个token开始记录速度
     int tokens = 0;
-
+    thinkFlag = false;//重置思考标签
+    current_content = "";
     QEventLoop loop;  // 进入事件循环，等待回复
     QNetworkAccessManager manager;
 
@@ -51,18 +52,21 @@ void xNet::run() {
                         QJsonObject firstChoice = choices.at(0).toObject();
                         // qDebug()<<"choices "<<firstChoice;//看看接收到了什么
                         QJsonObject delta = firstChoice["delta"].toObject();
-                        QString content = delta["content"].toString();
+                        current_content = delta["content"].toString();
                         QString content_flag;
                         if (firstChoice.value("finish_reason").toString() == "stop") {
                             content_flag = jtr("<end>");
                         } else {
-                            content_flag = content;
+                            content_flag = current_content;
                         }
-                        if (content != "")  //解析的结果发送到输出区
+                        if (current_content != "")  //解析的结果发送到输出区
                         {
                             tokens++;
                             emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-                            emit net2ui_output(content, 1);
+                            if(current_content.contains(DEFAULT_THINK_BEGIN)){thinkFlag = true;}// 检测到思考开始标志
+                            if(thinkFlag){emit net2ui_output(current_content, true,THINK_GRAY);}
+                            else{emit net2ui_output(current_content, true);}
+                            if(current_content.contains(DEFAULT_THINK_END)){thinkFlag = false;}// 检测到思考结束标志
                         }
                     }
                 } else if (data.contains("DONE")) {
@@ -73,7 +77,8 @@ void xNet::run() {
                     qDebug() << data;
                 }
             }
-            if (is_stop) {
+            if (is_stop || (!thinkFlag && current_content.contains(DEFAULT_OBSERVATION_STOPWORD))) {
+                qDebug()<<current_content;
                 is_stop = false;
                 reply->abort();  //终止
             }
@@ -105,7 +110,7 @@ void xNet::run() {
         QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_completion_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        request.setRawHeader("Authorization", "Bearer no-key");
+        request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());
         //构造请求的数据体
         QByteArray data = createCompleteBody();
         // 发送 POST 请求
@@ -132,7 +137,7 @@ void xNet::run() {
             }
             tokens++;
             emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-            emit net2ui_output(content, 1);
+            emit net2ui_output(content, true);
             if (is_stop) {
                 is_stop = false;
                 reply->abort();  //终止
@@ -193,18 +198,10 @@ QByteArray xNet::createCompleteBody() {
         json.insert("cache_prompt", apis.is_cache);
     }  // 缓存上文
     json.insert("model", apis.api_model);
-    json.insert("seed", 1996);
-    json.insert("ignore_eos", false);  //是否无视结束标志
     json.insert("prompt", endpoint_data.input_prompt);
     json.insert("n_predict", endpoint_data.n_predict);
     json.insert("stream", true);
     json.insert("temperature", endpoint_data.temp);
-    // 修改系统指令,好像没什么意义
-    // QJsonObject systemPrompt;
-    // systemPrompt.insert("prompt", endpoint_data.date_prompt);
-    // systemPrompt.insert("anti_prompt", endpoint_data.input_pfx);
-    // systemPrompt.insert("assistant_name", endpoint_data.input_sfx);
-    // json.insert("system_prompt", systemPrompt);
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);

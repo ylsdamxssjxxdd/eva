@@ -1418,7 +1418,7 @@ void Widget::addStopwords() {
 
     if (ui_DATES.is_load_tool)  //如果挂载了工具则增加额外停止标志
     {
-        // ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;
+        // ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;//在后端已经处理了
     }
 }
 

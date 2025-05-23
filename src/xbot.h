@@ -133,7 +133,7 @@ class xBot : public QObject {
     bool is_multi = false;      //是否为多模态
     bool is_load_tool = false;  //是否挂载了工具
     bool vram_enough = false;
-    bool checkStopFlag = true; // 是否要检测停止词
+    bool thinkFlag = false; // 是否正在思考
     std::vector<Brain_Cell> Brain_vector;  //记忆向量(当前记忆)
     std::string current_output;            // 模型最近输出的内容，用来判断里面是否存在反向词
     QString history_prompt = "";           //记录历史约定

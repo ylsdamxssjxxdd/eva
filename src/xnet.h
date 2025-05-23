@@ -32,6 +32,8 @@ class xNet : public QObject {
     QByteArray createChatBody();      //构造请求的数据体,对话模式
     QByteArray createCompleteBody();  //构造请求的数据体,补完模式
     bool is_stop = false;             //终止标签
+    bool thinkFlag = false; // 是否正在思考
+    QString current_content;//模型最近的输出
 
     QString extractContentFromJson(const QString &jsonString);
     QStringList extractAllContent(const QString &data);

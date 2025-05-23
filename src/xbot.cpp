@@ -317,23 +317,21 @@ int xBot::stream() {
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
-        if(sstr==DEFAULT_THINK_BEGIN){checkStopFlag = false;}//思考时关闭检测
+        if(sstr==DEFAULT_THINK_BEGIN){thinkFlag = true;}
         QString sample_str = jtr("sampling") + "·";  //采样打印信息
         bool is_output = false;
 
-        if(checkStopFlag)
+        if(!thinkFlag)//没有思考时
         {
-            if (checkStop(&sstr, &id)) 
-            {
-                return -1;
-            }
-            else // 正常输出到ui
+             // 检测停止词,若没有则正常输出到ui
+            if (checkStop(&sstr, &id)) {return -1;}
+            else
             {
                 is_output = true;
                 emit bot2ui_output(QString::fromUtf8(sstr.c_str()));
             }
         }
-        else // 思考过程输出到ui
+        else // 思考过程输出到ui,思考时不检测停止词
         {
             is_output = true;
             emit bot2ui_output(QString::fromUtf8(sstr.c_str()),true,THINK_GRAY);// 灰色内容表示思考过程
@@ -350,7 +348,7 @@ int xBot::stream() {
             }
         }
         
-        if(sstr==DEFAULT_THINK_END){checkStopFlag = true;}//思考结束时关闭检测
+        if(sstr==DEFAULT_THINK_END){thinkFlag = false;}//思考结束时关闭检测
 
     }  //到这里推理循环结束
 
@@ -599,14 +597,17 @@ void xBot::reset() {
     is_antiprompt = false;  //用户昵称检测标签
 
     //添加额外停止词
-    checkStopFlag = true;
+    thinkFlag = false;
     common_params_.antiprompt.clear();                                                   //清空反提示
-    common_params_.antiprompt.push_back(bot_chat.input_prefix.toLower().toStdString());  // 第一个默认是输入前缀，如果检测出来，下次对话就不添加了
+    // common_params_.antiprompt.push_back(bot_chat.input_prefix.toLower().toStdString());  // 第一个默认是输入前缀，如果检测出来，下次对话就不添加了
 
     for (int i = 0; i < bot_date.extra_stop_words.size(); ++i) {
         if (bot_date.extra_stop_words.at(i) != "") {
             common_params_.antiprompt.push_back(bot_date.extra_stop_words.at(i).toStdString());
         }
+    }
+    if(bot_date.is_load_tool){
+        common_params_.antiprompt.push_back(DEFAULT_OBSERVATION_STOPWORD);//挂载工具时强制添加对于工具的停止词
     }
 
     //重置采样器
@@ -1286,18 +1287,12 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
     //检测输出的内容中是否包含反提示和额外停止词,如果有则停止
     if (!is_complete)  // 补完模式不检测
     {
-        int list_num = 0;  //记录第一个元素,只有第一个元素需要控制is_antiprompt = true
-        // qDebug() << QString::fromStdString(current_output);
+        // qDebug() << QString::fromStdString(*sstr);
         for (const std::string &antiprompt : common_params_.antiprompt) {
             // 若包含反提示或额外停止词则停止
+            // std::cout<<current_output<<"----"<<antiprompt<<toLowerCaseASCII(current_output).find(antiprompt)<<"----"<<std::endl;
             if (toLowerCaseASCII(current_output).find(antiprompt) != std::string::npos) {
-                if (list_num == 0) {
-                    is_antiprompt = true;  //下一次预处理不加前缀
-                    emit bot2ui_state("bot:" + jtr("detected") + jtr("user name") + " " + QString::fromStdString(antiprompt));
-                } else {
-                    emit bot2ui_state("bot:" + jtr("detected") + jtr("extra stop words") + " " + QString::fromStdString(antiprompt));
-                }
-
+                emit bot2ui_state("bot:" + jtr("detected") + jtr("extra stop words") + " " + QString::fromStdString(antiprompt));
                 QString fianl_state = QString("bot:%1 %2 %3 token/s %4 %5 token/s")
                 .arg(jtr("predict") + jtr("stop"))
                 .arg(jtr("single decode"))
@@ -1308,8 +1303,6 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
                 // qDebug()<<QString::fromStdString(antiprompt)<<QString::fromStdString(current_output);
                 return true;
             }
-
-            list_num++;
         }
     }
 
