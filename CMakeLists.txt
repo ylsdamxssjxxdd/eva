@@ -207,7 +207,7 @@ thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 
 # 链接相关库,生成可执行文件
 target_link_libraries(${TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp)
-add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd) # 确保eva最后生产，保证后处理顺利进行
+add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml) # 确保eva最后生产，保证后处理顺利进行
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
 

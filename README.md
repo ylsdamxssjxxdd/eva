@@ -239,7 +239,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
     ```bash
     cd eva
     cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
-    cmake --build build --config Release
+    cmake --build build --config Release -j 8
     ```
 
     - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
