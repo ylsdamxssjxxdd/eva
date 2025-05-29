@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# 切换到脚本所在目录
+# 获取脚本所在目录的上一级目录作为工作目录
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$script_dir" || exit 1
+parent_dir="$(dirname "$script_dir")"
+cd "$parent_dir" || exit 1
 
 # 默认构建目录名称
 BUILD_NAME="build"
