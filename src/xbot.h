@@ -16,6 +16,7 @@
 #include "thirdparty/llama.cpp/common/common.h"
 #include "thirdparty/llama.cpp/common/sampling.h"
 #include "thirdparty/llama.cpp/tools/mtmd/mtmd.h"
+#include "thirdparty/llama.cpp/tools/mtmd/mtmd-helper.h"
 #include "thirdparty/llama.cpp/include/llama.h"
 #include "thirdparty/llama.cpp/src/llama-model.h" // 暂时不用太底层的api
 #include "xconfig.h"  //ui和bot都要导入的共有配置
@@ -33,7 +34,7 @@ class xBot : public QObject {
     void reset();                                                            //重置模型上下文和缓存等
     void predict(EVA_INPUTS inputs);                                             //开始预测推理
     void preDecodeSystemPrompt();                                            //预解码
-    void preDecodeImage(QStringList images_filepath);                        //预解码图像
+    void preDecodeMeida(QStringList medias_filepath, bool is_image=true);         //预解码图像和音频，默认是图像
     QString viewVocab();                                                     //获取模型词表
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
 
@@ -54,6 +55,7 @@ class xBot : public QObject {
     llama_model *model;  //模型
     const llama_vocab *vocab;
     llama_context *ctx;              //上下文
+    llama_memory_t mem;// kv缓存指针
     mtmd::context_ptr ctx_vision;   // 图像上下文指针
     mtmd::bitmaps bitmaps; // 存储图像
     common_sampler *smpl = nullptr;  // 采样器
@@ -74,6 +76,8 @@ class xBot : public QObject {
     bool eval_tokens(struct llama_context *ctx_llama, std::vector<llama_token> tokens, int n_batch, int *n_past);
     // 快捷预解码文本
     bool eval_string(struct llama_context *ctx_llama, const char *str, int n_batch, int *n_past, bool add_bos);
+    // 加载图像
+    mtmd_bitmap * laod_image_mtmd(const char * fname);
     // 加载图像
     bool load_image(const std::string & fname);
     // 初始化图像上下文

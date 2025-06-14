@@ -2,7 +2,7 @@
 #pragma warning(disable : 4244 4267)  // possible loss of data
 #endif
 #include "xbot.h"
-
+#include "thirdparty/llama.cpp/tools/mtmd/mtmd-helper.cpp"
 xBot::xBot() {
     llama_log_set(xBot::bot_log_callback, this);  //设置回调,获取llama的日志
     QObject::connect(this, &xBot::bot_llama_log, this, &xBot::recv_llama_log);
@@ -46,7 +46,7 @@ void xBot::predict(EVA_INPUTS inputs) {
     if (thinkStartIndex != -1 && thinkEndIndex != -1 && thinkStartIndex < thinkEndIndex) {
         // 删除两个标记之间的所有元素
         Brain_vector.erase(Brain_vector.begin() + thinkStartIndex, Brain_vector.begin() + thinkEndIndex + 1);
-        llama_kv_self_seq_rm(ctx, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
+        llama_memory_seq_rm(mem, 0, thinkStartIndex, thinkEndIndex+1);  //从开始思考位置开始删除到思考结束位置
         // qDebug()<<n_past<<n_consumed;
         n_past -= thinkEndIndex - thinkStartIndex + 1;
         // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
@@ -96,7 +96,11 @@ void xBot::predict(EVA_INPUTS inputs) {
     push_out(inputs, line_pfx, 0);  //在输出区贴上用户昵称 前缀
     if(!inputs.images_filepath.isEmpty())
     {
-        preDecodeImage(inputs.images_filepath);//预解码图像和前缀
+        preDecodeMeida(inputs.images_filepath,true);//预解码图像和前缀
+    }
+    if(!inputs.images_filepath.isEmpty())
+    {
+        preDecodeMeida(inputs.wavs_filepath,false);//预解码音频和前缀
     }
     push_out(inputs, line_inp, 1);  //在输出区贴上输入内容
     push_out(inputs, line_sfx, 2);  //在输出区贴上模型昵称 后缀
@@ -211,8 +215,8 @@ int xBot::stream() {
                     const int n_discard = n_left / 2;         //待删除的token长度
                     // qDebug()<<"n_past"<<n_past<<"n_keep"<<n_keep<<"n_left"<<n_left<<"n_discard"<<n_discard;
                     //导致批解码失败的元首
-                    llama_kv_self_seq_rm(ctx, 0, n_keep, n_keep + n_discard);               //删除中间一段缓存(n_keep -> n_keep + n_discard)
-                    llama_kv_self_seq_add(ctx, 0, n_keep + n_discard, n_past, -n_discard);  //把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
+                    llama_memory_seq_rm(mem, 0, n_keep, n_keep + n_discard);               //删除中间一段缓存(n_keep -> n_keep + n_discard)
+                    llama_memory_seq_add(mem, 0, n_keep + n_discard, n_past, -n_discard);  //把这一段缓存(n_keep + n_discard -> n_past)向后移构成新的缓存
 
                     //重构记忆向量
                     std::vector<Brain_Cell> temp_vector = Brain_vector;
@@ -245,9 +249,9 @@ int xBot::stream() {
                     const int ib = (ga_n * ga_i) / ga_w;
                     const int bd = (ga_w / ga_n) * (ga_n - 1);
                     const int dd = (ga_w / ga_n) - ib * bd - ga_w;
-                    llama_kv_self_seq_add(ctx, 0, ga_i, n_past, ib * bd);
-                    llama_kv_self_seq_div(ctx, 0, ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n);
-                    llama_kv_self_seq_add(ctx, 0, ga_i + ib * bd + ga_w, n_past + ib * bd, dd);
+                    llama_memory_seq_add(mem, 0, ga_i, n_past, ib * bd);
+                    llama_memory_seq_div(mem, 0, ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n);
+                    llama_memory_seq_add(mem, 0, ga_i + ib * bd + ga_w, n_past + ib * bd, dd);
                     n_past -= bd;
                     ga_i += ga_w / ga_n;
                     // qDebug()<<n_past<<bd<<ga_i;
@@ -364,19 +368,19 @@ int xBot::stream() {
     return -1;
 }
 
-//预解码图像和前缀
-void xBot::preDecodeImage(QStringList images_filepath) {
+//预解码图像/音频和前缀
+void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
     int k =0;//计数用，只有第一张图片前添加前缀
-    for(int i=0;i<images_filepath.size();++i)
+    for(int i=0;i<medias_filepath.size();++i)
     {
         QElapsedTimer time2;
         time2.start();
         k++;
 #ifdef _WIN32
         QTextCodec *code = QTextCodec::codecForName("GB2312");  // mingw中文路径支持
-        std::string imagepath = code->fromUnicode(images_filepath[i]).data();
+        std::string mediapath = code->fromUnicode(medias_filepath[i]).data();
 #elif __linux__
-        std::string imagepath = images_filepath[i].toStdString();
+        std::string mediapath = medias_filepath[i].toStdString();
 #endif
 
         if (is_multi) {
@@ -384,11 +388,11 @@ void xBot::preDecodeImage(QStringList images_filepath) {
             int n_past_orin = n_past;
 
             // 加载图像
-            load_image(imagepath.c_str());
+            load_image(mediapath.c_str());
             std::string img_text;
             if(k==1)
-            {img_text = bot_chat.input_prefix.toStdString() + "\n" + images_filepath[i].toStdString() + "\n<__image__>\n";}
-            else{img_text = images_filepath[i].toStdString() + "\n<__image__>\n";}//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
+            {img_text = bot_chat.input_prefix.toStdString() + "\n" + medias_filepath[i].toStdString() + "\n<__image__>\n";}
+            else{img_text = medias_filepath[i].toStdString() + "\n<__image__>\n";}//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
             
             // 构造输入token
             // for example:
@@ -445,7 +449,7 @@ void xBot::preDecodeImage(QStringList images_filepath) {
             float time_ = time2.nsecsElapsed() / 1000000000.0;
             int n_past_new = n_past - n_past_orin;  // 新增的token数
             emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + " +" + QString::number(n_past_new), SUCCESS_SIGNAL);
-            emit bot2ui_showImages({images_filepath[i]});//在输出区贴上图像
+            emit bot2ui_showImages({medias_filepath[i]});//在输出区贴上图像
         } 
         else {
             emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
@@ -473,7 +477,7 @@ void xBot::load(QString modelpath_) {
     if (!is_first_load && !is_free)  //如果已经释放则不再释放
     {
         is_model_load = false;      //标记未完成装载
-        llama_kv_self_clear(ctx);  //清空ctx kv缓存
+        llama_memory_clear(mem,true);  //清空ctx kv缓存
         n_past = 0;
         common_sampler_free(smpl);
         smpl = nullptr;
@@ -511,7 +515,7 @@ void xBot::load(QString modelpath_) {
     llama_context_params ctx_params = common_context_params_to_llama(common_params_);
     ctx_params.n_threads = common_params_.cpuparams.n_threads;
     ctx = llama_init_from_model(model, ctx_params);
-
+    mem = llama_get_memory(ctx);// 获取kv缓存操作对象
 
     //挂载视觉
     if (common_params_.mmproj.path != "") {
@@ -630,7 +634,7 @@ void xBot::reset() {
     
     if (is_clear_all)  //清空ctx kv缓存
     {
-        llama_kv_self_clear(ctx);  //清空ctx kv缓存
+        llama_memory_clear(mem,true);  //清空ctx kv缓存
         n_past = 0;                 //已推理字符数
         n_consumed = 0;             //已推理字符数
         if (!is_complete) {
@@ -643,7 +647,7 @@ void xBot::reset() {
     } else  //删除prompt以外的kv缓存
     {
         if (n_past > int(system_tokens.size())) {
-            llama_kv_self_seq_rm(ctx, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
+            llama_memory_seq_rm(mem, 0, system_tokens.size(), -1);  //从system_tokens.size()位置开始删除到最后
             n_past = system_tokens.size();
             n_consumed = system_tokens.size();
             for (int i = 0; i < system_tokens.size(); ++i) {
@@ -970,7 +974,7 @@ void xBot::recv_free(bool loadlater) {
     if (is_model_load) {
         QElapsedTimer time2;
         time2.start();
-        llama_kv_self_clear(ctx);  //清空ctx kv缓存
+        llama_memory_clear(mem,true);  //清空ctx kv缓存
         llama_free(ctx);
         ctx = nullptr;
         llama_model_free(model);
@@ -1341,8 +1345,49 @@ void xBot::init_vision_context(common_params & params) {
     }
 }
 
+mtmd_bitmap * xBot::laod_image_mtmd(const char * fname)
+{
+    std::vector<unsigned char> buf;
+    FILE * f = fopen(fname, "rb");
+    if (!f) {
+        return nullptr;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    buf.resize(file_size);
+
+    size_t n_read = fread(buf.data(), 1, file_size, f);
+    fclose(f);
+    if (n_read != (size_t)file_size) {
+        return nullptr;
+    }
+
+    if (audio_helpers::is_audio_file((const char *)buf.data(), buf.size())) {
+        std::vector<float> pcmf32;
+        if (!audio_helpers::decode_audio_from_buf(buf.data(), buf.size(), 16000, pcmf32)) {
+            return nullptr;
+        }
+        return mtmd_bitmap_init_from_audio(pcmf32.size(), pcmf32.data());
+    }
+
+    mtmd_bitmap * result = nullptr;
+    {
+        int nx, ny, nc;
+        auto * data = stbi_load_from_memory(buf.data(), buf.size(), &nx, &ny, &nc, 3);
+        if (!data) {
+            return nullptr;
+        }
+        result = mtmd_bitmap_init(nx, ny, data);
+        stbi_image_free(data);
+    }
+    return result;
+}
+
 bool xBot::load_image(const std::string & fname) {
-    mtmd::bitmap bmp(mtmd_helper_bitmap_init_from_file(fname.c_str()));
+    mtmd::bitmap bmp(laod_image_mtmd(fname.c_str()));
+
     if (!bmp.ptr) {
         return false;
     }
