@@ -98,7 +98,7 @@ void xBot::predict(EVA_INPUTS inputs) {
     {
         preDecodeMeida(inputs.images_filepath,true);//预解码图像和前缀
     }
-    if(!inputs.images_filepath.isEmpty())
+    if(!inputs.wavs_filepath.isEmpty())
     {
         preDecodeMeida(inputs.wavs_filepath,false);//预解码音频和前缀
     }
@@ -387,16 +387,14 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             emit bot2ui_state("bot:" + jtr("use mmproj model predecode image"), USUAL_SIGNAL);
             int n_past_orin = n_past;
 
-            // 加载图像
-            load_image(mediapath.c_str());
+            load_image(mediapath.c_str());// 加载图像,音频转化为梅尔图处理也视为图像
             std::string img_text;
             if(k==1)
-            {img_text = bot_chat.input_prefix.toStdString() + "\n" + medias_filepath[i].toStdString() + "\n<__image__>\n";}
-            else{img_text = medias_filepath[i].toStdString() + "\n<__image__>\n";}//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
-            
+            {img_text = bot_chat.input_prefix.toStdString() + "\n" + medias_filepath[i].toStdString() + "\n<__media__>\n";}
+            else{img_text = medias_filepath[i].toStdString() + "\n<__media__>\n";}//文本和图像占位符，这里我只保留占位符，文本在别的地方处理了
             // 构造输入token
             // for example:
-            //   "here is an image: <__image__>\ndescribe it in detail."
+            //   "here is an image: <__media__>\ndescribe it in detail."
             //   this will gives 3 chunks:
             //   1. "here is an image: <start_of_image>"
             //   2. (image tokens)
@@ -441,7 +439,7 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量
 
             for (int i = Brain_vector.size(); i < n_past; ++i) {
-                Brain_vector.push_back({i + 1, -2, "<__image__>"});
+                Brain_vector.push_back({i + 1, -2, "<__media__>"});
             }  // 添加到记忆矩阵
 
             emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1 表示强制刷新记忆矩阵
@@ -449,7 +447,8 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             float time_ = time2.nsecsElapsed() / 1000000000.0;
             int n_past_new = n_past - n_past_orin;  // 新增的token数
             emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("over") + " " + jtr("use time") + QString::number(time_, 'f', 2) + " s " + jtr("kv cache") + " +" + QString::number(n_past_new), SUCCESS_SIGNAL);
-            emit bot2ui_showImages({medias_filepath[i]});//在输出区贴上图像
+            if(is_image){emit bot2ui_showImages({medias_filepath[i]});}//在输出区贴上图像
+            else{emit bot2ui_showImages({":/logo/wav.png"});}
         } 
         else {
             emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
@@ -1332,6 +1331,7 @@ void xBot::getWords(QString json_file_path) {
 }
 
 void xBot::init_vision_context(common_params & params) {
+
     const char * clip_path = params.mmproj.path.c_str();
     mtmd_context_params mparams = mtmd_context_params_default();
     mparams.use_gpu = params.mmproj_use_gpu;
@@ -1363,7 +1363,6 @@ mtmd_bitmap * xBot::laod_image_mtmd(const char * fname)
     if (n_read != (size_t)file_size) {
         return nullptr;
     }
-
     if (audio_helpers::is_audio_file((const char *)buf.data(), buf.size())) {
         std::vector<float> pcmf32;
         if (!audio_helpers::decode_audio_from_buf(buf.data(), buf.size(), 16000, pcmf32)) {

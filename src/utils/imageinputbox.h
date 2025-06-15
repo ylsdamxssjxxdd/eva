@@ -18,6 +18,9 @@
 #include <QTextEdit>
 #include <QTextDocument>
 #include <QTimer>
+#include <QFileInfo>
+#include <QIcon>
+
 class ImageInputBox : public QWidget {
     Q_OBJECT
 public:
@@ -26,7 +29,7 @@ public:
     QWidget *thumbnailContainer;
     QGridLayout *thumbnailLayout;
     QVBoxLayout *mainLayout;
-    QStringList imagePaths;
+    QStringList filePaths; // 改为通用文件路径
     explicit ImageInputBox(QWidget *parent = nullptr) : QWidget(parent) {
         setupUI();
         // 禁止子部件处理拖放
@@ -42,43 +45,102 @@ public:
         connect(textEdit, &QTextEdit::textChanged, this, &ImageInputBox::adjustHeight);
     }
 
-    void addImages(const QStringList &paths) {
+    void addFiles(const QStringList &paths) {
         for(int i =0;i<paths.size();++i)
         {
             QString path = paths[i];
-            addImageThumbnail(path);
+            addFileThumbnail(path);
         }
     }
 
-    bool isImageFile(const QString &path) const {
-        static QStringList extensions = {"png", "jpg", "jpeg", "gif", "bmp"};
+    // 检查是否是支持的文件类型
+    bool isSupportedFile(const QString &path) const {
+        static QStringList extensions = {"png", "jpg", "jpeg", "gif", "bmp", "wav", "mp3"};
         return extensions.contains(QFileInfo(path).suffix().toLower());
     }
+    // 检查是否是图像文件
+    bool isImageFile(const QString &path) const {
+        static QStringList imageExtensions = {"png", "jpg", "jpeg", "gif", "bmp"};
+        return imageExtensions.contains(QFileInfo(path).suffix().toLower());
+    }
+    // 检查是否是音频文件
+    bool isAudioFile(const QString &path) const {
+        static QStringList audioExtensions = {"wav", "mp3"};
+        return audioExtensions.contains(QFileInfo(path).suffix().toLower());
+    }
 
-    bool hasImageUrls(const QMimeData *mimeData) const {
+    // 新增：返回所有WAV文件路径
+    QStringList wavFilePaths() const {
+        QStringList wavPaths;
+        for (const QString &path : filePaths) {
+            if (isAudioFile(path)) {
+                wavPaths.append(path);
+            }
+        }
+        return wavPaths;
+    }
+    // 返回所有图像文件路径
+    QStringList imageFilePaths() const {
+        QStringList imagePaths;
+        for (const QString &path : filePaths) {
+            if (isImageFile(path)) {
+                imagePaths.append(path);
+            }
+        }
+        return imagePaths;
+    }
+
+    bool hasSupportedUrls(const QMimeData *mimeData) const {
         if (!mimeData->hasUrls()) return false;
 
         foreach (QUrl url, mimeData->urls()) {
-            if (!isImageFile(url.toLocalFile())) {
+            if (!isSupportedFile(url.toLocalFile())) {
                 return false;
             }
         }
         return true;
     }
-    void addImageThumbnail(const QString &path) {
-        if (imagePaths.contains(path)) return;
+    
+    void addFileThumbnail(const QString &path) {
+        if (filePaths.contains(path)) return;
 
-        QPixmap pixmap(path);
-        if (pixmap.isNull()) return;
+        QLabel *previewLabel = new QLabel;
+        QPixmap pixmap;
+        
+        if (isAudioFile(path)) {
+            // 音频文件使用图标
+            QIcon audioIcon(":/logo/wav.png");
+            if (audioIcon.isNull()) {
+                // 内置备用图标
+                QPixmap audioPixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+                audioPixmap.fill(Qt::transparent);
+                QPainter painter(&audioPixmap);
+                painter.setRenderHint(QPainter::Antialiasing);
+                painter.setBrush(QColor(70, 130, 180)); // 钢蓝色
+                painter.setPen(Qt::NoPen);
+                painter.drawEllipse(5, 5, THUMBNAIL_SIZE-10, THUMBNAIL_SIZE-10);
+                painter.setBrush(Qt::white);
+                painter.drawEllipse(10, 10, THUMBNAIL_SIZE-20, THUMBNAIL_SIZE-20);
+                painter.end();
+                pixmap = audioPixmap;
+            } else {
+                pixmap = audioIcon.pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+            }
+            previewLabel->setToolTip("音频文件: " + path);
+        } else {
+            // 图像文件
+            pixmap = QPixmap(path);
+            if (pixmap.isNull()) return;
+            pixmap = pixmap.scaled(THUMBNAIL_SIZE, THUMBNAIL_SIZE,
+                                   Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            previewLabel->setToolTip("图像文件: " + path);
+        }
 
-        QLabel *imageLabel = new QLabel;
-        imageLabel->setPixmap(pixmap.scaled(THUMBNAIL_SIZE, THUMBNAIL_SIZE,
-                                  Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        imageLabel->setFixedSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-        imageLabel->setStyleSheet("border: 1px solid #ccc; background: white;");
-        imageLabel->setToolTip(path);
+        previewLabel->setPixmap(pixmap);
+        previewLabel->setFixedSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        previewLabel->setStyleSheet("border: 1px solid #ccc; background: white;");
 
-        QPushButton *closeBtn = new QPushButton("×", imageLabel);
+        QPushButton *closeBtn = new QPushButton("×", previewLabel);
         closeBtn->setStyleSheet(
             "QPushButton {"
             "  background: rgba(255, 0, 0, 150);"
@@ -93,16 +155,16 @@ public:
             "QPushButton:hover { background: rgba(255, 0, 0, 200); }"
         );
         closeBtn->move(THUMBNAIL_SIZE - 15, 2);
-        connect(closeBtn, &QPushButton::clicked, [this, path, imageLabel]() {
-            imagePaths.removeAll(path);
-            thumbnailLayout->removeWidget(imageLabel);
-            imageLabel->deleteLater();
+        connect(closeBtn, &QPushButton::clicked, [this, path, previewLabel]() {
+            filePaths.removeAll(path);
+            thumbnailLayout->removeWidget(previewLabel);
+            previewLabel->deleteLater();
             updateLayout();
             adjustHeight();
         });
 
-        thumbnailLayout->addWidget(imageLabel);
-        imagePaths.append(path);
+        thumbnailLayout->addWidget(previewLabel);
+        filePaths.append(path);
         adjustHeight();
         updateLayout();
     }
@@ -114,7 +176,7 @@ public:
         adjustHeight();
     }
 
-        // 添加清空缩略图函数
+    // 添加清空缩略图函数
     void clearThumbnails() {
         // 移除所有缩略图部件
         QLayoutItem* child;
@@ -122,7 +184,7 @@ public:
             delete child->widget();
             delete child;
         }
-        imagePaths.clear();
+        filePaths.clear();
         updateLayout();
         adjustHeight();
     }
@@ -229,24 +291,21 @@ private:
         scrollArea->setVisible(!widgets.isEmpty());
     }
     void dragEnterEvent(QDragEnterEvent *event) override{
-//        qDebug()<<"hello";
-        event->acceptProposedAction();
-        setStyleSheet("background: #f0f0f0;");
-//        qDebug()<<hasImageUrls(event->mimeData());
-        event->accept();
+        if (hasSupportedUrls(event->mimeData())) {
+            event->acceptProposedAction();
+            setStyleSheet("background: #f0f0f0;");
+        }
     }
     void dragMoveEvent(QDragMoveEvent *event) override {
         event->accept();
     }
     void dropEvent(QDropEvent *event) override{
-//        qDebug()<<"hello2"<<event->mimeData();
         const QMimeData *mimeData = event->mimeData();
         if (mimeData->hasUrls()) {
             foreach (QUrl url, mimeData->urls()) {
                 QString path = url.toLocalFile();
-                // qDebug()<<path;
-                if (isImageFile(path)) {
-                    addImageThumbnail(path);
+                if (isSupportedFile(path)) {
+                    addFileThumbnail(path);
                 }
             }
             event->acceptProposedAction();
@@ -267,13 +326,11 @@ private:
     int m_minHeight=80;// 最小高度
     int m_maxHeight=300;// 最大高度
 private slots:
-    //添加图片进来
-    void handleImageUpload(QStringList paths) {
+    //添加文件进来
+    void handleFileUpload(QStringList paths) {
         foreach (QString path, paths) {
-            addImageThumbnail(path);
-
+            addFileThumbnail(path);
         }
-
     }
 
     // 调整高度的槽函数
@@ -285,7 +342,7 @@ private slots:
         QSizeF docSize = doc->size();
 
         int thumbnail_height = 0;
-        if (imagePaths.size()!=0){thumbnail_height+=THUMBNAIL_SIZE*2;}
+        if (!filePaths.isEmpty()){thumbnail_height+=THUMBNAIL_SIZE*2;}
         // 计算新的高度，考虑边框和内边距
         int newHeight = static_cast<int>(docSize.height()) + textEdit->frameWidth() * 2 + textEdit->contentsMargins().top() + textEdit->contentsMargins().bottom() + thumbnail_height;
 

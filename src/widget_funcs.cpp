@@ -1013,7 +1013,7 @@ void Widget::create_right_menu() {
 
         //用户选择图片
         QStringList paths = QFileDialog::getOpenFileNames(nullptr, jtr("Q14"), currentpath, "(*.png *.jpg *.bmp)");
-        ui->input->addImages(paths);
+        ui->input->addFiles(paths);
     });
 }
 
@@ -1485,7 +1485,7 @@ void Widget::showImages(QStringList images_filepath) {
     for (int i = 0; i < images_filepath.size(); ++i) {
         QString imagepath = images_filepath[i];
         QString ui_output = imagepath + "\n";
-        output_scroll(ui_output);
+        if(ui_output!=":/logo/wav.png"){output_scroll(ui_output);}
 
         // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
         QImage image(imagepath);

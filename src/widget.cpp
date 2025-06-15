@@ -241,6 +241,7 @@ void Widget::on_send_clicked() {
     EVA_INPUTS inputs;// 待构造的输入消息
     QString text_content;// 文本内容
     QStringList images_filepath;// 图像内容
+    QStringList wavs_filepath;// 音频内容
 
     //链接模式的处理
     if (ui_mode == LINK_MODE) {
@@ -253,7 +254,9 @@ void Widget::on_send_clicked() {
         if (tool_result == "") {
             text_content = ui->input->textEdit->toPlainText().toUtf8().data();
             ui->input->textEdit->clear();  // 获取用户输入
-            images_filepath = ui->input->imagePaths;
+            images_filepath = ui->input->imageFilePaths();
+            wavs_filepath = ui->input->wavFilePaths();
+            qDebug()<<"wavs_filepath"<<wavs_filepath;
             // qDebug()<<images_filepath;
             ui->input->clearThumbnails();
         }
@@ -264,7 +267,7 @@ void Widget::on_send_clicked() {
             inputs = {EVA_ROLE_OBSERVATION,text_content};
 
         } else {
-            inputs = {EVA_ROLE_USER,text_content,images_filepath};
+            inputs = {EVA_ROLE_USER,text_content,images_filepath,wavs_filepath};
         }
     } 
     else if (ui_state == COMPLETE_STATE) 
@@ -465,7 +468,6 @@ void Widget::on_reset_clicked() {
     wait_to_show_images_filepath.clear();    //清空待显示图像
     emit ui2expend_resettts();  //清空待读列表
     tool_result = "";//清空工具结果
-
     //如果模型正在推理就改变模型的停止标签
     if (is_run) 
     {
@@ -633,7 +635,7 @@ void Widget::onShortcutActivated_CTRL_ENTER() { ui->send->click(); }
 //接收传来的图像
 void Widget::recv_qimagepath(QString cut_imagepath_) {
     reflash_state("ui:" + jtr("cut image success"), USUAL_SIGNAL);
-    ui->input->addImageThumbnail(cut_imagepath_);
+    ui->input->addFileThumbnail(cut_imagepath_);
 }
 
 // llama-server接管
@@ -880,7 +882,8 @@ void Widget::api_send_clicked_slove() {
         ui->input->textEdit->clear();
     }
 
-    QStringList images_filepath = ui->input->imagePaths;// 获取图像列表
+    QStringList images_filepath = ui->input->imageFilePaths();// 获取图像列表
+    QStringList wavs_filepath = ui->input->wavFilePaths();// 获取音频列表
     ui->input->clearThumbnails();// 清空缩率图区
 
     
@@ -940,6 +943,52 @@ void Widget::api_send_clicked_slove() {
                 contentArray.append(textMessage);
                 message["content"] = contentArray;
                 ui_messagesArray.append(message);
+            }
+
+            if(!wavs_filepath.isEmpty())//有音频的情况
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+                // 添加音频消息
+                for(int i = 0; i < images_filepath.size(); ++i)
+                {
+                    QString filePath = images_filepath[i];
+                    QFile audioFile(filePath);
+                    if (!audioFile.open(QIODevice::ReadOnly)) {
+                        qDebug() << "Failed to open audio file:" << filePath;
+                        continue; // 跳过失败文件
+                    }
+                    
+                    QByteArray audioData = audioFile.readAll();
+                    QByteArray base64Data = audioData.toBase64();
+
+                    // 根据扩展名确定MIME类型
+                    QFileInfo fileInfo(filePath);
+                    QString extension = fileInfo.suffix().toLower();
+                    QString mimeType = "audio/mpeg"; // 默认MP3
+                    
+                    if (extension == "wav") {
+                        mimeType = "audio/wav";
+                    } else if (extension == "ogg") {
+                        mimeType = "audio/ogg";
+                    } else if (extension == "flac") {
+                        mimeType = "audio/flac";
+                    }
+                    // 其他格式可继续扩展
+
+                    QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
+
+                    QJsonObject audioObject;
+                    audioObject["type"] = "audio_url";  // 类型改为audio_url
+                    
+                    QJsonObject audioUrlObject;
+                    audioUrlObject["url"] = base64String;
+                    
+                    audioObject["audio_url"] = audioUrlObject;  // 键名改为audio_url
+                    contentArray.append(audioObject);
+                    showImages({":/logo/wav.png"});// 展示图片
+                }
             }
 
             data.messagesArray = ui_messagesArray;
