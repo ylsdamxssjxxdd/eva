@@ -25,8 +25,8 @@ int main(int argc, char* argv[]) {
     setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1);  // 指定找动态库的默认路径 LD_LIBRARY_PATH
 #ifdef BODY_USE_CUDA
     // cuda版本可以在系统的 /usr/local/cuda/lib64 中寻找库
-    // std::string cudaPath = "/usr/local/cuda/lib64";
-    // setenv("LD_LIBRARY_PATH", (currentPath + ":" + cudaPath).c_str(), 1);// 指定找动态库的默认路径 LD_LIBRARY_PATH
+    std::string cudaPath = "/usr/local/cuda/lib64";
+    setenv("LD_LIBRARY_PATH", (currentPath + ":" + cudaPath).c_str(), 1);// 指定找动态库的默认路径 LD_LIBRARY_PATH
 #endif
 #endif
 

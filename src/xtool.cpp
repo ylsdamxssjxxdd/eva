@@ -34,7 +34,15 @@ void xTool::Exec(mcp::json tools_call) {
         QProcess* process = new QProcess();
         createTempDirectory(applicationDirPath + "/EVA_WORK");//防止没有这个目录
         process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
-
+        // +++ 添加环境变量支持 +++
+        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+        #ifdef __linux__
+            // 追加Linux终端PATH（通常包含用户级工具路径）
+            QString path = env.value("PATH");
+            env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + path);
+        #endif
+        process->setProcessEnvironment(env); // 关键设置
+        // +++++++++++++++++++++++
         QStringList shellArgs;
         shellArgs << CMDGUID << build_in_tool_arg;
 

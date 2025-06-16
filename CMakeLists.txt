@@ -21,6 +21,7 @@ option(BODY_PACK                     "pack eva"                                 
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           ON) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
+option(BODY_ARM                      "使用常规arm加速"                             OFF) # 飞腾芯片不支持 速度200%
 
 ##################################### 处理编译选项 ####################################
 
@@ -113,9 +114,9 @@ elseif(UNIX)
 
 endif()
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|arm")
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|arm" AND NOT BODY_ARM)
     message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
-    set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 银河麒麟不支持
+    set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 飞腾2000不支持
 endif()
 
 if (NOT DEFINED GGML_LLAMAFILE)

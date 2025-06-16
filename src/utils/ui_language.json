@@ -245,8 +245,8 @@
             "Let's play a name-guessing game. I've already thought of a name in my mind. You can ask me one question at a time to find the answer "
         ],
         "Q12": [
-            "请使用BOPPPS模型设计一堂课，题目为：神经网络原理",
-            "Please use the BOPPPS model to design a class titled: Principles of Neural Networks "
+            "来一个脑筋急转弯，你先别说答案",
+            "Please use the BOPPPS model to design a class titled: Principles of Neural Networks Let's have a brain teaser. Don't say the answer for now"
         ],
         "Q13": [
             "写一个检讨书，关于工作失职，3000字",

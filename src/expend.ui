@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -1909,13 +1909,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QGroupBox" name="embedding_test_groupBox">
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>300</width>
               <height>125</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>260</width>
+              <width>300</width>
               <height>125</height>
              </size>
             </property>
@@ -2056,7 +2056,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="maximumSize">
              <size>
-              <width>1000</width>
+              <width>3000</width>
               <height>125</height>
              </size>
             </property>
