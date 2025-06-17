@@ -284,6 +284,7 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 }
 
 #else
+
 #define ggml_int16x8x2_t  int16x8x2_t
 #define ggml_uint8x16x2_t uint8x16x2_t
 #define ggml_uint8x16x4_t uint8x16x4_t
@@ -297,56 +298,6 @@ inline static uint8x16_t ggml_vqtbl1q_u8(uint8x16_t a, uint8x16_t b) {
 #define ggml_vld1q_s8_x4  vld1q_s8_x4
 #define ggml_vqtbl1q_s8   vqtbl1q_s8
 #define ggml_vqtbl1q_u8   vqtbl1q_u8
-
-// #define ggml_int16x8x2_t  int16x8x2_t
-// #define ggml_uint8x16x2_t uint8x16x2_t
-// #define ggml_uint8x16x4_t uint8x16x4_t
-// #define ggml_int8x16x2_t  int8x16x2_t
-// // 取消原有定义
-// #ifdef vld1q_s8_x4
-// #undef vld1q_s8_x4
-// #endif
-// #ifdef vld1q_u8_x4
-// #undef vld1q_u8_x4
-// #endif
-// // 替代vld1q_s8_x4
-// inline static int8x16x4_t vld1q_s8_x4(const int8_t *ptr) {
-//     int8x16x4_t ret;
-//     ret.val[0] = vld1q_s8(ptr);
-//     ret.val[1] = vld1q_s8(ptr + 16);
-//     ret.val[2] = vld1q_s8(ptr + 32);
-//     ret.val[3] = vld1q_s8(ptr + 48);
-//     return ret;
-// }
-// // 替代 vld1q_u8_x4 的实现
-// inline static uint8x16x4_t vld1q_u8_x4(const uint8_t *ptr) {
-//     uint8x16x4_t ret;
-//     ret.val[0] = vld1q_u8(ptr);      // 加载第 0-15 字节
-//     ret.val[1] = vld1q_u8(ptr + 16); // 加载第 16-31 字节
-//     ret.val[2] = vld1q_u8(ptr + 32); // 加载第 32-47 字节
-//     ret.val[3] = vld1q_u8(ptr + 48); // 加载第 48-63 字节
-//     return ret;
-// }
-// #define ggml_vld1q_s16_x2 vld1q_s16_x2
-// #define ggml_vld1q_u8_x2  vld1q_u8_x2
-// #define ggml_vld1q_u8_x4  vld1q_u8_x4
-// #define ggml_vld1q_s8_x2  vld1q_s8_x2
-// // #define ggml_vld1q_s8_x4  vld1q_s8_x4
-// #define ggml_vqtbl1q_s8   vqtbl1q_s8
-// #define ggml_vqtbl1q_u8   vqtbl1q_u8
-// typedef struct ggml_int8x16x4_t {
-//     int8x16_t val[4];
-// } ggml_int8x16x4_t;
-// inline static ggml_int8x16x4_t ggml_vld1q_s8_x4(const int8_t * ptr) {
-//     ggml_int8x16x4_t res;
-
-//     res.val[0] = vld1q_s8(ptr + 0);
-//     res.val[1] = vld1q_s8(ptr + 16);
-//     res.val[2] = vld1q_s8(ptr + 32);
-//     res.val[3] = vld1q_s8(ptr + 48);
-
-//     return res;
-// }
 
 #endif // !defined(__aarch64__)
 
@@ -552,31 +503,9 @@ static __m256 __lasx_xvreplfr2vr_s(const float val) {
 // TODO: move to ggml-threading
 void ggml_barrier(struct ggml_threadpool * tp);
 
+void ggml_threadpool_chunk_set(struct ggml_threadpool * tp, int value);
+int  ggml_threadpool_chunk_add(struct ggml_threadpool * tp, int value);
+
 #ifdef __cplusplus
 }
 #endif
-
-#define GGML_DO_PRAGMA_(x) _Pragma (#x)
-#define GGML_DO_PRAGMA(x) GGML_DO_PRAGMA_(x)
-#if defined(GGML_CPU_GENERIC) || defined(__HIPCC__)
-// Note for Apple targets:
-// - clang: aliases are not supported on darwin
-// - all native kernels need to be implemented in both x86 and arm files
-// - on iOS, tvOS, and visionOS, if cmake cannot determine the target architecture, all `_generic` names are replaced by defines
-# define GGML_WEAK_ALIAS(name, alias)
-#elif defined(__GNUC__)
-// GCC/Clang on *nix
-# define GGML_WEAK_ALIAS(name, alias) GGML_DO_PRAGMA(weak name = alias) // NOLINT
-#elif defined(_MSC_VER) && defined(_WIN64)
-// MSVC
-// Note: C name mangling varies across different calling conventions
-// see https://learn.microsoft.com/en-us/cpp/build/reference/decorated-names?view=msvc-170
-# define GGML_WEAK_ALIAS(name, alias) GGML_DO_PRAGMA(comment(linker, "/alternatename:" #name "=" #alias))
-#elif defined(_MSC_VER) && defined(WIN32)
-// ref: https://github.com/ggml-org/whisper.cpp/pull/3239#issuecomment-2958224591
-# define GGML_WEAK_ALIAS(name, alias) GGML_DO_PRAGMA(comment(linker, "/alternatename:_" #name "=_" #alias))
-#else
-# error "Unsupported compiler for GGML_WEAK_ALIAS"
-#endif
-
-#define GGML_CPU_NATIVE_IMPL(name) GGML_WEAK_ALIAS(name, name ## _generic)
