@@ -13,7 +13,7 @@
 #include <QProcess>
 #include <QThread>
 
-#ifdef BODY_USE_CUDA
+#if defined(BODY_USE_CUDA) && !defined(__linux__)
 #include "nvml.h"
 #endif
 
@@ -101,7 +101,7 @@ class gpuChecker : public QObject {
 
 public:
     gpuChecker() {
-#ifdef BODY_USE_CUDA
+#if defined(BODY_USE_CUDA) && !defined(__linux__)
         nvmlInit();
         nvmlDeviceGetHandleByIndex(0, &device);   
 #elif BODY_USE_32BIT
@@ -122,7 +122,7 @@ public:
     }
 
     ~gpuChecker() {
-#ifdef BODY_USE_CUDA
+#if defined(BODY_USE_CUDA) && !defined(__linux__)
         nvmlShutdown();
 #endif
         if (gpuInfoProvider) {
@@ -131,7 +131,7 @@ public:
     }
 
     void checkGpu() {
-#ifdef BODY_USE_CUDA
+#if defined(BODY_USE_CUDA) && !defined(__linux__)
         nvmlUtilization_t utilization;
         nvmlMemory_t memory;
         nvmlDeviceGetUtilizationRates(device, &utilization);
@@ -174,7 +174,7 @@ private:
         }
     }
 
-#ifdef BODY_USE_CUDA
+#if defined(BODY_USE_CUDA) && !defined(__linux__)
     nvmlDevice_t device;
 #endif
     GpuInfoProvider* gpuInfoProvider = nullptr;

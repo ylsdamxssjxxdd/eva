@@ -9,6 +9,8 @@ endif()
 
 if(BODY_32BIT)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-cpu-32bit")
+elseif(BODY_DOTPORD)
+    set(eva_OUTPUT_NAME "${TARGET}-${version}-dotprod-${ARCHITECTURE}")
 elseif(GGML_VULKAN)
     set(eva_OUTPUT_NAME "${TARGET}-${version}-vulkan-${ARCHITECTURE}")
 elseif(GGML_CUDA)

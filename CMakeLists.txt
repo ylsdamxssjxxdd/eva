@@ -21,7 +21,7 @@ option(BODY_PACK                     "pack eva"                                 
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
-option(BODY_ARM                      "使用常规arm加速"                             OFF) # 飞腾芯片不支持 速度200%
+option(BODY_DOTPORD                   "使用常规arm dotprod加速"                    OFF) # 飞腾芯片不支持 速度200%
 
 ##################################### 处理编译选项 ####################################
 
@@ -102,8 +102,9 @@ elseif(UNIX)
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
         #list(APPEND extra_INCLUDES src/utils/gpuchecker.h src/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         list(APPEND extra_INCLUDES src/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
-        find_library(NVIDIA_ML_LIB nvidia-ml) # 寻找nvml.h的实现文件，so库文件
-        list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
+        # find_library(NVIDIA_ML_LIB nvidia-ml REQUIRED) # 寻找nvml.h的实现文件，so库文件
+        # list(APPEND extra_LIBS ${NVIDIA_ML_LIB}) # 向extra_LIBS列表里添加文件
+        # message(STATUS "nvidia-ml版本 " ${NVIDIA_ML_LIB})
         # 方便打包时找到cuda相关库
         find_package(CUDAToolkit)
         string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})# 从CUDA版本字符串中提取主版本号
@@ -114,7 +115,7 @@ elseif(UNIX)
 
 endif()
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|arm" AND NOT BODY_ARM)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64|arm" AND NOT BODY_DOTPORD)
     message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
     set(GGML_NATIVE OFF) # 主要是关闭了dotprod 点积加速 飞腾2000不支持
 endif()
@@ -325,9 +326,15 @@ elseif(UNIX)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
             COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
+            COMMAND ${CMAKE_COMMAND} -E rm -f
+            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublas.so.12"
+            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublasLt.so.12"
+            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcudart.so.12"
+            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcuda.so.1"
+            COMMENT "Removing CUDA libraries from AppDir"
             COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.AppImage"
         
-            )
+        )
 
         # 有条件打包其它组件
         if(GGML_CUDA)
