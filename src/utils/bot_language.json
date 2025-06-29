@@ -136,6 +136,18 @@
             "采样",
             "Sampling"
         ],
+        "pushing": [
+            "推理中",
+            "pushing"
+        ],
+        "remove think process": [
+            "删除思考过程",
+            "remove think process"
+        ],
+        "predecode user input": [
+            "预处理用户输入",
+            "predecode user input"
+        ],
         "use max prob": [
             "对最大概率",
             "for maximum probability "

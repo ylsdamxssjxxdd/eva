@@ -50,11 +50,12 @@ void xBot::predict(EVA_INPUTS inputs) {
         // qDebug()<<n_past<<n_consumed;
         n_past -= thinkEndIndex - thinkStartIndex + 1;
         // qDebug()<<n_past<<n_consumed<<"delete think token"<<thinkStartIndex<<"---"<<thinkEndIndex;
+        emit bot2ui_state("bot:" + jtr("remove think process"));
         emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
     }    
 
     //--------------------预处理用户输入---------------------
-
+    emit bot2ui_state("bot:" + jtr("predecode user input"));
     const size_t original_size = embd_inp.size();  //输入原长度
     // qDebug()<<"原embd_inp.size() "<<embd_inp.size();//这里就是约定的tokens
 
@@ -136,7 +137,7 @@ void xBot::predict(EVA_INPUTS inputs) {
         ga_n = 1;
         ga_w = 512;
     }
-
+    emit bot2ui_state("bot:" + jtr("pushing"));
     int o1 = stream();
     while (o1 == 1)  //如果解码失败返回的结果是1,则n_past+1(相当于一个空的token)并重新解码,直到解码能够成功
     {
@@ -162,7 +163,6 @@ int xBot::stream() {
     //退出循环的情况:n_remain!=0/停止标签/推理失败/结束标志/用户昵称/额外停止标志
     while (n_remain != 0) {
         QCoreApplication::processEvents();  // 接收主线事件，主要是停止信号
-
         //模型停止
         if (is_stop) {
             pick_half_utf8.clear();
@@ -267,7 +267,7 @@ int xBot::stream() {
             }
 
             //按批处理,直到处理完
-            emit bot2ui_state("bot:" + jtr("decode") + "·" + jtr("use kv cache") + "(" + QString::number(n_past) + jtr("nums") + ")" + jtr("and input") + "(" + QString::number(embd.size()) + jtr("nums") + ")" + "token");
+            // emit bot2ui_state("bot:" + jtr("decode") + "·" + jtr("use kv cache") + "(" + QString::number(n_past) + jtr("nums") + ")" + jtr("and input") + "(" + QString::number(embd.size()) + jtr("nums") + ")" + "token");
             //+ jtr("batch size") + QString::number(common_params_.n_batch));
 
             for (int i = 0; i < (int)embd.size(); i += common_params_.n_batch) {
@@ -317,7 +317,7 @@ int xBot::stream() {
         std::string sstr = common_token_to_piece(ctx, id, common_params_.special);  // 获取id对应的文本
         
         // 构建概率表格
-        buildProbtable(&id);
+        // buildProbtable(&id);
         // 处理不完整的utf8字符
         completeUtf8(&sstr, &id);
         // 检测停止词并将采样的文本输出到ui
@@ -343,7 +343,7 @@ int xBot::stream() {
 
         if(is_output) // 记录输出的词
         {
-            emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
+            // emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(id) + " " + QString::fromStdString(sstr));
             // 记录输出的token和词
             common_sampler_accept(smpl, id, /* accept_grammar= */ true);
             current_output += sstr;
@@ -508,12 +508,17 @@ void xBot::load(QString modelpath_) {
     emit bot2ui_play();  //播放动画
 
     //装载模型
+    // common_init_result llama_init = common_init_from_params(common_params_);
+    // model = llama_init.model.get();
+    // ctx = llama_init.context.get();
+
     llama_model_params model_params = common_model_params_to_llama(common_params_);
     model = llama_model_load_from_file(common_params_.model.path.c_str(), model_params);
-    vocab = llama_model_get_vocab(model);
     llama_context_params ctx_params = common_context_params_to_llama(common_params_);
     ctx_params.n_threads = common_params_.cpuparams.n_threads;
     ctx = llama_init_from_model(model, ctx_params);
+
+    vocab = llama_model_get_vocab(model);
     mem = llama_get_memory(ctx);// 获取kv缓存操作对象
 
     //挂载视觉
@@ -1254,7 +1259,7 @@ void xBot::completeUtf8(std::string *sstr, llama_token *id) {
     if (isIncompleteUTF8(*sstr)) {
         pick_half_utf8.push_back(*id);
         *sstr = "";
-        emit bot2ui_state("bot:" + jtr("incompleteUTF8 detected"), WRONG_SIGNAL);
+        // emit bot2ui_state("bot:" + jtr("incompleteUTF8 detected"), WRONG_SIGNAL);
     }
     // 支持处理多个字节
     if (pick_half_utf8.size() > 1) {
@@ -1262,7 +1267,7 @@ void xBot::completeUtf8(std::string *sstr, llama_token *id) {
         if (!isIncompleteUTF8(tmpstr)) {
             *sstr = tmpstr;
             pick_half_utf8.clear();
-            emit bot2ui_state("bot:utf8" + jtr("complete") + " " + QString::fromStdString(*sstr), USUAL_SIGNAL);
+            // emit bot2ui_state("bot:utf8" + jtr("complete") + " " + QString::fromStdString(*sstr), USUAL_SIGNAL);
         }
     }
 }
@@ -1274,7 +1279,7 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
 
     if (*id == eos_token || *id == eot_token)  //如果遇到结束则停止
     {
-        emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
+        // emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         embd.clear();  // 不再显示和保留模型输出的停止词，因为后缀里包含有
         QString fianl_state = QString("bot:%1 %2 %3 token/s %4 %5 token/s")
         .arg(jtr("predict") + jtr("over"))

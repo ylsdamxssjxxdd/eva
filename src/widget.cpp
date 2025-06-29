@@ -256,7 +256,7 @@ void Widget::on_send_clicked() {
             ui->input->textEdit->clear();  // 获取用户输入
             images_filepath = ui->input->imageFilePaths();
             wavs_filepath = ui->input->wavFilePaths();
-            qDebug()<<"wavs_filepath"<<wavs_filepath;
+            // qDebug()<<"wavs_filepath"<<wavs_filepath;
             // qDebug()<<images_filepath;
             ui->input->clearThumbnails();
         }
