@@ -214,6 +214,16 @@ void Widget::load_over_handleTimeout() {
     else {
         force_unlockload_pTimer->start(0);  //强制解锁
     }
+
+    if(ui_monitor_frame>0 && ui_state == CHAT_STATE)
+    {
+        qDebug()<<"要监视你了哦"<<ui_monitor_frame;
+        monitor_timer.start(1000/ui_monitor_frame);
+    }
+    else
+    {
+        monitor_timer.stop();
+    }
 }
 
 // 装载完毕强制预处理
@@ -551,6 +561,8 @@ void Widget::set_SetDialog() {
     QIntValidator *validator = new QIntValidator(0, 65535);  //限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
     connect(settings_ui->web_btn, &QRadioButton::clicked, this, &Widget::web_change);
+    //监视帧率设置
+    settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this));// 只允许输入数字
 
     connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
@@ -845,6 +857,8 @@ void Widget::change_api_dialog(bool enable) {
     settings_ui->port_label->setVisible(enable);
     settings_ui->port_lineEdit->setVisible(enable);
     settings_ui->web_btn->setVisible(enable);
+    settings_ui->frame_label->setVisible(enable);
+    settings_ui->frame_lineEdit->setVisible(enable);
 }
 
 //-------------------------------------------------------------------------
@@ -1060,17 +1074,20 @@ void Widget::get_set() {
     ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
 
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
+    ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
+
     if (settings_ui->chat_btn->isChecked()) {
         ui_state = CHAT_STATE;
 
-    } else if (settings_ui->complete_btn->isChecked()) {
+    } 
+    else if (settings_ui->complete_btn->isChecked()) {
         ui_state = COMPLETE_STATE;
 
     }
     else if (settings_ui->web_btn->isChecked()) {
         ui_state = SERVER_STATE;
-
     }
+
     ui_port = settings_ui->port_lineEdit->text();
 }
 
@@ -1656,14 +1673,12 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->decode_box->setTitle(jtr("decode set"));  //解码设置区域
     settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
     settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
-    settings_ui->ngl_label->setMinimumWidth(100);
     settings_ui->ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
     settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread));
     settings_ui->nthread_label->setToolTip(jtr("not big better"));
     settings_ui->nthread_slider->setToolTip(jtr("not big better"));
     settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(ui_SETTINGS.nctx));
     settings_ui->nctx_label->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
-    settings_ui->nctx_label->setMinimumWidth(100);
     settings_ui->nctx_slider->setToolTip(jtr("ctx") + jtr("length") + "," + jtr("big brain size lead small wisdom"));
     settings_ui->lora_label->setText(jtr("load lora"));
     settings_ui->lora_label->setToolTip(jtr("lora_label_tooltip"));
@@ -1683,6 +1698,9 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->port_label->setText(jtr("port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    settings_ui->frame_label->setText(jtr("frame"));
+    settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
+    settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));
     settings_dialog->setWindowTitle(jtr("set"));
 }
 
@@ -1733,6 +1751,7 @@ void Widget::auto_save_user() {
     settings.setValue("nctx", ui_SETTINGS.nctx);
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath);  //视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);      // lora
+    settings.setValue("monitor_frame", ui_monitor_frame);      // 监视帧率
     
     //保存隐藏设置
     settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict);    //最大输出长度
@@ -1769,4 +1788,32 @@ void Widget::auto_save_user() {
     settings.setValue("api_model", apis.api_model);
 
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
+}
+
+//监视时间到
+void Widget::monitorTime()
+{
+    // 这些情况不处理
+    if(!is_load || is_run || ui_state!=CHAT_STATE || ui_mode != LOCAL_MODE)
+    {return ;}
+
+    QSize desktopSize = QApplication::desktop()->size();
+    QScreen *screen = QApplication::primaryScreen();
+    QPixmap m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());
+    QImage image = m_screenPicture.toImage();
+
+    // 逐步缩小图片直到尺寸 <= 1920x1080
+    while (image.width() > 1920 || image.height() > 1080) {
+        // 计算减半后的尺寸（保持宽高比）
+        int newWidth = image.width() / 2;
+        int newHeight = image.height() / 2;
+        image = image.scaled(newWidth, newHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);// 使用平滑变换保持图像质量
+    }
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss-zzz");
+    QString filePath = QDir::currentPath() + "/EVA_TEMP/screen_monitor/" + "EVA_" + timestamp + ".png";
+    createTempDirectory(QDir::currentPath() + "/EVA_TEMP/screen_monitor");
+    image.save(filePath);  // 保存处理后的图片件
+
+    emit ui2bot_monitor_filepath(filePath);//给模型发信号，能处理就处理
 }

@@ -31,6 +31,7 @@ xBot::~xBot() { ; }
 
 //模型预测推理过程
 void xBot::predict(EVA_INPUTS inputs) {
+    is_predict = true;
     // 删除思考部分的记忆
     int thinkStartIndex = -1;
     int thinkEndIndex = -1;
@@ -153,6 +154,7 @@ void xBot::predict(EVA_INPUTS inputs) {
 
     emit bot2ui_pushover();                                              //推理完成的信号
     emit bot2expend_brainvector(Brain_vector, common_params_.n_ctx, 1);  // 1强制刷新记忆矩阵
+    is_predict = false;
 }
 
 //流式输出，0表示遇到停止标签，-1表示遇到停止标志，1表示解码失败
@@ -432,6 +434,7 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             {
                 // 未正确解码的情况
                 emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+                qDebug()<<n_past;
                 return;
             }
 
@@ -1397,4 +1400,19 @@ bool xBot::load_image(const std::string & fname) {
     }
     bitmaps.entries.push_back(std::move(bmp));
     return true;
+}
+
+// 为监视解码图像
+void xBot::monitor_decode(QString filePath)
+{
+    if(is_predict || !is_multi){return ;}
+
+    preDecodeMeida({filePath},true);//预解码图像和前缀
+}
+
+//给模型发监视信号，能处理就处理
+void xBot::recv_monitor_filepath(QString filePath)
+{
+    qDebug()<<"i got you"<<filePath;
+    monitor_decode(filePath);
 }

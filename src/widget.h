@@ -150,6 +150,10 @@ class Widget : public QWidget {
     float load_time = 0;
     QTimer *force_unlockload_pTimer;  //到时间强制解锁
 
+    // 监视相关
+    double ui_monitor_frame = 0;// 监视帧率 多少帧/秒
+    QTimer monitor_timer;// 监视定时器 1000/ui_monitor_frame
+    
     //扩展相关
     QString embeddingdb_describe;  //知识库的描述
 
@@ -277,6 +281,7 @@ class Widget : public QWidget {
     void ui2bot_free(bool loadlater);                             //释放
     void ui2bot_maxngl(int maxngl_);
     void ui2bot_preDecode();                                      //从补完模式回来强行预解码
+    void ui2bot_monitor_filepath(QString filePath);//给模型发信号，能处理就处理
 
     //发给net的信号
    signals:
@@ -342,6 +347,7 @@ class Widget : public QWidget {
 
     //自用的槽
    private slots:
+    void monitorTime();//监视时间到
     void onSplitterMoved(int pos, int index);  //分割器被用户拉动时响应
     void stop_recordAudio();                   //停止录音
     void unlockLoad();

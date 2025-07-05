@@ -39,6 +39,8 @@ class xBot : public QObject {
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
 
    public:
+    bool is_predict = false;// 只有false的时候才能为监视解码图像
+    void monitor_decode(QString filePath);// 为监视解码图像
     //拯救中文
     QJsonObject wordsObj;
     QStringList chinesePunctuation = {"，", "。", "：", "？", "！", "、", "；", "“", "”", "‘", "’", "（", "）", "【", "】"}; // 定义一个包含常见中文标点符号的集合
@@ -154,6 +156,7 @@ class xBot : public QObject {
     void recv_free(bool loadlater);                                           //释放
     void recv_gpu_status(float vmem, float vram, float vcore, float vfree_);  //更新gpu内存使用率
     void recv_preDecode();                                                    //从补完模式回来强行预解码
+    void recv_monitor_filepath(QString filePath);//给模型发监视信号，能处理就处理
 
    signals:
     void bot2ui_showImages(QStringList images_filepath);//在输出区贴上图像

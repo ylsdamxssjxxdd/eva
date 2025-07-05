@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>262</width>
-    <height>343</height>
+    <height>345</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -81,7 +81,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -123,7 +123,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -189,7 +189,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -231,7 +231,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -273,7 +273,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
@@ -378,8 +378,14 @@
        <widget class="QRadioButton" name="complete_btn">
         <property name="minimumSize">
          <size>
-          <width>0</width>
+          <width>100</width>
           <height>20</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="text">
@@ -388,17 +394,68 @@
        </widget>
       </item>
       <item>
-       <widget class="QRadioButton" name="chat_btn">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
+       <layout class="QHBoxLayout" name="horizontalLayout_13">
+        <property name="spacing">
+         <number>3</number>
         </property>
-        <property name="text">
-         <string>对话状态</string>
-        </property>
-       </widget>
+        <item>
+         <widget class="QRadioButton" name="chat_btn">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>对话状态</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="frame_label">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>帧率</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="frame_lineEdit">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_12">
@@ -409,8 +466,14 @@
          <widget class="QRadioButton" name="web_btn">
           <property name="minimumSize">
            <size>
-            <width>0</width>
+            <width>100</width>
             <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
            </size>
           </property>
           <property name="text">

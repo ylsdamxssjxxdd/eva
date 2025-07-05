@@ -156,6 +156,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);                        //自动装载
     QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::recv_preDecode);                    //从补完模式回来强行预解码
     QObject::connect(&bot, &xBot::bot2ui_showImages, &w, &Widget::showImages);      
+    QObject::connect(&w, &Widget::ui2bot_monitor_filepath, &bot, &xBot::recv_monitor_filepath);       //给模型发监视信号，能处理就处理
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);  //传递gpu信息
@@ -233,7 +234,8 @@ int main(int argc, char* argv[]) {
     QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();  //模型路径
     w.currentpath = w.historypath = expend.currentpath = modelpath;
     w.ui_SETTINGS.modelpath = modelpath;
-    w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt());//整形还原为枚举
+    w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt());//
+    w.ui_monitor_frame = settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toDouble();
     w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
     w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
     w.api_model_LineEdit->setText(settings.value("api_model", "default").toString());
@@ -260,6 +262,7 @@ int main(int argc, char* argv[]) {
     w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
     w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
     w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
+    w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
     bool embedding_server_need = settings.value("embedding_server_need", 0).toBool();//默认不主动嵌入词向量
     QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
     QFile checkFile(settings.value("lorapath", "").toString());

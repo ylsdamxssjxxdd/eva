@@ -12,6 +12,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     applicationDirPath = applicationDirPath_;
     ui->splitter->setStretchFactor(0, 3);  //设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1);  //设置分隔器中第二个元素初始高度占比为1
+    
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
@@ -132,6 +133,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
             toggleWindowVisibility(this,true);// 显示窗体
         }
     });
+
+    //监视相关
+    connect(&monitor_timer, SIGNAL(timeout()), this, SLOT(monitorTime()));          //新开一个线程
+
     EVA_title = jtr("eva");
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
@@ -182,6 +187,7 @@ void Widget::on_load_clicked() {
     is_load = false;
     //先释放旧的模型和上下文
     emit ui2bot_free(1);  // 1表示重载
+    monitor_timer.stop();
 }
 
 //模型释放完毕并重新装载
@@ -218,6 +224,7 @@ void Widget::recv_loadover(bool ok_, float load_time_) {
         all_fps++;               //补上最后一帧,表示上下文也创建了
         load_pTimer->stop();     //停止动画,但是动作计数load_action保留
         load_pTimer->start(10);  //快速播放完剩下的动画,播放完再做一些后续动作
+        
     } else {
         ui->state->clear();
         load_begin_pTimer->stop();  //停止动画
@@ -389,6 +396,16 @@ void Widget::recv_resetover() {
         trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }  //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
+
+    if(ui_monitor_frame>0 && ui_state == CHAT_STATE)
+    {
+        qDebug()<<"要监视你了哦"<<ui_monitor_frame;
+        monitor_timer.start(1000/ui_monitor_frame);
+    }
+    else
+    {
+        monitor_timer.stop();
+    }
 
 }
 

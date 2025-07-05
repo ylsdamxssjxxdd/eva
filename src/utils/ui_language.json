@@ -40,6 +40,14 @@
             "约定",
             "date"
         ],
+        "frame": [
+            "帧率",
+            "frame"
+        ],
+        "frame_label_tooltip": [
+            "设置监视帧率，每秒处理多少帧屏幕图像，需要挂载视觉",
+            "Set monitoring frame rate, how many frames of screen images are processed per second, and it is necessary to mount the visual"
+        ],
         "length": [
             "长度",
             "length "
@@ -98,11 +106,11 @@
         ],
         "chat state": [
             "对话状态",
-            "chat state"
+            "CHAT "
         ],
         "complete state": [
             "补完状态",
-            "complete state"
+            "COMPLETE "
         ],
         "server": [
             "服务",
@@ -110,7 +118,7 @@
         ],
         "server state": [
             "服务状态",
-            "server state"
+            "SERVER "
         ],
         "system calling": [
             "系统指令",
