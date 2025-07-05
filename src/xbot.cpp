@@ -418,6 +418,7 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             if(chunks.size() == 0)// 未正确解析图片的情况
             {
                 emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
+                
                 return;
             }
 
@@ -434,9 +435,13 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             {
                 // 未正确解码的情况
                 emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-                qDebug()<<n_past;
+                // 权宜之计，重新预解码一遍彻底重置上下文
+                is_load_predecode = false;
+                reset();
                 return;
             }
+
+            
 
             n_past = new_n_past;
             emit bot2ui_kv(float(n_past) / float(common_params_.n_ctx) * 100, n_past);  //当前缓存量
@@ -1405,9 +1410,10 @@ bool xBot::load_image(const std::string & fname) {
 // 为监视解码图像
 void xBot::monitor_decode(QString filePath)
 {
-    if(is_predict || !is_multi){return ;}
+    if(is_predict || !is_multi || is_monitor){return ;}
 
     preDecodeMeida({filePath},true);//预解码图像和前缀
+    emit bot2ui_monitor_decode_ok();
 }
 
 //给模型发监视信号，能处理就处理

@@ -151,6 +151,7 @@ class Widget : public QWidget {
     QTimer *force_unlockload_pTimer;  //到时间强制解锁
 
     // 监视相关
+    bool is_monitor = false;
     double ui_monitor_frame = 0;// 监视帧率 多少帧/秒
     QTimer monitor_timer;// 监视定时器 1000/ui_monitor_frame
     
@@ -328,6 +329,7 @@ class Widget : public QWidget {
     void recv_params(MODEL_PARAMS p);                                             // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                    //接收缓存量
     void recv_play();
+    void recv_monitor_decode_ok();
 
     //处理expend信号的槽
     void recv_speechdecode_over(QString result);

@@ -1794,9 +1794,9 @@ void Widget::auto_save_user() {
 void Widget::monitorTime()
 {
     // 这些情况不处理
-    if(!is_load || is_run || ui_state!=CHAT_STATE || ui_mode != LOCAL_MODE)
+    if(!is_load || is_run || ui_state!=CHAT_STATE || ui_mode != LOCAL_MODE || is_monitor)
     {return ;}
-
+    is_monitor = true;
     QSize desktopSize = QApplication::desktop()->size();
     QScreen *screen = QApplication::primaryScreen();
     QPixmap m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());
@@ -1816,4 +1816,10 @@ void Widget::monitorTime()
     image.save(filePath);  // 保存处理后的图片件
 
     emit ui2bot_monitor_filepath(filePath);//给模型发信号，能处理就处理
+}
+
+
+void Widget::recv_monitor_decode_ok()
+{
+    is_monitor = false;//解锁
 }

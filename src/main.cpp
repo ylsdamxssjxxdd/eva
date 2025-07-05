@@ -157,6 +157,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::recv_preDecode);                    //从补完模式回来强行预解码
     QObject::connect(&bot, &xBot::bot2ui_showImages, &w, &Widget::showImages);      
     QObject::connect(&w, &Widget::ui2bot_monitor_filepath, &bot, &xBot::recv_monitor_filepath);       //给模型发监视信号，能处理就处理
+    QObject::connect(&bot, &xBot::bot2ui_monitor_decode_ok, &w, &Widget::recv_monitor_decode_ok);   
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status);  //传递gpu信息

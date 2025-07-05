@@ -39,6 +39,7 @@ class xBot : public QObject {
     QString view_embd(llama_context *ctx_, std::vector<llama_token> embd_);  //查看embd
 
    public:
+    bool is_monitor = false;// 只有true的时候才能为监视解码图像
     bool is_predict = false;// 只有false的时候才能为监视解码图像
     void monitor_decode(QString filePath);// 为监视解码图像
     //拯救中文
@@ -159,6 +160,7 @@ class xBot : public QObject {
     void recv_monitor_filepath(QString filePath);//给模型发监视信号，能处理就处理
 
    signals:
+    void bot2ui_monitor_decode_ok();
     void bot2ui_showImages(QStringList images_filepath);//在输出区贴上图像
     void bot2ui_predecoding_over();       // 完成推理，预解码
     void bot2ui_predecoding();            // 正在推理，预解码
