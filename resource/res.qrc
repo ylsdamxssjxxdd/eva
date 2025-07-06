@@ -29,5 +29,6 @@
         <file>logo/wav.png</file>
         <file>logo/connection-point-blue.png</file>
         <file>logo/connection-point-green.png</file>
+        <file>logo/jimu.png</file>
     </qresource>
 </RCC>

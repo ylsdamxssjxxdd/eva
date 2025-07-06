@@ -408,6 +408,9 @@ void Widget::recv_resetover() {
     {
         qDebug()<<"开始监视..."<<ui_monitor_frame;
         monitor_timer.start(1000/ui_monitor_frame);
+        EVA_icon = QIcon(":/logo/jimu.png"); // 千年积木
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
     }
     else
     {
