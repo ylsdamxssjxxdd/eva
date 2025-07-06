@@ -418,7 +418,7 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             if(chunks.size() == 0)// 未正确解析图片的情况
             {
                 emit bot2ui_state("bot:" + jtr("image") + jtr("predecode") + jtr("fail"), WRONG_SIGNAL);
-                
+
                 return;
             }
 

@@ -821,7 +821,7 @@
             "knowledge "
         ],
         "controller": [
-            "软件控制台",
+            "鼠标键盘",
             "controller "
         ],
         "stablediffusion": [
@@ -1089,7 +1089,7 @@
             "Transform the model into a software engineer, gaining the ability to execute commands and modify files"
         ],
         "controller_checkbox_tooltip": [
-            "添加一段指导模型调用软件控制台的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
+            "添加一段指导模型调用鼠标键盘的额外指令，每当模型输出完毕进行一次json解析，命中函数名则调用",
             "Add an additional instruction to guide the model in calling the controller, and perform a JSON parsing every time the model output is completed. If the function name is hit, it will be called "
         ],
         "knowledge_checkbox_tooltip": [

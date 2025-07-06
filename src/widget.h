@@ -44,6 +44,7 @@
 #include <QWidget>
 #include <QtGlobal>
 #include <QSystemTrayIcon>
+#include <QGuiApplication>
 #include <thread>
 #ifdef _WIN32
 #include <windows.h>
@@ -153,6 +154,7 @@ class Widget : public QWidget {
     // 监视相关
     bool is_monitor = false;
     double ui_monitor_frame = 0;// 监视帧率 多少帧/秒
+    QString saveScreen();//保存屏幕截图
     QTimer monitor_timer;// 监视定时器 1000/ui_monitor_frame
     
     //扩展相关
@@ -215,7 +217,8 @@ class Widget : public QWidget {
     mcp::json XMLparser(QString text);  //手搓输出解析器，提取XMLparser
     QString tool_result;
     QStringList wait_to_show_images_filepath;  //文生图后待显示图像的图像路径
-    
+    QString screen_info;
+    QString create_screen_info();//构建屏幕信息
 
     //装载动画相关
     int all_fps = 142;     //总帧数

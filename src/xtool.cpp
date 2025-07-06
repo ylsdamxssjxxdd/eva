@@ -84,12 +84,28 @@ void xTool::Exec(mcp::json tools_call) {
         }
 
     }
-    //----------------------控制台------------------
+    //----------------------鼠标键盘------------------
     else if (tools_name == "controller") {
-        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"number"));
-        emit tool2ui_state("tool:" + QString("controller(") + build_in_tool_arg + ")");
-        //执行相应界面控制
-        emit tool2ui_controller(build_in_tool_arg.toInt());
+
+        std::vector<std::string> build_in_tool_arg = get_string_list_safely(tools_args_,"sequence");
+
+        // 拼接打印参数
+        std::ostringstream oss;
+        for (size_t i = 0; i < build_in_tool_arg.size(); ++i) {
+            oss << build_in_tool_arg[i];
+            if (i < build_in_tool_arg.size() - 1) {
+                oss << " "; // 用空格分隔
+            }
+        }
+        std::string build_in_tool_arg_ = oss.str();
+
+        emit tool2ui_state("tool:" + QString("controller(") + QString::fromStdString(build_in_tool_arg_) + ")");
+
+        // 执行行动序列
+        excute_sequence(build_in_tool_arg);
+
+        emit tool2ui_pushover(QString("controller ") + jtr("return") + "\n" + "excute sequence over" + "\n");
+        
     }
     //----------------------文生图------------------
     else if (tools_name == "stablediffusion") {
@@ -391,4 +407,122 @@ QString xTool::mcpToolParser(mcp::json toolsinfo)
         result += mcp_tools_info.text + "\n";
     }
     return result;
+}
+
+// 执行行动序列
+void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
+{
+    // build_in_tool_arg的样式为 ["left_down(100,200)", "time_span(0.1)", "left_up()", "time_span(0.5)", "left_down(100,200)", "time_span(0.1)", "left_up()"] 
+    for (const auto& action : build_in_tool_arg) {
+        // 1. 提取函数名
+        size_t pos_start = action.find('(');
+        size_t pos_end = action.find(')');
+        
+        // 检查括号是否存在
+        if (pos_start == std::string::npos || pos_end == std::string::npos) {
+            // 错误处理：跳过无效格式
+            continue;
+        }
+
+        // 函数名（左括号前的部分）
+        std::string func_name = action.substr(0, pos_start);
+
+        // 2. 提取参数字符串（括号内的内容）
+        std::string args_str = action.substr(pos_start + 1, pos_end - pos_start - 1);
+        std::vector<std::string> args_list;
+
+        // 3. 分割参数（逗号分隔）
+        if (!args_str.empty()) {
+            std::istringstream iss(args_str);
+            std::string arg;
+            while (std::getline(iss, arg, ',')) {
+                // 可选：去除参数两端的空格
+                auto trim = [](std::string& s) {
+                    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+                        return !std::isspace(ch);
+                    }));
+                    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+                        return !std::isspace(ch);
+                    }).base(), s.end());
+                };
+                trim(arg); // 调用 trim 函数
+                args_list.push_back(arg);
+            }
+        }
+
+        // // 打印提取结果（实际执行时替换为具体操作）
+        // std::cout << "Function: " << func_name << ", Args: ";
+        // for (const auto& a : args_list) {
+        //     std::cout << a << " ";
+        // }
+
+        using namespace platform;
+        if(func_name=="left_down" && args_list.size()==2)
+        {
+            std::cout<<"left_down "<<" x "<<args_list[0]<<" y "<<args_list[1];
+            leftDown(std::stoi(args_list[0]),std::stoi(args_list[1]));
+        }
+        else if(func_name=="left_up"){
+            std::cout<<"leftUp ";
+            leftUp();
+        }
+        else if(func_name=="right_down" && args_list.size()==2)
+        {
+            std::cout<<"right_down "<<" x "<<args_list[0]<<" y "<<args_list[1];
+            rightDown(std::stoi(args_list[0]),std::stoi(args_list[1]));
+        }
+        else if(func_name=="right_up"){
+            std::cout<<"right_up ";
+            rightUp();
+        }  
+        else if(func_name=="move" && args_list.size()==3)
+        {
+            int ex=std::stoi(args_list[0]);
+            int ey=std::stoi(args_list[1]);
+            float sec=std::stof(args_list[2]);
+            std::cout<<"move "<<" x "<<args_list[0]<<" y "<<args_list[1]<<" t "<<args_list[2];
+    #ifdef _WIN32
+            POINT p; GetCursorPos(&p);
+            int sx=p.x, sy=p.y;
+    #else
+            Window root_r,child_r; int sx,sy; int rx,ry; unsigned int mask;
+            XQueryPointer(dsp(),DefaultRootWindow(dsp()),&root_r,&child_r,
+                        &rx,&ry,&sx,&sy,&mask);
+    #endif
+            const int fps=60; int steps=std::max(1,int(sec*fps));
+            for(int i=1;i<=steps;++i)
+            {
+                double k=double(i)/steps;
+                moveCursor(int(sx+k*(ex-sx)),int(sy+k*(ey-sy)));
+                msleep(unsigned(sec*1000/steps));
+            }
+
+        }
+        else if(func_name=="keyboard" && args_list.size()==1)
+        {
+            std::string keys=args_list[0];
+            // 去掉所有单引号
+            keys.erase(std::remove(keys.begin(), keys.end(), '\''), keys.end());
+            // 去掉所有双引号
+            keys.erase(std::remove(keys.begin(), keys.end(), '\"'), keys.end());
+            std::cout<<"keyboard "<<keys;
+            if(keys.find('+')!=std::string::npos)          // 组合键
+            {
+                sendKeyCombo(split(keys,'+'));
+            }
+            else                                           // 普通字符串
+            {
+                for(char c:keys) sendKeyCombo({std::string(1,c)});
+            }
+            
+        }
+        else if(func_name=="time_span" && args_list.size()==1)
+        {
+            std::cout<<"time_span "<<" t "<<args_list[0];
+            msleep(unsigned(std::stof(args_list[0])*1000));
+        }
+
+        std::cout << std::endl;
+    }
+    msleep(100);// 强制等待0.1s，让电脑显示出最终结果
 }

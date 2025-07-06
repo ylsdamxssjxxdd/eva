@@ -112,11 +112,11 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 2. controller
 
-    - Model output the control number to the controller tool, and the tool will return the execution result
+    - The model outputs a sequence of actions to control the user's mouse and keyboard, requiring the model to have vision to complete positioning
 
-    - Example: playing music
+    - Example: playing games
 
-    - Difficulty of calling: ⭐
+    - Difficulty of calling: ⭐⭐⭐⭐⭐
 
 3. engineer
 
@@ -134,7 +134,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - Example: What are the functions of the EVA?
 
-    - Difficulty of calling: ⭐⭐
+    - Difficulty of calling: ⭐⭐⭐
 
     <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
 
@@ -199,6 +199,14 @@ In local mode and chat state, you can click on the date button to mount the tool
 <summary> Model quantification </summary>
 
 - You can right-click on the status area to pop up a proliferation window, and quantify the unquantized gguf models of fp32, fp16, and bf16 in the model quantization tab
+
+</details>
+
+<details>
+
+<summary> Automatic monitoring </summary>
+
+- In local mode, after mounting the vision, the monitoring frame rate can be set, and the model will automatically monitor the screen at this frequency
 
 </details>
 

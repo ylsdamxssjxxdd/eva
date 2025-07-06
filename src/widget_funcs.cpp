@@ -217,7 +217,7 @@ void Widget::load_over_handleTimeout() {
 
     if(ui_monitor_frame>0 && ui_state == CHAT_STATE)
     {
-        qDebug()<<"要监视你了哦"<<ui_monitor_frame;
+        qDebug()<<"开始监视..."<<ui_monitor_frame;
         monitor_timer.start(1000/ui_monitor_frame);
     }
     else
@@ -1185,7 +1185,8 @@ QString Widget::create_extra_prompt() {
             available_tools_describe += Buildin_tools_stablediffusion.text + "\n";
         }
         if (date_ui->controller_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_controller.text + "\n";
+            screen_info = create_screen_info();//构建屏幕信息
+            available_tools_describe += Buildin_tools_controller.text.replace("{screen_info}", screen_info) + "\n";
         }
         if (date_ui->engineer_checkbox->isChecked()) {
             available_tools_describe += Buildin_tools_execute_command.text + "\n";
@@ -1797,29 +1798,128 @@ void Widget::monitorTime()
     if(!is_load || is_run || ui_state!=CHAT_STATE || ui_mode != LOCAL_MODE || is_monitor)
     {return ;}
     is_monitor = true;
-    QSize desktopSize = QApplication::desktop()->size();
-    QScreen *screen = QApplication::primaryScreen();
-    QPixmap m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height());
-    QImage image = m_screenPicture.toImage();
+    QString filePath = saveScreen();
+    emit ui2bot_monitor_filepath(filePath);//给模型发信号，能处理就处理
+}
 
+// 保存当前屏幕截图
+QString Widget::saveScreen()
+{
+    QScreen *screen = QApplication::primaryScreen();
+    
+    // 获取屏幕几何信息
+    QRect screenGeometry = screen->geometry();
+    qreal devicePixelRatio = screen->devicePixelRatio();
+    
+    qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
+    qDebug() << "缩放比例:" << devicePixelRatio;
+    
+    // 直接使用 grabWindow 获取完整屏幕截图（会自动处理DPI）
+    QPixmap m_screenPicture = screen->grabWindow(0);
+    
+    qDebug() << "截图实际尺寸:" << m_screenPicture.width() << m_screenPicture.height();
+    
+    // 获取鼠标位置（使用逻辑坐标，不需要手动缩放）
+    QPoint cursorPos = QCursor::pos();
+    
+    // 将逻辑坐标转换为截图中的物理坐标
+    cursorPos.setX(cursorPos.x() * devicePixelRatio);
+    cursorPos.setY(cursorPos.y() * devicePixelRatio);
+    
+    // 创建光标图标
+    QPixmap cursorPixmap;
+    
+    // 尝试获取当前光标
+    if (QApplication::overrideCursor()) {
+        cursorPixmap = QApplication::overrideCursor()->pixmap();
+    }
+    
+    // 如果没有获取到光标，创建默认箭头光标
+    if (cursorPixmap.isNull()) {
+        // 光标大小按DPI缩放
+        int baseSize = 16;
+        int cursorSize = baseSize * devicePixelRatio;
+        
+        cursorPixmap = QPixmap(cursorSize, cursorSize);
+        cursorPixmap.fill(Qt::transparent);
+        cursorPixmap.setDevicePixelRatio(devicePixelRatio);
+        
+        QPainter cursorPainter(&cursorPixmap);
+        cursorPainter.setRenderHint(QPainter::Antialiasing);
+        cursorPainter.setPen(QPen(Qt::black, 1));
+        cursorPainter.setBrush(Qt::white);
+        
+        // 绘制箭头（使用逻辑坐标，QPainter会自动处理缩放）
+        QPolygonF arrow;
+        arrow << QPointF(0, 0) << QPointF(0, 10) << QPointF(3, 7) 
+              << QPointF(7, 11) << QPointF(9, 9) 
+              << QPointF(5, 5) << QPointF(10, 0);
+        
+        cursorPainter.drawPolygon(arrow);
+        cursorPainter.end();
+    } else {
+        // 如果获取到了系统光标，确保它有正确的DPI设置
+        cursorPixmap.setDevicePixelRatio(devicePixelRatio);
+    }
+    
+    // 将光标绘制到截图上
+    QPainter painter(&m_screenPicture);
+    painter.setRenderHint(QPainter::Antialiasing);
+    
+    // 绘制光标时，考虑到cursorPixmap可能已经有devicePixelRatio设置
+    // 所以绘制位置需要调整
+    QPoint drawPos = cursorPos;
+    if (cursorPixmap.devicePixelRatio() > 1.0) {
+        // 如果光标pixmap已经设置了devicePixelRatio，绘制位置需要相应调整
+        drawPos.setX(cursorPos.x() / devicePixelRatio);
+        drawPos.setY(cursorPos.y() / devicePixelRatio);
+    }
+    
+    painter.drawPixmap(drawPos, cursorPixmap);
+    painter.end();
+    
+    QImage image = m_screenPicture.toImage();
+    
     // 逐步缩小图片直到尺寸 <= 1920x1080
     while (image.width() > 1920 || image.height() > 1080) {
-        // 计算减半后的尺寸（保持宽高比）
-        int newWidth = image.width() / 2;
-        int newHeight = image.height() / 2;
-        image = image.scaled(newWidth, newHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);// 使用平滑变换保持图像质量
+        // 计算缩放比例，保持宽高比
+        qreal scaleRatio = qMin(1920.0 / image.width(), 1080.0 / image.height());
+        int newWidth = image.width() * scaleRatio;
+        int newHeight = image.height() * scaleRatio;
+        
+        image = image.scaled(newWidth, newHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
-
+    
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss-zzz");
-    QString filePath = QDir::currentPath() + "/EVA_TEMP/screen_monitor/" + "EVA_" + timestamp + ".png";
-    createTempDirectory(QDir::currentPath() + "/EVA_TEMP/screen_monitor");
-    image.save(filePath);  // 保存处理后的图片件
-
-    emit ui2bot_monitor_filepath(filePath);//给模型发信号，能处理就处理
+    QString filePath = QDir::currentPath() + "/EVA_TEMP/screen_cut/" + timestamp + ".png";
+    createTempDirectory(QDir::currentPath() + "/EVA_TEMP/screen_cut");
+    image.save(filePath);
+    return filePath;
 }
 
 
 void Widget::recv_monitor_decode_ok()
 {
     is_monitor = false;//解锁
+}
+
+//构建屏幕信息
+QString Widget::create_screen_info()
+{
+    // 屏幕左上角坐标为(0,0) 右下角坐标为(x,y)
+    QString info;
+    QScreen *screen = QApplication::primaryScreen();
+    
+    // 使用物理像素尺寸，而不是逻辑像素
+    QRect screenGeometry = screen->geometry();
+    qreal devicePixelRatio = screen->devicePixelRatio();
+    
+    // 计算实际的物理像素尺寸
+    int physicalWidth = screenGeometry.width() * devicePixelRatio;
+    int physicalHeight = screenGeometry.height() * devicePixelRatio;
+
+    info = QString("The coordinates of the top left corner of the screen are (0,0) and the coordinates of the bottom right corner are (%1, %2)")
+           .arg(physicalWidth).arg(physicalHeight);
+
+    return info;
 }

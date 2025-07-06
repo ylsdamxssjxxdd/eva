@@ -267,11 +267,18 @@ void Widget::on_send_clicked() {
             // qDebug()<<images_filepath;
             ui->input->clearThumbnails();
         }
+        //如果挂载了鼠标键盘工具，则每次发送时附带一张屏幕截图
+        if(ui_controller_ischecked)
+        {
+            QString imgfilePath = saveScreen();
+            images_filepath.append(imgfilePath);
+        }
         //如果工具返回的结果不为空，则认为输入源是观察者
         if (tool_result != "") {
+            
             text_content = tool_result;
             tool_result = "";
-            inputs = {EVA_ROLE_OBSERVATION,text_content};
+            inputs = {EVA_ROLE_OBSERVATION,text_content,images_filepath};
 
         } else {
             inputs = {EVA_ROLE_USER,text_content,images_filepath,wavs_filepath};
@@ -399,7 +406,7 @@ void Widget::recv_resetover() {
 
     if(ui_monitor_frame>0 && ui_state == CHAT_STATE)
     {
-        qDebug()<<"要监视你了哦"<<ui_monitor_frame;
+        qDebug()<<"开始监视..."<<ui_monitor_frame;
         monitor_timer.start(1000/ui_monitor_frame);
     }
     else
@@ -921,6 +928,11 @@ void Widget::api_send_clicked_slove() {
             ui_state_pushing();
             return;
         } 
+        if(ui_controller_ischecked)
+        {
+            QString imgfilePath = saveScreen();
+            images_filepath.append(imgfilePath);
+        }
         //-----------------------构造用户消息----------------------------
         else {
             if(images_filepath.isEmpty())
