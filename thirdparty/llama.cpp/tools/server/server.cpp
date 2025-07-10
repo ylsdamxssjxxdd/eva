@@ -1969,10 +1969,8 @@ struct server_context {
             params_dft.n_ctx        = params_base.speculative.n_ctx == 0 ? params_base.n_ctx / params_base.n_parallel : params_base.speculative.n_ctx;
             params_dft.n_gpu_layers = params_base.speculative.n_gpu_layers;
             params_dft.n_parallel   = 1;
-
-            // force F16 KV cache for the draft model for extra performance
-            params_dft.cache_type_k = GGML_TYPE_F16;
-            params_dft.cache_type_v = GGML_TYPE_F16;
+            params_dft.cache_type_k = params_base.speculative.cache_type_k;
+            params_dft.cache_type_v = params_base.speculative.cache_type_v;
 
             llama_init_dft = common_init_from_params(params_dft);
 
@@ -2112,6 +2110,7 @@ struct server_context {
             /* use_jinja             */ params_base.use_jinja,
             /* prefill_assistant     */ params_base.prefill_assistant,
             /* reasoning_format      */ params_base.reasoning_format,
+            /* chat_template_kwargs  */ params_base.default_template_kwargs,
             /* common_chat_templates */ chat_templates.get(),
             /* allow_image           */ mctx ? mtmd_support_vision(mctx) : false,
             /* allow_audio           */ mctx ? mtmd_support_audio (mctx) : false,
@@ -3387,38 +3386,6 @@ struct server_context {
             llama_set_embeddings(ctx, slot_batched->need_embd());
         }
 
-        // pad the batch so that batch.n_tokens >= n_slots
-        // TODO: temporary workaround for https://github.com/ggml-org/llama.cpp/issues/13689
-        if (slot_batched->need_embd()) {
-            const int n_slots = slots.size();
-
-            if (batch.n_tokens < n_slots) {
-                std::set<llama_seq_id> seq_ids;
-                for (int j = 0; j < batch.n_tokens; ++j) {
-                    seq_ids.insert(batch.seq_id[j][0]);
-                }
-
-                // find unused sequence id
-                llama_seq_id seq_id = -1;
-                for (int i = 0; i < n_slots; ++i) {
-                    if (seq_ids.find(i) == seq_ids.end()) {
-                        seq_id = i;
-                    }
-                }
-
-                const int n_add = n_slots - batch.n_tokens;
-
-                SRV_WRN("adding %d dummy tokens to the batch, seq_id = %d\n", n_add, seq_id);
-
-                for (int j = 0; j < n_add; ++j) {
-                    common_batch_add(batch, 0, j, { seq_id }, true);
-                }
-
-                slots[seq_id].cache_tokens.clear();
-                llama_memory_seq_rm(llama_get_memory(ctx), seq_id, -1, -1);
-            }
-        }
-
         int32_t i_next = 0;
 
         // process the created batch of tokens
@@ -3452,8 +3419,11 @@ struct server_context {
                     }
 
                     if (ret < -1) {
+                        // TODO: update slot state based on llama_memory_seq_pos_min() and llama_memory_seq_pos_max()
                         err = "Compute error.";
                     }
+
+                    // TODO: handle ret == 2 (abort) when we start aborting
 
                     if (!err.empty()) {
                         SRV_ERR("%s, i = %d, n_batch = %d, ret = %d\n", err.c_str(), i, n_batch, ret);
@@ -4836,14 +4806,14 @@ int main(int argc, char ** argv) {
         // register static assets routes
         if (!params.public_path.empty()) {
             // Set the base directory for serving static files
-            bool is_found = svr->set_mount_point("/", params.public_path);
+            bool is_found = svr->set_mount_point(params.api_prefix + "/", params.public_path);
             if (!is_found) {
                 LOG_ERR("%s: static assets path not found: %s\n", __func__, params.public_path.c_str());
                 return 1;
             }
         } else {
             // using embedded static index.html
-            svr->Get("/", [](const httplib::Request & req, httplib::Response & res) {
+            svr->Get(params.api_prefix + "/", [](const httplib::Request & req, httplib::Response & res) {
                 if (req.get_header_value("Accept-Encoding").find("gzip") == std::string::npos) {
                     res.set_content("Error: gzip is not supported by this browser", "text/plain");
                 } else {
@@ -4859,37 +4829,37 @@ int main(int argc, char ** argv) {
     }
 
     // register API routes
-    svr->Get ("/health",              handle_health); // public endpoint (no API key check)
-    svr->Get ("/metrics",             handle_metrics);
-    svr->Get ("/props",               handle_props);
-    svr->Post("/props",               handle_props_change);
-    svr->Post("/api/show",            handle_api_show);
-    svr->Get ("/models",              handle_models); // public endpoint (no API key check)
-    svr->Get ("/v1/models",           handle_models); // public endpoint (no API key check)
-    svr->Get ("/api/tags",            handle_models); // ollama specific endpoint. public endpoint (no API key check)
-    svr->Post("/completion",          handle_completions); // legacy
-    svr->Post("/completions",         handle_completions);
-    svr->Post("/v1/completions",      handle_completions_oai);
-    svr->Post("/chat/completions",    handle_chat_completions);
-    svr->Post("/v1/chat/completions", handle_chat_completions);
-    svr->Post("/api/chat",            handle_chat_completions); // ollama specific endpoint
-    svr->Post("/infill",              handle_infill);
-    svr->Post("/embedding",           handle_embeddings); // legacy
-    svr->Post("/embeddings",          handle_embeddings);
-    svr->Post("/v1/embeddings",       handle_embeddings_oai);
-    svr->Post("/rerank",              handle_rerank);
-    svr->Post("/reranking",           handle_rerank);
-    svr->Post("/v1/rerank",           handle_rerank);
-    svr->Post("/v1/reranking",        handle_rerank);
-    svr->Post("/tokenize",            handle_tokenize);
-    svr->Post("/detokenize",          handle_detokenize);
-    svr->Post("/apply-template",      handle_apply_template);
+    svr->Get (params.api_prefix + "/health",              handle_health); // public endpoint (no API key check)
+    svr->Get (params.api_prefix + "/metrics",             handle_metrics);
+    svr->Get (params.api_prefix + "/props",               handle_props);
+    svr->Post(params.api_prefix + "/props",               handle_props_change);
+    svr->Post(params.api_prefix + "/api/show",            handle_api_show);
+    svr->Get (params.api_prefix + "/models",              handle_models); // public endpoint (no API key check)
+    svr->Get (params.api_prefix + "/v1/models",           handle_models); // public endpoint (no API key check)
+    svr->Get (params.api_prefix + "/api/tags",            handle_models); // ollama specific endpoint. public endpoint (no API key check)
+    svr->Post(params.api_prefix + "/completion",          handle_completions); // legacy
+    svr->Post(params.api_prefix + "/completions",         handle_completions);
+    svr->Post(params.api_prefix + "/v1/completions",      handle_completions_oai);
+    svr->Post(params.api_prefix + "/chat/completions",    handle_chat_completions);
+    svr->Post(params.api_prefix + "/v1/chat/completions", handle_chat_completions);
+    svr->Post(params.api_prefix + "/api/chat",            handle_chat_completions); // ollama specific endpoint
+    svr->Post(params.api_prefix + "/infill",              handle_infill);
+    svr->Post(params.api_prefix + "/embedding",           handle_embeddings); // legacy
+    svr->Post(params.api_prefix + "/embeddings",          handle_embeddings);
+    svr->Post(params.api_prefix + "/v1/embeddings",       handle_embeddings_oai);
+    svr->Post(params.api_prefix + "/rerank",              handle_rerank);
+    svr->Post(params.api_prefix + "/reranking",           handle_rerank);
+    svr->Post(params.api_prefix + "/v1/rerank",           handle_rerank);
+    svr->Post(params.api_prefix + "/v1/reranking",        handle_rerank);
+    svr->Post(params.api_prefix + "/tokenize",            handle_tokenize);
+    svr->Post(params.api_prefix + "/detokenize",          handle_detokenize);
+    svr->Post(params.api_prefix + "/apply-template",      handle_apply_template);
     // LoRA adapters hotswap
-    svr->Get ("/lora-adapters",       handle_lora_adapters_list);
-    svr->Post("/lora-adapters",       handle_lora_adapters_apply);
+    svr->Get (params.api_prefix + "/lora-adapters",       handle_lora_adapters_list);
+    svr->Post(params.api_prefix + "/lora-adapters",       handle_lora_adapters_apply);
     // Save & load slots
-    svr->Get ("/slots",               handle_slots);
-    svr->Post("/slots/:id_slot",      handle_slots_action);
+    svr->Get (params.api_prefix + "/slots",               handle_slots);
+    svr->Post(params.api_prefix + "/slots/:id_slot",      handle_slots_action);
 
     //
     // Start the server

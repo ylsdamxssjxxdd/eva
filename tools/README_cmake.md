@@ -7,7 +7,7 @@
 ## 如果要更换第三方库的话尝试按如下规则修改
 ### llama.cpp
 - 修改llama.cpp/ggml/src/ggml.c中的FILE * ggml_fopen(const char * fname, const char * mode)函数 -> 只要保留return fopen(fname, mode);其余删除
-- thirdparty\llama.cpp\ggml\src\ggml-vulkan\CMakeLists.txt 
+- thirdparty\llama.cpp\ggml\src\CMakeLists.txt 
 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}
 - 修改llama.cpp/tools/server/cmakelists.txt -> add_custom_command中xxd.cmake文件路径修改为 "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
 - 注释掉llama-bench.cpp main中的setlocale(LC_CTYPE, ".UTF-8"); 以支持中文

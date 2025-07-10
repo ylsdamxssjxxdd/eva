@@ -1811,13 +1811,13 @@ QString Widget::saveScreen()
     QRect screenGeometry = screen->geometry();
     qreal devicePixelRatio = screen->devicePixelRatio();
     
-    qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
-    qDebug() << "缩放比例:" << devicePixelRatio;
+    // qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
+    // qDebug() << "缩放比例:" << devicePixelRatio;
     
     // 直接使用 grabWindow 获取完整屏幕截图（会自动处理DPI）
     QPixmap m_screenPicture = screen->grabWindow(0);
     
-    qDebug() << "截图实际尺寸:" << m_screenPicture.width() << m_screenPicture.height();
+    // qDebug() << "截图实际尺寸:" << m_screenPicture.width() << m_screenPicture.height();
     
     // 获取鼠标位置（使用逻辑坐标，不需要手动缩放）
     QPoint cursorPos = QCursor::pos();

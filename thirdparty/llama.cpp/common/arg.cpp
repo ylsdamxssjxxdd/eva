@@ -2707,6 +2707,13 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_examples({LLAMA_EXAMPLE_EMBEDDING}));
     add_opt(common_arg(
+        {"--cls-separator"}, "STRING",
+        "separator of classification sequences (default \\t) for example \"<#seq#>\"",
+        [](common_params & params, const std::string & value) {
+            params.cls_sep = value;
+        }
+    ).set_examples({LLAMA_EXAMPLE_EMBEDDING}));
+    add_opt(common_arg(
         {"--host"}, "HOST",
         string_format("ip address to listen, or bind to an UNIX socket if the address ends with .sock (default: %s)", params.hostname.c_str()),
         [](common_params & params, const std::string & value) {
@@ -2727,6 +2734,13 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.public_path = value;
         }
     ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_STATIC_PATH"));
+    add_opt(common_arg(
+        {"--api-prefix"}, "PREFIX",
+        string_format("prefix path the server serves from, without the trailing slash (default: %s)", params.api_prefix.c_str()),
+        [](common_params & params, const std::string & value) {
+            params.api_prefix = value;
+        }
+    ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_API_PREFIX"));
     add_opt(common_arg(
         {"--no-webui"},
         string_format("Disable the Web UI (default: %s)", params.webui ? "enabled" : "disabled"),
@@ -2787,6 +2801,16 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.ssl_file_cert = value;
         }
     ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_SSL_CERT_FILE"));
+    add_opt(common_arg(
+        {"--chat-template-kwargs"}, "STRING",
+        string_format("sets additional params for the json template parser"),
+        [](common_params & params, const std::string &  value) {
+            auto parsed = json::parse(value);
+            for (const auto & item : parsed.items()) {
+                params.default_template_kwargs[item.key()] = item.value().dump();
+            }
+        }
+    ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_CHAT_TEMPLATE_KWARGS"));
     add_opt(common_arg(
         {"-to", "--timeout"}, "N",
         string_format("server read/write timeout in seconds (default: %d)", params.timeout_read),
@@ -3210,6 +3234,32 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             params.speculative.model.path = value;
         }
     ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_MODEL_DRAFT"));
+    add_opt(common_arg(
+        {"-ctkd", "--cache-type-k-draft"}, "TYPE",
+        string_format(
+            "KV cache data type for K for the draft model\n"
+            "allowed values: %s\n"
+            "(default: %s)",
+            get_all_kv_cache_types().c_str(),
+            ggml_type_name(params.speculative.cache_type_k)
+        ),
+        [](common_params & params, const std::string & value) {
+            params.speculative.cache_type_k = kv_cache_type_from_str(value);
+        }
+    ).set_env("LLAMA_ARG_CACHE_TYPE_K_DRAFT"));
+    add_opt(common_arg(
+        {"-ctvd", "--cache-type-v-draft"}, "TYPE",
+        string_format(
+            "KV cache data type for V for the draft model\n"
+            "allowed values: %s\n"
+            "(default: %s)",
+            get_all_kv_cache_types().c_str(),
+            ggml_type_name(params.speculative.cache_type_v)
+        ),
+        [](common_params & params, const std::string & value) {
+            params.speculative.cache_type_v = kv_cache_type_from_str(value);
+        }
+    ).set_env("LLAMA_ARG_CACHE_TYPE_V_DRAFT"));
 
     add_opt(common_arg(
         {"-mv", "--model-vocoder"}, "FNAME",
