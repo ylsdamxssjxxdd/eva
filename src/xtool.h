@@ -41,6 +41,15 @@
     #include <X11/Xutil.h>
     #include <X11/keysym.h>
     #include <X11/extensions/XTest.h>
+#ifdef Bool
+#undef Bool
+#endif
+#ifdef None          // X11 里也定义了 None，会与 Qt::None 等冲突
+#undef None
+#endif
+#ifdef Status        // X11 定义的 Status 与 Qt::Status 冲突
+#undef Status
+#endif
 #endif
 
 class xTool : public QObject {

@@ -18,7 +18,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
 option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
+option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 option(BODY_DOTPORD                   "使用常规arm dotprod加速"                    OFF) # 飞腾芯片不支持 速度200%
@@ -98,7 +98,8 @@ elseif(MINGW)
 # linux下编译选项
 elseif(UNIX)
     message(STATUS "Compiling on Unix/Linux")
-
+    find_package(X11 REQUIRED)
+    list(APPEND extra_LIBS X11::Xtst)
     if (GGML_CUDA) # 如果启用GGML_CUDA标志
         #list(APPEND extra_INCLUDES src/utils/gpuchecker.h src/utils/nvml.h) # 向extra_INCLUDES列表里添加文件
         list(APPEND extra_INCLUDES src/utils/gpuchecker.h) # 向extra_INCLUDES列表里添加文件
