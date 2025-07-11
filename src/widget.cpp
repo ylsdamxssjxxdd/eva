@@ -931,13 +931,15 @@ void Widget::api_send_clicked_slove() {
             ui_state_pushing();
             return;
         } 
-        if(ui_controller_ischecked)
-        {
-            QString imgfilePath = saveScreen();
-            images_filepath.append(imgfilePath);
-        }
         //-----------------------构造用户消息----------------------------
         else {
+            // 暂时不加截图，因为模型如果不支持视觉会直接报错
+            // if(ui_controller_ischecked)
+            // {
+            //     QString imgfilePath = saveScreen();
+            //     images_filepath.append(imgfilePath);
+            // }
+
             if(images_filepath.isEmpty())
             {
                 QJsonObject roleMessage;
