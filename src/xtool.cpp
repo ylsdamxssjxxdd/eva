@@ -115,7 +115,7 @@ void xTool::Exec(mcp::json tools_call) {
     }
     //----------------------读取文件------------------
     else if (tools_name == "read_file") {
-        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"expression"));
+        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"path"));
         QString result;
         QString filepath = build_in_tool_arg;
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
@@ -167,6 +167,84 @@ void xTool::Exec(mcp::json tools_call) {
         QString result = "write over";
         emit tool2ui_state("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("write_file ") + jtr("return") + "\n" + result);
+    }
+    else if (tools_name == "edit_file") {
+        // ─────── 1. 解析参数 ───────
+        QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
+        QString oldStr   = QString::fromStdString(get_string_safely(tools_args_, "old_string"));
+        QString newStr   = QString::fromStdString(get_string_safely(tools_args_, "new_string"));
+
+        int expectedRepl = 1;                      // 默认 1 次
+        if (tools_args_.contains("expected_replacements")) {
+            expectedRepl = static_cast<int>(tools_args_["expected_replacements"].get<int>());
+            if (expectedRepl < 1) expectedRepl = 1;
+        }
+
+        // 必须使用工作目录根做一次“去重 + 归一化”
+        filepath.replace(applicationDirPath + "/EVA_WORK/", "");
+        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+
+        // ─────── 2. 读取文件 ───────
+        QFile inFile(filepath);
+        if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            emit tool2ui_pushover("edit_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
+            return;
+        }
+        QString fileContent = QString::fromUtf8(inFile.readAll());
+        inFile.close();
+
+        // ─────── 3. 统计出现次数并校验 ───────
+        int occurrences = fileContent.count(oldStr, Qt::CaseSensitive);
+        if (occurrences == 0) {
+            emit tool2ui_pushover("edit_file " + jtr("return") + "old_string NOT found.");
+            return;
+        }
+        if (occurrences != expectedRepl) {
+            emit tool2ui_pushover(
+                "edit_file " + jtr("return") +
+                QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(occurrences));
+            return;
+        }
+
+        // ─────── 4. 执行替换 ───────
+        int replacedCount = 0;
+        int idx = 0;
+        while ((idx = fileContent.indexOf(oldStr, idx, Qt::CaseSensitive)) != -1) {
+            fileContent.replace(idx, oldStr.length(), newStr);
+            idx += newStr.length();
+            ++replacedCount;
+        }
+
+        // 再安全校验
+        if (replacedCount != expectedRepl) {
+            emit tool2ui_pushover(
+                "edit_file " + jtr("return") +
+                QString("Replacement count mismatch, replaced %1 time(s).").arg(replacedCount));
+            return;
+        }
+
+        // ─────── 5. 写回文件 ───────
+        QFileInfo fi(filepath);
+        QDir dir;
+        if (!dir.mkpath(fi.absolutePath())) {
+            emit tool2ui_pushover("edit_file " + jtr("return") + "Failed to create directory.");
+            return;
+        }
+
+        QFile outFile(filepath);
+        if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            emit tool2ui_pushover("edit_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
+            return;
+        }
+        QTextStream ts(&outFile);
+        ts.setCodec("UTF-8");
+        ts << fileContent;
+        outFile.close();
+
+        // ─────── 6. 成功反馈 ───────
+        QString result = QString("replaced %1 occurrence(s)").arg(replacedCount);
+        emit tool2ui_state("tool:edit_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        emit tool2ui_pushover("edit_file " + jtr("return") + "\n" + result);
     }
     else if(tools_name.contains("mcp_tools_list"))//查询mcp可用工具
     {

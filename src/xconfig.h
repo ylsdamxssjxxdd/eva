@@ -736,6 +736,52 @@ static TOOLS_INFO Buildin_tools_write_file(
     "Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.",
     "{""\"type\":\"object\",""\"properties\":{""\"path\":{""\"type\":\"string\",""\"description\":\"The file path which you want to write\"""},\"content\":{""\"type\":\"string\",""\"description\":\"The file content\"""}""},""\"required\":[\"path\",\"content\"]""}"
 );
+// ──────────────────────────────────────────────────────────────
+// 内置的工程师-编辑文件工具
+// ──────────────────────────────────────────────────────────────
+static TOOLS_INFO Buildin_tools_edit_file(
+    "edit_file",
+    // 工具描述
+    R"(Request to replace text inside an existing file.  
+By default, exactly one occurrence of old_string will be replaced.  
+If you need to replace multiple identical occurrences, set expected_replacements to the
+number of occurrences you expect.
+
+STRICT requirements:
+1. `path`  – The file path which you want to edit..
+2. `old_string` – MUST be the exact literal text you want to replace, including
+   all whitespace / indentation / new-lines. DO NOT escape it.
+   For single replacement (default) supply ≥3 lines of context before & after so the
+   text is unique in the file..
+3. `new_string` – MUST be the exact literal text that will replace `old_string`.
+4. NEVER escape either `old_string` or `new_string`; that would change the literal text.
+If any of the above constraints are violated the tool will fail.
+)",
+    // JSON-Schema，用于验证调用参数
+    R"({
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The file path which you want to edit."
+        },
+        "old_string": {
+          "type": "string",
+          "description": "The exact literal text to be replaced (include surrounding context for uniqueness)."
+        },
+        "new_string": {
+          "type": "string",
+          "description": "The exact literal text that will replace old_string."
+        },
+        "expected_replacements": {
+          "type": "number",
+          "description": "Number of expected occurrences to replace. Defaults to 1 if omitted.",
+          "minimum": 1
+        }
+      },
+      "required": ["path", "old_string", "new_string"]
+    })"
+);
 
 //颜色
 const QColor BODY_WHITE(255, 255, 240);       // 乳白色
