@@ -17,7 +17,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
     // 注册 发送 快捷键
-    shortcutCtrlEnter = new QHotkey(QKeySequence("ctrl+enter"), true, this);
+    shortcutCtrlEnter = new QHotkey(QKeySequence("CTRL+ENTER"), true, this);
     connect(shortcutCtrlEnter,  &QHotkey::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
 #ifdef BODY_USE_32BIT
     ui->vcore_bar->setVisible(0);

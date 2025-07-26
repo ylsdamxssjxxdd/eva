@@ -505,3 +505,136 @@ QSlider::sub-page:horizontal:disabled {
     background: #cccccc;
     border-color: #aaaaaa;
 }
+
+
+/* === 滚动条 (QScrollBar) - 浅色拟物化设计 === */
+QScrollBar:horizontal {
+    height: 16px;
+    background: #f8f8f8;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    margin: 0px 16px 0 16px;
+}
+
+QScrollBar:vertical {
+    width: 16px;
+    background: #f8f8f8;
+    border-left: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
+    margin: 16px 0 16px 0;
+}
+
+/* 滑道样式 */
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: #fcfcfc;
+}
+
+/* 滑块样式 - 浅灰色调 */
+QScrollBar::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #f0f0f0, stop:0.4 #e8e8e8, stop:0.6 #e0e0e0, stop:1 #d8d8d8);
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #f0f0f0, stop:0.4 #e8e8e8, stop:0.6 #e0e0e0, stop:1 #d8d8d8);
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+/* 滑块悬停效果 - 浅灰色调 */
+QScrollBar::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #e8e8e8, stop:0.4 #e0e0e0, stop:0.6 #d8d8d8, stop:1 #d0d0d0);
+    border: 1px solid #b0b0b0;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #e8e8e8, stop:0.4 #e0e0e0, stop:0.6 #d8d8d8, stop:1 #d0d0d0);
+    border: 1px solid #b0b0b0;
+}
+
+/* 滑块按下效果 - 稍深灰色调 */
+QScrollBar::handle:horizontal:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #e0e0e0, stop:0.4 #d8d8d8, stop:0.6 #d0d0d0, stop:1 #c8c8c8);
+    border: 1px solid #a0a0a0;
+}
+
+QScrollBar::handle:vertical:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #e0e0e0, stop:0.4 #d8d8d8, stop:0.6 #d0d0d0, stop:1 #c8c8c8);
+    border: 1px solid #a0a0a0;
+}
+
+/* 滚动条按钮样式 */
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: #f0f0f0;
+    border: 1px solid #d8d8d8;
+    border-radius: 3px;
+}
+
+/* 按钮箭头图标 */
+QScrollBar::up-arrow, QScrollBar::down-arrow,
+QScrollBar::left-arrow, QScrollBar::right-arrow {
+    width: 9px;
+    height: 9px;
+    image: url(":/icons/light_gray_arrow.png"); /* 使用浅灰色箭头图标 */
+}
+
+QScrollBar::add-line:horizontal {
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+    width: 16px;
+    border-left: 1px solid #d0d0d0;
+}
+
+QScrollBar::sub-line:horizontal {
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+    width: 16px;
+    border-right: 1px solid #d0d0d0;
+}
+
+QScrollBar::add-line:vertical {
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+    height: 16px;
+    border-top: 1px solid #d0d0d0;
+}
+
+QScrollBar::sub-line:vertical {
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+    height: 16px;
+    border-bottom: 1px solid #d0d0d0;
+}
+
+/* 按钮悬停效果 - 浅灰色调 */
+QScrollBar::add-line:hover, QScrollBar::sub-line:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #e8e8e8, stop:1 #e0e0e0);
+}
+
+/* 按钮按下效果 - 稍深灰色调 */
+QScrollBar::add-line:pressed, QScrollBar::sub-line:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #e0e0e0, stop:1 #d8d8d8);
+}
+
+/* 禁用状态样式 */
+QScrollBar:disabled {
+    background: #fcfcfc;
+}
+
+QScrollBar::handle:disabled {
+    background: #e8e8e8;
+    border: 1px solid #d0d0d0;
+}
