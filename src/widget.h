@@ -54,6 +54,8 @@
 
 #include "ui_date_dialog.h"
 #include "ui_settings_dialog.h"
+// #include "utils/globalshortcut.h"
+#include "thirdparty/QHotkey/QHotkey/QHotkey.h"
 #include "utils/customswitchbutton.h"
 #include "utils/cutscreendialog.h"
 #include "utils/doubleqprogressbar.h"
@@ -73,7 +75,8 @@ class Widget : public QWidget {
     ~Widget();
     QString applicationDirPath;
     bool eventFilter(QObject *obj, QEvent *event) override;  // 事件过滤器函数
-    QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
+    // QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
+    QHotkey *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
     bool checkAudio();  // 检测音频支持
     void changeEvent(QEvent *event) override; // 处理窗口状态变化
     void closeEvent(QCloseEvent *event) override;            //关闭事件

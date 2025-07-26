@@ -16,8 +16,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
-    QShortcut *shortcutCtrlEnter = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_Return), this);  // 注册发送的快捷键
-    connect(shortcutCtrlEnter, &QShortcut::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
+    // 注册 发送 快捷键
+    shortcutCtrlEnter = new QHotkey(QKeySequence("ctrl+enter"), true, this);
+    connect(shortcutCtrlEnter,  &QHotkey::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
 #ifdef BODY_USE_32BIT
     ui->vcore_bar->setVisible(0);
     ui->vram_bar->setVisible(0);
@@ -97,8 +98,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     //-------------截图相关-------------
     cutscreen_dialog = new CutScreenDialog(this);
     QObject::connect(cutscreen_dialog, &CutScreenDialog::cut2ui_qimagepath, this, &Widget::recv_qimagepath);  // 传递截取的图像路径
-    QShortcut *shortcutF1 = new QShortcut(QKeySequence(Qt::Key_F1), this);
-    connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
+    // QShortcut *shortcutF1 = new QShortcut(QKeySequence(Qt::Key_F1), this);
+    // connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
+    shortcutF1 = new QHotkey(QKeySequence("F1"), true, this);
+    connect(shortcutF1,  &QHotkey::activated, this, &Widget::onShortcutActivated_F1);
 
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                            //录音定时器
@@ -107,8 +110,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_) : QWidget(parent), 
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3"));  //设置播放的音乐
     if (checkAudio())                                                          // 如果支持音频输入则注册f2快捷键
     {
-        QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
-        connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
+        // QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
+        // connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
+        shortcutF2 = new QHotkey(QKeySequence("F2"), true, this);
+        connect(shortcutF2,  &QHotkey::activated, this, &Widget::onShortcutActivated_F2);
     }
 #endif
     //----------------第三方进程相关------------------

@@ -129,7 +129,7 @@ if (NOT DEFINED GGML_CUDA_GRAPHS)
     set(GGML_CUDA_GRAPHS_DEFAULT ON) # 默认开启CUDA_GRAPHS加速
 endif()
 ##################################### 第三方程序相关 #####################################
-
+add_subdirectory(thirdparty/QHotkey) # 添加全局热键库
 add_subdirectory(thirdparty/libsamplerate) # 添加libsamplerate音频重采样库
 add_subdirectory(thirdparty/libsndfile) # 添加libsndfile读取音频文件
 list(APPEND extra_LIBS samplerate sndfile)
@@ -210,7 +210,7 @@ thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 )
 
 # 链接相关库,生成可执行文件
-target_link_libraries(${TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp)
+target_link_libraries(${TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
 add_dependencies(${TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml) # 确保eva最后生产，保证后处理顺利进行
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")
 message(STATUS "eva型号：${eva_OUTPUT_NAME}")
