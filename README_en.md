@@ -5,7 +5,7 @@ Create a simple and intuitive body for llm, to better observe and control (based
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
-## Feature
+## Features
 
 - Easy to use operating interface 🧮
 
@@ -93,7 +93,7 @@ Create a simple and intuitive body for llm, to better observe and control (based
 
 <details>
 
-<summary> Five tool </summary>
+<summary> Six tool </summary>
 
 In local mode and chat state, you can click on the date button to mount the tool
 

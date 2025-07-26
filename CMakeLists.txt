@@ -21,7 +21,7 @@ option(BODY_PACK                     "pack eva"                                 
 option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
-option(BODY_DOTPORD                   "使用常规arm dotprod加速"                    OFF) # 飞腾芯片不支持 速度200%
+option(BODY_DOTPORD                  "使用常规arm dotprod加速"                      OFF) # 飞腾芯片不支持 速度200%
 
 ##################################### 处理编译选项 ####################################
 

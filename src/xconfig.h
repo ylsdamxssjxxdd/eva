@@ -724,12 +724,13 @@ static TOOLS_INFO Buildin_tools_execute_command(
 );
 
 // 内置的工程师-读文件工具
+// 内置的工程师-读文件工具
+
 static TOOLS_INFO Buildin_tools_read_file(
     "read_file",
-    "Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file.",
-    "{""\"type\":\"object\",""\"properties\":{""\"path\":{""\"type\":\"string\",""\"description\":\"The file path which you want to read\"""}""},""\"required\":[\"path\"]""}"
+    "Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file. You can specify start and end line numbers to read only a portion of the file. Maximum 200 lines can be read at once.",
+    "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"The file path which you want to read\"},\"start_line\":{\"type\":\"integer\",\"description\":\"The starting line number (1-based index). Optional, default is 1\",\"minimum\":1},\"end_line\":{\"type\":\"integer\",\"description\":\"The ending line number (1-based index). Optional, maximum 200 lines from start_line\",\"minimum\":1}},\"required\":[\"path\"]}"
 );
-
 // 内置的工程师-写文件工具
 static TOOLS_INFO Buildin_tools_write_file(
     "write_file",

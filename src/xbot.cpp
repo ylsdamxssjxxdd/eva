@@ -519,7 +519,7 @@ void xBot::load(QString modelpath_) {
     // common_init_result llama_init = common_init_from_params(common_params_);
     // model = llama_init.model.get();
     // ctx = llama_init.context.get();
-
+    qDebug()<<"开始装载模型";
     llama_model_params model_params = common_model_params_to_llama(common_params_);
     model = llama_model_load_from_file(common_params_.model.path.c_str(), model_params);
     llama_context_params ctx_params = common_context_params_to_llama(common_params_);

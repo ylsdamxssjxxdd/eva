@@ -82,7 +82,7 @@ int main(int argc, char* argv[]) {
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
     //-----------------加载皮肤-----------------------
-    QFile file(":/QSS-master/eva.qss");  
+    QFile file(":/QSS/eva.qss");  
     file.open(QFile::ReadOnly);
     QString stylesheet = file.readAll();
     w.setStyleSheet(stylesheet);

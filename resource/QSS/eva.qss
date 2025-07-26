@@ -92,7 +92,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-    image: url(":/QSS-master/QSS_IMG/go-down-symbolic.symbolic.png"); /* 可替换为你自己的图标 */
+    image: url(":/QSS/QSS_IMG/go-down-symbolic.symbolic.png"); /* 可替换为你自己的图标 */
     width: 10px;
     height: 10px;
 }
@@ -115,63 +115,75 @@ QComboBox QAbstractItemView::item:selected {
 }
 
 
-
-
 /* 标签栏样式 */
 QTabBar::tab {
-    background-color: #F7F7F7; /* 浅灰色背景 */
-    color: #333333; /* 深灰色文字 */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E0E0E0); /* 渐变背景，增加立体感 */
+    color: #333333;
     padding: 8px 20px;
-    margin-right: 5px; /* 增加右侧间距 */
-    border: 1px solid #E0E0E0; /* 添加边框 */
-    border-top-left-radius: 5px; /* 圆角 */
-    border-top-right-radius: 5px; /* 圆角 */
-    border-bottom: none; /* 移除底部边框 */
+    margin-right: 5px;
+    border: 1px solid #B0B0B0; /* 更深的边框，增强立体感 */
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom: none;
+
 }
 
 /* 鼠标悬停在标签上的样式 */
 QTabBar::tab:hover {
-    background-color: #FFF9C4; /* 更浅的黄色背景 */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFF9C4, stop:1 #FFF176); /* 明亮的悬停渐变 */
+    border: 1px solid #FFD54F;
+
 }
 
 /* 选中的标签样式 */
 QTabBar::tab:selected {
-    background-color: #FFC107; /* 醒目的黄色背景 */
-    color: #333333; /* 保持深色文字以确保可读性 */
-    border-bottom: 2px solid #E0E0E0; /* 使用与面板相同的颜色进行底部边框 */
-    margin-bottom: -2px; /* 使选中的标签略微突出 */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFD54F, stop:1 #FFC107); /* 更强烈的黄色渐变 */
+    color: #222222;
+    border: 1px solid #FFA000;
+    border-bottom: 2px solid #FFA000;
+    margin-bottom: -2px;
+
 }
 
 /* 禁用的标签样式 */
 QTabBar::tab:disabled {
-    background-color: #F0F0F0;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F0F0, stop:1 #D0D0D0);
     color: #A0A0A0;
+    border: 1px solid #CCCCCC;
+
 }
 
 /* 关闭按钮样式 */
 QTabBar::close-button {
-    image: url(close.png); /* 需要提供关闭图标 */
+    image: url(close.png);
     subcontrol-position: right;
     subcontrol-origin: margin;
     margin-right: 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 2px;
 }
 
 QTabBar::close-button:hover {
-    background-color: #FF5722; /* 悬停时的背景色改为橙红色 */
-    border-radius: 2px;
+    background-color: #FF5722;
+    border: 1px solid #D84315;
+    border-radius: 3px;
+
 }
 
 /* 标签栏滚动按钮样式 */
 QTabBar QToolButton {
-    background-color: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 3px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E0E0E0);
+    border: 1px solid #B0B0B0;
+    border-radius: 4px;
+    padding: 2px;
+
 }
 
 QTabBar QToolButton:hover {
-    background-color: #F7F7F7;
-}
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F7F7F7, stop:1 #D0D0D0);
 
+}
 
 QCheckBox {
     background-color: #FFFFFF; /* 纯白背景 */
@@ -298,7 +310,7 @@ QComboBox::drop-down:disabled {
 }
 
 QComboBox::down-arrow:disabled {
-    image: url(":/QSS-master/QSS_IMG/go-down-symbolic-disabled.symbolic.png");
+    image: url(":/QSS/QSS_IMG/go-down-symbolic-disabled.symbolic.png");
     opacity: 0.5;
 }
 
@@ -342,21 +354,6 @@ QGroupBox::title:disabled {
     color: #A0A0A0;
     background-color: #F0F0F0;
     border: 1px solid #D0D0D0;
-}
-
-/* QSlider 禁用状态 */
-QSlider::groove:horizontal:disabled, QSlider::groove:vertical:disabled {
-    background: #F0F0F0;
-    border: 1px solid #D0D0D0;
-}
-
-QSlider::handle:horizontal:disabled, QSlider::handle:vertical:disabled {
-    background: #E0E0E0;
-    border: 1px solid #D0D0D0;
-}
-
-QSlider::sub-page:horizontal:disabled {
-    background: #D0D0D0;
 }
 
 /* QRadioButton 禁用状态 */
@@ -433,78 +430,78 @@ QHeaderView::section {
     border: 1px solid #d0d0d0; /* 表头边框：浅灰色 */
 }
 
-/* ===== 纤细水平滑块 ===== */
+
+/* === 滑块 (QSlider) - 拟物化 === */
+/* 水平滑块 */
 QSlider::groove:horizontal {
-    border: 1px solid #D0D0D0;
-    background: qlineargradient(x1:0, y1:0.4, x2:0, y2:0.6,
-        stop:0 #F5F5F5, stop:1 #EAEAEA);
-    height: 2px;  /* 滑道高度减少 */
-    border-radius: 1px;
-    margin: 4px 0;
+    border: 1px solid #999999;
+    height: 8px; /* 增加滑道高度 */
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #bbbbbb, stop:1 #dddddd); /* 滑道渐变 */
+    border-radius: 4px;
+    margin: 2px 0;
 }
-
 QSlider::sub-page:horizontal {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #FFD000, stop:0.7 #FF9000);
-    height: 2px;
-    border-radius: 1px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFD000, stop:1 #FF9000);
+    border: 1px solid #aa6600;
+    border-radius: 4px;
 }
-
 QSlider::handle:horizontal {
-    background: qradialgradient(cx:0.3, cy:0.3, radius:0.6,
-        fx:0.35, fy:0.35,
-        stop:0 #FFFFFF, stop:1 #F0F0F0);
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #ffffff, stop: 0.7 #e0e0e0, stop: 1 #a0a0a0); /* 更复杂的径向渐变模拟球状手柄 */
     border: 1px solid;
-    border-color: #B0B0B0 #909090 #808080 #B0B0B0;
-    width: 12px;  /* 手柄缩小 */
-    height: 12px;
-    margin: -5px 0; /* 边距调整 */
-    border-radius: 6px;
+    border-color: #606060 #c0c0c0 #c0c0c0 #606060; /* 手柄边框*/
+    width: 16px;     /* 调小宽度 */
+    height: 16px;    /* 调小高度 */
+    margin: -4px 0;  /* 根据新尺寸重新居中，通常是 -(height/2 - groove高度/2) */
+    border-radius: 8px; /* 保持圆形，设为宽高的一半 */
 }
-
-/* ===== 垂直滑块适配 ===== */
+QSlider::handle:horizontal:hover {
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #ffffff, stop: 0.7 #f0f0f0, stop: 1 #b0b0b0);
+    border-color: #505050 #d0d0d0 #d0d0d0 #505050;
+}
+QSlider::handle:horizontal:pressed {
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #d0d0d0, stop: 0.7 #e8e8e8, stop: 1 #c0c0c0);
+    border-color: #707070 #a0a0a0 #a0a0a0 #707070;
+}
+/* 垂直滑块 */
 QSlider::groove:vertical {
-    border: 1px solid #D0D0D0;
-    background: qlineargradient(x1:0.4, y1:0, x2:0.6, y2:0,
-        stop:0 #F5F5F5, stop:1 #EAEAEA);
-    width: 2px;
-    border-radius: 1px;
-    margin: 0 4px;
+    border: 1px solid #999999;
+    width: 8px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #bbbbbb, stop:1 #dddddd);
+    border-radius: 4px;
+    margin: 0 2px;
 }
-
 QSlider::sub-page:vertical {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 #FFD000, stop:0.7 #FF9000);
-    width: 2px;
-    border-radius: 1px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFD000, stop:1 #FF9000);
+    border: 1px solid #aa6600;
+    border-radius: 4px;
 }
-
 QSlider::handle:vertical {
-    background: qradialgradient(cx:0.3, cy:0.3, radius:0.6,
-        fx:0.35, fy:0.35,
-        stop:0 #FFFFFF, stop:1 #F0F0F0);
-    border: 1px solid;
-    border-color: #B0B0B0 #909090 #808080 #B0B0B0;
-    width: 12px;
-    height: 12px;
-    margin: 0 -5px;
-    border-radius: 6px;
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #ffffff, stop: 0.7 #e0e0e0, stop: 1 #a0a0a0);
+    border: 2px solid;
+    border-color: #606060 #c0c0c0 #c0c0c0 #606060;
+    width: 20px;
+    height: 20px;
+    margin: 0 -6px;
+    border-radius: 10px;
 }
-
-/* ===== 微交互状态 ===== */
-QSlider::handle:horizontal:hover,
 QSlider::handle:vertical:hover {
-    background: qradialgradient(cx:0.3, cy:0.3, radius:0.7,
-        fx:0.35, fy:0.35,
-        stop:0 #FFFFFF, stop:1 #F8F8F8);
-    border-color: #A0A0A0 #808080 #707070 #A0A0A0;
+     background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #ffffff, stop: 0.7 #f0f0f0, stop: 1 #b0b0b0);
+    border-color: #505050 #d0d0d0 #d0d0d0 #505050;
 }
-
-QSlider::handle:horizontal:pressed,
 QSlider::handle:vertical:pressed {
-    background: qradialgradient(cx:0.35, cy:0.35, radius:0.6,
-        fx:0.25, fy:0.25,
-        stop:0 #F0F0F0, stop:1 #E5E5E5);
-    border-color: #808080 #A0A0A0 #B0B0B0 #808080;
-    margin: horizontal:-4px 0; vertical:0 -4px; /* 按压位移微调 */
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #d0d0d0, stop: 0.7 #e8e8e8, stop: 1 #c0c0c0);
+    border-color: #707070 #a0a0a0 #a0a0a0 #707070;
+}
+/* 禁用状态 */
+QSlider::groove:horizontal:disabled, QSlider::groove:vertical:disabled {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #dddddd, stop:1 #eeeeee);
+    border-color: #cccccc;
+}
+QSlider::handle:horizontal:disabled, QSlider::handle:vertical:disabled {
+    background: qradialgradient(cx: 0.3, cy: 0.3, radius: 0.8, fx: 0.3, fy: 0.3, stop: 0 #f0f0f0, stop: 0.7 #f8f8f8, stop: 1 #d0d0d0);
+    border-color: #b0b0b0 #e0e0e0 #e0e0e0 #b0b0b0;
+}
+QSlider::sub-page:horizontal:disabled {
+    background: #cccccc;
+    border-color: #aaaaaa;
 }

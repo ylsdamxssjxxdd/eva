@@ -94,18 +94,20 @@ protected:
 
     // 鼠标按下事件处理，开始截图
     void mousePressEvent(QMouseEvent *event) override {
-        if (event->button() == Qt::LeftButton) {  // 左键按下
+        if (event->button() == Qt::LeftButton) {
             m_isMousePressed = true;
-            m_startPos = event->pos() * devicePixelRatioF();  // 记录起始点
+            m_startPos = event->pos() * devicePixelRatioF();
+            m_endPos = m_startPos;  // 👈 关键修改：让起点和终点一致，避免闪动
+            update();  // 可选：立即刷新，确保画面同步
         }
     }
 
     // 鼠标移动事件处理，更新截图区域
     void mouseMoveEvent(QMouseEvent *event) override {
         if (m_isMousePressed) {
-            m_endPos = event->pos() * devicePixelRatioF();  // 更新结束点
-            m_fixedStartPos = m_startPos;  // 固定起始点
-            update();  // 触发重绘
+            m_endPos = event->pos() * devicePixelRatioF();
+            m_fixedStartPos = m_startPos;
+            update();
         }
     }
 
@@ -113,6 +115,8 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override {
         m_isMousePressed = false;
         m_screenMenu.exec(cursor().pos());  // 弹出右键菜单
+        clearInformation();  // 清除起点终点数据
+        update();            // 立即刷新画面
     }
 
     // 右键菜单事件处理

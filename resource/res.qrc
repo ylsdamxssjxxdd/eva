@@ -9,12 +9,12 @@
         <file>logo/Tools.ico</file>
         <file>logo/Nav_green_left.ico</file>
         <file>logo/Nav_green_right.ico</file>
-        <file>QSS-master/QSS_IMG/go-down-symbolic.symbolic.png</file>
-        <file>QSS-master/QSS_IMG/go-next-symbolic.symbolic.png</file>
-        <file>QSS-master/QSS_IMG/go-previous-symbolic.symbolic.png</file>
-        <file>QSS-master/QSS_IMG/go-up-symbolic.symbolic.png</file>
-        <file>QSS-master/QSS_IMG/object-select-symbolic.symbolic.png</file>
-        <file>QSS-master/eva.qss</file>
+        <file>QSS/QSS_IMG/go-down-symbolic.symbolic.png</file>
+        <file>QSS/QSS_IMG/go-next-symbolic.symbolic.png</file>
+        <file>QSS/QSS_IMG/go-previous-symbolic.symbolic.png</file>
+        <file>QSS/QSS_IMG/go-up-symbolic.symbolic.png</file>
+        <file>QSS/QSS_IMG/object-select-symbolic.symbolic.png</file>
+        <file>QSS/eva.qss</file>
         <file>logo/ui_demo.png</file>
         <file>logo/pause.png</file>
 	    <file>logo/c-eval.png</file>

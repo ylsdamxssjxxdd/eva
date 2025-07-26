@@ -115,25 +115,49 @@ void xTool::Exec(mcp::json tools_call) {
     }
     //----------------------读取文件------------------
     else if (tools_name == "read_file") {
+        // 获取路径参数
         QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_,"path"));
-        QString result;
         QString filepath = build_in_tool_arg;
         filepath.replace(applicationDirPath + "/EVA_WORK/","");//去重
         filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+
+        // 获取行号参数，默认为1
+        int start_line = get_int_safely(tools_args_, "start_line", 1);
+        int end_line = get_int_safely(tools_args_, "end_line", INT_MAX);
+
+        // 验证行号有效性
+        if (start_line < 1) start_line = 1;
+        if (end_line < start_line) end_line = start_line;
+        if (end_line - start_line + 1 > 200) end_line = start_line + 199;
+
+        QString result;
         QFile file(filepath);
         // 尝试打开文件
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            emit tool2ui_pushover(QString("read_file ") + jtr("return") + "can not open this file");//返回错误
+            emit tool2ui_pushover(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath));//返回错误
             return ;
         }
 
         // 使用 QTextStream 读取文件内容
         QTextStream in(&file);
         in.setCodec("UTF-8");  // 设置编码为UTF-8
-        result = in.readAll();
+
+        // 读取指定行范围
+        QStringList lines;
+        int current_line = 0;
+        while (!in.atEnd()) {
+            current_line++;
+            QString line = in.readLine();
+            if (current_line >= start_line && current_line <= end_line) {
+                lines.append(line);
+            }
+            if (current_line > end_line) break;
+        }
         file.close();
-        emit tool2ui_state("tool:" + QString("read_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
-        emit tool2ui_pushover(QString("read_file ") + jtr("return") + "\n" + result);//返回结果
+
+        result = lines.join("\n");
+        emit tool2ui_state("tool:" + QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result);//返回结果
     }
     //----------------------写入文件------------------
     else if (tools_name == "write_file") {
@@ -578,21 +602,34 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
         }
         else if(func_name=="keyboard" && args_list.size()==1)
         {
-            std::string keys=args_list[0];
-            // 去掉所有单引号
+            std::string keys = args_list[0];
+            // 去掉所有单引号和双引号
             keys.erase(std::remove(keys.begin(), keys.end(), '\''), keys.end());
-            // 去掉所有双引号
             keys.erase(std::remove(keys.begin(), keys.end(), '\"'), keys.end());
-            std::cout<<"keyboard "<<keys;
-            if(keys.find('+')!=std::string::npos)          // 组合键
-            {
-                sendKeyCombo(split(keys,'+'));
+
+            std::cout << "keyboard " << keys;
+
+            if (keys.find('+') != std::string::npos) {  // 组合键
+                sendKeyCombo(split(keys, '+'));
+            } else {
+                // 判断是否是特殊按键名称
+                bool is_special_key = (keys == "space" || keys == "enter" || keys == "tab" || 
+                                    keys == "esc" || keys == "backspace" || keys == "up" || 
+                                    keys == "down" || keys == "left" || keys == "right" ||
+                                    keys == "f1" || keys == "f2" || keys == "f3" || keys == "f4" ||
+                                    keys == "f5" || keys == "f6" || keys == "f7" || keys == "f8" ||
+                                    keys == "f9" || keys == "f10" || keys == "f11" || keys == "f12");
+
+                if (is_special_key) {
+                    // 是特殊按键，整体发送
+                    sendKeyCombo({keys});
+                } else {
+                    // 否则是普通字符串，按字符发送
+                    for (char c : keys) {
+                        sendKeyCombo({std::string(1, c)});
+                    }
+                }
             }
-            else                                           // 普通字符串
-            {
-                for(char c:keys) sendKeyCombo({std::string(1,c)});
-            }
-            
         }
         else if(func_name=="time_span" && args_list.size()==1)
         {

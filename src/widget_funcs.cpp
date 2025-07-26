@@ -1703,6 +1703,8 @@ void Widget::apply_language(int language_flag_) {
     settings_ui->frame_label->setText(jtr("frame"));
     settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
     settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));
+    settings_ui->confirm->setText(jtr("ok"));
+    settings_ui->cancel->setText(jtr("cancel"));
     settings_dialog->setWindowTitle(jtr("set"));
 }
 

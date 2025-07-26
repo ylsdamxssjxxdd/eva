@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>262</width>
-    <height>345</height>
+    <width>236</width>
+    <height>367</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -31,6 +31,11 @@
    </property>
    <item>
     <widget class="QGroupBox" name="sample_box">
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
      <property name="title">
       <string>采样设置</string>
      </property>
@@ -56,13 +61,13 @@
          <widget class="QLabel" name="temp_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -76,7 +81,7 @@
           <property name="minimumSize">
            <size>
             <width>100</width>
-            <height>0</height>
+            <height>18</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -98,13 +103,13 @@
          <widget class="QLabel" name="repeat_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -118,7 +123,7 @@
           <property name="minimumSize">
            <size>
             <width>100</width>
-            <height>0</height>
+            <height>18</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -139,6 +144,11 @@
    </item>
    <item>
     <widget class="QGroupBox" name="decode_box">
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
      <property name="title">
       <string>解码设置</string>
      </property>
@@ -164,13 +174,13 @@
          <widget class="QLabel" name="ngl_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -184,7 +194,7 @@
           <property name="minimumSize">
            <size>
             <width>100</width>
-            <height>0</height>
+            <height>18</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -206,13 +216,13 @@
          <widget class="QLabel" name="nthread_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -226,7 +236,7 @@
           <property name="minimumSize">
            <size>
             <width>100</width>
-            <height>0</height>
+            <height>18</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -248,13 +258,13 @@
          <widget class="QLabel" name="nctx_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -268,7 +278,7 @@
           <property name="minimumSize">
            <size>
             <width>100</width>
-            <height>0</height>
+            <height>18</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -290,13 +300,13 @@
          <widget class="QLabel" name="lora_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -323,13 +333,13 @@
          <widget class="QLabel" name="mmproj_label">
           <property name="minimumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>140</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
           </property>
@@ -378,15 +388,20 @@
        <widget class="QRadioButton" name="complete_btn">
         <property name="minimumSize">
          <size>
-          <width>100</width>
+          <width>110</width>
           <height>20</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>100</width>
+          <width>110</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
         </property>
         <property name="text">
          <string>补完状态</string>
@@ -402,9 +417,20 @@
          <widget class="QRadioButton" name="chat_btn">
           <property name="minimumSize">
            <size>
-            <width>100</width>
+            <width>110</width>
             <height>20</height>
            </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>110</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
           </property>
           <property name="text">
            <string>对话状态</string>
@@ -466,15 +492,20 @@
          <widget class="QRadioButton" name="web_btn">
           <property name="minimumSize">
            <size>
-            <width>100</width>
+            <width>110</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>100</width>
+            <width>110</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
           </property>
           <property name="text">
            <string>服务状态</string>
@@ -544,6 +575,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="confirm">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>确认</string>
        </property>
@@ -551,6 +587,11 @@
      </item>
      <item>
       <widget class="QPushButton" name="cancel">
+       <property name="font">
+        <font>
+         <pointsize>9</pointsize>
+        </font>
+       </property>
        <property name="text">
         <string>取消</string>
        </property>
