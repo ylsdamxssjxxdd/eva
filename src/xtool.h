@@ -182,6 +182,7 @@ namespace platform
         // 分离修饰键和主键
         for(size_t i = 0; i < tokens.size(); ++i) {
             std::string t = toUpper(tokens[i]);
+
             if(t == "CTRL")        modifiers.push_back(VK_CONTROL);
             else if(t == "SHIFT")  modifiers.push_back(VK_SHIFT);
             else if(t == "ALT")    modifiers.push_back(VK_MENU);

@@ -1167,32 +1167,32 @@ QString Widget::create_extra_prompt() {
     QString extra_prompt_;//额外指令
     QString available_tools_describe;//工具名和描述
     QString engineer_info;//软件工程师信息
-    extra_prompt_ = jtr("extra_prompt_format");
+    extra_prompt_ = EXTRA_PROMPT_FORMAT;
     extra_prompt_.replace("{OBSERVATION_STOPWORD}",DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool) {
-        available_tools_describe += Buildin_tools_answer.text + "\n";
+        available_tools_describe += Buildin_tools_answer.text + "\n\n";
         // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_mcp_tools_list.text + "\n";
+            available_tools_describe += Buildin_tools_mcp_tools_list.text + "\n\n";
         }
         if (date_ui->calculator_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_calculator.text + "\n";
+            available_tools_describe += Buildin_tools_calculator.text + "\n\n";
         }
         if (date_ui->knowledge_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_knowledge.text.replace("{embeddingdb describe}", embeddingdb_describe) + "\n";
+            available_tools_describe += Buildin_tools_knowledge.text.replace("{embeddingdb describe}", embeddingdb_describe) + "\n\n";
         }
         if (date_ui->stablediffusion_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_stablediffusion.text + "\n";
+            available_tools_describe += Buildin_tools_stablediffusion.text + "\n\n";
         }
         if (date_ui->controller_checkbox->isChecked()) {
             screen_info = create_screen_info();//构建屏幕信息
-            available_tools_describe += Buildin_tools_controller.text.replace("{screen_info}", screen_info) + "\n";
+            available_tools_describe += Buildin_tools_controller.text.replace("{screen_info}", screen_info) + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked()) {
-            available_tools_describe += Buildin_tools_execute_command.text + "\n";
-            available_tools_describe += Buildin_tools_read_file.text + "\n";
-            available_tools_describe += Buildin_tools_write_file.text + "\n";
-            available_tools_describe += Buildin_tools_edit_file.text + "\n";
+            available_tools_describe += Buildin_tools_execute_command.text + "\n\n";
+            available_tools_describe += Buildin_tools_read_file.text + "\n\n";
+            available_tools_describe += Buildin_tools_write_file.text + "\n\n";
+            available_tools_describe += Buildin_tools_edit_file.text + "\n\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info();//构建工程师信息
         }
@@ -1416,19 +1416,19 @@ QString Widget::checkCompile() {
 
 QString Widget::create_engineer_info()
 {
-    QString engineer_info = jtr("engineer_info");
-    QString engineer_system_info = jtr("engineer_system_info");
+    QString engineer_info_ = ENGINEER_INFO;
+    QString engineer_system_info_ = ENGINEER_SYSTEM_INFO;
     QDate currentDate = QDate::currentDate();  //今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
-    engineer_system_info.replace("{OS}", USEROS);
-    engineer_system_info.replace("{DATE}", dateString);
-    engineer_system_info.replace("{SHELL}", shell);
-    engineer_system_info.replace("{COMPILE_ENV}", compile_env);
-    engineer_system_info.replace("{PYTHON_ENV}", python_env);
-    engineer_system_info.replace("{DIR}", applicationDirPath + "/EVA_WORK");
+    engineer_system_info_.replace("{OS}", USEROS);
+    engineer_system_info_.replace("{DATE}", dateString);
+    engineer_system_info_.replace("{SHELL}", shell);
+    engineer_system_info_.replace("{COMPILE_ENV}", compile_env);
+    engineer_system_info_.replace("{PYTHON_ENV}", python_env);
+    engineer_system_info_.replace("{DIR}", applicationDirPath + "/EVA_WORK");
 
-    engineer_info.replace("{engineer_system_info}", engineer_system_info);
-    return engineer_info;
+    engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
+    return engineer_info_;
 }
 
 //添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止

@@ -612,23 +612,7 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
             if (keys.find('+') != std::string::npos) {  // 组合键
                 sendKeyCombo(split(keys, '+'));
             } else {
-                // 判断是否是特殊按键名称
-                bool is_special_key = (keys == "space" || keys == "enter" || keys == "tab" || 
-                                    keys == "esc" || keys == "backspace" || keys == "up" || 
-                                    keys == "down" || keys == "left" || keys == "right" ||
-                                    keys == "f1" || keys == "f2" || keys == "f3" || keys == "f4" ||
-                                    keys == "f5" || keys == "f6" || keys == "f7" || keys == "f8" ||
-                                    keys == "f9" || keys == "f10" || keys == "f11" || keys == "f12");
-
-                if (is_special_key) {
-                    // 是特殊按键，整体发送
-                    sendKeyCombo({keys});
-                } else {
-                    // 否则是普通字符串，按字符发送
-                    for (char c : keys) {
-                        sendKeyCombo({std::string(1, c)});
-                    }
-                }
+                sendKeyCombo({keys});
             }
         }
         else if(func_name=="time_span" && args_list.size()==1)

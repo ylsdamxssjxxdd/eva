@@ -40,9 +40,9 @@
             "挂载视觉",
             "load mmproj "
         ],
-        "invalid operation": [
-            "操作无效",
-            "invalid operation "
+        "Image decoding is invalid": [
+            "图片解码无效",
+            "Image decoding is invalid "
         ],
         "embedding": [
             "嵌入",

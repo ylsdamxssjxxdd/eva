@@ -202,7 +202,7 @@ ${TARGET}
 ${BODY_PACK_EXE}
 ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
 src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp
-src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h
+src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h
 src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
 src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h 
 src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h

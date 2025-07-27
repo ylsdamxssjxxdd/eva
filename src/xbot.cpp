@@ -459,7 +459,7 @@ void xBot::preDecodeMeida(QStringList medias_filepath, bool is_image) {
             else{emit bot2ui_showImages({":/logo/wav.png"});}
         } 
         else {
-            emit bot2ui_state("bot:" + jtr("invalid operation") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
+            emit bot2ui_state("bot:" + jtr("Image decoding is invalid") + ", " + jtr("please") + jtr("load mmproj"), USUAL_SIGNAL);
         }
     }
 

@@ -60,6 +60,7 @@
 #include "utils/cutscreendialog.h"
 #include "utils/doubleqprogressbar.h"
 #include "xconfig.h"  // ui和bot都要导入的共有配置
+#include "prompt.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
