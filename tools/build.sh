@@ -35,12 +35,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 自动更新仓库
-echo "更新代码仓库..."
-if git pull; then
-    echo "代码更新成功"
-else
-    echo "警告: 代码更新失败，继续构建..."
-fi
+# echo "更新代码仓库..."
+# if git pull; then
+#     echo "代码更新成功"
+# else
+#     echo "警告: 代码更新失败，继续构建..."
+# fi
 
 # 配置项目
 echo "配置项目 (构建目录: ${BUILD_NAME})..."
