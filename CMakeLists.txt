@@ -327,12 +327,12 @@ elseif(UNIX)
         add_custom_command(TARGET ${TARGET} POST_BUILD
             COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
             COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir"
-            COMMAND ${CMAKE_COMMAND} -E rm -f
-            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublas.so.12"
-            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublasLt.so.12"
-            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcudart.so.12"
-            "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcuda.so.1"
-            COMMENT "Removing CUDA libraries from AppDir"
+            # COMMAND ${CMAKE_COMMAND} -E rm -f
+            # "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublas.so.12"
+            # "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcublasLt.so.12"
+            # "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcudart.so.12"
+            # "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir/usr/lib/libcuda.so.1"
+            # COMMENT "Removing CUDA libraries from AppDir"
             COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.AppImage"
         
         )
