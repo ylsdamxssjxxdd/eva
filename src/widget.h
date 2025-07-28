@@ -55,7 +55,7 @@
 #include "ui_date_dialog.h"
 #include "ui_settings_dialog.h"
 // #include "utils/globalshortcut.h"
-#include "thirdparty/QHotkey/QHotkey/QHotkey.h"
+#include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 #include "utils/customswitchbutton.h"
 #include "utils/cutscreendialog.h"
 #include "utils/doubleqprogressbar.h"

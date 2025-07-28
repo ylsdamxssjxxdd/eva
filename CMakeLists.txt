@@ -17,8 +17,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
 
 ###################################### 编译选项 ######################################
-option(BODY_PACK                     "pack eva"                                   ON) # 是否打包
-option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
+option(BODY_PACK                     "pack eva"                                   OFF) # 是否打包
+option(GGML_CUDA                     "ggml: use CUDA"                             ON) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
 option(BODY_DOTPORD                  "使用常规arm dotprod加速"                      OFF) # 飞腾芯片不支持 速度200%
