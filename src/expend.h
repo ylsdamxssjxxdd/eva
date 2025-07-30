@@ -313,5 +313,11 @@ class Expend : public QWidget {
     void on_mcp_server_help_pushButton_clicked();
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state);//添加mcp服务信息
 
+//-------------------------------------------------------------------------
+//----------------------------------模型下载相关--------------------------------
+//-------------------------------------------------------------------------
+  public:
+    bool is_first_show_modelcard = true;
+
 };
 #endif  // EXPEND_H

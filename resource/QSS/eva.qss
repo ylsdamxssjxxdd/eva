@@ -92,7 +92,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-    image: url(":/QSS/QSS_IMG/go-down-symbolic.symbolic.png"); /* 可替换为你自己的图标 */
+    image: url(":/QSS/QSS_IMG/go-down-symbolic.symbolic.png"); 
     width: 10px;
     height: 10px;
 }

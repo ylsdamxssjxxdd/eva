@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -215,6 +215,16 @@ p, li { white-space: pre-wrap; }
           </layout>
          </widget>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>模型下载</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_21">
+       <item>
+        <widget class="CsvTableWidget" name="model_card" native="true"/>
        </item>
       </layout>
      </widget>
@@ -4651,6 +4661,12 @@ p, li { white-space: pre-wrap; }
    <class>StatusLed</class>
    <extends>QWidget</extends>
    <header>src/utils/statusindicator.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CsvTableWidget</class>
+   <extends>QWidget</extends>
+   <header>src/utils/csvtablewidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

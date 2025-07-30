@@ -337,6 +337,9 @@ void Expend::init_expend() {
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
 
+    // 模型卡
+    
+
 }
 
 //用户切换选项卡时响应
@@ -364,6 +367,11 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
     {
         is_first_show_modelinfo = false;
         ui->vocab_card->setPlainText(vocab);//更新一次模型词表
+    }
+    else if(index == window_map[MODELCARD_WINDOW] && is_first_show_modelcard)//第一次展示模型信息窗口
+    {
+        is_first_show_modelcard = false;
+        ui->model_card->openCsv(":/model_card.csv");//更新视图
     }
 }
 
