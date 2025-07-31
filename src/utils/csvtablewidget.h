@@ -24,6 +24,8 @@
 #include <QTimer>
 #include <cmath>
 #include <QMouseEvent>
+#include <QTime>
+#include <QThread>
 // 3D向量结构
 struct Vector3D {
     double x, y, z;
@@ -171,9 +173,11 @@ public:
         : QWidget(parent),
           m_selectedRow(-1),
           m_rotX(30), m_rotY(45), m_rotZ(0),
-          m_animationSpeed(0.5), // 旋转动画速度
-          m_connectionStep(0), // ADDED: 初始化
-          m_direction(1) // ADDED: 动画方向（1: 添加, -1: 移除）
+          m_animationSpeed(0.2), // 旋转动画速度
+          m_connectionStep(0.0), // MODIFIED: 改为 double，支持小数进度
+          m_direction(1), // ADDED: 动画方向（1: 添加, -1: 移除）
+          m_connAnimStep(0.05), // ADDED: 每 tick 的连接延伸步长（0.1 表示10%）
+          m_parallelLines(12) // ADDED: 同时延伸的线条数（增加并行感）
     {
         // 加载QSS样式
         loadStyleSheet(":/QSS/eva_green.qss");
@@ -253,31 +257,36 @@ public:
         // 初始化神经网络节点的3D位置
         initNeuralNetwork();
         
-        // 设置动画定时器
+        // 设置动画定时器 (旋转)
         m_animTimer = new QTimer(this);
-        m_animTimer->setInterval(30);// 旋转动画速率
+        m_animTimer->setInterval(30); // 旋转动画速率
         connect(m_animTimer, &QTimer::timeout, this, &CsvTableWidget::updateRotation);
         m_animTimer->start(); // 启动动画
 
-        // ① 先算出总连线数，记住以后要用
-        const int totalConn =  m_inputNodes .size() * m_hiddenNodes .size()
+        m_pauseTimer = new QTimer(this);
+        m_pauseTimer->setSingleShot(true); // 只触发一次
+        connect(m_pauseTimer, &QTimer::timeout, this, &CsvTableWidget::onPauseFinished);
+        // 总线数
+        const double totalConn = m_inputNodes.size() * m_hiddenNodes.size()
                             + m_hiddenNodes.size() * m_outputNodes.size();
-
-        // ② 连接计时器，让它以 50ms 的频率递增/递减步数（MODIFIED: 加速动画，添加移除阶段）
+        // ② 连接计时器，让它以 30ms 的频率递增/递减步数（MODIFIED: 支持延伸动画）
         m_connTimer = new QTimer(this);
-        m_connTimer->setInterval(50); // MODIFIED: 更快速率，避免太慢导致跳跃感
-        connect(m_connTimer, &QTimer::timeout, this, [=]() {
-            m_connectionStep += m_direction;
-            if (m_connectionStep >= totalConn) {
-                m_connectionStep = totalConn;
-                m_direction = -1; // 切换到移除
-            } else if (m_connectionStep <= 0) {
-                m_connectionStep = 0;
-                m_direction = 1; // 切换到添加
+        m_connTimer->setInterval(30);           // 帧率
+        connect(m_connTimer, &QTimer::timeout, this, [=] {
+            m_connectionStep += m_connAnimStep; // 递增动画进度
+            // 计算动画结束阈值（总连线数 + 并行线条数）
+            const double restartThreshold = totalConn - 1 + m_parallelLines;
+            if (m_connectionStep >= restartThreshold) {
+                // 动画结束：停止连接动画，启动10秒暂停
+                m_connTimer->stop();
+                m_pauseTimer->start(10000); // 10000毫秒 = 10秒
+            } else {
+                // 动画运行中：继续更新画面
+                update();
             }
-            update(); // 触发重绘
         });
         m_connTimer->start();
+
     }
 
     void openCsv(const QString &path)
@@ -327,7 +336,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override
     {
-        Q_UNUSED(event)
+        Q_UNUSED(event);
         
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
@@ -339,49 +348,54 @@ protected:
         QVector<QPointF> projectedInput, projectedHidden, projectedOutput;
         projectNodes(projectedInput, projectedHidden, projectedOutput);
 
-        // 保存未排序的投影，用于固定连接动画顺序（ADDED: 修复动画跳跃）
+        // 保存未排序的投影，用于固定连接动画顺序
         QVector<QPointF> unsortedInput = projectedInput;
         QVector<QPointF> unsortedHidden = projectedHidden;
         QVector<QPointF> unsortedOutput = projectedOutput;
 
-        // 按Z轴排序节点，实现正确的遮挡效果（MODIFIED: 引入sortedRotated用于depthFactor）
+        // 按Z轴排序节点，实现正确的遮挡效果
         QVector<Vector3D> sortedRotatedInput, sortedRotatedHidden, sortedRotatedOutput;
         sortNodesByDepth(projectedInput, m_inputNodes, sortedRotatedInput);
         sortNodesByDepth(projectedHidden, m_hiddenNodes, sortedRotatedHidden);
         sortNodesByDepth(projectedOutput, m_outputNodes, sortedRotatedOutput);
 
-        // 绘制连接线（使用未排序投影，固定动画顺序；MODIFIED）
-        // 计算当前步数对应的 from-hidden, hidden-out 两段各能画多少
-        int maxIH = m_inputNodes.size()  * m_hiddenNodes.size();
-        int maxHO = m_hiddenNodes.size() * m_outputNodes.size();
+        // 绘制连接线
+        // 计算第一阶段（输入层 -> 隐藏层）的连接总数
+        double maxIH = m_inputNodes.size() * m_hiddenNodes.size();
 
-        int ihCount = qMin(m_connectionStep, maxIH);
-        int hoCount = qMax(0, m_connectionStep - maxIH);   
-        hoCount      = qMin(hoCount, maxHO);
+        // 获取当前的全局动画进度
+        double current = m_connectionStep;
+
+        // 【修复】将动画进度视为一个连续的流
+        // 第一阶段的进度就是当前总进度
+        double ihCount = current;
+        // 第二阶段的进度是总进度减去第一阶段的连接数
+        // 当 current < maxIH 时，hoCount 为负，drawConnections 会正确地不绘制任何内容
+        double hoCount = current - maxIH;
 
         painter.setPen(QPen(QColor(0, 200, 100, 80), 0.8));
-        drawConnections(painter, unsortedInput , unsortedHidden, ihCount);
+        drawConnections(painter, unsortedInput, unsortedHidden, ihCount);
         drawConnections(painter, unsortedHidden, unsortedOutput, hoCount);
 
-        // 绘制节点（按深度顺序，后绘制的节点在上方；MODIFIED: 使用sortedRotated.z）
+
+        // 绘制节点（按深度顺序，后绘制的节点在上方）
         for (int i = 0; i < projectedInput.size(); ++i) {
             double depthFactor = getDepthFactor(sortedRotatedInput[i].z);
-            drawNeuron(&painter, projectedInput[i], 4 * depthFactor, 
-                      QColor(0, 255, 100, 200 * depthFactor));
-        }
-        
-        for (int i = 0; i < projectedHidden.size(); ++i) {
-            double depthFactor = getDepthFactor(sortedRotatedHidden[i].z);
-            drawNeuron(&painter, projectedHidden[i], 3.5 * depthFactor, 
-                      QColor(100, 255, 150, 200 * depthFactor));
-        }
-        
-        for (int i = 0; i < projectedOutput.size(); ++i) {
-            double depthFactor = getDepthFactor(sortedRotatedOutput[i].z);
-            drawNeuron(&painter, projectedOutput[i], 4 * depthFactor, 
-                      QColor(0, 255, 100, 200 * depthFactor));
+            drawNeuron(&painter, projectedInput[i], 12 * depthFactor, 
+                    QColor(0, 255, 100, 200 * depthFactor), m_rotX, m_rotY, m_rotZ);
         }
 
+        for (int i = 0; i < projectedHidden.size(); ++i) {
+            double depthFactor = getDepthFactor(sortedRotatedHidden[i].z);
+            drawNeuron(&painter, projectedHidden[i], 12 * depthFactor, 
+                    QColor(0, 255, 100, 200 * depthFactor), m_rotX, m_rotY, m_rotZ);
+        }
+
+        for (int i = 0; i < projectedOutput.size(); ++i) {
+            double depthFactor = getDepthFactor(sortedRotatedOutput[i].z);
+            drawNeuron(&painter, projectedOutput[i], 12 * depthFactor, 
+                    QColor(0, 255, 100, 200 * depthFactor), m_rotX, m_rotY, m_rotZ);
+        }
         // 绘制微弱网格
         painter.setPen(QPen(QColor(50, 80, 50, 30), 0.5));
         for (int x = 0; x < width(); x += 30) {
@@ -418,9 +432,17 @@ protected:
     
     // 滚轮控制旋转速度
     void wheelEvent(QWheelEvent *event) override {
-        int delta = event->angleDelta().y();
-        m_animationSpeed += delta * 0.001;
-        m_animationSpeed = qBound(0.1, m_animationSpeed, 5.0); // 限制速度范围
+        if (event->modifiers() & Qt::ControlModifier) { // Ctrl + Wheel to Zoom
+            int delta = event->angleDelta().y();
+            double zoomDelta = delta > 0 ? 1.1 : 1.0 / 1.1;
+            m_zoomFactor *= zoomDelta;
+            m_zoomFactor = qBound(0.3, m_zoomFactor, 3.0);
+        } else { // Just Wheel to change speed
+            int delta = event->angleDelta().y();
+            m_animationSpeed += delta * 0.001;
+            m_animationSpeed = qBound(0.1, m_animationSpeed, 5.0);
+        }
+        update(); // Trigger redraw for both cases
     }
 
 private:
@@ -428,27 +450,31 @@ private:
     void initNeuralNetwork() {
         const int inputCount = 8;
         const int hiddenCount = 12;
-        const int outputCount = 4;
+        const int outputCount = 8;
         
-        // 层间距（3D空间）
+        // Layer properties
         const double layerDepth = 150;
         const double startZ = -layerDepth;
-        
-        // 输入层节点（左侧）
+        const double inputSpacing = 80.0;
+        const double hiddenSpacing = 65.0;
+        const double outputSpacing = 80.0;
+
+        // Input layer nodes (centered around Y=0)
         for (int i = 0; i < inputCount; ++i) {
-            double yPos = -200 + (i * 60.0); // 垂直分布
+            // Calculate yPos relative to the center
+            double yPos = (i - (inputCount - 1) / 2.0) * inputSpacing;
             m_inputNodes.append(Vector3D(-300, yPos, startZ));
         }
         
-        // 隐藏层节点（中间）
+        // Hidden layer nodes (centered around Y=0)
         for (int i = 0; i < hiddenCount; ++i) {
-            double yPos = -250 + (i * 45.0);
+            double yPos = (i - (hiddenCount - 1) / 2.0) * hiddenSpacing;
             m_hiddenNodes.append(Vector3D(0, yPos, startZ + layerDepth));
         }
         
-        // 输出层节点（右侧）
+        // Output layer nodes (centered around Y=0)
         for (int i = 0; i < outputCount; ++i) {
-            double yPos = -150 + (i * 80.0);
+            double yPos = (i - (outputCount - 1) / 2.0) * outputSpacing;
             m_outputNodes.append(Vector3D(300, yPos, startZ + 2 * layerDepth));
         }
     }
@@ -484,13 +510,12 @@ private:
     
     // 3D点到2D屏幕的透视投影
     QPointF projectPoint(const Vector3D& point, const QPoint& center, double scale) {
-        // 简单透视投影
-        double zOffset = 1000; // 增加这个值会减小透视效果
+        double zOffset = 800;
         double factor = zOffset / (zOffset + point.z);
         
         return QPointF(
-            center.x() + point.x * factor * scale,
-            center.y() - point.y * factor * scale // Y轴反转，因为屏幕Y向下增长
+            center.x() + point.x * factor * scale * m_zoomFactor,
+            center.y() - point.y * factor * scale * m_zoomFactor
         );
     }
     
@@ -524,47 +549,138 @@ private:
     }
     
     // 绘制神经元连接
-    // from-layer 与 to-layer 共有 maxCount() 根连线，
-    // 只画前 allowCount 根
-    void drawConnections(QPainter &painter,
-                        const QVector<QPointF> &from,
-                        const QVector<QPointF> &to,
-                        int allowCount)
+   void drawConnections(QPainter &painter,
+                                     const QVector<QPointF> &from,
+                                     const QVector<QPointF> &to,
+                                     double allowCount)
     {
-        int painted = 0;
-        for (int i = 0; i < from.size(); ++i) {
-            for (int j = 0; j < to.size(); ++j) {
-                if (painted >= allowCount) return;      // 只画到上限就退出
-                painter.drawLine(from[i], to[j]);
-                ++painted;
+        if (allowCount <= 0) return;
+
+        const int fromSize = from.size();
+        const int toSize   = to.size();
+        const double window = m_parallelLines;         // 同时生长的“批”宽度
+
+        int idx = 0;                                   // 全局顺序索引
+        for (int i = 0; i < fromSize; ++i) {
+            for (int j = 0; j < toSize; ++j, ++idx) {
+
+                double offset = allowCount - idx;      // >0 已经开始
+
+                /* ① 还没轮到它 */
+                if (offset < 0.0)
+                    continue;
+
+                /* ② 已经完全长完 */
+                if (offset >= window) {
+                    painter.drawLine(from[i], to[j]);
+                    continue;
+                }
+
+                /* ③ 正在生长（0~window） */
+                double t = offset / window;            // 0~1
+                double prog = easeInOut(t);            // 缓动
+                QPointF end = from[i] + prog * (to[j] - from[i]);
+                painter.drawLine(from[i], end);
             }
+        }
+    }
+
+    // ADDED: 缓动函数 (ease-in-out quadratic)，使动画非线性、更平滑
+    double easeInOut(double t) {
+        if (t < 0.5) {
+            return 2 * t * t;
+        } else {
+            return -1 + (4 - 2 * t) * t;
         }
     }
     
     // 获取深度因子（影响大小和透明度）
     double getDepthFactor(double z) {
-        // 归一化z值到[0.5, 1.5]范围，使远处的节点小一些
+        // 修正为近大远小：随z增加，factor减小
+        // 归一化z值到[0,1]，然后反转并调整范围到[0.5, 1.5]
         double minZ = -1000;
         double maxZ = 1000;
         double normalized = (z - minZ) / (maxZ - minZ);
-        return 0.5 + normalized; // 范围 [0.5, 1.5]
+        return 1.5 - normalized; // 远处(z大) factor小，近处(z小) factor大
     }
 
-    // 绘制单个神经元节点（带渐变效果）
-    void drawNeuron(QPainter *painter, const QPointF &center, qreal radius, const QColor &baseColor)
-    {
-        // 外圆（半透明）
-        painter->setPen(Qt::NoPen);
-        QRadialGradient gradient(center, radius, center - QPointF(radius*0.3, radius*0.3));
-        gradient.setColorAt(0, baseColor.lighter(150)); // 中心亮
-        gradient.setColorAt(1, baseColor.darker(120));  // 边缘暗
-        painter->setBrush(gradient);
-        painter->drawEllipse(center, radius, radius);
+    // 绘制单个神经元节点（带渐变效果，修改为更像胞体）
+    // 绘制单个神经元节点（带渐变效果，修改为更像胞体）
+void drawNeuron(QPainter *painter, const QPointF &center, qreal radius, const QColor &baseColor, double rotX, double rotY, double rotZ)
+{
+    // 使用固定的种子，确保每个神经元的内部结构在每帧保持一致
+    uint seed = qHash(center.x() + center.y() * 1000);
+    
+    // 绘制胞体（主体）：略微不规则的椭圆形状，使用径向渐变
+    painter->setPen(Qt::NoPen);
+    QRadialGradient bodyGradient(center, radius, center - QPointF(radius * 0.3, radius * 0.3));
+    bodyGradient.setColorAt(0, baseColor.lighter(130)); // 中心较亮（模拟细胞质）
+    bodyGradient.setColorAt(0.7, baseColor);            // 中间渐变
+    bodyGradient.setColorAt(1, baseColor.darker(150));  // 边缘较暗（模拟细胞膜）
+    painter->setBrush(bodyGradient);
 
-        // 内亮点（增强立体感）
-        painter->setBrush(QColor(255, 255, 255, 100)); // 白色半透
-        painter->drawEllipse(center - QPointF(radius*0.2, radius*0.2), radius*0.2, radius*0.2);
+    // 创建椭圆路径
+    QPainterPath bodyPath;
+    bodyPath.addEllipse(center, radius * 1.1, radius); // 略微拉伸为椭圆
+
+    // 使用固定的随机数生成器创建稳定的不规则形状
+    QPolygonF polygon = bodyPath.toFillPolygon();
+    for (int i = 0; i < polygon.size(); ++i) {
+        // 使用索引计算固定的偏移值
+        double angle = 2 * 3.14 * i / polygon.size();
+        double offset = radius * 0.05;
+        polygon[i] += QPointF(
+            cos(angle) * offset,
+            sin(angle) * offset
+        );
     }
+    bodyPath = QPainterPath();
+    bodyPath.addPolygon(polygon);
+    painter->drawPath(bodyPath);
+
+    // 绘制细胞核（nucleus）：考虑3D旋转
+    qreal nucleusRadius = radius * 0.4;
+    
+    // 细胞核的3D偏移（相对于胞体中心）
+    Vector3D nucleusOffset3D(0, radius * 0.2, 0);
+    
+    // 应用与胞体相同的旋转
+    Vector3D rotatedNucleusOffset = nucleusOffset3D
+        .rotatedX(rotX)
+        .rotatedY(rotY)
+        .rotatedZ(rotZ);
+    
+    // 投影到2D（只使用x和y分量）
+    QPointF nucleusCenter = center + QPointF(rotatedNucleusOffset.x, -rotatedNucleusOffset.y);
+    
+    // 根据z深度调整细胞核大小（近大远小）
+    double nucleusDepthFactor = 1.0 + rotatedNucleusOffset.z * 0.001;
+    qreal adjustedNucleusRadius = nucleusRadius * nucleusDepthFactor;
+    
+    QRadialGradient nucleusGradient(nucleusCenter, adjustedNucleusRadius);
+    nucleusGradient.setColorAt(0, QColor(0, 100, 50, 200));   // 核中心深绿
+    nucleusGradient.setColorAt(1, QColor(0, 50, 20, 150));    // 核边缘暗绿
+    painter->setBrush(nucleusGradient);
+    painter->drawEllipse(nucleusCenter, adjustedNucleusRadius, adjustedNucleusRadius);
+
+    // 内亮点（高光，也需要考虑旋转）
+    Vector3D highlightOffset3D(-radius * 0.2, -radius * 0.2, radius * 0.1);
+    Vector3D rotatedHighlight = highlightOffset3D
+        .rotatedX(rotX)
+        .rotatedY(rotY)
+        .rotatedZ(rotZ);
+    
+    QPointF highlightPos = center + QPointF(rotatedHighlight.x, -rotatedHighlight.y);
+    double highlightDepthFactor = 1.0 + rotatedHighlight.z * 0.001;
+    qreal highlightSize = radius * 0.2 * highlightDepthFactor;
+    
+    // 根据深度调整高光强度
+    int highlightAlpha = 100 * (1.0 + rotatedHighlight.z * 0.0008);
+    painter->setBrush(QColor(255, 255, 255, qBound(0, highlightAlpha, 200)));
+    painter->drawEllipse(highlightPos, highlightSize, highlightSize);
+}
+
+
 
     // 加载QSS样式表
     void loadStyleSheet(const QString &fileName)
@@ -693,7 +809,11 @@ private slots:
                             tr("Failed to open %1 URL(s) due to invalid format or system issues").arg(errorCount));
         }
     }
-
+    void onPauseFinished() {
+            m_connectionStep = 0.0; // 重置动画进度
+            m_connTimer->start();   // 重启连接动画
+            update();               // 触发重绘
+        }
 private:
     QStandardItemModel *m_srcModel;
     CustomProxyModel   *m_proxyModel;
@@ -717,8 +837,12 @@ private:
     QVector<Vector3D> m_outputNodes;  // 输出层节点
     // 连接动画相关
     QTimer *m_connTimer = nullptr;   // 控制“逐条连线”动画
-    int      m_connectionStep;       // 已经点亮的连线条数
-    int      m_direction;            // ADDED: 方向 (1: 添加, -1: 移除)
+    double m_connectionStep;      // MODIFIED: double，支持小数进度
+    int m_direction;              // 方向 (1: 添加, -1: 移除)
+    double m_connAnimStep;        // ADDED: 每 tick 的步长（控制延伸速度）
+    int m_parallelLines;   // ADDED: 同时延伸的线条数（默认3）
+    double m_zoomFactor = 1;  // 添加缩放因子成员变量
+    QTimer *m_pauseTimer;  // 用于控制动画结束后的暂停
 };
 
 #endif // CSVTABLEWIDGET_H
