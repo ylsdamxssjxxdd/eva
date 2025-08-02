@@ -1584,6 +1584,10 @@
             "模型信息",
             "model info "
         ],
+        "model download": [
+            "模型下载",
+            "model download "
+        ],
         "convert": [
             "转换",
             "convert"

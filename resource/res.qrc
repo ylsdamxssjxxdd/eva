@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>model_card.csv</file>
+        <file>model_card_zh.csv</file>
+        <file>model_card_en.csv</file>
         <file>../README.md</file>
         <file>../README_en.md</file>
         <file>../src/utils/ui_language.json</file>

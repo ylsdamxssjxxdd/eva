@@ -1,5 +1,0 @@
-﻿id,模型厂商,模型系列,模型名称,模型类型,推荐量化级别,占用内存GB,总参数量B,激活参数B,更新日期,文字处理,文字生成,图像处理,图像生成,音频处理,音频生成,下载地址
-1,阿里巴巴,qwen3,qwen3-8b,大语言模型,Q3_K_M,4,8,8,,√,√,×,×,×,×,https://hf-mirror.com/unsloth/Qwen3-8B-GGUF/resolve/main/Qwen3-8B-Q3_K_M.gguf?download=true
-2,谷歌,gemma3,gemma-3-27b-it,多模态模型,Q4_K_M,17,27,27,2025/3/12,√,√,√,×,×,×,https://hf-mirror.com/unsloth/gemma-3-27b-it-GGUF/resolve/main/gemma-3-27b-it-Q4_K_M.gguf?download=true\nhttps://hf-mirror.com/unsloth/gemma-3-27b-it-GGUF/resolve/main/mmproj-F16.gguf?download=true
-3,谷歌,gemma3,gemma-3-12b-it,多模态模型,Q4_K_M,8,12,12,2025/3/12,√,√,√,×,×,×,https://hf-mirror.com/unsloth/gemma-3-12b-it-GGUF/resolve/main/gemma-3-12b-it-Q4_K_M.gguf?download=true\nhttps://hf-mirror.com/unsloth/gemma-3-12b-it-GGUF/resolve/main/mmproj-F16.gguf?download=true
-4,谷歌,gemma3,gemma-3-4b-it,多模态模型,Q4_K_M,3,4,4,2025/3/12,√,√,√,×,×,×,https://hf-mirror.com/unsloth/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_0.gguf?download=true\nhttps://hf-mirror.com/unsloth/gemma-3-4b-it-GGUF/resolve/main/mmproj-F16.gguf?download=true

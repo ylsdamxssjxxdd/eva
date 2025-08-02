@@ -716,6 +716,7 @@ void Widget::serverControl() {
     arguments << "--threads" << QString::number(ui_SETTINGS.nthread);  //使用线程
     arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);           //批大小
     arguments << "--jinja"; // 使用jinja引擎支持工具调用
+    arguments << "--reasoning-format"<<"none"; // none表示输出think标签到正文
     arguments << "--verbose-prompt"; // 每次对话时打印出提示词
     // arguments << "-lv" << QString::number(1); // 打印日志等级
     // arguments << "-v"; // 打印全部日志，会导致速度变慢

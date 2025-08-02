@@ -206,6 +206,7 @@ void Expend::init_expend() {
     this->setWindowTitle(jtr("expend window"));                    //标题
     ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));             //软件介绍
     ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));               //模型信息
+    ui->tabWidget->setTabText(window_map[MODELCARD_WINDOW], jtr("model download")); // 模型下载
     ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model")+jtr("convert"));     //模型转换
     ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));  //模型量化
     ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));             //软件介绍
@@ -338,7 +339,14 @@ void Expend::init_expend() {
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
 
     // 模型卡
-    
+    if(language_flag == 0)
+    {
+        ui->model_card->openCsv(":/model_card_zh.csv");//更新视图
+    }
+    else{
+        ui->model_card->openCsv(":/model_card_en.csv");//更新视图
+    }
+        
 
 }
 
@@ -371,7 +379,14 @@ void Expend::on_tabWidget_tabBarClicked(int index) {
     else if(index == window_map[MODELCARD_WINDOW] && is_first_show_modelcard)//第一次展示模型信息窗口
     {
         is_first_show_modelcard = false;
-        ui->model_card->openCsv(":/model_card.csv");//更新视图
+        if(language_flag == 0)
+        {
+            ui->model_card->openCsv(":/model_card_zh.csv");//更新视图
+        }
+        else{
+            ui->model_card->openCsv(":/model_card_en.csv");//更新视图
+        }
+        
     }
 }
 
