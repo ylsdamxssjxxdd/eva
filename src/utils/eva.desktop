@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=eva
+Comment=a lite llm tool
+Exec=eva
+Icon=blue_logo
+Categories=Utility;

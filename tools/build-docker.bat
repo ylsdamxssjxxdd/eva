@@ -1,0 +1,7 @@
+docker run --rm --name qt-linux-x86-cuda --privileged -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\workspace:/workspace -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\distribution:/distribution -it sjxx-qt-linux-x86:20250622-cuda /workspace/eva/tools/build.sh build-x86-cuda -o -DBODY_PACK=ON -DGGML_VULKAN=OFF -DGGML_CUDA=ON
+
+docker run --rm --name qt-linux-x86-cpu --privileged -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\workspace:/workspace -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\distribution:/distribution -it sjxx-qt-linux-x86:20250622-cuda /workspace/eva/tools/build.sh build-x86-cpu -o -DBODY_PACK=ON -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+
+docker run --rm --name qt-linux-x86-vulkan --privileged -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\workspace:/workspace -v D:\nerv\nerv-docker\sjxx-qt-linux-x86\distribution:/distribution -it sjxx-qt-linux-x86:20250622-cuda /workspace/eva/tools/build.sh build-x86-vulkan -o -DBODY_PACK=ON -DGGML_VULKAN=ON -DGGML_CUDA=OFF
+
+docker run --rm --platform linux/arm64 --name qt-linux-arm-cpu --privileged -v D:\nerv\nerv-docker\sjxx-qt-linux-arm\workspace:/workspace -v D:\nerv\nerv-docker\sjxx-qt-linux-arm\distribution:/distribution -it sjxx-qt-linux-arm:20250622-cpu /workspace/eva/tools/build.sh build-arm-cpu -o -DBODY_PACK=ON -DGGML_VULKAN=OFF -DGGML_CUDA=OFF

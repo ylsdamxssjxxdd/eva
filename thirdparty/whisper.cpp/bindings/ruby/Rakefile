@@ -1,0 +1,70 @@
+require 'rake/clean'
+require "bundler/gem_tasks"
+require "rake/testtask"
+require_relative "extsources"
+
+SOURCES = FileList[]
+
+EXTSOURCES.each do |src|
+  basename = src.pathmap("%f")
+  dest = basename == "LICENSE" ? basename : src.pathmap("%{../..,ext}p")
+  dir = dest.pathmap("%d")
+  file src
+  directory dir
+  file dest => [src, dir] do |t|
+    cp t.source, t.name
+  end
+  SOURCES.include dest
+end
+
+CLEAN.include SOURCES
+CLEAN.include FileList[
+                "ext/*.o",
+                "ext/*.metal",
+                "ext/whisper.{so,bundle,dll}",
+                "ext/depend"
+              ]
+
+task build: FileList[
+       "ext/Makefile",
+       "ext/ruby_whisper.h",
+       "ext/ruby_whisper.cpp",
+       "whispercpp.gemspec",
+     ]
+
+directory "pkg"
+CLOBBER.include "pkg"
+
+TEST_MODEL = "../../models/ggml-base.en.bin"
+LIB_NAME = "whisper".ext(RbConfig::CONFIG["DLEXT"])
+SO_FILE = File.join("ext", LIB_NAME)
+LIB_FILE = File.join("lib", LIB_NAME)
+
+file "ext/Makefile" => ["ext/extconf.rb", "ext/ruby_whisper.h", "ext/ruby_whisper.cpp"] + SOURCES do |t|
+  Dir.chdir "ext" do
+    ruby "extconf.rb"
+  end
+end
+
+file SO_FILE => "ext/Makefile" do |t|
+  Dir.chdir "ext" do
+    sh "make"
+  end
+end
+CLEAN.include LIB_FILE
+
+directory "lib"
+file LIB_FILE => [SO_FILE, "lib"] do |t|
+  copy t.source, t.name
+end
+
+Rake::TestTask.new do |t|
+  t.test_files = FileList["tests/test_*.rb"]
+end
+task test: [TEST_MODEL, LIB_FILE]
+
+file TEST_MODEL do
+  Dir.chdir "../.." do
+    sh "./models/download-ggml-model.sh base.en"
+  end
+end
