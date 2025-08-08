@@ -49,12 +49,13 @@ function(ggml_opencl_add_kernel KNAME)
         target_sources(${TARGET_NAME} PRIVATE ${KERN_HDR})
     else ()
         message(STATUS "opencl: adding kernel ${KNAME}")
-        configure_file(${KERN_SRC} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}/${KNAME}.cl COPYONLY)
+        configure_file(${KERN_SRC} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${KNAME}.cl COPYONLY)
     endif ()
 endfunction()
 
 set(GGML_OPENCL_KERNELS
     add
+    add_id
     argsort
     clamp
     cpy
@@ -82,6 +83,8 @@ set(GGML_OPENCL_KERNELS
     mul_mv_q4_0_f32_1d_16x_flat
     mul_mv_q6_k
     mul_mv_id_q4_0_f32_8x_flat
+    mul_mm_f32_f32_l4_lm
+    mul_mm_f16_f32_l4_lm
     mul
     norm
     relu
