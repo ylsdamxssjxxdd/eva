@@ -1285,7 +1285,7 @@ bool xBot::checkStop(std::string *sstr, llama_token *id) {
     QString sample_str;  //采样打印信息
     sample_str = jtr("sampling") + "·";
 
-    if (*id == eos_token || *id == eot_token)  //如果遇到结束则停止
+    if (*id == eos_token || *id == eot_token || llama_vocab_is_eog(vocab, *id))  //如果遇到结束则停止
     {
         // emit bot2ui_state("bot:" + sample_str + "token=" + QString::number(*id) + " " + QString::fromStdString(*sstr));
         embd.clear();  // 不再显示和保留模型输出的停止词，因为后缀里包含有

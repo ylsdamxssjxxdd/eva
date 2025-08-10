@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12) # 最低cmake版本
 project(body) # 项目名
 set(TARGET eva) # 最终生成的目标文件
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # 将项目目录也作为头文件包含目录
-set(version b6119) # 打包版本
+set(version b6123) # 打包版本
 set(LLAMA_BUILD_NUMBER 9999)
 
 # 设置所有构建类型下的可执行文件的输出目录
@@ -21,7 +21,7 @@ option(BODY_PACK                     "pack eva"                                 
 option(GGML_CUDA                     "ggml: use CUDA"                             OFF) # 速度900%
 option(GGML_VULKAN                   "ggml: use Vulkan"                           OFF) # 速度250%
 option(BODY_32BIT                    "support 32 BIT"                             OFF) # 速度-80% /(ㄒoㄒ)/~~
-option(BODY_DOTPORD                  "使用常规arm dotprod加速"                      OFF) # 飞腾芯片不支持 速度200%
+option(BODY_DOTPORD                  "使用常规arm dotprod加速"                     OFF) # 飞腾芯片不支持 速度200%
 
 ##################################### 处理编译选项 ####################################
 
