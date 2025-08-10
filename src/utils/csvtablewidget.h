@@ -29,7 +29,7 @@
 #include <QElapsedTimer>
 #include <algorithm>
 #include <QRandomGenerator>  // 新增：用于随机数生成
-
+#include <QtMath>
 // 3D向量结构
 struct Vector3D {
     double x, y, z;
@@ -38,7 +38,7 @@ struct Vector3D {
     
     // 向量旋转
     Vector3D rotatedX(double angle) const {
-        double rad = angle * 3.14159265 / 180.0;
+        double rad = angle * M_PI / 180.0;
         return Vector3D(
             x,
             y * cos(rad) - z * sin(rad),
@@ -47,7 +47,7 @@ struct Vector3D {
     }
     
     Vector3D rotatedY(double angle) const {
-        double rad = angle * 3.14159265 / 180.0;
+        double rad = angle * M_PI / 180.0;
         return Vector3D(
             x * cos(rad) + z * sin(rad),
             y,
@@ -56,7 +56,7 @@ struct Vector3D {
     }
     
     Vector3D rotatedZ(double angle) const {
-        double rad = angle * 3.14159265 / 180.0;
+        double rad = angle * M_PI / 180.0;
         return Vector3D(
             x * cos(rad) - y * sin(rad),
             x * sin(rad) + y * cos(rad),
@@ -441,8 +441,7 @@ protected:
         gradient.setColorAt(1, QColor(10, 15, 10));
         painter.fillRect(rect(), gradient);
 
-        drawHexGrid(painter, 80, QColor(30, 50, 30, 25));
-        drawHexGrid(painter, 40, QColor(40, 60, 40, 40));
+        drawHexGrid(painter, 40, QColor(0, 255, 0, 40)); // 亮绿色，半透明
 
         QVector<QPointF> projectedInput, projectedHidden, projectedOutput;
         projectNodes(projectedInput, projectedHidden, projectedOutput);
@@ -616,7 +615,7 @@ private:
 
                 QPolygonF hexagon;
                 for (int i = 0; i < 6; ++i) {
-                    qreal angle_rad = 60.0 * i * 3.14159265 / 180.0;
+                    qreal angle_rad = 60.0 * i * M_PI / 180.0;
                     hexagon << QPointF(cx + hexSize * cos(angle_rad),
                                        cy + hexSize * sin(angle_rad));
                 }
@@ -762,56 +761,43 @@ private:
         return 1.5 - normalized;
     }
 
-    void drawNeuron(QPainter *painter, const QPointF &center, qreal radius, const QColor &baseColor, double rotX, double rotY, double rotZ)
+    void drawNeuron(QPainter *painter, const QPointF &center, qreal radius,
+                const QColor &baseColor, double rotX, double rotY, double rotZ)
     {
-        uint seed = qHash(center.x() + center.y() * 1000);
-        
+        uint t = m_animationClock.elapsed() / 10;
+        QColor dynamicColor = baseColor;
+        // dynamicColor.setHsv((dynamicColor.hue() + (t % 60)) % 360, dynamicColor.saturation(), dynamicColor.value());
+
+        // 半透明细胞膜
+        QRadialGradient bodyGrad(center, radius * 1.2);
+        bodyGrad.setColorAt(0, dynamicColor.lighter(150));
+        bodyGrad.setColorAt(0.7, dynamicColor);
+        bodyGrad.setColorAt(1, QColor(dynamicColor.red()/2, dynamicColor.green()/2, dynamicColor.blue()/2, 150));
+        painter->setBrush(bodyGrad);
         painter->setPen(Qt::NoPen);
-        QRadialGradient bodyGradient(center, radius, center - QPointF(radius * 0.3, radius * 0.3));
-        bodyGradient.setColorAt(0, baseColor.lighter(130));
-        bodyGradient.setColorAt(0.7, baseColor);
-        bodyGradient.setColorAt(1, baseColor.darker(150));
-        painter->setBrush(bodyGradient);
 
-        QPainterPath bodyPath;
-        bodyPath.addEllipse(center, radius * 1.1, radius);
-
-        QPolygonF polygon = bodyPath.toFillPolygon();
-        for (int i = 0; i < polygon.size(); ++i) {
-            double angle = 2 * 3.14159265 * i / polygon.size();
-            double offset = radius * 0.05;
-            polygon[i] += QPointF(
-                cos(angle) * offset,
-                sin(angle) * offset
-            );
+        // 轻微膜抖动
+        QPainterPath cellPath;
+        QPolygonF poly;
+        for (int i = 0; i < 40; ++i) {
+            double ang = i * 2 * M_PI / 40;
+            double offs = qSin(ang * 3 + t/50.0) * radius * 0.05;
+            poly << QPointF(center.x() + qCos(ang) * (radius + offs),
+                            center.y() + qSin(ang) * (radius + offs));
         }
-        bodyPath = QPainterPath();
-        bodyPath.addPolygon(polygon);
-        painter->drawPath(bodyPath);
+        cellPath.addPolygon(poly);
+        painter->drawPath(cellPath);
 
-        qreal nucleusRadius = radius * 0.4;
-        Vector3D nucleusOffset3D(0, radius * 0.2, 0);
-        Vector3D rotatedNucleusOffset = nucleusOffset3D.rotatedX(rotX).rotatedY(rotY).rotatedZ(rotZ);
-        QPointF nucleusCenter = center + QPointF(rotatedNucleusOffset.x, -rotatedNucleusOffset.y);
-        double nucleusDepthFactor = 1.0 + rotatedNucleusOffset.z * 0.001;
-        qreal adjustedNucleusRadius = nucleusRadius * nucleusDepthFactor;
-        
-        QRadialGradient nucleusGradient(nucleusCenter, adjustedNucleusRadius);
-        nucleusGradient.setColorAt(0, QColor(0, 100, 50, 200));
-        nucleusGradient.setColorAt(1, QColor(0, 50, 20, 150));
-        painter->setBrush(nucleusGradient);
-        painter->drawEllipse(nucleusCenter, adjustedNucleusRadius, adjustedNucleusRadius);
+        // 核
+        qreal nucleusRad = radius * 0.4;
+        QRadialGradient nucGrad(center, nucleusRad);
+        nucGrad.setColorAt(0, QColor(0, 255, 120, 200));
+        nucGrad.setColorAt(1, QColor(0, 100, 50, 150));
+        painter->setBrush(nucGrad);
+        painter->drawEllipse(center, nucleusRad, nucleusRad);
 
-        Vector3D highlightOffset3D(-radius * 0.2, -radius * 0.2, radius * 0.1);
-        Vector3D rotatedHighlight = highlightOffset3D.rotatedX(rotX).rotatedY(rotY).rotatedZ(rotZ);
-        QPointF highlightPos = center + QPointF(rotatedHighlight.x, -rotatedHighlight.y);
-        double highlightDepthFactor = 1.0 + rotatedHighlight.z * 0.001;
-        qreal highlightSize = radius * 0.2 * highlightDepthFactor;
-        
-        int highlightAlpha = 100 * (1.0 + rotatedHighlight.z * 0.0008);
-        painter->setBrush(QColor(255, 255, 255, qBound(0, highlightAlpha, 200)));
-        painter->drawEllipse(highlightPos, highlightSize, highlightSize);
     }
+
 
     void loadStyleSheet(const QString &fileName)
     {
@@ -842,7 +828,7 @@ private:
             if (p.layer == layer && p.index == index) {
                 double progress = (double)(currentTime - p.startTime) / p.duration;
                 if (progress >= 0.0 && progress <= 1.0) {
-                    return 1.0 + 0.4 * sin(progress * 3.14159265);
+                    return 1.0 + 0.4 * sin(progress * M_PI);
                 }
             }
         }
