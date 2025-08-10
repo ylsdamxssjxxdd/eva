@@ -762,40 +762,54 @@ private:
     }
 
     void drawNeuron(QPainter *painter, const QPointF &center, qreal radius,
-                const QColor &baseColor, double rotX, double rotY, double rotZ)
+                const QColor &baseColor, double /*rotX*/, double /*rotY*/, double /*rotZ*/)
     {
         uint t = m_animationClock.elapsed() / 10;
         QColor dynamicColor = baseColor;
-        // dynamicColor.setHsv((dynamicColor.hue() + (t % 60)) % 360, dynamicColor.saturation(), dynamicColor.value());
 
-        // 半透明细胞膜
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing, true);
+
+        // ===================== 投影（加压迫感） =====================
+        qreal shadowOffset = radius * 0.35;
+        QRadialGradient shadowGrad(center + QPointF(shadowOffset, shadowOffset), radius * 1.6);
+        shadowGrad.setColorAt(0, QColor(0, 0, 0, 110));
+        shadowGrad.setColorAt(1, QColor(0, 0, 0, 0));
+        painter->setBrush(shadowGrad);
+        painter->setPen(Qt::NoPen);
+        painter->drawEllipse(center + QPointF(shadowOffset, shadowOffset),
+                            radius * 1.3, radius * 1.3);
+
+        // ===================== 外膜 =====================
         QRadialGradient bodyGrad(center, radius * 1.2);
-        bodyGrad.setColorAt(0, dynamicColor.lighter(150));
-        bodyGrad.setColorAt(0.7, dynamicColor);
-        bodyGrad.setColorAt(1, QColor(dynamicColor.red()/2, dynamicColor.green()/2, dynamicColor.blue()/2, 150));
+        bodyGrad.setColorAt(0.0, dynamicColor.lighter(180));  // 中心亮
+        bodyGrad.setColorAt(0.65, dynamicColor);
+        bodyGrad.setColorAt(1.0, QColor(10, 20, 10, 220));    // 外层更暗
         painter->setBrush(bodyGrad);
         painter->setPen(Qt::NoPen);
 
         // 轻微膜抖动
-        QPainterPath cellPath;
+        QPainterPath membranePath;
         QPolygonF poly;
         for (int i = 0; i < 40; ++i) {
             double ang = i * 2 * M_PI / 40;
-            double offs = qSin(ang * 3 + t/50.0) * radius * 0.05;
+            double offs = qSin(ang * 3 + t / 50.0) * radius * 0.05;
             poly << QPointF(center.x() + qCos(ang) * (radius + offs),
                             center.y() + qSin(ang) * (radius + offs));
         }
-        cellPath.addPolygon(poly);
-        painter->drawPath(cellPath);
+        membranePath.addPolygon(poly);
+        painter->drawPath(membranePath);
 
-        // 核
-        qreal nucleusRad = radius * 0.4;
+        // ===================== 内核 =====================
+        qreal nucleusRad = radius * 0.45;
         QRadialGradient nucGrad(center, nucleusRad);
-        nucGrad.setColorAt(0, QColor(0, 255, 120, 200));
-        nucGrad.setColorAt(1, QColor(0, 100, 50, 150));
+        nucGrad.setColorAt(0, QColor(0, 255, 150, 220));
+        nucGrad.setColorAt(0.5, QColor(0, 180, 80, 180));
+        nucGrad.setColorAt(1, QColor(0, 100, 50, 120));
         painter->setBrush(nucGrad);
         painter->drawEllipse(center, nucleusRad, nucleusRad);
 
+        painter->restore();
     }
 
 
