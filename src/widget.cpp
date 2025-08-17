@@ -926,9 +926,9 @@ void Widget::api_send_clicked_slove() {
             //目前通过user这个角色给net
             QJsonObject roleMessage;
             roleMessage.insert("role",DEFAULT_USER_NAME);
-            roleMessage.insert("content","tool: " + tool_result);
+            roleMessage.insert("content","tool_response: " + tool_result);
             ui_messagesArray.append(roleMessage);
-            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
+            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);  //天蓝色表示工具返回结果
 
             tool_result = "";
 

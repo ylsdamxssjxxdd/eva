@@ -31,7 +31,7 @@
 #define DEFAULT_SYSTEM_NAME "system"
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
-#define DEFAULT_OBSERVATION_NAME "tool"
+#define DEFAULT_OBSERVATION_NAME "tool_response: "
 #define DEFAULT_OBSERVATION_STOPWORD "</tool_call>"
 #define DEFAULT_THINK_BEGIN "<think>"
 #define DEFAULT_THINK_END "</think>"
@@ -75,7 +75,7 @@
 #define DEFAULT_EMBEDDING_SPLITLENTH 300
 #define DEFAULT_EMBEDDING_OVERLAP 20
 #define DEFAULT_EMBEDDING_RESULTNUMB 3
-#define MAX_INPUT 8000 //一次最大输入字符数
+#define MAX_INPUT 80000 //一次最大输入字符数
 
 // llama日志信号字样，用来指示下一步动作
 #define SERVER_START "server is listening on"  // server启动成功返回的字样
