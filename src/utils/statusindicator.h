@@ -2,21 +2,20 @@
 #ifndef STATUSINDICATOR_H
 #define STATUSINDICATOR_H
 
-#include <QWidget>
-#include <QMainWindow>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QPainter>
-#include <QRadialGradient>
 #include "../xconfig.h"
+#include <QHBoxLayout>
+#include <QMainWindow>
+#include <QPainter>
+#include <QPushButton>
+#include <QRadialGradient>
+#include <QVBoxLayout>
+#include <QWidget>
 // 状态灯
 class StatusLed : public QWidget
 {
     Q_OBJECT
-public:
-
-    explicit StatusLed(QWidget *parent = nullptr) 
+  public:
+    explicit StatusLed(QWidget *parent = nullptr)
         : QWidget(parent)
     {
         setState(MCP_CONNECT_MISS);
@@ -29,15 +28,16 @@ public:
     void setState(MCP_CONNECT_STATE newState)
     {
         m_state = newState;
-        switch (m_state) {
+        switch (m_state)
+        {
         case MCP_CONNECT_MISS:
-            m_color = QColor(255, 0, 0);     // 红色
+            m_color = QColor(255, 0, 0); // 红色
             break;
         case MCP_CONNECT_WIP:
-            m_color = QColor(255, 255, 0);   // 黄色
+            m_color = QColor(255, 255, 0); // 黄色
             break;
         case MCP_CONNECT_LINK:
-            m_color = QColor(0, 255, 0);     // 绿色
+            m_color = QColor(0, 255, 0); // 绿色
             break;
         }
         update();
@@ -48,7 +48,7 @@ public:
         return QSize(24, 24);
     }
 
-protected:
+  protected:
     void paintEvent(QPaintEvent *event) override
     {
         Q_UNUSED(event);
@@ -64,16 +64,16 @@ protected:
         int y = (height() - diameter) / 2;
 
         // 绘制发光效果
-        QRadialGradient gradient(x + diameter/2, y + diameter/2, diameter/2);
+        QRadialGradient gradient(x + diameter / 2, y + diameter / 2, diameter / 2);
         gradient.setColorAt(0, m_color.lighter(150));
         gradient.setColorAt(1, m_color.darker(200));
-        
+
         painter.setBrush(gradient);
         painter.setPen(QPen(Qt::black, 1));
         painter.drawEllipse(x, y, diameter, diameter);
     }
 
-private:
+  private:
     MCP_CONNECT_STATE m_state;
     QColor m_color;
 };

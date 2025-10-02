@@ -4,9 +4,9 @@
 // 防止重复包含头文件
 
 #include <QAbstractButton>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPropertyAnimation>
-#include <QMouseEvent>
 
 // 包含必要的Qt头文件
 
@@ -16,7 +16,7 @@ class ToggleSwitch : public QAbstractButton
     // 定义一个属性 "handlePosition"，用于控制滑块的位置
     Q_PROPERTY(qreal handlePosition READ handlePosition WRITE setHandlePosition)
 
-public:
+  public:
     // explicit 构造函数，防止隐式转换
     explicit ToggleSwitch(QWidget *parent = nullptr)
         : QAbstractButton(parent)
@@ -51,7 +51,7 @@ public:
 
     // QString mcp_record;//记录对应的mcp服务工具名
 
-protected:
+  protected:
     // 绘制控件
     void paintEvent(QPaintEvent *event) override
     {
@@ -82,8 +82,10 @@ protected:
     // 处理鼠标释放事件
     void mouseReleaseEvent(QMouseEvent *event) override
     {
-        if (event->button() == Qt::LeftButton) {
-            if (rect().contains(event->pos())) {
+        if (event->button() == Qt::LeftButton)
+        {
+            if (rect().contains(event->pos()))
+            {
                 // 切换选中状态
                 setChecked(!isChecked());
                 // 发出 clicked 信号
@@ -91,17 +93,19 @@ protected:
             }
             event->accept();
         }
-        else {
+        else
+        {
             event->ignore();
         }
     }
 
-private slots:
+  private slots:
     // 开始切换动画
     void startToggleAnimation(bool checked)
     {
         // 如果控件不可见，直接设置滑块位置
-        if (!isVisible()) {
+        if (!isVisible())
+        {
             setHandlePosition(checked ? 1.0 : 0.0);
             return;
         }
@@ -111,11 +115,11 @@ private slots:
         animation->setDuration(200); // 动画持续时间 200 毫秒
         animation->setStartValue(m_handlePosition);
         animation->setEndValue(checked ? 1.0 : 0.0);
-        animation->setEasingCurve(QEasingCurve::InOutCubic); // 使用缓入缓出曲线
+        animation->setEasingCurve(QEasingCurve::InOutCubic);     // 使用缓入缓出曲线
         animation->start(QAbstractAnimation::DeleteWhenStopped); // 动画结束后自动删除
     }
 
-private:
+  private:
     qreal m_handlePosition; // 滑块位置，范围从 0.0 到 1.0
 };
 

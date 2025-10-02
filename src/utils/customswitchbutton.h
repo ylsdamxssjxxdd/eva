@@ -10,12 +10,15 @@
 #include <QGraphicsDropShadowEffect>
 #include <QPainter>
 #include <QPropertyAnimation>
-class CustomSwitchButton : public QAbstractButton {
+class CustomSwitchButton : public QAbstractButton
+{
     Q_OBJECT
     Q_PROPERTY(int offset READ offset WRITE setOffset)
 
-   public:
-    explicit CustomSwitchButton(QWidget *parent = nullptr) : QAbstractButton(parent), m_offset(0), m_switchStatus(false), m_animation(new QPropertyAnimation(this, "offset", this)) {
+  public:
+    explicit CustomSwitchButton(QWidget *parent = nullptr)
+        : QAbstractButton(parent), m_offset(0), m_switchStatus(false), m_animation(new QPropertyAnimation(this, "offset", this))
+    {
         setCheckable(true);
         // 创建阴影效果
         QGraphicsDropShadowEffect *shadowEffect = new QGraphicsDropShadowEffect(this);
@@ -31,8 +34,9 @@ class CustomSwitchButton : public QAbstractButton {
     //默认宽高
     QSize sizeHint() const { return QSize(55, 25); }
 
-   protected:
-    void paintEvent(QPaintEvent *event) override {
+  protected:
+    void paintEvent(QPaintEvent *event) override
+    {
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
 
@@ -45,21 +49,24 @@ class CustomSwitchButton : public QAbstractButton {
         p.drawEllipse(QRect(m_offset, 0, height(), height()));
 
         p.setBrush(borderColor);
-        p.drawRoundedRect(0, 0, width(), height(), 5, 5);  //圆角弧度5
+        p.drawRoundedRect(0, 0, width(), height(), 5, 5); //圆角弧度5
 
         // 设置字体属性
         QFont font = p.font();
-        font.setPointSize(12);  // 设置字体大小
-        font.setBold(true);     // 设置字体为粗体
+        font.setPointSize(12); // 设置字体大小
+        font.setBold(true);    // 设置字体为粗体
         p.setFont(font);
 
         // 对于背景使用渐变色
         QLinearGradient backgroundGradient(0, 0, width(), 0);
         //有一种开关的感觉
-        if (this->isChecked()) {
+        if (this->isChecked())
+        {
             backgroundGradient.setColorAt(0, borderColor.lighter());
             backgroundGradient.setColorAt(1, borderColor.darker());
-        } else {
+        }
+        else
+        {
             backgroundGradient.setColorAt(0, borderColor.darker());
             backgroundGradient.setColorAt(1, borderColor.lighter());
         }
@@ -76,7 +83,8 @@ class CustomSwitchButton : public QAbstractButton {
         p.drawText(x, y, "debug");
     }
 
-    void mouseReleaseEvent(QMouseEvent *event) override {
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
         m_switchStatus = !m_switchStatus;
         m_animation->setStartValue(m_offset);
         m_animation->setEndValue(m_switchStatus ? width() - height() : 0);
@@ -85,16 +93,17 @@ class CustomSwitchButton : public QAbstractButton {
         QAbstractButton::mouseReleaseEvent(event);
     }
 
-   private:
+  private:
     int m_offset;
-    bool m_switchStatus;  // true for ON, false for OFF
+    bool m_switchStatus; // true for ON, false for OFF
     QPropertyAnimation *m_animation;
 
     int offset() const { return m_offset; }
-    void setOffset(int offset) {
+    void setOffset(int offset)
+    {
         m_offset = offset;
         update();
     }
 };
 
-#endif  // CUSTOMSWITCHBUTTON_H
+#endif // CUSTOMSWITCHBUTTON_H

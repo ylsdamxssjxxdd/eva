@@ -1,0 +1,14 @@
+# clang-format configuration for echo project
+# Compatible with older clang-format versions.
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+# User preferences
+BreakBeforeBraces: Allman           # "{" on a new line
+ColumnLimit: 0                      # do not wrap long lines
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true

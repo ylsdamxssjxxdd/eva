@@ -54,8 +54,7 @@ static TOOLS_INFO Buildin_tools_answer(
             }
         },
         "required": ["content"]
-})"
-);
+})");
 
 // 内置的计算器工具
 static TOOLS_INFO Buildin_tools_calculator(
@@ -72,12 +71,11 @@ static TOOLS_INFO Buildin_tools_calculator(
             }
         },
         "required": ["expression"]
-})"
-);
+})");
 
 // 内置的鼠标键盘工具
 // 屏幕的左上角坐标为(0,0)
-// 行动序列列表，列表元素可以是以下函数: 
+// 行动序列列表，列表元素可以是以下函数:
 // 鼠标左键按下: left_down(x,y), 鼠标左键抬起: left_up(), 鼠标右键按下: right_down(x,y), 鼠标右键抬起: right_up(), 鼠标移动到终点: move(x,y,t), 按下键盘: keyboard(key), 序列间隔: time_span(t)
 // x为横坐标, y为纵坐标, t是持续时间单位为秒, key是键盘上的按键，可以是组合键例如 "Ctrl+S".
 // 传参示例: ["left_down(100,200)", "time_span(0.1)", "left_up()", "time_span(0.5)", "left_down(100,200)", "time_span(0.1)", "left_up()"] 鼠标左键双击
@@ -86,8 +84,16 @@ static TOOLS_INFO Buildin_tools_calculator(
 static TOOLS_INFO Buildin_tools_controller(
     "controller",
     "Pass in a sequence of actions to control the mouse and keyboard. {screen_info}", // 传入一串行动序列来控制鼠标键盘
-    "{""\"type\":\"object\",""\"properties\":{""\"sequence\":{""\"type\":\"list\",""\"description\":\"Action Sequence List. List elements can be the following functions:\nMouse left button down: left_down(x, y)\nMouse left button up: left_up()\nMouse right button down: right_down(x, y)\nMouse right button up: right_up()\nMove mouse to end point: move(x, y, t)\nPress keyboard key: keyboard(key)\nSequence interval: time_span(t)\nParameters:\nx is the horizontal coordinate.\ny is the vertical coordinate.\nt is the duration in seconds.\nkey is a key on the keyboard, which can be a combination key, e.g., \"Ctrl+S\".\nPassing Parameter Examples:\n[\"left_down(100,200)\", \"time_span(0.1)\", \"left_up()\", \"time_span(0.5)\", \"left_down(100,200)\",\"time_span(0.1)\", \"left_up()\"] - Double left mouse click.\n[\"left_down(100,200)\", \"time_span(0.1)\", \"move(200,400,0.5)\", \"time_span(0.1)\", \"left_up()\"] - Left mouse button drag. After the tool is executed, it will return the current screenshot\"""}""},""\"required\":[\"sequence\"]\n""}"
-);
+    "{"
+    "\"type\":\"object\","
+    "\"properties\":{"
+    "\"sequence\":{"
+    "\"type\":\"list\","
+    "\"description\":\"Action Sequence List. List elements can be the following functions:\nMouse left button down: left_down(x, y)\nMouse left button up: left_up()\nMouse right button down: right_down(x, y)\nMouse right button up: right_up()\nMove mouse to end point: move(x, y, t)\nPress keyboard key: keyboard(key)\nSequence interval: time_span(t)\nParameters:\nx is the horizontal coordinate.\ny is the vertical coordinate.\nt is the duration in seconds.\nkey is a key on the keyboard, which can be a combination key, e.g., \"Ctrl+S\".\nPassing Parameter Examples:\n[\"left_down(100,200)\", \"time_span(0.1)\", \"left_up()\", \"time_span(0.5)\", \"left_down(100,200)\",\"time_span(0.1)\", \"left_up()\"] - Double left mouse click.\n[\"left_down(100,200)\", \"time_span(0.1)\", \"move(200,400,0.5)\", \"time_span(0.1)\", \"left_up()\"] - Left mouse button drag. After the tool is executed, it will return the current screenshot\""
+    "}"
+    "},"
+    "\"required\":[\"sequence\"]\n"
+    "}");
 
 // 内置的列出MCP工具
 static TOOLS_INFO Buildin_tools_mcp_tools_list(
@@ -98,8 +104,7 @@ static TOOLS_INFO Buildin_tools_mcp_tools_list(
     R"({
         "type": "object",
         "properties": {}
-})"
-);
+})");
 
 // 内置的知识库工具
 static TOOLS_INFO Buildin_tools_knowledge(
@@ -116,8 +121,7 @@ static TOOLS_INFO Buildin_tools_knowledge(
             }
         },
         "required": ["content"]
-})"
-);
+})");
 
 // 内置的文生图工具
 static TOOLS_INFO Buildin_tools_stablediffusion(
@@ -134,8 +138,7 @@ static TOOLS_INFO Buildin_tools_stablediffusion(
             }
         },
         "required": ["prompt"]
-})"
-);
+})");
 
 // 内置的工程师-命令行工具
 static TOOLS_INFO Buildin_tools_execute_command(
@@ -152,8 +155,7 @@ static TOOLS_INFO Buildin_tools_execute_command(
             }
         },
         "required": ["content"]
-})"
-);
+})");
 
 // 内置的工程师-读文件工具
 static TOOLS_INFO Buildin_tools_read_file(
@@ -180,8 +182,7 @@ static TOOLS_INFO Buildin_tools_read_file(
             }
         },
         "required": ["path"]
-})"
-);
+})");
 
 // 内置的工程师-写文件工具
 static TOOLS_INFO Buildin_tools_write_file(
@@ -202,8 +203,7 @@ static TOOLS_INFO Buildin_tools_write_file(
             }
         },
         "required": ["path", "content"]
-})"
-);
+})");
 
 // ──────────────────────────────────────────────────────────────
 // 内置的工程师-编辑文件工具
@@ -240,5 +240,4 @@ For a file of unknown size, initially limit the reading to the first 200 lines, 
             }
         },
         "required": ["path", "old_string", "new_string"]
-})"
-);
+})");
