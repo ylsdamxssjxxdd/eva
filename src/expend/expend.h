@@ -43,10 +43,10 @@
 #include <string>
 #endif
 
+#include "../mcp_tools.h"
+#include "../xconfig.h"
 #include "./src/utils/cmakeconfig.h"
 #include "./src/utils/toggleswitch.h"
-#include "mcp_tools.h"
-#include "xconfig.h"
 namespace Ui
 {
 class Expend;

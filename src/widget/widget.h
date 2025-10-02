@@ -55,12 +55,12 @@
 #include "ui_date_dialog.h"
 #include "ui_settings_dialog.h"
 // #include "utils/globalshortcut.h"
-#include "prompt.h"
+#include "../prompt.h"
+#include "../utils/customswitchbutton.h"
+#include "../utils/cutscreendialog.h"
+#include "../utils/doubleqprogressbar.h"
+#include "../xconfig.h" // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
-#include "utils/customswitchbutton.h"
-#include "utils/cutscreendialog.h"
-#include "utils/doubleqprogressbar.h"
-#include "xconfig.h" // ui和bot都要导入的共有配置
 
 QT_BEGIN_NAMESPACE
 namespace Ui

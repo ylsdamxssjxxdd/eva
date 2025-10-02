@@ -16,9 +16,14 @@ add_executable(
     ${EVA_TARGET}
     ${BODY_PACK_EXE}
     ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
-    src/main.cpp src/widget.cpp src/widget_funcs.cpp src/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp
-    src/widget.h src/xbot.h src/xtool.h src/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h
-    src/widget.ui src/expend.ui src/date_dialog.ui src/settings_dialog.ui
+    src/main.cpp src/widget/widget.cpp src/widget/widget_funcs.cpp
+    src/widget/widget_link.cpp src/widget/widget_api.cpp src/widget/widget_state.cpp src/widget/widget_date.cpp src/widget/widget_settings.cpp 
+    src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_load.cpp src/widget/widget_anim.cpp
+    src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
+    src/expend/expend_mcp.cpp src/expend/expend_convert.cpp src/expend/expend_brain.cpp src/expend/expend_tts.cpp
+    src/expend/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp
+    src/widget/widget.h src/xbot.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h
+    src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/csvtablewidget.h
     src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h 
     src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
