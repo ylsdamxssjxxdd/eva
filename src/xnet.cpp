@@ -270,10 +270,9 @@ void xNet::ensureNetObjects()
 //构造请求的数据体
 QByteArray xNet::createChatBody()
 {
-    // build JSON body (OpenAI-compatible)
+    // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
-    if (apis.is_cache)
-    {
+    if (apis.is_cache) {
         json.insert("cache_prompt", apis.is_cache);
     }
     json.insert("model", apis.api_model);
@@ -283,62 +282,95 @@ QByteArray xNet::createChatBody()
 
     // stop words
     QJsonArray stopkeys;
-    for (int i = 0; i < endpoint_data.stopwords.size(); ++i)
-    {
+    for (int i = 0; i < endpoint_data.stopwords.size(); ++i) {
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
 
-    // sanitize messages so every message.content is a string
-        auto toStringOnlyMessages = [&](const QJsonArray &in) -> QJsonArray {
+    // Transform UI messages into OAI-compatible messages
+    auto toOAIChatMessages = [&](const QJsonArray &in) -> QJsonArray {
         QJsonArray out;
-        auto asString = [](const QJsonValue &c) -> QString {
-            if (c.isString()) return c.toString();
-            if (c.isArray()) {
-                QString s;
-                for (const auto &pv : c.toArray()) {
-                    if (!pv.isObject()) continue;
-                    QJsonObject p = pv.toObject();
-                    const QString type = p.value("type").toString();
-                    if (type == "text") s += p.value("text").toString();
-                    // ignore non-text (image_url/audio_url) to keep server template happy
-                }
-                return s; // may be empty
-            }
-            if (c.isNull() || c.isUndefined()) return QString("");
-            return c.toVariant().toString();
+
+        auto splitThink = [&](const QString &s, QString &reasoning, QString &content) {
+            reasoning.clear(); content = s;
+            if (!s.contains(DEFAULT_THINK_END)) return;
+            const int endIdx = s.indexOf(DEFAULT_THINK_END);
+            if (endIdx == -1) return;
+            QString before = s.left(endIdx);
+            QString after = s.mid(endIdx + QString(DEFAULT_THINK_END).size());
+            int startIdx = before.indexOf(DEFAULT_THINK_BEGIN);
+            if (startIdx != -1) before = before.mid(startIdx + QString(DEFAULT_THINK_BEGIN).size());
+            reasoning = before.trimmed();
+            content = after.trimmed();
         };
 
-        // Collect only known roles; ensure content present as string
+        auto fixContentArray = [&](const QJsonArray &arr) -> QJsonArray {
+            QJsonArray fixed;
+            for (const auto &pv : arr) {
+                if (pv.isObject()) {
+                    QJsonObject p = pv.toObject();
+                    const QString type = p.value("type").toString();
+                    if (type == "text") {
+                        // keep text parts as-is
+                        fixed.append(p);
+                    } else if (type == "image_url") {
+                        // keep OpenAI-style vision input: { type: "image_url", image_url: { url: "data:image/...;base64,..." } }
+                        fixed.append(p);
+                    } else if (type == "audio_url") {
+                        // Map legacy UI audio_url into OAI-compatible input_audio
+                        // Expect: { type: "audio_url", audio_url: { url: "data:audio/<fmt>;base64,<b64>" } }
+                        QJsonObject audioUrlObj = p.value("audio_url").toObject();
+                        const QString url = audioUrlObj.value("url").toString();
+                        int comma = url.indexOf(',');
+                        if (comma != -1) {
+                            const QString header = url.left(comma);
+                            const QString data = url.mid(comma + 1);
+                            QString format = "mp3";
+                            if (header.contains("audio/wav")) format = "wav";
+                            else if (header.contains("audio/mpeg")) format = "mp3";
+                            else if (header.contains("audio/ogg")) format = "mp3"; // map to mp3 for now
+                            QJsonObject q;
+                            q["type"] = "input_audio";
+                            QJsonObject ia; ia["data"] = data; ia["format"] = format; q["input_audio"] = ia;
+                            fixed.append(q);
+                        }
+                    } else if (type == "input_audio") {
+                        // already in expected form
+                        fixed.append(p);
+                    } else {
+                        // unknown type -> ignore
+                    }
+                } else if (pv.isString()) {
+                    // convert raw string to text part
+                    QJsonObject q; q["type"] = "text"; q["text"] = pv.toString();
+                    fixed.append(q);
+                }
+            }
+            return fixed;
+        };
+
+        // Copy over messages, preserving arrays for multimodal content
         for (const auto &v : in) {
             if (!v.isObject()) continue;
             QJsonObject m = v.toObject();
             const QString role = m.value("role").toString();
             if (!(role == DEFAULT_USER_NAME || role == DEFAULT_MODEL_NAME || role == DEFAULT_SYSTEM_NAME)) {
-                // unknown role -> skip
-                continue;
+                continue; // skip unknown roles
             }
-            QString s = asString(m.value("content"));
-            m.insert("role", role);
-                        // populate reasoning_content for assistant if think tags present
-            if (role == DEFAULT_MODEL_NAME && s.contains(DEFAULT_THINK_END)) {
-                QString contentPart = s;
-                QString reasoningPart = "";
-                // split by </think>
-                const int endIdx = s.indexOf(DEFAULT_THINK_END);
-                if (endIdx != -1) {
-                    QString before = s.left(endIdx);
-                    QString after = s.mid(endIdx + QString(DEFAULT_THINK_END).size());
-                    // strip <think> from before
-                    int startIdx = before.indexOf(DEFAULT_THINK_BEGIN);
-                    if (startIdx != -1) before = before.mid(startIdx + QString(DEFAULT_THINK_BEGIN).size());
-                    reasoningPart = before.trimmed();
-                    contentPart = after.trimmed();
-                }
-                m.insert("reasoning_content", reasoningPart);
-                m.insert("content", contentPart);
+
+            QJsonValue contentVal = m.value("content");
+            if (contentVal.isArray()) {
+                m["content"] = fixContentArray(contentVal.toArray());
             } else {
-                m.insert("content", s);
+                QString s = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
+                if (role == DEFAULT_MODEL_NAME) {
+                    QString reasoning, content;
+                    splitThink(s, reasoning, content);
+                    if (!reasoning.isEmpty()) m.insert("reasoning_content", reasoning);
+                    m.insert("content", content);
+                } else {
+                    m.insert("content", s);
+                }
             }
             out.append(m);
         }
@@ -350,8 +382,7 @@ QByteArray xNet::createChatBody()
                 QJsonObject systemMessage;
                 systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
                 systemMessage.insert("content", endpoint_data.date_prompt);
-                QJsonArray fixed;
-                fixed.append(systemMessage);
+                QJsonArray fixed; fixed.append(systemMessage);
                 for (const auto &v2 : out) fixed.append(v2);
                 return fixed;
             }
@@ -365,21 +396,21 @@ QByteArray xNet::createChatBody()
         return out;
     };
 
-    json.insert("messages", toStringOnlyMessages(endpoint_data.messagesArray));
-    {
-        // debug summary: roles and content lengths
-        QJsonArray dbg = toStringOnlyMessages(endpoint_data.messagesArray);
-        QStringList dbgLines;
-        for (const auto &v : dbg) {
-            if (!v.isObject()) continue;
-            auto o = v.toObject();
-            auto r = o.value("role").toString();
-            auto c = o.value("content").toString();
-            dbgLines << (r + ":" + QString::number(c.size()));
-        }
-        emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
+    QJsonArray oaiMessages = toOAIChatMessages(endpoint_data.messagesArray);
+    json.insert("messages", oaiMessages);
+
+    // debug summary: role and content kind/length
+    QStringList dbgLines;
+    for (const auto &v : oaiMessages) {
+        if (!v.isObject()) continue;
+        QJsonObject o = v.toObject();
+        QString r = o.value("role").toString();
+        QJsonValue c = o.value("content");
+        if (c.isString()) dbgLines << (r + ":" + QString::number(c.toString().size()));
+        else if (c.isArray()) dbgLines << (r + ":parts=" + QString::number(c.toArray().size()));
+        else dbgLines << (r + ":0");
     }
-    // qDebug() << QJsonDocument(json).toJson(QJsonDocument::Indented);
+    emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
 
     QJsonDocument doc(json);
     return doc.toJson();

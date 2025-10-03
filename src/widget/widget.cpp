@@ -1010,7 +1010,7 @@ void Widget::recv_whisper_modelpath(QString modelpath)
 //链接模式的发送处理
 void Widget::api_send_clicked_slove()
 {
-    //注意链接模式不发送前后缀
+    // 注：联机模式也加前后缀
     QString input;
 
     emit ui2net_stop(0);
@@ -1019,14 +1019,7 @@ void Widget::api_send_clicked_slove()
     data.input_pfx = ui_DATES.user_name;
     data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
-    if (ui_state == COMPLETE_STATE)
-    {
-        data.is_complete_state = true;
-    }
-    else
-    {
-        data.is_complete_state = false;
-    }
+    data.is_complete_state = (ui_state == COMPLETE_STATE);
     data.temp = ui_SETTINGS.temp;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.repeat = ui_SETTINGS.repeat;
@@ -1040,37 +1033,29 @@ void Widget::api_send_clicked_slove()
 
     QStringList images_filepath = ui->input->imageFilePaths(); // 获取图像列表
     QStringList wavs_filepath = ui->input->wavFilePaths();     // 获取音频列表
-    ui->input->clearThumbnails();                              // 清空缩率图区
+    ui->input->clearThumbnails();                              // 清空发送区缩略图
 
     if (ui_state == CHAT_STATE)
     {
-        //-----------------------构造工具消息----------------------------
+        //----------------------- 处理工具消息 ----------------------------
         if (tool_result != "")
         {
-            //目前通过user这个角色给net
+            // 目前通过 user 角色推给 net
             QJsonObject roleMessage;
             roleMessage.insert("role", DEFAULT_USER_NAME);
             roleMessage.insert("content", "tool_response: " + tool_result);
             ui_messagesArray.append(roleMessage);
-            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE); //天蓝色表示工具返回结果
+            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
 
             tool_result = "";
-
-            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout())); //链接模式不能立即发送
-            is_run = true;                                                 //模型正在运行标签
+            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
+            is_run = true;
             ui_state_pushing();
             return;
         }
-        //-----------------------构造用户消息----------------------------
+        //----------------------- 处理用户消息 ----------------------------
         else
         {
-            // 暂时不加截图，因为模型如果不支持视觉会直接报错
-            // if(ui_controller_ischecked)
-            // {
-            //     QString imgfilePath = saveScreen();
-            //     images_filepath.append(imgfilePath);
-            // }
-
             if (images_filepath.isEmpty())
             {
                 QJsonObject roleMessage;
@@ -1078,17 +1063,26 @@ void Widget::api_send_clicked_slove()
                 roleMessage.insert("content", input);
                 ui_messagesArray.append(roleMessage);
             }
-            else // 有图片的情况
+            else // 有图片的用户消息
             {
                 QJsonObject message;
                 message["role"] = DEFAULT_USER_NAME;
                 QJsonArray contentArray;
-                // 添加图像消息
+
+                // 先添加用户文本
+                if (!input.isEmpty())
+                {
+                    QJsonObject textMessage;
+                    textMessage.insert("type", "text");
+                    textMessage.insert("text", input);
+                    contentArray.append(textMessage);
+                }
+
+                // 再添加图像信息
                 for (int i = 0; i < images_filepath.size(); ++i)
                 {
-                    //读取图像文件并转换为 Base64
                     QFile imageFile(images_filepath[i]);
-                    if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; }
+                    if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
                     QByteArray imageData = imageFile.readAll();
                     QByteArray base64Data = imageData.toBase64();
                     QString base64String = QString("data:image/jpeg;base64,") + base64Data;
@@ -1101,39 +1095,34 @@ void Widget::api_send_clicked_slove()
                     contentArray.append(imageObject);
                     showImages({images_filepath[i]}); // 展示图片
                 }
-                // 添加用户消息
-                QJsonObject textMessage;
-                textMessage.insert("type", "text");
-                textMessage.insert("text", input);
-                contentArray.append(textMessage);
+
                 message["content"] = contentArray;
                 ui_messagesArray.append(message);
             }
 
-            if (!wavs_filepath.isEmpty()) //有音频的情况
+            // 可选：添加音频（保持现有 UI 结构，xnet 侧会转换为 input_audio）
+            if (!wavs_filepath.isEmpty())
             {
                 QJsonObject message;
                 message["role"] = DEFAULT_USER_NAME;
                 QJsonArray contentArray;
-                // 添加音频消息
-                for (int i = 0; i < images_filepath.size(); ++i)
+
+                for (int i = 0; i < wavs_filepath.size(); ++i)
                 {
-                    QString filePath = images_filepath[i];
+                    QString filePath = wavs_filepath[i];
                     QFile audioFile(filePath);
                     if (!audioFile.open(QIODevice::ReadOnly))
                     {
                         qDebug() << "Failed to open audio file:" << filePath;
-                        continue; // 跳过失败文件
+                        continue;
                     }
 
                     QByteArray audioData = audioFile.readAll();
                     QByteArray base64Data = audioData.toBase64();
 
-                    // 根据扩展名确定MIME类型
                     QFileInfo fileInfo(filePath);
                     QString extension = fileInfo.suffix().toLower();
                     QString mimeType = "audio/mpeg"; // 默认MP3
-
                     if (extension == "wav")
                     {
                         mimeType = "audio/wav";
@@ -1146,38 +1135,41 @@ void Widget::api_send_clicked_slove()
                     {
                         mimeType = "audio/flac";
                     }
-                    // 其他格式可继续扩展
 
                     QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
 
                     QJsonObject audioObject;
-                    audioObject["type"] = "audio_url"; // 类型改为audio_url
-
+                    audioObject["type"] = "audio_url"; // 仍用 audio_url，xnet 里转换为 input_audio
                     QJsonObject audioUrlObject;
                     audioUrlObject["url"] = base64String;
-
-                    audioObject["audio_url"] = audioUrlObject; // 键名改为audio_url
+                    audioObject["audio_url"] = audioUrlObject;
                     contentArray.append(audioObject);
-                    showImages({":/logo/wav.png"}); // 展示图片
+                    showImages({":/logo/wav.png"});
+                }
+
+                if (!contentArray.isEmpty())
+                {
+                    message["content"] = contentArray;
+                    ui_messagesArray.append(message);
                 }
             }
 
             data.messagesArray = ui_messagesArray;
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前后缀用蓝色
-            reflash_output(input, 0, NORMAL_BLACK);                                                           //输入用黑色
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE); //前后缀用蓝色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前缀蓝色
+            reflash_output(input, 0, NORMAL_BLACK);                                                             //正文黑色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //后缀蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
         }
     }
-    else if (ui_state == COMPLETE_STATE) //直接用output上的文本进行推理
+    else if (ui_state == COMPLETE_STATE) // 直接把 output 上的文本作为提示词
     {
         data.input_prompt = ui->output->toPlainText();
         data.n_predict = ui_SETTINGS.hid_npredict;
         emit ui2net_data(data);
     }
 
-    is_run = true; //模型正在运行标签
+    is_run = true; // 模型运行标记
     ui_state_pushing();
     emit ui2net_push();
 }
@@ -1327,3 +1319,5 @@ void Widget::recv_predecoding_over()
 {
     ui_state_normal();
 }
+
+
