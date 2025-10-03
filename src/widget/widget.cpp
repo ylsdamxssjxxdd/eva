@@ -126,6 +126,24 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverOutput, this, [this](const QString &s) { emit ui2expend_llamalog(s); });
     connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
+    connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
+        // 如果是预期的重启过程（手动更换模型或设置导致），不打断装载动画
+        if (lastServerRestart_) {
+            return;
+        }
+        // 非预期退出：取消动画并回到初始状态
+        ui->state->clear();
+        if (load_begin_pTimer) load_begin_pTimer->stop();
+        if (load_pTimer) load_pTimer->stop();
+        if (load_over_pTimer) load_over_pTimer->stop();
+        if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
+        is_load = false;
+        load_action = 0;
+        EVA_title = jtr("current model") + " ";
+        this->setWindowTitle(EVA_title);
+        trayIcon->setToolTip(EVA_title);
+        ui_state_init();
+    });
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
@@ -223,6 +241,9 @@ void Widget::preLoad()
     }
     ui->state->clear(); //清空状态区
     ui_state_loading(); //装载中界面状态
+    // 开始装载动画并计时（本地 llama-server 启动过程）
+    load_play();
+    load_timer.start();
     if (is_config)
     {
         QString relativePath = applicationDirPath + "/EVA_TEMP/eva_config.ini";
@@ -232,33 +253,9 @@ void Widget::preLoad()
         reflash_state("ui:" + jtr("apply_config_mess") + " " + absolutePath, USUAL_SIGNAL);
     }
     reflash_state("ui:" + jtr("model location") + " " + ui_SETTINGS.modelpath, USUAL_SIGNAL);
-    emit ui2bot_loadmodel(ui_SETTINGS.modelpath); //开始装载模型
 }
 
-//完成加载模型
-void Widget::recv_loadover(bool ok_, float load_time_)
-{
-    if (ok_)
-    {
-        load_time = load_time_;
-        is_load = true;         //标记模型已装载
-        all_fps++;              //补上最后一帧,表示上下文也创建了
-        load_pTimer->stop();    //停止动画,但是动作计数load_action保留
-        load_pTimer->start(10); //快速播放完剩下的动画,播放完再做一些后续动作
-    }
-    else
-    {
-        ui->state->clear();
-        load_begin_pTimer->stop(); //停止动画
-        load_pTimer->stop();       //停止动画
-        is_load = false;           //标记模型未装载
-        load_action = 0;
-        EVA_title = jtr("current model") + " ";
-        this->setWindowTitle(EVA_title);
-        trayIcon->setToolTip(EVA_title);
-        ui_state_init();
-    }
-}
+// xBot 装载完成的槽已废弃；改由 onServerReady() 收尾本地动画
 
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
@@ -768,11 +765,7 @@ void Widget::recv_kv(float percent, int ctx_size)
     ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + " token");
 }
 
-//播放装载动画
-void Widget::recv_play()
-{
-    load_play(); //开始播放动画
-}
+// 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
 
 //更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
@@ -933,36 +926,33 @@ void Widget::ensureLocalServer()
 // When local server is ready, switch UI to xNet over local endpoint
 void Widget::onServerReady(const QString &endpoint)
 {
-    // 配置本地端点（隐藏端点文案，标题沿用“当前模型”样式）
+    // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
     apis.api_endpoint = endpoint;
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
 
+    // 完成装载动画：记录耗时，补帧并快速播完剩余动画，最后 unlockLoad()
+    load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
-    is_load = true;
     ui->kv_bar->setToolTip("");
     ui->output->clear();
-    reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
     ui_messagesArray = QJsonArray();
-    QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
-    ui_messagesArray.append(systemMessage);
-
-    // 标题与图标保持“本地模型装载后”的表现
-    QString modelName = ui_SETTINGS.modelpath.split("/").last();
-    EVA_title = jtr("current model") + " " + modelName;
-    this->setWindowTitle(EVA_title);
-    trayIcon->setToolTip(EVA_title);
-    if (ui_SETTINGS.ngl == 0) {
-        EVA_icon = QIcon(":/logo/blue_logo.png");
-    } else {
-        EVA_icon = QIcon(":/logo/green_logo.png");
+    {
+        QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
+        ui_messagesArray.append(systemMessage);
     }
-    QApplication::setWindowIcon(EVA_icon);
-    trayIcon->setIcon(EVA_icon);
-
-    ui_state_normal();
-    auto_save_user();
+    bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
+    is_load = true;
+    lastServerRestart_ = false; // 一次重启流程结束
+    all_fps++;              // 补上最后一帧，表示上下文也创建了
+    if (load_pTimer) {
+        load_pTimer->stop();    // 停止动画，但保留 load_action
+        load_pTimer->start(10); // 快速播放完剩下的动画
+    } else {
+        // 兜底：没有动画定时器则直接解锁
+        unlockLoad();
+    }
 }
 
 //链接模式的发送处理

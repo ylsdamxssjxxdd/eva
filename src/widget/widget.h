@@ -155,6 +155,7 @@ class Widget : public QWidget
     int max_thread = 1; //最大线程数
 
     float load_time = 0;
+    QElapsedTimer load_timer;            // measure local-server load duration
     QTimer *force_unlockload_pTimer; //到时间强制解锁
 
     // 监视相关
@@ -285,7 +286,6 @@ class Widget : public QWidget
     void ui2expend_llamalog(QString log);
     void ui2bot_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS); //自动装载
     void ui2bot_language(int language_flag_);                        //传递使用的语言
-    void ui2bot_loadmodel(QString modelpath);                        //开始装载模型
     void ui2bot_predict(EVA_INPUTS input);                           //开始推理
     void ui2bot_stop();                                              //传递推理停止信号
     void ui2bot_reset();                                             //传递重置信号
@@ -333,7 +333,6 @@ class Widget : public QWidget
     void recv_toolpushover(QString tool_result_);                                //处理tool推理完毕的槽
     void reflash_output(const QString result, bool is_while, QColor color);      //更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL); //更新状态区
-    void recv_loadover(bool ok_, float load_time_);                              //完成加载模型
     void recv_pushover();                                                        //推理完毕的后处理
     void recv_stopover();                                                        //停止完毕的后处理
     void recv_arrivemaxctx(bool prepush);                                        //模型达到最大上下文的后处理
@@ -343,7 +342,6 @@ class Widget : public QWidget
     void recv_datereset();                                                       // bot发信号请求ui触发reset
     void recv_params(MODEL_PARAMS p);                                            // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                   //接收缓存量
-    void recv_play();
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽

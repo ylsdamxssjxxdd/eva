@@ -162,11 +162,17 @@ void Widget::load_move()
 //开始播放
 void Widget::load_play()
 {
+    // 确保不会与上一次动画重叠：先停止所有相关定时器并复位计数
+    if (load_begin_pTimer) load_begin_pTimer->stop();
+    if (load_pTimer) load_pTimer->stop();
+    if (load_over_pTimer) load_over_pTimer->stop();
+    if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
+    load_action = 0;
+    all_fps = 142; // 重置为默认总帧数
+
     QTextCursor cursor = ui->state->textCursor();
     cursor.movePosition(QTextCursor::End);
     cursor.insertText("\n"); //插个回车
-
-    load_action = 0;
 
     //获取当前行数
     playlineNumber = 0;
