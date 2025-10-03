@@ -42,12 +42,12 @@ void Widget::set_SetDialog()
     //多轮对话
     settings_ui->chat_btn->setChecked(1);
     connect(settings_ui->chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
-    //网页服务控制
+    //网页服务控制（服务状态已移除，仅保留端口）
     QHBoxLayout *layout_H10 = new QHBoxLayout(); //水平布局器
     settings_ui->port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535); //限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
-    connect(settings_ui->web_btn, &QRadioButton::clicked, this, &Widget::web_change);
+    // web_btn 已从 UI 移除
     //监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
 
@@ -92,25 +92,14 @@ void Widget::set_set()
         date_ui->tool_box->setEnabled(1);
     }
 
-    //从补完模式回来强行预解码
-    if (current_ui_state == COMPLETE_STATE && ui_state == CHAT_STATE)
+    // 本地模式：更新/重启 llama-server；远端：仅重置对话上下文
+    if (ui_mode == LOCAL_MODE)
     {
-        emit ui2bot_preDecode();
+        ensureLocalServer(); // restart if any server args changed
+        on_reset_clicked();
     }
-
-    //发送设置参数给模型
-    if (ui_state != SERVER_STATE && ui_mode != LINK_MODE) { emit ui2bot_set(ui_SETTINGS, 1); }
-
-    // llama-server接管,不需要告知bot约定
-    if (ui_state == SERVER_STATE)
+    else if (ui_mode == LINK_MODE)
     {
-        serverControl();
-    }
-    else
-    {
-        if (ui_mode == LINK_MODE) //链接模式不发信号
-        {
-            on_reset_clicked();
-        }
+        on_reset_clicked();
     }
 }

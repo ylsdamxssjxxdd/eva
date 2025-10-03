@@ -21,8 +21,8 @@ add_executable(
     src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_load.cpp src/widget/widget_anim.cpp
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_convert.cpp src/expend/expend_brain.cpp src/expend/expend_tts.cpp
-    src/expend/expend.cpp src/xbot.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp
-    src/widget/widget.h src/xbot.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h
+    src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp
+    src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/csvtablewidget.h
     src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h 
@@ -30,7 +30,8 @@ add_executable(
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 )
 
-target_link_libraries(${EVA_TARGET} PRIVATE common llama mtmd ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
+target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
+target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 add_dependencies(${EVA_TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml)
 
 message(STATUS "生产环境: ${eva_ENVIRONMENT}")

@@ -88,10 +88,7 @@
             "终止",
             "shut down "
         ],
-        "browser at": [
-            "浏览器访问",
-            "browser at "
-        ],
+        
         "mode": [
             "模式",
             "mode "
@@ -112,14 +109,7 @@
             "补完状态",
             "COMPLETE "
         ],
-        "server": [
-            "服务",
-            "server "
-        ],
-        "server state": [
-            "服务状态",
-            "SERVER "
-        ],
+        
         "system calling": [
             "系统指令",
             "system "
@@ -1108,10 +1098,7 @@
             "默认模式",
             "Default mode "
         ],
-        "web_btn_tooltip": [
-            "启动一个web服务并且开放api端点，约定与采样设置不再生效",
-            "Start a web service and open API endpoints, conventions and sampling settings no longer take effect "
-        ],
+        
         "port_label_tooltip": [
             "服务启动后的端口号，ip地址为本机",
             "The port number after service startup, with the IP address being 'local'. "

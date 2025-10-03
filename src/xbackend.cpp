@@ -1,0 +1,132 @@
+#include "xbackend.h"
+#include <QCoreApplication>
+#include <QFileInfo>
+#include <QTextCodec>
+
+LocalServerManager::LocalServerManager(QObject *parent, const QString &appDirPath)
+    : QObject(parent), appDirPath_(appDirPath) {}
+
+LocalServerManager::~LocalServerManager() { stop(); }
+
+void LocalServerManager::setSettings(const SETTINGS &s) { settings_ = s; }
+void LocalServerManager::setPort(const QString &port) { port_ = port; }
+void LocalServerManager::setModelPath(const QString &path) { modelpath_ = path; }
+void LocalServerManager::setMmprojPath(const QString &path) { mmproj_ = path; }
+void LocalServerManager::setLoraPath(const QString &path) { lora_ = path; }
+
+QString LocalServerManager::endpointBase() const { return QString("http://127.0.0.1:%1").arg(port_); }
+
+bool LocalServerManager::isRunning() const { return proc_ && proc_->state() == QProcess::Running; }
+
+QString LocalServerManager::programPath() const {
+#ifdef BODY_LINUX_PACK
+    QString appDirPath = qgetenv("APPDIR");
+    if (appDirPath.isEmpty()) appDirPath = appDirPath_;
+    return QString(appDirPath + "/usr/bin/llama-server") + SFX_NAME;
+#else
+    Q_UNUSED(appDirPath_);
+    return QString("./llama-server") + SFX_NAME;
+#endif
+}
+
+QStringList LocalServerManager::buildArgs() const {
+    QStringList args;
+    if (!modelpath_.isEmpty()) {
+        args << "-m" << modelpath_;
+    }
+    // Bind to loopback for local use; expose only if user later wants it
+    args << "--host" << "127.0.0.1";
+    args << "--port" << port_;
+    args << "-c" << QString::number(settings_.nctx);
+    args << "-ngl" << QString::number(settings_.ngl);
+    args << "--threads" << QString::number(settings_.nthread);
+    args << "-b" << QString::number(settings_.hid_batch);
+    args << "--parallel" << QString::number(settings_.hid_parallel);
+    args << "--jinja"; // enable toolcalling prompt templating
+    args << "--reasoning-format" << "none"; // think tags in content
+    args << "--verbose-prompt";
+
+    if (!lora_.isEmpty()) {
+        args << "--no-mmap"; // lora with mmap can be fragile across platforms
+        args << "--lora" << lora_;
+    } else {
+        if (!settings_.hid_use_mmap) args << "--no-mmap";
+    }
+    if (!mmproj_.isEmpty()) {
+        args << "--mmproj" << mmproj_;
+    }
+    if (settings_.hid_flash_attn) {
+        args << "-fa";
+    }
+    if (settings_.hid_use_mlock) {
+        args << "--mlock";
+    }
+    return args;
+}
+
+void LocalServerManager::hookProcessSignals() {
+    if (!proc_) return;
+
+    connect(proc_, &QProcess::started, this, [this]() {
+        emit serverState("ui:backend starting", SIGNAL_SIGNAL);
+    });
+    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
+        emit serverState("ui:backend stopped", SIGNAL_SIGNAL);
+        emit serverStopped();
+    });
+    connect(proc_, &QProcess::readyReadStandardOutput, this, [this]() {
+        const QString out = QString::fromUtf8(proc_->readAllStandardOutput());
+        if (!out.isEmpty()) emit serverOutput(out);
+    });
+    connect(proc_, &QProcess::readyReadStandardError, this, [this]() {
+        const QString err = QString::fromUtf8(proc_->readAllStandardError());
+        if (!err.isEmpty()) emit serverOutput(err);
+        if (err.contains(SERVER_START)) {
+            emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+            emit serverReady(endpointBase());
+        }
+    });
+}
+
+void LocalServerManager::startProcess(const QStringList &args) {
+    if (proc_) {
+        proc_->deleteLater();
+        proc_.clear();
+    }
+    proc_ = new QProcess(this);
+    hookProcessSignals();
+    const QString prog = programPath();
+    lastProgram_ = prog;
+    lastArgs_ = args;
+    proc_->start(prog, args);
+}
+
+void LocalServerManager::ensureRunning() {
+    const QString prog = programPath();
+    const QStringList args = buildArgs();
+    // If not running -> start; if running with different args -> restart
+    if (!isRunning()) {
+        startProcess(args);
+        return;
+    }
+    if (prog != lastProgram_ || args != lastArgs_) {
+        restart();
+    }
+}
+
+void LocalServerManager::restart() {
+    const QStringList args = buildArgs();
+    if (isRunning()) {
+        proc_->kill(); // fast stop is fine here
+        proc_->waitForFinished(2000);
+    }
+    startProcess(args);
+}
+
+void LocalServerManager::stop() {
+    if (proc_) {
+        proc_->kill();
+        proc_->waitForFinished(1000);
+        proc_.clear();
+    }
+}

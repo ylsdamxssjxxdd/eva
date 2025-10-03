@@ -60,6 +60,7 @@
 #include "../utils/cutscreendialog.h"
 #include "../utils/doubleqprogressbar.h"
 #include "../xconfig.h" // ui和bot都要导入的共有配置
+#include "../xbackend.h" // local llama.cpp server manager
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 
 QT_BEGIN_NAMESPACE
@@ -168,8 +169,8 @@ class Widget : public QWidget
     //视觉相关
     CutScreenDialog *cutscreen_dialog;
 
-    //服务相关
-    QProcess *server_process;
+    //服务相关（服务模式已移除；本地使用 LocalServerManager 自动启动 llama-server）
+    LocalServerManager *serverManager = nullptr; // new: manages local llama.cpp server
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); //获取本机第一个ip地址
@@ -279,6 +280,8 @@ class Widget : public QWidget
 
     //发给模型的信号
   signals:
+    // 将后端（llama-server）日志输出给增殖窗口的“模型日志”
+    void ui2expend_llamalog(QString log);
     void ui2bot_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS); //自动装载
     void ui2bot_language(int language_flag_);                        //传递使用的语言
     void ui2bot_loadmodel(QString modelpath);                        //开始装载模型
@@ -318,6 +321,9 @@ class Widget : public QWidget
 
     //处理模型信号的槽
   public slots:
+    // Ensure local server exists for LOCAL_MODE and wire API endpoint
+    void ensureLocalServer();
+    void onServerReady(const QString &endpoint);
     void recv_predecoding();                                                     // 正在预解码
     void recv_predecoding_over();                                                // 完成预解码
     void recv_chat_format(EVA_CHATS_TEMPLATE chats);                             //传递格式化后的对话内容
@@ -350,7 +356,6 @@ class Widget : public QWidget
     //自用的槽
   public slots:
     void showImages(QStringList images_filepath);                             //显示文件名和图像
-    void serverControl();                                                     //服务状态启动服务
     void switch_lan_change();                                                 //切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_); //更新gpu内存使用率
     void recv_cpu_status(double cpuload, double memload);                     //传递cpu信息
@@ -378,8 +383,7 @@ class Widget : public QWidget
     void complete_change();                       //补完模式响应
     void chat_change();                           //对话模式响应
     void web_change();                            //服务模式响应
-    void server_onProcessStarted();               //进程开始响应
-    void server_onProcessFinished();              //进程结束响应
+    // 服务模式已移除：server_onProcessStarted/server_onProcessFinished
     void bench_onProcessFinished();               // llama-bench进程结束响应
     void temp_change();                           //温度滑块响应
     void ngl_change();                            // ngl滑块响应
@@ -401,6 +405,10 @@ class Widget : public QWidget
     void recv_qimagepath(QString cut_imagepath_); //接收传来的图像
     void monitorAudioLevel();                     // 每隔100毫秒刷新一次监视录音
 
+  private:
+    void initTextComponentsMemoryPolicy(); // disable undo, set limits
+    void resetOutputDocument();            // replace QTextDocument of output
+    void resetStateDocument();             // replace QTextDocument of state
   private:
     Ui::Widget *ui;
 };

@@ -90,10 +90,7 @@ void Widget::get_set()
     {
         ui_state = COMPLETE_STATE;
     }
-    else if (settings_ui->web_btn->isChecked())
-    {
-        ui_state = SERVER_STATE;
-    }
+    // 服务状态已弃用
 
     ui_port = settings_ui->port_lineEdit->text();
 }
@@ -510,43 +507,7 @@ QString Widget::getFirstNonLoopbackIPv4Address()
     return QString(); // 如果没有找到任何符合条件的IP地址，返回空字符串
 }
 
-//第三方程序开始
-void Widget::server_onProcessStarted()
-{
-    if (ui_SETTINGS.ngl == 0)
-    {
-        EVA_icon = QIcon(":/logo/connection-point-blue.png");
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
-    }
-    else
-    {
-        EVA_icon = QIcon(":/logo/connection-point-green.png");
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
-    }
-    ipAddress = getFirstNonLoopbackIPv4Address();
-    reflash_state("ui:server " + jtr("oning"), SIGNAL_SIGNAL);
-}
-
-//第三方程序结束
-void Widget::server_onProcessFinished()
-{
-    if (ui_state == SERVER_STATE)
-    {
-        ui_state_info = "ui:" + jtr("old") + "server " + jtr("off");
-        reflash_state(ui_state_info, SIGNAL_SIGNAL);
-    }
-    else
-    {
-        EVA_icon = QIcon(":/logo/dark_logo.png");
-        QApplication::setWindowIcon(EVA_icon); //设置应用程序图标
-        trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
-        reflash_state("ui:server" + jtr("off"), SIGNAL_SIGNAL);
-        ui_output = "\nserver" + jtr("shut down");
-        output_scroll(ui_output);
-    }
-}
+// 服务模式已移除：server_onProcessStarted/server_onProcessFinished
 
 // llama-bench进程结束响应
 void Widget::bench_onProcessFinished()
@@ -767,8 +728,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     settings_ui->chat_btn->setText(jtr("chat state"));
     settings_ui->chat_btn->setToolTip(jtr("chat_btn_tooltip"));
-    settings_ui->web_btn->setText(jtr("server state"));
-    settings_ui->web_btn->setToolTip(jtr("web_btn_tooltip"));
+    // 服务模式已移除
     settings_ui->port_label->setText(jtr("port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));

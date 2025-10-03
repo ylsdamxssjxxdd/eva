@@ -40,17 +40,7 @@ void Widget::ui_state_pushing()
     ui->send->setEnabled(0);
 }
 
-//服务中界面状态
-void Widget::ui_state_servering()
-{
-    ui->output->clear();
-    ui->load->setEnabled(0);
-    ui->date->setEnabled(0);
-    ui->set->setEnabled(1);
-    ui->reset->setEnabled(0);
-    ui->input->setVisible(0);
-    ui->send->setVisible(0);
-}
+// 服务模式已移除
 
 //待机界面状态
 void Widget::ui_state_normal()
@@ -117,10 +107,7 @@ void Widget::ui_state_normal()
         ui->output->setReadOnly(0);
         ui->output->setFocus(); //设置输出区为焦点
     }
-    else if (ui_state == SERVER_STATE)
-    {
-        ui->set->setEnabled(1);
-    }
+    // 服务模式已移除
     if (ui_mode == LINK_MODE)
     {
         change_api_dialog(0);

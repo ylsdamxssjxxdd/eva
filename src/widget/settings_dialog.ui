@@ -488,30 +488,7 @@
         <property name="spacing">
          <number>3</number>
         </property>
-        <item>
-         <widget class="QRadioButton" name="web_btn">
-          <property name="minimumSize">
-           <size>
-            <width>110</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>110</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>服务状态</string>
-          </property>
-         </widget>
-        </item>
+        <!-- web_btn removed: 服务状态模式已移除 -->
         <item>
          <spacer name="horizontalSpacer_2">
           <property name="orientation">

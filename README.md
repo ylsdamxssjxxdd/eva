@@ -75,7 +75,7 @@
 
 <details>
 
-<summary> 三种状态 </summary>
+<summary> 两种状态 </summary>
 
 1. 对话状态
 
@@ -91,9 +91,7 @@
 
     - 在输出区键入任意文字，模型对其进行补完
 
-3. 服务状态
-
-    - 机体成为一个开放api端口的服务，也可以在网页上进行聊天
+ 
 
 </details>
 
@@ -367,7 +365,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 ---
 
-- 银河麒麟系统下服务状态和性能测试功能不支持在中文路径下进行，定位在ggml_backend_load_all()的宽字符处理，已修复（使用std::string）
+ 
 
 - 达到最大上下文长度后截断一次后再达到，解码会失败，通过暂时置入空的记忆来缓解，定位在xbot.cpp的llama_decode返回1（找不到kv槽），没修复（实际上是截断后，送入的token数量与保留的部分依旧超过最大上下文长度，需要再截断一次）
 

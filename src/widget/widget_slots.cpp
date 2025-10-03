@@ -41,8 +41,8 @@ void Widget::complete_change()
 
         settings_ui->nthread_slider->setEnabled(1);
         settings_ui->nctx_slider->setEnabled(1);
-
-        settings_ui->port_lineEdit->setEnabled(0);
+        // 端口设置始终可用（服务状态已移除，本地后端自动启动）
+        settings_ui->port_lineEdit->setEnabled(1);
     }
 }
 
@@ -55,20 +55,14 @@ void Widget::chat_change()
 
         settings_ui->nctx_slider->setEnabled(1);
         settings_ui->nthread_slider->setEnabled(1);
-
-        settings_ui->port_lineEdit->setEnabled(0);
+        settings_ui->port_lineEdit->setEnabled(1);
     }
 }
 
 //服务状态按钮响应
 void Widget::web_change()
 {
-    if (settings_ui->web_btn->isChecked())
-    {
-        settings_ui->sample_box->setEnabled(0);
-
-        settings_ui->port_lineEdit->setEnabled(1);
-    }
+    // 服务状态已移除
 }
 
 //提示词模板下拉框响应

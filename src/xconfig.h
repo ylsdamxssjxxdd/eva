@@ -150,7 +150,6 @@ enum EVA_STATE
 {
     CHAT_STATE,     //对话状态
     COMPLETE_STATE, //补完状态
-    SERVER_STATE,   //服务状态
 };
 
 //增殖窗口枚举

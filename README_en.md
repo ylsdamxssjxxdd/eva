@@ -69,7 +69,7 @@ Create a simple and intuitive body for llm, to better observe and control (based
 
 <details>
 
-<summary> Three state </summary>
+<summary> Two state </summary>
 
 1. Chat state
 
@@ -85,9 +85,7 @@ Create a simple and intuitive body for llm, to better observe and control (based
 
     - Typing any text in the output area and the model completing it
 
-3. Service state
-
-    - eva becomes an open API port service and can also chat on web pages
+ 
 
 </details>
 

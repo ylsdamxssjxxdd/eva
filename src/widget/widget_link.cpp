@@ -8,9 +8,9 @@
 //应用api设置
 void Widget::set_api()
 {
-    emit ui2bot_free(0); //释放原来的模型
-    is_load = false;     // 重置
-    historypath = "";    // 重置
+    // 纯请求式：不再使用本地嵌入模型进程（xbot）
+    is_load = false;  // 重置
+    historypath = ""; // 重置
 
     //获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
@@ -95,7 +95,7 @@ void Widget::change_api_dialog(bool enable)
     settings_ui->lora_LineEdit->setVisible(enable);
     settings_ui->port_label->setVisible(enable);
     settings_ui->port_lineEdit->setVisible(enable);
-    settings_ui->web_btn->setVisible(enable);
+    // 服务状态已移除
     settings_ui->frame_label->setVisible(enable);
     settings_ui->frame_lineEdit->setVisible(enable);
 }

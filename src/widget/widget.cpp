@@ -9,6 +9,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 {
     //---------------初始化ui--------------
     ui->setupUi(this);
+    initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
     ui->splitter->setStretchFactor(0, 3); //设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1); //设置分隔器中第二个元素初始高度占比为1
@@ -119,10 +120,12 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         connect(shortcutF2, &QHotkey::activated, this, &Widget::onShortcutActivated_F2);
     }
 #endif
-    //----------------第三方进程相关------------------
-    server_process = new QProcess(this);                                                                                             // 创建一个QProcess实例用来启动llama-server
-    connect(server_process, &QProcess::started, this, &Widget::server_onProcessStarted);                                             //连接开始信号
-    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Widget::server_onProcessFinished); //连接结束信号
+    //----------------本地后端管理（llama-server）------------------
+    serverManager = new LocalServerManager(this, applicationDirPath);
+    // 转发 server 输出到模型日志（增殖窗口）而不是主输出区
+    connect(serverManager, &LocalServerManager::serverOutput, this, [this](const QString &s) { emit ui2expend_llamalog(s); });
+    connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
+    connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
 
     //应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);
@@ -153,7 +156,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
 Widget::~Widget()
 {
-    server_process->kill(); //有点问题
+    if (serverManager) serverManager->stop();
     delete ui;
     delete cutscreen_dialog;
     delete date_ui;
@@ -191,15 +194,15 @@ void Widget::on_load_clicked()
         return;
     } //如果路径没选好或者模型路径是一样的，则不操作
 
-    ui_mode = LOCAL_MODE;      //只要点击装载有东西就不再是链接模式
+    ui_mode = LOCAL_MODE;      // 本地模式 -> 使用本地llama-server + xNet
     historypath = currentpath; // 记录这个路径，方便下次对比
     ui_SETTINGS.modelpath = currentpath;
     ui_SETTINGS.mmprojpath = ""; // 清空mmproj模型路径
     ui_SETTINGS.lorapath = "";   // 清空lora模型路径
     is_load = false;
-    //先释放旧的模型和上下文
-    emit ui2bot_free(1); // 1表示重载
     monitor_timer.stop();
+    // 启动/重启本地llama-server
+    ensureLocalServer();
 }
 
 //模型释放完毕并重新装载
@@ -260,10 +263,6 @@ void Widget::recv_loadover(bool ok_, float load_time_)
 //用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
-    if (ui_state == SERVER_STATE)
-    {
-        return;
-    }
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
 
     EVA_INPUTS inputs;           // 待构造的输入消息
@@ -271,12 +270,9 @@ void Widget::on_send_clicked()
     QStringList images_filepath; // 图像内容
     QStringList wavs_filepath;   // 音频内容
 
-    //链接模式的处理
-    if (ui_mode == LINK_MODE)
-    {
-        api_send_clicked_slove();
-        return;
-    }
+    // 统一通过 xNet 发送（本地和远端都是请求式）
+    api_send_clicked_slove();
+    return;
 
     //如果是对话模式,主要流程就是构建text_content,发送text_content,然后触发推理
     if (ui_state == CHAT_STATE)
@@ -318,7 +314,7 @@ void Widget::on_send_clicked()
     // qDebug()<<text_content;
     is_run = true;               //模型正在运行标签
     ui_state_pushing();          //推理中界面状态
-    emit ui2bot_predict(inputs); //开始推理
+    // xbot 已弃用
 }
 
 //模型输出完毕的后处理
@@ -549,58 +545,57 @@ void Widget::on_reset_clicked()
     if (is_run)
     {
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
-        if (ui_mode == LINK_MODE)
-        {
-            emit ui2net_stop(1);
-        }
-        else
-        {
-            emit ui2bot_stop();
-            qDebug() << "emit ui2bot_stop()";
-        } //传递推理停止信号,模型停止后会再次触发on_reset_clicked()
+        emit ui2net_stop(1);
+        // 传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
     }
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
 
-    if (ui_state == CHAT_STATE)
-    {
-        ui->output->clear();
-    }
+    
+    resetOutputDocument();
     ui_state_normal(); //待机界面状态
 
-    //如果是链接模式就简单处理
+    // 请求式统一处理（本地/远端）
+    ui_messagesArray = QJsonArray(); //清空
+    //构造系统指令
+    QJsonObject systemMessage;
+    systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+    systemMessage.insert("content", ui_DATES.date_prompt);
+    ui_messagesArray.append(systemMessage);
+    if (ui_state == CHAT_STATE)
+    {
+        reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+    }
+
     if (ui_mode == LINK_MODE)
     {
-        ui_messagesArray = QJsonArray(); //清空
-        //构造系统指令
-        QJsonObject systemMessage;
-        systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-        systemMessage.insert("content", ui_DATES.date_prompt);
-        ui_messagesArray.append(systemMessage);
-        if (ui_state == CHAT_STATE)
-        {
-            reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
-            current_api = apis.api_endpoint + apis.api_chat_endpoint;
-        }
-        else
-        {
-            current_api = apis.api_endpoint + apis.api_completion_endpoint;
-        }
+        // 远端模式：显示当前端点
+        current_api = (ui_state == CHAT_STATE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                              : (apis.api_endpoint + apis.api_completion_endpoint);
         EVA_icon = QIcon(":/logo/dark_logo.png");
-        QApplication::setWindowIcon(EVA_icon); //设置应用程序图标
-        trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon);
         EVA_title = jtr("current api") + " " + current_api;
         reflash_state(QString("ui:") + EVA_title, USUAL_SIGNAL);
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
-        return;
     }
-    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
-    this->setWindowTitle(EVA_title);
-    trayIcon->setToolTip(EVA_title);
-
-    emit ui2bot_reset(); //传递重置信号,清空kv缓存,并预解码约定指令
+    else // LOCAL_MODE：显示当前模型，保持本地装载表现
+    {
+        QString modelName = ui_SETTINGS.modelpath.split("/").last();
+        EVA_title = jtr("current model") + " " + modelName;
+        this->setWindowTitle(EVA_title);
+        trayIcon->setToolTip(EVA_title);
+        if (ui_SETTINGS.ngl == 0) {
+            EVA_icon = QIcon(":/logo/blue_logo.png");
+        } else {
+            EVA_icon = QIcon(":/logo/green_logo.png");
+        }
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon);
+    }
+    return;
 }
 
 //用户点击约定按钮处理
@@ -631,13 +626,10 @@ void Widget::set_date()
 {
     get_date(); //获取约定中的纸面值
 
-    if (ui_mode == LINK_MODE)
-    {
-        on_reset_clicked();
-    } //如果是链接模式就重置一下
+    // 约定变化后统一重置对话上下文（本地/远端一致）
+    on_reset_clicked();
 
     date_dialog->close();
-    emit ui2bot_date(ui_DATES);
 }
 
 //用户取消约定
@@ -687,7 +679,6 @@ void Widget::cancel_date()
 //用户点击设置按钮响应
 void Widget::on_set_clicked()
 {
-    server_process->kill();
     reflash_state("ui:" + jtr("clicked") + jtr("set"), SIGNAL_SIGNAL);
     if (ui_state == CHAT_STATE)
     {
@@ -697,10 +688,7 @@ void Widget::on_set_clicked()
     {
         settings_ui->complete_btn->setChecked(1), complete_change();
     }
-    else if (ui_state == SERVER_STATE)
-    {
-        settings_ui->web_btn->setChecked(1), web_change();
-    }
+    // 服务模式已移除
     //展示最近一次设置值
     settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
@@ -751,105 +739,7 @@ void Widget::recv_qimagepath(QString cut_imagepath_)
     ui->input->addFileThumbnail(cut_imagepath_);
 }
 
-// llama-server接管
-void Widget::serverControl()
-{
-    ui_state_servering(); //服务中界面状态
-    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
-    this->setWindowTitle(EVA_title);
-    trayIcon->setToolTip(EVA_title);
-    if (is_config)
-    {
-        QString relativePath = applicationDirPath + "/EVA_TEMP/eva_config.ini";
-        QFileInfo fileInfo(relativePath);
-        QString absolutePath = fileInfo.absoluteFilePath();
-        is_config = false;
-        reflash_state("ui:" + jtr("apply_config_mess") + " " + absolutePath, USUAL_SIGNAL);
-    }
-
-    //如果还没有选择模型路径
-    if (ui_SETTINGS.modelpath == "")
-    {
-        currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
-        ui_SETTINGS.modelpath = currentpath;
-    }
-    if (ui_SETTINGS.modelpath == "")
-    {
-        return;
-    }
-
-    emit ui2bot_free(0);
-    is_load = false;
-
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/llama-server") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#else
-    QString localPath = QString("./llama-server") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#endif
-
-    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
-    QStringList arguments;
-    arguments << "-m" << ui_SETTINGS.modelpath;
-    arguments << "--host"
-              << "0.0.0.0";                                           //暴露本机ip
-    arguments << "--port" << ui_port;                                 //服务端口
-    arguments << "-c" << QString::number(ui_SETTINGS.nctx);           //使用最近一次应用的nctx作为服务的上下文长度
-    arguments << "-ngl" << QString::number(ui_SETTINGS.ngl);          //使用最近一次应用的ngl作为服务的gpu负载
-    arguments << "--threads" << QString::number(ui_SETTINGS.nthread); //使用线程
-    arguments << "-b" << QString::number(ui_SETTINGS.hid_batch);      //批大小
-    arguments << "--jinja";                                           // 使用jinja引擎支持工具调用
-    arguments << "--reasoning-format"
-              << "none";             // none表示输出think标签到正文
-    arguments << "--verbose-prompt"; // 每次对话时打印出提示词
-    // arguments << "-lv" << QString::number(1); // 打印日志等级
-    // arguments << "-v"; // 打印全部日志，会导致速度变慢
-    arguments << "--parallel" << QString::number(ui_SETTINGS.hid_parallel);
-    // arguments << "--log-disable";                                      //不要日志
-    if (ui_SETTINGS.hid_flash_attn) { arguments << "-fa"; } // 开启flash attention加速
-    if (ui_SETTINGS.lorapath != "")
-    {
-        arguments << "--no-mmap"; //挂载lora不能开启mmp
-        arguments << "--lora" << ui_SETTINGS.lorapath;
-    }
-    else
-    {
-        if (!ui_SETTINGS.hid_use_mmap) { arguments << "--no-mmap"; }
-    }
-
-    // 支持视觉
-    if (ui_SETTINGS.mmprojpath != "") { arguments << "--mmproj" << ui_SETTINGS.mmprojpath; }
-
-    // 开始运行程序
-    server_process->start(program, arguments);
-
-    setWindowState(windowState() | Qt::WindowMaximized); //设置窗口最大化
-    reflash_state(jtr("eva expend"), EVA_SIGNAL);
-
-    //连接信号和槽,获取程序的输出
-    connect(server_process, &QProcess::readyReadStandardOutput, [=]() {
-        ui_output = server_process->readAllStandardOutput();
-        // qDebug()<<"readyReadStandardOutput"<<ui_output;
-        output_scroll(ui_output);
-    });
-    connect(server_process, &QProcess::readyReadStandardError, [=]() {
-        ui_output = server_process->readAllStandardError();
-        // qDebug()<<"readyReadStandardError"<<ui_output;
-        //启动成功的标志
-        if (ui_output.contains(SERVER_START))
-        {
-            ui_output += QString(DEFAULT_SPLITER) + jtr("api endpoint") + "   " + " http://" + ipAddress + ":" + ui_port;
-            ui_output += QString(DEFAULT_SPLITER) + jtr("model") + jtr("name") + "   " + "default" + QString(DEFAULT_SPLITER);
-            ui_state_info = "ui:server " + jtr("on") + jtr("success") + "," + jtr("browser at") + ipAddress + ":" + ui_port;
-            auto_save_user(); //保存ui配置
-            reflash_state(ui_state_info, SUCCESS_SIGNAL);
-        }
-
-        output_scroll(ui_output);
-    });
-}
+// 服务模式已移除
 
 // bot将模型参数传递给ui
 void Widget::recv_params(MODEL_PARAMS p)
@@ -914,8 +804,8 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
             ui_SETTINGS.ngl = 0;
         }
 #endif
-        //发送设置参数给bot
-        emit ui2bot_set(ui_SETTINGS, 1); //设置应用完会触发preLoad
+        // 应用新设置并按需重启本地服务
+        if (ui_mode == LOCAL_MODE) ensureLocalServer();
     }
 }
 
@@ -1005,6 +895,54 @@ void Widget::recv_speechdecode_over(QString result)
 void Widget::recv_whisper_modelpath(QString modelpath)
 {
     whisper_model_path = modelpath;
+}
+
+// Ensure local llama.cpp server is running with current settings
+void Widget::ensureLocalServer()
+{
+    if (!serverManager) return;
+    // Sync settings into manager
+    serverManager->setSettings(ui_SETTINGS);
+    serverManager->setPort(ui_port);
+    serverManager->setModelPath(ui_SETTINGS.modelpath);
+    serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
+    serverManager->setLoraPath(ui_SETTINGS.lorapath);
+    serverManager->ensureRunning();
+}
+
+// When local server is ready, switch UI to xNet over local endpoint
+void Widget::onServerReady(const QString &endpoint)
+{
+    // 配置本地端点（隐藏端点文案，标题沿用“当前模型”样式）
+    apis.api_endpoint = endpoint;
+    apis.api_key = "";
+    apis.api_model = "default";
+    emit ui2net_apis(apis);
+
+    ui_mode = LOCAL_MODE;
+    is_load = true;
+    ui->kv_bar->setToolTip("");
+    ui->output->clear();
+    reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+    ui_messagesArray = QJsonArray();
+    QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
+    ui_messagesArray.append(systemMessage);
+
+    // 标题与图标保持“本地模型装载后”的表现
+    QString modelName = ui_SETTINGS.modelpath.split("/").last();
+    EVA_title = jtr("current model") + " " + modelName;
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
+    if (ui_SETTINGS.ngl == 0) {
+        EVA_icon = QIcon(":/logo/blue_logo.png");
+    } else {
+        EVA_icon = QIcon(":/logo/green_logo.png");
+    }
+    QApplication::setWindowIcon(EVA_icon);
+    trayIcon->setIcon(EVA_icon);
+
+    ui_state_normal();
+    auto_save_user();
 }
 
 //链接模式的发送处理
@@ -1319,5 +1257,39 @@ void Widget::recv_predecoding_over()
 {
     ui_state_normal();
 }
+
+
+// Initialize memory policy for text widgets: disable undo, cap logs
+void Widget::initTextComponentsMemoryPolicy()
+{
+    // Output area (QTextEdit): no undo stack to avoid growth on streaming inserts
+    ui->output->setUndoRedoEnabled(false);
+
+    // State log (QPlainTextEdit): disable undo and cap block count
+    ui->state->setUndoRedoEnabled(false);
+    ui->state->setMaximumBlockCount(5000); // prevent unbounded log growth
+}
+
+#include <QTextDocument>
+// Replace output document to drop undo stack and cached resources (images)
+void Widget::resetOutputDocument()
+{
+    QTextDocument *oldDoc = ui->output->document();
+    QTextDocument *doc = new QTextDocument(ui->output);
+    doc->setUndoRedoEnabled(false);
+    ui->output->setDocument(doc);
+    if (oldDoc && oldDoc != doc) { oldDoc->deleteLater(); }
+}
+
+// Replace state document to drop undo stack quickly
+void Widget::resetStateDocument()
+{
+    QTextDocument *oldDoc = ui->state->document();
+    QTextDocument *doc = new QTextDocument(ui->state);
+    doc->setUndoRedoEnabled(false);
+    ui->state->setDocument(doc);
+    if (oldDoc && oldDoc != doc) { oldDoc->deleteLater(); }
+}
+
 
 

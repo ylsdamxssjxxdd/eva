@@ -13,7 +13,6 @@
 #include "utils/cpuchecker.h"
 #include "utils/gpuchecker.h"
 #include "widget/widget.h"
-#include "xbot.h"
 #include "xmcp.h"
 #include "xnet.h"
 #include "xtool.h"
@@ -129,7 +128,7 @@ int main(int argc, char *argv[])
     Widget w(nullptr, applicationDirPath);      //窗口实例
     Expend expend(nullptr, applicationDirPath); //增殖窗口实例
     xTool tool(applicationDirPath);             //工具实例
-    xBot bot;                                   //模型实例
+    // xBot removed: all inference goes through xNet to a llama.cpp server
     xNet net;                                   //链接实例
     xMcp mcp;                                   //mcp管理实例
     gpuChecker gpuer;                           //监测显卡信息
@@ -173,9 +172,6 @@ int main(int argc, char *argv[])
     QThread *cpuer_thread = new QThread;
     cpuer.moveToThread(cpuer_thread);
     cpuer_thread->start();
-    QThread *bot_thread = new QThread;
-    bot.moveToThread(bot_thread);
-    bot_thread->start();
     QThread *tool_thread = new QThread;
     tool.moveToThread(tool_thread);
     tool_thread->start();
@@ -189,41 +185,10 @@ int main(int argc, char *argv[])
     mcp_thread->start();
 
     //------------------连接bot和窗口-------------------
-    QObject::connect(&bot, &xBot::bot2ui_params, &w, &Widget::recv_params);                         // bot将模型参数传递给ui
-    QObject::connect(&bot, &xBot::bot2ui_output, &w, &Widget::reflash_output);                      //窗口输出区更新
-    QObject::connect(&bot, &xBot::bot2ui_state, &w, &Widget::reflash_state);                        //窗口状态区更新
-    QObject::connect(&bot, &xBot::bot2ui_play, &w, &Widget::recv_play);                             //播放加载动画
-    QObject::connect(&bot, &xBot::bot2ui_loadover, &w, &Widget::recv_loadover);                     //完成加载模型
-    QObject::connect(&bot, &xBot::bot2ui_predecoding, &w, &Widget::recv_predecoding);               // 正在预解码
-    QObject::connect(&bot, &xBot::bot2ui_predecoding_over, &w, &Widget::recv_predecoding_over);     // 完成预解码
-    QObject::connect(&bot, &xBot::bot2ui_pushover, &w, &Widget::recv_pushover);                     //完成推理
-    QObject::connect(&bot, &xBot::bot2ui_resetover, &w, &Widget::recv_resetover);                   //完成重置,预解码约定
-    QObject::connect(&bot, &xBot::bot2ui_stopover, &w, &Widget::recv_stopover);                     //完成停止
-    QObject::connect(&bot, &xBot::bot2ui_arrivemaxctx, &w, &Widget::recv_arrivemaxctx);             //模型达到最大上下文
-    QObject::connect(&bot, &xBot::bot2ui_reload, &w, &Widget::recv_reload);                         //设置参数改变,重载模型
-    QObject::connect(&bot, &xBot::bot2ui_datereset, &w, &Widget::recv_datereset);                   // bot发信号请求ui触发reset
-    QObject::connect(&bot, &xBot::bot2ui_setreset, &w, &Widget::recv_setreset);                     // bot发信号请求ui触发reset
-    QObject::connect(&bot, &xBot::bot2ui_predecode, &w, &Widget::recv_predecode);                   //传递模型预解码的内容
-    QObject::connect(&bot, &xBot::bot2ui_freeover_loadlater, &w, &Widget::recv_freeover_loadlater); //模型释放完毕并重新装载
-    QObject::connect(&w, &Widget::ui2bot_stop, &bot, &xBot::recv_stop);                             //传递停止信号
-    QObject::connect(&w, &Widget::ui2bot_loadmodel, &bot, &xBot::load);                             //开始加载模型
-    QObject::connect(&w, &Widget::ui2bot_predict, &bot, &xBot::predict);                            //开始推理
-    QObject::connect(&w, &Widget::ui2bot_reset, &bot, &xBot::recv_reset);                           //传递重置信号
-    QObject::connect(&w, &Widget::ui2bot_date, &bot, &xBot::recv_date);                             //传递约定内容
-    QObject::connect(&w, &Widget::ui2bot_set, &bot, &xBot::recv_set);                               //传递设置内容
-    QObject::connect(&w, &Widget::ui2bot_language, &bot, &xBot::recv_language);                     //传递使用的语言
-    QObject::connect(&w, &Widget::ui2bot_free, &bot, &xBot::recv_free);                             //释放模型和上下文
-    QObject::connect(&bot, &xBot::bot2ui_kv, &w, &Widget::recv_kv);                                 //传递缓存量
-    QObject::connect(&bot, &xBot::bot2ui_chat_format, &w, &Widget::recv_chat_format);               //传递格式化后的对话内容
-    QObject::connect(&w, &Widget::ui2bot_dateset, &bot, &xBot::recv_dateset);                       //自动装载
-    QObject::connect(&w, &Widget::ui2bot_preDecode, &bot, &xBot::recv_preDecode);                   //从补完模式回来强行预解码
-    QObject::connect(&bot, &xBot::bot2ui_showImages, &w, &Widget::showImages);
-    QObject::connect(&w, &Widget::ui2bot_monitor_filepath, &bot, &xBot::recv_monitor_filepath); //给模型发监视信号，能处理就处理
-    QObject::connect(&bot, &xBot::bot2ui_monitor_decode_ok, &w, &Widget::recv_monitor_decode_ok);
+    // xBot connections removed
 
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //传递gpu信息
-    QObject::connect(&gpuer, &gpuChecker::gpu_status, &bot, &xBot::recv_gpu_status); //传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //强制刷新gpu信息
 
     //------------------监测系统信息-------------------
@@ -239,12 +204,9 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       //传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            //窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //传递知识库的描述
+    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 本地后端日志 -> 模型日志
 
-    //------------------连接bot和增殖窗口-------------------
-    QObject::connect(&bot, &xBot::bot2expend_vocab, &expend, &Expend::recv_vocab);
-    QObject::connect(&bot, &xBot::bot2expend_brainvector, &expend, &Expend::recv_brainvector); //传递记忆向量和上下文长度
-    QObject::connect(&bot, &xBot::bot_llama_log, &expend, &Expend::recv_llama_log);
-    QObject::connect(&bot, &xBot::bot2ui_output, &expend, &Expend::recv_output);
+    // xBot -> expend connections removed
 
     //------------------连接net和窗口-------------------
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //窗口输出区更新
@@ -332,14 +294,7 @@ int main(int argc, char *argv[])
     if (checkFile2.exists()) { w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString()); }
     int mode_num = settings.value("ui_state", 0).toInt();
     if (mode_num == 0) { w.settings_ui->chat_btn->setChecked(1); }
-    else if (mode_num == 1)
-    {
-        w.settings_ui->complete_btn->setChecked(1);
-    }
-    else if (mode_num == 2)
-    {
-        w.settings_ui->web_btn->setChecked(1);
-    }
+    else if (mode_num == 1) { w.settings_ui->complete_btn->setChecked(1); }
 
     //初次启动强制赋予隐藏的设定值
     w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
@@ -357,15 +312,11 @@ int main(int argc, char *argv[])
     w.get_set();  //获取设置中的纸面值
     w.is_config = true;
 
-    //处理模型装载相关
+    //处理模型装载相关（本地：自动启动本地服务；远端：设置端点）
     QFile modelpath_file(modelpath);
     if (w.ui_mode == LOCAL_MODE && modelpath_file.exists())
     {
-        if (w.ui_state == SERVER_STATE) { w.serverControl(); }
-        else
-        {
-            emit w.ui2bot_dateset(w.ui_DATES, w.ui_SETTINGS);
-        } //自动装载模型
+        w.ensureLocalServer();
     }
     else if (w.ui_mode == LINK_MODE)
     {
@@ -388,8 +339,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    //传递停止词和约定，因为第一次没有传递约定参数给bot
-    bot.bot_date.extra_stop_words = w.ui_DATES.extra_stop_words;      // 同步
-    bot.common_params_.prompt = w.ui_DATES.date_prompt.toStdString(); // 同步
+    // 停止词等不再需要同步到本地推理器；按请求体传递即可
     return a.exec();                                                  //进入事件循环
 }
