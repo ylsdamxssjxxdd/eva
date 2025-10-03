@@ -6,6 +6,7 @@
 -  `resource/`: Qt resources (`*.qrc`, images; fonts added on Linux). 
 -  `thirdparty/`: `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`, `QHotkey` (built as subprojects). Prefer upstream syncs; see `tools/README_cmake.md` before editing. 
 -  `tools/`: helper scripts (`build.sh`, `build-docker.bat`) and CMake notes. 
+- The project relies on llama. cpp's server as the inference core. Please refer to `thirdparty\llama.cpp\tools\server` for related interfaces
 
 ## Build, Test, and Development Commands
 - Configure & build (Release):
@@ -28,8 +29,7 @@ cmake --build build --config Release -j
 - Validate on Windows (MSVC) and Linux; document GPU flags used.
 
 ## Commit & Pull Request Guidelines
-- Commits: concise imperative subject; English or Chinese OK (e.g., Optimize neuron animation; Fix Linux build).
-- PRs: purpose, summary, platforms tested, GPU flags ( `GGML_CUDA/VULKAN`, `BODY_PACK`), and screenshots for UI changes. Link issues; note any third-party syncs. 
+- Never attempt to create branches or commit using Git
 
 ## Security & Configuration Tips
 - Do not commit models/large binaries; extend  `.gitignore` if needed. 
