@@ -3,7 +3,6 @@
 
 #include <QColor>
 #include <QDebug>
-#include <QEventLoop>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>

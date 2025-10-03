@@ -73,8 +73,7 @@ void xNet::run()
     const QByteArray body = isChat ? createChatBody() : createCompleteBody();
     QNetworkRequest request = buildRequest(url);
 
-    // Drive event loop until finished
-    QEventLoop loop;
+    // Fire asynchronous request
     reply_ = nam_->post(request, body);
 
     // Timers
@@ -187,11 +186,50 @@ void xNet::run()
         }
     });
 
-    // Handle finish: stop timeout; quit loop via direct connection
+    // Handle finish: stop timeout and finalize
     connect(reply_, &QNetworkReply::finished, this, [this]() {
         if (timeoutTimer_) timeoutTimer_->stop();
+
+        // Determine if finish is due to user abort/cancel
+        const auto err = reply_ ? reply_->error() : QNetworkReply::NoError;
+        const bool canceled = aborted_ || (err == QNetworkReply::OperationCanceledError);
+
+        if (!canceled)
+        {
+            // Normal finish -> report metrics and http code
+            const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
+            const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
+            const double tAll = t_all_.nsecsElapsed() / 1e9;
+            const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
+
+            if (err == QNetworkReply::NoError)
+            {
+                if (endpoint_data.n_predict == 1)
+                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
+                else
+                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokps, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+
+                if (httpCode)
+                    emit net2ui_state("net:http " + QString::number(httpCode));
+            }
+            else
+            {
+                QString errStr = reply_ ? reply_->errorString() : QString("unknown error");
+                emit net2ui_state("net:" + errStr, WRONG_SIGNAL);
+                if (httpCode)
+                    emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
+            }
+        }
+
+        if (reply_)
+        {
+            reply_->deleteLater();
+            reply_ = nullptr;
+        }
+
+        running_ = false;
+        emit net2ui_pushover();
     });
-    connect(reply_, &QNetworkReply::finished, &loop, &QEventLoop::quit);
 
     // Network errors should not hang the loop
     connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
@@ -208,41 +246,7 @@ void xNet::run()
     // Arm an overall timeout (no bytes + no finish)
     if (timeoutTimer_) timeoutTimer_->start(120000); // 120s guard
 
-    loop.exec();
-
-    // After finished, finalize metrics and cleanup
-    const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
-    const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
-    const auto err = reply_ ? reply_->error() : QNetworkReply::NoError;
-    const double tAll = t_all_.nsecsElapsed() / 1e9;
-    const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
-
-    if (err == QNetworkReply::NoError)
-    {
-        if (endpoint_data.n_predict == 1)
-            emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
-        else
-            emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokps, 'f', 2) + " token/s", SUCCESS_SIGNAL);
-
-        if (httpCode)
-            emit net2ui_state("net:http " + QString::number(httpCode));
-    }
-    else
-    {
-        QString errStr = reply_ ? reply_->errorString() : QString("unknown error");
-        emit net2ui_state("net:" + errStr, WRONG_SIGNAL);
-        if (httpCode)
-            emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
-    }
-
-    if (reply_)
-    {
-        reply_->deleteLater();
-        reply_ = nullptr;
-    }
-
-    running_ = false;
-    emit net2ui_pushover();
+    // Fully async: return immediately
 }
 
 void xNet::ensureNetObjects()
