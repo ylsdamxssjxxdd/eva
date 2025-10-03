@@ -174,6 +174,7 @@ class Widget : public QWidget
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); //获取本机第一个ip地址
+    bool lastServerRestart_ = false; // 标记最近一次 ensureLocalServer 是否触发了重启
 
     //语音相关
     QAudioRecorder audioRecorder;

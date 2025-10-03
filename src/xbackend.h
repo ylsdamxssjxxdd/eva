@@ -34,6 +34,8 @@ public:
 
     bool isRunning() const;
     QString endpointBase() const; // e.g. http://127.0.0.1:8080
+    // Whether current program/args differ from last started ones
+    bool needsRestart() const;
 
 signals:
     void serverOutput(const QString &line);
@@ -60,4 +62,3 @@ private:
 };
 
 #endif // XBACKEND_H
-

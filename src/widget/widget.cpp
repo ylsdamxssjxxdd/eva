@@ -201,7 +201,7 @@ void Widget::on_load_clicked()
     ui_SETTINGS.lorapath = "";   // 清空lora模型路径
     is_load = false;
     monitor_timer.stop();
-    // 启动/重启本地llama-server
+    // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
     ensureLocalServer();
 }
 
@@ -904,13 +904,30 @@ void Widget::recv_whisper_modelpath(QString modelpath)
 void Widget::ensureLocalServer()
 {
     if (!serverManager) return;
-    // Sync settings into manager
+    // 同步配置到本地后端管理器
     serverManager->setSettings(ui_SETTINGS);
     serverManager->setPort(ui_port);
     serverManager->setModelPath(ui_SETTINGS.modelpath);
     serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
     serverManager->setLoraPath(ui_SETTINGS.lorapath);
+
+    // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
+    lastServerRestart_ = serverManager->needsRestart();
+    if (lastServerRestart_)
+    {
+        // 标记为未装载并进入装载中状态；这会禁用发送等控件
+        preLoad();
+        emit ui2net_stop(true); // 停止可能仍在进行的 SSE 回复
+    }
+
+    // 确保后端进程状态符合当前设置
     serverManager->ensureRunning();
+
+    // 立即将端点切换到本地（避免还连向旧端点）
+    apis.api_endpoint = serverManager->endpointBase();
+    apis.api_key = "";
+    apis.api_model = "default";
+    emit ui2net_apis(apis);
 }
 
 // When local server is ready, switch UI to xNet over local endpoint

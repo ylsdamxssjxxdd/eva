@@ -92,11 +92,15 @@ void Widget::set_set()
         date_ui->tool_box->setEnabled(1);
     }
 
-    // 本地模式：更新/重启 llama-server；远端：仅重置对话上下文
+    // 本地模式：按需重启 llama-server（内部会切至装载中并更新端点）；
+    // 若无需重启（仅采样参数变化），则简单重置对话上下文。
     if (ui_mode == LOCAL_MODE)
     {
-        ensureLocalServer(); // restart if any server args changed
-        on_reset_clicked();
+        ensureLocalServer();
+        if (!lastServerRestart_) {
+            on_reset_clicked();
+        }
+        // 若发生了重启，等待 onServerReady() 回调恢复 UI 和上下文
     }
     else if (ui_mode == LINK_MODE)
     {
