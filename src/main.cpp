@@ -1,10 +1,10 @@
-﻿#include <QCoreApplication>
+#include <QCoreApplication>
 #include <QFileInfo>
 #include <QFont>
 #include <QProcessEnvironment>
 #include <QStyleFactory>
 #include <locale>
-#include "./src/utils/cmakeconfig.h"
+#include "cmakeconfig.h"
 #include <QStandardPaths>
 #include <QDir>
 #include <QFile>
@@ -73,29 +73,29 @@ static inline void createDesktopShortcut(QString appPath)
 
 int main(int argc, char *argv[])
 {
-    // 设置linux下动态库的默认路径
+    // ??linux?????????
 #ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR"); // 获取镜像的路径
+    QString appDirPath = qgetenv("APPDIR"); // ???????
     QString ldLibraryPath = appDirPath + "/usr/lib";
     std::string currentPath = ldLibraryPath.toLocal8Bit().constData();
-    setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1); // 指定找动态库的默认路径 LD_LIBRARY_PATH
+    setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1); // ??????????? LD_LIBRARY_PATH
 #ifdef BODY_USE_CUDA
-    // cuda版本可以在系统的 /usr/local/cuda/lib64 中寻找库
+    // cuda???????? /usr/local/cuda/lib64 ????
     std::string cudaPath = "/usr/local/cuda/lib64";
-    setenv("LD_LIBRARY_PATH", (currentPath + ":" + cudaPath).c_str(), 1); // 指定找动态库的默认路径 LD_LIBRARY_PATH
+    setenv("LD_LIBRARY_PATH", (currentPath + ":" + cudaPath).c_str(), 1); // ??????????? LD_LIBRARY_PATH
 #endif
 #endif
 
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       //自适应缩放
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); //适配非整数倍缩放
-    QApplication a(argc, argv);                                                                              //事件实例
-    a.setQuitOnLastWindowClosed(false);                                                                      //即使关闭所有窗口也不退出程序，为了保持系统托盘正常
-    // 加载资源文件中的字体, 统一使用宋体
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       //?????
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); //????????
+    QApplication a(argc, argv);                                                                              //????
+    a.setQuitOnLastWindowClosed(false);                                                                      //?????????????????????????
+    // ??????????, ??????
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1)
-    { //如果没有说明是在window下
+    { //????????window?
         QFont font("SimSun");
-        font.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+        font.setStyleStrategy(QFont::PreferAntialias); //?????
         QApplication::setFont(font);
         // qDebug() << "Loaded font:" << "windows SimSun";
     }
@@ -105,50 +105,50 @@ int main(int argc, char *argv[])
         if (!loadedFonts.empty())
         {
             QFont customFont(loadedFonts.at(0));
-            customFont.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+            customFont.setStyleStrategy(QFont::PreferAntialias); //?????
             QApplication::setFont(customFont);
             // qDebug() << "Loaded font:" << customFont.family();
         }
     }
-    // 设置创建EVA_TEMP文件夹所在的目录
+    // ????EVA_TEMP????????
 #if BODY_LINUX_PACK
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString appImagePath = env.value("APPIMAGE");
     const QFileInfo fileInfo(appImagePath);
-    const QString applicationDirPath = fileInfo.absolutePath();                        // 在打包程序运行时所在目录创建EVA_TEMP文件夹
-    const QString appPath = fileInfo.absolutePath() + "/" + EVA_VERSION + ".AppImage"; // .AppImage所在路径
+    const QString applicationDirPath = fileInfo.absolutePath();                        // ??????????????EVA_TEMP???
+    const QString appPath = fileInfo.absolutePath() + "/" + EVA_VERSION + ".AppImage"; // .AppImage????
 #else
-    const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
+    const QString applicationDirPath = QCoreApplication::applicationDirPath(); // ????????EVA_TEMP???
     const QString appPath = applicationDirPath;
 #endif
-    //linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
+    //linux????????.desktop?~/.local/share/applications/???????~/Desktop?????????
     createDesktopShortcut(appPath);
     qDebug() << "EVA_PATH" << appPath;
-    //------------------实例化主要节点------------------
-    Widget w(nullptr, applicationDirPath);      //窗口实例
-    Expend expend(nullptr, applicationDirPath); //增殖窗口实例
-    xTool tool(applicationDirPath);             //工具实例
+    //------------------???????------------------
+    Widget w(nullptr, applicationDirPath);      //????
+    Expend expend(nullptr, applicationDirPath); //??????
+    xTool tool(applicationDirPath);             //????
     // xBot removed: all inference goes through xNet to a llama.cpp server
-    xNet net;                                   //链接实例
-    xMcp mcp;                                   //mcp管理实例
-    gpuChecker gpuer;                           //监测显卡信息
-    cpuChecker cpuer;                           //监视系统信息
+    xNet net;                                   //????
+    xMcp mcp;                                   //mcp????
+    gpuChecker gpuer;                           //??????
+    cpuChecker cpuer;                           //??????
 
-    //-----------------初始值设定-----------------------
-    expend.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj; //传递语言
+    //-----------------?????-----------------------
+    expend.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj; //????
     expend.max_thread = w.max_thread;
-    tool.embedding_server_resultnumb = expend.embedding_resultnumb;          //同步数目
-    w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
+    tool.embedding_server_resultnumb = expend.embedding_resultnumb;          //????
+    w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // ??????
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
-    //-----------------加载皮肤-----------------------
+    //-----------------????-----------------------
     QFile file(":/QSS/eva.qss");
     file.open(QFile::ReadOnly);
     QString stylesheet = file.readAll();
     w.setStyleSheet(stylesheet);
     expend.setStyleSheet(stylesheet);
 
-    //------------------注册信号传递变量-------------------
+    //------------------????????-------------------
     qRegisterMetaType<EVA_CHATS_TEMPLATE>("EVA_CHATS_TEMPLATE");
     qRegisterMetaType<MODEL_PARAMS>("MODEL_PARAMS");
     qRegisterMetaType<QColor>("QColor");
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<APIS>("APIS");
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
     qRegisterMetaType<MCP_CONNECT_STATE>("MCP_CONNECT_STATE");
-    //------------------开启多线程 ------------------------
+    //------------------????? ------------------------
     QThread *gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
     gpuer_thread->start();
@@ -184,77 +184,77 @@ int main(int argc, char *argv[])
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
 
-    //------------------连接bot和窗口-------------------
+    //------------------??bot???-------------------
     // xBot connections removed
 
-    //------------------监测gpu信息-------------------
-    QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //强制刷新gpu信息
+    //------------------??gpu??-------------------
+    QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //??gpu??
+    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //????gpu??
 
-    //------------------监测系统信息-------------------
-    QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status); //传递cpu信息
-    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        //强制刷新cpu信息
+    //------------------??????-------------------
+    QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status); //??cpu??
+    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        //????cpu??
 
-    //------------------连接窗口和增殖窗口-------------------                   //传递测试得分
-    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         //传递使用的语言
-    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          //通知显示扩展窗口
-    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 //开始语音转文字
-    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         //重置文字转语音
-    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       //转换完成返回结果
-    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       //传递模型路径
-    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            //窗口状态区更新
-    QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //传递知识库的描述
-    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 本地后端日志 -> 模型日志
+    //------------------?????????-------------------                   //??????
+    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         //???????
+    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          //????????
+    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 //???????
+    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         //???????
+    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       //????????
+    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       //??????
+    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            //???????
+    QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //????????
+    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // ?????? -> ????
 
     // xBot -> expend connections removed
 
-    //------------------连接net和窗口-------------------
-    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //窗口输出区更新
-    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);    //窗口状态区更新
-    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection); //完成推理
-    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);               //开始推理
-    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection); //传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);         //传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);         //传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);         //传递停止信号
+    //------------------??net???-------------------
+    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //???????
+    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);    //???????
+    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection); //????
+    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);               //????
+    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection); //???????
+    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);         //??api????
+    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);         //??????
+    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);         //??????
 
-    //------------------连接tool和窗口-------------------
-    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //窗口状态区更新
-    QObject::connect(&tool, &xTool::tool2ui_controller, &w, &Widget::recv_controller);           //传递控制信息
-    QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over); //传递控制完成结果
-    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           //完成推理
-    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               //传递使用的语言
-    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            //开始推理
+    //------------------??tool???-------------------
+    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //???????
+    QObject::connect(&tool, &xTool::tool2ui_controller, &w, &Widget::recv_controller);           //??????
+    QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over); //????????
+    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           //????
+    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               //???????
+    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            //????
 
-    //------------------连接增殖窗口和tool-------------------
-    QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 //传递已嵌入文本段数据
-    QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb); //传递嵌入结果返回个数
+    //------------------???????tool-------------------
+    QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 //??????????
+    QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb); //??????????
 
-    QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         //开始绘制图像
-    QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover); //图像绘制完成
+    QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         //??????
+    QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover); //??????
 
-    //------------------连接mcp管理器-------------------
+    //------------------??mcp???-------------------
     QObject::connect(&mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
     QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);
-    QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // 添加某个mcp服务完成
+    QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // ????mcp????
     QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
-    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       //查询mcp可用工具
-    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); //查询mcp可用工具完成
-    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       //开始调用mcp可用工具
-    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); //mcp可用工具调用完成
+    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       //??mcp????
+    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); //??mcp??????
+    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       //????mcp????
+    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); //mcp????????
 
-    w.show(); //展示窗口
+    w.show(); //????
 
-    //---------------读取配置文件并执行------------------
-    emit w.gpu_reflash(); //强制刷新gpu信息，为了获取未装载时的显存占用
+    //---------------?????????------------------
+    emit w.gpu_reflash(); //????gpu????????????????
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
 
-    // 读取配置文件中的值
+    // ?????????
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
-    w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
-    QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //模型路径
+    w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // ???????????shell??
+    w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // ???????????python??
+    QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //????
     w.currentpath = w.historypath = expend.currentpath = modelpath;
     w.ui_SETTINGS.modelpath = modelpath;
     w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
     w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
     w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
-    bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //默认不主动嵌入词向量
+    bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //??????????
     QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
     QFile checkFile(settings.value("lorapath", "").toString());
     if (checkFile.exists()) { w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString()); }
@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
     if (mode_num == 0) { w.settings_ui->chat_btn->setChecked(1); }
     else if (mode_num == 1) { w.settings_ui->complete_btn->setChecked(1); }
 
-    //初次启动强制赋予隐藏的设定值
+    //??????????????
     w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
     w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
     w.ui_SETTINGS.hid_top_p = settings.value("hid_top_p", DEFAULT_TOP_P).toFloat();
@@ -307,12 +307,12 @@ int main(int argc, char *argv[])
     w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
     w.ui_SETTINGS.hid_parallel = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
 
-    // ui显示值传给ui内部值
-    w.get_date(); //获取约定中的纸面值
-    w.get_set();  //获取设置中的纸面值
+    // ui?????ui???
+    w.get_date(); //?????????
+    w.get_set();  //?????????
     w.is_config = true;
 
-    //处理模型装载相关（本地：自动启动本地服务；远端：设置端点）
+    //?????????????????????????????
     QFile modelpath_file(modelpath);
     if (w.ui_mode == LOCAL_MODE && modelpath_file.exists())
     {
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
         w.set_api();
     }
 
-    //是否需要自动重构知识库, 源文档在expend实例化时已经完成
+    //???????????, ????expend????????
     if (embedding_server_need)
     {
         QFile embedding_modelpath_file(embedding_modelpath);
@@ -331,14 +331,15 @@ int main(int argc, char *argv[])
         {
             expend.embedding_embed_need = true;
             expend.embedding_params.modelpath = embedding_modelpath;
-            expend.embedding_server_start(); //启动嵌入服务
+            expend.embedding_server_start(); //??????
         }
-        else //借助端点直接嵌入
+        else //????????
         {
-            expend.embedding_processing(); //执行嵌入
+            expend.embedding_processing(); //????
         }
     }
 
-    // 停止词等不再需要同步到本地推理器；按请求体传递即可
-    return a.exec();                                                  //进入事件循环
+    // ?????????????????????????
+    return a.exec();                                                  //??????
 }
+

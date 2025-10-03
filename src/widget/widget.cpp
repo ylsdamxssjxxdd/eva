@@ -552,7 +552,10 @@ void Widget::on_reset_clicked()
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
 
-    
+    // Reset output safely. Replacing the QTextDocument drops any cached
+    // resources/undo stack without risking double-deletes.
+    // Note: QTextEdit takes ownership of the previous document and will
+    // delete it; do not manually delete the old one here.
     resetOutputDocument();
     ui_state_normal(); //待机界面状态
 
@@ -1274,21 +1277,20 @@ void Widget::initTextComponentsMemoryPolicy()
 // Replace output document to drop undo stack and cached resources (images)
 void Widget::resetOutputDocument()
 {
-    QTextDocument *oldDoc = ui->output->document();
+    // Create a fresh document and hand ownership to the widget.
+    // Qt will destroy the previous document for us; avoid manual delete.
     QTextDocument *doc = new QTextDocument(ui->output);
     doc->setUndoRedoEnabled(false);
     ui->output->setDocument(doc);
-    if (oldDoc && oldDoc != doc) { oldDoc->deleteLater(); }
 }
 
 // Replace state document to drop undo stack quickly
 void Widget::resetStateDocument()
 {
-    QTextDocument *oldDoc = ui->state->document();
+    // Same as above: let Qt own and clean up the previous document.
     QTextDocument *doc = new QTextDocument(ui->state);
     doc->setUndoRedoEnabled(false);
     ui->state->setDocument(doc);
-    if (oldDoc && oldDoc != doc) { oldDoc->deleteLater(); }
 }
 
 

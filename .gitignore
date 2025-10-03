@@ -2,3 +2,4 @@ build/
 .vscode/
 CMakeLists.txt.user
 src-old/
+.VSCodeCounter/

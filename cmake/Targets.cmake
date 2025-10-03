@@ -5,9 +5,12 @@ include_guard(GLOBAL)
 
 # Resources
 if (WIN32)
-    set(resource_FILES resource/res.qrc)
+    set(resource_FILES resource/res_core.qrc)
 else()
-    set(resource_FILES resource/res.qrc resource/font.qrc)
+    set(resource_FILES resource/res_core.qrc resource/font.qrc)
+endif()
+if (BODY_PACK)
+    list(APPEND resource_FILES resource/res_docs.qrc)
 endif()
 set(logo_FILES resource/logo/ico.rc)
 
@@ -32,7 +35,13 @@ add_executable(
 
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
+# include build dir for generated config header
+target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
 add_dependencies(${EVA_TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml)
 
-message(STATUS "生产环境: ${eva_ENVIRONMENT}")
-message(STATUS "eva型号：${eva_OUTPUT_NAME}")
+message(STATUS "????: ${eva_ENVIRONMENT}")
+message(STATUS "eva???${eva_OUTPUT_NAME}")
+
+
+
+
