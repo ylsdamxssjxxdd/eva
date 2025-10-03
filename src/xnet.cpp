@@ -29,7 +29,7 @@ void xNet::run()
     if (!endpoint_data.is_complete_state)
     {
         // 设置请求的端点 URL
-        QNetworkRequest request(QUrl(apis.api_endpoint.remove(apis.api_chat_endpoint) + apis.api_chat_endpoint));
+        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_chat_endpoint));
         // 设置请求头
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
         request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());
@@ -208,25 +208,117 @@ void xNet::run()
 //构造请求的数据体
 QByteArray xNet::createChatBody()
 {
-    // 创建 JSON 数据,添加一些采样参数
+    // build JSON body (OpenAI-compatible)
     QJsonObject json;
     if (apis.is_cache)
     {
         json.insert("cache_prompt", apis.is_cache);
-    } // 缓存上文
+    }
     json.insert("model", apis.api_model);
     json.insert("stream", true);
-    json.insert("temperature", 2 * endpoint_data.temp); // openai 的温度是从0-2，机体是从0-1所以乘2
+    json.insert("temperature", 2 * endpoint_data.temp); // OpenAI temperature 0-2; ours 0-1
     json.insert("max_tokens", endpoint_data.n_predict);
-    QJsonArray stopkeys; //强制结束的词
+
+    // stop words
+    QJsonArray stopkeys;
     for (int i = 0; i < endpoint_data.stopwords.size(); ++i)
     {
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
-    // 将 JSON 对象转换为字节序列
-    json.insert("messages", endpoint_data.messagesArray); //插入总消息
-    // qDebug()<<endpoint_data.messagesArray;
+
+    // sanitize messages so every message.content is a string
+        auto toStringOnlyMessages = [&](const QJsonArray &in) -> QJsonArray {
+        QJsonArray out;
+        auto asString = [](const QJsonValue &c) -> QString {
+            if (c.isString()) return c.toString();
+            if (c.isArray()) {
+                QString s;
+                for (const auto &pv : c.toArray()) {
+                    if (!pv.isObject()) continue;
+                    QJsonObject p = pv.toObject();
+                    const QString type = p.value("type").toString();
+                    if (type == "text") s += p.value("text").toString();
+                    // ignore non-text (image_url/audio_url) to keep server template happy
+                }
+                return s; // may be empty
+            }
+            if (c.isNull() || c.isUndefined()) return QString("");
+            return c.toVariant().toString();
+        };
+
+        // Collect only known roles; ensure content present as string
+        for (const auto &v : in) {
+            if (!v.isObject()) continue;
+            QJsonObject m = v.toObject();
+            const QString role = m.value("role").toString();
+            if (!(role == DEFAULT_USER_NAME || role == DEFAULT_MODEL_NAME || role == DEFAULT_SYSTEM_NAME)) {
+                // unknown role -> skip
+                continue;
+            }
+            QString s = asString(m.value("content"));
+            m.insert("role", role);
+                        // populate reasoning_content for assistant if think tags present
+            if (role == DEFAULT_MODEL_NAME && s.contains(DEFAULT_THINK_END)) {
+                QString contentPart = s;
+                QString reasoningPart = "";
+                // split by </think>
+                const int endIdx = s.indexOf(DEFAULT_THINK_END);
+                if (endIdx != -1) {
+                    QString before = s.left(endIdx);
+                    QString after = s.mid(endIdx + QString(DEFAULT_THINK_END).size());
+                    // strip <think> from before
+                    int startIdx = before.indexOf(DEFAULT_THINK_BEGIN);
+                    if (startIdx != -1) before = before.mid(startIdx + QString(DEFAULT_THINK_BEGIN).size());
+                    reasoningPart = before.trimmed();
+                    contentPart = after.trimmed();
+                }
+                m.insert("reasoning_content", reasoningPart);
+                m.insert("content", contentPart);
+            } else {
+                m.insert("content", s);
+            }
+            out.append(m);
+        }
+
+        // Ensure first item is system. If not, prepend it from date_prompt
+        if (out.size() > 0) {
+            const QJsonObject first = out.at(0).toObject();
+            if (first.value("role").toString() != DEFAULT_SYSTEM_NAME) {
+                QJsonObject systemMessage;
+                systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+                systemMessage.insert("content", endpoint_data.date_prompt);
+                QJsonArray fixed;
+                fixed.append(systemMessage);
+                for (const auto &v2 : out) fixed.append(v2);
+                return fixed;
+            }
+        } else {
+            // no messages at all -> create system message
+            QJsonObject systemMessage;
+            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+            systemMessage.insert("content", endpoint_data.date_prompt);
+            out.append(systemMessage);
+        }
+        return out;
+    };
+
+    json.insert("messages", toStringOnlyMessages(endpoint_data.messagesArray));
+    {
+        // debug summary: roles and content lengths
+        QJsonArray dbg = toStringOnlyMessages(endpoint_data.messagesArray);
+        QStringList dbgLines;
+        for (const auto &v : dbg) {
+            if (!v.isObject()) continue;
+            auto o = v.toObject();
+            auto r = o.value("role").toString();
+            auto c = o.value("content").toString();
+            dbgLines << (r + ":" + QString::number(c.size()));
+        }
+        emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
+    }
+    // qDebug() << QJsonDocument(json).toJson(QJsonDocument::Indented);
+
     QJsonDocument doc(json);
     QByteArray data = doc.toJson();
     return data;
@@ -313,3 +405,7 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
+
+

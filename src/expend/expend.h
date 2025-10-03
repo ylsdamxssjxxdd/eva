@@ -1,4 +1,4 @@
-#ifndef EXPEND_H
+﻿#ifndef EXPEND_H
 #define EXPEND_H
 
 #include <QAbstractSocket>
@@ -45,7 +45,6 @@
 
 #include "../mcp_tools.h"
 #include "../xconfig.h"
-#include "./src/utils/cmakeconfig.h"
 #include "./src/utils/toggleswitch.h"
 namespace Ui
 {

@@ -15,15 +15,9 @@ cmake --build build --config Release -j
  ``` 
 - Run locally:  `./build/bin/eva` (Linux) or `build \\bin\\eva.exe ` (Windows). 
 - Package (AppImage/EXE): add  `-DBODY_PACK=ON`; details in `tools/README_cmake.md`. 
-- Optional tests (third-party only):
- ```bash 
-cmake -B build -DLLAMA_BUILD_TESTS=ON -DWHISPER_BUILD_TESTS=ON -DGGML_BUILD_TESTS=ON
-ctest --test-dir build -C Release
- ``` 
-- Quick script:  `tools/build.sh [build-dir] --options <extra cmake opts>`. 
 
 ## Coding Style & Naming Conventions
-- C++17 + Qt5; 4-space indent; braces on same line (K&R); UTF-8 source.
+- C++17 + Qt5.15; 4-space indent; braces on same line (K&R); UTF-8 source.
 - Prefer Qt types/containers for UI;  `std::vector` OK in compute paths. 
 - Files: headers  `.h`, sources `.cpp`, Qt Designer `.ui`; lowercase names (e.g., `xbot.cpp`, `widget.ui`). 
 - Methods/vars lowerCamelCase; classes/types PascalCase; macros/constants UPPER_SNAKE_CASE.

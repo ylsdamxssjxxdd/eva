@@ -1,18 +1,76 @@
-#include <QCoreApplication>
+﻿#include <QCoreApplication>
 #include <QFileInfo>
 #include <QFont>
 #include <QProcessEnvironment>
 #include <QStyleFactory>
 #include <locale>
+#include "./src/utils/cmakeconfig.h"
+#include <QStandardPaths>
+#include <QDir>
+#include <QFile>
 
-#include "expend.h"
+#include "expend/expend.h"
 #include "utils/cpuchecker.h"
 #include "utils/gpuchecker.h"
-#include "widget.h"
+#include "widget/widget.h"
 #include "xbot.h"
 #include "xmcp.h"
 #include "xnet.h"
 #include "xtool.h"
+
+
+static inline void createDesktopShortcut(QString appPath)
+{
+#ifdef Q_OS_LINUX
+    // prepare icon path and copy resource icon to user dir
+    QString iconDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/icons/";
+    QDir().mkpath(iconDir);
+    QString iconPath = iconDir + "eva.png";
+    QFile::copy(":/logo/blue_logo.png", iconPath);
+    QFile::setPermissions(iconPath, QFile::ReadOwner | QFile::WriteOwner);
+
+    // compose .desktop content
+    QString desktopContent = QString(
+                                 "[Desktop Entry]\n"
+                                 "Type=Application\n"
+                                 "Name=%1\n"
+                                 "Comment=a lite llm tool\n"
+                                 "Exec=%2\n"
+                                 "Icon=%3\n"
+                                 "Terminal=false\n"
+                                 "Categories=Utility\n")
+                                 .arg(EVA_VERSION, appPath, iconPath);
+
+    // write to ~/.local/share/applications/eva.desktop
+    QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
+    QDir().mkpath(applicationsDir);
+    QFile applicationsFile(applicationsDir + "eva.desktop");
+    if (applicationsFile.open(QIODevice::WriteOnly))
+    {
+        applicationsFile.write(desktopContent.toUtf8());
+        applicationsFile.close();
+        applicationsFile.setPermissions(QFile::ExeOwner | QFile::ReadOwner | QFile::WriteOwner);
+    }
+    else
+    {
+        qWarning() << "Failed to write applications desktop file";
+    }
+
+    // write to ~/Desktop/eva.desktop
+    QString desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/";
+    QFile desktopFile(desktopDir + "eva.desktop");
+    if (desktopFile.open(QIODevice::WriteOnly))
+    {
+        desktopFile.write(desktopContent.toUtf8());
+        desktopFile.close();
+        desktopFile.setPermissions(QFile::ExeOwner | QFile::ReadOwner | QFile::WriteOwner);
+    }
+    else
+    {
+        qWarning() << "Failed to write desktop shortcut";
+    }
+#endif
+}
 
 int main(int argc, char *argv[])
 {

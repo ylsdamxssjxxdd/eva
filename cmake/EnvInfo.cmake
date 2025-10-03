@@ -1,4 +1,4 @@
-# EnvInfo.cmake - compute output name, environment string, and generate cmakeconfig.h
+﻿# EnvInfo.cmake - compute output name, environment string, and generate cmakeconfig.h
 
 # Prevent double-include
 include_guard(GLOBAL)
@@ -114,8 +114,10 @@ if (DEFINED Qt5Core_VERSION)
 elseif(DEFINED Qt5Widgets_VERSION)
     set(QT_VERSION_ ${Qt5Widgets_VERSION})
 endif()
-string(TIMESTAMP COMPILE_TIME "%Y-%m-%d %H:%M:%S")
-set(EVA_PRODUCT_TIME ${COMPILE_TIME})
+if (NOT DEFINED EVA_PRODUCT_TIME)
+    string(TIMESTAMP EVA_PRODUCT_TIME "%Y-%m-%d %H:%M:%S")
+    set(EVA_PRODUCT_TIME "${EVA_PRODUCT_TIME}" CACHE STRING "Product build time (frozen across re-configures)")
+endif()
 
 # Keep generated header at build/src/utils so includes like "./src/utils/cmakeconfig.h" work
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/utils)
