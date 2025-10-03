@@ -182,6 +182,8 @@ int main(int argc, char *argv[])
     QThread *net_thread = new QThread;
     net.moveToThread(net_thread);
     net_thread->start();
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, &net, [&net]() { net.recv_stop(true); }, Qt::QueuedConnection);
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, net_thread, &QThread::quit, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
@@ -245,14 +247,14 @@ int main(int argc, char *argv[])
     QObject::connect(&bot, &xBot::bot2ui_output, &expend, &Expend::recv_output);
 
     //------------------连接net和窗口-------------------
-    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output);  //窗口输出区更新
-    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state);    //窗口状态区更新
-    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover); //完成推理
-    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run);               //开始推理
-    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language); //传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis);         //传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data);         //传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop);         //传递停止信号
+    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //窗口输出区更新
+    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);    //窗口状态区更新
+    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection); //完成推理
+    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);               //开始推理
+    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection); //传递使用的语言
+    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);         //传递api设置参数
+    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);         //传递端点参数
+    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);         //传递停止信号
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //窗口状态区更新

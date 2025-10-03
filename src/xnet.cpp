@@ -1,208 +1,266 @@
 #include "xnet.h"
+#include <QSslError>
 
 xNet::xNet()
 {
-    qDebug() << "net init over";
+    // Defer creation of network objects until we are in worker thread
+    qDebug() << "xNet initialized";
 }
 
 xNet::~xNet()
 {
-    ;
+    abortActiveReply();
+}
+
+void xNet::resetState()
+{
+    tokens_ = 0;
+    thinkFlag = false;
+    current_content.clear();
+    sseBuffer_.clear();
+    aborted_ = false;
+}
+
+void xNet::abortActiveReply()
+{
+    if (timeoutTimer_) timeoutTimer_->stop();
+    if (reply_)
+    {
+        // Ensure we signal an abort only once
+        if (!aborted_)
+        {
+            aborted_ = true;
+            reply_->abort();
+        }
+        reply_->deleteLater();
+        reply_ = nullptr;
+    }
+}
+
+QNetworkRequest xNet::buildRequest(const QUrl &url) const
+{
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+    req.setRawHeader("Accept", "text/event-stream");
+    req.setRawHeader("Connection", "keep-alive");
+    req.setRawHeader("Cache-Control", "no-cache");
+    req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    req.setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    req.setTransferTimeout(60000); // 60s transfer timeout
+#endif
+    return req;
 }
 
 void xNet::run()
 {
+    if (running_)
+    {
+        emit net2ui_state("net: busy, request ignored", SIGNAL_SIGNAL);
+        return;
+    }
+
+    running_ = true;
+    resetState();
+    ensureNetObjects();
     emit net2ui_state("net:" + jtr("send message to api"));
 
-    QElapsedTimer time;
-    time.start();
-    QElapsedTimer time2;
+    // Prepare request
+    const bool isChat = !endpoint_data.is_complete_state;
+    const QUrl url(isChat ? (apis.api_endpoint + apis.api_chat_endpoint)
+                          : (apis.api_endpoint + apis.api_completion_endpoint));
+    const QByteArray body = isChat ? createChatBody() : createCompleteBody();
+    QNetworkRequest request = buildRequest(url);
 
-    bool is_first_token = true; //接收到第一个token开始记录速度
-    int tokens = 0;
-    thinkFlag = false; //重置思考标签
-    current_content = "";
-    QEventLoop loop; // 进入事件循环，等待回复
-    QNetworkAccessManager manager;
+    // Drive event loop until finished
+    QEventLoop loop;
+    reply_ = nam_->post(request, body);
 
-    //对话模式
-    if (!endpoint_data.is_complete_state)
-    {
-        // 设置请求的端点 URL
-        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_chat_endpoint));
-        // 设置请求头
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());
-        //构造请求的数据体
-        QByteArray data = createChatBody();
-        // 发送 POST 请求
-        QNetworkReply *reply = manager.post(request, data);
-        // 处理响应
-        QObject::connect(reply, &QNetworkReply::readyRead, [&]() {
-            if (is_first_token)
+    // Timers
+    t_all_.start();
+    bool ttfbStarted = false;
+    connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]() {
+        if (!ttfbStarted)
+        {
+            ttfbStarted = true;
+            t_first_.start();
+        }
+
+        const QByteArray chunk = reply_->readAll();
+        if (chunk.isEmpty()) return;
+        sseBuffer_.append(chunk);
+
+        // Normalize line endings and process complete SSE events (separated by blank line)
+        int idx;
+        while ((idx = sseBuffer_.indexOf("\n\n")) != -1)
+        {
+            QByteArray event = sseBuffer_.left(idx);
+            sseBuffer_.remove(0, idx + 2);
+
+            // Find a line starting with "data:"
+            // Allow for CRLF and spaces after colon
+            QList<QByteArray> lines = event.split('\n');
+            for (QByteArray &ln : lines)
             {
-                is_first_token = false;
-                time2.start(); //从接收到第一个token开始计时
-            }
-            QString jsonString = reply->readAll();
-            // qDebug()<<"jsonString  "<<jsonString;
-            // 由于原始字符串包含非JSON格式的前缀"data: "，我们需要去除这些部分
-            QStringList dataList = jsonString.split("\n\n", QString::SkipEmptyParts);
-            for (QString &data : dataList)
-            {
-                data.remove(0, data.indexOf("{")); // 去除"data: "前缀
-                // 把QString对象转换为QByteArray
-                QByteArray jsonData = data.toUtf8();
-                // 使用Qt的JSON类解析JSON数据
-                QJsonDocument document = QJsonDocument::fromJson(jsonData);
-                if (!document.isNull())
-                {
-                    if (document.isObject())
-                    {
-                        QJsonObject jsonObject = document.object();
-                        QJsonArray choices = jsonObject["choices"].toArray();
-                        QJsonObject firstChoice = choices.at(0).toObject();
-                        // qDebug()<<"choices "<<firstChoice;//看看接收到了什么
-                        QJsonObject delta = firstChoice["delta"].toObject();
-                        current_content = delta["content"].toString();
-                        QString content_flag;
-                        if (firstChoice.value("finish_reason").toString() == "stop")
-                        {
-                            content_flag = jtr("<end>");
-                        }
-                        else
-                        {
-                            content_flag = current_content;
-                        }
-                        if (current_content != "") //解析的结果发送到输出区
-                        {
-                            tokens++;
-                            emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-                            if (current_content.contains(DEFAULT_THINK_BEGIN)) { thinkFlag = true; } // 检测到思考开始标志
-                            if (thinkFlag) { emit net2ui_output(current_content, true, THINK_GRAY); }
-                            else
-                            {
-                                emit net2ui_output(current_content, true);
-                            }
-                            if (current_content.contains(DEFAULT_THINK_END)) { thinkFlag = false; } // 检测到思考结束标志
-                        }
-                    }
-                }
-                else if (data.contains("DONE"))
+                ln = ln.trimmed();
+                if (!ln.startsWith("data:")) continue;
+
+                QByteArray payload = ln.mid(5).trimmed();
+                if (payload.isEmpty()) continue;
+                if (payload == "[DONE]" || payload == "DONE")
                 {
                     emit net2ui_state("net: DONE");
+                    continue;
                 }
-                else
+
+                // Some servers may prepend junk before JSON; try to locate '{'
+                int jpos = payload.indexOf('{');
+                if (jpos > 0) payload.remove(0, jpos);
+
+                QJsonParseError perr{};
+                const QJsonDocument doc = QJsonDocument::fromJson(payload, &perr);
+                if (perr.error != QJsonParseError::NoError || !doc.isObject())
                 {
                     emit net2ui_state("net:resolve json fail", WRONG_SIGNAL);
-                    qDebug() << jsonString;
-                    qDebug() << data;
+                    continue;
                 }
-            }
-            if (is_stop || (!thinkFlag && current_content.contains(DEFAULT_OBSERVATION_STOPWORD)))
-            {
-                qDebug() << current_content;
-                is_stop = false;
-                reply->abort(); //终止
-            }
-        });
-        // 完成
-        QObject::connect(reply, &QNetworkReply::finished, [&]() {
-            if (reply->error() == QNetworkReply::NoError)
-            {
-                // 请求完成，所有数据都已正常接收
-                if (endpoint_data.n_predict == 1)
+
+                QJsonObject obj = doc.object();
+
+                // OpenAI chat format
+                if (isChat)
                 {
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s ", SUCCESS_SIGNAL);
+                    const QJsonArray choices = obj.value("choices").toArray();
+                    if (choices.isEmpty()) continue;
+                    const QJsonObject firstChoice = choices.at(0).toObject();
+                    const QString finish = firstChoice.value("finish_reason").toString();
+                    const QJsonObject delta = firstChoice.value("delta").toObject();
+                    current_content = delta.value("content").toString();
+
+                    QString content_flag = finish == "stop" ? jtr("<end>") : current_content;
+                    if (!current_content.isEmpty())
+                    {
+                        tokens_++;
+                        emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+
+                        if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
+                        if (thinkFlag)
+                            emit net2ui_output(current_content, true, THINK_GRAY);
+                        else
+                            emit net2ui_output(current_content, true);
+                        if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
+                    }
                 }
-                else
+                else // completion format (llama.cpp server style)
                 {
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed() / 1000000000.0), 'f', 2) + " token/s", SUCCESS_SIGNAL);
+                    // try: top-level { content, stop }
+                    QString content;
+                    bool stop = false;
+                    if (obj.contains("content"))
+                        content = obj.value("content").toString();
+                    if (obj.contains("stop"))
+                        stop = obj.value("stop").toBool();
+
+                    // fallback: nested { completion, tokens }
+                    if (content.isEmpty() && obj.contains("completion"))
+                        content = obj.value("completion").toString();
+
+                    if (!content.isEmpty())
+                    {
+                        tokens_++;
+                        const QString content_flag = stop ? jtr("<end>") : content;
+                        emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+                        emit net2ui_output(content, true);
+                    }
                 }
             }
-            else
-            {
-                // 请求出错
-                emit net2ui_state("net:" + reply->errorString(), WRONG_SIGNAL);
-                // qDebug() << "Error:" << reply->errorString();
-            }
 
-            reply->abort(); //终止
-            reply->deleteLater();
-        });
+        }
 
-        // 回复完成时退出事件循环
-        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    }
-    else //补完模式
-    {
-        // 设置请求的端点 URL
-        QNetworkRequest request(QUrl(apis.api_endpoint + apis.api_completion_endpoint));
-        // 设置请求头
-        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        request.setRawHeader("Authorization", "Bearer " + apis.api_key.toUtf8());
-        //构造请求的数据体
-        QByteArray data = createCompleteBody();
-        // 发送 POST 请求
-        QNetworkReply *reply = manager.post(request, data);
-        // 处理响应
-        QObject::connect(reply, &QNetworkReply::readyRead, [&]() {
-            if (is_first_token)
-            {
-                is_first_token = false;
-                time2.start();
-            }
-            QString jsonString = reply->readAll();
-            if (jsonString.contains("\n\ndata: "))
-            {
-                jsonString = jsonString.split("\n\ndata: ")[1];
-            }
-            QString jsonData = jsonString.mid(jsonString.indexOf("{"));          // 首先去掉前面的非JSON部分
-            QJsonDocument document = QJsonDocument::fromJson(jsonData.toUtf8()); // 使用QJsonDocument解析JSON数据
-            QJsonObject rootObject = document.object();
-            QString content = rootObject.value("content").toString(); // 得到content字段的值
-            QString content_flag;
-            if (rootObject.value("stop").toBool())
-            {
-                content_flag = jtr("<end>");
-            }
-            else
-            {
-                content_flag = content;
-            }
-            tokens++;
-            emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-            emit net2ui_output(content, true);
-            if (is_stop)
-            {
-                is_stop = false;
-                reply->abort(); //终止
-            }
-        });
-        // 完成
-        QObject::connect(reply, &QNetworkReply::finished, [&]() {
-            if (reply->error() == QNetworkReply::NoError)
-            {
-                // 请求完成，所有数据都已正常接收
-                emit net2ui_state("net:" + jtr("use time") + " " + QString::number(time.nsecsElapsed() / 1000000000.0, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokens / (time2.nsecsElapsed() / 1000000000.0), 'f', 2) + " token/s", SUCCESS_SIGNAL);
-            }
-            else
-            {
-                // 请求出错
-                emit net2ui_state("net:" + reply->errorString(), WRONG_SIGNAL);
-                // qDebug() << "Error:" << reply->errorString();
-            }
+        // Early stop: UI stop or tool stop-word outside of think block
+        if (is_stop || (!thinkFlag && current_content.contains(DEFAULT_OBSERVATION_STOPWORD)))
+        {
+            is_stop = false;
+            emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
+            abortActiveReply();
+        }
+    });
 
-            reply->abort(); //终止
-            reply->deleteLater();
-        });
-        // 回复完成时退出事件循环
-        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    }
+    // Handle finish: stop timeout; quit loop via direct connection
+    connect(reply_, &QNetworkReply::finished, this, [this]() {
+        if (timeoutTimer_) timeoutTimer_->stop();
+    });
+    connect(reply_, &QNetworkReply::finished, &loop, &QEventLoop::quit);
 
-    // 进入事件循环
+    // Network errors should not hang the loop
+    connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
+        if (timeoutTimer_) timeoutTimer_->stop();
+    });
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+    connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
+        Q_UNUSED(errors);
+        // Report but do not ignore by default
+        emit net2ui_state("net: SSL error", WRONG_SIGNAL);
+    });
+#endif
+
+    // Arm an overall timeout (no bytes + no finish)
+    if (timeoutTimer_) timeoutTimer_->start(120000); // 120s guard
+
     loop.exec();
+
+    // After finished, finalize metrics and cleanup
+    const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
+    const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
+    const auto err = reply_ ? reply_->error() : QNetworkReply::NoError;
+    const double tAll = t_all_.nsecsElapsed() / 1e9;
+    const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
+
+    if (err == QNetworkReply::NoError)
+    {
+        if (endpoint_data.n_predict == 1)
+            emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
+        else
+            emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokps, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+
+        if (httpCode)
+            emit net2ui_state("net:http " + QString::number(httpCode));
+    }
+    else
+    {
+        QString errStr = reply_ ? reply_->errorString() : QString("unknown error");
+        emit net2ui_state("net:" + errStr, WRONG_SIGNAL);
+        if (httpCode)
+            emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
+    }
+
+    if (reply_)
+    {
+        reply_->deleteLater();
+        reply_ = nullptr;
+    }
+
+    running_ = false;
     emit net2ui_pushover();
+}
+
+void xNet::ensureNetObjects()
+{
+    // Ensure QNetworkAccessManager and QTimer live in our current thread
+    if (!nam_)
+    {
+        nam_ = new QNetworkAccessManager(this);
+    }
+    if (!timeoutTimer_)
+    {
+        timeoutTimer_ = new QTimer(this);
+        timeoutTimer_->setSingleShot(true);
+        connect(timeoutTimer_, &QTimer::timeout, this, [this]() {
+            emit net2ui_state("net: timeout", WRONG_SIGNAL);
+            abortActiveReply();
+        });
+    }
 }
 
 //构造请求的数据体
@@ -320,8 +378,7 @@ QByteArray xNet::createChatBody()
     // qDebug() << QJsonDocument(json).toJson(QJsonDocument::Indented);
 
     QJsonDocument doc(json);
-    QByteArray data = doc.toJson();
-    return data;
+    return doc.toJson();
 }
 
 //构造请求的数据体,补完模式
@@ -341,8 +398,7 @@ QByteArray xNet::createCompleteBody()
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);
-    QByteArray data = doc.toJson();
-    return data;
+    return doc.toJson();
 }
 // 传递端点参数
 void xNet::recv_data(ENDPOINT_DATA data)
