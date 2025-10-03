@@ -19,6 +19,12 @@ void xNet::resetState()
     current_content.clear();
     sseBuffer_.clear();
     aborted_ = false;
+    // reset timing stats
+    promptTokens_ = -1;
+    promptMs_ = 0.0;
+    predictedTokens_ = -1;
+    predictedMs_ = 0.0;
+    timingsReceived_ = false;
 }
 
 void xNet::abortActiveReply()
@@ -30,10 +36,61 @@ void xNet::abortActiveReply()
         if (!aborted_)
         {
             aborted_ = true;
-            reply_->abort();
         }
+
+        // disconnect all our slots from this reply first to prevent late callbacks
+        QObject::disconnect(connReadyRead_);
+        QObject::disconnect(connFinished_);
+        QObject::disconnect(connError_);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        QObject::disconnect(connSslErrors_);
+#endif
+        connReadyRead_ = QMetaObject::Connection{};
+        connFinished_  = QMetaObject::Connection{};
+        connError_     = QMetaObject::Connection{};
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        connSslErrors_ = QMetaObject::Connection{};
+#endif
+
+        // compute and emit speeds using server timings if present, else fallback
+        const double tAll = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
+        if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
+        {
+            const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
+            const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
+            emit net2ui_state(
+                QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
+                    .arg(jtr("use time"))
+                    .arg(QString::number(tAll, 'f', 2))
+                    .arg(jtr("speed"))
+                    .arg(jtr("batch decode"))
+                    .arg(QString::number(prompt_tps, 'f', 1))
+                    .arg(jtr("single decode"))
+                    .arg(QString::number(gen_tps, 'f', 1)),
+                SUCCESS_SIGNAL);
+        }
+        else
+        {
+            // fallback: approximate generation speed if possible
+            double gen_tps = 0.0;
+            if (tokens_ > 0 && t_first_.isValid())
+                gen_tps = tokens_ / (t_first_.nsecsElapsed() / 1e9);
+            emit net2ui_state(
+                QString("net:%1 %2 s | %3 %4 %5 t/s")
+                    .arg(jtr("use time"))
+                    .arg(QString::number(tAll, 'f', 2))
+                    .arg(jtr("speed"))
+                    .arg(jtr("single decode"))
+                    .arg(QString::number(gen_tps, 'f', 1)),
+                SUCCESS_SIGNAL);
+        }
+
+        // finally, abort and delete the reply safely
+        reply_->abort();
         reply_->deleteLater();
         reply_ = nullptr;
+        running_ = false;
+        emit net2ui_pushover();
     }
 }
 
@@ -79,7 +136,8 @@ void xNet::run()
     // Timers
     t_all_.start();
     bool ttfbStarted = false;
-    connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]() {
+    connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]() {
+        if (aborted_ || !reply_) return; // guard against late events after abort
         if (!ttfbStarted)
         {
             ttfbStarted = true;
@@ -119,58 +177,81 @@ void xNet::run()
 
                 QJsonParseError perr{};
                 const QJsonDocument doc = QJsonDocument::fromJson(payload, &perr);
-                if (perr.error != QJsonParseError::NoError || !doc.isObject())
+                if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
                 {
                     emit net2ui_state("net:resolve json fail", WRONG_SIGNAL);
                     continue;
                 }
 
-                QJsonObject obj = doc.object();
-
-                // OpenAI chat format
-                if (isChat)
-                {
-                    const QJsonArray choices = obj.value("choices").toArray();
-                    if (choices.isEmpty()) continue;
-                    const QJsonObject firstChoice = choices.at(0).toObject();
-                    const QString finish = firstChoice.value("finish_reason").toString();
-                    const QJsonObject delta = firstChoice.value("delta").toObject();
-                    current_content = delta.value("content").toString();
-
-                    QString content_flag = finish == "stop" ? jtr("<end>") : current_content;
-                    if (!current_content.isEmpty())
+                auto processObj = [&](const QJsonObject &obj) {
+                    // OpenAI chat format
+                    if (isChat)
                     {
-                        tokens_++;
-                        emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+                        const QJsonArray choices = obj.value("choices").toArray();
+                        if (!choices.isEmpty())
+                        {
+                            const QJsonObject firstChoice = choices.at(0).toObject();
+                            const QString finish = firstChoice.value("finish_reason").toString();
+                            const QJsonObject delta = firstChoice.value("delta").toObject();
+                            current_content = delta.value("content").toString();
 
-                        if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
-                        if (thinkFlag)
-                            emit net2ui_output(current_content, true, THINK_GRAY);
-                        else
-                            emit net2ui_output(current_content, true);
-                        if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
+                            QString content_flag = finish == "stop" ? jtr("<end>") : current_content;
+                            if (!current_content.isEmpty())
+                            {
+                                tokens_++;
+                                emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+
+                                if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
+                                if (thinkFlag)
+                                    emit net2ui_output(current_content, true, THINK_GRAY);
+                                else
+                                    emit net2ui_output(current_content, true);
+                                if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
+                            }
+                        }
                     }
-                }
-                else // completion format (llama.cpp server style)
-                {
-                    // try: top-level { content, stop }
-                    QString content;
-                    bool stop = false;
-                    if (obj.contains("content"))
-                        content = obj.value("content").toString();
-                    if (obj.contains("stop"))
-                        stop = obj.value("stop").toBool();
-
-                    // fallback: nested { completion, tokens }
-                    if (content.isEmpty() && obj.contains("completion"))
-                        content = obj.value("completion").toString();
-
-                    if (!content.isEmpty())
+                    else // completion format (llama.cpp server style)
                     {
-                        tokens_++;
-                        const QString content_flag = stop ? jtr("<end>") : content;
-                        emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-                        emit net2ui_output(content, true);
+                        // try: top-level { content, stop }
+                        QString content;
+                        bool stop = false;
+                        if (obj.contains("content"))
+                            content = obj.value("content").toString();
+                        if (obj.contains("stop"))
+                            stop = obj.value("stop").toBool();
+
+                        // fallback: nested { completion, tokens }
+                        if (content.isEmpty() && obj.contains("completion"))
+                            content = obj.value("completion").toString();
+
+                        if (!content.isEmpty())
+                        {
+                            tokens_++;
+                            const QString content_flag = stop ? jtr("<end>") : content;
+                            emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+                            emit net2ui_output(content, true);
+                        }
+                    }
+
+                    // Parse optional timings from llama.cpp server and cache for final reporting
+                    if (obj.contains("timings") && obj.value("timings").isObject())
+                    {
+                        const QJsonObject tobj = obj.value("timings").toObject();
+                        // Values follow llama.cpp tools/server result_timings
+                        promptTokens_ = tobj.value("prompt_n").toInt(promptTokens_);
+                        promptMs_ = tobj.value("prompt_ms").toDouble(promptMs_);
+                        predictedTokens_ = tobj.value("predicted_n").toInt(predictedTokens_);
+                        predictedMs_ = tobj.value("predicted_ms").toDouble(predictedMs_);
+                        timingsReceived_ = true;
+                    }
+                };
+
+                if (doc.isObject()) {
+                    processObj(doc.object());
+                } else if (doc.isArray()) {
+                    const QJsonArray arr = doc.array();
+                    for (const auto &v : arr) {
+                        if (v.isObject()) processObj(v.toObject());
                     }
                 }
             }
@@ -187,7 +268,7 @@ void xNet::run()
     });
 
     // Handle finish: stop timeout and finalize
-    connect(reply_, &QNetworkReply::finished, this, [this]() {
+    connFinished_ = connect(reply_, &QNetworkReply::finished, this, [this]() {
         if (timeoutTimer_) timeoutTimer_->stop();
 
         // Determine if finish is due to user abort/cancel
@@ -204,13 +285,40 @@ void xNet::run()
 
             if (err == QNetworkReply::NoError)
             {
-                if (endpoint_data.n_predict == 1)
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
+                // Prefer accurate speeds from server timings when available
+                if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
+                {
+                    const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
+                    const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
+                    emit net2ui_state(
+                        QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
+                            .arg(jtr("use time"))
+                            .arg(QString::number(tAll, 'f', 2))
+                            .arg(jtr("speed"))
+                            .arg(jtr("batch decode"))
+                            .arg(QString::number(prompt_tps, 'f', 1))
+                            .arg(jtr("single decode"))
+                            .arg(QString::number(gen_tps, 'f', 1)),
+                        SUCCESS_SIGNAL);
+                }
                 else
-                    emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s " + jtr("single decode") + " " + QString::number(tokps, 'f', 2) + " token/s", SUCCESS_SIGNAL);
+                {
+                    // Fallback to total time and naive token/s estimation
+                    if (endpoint_data.n_predict == 1)
+                        emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
+                    else
+                        emit net2ui_state(
+                            QString("net:%1 %2 s | %3 %4 %5 t/s")
+                                .arg(jtr("use time"))
+                                .arg(QString::number(tAll, 'f', 2))
+                                .arg(jtr("speed"))
+                                .arg(jtr("single decode"))
+                                .arg(QString::number(tokps, 'f', 1)),
+                            SUCCESS_SIGNAL);
+                }
 
-                if (httpCode)
-                    emit net2ui_state("net:http " + QString::number(httpCode));
+                // if (httpCode)
+                //     emit net2ui_state("net:http " + QString::number(httpCode));
             }
             else
             {
@@ -232,11 +340,11 @@ void xNet::run()
     });
 
     // Network errors should not hang the loop
-    connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
+    connError_ = connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
         if (timeoutTimer_) timeoutTimer_->stop();
     });
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-    connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
+    connSslErrors_ = connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
         Q_UNUSED(errors);
         // Report but do not ignore by default
         emit net2ui_state("net: SSL error", WRONG_SIGNAL);
@@ -496,7 +604,3 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
-
-
-
-

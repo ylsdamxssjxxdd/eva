@@ -71,6 +71,22 @@ class xNet : public QObject
     QElapsedTimer t_first_; // time to first byte
     QTimer *timeoutTimer_ = nullptr;   // hard timeout guard, created lazily in worker thread
 
+    // Timings reported by llama.cpp server (see tools/server web UI)
+    // Used to compute prompt-processing and generation speeds accurately.
+    int promptTokens_ = -1;      // timings.prompt_n
+    double promptMs_ = 0.0;      // timings.prompt_ms
+    int predictedTokens_ = -1;   // timings.predicted_n
+    double predictedMs_ = 0.0;   // timings.predicted_ms
+    bool timingsReceived_ = false; // whether timings were seen in SSE stream
+
+    // Keep track of connections to safely disconnect on abort
+    QMetaObject::Connection connReadyRead_;
+    QMetaObject::Connection connFinished_;
+    QMetaObject::Connection connError_;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+    QMetaObject::Connection connSslErrors_;
+#endif
+
     void resetState();
     void abortActiveReply();
     QNetworkRequest buildRequest(const QUrl &url) const;
