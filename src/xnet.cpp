@@ -130,7 +130,7 @@ void xNet::run()
     running_ = true;
     resetState();
     ensureNetObjects();
-    emit net2ui_state("net:" + jtr("send message to api"));
+    // emit net2ui_state("net:" + jtr("send message to api"));
 
     // Prepare request
     const bool isChat = !endpoint_data.is_complete_state;
@@ -153,7 +153,7 @@ void xNet::run()
             t_first_.start();
             // Report approximate prompt processing time (TTFB)
             const double t_prompt = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
-            emit net2ui_state(QString("net:prompt time %1 s").arg(QString::number(t_prompt, 'f', 2)));
+            // emit net2ui_state(QString("net:prompt time %1 s").arg(QString::number(t_prompt, 'f', 2)));
         }
 
         const QByteArray chunk = reply_->readAll();
@@ -179,7 +179,7 @@ void xNet::run()
                 if (payload.isEmpty()) continue;
                 if (payload == "[DONE]" || payload == "DONE")
                 {
-                    emit net2ui_state("net: DONE");
+                    // emit net2ui_state("net: DONE");
                     continue;
                 }
 
@@ -219,9 +219,8 @@ void xNet::run()
                                 // if this chunk is part of <think>, count it approximately
                                 const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                                 if (isReasoningChunk) reasoningTokensTurn_++;
-                            { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
-                                emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
-
+                                { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
+                                // 不再在状态区流式输出内容；仅把内容流式发往输出区
                                 if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
                                 if (thinkFlag)
                                     emit net2ui_output(current_content, true, THINK_GRAY);
@@ -253,7 +252,7 @@ void xNet::run()
                             if (isReasoningChunk) reasoningTokensTurn_++;
                             const QString content_flag = stop ? jtr("<end>") : content;
                             { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
-                            emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
+                            // 不再在状态区流式输出内容；仅把内容流式发往输出区
                             emit net2ui_output(content, true);
                         }
                     }
@@ -558,7 +557,7 @@ QByteArray xNet::createChatBody()
         else if (c.isArray()) dbgLines << (r + ":parts=" + QString::number(c.toArray().size()));
         else dbgLines << (r + ":0");
     }
-    emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
+    // emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
 
     QJsonDocument doc(json);
     return doc.toJson();

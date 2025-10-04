@@ -382,6 +382,7 @@ void Widget::onServerReady(const QString &endpoint)
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
     ui->kv_bar->setToolTip("");
+    ui->kv_bar->setVisible(true); // 本地模式可显示“记忆量/kv 使用”
     ui->output->clear();
     ui_messagesArray = QJsonArray();
     {
@@ -786,6 +787,10 @@ void Widget::resetStateDocument()
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
 void Widget::recv_kv_from_net(int usedTokens)
 {
+    // 链接模式下这些值不准确；不更新、不展示
+    if (ui_mode == LINK_MODE) {
+        return;
+    }
     // Track this-turn tokens from stream: usedTokens includes prompt_n when timings arrived, otherwise just generated.
     if (usedTokens > kvTokensTurn_) kvTokensTurn_ = usedTokens;
     // Do not include reasoning tokens into "memory"; subtract lastReasoningTokens_ when showing
@@ -856,7 +861,7 @@ void Widget::onServerOutput(const QString &line)
     QRegularExpressionMatch mFmt = reFmt.match(line);
     if (mFmt.hasMatch()) {
         const QString fmt = mFmt.captured(1).trimmed();
-        reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
+        // reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
     }
 
     // 3) prompt eval / eval time speeds and total tokens
@@ -872,21 +877,21 @@ void Widget::onServerOutput(const QString &line)
     static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
 
     QRegularExpressionMatch m1 = rePrompt.match(line);
-    if (m1.hasMatch()) {
-        const double tps = m1.captured(3).toDouble();
-        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-    } else {
-        QRegularExpressionMatch m1b = rePromptAlt.match(line);
-        if (m1b.hasMatch()) {
-            const double tps = m1b.captured(2).toDouble();
-            reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-        }
-    }
-    QRegularExpressionMatch m2 = reGen.match(line);
-    if (m2.hasMatch()) {
-        const double tps = m2.captured(3).toDouble();
-        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("single decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-    }
+    // if (m1.hasMatch()) {
+    //     const double tps = m1.captured(3).toDouble();
+    //     // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    // } else {
+    //     QRegularExpressionMatch m1b = rePromptAlt.match(line);
+    //     if (m1b.hasMatch()) {
+    //         const double tps = m1b.captured(2).toDouble();
+    //         // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    //     }
+    // }
+    // QRegularExpressionMatch m2 = reGen.match(line);
+    // if (m2.hasMatch()) {
+    //     const double tps = m2.captured(3).toDouble();
+    //     // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("single decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    // }
 
     QRegularExpressionMatch m3 = reTotal.match(line);
     if (m3.hasMatch()) {

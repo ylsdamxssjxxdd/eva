@@ -35,8 +35,7 @@ QStringList LocalServerManager::buildArgs() const {
     if (!modelpath_.isEmpty()) {
         args << "-m" << modelpath_;
     }
-    // Bind to loopback for local use; expose only if user later wants it
-    args << "--host" << "127.0.0.1";
+    args << "--host" << "0.0.0.0";
     args << "--port" << port_;
     args << "-c" << QString::number(settings_.nctx);
     args << "-ngl" << QString::number(settings_.ngl);

@@ -389,16 +389,18 @@ void Widget::recv_pushover()
                             kvTokensAccum_ += adjustedTurn;
                             kvTokensTurn_ = 0;
                             lastReasoningTokens_ = 0;
-                            const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-                            int percent = 0;
-                            if (nctx > 0) {
-                                percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-                                if (percent > 0 && percent < 1) percent = 1;
-                                if (percent > 100) percent = 100;
-                                if (percent < 0) percent = 0;
+                            if (ui_mode != LINK_MODE) {
+                                const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+                                int percent = 0;
+                                if (nctx > 0) {
+                                    percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+                                    if (percent > 0 && percent < 1) percent = 1;
+                                    if (percent > 100) percent = 100;
+                                    if (percent < 0) percent = 0;
+                                }
+                                ui->kv_bar->setSecondValue(percent);
+                                ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
                             }
-                            ui->kv_bar->setSecondValue(percent);
-                            ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
                         }
                         emit ui2tool_exec(tools_call); //调用tool
                         //使用工具时解码动画不停
@@ -426,16 +428,18 @@ void Widget::normal_finish_pushover()
         kvTokensAccum_ += adjustedTurn;
         kvTokensTurn_ = 0;
         lastReasoningTokens_ = 0;
-        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-        int percent = 0;
-        if (nctx > 0) {
-            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-            if (percent > 0 && percent < 1) percent = 1;
-            if (percent > 100) percent = 100;
-            if (percent < 0) percent = 0;
+        if (ui_mode != LINK_MODE) {
+            const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+            int percent = 0;
+            if (nctx > 0) {
+                percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+                if (percent > 0 && percent < 1) percent = 1;
+                if (percent > 100) percent = 100;
+                if (percent < 0) percent = 0;
+            }
+            ui->kv_bar->setSecondValue(percent);
+            ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
         }
-        ui->kv_bar->setSecondValue(percent);
-        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
     }
     decode_pTimer->stop();
     decode_action = 0;

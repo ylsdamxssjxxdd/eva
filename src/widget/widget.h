@@ -257,6 +257,9 @@ class Widget : public QWidget
     bool is_decode = false;     //解码中标签
     void decode_move();         //下一帧
     void decode_play();         //播放解码中动画
+    // 优雅等待动画：记录起始行与用时
+    int decodeLineNumber_ = -1;     // 动画所在行（固定行）
+    QElapsedTimer decodeTimer_;     // 动画计时器（秒）
 
     //系统信息相关
     QString model_memusage = "0", ctx_memusage = "0";
