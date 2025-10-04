@@ -75,7 +75,8 @@ class CustomSwitchButton : public QAbstractButton
 
         // 绘制 "debug" 文字
         // 计算文字绘制的坐标,使其居中显示
-        int textWidth = p.fontMetrics().width("debug");
+        // QFontMetrics::width is deprecated; use horizontalAdvance for text width
+        int textWidth = p.fontMetrics().horizontalAdvance("debug");
         int textHeight = p.fontMetrics().height();
         int x = (width() - textWidth) / 2;
         int y = (height() + textHeight) / 2 - 2;

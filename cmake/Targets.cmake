@@ -40,8 +40,7 @@ target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
 add_dependencies(${EVA_TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml)
 
-message(STATUS "????: ${eva_ENVIRONMENT}")
-message(STATUS "eva???${eva_OUTPUT_NAME}")
+message(STATUS "eva生产时间${eva_OUTPUT_NAME}")
 
 
 

@@ -34,17 +34,24 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
     void getGpuInfo() override
     {
         QProcess process;
-        process.start("nvidia-smi --query-gpu=memory.total,memory.free,memory.used,utilization.gpu --format=csv,noheader,nounits");
+        // Prefer start(program, args) overload to avoid deprecated API
+        const QString program = "nvidia-smi";
+        const QStringList args = {
+            "--query-gpu=memory.total,memory.free,memory.used,utilization.gpu",
+            "--format=csv,noheader,nounits"
+        };
+        process.start(program, args);
         process.waitForFinished();
 
         QString output = process.readAllStandardOutput();
-        QStringList gpuInfoList = output.split('\n', QString::SkipEmptyParts);
+        // Use Qt::SkipEmptyParts; QString::SkipEmptyParts is deprecated
+        QStringList gpuInfoList = output.split('\n', Qt::SkipEmptyParts);
 
         if (!gpuInfoList.isEmpty())
         {
             for (const QString &info : gpuInfoList)
             {
-                QStringList values = info.split(',', QString::SkipEmptyParts);
+                QStringList values = info.split(',', Qt::SkipEmptyParts);
                 if (values.size() == 4)
                 {
                     int totalMemory = values[0].trimmed().toInt();
@@ -76,18 +83,25 @@ class AmdGpuInfoProvider : public GpuInfoProvider
     void getGpuInfo() override
     {
         QProcess process;
-        process.start("rocm-smi --showmeminfo vram --showuse --csv");
+        // Prefer start(program, args) overload to avoid deprecated API
+        const QString program = "rocm-smi";
+        const QStringList args = {
+            "--showmeminfo", "vram",
+            "--showuse",
+            "--csv"
+        };
+        process.start(program, args);
         process.waitForFinished();
 
         QString output = process.readAllStandardOutput();
-        QStringList gpuInfoList = output.split('\n', QString::SkipEmptyParts);
+        QStringList gpuInfoList = output.split('\n', Qt::SkipEmptyParts);
 
         bool foundMemoryInfo = false;
         for (const QString &line : gpuInfoList)
         {
             if (line.contains("GPU", Qt::CaseInsensitive))
             {
-                QStringList values = line.split(',', QString::SkipEmptyParts);
+                QStringList values = line.split(',', Qt::SkipEmptyParts);
                 if (values.size() >= 5)
                 {
                     int totalMemory = values[1].trimmed().toInt();
@@ -189,7 +203,8 @@ class gpuChecker : public QObject
     {
         QProcess process;
 #ifdef _WIN32
-        process.start("wmic path win32_videocontroller get caption");
+        // Prefer start(program, args) overload to avoid deprecated API
+        process.start("wmic", QStringList{ "path", "win32_videocontroller", "get", "caption" });
 #elif __linux__
         process.start("bash", QStringList() << "-c"
                                             << "lspci -nn | grep VGA");

@@ -64,6 +64,9 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /DNOMINMAX /DWIN32_LEAN_AND_MEAN")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
+    # Silence MSVC STL deprecation warning STL4043 for checked array iterators
+    # These warnings originate in MS headers and aren't actionable in this project; see build logs
+    add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
     if (GGML_CUDA)
         list(APPEND extra_INCLUDES ${CMAKE_SOURCE_DIR}/src/utils/nvml.h)
         list(APPEND extra_LIBS ${CMAKE_SOURCE_DIR}/src/utils/nvml.lib)
