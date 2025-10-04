@@ -267,6 +267,7 @@ struct ENDPOINT_DATA
     double repeat;            // 重复惩罚
     int n_predict;            // 最大预测数
     QStringList stopwords;    //停止标志
+    int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
 };
 
 //单参数工具

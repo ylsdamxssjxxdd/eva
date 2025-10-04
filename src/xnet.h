@@ -57,6 +57,7 @@ class xNet : public QObject
     void net2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0)); // 输出
     void net2ui_pushover();                                                                       // 推理完成
     void net2ui_kv_tokens(int usedTokens);  // streaming used token count -> UI
+    void net2ui_slot_id(int slotId);        // server-assigned slot id for this conversation
 
   private:
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead

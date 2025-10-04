@@ -4,6 +4,8 @@
 
 #include "ui_widget.h"
 #include <QRegularExpression>
+#include <QDateTime>
+#include <QDir>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -171,12 +173,15 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
     trayIcon->show();
+    // Initialize persistent history store under EVA_TEMP/history
+    history_ = new HistoryStore(QDir(applicationDirPath).filePath("EVA_TEMP/history"));
     qDebug() << "widget init over";
 }
 
 Widget::~Widget()
 {
     if (serverManager) serverManager->stop();
+    delete history_;
     delete ui;
     delete cutscreen_dialog;
     delete date_ui;
@@ -323,6 +328,7 @@ void Widget::recv_pushover()
     roleMessage.insert("role", DEFAULT_MODEL_NAME);
     roleMessage.insert("content", temp_assistant_history);
     ui_messagesArray.append(roleMessage);
+    if (history_) history_->appendMessage(roleMessage);
     temp_assistant_history = "";
 
     if (ui_state == COMPLETE_STATE) //补完模式的话额外重置一下
@@ -585,6 +591,7 @@ void Widget::on_reset_clicked()
     if (ui->kv_bar) ui->kv_bar->setCenterText("");
 
     kvTokensAccum_ = 0; kvTokensTurn_ = 0; // reset conversation kv tokens
+    currentSlotId_ = -1; // new conversation -> no slot yet
     // Reset output safely. Replacing the QTextDocument drops any cached
     // resources/undo stack without risking double-deletes.
     // Note: QTextEdit takes ownership of the previous document and will
@@ -602,6 +609,22 @@ void Widget::on_reset_clicked()
     if (ui_state == CHAT_STATE)
     {
         reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+    }
+
+    // Begin new persistent history session
+    if (history_) {
+        SessionMeta meta;
+        meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+        meta.title = "";
+        meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
+                                               : (serverManager ? serverManager->endpointBase() : "");
+        meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+        meta.system = ui_DATES.date_prompt;
+        meta.n_ctx = ui_SETTINGS.nctx;
+        meta.slot_id = -1;
+        meta.startedAt = QDateTime::currentDateTime();
+        history_->begin(meta);
+        history_->appendMessage(systemMessage);
     }
 
     if (ui_mode == LINK_MODE)
@@ -974,6 +997,20 @@ void Widget::onServerReady(const QString &endpoint)
     {
         QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
         ui_messagesArray.append(systemMessage);
+        if (history_) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = endpoint;
+            meta.model = ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = -1;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            history_->appendMessage(systemMessage);
+            currentSlotId_ = -1;
+        }
     }
     bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
     is_load = true;
@@ -1005,6 +1042,7 @@ void Widget::api_send_clicked_slove()
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.repeat = ui_SETTINGS.repeat;
     data.messagesArray = ui_messagesArray;
+    data.id_slot = currentSlotId_;
 
     if (tool_result == "")
     {
@@ -1026,6 +1064,7 @@ void Widget::api_send_clicked_slove()
             roleMessage.insert("role", DEFAULT_USER_NAME);
             roleMessage.insert("content", "tool_response: " + tool_result);
             ui_messagesArray.append(roleMessage);
+            if (history_) history_->appendMessage(roleMessage);
             reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
 
             tool_result = "";
@@ -1043,6 +1082,7 @@ void Widget::api_send_clicked_slove()
                 roleMessage.insert("role", DEFAULT_USER_NAME);
                 roleMessage.insert("content", input);
                 ui_messagesArray.append(roleMessage);
+                if (history_) history_->appendMessage(roleMessage);
             }
             else // 有图片的用户消息
             {
@@ -1079,6 +1119,7 @@ void Widget::api_send_clicked_slove()
 
                 message["content"] = contentArray;
                 ui_messagesArray.append(message);
+                if (history_) history_->appendMessage(message);
             }
 
             // 可选：添加音频（保持现有 UI 结构，xnet 侧会转换为 input_audio）
@@ -1130,8 +1171,9 @@ void Widget::api_send_clicked_slove()
 
                 if (!contentArray.isEmpty())
                 {
-                    message["content"] = contentArray;
-                    ui_messagesArray.append(message);
+                message["content"] = contentArray;
+                ui_messagesArray.append(message);
+                if (history_) history_->appendMessage(message);
                 }
             }
 
@@ -1140,7 +1182,7 @@ void Widget::api_send_clicked_slove()
             reflash_output(input, 0, NORMAL_BLACK);                                                             //正文黑色
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //后缀蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
-            emit ui2net_data(data);
+    emit ui2net_data(data);
         }
     }
     else if (ui_state == COMPLETE_STATE) // 直接把 output 上的文本作为提示词
@@ -1368,6 +1410,16 @@ void Widget::recv_kv_from_net(int usedTokens)
     }
     ui->kv_bar->setSecondValue(percent);
     ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+}
+
+// server-assigned slot id -> persist and reuse for KV cache efficiency
+void Widget::onSlotAssigned(int slotId)
+{
+    if (slotId < 0) return;
+    if (currentSlotId_ == slotId) return;
+    currentSlotId_ = slotId;
+    if (history_) history_->updateSlotId(slotId);
+    reflash_state(QString("net:slot id=%1").arg(slotId), SIGNAL_SIGNAL);
 }
 
 // Parse llama-server output lines to capture n_ctx value for verification

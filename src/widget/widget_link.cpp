@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include <QDateTime>
 
 //-------------------------------------------------------------------------
 //----------------------------------链接相关--------------------------------
@@ -44,6 +45,21 @@ void Widget::set_api()
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
     ui_messagesArray.append(systemMessage);
+    // start a new persistent history session in LINK mode
+    if (history_) {
+        SessionMeta meta;
+        meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+        meta.title = "";
+        meta.endpoint = current_api;
+        meta.model = apis.api_model;
+        meta.system = ui_DATES.date_prompt;
+        meta.n_ctx = ui_SETTINGS.nctx;
+        meta.slot_id = -1;
+        meta.startedAt = QDateTime::currentDateTime();
+        history_->begin(meta);
+        history_->appendMessage(systemMessage);
+        currentSlotId_ = -1;
+    }
     ui_state_normal();
     auto_save_user();
 }
@@ -68,6 +84,7 @@ void Widget::tool_testhandleTimeout()
     data.repeat = ui_SETTINGS.repeat;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.messagesArray = ui_messagesArray;
+    data.id_slot = currentSlotId_;
 
     emit ui2net_data(data);
     // carry over tokens from previous turn before starting a new one (tool)

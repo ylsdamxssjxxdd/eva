@@ -2,6 +2,7 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QTextCodec>
+#include <QDir>
 
 LocalServerManager::LocalServerManager(QObject *parent, const QString &appDirPath)
     : QObject(parent), appDirPath_(appDirPath) {}
@@ -61,6 +62,12 @@ QStringList LocalServerManager::buildArgs() const {
     if (settings_.hid_use_mlock) {
         args << "--mlock";
     }
+    // Enable slots metadata endpoints and slot saving to disk for future resume
+    // This aligns with llama.cpp tools/server capabilities
+    const QString slotPath = QDir(appDirPath_).filePath("EVA_TEMP/slots");
+    QDir().mkpath(slotPath);
+    args << "--slots"; // enable /slots endpoint
+    args << "--slot-save-path" << slotPath; // allow save/restore of KV cache per slot
     return args;
 }
 

@@ -61,6 +61,7 @@
 #include "../utils/doubleqprogressbar.h"
 #include "../xconfig.h" // ui和bot都要导入的共有配置
 #include "../xbackend.h" // local llama.cpp server manager
+#include "../utils/history_store.h" // per-session history persistence
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 
 QT_BEGIN_NAMESPACE
@@ -282,6 +283,8 @@ class Widget : public QWidget
     QJsonArray ui_messagesArray;         // 将要构造的历史数据
     QString temp_assistant_history = ""; //临时数据
     QString current_api;                 //当前负载端点
+    int currentSlotId_ = -1;             // llama-server slot id for this conversation
+    HistoryStore *history_ = nullptr;    // persistent history writer
 
     //发给模型的信号
   signals:
@@ -347,6 +350,7 @@ class Widget : public QWidget
     void recv_params(MODEL_PARAMS p);                                            // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                   //接收缓存量
     void recv_kv_from_net(int usedTokens);                     // update kv from llama.cpp server timings
+    void onSlotAssigned(int slotId);                            // server slot id notification
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽

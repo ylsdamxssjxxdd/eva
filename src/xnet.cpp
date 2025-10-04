@@ -185,6 +185,11 @@ void xNet::run()
                 }
 
                 auto processObj = [&](const QJsonObject &obj) {
+                    // capture server-assigned slot id for KV reuse
+                    if (obj.contains("slot_id")) {
+                        const int sid = obj.value("slot_id").toInt(-1);
+                        if (sid >= 0) emit net2ui_slot_id(sid);
+                    }
                     // OpenAI chat format
                     if (isChat)
                     {
@@ -516,6 +521,10 @@ QByteArray xNet::createChatBody()
 
     QJsonArray oaiMessages = toOAIChatMessages(endpoint_data.messagesArray);
     json.insert("messages", oaiMessages);
+    // Reuse llama.cpp server slot KV cache if available
+    if (endpoint_data.id_slot >= 0) {
+        json.insert("id_slot", endpoint_data.id_slot);
+    }
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
@@ -548,6 +557,9 @@ QByteArray xNet::createCompleteBody()
     json.insert("n_predict", endpoint_data.n_predict);
     json.insert("stream", true);
     json.insert("temperature", endpoint_data.temp);
+    if (endpoint_data.id_slot >= 0) {
+        json.insert("id_slot", endpoint_data.id_slot);
+    }
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);
