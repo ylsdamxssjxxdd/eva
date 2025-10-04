@@ -30,8 +30,15 @@ class DoubleQProgressBar : public QProgressBar
         update();
     }
 
+    void setCenterText(const QString &text)
+    {
+        center_text = text;
+        update();
+    }
+
     int m_secondValue;
     QString show_text;
+    QString center_text;
 
   protected:
     void paintEvent(QPaintEvent *event) override
@@ -43,7 +50,7 @@ class DoubleQProgressBar : public QProgressBar
         QRect progressRect = rect;
         qreal radius = 4.0;
 
-        // 明亮的背景
+        // background
         QLinearGradient bgGradient(0, 0, 0, height());
         bgGradient.setColorAt(0, QColor(240, 240, 240));
         bgGradient.setColorAt(1, QColor(220, 220, 220));
@@ -55,29 +62,29 @@ class DoubleQProgressBar : public QProgressBar
         int firstValue = value();
         int max = maximum();
 
-        // 使用浮点数计算避免精度损失
+        // avoid precision loss
         double firstRatio = max > 0 ? qBound(0.0, static_cast<double>(firstValue) / max, 1.0) : 0.0;
         double secondRatio = max > 0 ? qBound(0.0, static_cast<double>(m_secondValue) / max, 1.0 - firstRatio) : 0.0;
 
-        // 计算两个进度条的宽度（使用四舍五入）
+        // compute widths
         int firstWidth = qRound(totalWidth * firstRatio);
         int secondWidth = qRound(totalWidth * secondRatio);
 
-        // 确保最小可见宽度
+        // ensure visible minimum
         if (firstRatio > 0 && firstWidth == 0) firstWidth = 1;
         if (secondRatio > 0 && secondWidth == 0) secondWidth = 1;
 
-        // 第一个进度条 - 明亮蓝色
+        // first segment - blue
         if (firstWidth > 0)
         {
             QLinearGradient blueGradient(0, 0, 0, height());
-            blueGradient.setColorAt(0, QColor(100, 200, 255));  // 亮蓝色
-            blueGradient.setColorAt(0.5, QColor(50, 150, 255)); // 主蓝色
-            blueGradient.setColorAt(1, QColor(0, 120, 220));    // 深蓝色
+            blueGradient.setColorAt(0, QColor(100, 200, 255));
+            blueGradient.setColorAt(0.5, QColor(50, 150, 255));
+            blueGradient.setColorAt(1, QColor(0, 120, 220));
 
             QRectF blueRect(progressRect.x(), progressRect.y(), firstWidth, progressRect.height());
 
-            // 确定圆角: 左侧总是圆角，右侧只有在没有第二个进度条且到达末尾时才圆角
+            // rounded corners
             qreal topRightRadius = 0.0;
             qreal bottomRightRadius = 0.0;
 
@@ -87,25 +94,24 @@ class DoubleQProgressBar : public QProgressBar
                 bottomRightRadius = radius;
             }
 
-            // 创建自定义圆角矩形
             QPainterPath bluePath = createRoundedRect(
                 blueRect,
-                radius, // 左上角总是圆角
+                radius, // top-left
                 topRightRadius,
                 bottomRightRadius,
-                radius // 左下角总是圆角
+                radius  // bottom-left
             );
 
             painter.fillPath(bluePath, blueGradient);
         }
 
-        // 第二个进度条 - 明亮橙色（绘制在第一个之上）
+        // second segment - orange on top of first
         if (secondWidth > 0)
         {
             QLinearGradient orangeGradient(0, 0, 0, height());
-            orangeGradient.setColorAt(0, QColor(255, 220, 100));  // 亮橙色
-            orangeGradient.setColorAt(0.5, QColor(255, 180, 50)); // 主橙色
-            orangeGradient.setColorAt(1, QColor(255, 140, 0));    // 深橙色
+            orangeGradient.setColorAt(0, QColor(255, 220, 100));
+            orangeGradient.setColorAt(0.5, QColor(255, 180, 50));
+            orangeGradient.setColorAt(1, QColor(255, 140, 0));
 
             QRectF orangeRect(
                 progressRect.x() + firstWidth,
@@ -113,24 +119,15 @@ class DoubleQProgressBar : public QProgressBar
                 secondWidth,
                 progressRect.height());
 
-            // 确定圆角:
-            // - 左侧：当第一个进度条为0时使用圆角
-            // - 右侧：当两个进度条总和达到最大值时使用圆角
-            qreal topLeftRadius = (firstValue == 0) ? radius : 0;
-            qreal bottomLeftRadius = (firstValue == 0) ? radius : 0;
-            qreal topRightRadius = (firstValue + m_secondValue >= max) ? radius : 0;
-            qreal bottomRightRadius = (firstValue + m_secondValue >= max) ? radius : 0;
+            // rounded corners
+            qreal topLeftRadius = 0.0;
+            qreal topRightRadius = 0.0;
+            qreal bottomRightRadius = 0.0;
+            qreal bottomLeftRadius = 0.0;
 
-            // 修复：当第一个进度为0且第二个满时，四个角都应该是圆角
-            if (firstValue == 0 && (firstValue + m_secondValue >= max))
-            {
-                topLeftRadius = radius;
-                bottomLeftRadius = radius;
-                topRightRadius = radius;
-                bottomRightRadius = radius;
-            }
+            if (firstWidth == 0) { topLeftRadius = radius; bottomLeftRadius = radius; }
+            if (firstValue + m_secondValue >= max) { topRightRadius = radius; bottomRightRadius = radius; }
 
-            // 创建自定义圆角矩形
             QPainterPath orangePath = createRoundedRect(
                 orangeRect,
                 topLeftRadius,
@@ -141,7 +138,7 @@ class DoubleQProgressBar : public QProgressBar
             painter.fillPath(orangePath, orangeGradient);
         }
 
-        // 添加光泽效果
+        // gloss effect
         QLinearGradient glossGradient(0, 0, 0, height() / 3);
         glossGradient.setColorAt(0, QColor(255, 255, 255, 120));
         glossGradient.setColorAt(1, QColor(255, 255, 255, 0));
@@ -149,42 +146,39 @@ class DoubleQProgressBar : public QProgressBar
         painter.setPen(Qt::NoPen);
         painter.drawRoundedRect(progressRect, radius, radius);
 
-        // 文字绘制
-        QString progressText = show_text + QString::number(firstValue + m_secondValue) + "%";
+        // center text: either custom center_text or default percent
+        QString progressText = center_text.isEmpty() ? (show_text + QString::number(firstValue + m_secondValue) + "%") : center_text;
         QFont font = painter.font();
-        // font.setBold(true);
         font.setPointSize(10);
         painter.setFont(font);
-        painter.setPen(QColor(60, 60, 60)); // 深灰色文字
+        painter.setPen(QColor(60, 60, 60));
         painter.drawText(rect, Qt::AlignCenter, progressText);
 
-        // 外边框
+        // border
         painter.setPen(QPen(QColor(150, 150, 150), 1));
         painter.setBrush(Qt::NoBrush);
         painter.drawRoundedRect(rect, radius, radius);
     }
 
   private:
-    // 创建自定义圆角的矩形路径
+    // helper to create rounded rect path with independent corner radii
     QPainterPath createRoundedRect(const QRectF &rect,
                                    qreal topLeftRadius, qreal topRightRadius,
                                    qreal bottomRightRadius, qreal bottomLeftRadius) const
     {
         QPainterPath path;
 
-        // 限制圆角半径不超过矩形尺寸的一半
+        // clamp radii to half of width/height
         topLeftRadius = qMin(topLeftRadius, qMin(rect.width() / 2, rect.height() / 2));
         topRightRadius = qMin(topRightRadius, qMin(rect.width() / 2, rect.height() / 2));
         bottomRightRadius = qMin(bottomRightRadius, qMin(rect.width() / 2, rect.height() / 2));
         bottomLeftRadius = qMin(bottomLeftRadius, qMin(rect.width() / 2, rect.height() / 2));
 
-        // 从左上角开始
+        // top
         path.moveTo(rect.left() + topLeftRadius, rect.top());
-
-        // 上边线
         path.lineTo(rect.right() - topRightRadius, rect.top());
 
-        // 右上角
+        // top-right corner
         if (topRightRadius > 0)
         {
             path.arcTo(rect.right() - 2 * topRightRadius, rect.top(),
@@ -192,10 +186,10 @@ class DoubleQProgressBar : public QProgressBar
                        90, -90);
         }
 
-        // 右边线
+        // right
         path.lineTo(rect.right(), rect.bottom() - bottomRightRadius);
 
-        // 右下角
+        // bottom-right corner
         if (bottomRightRadius > 0)
         {
             path.arcTo(rect.right() - 2 * bottomRightRadius,
@@ -204,10 +198,10 @@ class DoubleQProgressBar : public QProgressBar
                        0, -90);
         }
 
-        // 下边线
+        // bottom
         path.lineTo(rect.left() + bottomLeftRadius, rect.bottom());
 
-        // 左下角
+        // bottom-left corner
         if (bottomLeftRadius > 0)
         {
             path.arcTo(rect.left(), rect.bottom() - 2 * bottomLeftRadius,
@@ -215,10 +209,10 @@ class DoubleQProgressBar : public QProgressBar
                        -90, -90);
         }
 
-        // 左边线
+        // left
         path.lineTo(rect.left(), rect.top() + topLeftRadius);
 
-        // 左上角
+        // top-left corner
         if (topLeftRadius > 0)
         {
             path.arcTo(rect.left(), rect.top(),

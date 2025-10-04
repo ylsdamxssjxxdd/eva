@@ -95,6 +95,7 @@ void xNet::abortActiveReply()
 }
 
 QNetworkRequest xNet::buildRequest(const QUrl &url) const
+
 {
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
@@ -199,6 +200,7 @@ void xNet::run()
                             if (!current_content.isEmpty())
                             {
                                 tokens_++;
+                            { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
                                 emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
 
                                 if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
@@ -228,6 +230,7 @@ void xNet::run()
                         {
                             tokens_++;
                             const QString content_flag = stop ? jtr("<end>") : content;
+                            { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
                             emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
                             emit net2ui_output(content, true);
                         }
@@ -300,6 +303,13 @@ void xNet::run()
                             .arg(jtr("single decode"))
                             .arg(QString::number(gen_tps, 'f', 1)),
                         SUCCESS_SIGNAL);
+                    // After normal finish, correct kv tokens from server timings (prompt_n + predicted_n)
+                    if (timingsReceived_) {
+                        int totalUsed = 0;
+                        if (promptTokens_ > 0) totalUsed += promptTokens_;
+                        if (predictedTokens_ > 0) totalUsed += predictedTokens_;
+                        if (totalUsed > 0) emit net2ui_kv_tokens(totalUsed);
+                    }
                 }
                 else
                 {
@@ -604,3 +614,6 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
+

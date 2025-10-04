@@ -56,6 +56,7 @@ class xNet : public QObject
     void net2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL);            // 状态
     void net2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0)); // 输出
     void net2ui_pushover();                                                                       // 推理完成
+    void net2ui_kv_tokens(int usedTokens);  // streaming used token count -> UI
 
   private:
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead

@@ -212,6 +212,7 @@ int main(int argc, char *argv[])
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //???????
     QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);    //???????
     QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection); //????
+    QObject::connect(&net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection); // kv used tokens
     QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);               //????
     QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection); //???????
     QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);         //??api????

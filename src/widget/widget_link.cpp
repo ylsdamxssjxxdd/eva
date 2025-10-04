@@ -70,6 +70,21 @@ void Widget::tool_testhandleTimeout()
     data.messagesArray = ui_messagesArray;
 
     emit ui2net_data(data);
+    // carry over tokens from previous turn before starting a new one (tool)
+    if (kvTokensTurn_ > 0) {
+        kvTokensAccum_ += kvTokensTurn_;
+        kvTokensTurn_ = 0;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
+    }
     emit ui2net_push();
 }
 

@@ -148,8 +148,11 @@ class Widget : public QWidget
 
     EVA_DATES ui_DATES;   // ui的约定
     SETTINGS ui_SETTINGS; // ui的设置
-
+    int kvTokensLast_ = 0;            // last known used tokens for kv cache (accumulate within one conversation)
     int ui_n_ctx_train = 2048; //模型最大上下文长度
+    int kvTokensAccum_ = 0;        // accumulated used tokens across the conversation
+    int kvTokensTurn_  = 0;        // this-turn processed tokens (prompt_n + generated)
+    int server_nctx_ = 0;                 // captured from llama_server logs for verification
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1; //最大线程数
@@ -325,6 +328,7 @@ class Widget : public QWidget
     // Ensure local server exists for LOCAL_MODE and wire API endpoint
     void ensureLocalServer();
     void onServerReady(const QString &endpoint);
+    void onServerOutput(const QString &line);                 // parse llama_server logs for n_ctx
     void recv_predecoding();                                                     // 正在预解码
     void recv_predecoding_over();                                                // 完成预解码
     void recv_chat_format(EVA_CHATS_TEMPLATE chats);                             //传递格式化后的对话内容
@@ -342,6 +346,7 @@ class Widget : public QWidget
     void recv_datereset();                                                       // bot发信号请求ui触发reset
     void recv_params(MODEL_PARAMS p);                                            // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                   //接收缓存量
+    void recv_kv_from_net(int usedTokens);                     // update kv from llama.cpp server timings
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽
@@ -413,3 +418,4 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
+

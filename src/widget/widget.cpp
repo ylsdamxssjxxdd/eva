@@ -3,6 +3,7 @@
 #include "widget.h"
 
 #include "ui_widget.h"
+#include <QRegularExpression>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -124,6 +125,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     serverManager = new LocalServerManager(this, applicationDirPath);
     // 转发 server 输出到模型日志（增殖窗口）而不是主输出区
     connect(serverManager, &LocalServerManager::serverOutput, this, [this](const QString &s) { emit ui2expend_llamalog(s); });
+    connect(serverManager, &LocalServerManager::serverOutput, this, &Widget::onServerOutput);
     connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
@@ -355,6 +357,21 @@ void Widget::recv_pushover()
                     //正常调用情况
                     else
                     {
+                        // accumulate current-turn tokens before launching tool
+                        if (kvTokensTurn_ > 0) {
+                            kvTokensAccum_ += kvTokensTurn_;
+                            kvTokensTurn_ = 0;
+                            const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+                            int percent = 0;
+                            if (nctx > 0) {
+                                percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+                                if (percent > 0 && percent < 1) percent = 1;
+                                if (percent > 100) percent = 100;
+                                if (percent < 0) percent = 0;
+                            }
+                            ui->kv_bar->setSecondValue(percent);
+                            ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
+                        }
                         emit ui2tool_exec(tools_call); //调用tool
                         //使用工具时解码动画不停
                     }
@@ -375,6 +392,21 @@ void Widget::normal_finish_pushover()
 {
     is_run = false;
     ui_state_normal(); //待机界面状态
+    // integrate this-turn tokens into conversation accumulation
+    if (kvTokensTurn_ > 0) {
+        kvTokensAccum_ += kvTokensTurn_;
+        kvTokensTurn_ = 0;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
+    }
     decode_pTimer->stop();
     decode_action = 0;
     if (!wait_to_show_images_filepath.isEmpty())
@@ -548,7 +580,11 @@ void Widget::on_reset_clicked()
     }
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
+    ui->kv_bar->setSecondValue(0);
+    if (ui->kv_bar) ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(0) + "/" + QString::number(ui_SETTINGS.nctx));
+    if (ui->kv_bar) ui->kv_bar->setCenterText("");
 
+    kvTokensAccum_ = 0; kvTokensTurn_ = 0; // reset conversation kv tokens
     // Reset output safely. Replacing the QTextDocument drops any cached
     // resources/undo stack without risking double-deletes.
     // Note: QTextEdit takes ownership of the previous document and will
@@ -757,12 +793,9 @@ void Widget::recv_params(MODEL_PARAMS p)
 //接收缓存量
 void Widget::recv_kv(float percent, int ctx_size)
 {
-    if (percent > 0 && percent < 1)
-    {
-        percent = 1;
-    }
+    if (percent > 0 && percent < 1) { percent = 1; }
     ui->kv_bar->setSecondValue(percent);
-    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + " token");
+    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + "/" + QString::number(ui_SETTINGS.nctx));
 }
 
 // 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
@@ -1119,6 +1152,21 @@ void Widget::api_send_clicked_slove()
 
     is_run = true; // 模型运行标记
     ui_state_pushing();
+    // carry over tokens from previous turn before starting a new one
+    if (kvTokensTurn_ > 0) {
+        kvTokensAccum_ += kvTokensTurn_;
+        kvTokensTurn_ = 0;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
+    }
     emit ui2net_push();
 }
 //传递知识库的描述
@@ -1299,6 +1347,106 @@ void Widget::resetStateDocument()
     doc->setUndoRedoEnabled(false);
     ui->state->setDocument(doc);
 }
+
+
+
+
+// Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
+void Widget::recv_kv_from_net(int usedTokens)
+{
+    // Track this-turn tokens from stream: usedTokens includes prompt_n when timings arrived, otherwise just generated.
+    if (usedTokens > kvTokensTurn_) kvTokensTurn_ = usedTokens;
+
+    const int shownTokens = kvTokensAccum_ + kvTokensTurn_;
+    const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+    int percent = 0;
+    if (nctx > 0) {
+        percent = qRound(100.0 * double(shownTokens) / double(nctx));
+        if (percent > 0 && percent < 1) percent = 1;
+        if (percent > 100) percent = 100;
+        if (percent < 0) percent = 0;
+    }
+    ui->kv_bar->setSecondValue(percent);
+    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+}
+
+// Parse llama-server output lines to capture n_ctx value for verification
+void Widget::onServerOutput(const QString &line)
+{
+    // 1) capture n_ctx for verification
+    // 0) capture n_ctx_train from print_info and clamp UI nctx slider max accordingly
+    static QRegularExpression reCtxTrain("print_info\\s*:\\s*n_ctx_train\\s*=\\s*(\\d+)");
+    for (auto it = reCtxTrain.globalMatch(line); it.hasNext(); ) {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false; const int train = m.captured(1).toInt(&ok);
+        if (ok && train > 0) {
+            if (ui_n_ctx_train != train) {
+                ui_n_ctx_train = train;
+                if (settings_ui && settings_ui->nctx_slider) {
+                    const int curMax = settings_ui->nctx_slider->maximum();
+                    if (curMax != train) settings_ui->nctx_slider->setMaximum(train);
+                    if (settings_ui->nctx_slider->value() > train) settings_ui->nctx_slider->setValue(train);
+                }
+            }
+        }
+    }
+
+    static QRegularExpression reCtx("llama_context\\s*:\\s*n_ctx\\s*=\\s*(\\d+)");
+    for (auto it = reCtx.globalMatch(line); it.hasNext(); ) {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false; const int v = m.captured(1).toInt(&ok);
+        if (ok && v > 0) {
+            server_nctx_ = v;
+            if (server_nctx_ != ui_SETTINGS.nctx) {
+                reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
+            }
+        }
+    }
+
+    // 2) Chat format
+    static QRegularExpression reFmt("Chat\\s+format\\s*:\\s*(.+)");
+    QRegularExpressionMatch mFmt = reFmt.match(line);
+    if (mFmt.hasMatch()) {
+        const QString fmt = mFmt.captured(1).trimmed();
+        reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
+    }
+
+    // 3) prompt eval / eval time speeds and total tokens
+    static QRegularExpression rePrompt("prompt\\s+eval\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)");
+    static QRegularExpression reGen("^\\s*eval\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)");
+    static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
+
+    QRegularExpressionMatch m1 = rePrompt.match(line);
+    if (m1.hasMatch()) {
+        const double tps = m1.captured(3).toDouble();
+        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    }
+    QRegularExpressionMatch m2 = reGen.match(line);
+    if (m2.hasMatch()) {
+        const double tps = m2.captured(3).toDouble();
+        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("single decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    }
+
+    QRegularExpressionMatch m3 = reTotal.match(line);
+    if (m3.hasMatch()) {
+        const int totalTokens = m3.captured(2).toInt();
+        // Use total tokens to correct accumulated kv count for this conversation (server authoritative)
+        kvTokensTurn_ = totalTokens;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            percent = qRound(100.0 * double(kvTokensAccum_ + kvTokensTurn_) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_ + kvTokensTurn_) + "/" + QString::number(nctx));
+    }
+}
+
+
+
 
 
 
