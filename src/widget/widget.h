@@ -157,6 +157,7 @@ class Widget : public QWidget
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1; //最大线程数
+    int lastReasoningTokens_ = 0; // approximate reasoning tokens in last turn
 
     float load_time = 0;
     QElapsedTimer load_timer;            // measure local-server load duration
@@ -351,6 +352,7 @@ class Widget : public QWidget
     void recv_kv(float percent, int ctx_size);                                   //接收缓存量
     void recv_kv_from_net(int usedTokens);                     // update kv from llama.cpp server timings
     void onSlotAssigned(int slotId);                            // server slot id notification
+    void recv_reasoning_tokens(int tokens);                     // capture <think> token count of this turn
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽

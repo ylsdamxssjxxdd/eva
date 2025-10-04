@@ -19,6 +19,7 @@ void xNet::resetState()
     current_content.clear();
     sseBuffer_.clear();
     aborted_ = false;
+    reasoningTokensTurn_ = 0;
     // reset timing stats
     promptTokens_ = -1;
     promptMs_ = 0.0;
@@ -71,17 +72,24 @@ void xNet::abortActiveReply()
         }
         else
         {
-            // fallback: approximate generation speed if possible
+            // fallback: approximate generation speed if possible; batch decode unknown
             double gen_tps = 0.0;
-            if (tokens_ > 0 && t_first_.isValid())
-                gen_tps = tokens_ / (t_first_.nsecsElapsed() / 1e9);
+            bool haveGen = false;
+            if (tokens_ > 0 && t_first_.isValid()) {
+                const double dt = t_first_.nsecsElapsed() / 1e9;
+                if (dt > 1e-9) { gen_tps = tokens_ / dt; haveGen = true; }
+            }
+            const QString genText = haveGen ? QString::number(gen_tps, 'f', 1) : QStringLiteral("--");
+            const QString batchText = QStringLiteral("--");
             emit net2ui_state(
-                QString("net:%1 %2 s | %3 %4 %5 t/s")
+                QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
                     .arg(jtr("use time"))
                     .arg(QString::number(tAll, 'f', 2))
                     .arg(jtr("speed"))
+                    .arg(jtr("batch decode"))
+                    .arg(batchText)
                     .arg(jtr("single decode"))
-                    .arg(QString::number(gen_tps, 'f', 1)),
+                    .arg(genText),
                 SUCCESS_SIGNAL);
         }
 
@@ -143,6 +151,9 @@ void xNet::run()
         {
             ttfbStarted = true;
             t_first_.start();
+            // Report approximate prompt processing time (TTFB)
+            const double t_prompt = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
+            emit net2ui_state(QString("net:prompt time %1 s").arg(QString::number(t_prompt, 'f', 2)));
         }
 
         const QByteArray chunk = reply_->readAll();
@@ -205,6 +216,9 @@ void xNet::run()
                             if (!current_content.isEmpty())
                             {
                                 tokens_++;
+                                // if this chunk is part of <think>, count it approximately
+                                const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
+                                if (isReasoningChunk) reasoningTokensTurn_++;
                             { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
                                 emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
 
@@ -234,6 +248,9 @@ void xNet::run()
                         if (!content.isEmpty())
                         {
                             tokens_++;
+                            // completion style may also contain <think>
+                            const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
+                            if (isReasoningChunk) reasoningTokensTurn_++;
                             const QString content_flag = stop ? jtr("<end>") : content;
                             { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
                             emit net2ui_state("net:" + jtr("recv reply") + " " + content_flag);
@@ -318,18 +335,20 @@ void xNet::run()
                 }
                 else
                 {
-                    // Fallback to total time and naive token/s estimation
-                    if (endpoint_data.n_predict == 1)
-                        emit net2ui_state("net:" + jtr("use time") + " " + QString::number(tAll, 'f', 2) + " s ", SUCCESS_SIGNAL);
-                    else
-                        emit net2ui_state(
-                            QString("net:%1 %2 s | %3 %4 %5 t/s")
-                                .arg(jtr("use time"))
-                                .arg(QString::number(tAll, 'f', 2))
-                                .arg(jtr("speed"))
-                                .arg(jtr("single decode"))
-                                .arg(QString::number(tokps, 'f', 1)),
-                            SUCCESS_SIGNAL);
+                    // Fallback to total time and naive token/s estimation (batch decode unknown)
+                    const bool haveGen = (tokens_ > 0 && t_first_.isValid() && (t_first_.nsecsElapsed() > 0));
+                    const QString genText = haveGen ? QString::number(tokps, 'f', 1) : QStringLiteral("--");
+                    const QString batchText = QStringLiteral("--");
+                    emit net2ui_state(
+                        QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
+                            .arg(jtr("use time"))
+                            .arg(QString::number(tAll, 'f', 2))
+                            .arg(jtr("speed"))
+                            .arg(jtr("batch decode"))
+                            .arg(batchText)
+                            .arg(jtr("single decode"))
+                            .arg(genText),
+                        SUCCESS_SIGNAL);
                 }
 
                 // if (httpCode)
@@ -351,6 +370,8 @@ void xNet::run()
         }
 
         running_ = false;
+        // Report reasoning token count of this turn before finishing
+        emit net2ui_reasoning_tokens(reasoningTokensTurn_);
         emit net2ui_pushover();
     });
 
@@ -489,7 +510,7 @@ QByteArray xNet::createChatBody()
                 if (role == DEFAULT_MODEL_NAME) {
                     QString reasoning, content;
                     splitThink(s, reasoning, content);
-                    if (!reasoning.isEmpty()) m.insert("reasoning_content", reasoning);
+                    // Do not send model "thinking"; only send final content
                     m.insert("content", content);
                 } else {
                     m.insert("content", s);

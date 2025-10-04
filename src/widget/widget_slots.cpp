@@ -149,3 +149,767 @@ void Widget::tool_change()
     }
     ui_extra_prompt = create_extra_prompt();
 }
+
+//用户按下F1键响应
+void Widget::onShortcutActivated_F1()
+{
+    createTempDirectory("./EVA_TEMP");
+    cutscreen_dialog->showFullScreen(); //处理截图事件
+}
+
+//用户按下F2键响应
+void Widget::onShortcutActivated_F2()
+{
+    if (whisper_model_path == "") //如果还未指定模型路径则先指定
+    {
+        emit ui2expend_show(WHISPER_WINDOW); //语音增殖界面
+    }
+    else if (!is_recodering)
+    {
+        recordAudio(); //开始录音
+        is_recodering = true;
+    }
+    else if (is_recodering)
+    {
+        stop_recordAudio(); //停止录音
+    }
+}
+
+//用户按下CTRL+ENTER键响应
+void Widget::onShortcutActivated_CTRL_ENTER()
+{
+    ui->send->click();
+}
+
+//接收传来的图像
+void Widget::recv_qimagepath(QString cut_imagepath_)
+{
+    reflash_state("ui:" + jtr("cut image success"), USUAL_SIGNAL);
+    ui->input->addFileThumbnail(cut_imagepath_);
+}
+
+// 服务模式已移除
+
+// bot将模型参数传递给ui
+void Widget::recv_params(MODEL_PARAMS p)
+{
+    ui_n_ctx_train = p.n_ctx_train;
+    settings_ui->nctx_slider->setMaximum(p.n_ctx_train); // 没有拓展4倍,因为批解码时还是会失败
+    ui_maxngl = p.max_ngl;                               // gpu负载层数是n_layer+1
+    settings_ui->ngl_slider->setMaximum(ui_maxngl);
+    if (ui_SETTINGS.ngl == 999)
+    {
+        ui_SETTINGS.ngl = ui_maxngl;
+    } //及时修正999值
+}
+
+//接收缓存量
+void Widget::recv_kv(float percent, int ctx_size)
+{
+    if (percent > 0 && percent < 1) { percent = 1; }
+    ui->kv_bar->setSecondValue(percent);
+    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + "/" + QString::number(ui_SETTINGS.nctx));
+}
+
+// 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
+
+//更新gpu内存使用率
+void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
+{
+    vfree = vfree_; //剩余显存
+    ui->vcore_bar->setValue(vcore);
+    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
+    if (is_first_getvram)
+    {
+        is_first_getvram = false;
+        first_vramp = vramp;
+        ui->vram_bar->setValue(first_vramp);
+    }
+    ui->vram_bar->setSecondValue(vramp - first_vramp);
+
+    if (gpu_wait_load)
+    {
+        gpu_wait_load = false;
+#ifdef BODY_USE_GPU
+        int modelsize_MB;
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);   //获取模型文件大小
+        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath); //获取mmproj文件大小
+        modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
+        // qDebug()<<vfree<<modelsize_MB * 1.2;
+
+        if (vfree > modelsize_MB * 1.2)
+        {
+            ui_SETTINGS.ngl = 999;
+        }
+        else
+        {
+            ui_SETTINGS.ngl = 0;
+        }
+#endif
+        // 应用新设置并按需重启本地服务
+        if (ui_mode == LOCAL_MODE) ensureLocalServer();
+    }
+}
+
+//传递cpu信息
+void Widget::recv_cpu_status(double cpuload, double memload)
+{
+    ui->cpu_bar->setValue(cpuload);
+    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
+    if (is_first_getmem)
+    {
+        first_memp = memload;
+        ui->mem_bar->setValue(first_memp);
+        is_first_getmem = false;
+    }
+    ui->mem_bar->setSecondValue(memload - first_memp);
+    // ui->mem_bar->setValue(physMemUsedPercent-(model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
+    // ui->mem_bar->setSecondValue((model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
+}
+
+//事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
+bool Widget::eventFilter(QObject *obj, QEvent *event)
+{
+    //响应已安装控件上的鼠标右击事件
+    if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE)
+    {
+        QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
+        // 显示菜单
+        right_menu->exec(contextMenuEvent->globalPos());
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == settings_ui->lora_LineEdit && event->type() == QEvent::ContextMenu)
+    {
+        chooseLorapath();
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == settings_ui->mmproj_LineEdit && event->type() == QEvent::ContextMenu)
+    {
+        chooseMmprojpath();
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == ui->load && ui->load->isEnabled() && event->type() == QEvent::ContextMenu)
+    {
+        ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
+        reflash_state(ui_state_info, SIGNAL_SIGNAL);
+        //设置当前值
+        api_endpoint_LineEdit->setText(apis.api_endpoint);
+        api_key_LineEdit->setText(apis.api_key);
+        api_model_LineEdit->setText(apis.api_model);
+        api_dialog->exec();
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == api_endpoint_LineEdit && event->type() == QEvent::ContextMenu)
+    {
+        QString api_endpoint = "http://" + getFirstNonLoopbackIPv4Address() + ":8080";
+        api_endpoint_LineEdit->setText(api_endpoint);
+        return true;
+    }
+    //响应已安装控件上的鼠标右击事件
+    if (obj == ui->state && event->type() == QEvent::ContextMenu)
+    {
+        emit ui2expend_show(PREV_WINDOW); // 1是模型信息页
+        return true;
+    }
+
+    return QObject::eventFilter(obj, event);
+}
+
+//传递模型预解码的内容
+void Widget::recv_predecode(QString bot_predecode_content_)
+{
+    bot_predecode_content = bot_predecode_content_;
+}
+
+//接收whisper解码后的结果
+void Widget::recv_speechdecode_over(QString result)
+{
+    ui_state_normal();
+    ui->input->textEdit->append(result);
+    // ui->send->click();//尝试一次发送
+}
+
+//接收模型路径
+void Widget::recv_whisper_modelpath(QString modelpath)
+{
+    whisper_model_path = modelpath;
+}
+
+// Ensure local llama.cpp server is running with current settings
+void Widget::ensureLocalServer()
+{
+    if (!serverManager) return;
+    // 同步配置到本地后端管理器
+    serverManager->setSettings(ui_SETTINGS);
+    serverManager->setPort(ui_port);
+    serverManager->setModelPath(ui_SETTINGS.modelpath);
+    serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
+    serverManager->setLoraPath(ui_SETTINGS.lorapath);
+
+    // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
+    lastServerRestart_ = serverManager->needsRestart();
+    if (lastServerRestart_)
+    {
+        // 标记为未装载并进入装载中状态；这会禁用发送等控件
+        preLoad();
+        emit ui2net_stop(true); // 停止可能仍在进行的 SSE 回复
+    }
+
+    // 确保后端进程状态符合当前设置
+    serverManager->ensureRunning();
+
+    // 立即将端点切换到本地（避免还连向旧端点）
+    apis.api_endpoint = serverManager->endpointBase();
+    apis.api_key = "";
+    apis.api_model = "default";
+    emit ui2net_apis(apis);
+}
+
+// When local server is ready, switch UI to xNet over local endpoint
+void Widget::onServerReady(const QString &endpoint)
+{
+    // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
+    apis.api_endpoint = endpoint;
+    apis.api_key = "";
+    apis.api_model = "default";
+    emit ui2net_apis(apis);
+
+    // 完成装载动画：记录耗时，补帧并快速播完剩余动画，最后 unlockLoad()
+    load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
+    ui_mode = LOCAL_MODE;
+    ui->kv_bar->setToolTip("");
+    ui->output->clear();
+    ui_messagesArray = QJsonArray();
+    {
+        QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
+        ui_messagesArray.append(systemMessage);
+        if (history_) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = endpoint;
+            meta.model = ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = -1;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            history_->appendMessage(systemMessage);
+            currentSlotId_ = -1;
+        }
+    }
+    bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
+    is_load = true;
+    lastServerRestart_ = false; // 一次重启流程结束
+    all_fps++;              // 补上最后一帧，表示上下文也创建了
+    if (load_pTimer) {
+        load_pTimer->stop();    // 停止动画，但保留 load_action
+        load_pTimer->start(10); // 快速播放完剩下的动画
+    } else {
+        // 兜底：没有动画定时器则直接解锁
+        unlockLoad();
+    }
+}
+
+//链接模式的发送处理
+void Widget::api_send_clicked_slove()
+{
+    // 注：联机模式也加前后缀
+    QString input;
+
+    emit ui2net_stop(0);
+    ENDPOINT_DATA data;
+    data.date_prompt = ui_DATES.date_prompt;
+    data.input_pfx = ui_DATES.user_name;
+    data.input_sfx = ui_DATES.model_name;
+    data.stopwords = ui_DATES.extra_stop_words;
+    data.is_complete_state = (ui_state == COMPLETE_STATE);
+    data.temp = ui_SETTINGS.temp;
+    data.n_predict = ui_SETTINGS.hid_npredict;
+    data.repeat = ui_SETTINGS.repeat;
+    data.messagesArray = ui_messagesArray;
+    data.id_slot = currentSlotId_;
+
+    if (tool_result == "")
+    {
+        input = ui->input->textEdit->toPlainText().toUtf8().data();
+        ui->input->textEdit->clear();
+    }
+
+    QStringList images_filepath = ui->input->imageFilePaths(); // 获取图像列表
+    QStringList wavs_filepath = ui->input->wavFilePaths();     // 获取音频列表
+    ui->input->clearThumbnails();                              // 清空发送区缩略图
+
+    if (ui_state == CHAT_STATE)
+    {
+        //----------------------- 处理工具消息 ----------------------------
+        if (tool_result != "")
+        {
+            // 目前通过 user 角色推给 net
+            QJsonObject roleMessage;
+            roleMessage.insert("role", DEFAULT_USER_NAME);
+            roleMessage.insert("content", "tool_response: " + tool_result);
+            ui_messagesArray.append(roleMessage);
+            if (history_) history_->appendMessage(roleMessage);
+            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
+
+            tool_result = "";
+            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
+            is_run = true;
+            ui_state_pushing();
+            return;
+        }
+        //----------------------- 处理用户消息 ----------------------------
+        else
+        {
+            if (images_filepath.isEmpty())
+            {
+                QJsonObject roleMessage;
+                roleMessage.insert("role", DEFAULT_USER_NAME);
+                roleMessage.insert("content", input);
+                ui_messagesArray.append(roleMessage);
+                if (history_) history_->appendMessage(roleMessage);
+            }
+            else // 有图片的用户消息
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+
+                // 先添加用户文本
+                if (!input.isEmpty())
+                {
+                    QJsonObject textMessage;
+                    textMessage.insert("type", "text");
+                    textMessage.insert("text", input);
+                    contentArray.append(textMessage);
+                }
+
+                // 再添加图像信息
+                for (int i = 0; i < images_filepath.size(); ++i)
+                {
+                    QFile imageFile(images_filepath[i]);
+                    if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
+                    QByteArray imageData = imageFile.readAll();
+                    QByteArray base64Data = imageData.toBase64();
+                    QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+
+                    QJsonObject imageObject;
+                    imageObject["type"] = "image_url";
+                    QJsonObject imageUrlObject;
+                    imageUrlObject["url"] = base64String;
+                    imageObject["image_url"] = imageUrlObject;
+                    contentArray.append(imageObject);
+                    showImages({images_filepath[i]}); // 展示图片
+                }
+
+                message["content"] = contentArray;
+                ui_messagesArray.append(message);
+                if (history_) history_->appendMessage(message);
+            }
+
+            // 可选：添加音频（保持现有 UI 结构，xnet 侧会转换为 input_audio）
+            if (!wavs_filepath.isEmpty())
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+
+                for (int i = 0; i < wavs_filepath.size(); ++i)
+                {
+                    QString filePath = wavs_filepath[i];
+                    QFile audioFile(filePath);
+                    if (!audioFile.open(QIODevice::ReadOnly))
+                    {
+                        qDebug() << "Failed to open audio file:" << filePath;
+                        continue;
+                    }
+
+                    QByteArray audioData = audioFile.readAll();
+                    QByteArray base64Data = audioData.toBase64();
+
+                    QFileInfo fileInfo(filePath);
+                    QString extension = fileInfo.suffix().toLower();
+                    QString mimeType = "audio/mpeg"; // 默认MP3
+                    if (extension == "wav")
+                    {
+                        mimeType = "audio/wav";
+                    }
+                    else if (extension == "ogg")
+                    {
+                        mimeType = "audio/ogg";
+                    }
+                    else if (extension == "flac")
+                    {
+                        mimeType = "audio/flac";
+                    }
+
+                    QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
+
+                    QJsonObject audioObject;
+                    audioObject["type"] = "audio_url"; // 仍用 audio_url，xnet 里转换为 input_audio
+                    QJsonObject audioUrlObject;
+                    audioUrlObject["url"] = base64String;
+                    audioObject["audio_url"] = audioUrlObject;
+                    contentArray.append(audioObject);
+                    showImages({":/logo/wav.png"});
+                }
+
+                if (!contentArray.isEmpty())
+                {
+                message["content"] = contentArray;
+                ui_messagesArray.append(message);
+                if (history_) history_->appendMessage(message);
+                }
+            }
+
+            data.messagesArray = ui_messagesArray;
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前缀蓝色
+            reflash_output(input, 0, NORMAL_BLACK);                                                             //正文黑色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //后缀蓝色
+            data.n_predict = ui_SETTINGS.hid_npredict;
+    emit ui2net_data(data);
+        }
+    }
+    else if (ui_state == COMPLETE_STATE) // 直接把 output 上的文本作为提示词
+    {
+        data.input_prompt = ui->output->toPlainText();
+        data.n_predict = ui_SETTINGS.hid_npredict;
+        emit ui2net_data(data);
+    }
+
+    is_run = true; // 模型运行标记
+    ui_state_pushing();
+    // carry over tokens from previous turn before starting a new one
+    if (kvTokensTurn_ > 0) {
+        kvTokensAccum_ += kvTokensTurn_;
+        kvTokensTurn_ = 0;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
+    }
+    emit ui2net_push();
+}
+//传递知识库的描述
+void Widget::recv_embeddingdb_describe(QString describe)
+{
+    embeddingdb_describe = describe;
+}
+
+//传递控制信息
+void Widget::recv_controller(int num)
+{
+    QString result;
+    if (num == 1) //最大化主窗口
+    {
+        setWindowState(windowState() | Qt::WindowMaximized); //设置窗口最大化
+        result = jtr("main window") + jtr("maximized");
+    }
+    else if (num == 2) //最小化主窗口
+    {
+        this->showMinimized();
+        result = jtr("main window") + jtr("minimized");
+    }
+    else if (num == 3) //主窗口置顶
+    {
+        setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
+        show();
+        result = jtr("main window") + jtr("topped");
+    }
+    else if (num == 4) //取消主窗口置顶
+    {
+        setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
+        show();
+        result = jtr("main window") + jtr("topped canceled");
+    }
+    else if (num == 5) //关闭主窗口
+    {
+        this->close();
+        result = jtr("main window") + jtr("closed");
+    }
+    else if (num == 6) //播放音乐
+    {
+        music_player.play();
+        result = jtr("music") + jtr("started playing");
+    }
+    else if (num == 7) //关闭音乐
+    {
+        music_player.stop();
+        result = jtr("music") + jtr("stopped playback");
+    }
+    else if (num == 8) //打开增殖窗口
+    {
+        emit ui2expend_show(PREV_WINDOW);
+        result = jtr("expend window") + jtr("opened");
+    }
+    else if (num == 9) //关闭增殖窗口
+    {
+        emit ui2expend_show(NO_WINDOW);
+        result = jtr("expend window") + jtr("closed");
+    }
+    else
+    {
+        result = jtr("The number passed in does not have a corresponding action");
+    }
+    emit recv_controller_over(result);
+}
+
+//分割器被用户拉动时响应
+void Widget::onSplitterMoved(int pos, int index) {}
+
+// 根据language.json和language_flag中找到对应的文字
+QString Widget::jtr(QString customstr)
+{
+    return wordsObj[customstr].toArray()[language_flag].toString();
+}
+
+// 检测音频支持
+bool Widget::checkAudio()
+{
+    // 设置编码器
+    audioSettings.setCodec("audio/x-raw");
+    audioSettings.setSampleRate(44100);
+    audioSettings.setBitRate(128000);
+    audioSettings.setChannelCount(2);
+    audioSettings.setQuality(QMultimedia::HighQuality);
+    // 设置音频编码器参数
+    audioRecorder.setEncodingSettings(audioSettings);
+    // 设置容器格式
+    audioRecorder.setContainerFormat("audio/x-wav");
+    // 设置音频输出位置
+    audioRecorder.setOutputLocation(QUrl::fromLocalFile(applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav"));
+
+    // // 打印出音频支持情况
+    // // 获取本机支持的音频编码器和解码器
+    // QStringList supportedCodecs = audioRecorder.supportedAudioCodecs();
+    // QStringList supportedContainers = audioRecorder.supportedContainers();
+    // qDebug() << "Supported audio codecs:" << supportedCodecs;
+    // qDebug() << "Supported container formats:" << supportedContainers;
+    // // 获取实际的编码器设置
+    // QAudioEncoderSettings actualSettings = audioRecorder.audioSettings();
+    // qDebug() << "Actual Codec:" << actualSettings.codec();
+    // qDebug() << "Actual Sample Rate:" << actualSettings.sampleRate() << "Hz";
+    // qDebug() << "Actual Bit Rate:" << actualSettings.bitRate() << "bps";
+    // qDebug() << "Actual Channel Count:" << actualSettings.channelCount();
+    // qDebug() << "Actual Quality:" << actualSettings.quality();
+    // qDebug() << "Actual Encoding Mode:" << actualSettings.encodingMode();
+
+    // 获取可用的音频输入设备列表
+    QList<QAudioDeviceInfo> availableDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+    if (availableDevices.isEmpty())
+    {
+        qDebug() << "No audio input devices available.";
+        return false;
+    }
+
+    // qDebug() << "Available Audio Input Devices:";
+    // for (const QAudioDeviceInfo &deviceInfo : availableDevices) {
+    //     qDebug() << "    Device Name:" << deviceInfo.deviceName();
+    //     qDebug() << "    Supported Codecs:";
+    //     for (const QString &codecName : deviceInfo.supportedCodecs()) {
+    //         qDebug() << "        " << codecName;
+    //     }
+    //     qDebug() << "    Supported Sample Rates:";
+    //     for (int sampleRate : deviceInfo.supportedSampleRates()) {
+    //         qDebug() << "        " << sampleRate;
+    //     }
+    //     qDebug() << "    -------------------------------------";
+    // }
+
+    return true;
+}
+
+//传递格式化后的对话内容
+void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
+{
+    bot_chat = chats;
+}
+
+// 正在预解码
+void Widget::recv_predecoding()
+{
+    ui_state_pushing();
+}
+
+// 完成预解码
+void Widget::recv_predecoding_over()
+{
+    ui_state_normal();
+}
+
+
+// Initialize memory policy for text widgets: disable undo, cap logs
+void Widget::initTextComponentsMemoryPolicy()
+{
+    // Output area (QTextEdit): no undo stack to avoid growth on streaming inserts
+    ui->output->setUndoRedoEnabled(false);
+
+    // State log (QPlainTextEdit): disable undo and cap block count
+    ui->state->setUndoRedoEnabled(false);
+    ui->state->setMaximumBlockCount(5000); // prevent unbounded log growth
+}
+
+#include <QTextDocument>
+// Replace output document to drop undo stack and cached resources (images)
+void Widget::resetOutputDocument()
+{
+    // Create a fresh document and hand ownership to the widget.
+    // Qt will destroy the previous document for us; avoid manual delete.
+    QTextDocument *doc = new QTextDocument(ui->output);
+    doc->setUndoRedoEnabled(false);
+    ui->output->setDocument(doc);
+}
+
+// Replace state document to drop undo stack quickly
+void Widget::resetStateDocument()
+{
+    // Same as above: let Qt own and clean up the previous document.
+    QTextDocument *doc = new QTextDocument(ui->state);
+    doc->setUndoRedoEnabled(false);
+    ui->state->setDocument(doc);
+}
+
+
+
+
+// Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
+void Widget::recv_kv_from_net(int usedTokens)
+{
+    // Track this-turn tokens from stream: usedTokens includes prompt_n when timings arrived, otherwise just generated.
+    if (usedTokens > kvTokensTurn_) kvTokensTurn_ = usedTokens;
+    // Do not include reasoning tokens into "memory"; subtract lastReasoningTokens_ when showing
+    const int shownTokens = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
+    const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+    int percent = 0;
+    if (nctx > 0) {
+        percent = qRound(100.0 * double(shownTokens) / double(nctx));
+        if (percent > 0 && percent < 1) percent = 1;
+        if (percent > 100) percent = 100;
+        if (percent < 0) percent = 0;
+    }
+    ui->kv_bar->setSecondValue(percent);
+    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+}
+
+// server-assigned slot id -> persist and reuse for KV cache efficiency
+void Widget::onSlotAssigned(int slotId)
+{
+    if (slotId < 0) return;
+    if (currentSlotId_ == slotId) return;
+    currentSlotId_ = slotId;
+    if (history_) history_->updateSlotId(slotId);
+    reflash_state(QString("net:slot id=%1").arg(slotId), SIGNAL_SIGNAL);
+}
+
+// Capture the approximate tokens generated within <think> this turn
+void Widget::recv_reasoning_tokens(int tokens)
+{
+    lastReasoningTokens_ = qMax(0, tokens);
+}
+
+// Parse llama-server output lines to capture n_ctx value for verification
+void Widget::onServerOutput(const QString &line)
+{
+    // 1) capture n_ctx for verification
+    // 0) capture n_ctx_train from print_info and clamp UI nctx slider max accordingly
+    static QRegularExpression reCtxTrain("print_info\\s*:\\s*n_ctx_train\\s*=\\s*(\\d+)");
+    for (auto it = reCtxTrain.globalMatch(line); it.hasNext(); ) {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false; const int train = m.captured(1).toInt(&ok);
+        if (ok && train > 0) {
+            if (ui_n_ctx_train != train) {
+                ui_n_ctx_train = train;
+                if (settings_ui && settings_ui->nctx_slider) {
+                    const int curMax = settings_ui->nctx_slider->maximum();
+                    if (curMax != train) settings_ui->nctx_slider->setMaximum(train);
+                    if (settings_ui->nctx_slider->value() > train) settings_ui->nctx_slider->setValue(train);
+                }
+            }
+        }
+    }
+
+    static QRegularExpression reCtx("llama_context\\s*:\\s*n_ctx\\s*=\\s*(\\d+)");
+    for (auto it = reCtx.globalMatch(line); it.hasNext(); ) {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false; const int v = m.captured(1).toInt(&ok);
+        if (ok && v > 0) {
+            server_nctx_ = v;
+            if (server_nctx_ != ui_SETTINGS.nctx) {
+                reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
+            }
+        }
+    }
+
+    // 2) Chat format
+    static QRegularExpression reFmt("Chat\\s+format\\s*:\\s*(.+)");
+    QRegularExpressionMatch mFmt = reFmt.match(line);
+    if (mFmt.hasMatch()) {
+        const QString fmt = mFmt.captured(1).trimmed();
+        reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
+    }
+
+    // 3) prompt eval / eval time speeds and total tokens
+    static QRegularExpression rePrompt(
+        "prompt\\s*(?:eval\\s*)?time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)",
+        QRegularExpression::CaseInsensitiveOption);
+    static QRegularExpression rePromptAlt(
+        "prompt\\s*(?:processing\\s*)?time\\s*=\\s*([0-9.]+)\\s*ms.*?([0-9.]+)\\s*tokens per second",
+        QRegularExpression::CaseInsensitiveOption);
+    static QRegularExpression reGen(
+        "^\\s*eval\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)",
+        QRegularExpression::CaseInsensitiveOption);
+    static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
+
+    QRegularExpressionMatch m1 = rePrompt.match(line);
+    if (m1.hasMatch()) {
+        const double tps = m1.captured(3).toDouble();
+        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    } else {
+        QRegularExpressionMatch m1b = rePromptAlt.match(line);
+        if (m1b.hasMatch()) {
+            const double tps = m1b.captured(2).toDouble();
+            reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+        }
+    }
+    QRegularExpressionMatch m2 = reGen.match(line);
+    if (m2.hasMatch()) {
+        const double tps = m2.captured(3).toDouble();
+        reflash_state(QString("srv:%1 %2 t/s").arg(jtr("single decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
+    }
+
+    QRegularExpressionMatch m3 = reTotal.match(line);
+    if (m3.hasMatch()) {
+        const int totalTokens = m3.captured(2).toInt();
+        // Use total tokens to correct accumulated kv count for this conversation (server authoritative)
+        kvTokensTurn_ = totalTokens;
+        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        int percent = 0;
+        if (nctx > 0) {
+            const int shown = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
+            percent = qRound(100.0 * double(shown) / double(nctx));
+            if (percent > 0 && percent < 1) percent = 1;
+            if (percent > 100) percent = 100;
+            if (percent < 0) percent = 0;
+        }
+        ui->kv_bar->setSecondValue(percent);
+        const int shownTokens = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
+        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+    }
+}
+
+
+
+
+
+
