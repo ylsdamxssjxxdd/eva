@@ -1,5 +1,6 @@
 #include "xnet.h"
 #include <QSslError>
+#include "prompt_builder.h"
 
 xNet::xNet()
 {
@@ -60,10 +61,7 @@ void xNet::abortActiveReply()
             const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
             const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
             emit net2ui_state(
-                QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
-                    .arg(jtr("use time"))
-                    .arg(QString::number(tAll, 'f', 2))
-                    .arg(jtr("speed"))
+                QString("net:%1 %2 t/s, %3 %4 t/s")
                     .arg(jtr("batch decode"))
                     .arg(QString::number(prompt_tps, 'f', 1))
                     .arg(jtr("single decode"))
@@ -82,10 +80,7 @@ void xNet::abortActiveReply()
             const QString genText = haveGen ? QString::number(gen_tps, 'f', 1) : QStringLiteral("--");
             const QString batchText = QStringLiteral("--");
             emit net2ui_state(
-                QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
-                    .arg(jtr("use time"))
-                    .arg(QString::number(tAll, 'f', 2))
-                    .arg(jtr("speed"))
+                QString("net:%1 %2 t/s, %3 %4 t/s")
                     .arg(jtr("batch decode"))
                     .arg(batchText)
                     .arg(jtr("single decode"))
@@ -315,10 +310,7 @@ void xNet::run()
                     const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
                     const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
                     emit net2ui_state(
-                        QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
-                            .arg(jtr("use time"))
-                            .arg(QString::number(tAll, 'f', 2))
-                            .arg(jtr("speed"))
+                        QString("net:%1 %2 t/s, %3 %4 t/s")
                             .arg(jtr("batch decode"))
                             .arg(QString::number(prompt_tps, 'f', 1))
                             .arg(jtr("single decode"))
@@ -339,10 +331,7 @@ void xNet::run()
                     const QString genText = haveGen ? QString::number(tokps, 'f', 1) : QStringLiteral("--");
                     const QString batchText = QStringLiteral("--");
                     emit net2ui_state(
-                        QString("net:%1 %2 s | %3 %4 %5 t/s, %6 %7 t/s")
-                            .arg(jtr("use time"))
-                            .arg(QString::number(tAll, 'f', 2))
-                            .arg(jtr("speed"))
+                        QString("net:%1 %2 t/s, %3 %4 t/s")
                             .arg(jtr("batch decode"))
                             .arg(batchText)
                             .arg(jtr("single decode"))
@@ -412,8 +401,7 @@ void xNet::ensureNetObjects()
 
 //构造请求的数据体
 QByteArray xNet::createChatBody()
-{
-    // Build JSON body in OpenAI-compatible chat format with multimodal support
+{    // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
     if (apis.is_cache) {
         json.insert("cache_prompt", apis.is_cache);
@@ -430,116 +418,11 @@ QByteArray xNet::createChatBody()
     }
     json.insert("stop", stopkeys);
 
-    // Transform UI messages into OAI-compatible messages
-    auto toOAIChatMessages = [&](const QJsonArray &in) -> QJsonArray {
-        QJsonArray out;
-
-        auto splitThink = [&](const QString &s, QString &reasoning, QString &content) {
-            reasoning.clear(); content = s;
-            if (!s.contains(DEFAULT_THINK_END)) return;
-            const int endIdx = s.indexOf(DEFAULT_THINK_END);
-            if (endIdx == -1) return;
-            QString before = s.left(endIdx);
-            QString after = s.mid(endIdx + QString(DEFAULT_THINK_END).size());
-            int startIdx = before.indexOf(DEFAULT_THINK_BEGIN);
-            if (startIdx != -1) before = before.mid(startIdx + QString(DEFAULT_THINK_BEGIN).size());
-            reasoning = before.trimmed();
-            content = after.trimmed();
-        };
-
-        auto fixContentArray = [&](const QJsonArray &arr) -> QJsonArray {
-            QJsonArray fixed;
-            for (const auto &pv : arr) {
-                if (pv.isObject()) {
-                    QJsonObject p = pv.toObject();
-                    const QString type = p.value("type").toString();
-                    if (type == "text") {
-                        // keep text parts as-is
-                        fixed.append(p);
-                    } else if (type == "image_url") {
-                        // keep OpenAI-style vision input: { type: "image_url", image_url: { url: "data:image/...;base64,..." } }
-                        fixed.append(p);
-                    } else if (type == "audio_url") {
-                        // Map legacy UI audio_url into OAI-compatible input_audio
-                        // Expect: { type: "audio_url", audio_url: { url: "data:audio/<fmt>;base64,<b64>" } }
-                        QJsonObject audioUrlObj = p.value("audio_url").toObject();
-                        const QString url = audioUrlObj.value("url").toString();
-                        int comma = url.indexOf(',');
-                        if (comma != -1) {
-                            const QString header = url.left(comma);
-                            const QString data = url.mid(comma + 1);
-                            QString format = "mp3";
-                            if (header.contains("audio/wav")) format = "wav";
-                            else if (header.contains("audio/mpeg")) format = "mp3";
-                            else if (header.contains("audio/ogg")) format = "mp3"; // map to mp3 for now
-                            QJsonObject q;
-                            q["type"] = "input_audio";
-                            QJsonObject ia; ia["data"] = data; ia["format"] = format; q["input_audio"] = ia;
-                            fixed.append(q);
-                        }
-                    } else if (type == "input_audio") {
-                        // already in expected form
-                        fixed.append(p);
-                    } else {
-                        // unknown type -> ignore
-                    }
-                } else if (pv.isString()) {
-                    // convert raw string to text part
-                    QJsonObject q; q["type"] = "text"; q["text"] = pv.toString();
-                    fixed.append(q);
-                }
-            }
-            return fixed;
-        };
-
-        // Copy over messages, preserving arrays for multimodal content
-        for (const auto &v : in) {
-            if (!v.isObject()) continue;
-            QJsonObject m = v.toObject();
-            const QString role = m.value("role").toString();
-            if (!(role == DEFAULT_USER_NAME || role == DEFAULT_MODEL_NAME || role == DEFAULT_SYSTEM_NAME)) {
-                continue; // skip unknown roles
-            }
-
-            QJsonValue contentVal = m.value("content");
-            if (contentVal.isArray()) {
-                m["content"] = fixContentArray(contentVal.toArray());
-            } else {
-                QString s = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
-                if (role == DEFAULT_MODEL_NAME) {
-                    QString reasoning, content;
-                    splitThink(s, reasoning, content);
-                    // Do not send model "thinking"; only send final content
-                    m.insert("content", content);
-                } else {
-                    m.insert("content", s);
-                }
-            }
-            out.append(m);
-        }
-
-        // Ensure first item is system. If not, prepend it from date_prompt
-        if (out.size() > 0) {
-            const QJsonObject first = out.at(0).toObject();
-            if (first.value("role").toString() != DEFAULT_SYSTEM_NAME) {
-                QJsonObject systemMessage;
-                systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-                systemMessage.insert("content", endpoint_data.date_prompt);
-                QJsonArray fixed; fixed.append(systemMessage);
-                for (const auto &v2 : out) fixed.append(v2);
-                return fixed;
-            }
-        } else {
-            // no messages at all -> create system message
-            QJsonObject systemMessage;
-            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-            systemMessage.insert("content", endpoint_data.date_prompt);
-            out.append(systemMessage);
-        }
-        return out;
-    };
-
-    QJsonArray oaiMessages = toOAIChatMessages(endpoint_data.messagesArray);
+    // Normalize UI messages into OpenAI-compatible messages
+    QJsonArray oaiMessages = promptx::buildOaiChatMessages(endpoint_data.messagesArray, endpoint_data.date_prompt,
+                                                           QStringLiteral(DEFAULT_SYSTEM_NAME),
+                                                           QStringLiteral(DEFAULT_USER_NAME),
+                                                           QStringLiteral(DEFAULT_MODEL_NAME));
     json.insert("messages", oaiMessages);
     // Reuse llama.cpp server slot KV cache if available
     if (endpoint_data.id_slot >= 0) {
@@ -646,6 +529,8 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
 
 
 

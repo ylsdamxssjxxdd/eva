@@ -24,7 +24,7 @@ add_executable(
     src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_load.cpp src/widget/widget_anim.cpp
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_convert.cpp src/expend/expend_brain.cpp src/expend/expend_tts.cpp
-    src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp
+    src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp
     src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui

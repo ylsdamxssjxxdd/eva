@@ -84,7 +84,7 @@ void LocalServerManager::hookProcessSignals() {
         const QString out = QString::fromUtf8(proc_->readAllStandardOutput());
         if (!out.isEmpty()) emit serverOutput(out);
         if (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on")) {
-            emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+            // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
             emit serverReady(endpointBase());
         }
     });
@@ -93,7 +93,7 @@ void LocalServerManager::hookProcessSignals() {
         if (!err.isEmpty()) emit serverOutput(err);
         // llama.cpp may print slightly different phrases across versions
         if (err.contains(SERVER_START) || err.contains("listening at") || err.contains("listening on")) {
-            emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+            // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
             emit serverReady(endpointBase());
         }
     });
