@@ -27,7 +27,8 @@ static inline bool runProcessReadAll(const QString &program,
     p.setProcessChannelMode(QProcess::SeparateChannels);
     p.start(program, args);
     if (!p.waitForStarted(200)) return false;
-    if (!p.waitForFinished(timeoutMs)) {
+    if (!p.waitForFinished(timeoutMs))
+    {
         p.kill();
         p.waitForFinished(200);
         return false;
@@ -57,8 +58,7 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
         const QString program = "nvidia-smi";
         const QStringList args = {
             "--query-gpu=memory.total,memory.free,memory.used,utilization.gpu",
-            "--format=csv,noheader,nounits"
-        };
+            "--format=csv,noheader,nounits"};
         if (!runProcessReadAll(program, args, output))
         {
             emit gpu_status(0, 0, 0, 0);
@@ -66,22 +66,34 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
         }
 
         const QStringList gpuInfoList = output.split('\n', Qt::SkipEmptyParts);
-        if (gpuInfoList.isEmpty()) { emit gpu_status(0, 0, 0, 0); return; }
+        if (gpuInfoList.isEmpty())
+        {
+            emit gpu_status(0, 0, 0, 0);
+            return;
+        }
 
         // 仅取第一个 GPU（UI 若需多卡，可扩展为列表信号）
         const QString &info = gpuInfoList.first();
         const QStringList values = info.split(',', Qt::SkipEmptyParts);
-        if (values.size() != 4) { emit gpu_status(0, 0, 0, 0); return; }
+        if (values.size() != 4)
+        {
+            emit gpu_status(0, 0, 0, 0);
+            return;
+        }
 
-        bool ok0=false, ok1=false, ok2=false, ok3=false;
+        bool ok0 = false, ok1 = false, ok2 = false, ok3 = false;
         const int totalMemory = values[0].trimmed().toInt(&ok0);
-        const int freeMemory  = values[1].trimmed().toInt(&ok1);
-        const int usedMemory  = values[2].trimmed().toInt(&ok2);
+        const int freeMemory = values[1].trimmed().toInt(&ok1);
+        const int usedMemory = values[2].trimmed().toInt(&ok2);
         const int utilization = values[3].trimmed().toInt(&ok3);
-        if (!(ok0 && ok1 && ok2 && ok3) || totalMemory <= 0) { emit gpu_status(0, 0, 0, 0); return; }
+        if (!(ok0 && ok1 && ok2 && ok3) || totalMemory <= 0)
+        {
+            emit gpu_status(0, 0, 0, 0);
+            return;
+        }
 
-        const float vmem  = float(totalMemory);
-        const float vram  = float(usedMemory) / float(totalMemory) * 100.0f;
+        const float vmem = float(totalMemory);
+        const float vram = float(usedMemory) / float(totalMemory) * 100.0f;
         const float vcore = float(utilization);
         const float vfree = float(freeMemory);
         emit gpu_status(vmem, vram, vcore, vfree);
@@ -96,7 +108,7 @@ class AmdGpuInfoProvider : public GpuInfoProvider
     {
         QString output;
         const QString program = "rocm-smi";
-        const QStringList args = { "--showmeminfo", "vram", "--showuse", "--csv" };
+        const QStringList args = {"--showmeminfo", "vram", "--showuse", "--csv"};
         if (!runProcessReadAll(program, args, output))
         {
             emit gpu_status(0, 0, 0, 0);
@@ -110,15 +122,15 @@ class AmdGpuInfoProvider : public GpuInfoProvider
             if (!line.contains("GPU", Qt::CaseInsensitive)) continue;
             const QStringList cols = line.split(',', Qt::SkipEmptyParts);
             if (cols.size() < 5) continue;
-            bool ok0=false, ok1=false, ok2=false, ok3=false;
+            bool ok0 = false, ok1 = false, ok2 = false, ok3 = false;
             const int totalMemory = cols[1].trimmed().toInt(&ok0);
-            const int usedMemory  = cols[2].trimmed().toInt(&ok1);
-            const int freeMemory  = cols[3].trimmed().toInt(&ok2);
+            const int usedMemory = cols[2].trimmed().toInt(&ok1);
+            const int freeMemory = cols[3].trimmed().toInt(&ok2);
             const int utilization = cols[4].trimmed().toInt(&ok3);
             if (!(ok0 && ok1 && ok2 && ok3) || totalMemory <= 0) continue;
 
-            const float vmem  = float(totalMemory);
-            const float vram  = float(usedMemory) / float(totalMemory) * 100.0f;
+            const float vmem = float(totalMemory);
+            const float vram = float(usedMemory) / float(totalMemory) * 100.0f;
             const float vcore = float(utilization);
             const float vfree = float(freeMemory);
             emit gpu_status(vmem, vram, vcore, vfree);
@@ -226,8 +238,10 @@ class gpuChecker : public QObject
         {
             // 再尝试 nvidia-smi / rocm-smi 来粗略判断
             QString tmp;
-            if (runProcessReadAll("nvidia-smi", {"-L"}, tmp)) output = tmp;
-            else if (runProcessReadAll("rocm-smi", {"--showuse"}, tmp)) output = tmp;
+            if (runProcessReadAll("nvidia-smi", {"-L"}, tmp))
+                output = tmp;
+            else if (runProcessReadAll("rocm-smi", {"--showuse"}, tmp))
+                output = tmp;
         }
 #elif __linux__
         if (!runProcessReadAll("bash", {"-lc", "lspci -nn | grep -i 'VGA'"}, output)) output.clear();
@@ -249,5 +263,3 @@ class gpuChecker : public QObject
 };
 
 #endif // GPUCHECKER_H
-
-

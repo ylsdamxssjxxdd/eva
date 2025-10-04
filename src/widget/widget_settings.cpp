@@ -97,7 +97,8 @@ void Widget::set_set()
     if (ui_mode == LOCAL_MODE)
     {
         ensureLocalServer();
-        if (!lastServerRestart_) {
+        if (!lastServerRestart_)
+        {
             on_reset_clicked();
         }
         // 若发生了重启，等待 onServerReady() 回调恢复 UI 和上下文

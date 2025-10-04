@@ -28,12 +28,12 @@ void Widget::decode_move()
     static const QVector<QString> uniFrames = {
         QString::fromUtf8("⠋"), QString::fromUtf8("⠙"), QString::fromUtf8("⠹"), QString::fromUtf8("⠸"),
         QString::fromUtf8("⠼"), QString::fromUtf8("⠴"), QString::fromUtf8("⠦"), QString::fromUtf8("⠧"),
-        QString::fromUtf8("⠇"), QString::fromUtf8("⠏")
-    };
-    static const QVector<QString> asciiFrames = { "|", "/", "-", "\\" };
+        QString::fromUtf8("⠇"), QString::fromUtf8("⠏")};
+    static const QVector<QString> asciiFrames = {"|", "/", "-", "\\"};
     static bool decided = false;
     static bool useUnicode = true;
-    if (!decided) {
+    if (!decided)
+    {
         QFontMetrics fm(ui->state->font());
         // 检测首帧字符是否在当前字体中（不可用则回退 ASCII）
         useUnicode = fm.inFont(QChar(0x280B)); // '⠋'
@@ -80,7 +80,8 @@ void Widget::decode_finish()
     QString doneMark = QString::fromUtf8("✓");
     {
         QFontMetrics fm(ui->state->font());
-        if (!fm.inFont(QChar(0x2713))) {
+        if (!fm.inFont(QChar(0x2713)))
+        {
             doneMark = "[OK]";
         }
     }

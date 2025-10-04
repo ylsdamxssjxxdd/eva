@@ -99,7 +99,7 @@ class DoubleQProgressBar : public QProgressBar
                 radius, // top-left
                 topRightRadius,
                 bottomRightRadius,
-                radius  // bottom-left
+                radius // bottom-left
             );
 
             painter.fillPath(bluePath, blueGradient);
@@ -125,8 +125,16 @@ class DoubleQProgressBar : public QProgressBar
             qreal bottomRightRadius = 0.0;
             qreal bottomLeftRadius = 0.0;
 
-            if (firstWidth == 0) { topLeftRadius = radius; bottomLeftRadius = radius; }
-            if (firstValue + m_secondValue >= max) { topRightRadius = radius; bottomRightRadius = radius; }
+            if (firstWidth == 0)
+            {
+                topLeftRadius = radius;
+                bottomLeftRadius = radius;
+            }
+            if (firstValue + m_secondValue >= max)
+            {
+                topRightRadius = radius;
+                bottomRightRadius = radius;
+            }
 
             QPainterPath orangePath = createRoundedRect(
                 orangeRect,

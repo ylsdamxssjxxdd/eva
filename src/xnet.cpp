@@ -1,6 +1,6 @@
 #include "xnet.h"
-#include <QSslError>
 #include "prompt_builder.h"
+#include <QSslError>
 
 xNet::xNet()
 {
@@ -48,8 +48,8 @@ void xNet::abortActiveReply()
         QObject::disconnect(connSslErrors_);
 #endif
         connReadyRead_ = QMetaObject::Connection{};
-        connFinished_  = QMetaObject::Connection{};
-        connError_     = QMetaObject::Connection{};
+        connFinished_ = QMetaObject::Connection{};
+        connError_ = QMetaObject::Connection{};
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
         connSslErrors_ = QMetaObject::Connection{};
 #endif
@@ -59,7 +59,7 @@ void xNet::abortActiveReply()
         if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
         {
             const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
-            const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
+            const double gen_tps = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
             emit net2ui_state(
                 QString("net:%1 %2 t/s, %3 %4 t/s")
                     .arg(jtr("batch decode"))
@@ -73,9 +73,14 @@ void xNet::abortActiveReply()
             // fallback: approximate generation speed if possible; batch decode unknown
             double gen_tps = 0.0;
             bool haveGen = false;
-            if (tokens_ > 0 && t_first_.isValid()) {
+            if (tokens_ > 0 && t_first_.isValid())
+            {
                 const double dt = t_first_.nsecsElapsed() / 1e9;
-                if (dt > 1e-9) { gen_tps = tokens_ / dt; haveGen = true; }
+                if (dt > 1e-9)
+                {
+                    gen_tps = tokens_ / dt;
+                    haveGen = true;
+                }
             }
             const QString genText = haveGen ? QString::number(gen_tps, 'f', 1) : QStringLiteral("--");
             const QString batchText = QStringLiteral("--");
@@ -192,7 +197,8 @@ void xNet::run()
 
                 auto processObj = [&](const QJsonObject &obj) {
                     // capture server-assigned slot id for KV reuse
-                    if (obj.contains("slot_id")) {
+                    if (obj.contains("slot_id"))
+                    {
                         const int sid = obj.value("slot_id").toInt(-1);
                         if (sid >= 0) emit net2ui_slot_id(sid);
                     }
@@ -214,7 +220,10 @@ void xNet::run()
                                 // if this chunk is part of <think>, count it approximately
                                 const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                                 if (isReasoningChunk) reasoningTokensTurn_++;
-                                { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
+                                {
+                                    int base = (promptTokens_ > 0) ? promptTokens_ : 0;
+                                    emit net2ui_kv_tokens(base + tokens_);
+                                }
                                 // 不再在状态区流式输出内容；仅把内容流式发往输出区
                                 if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
                                 if (thinkFlag)
@@ -246,7 +255,10 @@ void xNet::run()
                             const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
                             if (isReasoningChunk) reasoningTokensTurn_++;
                             const QString content_flag = stop ? jtr("<end>") : content;
-                            { int base = (promptTokens_ > 0) ? promptTokens_ : 0; emit net2ui_kv_tokens(base + tokens_); }
+                            {
+                                int base = (promptTokens_ > 0) ? promptTokens_ : 0;
+                                emit net2ui_kv_tokens(base + tokens_);
+                            }
                             // 不再在状态区流式输出内容；仅把内容流式发往输出区
                             emit net2ui_output(content, true);
                         }
@@ -265,16 +277,19 @@ void xNet::run()
                     }
                 };
 
-                if (doc.isObject()) {
+                if (doc.isObject())
+                {
                     processObj(doc.object());
-                } else if (doc.isArray()) {
+                }
+                else if (doc.isArray())
+                {
                     const QJsonArray arr = doc.array();
-                    for (const auto &v : arr) {
+                    for (const auto &v : arr)
+                    {
                         if (v.isObject()) processObj(v.toObject());
                     }
                 }
             }
-
         }
 
         // Early stop: UI stop or tool stop-word outside of think block
@@ -308,7 +323,7 @@ void xNet::run()
                 if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
                 {
                     const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
-                    const double gen_tps    = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
+                    const double gen_tps = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
                     emit net2ui_state(
                         QString("net:%1 %2 t/s, %3 %4 t/s")
                             .arg(jtr("batch decode"))
@@ -317,7 +332,8 @@ void xNet::run()
                             .arg(QString::number(gen_tps, 'f', 1)),
                         SUCCESS_SIGNAL);
                     // After normal finish, correct kv tokens from server timings (prompt_n + predicted_n)
-                    if (timingsReceived_) {
+                    if (timingsReceived_)
+                    {
                         int totalUsed = 0;
                         if (promptTokens_ > 0) totalUsed += promptTokens_;
                         if (predictedTokens_ > 0) totalUsed += predictedTokens_;
@@ -401,9 +417,10 @@ void xNet::ensureNetObjects()
 
 //构造请求的数据体
 QByteArray xNet::createChatBody()
-{    // Build JSON body in OpenAI-compatible chat format with multimodal support
+{ // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
-    if (apis.is_cache) {
+    if (apis.is_cache)
+    {
         json.insert("cache_prompt", apis.is_cache);
     }
     json.insert("model", apis.api_model);
@@ -413,7 +430,8 @@ QByteArray xNet::createChatBody()
 
     // stop words
     QJsonArray stopkeys;
-    for (int i = 0; i < endpoint_data.stopwords.size(); ++i) {
+    for (int i = 0; i < endpoint_data.stopwords.size(); ++i)
+    {
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
@@ -425,20 +443,25 @@ QByteArray xNet::createChatBody()
                                                            QStringLiteral(DEFAULT_MODEL_NAME));
     json.insert("messages", oaiMessages);
     // Reuse llama.cpp server slot KV cache if available
-    if (endpoint_data.id_slot >= 0) {
+    if (endpoint_data.id_slot >= 0)
+    {
         json.insert("id_slot", endpoint_data.id_slot);
     }
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
-    for (const auto &v : oaiMessages) {
+    for (const auto &v : oaiMessages)
+    {
         if (!v.isObject()) continue;
         QJsonObject o = v.toObject();
         QString r = o.value("role").toString();
         QJsonValue c = o.value("content");
-        if (c.isString()) dbgLines << (r + ":" + QString::number(c.toString().size()));
-        else if (c.isArray()) dbgLines << (r + ":parts=" + QString::number(c.toArray().size()));
-        else dbgLines << (r + ":0");
+        if (c.isString())
+            dbgLines << (r + ":" + QString::number(c.toString().size()));
+        else if (c.isArray())
+            dbgLines << (r + ":parts=" + QString::number(c.toArray().size()));
+        else
+            dbgLines << (r + ":0");
     }
     // emit net2ui_state("net:send messages -> " + dbgLines.join(", "));
 
@@ -460,7 +483,8 @@ QByteArray xNet::createCompleteBody()
     json.insert("n_predict", endpoint_data.n_predict);
     json.insert("stream", true);
     json.insert("temperature", endpoint_data.temp);
-    if (endpoint_data.id_slot >= 0) {
+    if (endpoint_data.id_slot >= 0)
+    {
         json.insert("id_slot", endpoint_data.id_slot);
     }
 
@@ -529,8 +553,3 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
-
-
-
-
-

@@ -3,9 +3,9 @@
 #ifndef CPUCHECKER_H
 #define CPUCHECKER_H
 
-#include <QObject>
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QObject>
 #include <QProcess>
 #include <QThread>
 
@@ -179,8 +179,10 @@ class cpuChecker : public QObject
                 unsigned long value = 0;
                 std::string unit;
                 iss >> key >> value >> unit;
-                if (key == "MemTotal:") totalMem = value;
-                else if (key == "MemAvailable:") availMem = value;
+                if (key == "MemTotal:")
+                    totalMem = value;
+                else if (key == "MemAvailable:")
+                    availMem = value;
             }
         }
         const unsigned long usedMem = (totalMem > availMem) ? (totalMem - availMem) : 0;
@@ -199,4 +201,3 @@ class cpuChecker : public QObject
 };
 
 #endif // CPUCHECKER_H
-

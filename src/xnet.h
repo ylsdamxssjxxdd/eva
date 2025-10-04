@@ -56,9 +56,9 @@ class xNet : public QObject
     void net2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL);            // 状态
     void net2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0)); // 输出
     void net2ui_pushover();                                                                       // 推理完成
-    void net2ui_kv_tokens(int usedTokens);  // streaming used token count -> UI
-    void net2ui_slot_id(int slotId);        // server-assigned slot id for this conversation
-    void net2ui_reasoning_tokens(int count); // tokens generated inside <think>..</think> this turn (approx)
+    void net2ui_kv_tokens(int usedTokens);                                                        // streaming used token count -> UI
+    void net2ui_slot_id(int slotId);                                                              // server-assigned slot id for this conversation
+    void net2ui_reasoning_tokens(int count);                                                      // tokens generated inside <think>..</think> this turn (approx)
 
   private:
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead
@@ -70,16 +70,16 @@ class xNet : public QObject
     bool aborted_ = false;
     int tokens_ = 0;
     QByteArray sseBuffer_;
-    QElapsedTimer t_all_;   // total duration
-    QElapsedTimer t_first_; // time to first byte
-    QTimer *timeoutTimer_ = nullptr;   // hard timeout guard, created lazily in worker thread
+    QElapsedTimer t_all_;            // total duration
+    QElapsedTimer t_first_;          // time to first byte
+    QTimer *timeoutTimer_ = nullptr; // hard timeout guard, created lazily in worker thread
 
     // Timings reported by llama.cpp server (see tools/server web UI)
     // Used to compute prompt-processing and generation speeds accurately.
-    int promptTokens_ = -1;      // timings.prompt_n
-    double promptMs_ = 0.0;      // timings.prompt_ms
-    int predictedTokens_ = -1;   // timings.predicted_n
-    double predictedMs_ = 0.0;   // timings.predicted_ms
+    int promptTokens_ = -1;        // timings.prompt_n
+    double promptMs_ = 0.0;        // timings.prompt_ms
+    int predictedTokens_ = -1;     // timings.predicted_n
+    double predictedMs_ = 0.0;     // timings.predicted_ms
     bool timingsReceived_ = false; // whether timings were seen in SSE stream
     int reasoningTokensTurn_ = 0;  // approx count for <think> tokens this turn
 

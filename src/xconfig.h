@@ -586,7 +586,6 @@ inline void toggleWindowVisibility(QWidget *w, bool visible)
     }
 };
 
-
 // 安全获取字符串列表（原函数增强版，支持任意键）
 inline std::vector<std::string> get_string_list_safely(const mcp::json &json_, const std::string &key)
 {

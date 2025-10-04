@@ -59,9 +59,9 @@
 #include "../utils/customswitchbutton.h"
 #include "../utils/cutscreendialog.h"
 #include "../utils/doubleqprogressbar.h"
-#include "../xconfig.h" // ui和bot都要导入的共有配置
-#include "../xbackend.h" // local llama.cpp server manager
 #include "../utils/history_store.h" // per-session history persistence
+#include "../xbackend.h"            // local llama.cpp server manager
+#include "../xconfig.h"             // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 
 QT_BEGIN_NAMESPACE
@@ -147,20 +147,20 @@ class Widget : public QWidget
     void normal_finish_pushover();      //正常情况处理推理完毕
     bool gpu_wait_load = false;         // 等待检测完显存信息重新装载的标签
 
-    EVA_DATES ui_DATES;   // ui的约定
-    SETTINGS ui_SETTINGS; // ui的设置
-    int kvTokensLast_ = 0;            // last known used tokens for kv cache (accumulate within one conversation)
+    EVA_DATES ui_DATES;        // ui的约定
+    SETTINGS ui_SETTINGS;      // ui的设置
+    int kvTokensLast_ = 0;     // last known used tokens for kv cache (accumulate within one conversation)
     int ui_n_ctx_train = 2048; //模型最大上下文长度
-    int kvTokensAccum_ = 0;        // accumulated used tokens across the conversation
-    int kvTokensTurn_  = 0;        // this-turn processed tokens (prompt_n + generated)
-    int server_nctx_ = 0;                 // captured from llama_server logs for verification
+    int kvTokensAccum_ = 0;    // accumulated used tokens across the conversation
+    int kvTokensTurn_ = 0;     // this-turn processed tokens (prompt_n + generated)
+    int server_nctx_ = 0;      // captured from llama_server logs for verification
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
-    int max_thread = 1; //最大线程数
+    int max_thread = 1;           //最大线程数
     int lastReasoningTokens_ = 0; // approximate reasoning tokens in last turn
 
     float load_time = 0;
-    QElapsedTimer load_timer;            // measure local-server load duration
+    QElapsedTimer load_timer;        // measure local-server load duration
     QTimer *force_unlockload_pTimer; //到时间强制解锁
 
     // 监视相关
@@ -180,7 +180,7 @@ class Widget : public QWidget
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); //获取本机第一个ip地址
-    bool lastServerRestart_ = false; // 标记最近一次 ensureLocalServer 是否触发了重启
+    bool lastServerRestart_ = false;          // 标记最近一次 ensureLocalServer 是否触发了重启
 
     //语音相关
     QAudioRecorder audioRecorder;
@@ -257,10 +257,10 @@ class Widget : public QWidget
     bool is_decode = false;     //解码中标签
     void decode_move();         //下一帧
     void decode_play();         //播放解码中动画
-    void decode_finish();      //解码完成后将动画行替换为完成标志
+    void decode_finish();       //解码完成后将动画行替换为完成标志
     // 优雅等待动画：记录起始行与用时
-    int decodeLineNumber_ = -1;     // 动画所在行（固定行）
-    QElapsedTimer decodeTimer_;     // 动画计时器（秒）
+    int decodeLineNumber_ = -1; // 动画所在行（固定行）
+    QElapsedTimer decodeTimer_; // 动画计时器（秒）
 
     //系统信息相关
     QString model_memusage = "0", ctx_memusage = "0";
@@ -336,7 +336,7 @@ class Widget : public QWidget
     // Ensure local server exists for LOCAL_MODE and wire API endpoint
     void ensureLocalServer();
     void onServerReady(const QString &endpoint);
-    void onServerOutput(const QString &line);                 // parse llama_server logs for n_ctx
+    void onServerOutput(const QString &line);                                    // parse llama_server logs for n_ctx
     void recv_predecoding();                                                     // 正在预解码
     void recv_predecoding_over();                                                // 完成预解码
     void recv_chat_format(EVA_CHATS_TEMPLATE chats);                             //传递格式化后的对话内容
@@ -354,9 +354,9 @@ class Widget : public QWidget
     void recv_datereset();                                                       // bot发信号请求ui触发reset
     void recv_params(MODEL_PARAMS p);                                            // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                   //接收缓存量
-    void recv_kv_from_net(int usedTokens);                     // update kv from llama.cpp server timings
-    void onSlotAssigned(int slotId);                            // server slot id notification
-    void recv_reasoning_tokens(int tokens);                     // capture <think> token count of this turn
+    void recv_kv_from_net(int usedTokens);                                       // update kv from llama.cpp server timings
+    void onSlotAssigned(int slotId);                                             // server slot id notification
+    void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽
@@ -393,10 +393,10 @@ class Widget : public QWidget
     void settings_ui_cancel_button_clicked();
     void settings_ui_confirm_button_clicked();
 
-    void prompt_template_change();                //提示词模板下拉框响应
-    void complete_change();                       //补完模式响应
-    void chat_change();                           //对话模式响应
-    void web_change();                            //服务模式响应
+    void prompt_template_change(); //提示词模板下拉框响应
+    void complete_change();        //补完模式响应
+    void chat_change();            //对话模式响应
+    void web_change();             //服务模式响应
     // 服务模式已移除：server_onProcessStarted/server_onProcessFinished
     void bench_onProcessFinished();               // llama-bench进程结束响应
     void temp_change();                           //温度滑块响应
@@ -428,5 +428,3 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
-
-

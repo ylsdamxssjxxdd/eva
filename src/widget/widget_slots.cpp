@@ -386,9 +386,12 @@ void Widget::onServerReady(const QString &endpoint)
     ui->output->clear();
     ui_messagesArray = QJsonArray();
     {
-        QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
+        QJsonObject systemMessage;
+        systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+        systemMessage.insert("content", ui_DATES.date_prompt);
         ui_messagesArray.append(systemMessage);
-        if (history_) {
+        if (history_)
+        {
             SessionMeta meta;
             meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
             meta.title = "";
@@ -406,11 +409,14 @@ void Widget::onServerReady(const QString &endpoint)
     bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
     is_load = true;
     lastServerRestart_ = false; // 一次重启流程结束
-    all_fps++;              // 补上最后一帧，表示上下文也创建了
-    if (load_pTimer) {
+    all_fps++;                  // 补上最后一帧，表示上下文也创建了
+    if (load_pTimer)
+    {
         load_pTimer->stop();    // 停止动画，但保留 load_action
         load_pTimer->start(10); // 快速播放完剩下的动画
-    } else {
+    }
+    else
+    {
         // 兜底：没有动画定时器则直接解锁
         unlockLoad();
     }
@@ -494,7 +500,11 @@ void Widget::api_send_clicked_slove()
                 for (int i = 0; i < images_filepath.size(); ++i)
                 {
                     QFile imageFile(images_filepath[i]);
-                    if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
+                    if (!imageFile.open(QIODevice::ReadOnly))
+                    {
+                        qDebug() << "Failed to open image file";
+                        continue;
+                    }
                     QByteArray imageData = imageFile.readAll();
                     QByteArray base64Data = imageData.toBase64();
                     QString base64String = QString("data:image/jpeg;base64,") + base64Data;
@@ -562,18 +572,18 @@ void Widget::api_send_clicked_slove()
 
                 if (!contentArray.isEmpty())
                 {
-                message["content"] = contentArray;
-                ui_messagesArray.append(message);
-                if (history_) history_->appendMessage(message);
+                    message["content"] = contentArray;
+                    ui_messagesArray.append(message);
+                    if (history_) history_->appendMessage(message);
                 }
             }
 
             data.messagesArray = ui_messagesArray;
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前缀蓝色
-            reflash_output(input, 0, NORMAL_BLACK);                                                             //正文黑色
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);   //后缀蓝色
+            reflash_output(input, 0, NORMAL_BLACK);                                                           //正文黑色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE); //后缀蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
-    emit ui2net_data(data);
+            emit ui2net_data(data);
         }
     }
     else if (ui_state == COMPLETE_STATE) // 直接把 output 上的文本作为提示词
@@ -586,12 +596,14 @@ void Widget::api_send_clicked_slove()
     is_run = true; // 模型运行标记
     ui_state_pushing();
     // carry over tokens from previous turn before starting a new one
-    if (kvTokensTurn_ > 0) {
+    if (kvTokensTurn_ > 0)
+    {
         kvTokensAccum_ += kvTokensTurn_;
         kvTokensTurn_ = 0;
         const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
         int percent = 0;
-        if (nctx > 0) {
+        if (nctx > 0)
+        {
             percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
             if (percent > 0 && percent < 1) percent = 1;
             if (percent > 100) percent = 100;
@@ -749,7 +761,6 @@ void Widget::recv_predecoding_over()
     ui_state_normal();
 }
 
-
 // Initialize memory policy for text widgets: disable undo, cap logs
 void Widget::initTextComponentsMemoryPolicy()
 {
@@ -781,14 +792,12 @@ void Widget::resetStateDocument()
     ui->state->setDocument(doc);
 }
 
-
-
-
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
 void Widget::recv_kv_from_net(int usedTokens)
 {
     // 链接模式下这些值不准确；不更新、不展示
-    if (ui_mode == LINK_MODE) {
+    if (ui_mode == LINK_MODE)
+    {
         return;
     }
     // Track this-turn tokens from stream: usedTokens includes prompt_n when timings arrived, otherwise just generated.
@@ -797,7 +806,8 @@ void Widget::recv_kv_from_net(int usedTokens)
     const int shownTokens = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
     const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
     int percent = 0;
-    if (nctx > 0) {
+    if (nctx > 0)
+    {
         percent = qRound(100.0 * double(shownTokens) / double(nctx));
         if (percent > 0 && percent < 1) percent = 1;
         if (percent > 100) percent = 100;
@@ -829,13 +839,18 @@ void Widget::onServerOutput(const QString &line)
     // 1) capture n_ctx for verification
     // 0) capture n_ctx_train from print_info and clamp UI nctx slider max accordingly
     static QRegularExpression reCtxTrain("print_info\\s*:\\s*n_ctx_train\\s*=\\s*(\\d+)");
-    for (auto it = reCtxTrain.globalMatch(line); it.hasNext(); ) {
+    for (auto it = reCtxTrain.globalMatch(line); it.hasNext();)
+    {
         const QRegularExpressionMatch m = it.next();
-        bool ok = false; const int train = m.captured(1).toInt(&ok);
-        if (ok && train > 0) {
-            if (ui_n_ctx_train != train) {
+        bool ok = false;
+        const int train = m.captured(1).toInt(&ok);
+        if (ok && train > 0)
+        {
+            if (ui_n_ctx_train != train)
+            {
                 ui_n_ctx_train = train;
-                if (settings_ui && settings_ui->nctx_slider) {
+                if (settings_ui && settings_ui->nctx_slider)
+                {
                     const int curMax = settings_ui->nctx_slider->maximum();
                     if (curMax != train) settings_ui->nctx_slider->setMaximum(train);
                     if (settings_ui->nctx_slider->value() > train) settings_ui->nctx_slider->setValue(train);
@@ -845,12 +860,16 @@ void Widget::onServerOutput(const QString &line)
     }
 
     static QRegularExpression reCtx("llama_context\\s*:\\s*n_ctx\\s*=\\s*(\\d+)");
-    for (auto it = reCtx.globalMatch(line); it.hasNext(); ) {
+    for (auto it = reCtx.globalMatch(line); it.hasNext();)
+    {
         const QRegularExpressionMatch m = it.next();
-        bool ok = false; const int v = m.captured(1).toInt(&ok);
-        if (ok && v > 0) {
+        bool ok = false;
+        const int v = m.captured(1).toInt(&ok);
+        if (ok && v > 0)
+        {
             server_nctx_ = v;
-            if (server_nctx_ != ui_SETTINGS.nctx) {
+            if (server_nctx_ != ui_SETTINGS.nctx)
+            {
                 reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
             }
         }
@@ -859,7 +878,8 @@ void Widget::onServerOutput(const QString &line)
     // 2) Chat format
     static QRegularExpression reFmt("Chat\\s+format\\s*:\\s*(.+)");
     QRegularExpressionMatch mFmt = reFmt.match(line);
-    if (mFmt.hasMatch()) {
+    if (mFmt.hasMatch())
+    {
         const QString fmt = mFmt.captured(1).trimmed();
         // reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
     }
@@ -894,13 +914,15 @@ void Widget::onServerOutput(const QString &line)
     // }
 
     QRegularExpressionMatch m3 = reTotal.match(line);
-    if (m3.hasMatch()) {
+    if (m3.hasMatch())
+    {
         const int totalTokens = m3.captured(2).toInt();
         // Use total tokens to correct accumulated kv count for this conversation (server authoritative)
         kvTokensTurn_ = totalTokens;
         const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
         int percent = 0;
-        if (nctx > 0) {
+        if (nctx > 0)
+        {
             const int shown = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
             percent = qRound(100.0 * double(shown) / double(nctx));
             if (percent > 0 && percent < 1) percent = 1;
@@ -912,9 +934,3 @@ void Widget::onServerOutput(const QString &line)
         ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
     }
 }
-
-
-
-
-
-

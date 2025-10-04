@@ -7,7 +7,8 @@
 // prompt flow aligned with llama.cpp server chat templates.
 // Note: This only reshapes data; actual chat templating/rendering is handled
 // by the server (remote mode) or llama.cpp common chat templates (local mode).
-namespace promptx {
+namespace promptx
+{
 
 // Return an OpenAI-compatible messages array built from UI history, ensuring:
 // - system message is present (injects provided systemPrompt when missing)
@@ -16,7 +17,7 @@ namespace promptx {
 QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
                                 const QString &systemPrompt,
                                 const QString &systemRole = QStringLiteral("system"),
-                                const QString &userRole   = QStringLiteral("user"),
-                                const QString &asstRole   = QStringLiteral("assistant"));
+                                const QString &userRole = QStringLiteral("user"),
+                                const QString &asstRole = QStringLiteral("assistant"));
 
-}
+} // namespace promptx

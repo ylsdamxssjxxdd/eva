@@ -1,13 +1,13 @@
+#include "cmakeconfig.h"
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QFont>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 #include <QStyleFactory>
 #include <locale>
-#include "cmakeconfig.h"
-#include <QStandardPaths>
-#include <QDir>
-#include <QFile>
 
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
@@ -16,7 +16,6 @@
 #include "xmcp.h"
 #include "xnet.h"
 #include "xtool.h"
-
 
 static inline void createDesktopShortcut(QString appPath)
 {
@@ -86,16 +85,16 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-        QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true); //自适应缩放
-        QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); //适配非整数倍缩放
-        QApplication a(argc, argv); //事件实例
-        a.setQuitOnLastWindowClosed(false); //即使关闭所有窗口也不退出程序，为了保持系统托盘正常
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       //自适应缩放
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); //适配非整数倍缩放
+    QApplication a(argc, argv);                                                                              //事件实例
+    a.setQuitOnLastWindowClosed(false);                                                                      //即使关闭所有窗口也不退出程序，为了保持系统托盘正常
     // 加载资源文件中的字体, 统一使用宋体
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1)
     { //如果没有说明是在window下
         QFont font("SimSun");
-                font.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+        font.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
         QApplication::setFont(font);
         // qDebug() << "Loaded font:" << "windows SimSun";
     }
@@ -105,7 +104,7 @@ int main(int argc, char *argv[])
         if (!loadedFonts.empty())
         {
             QFont customFont(loadedFonts.at(0));
-                        customFont.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+            customFont.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
             QApplication::setFont(customFont);
             // qDebug() << "Loaded font:" << customFont.family();
         }
@@ -125,19 +124,19 @@ int main(int argc, char *argv[])
     createDesktopShortcut(appPath);
     qDebug() << "EVA_PATH" << appPath;
     //------------------实例化主要节点------------------
-    Widget w(nullptr, applicationDirPath); //窗口实例
+    Widget w(nullptr, applicationDirPath);      //窗口实例
     Expend expend(nullptr, applicationDirPath); //增殖窗口实例
-    xTool tool(applicationDirPath); //工具实例
+    xTool tool(applicationDirPath);             //工具实例
     // xBot removed: all inference goes through xNet to a llama.cpp server
-    xNet net; //链接实例
-    xMcp mcp; //mcp管理实例
+    xNet net;         //链接实例
+    xMcp mcp;         //mcp管理实例
     gpuChecker gpuer; //监测显卡信息
     cpuChecker cpuer; //监视系统信息
 
     //-----------------初始值设定-----------------------
     expend.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj; //传递语言
     expend.max_thread = w.max_thread;
-    tool.embedding_server_resultnumb = expend.embedding_resultnumb; //同步数目
+    tool.embedding_server_resultnumb = expend.embedding_resultnumb;          //同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
@@ -178,7 +177,8 @@ int main(int argc, char *argv[])
     QThread *net_thread = new QThread;
     net.moveToThread(net_thread);
     net_thread->start();
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, &net, [&net]() { net.recv_stop(true); }, Qt::QueuedConnection);
+    QObject::connect(
+        &a, &QCoreApplication::aboutToQuit, &net, [&net]() { net.recv_stop(true); }, Qt::QueuedConnection);
     QObject::connect(&a, &QCoreApplication::aboutToQuit, net_thread, &QThread::quit, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
@@ -196,30 +196,30 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        //强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
-    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language); //传递使用的语言
-    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show); //通知显示扩展窗口
-    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode); //开始语音转文字
-    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts); //重置文字转语音
-    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over); //转换完成返回结果
-    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath); //传递模型路径
-    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state); //窗口状态区更新
+    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         //传递使用的语言
+    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          //通知显示扩展窗口
+    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 //开始语音转文字
+    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         //重置文字转语音
+    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       //转换完成返回结果
+    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       //传递模型路径
+    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            //窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //传递知识库的描述
-    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log); //传递llama日志
+    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        //传递llama日志
 
     // xBot -> expend connections removed
 
     //------------------连接net和窗口-------------------
-    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);  //窗口输出区更新
-    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);    //窗口状态区更新
-    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection); //完成推理
-    QObject::connect(&net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection); // kv used tokens
-    QObject::connect(&net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection); // capture server slot id
+    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  //窗口输出区更新
+    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
+    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
+    QObject::connect(&net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // kv used tokens
+    QObject::connect(&net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
     QObject::connect(&net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
-    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);               //开始推理
-    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection); //传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);         //传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);         //传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);         //传递停止信号
+    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);                               //开始推理
+    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection);                 //传递使用的语言
+    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);                         //传递api设置参数
+    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);                         //传递端点参数
+    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);                         //传递停止信号
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //窗口状态区更新
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
     w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
     w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
     QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //模型路径
-    w.currentpath = w.historypath = expend.currentpath = modelpath; // 默认打开路径
+    w.currentpath = w.historypath = expend.currentpath = modelpath;                                                             // 默认打开路径
     w.ui_SETTINGS.modelpath = modelpath;
     w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
     w.ui_monitor_frame = settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toDouble();
@@ -297,7 +297,10 @@ int main(int argc, char *argv[])
     if (checkFile2.exists()) { w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString()); }
     int mode_num = settings.value("ui_state", 0).toInt();
     if (mode_num == 0) { w.settings_ui->chat_btn->setChecked(1); }
-    else if (mode_num == 1) { w.settings_ui->complete_btn->setChecked(1); }
+    else if (mode_num == 1)
+    {
+        w.settings_ui->complete_btn->setChecked(1);
+    }
 
     // 初次启动强制赋予隐藏的设定值
     w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
@@ -343,6 +346,5 @@ int main(int argc, char *argv[])
         }
     }
 
-        return a.exec(); //进入事件循环
+    return a.exec(); //进入事件循环
 }
-

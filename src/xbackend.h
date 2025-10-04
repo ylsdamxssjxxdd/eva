@@ -2,19 +2,20 @@
 #ifndef XBACKEND_H
 #define XBACKEND_H
 
+#include "xconfig.h"
 #include <QObject>
+#include <QPointer>
 #include <QProcess>
 #include <QStringList>
-#include <QPointer>
 #include <QTimer>
-#include "xconfig.h"
 
 // Manages the lifecycle of a local llama.cpp server and exposes a simple API
 // to (re)start it from SETTINGS. All UI/model calls go through xNet; this
 // class only ensures a local server exists when in LOCAL_MODE.
-class LocalServerManager : public QObject {
+class LocalServerManager : public QObject
+{
     Q_OBJECT
-public:
+  public:
     explicit LocalServerManager(QObject *parent, const QString &appDirPath);
     ~LocalServerManager() override;
 
@@ -37,15 +38,15 @@ public:
     // Whether current program/args differ from last started ones
     bool needsRestart() const;
 
-signals:
+  signals:
     void serverOutput(const QString &line);
     void serverState(const QString &line, SIGNAL_STATE type);
     void serverReady(const QString &endpoint); // emitted when server is listening
     void serverStopped();
 
-private:
-    QString programPath() const;           // resolve llama-server path per platform
-    QStringList buildArgs() const;         // build args from SETTINGS and paths
+  private:
+    QString programPath() const;   // resolve llama-server path per platform
+    QStringList buildArgs() const; // build args from SETTINGS and paths
     void startProcess(const QStringList &args);
     void hookProcessSignals();
 

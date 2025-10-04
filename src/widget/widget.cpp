@@ -3,9 +3,9 @@
 #include "widget.h"
 
 #include "ui_widget.h"
-#include <QRegularExpression>
 #include <QDateTime>
 #include <QDir>
+#include <QRegularExpression>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -132,7 +132,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
         // 如果是预期的重启过程（手动更换模型或设置导致），不打断装载动画
-        if (lastServerRestart_) {
+        if (lastServerRestart_)
+        {
             return;
         }
         // 非预期退出：取消动画并回到初始状态
@@ -316,8 +317,8 @@ void Widget::on_send_clicked()
         inputs = {EVA_ROLE_USER, text_content};                   //传递用户输入
     }
     // qDebug()<<text_content;
-    is_run = true;               //模型正在运行标签
-    ui_state_pushing();          //推理中界面状态
+    is_run = true;      //模型正在运行标签
+    ui_state_pushing(); //推理中界面状态
     // xbot 已弃用
 }
 
@@ -328,11 +329,13 @@ void Widget::recv_pushover()
     QString reasoningText;
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
-    const QString tEnd   = QString(DEFAULT_THINK_END);
+    const QString tEnd = QString(DEFAULT_THINK_END);
     int endIdx = finalText.indexOf(tEnd);
-    if (endIdx != -1) {
+    if (endIdx != -1)
+    {
         int startIdx = finalText.lastIndexOf(tBegin, endIdx);
-        if (startIdx != -1) {
+        if (startIdx != -1)
+        {
             const int rStart = startIdx + tBegin.size();
             reasoningText = finalText.mid(rStart, endIdx - rStart);
             // remove the whole <think>...</think> segment from finalText
@@ -344,7 +347,8 @@ void Widget::recv_pushover()
     roleMessage.insert("content", finalText);
     ui_messagesArray.append(roleMessage);
     // history: store reasoning separately for future display/search
-    if (history_) {
+    if (history_)
+    {
         QJsonObject hist = roleMessage;
         if (!reasoningText.isEmpty()) hist.insert("reasoning", reasoningText);
         history_->appendMessage(hist);
@@ -384,15 +388,18 @@ void Widget::recv_pushover()
                     else
                     {
                         // accumulate current-turn tokens before launching tool (exclude reasoning)
-                        if (kvTokensTurn_ > 0) {
+                        if (kvTokensTurn_ > 0)
+                        {
                             const int adjustedTurn = qMax(0, kvTokensTurn_ - lastReasoningTokens_);
                             kvTokensAccum_ += adjustedTurn;
                             kvTokensTurn_ = 0;
                             lastReasoningTokens_ = 0;
-                            if (ui_mode != LINK_MODE) {
+                            if (ui_mode != LINK_MODE)
+                            {
                                 const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
                                 int percent = 0;
-                                if (nctx > 0) {
+                                if (nctx > 0)
+                                {
                                     percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
                                     if (percent > 0 && percent < 1) percent = 1;
                                     if (percent > 100) percent = 100;
@@ -423,15 +430,18 @@ void Widget::normal_finish_pushover()
     is_run = false;
     ui_state_normal(); //待机界面状态
     // integrate this-turn tokens into conversation accumulation
-    if (kvTokensTurn_ > 0) {
+    if (kvTokensTurn_ > 0)
+    {
         const int adjustedTurn = qMax(0, kvTokensTurn_ - lastReasoningTokens_);
         kvTokensAccum_ += adjustedTurn;
         kvTokensTurn_ = 0;
         lastReasoningTokens_ = 0;
-        if (ui_mode != LINK_MODE) {
+        if (ui_mode != LINK_MODE)
+        {
             const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
             int percent = 0;
-            if (nctx > 0) {
+            if (nctx > 0)
+            {
                 percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
                 if (percent > 0 && percent < 1) percent = 1;
                 if (percent > 100) percent = 100;
@@ -617,7 +627,8 @@ void Widget::on_reset_clicked()
     if (ui->kv_bar) ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(0) + "/" + QString::number(ui_SETTINGS.nctx));
     if (ui->kv_bar) ui->kv_bar->setCenterText("");
 
-    kvTokensAccum_ = 0; kvTokensTurn_ = 0; // reset conversation kv tokens
+    kvTokensAccum_ = 0;
+    kvTokensTurn_ = 0;   // reset conversation kv tokens
     currentSlotId_ = -1; // new conversation -> no slot yet
     // Reset output safely. Replacing the QTextDocument drops any cached
     // resources/undo stack without risking double-deletes.
@@ -639,7 +650,8 @@ void Widget::on_reset_clicked()
     }
 
     // Begin new persistent history session
-    if (history_) {
+    if (history_)
+    {
         SessionMeta meta;
         meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
         meta.title = "";
@@ -658,7 +670,7 @@ void Widget::on_reset_clicked()
     {
         // 远端模式：显示当前端点
         current_api = (ui_state == CHAT_STATE) ? (apis.api_endpoint + apis.api_chat_endpoint)
-                                              : (apis.api_endpoint + apis.api_completion_endpoint);
+                                               : (apis.api_endpoint + apis.api_completion_endpoint);
         EVA_icon = QIcon(":/logo/dark_logo.png");
         QApplication::setWindowIcon(EVA_icon);
         trayIcon->setIcon(EVA_icon);
@@ -673,9 +685,12 @@ void Widget::on_reset_clicked()
         EVA_title = jtr("current model") + " " + modelName;
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
-        if (ui_SETTINGS.ngl == 0) {
+        if (ui_SETTINGS.ngl == 0)
+        {
             EVA_icon = QIcon(":/logo/blue_logo.png");
-        } else {
+        }
+        else
+        {
             EVA_icon = QIcon(":/logo/green_logo.png");
         }
         QApplication::setWindowIcon(EVA_icon);
@@ -786,4 +801,3 @@ void Widget::on_set_clicked()
     settings_ui->port_lineEdit->setText(ui_port);
     settings_dialog->exec();
 }
-

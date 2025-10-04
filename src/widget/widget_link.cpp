@@ -24,7 +24,8 @@ void Widget::set_api()
     // 1) 终止当前的流式请求（若有）
     emit ui2net_stop(true);
     // 2) 停止本地 llama.cpp server 后端，避免占用资源/混淆来源
-    if (serverManager && serverManager->isRunning()) {
+    if (serverManager && serverManager->isRunning())
+    {
         serverManager->stop();
         reflash_state("ui:backend stopped", SIGNAL_SIGNAL);
     }
@@ -57,7 +58,8 @@ void Widget::set_api()
     systemMessage.insert("content", ui_DATES.date_prompt);
     ui_messagesArray.append(systemMessage);
     // start a new persistent history session in LINK mode
-    if (history_) {
+    if (history_)
+    {
         SessionMeta meta;
         meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
         meta.title = "";
@@ -99,14 +101,17 @@ void Widget::tool_testhandleTimeout()
 
     emit ui2net_data(data);
     // carry over tokens from previous turn before starting a new one (tool)
-    if (kvTokensTurn_ > 0) {
+    if (kvTokensTurn_ > 0)
+    {
         kvTokensAccum_ += kvTokensTurn_;
         kvTokensTurn_ = 0;
         // 链接模式下不显示“记忆量”进度
-        if (ui_mode != LINK_MODE) {
+        if (ui_mode != LINK_MODE)
+        {
             const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
             int percent = 0;
-            if (nctx > 0) {
+            if (nctx > 0)
+            {
                 percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
                 if (percent > 0 && percent < 1) percent = 1;
                 if (percent > 100) percent = 100;
