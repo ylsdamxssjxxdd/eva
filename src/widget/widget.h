@@ -257,6 +257,7 @@ class Widget : public QWidget
     bool is_decode = false;     //解码中标签
     void decode_move();         //下一帧
     void decode_play();         //播放解码中动画
+    void decode_finish();      //解码完成后将动画行替换为完成标志
     // 优雅等待动画：记录起始行与用时
     int decodeLineNumber_ = -1;     // 动画所在行（固定行）
     QElapsedTimer decodeTimer_;     // 动画计时器（秒）
@@ -427,4 +428,5 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
+
 

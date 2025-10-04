@@ -1,6 +1,9 @@
+// cpuChecker - CPU 与内存占用查询（跨平台，Qt5）
+// 注意：源码统一使用 UTF-8 编码，避免中文注释出现问号
 #ifndef CPUCHECKER_H
 #define CPUCHECKER_H
 
+#include <QObject>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QProcess>
@@ -20,33 +23,45 @@ class cpuChecker : public QObject
     Q_OBJECT
 
   public:
-    cpuChecker() { ; }
+    cpuChecker()
+    {
+#ifdef _WIN32
+        // 首次采样：记录一次系统时间，避免第一帧出现异常峰值
+        ZeroMemory(&preIdleTime, sizeof(preIdleTime));
+        ZeroMemory(&preKernelTime, sizeof(preKernelTime));
+        ZeroMemory(&preUserTime, sizeof(preUserTime));
+        hasPrevTimes = false;
+#endif
+    }
     ~cpuChecker() { ; }
 
 #ifdef _WIN32
-    FILETIME preIdleTime;   // 用于记录上次的空闲时间
-    FILETIME preKernelTime; // 用于记录上次的内核时间
-    FILETIME preUserTime;   // 用于记录上次的用户时间
-#endif
-
-#ifdef __linux__
-    long long prevIdleTime = 0;  // 用于记录上次的空闲时间
-    long long prevTotalTime = 0; // 用于记录上次的总时间
+    FILETIME preIdleTime;   // 上次的空闲时间
+    FILETIME preKernelTime; // 上次的内核时间
+    FILETIME preUserTime;   // 上次的用户时间
+    bool hasPrevTimes = false;
 #endif
 
     /**
-     * @brief 计算当前 CPU 使用率
-     * 
-     * @return CPU 使用率（0-100），如果计算失败则返回 -1
+     * 计算当前 CPU 使用率
+     * 返回：0-100；若首次采样或失败，返回 -1
      */
     double CalculateCPULoad()
     {
 #ifdef _WIN32
         FILETIME idleTime, kernelTime, userTime;
-
         if (!GetSystemTimes(&idleTime, &kernelTime, &userTime))
         {
-            // 获取系统时间失败，返回 -1
+            return -1;
+        }
+
+        if (!hasPrevTimes)
+        {
+            // 首次调用仅初始化基线
+            preIdleTime = idleTime;
+            preKernelTime = kernelTime;
+            preUserTime = userTime;
+            hasPrevTimes = true;
             return -1;
         }
 
@@ -58,7 +73,6 @@ class cpuChecker : public QObject
         user.LowPart = userTime.dwLowDateTime;
         user.HighPart = userTime.dwHighDateTime;
 
-        // 计算当前和上次时间的差值
         ULARGE_INTEGER prevIdle, prevKernel, prevUser;
         prevIdle.LowPart = preIdleTime.dwLowDateTime;
         prevIdle.HighPart = preIdleTime.dwHighDateTime;
@@ -72,100 +86,37 @@ class cpuChecker : public QObject
         sysKernel.QuadPart = kernel.QuadPart - prevKernel.QuadPart;
         sysUser.QuadPart = user.QuadPart - prevUser.QuadPart;
 
-        // 更新存储的时间，准备下次计算
+        // 更新基线
         preIdleTime = idleTime;
         preKernelTime = kernelTime;
         preUserTime = userTime;
 
-        // 防止除零错误
-        if (sysKernel.QuadPart + sysUser.QuadPart == 0)
-        {
-            return 0;
-        }
+        const unsigned long long active = sysKernel.QuadPart + sysUser.QuadPart;
+        const unsigned long long total = active;
+        if (total == 0) return 0.0;
 
-        // 计算 CPU 使用率
-        return (sysKernel.QuadPart + sysUser.QuadPart - sysIdle.QuadPart) * 100.0 / (sysKernel.QuadPart + sysUser.QuadPart);
-#endif
-
-#ifdef __linux__
-        // Linux 系统的 CPU 计算方法暂时留空，可根据需求添加
-        return 0; // 示例返回值
-#endif
-    }
-
-  signals:
-    void cpu_status(double cpuload, double memload); // 用于发送 CPU 和内存负载信号
-
-  public slots:
-    /**
-     * @brief 检查 CPU 和内存的使用情况，并发送信号
-     * 
-     * 会计算当前的 CPU 使用率和内存使用率
-     */
-    void chekCpu()
-    {
-#ifdef _WIN32
-        // 获取内存使用情况
-        MEMORYSTATUSEX memInfo;
-        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
-        GlobalMemoryStatusEx(&memInfo);
-
-        DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
-        DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
-        double physMemUsedPercent = (physMemUsed * 100.0) / totalPhysMem; // 计算内存使用率
-
-        // 计算 CPU 使用率
-        double cpuLoad = CalculateCPULoad();
-
-        // 发出信号
-        emit cpu_status(cpuLoad, physMemUsedPercent);
-#endif
-
-#ifdef __linux__
-        // 获取内存使用情况
-        std::ifstream memInfoFile("/proc/meminfo");
-        std::string line;
-        unsigned long totalMem = 0;
-        unsigned long freeMem = 0;
-        unsigned long availMem = 0;
-        while (std::getline(memInfoFile, line))
-        {
-            std::istringstream iss(line);
-            std::string key;
-            unsigned long value;
-            std::string unit;
-            iss >> key >> value >> unit;
-            if (key == "MemTotal:")
-            {
-                totalMem = value;
-            }
-            else if (key == "MemAvailable:")
-            {
-                availMem = value;
-            }
-        }
-        unsigned long usedMem = totalMem - availMem;
-        double physMemUsedPercent = (usedMem * 100.0) / totalMem; // 计算内存使用率
-
-        // 获取 CPU 使用情况
+        const double used = (active - sysIdle.QuadPart) * 100.0 / double(total);
+        // 数值稳健性：限制在 [0,100]
+        if (used < 0.0) return 0.0;
+        if (used > 100.0) return 100.0;
+        return used;
+#elif __linux__
+        // 读取 /proc/stat 计算 CPU 利用率（总/空闲差分）
         std::ifstream cpuInfoFile("/proc/stat");
+        if (!cpuInfoFile.is_open()) return -1;
         std::string cpuLine;
         std::getline(cpuInfoFile, cpuLine);
         std::istringstream cpuStream(cpuLine);
         std::string cpu;
-        unsigned long user, nice, system, idle, iowait, irq, softirq, steal;
+        unsigned long user = 0, nice = 0, system = 0, idle = 0, iowait = 0, irq = 0, softirq = 0, steal = 0;
         cpuStream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
-
         static unsigned long prevUser = 0, prevNice = 0, prevSystem = 0, prevIdle = 0, prevIowait = 0, prevIrq = 0, prevSoftirq = 0, prevSteal = 0;
-        unsigned long prevTotalIdle = prevIdle + prevIowait;
-        unsigned long idleTime = idle + iowait;
-        unsigned long prevTotal = prevUser + prevNice + prevSystem + prevIdle + prevIowait + prevIrq + prevSoftirq + prevSteal;
-        unsigned long total = user + nice + system + idleTime + irq + softirq + steal;
-        unsigned long totald = total - prevTotal;
-        unsigned long idled = idleTime - prevTotalIdle;
-
-        // 计算 CPU 使用率
-        double cpuLoad = (totald - idled) * 100.0 / totald;
+        const unsigned long prevTotalIdle = prevIdle + prevIowait;
+        const unsigned long idleTime = idle + iowait;
+        const unsigned long prevTotal = prevUser + prevNice + prevSystem + prevIdle + prevIowait + prevIrq + prevSoftirq + prevSteal;
+        const unsigned long total = user + nice + system + idleTime + irq + softirq + steal;
+        const unsigned long totald = total - prevTotal;
+        const unsigned long idled = idleTime - prevTotalIdle;
 
         // 更新历史数据
         prevUser = user;
@@ -177,16 +128,75 @@ class cpuChecker : public QObject
         prevSoftirq = softirq;
         prevSteal = steal;
 
-        // 发出信号
-        emit cpu_status(cpuLoad, physMemUsedPercent);
+        if (totald == 0) return -1;
+        const double cpuLoad = (totald - idled) * 100.0 / double(totald);
+        if (cpuLoad < 0.0) return 0.0;
+        if (cpuLoad > 100.0) return 100.0;
+        return cpuLoad;
+#else
+        return -1;
 #endif
     }
 
-    // 重载函数，可以通过外部触发刷新 CPU 状态
-    void recv_cpu_reflash()
+  signals:
+    // 发送 CPU 与物理内存使用率（单位：百分比）
+    void cpu_status(double cpuload, double memload);
+
+  public slots:
+    /**
+     * 检查 CPU 和内存的使用情况，并发送信号
+     */
+    void chekCpu()
     {
-        chekCpu();
+#ifdef _WIN32
+        // 物理内存使用率
+        MEMORYSTATUSEX memInfo;
+        memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+        if (!GlobalMemoryStatusEx(&memInfo))
+        {
+            emit cpu_status(CalculateCPULoad(), 0.0);
+            return;
+        }
+        const DWORDLONG totalPhysMem = memInfo.ullTotalPhys;
+        const DWORDLONG physMemUsed = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
+        const double physMemUsedPercent = totalPhysMem ? (physMemUsed * 100.0 / double(totalPhysMem)) : 0.0;
+
+        double cpuLoad = CalculateCPULoad();
+        if (cpuLoad < 0.0) cpuLoad = 0.0; // 首帧或异常时回退为 0
+        emit cpu_status(cpuLoad, physMemUsedPercent);
+#elif __linux__
+        // 物理内存使用率（从 /proc/meminfo 读取）
+        std::ifstream memInfoFile("/proc/meminfo");
+        unsigned long totalMem = 0;
+        unsigned long availMem = 0;
+        if (memInfoFile.is_open())
+        {
+            std::string line;
+            while (std::getline(memInfoFile, line))
+            {
+                std::istringstream iss(line);
+                std::string key;
+                unsigned long value = 0;
+                std::string unit;
+                iss >> key >> value >> unit;
+                if (key == "MemTotal:") totalMem = value;
+                else if (key == "MemAvailable:") availMem = value;
+            }
+        }
+        const unsigned long usedMem = (totalMem > availMem) ? (totalMem - availMem) : 0;
+        const double physMemUsedPercent = totalMem ? (usedMem * 100.0 / double(totalMem)) : 0.0;
+
+        double cpuLoad = CalculateCPULoad();
+        if (cpuLoad < 0.0) cpuLoad = 0.0;
+        emit cpu_status(cpuLoad, physMemUsedPercent);
+#else
+        emit cpu_status(0.0, 0.0);
+#endif
     }
+
+    // 外部触发刷新 CPU 状态
+    void recv_cpu_reflash() { chekCpu(); }
 };
 
 #endif // CPUCHECKER_H
+

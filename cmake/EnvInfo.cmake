@@ -1,4 +1,4 @@
-﻿# EnvInfo.cmake - compute output name, environment string, and generate cmakeconfig.h
+# EnvInfo.cmake - compute output name, environment string, and generate cmakeconfig.h
 
 # Prevent double-include
 include_guard(GLOBAL)
@@ -90,7 +90,7 @@ if (NOT GPU_ARCH)
             set(GPU_ARCH "Intel ${CMAKE_MATCH_1}")
         endif()
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        execute_process(COMMAND powershell -Command "Get-WmiObject Win32_VideoController | Select-Object -ExpandProperty Name" OUTPUT_VARIABLE WIN_GPU_OUTPUT ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+        execute_process(COMMAND powershell -Command "(Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name)" OUTPUT_VARIABLE WIN_GPU_OUTPUT ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
         string(STRIP "${WIN_GPU_OUTPUT}" WIN_GPU_OUTPUT)
         if (WIN_GPU_OUTPUT MATCHES "NVIDIA|AMD|Intel")
             set(GPU_ARCH "${WIN_GPU_OUTPUT}")
@@ -122,3 +122,5 @@ endif()
 # Keep generated header at build/src/utils so includes like "./src/utils/cmakeconfig.h" work
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/src/utils)
 configure_file("${CMAKE_SOURCE_DIR}/src/utils/cmakeconfig.h.in" "${CMAKE_BINARY_DIR}/src/utils/cmakeconfig.h")
+
+

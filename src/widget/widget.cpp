@@ -441,8 +441,7 @@ void Widget::normal_finish_pushover()
             ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
         }
     }
-    decode_pTimer->stop();
-    decode_action = 0;
+    decode_finish();
     if (!wait_to_show_images_filepath.isEmpty())
     {
         showImages(wait_to_show_images_filepath);
@@ -787,3 +786,4 @@ void Widget::on_set_clicked()
     settings_ui->port_lineEdit->setText(ui_port);
     settings_dialog->exec();
 }
+
