@@ -129,12 +129,19 @@ foreach(B IN LISTS BACKENDS)
     set(SD_BLD ${EXT_BUILD_DIR}/stable-diffusion-${BLOW})
     set(SD_BIN ${SD_BLD}/bin)
     set(SD_BIN_CFG ${SD_BIN}/$<CONFIG>)
+    # Configure stable-diffusion.cpp backend toggles
+    # Note: upstream expects SD_CUDA / SD_VULKAN / SD_OPENCL options.
+    # We previously passed SD_USE_CUBLAS / SD_USE_VULKAN which are not
+    # recognized as options by the subproject, resulting in CPU builds.
     set(SD_EXTRA_ARGS "")
     if (B_USE_CUDA)
-        list(APPEND SD_EXTRA_ARGS -DSD_USE_CUBLAS=ON)
+        list(APPEND SD_EXTRA_ARGS -DSD_CUDA=ON)
     endif()
     if (B_USE_VULKAN)
-        list(APPEND SD_EXTRA_ARGS -DSD_USE_VULKAN=ON)
+        list(APPEND SD_EXTRA_ARGS -DSD_VULKAN=ON)
+    endif()
+    if (B_USE_OPENCL)
+        list(APPEND SD_EXTRA_ARGS -DSD_OPENCL=ON)
     endif()
     add_custom_target(sd-build-${BLOW}
         COMMAND ${CMAKE_COMMAND} -S ${SD_SRC} -B ${SD_BLD} -DBUILD_SHARED_LIBS=OFF ${SD_EXTRA_ARGS}
