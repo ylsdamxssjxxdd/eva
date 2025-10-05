@@ -287,6 +287,8 @@ int main(int argc, char *argv[])
     w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());
     w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
     w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
+    w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
+    w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
     w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
     w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
     bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //默认不主动嵌入词向量

@@ -26,6 +26,18 @@ void Widget::repeat_change()
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
 }
 
+// top_k 滑块响应
+void Widget::topk_change()
+{
+    settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
+}
+
+// 并发数量滑块响应
+void Widget::parallel_change()
+{
+    settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(settings_ui->parallel_slider->value()));
+}
+
 void Widget::nthread_change()
 {
     settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
@@ -436,8 +448,9 @@ void Widget::api_send_clicked_slove()
     data.stopwords = ui_DATES.extra_stop_words;
     data.is_complete_state = (ui_state == COMPLETE_STATE);
     data.temp = ui_SETTINGS.temp;
-    data.n_predict = ui_SETTINGS.hid_npredict;
     data.repeat = ui_SETTINGS.repeat;
+    data.top_k = ui_SETTINGS.top_k;
+    data.n_predict = ui_SETTINGS.hid_npredict;
     data.messagesArray = ui_messagesArray;
     data.id_slot = currentSlotId_;
 

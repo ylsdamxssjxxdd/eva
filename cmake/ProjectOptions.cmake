@@ -5,7 +5,7 @@ include_guard(GLOBAL)
 
 # ---- User-facing options ----
 option(BODY_PACK   "pack eva"                                   OFF)
-option(GGML_CUDA   "ggml: use CUDA"                             OFF)
+option(GGML_CUDA   "ggml: use CUDA"                             ON)
 option(GGML_VULKAN "ggml: use Vulkan"                           OFF)
 option(BODY_32BIT  "support 32 BIT"                             OFF)
 option(BODY_DOTPORD "使用常规arm dotprod加速"                    OFF)

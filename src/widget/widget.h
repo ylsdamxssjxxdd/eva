@@ -403,6 +403,8 @@ class Widget : public QWidget
     void ngl_change();                            // ngl滑块响应
     void nctx_change();                           // nctx滑块响应
     void repeat_change();                         // repeat滑块响应
+    void topk_change();                            // top_k 滑块响应
+    void parallel_change();                        // 并发数量滑块响应
     void nthread_change();                        // nthread
     void load_handleTimeout();                    //装载动画时间控制
     void load_begin_handleTimeout();              //滑动到最佳动画位置

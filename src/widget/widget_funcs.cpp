@@ -71,6 +71,8 @@ void Widget::get_set()
 {
     ui_SETTINGS.temp = settings_ui->temp_slider->value() / 100.0;
     ui_SETTINGS.repeat = settings_ui->repeat_slider->value() / 100.0;
+    ui_SETTINGS.hid_parallel = settings_ui->parallel_slider->value();
+    ui_SETTINGS.top_k = settings_ui->topk_slider->value();
 
     ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
     ui_SETTINGS.nctx = settings_ui->nctx_slider->value(); //获取nctx滑块的值
@@ -703,6 +705,13 @@ void Widget::apply_language(int language_flag_)
     settings_ui->temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     settings_ui->temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
+    // TOP_K 与 并发数量 初始文本与提示
+    settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(ui_SETTINGS.top_k));
+    settings_ui->topk_slider->setToolTip(jtr("top_k_label_tooltip"));
+    settings_ui->topk_label->setToolTip(jtr("top_k_label_tooltip"));
+    settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(ui_SETTINGS.hid_parallel));
+    settings_ui->parallel_slider->setToolTip(jtr("parallel_label_tooltip"));
+    settings_ui->parallel_label->setToolTip(jtr("parallel_label_tooltip"));
     settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->decode_box->setTitle(jtr("decode set")); //解码设置区域
@@ -791,6 +800,7 @@ void Widget::auto_save_user()
     settings.setValue("modelpath", ui_SETTINGS.modelpath); //模型路径
     settings.setValue("temp", ui_SETTINGS.temp);           //温度
     settings.setValue("repeat", ui_SETTINGS.repeat);       //惩罚系数
+    settings.setValue("top_k", ui_SETTINGS.top_k);         // top-k 采样
     settings.setValue("ngl", ui_SETTINGS.ngl);             // gpu负载层数
     settings.setValue("nthread", ui_SETTINGS.nthread);     // cpu线程数
     settings.setValue("nctx", ui_SETTINGS.nctx);

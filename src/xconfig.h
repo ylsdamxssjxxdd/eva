@@ -41,6 +41,8 @@
 #define DEFAULT_TEMP 0.7
 #define DEFAULT_REPEAT 1.2
 #define DEFAULT_TOP_P 0.95 // 默认top_p值为0.95
+// 采样：top_k（<=0 表示使用词表大小；常用范围 0~100）
+#define DEFAULT_TOP_K 40
 
 //推理
 #define DEFAULT_NTHREAD 1    // 默认线程数为1，但是后面会变的
@@ -213,6 +215,7 @@ struct SETTINGS
 {
     double temp = DEFAULT_TEMP;
     double repeat = DEFAULT_REPEAT;
+    int top_k = DEFAULT_TOP_K;
     int ngl = DEFAULT_NGL;
     int nctx = DEFAULT_NCTX;
     int nthread = std::thread::hardware_concurrency() * 0.5;
@@ -265,6 +268,7 @@ struct ENDPOINT_DATA
     bool is_complete_state;   // 是否为补完状态
     float temp;               // 温度
     double repeat;            // 重复惩罚
+    int top_k;                // 采样：top_k
     int n_predict;            // 最大预测数
     QStringList stopwords;    //停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)

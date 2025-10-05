@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>236</width>
-    <height>367</height>
+    <width>242</width>
+    <height>417</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,13 +61,13 @@
          <widget class="QLabel" name="temp_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -90,6 +90,9 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -103,13 +106,13 @@
          <widget class="QLabel" name="repeat_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -131,6 +134,54 @@
             <width>16777215</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="topk_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>TOP_K</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSlider" name="topk_slider">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -169,18 +220,57 @@
        <number>3</number>
       </property>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <layout class="QHBoxLayout" name="horizontalLayout_22">
         <item>
-         <widget class="QLabel" name="ngl_label">
+         <widget class="QLabel" name="device_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>推理设备</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="device_comboBox">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QLabel" name="ngl_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -203,6 +293,9 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -216,13 +309,13 @@
          <widget class="QLabel" name="nthread_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -245,6 +338,9 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -258,13 +354,13 @@
          <widget class="QLabel" name="nctx_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -295,18 +391,72 @@
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_10">
+       <layout class="QHBoxLayout" name="horizontalLayout_23">
         <item>
-         <widget class="QLabel" name="lora_label">
+         <widget class="QLabel" name="parallel_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>并发数量</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSlider" name="parallel_slider">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>4096</number>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
+          <property name="value">
+           <number>1</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_10">
+        <item>
+         <widget class="QLabel" name="lora_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -333,13 +483,13 @@
          <widget class="QLabel" name="mmproj_label">
           <property name="minimumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>20</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>120</width>
             <height>16777215</height>
            </size>
           </property>
@@ -350,6 +500,47 @@
         </item>
         <item>
          <widget class="QLineEdit" name="mmproj_LineEdit">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_12">
+        <property name="spacing">
+         <number>6</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="port_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>暴露端口</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="port_lineEdit">
           <property name="minimumSize">
            <size>
             <width>100</width>
@@ -478,55 +669,6 @@
           </property>
           <property name="text">
            <string>0</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
-        <property name="spacing">
-         <number>3</number>
-        </property>
-        <!-- web_btn removed: 服务状态模式已移除 -->
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="port_label">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>8</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>端口</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="port_lineEdit">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>20</height>
-           </size>
           </property>
          </widget>
         </item>

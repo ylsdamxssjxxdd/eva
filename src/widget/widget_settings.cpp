@@ -15,22 +15,36 @@ void Widget::set_SetDialog()
     //温度控制
     settings_ui->temp_slider->setRange(0, 100); // 设置范围为1到99
     settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
+    settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
     connect(settings_ui->temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
     //重复惩罚控制
     settings_ui->repeat_slider->setRange(0, 200); // 设置范围
     settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
+    settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
     connect(settings_ui->repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
+    // TOP_K 控制（采样）
+    settings_ui->topk_slider->setRange(0, 200);
+    settings_ui->topk_slider->setValue(ui_SETTINGS.top_k);
+    settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
+    connect(settings_ui->topk_slider, &QSlider::valueChanged, this, &Widget::topk_change);
     //加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
+    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(settings_ui->ngl_slider->value()));
     connect(settings_ui->ngl_slider, &QSlider::valueChanged, this, &Widget::ngl_change);
     // cpu线程数设置
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
+    settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
     connect(settings_ui->nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
     // ctx length 记忆容量
     settings_ui->nctx_slider->setRange(128, 32768);
     settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
+    settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value()));
     connect(settings_ui->nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
+    // 并发数量（llama-server --parallel）
+    settings_ui->parallel_slider->setValue(ui_SETTINGS.hid_parallel);
+    settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(settings_ui->parallel_slider->value()));
+    connect(settings_ui->parallel_slider, &QSlider::valueChanged, this, &Widget::parallel_change);
     // load lora
     settings_ui->lora_LineEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
     settings_ui->lora_LineEdit->installEventFilter(this);

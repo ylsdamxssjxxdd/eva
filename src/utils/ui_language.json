@@ -174,6 +174,22 @@
             "重复惩罚",
             "repeat"
         ],
+        "top_k": [
+            "TOP_K",
+            "TOP_K"
+        ],
+        "top_k_label_tooltip": [
+            "限制下一个token的候选数量，0表示使用全部词表；1接近贪婪解码",
+            "Limit next-token candidates to top K. 0 uses full vocab; 1 is near greedy."
+        ],
+        "parallel": [
+            "并发数量",
+            "parallel"
+        ],
+        "parallel_label_tooltip": [
+            "本地服务可并行处理的请求/会话数，增大将提升并发但占用更多显存/内存",
+            "Number of concurrent sequences/requests for local server; higher uses more VRAM/CPU."
+        ],
         "port": [
             "端口",
             "port "

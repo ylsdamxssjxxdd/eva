@@ -12,6 +12,7 @@ xBot::xBot()
     common_params_.sampling.top_p = DEFAULT_TOP_P;
     common_params_.sampling.temp = DEFAULT_TEMP;             //温度
     common_params_.sampling.penalty_repeat = DEFAULT_REPEAT; //重复惩罚 1.0 = disabled
+    common_params_.sampling.top_k = DEFAULT_TOP_K;           // top-k sampling (<=0 = use vocab size)
     common_params_.sampling.penalty_freq = 0.00;             //频率惩罚 0.0 = disabled openai
     common_params_.sampling.penalty_present = 0.00;          //同类惩罚 0.0 = disabled openai
 
@@ -965,6 +966,7 @@ void xBot::recv_set(SETTINGS settings, bool can_reload)
     is_complete = settings.complete_mode;
     common_params_.sampling.temp = settings.temp;
     common_params_.sampling.penalty_repeat = settings.repeat;
+    common_params_.sampling.top_k = settings.top_k;
     common_params_.n_predict = settings.hid_npredict;
     common_params_.special = settings.hid_special;
     common_params_.sampling.top_p = settings.hid_top_p;

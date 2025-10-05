@@ -426,6 +426,8 @@ QByteArray xNet::createChatBody()
     json.insert("model", apis.api_model);
     json.insert("stream", true);
     json.insert("temperature", 2 * endpoint_data.temp); // OpenAI temperature 0-2; ours 0-1
+    json.insert("top_k", endpoint_data.top_k);
+    json.insert("repeat_penalty", endpoint_data.repeat);
     json.insert("max_tokens", endpoint_data.n_predict);
 
     // stop words
@@ -483,6 +485,8 @@ QByteArray xNet::createCompleteBody()
     json.insert("n_predict", endpoint_data.n_predict);
     json.insert("stream", true);
     json.insert("temperature", endpoint_data.temp);
+    json.insert("top_k", endpoint_data.top_k);
+    json.insert("repeat_penalty", endpoint_data.repeat);
     if (endpoint_data.id_slot >= 0)
     {
         json.insert("id_slot", endpoint_data.id_slot);

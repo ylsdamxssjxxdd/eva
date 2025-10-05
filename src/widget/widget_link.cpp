@@ -95,6 +95,7 @@ void Widget::tool_testhandleTimeout()
     }
     data.temp = ui_SETTINGS.temp;
     data.repeat = ui_SETTINGS.repeat;
+    data.top_k = ui_SETTINGS.top_k;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.messagesArray = ui_messagesArray;
     data.id_slot = currentSlotId_;
@@ -134,6 +135,10 @@ void Widget::change_api_dialog(bool enable)
 {
     settings_ui->repeat_label->setVisible(enable);
     settings_ui->repeat_slider->setVisible(enable);
+    settings_ui->parallel_label->setVisible(enable);
+    settings_ui->parallel_slider->setVisible(enable);
+    settings_ui->topk_label->setVisible(enable);
+    settings_ui->topk_slider->setVisible(enable);
     settings_ui->nctx_label->setVisible(enable);
     settings_ui->nctx_slider->setVisible(enable);
     settings_ui->nthread_label->setVisible(enable);
