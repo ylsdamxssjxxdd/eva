@@ -36,9 +36,8 @@ add_executable(
 
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
-# include build dir for generated config header
+## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
-add_dependencies(${EVA_TARGET} llama-server whisper-cli llama-quantize llama-tts sd mtmd ggml)
 
 message(STATUS "eva生产时间${eva_OUTPUT_NAME}")
 

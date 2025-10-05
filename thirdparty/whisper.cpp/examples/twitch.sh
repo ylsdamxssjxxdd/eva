@@ -2,7 +2,7 @@
 #
 # Transcribe twitch.tv livestream by feeding audio input to whisper.cpp at regular intervals
 # Thanks to @keyehzy
-# ref: https://github.com/ggerganov/whisper.cpp/issues/209
+# ref: https://github.com/ggml-org/whisper.cpp/issues/209
 #
 # The script currently depends on the third-party tool "streamlink"
 # On Mac OS, you can install it via "brew install streamlink"
@@ -29,7 +29,7 @@ help()
 
 check_requirements()
 {
-    if ! command -v ./main &>/dev/null; then
+    if ! command -v ./build/bin/whisper-cli &>/dev/null; then
         echo "whisper.cpp main executable is required (make)"
         exit 1
     fi
@@ -100,7 +100,7 @@ do
         err=$(cat /tmp/whisper-live.err | wc -l)
     done
 
-    ./main -t $threads -m ./models/ggml-$model.bin -f /tmp/whisper-live.wav --no-timestamps -otxt 2> /tmp/whispererr | tail -n 1
+    ./build/bin/whisper-cli -t $threads -m ./models/ggml-$model.bin -f /tmp/whisper-live.wav --no-timestamps -otxt 2> /tmp/whispererr | tail -n 1
 
     while [ $SECONDS -lt $((($i+1)*$step)) ]; do
         sleep 1

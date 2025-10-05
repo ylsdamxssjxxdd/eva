@@ -8,6 +8,7 @@
 #include "ggml-alloc.h"
 #include "ggml-backend.h"
 #include "ggml.h"
+#include "gguf.h"
 #include "ggml-cpu.h"
 #include "ggml-opt.h"
 
@@ -107,7 +108,7 @@ struct mnist_model {
         }
 
         // The order of the backends passed to ggml_backend_sched_new determines which backend is given priority.
-        backend_sched = ggml_backend_sched_new(backends.data(), nullptr, backends.size(), GGML_DEFAULT_GRAPH_SIZE, false);
+        backend_sched = ggml_backend_sched_new(backends.data(), nullptr, backends.size(), GGML_DEFAULT_GRAPH_SIZE, false, true);
         fprintf(stderr, "%s: using %s (%s) as primary backend\n",
                 __func__, ggml_backend_name(backends[0]), ggml_backend_dev_description(devices[0]));
         if (backends.size() >= 2) {

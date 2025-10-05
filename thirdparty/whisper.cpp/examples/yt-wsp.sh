@@ -25,12 +25,12 @@
 # SOFTWARE.
 
 # Small shell script to more easily automatically download and transcribe live stream VODs.
-# This uses YT-DLP, ffmpeg and the CPP version of Whisper: https://github.com/ggerganov/whisper.cpp
+# This uses YT-DLP, ffmpeg and the CPP version of Whisper: https://github.com/ggml-org/whisper.cpp
 # Use `./examples/yt-wsp.sh help` to print help info.
 #
 # Sample usage:
 #
-#   git clone https://github.com/ggerganov/whisper.cpp
+#   git clone https://github.com/ggml-org/whisper.cpp
 #   cd whisper.cpp
 #   make
 #   ./examples/yt-wsp.sh https://www.youtube.com/watch?v=1234567890
@@ -44,7 +44,7 @@ SCRIPT_DIR="${SCRIPT_PATH%/*}"
 
 ################################################################################
 # Documentation on downloading models can be found in the whisper.cpp repo:
-# https://github.com/ggerganov/whisper.cpp/#usage
+# https://github.com/ggml-org/whisper.cpp/#usage
 #
 # note: unless a multilingual model is specified, WHISPER_LANG will be ignored
 # and the video will be transcribed as if the audio were in the English language
@@ -55,7 +55,7 @@ MODEL_PATH="${MODEL_PATH:-${SCRIPT_DIR}/../models/ggml-base.en.bin}"
 # Where to find the whisper.cpp executable.  default to the examples directory
 # which holds this script in source control
 ################################################################################
-WHISPER_EXECUTABLE="${WHISPER_EXECUTABLE:-${SCRIPT_DIR}/../main}";
+WHISPER_EXECUTABLE="${WHISPER_EXECUTABLE:-${SCRIPT_DIR}/../build/bin/whisper-cli}";
 
 # Set to desired language to be translated into english
 WHISPER_LANG="${WHISPER_LANG:-en}";
@@ -80,15 +80,41 @@ cleanup() {
 }
 
 print_help() {
-    echo "################################################################################"
-    echo "Usage: ./examples/yt-wsp.sh <video_url>"
-    echo "# See configurable env variables in the script; there are many!"
-    echo "# This script will produce an MP4 muxed file in the working directory; it will"
-    echo "# be named for the title and id of the video."
-    echo "# passing in https://youtu.be/VYJtb2YXae8 produces a file named";
-    echo "# 'Why_we_all_need_subtitles_now-VYJtb2YXae8-res.mp4'"
-    echo "# Requirements: ffmpeg yt-dlp whisper.cpp"
-    echo "################################################################################"
+    cat << 'EOF'
+Usage:
+  MODEL_PATH=<model> \
+  WHISPER_EXECUTABLE=<whisper-cli> \
+  WHISPER_LANG=en \
+  WHISPER_THREAD_COUNT=<int> \
+  ./examples/yt-wsp.sh <video_url>
+
+Description:
+  This script downloads a YouTube video, generates subtitles using Whisper, 
+  and muxes them into an MP4 output file.
+
+Output:
+  An MP4 file with embedded subtitles will be produced in the working directory.
+  The file will be named using the video title and ID.
+  Example: 
+    Input:  https://youtu.be/VYJtb2YXae8
+    Output: Why_we_all_need_subtitles_now-VYJtb2YXae8-res.mp4
+
+Requirements:
+  - ffmpeg
+  - yt-dlp
+  - whisper.cpp
+
+Environment Variables:
+  MODEL_PATH            Path to the Whisper model (e.g., models/ggml-base.en.bin)
+  WHISPER_EXECUTABLE    Path to the Whisper CLI executable
+  WHISPER_LANG          Language code (e.g., 'en' for English)
+  WHISPER_THREAD_COUNT  Number of CPU threads to use
+
+Tip:
+  The script has many configurable environment variables.
+  Review the source code to explore all options.
+
+EOF
 }
 
 check_requirements() {
@@ -103,10 +129,10 @@ check_requirements() {
     fi;
 
     if ! command -v "${WHISPER_EXECUTABLE}" &>/dev/null; then
-        echo "The C++ implementation of Whisper is required: https://github.com/ggerganov/whisper.cpp"
+        echo "The C++ implementation of Whisper is required: https://github.com/ggml-org/whisper.cpp"
         echo "Sample usage:";
         echo "";
-        echo "  git clone https://github.com/ggerganov/whisper.cpp";
+        echo "  git clone https://github.com/ggml-org/whisper.cpp";
         echo "  cd whisper.cpp";
         echo "  make";
         echo "  ./examples/yt-wsp.sh https://www.youtube.com/watch?v=1234567890";

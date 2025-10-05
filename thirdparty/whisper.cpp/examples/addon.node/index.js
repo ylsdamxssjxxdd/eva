@@ -1,8 +1,10 @@
-const path = require("path");
-const { whisper } = require(path.join(
-  __dirname,
-  "../../build/Release/addon.node"
-));
+const path = require('path');
+const os = require('os');
+
+const isWindows = os.platform() === 'win32';
+const buildPath = isWindows ? "../../build/bin/Release/addon.node" : "../../build/Release/addon.node";
+
+const { whisper } = require(path.join(__dirname, buildPath));
 const { promisify } = require("util");
 
 const whisperAsync = promisify(whisper);
@@ -17,7 +19,12 @@ const whisperParams = {
   comma_in_time: false,
   translate: true,
   no_timestamps: false,
+  detect_language: false,
   audio_ctx: 0,
+  max_len: 0,
+  progress_callback: (progress) => {
+      console.log(`progress: ${progress}%`);
+    }
 };
 
 const arguments = process.argv.slice(2);
@@ -27,6 +34,8 @@ const params = Object.fromEntries(
       const [key, value] = item.slice(2).split("=");
       if (key === "audio_ctx") {
         whisperParams[key] = parseInt(value);
+      } else if (key === "detect_language") {
+        whisperParams[key] = value === "true";
       } else {
         whisperParams[key] = value;
       }

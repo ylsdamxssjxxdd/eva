@@ -10,6 +10,9 @@
 # # with CUDA support
 # GG_BUILD_CUDA=1 bash ./ci/run.sh ./tmp/results ./tmp/mnt
 #
+# # With SYCL support
+# GG_BUILD_SYCL=1 bash ./ci/run.sh ./tmp/results ./tmp/mnt
+#
 
 if [ -z "$2" ]; then
     echo "usage: $0 <output-dir> <mnt-dir>"
@@ -31,6 +34,7 @@ cd $sd/../
 SRC=`pwd`
 
 CMAKE_EXTRA=""
+CTEST_EXTRA=""
 
 if [ ! -z ${GG_BUILD_CUDA} ]; then
     CMAKE_EXTRA="${CMAKE_EXTRA} -DGGML_CUDA=ON"
@@ -41,6 +45,19 @@ if [ ! -z ${GG_BUILD_METAL} ]; then
     #       the binaries cannot locate default.metallib eventhough it is in bin/. cannot figure out
     #       why this is happening, so temporary workaround is to use -DGGML_METAL_EMBED_LIBRARY=ON
     CMAKE_EXTRA="${CMAKE_EXTRA} -DGGML_METAL=ON -DGGML_METAL_EMBED_LIBRARY=ON"
+fi
+
+if [ ! -z ${GG_BUILD_SYCL} ]; then
+    if [ -z ${ONEAPI_ROOT} ]; then
+        echo "Not detected ONEAPI_ROOT, please install oneAPI base toolkit and enable it by:"
+        echo "source /opt/intel/oneapi/setvars.sh"
+        exit 1
+    fi
+    export ONEAPI_DEVICE_SELECTOR="level_zero:0"
+    export ZES_ENABLE_SYSMAN=1
+    # No plan to implement backward pass for now / disable test-opt
+    CTEST_EXTRA="-E test-opt"
+    CMAKE_EXTRA="${CMAKE_EXTRA} -DGGML_SYCL=1 -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGGML_SYCL_F16=ON"
 fi
 
 ## helpers
@@ -101,7 +118,7 @@ function gg_run_ctest_debug {
         export GGML_METAL_PATH_RESOURCES="$(pwd)/bin"
     fi
 
-    (time ctest --output-on-failure -E test-opt ) 2>&1 | tee -a $OUT/${ci}-ctest.log
+    (time ctest ${CTEST_EXTRA} --output-on-failure -E test-opt ) 2>&1 | tee -a $OUT/${ci}-ctest.log
 
     set +e
 }
@@ -134,9 +151,9 @@ function gg_run_ctest_release {
     fi
 
     if [ -z $GG_BUILD_LOW_PERF ]; then
-        (time ctest --output-on-failure ) 2>&1 | tee -a $OUT/${ci}-ctest.log
+        (time ctest ${CTEST_EXTRA} --output-on-failure ) 2>&1 | tee -a $OUT/${ci}-ctest.log
     else
-        (time ctest --output-on-failure -E test-opt ) 2>&1 | tee -a $OUT/${ci}-ctest.log
+        (time ctest ${CTEST_EXTRA} --output-on-failure -E test-opt ) 2>&1 | tee -a $OUT/${ci}-ctest.log
     fi
 
     set +e
@@ -237,9 +254,15 @@ function gg_run_sam {
 
     python3 ../examples/sam/convert-pth-to-ggml.py ${path_models}/sam_vit_b_01ec64.pth ${path_models}/ 1
 
+    # Test default parameters
     (time ./bin/sam -m ${model_f16} -i ${img_0} ) 2>&1 | tee -a $OUT/${ci}-main.log
-
+    grep -q "point prompt" $OUT/${ci}-main.log
     grep -q "bbox (371, 436), (144, 168)" $OUT/${ci}-main.log
+
+    # Test box prompt and single mask output
+    (time ./bin/sam -m ${model_f16} -i ${img_0} -b 368,144,441,173 -sm) 2>&1 | tee -a $OUT/${ci}-main.log
+    grep -q "box prompt" $OUT/${ci}-main.log
+    grep -q "bbox (370, 439), (144, 169)" $OUT/${ci}-main.log
 
     set +e
 }
@@ -293,19 +316,28 @@ function gg_sum_yolo {
 
 ## main
 
-if [ -z $GG_BUILD_LOW_PERF ]; then
+if [ -z ${GG_BUILD_LOW_PERF} ]; then
+    # Create symlink: ./ggml/models-mnt -> $MNT/models/models-mnt
     rm -rf ${SRC}/models-mnt
-
     mnt_models=${MNT}/models
     mkdir -p ${mnt_models}
     ln -sfn ${mnt_models} ${SRC}/models-mnt
+
+    # Create a fresh python3 venv and enter it
+    if ! python3 -m venv "$MNT/venv"; then
+        echo "Error: Failed to create Python virtual environment at $MNT/venv."
+        exit 1
+    fi
+    source "$MNT/venv/bin/activate"
+
+    pip install -r ${SRC}/requirements.txt --disable-pip-version-check
 fi
 
-python3 -m pip install -r ${SRC}/requirements.txt
 
 ret=0
-
-test $ret -eq 0 && gg_run ctest_debug
+if [ -z ${GG_BUILD_SYCL}]; then
+    test $ret -eq 0 && gg_run ctest_debug
+fi
 test $ret -eq 0 && gg_run ctest_release
 
 if [ ! -z ${GG_BUILD_METAL} ]; then

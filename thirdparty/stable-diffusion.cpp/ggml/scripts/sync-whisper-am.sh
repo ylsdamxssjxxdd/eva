@@ -56,20 +56,9 @@ while read c; do
         ggml/CMakeLists.txt \
         ggml/src/CMakeLists.txt \
         ggml/cmake/FindSIMD.cmake \
-        ggml/src/ggml*.h \
-        ggml/src/ggml*.c \
-        ggml/src/ggml*.cpp \
-        ggml/src/ggml*.m \
-        ggml/src/ggml*.metal \
-        ggml/src/ggml*.cu \
-        ggml/src/ggml-amx/* \
-        ggml/src/ggml-cann/* \
-        ggml/src/ggml-cuda/* \
-        ggml/src/ggml-sycl/* \
-        ggml/src/vulkan-shaders/* \
+        ggml/src/ggml* \
         ggml/include/ggml*.h \
-        examples/common.h \
-        examples/common.cpp \
+        ggml/include/gguf*.h \
         examples/common-ggml.h \
         examples/common-ggml.cpp \
         LICENSE \
@@ -103,18 +92,10 @@ if [ -f $SRC_GGML/whisper-src.patch ]; then
     # ggml/src/CMakelists.txt   -> src/CMakeLists.txt
     # ggml/cmake/FindSIMD.cmake -> cmake/FindSIMD.cmake
     #
-    # ggml/src/ggml*.c          -> src/ggml*.c
-    # ggml/src/ggml*.cpp        -> src/ggml*.cpp
-    # ggml/src/ggml*.h          -> src/ggml*.h
-    # ggml/src/ggml*.cu         -> src/ggml*.cu
-    # ggml/src/ggml*.m          -> src/ggml*.m
-    # ggml/src/ggml-amx/*       -> src/ggml-amx/*
-    # ggml/src/ggml-cann/*      -> src/ggml-cann/*
-    # ggml/src/ggml-cuda/*      -> src/ggml-cuda/*
-    # ggml/src/ggml-sycl/*      -> src/ggml-sycl/*
-    # ggml/src/vulkan-shaders/* -> src/vulkan-shaders/*
+    # ggml/src/ggml* -> src/ggml*
     #
     # ggml/include/ggml*.h -> include/ggml*.h
+    # ggml/include/gguf*.h -> include/gguf*.h
     #
     # examples/common.h        -> examples/common.h
     # examples/common.cpp      -> examples/common.cpp
@@ -128,17 +109,9 @@ if [ -f $SRC_GGML/whisper-src.patch ]; then
         -e 's/\/ggml\/CMakeLists\.txt/\/CMakeLists.txt/g' \
         -e 's/\/ggml\/src\/CMakeLists\.txt/\/src\/CMakeLists.txt/g' \
         -e 's/\/ggml\/cmake\/FindSIMD\.cmake/\/cmake\/FindSIMD.cmake/g' \
-        -e 's/\/ggml\/src\/ggml(.*)\.c/\/src\/ggml\1.c/g' \
-        -e 's/\/ggml\/src\/ggml(.*)\.cpp/\/src\/ggml\1.cpp/g' \
-        -e 's/\/ggml\/src\/ggml(.*)\.h/\/src\/ggml\1.h/g' \
-        -e 's/\/ggml\/src\/ggml(.*)\.cu/\/src\/ggml\1.cu/g' \
-        -e 's/\/ggml\/src\/ggml(.*)\.m/\/src\/ggml\1.m/g' \
-        -e 's/\/ggml\/src\/ggml-amx\//\/src\/ggml-amx\//g' \
-        -e 's/\/ggml\/src\/ggml-cann\//\/src\/ggml-cann\//g' \
-        -e 's/\/ggml\/src\/ggml-cuda\//\/src\/ggml-cuda\//g' \
-        -e 's/\/ggml\/src\/ggml-sycl\//\/src\/ggml-sycl\//g' \
-        -e 's/\/ggml\/src\/vulkan-shaders\//\/src\/vulkan-shaders\//g' \
+        -e 's/\/ggml\/src\/ggml(.*)/\/src\/ggml\1/g' \
         -e 's/\/ggml\/include\/ggml(.*)\.h/\/include\/ggml\1.h/g' \
+        -e 's/\/ggml\/include\/gguf(.*)\.h/\/include\/gguf\1.h/g' \
         -e 's/\/examples\/common\.h/\/examples\/common.h/g' \
         -e 's/\/examples\/common\.cpp/\/examples\/common.cpp/g' \
         -e 's/\/examples\/common-ggml\.h/\/examples\/common-ggml.h/g' \

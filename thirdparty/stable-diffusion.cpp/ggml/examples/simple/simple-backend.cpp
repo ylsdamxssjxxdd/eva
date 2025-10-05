@@ -99,7 +99,7 @@ struct ggml_cgraph * build_graph(const simple_model& model) {
     struct ggml_init_params params0 = {
         /*.mem_size   =*/ buf_size,
         /*.mem_buffer =*/ buf.data(),
-        /*.no_alloc   =*/ true, // the tensors will be allocated later by ggml_allocr_alloc_graph()
+        /*.no_alloc   =*/ true, // the tensors will be allocated later by ggml_gallocr_alloc_graph()
     };
 
     // create a temporally context to build the graph
@@ -190,9 +190,9 @@ int main(void) {
     ggml_backend_tensor_get(result, out_data.data(), 0, ggml_nbytes(result));
 
     // expected result:
-    // [ 60.00 110.00 54.00 29.00
-    //  55.00 90.00 126.00 28.00
-    //  50.00 54.00 42.00 64.00 ]
+    // [ 60.00 55.00 50.00 110.00
+    //  90.00 54.00 54.00 126.00
+    //  42.00 29.00 28.00 64.00 ]
 
     printf("mul mat (%d x %d) (transposed result):\n[", (int) result->ne[0], (int) result->ne[1]);
     for (int j = 0; j < result->ne[1] /* rows */; j++) {
@@ -201,7 +201,7 @@ int main(void) {
         }
 
         for (int i = 0; i < result->ne[0] /* cols */; i++) {
-            printf(" %.2f", out_data[i * result->ne[1] + j]);
+            printf(" %.2f", out_data[j * result->ne[0] + i]);
         }
     }
     printf(" ]\n");

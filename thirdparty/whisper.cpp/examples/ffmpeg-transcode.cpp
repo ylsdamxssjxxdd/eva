@@ -194,7 +194,7 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 	AVIOContext *avio_ctx;
 	AVStream *stream;
 	AVCodecContext *codec;
-	AVPacket packet;
+	AVPacket *packet;
 	AVFrame *frame;
 	struct SwrContext *swr;
 	u8 *avio_ctx_buffer;
@@ -249,6 +249,20 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 	/* prepare resampler */
 	swr = swr_alloc();
 
+#if LIBAVCODEC_VERSION_MAJOR > 60
+	AVChannelLayout in_ch_layout = codec->ch_layout;
+	AVChannelLayout out_ch_layout = AV_CHANNEL_LAYOUT_MONO;
+
+	/* Set the source audio layout as-is */
+	av_opt_set_chlayout(swr, "in_chlayout", &in_ch_layout, 0);
+	av_opt_set_int(swr, "in_sample_rate", codec->sample_rate, 0);
+	av_opt_set_sample_fmt(swr, "in_sample_fmt", codec->sample_fmt, 0);
+
+	/* Convert it into 16khz Mono */
+	av_opt_set_chlayout(swr, "out_chlayout", &out_ch_layout, 0);
+	av_opt_set_int(swr, "out_sample_rate", WAVE_SAMPLE_RATE, 0);
+	av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
+#else
 	av_opt_set_int(swr, "in_channel_count", codec->channels, 0);
 	av_opt_set_int(swr, "out_channel_count", 1, 0);
 	av_opt_set_int(swr, "in_channel_layout", codec->channel_layout, 0);
@@ -257,6 +271,7 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 	av_opt_set_int(swr, "out_sample_rate", WAVE_SAMPLE_RATE, 0);
 	av_opt_set_sample_fmt(swr, "in_sample_fmt", codec->sample_fmt, 0);
 	av_opt_set_sample_fmt(swr, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
+#endif
 
 	swr_init(swr);
 	if (!swr_is_initialized(swr)) {
@@ -264,7 +279,11 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 		return -1;
 	}
 
-	av_init_packet(&packet);
+	packet=av_packet_alloc();
+	if (!packet) {
+		LOG("Error allocating the packet\n");
+		return -1;
+	}
 	frame = av_frame_alloc();
 	if (!frame) {
         LOG("Error allocating the frame\n");
@@ -274,8 +293,8 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 	/* iterate through frames */
 	*data = NULL;
 	*size = 0;
-	while (av_read_frame(fmt_ctx, &packet) >= 0) {
-		avcodec_send_packet(codec, &packet);
+	while (av_read_frame(fmt_ctx, packet) >= 0) {
+		avcodec_send_packet(codec, packet);
 
 		err = avcodec_receive_frame(codec, frame);
 		if (err == AVERROR(EAGAIN))
@@ -286,10 +305,11 @@ static int decode_audio(struct audio_buffer *audio_buf, s16 **data, int *size)
 	/* Flush any remaining conversion buffers... */
 	convert_frame(swr, codec, frame, data, size, true);
 
+	av_packet_free(&packet);
 	av_frame_free(&frame);
 	swr_free(&swr);
     //avio_context_free(); // todo?
-	avcodec_close(codec);
+	avcodec_free_context(&codec);
 	avformat_close_input(&fmt_ctx);
 	avformat_free_context(fmt_ctx);
 

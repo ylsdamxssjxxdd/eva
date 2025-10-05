@@ -14,13 +14,9 @@ if (WHISPER_SDL2)
     message(STATUS "SDL2_LIBRARIES    = ${SDL2_LIBRARIES}")
 endif()
 
-if (WHISPER_CLBLAST)
-    find_package(CLBlast REQUIRED)
-endif()
-
 # common
 
-set(TARGET whisper-common)
+set(TARGET common)
 
 unset(COMMON_EXTRA_LIBS)
 
@@ -56,13 +52,16 @@ add_library(${TARGET} STATIC
     common.cpp
     common-ggml.h
     common-ggml.cpp
+    common-whisper.h
+    common-whisper.cpp
     grammar-parser.h
     grammar-parser.cpp
     ${COMMON_SOURCES_FFMPEG}
     )
 
+include(DefaultTargetOptions)
 
-target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS})
+target_link_libraries(${TARGET} PRIVATE whisper ${COMMON_EXTRA_LIBS} ${CMAKE_DL_LIBS})
 
 set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${TARGET} PROPERTIES FOLDER "libs")
@@ -95,53 +94,32 @@ target_include_directories(json_cpp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 if (EMSCRIPTEN)
-    # add_subdirectory(whisper.wasm)
-    # set_target_properties(libmain PROPERTIES FOLDER "libs")
-    # add_subdirectory(stream.wasm)
-    # set_target_properties(libstream PROPERTIES FOLDER "libs")
-    # add_subdirectory(command.wasm)
-    # set_target_properties(libcommand PROPERTIES FOLDER "libs")
-    # #add_subdirectory(talk.wasm)
-    # #set_target_properties(libtalk PROPERTIES FOLDER "libs")
-    # add_subdirectory(bench.wasm)
-    # set_target_properties(libbench PROPERTIES FOLDER "libs")
+    add_subdirectory(whisper.wasm)
+    add_subdirectory(stream.wasm)
+    add_subdirectory(command.wasm)
+    add_subdirectory(bench.wasm)
+    add_subdirectory(wchess)
 elseif(CMAKE_JS_VERSION)
-    # add_subdirectory(addon.node)
-    # set_target_properties(addon.node PROPERTIES FOLDER "examples")
+    add_subdirectory(addon.node)
 else()
-    add_subdirectory(main)
-    set_target_properties(whisper-cli PROPERTIES FOLDER "examples")
-# if (WHISPER_SDL2)
-#     add_subdirectory(stream)
-#     set_target_properties(stream PROPERTIES FOLDER "examples")
-# endif (WHISPER_SDL2)
-#     add_subdirectory(server)
-#     set_target_properties(server PROPERTIES FOLDER "examples")
-# if (WHISPER_SDL2)
-#     add_subdirectory(command)
-#     set_target_properties(command PROPERTIES FOLDER "examples")
-# endif (WHISPER_SDL2)
-#     add_subdirectory(bench)
-#     set_target_properties(bench PROPERTIES FOLDER "examples")
-#     add_subdirectory(quantize)
-#     set_target_properties(quantize PROPERTIES FOLDER "examples")
-# if (WHISPER_SDL2)
-#     # TODO: disabled until update
-#     #       https://github.com/ggerganov/whisper.cpp/issues/1818
-#     #add_subdirectory(talk)
-#     #set_target_properties(talk PROPERTIES FOLDER "examples")
-#     add_subdirectory(talk-llama)
-#     set_target_properties(talk-llama PROPERTIES FOLDER "examples")
-#     add_subdirectory(lsp)
-#     set_target_properties(lsp PROPERTIES FOLDER "examples")
-#     if (GGML_SYCL)
-#         add_subdirectory(sycl)
-#         set_target_properties(ls-sycl-device PROPERTIES FOLDER "examples")
-#     endif()
-# endif (WHISPER_SDL2)
+    add_subdirectory(cli)
+    add_subdirectory(bench)
+    add_subdirectory(server)
+    add_subdirectory(quantize)
+    add_subdirectory(vad-speech-segments)
+    if (WHISPER_SDL2)
+        add_subdirectory(stream)
+        add_subdirectory(command)
+        add_subdirectory(talk-llama)
+        add_subdirectory(lsp)
+        if (GGML_SYCL)
+            add_subdirectory(sycl)
+        endif()
+    endif (WHISPER_SDL2)
+
+    add_subdirectory(deprecation-warning)
 endif()
 
 if (WHISPER_SDL2)
     add_subdirectory(wchess)
-    set_target_properties(wchess PROPERTIES FOLDER "examples")
 endif (WHISPER_SDL2)

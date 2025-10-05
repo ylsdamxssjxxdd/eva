@@ -11,8 +11,6 @@
 #include <fstream>
 #include <sstream>
 
-#define COMMON_SAMPLE_RATE 16000
-
 //
 // GPT CLI argument parsing
 //
@@ -136,19 +134,6 @@ gpt_vocab::id gpt_sample_top_k_top_p_repeat(
 // Audio utils
 //
 
-// Check if a buffer is a WAV audio file
-bool is_wav_buffer(const std::string buf);
-
-// Read WAV audio file and store the PCM data into pcmf32
-// fname can be a buffer of WAV data instead of a filename
-// The sample rate of the audio must be equal to COMMON_SAMPLE_RATE
-// If stereo flag is set and the audio has 2 channels, the pcmf32s will contain 2 channel PCM
-bool read_wav(
-        const std::string & fname,
-        std::vector<float> & pcmf32,
-        std::vector<std::vector<float>> & pcmf32s,
-        bool stereo);
-
 // Write PCM data into WAV audio file
 class wav_writer {
 private:
@@ -267,23 +252,6 @@ bool vad_simple(
 float similarity(const std::string & s0, const std::string & s1);
 
 //
-// SAM argument parsing
-//
-
-struct sam_params {
-    int32_t seed      = -1; // RNG seed
-    int32_t n_threads = std::min(4, (int32_t) std::thread::hardware_concurrency());
-
-    std::string model     = "models/sam-vit-b/ggml-model-f16.bin"; // model path
-    std::string fname_inp = "img.jpg";
-    std::string fname_out = "img.out";
-};
-
-bool sam_params_parse(int argc, char ** argv, sam_params & params);
-
-void sam_print_usage(int argc, char ** argv, const sam_params & params);
-
-//
 // Terminal utils
 //
 
@@ -315,7 +283,7 @@ static std::string set_xterm256_foreground(int r, int g, int b) {
 }
 
 // Lowest is red, middle is yellow, highest is green. Color scheme from
-// Paul Tol; it is colorblind friendly https://personal.sron.nl/~pault/
+// Paul Tol; it is colorblind friendly https://sronpersonalpages.nl/~pault
 const std::vector<std::string> k_colors = {
     set_xterm256_foreground(220,   5,  12),
     set_xterm256_foreground(232,  96,  28),
@@ -326,18 +294,29 @@ const std::vector<std::string> k_colors = {
     set_xterm256_foreground( 78, 178, 101),
 };
 
+// ANSI formatting codes
+static std::string set_inverse() {
+    return "\033[7m";
+}
+
+static std::string set_underline() {
+    return "\033[4m";
+}
+
+static std::string set_dim() {
+    return "\033[2m";
+}
+
+// Style scheme for different confidence levels
+const std::vector<std::string> k_styles = {
+    set_inverse(),   // Low confidence - inverse (highlighted)
+    set_underline(), // Medium confidence - underlined
+    set_dim(),       // High confidence - dim
+};
+
 //
 // Other utils
 //
 
-// convert timestamp to string, 6000 -> 01:00.000
-std::string to_timestamp(int64_t t, bool comma = false);
-
-// given a timestamp get the sample
-int timestamp_to_sample(int64_t t, int n_samples, int whisper_sample_rate);
-
 // check if file exists using ifstream
-bool is_file_exist(const char *fileName);
-
-// write text to file, and call system("command voice_id file")
-bool speak_with_file(const std::string & command, const std::string & text, const std::string & path, int voice_id);
+bool is_file_exist(const char * filename);

@@ -3,29 +3,31 @@
 
 #include "common-sdl.h"
 #include "common.h"
+#include "common-whisper.h"
 #include "whisper.h"
 #include "llama.h"
 
-#include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <regex>
+#include <regex>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
-#include <regex>
-#include <sstream>
 
 static std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const std::string & text, bool add_bos) {
-    auto * model = llama_get_model(ctx);
+    const llama_model * model = llama_get_model(ctx);
+    const llama_vocab * vocab = llama_model_get_vocab(model);
 
     // upper limit for the number of tokens
     int n_tokens = text.length() + add_bos;
     std::vector<llama_token> result(n_tokens);
-    n_tokens = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos, false);
+    n_tokens = llama_tokenize(vocab, text.data(), text.length(), result.data(), result.size(), add_bos, false);
     if (n_tokens < 0) {
         result.resize(-n_tokens);
-        int check = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos, false);
+        int check = llama_tokenize(vocab, text.data(), text.length(), result.data(), result.size(), add_bos, false);
         GGML_ASSERT(check == -n_tokens);
     } else {
         result.resize(n_tokens);
@@ -34,11 +36,14 @@ static std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const
 }
 
 static std::string llama_token_to_piece(const struct llama_context * ctx, llama_token token) {
+    const llama_model * model = llama_get_model(ctx);
+    const llama_vocab * vocab = llama_model_get_vocab(model);
+
     std::vector<char> result(8, 0);
-    const int n_tokens = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size(), 0, false);
+    const int n_tokens = llama_token_to_piece(vocab, token, result.data(), result.size(), 0, false);
     if (n_tokens < 0) {
         result.resize(-n_tokens);
-        int check = llama_token_to_piece(llama_get_model(ctx), token, result.data(), result.size(), 0, false);
+        int check = llama_token_to_piece(vocab, token, result.data(), result.size(), 0, false);
         GGML_ASSERT(check == -n_tokens);
     } else {
         result.resize(n_tokens);
@@ -55,6 +60,12 @@ struct whisper_params {
     int32_t max_tokens = 32;
     int32_t audio_ctx  = 0;
     int32_t n_gpu_layers = 999;
+    int32_t seed = 0;
+    int32_t top_k = 5;
+    int32_t min_keep = 1;
+    float top_p = 0.80f;
+    float min_p = 0.01f;
+    float temp  = 0.30f;
 
     float vad_thold  = 0.6f;
     float freq_thold = 100.0f;
@@ -65,7 +76,7 @@ struct whisper_params {
     bool no_timestamps  = true;
     bool verbose_prompt = false;
     bool use_gpu        = true;
-    bool flash_attn     = false;
+    bool flash_attn     = true;
 
     std::string person      = "Georgi";
     std::string bot_name    = "LLaMA";
@@ -97,6 +108,12 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-mt"  || arg == "--max-tokens")     { params.max_tokens     = std::stoi(argv[++i]); }
         else if (arg == "-ac"  || arg == "--audio-ctx")      { params.audio_ctx      = std::stoi(argv[++i]); }
         else if (arg == "-ngl" || arg == "--n-gpu-layers")   { params.n_gpu_layers   = std::stoi(argv[++i]); }
+        else if (arg == "--seed")                            { params.seed           = std::stoi(argv[++i]); }
+        else if (arg == "--top-k")                           { params.top_k          = std::stoi(argv[++i]); }
+        else if (arg == "--min-keep")                        { params.min_keep       = std::stoul(argv[++i]);}
+        else if (arg == "--top-p")                           { params.top_p          = std::stof(argv[++i]); }
+        else if (arg == "--min-p")                           { params.min_p          = std::stof(argv[++i]); }
+        else if (arg == "--temp")                            { params.temp           = std::stof(argv[++i]); }
         else if (arg == "-vth" || arg == "--vad-thold")      { params.vad_thold      = std::stof(argv[++i]); }
         else if (arg == "-fth" || arg == "--freq-thold")     { params.freq_thold     = std::stof(argv[++i]); }
         else if (arg == "-tr"  || arg == "--translate")      { params.translate      = true; }
@@ -105,6 +122,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-vp"  || arg == "--verbose-prompt") { params.verbose_prompt = true; }
         else if (arg == "-ng"  || arg == "--no-gpu")         { params.use_gpu        = false; }
         else if (arg == "-fa"  || arg == "--flash-attn")     { params.flash_attn     = true; }
+        else if (arg == "-nfa" || arg == "--no-flash-attn")  { params.flash_attn     = false; }
         else if (arg == "-p"   || arg == "--person")         { params.person         = argv[++i]; }
         else if (arg == "-bn"   || arg == "--bot-name")      { params.bot_name       = argv[++i]; }
         else if (arg == "--session")                         { params.path_session   = argv[++i]; }
@@ -145,6 +163,12 @@ void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params & para
     fprintf(stderr, "  -mt N,    --max-tokens N   [%-7d] maximum number of tokens per audio chunk\n",    params.max_tokens);
     fprintf(stderr, "  -ac N,    --audio-ctx N    [%-7d] audio context size (0 - all)\n",                params.audio_ctx);
     fprintf(stderr, "  -ngl N,   --n-gpu-layers N [%-7d] number of layers to store in VRAM\n",           params.n_gpu_layers);
+    fprintf(stderr, "  --seed N                   [%-7d] seed sampling\n",                               params.seed);
+    fprintf(stderr, "  --top-k N                  [%-7d] top-k sampling (0 = disabled)\n",               params.top_k);
+    fprintf(stderr, "  --min-keep N               [%-7d] minimum number of tokens to keep\n",            params.min_keep);
+    fprintf(stderr, "  --top-p N                  [%-7.2f] top-p sampling\n",                            params.top_p);
+    fprintf(stderr, "  --min-p N                  [%-7.2f] min-p sampling\n",                            params.min_p);
+    fprintf(stderr, "  --temp N                   [%-7.2f] temperature\n",                               params.temp);
     fprintf(stderr, "  -vth N,   --vad-thold N    [%-7.2f] voice activity detection threshold\n",        params.vad_thold);
     fprintf(stderr, "  -fth N,   --freq-thold N   [%-7.2f] high-pass frequency cutoff\n",                params.freq_thold);
     fprintf(stderr, "  -tr,      --translate      [%-7s] translate from source language to english\n",   params.translate ? "true" : "false");
@@ -152,7 +176,8 @@ void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params & para
     fprintf(stderr, "  -pe,      --print-energy   [%-7s] print sound energy (for debugging)\n",          params.print_energy ? "true" : "false");
     fprintf(stderr, "  -vp,      --verbose-prompt [%-7s] print prompt at start\n",                       params.verbose_prompt ? "true" : "false");
     fprintf(stderr, "  -ng,      --no-gpu         [%-7s] disable GPU\n",                                 params.use_gpu ? "false" : "true");
-    fprintf(stderr, "  -fa,      --flash-attn     [%-7s] flash attention\n",                             params.flash_attn ? "true" : "false");
+    fprintf(stderr, "  -fa,      --flash-attn     [%-7s] enable flash attention\n",                      params.flash_attn ? "true" : "false");
+    fprintf(stderr, "  -nfa,     --no-flash-attn  [%-7s] disable flash attention\n",                     params.flash_attn ? "false" : "true");
     fprintf(stderr, "  -p NAME,  --person NAME    [%-7s] person name (for prompt selection)\n",          params.person.c_str());
     fprintf(stderr, "  -bn NAME, --bot-name NAME  [%-7s] bot name (to display)\n",                       params.bot_name.c_str());
     fprintf(stderr, "  -w TEXT,  --wake-command T [%-7s] wake-up command to listen for\n",               params.wake_cmd.c_str());
@@ -268,6 +293,8 @@ The transcript only includes text, it does not include markup like HTML and Mark
 {0}{4})";
 
 int main(int argc, char ** argv) {
+    ggml_backend_load_all();
+
     whisper_params params;
 
     if (whisper_params_parse(argc, argv, params) == false) {
@@ -304,20 +331,23 @@ int main(int argc, char ** argv) {
         lmparams.n_gpu_layers = params.n_gpu_layers;
     }
 
-    struct llama_model * model_llama = llama_load_model_from_file(params.model_llama.c_str(), lmparams);
+    struct llama_model * model_llama = llama_model_load_from_file(params.model_llama.c_str(), lmparams);
     if (!model_llama) {
         fprintf(stderr, "No llama.cpp model specified. Please provide using -ml <modelfile>\n");
         return 1;
     }
 
+    const llama_vocab * vocab_llama = llama_model_get_vocab(model_llama);
+
     llama_context_params lcparams = llama_context_default_params();
 
     // tune these to your liking
-    lcparams.n_ctx      = 2048;
-    lcparams.n_threads  = params.n_threads;
-    lcparams.flash_attn = params.flash_attn;
+    lcparams.n_ctx     = 2048;
+    lcparams.n_threads = params.n_threads;
 
-    struct llama_context * ctx_llama = llama_new_context_with_model(model_llama, lcparams);
+    lcparams.flash_attn_type = params.flash_attn ? LLAMA_FLASH_ATTN_TYPE_AUTO : LLAMA_FLASH_ATTN_TYPE_DISABLED;
+
+    struct llama_context * ctx_llama = llama_init_from_model(model_llama, lcparams);
 
     // print some info about the processing
     {
@@ -402,21 +432,16 @@ int main(int argc, char ** argv) {
     llama_batch batch = llama_batch_init(llama_n_ctx(ctx_llama), 0, 1);
 
     // init sampler
-    const float top_k = 5;
-    const float top_p = 0.80f;
-    const float temp  = 0.30f;
-
-    const int seed = 0;
-
     auto sparams = llama_sampler_chain_default_params();
 
     llama_sampler * smpl = llama_sampler_chain_init(sparams);
 
-    if (temp > 0.0f) {
-        llama_sampler_chain_add(smpl, llama_sampler_init_top_k(top_k));
-        llama_sampler_chain_add(smpl, llama_sampler_init_top_p(top_p, 1));
-        llama_sampler_chain_add(smpl, llama_sampler_init_temp (temp));
-        llama_sampler_chain_add(smpl, llama_sampler_init_dist (seed));
+    if (params.temp > 0.0f) {
+        llama_sampler_chain_add(smpl, llama_sampler_init_top_k(params.top_k));
+        llama_sampler_chain_add(smpl, llama_sampler_init_top_p(params.top_p, params.min_keep));
+        llama_sampler_chain_add(smpl, llama_sampler_init_temp (params.temp));
+        llama_sampler_chain_add(smpl, llama_sampler_init_dist (params.seed));
+        llama_sampler_chain_add(smpl, llama_sampler_init_min_p (params.min_p, params.min_keep));
     } else {
         llama_sampler_chain_add(smpl, llama_sampler_init_greedy());
     }
@@ -608,7 +633,7 @@ int main(int argc, char ** argv) {
                 }
 
                 // remove all characters, except for letters, numbers, punctuation and ':', '\'', '-', ' '
-                text_heard = std::regex_replace(text_heard, std::regex("[^a-zA-Z0-9\\.,\\?!\\s\\:\\'\\-]"), "");
+                text_heard = std::regex_replace(text_heard, std::regex("[^a-zA-Z0-9åäöÅÄÖ\\.,\\?!\\s\\:\\'\\-]"), "");
 
                 // take first line
                 text_heard = text_heard.substr(0, text_heard.find_first_of('\n'));
@@ -727,7 +752,7 @@ int main(int argc, char ** argv) {
 
                         const llama_token id = llama_sampler_sample(smpl, ctx_llama, -1);
 
-                        if (id != llama_token_eos(model_llama)) {
+                        if (id != llama_vocab_eos(vocab_llama)) {
                             // add it to the context
                             embd.push_back(id);
 

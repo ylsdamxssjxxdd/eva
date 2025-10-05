@@ -3,7 +3,7 @@
 # Usage:
 #
 #   git clone https://github.com/openai/whisper
-#   git clone https://github.com/ggerganov/whisper.cpp
+#   git clone https://github.com/ggml-org/whisper.cpp
 #   git clone https://huggingface.co/openai/whisper-medium
 #
 #   python3 ./whisper.cpp/models/convert-h5-to-ggml.py ./whisper-medium/ ./whisper .
@@ -12,7 +12,7 @@
 #
 # For more info:
 #
-#   https://github.com/ggerganov/whisper.cpp/issues/157
+#   https://github.com/ggml-org/whisper.cpp/issues/157
 #
 
 import io
@@ -85,9 +85,15 @@ encoder_added = json.load((dir_model / "added_tokens.json").open( "r", encoding=
 hparams = json.load((dir_model / "config.json").open("r", encoding="utf8"))
 
 # Add this block to handle missing 'max_length'
-if "max_length" not in hparams:
-    hparams["max_length"] = hparams.get("max_target_positions", 448)
-
+if "max_length" not in hparams or hparams["max_length"] is None:
+    hparams["max_length"] = hparams.get("max_target_positions", 448)  # Default to 448 if missing
+elif not isinstance(hparams["max_length"], int):
+    try:
+        hparams["max_length"] = int(hparams["max_length"])  # Convert if necessary
+    except ValueError:
+        print(f"Warning: Invalid max_length value '{hparams['max_length']}', using default 448.")
+        hparams["max_length"] = 448
+        
 model = WhisperForConditionalGeneration.from_pretrained(dir_model)
 
 #code.interact(local=locals())

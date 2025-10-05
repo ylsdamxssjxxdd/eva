@@ -19,7 +19,15 @@ get_script_path() {
     fi
 }
 
-models_path="$(get_script_path)"
+script_path="$(get_script_path)"
+
+# Check if the script is inside a /bin/ directory
+case "$script_path" in
+    */bin) default_download_path="$PWD" ;;  # Use current directory as default download path if in /bin/
+    *) default_download_path="$script_path" ;;  # Otherwise, use script directory
+esac
+
+models_path="${2:-$default_download_path}"
 
 # Whisper models
 models="tiny.en tiny base.en base small.en small medium.en medium large-v1 large-v2 large-v3 large-v3-turbo"
@@ -34,8 +42,8 @@ list_models() {
         printf "\n\n"
 }
 
-if [ "$#" -ne 1 ]; then
-    printf "Usage: %s <model>\n" "$0"
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    printf "Usage: %s <model> [models_path]\n" "$0"
     list_models
 
     exit 1
@@ -77,9 +85,18 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-printf "Done! Model '%s' saved in 'models/ggml-%s.mlmodel'\n" "$model" "$model"
+# Check if 'whisper-cli' is available in the system PATH
+if command -v whisper-cli >/dev/null 2>&1; then
+    # If found, use 'whisper-cli' (relying on PATH resolution)
+    whisper_cmd="whisper-cli"
+else
+    # If not found, use the local build version
+    whisper_cmd="./build/bin/whisper-cli"
+fi
+
+printf "Done! Model '%s' saved in '%s/ggml-%s.bin'\n" "$model" "$models_path" "$model"
 printf "Run the following command to compile it:\n\n"
-printf "  $ xcrun coremlc compile ./models/ggml-%s.mlmodel ./models\n\n" "$model"
+printf "  $ xcrun coremlc compile %s/ggml-%s.mlmodel %s\n\n" "$models_path" "$model" "$models_path"
 printf "You can now use it like this:\n\n"
-printf "  $ ./main -m models/ggml-%s.bin -f samples/jfk.wav\n" "$model"
+printf "  $ %s -m %s/ggml-%s.bin -f samples/jfk.wav\n" "$whisper_cmd" "$models_path" "$model"
 printf "\n"

@@ -227,7 +227,8 @@ mnist_model mnist_model_init_from_file(const std::string & fname, const std::str
     // The space in ctx_gguf exactly fits the model weights,
     // the images (which also need to be statically allocated) need to be put in a different context.
 
-    model.images = ggml_new_tensor_2d(model.ctx_static, GGML_TYPE_F32, MNIST_NINPUT, MNIST_NBATCH_PHYSICAL);
+    model.images = ggml_new_tensor_2d(model.ctx_static, GGML_TYPE_F32, MNIST_NINPUT, nbatch_physical);
+
     ggml_set_name(model.images, "images");
     ggml_set_input(model.images);
 
@@ -310,10 +311,10 @@ mnist_model mnist_model_init_random(const std::string & arch, const std::string 
 
 void mnist_model_build(mnist_model & model) {
     if (model.arch == "mnist-fc") {
-        ggml_set_param(model.ctx_compute, model.fc1_weight);
-        ggml_set_param(model.ctx_compute, model.fc1_bias);
-        ggml_set_param(model.ctx_compute, model.fc2_weight);
-        ggml_set_param(model.ctx_compute, model.fc2_bias);
+        ggml_set_param(model.fc1_weight);
+        ggml_set_param(model.fc1_bias);
+        ggml_set_param(model.fc2_weight);
+        ggml_set_param(model.fc2_bias);
 
         ggml_tensor * fc1 = ggml_relu(model.ctx_compute, ggml_add(model.ctx_compute,
             ggml_mul_mat(model.ctx_compute, model.fc1_weight, model.images),
@@ -322,12 +323,12 @@ void mnist_model_build(mnist_model & model) {
             ggml_mul_mat(model.ctx_compute, model.fc2_weight, fc1),
             model.fc2_bias);
     } else if (model.arch == "mnist-cnn") {
-        ggml_set_param(model.ctx_compute, model.conv1_kernel);
-        ggml_set_param(model.ctx_compute, model.conv1_bias);
-        ggml_set_param(model.ctx_compute, model.conv2_kernel);
-        ggml_set_param(model.ctx_compute, model.conv2_bias);
-        ggml_set_param(model.ctx_compute, model.dense_weight);
-        ggml_set_param(model.ctx_compute, model.dense_bias);
+        ggml_set_param(model.conv1_kernel);
+        ggml_set_param(model.conv1_bias);
+        ggml_set_param(model.conv2_kernel);
+        ggml_set_param(model.conv2_bias);
+        ggml_set_param(model.dense_weight);
+        ggml_set_param(model.dense_bias);
 
         struct ggml_tensor * images_2D = ggml_reshape_4d(model.ctx_compute, model.images, MNIST_HW, MNIST_HW, 1, model.images->ne[1]);
 
@@ -384,8 +385,11 @@ void mnist_model_build(mnist_model & model) {
 ggml_opt_result_t mnist_model_eval(mnist_model & model, ggml_opt_dataset_t dataset) {
     ggml_opt_result_t result = ggml_opt_result_init();
 
-    ggml_opt_params params = ggml_opt_default_params(model.backend_sched, model.ctx_compute, model.images, model.logits, GGML_OPT_LOSS_TYPE_CROSS_ENTROPY);
-    params.build_type = GGML_OPT_BUILD_TYPE_FORWARD;
+    ggml_opt_params params = ggml_opt_default_params(model.backend_sched, GGML_OPT_LOSS_TYPE_CROSS_ENTROPY);
+    params.ctx_compute = model.ctx_compute;
+    params.inputs      = model.images;
+    params.outputs     = model.logits;
+    params.build_type  = GGML_OPT_BUILD_TYPE_FORWARD;
     ggml_opt_context_t opt_ctx = ggml_opt_init(params);
 
     {
@@ -407,7 +411,7 @@ ggml_opt_result_t mnist_model_eval(mnist_model & model, ggml_opt_dataset_t datas
 
 void mnist_model_train(mnist_model & model, ggml_opt_dataset_t dataset, const int nepoch, const float val_split) {
     ggml_opt_fit(model.backend_sched, model.ctx_compute, model.images, model.logits, dataset,
-        GGML_OPT_LOSS_TYPE_CROSS_ENTROPY, ggml_opt_get_default_optimizer_params, nepoch, model.nbatch_logical, val_split, false);
+        GGML_OPT_LOSS_TYPE_CROSS_ENTROPY, GGML_OPT_OPTIMIZER_TYPE_ADAMW, ggml_opt_get_default_optimizer_params, nepoch, model.nbatch_logical, val_split, false);
 }
 
 void mnist_model_save(mnist_model & model, const std::string & fname) {
@@ -453,9 +457,13 @@ extern "C" {
 int wasm_eval(uint8_t * digitPtr) {
     std::vector<float> digit(digitPtr, digitPtr + MNIST_NINPUT);
 
-    ggml_opt_dataset_t dataset = ggml_opt_dataset_init(MNIST_NINPUT, MNIST_NCLASSES, 1, 1);
+    ggml_opt_dataset_t dataset = ggml_opt_dataset_init(GGML_TYPE_F32, GGML_TYPE_F32, MNIST_NINPUT, MNIST_NCLASSES, 1, 1);
     struct ggml_tensor * data = ggml_opt_dataset_data(dataset);
-    memcpy(data->data, digitPtr, ggml_nbytes(data));
+
+    float * buf = ggml_get_data_f32(data);
+    for (int i = 0; i < MNIST_NINPUT; ++i) {
+        buf[i] = digitPtr[i] / 255.0f;
+    }
     ggml_set_zero(ggml_opt_dataset_labels(dataset)); // The labels are not needed.
 
     mnist_model model = mnist_model_init_from_file("mnist-f32.gguf", "CPU", /*nbatch_logical =*/ 1, /*nbatch_physical =*/ 1);

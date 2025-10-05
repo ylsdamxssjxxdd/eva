@@ -18,6 +18,17 @@ set(PUBLIC_ASSETS
     loading.html
 )
 
+# Resolve path to xxd.cmake both when building inside eva (added as subdir)
+# and when building llama.cpp standalone (out-of-tree custom build)
+if (EXISTS "${CMAKE_SOURCE_DIR}/scripts/xxd.cmake")
+    set(XXD_CMAKE "${CMAKE_SOURCE_DIR}/scripts/xxd.cmake")
+elseif(EXISTS "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake")
+    set(XXD_CMAKE "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake")
+else()
+    # Fallback to relative from this file
+    set(XXD_CMAKE "${CMAKE_CURRENT_LIST_DIR}/../../scripts/xxd.cmake")
+endif()
+
 foreach(asset ${PUBLIC_ASSETS})
     set(input "${CMAKE_CURRENT_SOURCE_DIR}/public/${asset}")
     set(output "${CMAKE_CURRENT_BINARY_DIR}/${asset}.hpp")
@@ -25,7 +36,7 @@ foreach(asset ${PUBLIC_ASSETS})
     add_custom_command(
         DEPENDS "${input}"
         OUTPUT "${output}"
-        COMMAND "${CMAKE_COMMAND}" "-DINPUT=${input}" "-DOUTPUT=${output}" -P "${PROJECT_SOURCE_DIR}/thirdparty/llama.cpp/scripts/xxd.cmake"
+        COMMAND "${CMAKE_COMMAND}" "-DINPUT=${input}" "-DOUTPUT=${output}" -P "${XXD_CMAKE}"
     )
     set_source_files_properties(${output} PROPERTIES GENERATED TRUE)
 endforeach()

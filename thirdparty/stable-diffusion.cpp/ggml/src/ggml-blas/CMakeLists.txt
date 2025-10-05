@@ -11,12 +11,9 @@ find_package(BLAS)
 if (BLAS_FOUND)
     message(STATUS "BLAS found, Libraries: ${BLAS_LIBRARIES}")
 
-    add_library(sd-ggml-blas
-                ggml-blas.cpp
-                )
-
-    target_link_libraries(sd-ggml-blas PRIVATE ggml-base)
-    target_include_directories(sd-ggml-blas PRIVATE . ..)
+    ggml_add_backend_library(ggml-blas
+                             ggml-blas.cpp
+                            )
 
     if (${GGML_BLAS_VENDOR} MATCHES "Apple")
         add_compile_definitions(ACCELERATE_NEW_LAPACK)
@@ -75,16 +72,16 @@ if (BLAS_FOUND)
 
     message(STATUS "BLAS found, Includes: ${BLAS_INCLUDE_DIRS}")
 
-    target_compile_options(sd-ggml-blas PRIVATE ${BLAS_LINKER_FLAGS})
+    target_compile_options(ggml-blas PRIVATE ${BLAS_LINKER_FLAGS})
 
     if (${BLAS_INCLUDE_DIRS} MATCHES "mkl" AND (${GGML_BLAS_VENDOR} MATCHES "Generic" OR ${GGML_BLAS_VENDOR} MATCHES "Intel"))
         add_compile_definitions(GGML_BLAS_USE_MKL)
     endif()
 
-    target_link_libraries     (sd-ggml-blas PRIVATE ${BLAS_LIBRARIES})
-    target_include_directories(sd-ggml-blas PRIVATE ${BLAS_INCLUDE_DIRS})
+    target_link_libraries     (ggml-blas PRIVATE ${BLAS_LIBRARIES})
+    target_include_directories(ggml-blas PRIVATE ${BLAS_INCLUDE_DIRS})
 else()
-    message(ERROR "BLAS not found, please refer to "
-                  "https://cmake.org/cmake/help/latest/module/FindBLAS.html#blas-lapack-vendors"
-                  " to set correct GGML_BLAS_VENDOR")
+    message(FATAL_ERROR "BLAS not found, please refer to "
+                        "https://cmake.org/cmake/help/latest/module/FindBLAS.html#blas-lapack-vendors"
+                        " to set correct GGML_BLAS_VENDOR")
 endif()

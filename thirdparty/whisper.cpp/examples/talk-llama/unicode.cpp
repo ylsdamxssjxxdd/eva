@@ -7,18 +7,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <codecvt>
 #include <cstddef>
 #include <cstdint>
+#include <locale>
 #include <map>
 #include <regex>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <locale>
-#include <codecvt>
 
 size_t unicode_len_utf8(char src) {
     const size_t lookup[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 4 };
@@ -71,15 +70,15 @@ uint32_t unicode_cpt_from_utf8(const std::string & utf8, size_t & offset) {
     throw std::invalid_argument("failed to convert utf8 to codepoint");
 }
 
-//static std::vector<uint16_t> unicode_cpt_to_utf16(uint32_t cp) {
+//static std::vector<uint16_t> unicode_cpt_to_utf16(uint32_t cpt) {
 //    std::vector<uint16_t> result;
-//    if (/* 0x0000 <= cp && */ cp <= 0xffff) {
-//        result.emplace_back(cp);
+//    if (/* 0x0000 <= cpt && */ cpt <= 0xffff) {
+//        result.emplace_back(cpt);
 //        return result;
 //    }
-//    if (0x10000 <= cp && cp <= 0x10ffff) {
-//        result.emplace_back(0xd800 | ((cp - 0x10000) >> 10));
-//        result.emplace_back(0xdc00 | ((cp - 0x10000) & 0x03ff));
+//    if (0x10000 <= cpt && cpt <= 0x10ffff) {
+//        result.emplace_back(0xd800 | ((cpt - 0x10000) >> 10));
+//        result.emplace_back(0xdc00 | ((cpt - 0x10000) & 0x03ff));
 //        return result;
 //    }
 //    throw std::invalid_argument("failed to convert codepoint to utf16");
@@ -120,8 +119,8 @@ uint32_t unicode_cpt_from_utf8(const std::string & utf8, size_t & offset) {
 //    return result;
 //}
 
-static std::vector<codepoint_flags> unicode_cpt_flags_array() {
-    std::vector<codepoint_flags> cpt_flags(MAX_CODEPOINTS, codepoint_flags::UNDEFINED);
+static std::vector<unicode_cpt_flags> unicode_cpt_flags_array() {
+    std::vector<unicode_cpt_flags> cpt_flags(MAX_CODEPOINTS, unicode_cpt_flags::UNDEFINED);
 
     assert (unicode_ranges_flags.begin()[0].first == 0);
     assert (unicode_ranges_flags.begin()[unicode_ranges_flags.size()-1].first == MAX_CODEPOINTS);
@@ -201,7 +200,23 @@ static std::unordered_map<std::string, uint8_t> unicode_utf8_to_byte_map() {
 }
 
 static inline std::wstring unicode_wstring_from_utf8(const std::string & s) {
+#if defined(__clang__)
+    // disable C++17 deprecation warning for std::codecvt_utf8
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
     std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+
+#if defined(__clang__)
+#    pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
+
     return conv.from_bytes(s);
 }
 
@@ -242,8 +257,8 @@ static std::vector<size_t> unicode_regex_split_custom_gpt2(const std::string & t
             return (offset_ini <= pos && pos < offset_end) ? cpts[pos] : OUT_OF_RANGE;
         };
 
-        auto _get_flags = [&] (const size_t pos) -> codepoint_flags {
-            return (offset_ini <= pos && pos < offset_end) ? unicode_cpt_flags(cpts[pos]) : codepoint_flags{};
+        auto _get_flags = [&] (const size_t pos) -> unicode_cpt_flags {
+            return (offset_ini <= pos && pos < offset_end) ? unicode_cpt_flags_from_cpt(cpts[pos]) : unicode_cpt_flags{};
         };
 
         size_t _prev_end = offset_ini;
@@ -360,8 +375,8 @@ static std::vector<size_t> unicode_regex_split_custom_llama3(const std::string &
             return (offset_ini <= pos && pos < offset_end) ? cpts[pos] : OUT_OF_RANGE;
         };
 
-        auto _get_flags = [&] (const size_t pos) -> codepoint_flags {
-            return (offset_ini <= pos && pos < offset_end) ? unicode_cpt_flags(cpts[pos]) : codepoint_flags{};
+        auto _get_flags = [&] (const size_t pos) -> unicode_cpt_flags {
+            return (offset_ini <= pos && pos < offset_end) ? unicode_cpt_flags_from_cpt(cpts[pos]) : unicode_cpt_flags{};
         };
 
         size_t _prev_end = offset_ini;
@@ -542,6 +557,178 @@ static std::vector<size_t> unicode_regex_split_stl(const std::string & text, con
     return bpe_offsets;
 }
 
+// K2 system regex patterns (from tokenization_kimi.py):
+// [\p{Han}]+|[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]*[\p{Ll}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]+(?i:'s|'t|'re|'ve|'m|'ll|'d)?|[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]+[\p{Ll}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]*(?i:'s|'t|'re|'ve|'m|'ll|'d)?|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+
+static std::vector<size_t> unicode_regex_split_custom_kimi_k2(const std::string & text, const std::vector<size_t> & offsets) {
+    std::vector<size_t> bpe_offsets;
+    bpe_offsets.reserve(offsets.size());
+
+    const auto cpts = unicode_cpts_from_utf8(text);
+
+    size_t start = 0;
+    for (auto offset : offsets) {
+        const size_t offset_ini = start;
+        const size_t offset_end = start + offset;
+        assert(offset_end <= cpts.size());
+        start = offset_end;
+
+        static const uint32_t OUT_OF_RANGE = 0xFFFFFFFF;
+        auto _get_cpt = [&] (const size_t pos) -> uint32_t {
+            return (offset_ini <= pos && pos < offset_end) ? cpts[pos] : OUT_OF_RANGE;
+        };
+
+        auto _get_flags = [&] (const size_t pos) -> unicode_cpt_flags {
+            return (offset_ini <= pos && pos < offset_end) ? unicode_cpt_flags_from_cpt(cpts[pos]) : unicode_cpt_flags{};
+        };
+
+        size_t _prev_end = offset_ini;
+        auto _add_token = [&] (const size_t end) -> size_t {
+            assert(_prev_end <= end && end <= offset_end);
+            size_t len = end - _prev_end;
+            if (len > 0) {
+                bpe_offsets.push_back(len);
+            }
+            _prev_end = end;
+            return len;
+        };
+
+        for (size_t pos = offset_ini; pos < offset_end; /*pos++*/ ) {
+            const uint32_t cpt = _get_cpt(pos);
+            const auto flags = _get_flags(pos);
+
+            // Pattern 1: [\p{Han}]+ (Chinese characters)
+            if (unicode_cpt_is_han(cpt)) {
+                while (unicode_cpt_is_han(_get_cpt(pos))) {
+                    pos++;
+                }
+                _add_token(pos);
+                continue;
+            }
+
+            // Pattern 2 & 3: Letter words excluding Han characters with optional contractions
+            // [^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]*[\p{Ll}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]+(?:'s|'t|'re|'ve|'m|'ll|'d)?
+            // [^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]+[\p{Ll}\p{Lm}\p{Lo}\p{M}&&[^\p{Han}]]*(?:'s|'t|'re|'ve|'m|'ll|'d)?
+            // Check if current char is a letter OR if current char could be a leading char and next char is a letter
+            bool is_letter_pattern = (flags.is_letter && !unicode_cpt_is_han(cpt)) ||
+                                     (!(cpt == '\r' || cpt == '\n' || flags.is_letter || flags.is_number) &&
+                                      _get_flags(pos + 1).is_letter && !unicode_cpt_is_han(_get_cpt(pos + 1)));
+
+            if (is_letter_pattern) {
+                // Handle optional leading non-letter/non-number character
+                bool has_leading_char = false;
+                if (!(cpt == '\r' || cpt == '\n' || flags.is_letter || flags.is_number)) {
+                    has_leading_char = true;
+                    pos++;
+                }
+
+                // Match letter sequence (excluding Han characters)
+                bool has_letters = false;
+                while (_get_flags(pos).is_letter && !unicode_cpt_is_han(_get_cpt(pos))) {
+                    has_letters = true;
+                    pos++;
+                }
+
+                // Only proceed if we found letters (after potentially skipping leading char)
+                if (has_letters || (!has_leading_char && _get_flags(pos).is_letter && !unicode_cpt_is_han(_get_cpt(pos)))) {
+                    if (!has_letters) pos++; // consume the first letter if we didn't already
+
+                    // Continue consuming letters
+                    while (_get_flags(pos).is_letter && !unicode_cpt_is_han(_get_cpt(pos))) {
+                        pos++;
+                    }
+
+                    // Check for optional contractions (?:'s|'t|'re|'ve|'m|'ll|'d)
+                    if (_get_cpt(pos) == '\'' && pos + 1 < offset_end) {
+                        uint32_t cpt_next = unicode_tolower(_get_cpt(pos + 1));
+                        if (cpt_next == 's' || cpt_next == 't' || cpt_next == 'm' || cpt_next == 'd') {
+                            pos += 2;
+                        } else if (pos + 2 < offset_end) {
+                            uint32_t cpt_next_next = unicode_tolower(_get_cpt(pos + 2));
+                            if ((cpt_next == 'r' && cpt_next_next == 'e') ||
+                                (cpt_next == 'v' && cpt_next_next == 'e') ||
+                                (cpt_next == 'l' && cpt_next_next == 'l')) {
+                                pos += 3;
+                            }
+                        }
+                    }
+
+                    _add_token(pos);
+                    continue;
+                } else if (has_leading_char) {
+                    // We consumed a leading char but found no letters, backtrack
+                    pos--;
+                }
+            }
+
+            // Pattern 4: \p{N}{1,3} (numbers 1-3 digits)
+            if (flags.is_number) {
+                size_t ini = pos;
+                while (_get_flags(pos).is_number) {
+                    if (++pos - ini >= 3) {
+                        _add_token(pos);
+                        ini = pos;
+                    }
+                }
+                _add_token(pos);
+                continue;
+            }
+
+            // Pattern 5:  ?[^\s\p{L}\p{N}]+[\r\n]* (optional space + non-word chars + optional newlines)
+            auto flags2 = (cpt == ' ' ? _get_flags(pos + 1) : flags);
+            if (!(flags2.is_whitespace || flags2.is_letter || flags2.is_number) && flags2.as_uint()) {
+                pos += (cpt == ' ');
+                while (!(flags2.is_whitespace || flags2.is_letter || flags2.is_number) && flags2.as_uint()) {
+                    flags2 = _get_flags(++pos);
+                }
+                // Match optional [\r\n]*
+                uint32_t cpt2 = _get_cpt(pos);
+                while (cpt2 == '\r' || cpt2 == '\n') {
+                    cpt2 = _get_cpt(++pos);
+                }
+                _add_token(pos);
+                continue;
+            }
+
+            // Count whitespace characters
+            size_t num_whitespaces = 0;
+            size_t last_end_r_or_n = 0;
+            while (_get_flags(pos + num_whitespaces).is_whitespace) {
+                uint32_t cpt2 = _get_cpt(pos + num_whitespaces);
+                if (cpt2 == '\r' || cpt2 == '\n') {
+                    last_end_r_or_n = pos + num_whitespaces + 1;
+                }
+                num_whitespaces++;
+            }
+
+            // Pattern 6: \s*[\r\n]+ (whitespace with newlines)
+            if (last_end_r_or_n > 0) {
+                pos = last_end_r_or_n;
+                _add_token(pos);
+                continue;
+            }
+
+            // Pattern 7: \s+(?!\S) (trailing whitespace)
+            if (num_whitespaces > 1 && _get_cpt(pos + num_whitespaces) != OUT_OF_RANGE) {
+                pos += num_whitespaces - 1;
+                _add_token(pos);
+                continue;
+            }
+
+            // Pattern 8: \s+ (general whitespace)
+            if (num_whitespaces > 0) {
+                pos += num_whitespaces;
+                _add_token(pos);
+                continue;
+            }
+
+            // No matches - consume single character
+            _add_token(++pos);
+        }
+    }
+
+    return bpe_offsets;
+}
+
 static std::vector<size_t> unicode_regex_split_custom(const std::string & text, const std::string & regex_expr, const std::vector<size_t> & offsets) {
     std::vector<size_t> bpe_offsets;
 
@@ -552,6 +739,9 @@ static std::vector<size_t> unicode_regex_split_custom(const std::string & text, 
             regex_expr == "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+") {
 
         bpe_offsets = unicode_regex_split_custom_llama3(text, offsets);
+    } else if (regex_expr == "\\p{Han}+") {
+        // K2's first pattern - handle all K2 patterns together
+        bpe_offsets = unicode_regex_split_custom_kimi_k2(text, offsets);
     }
 
     return bpe_offsets;
@@ -561,29 +751,29 @@ static std::vector<size_t> unicode_regex_split_custom(const std::string & text, 
 // interface
 //
 
-std::string unicode_cpt_to_utf8(uint32_t cp) {
+std::string unicode_cpt_to_utf8(uint32_t cpt) {
     std::string result;
 
-    if (/* 0x00 <= cp && */ cp <= 0x7f) {
-        result.push_back(cp);
+    if (/* 0x00 <= cpt && */ cpt <= 0x7f) {
+        result.push_back(cpt);
         return result;
     }
-    if (0x80 <= cp && cp <= 0x7ff) {
-        result.push_back(0xc0 | ((cp >> 6) & 0x1f));
-        result.push_back(0x80 | (cp & 0x3f));
+    if (0x80 <= cpt && cpt <= 0x7ff) {
+        result.push_back(0xc0 | ((cpt >> 6) & 0x1f));
+        result.push_back(0x80 | (cpt & 0x3f));
         return result;
     }
-    if (0x800 <= cp && cp <= 0xffff) {
-        result.push_back(0xe0 | ((cp >> 12) & 0x0f));
-        result.push_back(0x80 | ((cp >> 6) & 0x3f));
-        result.push_back(0x80 | (cp & 0x3f));
+    if (0x800 <= cpt && cpt <= 0xffff) {
+        result.push_back(0xe0 | ((cpt >> 12) & 0x0f));
+        result.push_back(0x80 | ((cpt >> 6) & 0x3f));
+        result.push_back(0x80 | (cpt & 0x3f));
         return result;
     }
-    if (0x10000 <= cp && cp <= 0x10ffff) {
-        result.push_back(0xf0 | ((cp >> 18) & 0x07));
-        result.push_back(0x80 | ((cp >> 12) & 0x3f));
-        result.push_back(0x80 | ((cp >> 6) & 0x3f));
-        result.push_back(0x80 | (cp & 0x3f));
+    if (0x10000 <= cpt && cpt <= 0x10ffff) {
+        result.push_back(0xf0 | ((cpt >> 18) & 0x07));
+        result.push_back(0x80 | ((cpt >> 12) & 0x3f));
+        result.push_back(0x80 | ((cpt >> 6) & 0x3f));
+        result.push_back(0x80 | (cpt & 0x3f));
         return result;
     }
 
@@ -608,24 +798,31 @@ std::vector<uint32_t> unicode_cpts_from_utf8(const std::string & utf8) {
     result.reserve(utf8.size());
     size_t offset = 0;
     while (offset < utf8.size()) {
-        result.push_back(unicode_cpt_from_utf8(utf8, offset));
+        try {
+            result.push_back(unicode_cpt_from_utf8(utf8, offset));
+        }
+        catch (const std::invalid_argument & /*ex*/) {
+            // Silently ignore invalid UTF-8 input to avoid leaking the exception beyond llama_tokenize
+            ++offset;
+            result.emplace_back(0xFFFD); // replacement character
+        }
     }
     return result;
 }
 
-codepoint_flags unicode_cpt_flags(const uint32_t cp) {
-    static const codepoint_flags undef(codepoint_flags::UNDEFINED);
+unicode_cpt_flags unicode_cpt_flags_from_cpt(const uint32_t cpt) {
+    static const unicode_cpt_flags undef(unicode_cpt_flags::UNDEFINED);
     static const auto cpt_flags = unicode_cpt_flags_array();
-    return cp < cpt_flags.size() ? cpt_flags[cp] : undef;
+    return cpt < cpt_flags.size() ? cpt_flags[cpt] : undef;
 }
 
-codepoint_flags unicode_cpt_flags(const std::string & utf8) {
-    static const codepoint_flags undef(codepoint_flags::UNDEFINED);
+unicode_cpt_flags unicode_cpt_flags_from_utf8(const std::string & utf8) {
+    static const unicode_cpt_flags undef(unicode_cpt_flags::UNDEFINED);
     if (utf8.empty()) {
         return undef;  // undefined
     }
     size_t offset = 0;
-    return unicode_cpt_flags(unicode_cpt_from_utf8(utf8, offset));
+    return unicode_cpt_flags_from_cpt(unicode_cpt_from_utf8(utf8, offset));
 }
 
 std::string unicode_byte_to_utf8(uint8_t byte) {
@@ -638,41 +835,79 @@ uint8_t unicode_utf8_to_byte(const std::string & utf8) {
     return map.at(utf8);
 }
 
-uint32_t unicode_tolower(uint32_t cp) {
+uint32_t unicode_tolower(uint32_t cpt) {
     // binary search
-    auto it = std::lower_bound(unicode_map_lowercase.begin(), unicode_map_lowercase.end(), cp,
+    auto it = std::lower_bound(unicode_map_lowercase.begin(), unicode_map_lowercase.end(), cpt,
         [](const std::pair<uint32_t, uint32_t> & pair, uint32_t value) {
             return pair.first < value;
         });
-    if (it != unicode_map_lowercase.end() && it->first == cp) {
+    if (it != unicode_map_lowercase.end() && it->first == cpt) {
         return it->second;
     }
-    return cp;  // Return the original code point if no lowercase mapping is found
+    return cpt;  // Return the original code point if no lowercase mapping is found
+}
+
+bool unicode_cpt_is_han(uint32_t cpt) {
+    // Han character ranges (Chinese/CJK characters)
+    // CJK Unified Ideographs (most common)
+    if (cpt >= 0x4E00 && cpt <= 0x9FFF) return true;
+
+    // CJK Extension A
+    if (cpt >= 0x3400 && cpt <= 0x4DBF) return true;
+
+    // CJK Extension B
+    if (cpt >= 0x20000 && cpt <= 0x2A6DF) return true;
+
+    // CJK Extension C
+    if (cpt >= 0x2A700 && cpt <= 0x2B73F) return true;
+
+    // CJK Extension D
+    if (cpt >= 0x2B740 && cpt <= 0x2B81F) return true;
+
+    // CJK Extension E
+    if (cpt >= 0x2B820 && cpt <= 0x2CEAF) return true;
+
+    // CJK Extension F
+    if (cpt >= 0x2CEB0 && cpt <= 0x2EBEF) return true;
+
+    // CJK Compatibility Ideographs
+    if (cpt >= 0xF900 && cpt <= 0xFAFF) return true;
+
+    // CJK Compatibility Ideographs Supplement
+    if (cpt >= 0x2F800 && cpt <= 0x2FA1F) return true;
+
+    return false;
 }
 
 std::vector<std::string> unicode_regex_split(const std::string & text, const std::vector<std::string> & regex_exprs) {
     // unicode categories
     static const std::map<std::string, int> k_ucat_enum = {
-        { "\\p{N}", codepoint_flags::NUMBER },
-        { "\\p{L}", codepoint_flags::LETTER },
-        { "\\p{P}", codepoint_flags::PUNCTUATION },
+        { "\\p{N}", unicode_cpt_flags::NUMBER },
+        { "\\p{L}", unicode_cpt_flags::LETTER },
+        { "\\p{P}", unicode_cpt_flags::PUNCTUATION },
+        { "\\p{M}", unicode_cpt_flags::ACCENT_MARK },
+        { "\\p{S}", unicode_cpt_flags::SYMBOL },
     };
 
     static const std::map<int, int> k_ucat_cpt = {
-        { codepoint_flags::NUMBER,        0xD1 },
-        { codepoint_flags::LETTER,        0xD2 },
-        { codepoint_flags::PUNCTUATION,   0xD3 },
+        { unicode_cpt_flags::NUMBER,      0xD1 },
+        { unicode_cpt_flags::LETTER,      0xD2 },
+        { unicode_cpt_flags::PUNCTUATION, 0xD3 },
+        { unicode_cpt_flags::ACCENT_MARK, 0xD4 },
+        { unicode_cpt_flags::SYMBOL,      0xD5 },
     };
 
     static const std::map<int, std::string> k_ucat_map = {
-        { codepoint_flags::NUMBER,        "\x30-\x39" }, // 0-9
-        { codepoint_flags::LETTER,        "\x41-\x5A\x61-\x7A" }, // A-Za-z
-        { codepoint_flags::PUNCTUATION,   "\x21-\x23\x25-\x2A\x2C-\x2F\x3A-\x3B\x3F-\x40\\\x5B-\\\x5D\x5F\\\x7B\\\x7D" }, // !-#%-*,-/:-;?-@\[-\]_\{\}
+        { unicode_cpt_flags::NUMBER,      "\x30-\x39" }, // 0-9
+        { unicode_cpt_flags::LETTER,      "\x41-\x5A\x61-\x7A" }, // A-Za-z
+        { unicode_cpt_flags::PUNCTUATION, "\x21-\x23\x25-\x2A\x2C-\x2F\x3A-\x3B\x3F-\x40\\\x5B-\\\x5D\x5F\\\x7B\\\x7D" }, // !-#%-*,-/:-;?-@\[-\]_\{\}
+        { unicode_cpt_flags::ACCENT_MARK, "" }, // no sub-128 codepoints
+        { unicode_cpt_flags::SYMBOL,      "\\\x24\\\x2B\x3C-\x3E\x5E\x60\\\x7C" }, // $+<=>^`|
     };
 
     // compute collapsed codepoints only if needed by at least one regex
     bool need_collapse = false;
-    for (auto & regex_expr : regex_exprs) {
+    for (const auto & regex_expr : regex_exprs) {
         // search for unicode categories
         for (const auto & ucat : k_ucat_enum) {
             if (std::string::npos != regex_expr.find(ucat.first)) {
@@ -685,7 +920,7 @@ std::vector<std::string> unicode_regex_split(const std::string & text, const std
     const auto cpts = unicode_cpts_from_utf8(text);
 
     // generate a "collapsed" representation of the text, where all codepoints are replaced by a single byte
-    // ref: https://github.com/ggerganov/llama.cpp/pull/6920#issuecomment-2081479935
+    // ref: https://github.com/ggml-org/llama.cpp/pull/6920#issuecomment-2081479935
     std::string text_collapsed;
     if (need_collapse) {
         // collapse all unicode categories
@@ -698,7 +933,7 @@ std::vector<std::string> unicode_regex_split(const std::string & text, const std
                 continue;
             }
 
-            const auto flags = unicode_cpt_flags(cpts[i]);
+            const auto flags = unicode_cpt_flags_from_cpt(cpts[i]);
 
             if (flags.is_whitespace) {
                 //NOTE: C++ std::regex \s does not mach 0x85, Rust and Python regex does.
@@ -714,7 +949,7 @@ std::vector<std::string> unicode_regex_split(const std::string & text, const std
 
     std::vector<size_t> bpe_offsets = { cpts.size() };
 
-    for (auto & regex_expr : regex_exprs) {
+    for (const auto & regex_expr : regex_exprs) {
         // first, see if we have an efficient custom regex implementation
         auto tmp = unicode_regex_split_custom(text, regex_expr, bpe_offsets);
 
@@ -728,7 +963,7 @@ std::vector<std::string> unicode_regex_split(const std::string & text, const std
             // if a unicode category is used in the regex, we use the collapsed text and replace the unicode category
             // with the corresponding collapsed representation
             bool use_collapsed = false;
-            for (auto & ucat : k_ucat_enum) {
+            for (const auto & ucat : k_ucat_enum) {
                 if (std::string::npos != regex_expr.find(ucat.first)) {
                     use_collapsed = true;
                     break;
@@ -794,7 +1029,7 @@ std::vector<std::string> unicode_regex_split(const std::string & text, const std
                 // std::wregex \s does not mach non-ASCII whitespaces, using 0x0B as fallback
                 std::wstring wtext(cpts.begin(), cpts.end());
                 for (size_t i = 0; i < wtext.size(); ++i) {
-                    if (wtext[i] > 0x7F && unicode_cpt_flags(wtext[i]).is_whitespace) {
+                    if (wtext[i] > 0x7F && unicode_cpt_flags_from_cpt(wtext[i]).is_whitespace) {
                         wtext[i] = 0x0B;
                     }
                 }

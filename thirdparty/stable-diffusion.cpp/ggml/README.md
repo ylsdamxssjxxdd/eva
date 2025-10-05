@@ -20,7 +20,7 @@ Some of the development is currently happening in the [llama.cpp](https://github
 ## Build
 
 ```bash
-git clone https://github.com/ggerganov/ggml
+git clone https://github.com/ggml-org/ggml
 cd ggml
 
 # install python dependencies in a virtual environment
@@ -54,7 +54,7 @@ cmake -DGGML_CUDA=ON -DCMAKE_CUDA_COMPILER=/usr/local/cuda-12.1/bin/nvcc ..
 ## Using hipBLAS
 
 ```bash
-cmake -DCMAKE_C_COMPILER="$(hipconfig -l)/clang" -DCMAKE_CXX_COMPILER="$(hipconfig -l)/clang++" -DGGML_HIPBLAS=ON
+cmake -DCMAKE_C_COMPILER="$(hipconfig -l)/clang" -DCMAKE_CXX_COMPILER="$(hipconfig -l)/clang++" -DGGML_HIP=ON
 ```
 
 ## Using SYCL

@@ -947,7 +947,7 @@ int main(int argc, char ** argv) {
     ggml_backend_sched_t sched;
     {
         // initialize the scheduler
-        sched = ggml_backend_sched_new(model.backends.data(), NULL, model.backends.size(), GPT2_MAX_NODES, false);
+        sched = ggml_backend_sched_new(model.backends.data(), NULL, model.backends.size(), GPT2_MAX_NODES, false, true);
 
         // create the worst case graph for memory usage estimation
         int n_tokens = std::min(model.hparams.n_ctx, params.n_batch);

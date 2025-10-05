@@ -24,6 +24,8 @@
                 overflow-x: scroll;
             }
         </style>
+        <script src="../coi-serviceworker.js"></script>
+        <link rel="icon" href="data:,">
     </head>
     <body>
         <div id="main-container">
@@ -36,11 +38,11 @@
             <br><br>
 
             <b>More examples:</b>
-                <a href="https://whisper.ggerganov.com/">main</a> |
-                <a href="https://whisper.ggerganov.com/bench">bench</a> |
-                <a href="https://whisper.ggerganov.com/stream">stream</a> |
-                <a href="https://whisper.ggerganov.com/command">command</a> |
-                <a href="https://whisper.ggerganov.com/talk">talk</a> |
+                <a href="../">main</a> |
+                <a href="../bench.wasm/">bench</a> |
+                <a href="../stream.wasm">stream</a> |
+                <a href="../command.wasm/">command</a> |
+                <a href="../wchess.wasm/">wchess</a> |
 
             <br><br>
 
@@ -190,15 +192,15 @@
 
             function loadWhisper(model) {
                 let urls = {
-                    'tiny.en': 'https://whisper.ggerganov.com/ggml-model-whisper-tiny.en.bin',
-                    'base.en': 'https://whisper.ggerganov.com/ggml-model-whisper-base.en.bin',
-                    'small.en': 'https://whisper.ggerganov.com/ggml-model-whisper-small.en.bin',
+                    'tiny.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin',
+                    'base.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin',
+                    'small.en': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin',
 
-                    'tiny-en-q5_1':  'https://whisper.ggerganov.com/ggml-model-whisper-tiny.en-q5_1.bin',
-                    'base-en-q5_1':  'https://whisper.ggerganov.com/ggml-model-whisper-base.en-q5_1.bin',
-                    'small-en-q5_1': 'https://whisper.ggerganov.com/ggml-model-whisper-small.en-q5_1.bin',
-                    'medium-en-q5_0':'https://whisper.ggerganov.com/ggml-model-whisper-medium.en-q5_0.bin',
-                    'large-q5_0':    'https://whisper.ggerganov.com/ggml-model-whisper-large-q5_0.bin',
+                    'tiny-en-q5_1':  'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin',
+                    'base-en-q5_1':  'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin',
+                    'small-en-q5_1': 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin',
+                    'medium-en-q5_0':'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en-q5_0.bin',
+                    'large-q5_0':    'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-q5_0.bin',
                 };
 
                 let sizes = {

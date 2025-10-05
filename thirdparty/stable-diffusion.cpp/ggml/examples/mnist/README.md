@@ -6,7 +6,10 @@ Please note that training in GGML is a work-in-progress and not production ready
 
 ## Obtaining the data
 
-The data can either be downloaded [here](https://yann.lecun.com/exdb/mnist/) or it will be downloaded automatically when running `mnist-train-fc.py`.
+A description of the dataset can be found on [Yann LeCun's website](https://yann.lecun.com/exdb/mnist/).
+While it is also in principle possible to download the dataset from this website these downloads are frequently throttled and
+it is recommended to use [HuggingFace](https://huggingface.co/datasets/ylecun/mnist) instead.
+The dataset will be downloaded automatically when running `mnist-train-fc.py`.
 
 ## Fully connected network
 
@@ -175,18 +178,23 @@ Symlinking these files will *not* work!
 Compile the code like so:
 
 ```bash
-$ emcc -I../../include -I../../include/ggml -I../../examples ../../src/ggml.c ../../src/ggml-quants.c ../../src/ggml-aarch64.c mnist-common.cpp -o web/mnist.js -s EXPORTED_FUNCTIONS='["_wasm_eval","_wasm_random_digit","_malloc","_free"]' -s EXPORTED_RUNTIME_METHODS='["ccall"]' -s ALLOW_MEMORY_GROWTH=1 --preload-file mnist-f32.gguf --preload-file t10k-images-idx3-ubyte
+$ cd ../../
+$ mkdir -p build-em
+$ emcmake cmake .. -DGGML_BUILD_EXAMPLES=ON \
+    -DCMAKE_C_FLAGS="-pthread -matomics -mbulk-memory" \
+    -DCMAKE_CXX_FLAGS="-pthread -matomics -mbulk-memory"
+$ make mnist
 ```
 
-The compilation output is in `examples/mnist/web`.
+The compilation output is copied into `examples/mnist/web`.
 To run it, you need an HTTP server.
 For example:
 
 ``` bash
-$ cd web
-$ python3 -m http.server
+$ python3 examples/mnist/server.py
 
-Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+Serving directory '/home/danbev/work/ai/ggml/examples/mnist/web' at http://localhost:8000
+Application context root: http://localhost:8000/
 ```
 
 The web demo can then be accessed via the link printed on the console.

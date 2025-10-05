@@ -22,33 +22,47 @@ get_script_path() {
     fi
 }
 
-models_path="${2:-$(get_script_path)}"
+script_path="$(get_script_path)"
+
+# Check if the script is inside a /bin/ directory
+case "$script_path" in
+    */bin) default_download_path="$PWD" ;;  # Use current directory as default download path if in /bin/
+    *) default_download_path="$script_path" ;;  # Otherwise, use script directory
+esac
+
+models_path="${2:-$default_download_path}"
 
 # Whisper models
 models="tiny
 tiny.en
 tiny-q5_1
 tiny.en-q5_1
+tiny-q8_0
 base
 base.en
 base-q5_1
 base.en-q5_1
+base-q8_0
 small
 small.en
 small.en-tdrz
 small-q5_1
 small.en-q5_1
+small-q8_0
 medium
 medium.en
 medium-q5_0
 medium.en-q5_0
+medium-q8_0
 large-v1
 large-v2
 large-v2-q5_0
+large-v2-q8_0
 large-v3
 large-v3-q5_0
 large-v3-turbo
-large-v3-turbo-q5_0"
+large-v3-turbo-q5_0
+large-v3-turbo-q8_0"
 
 # list available models
 list_models() {
@@ -105,12 +119,12 @@ fi
 
 if [ -x "$(command -v wget2)" ]; then
     wget2 --no-config --progress bar -O ggml-"$model".bin $src/$pfx-"$model".bin
-elif [ -x "$(command -v wget)" ]; then
-    wget --no-config --quiet --show-progress -O ggml-"$model".bin $src/$pfx-"$model".bin
 elif [ -x "$(command -v curl)" ]; then
     curl -L --output ggml-"$model".bin $src/$pfx-"$model".bin
+elif [ -x "$(command -v wget)" ]; then
+    wget --no-config --quiet --show-progress -O ggml-"$model".bin $src/$pfx-"$model".bin
 else
-    printf "Either wget or curl is required to download models.\n"
+    printf "Either wget2, curl, or wget is required to download models.\n"
     exit 1
 fi
 
@@ -120,7 +134,16 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Check if 'whisper-cli' is available in the system PATH
+if command -v whisper-cli >/dev/null 2>&1; then
+    # If found, use 'whisper-cli' (relying on PATH resolution)
+    whisper_cmd="whisper-cli"
+else
+    # If not found, use the local build version
+    whisper_cmd="./build/bin/whisper-cli"
+fi
+
 printf "Done! Model '%s' saved in '%s/ggml-%s.bin'\n" "$model" "$models_path" "$model"
 printf "You can now use it like this:\n\n"
-printf "  $ ./main -m %s/ggml-%s.bin -f samples/jfk.wav\n" "$models_path" "$model"
+printf "  $ %s -m %s/ggml-%s.bin -f samples/jfk.wav\n" "$whisper_cmd" "$models_path" "$model"
 printf "\n"

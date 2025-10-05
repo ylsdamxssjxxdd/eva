@@ -7,77 +7,17 @@ on:
     branches: [ master ]
 
 jobs:
-  test-ubuntu-opencl:
-    if: false
-    runs-on: ubuntu-latest
-    env:
-      GGML_NLOOP: 3
-      GGML_NITER: 1
-      GGML_N_THREADS: 2
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Dependencies
-      run: |
-        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends llvm intel-oneapi-runtime-opencl intel-oneapi-runtime-compilers libclblast-dev
-    - name: Create Build Environment
-      run: mkdir build
-
-    - name: Configure CMake
-      working-directory: ./build
-      run: cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGGML_CLBLAST=ON ..
-
-    - name: Build
-      working-directory: ./build
-      run: make
-
-    - name: Test
-      working-directory: ./build
-      run: ctest --verbose --timeout 900
-
-  test-macos-metal:
-    runs-on: macos-13
-    env:
-      GGML_NLOOP: 3
-      GGML_NITER: 1
-      GGML_N_THREADS: 2
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Create Build Environment
-      run: mkdir build
-
-    - name: Configure CMake
-      working-directory: ./build
-      run: cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGGML_METAL=OFF ..
-
-    - name: Build
-      working-directory: ./build
-      run: make
-
-    - name: Test
-      working-directory: ./build
-      run: ctest --verbose --timeout 900
-
   build:
-
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
+        libraries: [shared, static]
 
     runs-on: ${{ matrix.os }}
 
-    env:
-      GGML_NLOOP: 3
-      GGML_NITER: 1
-
     steps:
-    - uses: actions/checkout@v3
+    - name: Clone
+      uses: actions/checkout@v4
 
     - name: Dependencies for Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -85,25 +25,35 @@ jobs:
         sudo apt-get update
         sudo apt-get install llvm
 
-    - name: Set GGML_N_THREADS for Ubuntu
-      run: echo "GGML_N_THREADS=2" >> $GITHUB_ENV
-      if: matrix.os == 'ubuntu-latest'
-
-    - name: Set GGML_N_THREADS for MacOS
-      run: echo "GGML_N_THREADS=2" >> $GITHUB_ENV
-      if: matrix.os == 'macos-latest'
+    - name: Add msbuild to PATH
+      if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v2
 
     - name: Create Build Environment
       run: mkdir build
 
     - name: Configure CMake
       working-directory: ./build
-      run: cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DGGML_METAL=OFF ..
+      run: cmake ..
+        ${{ contains(matrix.os, 'windows') && '-A x64' || '-G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++' }}
+        ${{ matrix.libraries == 'static' && '-DBUILD_SHARED_LIBS=OFF' || '-DBUILD_SHARED_LIBS=ON' }}
+        -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/installed
+        -DGGML_METAL=OFF
 
     - name: Build
       working-directory: ./build
-      run: make
+      run: cmake --build . ${{ contains(matrix.os, 'windows') && '--config Release' || '' }}
 
     - name: Test
       working-directory: ./build
-      run: ctest --verbose --timeout 900
+      run: ctest --verbose --timeout 900 ${{ contains(matrix.os, 'windows') && '--build-config Release' || '' }}
+
+    - name: Install
+      working-directory: ./build
+      run: cmake --build . --target install ${{ contains(matrix.os, 'windows') && '--config Release' || '' }}
+
+    - name: Test CMake config
+      run: |
+        mkdir test-cmake
+        cmake -S examples/test-cmake -B test-cmake -DCMAKE_PREFIX_PATH=${{ github.workspace }}/installed ${{ contains(matrix.os, 'windows') && '-A x64' || '-G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++' }}
+        cmake --build test-cmake ${{ contains(matrix.os, 'windows') && '--config Release' || '' }}
