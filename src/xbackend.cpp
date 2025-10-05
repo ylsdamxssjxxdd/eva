@@ -62,7 +62,11 @@ QStringList LocalServerManager::buildArgs() const
          << host_;
     args << "--port" << port_;
     args << "-c" << QString::number(settings_.nctx);
-    args << "-ngl" << QString::number(settings_.ngl);
+    // 仅在 GPU 型后端下传递 -ngl；CPU 后端无此选项意义
+    if (DeviceManager::effectiveBackend() != QLatin1String("cpu"))
+    {
+        args << "-ngl" << QString::number(settings_.ngl);
+    }
     args << "--threads" << QString::number(settings_.nthread);
     args << "-b" << QString::number(settings_.hid_batch);
     args << "--parallel" << QString::number(settings_.hid_parallel);

@@ -1,6 +1,6 @@
 # 机体
 
-llama.cpp启动器
+一款流畅的llama.cpp启动器
 
 \[ 中文 | [English](README_en.md) \]
 

@@ -24,6 +24,44 @@ void Widget::set_SetDialog()
         // 初始值沿用进程内选择（默认 auto），避免在首次打开前就触发重启
         int idx = settings_ui->device_comboBox->findText(DeviceManager::userChoice());
         if (idx >= 0) settings_ui->device_comboBox->setCurrentIndex(idx);
+
+        // helper：刷新设备相关 UI（auto 时在“推理设备”文本后追加提示；CPU 禁用 gpu 层数）
+        auto refreshDeviceUI = [this]() {
+            const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
+            const bool isCpu = (sel == QLatin1String("cpu"));
+            const bool isAuto = (sel == QLatin1String("auto"));
+
+            // 当选择 CPU 时，禁止选择 gpu 负载层数
+            settings_ui->ngl_slider->setEnabled(!isCpu);
+
+            // 在“推理设备”标签文本后附加当前 auto 的实际后端
+            if (deviceLabelBaseText.isEmpty())
+            {
+                deviceLabelBaseText = settings_ui->device_label->text();
+            }
+            if (isAuto)
+            {
+                // 计算 auto 实际生效的后端（按 cuda>vulkan>opencl>cpu 顺序）
+                const QStringList avail = DeviceManager::availableBackends();
+                const QStringList pref = {QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl"), QStringLiteral("cpu")};
+                QString eff = QStringLiteral("cpu");
+                for (const QString &p : pref)
+                {
+                    if (avail.contains(p)) { eff = p; break; }
+                }
+                settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
+            }
+            else
+            {
+                settings_ui->device_label->setText(deviceLabelBaseText);
+            }
+        };
+
+        // 监听选择变化并初始化一次
+        connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &) {
+            refreshDeviceUI();
+        });
+        refreshDeviceUI();
     }
 
     //温度控制
