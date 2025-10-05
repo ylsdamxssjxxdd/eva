@@ -986,7 +986,7 @@ void Widget::onServerOutput(const QString &line)
                     int curVal = settings_ui->ngl_slider->value();
                     if (curVal > maxngl) curVal = maxngl; // slider 可能会被系统自动夹紧
                     settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
-                    reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
+                    // reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
                 }
             }
         }
