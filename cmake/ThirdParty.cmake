@@ -85,17 +85,17 @@ foreach(B IN LISTS BACKENDS)
     )
     add_custom_command(OUTPUT ${DEST_DIR}/llama-server${sfx_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-server${sfx_NAME} ${DEST_DIR}/llama-server${sfx_NAME}
-        DEPENDS llama-build-${BLOW}
+        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-server${sfx_NAME}
         COMMENT "Stage llama-server -> ${DEST_DIR}"
     )
     add_custom_command(OUTPUT ${DEST_DIR}/llama-quantize${sfx_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME} ${DEST_DIR}/llama-quantize${sfx_NAME}
-        DEPENDS llama-build-${BLOW}
+        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME}
         COMMENT "Stage llama-quantize -> ${DEST_DIR}"
     )
     add_custom_command(OUTPUT ${DEST_DIR}/llama-tts${sfx_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME} ${DEST_DIR}/llama-tts${sfx_NAME}
-        DEPENDS llama-build-${BLOW}
+        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME}
         COMMENT "Stage llama-tts -> ${DEST_DIR}"
     )
     add_custom_target(stage-llama-${BLOW}
@@ -118,7 +118,7 @@ foreach(B IN LISTS BACKENDS)
     )
     add_custom_command(OUTPUT ${DEST_DIR}/whisper-cli${sfx_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME} ${DEST_DIR}/whisper-cli${sfx_NAME}
-        DEPENDS whisper-build-${BLOW}
+        DEPENDS whisper-build-${BLOW} ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME}
         COMMENT "Stage whisper-cli -> ${DEST_DIR}"
     )
     add_custom_target(stage-whisper-${BLOW}
@@ -151,7 +151,7 @@ foreach(B IN LISTS BACKENDS)
     )
     add_custom_command(OUTPUT ${DEST_DIR}/sd${sfx_NAME}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SD_BIN_CFG}/sd${sfx_NAME} ${DEST_DIR}/sd${sfx_NAME}
-        DEPENDS sd-build-${BLOW}
+        DEPENDS sd-build-${BLOW} ${SD_BIN_CFG}/sd${sfx_NAME}
         COMMENT "Stage sd -> ${DEST_DIR}"
     )
     add_custom_target(stage-sd-${BLOW}
@@ -170,3 +170,4 @@ add_custom_target(backends ALL DEPENDS ${ALL_STAGE_TARGETS})
 add_subdirectory(thirdparty/cpp-mcp)
 include_directories(thirdparty/cpp-mcp/include)
 include_directories(thirdparty/cpp-mcp/common)
+
