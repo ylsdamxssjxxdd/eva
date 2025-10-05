@@ -146,6 +146,7 @@ class Widget : public QWidget
     QString bot_predecode_content = ""; //模型预解码的内容
     void normal_finish_pushover();      //正常情况处理推理完毕
     bool gpu_wait_load = false;         // 等待检测完显存信息重新装载的标签
+    bool firstAutoNglEvaluated_ = false; // 首次装载前是否已进行显存阈值判断
 
     EVA_DATES ui_DATES;        // ui的约定
     SETTINGS ui_SETTINGS;      // ui的设置
@@ -181,6 +182,9 @@ class Widget : public QWidget
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); //获取本机第一个ip地址
     bool lastServerRestart_ = false;          // 标记最近一次 ensureLocalServer 是否触发了重启
+    // 在打开“设置”对话框时快照当前设置，用于判定用户是否有修改
+    SETTINGS settings_snapshot_;
+    QString port_snapshot_;
 
     //语音相关
     QAudioRecorder audioRecorder;

@@ -63,7 +63,7 @@ QStringList LocalServerManager::buildArgs() const
         args << "-m" << modelpath_;
     }
     args << "--host"
-         << "0.0.0.0";
+         << host_;
     args << "--port" << port_;
     args << "-c" << QString::number(settings_.nctx);
     args << "-ngl" << QString::number(settings_.ngl);
@@ -195,4 +195,9 @@ bool LocalServerManager::needsRestart() const
     const QStringList args = buildArgs();
     if (!isRunning()) return true;
     return (prog != lastProgram_) || (args != lastArgs_);
+}
+
+void LocalServerManager::setHost(const QString &host)
+{
+    host_ = host;
 }

@@ -1,5 +1,7 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include <QTcpServer>
+#include <QHostAddress>
 
 //-------------------------------------------------------------------------
 //-------------------------------响应槽相关---------------------------------
@@ -243,19 +245,18 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     {
         gpu_wait_load = false;
 #ifdef BODY_USE_GPU
-        int modelsize_MB;
-        QFileInfo fileInfo(ui_SETTINGS.modelpath);   //获取模型文件大小
-        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath); //获取mmproj文件大小
-        modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
-        // qDebug()<<vfree<<modelsize_MB * 1.2;
-
-        if (vfree > modelsize_MB * 1.2)
+        // 以文件体积近似估计显存占用：若模型大小低于当前可用显存的95%，则尝试全量 offload（ngl=999）
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);   // 模型文件大小
+        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath); // mmproj 文件大小（可为空）
+        const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
+        const double limit = 0.95 * vfree; // 95% 当前可用显存
+        if (modelsize_MB > 0 && vfree > 0 && modelsize_MB <= limit)
         {
-            ui_SETTINGS.ngl = 999;
+            ui_SETTINGS.ngl = 999; // 初次装载：尽可能全量 offload
         }
         else
         {
-            ui_SETTINGS.ngl = 0;
+            ui_SETTINGS.ngl = 0; // 不足则先走纯CPU/少量 offload
         }
 #endif
         // 应用新设置并按需重启本地服务
@@ -355,9 +356,85 @@ void Widget::recv_whisper_modelpath(QString modelpath)
 void Widget::ensureLocalServer()
 {
     if (!serverManager) return;
+    // 首次装载前：根据当前可用显存粗略评估是否可全量 offload（ngl=999）
+#ifdef BODY_USE_GPU
+    if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
+    {
+        firstAutoNglEvaluated_ = true; // 只评估一次
+        QFileInfo fileInfo(ui_SETTINGS.modelpath);
+        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);
+        const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
+        if (modelsize_MB > 0 && vfree > 0)
+        {
+            const double limit = 0.95 * vfree; // 95% 当前可用显存
+            if (modelsize_MB <= limit)
+            {
+                ui_SETTINGS.ngl = 999; // 先尝试全量 offload；装载后再按 n_layer+1 修正显示
+                if (settings_ui && settings_ui->ngl_slider)
+                {
+                    settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
+                    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
+                }
+            }
+        }
+        else if (modelsize_MB > 0 && vfree <= 0)
+        {
+            // 无法拿到可用显存数据：延后到下一次 GPU 刷新回调中处理
+            gpu_wait_load = true;
+        }
+    }
+#endif
+    // Determine bind host and a usable port before starting server.
+    auto pickFreePort = []() -> QString {
+        QTcpServer s;
+        // Ask OS for any free IPv4 port
+        if (s.listen(QHostAddress::AnyIPv4, 0)) {
+            const quint16 p = s.serverPort();
+            s.close();
+            return QString::number(p);
+        }
+        return QString(DEFAULT_SERVER_PORT);
+    };
+    auto isPortFree = [](quint16 port, const QHostAddress &addr) -> bool {
+        QTcpServer s;
+        const bool ok = s.listen(addr, port);
+        if (ok) s.close();
+        return ok;
+    };
+
+    QString bindHost = "0.0.0.0"; // default: expose to LAN
+    QString chosenPort = ui_port.trimmed();
+
+    if (chosenPort.isEmpty()) {
+        // If user cleared the port, bind only to localhost with a random port
+        bindHost = "127.0.0.1";
+        chosenPort = pickFreePort();
+        // keep ui_port empty to indicate no exposure
+        if (settings_ui && settings_ui->port_lineEdit) {
+            settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
+        }
+        reflash_state("ui:port cleared -> bind 127.0.0.1", SIGNAL_SIGNAL);
+    } else {
+        bool ok = false;
+        const quint16 portNum = chosenPort.toUShort(&ok);
+        if (!ok || portNum == 0 || !isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4))) {
+            const QString newPort = pickFreePort();
+            if (newPort != chosenPort) {
+                reflash_state("ui:port in use, switch to " + newPort, SIGNAL_SIGNAL);
+                chosenPort = newPort;
+                ui_port = newPort;
+                if (settings_ui && settings_ui->port_lineEdit) {
+                    settings_ui->port_lineEdit->setText(newPort);
+                }
+            }
+        }
+    }
+
+
     // 同步配置到本地后端管理器
     serverManager->setSettings(ui_SETTINGS);
-    serverManager->setPort(ui_port);
+    serverManager->setHost(bindHost);
+    serverManager->setPort(chosenPort);
     serverManager->setModelPath(ui_SETTINGS.modelpath);
     serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
     serverManager->setLoraPath(ui_SETTINGS.lorapath);
@@ -866,7 +943,7 @@ void Widget::onServerOutput(const QString &line)
                 {
                     const int curMax = settings_ui->nctx_slider->maximum();
                     if (curMax != train) settings_ui->nctx_slider->setMaximum(train);
-                    if (settings_ui->nctx_slider->value() > train) settings_ui->nctx_slider->setValue(train);
+                    // 仅更新最大值，不强制改动当前值；避免用户未修改的情况下导致“看似变化”
                 }
             }
         }
@@ -884,6 +961,33 @@ void Widget::onServerOutput(const QString &line)
             if (server_nctx_ != ui_SETTINGS.nctx)
             {
                 reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
+            }
+        }
+    }
+
+    // 1.5) capture n_layer and clamp GPU offload slider max to n_layer + 1
+    static QRegularExpression reLayer("print_info\\s*:\\s*n_layer\\s*=\\s*(\\d+)");
+    for (auto it = reLayer.globalMatch(line); it.hasNext();)
+    {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false;
+        const int layers = m.captured(1).toInt(&ok);
+        if (ok && layers > 0)
+        {
+            const int maxngl = layers + 1; // llama.cpp convention
+            if (ui_maxngl != maxngl)
+            {
+                ui_maxngl = maxngl;
+                if (settings_ui && settings_ui->ngl_slider)
+                {
+                    const int curMax = settings_ui->ngl_slider->maximum();
+                    if (curMax != maxngl) settings_ui->ngl_slider->setMaximum(maxngl);
+                    // 不强制覆盖 ui_SETTINGS.ngl；仅更新显示，保持 999 与 maxngl 的等价关系由确认时判断
+                    int curVal = settings_ui->ngl_slider->value();
+                    if (curVal > maxngl) curVal = maxngl; // slider 可能会被系统自动夹紧
+                    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
+                    reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
+                }
             }
         }
     }
@@ -947,3 +1051,4 @@ void Widget::onServerOutput(const QString &line)
         ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
     }
 }
+

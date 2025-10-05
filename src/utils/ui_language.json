@@ -179,8 +179,8 @@
             "TOP_K"
         ],
         "top_k_label_tooltip": [
-            "限制下一个token的候选数量，0表示使用全部词表；1接近贪婪解码",
-            "Limit next-token candidates to top K. 0 uses full vocab; 1 is near greedy."
+            "限制下一个token的候选数量",
+            "Limit next-token candidates to top K"
         ],
         "parallel": [
             "并发数量",
@@ -193,6 +193,10 @@
         "port": [
             "端口",
             "port "
+        ],
+        "exposed port": [
+            "暴露端口",
+            "exposed port"
         ],
         "lode model first": [
             "装载模型后查看",

@@ -227,6 +227,7 @@ void Widget::on_load_clicked()
     ui_SETTINGS.lorapath = "";   // 清空lora模型路径
     is_load = false;
     monitor_timer.stop();
+    firstAutoNglEvaluated_ = false; // 新模型：允许重新评估一次是否可全量 offload
     // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
     ensureLocalServer();
 }
@@ -799,5 +800,8 @@ void Widget::on_set_clicked()
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
     settings_ui->port_lineEdit->setText(ui_port);
+    // 打开设置时记录当前设置快照，用于确认时判断是否有修改
+    settings_snapshot_ = ui_SETTINGS;
+    port_snapshot_ = ui_port;
     settings_dialog->exec();
 }

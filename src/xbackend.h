@@ -22,6 +22,7 @@ class LocalServerManager : public QObject
     // Configure inputs used to build server arguments
     void setSettings(const SETTINGS &s);
     void setPort(const QString &port);
+    void setHost(const QString &host);
     void setModelPath(const QString &path);
     void setMmprojPath(const QString &path);
     void setLoraPath(const QString &path);
@@ -53,6 +54,7 @@ class LocalServerManager : public QObject
     QString appDirPath_;
     SETTINGS settings_;
     QString port_ = DEFAULT_SERVER_PORT;
+    QString host_ = "0.0.0.0";
     QString modelpath_;
     QString mmproj_;
     QString lora_;

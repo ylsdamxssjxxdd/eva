@@ -61,6 +61,7 @@ void Widget::set_SetDialog()
     settings_ui->port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535); //限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
+    settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
     // web_btn 已从 UI 移除
     //监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
@@ -74,8 +75,91 @@ void Widget::set_SetDialog()
 // 设置选项卡确认按钮响应
 void Widget::settings_ui_confirm_button_clicked()
 {
+    // 先读取对话框中的值，与打开对话框时的快照对比；完全一致则不做任何动作
+    // 注意：get_set() 会把控件值写入 ui_SETTINGS 与 ui_port
+    get_set();
+
+    auto eq_str = [](const QString &a, const QString &b) { return a == b; };
+    auto eq_ngl = [&](int a, int b) {
+        // 视 999 与 (n_layer+1) 为等价（已知服务端最大层数时）
+        if (a == b) return true;
+        if (ui_maxngl > 0) {
+            if ((a == 999 && b == ui_maxngl) || (b == 999 && a == ui_maxngl)) return true;
+        }
+        return false;
+    };
+    auto eq = [&](const SETTINGS &A, const SETTINGS &B) {
+        // 影响 llama-server 启动参数的设置项（保持与 LocalServerManager::buildArgs 一致）
+        if (A.modelpath != B.modelpath) return false;
+        if (A.mmprojpath != B.mmprojpath) return false;
+        if (A.lorapath != B.lorapath) return false;
+        if (A.nctx != B.nctx) return false;
+        if (!eq_ngl(A.ngl, B.ngl)) return false;
+        if (A.nthread != B.nthread) return false;
+        if (A.hid_batch != B.hid_batch) return false;
+        if (A.hid_parallel != B.hid_parallel) return false;
+        if (A.hid_use_mmap != B.hid_use_mmap) return false;
+        if (A.hid_use_mlock != B.hid_use_mlock) return false;
+        if (A.hid_flash_attn != B.hid_flash_attn) return false;
+        // 其他仅影响采样/推理流程的设置项（不触发后端重启）也一并比较；若都未变，则完全不处理
+        if (A.temp != B.temp) return false;
+        if (A.repeat != B.repeat) return false;
+        if (A.top_k != B.top_k) return false;
+        if (A.hid_top_p != B.hid_top_p) return false;
+        if (A.hid_npredict != B.hid_npredict) return false;
+        if (A.hid_n_ubatch != B.hid_n_ubatch) return false;
+        if (A.hid_special != B.hid_special) return false;
+        if (A.complete_mode != B.complete_mode) return false;
+        return true;
+    };
+
+    const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
+
+    // 仅比较会触发后端重启的设置项
+    auto eq_server = [&](const SETTINGS &A, const SETTINGS &B) {
+        if (A.modelpath != B.modelpath) return false;
+        if (A.mmprojpath != B.mmprojpath) return false;
+        if (A.lorapath != B.lorapath) return false;
+        if (A.nctx != B.nctx) return false;
+        if (!eq_ngl(A.ngl, B.ngl)) return false;
+        if (A.nthread != B.nthread) return false;
+        if (A.hid_batch != B.hid_batch) return false;
+        if (A.hid_parallel != B.hid_parallel) return false;
+        if (A.hid_use_mmap != B.hid_use_mmap) return false;
+        if (A.hid_use_mlock != B.hid_use_mlock) return false;
+        if (A.hid_flash_attn != B.hid_flash_attn) return false;
+        return true;
+    };
+    const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
+
     settings_dialog->close();
-    set_set();
+    if (sameSettings)
+    {
+        // 未发生任何变化：不重启、不重置
+        return;
+    }
+    if (sameServer)
+    {
+        // 仅采样/推理相关变化：不重启后端，仅重置上下文应用参数
+        if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
+        {
+            on_reset_clicked();
+        }
+        return;
+    }
+    // 有影响后端的变化：必要时重启后端并在未重启的情况下重置
+    if (ui_mode == LOCAL_MODE)
+    {
+        ensureLocalServer();
+        if (!lastServerRestart_)
+        {
+            on_reset_clicked();
+        }
+    }
+    else
+    {
+        on_reset_clicked();
+    }
 }
 
 // 设置选项卡取消按钮响应

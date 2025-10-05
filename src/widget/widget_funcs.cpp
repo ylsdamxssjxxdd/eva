@@ -738,7 +738,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->chat_btn->setText(jtr("chat state"));
     settings_ui->chat_btn->setToolTip(jtr("chat_btn_tooltip"));
     // 服务模式已移除
-    settings_ui->port_label->setText(jtr("port"));
+    settings_ui->port_label->setText(jtr("exposed port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
     settings_ui->frame_label->setText(jtr("frame"));
