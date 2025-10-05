@@ -2,12 +2,17 @@
 set -euo pipefail
 
 # package-appimage.sh - produce an AppImage from an existing build
-# Usage: tools/package-appimage.sh [build-dir] [AppDir]
+# Usage: tools/package-appimage.sh [build-dir] [AppDir] [config]
 #  - build-dir defaults to ./build
 #  - AppDir defaults to <build-dir>/AppDir
+#  - config (optional): Release/Debug/etc.; if empty, omitted
+
+# Make AppImage tools work without FUSE (fallback)
+export APPIMAGE_EXTRACT_AND_RUN=1
 
 BUILD_DIR=${1:-build}
 APPDIR=${2:-"${BUILD_DIR}/AppDir"}
+CONFIG=${3:-}
 
 # Ensure build exists
 if [[ ! -d "$BUILD_DIR" ]]; then
@@ -55,7 +60,11 @@ if need_fetch "$APPIMAGETOOL"; then
 fi
 
 # Ensure AppDir/usr tree via cmake install
-cmake --install "$BUILD_DIR" --config Release --prefix "$APPDIR/usr"
+if [[ -n "$CONFIG" ]]; then
+  cmake --install "$BUILD_DIR" --config "$CONFIG" --prefix "$APPDIR/usr"
+else
+  cmake --install "$BUILD_DIR" --prefix "$APPDIR/usr"
+fi
 
 # The main executable and desktop/icon locations after install()
 MAIN_EXE="$APPDIR/usr/bin/eva"
@@ -65,7 +74,7 @@ ICON_FILE="$APPDIR/usr/share/icons/hicolor/64x64/apps/blue_logo.png"
 # Sanity checks
 for f in "$MAIN_EXE" "$DESKTOP_FILE" "$ICON_FILE"; do
   [[ -e "$f" ]] || { echo "Missing $f; did the build succeed?" >&2; exit 2; }
-done
+fi
 
 # Run linuxdeploy with Qt plugin
 export QMAKE="${QMAKE:-$(command -v qmake || true)}"

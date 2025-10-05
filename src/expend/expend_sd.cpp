@@ -192,14 +192,14 @@ void Expend::on_sd_draw_pushButton_clicked()
     if (img2img)
     {
         arguments << "-M"
-                  << "img2img";                               //运行模式 图生图
+                  << "img_gen";                               //运行模式 图生图
         arguments << "-i" << ui->sd_img2img_lineEdit->text(); // 传入图像路径
         img2img = false;
     }
     else
     {
         arguments << "-M"
-                  << "txt2img"; //运行模式 文生图
+                  << "img_gen"; //运行模式 文生图
     }
 
     //模型路径 sd系列模型用-m flux模型用--diffusion-model
