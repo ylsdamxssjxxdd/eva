@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include "../utils/devicemanager.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
@@ -30,14 +31,8 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 // 尝试启动server
 void Expend::embedding_server_start()
 {
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/llama-server") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#else
-    QString localPath = QString("./llama-server") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#endif
+    // Resolve llama.cpp server from current backend
+    QString program = DeviceManager::programPath(QStringLiteral("llama-server"));
 
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;

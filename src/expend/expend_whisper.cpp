@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include "../utils/devicemanager.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------声转文相关--------------------------------
@@ -21,12 +22,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
 
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/whisper-cli") + SFX_NAME;
-#else
-    QString localPath = QString("./whisper-cli") + SFX_NAME;
-#endif
+    const QString localPath = DeviceManager::programPath(QStringLiteral("whisper-cli"));
 
     //将wav文件重采样为16khz音频文件
 #ifdef _WIN32

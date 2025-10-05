@@ -62,6 +62,7 @@
 #include "../utils/history_store.h" // per-session history persistence
 #include "../xbackend.h"            // local llama.cpp server manager
 #include "../xconfig.h"             // ui和bot都要导入的共有配置
+#include "../utils/devicemanager.h"  // backend runtime detection / selection
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 
 QT_BEGIN_NAMESPACE
@@ -185,6 +186,8 @@ class Widget : public QWidget
     // 在打开“设置”对话框时快照当前设置，用于判定用户是否有修改
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
+    QString ui_device_backend = "auto"; // 用户选择的推理设备（auto/cpu/cuda/vulkan/opencl）
+    QString device_snapshot_;           // 打开设置时记录的设备，确定是否需要重启后端
 
     //语音相关
     QAudioRecorder audioRecorder;

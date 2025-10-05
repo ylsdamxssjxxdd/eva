@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QTextCodec>
+#include "utils/devicemanager.h"
 
 LocalServerManager::LocalServerManager(QObject *parent, const QString &appDirPath)
     : QObject(parent), appDirPath_(appDirPath) {}
@@ -45,14 +46,9 @@ bool LocalServerManager::isRunning() const
 
 QString LocalServerManager::programPath() const
 {
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    if (appDirPath.isEmpty()) appDirPath = appDirPath_;
-    return QString(appDirPath + "/usr/bin/llama-server") + SFX_NAME;
-#else
     Q_UNUSED(appDirPath_);
-    return QString("./llama-server") + SFX_NAME;
-#endif
+    // Resolve per selected backend (auto/cpu/cuda/vulkan/opencl)
+    return DeviceManager::programPath(QStringLiteral("llama-server"));
 }
 
 QStringList LocalServerManager::buildArgs() const

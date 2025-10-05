@@ -803,5 +803,6 @@ void Widget::on_set_clicked()
     // 打开设置时记录当前设置快照，用于确认时判断是否有修改
     settings_snapshot_ = ui_SETTINGS;
     port_snapshot_ = ui_port;
+    device_snapshot_ = settings_ui->device_comboBox->currentText().trimmed().toLower();
     settings_dialog->exec();
 }

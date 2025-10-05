@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include "../utils/devicemanager.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------文生图相关--------------------------------
@@ -184,14 +185,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     //结束sd
     sd_process->kill();
 
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/sd") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#else
-    QString localPath = QString("./sd") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#endif
+    const QString program = DeviceManager::programPath(QStringLiteral("sd")); // 设置要运行的exe文件的路径
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 

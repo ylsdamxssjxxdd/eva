@@ -12,6 +12,20 @@ void Widget::set_SetDialog()
     settings_ui = new Ui::Settings_Dialog_Ui;
     settings_ui->setupUi(settings_dialog);
 
+    // 推理设备下拉：根据当前目录中可用后端动态填充
+    {
+        settings_ui->device_comboBox->clear();
+        settings_ui->device_comboBox->addItem("auto");
+        const QStringList backs = DeviceManager::availableBackends();
+        for (const QString &b : backs)
+        {
+            settings_ui->device_comboBox->addItem(b);
+        }
+        // 初始值沿用进程内选择（默认 auto），避免在首次打开前就触发重启
+        int idx = settings_ui->device_comboBox->findText(DeviceManager::userChoice());
+        if (idx >= 0) settings_ui->device_comboBox->setCurrentIndex(idx);
+    }
+
     //温度控制
     settings_ui->temp_slider->setRange(0, 100); // 设置范围为1到99
     settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
@@ -101,6 +115,8 @@ void Widget::settings_ui_confirm_button_clicked()
         if (A.hid_use_mmap != B.hid_use_mmap) return false;
         if (A.hid_use_mlock != B.hid_use_mlock) return false;
         if (A.hid_flash_attn != B.hid_flash_attn) return false;
+        // 推理设备（切换后需要重启后端）
+        if (ui_device_backend != device_snapshot_) return false;
         // 其他仅影响采样/推理流程的设置项（不触发后端重启）也一并比较；若都未变，则完全不处理
         if (A.temp != B.temp) return false;
         if (A.repeat != B.repeat) return false;
@@ -128,6 +144,8 @@ void Widget::settings_ui_confirm_button_clicked()
         if (A.hid_use_mmap != B.hid_use_mmap) return false;
         if (A.hid_use_mlock != B.hid_use_mlock) return false;
         if (A.hid_flash_attn != B.hid_flash_attn) return false;
+        // 设备切换也需要重启后端
+        if (ui_device_backend != device_snapshot_) return false;
         return true;
     };
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);

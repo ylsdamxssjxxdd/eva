@@ -16,6 +16,7 @@
 #include "xmcp.h"
 #include "xnet.h"
 #include "xtool.h"
+#include "utils/devicemanager.h"
 
 static inline void createDesktopShortcut(QString appPath)
 {
@@ -282,6 +283,12 @@ int main(int argc, char *argv[])
     w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
     w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
     if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
+    // 推理设备：先根据目录填充选项，再应用用户偏好
+    const QString savedDevice = settings.value("device_backend", "auto").toString();
+    DeviceManager::setUserChoice(savedDevice);
+    int devIdx = w.settings_ui->device_comboBox->findText(DeviceManager::userChoice());
+    if (devIdx >= 0) w.settings_ui->device_comboBox->setCurrentIndex(devIdx);
+
     w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
     w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());
     w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());

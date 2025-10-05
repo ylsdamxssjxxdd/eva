@@ -95,6 +95,10 @@ void Widget::get_set()
     // 服务状态已弃用
 
     ui_port = settings_ui->port_lineEdit->text();
+
+    // 推理设备：同步到 DeviceManager（auto/cpu/cuda/vulkan/opencl）
+    ui_device_backend = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    DeviceManager::setUserChoice(ui_device_backend);
 }
 
 //获取约定中的纸面值
@@ -819,6 +823,7 @@ void Widget::auto_save_user()
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
     settings.setValue("port", ui_port); //服务端口
+    settings.setValue("device_backend", ui_device_backend); // 推理设备（auto/cpu/cuda/vulkan/opencl）
     //保存约定参数
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());              //对话模板
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           //计算器工具
