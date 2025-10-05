@@ -130,18 +130,21 @@ foreach(B IN LISTS BACKENDS)
     set(SD_BIN ${SD_BLD}/bin)
     set(SD_BIN_CFG ${SD_BIN}/$<CONFIG>)
     # Configure stable-diffusion.cpp backend toggles
-    # Note: upstream expects SD_CUDA / SD_VULKAN / SD_OPENCL options.
-    # We previously passed SD_USE_CUBLAS / SD_USE_VULKAN which are not
-    # recognized as options by the subproject, resulting in CPU builds.
+    # Note: upstream expects SD_CUDA / SD_VULKAN / SD_OPENCL options
+    # and forwards them to ggml (GGML_CUDA / GGML_VULKAN / GGML_OPENCL).
+    # If these are not set correctly, the build silently falls back to CPU.
     set(SD_EXTRA_ARGS "")
     if (B_USE_CUDA)
-        list(APPEND SD_EXTRA_ARGS -DSD_CUDA=ON)
+        list(APPEND SD_EXTRA_ARGS -DSD_CUDA=ON -DGGML_CUDA=ON)
     endif()
     if (B_USE_VULKAN)
-        list(APPEND SD_EXTRA_ARGS -DSD_VULKAN=ON)
+        list(APPEND SD_EXTRA_ARGS -DSD_VULKAN=ON -DGGML_VULKAN=ON)
+        # The Vulkan backend does not benefit from OpenMP on the host for heavy kernels.
+        # Disabling it reduces host-side contention in some environments.
+        list(APPEND SD_EXTRA_ARGS -DGGML_OPENMP=OFF)
     endif()
     if (B_USE_OPENCL)
-        list(APPEND SD_EXTRA_ARGS -DSD_OPENCL=ON)
+        list(APPEND SD_EXTRA_ARGS -DSD_OPENCL=ON -DGGML_OPENCL=ON)
     endif()
     add_custom_target(sd-build-${BLOW}
         COMMAND ${CMAKE_COMMAND} -S ${SD_SRC} -B ${SD_BLD} -DBUILD_SHARED_LIBS=OFF ${SD_EXTRA_ARGS}

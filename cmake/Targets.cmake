@@ -27,6 +27,7 @@ add_executable(
     src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp
     src/utils/devicemanager.cpp src/utils/devicemanager.h
+    src/utils/pathutil.cpp src/utils/pathutil.h
     src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/csvtablewidget.h

@@ -2,6 +2,7 @@
 
 #include "ui_expend.h"
 #include "../utils/devicemanager.h"
+#include "../utils/pathutil.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------声转文相关--------------------------------
@@ -38,8 +39,11 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 
-    arguments << "-m" << QString::fromStdString(whisper_params.model);            //模型路径
-    arguments << "-f" << wavpath;                                                 // wav文件路径
+    // Convert potentially non-ASCII paths to tool-friendly form on Windows
+    const QString modelPathArg = ensureToolFriendlyFilePath(ui->whisper_load_modelpath_linedit->text());
+    const QString wavPathArg   = ensureToolFriendlyFilePath(wavpath);
+    arguments << "-m" << modelPathArg;       // 模型路径（可能为 8.3 短路径）
+    arguments << "-f" << wavPathArg;         // wav 文件路径（可能为 8.3 短路径）
     arguments << "--language" << QString::fromStdString(whisper_params.language); //识别语种
     arguments << "--threads" << QString::number(max_thread * 0.5);
     if (out_format == "txt")

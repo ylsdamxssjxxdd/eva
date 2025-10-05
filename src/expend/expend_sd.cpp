@@ -2,6 +2,7 @@
 
 #include "ui_expend.h"
 #include "../utils/devicemanager.h"
+#include "../utils/pathutil.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------文生图相关--------------------------------
@@ -193,7 +194,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     {
         arguments << "-M"
                   << "img_gen";                               //运行模式 图生图
-        arguments << "-i" << ui->sd_img2img_lineEdit->text(); // 传入图像路径
+        arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text()); // 传入图像路径（处理中文路径）
         img2img = false;
     }
     else
@@ -205,28 +206,28 @@ void Expend::on_sd_draw_pushButton_clicked()
     //模型路径 sd系列模型用-m flux模型用--diffusion-model
     if (ui->sd_modelpath_lineEdit->text().contains("flux"))
     {
-        arguments << "--diffusion-model" << ui->sd_modelpath_lineEdit->text();
+        arguments << "--diffusion-model" << ensureToolFriendlyFilePath(ui->sd_modelpath_lineEdit->text());
     }
     else
     {
-        arguments << "-m" << ui->sd_modelpath_lineEdit->text();
+        arguments << "-m" << ensureToolFriendlyFilePath(ui->sd_modelpath_lineEdit->text());
     }
 
     if (QFile::exists(ui->sd_vaepath_lineEdit->text()))
     {
-        arguments << "--vae" << ui->sd_vaepath_lineEdit->text();
+        arguments << "--vae" << ensureToolFriendlyFilePath(ui->sd_vaepath_lineEdit->text());
     } // vae路径
     if (QFile::exists(ui->sd_clip_l_path_lineEdit->text()))
     {
-        arguments << "--clip_l" << ui->sd_clip_l_path_lineEdit->text();
+        arguments << "--clip_l" << ensureToolFriendlyFilePath(ui->sd_clip_l_path_lineEdit->text());
     } // clip_l路径
     if (QFile::exists(ui->sd_clip_g_path_lineEdit->text()))
     {
-        arguments << "--clip_g" << ui->sd_clip_g_path_lineEdit->text();
+        arguments << "--clip_g" << ensureToolFriendlyFilePath(ui->sd_clip_g_path_lineEdit->text());
     } // clip_g路径
     if (QFile::exists(ui->sd_t5path_lineEdit->text()))
     {
-        arguments << "--t5xxl" << ui->sd_t5path_lineEdit->text();
+        arguments << "--t5xxl" << ensureToolFriendlyFilePath(ui->sd_t5path_lineEdit->text());
     }                                         // vae路径
     QString lora_prompt = "<lora:{model}:1>"; // 应用lora的提示，将会添加到提示词的最后
     if (QFile::exists(ui->sd_lorapath_lineEdit->text()))
@@ -236,7 +237,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         QString lora_name = lorafileInfo.fileName().replace(".safetensors", "");
         if (lora_directoryPath != "")
         {
-            arguments << "--lora-model-dir" << lora_directoryPath;
+            arguments << "--lora-model-dir" << toToolFriendlyPath(lora_directoryPath);
             lora_prompt.replace("{model}", lora_name);
         }
     }
@@ -263,7 +264,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
 
     arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5); //线程数
-    arguments << "-o" << sd_outputpath;                                              //输出路径
+    arguments << "-o" << toToolFriendlyPath(sd_outputpath);                           // 输出路径（确保无中文）
     arguments << "--strength" << DEFAULT_SD_NOISE;                                   //噪声系数
     arguments << "-v";                                                               // 打印细节
 
