@@ -4,7 +4,7 @@
 include_guard(GLOBAL)
 
 # ---- User-facing options ----
-option(BODY_PACK   "pack eva"                                   OFF)
+option(BODY_PACK   "pack eva"                                   ON)
 
 # Backend toggles. Default values are finalized by auto-detection below.
 # We still declare them as options so users can opt-out by disabling
@@ -108,8 +108,6 @@ if (MSVC)
     # These warnings originate in MS headers and aren't actionable in this project; see build logs
     add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
     if (GGML_CUDA)
-        list(APPEND extra_INCLUDES ${CMAKE_SOURCE_DIR}/src/utils/nvml.h)
-        list(APPEND extra_LIBS ${CMAKE_SOURCE_DIR}/src/utils/nvml.lib)
         find_package(CUDAToolkit)
         string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})
         string(REGEX MATCH "^[0-9]+\\.[0-9]+" CUDA_VERSION ${CUDAToolkit_VERSION})

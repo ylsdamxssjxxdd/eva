@@ -12,19 +12,7 @@ elseif (ARCHITECTURE MATCHES "aarch64|arm")
 endif()
 
 # Compose eva output name
-if (BODY_32BIT)
-    set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-cpu-32bit")
-elseif (BODY_DOTPORD)
-    set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-dotprod-${ARCHITECTURE}")
-elseif (GGML_CUDA)
-    message(STATUS "CUDA version: ${CUDA_VERSION}")
-    set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-cuda${CUDA_VERSION}-${ARCHITECTURE}")
-elseif (GGML_VULKAN)
-    set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-vulkan-${ARCHITECTURE}")
-else()
-    set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-cpu-${ARCHITECTURE}")
-endif()
-message(STATUS "构建输出名称: ${eva_OUTPUT_NAME}")
+set(eva_OUTPUT_NAME "${EVA_TARGET}-${version}-${ARCHITECTURE}")
 
 # OS version
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")

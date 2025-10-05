@@ -22,5 +22,7 @@ include(cmake/ProjectOptions.cmake)    # 选项 & 编译器/平台标志
 include(cmake/ThirdParty.cmake)        # 第三方依赖
 include(cmake/QtSetup.cmake)           # Qt 自动化 & 发现
 include(cmake/EnvInfo.cmake)           # 生成环境信息 & cmakeconfig.h
-include(cmake/Targets.cmake)           # 主可执行文件
+include(cmake/Targets.cmake)
+include(cmake/Install.cmake)           # install layout (AppImage staging)           # 主可执行文件
 # include(cmake/PostBuild.cmake)         # 打包与部署（可按需启用）
+

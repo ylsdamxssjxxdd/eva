@@ -1,6 +1,6 @@
 // gpuChecker
 // 用于查询gpu的显存/显存利用率/gpu利用率/剩余显存
-// 使用时可直接包含此头文件，windows平台依赖nvml.h和nvml.lib
+// 跨平台实现：优先使用 nvidia-smi/rocm-smi；Windows 不再依赖 NVML；不可用时返回 0
 // 需要连接对应的信号槽
 // 依赖qt5
 
@@ -13,9 +13,6 @@
 #include <QProcess>
 #include <QThread>
 
-#if defined(BODY_USE_CUDA) && !defined(__linux__)
-#include "nvml.h"
-#endif
 
 // 进程执行辅助：带超时、失败安全
 static inline bool runProcessReadAll(const QString &program,
@@ -147,17 +144,7 @@ class gpuChecker : public QObject
   public:
     gpuChecker()
     {
-#if defined(BODY_USE_CUDA) && !defined(__linux__)
-        if (nvmlInit() == NVML_SUCCESS)
-        {
-            nvmlDeviceGetHandleByIndex(0, &device);
-            nvmlReady = true;
-        }
-        else
-        {
-            nvmlReady = false;
-        }
-#elif BODY_USE_32BIT
+#if BODY_USE_32BIT
         gpuInfoProvider = nullptr;
 #else
         const QString gpuVendor = getGpuVendor();
@@ -182,9 +169,6 @@ class gpuChecker : public QObject
 
     ~gpuChecker()
     {
-#if defined(BODY_USE_CUDA) && !defined(__linux__)
-        if (nvmlReady) nvmlShutdown();
-#endif
         if (gpuInfoProvider)
         {
             delete gpuInfoProvider;
@@ -193,27 +177,6 @@ class gpuChecker : public QObject
 
     void checkGpu()
     {
-#if defined(BODY_USE_CUDA) && !defined(__linux__)
-        if (nvmlReady)
-        {
-            nvmlUtilization_t utilization{};
-            nvmlMemory_t memory{};
-            if (nvmlDeviceGetUtilizationRates(device, &utilization) == NVML_SUCCESS &&
-                nvmlDeviceGetMemoryInfo(device, &memory) == NVML_SUCCESS)
-            {
-                const float vmem = memory.total / 1024.0f / 1024.0f; // MB
-                const float vram = memory.total ? (float(memory.used) / float(memory.total) * 100.0f) : 0.0f;
-                const float vcore = float(utilization.gpu);
-                const float vfree = float(memory.free) / 1024.0f / 1024.0f; // MB
-                emit gpu_status(vmem, vram, vcore, vfree);
-                return;
-            }
-            // NVML 失败，降级为 0
-            emit gpu_status(0, 0, 0, 0);
-            return;
-        }
-        // 未就绪时走通用分支
-#endif
         if (gpuInfoProvider)
         {
             gpuInfoProvider->getGpuInfo();
@@ -252,10 +215,6 @@ class gpuChecker : public QObject
         return "Unknown";
     }
 
-#if defined(BODY_USE_CUDA) && !defined(__linux__)
-    nvmlDevice_t device{};
-    bool nvmlReady = false;
-#endif
     GpuInfoProvider *gpuInfoProvider = nullptr;
 
   signals:

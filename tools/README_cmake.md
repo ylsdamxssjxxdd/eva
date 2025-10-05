@@ -9,3 +9,16 @@
 - thirdparty\llama.cpp\ggml\src\CMakeLists.txt 
 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} 全部替换为 ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE}
 
+
+## Linux AppImage packaging (new)
+
+- Build (Release) first:
+  
+  cmake -B build -DBODY_PACK=ON
+  cmake --build build --config Release -j
+
+- Then package on a Linux machine:
+  
+  bash tools/package-appimage.sh build
+
+This script installs into build/AppDir/usr and runs linuxdeploy + plugin-qt to produce an .AppImage. It bundles the main GUI at usr/bin/eva and all detected backends under usr/bin/<backend>/ (cpu/cuda/vulkan/opencl) so DeviceManager can find the correct llama-server at runtime.
