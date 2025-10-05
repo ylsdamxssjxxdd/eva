@@ -318,6 +318,10 @@
             "解码参数",
             "decode set"
         ],
+        "backend set": [
+            "后端设置",
+            "backend set"
+        ],
         "state set": [
             "状态设置",
             "state set"

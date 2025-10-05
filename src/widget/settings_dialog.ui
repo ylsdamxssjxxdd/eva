@@ -194,14 +194,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="decode_box">
+    <widget class="QGroupBox" name="backend_box">
      <property name="font">
       <font>
        <pointsize>9</pointsize>
       </font>
      </property>
      <property name="title">
-      <string>解码设置</string>
+      <string>后端设置</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <property name="spacing">

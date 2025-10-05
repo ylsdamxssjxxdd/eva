@@ -714,7 +714,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->parallel_label->setToolTip(jtr("parallel_label_tooltip"));
     settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
-    settings_ui->decode_box->setTitle(jtr("decode set")); //解码设置区域
+    settings_ui->backend_box->setTitle(jtr("backend set")); //后端设置区域
     settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
     settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
     settings_ui->ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
