@@ -5,6 +5,7 @@
 #include "ui_widget.h"
 #include <QDateTime>
 #include <QDir>
+#include <QMessageBox>
 #include <QRegularExpression>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
@@ -176,6 +177,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     trayIcon->show();
     // Initialize persistent history store under EVA_TEMP/history
     history_ = new HistoryStore(QDir(applicationDirPath).filePath("EVA_TEMP/history"));
+
+    // 进程退出前，确保停止本地 llama-server，避免残留进程
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+        if (serverManager) serverManager->stop();
+    });
     qDebug() << "widget init over";
 }
 
@@ -212,24 +218,50 @@ void Widget::on_load_clicked()
 {
     reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
-    //用户选择模型位置
-    currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
+    // 弹出模式选择对话框：本地模式 或 链接模式
+    QMessageBox box(this);
+    box.setWindowTitle(jtr("load"));
+    box.setText(jtr("load") + ": " + jtr("local mode") + " / " + jtr("link mode"));
+    QPushButton *localBtn = box.addButton(jtr("local mode"), QMessageBox::AcceptRole);
+    QPushButton *linkBtn = box.addButton(jtr("link mode"), QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Cancel);
+    box.exec();
 
-    if (currentpath == "" || currentpath == historypath)
+    if (box.clickedButton() == localBtn)
     {
+        // 用户选择本地模式：选择模型并启动本地 llama-server
+        currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
+        if (currentpath == "" || currentpath == historypath)
+        {
+            return; // 路径未选择或与上次相同
+        }
+        ui_mode = LOCAL_MODE;      // 本地模式 -> 使用本地llama-server + xNet
+        historypath = currentpath; // 记录这个路径，方便下次对比
+        ui_SETTINGS.modelpath = currentpath;
+        ui_SETTINGS.mmprojpath = ""; // 清空mmproj模型路径
+        ui_SETTINGS.lorapath = "";   // 清空lora模型路径
+        is_load = false;
+        monitor_timer.stop();
+        firstAutoNglEvaluated_ = false; // 新模型：允许重新评估一次是否可全量 offload
+        // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
+        ensureLocalServer();
+    }
+    else if (box.clickedButton() == linkBtn)
+    {
+        // 用户选择链接模式：打开链接设置对话框
+        ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
+        reflash_state(ui_state_info, SIGNAL_SIGNAL);
+        // 预填当前值
+        api_endpoint_LineEdit->setText(apis.api_endpoint);
+        api_key_LineEdit->setText(apis.api_key);
+        api_model_LineEdit->setText(apis.api_model);
+        api_dialog->exec(); // 确定后触发 set_api()
+    }
+    else
+    {
+        // 取消 -> 不做任何事
         return;
-    } //如果路径没选好或者模型路径是一样的，则不操作
-
-    ui_mode = LOCAL_MODE;      // 本地模式 -> 使用本地llama-server + xNet
-    historypath = currentpath; // 记录这个路径，方便下次对比
-    ui_SETTINGS.modelpath = currentpath;
-    ui_SETTINGS.mmprojpath = ""; // 清空mmproj模型路径
-    ui_SETTINGS.lorapath = "";   // 清空lora模型路径
-    is_load = false;
-    monitor_timer.stop();
-    firstAutoNglEvaluated_ = false; // 新模型：允许重新评估一次是否可全量 offload
-    // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
-    ensureLocalServer();
+    }
 }
 
 //模型释放完毕并重新装载

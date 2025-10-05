@@ -10,7 +10,8 @@
 //用户点击选择嵌入模型路径时响应
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
-    server_process->kill();                                                                      // 终止server
+    // 停止已有嵌入服务，避免重复启动导致残留
+    stopEmbeddingServer(true);
     Embedding_DB.clear();                                                                        // 清空向量数据库
     ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
     ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行

@@ -133,6 +133,8 @@ class Expend : public QWidget
     bool keep_embedding_server = false; // 确保嵌入服务不会因为刚启动就停止
     QString embedding_server_api = "http://" + QString(DEFAULT_EMBEDDING_IP) + ":" + DEFAULT_EMBEDDING_PORT + DEFAULT_EMBEDDING_API;
     QProcess *server_process;
+    // 停止知识库嵌入服务；force=true 时强制杀进程树（Windows 使用 taskkill /T /F）
+    void stopEmbeddingServer(bool force = false);
     void embedding_server_start();          //尝试启动server
     QString txtpath;                        //用户上传的txt文件路径
     int embedding_server_dim = 1024;        //开启嵌入服务的嵌入维度

@@ -5,9 +5,20 @@ include_guard(GLOBAL)
 
 # ---- User-facing options ----
 option(BODY_PACK   "pack eva"                                   OFF)
-option(GGML_CUDA   "ggml: use CUDA"                             ON)
+
+# Backend toggles. Default values are finalized by auto-detection below.
+# We still declare them as options so users can opt-out by disabling
+# GGML_BACKEND_AUTO and toggling these manually.
+option(GGML_CUDA   "ggml: use CUDA"                             OFF)
 option(GGML_VULKAN "ggml: use Vulkan"                           OFF)
 option(GGML_OPENCL "ggml: use OpenCL"                           OFF)
+
+# When enabled, CMake will probe locally installed SDKs (CUDA/Vulkan/OpenCL)
+# and build all detected backends in one go. The main app still compiles
+# with a single preferred backend (CUDA > Vulkan > CPU) to keep compile-time
+# feature switches simple, but all detected backends are built out-of-tree
+# and staged under build/bin/<backend>/ for runtime selection.
+option(GGML_BACKEND_AUTO "auto-detect CUDA/Vulkan/OpenCL SDKs and build all detected backends" ON)
 option(BODY_32BIT  "support 32 BIT"                             OFF)
 option(BODY_DOTPORD "使用常规arm dotprod加速"                    OFF)
 
@@ -20,7 +31,35 @@ option(MCP_SSL                   "Enable SSL support" OFF)
 add_compile_definitions(_WIN32_WINNT=0x0601)
 set(GGML_WIN_VER "0x601" CACHE STRING "ggml: Windows version")
 
-# ---- Mutually exclusive acceleration modes ----
+# ---- Auto-detect available GPU backends (SDK presence) ----
+if (GGML_BACKEND_AUTO)
+    # Probe CUDA (Toolkit), Vulkan, OpenCL SDKs and toggle backends accordingly
+    find_package(CUDAToolkit QUIET)
+    if (CUDAToolkit_FOUND)
+        set(GGML_CUDA ON CACHE BOOL "ggml: use CUDA" FORCE)
+    endif()
+
+    find_package(Vulkan QUIET)
+    if (Vulkan_FOUND)
+        set(GGML_VULKAN ON CACHE BOOL "ggml: use Vulkan" FORCE)
+    endif()
+
+    find_package(OpenCL QUIET)
+    if (OpenCL_FOUND)
+        set(GGML_OPENCL ON CACHE BOOL "ggml: use OpenCL" FORCE)
+    endif()
+
+    if (NOT (GGML_CUDA OR GGML_VULKAN OR GGML_OPENCL))
+        message(STATUS "No GPU SDKs detected; building CPU-only third-party tools")
+    else()
+        message(STATUS "Auto-detected backends:"
+                        " CUDA=${GGML_CUDA}" 
+                        " Vulkan=${GGML_VULKAN}"
+                        " OpenCL=${GGML_OPENCL}")
+    endif()
+endif()
+
+# ---- Mutually exclusive acceleration mode for the main app ----
 if (BODY_32BIT)
     # 32-bit Windows 7 support requires MinGW; disable CPU/GPU opt flags
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))

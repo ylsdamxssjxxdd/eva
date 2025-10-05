@@ -51,7 +51,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     connect(convert_command_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_convert_command_process_StandardOutput);
     connect(convert_command_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_convert_command_process_StandardError);
 
-    //塞入第三方exe
+    // 塞入第三方 exe
     server_process = new QProcess(this);                                                                                             // 创建一个QProcess实例用来启动llama-server
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);                                             //连接开始信号
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::server_onProcessFinished); //连接结束信号
@@ -141,6 +141,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     avaliable_speech_list << SPPECH_OUTETTS;     // 模型声源
     this->set_sys_speech(avaliable_speech_list); // 设置可用声源
 
+    // 在应用退出前确保清理嵌入服务（防止 llama-server 残留）
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() { stopEmbeddingServer(true); });
+
     // 创建播放器对象
     speech_player = new QMediaPlayer;
     // 连接 mediaStatusChanged 信号到槽函数
@@ -173,10 +176,48 @@ void Expend::changeEvent(QEvent *event)
 Expend::~Expend()
 {
     delete ui;
-    server_process->kill(); //有点问题
+    // 尽量优雅停止，必要时强杀，避免服务残留
+    stopEmbeddingServer(true);
     sd_process->kill();
     whisper_process->kill();
     quantize_process->kill();
+}
+
+// 停止知识库嵌入服务
+void Expend::stopEmbeddingServer(bool force)
+{
+    if (!server_process)
+        return;
+
+    if (server_process->state() == QProcess::Running)
+    {
+        // 先尝试正常终止
+        server_process->terminate();
+        if (!server_process->waitForFinished(1500))
+        {
+            // 超时后尝试强杀
+#ifdef _WIN32
+            const qint64 pid = server_process->processId();
+            if (pid > 0)
+            {
+                // /T 终止整个进程树；/F 强制
+                QStringList args;
+                args << "/PID" << QString::number(pid) << "/T" << (force ? "/F" : QString());
+                // 过滤空参数，避免在某些 shell 下解析问题
+                args.erase(std::remove_if(args.begin(), args.end(), [](const QString &s) { return s.isEmpty(); }), args.end());
+                QProcess::execute("taskkill", args);
+            }
+            else
+            {
+                server_process->kill();
+            }
+#else
+            Q_UNUSED(force);
+            server_process->kill();
+#endif
+            server_process->waitForFinished(1000);
+        }
+    }
 }
 
 //创建临时文件夹EVA_TEMP
@@ -261,6 +302,8 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 //关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
+    // 关闭窗口时也确保停止嵌入服务
+    stopEmbeddingServer(true);
     //--------------保存当前用户配置---------------
     sd_save_template(ui->params_template_comboBox->currentText());
 

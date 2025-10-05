@@ -303,18 +303,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         chooseMmprojpath();
         return true;
     }
-    //响应已安装控件上的鼠标右击事件
-    if (obj == ui->load && ui->load->isEnabled() && event->type() == QEvent::ContextMenu)
-    {
-        ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
-        reflash_state(ui_state_info, SIGNAL_SIGNAL);
-        //设置当前值
-        api_endpoint_LineEdit->setText(apis.api_endpoint);
-        api_key_LineEdit->setText(apis.api_key);
-        api_model_LineEdit->setText(apis.api_model);
-        api_dialog->exec();
-        return true;
-    }
+    // 取消通过右击装载按钮进入链接模式的逻辑（改为点击装载后弹模式选择）
     //响应已安装控件上的鼠标右击事件
     if (obj == api_endpoint_LineEdit && event->type() == QEvent::ContextMenu)
     {
