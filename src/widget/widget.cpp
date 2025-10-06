@@ -775,7 +775,6 @@ void Widget::cancel_date()
         language_flag = 1;
     }
     apply_language(language_flag);
-    emit ui2bot_language(language_flag);
     emit ui2tool_language(language_flag);
     emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);

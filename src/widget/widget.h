@@ -302,22 +302,6 @@ SETTINGS settings_snapshot_;
     int currentSlotId_ = -1;             // llama-server slot id for this conversation
     HistoryStore *history_ = nullptr;    // persistent history writer
 
-    //发给模型的信号
-  signals:
-    // 将后端（llama-server）日志输出给增殖窗口的“模型日志”
-    void ui2expend_llamalog(QString log);
-    void ui2bot_dateset(EVA_DATES ini_DATES, SETTINGS ini_SETTINGS); //自动装载
-    void ui2bot_language(int language_flag_);                        //传递使用的语言
-    void ui2bot_predict(EVA_INPUTS input);                           //开始推理
-    void ui2bot_stop();                                              //传递推理停止信号
-    void ui2bot_reset();                                             //传递重置信号
-    void ui2bot_date(EVA_DATES date);                                //传递约定内容
-    void ui2bot_set(SETTINGS settings, bool can_reload);             //传递设置内容
-    void ui2bot_free(bool loadlater);                                //释放
-    void ui2bot_maxngl(int maxngl_);
-    void ui2bot_preDecode();                        //从补完模式回来强行预解码
-    void ui2bot_monitor_filepath(QString filePath); //给模型发信号，能处理就处理
-
     //发给net的信号
   signals:
     void ui2net_language(int language_flag_); //传递使用的语言
@@ -336,7 +320,8 @@ SETTINGS settings_snapshot_;
     void ui2expend_show(EXPEND_WINDOW window);                        //通知显示扩展窗口
     void ui2expend_speechdecode(QString wavpath, QString out_format); //传一个wav文件开始解码
     void ui2expend_resettts();                                        //重置文字转语音
-
+    // 将后端（llama-server）日志输出给增殖窗口的“模型日志”
+    void ui2expend_llamalog(QString log);
     //自用信号
   signals:
     void gpu_reflash(); //强制刷新gpu信息

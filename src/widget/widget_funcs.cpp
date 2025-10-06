@@ -575,7 +575,6 @@ void Widget::switch_lan_change()
     }
     apply_language(language_flag);
     ui_extra_prompt = create_extra_prompt();
-    emit ui2bot_language(language_flag);
     emit ui2tool_language(language_flag);
     emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
@@ -789,7 +788,6 @@ void Widget::monitorTime()
     }
     is_monitor = true;
     QString filePath = saveScreen();
-    emit ui2bot_monitor_filepath(filePath); //给模型发信号，能处理就处理
 }
 // 保存当前屏幕截图
 QString Widget::saveScreen()
