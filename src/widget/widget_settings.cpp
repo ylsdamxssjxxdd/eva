@@ -28,7 +28,7 @@ void Widget::set_SetDialog()
         // helper：刷新设备相关 UI（auto 时在“推理设备”文本后追加提示；CPU 禁用 gpu 层数）
         auto refreshDeviceUI = [this]() {
             const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
-            const bool isCpu = (sel == QLatin1String("cpu"));
+            const bool isCpu = (sel == QLatin1String("cpu")||sel == QLatin1String("opencl"));
             const bool isAuto = (sel == QLatin1String("auto"));
 
             // 当选择 CPU 时，禁止选择 gpu 负载层数

@@ -4,7 +4,7 @@
 include_guard(GLOBAL)
 
 # ---- User-facing options ----
-option(BODY_PACK   "pack eva"                                   ON)
+option(BODY_PACK   "pack eva"                                   OFF)
 
 # Backend toggles. Default values are finalized by auto-detection below.
 # We still declare them as options so users can opt-out by disabling
