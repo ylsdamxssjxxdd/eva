@@ -1,4 +1,4 @@
-#ifndef WIDGET_H
+﻿#ifndef WIDGET_H
 #define WIDGET_H
 
 #include <QApplication>
@@ -185,8 +185,9 @@ class Widget : public QWidget
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); //获取本机第一个ip地址
     bool lastServerRestart_ = false;          // 标记最近一次 ensureLocalServer 是否触发了重启
-    // 在打开“设置”对话框时快照当前设置，用于判定用户是否有修改
-    SETTINGS settings_snapshot_;
+    bool ignoreNextServerStopped_ = false; // 忽略一次 serverStopped（用于计划内重启时旧进程的退出）
+
+SETTINGS settings_snapshot_;
     QString port_snapshot_;
     QString ui_device_backend = "auto"; // 用户选择的推理设备（auto/cpu/cuda/vulkan/opencl）
     QString device_snapshot_;           // 打开设置时记录的设备，确定是否需要重启后端

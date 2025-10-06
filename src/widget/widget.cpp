@@ -1,4 +1,4 @@
-//主函数和主要槽函数
+﻿//主函数和主要槽函数
 
 #include "widget.h"
 
@@ -76,7 +76,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     setApiDialog();                                               //设置api选项
     set_DateDialog();                                             //设置约定选项
     set_SetDialog();                                              //设置设置选项
-    ui_state_init();                                              //初始界面状态
+            lastServerRestart_ = false;
+ui_state_init();                                              //初始界面状态
     ui->input->textEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
     ui->input->installEventFilter(this);                          //安装事件过滤器
     ui->input->textEdit->installEventFilter(this);                //安装事件过滤器
@@ -132,17 +133,18 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
-        // 如果是预期的重启过程（手动更换模型或设置导致），不打断装载动画
-        if (lastServerRestart_)
-        {
-            return;
-        }
+        // Ignore the first stop if it was caused by killing the old process during a planned restart
+        if (ignoreNextServerStopped_) { ignoreNextServerStopped_ = false; return; }
+        // Any other stop means the server is not running -> reset UI and leave loading state
+
         // 非预期退出：取消动画并回到初始状态
         ui->state->clear();
+        reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
         if (load_begin_pTimer) load_begin_pTimer->stop();
         if (load_pTimer) load_pTimer->stop();
         if (load_over_pTimer) load_over_pTimer->stop();
         if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
+        lastServerRestart_ = false;
         is_load = false;
         load_action = 0;
         EVA_title = jtr("current model") + " ";

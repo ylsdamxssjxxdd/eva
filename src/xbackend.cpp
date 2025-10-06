@@ -110,10 +110,10 @@ void LocalServerManager::hookProcessSignals()
     if (!proc_) return;
 
     connect(proc_, &QProcess::started, this, [this]() {
-        emit serverState("ui:backend starting", SIGNAL_SIGNAL);
+        // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
     });
     connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
-        emit serverState("ui:backend stopped", SIGNAL_SIGNAL);
+        // emit serverState("ui:backend stopped", SIGNAL_SIGNAL);
         emit serverStopped();
     });
     connect(proc_, &QProcess::readyReadStandardOutput, this, [this]() {
@@ -134,6 +134,20 @@ void LocalServerManager::hookProcessSignals()
             // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
             emit serverReady(endpointBase());
         }
+    });    // Report process errors immediately so UI can recover
+    connect(proc_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e) {
+        QString msg;
+        switch (e) {
+        case QProcess::FailedToStart: msg = QStringLiteral("ui:backend failed to start"); break;
+        case QProcess::Crashed: msg = QStringLiteral("ui:backend crashed"); break;
+        case QProcess::Timedout: msg = QStringLiteral("ui:backend start timed out"); break;
+        case QProcess::WriteError: msg = QStringLiteral("ui:backend write error"); break;
+        case QProcess::ReadError: msg = QStringLiteral("ui:backend read error"); break;
+        default: msg = QStringLiteral("ui:backend error"); break;
+        }
+        emit serverState(msg, WRONG_SIGNAL);
+        emit serverOutput(msg);
+        emit serverStopped();
     });
 }
 

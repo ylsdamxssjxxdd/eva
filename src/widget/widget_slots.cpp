@@ -430,6 +430,8 @@ void Widget::ensureLocalServer()
 
     // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
     lastServerRestart_ = serverManager->needsRestart();
+    const bool hadOld = serverManager->isRunning();
+    ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
     if (lastServerRestart_)
     {
         // 标记为未装载并进入装载中状态；这会禁用发送等控件

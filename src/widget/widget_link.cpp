@@ -27,7 +27,7 @@ void Widget::set_api()
     if (serverManager && serverManager->isRunning())
     {
         serverManager->stop();
-        reflash_state("ui:backend stopped", SIGNAL_SIGNAL);
+        // reflash_state("ui:backend stopped", SIGNAL_SIGNAL);
     }
     reflash_state("ui:" + jtr("eva link"), EVA_SIGNAL);
     if (ui_state == CHAT_STATE)

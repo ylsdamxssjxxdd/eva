@@ -1,4 +1,4 @@
-#include "ui_widget.h"
+﻿#include "ui_widget.h"
 #include "widget.h"
 
 //-------------------------------------------------------------------------
