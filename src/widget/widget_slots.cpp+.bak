@@ -870,25 +870,14 @@ void Widget::initTextComponentsMemoryPolicy()
 }
 
 #include <QTextDocument>
-
-#include <QFont>
 // Replace output document to drop undo stack and cached resources (images)
 void Widget::resetOutputDocument()
 {
-    // Preserve existing visual settings (font, tab stops) before swapping the doc.
-    const QFont prevFont = ui->output->font();
-    const qreal prevTabStop = ui->output->tabStopDistance();
-
     // Create a fresh document and hand ownership to the widget.
     // Qt will destroy the previous document for us; avoid manual delete.
     QTextDocument *doc = new QTextDocument(ui->output);
     doc->setUndoRedoEnabled(false);
-    doc->setDefaultFont(prevFont); // keep the same font after reset
     ui->output->setDocument(doc);
-
-    // Reapply widget-level settings that the new document doesn't carry.
-    ui->output->setFont(prevFont);
-    ui->output->setTabStopDistance(prevTabStop);
 }
 
 // Replace state document to drop undo stack quickly

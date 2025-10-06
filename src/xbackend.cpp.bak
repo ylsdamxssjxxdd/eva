@@ -181,38 +181,13 @@ void LocalServerManager::restart()
 
 void LocalServerManager::stop()
 {
-    if (!proc_) return;
-
-    if (proc_->state() == QProcess::Running)
+    if (proc_)
     {
-        // Try graceful termination first
-        proc_->terminate();
-        if (!proc_->waitForFinished(1500))
-        {
-#ifdef _WIN32
-            // Fallback: force kill by PID and its child processes
-            const qint64 pid = proc_->processId();
-            if (pid > 0)
-            {
-                QStringList args;
-                args << "/PID" << QString::number(pid) << "/T" << "/F"; // kill tree, force
-                QProcess::execute("taskkill", args);
-            }
-            else
-            {
-                proc_->kill();
-            }
-#else
-            proc_->kill();
-#endif
-            proc_->waitForFinished(1000);
-        }
+        proc_->kill();
+        proc_->waitForFinished(1000);
+        proc_.clear();
     }
-    // Ensure object cleanup; do not keep a dangling QPointer
-    proc_->deleteLater();
-    proc_.clear();
 }
-
 
 bool LocalServerManager::needsRestart() const
 {
@@ -226,3 +201,4 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
+

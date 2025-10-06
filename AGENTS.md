@@ -7,6 +7,7 @@
 -  `thirdparty/`: `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`, `QHotkey` (built as subprojects). Prefer upstream syncs; see `tools/README_cmake.md` before editing. 
 -  `tools/`: helper scripts (`build.sh`, `build-docker.bat`) and CMake notes. 
 - The project relies on llama. cpp's server as the inference core. Please refer to `thirdparty\llama.cpp\tools\server` for related interfaces
+- You have complete authority to manage this project. By good refactoring, the entire project can be modularized, with better maintainability/stability/operational efficiency, and a better user experience.
 
 ## Build, Test, and Development Commands
 - Configure & build (Release):
