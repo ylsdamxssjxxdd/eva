@@ -1,5 +1,7 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include <QInputDialog>
+#include <QMessageBox>
 #include <QTcpServer>
 #include <QHostAddress>
 
@@ -285,9 +287,10 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
     //响应已安装控件上的鼠标右击事件
     if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE)
-    {
+        {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
-        // 显示菜单
+        // 每次右击前重建菜单，避免重复附加
+        create_right_menu();
         right_menu->exec(contextMenuEvent->globalPos());
         return true;
     }
@@ -459,6 +462,7 @@ void Widget::onServerReady(const QString &endpoint)
     // 完成装载动画：记录耗时，补帧并快速播完剩余动画，最后 unlockLoad()
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
+    if (history_) history_->clearCurrent();
     ui->kv_bar->setToolTip("");
     ui->kv_bar->setVisible(true); // 本地模式可显示“记忆量/kv 使用”
     ui->output->clear();
@@ -468,8 +472,7 @@ void Widget::onServerReady(const QString &endpoint)
         systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
         systemMessage.insert("content", ui_DATES.date_prompt);
         ui_messagesArray.append(systemMessage);
-        if (history_ && ui_state == CHAT_STATE)
-        {
+        if (history_ && ui_state == CHAT_STATE) {
             SessionMeta meta;
             meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
             meta.title = "";
@@ -480,7 +483,7 @@ void Widget::onServerReady(const QString &endpoint)
             meta.slot_id = -1;
             meta.startedAt = QDateTime::currentDateTime();
             history_->begin(meta);
-            history_->appendMessage(systemMessage);
+            if (ui_state == CHAT_STATE && history_) history_->appendMessage(systemMessage);
             currentSlotId_ = -1;
         }
     }
@@ -532,24 +535,6 @@ void Widget::api_send_clicked_slove()
 
     if (ui_state == CHAT_STATE)
     {
-        // ensure persistent history session is created only when sending, not on reset
-        if (history_ && history_->sessionId().isEmpty()) {
-            SessionMeta meta;
-            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-            meta.title = "";
-            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
-                                               : (serverManager ? serverManager->endpointBase() : "");
-            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
-            meta.system = ui_DATES.date_prompt;
-            meta.n_ctx = ui_SETTINGS.nctx;
-            meta.slot_id = currentSlotId_;
-            meta.startedAt = QDateTime::currentDateTime();
-            history_->begin(meta);
-            QJsonObject systemMessage;
-            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-            systemMessage.insert("content", ui_DATES.date_prompt);
-            history_->appendMessage(systemMessage);
-        }
         //----------------------- 处理工具消息 ----------------------------
         if (tool_result != "")
         {
@@ -557,7 +542,21 @@ void Widget::api_send_clicked_slove()
             QJsonObject roleMessage;
             roleMessage.insert("role", DEFAULT_USER_NAME);
             roleMessage.insert("content", "tool_response: " + tool_result);
-            ui_messagesArray.append(roleMessage);
+            if (history_ && ui_state == CHAT_STATE && history_->sessionId().isEmpty()) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                                   : (serverManager ? serverManager->endpointBase() : "");
+            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = currentSlotId_;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            for (const auto &v : ui_messagesArray) { history_->appendMessage(v.toObject()); }
+        }
+                ui_messagesArray.append(roleMessage);
             if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
             reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
 
@@ -575,8 +574,22 @@ void Widget::api_send_clicked_slove()
                 QJsonObject roleMessage;
                 roleMessage.insert("role", DEFAULT_USER_NAME);
                 roleMessage.insert("content", input);
+                if (history_ && ui_state == CHAT_STATE && history_->sessionId().isEmpty()) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                                   : (serverManager ? serverManager->endpointBase() : "");
+            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = currentSlotId_;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            for (const auto &v : ui_messagesArray) { history_->appendMessage(v.toObject()); }
+        }
                 ui_messagesArray.append(roleMessage);
-                if (history_) history_->appendMessage(roleMessage);
+                if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
             }
             else // 有图片的用户消息
             {
@@ -616,8 +629,22 @@ void Widget::api_send_clicked_slove()
                 }
 
                 message["content"] = contentArray;
+                if (history_ && ui_state == CHAT_STATE && history_->sessionId().isEmpty()) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                                   : (serverManager ? serverManager->endpointBase() : "");
+            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = currentSlotId_;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            for (const auto &v : ui_messagesArray) { history_->appendMessage(v.toObject()); }
+        }
                 ui_messagesArray.append(message);
-                if (history_) history_->appendMessage(message);
+                if (history_ && ui_state == CHAT_STATE) history_->appendMessage(message);
             }
 
             // 可选：添加音频（保持现有 UI 结构，xnet 侧会转换为 input_audio）
@@ -670,8 +697,22 @@ void Widget::api_send_clicked_slove()
                 if (!contentArray.isEmpty())
                 {
                     message["content"] = contentArray;
-                    ui_messagesArray.append(message);
-                    if (history_) history_->appendMessage(message);
+                    if (history_ && ui_state == CHAT_STATE && history_->sessionId().isEmpty()) {
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                                   : (serverManager ? serverManager->endpointBase() : "");
+            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = currentSlotId_;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            for (const auto &v : ui_messagesArray) { history_->appendMessage(v.toObject()); }
+        }
+                ui_messagesArray.append(message);
+                    if (history_ && ui_state == CHAT_STATE) history_->appendMessage(message);
                 }
             }
 
@@ -877,7 +918,9 @@ void Widget::resetOutputDocument()
     // Qt will destroy the previous document for us; avoid manual delete.
     QTextDocument *doc = new QTextDocument(ui->output);
     doc->setUndoRedoEnabled(false);
+    doc->setDefaultFont(ui_font);
     ui->output->setDocument(doc);
+    ui->output->setFont(ui_font); // re-apply font after document reset
 }
 
 // Replace state document to drop undo stack quickly
@@ -887,6 +930,7 @@ void Widget::resetStateDocument()
     QTextDocument *doc = new QTextDocument(ui->state);
     doc->setUndoRedoEnabled(false);
     ui->state->setDocument(doc);
+    ui->state->setFont(ui_font);
 }
 
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
@@ -1058,3 +1102,17 @@ void Widget::onServerOutput(const QString &line)
         ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

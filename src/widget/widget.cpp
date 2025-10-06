@@ -380,7 +380,7 @@ void Widget::recv_pushover()
     roleMessage.insert("content", finalText);
     ui_messagesArray.append(roleMessage);
     // history: store reasoning separately for future display/search
-    if (history_)
+    if (history_ && ui_state == CHAT_STATE)
     {
         QJsonObject hist = roleMessage;
         if (!reasoningText.isEmpty()) hist.insert("reasoning", reasoningText);
@@ -667,7 +667,7 @@ void Widget::on_reset_clicked()
     // resources/undo stack without risking double-deletes.
     // Note: QTextEdit takes ownership of the previous document and will
     // delete it; do not manually delete the old one here.
-    resetOutputDocument();
+    if (ui_state == CHAT_STATE) resetOutputDocument();
     ui_state_normal(); //待机界面状态
 
     // 请求式统一处理（本地/远端）
@@ -682,22 +682,8 @@ void Widget::on_reset_clicked()
         reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
     }
 
-    // Begin new persistent history session
-    if (history_)
-    {
-        SessionMeta meta;
-        meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-        meta.title = "";
-        meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
-                                               : (serverManager ? serverManager->endpointBase() : "");
-        meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
-        meta.system = ui_DATES.date_prompt;
-        meta.n_ctx = ui_SETTINGS.nctx;
-        meta.slot_id = -1;
-        meta.startedAt = QDateTime::currentDateTime();
-        history_->begin(meta);
-        history_->appendMessage(systemMessage);
-    }
+    // Do not record reset into history; clear current session only
+    if (history_) history_->clearCurrent();
 
     if (ui_mode == LINK_MODE)
     {
@@ -837,4 +823,81 @@ void Widget::on_set_clicked()
     port_snapshot_ = ui_port;
     device_snapshot_ = settings_ui->device_comboBox->currentText().trimmed().toLower();
     settings_dialog->exec();
+}
+
+// 从SQLite加载并还原历史会话
+void Widget::restoreSessionById(const QString &sessionId)
+{
+    if (!history_) return;
+    SessionMeta meta;
+    QJsonArray msgs;
+    if (!history_->loadSession(sessionId, meta, msgs))
+    {
+        reflash_state(jtr("history db error"), WRONG_SIGNAL);
+        return;
+    }
+    if (!history_->resume(sessionId))
+    {
+        reflash_state(jtr("history db error"), WRONG_SIGNAL);
+    }
+
+    ui->output->clear();
+    ui_messagesArray = QJsonArray();
+
+    for (const auto &v : msgs)
+    {
+        const QJsonObject m = v.toObject();
+        const QString role = m.value("role").toString();
+        const QString content = m.value("content").toString();
+        if (role == QString(DEFAULT_SYSTEM_NAME))
+        {
+            reflash_output(content, 0, SYSTEM_BLUE);
+            QJsonObject o; o.insert("role", DEFAULT_SYSTEM_NAME); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+        else if (role == QStringLiteral("user"))
+        {
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
+            reflash_output(content, 0, NORMAL_BLACK);
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
+            QJsonObject o; o.insert("role", "user"); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+        else if (role == QString(DEFAULT_MODEL_NAME))
+        {
+            const QString reasoning = m.value("reasoning").toString();
+            if (!reasoning.isEmpty())
+            {
+                reflash_output(QString(DEFAULT_THINK_BEGIN) + reasoning + QString(DEFAULT_THINK_END), 0, THINK_GRAY);
+            }
+            reflash_output(content, 0, NORMAL_BLACK);
+            QJsonObject o; o.insert("role", DEFAULT_MODEL_NAME); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+        else
+        {
+            reflash_output(content, 0, NORMAL_BLACK);
+            QJsonObject o; o.insert("role", role); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+    }
+
+    if (!meta.title.isEmpty())
+        reflash_state(jtr("loaded session") + ": " + meta.title, SUCCESS_SIGNAL);
+    else
+        reflash_state(jtr("loaded session"), SUCCESS_SIGNAL);
+
+    int resumeSlot = -1;
+    if (ui_mode == LINK_MODE)
+    {
+        const QString ep = (ui_state == CHAT_STATE) ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                                   : (apis.api_endpoint + apis.api_completion_endpoint);
+        if (meta.endpoint == ep) resumeSlot = meta.slot_id;
+    }
+    else
+    {
+        const QString ep = serverManager ? serverManager->endpointBase() : QString();
+        if (!ep.isEmpty() && meta.endpoint == ep) resumeSlot = meta.slot_id;
+    }
+    currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }

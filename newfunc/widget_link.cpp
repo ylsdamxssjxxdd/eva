@@ -1,4 +1,4 @@
-#include "ui_widget.h"
+﻿#include "ui_widget.h"
 #include "widget.h"
 #include <QDateTime>
 
@@ -20,6 +20,7 @@ void Widget::set_api()
 
     // 切换为链接模式
     ui_mode = LINK_MODE; //按照链接模式的行为来
+    if (history_) history_->clearCurrent();
     // 进入链接模式后：
     // 1) 终止当前的流式请求（若有）
     emit ui2net_stop(true);
@@ -57,22 +58,6 @@ void Widget::set_api()
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
     ui_messagesArray.append(systemMessage);
-    // start a new persistent history session in LINK mode
-    if (history_)
-    {
-        SessionMeta meta;
-        meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-        meta.title = "";
-        meta.endpoint = current_api;
-        meta.model = apis.api_model;
-        meta.system = ui_DATES.date_prompt;
-        meta.n_ctx = ui_SETTINGS.nctx;
-        meta.slot_id = -1;
-        meta.startedAt = QDateTime::currentDateTime();
-        history_->begin(meta);
-        history_->appendMessage(systemMessage);
-        currentSlotId_ = -1;
-    }
     ui_state_normal();
     auto_save_user();
 }
@@ -155,3 +140,7 @@ void Widget::change_api_dialog(bool enable)
     settings_ui->frame_label->setVisible(enable);
     settings_ui->frame_lineEdit->setVisible(enable);
 }
+
+
+
+

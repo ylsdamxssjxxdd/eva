@@ -7,6 +7,19 @@
 #  - Qt5_BIN_DIR (computed in cmake/QtSetup.cmake)
 
 if (WIN32)
+    # Always ensure Qt SQLite plugin is available for dev runs (BODY_PACK off as well)
+    get_filename_component(Qt5_PLUGINS_DIR "${Qt5_BIN_DIR}/../plugins" ABSOLUTE)
+    if (EXISTS "${Qt5_PLUGINS_DIR}/sqldrivers/qsqlite.dll")
+        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${EVA_TARGET}>/sqldrivers"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${Qt5_PLUGINS_DIR}/sqldrivers/qsqlite.dll"
+                    "$<TARGET_FILE_DIR:${EVA_TARGET}>/sqldrivers/qsqlite.dll"
+            COMMENT "Copy Qt SQLite (qsqlite.dll) driver"
+        )
+    else()
+        message(WARNING "Qt SQLite plugin not found at ${Qt5_PLUGINS_DIR}/sqldrivers/qsqlite.dll")
+    endif()
     if (BODY_PACK)
         # Deploy Qt runtime beside eva.exe using windeployqt
         if (EXISTS "${Qt5_BIN_DIR}/windeployqt.exe")

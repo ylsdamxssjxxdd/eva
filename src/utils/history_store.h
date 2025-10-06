@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QVector>
 #include <QString>
 
 // Lightweight session metadata for future retrieval/resume
@@ -41,13 +42,17 @@ struct SessionMeta
 class HistoryStore
 {
   public:
+    // Recent list entry
+    struct ListItem { QString id; QString title; QDateTime startedAt; };
+
+  public:
     explicit HistoryStore(const QString &baseDir)
         : baseDir_(baseDir)
     {
         QDir().mkpath(baseDir_);
     }
 
-    // Begin a new session directory using meta.id; writes meta.json and an empty messages.jsonl
+    // Begin a new session directory using meta.json + messages.jsonl inside a session dir
     bool begin(const SessionMeta &meta)
     {
         meta_ = meta;
@@ -97,6 +102,122 @@ class HistoryStore
 
     QString sessionId() const { return meta_.id; }
     QString sessionDir() const { return sessionDir_; }
+
+    // Clear current in-memory session context
+    void clearCurrent() { sessionDir_.clear(); meta_ = SessionMeta(); }
+
+    // Resume an existing session (load meta.json into memory)
+    bool resume(const QString &id)
+    {
+        const QString dir = QDir(baseDir_).filePath(id);
+        QFile f(QDir(dir).filePath("meta.json"));
+        if (!f.open(QIODevice::ReadOnly)) return false;
+        const auto o = QJsonDocument::fromJson(f.readAll()).object();
+        f.close();
+        meta_.id = o.value("id").toString();
+        meta_.title = o.value("title").toString();
+        meta_.endpoint = o.value("endpoint").toString();
+        meta_.model = o.value("model").toString();
+        meta_.system = o.value("system").toString();
+        meta_.n_ctx = o.value("n_ctx").toInt();
+        meta_.slot_id = o.value("slot_id").toInt(-1);
+        meta_.startedAt = QDateTime::fromString(o.value("started_at").toString(), Qt::ISODate);
+        sessionDir_ = dir;
+        return true;
+    }
+
+    // Load a session fully (meta + messages)
+    bool loadSession(const QString &id, SessionMeta &meta, QJsonArray &msgs) const
+    {
+        const QString dir = QDir(baseDir_).filePath(id);
+        QFile f(QDir(dir).filePath("meta.json"));
+        if (!f.open(QIODevice::ReadOnly)) return false;
+        const auto o = QJsonDocument::fromJson(f.readAll()).object();
+        f.close();
+        meta.id = o.value("id").toString();
+        meta.title = o.value("title").toString();
+        meta.endpoint = o.value("endpoint").toString();
+        meta.model = o.value("model").toString();
+        meta.system = o.value("system").toString();
+        meta.n_ctx = o.value("n_ctx").toInt();
+        meta.slot_id = o.value("slot_id").toInt(-1);
+        meta.startedAt = QDateTime::fromString(o.value("started_at").toString(), Qt::ISODate);
+        QFile m(QDir(dir).filePath("messages.jsonl"));
+        if (!m.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+        msgs = QJsonArray();
+        while (!m.atEnd())
+        {
+            QByteArray line = m.readLine();
+            if (line.trimmed().isEmpty()) continue;
+            QJsonParseError err;
+            QJsonDocument d = QJsonDocument::fromJson(line, &err);
+            if (err.error == QJsonParseError::NoError) msgs.append(d.object());
+        }
+        m.close();
+        return true;
+    }
+
+    // List recent sessions (desc by startedAt)
+    QVector<ListItem> listRecent(int maxCount) const
+    {
+        QVector<ListItem> out;
+        QDir dir(baseDir_);
+        const auto entries = dir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Time | QDir::Reversed);
+        for (const auto &fi : entries)
+        {
+            QFile f(QDir(fi.absoluteFilePath()).filePath("meta.json"));
+            if (!f.open(QIODevice::ReadOnly)) continue;
+            const auto o = QJsonDocument::fromJson(f.readAll()).object();
+            f.close();
+            ListItem it;
+            it.id = o.value("id").toString(fi.fileName());
+            it.title = o.value("title").toString();
+            it.startedAt = QDateTime::fromString(o.value("started_at").toString(), Qt::ISODate);
+            out.append(it);
+        }
+        std::sort(out.begin(), out.end(), [](const ListItem &a, const ListItem &b) { return a.startedAt > b.startedAt; });
+        if (maxCount > 0 && out.size() > maxCount) out.resize(maxCount);
+        return out;
+    }
+
+    // Rename title inside meta.json
+    bool renameSession(const QString &id, const QString &newTitle)
+    {
+        const QString dir = QDir(baseDir_).filePath(id);
+        QFile f(QDir(dir).filePath("meta.json"));
+        if (!f.open(QIODevice::ReadOnly)) return false;
+        QJsonObject o = QJsonDocument::fromJson(f.readAll()).object();
+        f.close();
+        o["title"] = newTitle;
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
+        f.write(QJsonDocument(o).toJson(QJsonDocument::Compact));
+        f.close();
+        if (meta_.id == id) meta_.title = newTitle;
+        return true;
+    }
+
+    // Delete one session directory
+    bool deleteSession(const QString &id) const
+    {
+        const QString dir = QDir(baseDir_).filePath(id);
+        QDir d(dir);
+        if (!d.exists()) return true;
+        return d.removeRecursively();
+    }
+
+    // Purge all sessions under baseDir
+    bool purgeAll() const
+    {
+        QDir d(baseDir_);
+        bool ok = true;
+        const auto entries = d.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const auto &name : entries)
+        {
+            QDir sub(d.filePath(name));
+            ok = sub.removeRecursively() && ok;
+        }
+        return ok;
+    }
 
   private:
     void saveMeta()

@@ -14,7 +14,7 @@ if (BODY_PACK)
 endif()
 set(logo_FILES resource/logo/ico.rc)
 
-# Executable
+
 add_executable(
     ${EVA_TARGET}
     ${BODY_PACK_EXE}
@@ -36,7 +36,7 @@ add_executable(
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
 )
 
-target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech mcp QHotkey::QHotkey)
+target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
@@ -45,6 +45,11 @@ message(STATUS "eva型号: ${eva_OUTPUT_NAME}")
 
 # Ensure third-party command-line tools are built and staged alongside eva
 add_dependencies(${EVA_TARGET} backends)
+
+
+
+
+
 
 
 

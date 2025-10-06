@@ -100,8 +100,8 @@ class Widget : public QWidget
     QScrollBar *output_scrollBar;                                       //输出区滑动条
     bool createTempDirectory(const QString &path);                      //创建临时文件夹
     void create_right_menu();                                           //添加右击问题
-    void openHistoryManager();                                          // 历史管理对话框
-    void restoreSessionById(const QString &sessionId);                  // 从SQLite加载并还原历史会话
+    void openHistoryManager();                                      // 历史管理对话框
+    void restoreSessionById(const QString &sessionId);              // 从SQLite加载并还原历史会话  // 从SQLite加载并还原历史会话
     void create_tray_right_menu();                                      //添加托盘右击事件
     mcp::json tools_call;                                               //提取出来的工具名和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
@@ -440,3 +440,6 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
+
+
+

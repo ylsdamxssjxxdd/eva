@@ -1391,10 +1391,6 @@
             "添加",
             "add"
         ],
-        "delete": [
-            "删除",
-            "delete"
-        ],
         "embedding server abort": [
             "嵌入服务终止",
             "embedding server abort"
@@ -1635,10 +1631,6 @@
             "机体软件功能",
             "EVA software functions"
         ],
-        "link": [
-            "连接",
-            "link"
-        ],
         "mcp_server_config": [
             "MCP服务配置",
             "MCP server config"
@@ -1655,9 +1647,82 @@
             "请输入mcp配置文本后点击连接。（不清楚配置文本格式，可以点击help按钮获取示例）",
             "Please enter the MCP configuration text and click on the link. (Not sure about configuring text format, you can click the help button to obtain examples)"
         ],
+                "history sessions": [
+            "历史对话",
+            "History"
+        ],
+        "no history": [
+            "暂无历史",
+            "No history"
+        ],
+        "rename current session": [
+            "重命名当前会话",
+            "Rename current session"
+        ],
+        "new title": [
+            "新标题",
+            "New title"
+        ],
+        "session title updated": [
+            "会话标题已更新",
+            "Session title updated"
+        ],
+        "history db error": [
+            "历史库错误",
+            "History database error"
+        ],
+        "delete current session": [
+            "删除当前会话",
+            "Delete current session"
+        ],
+        "confirm delete?": [
+            "确认删除?",
+            "Confirm delete?"
+        ],
+        "deleted": [
+            "已删除",
+            "Deleted"
+        ],
+        "clear all history": [
+            "清空全部历史",
+            "Clear all history"
+        ],
+        "loaded session": [
+            "已加载会话",
+            "Loaded session"
+        ],        "restore": [
+            "还原",
+            "Restore"
+        ],
+        "close": [
+            "关闭",
+            "Close"
+        ],
+        "rename": [
+            "重命名",
+            "Rename"
+        ],
+        "delete": [
+            "删除",
+            "Delete"
+        ],
+        "search": [
+            "搜索",
+            "Search"
+        ],
+        "title": [
+            "标题",
+            "Title"
+        ],
+        "time": [
+            "日期",
+            "Time"
+        ],
         "---end---": [
             "---end---",
             "---end--- "
         ]
     }
 }
+
+

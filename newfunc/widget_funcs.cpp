@@ -1,4 +1,4 @@
-//功能函数
+﻿//功能函数
 #include "ui_widget.h"
 #include "widget.h"
 #include <QInputDialog>
@@ -10,6 +10,7 @@
 #include <QHeaderView>
 #include <QPushButton>
 #include <QLineEdit>
+
 //添加右击问题
 void Widget::create_right_menu()
 {
@@ -24,6 +25,7 @@ void Widget::create_right_menu()
     for (int i = 1; i < 14; ++i)
     {
         QString question;
+
         if (i == 4)
         {
             question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);
@@ -33,6 +35,7 @@ void Widget::create_right_menu()
             question = jtr(QString("Q%1").arg(i));
         }
         QAction *action = right_menu->addAction(question);
+
         connect(action, &QAction::triggered, this, [=]() { ui->input->textEdit->setPlainText(question); });
     }
     //------------创建自动化问题菜单-------------
@@ -48,6 +51,7 @@ void Widget::create_right_menu()
     QAction *histMgr = right_menu->addAction(jtr("history sessions"));
     connect(histMgr, &QAction::triggered, this, [this]() { openHistoryManager(); });
 }
+
 //添加托盘右击事件
 void Widget::create_tray_right_menu()
 {
@@ -74,6 +78,7 @@ void Widget::create_tray_right_menu()
     });
     QObject::connect(exitAction, &QAction::triggered, QApplication::quit); // 退出程序
 }
+
 //获取设置中的纸面值
 void Widget::get_set()
 {
@@ -81,13 +86,17 @@ void Widget::get_set()
     ui_SETTINGS.repeat = settings_ui->repeat_slider->value() / 100.0;
     ui_SETTINGS.hid_parallel = settings_ui->parallel_slider->value();
     ui_SETTINGS.top_k = settings_ui->topk_slider->value();
+
     ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
     ui_SETTINGS.nctx = settings_ui->nctx_slider->value(); //获取nctx滑块的值
     ui_SETTINGS.ngl = settings_ui->ngl_slider->value();   //获取ngl滑块的值
+
     ui_SETTINGS.lorapath = settings_ui->lora_LineEdit->text();
     ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
+
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
     ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
+
     if (settings_ui->chat_btn->isChecked())
     {
         ui_state = CHAT_STATE;
@@ -97,11 +106,14 @@ void Widget::get_set()
         ui_state = COMPLETE_STATE;
     }
     // 服务状态已弃用
+
     ui_port = settings_ui->port_lineEdit->text();
+
     // 推理设备：同步到 DeviceManager（auto/cpu/cuda/vulkan/opencl）
     ui_device_backend = settings_ui->device_comboBox->currentText().trimmed().toLower();
     DeviceManager::setUserChoice(ui_device_backend);
 }
+
 //获取约定中的纸面值
 void Widget::get_date()
 {
@@ -115,17 +127,21 @@ void Widget::get_date()
     {
         ui_DATES.date_prompt = ui_date_prompt;
     }
+
     ui_DATES.user_name = date_ui->user_name_LineEdit->text();
     ui_DATES.model_name = date_ui->model_name_LineEdit->text();
+
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = date_ui->chattemplate_comboBox->currentText();
     ui_extra_lan = date_ui->switch_lan_button->text();
+
     ui_calculator_ischecked = date_ui->calculator_checkbox->isChecked();
     ui_engineer_ischecked = date_ui->engineer_checkbox->isChecked();
     ui_MCPtools_ischecked = date_ui->MCPtools_checkbox->isChecked();
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
+
     //记录自定义模板
     if (ui_template == jtr("custom set1"))
     {
@@ -139,9 +155,11 @@ void Widget::get_date()
         custom2_user_name = ui_DATES.user_name;
         custom2_model_name = ui_DATES.model_name;
     }
+
     //添加额外停止标志
     addStopwords();
 }
+
 //手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(QString text)
 {
@@ -170,8 +188,10 @@ mcp::json Widget::XMLparser(QString text)
     {
         qDebug() << "no tool matched";
     }
+
     return toolsarg;
 }
+
 //构建额外指令
 QString Widget::create_extra_prompt()
 {
@@ -223,35 +243,45 @@ QString Widget::create_extra_prompt()
     }
     return extra_prompt_;
 }
+
 QString Widget::truncateString(const QString &str, int maxLength)
 {
     if (str.size() <= maxLength)
     {
         return str;
     }
+
     // 使用QTextStream来处理多字节字符
     QTextStream stream(const_cast<QString *>(&str), QIODevice::ReadOnly);
     stream.setCodec("UTF-8");
+
     // 找到开始截取的位置
     int startIndex = str.size() - maxLength;
+
     // 确保不截断多字节字符
     stream.seek(startIndex);
+
     return QString(stream.readAll());
 }
+
 //获取环境中的python版本以及库信息
 QString Widget::checkPython()
 {
     QString result;
+
     // Initialize the python executable name
     QString pythonExecutable = DEFAULT_PYTHON;
+
     QProcess process;
     QStringList shellArgs;
     shellArgs << CMDGUID << pythonExecutable + " --version";
     process.start(shell, shellArgs);
     process.waitForFinished();
+
     QString versionOutput = process.readAllStandardOutput();
     QString versionError = process.readAllStandardError();
     QString versionInfo = versionOutput + versionError;
+
     // If still not found, return an error message
     if (versionInfo.isEmpty())
     {
@@ -273,14 +303,17 @@ QString Widget::checkPython()
         QString python_absolutePath = process.readAllStandardOutput().trimmed();
         result += versionInfo + " " + python_absolutePath + "\n";
     }
+
     // // 获取安装库信息
     // QStringList shellArgs3;
     // shellArgs3 << CMDGUID << pythonExecutable + " -m pip list";
     // process.start(shell, shellArgs3);
     // process.waitForFinished();
+
     // QString pipOutput = process.readAllStandardOutput();
     // QString pipError = process.readAllStandardError();
     // QString pipList = pipOutput + pipError;
+
     // // 不想展示的库
     // QStringList excludeLibraries = {
     //     "anyio", "appdirs", "archspec", "arrow", "astroid", "astropy", "astropy-iers-data", "asttokens", "async-lru", "attrs", "autopep8", "Babel", "black", "bleach", "bokeh", "botocore", "Bottleneck",
@@ -295,6 +328,7 @@ QString Widget::checkPython()
     //     "service-identity", "sip", "smmap", "sniffio", "snowballstemmer", "sortedcontainers", "stack-data", "tblib", "tenacity", "text-unidecode", "textdistance", "threadpoolctl", "three-merge", "tinycss2", "tldextract",
     //     "tomli", "toolz", "truststore", "twisted-iocpsupport", "ua-parser", "ua-parser-builtins", "uc-micro-py", "unicodedata2", "user-agents", "w3lib", "whatthepatch", "windows-curses", "zict", "zope.interface", "zstandard"
     // };
+
     // // If pip output is empty, pip may not be installed
     // if (pipList.contains("No module named pip")) {
     //     result += "pip is not installed for the detected Python interpreter.\n";
@@ -304,10 +338,12 @@ QString Widget::checkPython()
     //     // Extract package names from the pip list output
     //     QStringList lines = pipList.split('\n');
     //     QStringList packageNames;
+
     //     // Skip the first line (header) and process the rest
     //     for (int i = 2; i < lines.size(); ++i) {  // Start from the second line
     //         QString line = lines[i].trimmed();
     //         if (line.isEmpty()) continue;  // Skip empty lines
+
     //         QStringList parts = line.split(QRegExp("\\s+"));  // Split by whitespace
     //         if (parts.size() > 0) {
     //             QString packageName = parts[0];
@@ -316,11 +352,14 @@ QString Widget::checkPython()
     //             }
     //         }
     //     }
+
     //     // Join the package names into a single string, separated by spaces
     //     result += "Part Installed Python Libraries: " + truncateString(packageNames.join(" "),MAX_INPUT);
     // }
+
     return result;
 }
+
 QString Widget::checkCompile()
 {
     QString compilerInfo;
@@ -345,6 +384,7 @@ QString Widget::checkCompile()
             compilerInfo += "\n";
         }
     }
+
     // 检查 MSVC
     {
         QStringList shellArgs;
@@ -362,6 +402,7 @@ QString Widget::checkCompile()
             compilerInfo += "\n";
         }
     }
+
     // 检查 Clang
     {
         QStringList shellArgs;
@@ -377,7 +418,9 @@ QString Widget::checkCompile()
             compilerInfo += "\n";
         }
     }
+
 #endif
+
     // Linux平台的编译器检查
 #ifdef Q_OS_LINUX
     // 检查 GCC
@@ -395,6 +438,7 @@ QString Widget::checkCompile()
             compilerInfo += "\n";
         }
     }
+
     // 检查 Clang
     {
         QStringList shellArgs;
@@ -410,14 +454,18 @@ QString Widget::checkCompile()
             compilerInfo += "\n";
         }
     }
+
 #endif
+
     // 如果没有找到任何编译器信息
     if (compilerInfo.isEmpty())
     {
         compilerInfo = "No compiler detected.\n";
     }
+
     return compilerInfo;
 }
+
 QString Widget::create_engineer_info()
 {
     QString engineer_info_ = ENGINEER_INFO;
@@ -430,23 +478,28 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{COMPILE_ENV}", compile_env);
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
     engineer_system_info_.replace("{DIR}", applicationDirPath + "/EVA_WORK");
+
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
+
 //添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()
 {
     ui_DATES.extra_stop_words.clear(); //重置额外停止标志
+
     if (ui_DATES.is_load_tool) //如果挂载了工具则增加额外停止标志
     {
         // ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;//在后端已经处理了
     }
 }
+
 //获取本机第一个ip地址 排除以.1结尾的地址 如果只有一个.1结尾的则保留它
 QString Widget::getFirstNonLoopbackIPv4Address()
 {
     QList<QHostAddress> list = QNetworkInterface::allAddresses();
     QString ipWithDot1; // 用于存储以.1结尾的IP地址
+
     for (int i = 0; i < list.count(); i++)
     {
         QString ip = list[i].toString();
@@ -463,19 +516,24 @@ QString Widget::getFirstNonLoopbackIPv4Address()
             }
         }
     }
+
     // 如果没有找到不以.1结尾的IP地址，则返回以.1结尾的IP地址
     if (!ipWithDot1.isEmpty())
     {
         return ipWithDot1;
     }
+
     return QString(); // 如果没有找到任何符合条件的IP地址，返回空字符串
 }
+
 // 服务模式已移除：server_onProcessStarted/server_onProcessFinished
+
 // llama-bench进程结束响应
 void Widget::bench_onProcessFinished()
 {
     qDebug() << "llama-bench进程结束响应";
 }
+
 //显示文件名和图像
 void Widget::showImages(QStringList images_filepath)
 {
@@ -484,36 +542,44 @@ void Widget::showImages(QStringList images_filepath)
         QString imagepath = images_filepath[i];
         QString ui_output = imagepath + "\n";
         if (ui_output != ":/logo/wav.png") { output_scroll(ui_output); }
+
         // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
         QImage image(imagepath);
         int originalWidth = image.width() / devicePixelRatioF();
         int originalHeight = image.height() / devicePixelRatioF();
+
         QTextCursor cursor(ui->output->textCursor());
         cursor.movePosition(QTextCursor::End);
+
         QTextImageFormat imageFormat;
         imageFormat.setWidth(originalWidth / 2);   // 设置图片的宽度
         imageFormat.setHeight(originalHeight / 2); // 设置图片的高度
         imageFormat.setName(imagepath);            // 图片资源路径
+
         cursor.insertImage(imageFormat);
         output_scroll("\n");
         //滚动到底部展示
         ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); //滚动条滚动到最下面
     }
 }
+
 //开始录音
 void Widget::recordAudio()
 {
     reflash_state("ui:" + jtr("recoding") + "... ");
     ui_state_recoding();
+
     audioRecorder.record();  // 在这之前检查是否可用
     audio_timer->start(100); // 每隔100毫秒刷新一次输入区
 }
+
 // 每隔100毫秒刷新一次监视录音
 void Widget::monitorAudioLevel()
 {
     audio_time += 100;
     ui_state_recoding(); //更新输入区
 }
+
 //停止录音
 void Widget::stop_recordAudio()
 {
@@ -533,16 +599,19 @@ void Widget::stop_recordAudio()
     resampleWav(wav_path_c, wav_path_c);
     emit ui2expend_speechdecode(wav_path, "txt"); //传一个wav文件开始解码
 }
+
 //更新gpu内存使用率
 void Widget::updateGpuStatus()
 {
     emit gpu_reflash();
 }
+
 //更新cpu内存使用率
 void Widget::updateCpuStatus()
 {
     emit cpu_reflash();
 }
+
 //拯救中文
 void Widget::getWords(QString json_file_path)
 {
@@ -552,14 +621,17 @@ void Widget::getWords(QString json_file_path)
         qDebug() << "Cannot open file for reading.";
         return;
     }
+
     QTextStream in(&jfile);
     in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
     QString data = in.readAll();
     jfile.close();
+
     QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
     QJsonObject jsonObj = doc.object();
     wordsObj = jsonObj["words"].toObject();
 }
+
 //切换额外指令的语言
 void Widget::switch_lan_change()
 {
@@ -573,6 +645,7 @@ void Widget::switch_lan_change()
         language_flag = 0;
         date_ui->switch_lan_button->setText("zh");
     }
+
     apply_language(language_flag);
     ui_extra_prompt = create_extra_prompt();
     emit ui2bot_language(language_flag);
@@ -692,6 +765,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->cancel->setText(jtr("cancel"));
     settings_dialog->setWindowTitle(jtr("set"));
 }
+
 //创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path)
 {
@@ -714,6 +788,7 @@ bool Widget::createTempDirectory(const QString &path)
         }
     }
 }
+
 // 打开文件夹
 QString Widget::customOpenfile(QString dirpath, QString describe, QString format)
 {
@@ -721,15 +796,19 @@ QString Widget::customOpenfile(QString dirpath, QString describe, QString format
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
     return filepath;
 }
+
 //语音朗读相关 文转声相关
+
 //每次约定和设置后都保存配置到本地
 void Widget::auto_save_user()
 {
     //--------------保存当前用户配置---------------
     // 创建 QSettings 对象，指定配置文件的名称和格式
+
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
+
     settings.setValue("ui_mode", ui_mode);         //机体模式
     settings.setValue("ui_state", ui_state);       //机体状态
     settings.setValue("shell", shell);             //shell路径
@@ -745,6 +824,7 @@ void Widget::auto_save_user()
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath); //视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);     // lora
     settings.setValue("monitor_frame", ui_monitor_frame);    // 监视帧率
+
     //保存隐藏设置
     settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); //最大输出长度
     settings.setValue("hid_special", ui_SETTINGS.hid_special);
@@ -766,6 +846,7 @@ void Widget::auto_save_user()
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer工具
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
     settings.setValue("extra_lan", ui_extra_lan);                                                  //额外指令语种
+
     //保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
     settings.setValue("custom1_user_name", custom1_user_name);
@@ -773,12 +854,15 @@ void Widget::auto_save_user()
     settings.setValue("custom2_date_system", custom2_date_system);
     settings.setValue("custom2_user_name", custom2_user_name);
     settings.setValue("custom2_model_name", custom2_model_name);
+
     //保存api参数
     settings.setValue("api_endpoint", apis.api_endpoint);
     settings.setValue("api_key", apis.api_key);
     settings.setValue("api_model", apis.api_model);
+
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
+
 //监视时间到
 void Widget::monitorTime()
 {
@@ -791,48 +875,62 @@ void Widget::monitorTime()
     QString filePath = saveScreen();
     emit ui2bot_monitor_filepath(filePath); //给模型发信号，能处理就处理
 }
+
 // 保存当前屏幕截图
 QString Widget::saveScreen()
 {
     QScreen *screen = QApplication::primaryScreen();
+
     // 获取屏幕几何信息
     QRect screenGeometry = screen->geometry();
     qreal devicePixelRatio = screen->devicePixelRatio();
+
     // qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
     // qDebug() << "缩放比例:" << devicePixelRatio;
+
     // 直接使用 grabWindow 获取完整屏幕截图（会自动处理DPI）
     QPixmap m_screenPicture = screen->grabWindow(0);
+
     // qDebug() << "截图实际尺寸:" << m_screenPicture.width() << m_screenPicture.height();
+
     // 获取鼠标位置（使用逻辑坐标，不需要手动缩放）
     QPoint cursorPos = QCursor::pos();
+
     // 将逻辑坐标转换为截图中的物理坐标
     cursorPos.setX(cursorPos.x() * devicePixelRatio);
     cursorPos.setY(cursorPos.y() * devicePixelRatio);
+
     // 创建光标图标
     QPixmap cursorPixmap;
+
     // 尝试获取当前光标
     if (QApplication::overrideCursor())
     {
         cursorPixmap = QApplication::overrideCursor()->pixmap();
     }
+
     // 如果没有获取到光标，创建默认箭头光标
     if (cursorPixmap.isNull())
     {
         // 光标大小按DPI缩放
         int baseSize = 16;
         int cursorSize = baseSize * devicePixelRatio;
+
         cursorPixmap = QPixmap(cursorSize, cursorSize);
         cursorPixmap.fill(Qt::transparent);
         cursorPixmap.setDevicePixelRatio(devicePixelRatio);
+
         QPainter cursorPainter(&cursorPixmap);
         cursorPainter.setRenderHint(QPainter::Antialiasing);
         cursorPainter.setPen(QPen(Qt::black, 1));
         cursorPainter.setBrush(Qt::white);
+
         // 绘制箭头（使用逻辑坐标，QPainter会自动处理缩放）
         QPolygonF arrow;
         arrow << QPointF(0, 0) << QPointF(0, 10) << QPointF(3, 7)
               << QPointF(7, 11) << QPointF(9, 9)
               << QPointF(5, 5) << QPointF(10, 0);
+
         cursorPainter.drawPolygon(arrow);
         cursorPainter.end();
     }
@@ -841,9 +939,11 @@ QString Widget::saveScreen()
         // 如果获取到了系统光标，确保它有正确的DPI设置
         cursorPixmap.setDevicePixelRatio(devicePixelRatio);
     }
+
     // 将光标绘制到截图上
     QPainter painter(&m_screenPicture);
     painter.setRenderHint(QPainter::Antialiasing);
+
     // 绘制光标时，考虑到cursorPixmap可能已经有devicePixelRatio设置
     // 所以绘制位置需要调整
     QPoint drawPos = cursorPos;
@@ -853,9 +953,12 @@ QString Widget::saveScreen()
         drawPos.setX(cursorPos.x() / devicePixelRatio);
         drawPos.setY(cursorPos.y() / devicePixelRatio);
     }
+
     painter.drawPixmap(drawPos, cursorPixmap);
     painter.end();
+
     QImage image = m_screenPicture.toImage();
+
     // 逐步缩小图片直到尺寸 <= 1920x1080
     while (image.width() > 1920 || image.height() > 1080)
     {
@@ -863,67 +966,81 @@ QString Widget::saveScreen()
         qreal scaleRatio = qMin(1920.0 / image.width(), 1080.0 / image.height());
         int newWidth = image.width() * scaleRatio;
         int newHeight = image.height() * scaleRatio;
+
         image = image.scaled(newWidth, newHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
+
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss-zzz");
     QString filePath = QDir::currentPath() + "/EVA_TEMP/screen_cut/" + timestamp + ".png";
     createTempDirectory(QDir::currentPath() + "/EVA_TEMP/screen_cut");
     image.save(filePath);
     return filePath;
 }
+
 void Widget::recv_monitor_decode_ok()
 {
     is_monitor = false; //解锁
 }
+
 //构建屏幕信息
 QString Widget::create_screen_info()
 {
     // 屏幕左上角坐标为(0,0) 右下角坐标为(x,y)
     QString info;
     QScreen *screen = QApplication::primaryScreen();
+
     // 使用物理像素尺寸，而不是逻辑像素
     QRect screenGeometry = screen->geometry();
     qreal devicePixelRatio = screen->devicePixelRatio();
+
     // 计算实际的物理像素尺寸
     int physicalWidth = screenGeometry.width() * devicePixelRatio;
     int physicalHeight = screenGeometry.height() * devicePixelRatio;
+
     info = QString("The coordinates of the top left corner of the screen are (0,0) and the coordinates of the bottom right corner are (%1, %2)")
                .arg(physicalWidth)
                .arg(physicalHeight);
+
     return info;
 }
+
+
 void Widget::openHistoryManager()
 {
-    Widget *self = this;
     if (!history_)
     {
-        self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
+        reflash_state(jtr("history db error"), WRONG_SIGNAL);
         return;
     }
     QDialog dlg(this);
-    dlg.setWindowTitle(self->jtr("history sessions"));
+    dlg.setWindowTitle(jtr("history sessions"));
     dlg.resize(600, 420);
+
     QVBoxLayout *v = new QVBoxLayout(&dlg);
+
     QDialog *d = &dlg;
+
     // search bar
     QLineEdit *search = new QLineEdit(&dlg);
-    search->setPlaceholderText(self->jtr("search"));
+    search->setPlaceholderText(jtr("search"));
     v->addWidget(search);
+
     // table
     QTableWidget *table = new QTableWidget(&dlg);
     table->setColumnCount(2);
     QStringList headers;
-    headers << self->jtr("title");
-    headers << self->jtr("time");
+    headers << jtr("title");
+    headers << jtr("time");
     table->setHorizontalHeaderLabels(headers);
     table->horizontalHeader()->setStretchLastSection(true);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     v->addWidget(table);
-    auto fill = [&, self](const QString &filter) {
+
+    auto fill = [&](const QString &filter) {
         table->setRowCount(0);
-        auto items = self->history_->listRecent(1000);
+        auto items = history_->listRecent(1000);
         for (const auto &it : items)
         {
             const QString title = it.title.isEmpty() ? QStringLiteral("(untitled)") : it.title;
@@ -944,13 +1061,14 @@ void Widget::openHistoryManager()
         table->resizeColumnsToContents();
     };
     fill("");
+
     // buttons
     QHBoxLayout *h = new QHBoxLayout();
-    QPushButton *restoreBtn = new QPushButton(self->jtr("restore"), &dlg);
-    QPushButton *renameBtn = new QPushButton(self->jtr("rename"), &dlg);
-    QPushButton *deleteBtn = new QPushButton(self->jtr("delete"), &dlg);
-    QPushButton *clearBtn = new QPushButton(self->jtr("clear all history"), &dlg);
-    QPushButton *closeBtn = new QPushButton(self->jtr("close"), &dlg);
+    QPushButton *restoreBtn = new QPushButton(jtr("restore"), &dlg);
+    QPushButton *renameBtn = new QPushButton(jtr("rename"), &dlg);
+    QPushButton *deleteBtn = new QPushButton(jtr("delete"), &dlg);
+    QPushButton *clearBtn = new QPushButton(jtr("clear all history"), &dlg);
+    QPushButton *closeBtn = new QPushButton(jtr("close"), &dlg);
     h->addWidget(restoreBtn);
     h->addWidget(renameBtn);
     h->addWidget(deleteBtn);
@@ -958,6 +1076,7 @@ void Widget::openHistoryManager()
     h->addWidget(clearBtn);
     h->addWidget(closeBtn);
     v->addLayout(h);
+
     auto currentId = [&]() -> QString {
         const auto ranges = table->selectedRanges();
         if (ranges.isEmpty()) return QString();
@@ -965,26 +1084,30 @@ void Widget::openHistoryManager()
         if (!table->item(row, 0)) return QString();
         return table->item(row, 0)->data(Qt::UserRole).toString();
     };
-    QObject::connect(search, &QLineEdit::textChanged, &dlg, [&, self](const QString &t) { fill(t); });
-    QObject::connect(table, &QTableWidget::itemDoubleClicked, &dlg, [self, &currentId, d](QTableWidgetItem *) {
+
+    QObject::connect(search, &QLineEdit::textChanged, &dlg, [=](const QString &t) { fill(t); });
+
+    QObject::connect(table, &QTableWidget::itemDoubleClicked, &dlg, [=](QTableWidgetItem *) {
         const QString id = currentId();
         if (id.isEmpty()) return;
-        self->restoreSessionById(id);
+        const_cast<Widget *>(this)->restoreSessionById(id);
         d->accept();
     });
-    QObject::connect(restoreBtn, &QPushButton::clicked, &dlg, [self, &currentId, d]() {
+
+    QObject::connect(restoreBtn, &QPushButton::clicked, &dlg, [=]() {
         const QString id = currentId();
         if (id.isEmpty()) return;
-        self->restoreSessionById(id);
+        const_cast<Widget *>(this)->restoreSessionById(id);
         d->accept();
     });
-    QObject::connect(renameBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, table]() {
+
+    QObject::connect(renameBtn, &QPushButton::clicked, &dlg, [=]() {
         const QString id = currentId();
         if (id.isEmpty()) return;
         bool ok = false;
-        const QString t = QInputDialog::getText(d, self->jtr("rename"), self->jtr("new title"), QLineEdit::Normal, QString(), &ok);
+        const QString t = QInputDialog::getText(d, jtr("rename"), jtr("new title"), QLineEdit::Normal, QString(), &ok);
         if (!ok) return;
-        if (self->history_->renameSession(id, t))
+        if (history_->renameSession(id, t))
         {
             // update table
             const auto ranges = table->selectedRanges();
@@ -993,41 +1116,49 @@ void Widget::openHistoryManager()
                 const int row = ranges.first().topRow();
                 if (auto *c0 = table->item(row, 0)) c0->setText(t);
             }
-            self->reflash_state(self->jtr("session title updated"), SUCCESS_SIGNAL);
+            reflash_state(jtr("session title updated"), SUCCESS_SIGNAL);
         }
         else
         {
-            self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
+            reflash_state(jtr("history db error"), WRONG_SIGNAL);
         }
     });
-    QObject::connect(deleteBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, &fill, search]() {
+
+    QObject::connect(deleteBtn, &QPushButton::clicked, &dlg, [=]() {
         const QString id = currentId();
         if (id.isEmpty()) return;
-        auto btn = QMessageBox::question(d, self->jtr("delete"), self->jtr("confirm delete?"));
+        auto btn = QMessageBox::question(d, jtr("delete"), jtr("confirm delete?"));
         if (btn != QMessageBox::Yes) return;
-        if (self->history_->deleteSession(id))
+        if (history_->deleteSession(id))
         {
             fill(search->text());
-            self->reflash_state(self->jtr("deleted"), SUCCESS_SIGNAL);
+            reflash_state(jtr("deleted"), SUCCESS_SIGNAL);
         }
         else
         {
-            self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
+            reflash_state(jtr("history db error"), WRONG_SIGNAL);
         }
     });
-    QObject::connect(clearBtn, &QPushButton::clicked, &dlg, [self, &fill, search, d]() {
-        auto btn = QMessageBox::question(d, self->jtr("clear all history"), self->jtr("confirm delete?"));
+
+    QObject::connect(clearBtn, &QPushButton::clicked, &dlg, [=]() {
+        auto btn = QMessageBox::question(d, jtr("clear all history"), jtr("confirm delete?"));
         if (btn != QMessageBox::Yes) return;
-        if (self->history_->purgeAll())
+        if (history_->purgeAll())
         {
             fill(search->text());
-            self->reflash_state(self->jtr("deleted"), SUCCESS_SIGNAL);
+            reflash_state(jtr("deleted"), SUCCESS_SIGNAL);
         }
         else
         {
-            self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
+            reflash_state(jtr("history db error"), WRONG_SIGNAL);
         }
     });
+
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
+
     dlg.exec();
 }
+
+
+
+
