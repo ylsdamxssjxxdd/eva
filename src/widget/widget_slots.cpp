@@ -406,15 +406,17 @@ void Widget::ensureLocalServer()
     } else {
         bool ok = false;
         const quint16 portNum = chosenPort.toUShort(&ok);
-        if (!ok || portNum == 0 || !isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4))) {
+        if (!ok || portNum == 0) {
+            // Invalid user value -> treat as cleared: bind localhost with a random port; do not change UI field
+            bindHost = "127.0.0.1";
+            chosenPort = pickFreePort();
+            reflash_state("ui:invalid port -> bind 127.0.0.1 (random)", SIGNAL_SIGNAL);
+        } else if (!isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4))) {
+            // User-specified port is busy -> temporarily use a free random port for this run only; keep UI unchanged
             const QString newPort = pickFreePort();
             if (newPort != chosenPort) {
-                reflash_state("ui:port in use, switch to " + newPort, SIGNAL_SIGNAL);
+                reflash_state("ui:port in use, temp use " + newPort, SIGNAL_SIGNAL);
                 chosenPort = newPort;
-                ui_port = newPort;
-                if (settings_ui && settings_ui->port_lineEdit) {
-                    settings_ui->port_lineEdit->setText(newPort);
-                }
             }
         }
     }
@@ -948,6 +950,15 @@ void Widget::recv_reasoning_tokens(int tokens)
 // Parse llama-server output lines to capture n_ctx value for verification
 void Widget::onServerOutput(const QString &line)
 {
+    // Skip regex processing while the model/server is still loading
+    if ( !is_load) { 
+        if (line.contains("all slots are idle"))
+        {
+            // Suppress the very first idle baseline after (re)start to avoid a fake "速度"行闪烁
+            if (suppressNextAllIdle_) { suppressNextAllIdle_ = false; return; }
+        }
+        return;
+    }
     // 0) Track turn lifecycle heuristics
     // Start/resume turn timer when server prints a new prompt line
     if (line.contains("new prompt") || line.contains("launch_slot_"))
