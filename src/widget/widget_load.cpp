@@ -164,7 +164,7 @@ void Widget::load_play()
 {
     // 简化装载动画：不再播放复杂 ASCII/连线动画，改为复用“解码转轮”
     if (decode_pTimer && decode_pTimer->isActive()) decode_pTimer->stop();
-    decode_play("load model");
+    wait_play("load model");
 }
 
 //连接动画

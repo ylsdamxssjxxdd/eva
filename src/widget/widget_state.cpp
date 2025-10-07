@@ -32,7 +32,7 @@ void Widget::ui_state_loading()
 //推理中界面状态
 void Widget::ui_state_pushing()
 {
-    decode_play(); //开启推理动画
+    wait_play(); //开启推理动画
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
     ui->set->setEnabled(0);

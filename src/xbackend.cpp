@@ -139,13 +139,12 @@ void LocalServerManager::hookProcessSignals()
         QString msg;
         switch (e) {
         case QProcess::FailedToStart: msg = QStringLiteral("ui:backend failed to start"); break;
-        case QProcess::Crashed: msg = QStringLiteral("ui:backend crashed"); break;
         case QProcess::Timedout: msg = QStringLiteral("ui:backend start timed out"); break;
         case QProcess::WriteError: msg = QStringLiteral("ui:backend write error"); break;
         case QProcess::ReadError: msg = QStringLiteral("ui:backend read error"); break;
-        default: msg = QStringLiteral("ui:backend error"); break;
+        default: msg = QStringLiteral(""); break;
         }
-        emit serverState(msg, WRONG_SIGNAL);
+        if(msg!="") {emit serverState(msg, WRONG_SIGNAL);}
         emit serverOutput(msg);
         emit serverStopped();
     });

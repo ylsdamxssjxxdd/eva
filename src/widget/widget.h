@@ -285,7 +285,7 @@ SETTINGS settings_snapshot_;
     bool is_decode = false;      // 解码中标签
     void decode_move();          // 下一帧
     // 使用已有的“解码动画”作为通用转轮；labelKey 用于显示基础文案（默认：input decode）
-    void decode_play(const QString &labelKey = "input decode");
+    void wait_play(const QString &labelKey = "input decode");
     void decode_finish();        // 动画结束后将动画行替换为完成标志
     // 优雅等待动画：记录起始行与用时
     int decodeLineNumber_ = -1;  // 动画所在行（固定行）

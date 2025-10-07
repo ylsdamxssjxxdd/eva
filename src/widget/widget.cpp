@@ -138,11 +138,10 @@ ui_state_init();                                              //初始界面状�
     connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
-        // Ignore the first stop if it was caused by killing the old process during a planned restart
-        if (ignoreNextServerStopped_) { ignoreNextServerStopped_ = false; return; }
-        // Any other stop means the server is not running -> reset UI and leave loading state
+        // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画
+        if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; return; }
+        // 其它情况：后端确实已停止 -> 重置 UI，并停止任何进行中的动画
 
-        // 非预期退出：取消动画并回到初始状态
         ui->state->clear();
         reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
         if (load_begin_pTimer) load_begin_pTimer->stop();
@@ -292,7 +291,7 @@ void Widget::preLoad()
     ui->state->clear(); //清空状态区
     ui_state_loading(); //装载中界面状态
     // 开始“装载中”转轮动画并计时（复用解码动画作为统一的简单动画）
-    decode_play("load model");
+    wait_play("load model");
     load_timer.start();
     if (is_config)
     {
@@ -884,9 +883,9 @@ void Widget::restoreSessionById(const QString &sessionId)
     }
 
     if (!meta.title.isEmpty())
-        reflash_state(jtr("loaded session") + ": " + meta.title, SUCCESS_SIGNAL);
+        reflash_state("ui:" + jtr("loaded session") + " " + meta.title, SUCCESS_SIGNAL);
     else
-        reflash_state(jtr("loaded session"), SUCCESS_SIGNAL);
+        reflash_state("ui:" + jtr("loaded session"), SUCCESS_SIGNAL);
 
     int resumeSlot = -1;
     if (ui_mode == LINK_MODE)
