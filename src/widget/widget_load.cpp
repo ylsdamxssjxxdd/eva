@@ -306,7 +306,6 @@ void Widget::unlockLoad()
     EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
-    ui->kv_bar->show_text = jtr("brain");
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
     auto_save_user(); //保存ui配置
     force_unlockload_pTimer->stop();

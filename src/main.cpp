@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
     Widget w(nullptr, applicationDirPath);      //窗口实例
     Expend expend(nullptr, applicationDirPath); //增殖窗口实例
     xTool tool(applicationDirPath);             //工具实例
-    // xBot removed: all inference goes through xNet to a llama.cpp server
     xNet net;         //链接实例
     xMcp mcp;         //mcp管理实例
     gpuChecker gpuer; //监测显卡信息
@@ -184,10 +183,6 @@ int main(int argc, char *argv[])
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
-
-    //------------------bot相关（已移除）-------------------
-    // xBot connections removed
-
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //强制刷新gpu信息
@@ -207,13 +202,10 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //传递知识库的描述
     QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        //传递llama日志
 
-    // xBot -> expend connections removed
-
     //------------------连接net和窗口-------------------
     QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  //窗口输出区更新
     QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
     QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
-    QObject::connect(&net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // kv used tokens
     QObject::connect(&net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
     QObject::connect(&net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
     QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);                               //开始推理

@@ -220,9 +220,9 @@ void Widget::recv_params(MODEL_PARAMS p)
 //接收缓存量
 void Widget::recv_kv(float percent, int ctx_size)
 {
-    if (percent > 0 && percent < 1) { percent = 1; }
-    ui->kv_bar->setSecondValue(percent);
-    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(ctx_size) + "/" + QString::number(ui_SETTINGS.nctx));
+    Q_UNUSED(percent);
+    Q_UNUSED(ctx_size);
+
 }
 
 // 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
@@ -461,8 +461,7 @@ void Widget::onServerReady(const QString &endpoint)
     // 完成装载动画：记录耗时，补帧并快速播完剩余动画，最后 unlockLoad()
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
-    ui->kv_bar->setToolTip("");
-    ui->kv_bar->setVisible(true); // 本地模式可显示“记忆量/kv 使用”
+
     ui->output->clear();
     ui_messagesArray = QJsonArray();
     {
@@ -695,22 +694,7 @@ void Widget::api_send_clicked_slove()
     is_run = true; // 模型运行标记
     ui_state_pushing();
     // carry over tokens from previous turn before starting a new one
-    if (kvTokensTurn_ > 0)
-    {
-        kvTokensAccum_ += kvTokensTurn_;
-        kvTokensTurn_ = 0;
-        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-        int percent = 0;
-        if (nctx > 0)
-        {
-            percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-            if (percent > 0 && percent < 1) percent = 1;
-            if (percent > 100) percent = 100;
-            if (percent < 0) percent = 0;
-        }
-        ui->kv_bar->setSecondValue(percent);
-        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
-    }
+    if (kvTokensTurn_ > 0) { kvTokensAccum_ += kvTokensTurn_; kvTokensTurn_ = 0; }
     emit ui2net_push();
 }
 //传递知识库的描述
@@ -905,26 +889,7 @@ void Widget::resetStateDocument()
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
 void Widget::recv_kv_from_net(int usedTokens)
 {
-    // 链接模式下这些值不准确；不更新、不展示
-    if (ui_mode == LINK_MODE)
-    {
-        return;
-    }
-    // Track this-turn tokens from stream: usedTokens includes prompt_n when timings arrived, otherwise just generated.
-    if (usedTokens > kvTokensTurn_) kvTokensTurn_ = usedTokens;
-    // Do not include reasoning tokens into "memory"; subtract lastReasoningTokens_ when showing
-    const int shownTokens = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
-    const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-    int percent = 0;
-    if (nctx > 0)
-    {
-        percent = qRound(100.0 * double(shownTokens) / double(nctx));
-        if (percent > 0 && percent < 1) percent = 1;
-        if (percent > 100) percent = 100;
-        if (percent < 0) percent = 0;
-    }
-    ui->kv_bar->setSecondValue(percent);
-    ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+    Q_UNUSED(usedTokens);
 }
 
 // server-assigned slot id -> persist and reuse for KV cache efficiency
@@ -1066,8 +1031,6 @@ void Widget::onServerOutput(const QString &line)
             if (percent > 100) percent = 100;
             if (percent < 0) percent = 0;
         }
-        ui->kv_bar->setSecondValue(percent);
-        const int shownTokens = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
-        ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(shownTokens) + "/" + QString::number(nctx));
+
     }
 }

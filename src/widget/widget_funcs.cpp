@@ -594,7 +594,6 @@ void Widget::apply_language(int language_flag_)
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(std::thread::hardware_concurrency()));
     ui->mem_bar->setShowText(jtr("mem"));   //进度条里面的文本,强制重绘
     ui->vram_bar->setShowText(jtr("vram")); //进度条里面的文本,强制重绘
-    ui->kv_bar->setShowText(jtr("brain"));  //进度条里面的文本,强制重绘
     ui->cpu_bar->show_text = "cpu ";        //进度条里面的文本
     ui->vcore_bar->show_text = "gpu ";      //进度条里面的文本
     //输入区右击菜单语种

@@ -45,9 +45,6 @@ void Widget::set_api()
     EVA_icon = QIcon(":/logo/dark_logo.png");
     QApplication::setWindowIcon(EVA_icon); //设置应用程序图标
     trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
-    // 链接模式下 “记忆量/kv 使用” 数值不准确 -> 不显示
-    ui->kv_bar->setToolTip("");
-    ui->kv_bar->setVisible(false);
 
     emit ui2net_apis(apis);
     ui->output->clear();
@@ -101,27 +98,6 @@ void Widget::tool_testhandleTimeout()
     data.id_slot = currentSlotId_;
 
     emit ui2net_data(data);
-    // carry over tokens from previous turn before starting a new one (tool)
-    if (kvTokensTurn_ > 0)
-    {
-        kvTokensAccum_ += kvTokensTurn_;
-        kvTokensTurn_ = 0;
-        // 链接模式下不显示“记忆量”进度
-        if (ui_mode != LINK_MODE)
-        {
-            const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-            int percent = 0;
-            if (nctx > 0)
-            {
-                percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-                if (percent > 0 && percent < 1) percent = 1;
-                if (percent > 100) percent = 100;
-                if (percent < 0) percent = 0;
-            }
-            ui->kv_bar->setSecondValue(percent);
-            ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
-        }
-    }
     emit ui2net_push();
 }
 

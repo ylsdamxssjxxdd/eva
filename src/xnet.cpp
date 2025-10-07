@@ -54,44 +54,6 @@ void xNet::abortActiveReply()
         connSslErrors_ = QMetaObject::Connection{};
 #endif
 
-        // compute and emit speeds using server timings if present, else fallback
-        const double tAll = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
-        if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
-        {
-            const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
-            const double gen_tps = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
-            emit net2ui_state(
-                QString("net:%1 %2 t/s, %3 %4 t/s")
-                    .arg(jtr("batch decode"))
-                    .arg(QString::number(prompt_tps, 'f', 1))
-                    .arg(jtr("single decode"))
-                    .arg(QString::number(gen_tps, 'f', 1)),
-                SUCCESS_SIGNAL);
-        }
-        else
-        {
-            // fallback: approximate generation speed if possible; batch decode unknown
-            double gen_tps = 0.0;
-            bool haveGen = false;
-            if (tokens_ > 0 && t_first_.isValid())
-            {
-                const double dt = t_first_.nsecsElapsed() / 1e9;
-                if (dt > 1e-9)
-                {
-                    gen_tps = tokens_ / dt;
-                    haveGen = true;
-                }
-            }
-            const QString genText = haveGen ? QString::number(gen_tps, 'f', 1) : QStringLiteral("--");
-            const QString batchText = QStringLiteral("--");
-            emit net2ui_state(
-                QString("net:%1 %2 t/s, %3 %4 t/s")
-                    .arg(jtr("batch decode"))
-                    .arg(batchText)
-                    .arg(jtr("single decode"))
-                    .arg(genText),
-                SUCCESS_SIGNAL);
-        }
 
         // finally, abort and delete the reply safely
         reply_->abort();
@@ -220,10 +182,6 @@ void xNet::run()
                                 // if this chunk is part of <think>, count it approximately
                                 const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                                 if (isReasoningChunk) reasoningTokensTurn_++;
-                                {
-                                    int base = (promptTokens_ > 0) ? promptTokens_ : 0;
-                                    emit net2ui_kv_tokens(base + tokens_);
-                                }
                                 // 不再在状态区流式输出内容；仅把内容流式发往输出区
                                 if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
                                 if (thinkFlag)
@@ -255,10 +213,6 @@ void xNet::run()
                             const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
                             if (isReasoningChunk) reasoningTokensTurn_++;
                             const QString content_flag = stop ? jtr("<end>") : content;
-                            {
-                                int base = (promptTokens_ > 0) ? promptTokens_ : 0;
-                                emit net2ui_kv_tokens(base + tokens_);
-                            }
                             // 不再在状态区流式输出内容；仅把内容流式发往输出区
                             emit net2ui_output(content, true);
                         }
@@ -319,44 +273,7 @@ void xNet::run()
 
             if (err == QNetworkReply::NoError)
             {
-                // Prefer accurate speeds from server timings when available
-                if (timingsReceived_ && (promptMs_ > 0.0 || predictedMs_ > 0.0))
-                {
-                    const double prompt_tps = (promptTokens_ > 0 && promptMs_ > 0.0) ? (promptTokens_ / (promptMs_ / 1000.0)) : 0.0;
-                    const double gen_tps = (predictedTokens_ > 0 && predictedMs_ > 0.0) ? (predictedTokens_ / (predictedMs_ / 1000.0)) : 0.0;
-                    emit net2ui_state(
-                        QString("net:%1 %2 t/s, %3 %4 t/s")
-                            .arg(jtr("batch decode"))
-                            .arg(QString::number(prompt_tps, 'f', 1))
-                            .arg(jtr("single decode"))
-                            .arg(QString::number(gen_tps, 'f', 1)),
-                        SUCCESS_SIGNAL);
-                    // After normal finish, correct kv tokens from server timings (prompt_n + predicted_n)
-                    if (timingsReceived_)
-                    {
-                        int totalUsed = 0;
-                        if (promptTokens_ > 0) totalUsed += promptTokens_;
-                        if (predictedTokens_ > 0) totalUsed += predictedTokens_;
-                        if (totalUsed > 0) emit net2ui_kv_tokens(totalUsed);
-                    }
-                }
-                else
-                {
-                    // Fallback to total time and naive token/s estimation (batch decode unknown)
-                    const bool haveGen = (tokens_ > 0 && t_first_.isValid() && (t_first_.nsecsElapsed() > 0));
-                    const QString genText = haveGen ? QString::number(tokps, 'f', 1) : QStringLiteral("--");
-                    const QString batchText = QStringLiteral("--");
-                    emit net2ui_state(
-                        QString("net:%1 %2 t/s, %3 %4 t/s")
-                            .arg(jtr("batch decode"))
-                            .arg(batchText)
-                            .arg(jtr("single decode"))
-                            .arg(genText),
-                        SUCCESS_SIGNAL);
-                }
 
-                // if (httpCode)
-                //     emit net2ui_state("net:http " + QString::number(httpCode));
             }
             else
             {

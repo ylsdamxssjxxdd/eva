@@ -429,20 +429,6 @@ void Widget::recv_pushover()
                             kvTokensAccum_ += adjustedTurn;
                             kvTokensTurn_ = 0;
                             lastReasoningTokens_ = 0;
-                            if (ui_mode != LINK_MODE)
-                            {
-                                const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-                                int percent = 0;
-                                if (nctx > 0)
-                                {
-                                    percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-                                    if (percent > 0 && percent < 1) percent = 1;
-                                    if (percent > 100) percent = 100;
-                                    if (percent < 0) percent = 0;
-                                }
-                                ui->kv_bar->setSecondValue(percent);
-                                ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
-                            }
                         }
                         emit ui2tool_exec(tools_call); //调用tool
                         //使用工具时解码动画不停
@@ -471,20 +457,6 @@ void Widget::normal_finish_pushover()
         kvTokensAccum_ += adjustedTurn;
         kvTokensTurn_ = 0;
         lastReasoningTokens_ = 0;
-        if (ui_mode != LINK_MODE)
-        {
-            const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-            int percent = 0;
-            if (nctx > 0)
-            {
-                percent = qRound(100.0 * double(kvTokensAccum_) / double(nctx));
-                if (percent > 0 && percent < 1) percent = 1;
-                if (percent > 100) percent = 100;
-                if (percent < 0) percent = 0;
-            }
-            ui->kv_bar->setSecondValue(percent);
-            ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(kvTokensAccum_) + "/" + QString::number(nctx));
-        }
     }
     decode_finish();
     if (!wait_to_show_images_filepath.isEmpty())
@@ -658,10 +630,6 @@ void Widget::on_reset_clicked()
     }
 
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
-    ui->kv_bar->setSecondValue(0);
-    if (ui->kv_bar) ui->kv_bar->setToolTip(jtr("kv cache") + " " + QString::number(0) + "/" + QString::number(ui_SETTINGS.nctx));
-    if (ui->kv_bar) ui->kv_bar->setCenterText("");
-
     kvTokensAccum_ = 0;
     kvTokensTurn_ = 0;   // reset conversation kv tokens
     currentSlotId_ = -1; // new conversation -> no slot yet
