@@ -278,17 +278,19 @@ SETTINGS settings_snapshot_;
     void set_dotcolor(QTextCharFormat *format, int action); //设置点颜色
     int playlineNumber = 0;                                 //动画播放的起始行
 
-    //解码码动画相关
+    //解码/通用转轮动画相关（在装载与推理中复用）
     QTimer *decode_pTimer;
-    int decode_action = 0;      //动作计数
-    int currnet_LineNumber = 0; //上一次解码动画所在行
-    bool is_decode = false;     //解码中标签
-    void decode_move();         //下一帧
-    void decode_play();         //播放解码中动画
-    void decode_finish();       //解码完成后将动画行替换为完成标志
+    int decode_action = 0;       // 动作计数
+    int currnet_LineNumber = 0;  // 上一次解码动画所在行（保留，历史用途）
+    bool is_decode = false;      // 解码中标签
+    void decode_move();          // 下一帧
+    // 使用已有的“解码动画”作为通用转轮；labelKey 用于显示基础文案（默认：input decode）
+    void decode_play(const QString &labelKey = "input decode");
+    void decode_finish();        // 动画结束后将动画行替换为完成标志
     // 优雅等待动画：记录起始行与用时
-    int decodeLineNumber_ = -1; // 动画所在行（固定行）
-    QElapsedTimer decodeTimer_; // 动画计时器（秒）
+    int decodeLineNumber_ = -1;  // 动画所在行（固定行）
+    QElapsedTimer decodeTimer_;  // 动画计时器（秒）
+    QString decodeLabelKey_ = "input decode"; // 当前动画的基础文案 key（jtr 查表）
 
     //系统信息相关
     QString model_memusage = "0", ctx_memusage = "0";

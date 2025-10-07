@@ -6,10 +6,11 @@
 //----------------------------------编码动画--------------------------------
 //-------------------------------------------------------------------------
 
-void Widget::decode_play()
+void Widget::decode_play(const QString &labelKey)
 {
-    // 在状态区新增一行固定的“解码中”提示，并在该行播放动画（避免干扰其他日志）
-    reflash_state(QString("ui:") + jtr("input decode"), USUAL_SIGNAL);
+    // 在状态区新增一行固定提示，并在该行播放动画（避免干扰其他日志）
+    decodeLabelKey_ = labelKey.isEmpty() ? QStringLiteral("input decode") : labelKey;
+    reflash_state(QString("ui:") + jtr(decodeLabelKey_), USUAL_SIGNAL);
     decodeLineNumber_ = ui->state->document()->blockCount() - 1;
     decode_action = 0;
     decodeTimer_.restart();
@@ -42,7 +43,7 @@ void Widget::decode_move()
     const QVector<QString> &frames = useUnicode ? uniFrames : asciiFrames;
     const QString &spin = frames.at(decode_action % frames.size());
 
-    const QString base = QString("ui:") + jtr("input decode");
+    const QString base = QString("ui:") + jtr(decodeLabelKey_);
     // 仅显示转轮与用时（移除省略点）
     const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(spin);
 
@@ -86,7 +87,7 @@ void Widget::decode_finish()
         }
     }
 
-    const QString base = QString("ui:") + jtr("input decode");
+    const QString base = QString("ui:") + jtr(decodeLabelKey_);
     const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(doneMark);
 
     // 将对应行整行替换为完成文本

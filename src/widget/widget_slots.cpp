@@ -462,7 +462,7 @@ void Widget::onServerReady(const QString &endpoint)
     apis.api_model = "default";
     emit ui2net_apis(apis);
 
-    // 完成装载动画：记录耗时，补帧并快速播完剩余动画，最后 unlockLoad()
+    // 完成装载：记录耗时，统一用简单转轮动画（decode_*）收尾，然后解锁 UI
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
 
@@ -493,17 +493,10 @@ void Widget::onServerReady(const QString &endpoint)
     is_load = true;
     // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
-    all_fps++;                  // 补上最后一帧，表示上下文也创建了
-    if (load_pTimer)
-    {
-        load_pTimer->stop();    // 停止动画，但保留 load_action
-        load_pTimer->start(10); // 快速播放完剩下的动画
-    }
-    else
-    {
-        // 兜底：没有动画定时器则直接解锁
-        unlockLoad();
-    }
+    // 收尾动画：将“装载中”转轮替换为完成标志
+    decode_finish();
+    // 直接解锁界面（不再补帧播放复杂装载动画）
+    unlockLoad();
 }
 
 //链接模式的发送处理

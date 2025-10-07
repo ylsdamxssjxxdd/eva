@@ -148,6 +148,7 @@ ui_state_init();                                              //初始界面状�
         if (load_begin_pTimer) load_begin_pTimer->stop();
         if (load_pTimer) load_pTimer->stop();
         if (load_over_pTimer) load_over_pTimer->stop();
+        if (decode_pTimer) decode_pTimer->stop();
         if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
         lastServerRestart_ = false;
         is_load = false;
@@ -238,12 +239,13 @@ void Widget::on_load_clicked()
     {
         // 用户选择本地模式：选择模型并启动本地 llama-server
         currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
-        if (currentpath == "" || currentpath == historypath)
+        // 允许选择与上次相同的模型路径以便重新装载（如服务器已停止或需要重试）
+        if (currentpath == "")
         {
             return; // 路径未选择或与上次相同
         }
         ui_mode = LOCAL_MODE;      // 本地模式 -> 使用本地llama-server + xNet
-        historypath = currentpath; // 记录这个路径，方便下次对比
+        historypath = currentpath; // 记录这个路径
         ui_SETTINGS.modelpath = currentpath;
         ui_SETTINGS.mmprojpath = ""; // 清空mmproj模型路径
         ui_SETTINGS.lorapath = "";   // 清空lora模型路径
@@ -289,8 +291,8 @@ void Widget::preLoad()
     }
     ui->state->clear(); //清空状态区
     ui_state_loading(); //装载中界面状态
-    // 开始装载动画并计时（本地 llama-server 启动过程）
-    load_play();
+    // 开始“装载中”转轮动画并计时（复用解码动画作为统一的简单动画）
+    decode_play("load model");
     load_timer.start();
     if (is_config)
     {

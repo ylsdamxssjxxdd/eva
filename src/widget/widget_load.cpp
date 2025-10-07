@@ -162,39 +162,9 @@ void Widget::load_move()
 //开始播放
 void Widget::load_play()
 {
-    // 确保不会与上一次动画重叠：先停止所有相关定时器并复位计数
-    if (load_begin_pTimer) load_begin_pTimer->stop();
-    if (load_pTimer) load_pTimer->stop();
-    if (load_over_pTimer) load_over_pTimer->stop();
-    if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
-    load_action = 0;
-    all_fps = 142; // 重置为默认总帧数
-
-    QTextCursor cursor = ui->state->textCursor();
-    cursor.movePosition(QTextCursor::End);
-    cursor.insertText("\n"); //插个回车
-
-    //获取当前行数
-    playlineNumber = 0;
-    QTextDocument *document = ui->state->document();
-    for (QTextBlock block = document->begin(); block != document->end(); block = block.next())
-    {
-        ++playlineNumber;
-    }
-    // qDebug() << "lineNumber: " << playlineNumber;
-
-    //展示背景
-    for (int i = 0; i < movie_line.size(); ++i)
-    {
-        cursor.movePosition(QTextCursor::End);      //移到文本开头
-        cursor.setCharFormat(movie_format);         //设置字体
-        cursor.insertText(movie_line.at(i) + "\n"); //插入字符
-    }
-
-    //向下滑
-    load_begin_pTimer->start(100);
-    //先自动播放动画
-    load_pTimer->start(800);
+    // 简化装载动画：不再播放复杂 ASCII/连线动画，改为复用“解码转轮”
+    if (decode_pTimer && decode_pTimer->isActive()) decode_pTimer->stop();
+    decode_play("load model");
 }
 
 //连接动画
