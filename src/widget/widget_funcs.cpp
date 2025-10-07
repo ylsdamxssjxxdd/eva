@@ -81,6 +81,7 @@ void Widget::get_set()
     ui_SETTINGS.repeat = settings_ui->repeat_slider->value() / 100.0;
     ui_SETTINGS.hid_parallel = settings_ui->parallel_slider->value();
     ui_SETTINGS.top_k = settings_ui->topk_slider->value();
+    ui_SETTINGS.hid_top_p = settings_ui->topp_slider->value() / 100.0;
     ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
     ui_SETTINGS.nctx = settings_ui->nctx_slider->value(); //获取nctx滑块的值
     ui_SETTINGS.ngl = settings_ui->ngl_slider->value();   //获取ngl滑块的值
@@ -647,7 +648,6 @@ void Widget::apply_language(int language_flag_)
     settings_ui->temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     settings_ui->temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat));
-    // TOP_K 与 并发数量 初始文本与提示
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(ui_SETTINGS.top_k));
     settings_ui->topk_slider->setToolTip(jtr("top_k_label_tooltip"));
     settings_ui->topk_label->setToolTip(jtr("top_k_label_tooltip"));
@@ -910,15 +910,20 @@ void Widget::openHistoryManager()
     QTableWidget *table = new QTableWidget(&dlg);
     table->setColumnCount(2);
     QStringList headers;
-    headers << self->jtr("title");
+    // Swap columns: show time first, then title
     headers << self->jtr("time");
+    headers << self->jtr("title");
     table->setHorizontalHeaderLabels(headers);
-    table->horizontalHeader()->setStretchLastSection(true);
+    // Make the first column (time) sized to contents, second column (title) stretch
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     table->setSelectionBehavior(QAbstractItemView::SelectRows);
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     v->addWidget(table);
     auto fill = [&, self](const QString &filter) {
+        // Limit how long a title is shown to avoid extremely wide columns
+        const int kTitleMaxChars = 48; // display limit; full title is available via tooltip
         table->setRowCount(0);
         auto items = self->history_->listRecent(1000);
         for (const auto &it : items)
@@ -932,13 +937,19 @@ void Widget::openHistoryManager()
             }
             const int row = table->rowCount();
             table->insertRow(row);
-            auto *c0 = new QTableWidgetItem(title);
+            // Column 0: time (also keep the session id here for selection helpers)
+            auto *c0 = new QTableWidgetItem(when);
             c0->setData(Qt::UserRole, it.id);
-            auto *c1 = new QTableWidgetItem(when);
+            // Column 1: title (trimmed for display)
+            QString trimmed = title;
+            trimmed.replace('\n', ' ').replace('\r', ' ');
+            if (trimmed.size() > kTitleMaxChars) trimmed = trimmed.left(kTitleMaxChars) + "...";
+            auto *c1 = new QTableWidgetItem(trimmed);
+            c1->setToolTip(title); // show full title on hover
             table->setItem(row, 0, c0);
             table->setItem(row, 1, c1);
         }
-        table->resizeColumnsToContents();
+        // No resize to contents; header resize modes above keep layout tidy
     };
     fill("");
     // buttons
@@ -988,7 +999,15 @@ void Widget::openHistoryManager()
             if (!ranges.isEmpty())
             {
                 const int row = ranges.first().topRow();
-                if (auto *c0 = table->item(row, 0)) c0->setText(t);
+                // Column 1 holds display title now; update with trimmed text and tooltip
+                if (auto *c1 = table->item(row, 1)) {
+                    QString trimmed = t;
+                    trimmed.replace('\n', ' ').replace('\r', ' ');
+                    const int kTitleMaxChars = 48;
+                    if (trimmed.size() > kTitleMaxChars) trimmed = trimmed.left(kTitleMaxChars) + "...";
+                    c1->setText(trimmed);
+                    c1->setToolTip(t);
+                }
             }
             self->reflash_state(self->jtr("session title updated"), SUCCESS_SIGNAL);
         }

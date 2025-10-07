@@ -93,6 +93,7 @@ void Widget::tool_testhandleTimeout()
     data.temp = ui_SETTINGS.temp;
     data.repeat = ui_SETTINGS.repeat;
     data.top_k = ui_SETTINGS.top_k;
+    data.top_p = ui_SETTINGS.hid_top_p;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.messagesArray = ui_messagesArray;
     data.id_slot = currentSlotId_;
@@ -109,25 +110,10 @@ void Widget::send_testhandleTimeout()
 //链接模式切换时某些控件可见状态
 void Widget::change_api_dialog(bool enable)
 {
-    settings_ui->repeat_label->setVisible(enable);
-    settings_ui->repeat_slider->setVisible(enable);
-    settings_ui->parallel_label->setVisible(enable);
-    settings_ui->parallel_slider->setVisible(enable);
-    settings_ui->topk_label->setVisible(enable);
-    settings_ui->topk_slider->setVisible(enable);
-    settings_ui->nctx_label->setVisible(enable);
-    settings_ui->nctx_slider->setVisible(enable);
-    settings_ui->nthread_label->setVisible(enable);
-    settings_ui->nthread_slider->setVisible(enable);
-    settings_ui->mmproj_label->setVisible(enable);
-    settings_ui->mmproj_LineEdit->setVisible(enable);
-    settings_ui->ngl_label->setVisible(enable);
-    settings_ui->ngl_slider->setVisible(enable);
-    settings_ui->lora_label->setVisible(enable);
-    settings_ui->lora_LineEdit->setVisible(enable);
-    settings_ui->port_label->setVisible(enable);
-    settings_ui->port_lineEdit->setVisible(enable);
-    // 服务状态已移除
-    settings_ui->frame_label->setVisible(enable);
-    settings_ui->frame_lineEdit->setVisible(enable);
+    // 链接模式隐藏“后端设置”整组；保留“采样设置”和“状态设置”
+    // enable==0 -> LINK_MODE: backend controls hidden; enable==1 -> LOCAL_MODE: show backend controls
+    if (settings_ui && settings_ui->backend_box)
+    {
+        settings_ui->backend_box->setVisible(enable);
+    }
 }

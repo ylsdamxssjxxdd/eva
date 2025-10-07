@@ -288,6 +288,8 @@ int main(int argc, char *argv[])
     w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
     w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
     w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
+    // 采样：top_p（作为隐藏参数持久化；此处提供显式滑块以便 LINK 模式也可调整）
+    w.settings_ui->topp_slider->setValue(settings.value("hid_top_p", DEFAULT_TOP_P).toFloat() * 100);
     w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
     w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
     w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());

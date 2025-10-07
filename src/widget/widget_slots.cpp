@@ -34,6 +34,15 @@ void Widget::topk_change()
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
 }
 
+// top_p 滑块响应
+void Widget::topp_change()
+{
+    const double val = settings_ui->topp_slider->value() / 100.0;
+    settings_ui->topp_label->setText("TOP_P " + QString::number(val));
+    settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
+                                            .arg(QString::number(val, 'f', 2)));
+}
+
 // 并发数量滑块响应
 void Widget::parallel_change()
 {
@@ -525,6 +534,7 @@ void Widget::api_send_clicked_slove()
     data.temp = ui_SETTINGS.temp;
     data.repeat = ui_SETTINGS.repeat;
     data.top_k = ui_SETTINGS.top_k;
+    data.top_p = ui_SETTINGS.hid_top_p;
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.messagesArray = ui_messagesArray;
     data.id_slot = currentSlotId_;

@@ -269,6 +269,7 @@ struct ENDPOINT_DATA
     float temp;               // 温度
     double repeat;            // 重复惩罚
     int top_k;                // 采样：top_k
+    double top_p;             // 采样：top_p（0~1）
     int n_predict;            // 最大预测数
     QStringList stopwords;    //停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)

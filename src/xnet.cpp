@@ -348,6 +348,8 @@ QByteArray xNet::createChatBody()
     json.insert("stream", true);
     json.insert("temperature", 2 * endpoint_data.temp); // OpenAI temperature 0-2; ours 0-1
     json.insert("top_k", endpoint_data.top_k);
+    // expose full sampling knobs in LINK/LOCAL request body
+    json.insert("top_p", endpoint_data.top_p);
     json.insert("repeat_penalty", endpoint_data.repeat);
     json.insert("max_tokens", endpoint_data.n_predict);
 
@@ -407,6 +409,7 @@ QByteArray xNet::createCompleteBody()
     json.insert("stream", true);
     json.insert("temperature", endpoint_data.temp);
     json.insert("top_k", endpoint_data.top_k);
+    json.insert("top_p", endpoint_data.top_p);
     json.insert("repeat_penalty", endpoint_data.repeat);
     if (endpoint_data.id_slot >= 0)
     {

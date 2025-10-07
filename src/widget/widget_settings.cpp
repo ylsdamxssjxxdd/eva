@@ -79,6 +79,14 @@ void Widget::set_SetDialog()
     settings_ui->topk_slider->setValue(ui_SETTINGS.top_k);
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
     connect(settings_ui->topk_slider, &QSlider::valueChanged, this, &Widget::topk_change);
+    // TOP_P 控制（采样）
+    settings_ui->topp_slider->setRange(0, 100);
+    settings_ui->topp_slider->setValue(ui_SETTINGS.hid_top_p * 100.0);
+    settings_ui->topp_label->setText("TOP_P " + QString::number(settings_ui->topp_slider->value() / 100.0));
+    // 提示：核采样阈值（nucleus sampling）范围 0.00–1.00
+    settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
+                                            .arg(QString::number(settings_ui->topp_slider->value() / 100.0, 'f', 2)));
+    connect(settings_ui->topp_slider, &QSlider::valueChanged, this, &Widget::topp_change);
     //加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
