@@ -307,6 +307,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
     - 所有推理均经由【net】请求式完成；【backend】仅负责在本地模式下托管 llama-server 进程与端点切换
 
 </details>
+
 ## 概念
 
 <details>
@@ -340,41 +341,5 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 - vecb（向量表）: 本次解码中词表里所有token的概率分布
 
 - prob（概率表）: 本次采样中词表里所有token的最终选用概率
-
-</details>
-
-## 待办事项
-
-- 自行状态（机体自主控制屏幕、鼠标、键盘，完成用户预设的任务）
-
-- ~~适配linux（已完成）~~
-
-- ~~英文版本（已完成）~~
-
-## 已知BUG
-
-<details>
-
-<summary> 展开 </summary>
-
-- 模型推理有内存泄漏，定位在xbot.cpp的采样部分，与qt的qplaintextedit也有关，待修复
-
-- 链接模式下，无法无间隔的连续发送，通过定时100ms后触发来缓解，定位在xnet.cpp的QNetworkAccessManager不能及时释放，待修复
-
-- 多模态模型输出异常，需要向llava.cpp对齐，待修复
-
----
-
- 
-
-- 达到最大上下文长度后截断一次后再达到，解码会失败，通过暂时置入空的记忆来缓解，定位在xbot.cpp的llama_decode返回1（找不到kv槽），没修复（实际上是截断后，送入的token数量与保留的部分依旧超过最大上下文长度，需要再截断一次）
-
-- 部分字符utf-8解析有问题，已修复（模型输出不完整的utf8字符，需要手动将3个拼接成1个）
-
-- 切换模型时显存泄露，已修复（使用cuda时，不使用mmp）
-
-- mingw编译的版本装载时无法识别中文路径，定位在llama.cpp的fp = std::fopen(fname, mode);，已修复（利用QTextCodec::codecForName("GB2312")将字符转码）
-
-- csv文件存在特殊符号时不能正确解析，定位在utils.cpp的readCsvFile函数，已修复（利用一个改进的解析方法，依赖于一个简单的状态机来跟踪文本段是否位于引号内部，以正确处理字段内的换行符）
 
 </details>

@@ -298,6 +298,7 @@ In local mode and chat state, you can click on the date button to mount the tool
     - All inference goes through [net] (request-based). [backend] only hosts llama-server in local mode and switches endpoints
 
 </details>
+
 ## Concepts
 
 <details>
@@ -331,38 +332,5 @@ In local mode and chat state, you can click on the date button to mount the tool
 - vecb: The probability distribution of all tokens in the word list during this decoding
 
 - prob: The final selection probability of all tokens in the vocabulary in this sampling
-
-</details>
-
-## To do
-
-- Auto State (EVA autonomously controls the screen, mouse, and keyboard to complete user-preset tasks)
-
-- ~~Adapt to Linux (completed)~~
-
-- ~~English version (completed)~~
-
-## Bugs
-
-<details>
-
-<summary> expand </summary>
-
-- There is a memory leak in the model inference, located in the sampling part of xbot.cpp, which is also related to qt's qplaintextedit and needs to be fixed
-
-- In link mode, it is not possible to send continuously without intervals. It is alleviated by triggering after a timed 100ms. The QNetworkAccess Manager located in xnet.cpp cannot be released in a timely manner and needs to be fixed
--Multimodal model output abnormality, needs to be aligned with llava.cpp, to be fixed
-
----
-
-- Truncate once after reaching the maximum context length and then reach it again. Decoding will fail and can be alleviated by temporarily placing empty memory. The llama_decode located in xbot.cpp returns 1 (unable to find the kv slot), which has not been fixed (in fact, after truncation, the number of tokens sent and the reserved part still exceed the maximum context length, and needs to be truncated again)
-
-- Some UTF-8 characters have parsing issues and have been fixed (incomplete UTF-8 characters in model output need to be manually concatenated into one)
-
-- Memory leakage during model switching, fixed (not using MMP when using CUDA)
-
-- The version compiled by Mingw cannot recognize the Chinese path during loading, and is located in the fp=std:: fopen (fname, mode); of llama.cpp;, Fixed (using QTextCodec:: codecForName ("GB2312") to transcode characters)
-
-- CSV files cannot be parsed correctly when there are special symbols, located in the readCsvFile function of utils.cpp, fixed (using an improved parsing method that relies on a simple state machine to track whether text segments are inside quotation marks and correctly handle line breaks within fields)
 
 </details>
