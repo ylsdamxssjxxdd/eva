@@ -487,6 +487,7 @@ void Widget::onServerReady(const QString &endpoint)
     }
     bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
     is_load = true;
+    // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
     all_fps++;                  // 补上最后一帧，表示上下文也创建了
     if (load_pTimer)
@@ -506,6 +507,16 @@ void Widget::api_send_clicked_slove()
 {
     // 注：联机模式也加前后缀
     QString input;
+
+    // Begin a new turn: reset KV/speed trackers
+    turnActive_ = true;
+    kvUsedBeforeTurn_ = kvUsed_;
+    kvStreamedTurn_ = 0;
+    lastPromptTps_ = -1.0;
+    lastGenTps_ = -1.0;
+    sawPromptTps_ = false;
+    sawGenTps_ = false;
+    turnTimer_.restart();
 
     emit ui2net_stop(0);
     ENDPOINT_DATA data;
@@ -886,10 +897,34 @@ void Widget::resetStateDocument()
     ui->state->setDocument(doc);
 }
 
+// Refresh kv progress bar based on current counters
+void Widget::updateKvBarUi()
+{
+    // determine capacity: prefer n_ctx_slot from server; fallback to UI nctx
+    int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
+    if (cap <= 0) cap = DEFAULT_NCTX;
+    int used = qMax(0, kvUsed_);
+    int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+    if (percent < 0) percent = 0;
+    if (percent > 100) percent = 100;
+    // Use second (yellow) segment to indicate memory; first (blue) set to 0
+    ui->kv_bar->setValue(0);
+    ui->kv_bar->setSecondValue(percent);
+    ui->kv_bar->setShowText(QString::fromUtf8("记忆:"));
+    ui->kv_bar->setCenterText(""); // use show_text + auto % rendering
+    ui->kv_bar->setToolTip(QString::fromUtf8("上下文缓存量 %1 / %2 token").arg(used).arg(cap));
+}
+
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
 void Widget::recv_kv_from_net(int usedTokens)
 {
-    Q_UNUSED(usedTokens);
+    // Approximate KV usage accumulation during streaming tokens from xNet.
+    // In LINK mode, we don't have local server logs; use this as fallback.
+    if (!turnActive_) return;
+    kvStreamedTurn_ = qMax(0, usedTokens); // count observed streamed chunks as tokens
+    // For both local and link, keep a running approximation; local will be corrected by server logs later
+    kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+    updateKvBarUi();
 }
 
 // server-assigned slot id -> persist and reuse for KV cache efficiency
@@ -911,6 +946,21 @@ void Widget::recv_reasoning_tokens(int tokens)
 // Parse llama-server output lines to capture n_ctx value for verification
 void Widget::onServerOutput(const QString &line)
 {
+    // 0) Track turn lifecycle heuristics
+    // Start/resume turn timer when server prints a new prompt line
+    if (line.contains("new prompt") || line.contains("launch_slot_"))
+    {
+        turnActive_ = true;
+        kvUsedBeforeTurn_ = kvUsed_;
+        kvStreamedTurn_ = 0;
+        lastPromptTps_ = -1.0;
+        lastGenTps_ = -1.0;
+        sawPromptTps_ = false;
+        sawGenTps_ = false;
+        sawFinalPast_ = false;
+        turnTimer_.restart();
+    }
+
     // 1) capture n_ctx for verification
     // 0) capture n_ctx_train from print_info and clamp UI nctx slider max accordingly
     static QRegularExpression reCtxTrain("print_info\\s*:\\s*n_ctx_train\\s*=\\s*(\\d+)");
@@ -948,6 +998,22 @@ void Widget::onServerOutput(const QString &line)
                 reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
             }
         }
+    }
+
+    // 1.2) capture per-slot capacity n_ctx_slot
+    static QRegularExpression reCtxSlot("n_ctx_slot\\s*=\\s*(\\d+)");
+    for (auto it = reCtxSlot.globalMatch(line); it.hasNext();) {
+        const QRegularExpressionMatch m = it.next();
+        bool ok = false; const int v = m.captured(1).toInt(&ok);
+        if (ok && v > 0) { slotCtxMax_ = v; updateKvBarUi(); }
+    }
+
+    // 1.3) kv cache rm [hit, end) -> use left number to correct current memory right away
+    static QRegularExpression reKvRm("kv cache rm\\s*\\[\\s*(\\d+)");
+    QRegularExpressionMatch mRm = reKvRm.match(line);
+    if (mRm.hasMatch()) {
+        bool ok=false; int hit = mRm.captured(1).toInt(&ok);
+        if (ok) { kvUsed_ = qMax(0, hit); updateKvBarUi(); }
     }
 
     // 1.5) capture n_layer and clamp GPU offload slider max to n_layer + 1
@@ -998,39 +1064,72 @@ void Widget::onServerOutput(const QString &line)
         QRegularExpression::CaseInsensitiveOption);
     static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
 
-    QRegularExpressionMatch m1 = rePrompt.match(line);
-    // if (m1.hasMatch()) {
-    //     const double tps = m1.captured(3).toDouble();
-    //     // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-    // } else {
-    //     QRegularExpressionMatch m1b = rePromptAlt.match(line);
-    //     if (m1b.hasMatch()) {
-    //         const double tps = m1b.captured(2).toDouble();
-    //         // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("batch decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-    //     }
-    // }
-    // QRegularExpressionMatch m2 = reGen.match(line);
-    // if (m2.hasMatch()) {
-    //     const double tps = m2.captured(3).toDouble();
-    //     // reflash_state(QString("srv:%1 %2 t/s").arg(jtr("single decode")).arg(QString::number(tps, 'f', 2)), USUAL_SIGNAL);
-    // }
+    QRegularExpressionMatch mPrompt = rePrompt.match(line);
+    if (mPrompt.hasMatch()) {
+        // tokens per second for prompt processing is group 3
+        lastPromptTps_ = mPrompt.captured(3).toDouble();
+        sawPromptTps_ = true;
+    } else {
+        QRegularExpressionMatch m1b = rePromptAlt.match(line);
+        if (m1b.hasMatch()) {
+            lastPromptTps_ = m1b.captured(2).toDouble();
+            sawPromptTps_ = true;
+        }
+    }
+
+    QRegularExpressionMatch mGen = reGen.match(line);
+    if (mGen.hasMatch()) {
+        lastGenTps_ = mGen.captured(3).toDouble();
+        sawGenTps_ = true;
+    }
 
     QRegularExpressionMatch m3 = reTotal.match(line);
     if (m3.hasMatch())
     {
         const int totalTokens = m3.captured(2).toInt();
-        // Use total tokens to correct accumulated kv count for this conversation (server authoritative)
-        kvTokensTurn_ = totalTokens;
-        const int nctx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-        int percent = 0;
-        if (nctx > 0)
+        // Use total tokens to correct current slot KV usage for this turn
+        // 优先级：如果已看到 stop processing 的 n_past，则不再用 total 覆盖
+        kvStreamedTurn_ = totalTokens; // better approximation than chunk count
+        if (!sawFinalPast_)
         {
-            const int shown = kvTokensAccum_ + qMax(0, kvTokensTurn_ - lastReasoningTokens_);
-            percent = qRound(100.0 * double(shown) / double(nctx));
-            if (percent > 0 && percent < 1) percent = 1;
-            if (percent > 100) percent = 100;
-            if (percent < 0) percent = 0;
+            kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+            updateKvBarUi();
         }
+    }
 
+    // 4) prompt done / progress / stop processing -> correct kvUsed_ from n_past immediately
+    static QRegularExpression rePromptDone("prompt\\s+done,\\s*n_past\\s*=\\s*(\\d+)");
+    static QRegularExpression reProgress("prompt\\s+processing\\s+progress,\\s*n_past\\s*=\\s*(\\d+)");
+    static QRegularExpression reStop("stop\\s+processing.*n_past\\s*=\\s*(\\d+)");
+    QRegularExpressionMatch mPD = rePromptDone.match(line);
+    if (mPD.hasMatch()) {
+        bool ok=false; int past = mPD.captured(1).toInt(&ok);
+        if (ok) { kvUsed_ = qMax(0, past); updateKvBarUi(); }
+    }
+    QRegularExpressionMatch mProg = reProgress.match(line);
+    if (mProg.hasMatch()) {
+        bool ok=false; int past = mProg.captured(1).toInt(&ok);
+        if (ok) { kvUsed_ = qMax(0, past); updateKvBarUi(); }
+    }
+    QRegularExpressionMatch mStop = reStop.match(line);
+    if (mStop.hasMatch()) {
+        bool ok=false; int past = mStop.captured(1).toInt(&ok);
+        if (ok) { kvUsed_ = qMax(0, past); sawFinalPast_ = true; updateKvBarUi(); }
+    }
+    // 5) all slots idle -> finalize speeds for this turn
+    if (line.contains("all slots are idle"))
+    {
+        turnActive_ = false;
+        double promptTps = sawPromptTps_ ? lastPromptTps_ : -1.0;
+        double genTps = sawGenTps_ ? lastGenTps_ : -1.0;
+        if (genTps <= 0.0) {
+            // fallback: use streamed token count divided by turn time (seconds)
+            const double secs = turnTimer_.isValid() ? (turnTimer_.nsecsElapsed() / 1e9) : 0.0;
+            if (secs > 0.0 && kvStreamedTurn_ > 0) genTps = double(kvStreamedTurn_) / secs;
+        }
+        // report one-line combined speeds with prefix "ui:"
+        const QString genStr = (genTps > 0.0) ? (QString::number(genTps, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
+        const QString promptStr = (promptTps > 0.0) ? (QString::number(promptTps, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
+        reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr  + " " + jtr("batch decode")  + " " + (ui_mode == LOCAL_MODE ? promptStr : QString::fromUtf8("--")), SUCCESS_SIGNAL);
     }
 }

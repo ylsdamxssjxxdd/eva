@@ -158,6 +158,18 @@ class Widget : public QWidget
     int kvTokensAccum_ = 0;    // accumulated used tokens across the conversation
     int kvTokensTurn_ = 0;     // this-turn processed tokens (prompt_n + generated)
     int server_nctx_ = 0;      // captured from llama_server logs for verification
+    // KV / speed tracking (both local + link modes)
+    int slotCtxMax_ = 0;       // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
+    int kvUsed_ = 0;           // current server-side n_past approximation
+    int kvUsedBeforeTurn_ = 0; // n_past at the beginning of current turn
+    int kvStreamedTurn_ = 0;   // approximate streamed tokens in this turn (from xNet)
+    bool turnActive_ = false;  // a request is in-flight
+    QElapsedTimer turnTimer_;  // used for fallback generation speed
+    double lastPromptTps_ = -1.0; // prompt processing speed (tokens/s), -1 if unknown
+    double lastGenTps_ = -1.0;    // generation speed (tokens/s), -1 if unknown
+    bool sawPromptTps_ = false;
+    bool sawGenTps_ = false;
+    bool sawFinalPast_ = false;   // saw stop processing n_past -> prefer this over totals
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1;           //最大线程数
@@ -421,6 +433,7 @@ SETTINGS settings_snapshot_;
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state
+    void updateKvBarUi();                  // refresh kv_bar from kvUsed_/slotCtxMax_
   private:
     Ui::Widget *ui;
 };

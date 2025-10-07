@@ -179,6 +179,8 @@ void xNet::run()
                             if (!current_content.isEmpty())
                             {
                                 tokens_++;
+                                // notify UI to update approximate KV usage during streaming (LINK mode fallback)
+                                emit net2ui_kv_tokens(tokens_);
                                 // if this chunk is part of <think>, count it approximately
                                 const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                                 if (isReasoningChunk) reasoningTokensTurn_++;
@@ -209,6 +211,8 @@ void xNet::run()
                         if (!content.isEmpty())
                         {
                             tokens_++;
+                            // notify UI of streamed token for fallback memory/speed in LINK mode
+                            emit net2ui_kv_tokens(tokens_);
                             // completion style may also contain <think>
                             const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
                             if (isReasoningChunk) reasoningTokensTurn_++;

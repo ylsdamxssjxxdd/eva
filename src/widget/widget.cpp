@@ -41,6 +41,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     }
 
     getWords(":/src/utils/ui_language.json");
+    // 记忆进度条：文本“记忆:xx%”，使用第二进度（黄色）表示
+    ui->kv_bar->setShowText(QString::fromUtf8("记忆:"));
+    ui->kv_bar->setMaximum(100);
+    ui->kv_bar->setValue(0);
+    ui->kv_bar->setSecondValue(0);
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
@@ -360,6 +365,21 @@ void Widget::on_send_clicked()
 //模型输出完毕的后处理
 void Widget::recv_pushover()
 {
+    // Finalize speed display for LINK mode (remote server): single-line output
+    if (ui_mode == LINK_MODE)
+    {
+        turnActive_ = false;
+        double genTps = -1.0;
+        const double secs = turnTimer_.isValid() ? (turnTimer_.nsecsElapsed() / 1e9) : 0.0;
+        if (secs > 0.0 && kvStreamedTurn_ > 0)
+        {
+            genTps = double(kvStreamedTurn_) / secs;
+        }
+        const QString genStr = (genTps > 0.0) ? (QString::number(genTps, 'f', 2) + " tokens/s") : QString::fromUtf8("--");
+        const QString promptStr = QString::fromUtf8("--"); // 链接模式不显示上文处理速度
+        reflash_state(QString::fromUtf8("ui: 文字生成 ") + genStr + QString::fromUtf8("  上文处理 ") + promptStr, USUAL_SIGNAL);
+    }
+
     // Separate reasoning (<think>...</think>) from final content; don't add reasoning to messagesArray
     QString reasoningText;
     QString finalText = temp_assistant_history;
@@ -632,6 +652,16 @@ void Widget::on_reset_clicked()
     reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
     kvTokensAccum_ = 0;
     kvTokensTurn_ = 0;   // reset conversation kv tokens
+    // reset KV/speed tracking and progress bar
+    kvUsed_ = 0;
+    kvUsedBeforeTurn_ = 0;
+    kvStreamedTurn_ = 0;
+    lastPromptTps_ = -1.0;
+    lastGenTps_ = -1.0;
+    sawPromptTps_ = false;
+    sawGenTps_ = false;
+    turnActive_ = false;
+    updateKvBarUi();
     currentSlotId_ = -1; // new conversation -> no slot yet
     // Reset output safely. Replacing the QTextDocument drops any cached
     // resources/undo stack without risking double-deletes.
