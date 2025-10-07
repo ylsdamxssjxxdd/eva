@@ -170,6 +170,11 @@ class Widget : public QWidget
     bool sawPromptTps_ = false;
     bool sawGenTps_ = false;
     bool sawFinalPast_ = false;   // saw stop processing n_past -> prefer this over totals
+    // 在本地后端完成一次冷启动/重启后，llama-server 会先打印一条
+    // "update_slots: all slots are idle" 作为基线。该条不代表一次真实
+    // 推理轮次结束，不应刷新一次“速度”状态行。用该标志抑制下一次
+    // all-idle 日志对应的速度输出。
+    bool suppressNextAllIdle_ = false;
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1;           //最大线程数

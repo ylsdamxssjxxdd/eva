@@ -431,6 +431,8 @@ void Widget::ensureLocalServer()
     // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
     lastServerRestart_ = serverManager->needsRestart();
     const bool hadOld = serverManager->isRunning();
+    // Fresh start or planned restart -> next "all slots are idle" is just baseline; suppress one speed line
+    if (lastServerRestart_ || !hadOld) suppressNextAllIdle_ = true;
     ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
     if (lastServerRestart_)
     {
@@ -1119,6 +1121,8 @@ void Widget::onServerOutput(const QString &line)
     // 5) all slots idle -> finalize speeds for this turn
     if (line.contains("all slots are idle"))
     {
+        // Suppress the very first idle baseline after (re)start to avoid a fake "速度"行闪烁
+        if (suppressNextAllIdle_) { suppressNextAllIdle_ = false; return; }
         turnActive_ = false;
         double promptTps = sawPromptTps_ ? lastPromptTps_ : -1.0;
         double genTps = sawGenTps_ ? lastGenTps_ : -1.0;
