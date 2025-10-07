@@ -253,54 +253,51 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <summary> expand </summary>
 
-- Load process
+- Load (Local Mode)
 
-    - [ui] -> you clicks on load -> Select path -> Send setting parameters -> [bot] -> Processing parameters -> Send overload signal -> [ui] -> Pre load -> Loading interface status -> Send loading signal -> [bot] -> Start loading -> Send loading animation signal -> After loading reset -> Pre decoding system instruction -> Send loading completion signal -> [ui] -> Accelerate loading animation -> Loading animation end -> Rolling animation start -> Animation end -> Force unlocking -> Trigger sending -> Send pre decoding (only decoding but not sampling output) instruction -> Normal interface status -> END
+    - [ui] User clicks Load -> choose Local Mode -> pick model -> preLoad (clear/lock/spinner) -> [backend] ensureRunning starts/restarts llama-server with current settings -> wait for serverReady(endpoint) -> [ui] switch to local endpoint, initialize session (insert system message), finish animation -> unlockLoad -> normal UI -> END
 
-- Send process
+    - On first load, estimate ngl=999 or 0 from free VRAM vs model size; after load, correct display to n_layer+1; GPU/CPU stats are refreshed periodically
 
-    -[ui] -> you clicks send -> Mode/tag/content analysis -> Conversation mode -> Inference interface state -> Send input parameters -> Send inference signal -> [bot] -> Preprocess you input -> Streaming loop output -> Loop termination -> Send inference end signal -> [ui] -> Normal interface state -> END
+- Load (Link Mode)
 
-- Date process
+    - [ui] User clicks Load -> choose Link Mode -> enter endpoint/key/model -> set_api -> switch to LINK_MODE, stop local server and inflight requests -> clear and inject system message -> [net] points to remote endpoint -> normal UI -> END
 
-    - [ui] -> you click on agreement -> Display last configuration -> Click confirm -> Record you configuration -> Send agreement parameters -> [bot] -> Record you configuration -> Send agreement reset signal -> [ui] -> Trigger interface reset -> Send reset signal -> [bot] -> Initialize required components for model operation -> Send reset completion signal -> [ui] -> Pre decode if system instructions change -> END
+- Send/Inference (Unified)
 
-- Set process
+    - [ui] Build OpenAI-compatible messages (system+user; may include text/image_url/input_audio) -> emit ui2net_data + ui2net_push -> [net] POST to /v1/chat/completions or /completions and parse SSE -> net2ui_output streams chunks; net2ui_state reports status; net2ui_kv_tokens and net2ui_reasoning_tokens update metrics -> on finish net2ui_pushover -> [ui] normal_finish_pushover unlocks; if tools are requested, branch to Tool Call -> END
 
-    - [ui] -> you clicks on settings -> Display last configuration -> Click confirm -> Record you configuration -> Send setting parameters -> [bot] -> Record you configuration -> Analyze configuration changes -> END/Send overload signal/Send setting reset signal -> [ui] -> Pre load/trigger interface reset -> END
+- Tool Call
 
-- Predecoding image process
+    - [ui] Parse tool XML in assistant output -> emit ui2tool_exec -> [tool] execute by name (calculator/execute_command/knowledge/controller/stablediffusion/...) -> return result -> [ui] wrap as "tool_response: ..." user message and show -> auto continue -> until no tool request -> END
 
-    - [ui] -> you uploads image/presses F1 screenshot -> Trigger send -> Inference interface state -> Send pre decoded image command -> [bot] -> Pre decoded image -> Occupy 1024 tokens -> Send decoding completion signal -> [ui] -> Normal interface state -> END
+- Image/Audio Inputs
 
-- Recording to text process
+    - Image: drag/drop/upload or F1 screenshot -> append as {type:image_url} in user message; multi-image supported
 
-    - [ui] -> you presses f2 for the first time -> Need to specify the Whisper model path -> Send expend interface display signal -> [expend] -> Pop up sound reproduction interface -> Select path -> Send Whisper model path -> [ui] -> you presses f2 again -> Recording interface status -> Start recording -> you presses f2 again -> End recording -> Save WAV file to local -> Resample WAV file to 16khz -> Send WAV file path -> [expend] -> Call Whisperexe for decoding -> After decoding is completed, save txt result to local -> Send text result -> [ui] -> Normal interface status -> Display to input area -> END
+    - Audio: attach WAV/MP3/OGG/FLAC -> UI keeps as audio_url; [net] converts to OpenAI input_audio before sending
 
-- Tool call process
+- Speech to Text (Whisper)
 
-    - [ui] -> you click to send -> Mode/tag/content analysis -> Dialogue mode situation -> Inference interface status -> Send input parameters -> Send inference signal -> [bot] -> Preprocess you input -> Streaming loop output -> Loop termination -> Send inference end signal -> [ui] -> Extract XML field from the current output of the model -> Send XML field -> Send tool inference signal -> [tool] -> Execute corresponding function based on XML field -> Return result after execution -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ·· -> No reasonable XML field -> Normal interface state -> END
+    - [ui] First F2 opens Expend to select whisper model -> F2 start recording -> F2 stop -> save WAV and resample to 16 kHz -> [expend] call whisper-cli -> write result and send back to input box -> END
 
-- Building a knowledge base process
+- Agreement and Settings
 
-    - 【expend】 -> yous enter the knowledge base tab -> yous click to select models -> Select embedded models -> Start server. exe -> Start complete -> Automatically write the v1/embeddings endpoint of the server into the address bar -> yous click to upload and select a txt text -> Text segmentation -> yous can modify the content of the text segment to be embedded as needed -> yous click to embed the text segment -> Send each text segment to the endpoint address and receive the calculated word vector -> Display embedded text segments in the table -> Send embedded text segment data -> 【tool】 -> END
+    - Agreement: Click "Agreement" -> edit system prompt / user and model names / tool toggles -> confirm -> set_date -> on_reset_clicked resets context -> END
 
-- Knowledge base Q&A process
+    - Settings: Click Settings -> modify parameters -> if backend-affecting (model/device/nctx/ngl/lora/mmproj/parallel/batch, mmap/mlock/flash_attn, port) -> [backend] restart and recover UI on serverReady; sampling-only changes -> do not restart, just reset context -> END
 
-    - [ui] -> Tool invocation process -> XML field contains knowledge keyword -> Send XML field -> Send tool inference signal -> [tool] -> Execute knowledge function -> Send query field to embedded endpoint -> [server] -> Return calculated word vector -> [tool] -> Calculate cosine similarity between query segment word vector and each embedded text segment word vector -> Return the three most similar text segments -> [ui] -> Use the returned result as the sending content and add observation prefix -> Trigger sending -> ··· -> No reasonable XML field -> Normal interface state -> END
+- Knowledge Base
 
-- Link process
+    - Build: In Expend > Knowledge tab choose embedding model -> [expend] start embedding service (--embedding) -> upload/edit text -> call /v1/embeddings per chunk -> store vectors and sync to [tool] -> END
 
-    - [ui] -> you right-click load -> Configure IP and endpoints -> Click confirm -> Lock interface -> Record configuration -> Connection test -> Test passed -> Unlock interface -> END
+    - Q&A: goes through the "Tool Call" knowledge flow (compute query vector and return top-3 similar chunks) -> END
 
-    - The other processes in the linked state are similar to the above, replacing [bot] with [net]
+- Notes
 
-- Debug process
-
-    - [ui] -> The you can pull up the status area to pop up a debug button -> the you can open the debug button -> click send -> enter the debugging state ->send process, only decode and sample once -> click Next -> send process, only decode and sample once -> ··· -> exit the debugging state when a stop flag is detected/the maximum output length is reached/manual stop is reached -> END
+    - All inference goes through [net] (request-based). [backend] only hosts llama-server in local mode and switches endpoints
 
 </details>
-
 ## Concepts
 
 <details>

@@ -28,6 +28,7 @@
 #include <QNetworkRequest>
 #include <QProcess>
 #include <QProgressBar>
+#include <QProgressDialog>
 #include <QRadioButton>
 #include <QResource>
 #include <QScrollBar>
@@ -86,6 +87,8 @@ class Widget : public QWidget
     bool checkAudio();                            // 检测音频支持
     void changeEvent(QEvent *event) override;     // 处理窗口状态变化
     void closeEvent(QCloseEvent *event) override; //关闭事件
+    // 应用关闭时的无进度上限进度对话框（避免退出时等待后端停止的“卡顿”体验）
+    bool isShuttingDown_ = false; // 防重入：仅执行一次关机流程
   public:
     QJsonObject wordsObj;                  //中文英文
     void getWords(QString json_file_path); //中文英文

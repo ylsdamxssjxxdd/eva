@@ -214,10 +214,57 @@ void Widget::changeEvent(QEvent *event)
     }
 }
 
-//关闭事件
+// 关闭事件：显示一个“无限循环”的进度对话框，等待后台服务优雅停止
 void Widget::closeEvent(QCloseEvent *event)
 {
-    QApplication::quit(); // 关闭主窗口就退出程序
+    // 防止重复触发
+    if (isShuttingDown_)
+    {
+        event->ignore();
+        return;
+    }
+
+    isShuttingDown_ = true;
+
+    // 构建一个无确定进度（0,0）的进度对话框，立刻显示，应用级模态
+    QProgressDialog *dlg = new QProgressDialog(this);
+        dlg->setWindowModality(Qt::WindowModal);
+        dlg->setMinimumDuration(0);
+        dlg->setRange(0, 0);           // 设置为无限循环进度条
+        dlg->setCancelButton(nullptr); // 不显示取消按钮
+        // 隐藏问号按钮和关闭按钮
+        dlg->setWindowFlags(
+            dlg->windowFlags() & ~Qt::WindowContextHelpButtonHint // 移除问号按钮
+            & ~Qt::WindowCloseButtonHint                                       // 移除关闭按钮
+        );
+    dlg->setWindowTitle("quit");
+    dlg->show();
+    dlg->raise();
+    dlg->activateWindow();
+    qApp->processEvents();                  // 刷新一次以显示对话框
+
+    // 如果后端未在运行，直接退出
+    if (!serverManager || !serverManager->isRunning())
+    {
+        dlg->close();
+        dlg->deleteLater();
+        event->accept();
+        QTimer::singleShot(0, qApp, &QCoreApplication::quit);
+        return;
+    }
+
+    // 异步停止本地 llama.cpp server，避免在 UI 线程阻塞导致对话框不刷新
+    event->ignore();
+    QThread *worker = QThread::create([this]() {
+        if (serverManager) serverManager->stop();
+    });
+    connect(worker, &QThread::finished, dlg, &QProgressDialog::close);
+    connect(worker, &QThread::finished, dlg, &QObject::deleteLater);
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    connect(worker, &QThread::finished, qApp, []() {
+        QTimer::singleShot(0, qApp, &QCoreApplication::quit);
+    });
+    worker->start();
 }
 
 //用户点击装载按钮处理
