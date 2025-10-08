@@ -302,8 +302,6 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 //关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
-    // 关闭窗口时也确保停止嵌入服务
-    stopEmbeddingServer(true);
     //--------------保存当前用户配置---------------
     sd_save_template(ui->params_template_comboBox->currentText());
 
@@ -360,5 +358,5 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("shell", shell);                                             //shell路径
     settings.setValue("python", pythonExecutable);                                 //python版本
     settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText()); //mcp配置
-    // event->accept();
+    event->accept();
 }
