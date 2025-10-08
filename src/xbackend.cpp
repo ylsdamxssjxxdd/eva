@@ -141,6 +141,7 @@ void LocalServerManager::hookProcessSignals()
         }
         if(msg!="") {emit serverState(msg, WRONG_SIGNAL);}
         emit serverOutput(msg);
+        if(!msg.isEmpty()) emit serverStartFailed(msg);
         emit serverStopped();
     });
 }
@@ -183,6 +184,7 @@ void LocalServerManager::ensureRunning()
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2'").arg(QStringLiteral("llama-server"), eb);
         emit serverState(msg, WRONG_SIGNAL);
         emit serverOutput(msg + "\n");
+        emit serverStartFailed(msg);
         return;
     }
     // If not running -> start; if running with different args -> restart
@@ -207,6 +209,7 @@ void LocalServerManager::restart()
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2'").arg(QStringLiteral("llama-server"), eb);
         emit serverState(msg, WRONG_SIGNAL);
         emit serverOutput(msg + "\n");
+        emit serverStartFailed(msg);
         return;
     }
     if (isRunning())

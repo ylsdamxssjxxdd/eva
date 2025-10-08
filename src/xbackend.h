@@ -48,6 +48,9 @@ class LocalServerManager : public QObject
     void serverState(const QString &line, SIGNAL_STATE type);
     void serverReady(const QString &endpoint); // emitted when server is listening
     void serverStopped();
+    // Emitted when a start/restart attempt fails before launching the process
+    // (e.g., executable missing). UI can stop loading animation and unlock.
+    void serverStartFailed(const QString &reason);
 
   private:
     QString programPath() const;   // resolve llama-server path per platform

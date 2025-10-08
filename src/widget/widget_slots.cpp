@@ -1160,3 +1160,28 @@ void Widget::onServerOutput(const QString &line)
         reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr  + " " + jtr("batch decode")  + " " + (ui_mode == LOCAL_MODE ? promptStr : QString::fromUtf8("--")), SUCCESS_SIGNAL);
     }
 }
+
+// 后端启动失败：停止装载动画并解锁按钮，便于用户更换模型或后端
+void Widget::onServerStartFailed(const QString &reason)
+{
+    Q_UNUSED(reason);
+    // 停止任何进行中的动画/计时
+    if (load_begin_pTimer) load_begin_pTimer->stop();
+    if (load_pTimer) load_pTimer->stop();
+    if (load_over_pTimer) load_over_pTimer->stop();
+    if (decode_pTimer) decode_pTimer->stop();
+    if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
+    // 用失败标志收尾“装载中”转轮行
+    decode_fail();
+
+    // 清理装载状态，避免后续 serverStopped 被忽略
+    lastServerRestart_ = false;
+    ignoreNextServerStopped_ = true; // 紧随其后的 serverStopped 属于同一次失败，忽略之
+    is_load = false;
+    load_action = 0;
+
+    // 解锁界面，允许用户立即调整设置或重新装载
+    ui_state_normal();
+    // 明确允许打开“设置”以便更换后端/设备
+    if (ui && ui->set) ui->set->setEnabled(true);
+}

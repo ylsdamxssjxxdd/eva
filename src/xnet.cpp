@@ -1,6 +1,8 @@
 #include "xnet.h"
 #include "prompt_builder.h"
-#include <QSslError>
+#if QT_CONFIG(ssl)
+#  include <QSslError>
+#endif
 
 xNet::xNet()
 {
@@ -55,13 +57,17 @@ void xNet::abortActiveReply()
         QObject::disconnect(connFinished_);
         QObject::disconnect(connError_);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
         QObject::disconnect(connSslErrors_);
+        #endif
 #endif
         connReadyRead_ = QMetaObject::Connection{};
         connFinished_ = QMetaObject::Connection{};
         connError_ = QMetaObject::Connection{};
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
         connSslErrors_ = QMetaObject::Connection{};
+        #endif
 #endif
 
 
@@ -314,7 +320,7 @@ void xNet::run()
     connError_ = connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
         if (timeoutTimer_) timeoutTimer_->stop();
     });
-#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
     connSslErrors_ = connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
         Q_UNUSED(errors);
         // Report but do not ignore by default

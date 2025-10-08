@@ -6,6 +6,16 @@ include_guard(GLOBAL)
 # ---- User-facing options ----
 option(BODY_PACK   "pack eva"                                   OFF)
 
+# MinGW static runtime option (mirrors the pattern in the reference CMake)
+# Default: Windows ON, others OFF. This aims to statically link libgcc/libstdc++/winpthread
+# while keeping Qt dynamic unless you provide static Qt yourself.
+if (WIN32)
+    set(DEFAULT_EVA_STATIC ON)
+else()
+    set(DEFAULT_EVA_STATIC OFF)
+endif()
+option(EVA_STATIC  "MinGW: static libgcc/libstdc++/winpthread (Qt stays dynamic)" ${DEFAULT_EVA_STATIC})
+
 # ---- Global toggles that affect subprojects ----
 option(LLAMA_CURL                "llama: use libcurl to download model from an URL" OFF)
 option(MCP_SSL                   "Enable SSL support" OFF)
@@ -33,6 +43,44 @@ elseif (MINGW)
     add_compile_definitions(_XOPEN_SOURCE=600)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections -s")
+
+    # Collect target-scoped options to apply after the executable is created
+    set(EVA_COMPILE_OPTIONS "")
+    set(EVA_LINK_OPTIONS    "")
+
+    if (EVA_STATIC)
+        # Keep Qt dynamic; only make the MinGW runtime static to simplify deployment
+        list(APPEND EVA_COMPILE_OPTIONS
+            -fno-keep-inline-dllexport
+            -fopenmp
+            -O2
+            -std=gnu++17
+            -Wall -Wextra
+            -ffunction-sections -fdata-sections
+            -fexceptions
+            -mthreads)
+        list(APPEND EVA_LINK_OPTIONS
+            -static
+            -static-libgcc
+            -static-libstdc++
+            -fopenmp   # 交给编译器自己决定链接静态还是动态 libgomp
+            -Wl,-s
+            -Wl,--gc-sections
+            -mthreads
+            -lpthread)
+    else()
+        list(APPEND EVA_COMPILE_OPTIONS
+            -fopenmp
+            -O2
+            -Wall -Wextra
+            -ffunction-sections -fdata-sections
+            -fexceptions
+            -mthreads)
+        list(APPEND EVA_LINK_OPTIONS
+            -Wl,--gc-sections
+            -mthreads
+            -lpthread)
+    endif()
 elseif (UNIX)
     message(STATUS "Compiling on Unix/Linux")
     find_package(X11 REQUIRED)

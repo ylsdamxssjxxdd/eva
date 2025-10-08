@@ -102,3 +102,37 @@ void Widget::decode_finish()
     decode_action = 0;
     decodeLineNumber_ = -1;
 }
+
+// 在解码动画失败（装载失败）时，将动画行替换为失败标志
+void Widget::decode_fail()
+{
+    if (decode_pTimer && decode_pTimer->isActive()) decode_pTimer->stop();
+
+    if (!ui->state || decodeLineNumber_ < 0) return;
+
+    double secs = 0.0;
+    if (decodeTimer_.isValid()) secs = decodeTimer_.nsecsElapsed() / 1e9;
+
+    // 优先使用 Unicode ×；字体不支持时回退 ASCII [FAIL]
+    QString failMark = QString::fromUtf8("×");
+    {
+        QFontMetrics fm(ui->state->font());
+        if (!fm.inFont(QChar(0x00D7))) // '×'
+        {
+            failMark = "[FAIL]";
+        }
+    }
+
+    const QString base = QString("ui:") + jtr(decodeLabelKey_);
+    const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(failMark);
+
+    QTextBlock block = ui->state->document()->findBlockByLineNumber(decodeLineNumber_);
+    if (!block.isValid()) return;
+    QTextCursor cursor(block);
+    cursor.select(QTextCursor::LineUnderCursor);
+    cursor.removeSelectedText();
+    cursor.insertText(line);
+
+    decode_action = 0;
+    decodeLineNumber_ = -1;
+}

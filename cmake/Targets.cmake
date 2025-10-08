@@ -41,6 +41,24 @@ target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
 
+# Apply MinGW-specific compile/link options collected in ProjectOptions.cmake
+if (MINGW)
+    if (DEFINED EVA_COMPILE_OPTIONS)
+        target_compile_options(${EVA_TARGET} PRIVATE ${EVA_COMPILE_OPTIONS})
+        message(STATUS "EVA_COMPILE_OPTIONS: ${EVA_COMPILE_OPTIONS}")
+    endif()
+    if (DEFINED EVA_LINK_OPTIONS)
+        target_link_options(${EVA_TARGET} PRIVATE ${EVA_LINK_OPTIONS})
+        message(STATUS "EVA_LINK_OPTIONS: ${EVA_LINK_OPTIONS}")
+    endif()
+endif()
+
+# Ensure prebuilt backends are copied before building/running ${EVA_TARGET}
+# This makes `--target eva` also execute the backend copy step.
+if (TARGET backends)
+    add_dependencies(${EVA_TARGET} backends)
+endif()
+
 message(STATUS "eva型号: ${eva_OUTPUT_NAME}")
 
 

@@ -130,6 +130,8 @@ ui_state_init();                                              //初始界面状�
     connect(serverManager, &LocalServerManager::serverOutput, this, [this](const QString &s) { emit ui2expend_llamalog(s); });
     connect(serverManager, &LocalServerManager::serverOutput, this, &Widget::onServerOutput);
     connect(serverManager, &LocalServerManager::serverState, this, &Widget::reflash_state);
+    // 后端启动失败 -> 立即停止装载动画并解锁界面
+    connect(serverManager, &LocalServerManager::serverStartFailed, this, &Widget::onServerStartFailed);
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]() {
         // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画

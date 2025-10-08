@@ -37,6 +37,8 @@ if (WIN32)
         endif()
 
         # Extra runtime for MinGW builds
+        # Note: even with -static-libgcc/-static-libstdc++, libwinpthread typically remains a DLL on MinGW.
+        # Always copy it (and friends) to be robust.
         if (MINGW)
             get_filename_component(COMPILER_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
             add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
