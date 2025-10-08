@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include "../utils/pathutil.h"
 #include "../utils/devicemanager.h"
 
 //-------------------------------------------------------------------------
@@ -37,7 +38,7 @@ void Expend::embedding_server_start()
 
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
-    arguments << "-m" << embedding_params.modelpath;
+    arguments << "-m" << ensureToolFriendlyFilePath(embedding_params.modelpath);
     arguments << "--host"
               << "0.0.0.0";                                        //暴露本机ip
     arguments << "--port" << DEFAULT_EMBEDDING_PORT;               //服务端口

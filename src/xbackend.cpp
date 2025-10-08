@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QTextCodec>
 #include "utils/devicemanager.h"
+#include "utils/pathutil.h"
 
 LocalServerManager::LocalServerManager(QObject *parent, const QString &appDirPath)
     : QObject(parent), appDirPath_(appDirPath) {}
@@ -56,7 +57,7 @@ QStringList LocalServerManager::buildArgs() const
     QStringList args;
     if (!modelpath_.isEmpty())
     {
-        args << "-m" << modelpath_;
+        args << "-m" << ensureToolFriendlyFilePath(modelpath_);
     }
     args << "--host"
          << host_;
@@ -78,7 +79,7 @@ QStringList LocalServerManager::buildArgs() const
     if (!lora_.isEmpty())
     {
         args << "--no-mmap"; // lora with mmap can be fragile across platforms
-        args << "--lora" << lora_;
+        args << "--lora" << ensureToolFriendlyFilePath(lora_);
     }
     else
     {
@@ -86,7 +87,7 @@ QStringList LocalServerManager::buildArgs() const
     }
     if (!mmproj_.isEmpty())
     {
-        args << "--mmproj" << mmproj_;
+        args << "--mmproj" << ensureToolFriendlyFilePath(mmproj_);
     }
     if (!settings_.hid_flash_attn)
     {
