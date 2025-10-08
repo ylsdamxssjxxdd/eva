@@ -953,15 +953,7 @@ void Widget::recv_reasoning_tokens(int tokens)
 // Parse llama-server output lines to capture n_ctx value for verification
 void Widget::onServerOutput(const QString &line)
 {
-    // Skip regex processing while the model/server is still loading
-    if ( !is_load) { 
-        if (line.contains("all slots are idle"))
-        {
-            // Suppress the very first idle baseline after (re)start to avoid a fake "速度"行闪烁
-            if (suppressNextAllIdle_) { suppressNextAllIdle_ = false; return; }
-        }
-        return;
-    }
+    
     // 0) Track turn lifecycle heuristics
     // Start/resume turn timer when server prints a new prompt line
     if (line.contains("new prompt") || line.contains("launch_slot_"))
