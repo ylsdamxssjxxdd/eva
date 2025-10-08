@@ -593,18 +593,7 @@ void Widget::recv_resetover()
     }                                //恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 
-    if (ui_monitor_frame > 0 && ui_state == CHAT_STATE)
-    {
-        qDebug() << "开始监视..." << ui_monitor_frame;
-        monitor_timer.start(1000 / ui_monitor_frame);
-        EVA_icon = QIcon(":/logo/jimu.png"); // 千年积木
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
-    }
-    else
-    {
-        monitor_timer.stop();
-    }
+    updateMonitorTimer();
 }
 
 //设置参数改变,重载模型

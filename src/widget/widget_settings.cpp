@@ -198,6 +198,8 @@ void Widget::settings_ui_confirm_button_clicked()
 
     settings_dialog->close();
     auto_save_user(); // persist settings to eva_config.ini
+    // 监视帧率无需重启后端；实时应用
+    updateMonitorTimer();
     if (sameSettings)
     {
         // 未发生任何变化：不重启、不重置

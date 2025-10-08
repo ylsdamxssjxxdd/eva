@@ -506,6 +506,8 @@ void Widget::onServerReady(const QString &endpoint)
     decode_finish();
     // 直接解锁界面（不再补帧播放复杂装载动画）
     unlockLoad();
+    // 刚装载完成：若已设置监视帧率，则启动监视
+    updateMonitorTimer();
 }
 
 //链接模式的发送处理
@@ -546,6 +548,20 @@ void Widget::api_send_clicked_slove()
     }
 
     QStringList images_filepath = ui->input->imageFilePaths(); // 获取图像列表
+    // 合并最近 1 分钟的自动监视截图（仅在本地对话模式下生效）
+    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
+    {
+        // 再次修剪一次，确保只携带最近窗口内的帧
+        const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+        const qint64 cutoff = nowMs - qint64(kMonitorKeepSeconds_) * 1000;
+        while (!monitorFrames_.isEmpty() && monitorFrames_.front().tsMs < cutoff)
+        {
+            const QString old = monitorFrames_.front().path;
+            monitorFrames_.pop_front();
+            QFile f(old); if (f.exists()) f.remove();
+        }
+        for (const auto &mf : monitorFrames_) images_filepath.append(mf.path);
+    }
     QStringList wavs_filepath = ui->input->wavFilePaths();     // 获取音频列表
     ui->input->clearThumbnails();                              // 清空发送区缩略图
 
@@ -597,7 +613,7 @@ void Widget::api_send_clicked_slove()
                 ui_messagesArray.append(roleMessage);
                 if (history_) history_->appendMessage(roleMessage);
             }
-            else // 有图片的用户消息
+            else // 有图片的用户消息（包含手动选择和自动监视截帧）
             {
                 QJsonObject message;
                 message["role"] = DEFAULT_USER_NAME;
@@ -700,6 +716,12 @@ void Widget::api_send_clicked_slove()
             reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE); //后缀蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
+            // 成功打包并发送后，清空已发送的监视帧缓存
+            if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
+            {
+                // 不主动删除文件，避免误删；只清理内存引用
+                monitorFrames_.clear();
+            }
         }
     }
     else if (ui_state == COMPLETE_STATE) // 直接把 output 上的文本作为提示词

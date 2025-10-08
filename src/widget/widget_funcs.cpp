@@ -781,13 +781,29 @@ void Widget::auto_save_user()
 //监视时间到
 void Widget::monitorTime()
 {
-    // 这些情况不处理
-    if (!is_load || is_run || ui_state != CHAT_STATE || ui_mode != LOCAL_MODE || is_monitor)
+    // 不在本地聊天模式 / 推理中 / 未装载 等情况下不处理
+    if (!is_load || is_run || ui_state != CHAT_STATE || ui_mode != LOCAL_MODE || ui_monitor_frame <= 0 || ui_SETTINGS.mmprojpath.isEmpty())
     {
         return;
     }
+    if (is_monitor) return; // 防抖：上一帧尚未结束
     is_monitor = true;
-    QString filePath = saveScreen();
+
+    // 捕获一帧并写入滚动缓冲（最多保留最近 kMonitorKeepSeconds_ 秒）
+    const QString filePath = saveScreen();
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+    monitorFrames_.append(MonitorFrame{filePath, nowMs});
+    // 修剪超过时间窗的旧帧，并清理对应文件（尽量不积累垃圾）
+    const qint64 cutoff = nowMs - qint64(kMonitorKeepSeconds_) * 1000;
+    while (!monitorFrames_.isEmpty() && monitorFrames_.front().tsMs < cutoff)
+    {
+        const QString old = monitorFrames_.front().path;
+        monitorFrames_.pop_front();
+        QFile f(old);
+        if (f.exists()) f.remove(); // 只清理我们缓存产生的文件
+    }
+
+    is_monitor = false; // 解锁，允许下一帧
 }
 // 保存当前屏幕截图
 QString Widget::saveScreen()
@@ -889,6 +905,29 @@ QString Widget::create_screen_info()
                .arg(physicalWidth)
                .arg(physicalHeight);
     return info;
+}
+
+// 根据当前设置与状态，启动/停止监视定时器
+void Widget::updateMonitorTimer()
+{
+    // 仅在“本地 + 对话模式 + 已装载模型 + 设置了帧率>0”时启用
+    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && is_load && ui_monitor_frame > 0 && !ui_SETTINGS.mmprojpath.isEmpty())
+    {
+        // 计算间隔（毫秒）；向最近整数取整，至少 1ms
+        const int intervalMs = qMax(1, int(1000.0 / ui_monitor_frame + 0.5));
+        if (monitor_timer.interval() != intervalMs || !monitor_timer.isActive())
+        {
+            qDebug() << "开始监视..." << ui_monitor_frame;
+            monitor_timer.start(intervalMs);
+            EVA_icon = QIcon(":/logo/jimu.png"); // 千年积木
+            QApplication::setWindowIcon(EVA_icon);
+            trayIcon->setIcon(EVA_icon);
+        }
+    }
+    else
+    {
+        if (monitor_timer.isActive()) monitor_timer.stop();
+    }
 }
 void Widget::openHistoryManager()
 {

@@ -192,6 +192,14 @@ class Widget : public QWidget
     double ui_monitor_frame = 0; // 监视帧率 多少帧/秒
     QString saveScreen();        //保存屏幕截图
     QTimer monitor_timer;        // 监视定时器 1000/ui_monitor_frame
+    // 按 1 分钟滚动窗口缓存最近的监视截图；在下一次用户发送时一并附带
+    struct MonitorFrame {
+        QString path;   // 文件路径
+        qint64 tsMs;    // 捕获时间（ms）
+    };
+    QList<MonitorFrame> monitorFrames_; // 最近 1 分钟的截图缓冲
+    void updateMonitorTimer();           // 根据 ui_monitor_frame 与当前状态启动/停止定时器
+    const int kMonitorKeepSeconds_ = 60; // 最长缓存 60 秒
 
     //扩展相关
     QString embeddingdb_describe; //知识库的描述
