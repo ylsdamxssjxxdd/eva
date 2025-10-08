@@ -88,20 +88,14 @@ QStringList LocalServerManager::buildArgs() const
     {
         args << "--mmproj" << mmproj_;
     }
-    if (settings_.hid_flash_attn)
+    if (!settings_.hid_flash_attn)
     {
-        args << "-fa";
+        args << "-fa" << "off";
     }
     if (settings_.hid_use_mlock)
     {
         args << "--mlock";
     }
-    // Enable slots metadata endpoints and slot saving to disk for future resume
-    // This aligns with llama.cpp tools/server capabilities
-    const QString slotPath = QDir(appDirPath_).filePath("EVA_TEMP/slots");
-    QDir().mkpath(slotPath);
-    args << "--slots";                      // enable /slots endpoint
-    args << "--slot-save-path" << slotPath; // allow save/restore of KV cache per slot
     return args;
 }
 
@@ -162,6 +156,18 @@ void LocalServerManager::startProcess(const QStringList &args)
     const QString prog = programPath();
     lastProgram_ = prog;
     lastArgs_ = args;
+        // Ensure program-local runtime deps can be found by the child process
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(prog).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+    proc_->setProcessEnvironment(env);
+    proc_->setWorkingDirectory(toolDir);
     proc_->start(prog, args);
 }
 
@@ -292,3 +298,4 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
+

@@ -47,6 +47,18 @@ void Expend::embedding_server_start()
     // arguments << "--log-disable";                                   //不要日志
     if (!DEFAULT_USE_MMAP) { arguments << "--no-mmap"; }
     // 开始运行程序
+    // Add tool dir to library search path and set working directory
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+    server_process->setProcessEnvironment(env);
+    server_process->setWorkingDirectory(toolDir);
     server_process->start(program, arguments);
     // 记录 PID（可能需要在 started 信号后再次刷新）
     embedding_server_pid = server_process->processId();
@@ -688,3 +700,5 @@ void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
+
+

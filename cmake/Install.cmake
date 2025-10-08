@@ -23,17 +23,20 @@ install(DIRECTORY thirdparty/llama.cpp/gguf-py
 install(FILES thirdparty/llama.cpp/convert_hf_to_gguf.py
         DESTINATION scripts)
 
-# Install out-of-tree staged backends under bin/<backend>/
+# Install out-of-tree staged backends under bin/backend/<backend>/<project>
 # This mirrors DeviceManager::backendsRootDir() expectations.
 foreach(B IN LISTS BACKENDS)
     string(TOLOWER "${B}" BLOW)
-    set(STAGE_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BLOW})
+    set(STAGE_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/backend/${BLOW})
     install(PROGRAMS
-        ${STAGE_DIR}/llama-server${sfx_NAME}
-        ${STAGE_DIR}/llama-quantize${sfx_NAME}
-        ${STAGE_DIR}/llama-tts${sfx_NAME}
-        ${STAGE_DIR}/whisper-cli${sfx_NAME}
-        ${STAGE_DIR}/sd${sfx_NAME}
-        DESTINATION bin/${BLOW}
-    )
+        ${STAGE_DIR}/llama.cpp/llama-server${sfx_NAME}
+        ${STAGE_DIR}/llama.cpp/llama-quantize${sfx_NAME}
+        ${STAGE_DIR}/llama.cpp/llama-tts${sfx_NAME}
+        DESTINATION bin/backend/${BLOW}/llama.cpp)
+    install(PROGRAMS
+        ${STAGE_DIR}/whisper.cpp/whisper-cli${sfx_NAME}
+        DESTINATION bin/backend/${BLOW}/whisper.cpp)
+    install(PROGRAMS
+        ${STAGE_DIR}/stable-diffusion.cpp/sd${sfx_NAME}
+        DESTINATION bin/backend/${BLOW}/stable-diffusion.cpp)
 endforeach()

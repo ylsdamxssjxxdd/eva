@@ -20,7 +20,7 @@ add_definitions(-DGGML_MAX_NAME=128)
 add_definitions(-DGGML_MAX_N_THREADS=512)
 
 ###
-### Multi-backend out-of-tree builds staged into build/bin/<backend>/
+### Multi-backend out-of-tree builds staged into build/bin/backend/<backend>/<project>
 ### - Always build CPU backend
 ### - Optionally build CUDA / Vulkan / OpenCL if requested
 ###
@@ -48,8 +48,13 @@ set(ALL_STAGE_TARGETS)
 
 foreach(B IN LISTS BACKENDS)
     string(TOLOWER "${B}" BLOW)
-    set(DEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BLOW})
-    file(MAKE_DIRECTORY ${DEST_DIR})
+    set(DEST_BASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/backend/${BLOW})
+    set(DEST_LLAMA_DIR ${DEST_BASE}/llama.cpp)
+    set(DEST_WHISPER_DIR ${DEST_BASE}/whisper.cpp)
+    set(DEST_SD_DIR ${DEST_BASE}/stable-diffusion.cpp)
+    file(MAKE_DIRECTORY ${DEST_LLAMA_DIR})
+    file(MAKE_DIRECTORY ${DEST_WHISPER_DIR})
+    file(MAKE_DIRECTORY ${DEST_SD_DIR})
 
     # Backend toggles per project
     set(B_USE_CUDA OFF)
@@ -83,23 +88,23 @@ foreach(B IN LISTS BACKENDS)
             ${LLAMA_BIN}/llama-tts${sfx_NAME}
         COMMENT "Building llama.cpp (${BLOW})"
     )
-    add_custom_command(OUTPUT ${DEST_DIR}/llama-server${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-server${sfx_NAME} ${DEST_DIR}/llama-server${sfx_NAME}
+    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-server${sfx_NAME}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-server${sfx_NAME} ${DEST_LLAMA_DIR}/llama-server${sfx_NAME}
         DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-server${sfx_NAME}
-        COMMENT "Stage llama-server -> ${DEST_DIR}"
+        COMMENT "Stage llama-server -> ${DEST_LLAMA_DIR}"
     )
-    add_custom_command(OUTPUT ${DEST_DIR}/llama-quantize${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME} ${DEST_DIR}/llama-quantize${sfx_NAME}
+    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME} ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME}
         DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME}
-        COMMENT "Stage llama-quantize -> ${DEST_DIR}"
+        COMMENT "Stage llama-quantize -> ${DEST_LLAMA_DIR}"
     )
-    add_custom_command(OUTPUT ${DEST_DIR}/llama-tts${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME} ${DEST_DIR}/llama-tts${sfx_NAME}
+    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME} ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
         DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME}
-        COMMENT "Stage llama-tts -> ${DEST_DIR}"
+        COMMENT "Stage llama-tts -> ${DEST_LLAMA_DIR}"
     )
     add_custom_target(stage-llama-${BLOW}
-        DEPENDS ${DEST_DIR}/llama-server${sfx_NAME} ${DEST_DIR}/llama-quantize${sfx_NAME} ${DEST_DIR}/llama-tts${sfx_NAME}
+        DEPENDS ${DEST_LLAMA_DIR}/llama-server${sfx_NAME} ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME} ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
     )
 
     # ---- whisper.cpp ----
@@ -116,13 +121,13 @@ foreach(B IN LISTS BACKENDS)
         BYPRODUCTS ${WHISPER_BIN}/whisper-cli${sfx_NAME}
         COMMENT "Building whisper.cpp (${BLOW})"
     )
-    add_custom_command(OUTPUT ${DEST_DIR}/whisper-cli${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME} ${DEST_DIR}/whisper-cli${sfx_NAME}
+    add_custom_command(OUTPUT ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME} ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
         DEPENDS whisper-build-${BLOW} ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME}
-        COMMENT "Stage whisper-cli -> ${DEST_DIR}"
+        COMMENT "Stage whisper-cli -> ${DEST_WHISPER_DIR}"
     )
     add_custom_target(stage-whisper-${BLOW}
-        DEPENDS ${DEST_DIR}/whisper-cli${sfx_NAME}
+        DEPENDS ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
     )
 
     # ---- stable-diffusion.cpp ----
@@ -152,13 +157,13 @@ foreach(B IN LISTS BACKENDS)
         BYPRODUCTS ${SD_BIN}/sd${sfx_NAME}
         COMMENT "Building stable-diffusion.cpp (${BLOW})"
     )
-    add_custom_command(OUTPUT ${DEST_DIR}/sd${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SD_BIN_CFG}/sd${sfx_NAME} ${DEST_DIR}/sd${sfx_NAME}
+    add_custom_command(OUTPUT ${DEST_SD_DIR}/sd${sfx_NAME}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SD_BIN_CFG}/sd${sfx_NAME} ${DEST_SD_DIR}/sd${sfx_NAME}
         DEPENDS sd-build-${BLOW} ${SD_BIN_CFG}/sd${sfx_NAME}
-        COMMENT "Stage sd -> ${DEST_DIR}"
+        COMMENT "Stage sd -> ${DEST_SD_DIR}"
     )
     add_custom_target(stage-sd-${BLOW}
-        DEPENDS ${DEST_DIR}/sd${sfx_NAME}
+        DEPENDS ${DEST_SD_DIR}/sd${sfx_NAME}
     )
 
     # Collect staged targets
@@ -173,4 +178,6 @@ add_custom_target(backends ALL DEPENDS ${ALL_STAGE_TARGETS})
 add_subdirectory(thirdparty/cpp-mcp)
 include_directories(thirdparty/cpp-mcp/include)
 include_directories(thirdparty/cpp-mcp/common)
+
+
 

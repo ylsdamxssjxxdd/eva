@@ -16,9 +16,9 @@ QString DeviceManager::backendsRootDir()
     {
         appDirPath = QCoreApplication::applicationDirPath();
     }
-    return appDirPath + "/usr/bin";
+    return appDirPath + "/usr/bin/backend";
 #else
-    return QCoreApplication::applicationDirPath();
+    return QCoreApplication::applicationDirPath() + "/backend";
 #endif
 }
 
@@ -36,22 +36,12 @@ QStringList DeviceManager::availableBackends()
     for (const QString &b : candidates)
     {
         const QString dir = QDir(root).filePath(b);
-        const QString probe = QDir(dir).filePath(QStringLiteral("llama-server") + QStringLiteral(SFX_NAME));
-        if (QFileInfo::exists(probe))
+        if (QFileInfo::exists(dir) && QFileInfo(dir).isDir())
         {
             out.push_back(b);
         }
     }
-    // Always ensure CPU shows up as the lowest fallback option
-    if (!out.contains(QStringLiteral("cpu")))
-    {
-        const QString cpuDir = QDir(root).filePath(QStringLiteral("cpu"));
-        const QString probe = QDir(cpuDir).filePath(QStringLiteral("llama-server") + QStringLiteral(SFX_NAME));
-        if (QFileInfo::exists(probe))
-        {
-            out.push_back(QStringLiteral("cpu"));
-        }
-    }
+    // Always ensure CPU appears if a cpu folder exists; otherwise do not synthesize it
     return out;
 }
 
@@ -97,8 +87,40 @@ QString DeviceManager::programPath(const QString &name)
 {
     const QString root = backendsRootDir();
     const QString backend = effectiveBackend();
-    const QString dir = QDir(root).filePath(backend);
+    const QString backendDir = QDir(root).filePath(backend);
     const QString exe = name + QStringLiteral(SFX_NAME);
-    return QDir(dir).filePath(exe);
+
+    // 1) New layout: bin/backend/<device>/<project>/<exe>
+    // Try project-specific preferred order for well-known tools
+    QStringList prefProjects;
+    if (name == QLatin1String("llama-server") || name == QLatin1String("llama-quantize") || name == QLatin1String("llama-tts"))
+        prefProjects << QStringLiteral("llama.cpp");
+    else if (name == QLatin1String("whisper-cli"))
+        prefProjects << QStringLiteral("whisper.cpp");
+    else if (name == QLatin1String("sd"))
+        prefProjects << QStringLiteral("stable-diffusion.cpp");
+
+    for (const QString &proj : prefProjects)
+    {
+        const QString candidate = QDir(QDir(backendDir).filePath(proj)).filePath(exe);
+        if (QFileInfo::exists(candidate)) return candidate;
+    }
+    // Fallback: search any project subfolder one level deep
+    QDir d(backendDir);
+    const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QFileInfo &fi : subs)
+    {
+        const QString candidate = QDir(fi.absoluteFilePath()).filePath(exe);
+        if (QFileInfo::exists(candidate)) return candidate;
+    }
+
+    // 2) Legacy layout: bin/<device>/<exe>
+    const QString legacy = QDir(backendDir).filePath(exe);
+    if (QFileInfo::exists(legacy)) return legacy;
+
+    // 3) Last resort: alongside application (useful for dev without staging)
+    const QString beside = QDir(QCoreApplication::applicationDirPath()).filePath(exe);
+    return beside;
 }
+
 

@@ -75,6 +75,18 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
     });
 
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    // Add tool dir to library search path and set working directory
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+    whisper_process->setProcessEnvironment(env);
+    whisper_process->setWorkingDirectory(toolDir);
     whisper_process->start(program, arguments);
 }
 
@@ -132,3 +144,5 @@ void Expend::on_whisper_execute_pushbutton_clicked()
     whisper_process->kill();
     recv_speechdecode(ui->whisper_wavpath_lineedit->text(), ui->whisper_output_format->currentText());
 }
+
+

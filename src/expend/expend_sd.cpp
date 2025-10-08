@@ -304,6 +304,18 @@ void Expend::on_sd_draw_pushButton_clicked()
     });
 
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    // Add tool dir to library search path and set working directory
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+    sd_process->setProcessEnvironment(env);
+    sd_process->setWorkingDirectory(toolDir);
     sd_process->start(program, arguments);
 }
 //进程开始响应
@@ -457,3 +469,5 @@ void Expend::recv_draw(QString prompt_)
     //触发绘制
     ui->sd_draw_pushButton->click();
 }
+
+
