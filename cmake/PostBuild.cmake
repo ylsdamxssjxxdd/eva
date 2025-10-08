@@ -53,21 +53,6 @@ if (WIN32)
             )
         endif()
 
-        # CUDA DLLs if CUDA backend is enabled (expected names for CUDA 11/12)
-        if (GGML_CUDA AND DEFINED CUDAToolkit_BIN_DIR AND DEFINED CUDA_VERSION_MAJOR)
-            # add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            #     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            #             "${CUDAToolkit_BIN_DIR}/cudart64_${CUDA_VERSION_MAJOR}.dll"
-            #             "$<TARGET_FILE_DIR:${EVA_TARGET}>/cudart64_${CUDA_VERSION_MAJOR}.dll"
-            #     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            #             "${CUDAToolkit_BIN_DIR}/cublas64_${CUDA_VERSION_MAJOR}.dll"
-            #             "$<TARGET_FILE_DIR:${EVA_TARGET}>/cublas64_${CUDA_VERSION_MAJOR}.dll"
-            #     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            #             "${CUDAToolkit_BIN_DIR}/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-            #             "$<TARGET_FILE_DIR:${EVA_TARGET}>/cublasLt64_${CUDA_VERSION_MAJOR}.dll"
-            #     COMMENT "Copy CUDA runtime DLLs"
-            # )
-        endif()
     endif()
 
 elseif(UNIX)

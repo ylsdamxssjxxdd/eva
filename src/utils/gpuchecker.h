@@ -144,9 +144,6 @@ class gpuChecker : public QObject
   public:
     gpuChecker()
     {
-#if BODY_USE_32BIT
-        gpuInfoProvider = nullptr;
-#else
         const QString gpuVendor = getGpuVendor();
         if (gpuVendor == "NVIDIA")
         {
@@ -160,7 +157,6 @@ class gpuChecker : public QObject
         {
             gpuInfoProvider = nullptr;
         }
-#endif
         if (gpuInfoProvider)
         {
             connect(gpuInfoProvider, &GpuInfoProvider::gpu_status, this, &gpuChecker::gpu_status);

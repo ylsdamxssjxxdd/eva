@@ -12,7 +12,7 @@
 ## Build, Test, and Development Commands
 - Configure & build (Release):
  ```bash 
-cmake -B build -DBODY_PACK=OFF -DGGML_CUDA=OFF -DGGML_VULKAN=OFF
+cmake -B build -DBODY_PACK=OFF
 cmake --build build --config Release -j
  ``` 
 - Run locally:  `./build/bin/eva` (Linux) or `build \\bin\\eva.exe ` (Windows). 

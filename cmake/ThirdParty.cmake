@@ -15,10 +15,6 @@ elseif(UNIX)
     set(sfx_NAME "")
 endif()
 
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-add_definitions(-DGGML_MAX_NAME=128)
-add_definitions(-DGGML_MAX_N_THREADS=512)
-
 ###
 # ------------------------------ Prebuilt Backends Copy ------------------------------
 # Instead of building llama.cpp / whisper.cpp / stable-diffusion.cpp here,

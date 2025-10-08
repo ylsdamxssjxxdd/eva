@@ -47,27 +47,17 @@
 //推理
 #define DEFAULT_NTHREAD 1    // 默认线程数为1，但是后面会变的
 #define DEFAULT_SPECIAL true // 默认显示特殊token
-#ifdef BODY_USE_32BIT
-#define DEFAULT_USE_MMAP false   // 默认关闭内存映射
-#define DEFAULT_FLASH_ATTN false // 默认开启注意力加速
-#define DEFAULT_NCTX 256         // 默认上下文长度
-#define DEFAULT_BATCH 128        // 默认虚拟批处理大小
-#define DEFAULT_UBATCH 128       // 默认物理批处理大小
-#else
+
 #define DEFAULT_NCTX 4096       // 默认上下文长度
 #define DEFAULT_BATCH 2048      // 默认虚拟批处理大小
 #define DEFAULT_UBATCH 512      // 默认物理批处理大小
 #define DEFAULT_PARALLEL 1      // 默认并发数
 #define DEFAULT_USE_MMAP false  // 默认关闭内存映射
 #define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
-#endif
 #define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
 
-#ifdef BODY_USE_GPU // 如果支持GPU则默认设置为最大
-#define DEFAULT_NGL 99
-#else
+
 #define DEFAULT_NGL 0
-#endif
 #define DEFAULT_MONITOR_FRAME 0                // 默认监视帧率
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口

@@ -240,19 +240,26 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
     git clone https://github.com/ylsdamxssjxxdd/eva.git
     ```
 
-3. 编译
+3. 后端准备
+
+- 从上游或第三方获取已编译的推理程序，并在项目根目录创建 `backend/` 目录（与 `CMakeLists.txt` 同级）。
+- 在 `backend/<设备名>/` 下放置对应可执行文件（可任意子目录，EVA 会递归查找）：
+  - 本地 LLM: `llama-server`（及同目录所需的动态库）
+  - 声转文: `whisper-cli`
+  - 文生图: `sd`
+- 设备名不限（例如 `cpu`、`cuda`、`vulkan`、`opencl`、`mygpu`）。EVA 设置页会自动列出 `backend/` 下的所有一级目录名。
+- 构建时 CMake 会将 `backend/` 复制到 `build/bin/backend/`；运行时 EVA 会在该目录下递归定位可执行文件并自动补充库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
+
+4. 编译
 
     ```bash
     cd eva
-    cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+    cmake -B build -DBODY_PACK=OFF
     cmake --build build --config Release -j 8
     ```
 
     - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
 
-    - GGML_CUDA：是否需要启用cuda加速的标志
-
-    - GGML_VULKAN：是否需要启用vulkan加速的标志
 
 </details>
 
@@ -343,14 +350,3 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 - prob（概率表）: 本次采样中词表里所有token的最终选用概率
 
 </details>
-
-## 后端准备（手动）
-
-- 从上游或第三方获取已编译的推理程序，并在项目根目录创建 `backend/` 目录（与 `CMakeLists.txt` 同级）。
-- 在 `backend/<设备名>/` 下放置对应可执行文件（可任意子目录，EVA 会递归查找）：
-  - 本地 LLM: `llama-server`（及同目录所需的动态库）
-  - 声转文: `whisper-cli`
-  - 文生图: `sd`
-- 设备名不限（例如 `cpu`、`cuda`、`vulkan`、`opencl`、`mygpu`）。EVA 设置页会自动列出 `backend/` 下的所有一级目录名。
-- 构建时 CMake 会将 `backend/` 复制到 `build/bin/backend/`；运行时 EVA 会在该目录下递归定位可执行文件并自动补充库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
-- Windows 中文路径：EVA 会自动把模型/权重路径转换为第三方后端可接受的 ASCII 别名（8.3 短路径/同盘硬链接/跨盘副本），避免“中文路径打不开”的问题。

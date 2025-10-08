@@ -24,10 +24,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     // 注册 发送 快捷键
     shortcutCtrlEnter = new QHotkey(QKeySequence("CTRL+Return"), true, this);
     connect(shortcutCtrlEnter, &QHotkey::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
-#ifdef BODY_USE_32BIT
-    ui->vcore_bar->setVisible(0);
-    ui->vram_bar->setVisible(0);
-#endif
     //--------------初始化语言--------------
     QLocale locale = QLocale::system();             // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
@@ -119,8 +115,7 @@ ui_state_init();                                              //初始界面状�
 
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                           //录音定时器
-    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel); // 每隔100毫秒刷新一次输入区
-#ifndef BODY_USE_32BIT                                                        // win7就不用检查声音输入了
+    connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel); // 每隔100毫秒刷新一次输入区                                                      // win7就不用检查声音输入了
     music_player.setMedia(QUrl("qrc:/fly_me_to_the_moon.mp3")); //设置播放的音乐
     if (checkAudio())                                           // 如果支持音频输入则注册f2快捷键
     {
@@ -129,7 +124,6 @@ ui_state_init();                                              //初始界面状�
         shortcutF2 = new QHotkey(QKeySequence("F2"), true, this);
         connect(shortcutF2, &QHotkey::activated, this, &Widget::onShortcutActivated_F2);
     }
-#endif
     //----------------本地后端管理（llama-server）------------------
     serverManager = new LocalServerManager(this, applicationDirPath);
     // 转发 server 输出到模型日志（增殖窗口）而不是主输出区

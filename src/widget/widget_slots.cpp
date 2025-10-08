@@ -252,9 +252,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 
     if (gpu_wait_load)
     {
-        gpu_wait_load = false;
-#ifdef BODY_USE_GPU
-        // 以文件体积近似估计显存占用：若模型大小低于当前可用显存的95%，则尝试全量 offload（ngl=999）
+        gpu_wait_load = false;        // 以文件体积近似估计显存占用：若模型大小低于当前可用显存的95%，则尝试全量 offload（ngl=999）
         QFileInfo fileInfo(ui_SETTINGS.modelpath);   // 模型文件大小
         QFileInfo fileInfo2(ui_SETTINGS.mmprojpath); // mmproj 文件大小（可为空）
         const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
@@ -267,7 +265,6 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
         {
             ui_SETTINGS.ngl = 0; // 不足则先走纯CPU/少量 offload
         }
-#endif
         // 应用新设置并按需重启本地服务
         if (ui_mode == LOCAL_MODE) ensureLocalServer();
     }
@@ -355,7 +352,6 @@ void Widget::ensureLocalServer()
 {
     if (!serverManager) return;
     // 首次装载前：根据当前可用显存粗略评估是否可全量 offload（ngl=999）
-#ifdef BODY_USE_GPU
     if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
     {
         firstAutoNglEvaluated_ = true; // 只评估一次
@@ -381,7 +377,6 @@ void Widget::ensureLocalServer()
             gpu_wait_load = true;
         }
     }
-#endif
     // Determine bind host and a usable port before starting server.
     auto pickFreePort = []() -> QString {
         QTcpServer s;

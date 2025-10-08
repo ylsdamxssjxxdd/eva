@@ -231,19 +231,25 @@ In local mode and chat state, you can click on the date button to mount the tool
     git clone https://github.com/ylsdamxssjxxdd/eva.git
     ```
 
-3. Build
+3. Prepare Backends
+
+- Obtain prebuilt binaries and create a `backend/` folder at the project root (next to `CMakeLists.txt`).
+- Place required executables under `backend/<device>/` (any subfolder depth; EVA searches recursively):
+  - Local LLM: `llama-server` (with its dependent DLLs/SOs in the same folder)
+  - Speech2Text: `whisper-cli`
+  - Text2Image: `sd`
+- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `backend/`.
+- During build, CMake copies `backend/` to `build/bin/backend/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
+
+4. Build
 
     ```bash
     cd eva
-    cmake -B build -DBODY_PACK=OFF -DGGML_VULKAN=OFF -DGGML_CUDA=OFF
+    cmake -B build -DBODY_PACK=OFF
     cmake --build build --config Release
     ```
 
     - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be place in the bin directory in Windows; and all components will be packaged as an AppImage file in Linux. Note that tools such as linuxdeploy need to be configured by oneself
-
-    - GGML_CUDA: Flag indicating whether cuda acceleration needs to be enabled
-
-    - GGML_VULKAN: Flag indicating whether vulkan acceleration needs to be enabled
 
 </details>
 
@@ -334,14 +340,3 @@ In local mode and chat state, you can click on the date button to mount the tool
 - prob: The final selection probability of all tokens in the vocabulary in this sampling
 
 </details>
-
-## Prepare Backends (Manual)
-
-- Obtain prebuilt binaries and create a `backend/` folder at the project root (next to `CMakeLists.txt`).
-- Place required executables under `backend/<device>/` (any subfolder depth; EVA searches recursively):
-  - Local LLM: `llama-server` (with its dependent DLLs/SOs in the same folder)
-  - Speech2Text: `whisper-cli`
-  - Text2Image: `sd`
-- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `backend/`.
-- During build, CMake copies `backend/` to `build/bin/backend/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
-- On Windows with non-ASCII model paths, EVA auto-generates ASCII-safe aliases for third-party tools.

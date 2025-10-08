@@ -5,7 +5,7 @@
 xNet::xNet()
 {
     // Defer creation of network objects until we are in worker thread
-    qDebug() << "xNet initialized";
+    qDebug() << "xNet init over";
 }
 
 xNet::~xNet()
