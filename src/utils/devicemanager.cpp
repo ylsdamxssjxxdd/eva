@@ -17,9 +17,9 @@ QString DeviceManager::backendsRootDir()
     {
         appDirPath = QCoreApplication::applicationDirPath();
     }
-    return appDirPath + "/usr/bin/backend";
+    return appDirPath + "/usr/bin/EVA_BACKEND";
 #else
-    return QCoreApplication::applicationDirPath() + "/backend";
+    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
 #endif
 }
 

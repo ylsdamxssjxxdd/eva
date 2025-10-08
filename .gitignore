@@ -3,4 +3,4 @@ build/
 CMakeLists.txt.user
 src-old/
 .VSCodeCounter/
-backend
+EVA_BACKEND

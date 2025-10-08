@@ -233,13 +233,13 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 3. Prepare Backends
 
-- Obtain prebuilt binaries and create a `backend/` folder at the project root (next to `CMakeLists.txt`).
-- Place required executables under `backend/<device>/` (any subfolder depth; EVA searches recursively):
+- Obtain prebuilt binaries and create a `EVA_BACKEND/` folder at the project root (next to `CMakeLists.txt`).
+- Place required executables under `EVA_BACKEND/<device>/` (any subfolder depth; EVA searches recursively):
   - Local LLM: `llama-server` (with its dependent DLLs/SOs in the same folder)
   - Speech2Text: `whisper-cli`
   - Text2Image: `sd`
-- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `backend/`.
-- During build, CMake copies `backend/` to `build/bin/backend/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
+- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `EVA_BACKEND/`.
+- During build, CMake copies `EVA_BACKEND/` to `build/bin/EVA_BACKEND/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
 
 4. Build
 

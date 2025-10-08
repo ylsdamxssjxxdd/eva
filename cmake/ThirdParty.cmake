@@ -18,9 +18,9 @@ endif()
 ###
 # ------------------------------ Prebuilt Backends Copy ------------------------------
 # Instead of building llama.cpp / whisper.cpp / stable-diffusion.cpp here,
-# copy prebuilt artifacts from <source>/backend to <build>/bin/backend.
-set(BACKEND_SOURCE_DIR ${CMAKE_SOURCE_DIR}/backend)
-set(BACKEND_DEST_DIR   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/backend)
+# copy prebuilt artifacts from <source>/EVA_BACKEND to <build>/bin/EVA_BACKEND.
+set(BACKEND_SOURCE_DIR ${CMAKE_SOURCE_DIR}/EVA_BACKEND)
+set(BACKEND_DEST_DIR   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/EVA_BACKEND)
 
 if (EXISTS "${BACKEND_SOURCE_DIR}")
     add_custom_target(backends ALL
@@ -30,8 +30,8 @@ if (EXISTS "${BACKEND_SOURCE_DIR}")
     )
 else()
     add_custom_target(backends
-        COMMENT "No 'backend' folder in source; skipping backend copy. Provide it manually.")
-    message(WARNING "No backend/ folder at project root. EVA will run without local backends. Place your prebuilt backends under 'backend/'.")
+        COMMENT "No 'EVA_BACKEND' folder in source; skipping EVA_BACKEND copy. Provide it manually.")
+    message(WARNING "No EVA_BACKEND/ folder at project root. EVA will run without local backends. Place your prebuilt backends under 'EVA_BACKEND/'.")
 endif()
 
 
