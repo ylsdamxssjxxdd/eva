@@ -214,7 +214,7 @@ void Widget::changeEvent(QEvent *event)
     }
 }
 
-// 关闭事件：显示一个“无限循环”的进度对话框，等待后台服务优雅停止
+    // 关闭事件：显示一个“无限循环”的进度对话框，等待后台服务优雅停止
 void Widget::closeEvent(QCloseEvent *event)
 {
     // 防止重复触发
@@ -253,18 +253,25 @@ void Widget::closeEvent(QCloseEvent *event)
         return;
     }
 
-    // 异步停止本地 llama.cpp server，避免在 UI 线程阻塞导致对话框不刷新
+    // 在 UI 线程发起非阻塞的优雅停止，避免跨线程调用 QProcess 导致 QWinEventNotifier 警告/卡顿
     event->ignore();
-    QThread *worker = QThread::create([this]() {
-        if (serverManager) serverManager->stop();
-    });
-    connect(worker, &QThread::finished, dlg, &QProgressDialog::close);
-    connect(worker, &QThread::finished, dlg, &QObject::deleteLater);
-    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-    connect(worker, &QThread::finished, qApp, []() {
+    if (serverManager)
+    {
+        // 完成后关闭对话框并退出应用
+        connect(serverManager, &LocalServerManager::serverStopped, dlg, &QProgressDialog::close);
+        connect(serverManager, &LocalServerManager::serverStopped, dlg, &QObject::deleteLater);
+        connect(serverManager, &LocalServerManager::serverStopped, qApp, []() {
+            QTimer::singleShot(0, qApp, &QCoreApplication::quit);
+        });
+        serverManager->stopAsync();
+    }
+    else
+    {
+        // 理论上不走到这里，因为上面已判断 running；兜底直接退出
+        dlg->close();
+        dlg->deleteLater();
         QTimer::singleShot(0, qApp, &QCoreApplication::quit);
-    });
-    worker->start();
+    }
 }
 
 //用户点击装载按钮处理

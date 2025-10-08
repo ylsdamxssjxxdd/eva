@@ -226,6 +226,59 @@ void LocalServerManager::stop()
     proc_.clear();
 }
 
+void LocalServerManager::stopAsync()
+{
+    if (!proc_)
+    {
+        emit serverStopped();
+        return;
+    }
+    // If not running, just cleanup and emit
+    if (proc_->state() != QProcess::Running)
+    {
+        proc_->deleteLater();
+        proc_.clear();
+        emit serverStopped();
+        return;
+    }
+
+    // Request graceful termination on our owning thread (UI thread)
+    proc_->terminate();
+
+    // When it finishes, clean up and notify
+    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
+        if (proc_)
+        {
+            proc_->deleteLater();
+            proc_.clear();
+        }
+        emit serverStopped();
+    });
+
+    // Guard: force kill if it doesn't exit in time; avoid blocking UI
+    QTimer::singleShot(1500, this, [this]() {
+        if (!proc_) return;
+        if (proc_->state() == QProcess::Running)
+        {
+#ifdef _WIN32
+            const qint64 pid = proc_->processId();
+            if (pid > 0)
+            {
+                QStringList args;
+                args << "/PID" << QString::number(pid) << "/T" << "/F";
+                QProcess::execute("taskkill", args);
+            }
+            else
+            {
+                proc_->kill();
+            }
+#else
+            proc_->kill();
+#endif
+        }
+    });
+}
+
 
 bool LocalServerManager::needsRestart() const
 {

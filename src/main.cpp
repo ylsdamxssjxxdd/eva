@@ -128,13 +128,17 @@ int main(int argc, char *argv[])
     Widget w(nullptr, applicationDirPath);      //窗口实例
     Expend expend(nullptr, applicationDirPath); //增殖窗口实例
     xTool tool(applicationDirPath);             //工具实例
-    xNet net;         //链接实例
+    // 将 xNet 改为堆对象，确保在其所属线程内析构，避免 Windows 下 QWinEventNotifier 跨线程清理告警
+    xNet *net = new xNet;         // 链接实例（worker 线程内生命周期）
     xMcp mcp;         //mcp管理实例
     gpuChecker gpuer; //监测显卡信息
     cpuChecker cpuer; //监视系统信息
 
     //-----------------初始值设定-----------------------
-    expend.wordsObj = net.wordsObj = tool.wordsObj = w.wordsObj; //传递语言
+    // 传递语言（注意 net 改为指针）
+    expend.wordsObj = w.wordsObj;
+    net->wordsObj = w.wordsObj;
+    tool.wordsObj = w.wordsObj;
     expend.max_thread = w.max_thread;
     tool.embedding_server_resultnumb = expend.embedding_resultnumb;          //同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
@@ -175,17 +179,43 @@ int main(int argc, char *argv[])
     tool.moveToThread(tool_thread);
     tool_thread->start();
     QThread *net_thread = new QThread;
-    net.moveToThread(net_thread);
+    net->moveToThread(net_thread);
+    // 当线程结束时，在线程上下文中安全删除 xNet，避免跨线程销毁导致的 QWinEventNotifier 警告/卡顿
+    QObject::connect(net_thread, &QThread::finished, net, &QObject::deleteLater);
     net_thread->start();
-    QObject::connect(
-        &a, &QCoreApplication::aboutToQuit, &net, [&net]() { net.recv_stop(true); }, Qt::QueuedConnection);
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, net_thread, &QThread::quit, Qt::QueuedConnection);
+    // 退出前先请求停止网络流（排队到 net 所在线程）
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net]() {
+        QMetaObject::invokeMethod(net, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
+    });
+    // 再优雅退出并等待线程结束，确保 xNet 在其线程内清理完毕，避免退出时短暂卡住
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net_thread]() {
+        net_thread->quit();
+        net_thread->wait(3000);
+    });
     // Ensure knowledge-base embedding server is stopped when the app quits,
     // even if the Expend window was closed earlier
     QObject::connect(&a, &QCoreApplication::aboutToQuit, &expend, [&expend]() { expend.stopEmbeddingServer(true); }, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
+
+    // 统一的应用退出收尾：优雅停止各工作线程，避免退出阶段跨线程清理产生告警/卡顿
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [gpuer_thread]() {
+        gpuer_thread->quit();
+        gpuer_thread->wait(1000);
+    });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [cpuer_thread]() {
+        cpuer_thread->quit();
+        cpuer_thread->wait(1000);
+    });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [tool_thread]() {
+        tool_thread->quit();
+        tool_thread->wait(2000);
+    });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp_thread]() {
+        mcp_thread->quit();
+        mcp_thread->wait(2000);
+    });
     //------------------监测gpu信息-------------------
     QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //传递gpu信息
     QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //强制刷新gpu信息
@@ -206,17 +236,17 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        //传递llama日志
 
     //------------------连接net和窗口-------------------
-    QObject::connect(&net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  //窗口输出区更新
-    QObject::connect(&net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
-    QObject::connect(&net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
-    QObject::connect(&net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             //流式近似KV用量（链接模式兜底）
-    QObject::connect(&net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
-    QObject::connect(&net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
-    QObject::connect(&w, &Widget::ui2net_push, &net, &xNet::run, Qt::QueuedConnection);                               //开始推理
-    QObject::connect(&w, &Widget::ui2net_language, &net, &xNet::recv_language, Qt::QueuedConnection);                 //传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, &net, &xNet::recv_apis, Qt::QueuedConnection);                         //传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, &net, &xNet::recv_data, Qt::QueuedConnection);                         //传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, &net, &xNet::recv_stop, Qt::QueuedConnection);                         //传递停止信号
+    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  //窗口输出区更新
+    QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
+    QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
+    QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             //流式近似KV用量（链接模式兜底）
+    QObject::connect(net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
+    QObject::connect(net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
+    QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               //开始推理
+    QObject::connect(&w, &Widget::ui2net_language, net, &xNet::recv_language, Qt::QueuedConnection);                 //传递使用的语言
+    QObject::connect(&w, &Widget::ui2net_apis, net, &xNet::recv_apis, Qt::QueuedConnection);                         //传递api设置参数
+    QObject::connect(&w, &Widget::ui2net_data, net, &xNet::recv_data, Qt::QueuedConnection);                         //传递端点参数
+    QObject::connect(&w, &Widget::ui2net_stop, net, &xNet::recv_stop, Qt::QueuedConnection);                         //传递停止信号
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //窗口状态区更新

@@ -33,6 +33,10 @@ class LocalServerManager : public QObject
     void restart();
     // Stop server if running.
     void stop();
+    // Asynchronously stop server without blocking the UI thread.
+    // This schedules terminate/kill on the owning thread and emits
+    // serverStopped() when the process actually exits.
+    void stopAsync();
 
     bool isRunning() const;
     QString endpointBase() const; // e.g. http://127.0.0.1:8080
