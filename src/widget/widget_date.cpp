@@ -39,7 +39,15 @@ void Widget::set_DateDialog()
         ui_extra_lan = "en";
     }
 
-    prompt_template_change(); //先应用提示词模板
+    prompt_template_change(); //先应用提示词模板    // Auto-save on template/tool toggles (no reset)
+    auto autosave = [this]() { get_date(); auto_save_user(); };
+    connect(date_ui->chattemplate_comboBox, &QComboBox::currentTextChanged, this, [=](const QString&){ autosave(); });
+    connect(date_ui->knowledge_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
+    connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
+    connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
+    connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
+    connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
+    connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int){ autosave(); });
 }
 
 // 约定选项卡确认按钮响应
@@ -55,3 +63,5 @@ void Widget::date_ui_cancel_button_clicked()
     date_dialog->close();
     cancel_date();
 }
+
+

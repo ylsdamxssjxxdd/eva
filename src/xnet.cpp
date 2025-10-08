@@ -10,7 +10,17 @@ xNet::xNet()
 
 xNet::~xNet()
 {
-    abortActiveReply();
+    // Ensure cleanup happens only in the owning thread to avoid QWinEventNotifier warnings on Windows
+    if (QThread::currentThread() == this->thread())
+    {
+        abortActiveReply();
+        if (timeoutTimer_) { timeoutTimer_->stop(); timeoutTimer_->deleteLater(); timeoutTimer_ = nullptr; }
+        if (nam_) { nam_->deleteLater(); nam_ = nullptr; }
+    }
+    else
+    {
+        // Skip cross-thread cleanup; objects will be reclaimed on process exit
+    }
 }
 
 void xNet::resetState()
@@ -481,3 +491,5 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+

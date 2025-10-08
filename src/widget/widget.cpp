@@ -1,4 +1,4 @@
-﻿//主函数和主要槽函数
+//主函数和主要槽函数
 
 #include "widget.h"
 
@@ -795,6 +795,8 @@ void Widget::set_date()
     get_date(); //获取约定中的纸面值
 
     // 约定变化后统一重置对话上下文（本地/远端一致）
+    auto_save_user(); // persist date settings
+
     on_reset_clicked();
 
     date_dialog->close();
@@ -948,3 +950,6 @@ void Widget::restoreSessionById(const QString &sessionId)
     }
     currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }
+
+
+

@@ -197,6 +197,7 @@ void Widget::settings_ui_confirm_button_clicked()
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
     settings_dialog->close();
+    auto_save_user(); // persist settings to eva_config.ini
     if (sameSettings)
     {
         // 未发生任何变化：不重启、不重置
@@ -270,3 +271,4 @@ void Widget::set_set()
         on_reset_clicked();
     }
 }
+

@@ -775,6 +775,7 @@ void Widget::auto_save_user()
     settings.setValue("api_endpoint", apis.api_endpoint);
     settings.setValue("api_key", apis.api_key);
     settings.setValue("api_model", apis.api_model);
+        settings.sync(); // flush to disk immediately
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
 //监视时间到
@@ -1047,3 +1048,4 @@ void Widget::openHistoryManager()
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
+

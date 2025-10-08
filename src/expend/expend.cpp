@@ -207,20 +207,27 @@ void Expend::stopEmbeddingServer(bool force)
 #endif
     };
 
-    if (server_process->state() == QProcess::Running)
+        if (server_process->state() == QProcess::Running)
     {
-        // 先尝试正常终止
-        server_process->terminate();
-        if (!server_process->waitForFinished(1500))
+        if (force)
         {
-            // 超时后尝试强杀
+            // Force kill immediately to avoid exit stall
             const qint64 pid = server_process->processId();
             if (pid > 0) killByPid(pid);
-            else
+            else server_process->kill();
+            server_process->waitForFinished(100);
+        }
+        else
+        {
+            // Try graceful terminate with small timeout
+            server_process->terminate();
+            if (!server_process->waitForFinished(1500))
             {
-                server_process->kill();
+                const qint64 pid = server_process->processId();
+                if (pid > 0) killByPid(pid);
+                else server_process->kill();
+                server_process->waitForFinished(500);
             }
-            server_process->waitForFinished(1000);
         }
     }
     else if (embedding_server_pid > 0)
@@ -368,5 +375,8 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("shell", shell);                                             //shell路径
     settings.setValue("python", pythonExecutable);                                 //python版本
     settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText()); //mcp配置
+        settings.sync(); // flush to disk immediately on close
     event->accept();
 }
+
+
