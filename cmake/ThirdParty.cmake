@@ -20,164 +20,30 @@ add_definitions(-DGGML_MAX_NAME=128)
 add_definitions(-DGGML_MAX_N_THREADS=512)
 
 ###
-### Multi-backend out-of-tree builds staged into build/bin/backend/<backend>/<project>
-### - Always build CPU backend
-### - Optionally build CUDA / Vulkan / OpenCL if requested
-###
+# ------------------------------ Prebuilt Backends Copy ------------------------------
+# Instead of building llama.cpp / whisper.cpp / stable-diffusion.cpp here,
+# copy prebuilt artifacts from <source>/backend to <build>/bin/backend.
+set(BACKEND_SOURCE_DIR ${CMAKE_SOURCE_DIR}/backend)
+set(BACKEND_DEST_DIR   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/backend)
 
-# Where to stage external builds
-set(EXT_BUILD_DIR ${CMAKE_BINARY_DIR}/3rd)
-file(MAKE_DIRECTORY ${EXT_BUILD_DIR})
-
-set(LLAMA_SRC   ${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp)
-set(WHISPER_SRC ${CMAKE_SOURCE_DIR}/thirdparty/whisper.cpp)
-set(SD_SRC      ${CMAKE_SOURCE_DIR}/thirdparty/stable-diffusion.cpp)
-
-set(BACKENDS cpu)
-if (GGML_CUDA)
-    list(APPEND BACKENDS cuda)
+if (EXISTS "${BACKEND_SOURCE_DIR}")
+    add_custom_target(backends ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${BACKEND_DEST_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${BACKEND_SOURCE_DIR}" "${BACKEND_DEST_DIR}"
+        COMMENT "Copying prebuilt backends from ${BACKEND_SOURCE_DIR} to ${BACKEND_DEST_DIR}"
+    )
+else()
+    add_custom_target(backends
+        COMMENT "No 'backend' folder in source; skipping backend copy. Provide it manually.")
+    message(WARNING "No backend/ folder at project root. EVA will run without local backends. Place your prebuilt backends under 'backend/'.")
 endif()
-if (GGML_VULKAN)
-    list(APPEND BACKENDS vulkan)
-endif()
-if (GGML_OPENCL)
-    list(APPEND BACKENDS opencl)
-endif()
-
-set(ALL_STAGE_TARGETS)
-
-foreach(B IN LISTS BACKENDS)
-    string(TOLOWER "${B}" BLOW)
-    set(DEST_BASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/backend/${BLOW})
-    set(DEST_LLAMA_DIR ${DEST_BASE}/llama.cpp)
-    set(DEST_WHISPER_DIR ${DEST_BASE}/whisper.cpp)
-    set(DEST_SD_DIR ${DEST_BASE}/stable-diffusion.cpp)
-    file(MAKE_DIRECTORY ${DEST_LLAMA_DIR})
-    file(MAKE_DIRECTORY ${DEST_WHISPER_DIR})
-    file(MAKE_DIRECTORY ${DEST_SD_DIR})
-
-    # Backend toggles per project
-    set(B_USE_CUDA OFF)
-    set(B_USE_VULKAN OFF)
-    set(B_USE_OPENCL OFF)
-    if (BLOW STREQUAL "cuda")
-        set(B_USE_CUDA ON)
-    elseif(BLOW STREQUAL "vulkan")
-        set(B_USE_VULKAN ON)
-    elseif(BLOW STREQUAL "opencl")
-        set(B_USE_OPENCL ON)
-    endif()
-
-    # ---- llama.cpp tools ----
-    set(LLAMA_BLD ${EXT_BUILD_DIR}/llama-${BLOW})
-    set(LLAMA_BIN ${LLAMA_BLD}/bin)
-    set(LLAMA_BIN_CFG ${LLAMA_BIN}/$<CONFIG>)
-    add_custom_target(llama-build-${BLOW}
-        COMMAND ${CMAKE_COMMAND} -S ${LLAMA_SRC} -B ${LLAMA_BLD}
-                -DBUILD_SHARED_LIBS=OFF
-                -DLLAMA_CURL=${LLAMA_CURL}
-                -DLLAMA_BUILD_TOOLS=ON
-                -DLLAMA_BUILD_SERVER=ON
-                -DGGML_CUDA=$<BOOL:${B_USE_CUDA}>
-                -DGGML_VULKAN=$<BOOL:${B_USE_VULKAN}>
-                -DGGML_OPENCL=$<BOOL:${B_USE_OPENCL}>
-        COMMAND ${CMAKE_COMMAND} --build ${LLAMA_BLD} --target llama-server llama-quantize llama-tts --config $<CONFIG>
-        BYPRODUCTS
-            ${LLAMA_BIN}/llama-server${sfx_NAME}
-            ${LLAMA_BIN}/llama-quantize${sfx_NAME}
-            ${LLAMA_BIN}/llama-tts${sfx_NAME}
-        COMMENT "Building llama.cpp (${BLOW})"
-    )
-    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-server${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-server${sfx_NAME} ${DEST_LLAMA_DIR}/llama-server${sfx_NAME}
-        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-server${sfx_NAME}
-        COMMENT "Stage llama-server -> ${DEST_LLAMA_DIR}"
-    )
-    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME} ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME}
-        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-quantize${sfx_NAME}
-        COMMENT "Stage llama-quantize -> ${DEST_LLAMA_DIR}"
-    )
-    add_custom_command(OUTPUT ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME} ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
-        DEPENDS llama-build-${BLOW} ${LLAMA_BIN_CFG}/llama-tts${sfx_NAME}
-        COMMENT "Stage llama-tts -> ${DEST_LLAMA_DIR}"
-    )
-    add_custom_target(stage-llama-${BLOW}
-        DEPENDS ${DEST_LLAMA_DIR}/llama-server${sfx_NAME} ${DEST_LLAMA_DIR}/llama-quantize${sfx_NAME} ${DEST_LLAMA_DIR}/llama-tts${sfx_NAME}
-    )
-
-    # ---- whisper.cpp ----
-    set(WHISPER_BLD ${EXT_BUILD_DIR}/whisper-${BLOW})
-    set(WHISPER_BIN ${WHISPER_BLD}/bin)
-    set(WHISPER_BIN_CFG ${WHISPER_BIN}/$<CONFIG>)
-    add_custom_target(whisper-build-${BLOW}
-        COMMAND ${CMAKE_COMMAND} -S ${WHISPER_SRC} -B ${WHISPER_BLD}
-                -DBUILD_SHARED_LIBS=OFF
-                -DGGML_CUDA=$<BOOL:${B_USE_CUDA}>
-                -DGGML_VULKAN=$<BOOL:${B_USE_VULKAN}>
-                -DGGML_OPENCL=$<BOOL:${B_USE_OPENCL}>
-        COMMAND ${CMAKE_COMMAND} --build ${WHISPER_BLD} --target whisper-cli --config $<CONFIG>
-        BYPRODUCTS ${WHISPER_BIN}/whisper-cli${sfx_NAME}
-        COMMENT "Building whisper.cpp (${BLOW})"
-    )
-    add_custom_command(OUTPUT ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME} ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
-        DEPENDS whisper-build-${BLOW} ${WHISPER_BIN_CFG}/whisper-cli${sfx_NAME}
-        COMMENT "Stage whisper-cli -> ${DEST_WHISPER_DIR}"
-    )
-    add_custom_target(stage-whisper-${BLOW}
-        DEPENDS ${DEST_WHISPER_DIR}/whisper-cli${sfx_NAME}
-    )
-
-    # ---- stable-diffusion.cpp ----
-    set(SD_BLD ${EXT_BUILD_DIR}/stable-diffusion-${BLOW})
-    set(SD_BIN ${SD_BLD}/bin)
-    set(SD_BIN_CFG ${SD_BIN}/$<CONFIG>)
-    # Configure stable-diffusion.cpp backend toggles
-    # Note: upstream expects SD_CUDA / SD_VULKAN / SD_OPENCL options
-    # and forwards them to ggml (GGML_CUDA / GGML_VULKAN / GGML_OPENCL).
-    # If these are not set correctly, the build silently falls back to CPU.
-    set(SD_EXTRA_ARGS "")
-    if (B_USE_CUDA)
-        list(APPEND SD_EXTRA_ARGS -DSD_CUDA=ON -DGGML_CUDA=ON)
-    endif()
-    if (B_USE_VULKAN)
-        list(APPEND SD_EXTRA_ARGS -DSD_VULKAN=ON -DGGML_VULKAN=ON)
-        # The Vulkan backend does not benefit from OpenMP on the host for heavy kernels.
-        # Disabling it reduces host-side contention in some environments.
-        list(APPEND SD_EXTRA_ARGS -DGGML_OPENMP=OFF)
-    endif()
-    if (B_USE_OPENCL)
-        list(APPEND SD_EXTRA_ARGS -DSD_OPENCL=ON -DGGML_OPENCL=ON)
-    endif()
-    add_custom_target(sd-build-${BLOW}
-        COMMAND ${CMAKE_COMMAND} -S ${SD_SRC} -B ${SD_BLD} -DBUILD_SHARED_LIBS=OFF ${SD_EXTRA_ARGS}
-        COMMAND ${CMAKE_COMMAND} --build ${SD_BLD} --target sd --config $<CONFIG>
-        BYPRODUCTS ${SD_BIN}/sd${sfx_NAME}
-        COMMENT "Building stable-diffusion.cpp (${BLOW})"
-    )
-    add_custom_command(OUTPUT ${DEST_SD_DIR}/sd${sfx_NAME}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SD_BIN_CFG}/sd${sfx_NAME} ${DEST_SD_DIR}/sd${sfx_NAME}
-        DEPENDS sd-build-${BLOW} ${SD_BIN_CFG}/sd${sfx_NAME}
-        COMMENT "Stage sd -> ${DEST_SD_DIR}"
-    )
-    add_custom_target(stage-sd-${BLOW}
-        DEPENDS ${DEST_SD_DIR}/sd${sfx_NAME}
-    )
-
-    # Collect staged targets
-    list(APPEND ALL_STAGE_TARGETS stage-llama-${BLOW} stage-whisper-${BLOW} stage-sd-${BLOW})
-endforeach()
-
-# Single umbrella target that ensures all selected backends are built/staged
-add_custom_target(backends ALL DEPENDS ${ALL_STAGE_TARGETS})
 
 
 # ------------------------------ MCP ------------------------------
 add_subdirectory(thirdparty/cpp-mcp)
 include_directories(thirdparty/cpp-mcp/include)
 include_directories(thirdparty/cpp-mcp/common)
+
 
 
 

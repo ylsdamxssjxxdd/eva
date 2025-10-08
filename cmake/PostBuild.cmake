@@ -36,18 +36,6 @@ if (WIN32)
             message(WARNING "windeployqt.exe not found under Qt5_BIN_DIR=${Qt5_BIN_DIR}")
         endif()
 
-        # Ship helper conversion scripts next to the exe
-        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${EVA_TARGET}>/scripts"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py"
-                    "$<TARGET_FILE_DIR:${EVA_TARGET}>/scripts/gguf-py"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py"
-                    "$<TARGET_FILE_DIR:${EVA_TARGET}>/scripts/convert_hf_to_gguf.py"
-            COMMENT "Copy helper scripts"
-        )
-
         # Extra runtime for MinGW builds
         if (MINGW)
             get_filename_component(COMPILER_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
@@ -84,21 +72,16 @@ if (WIN32)
 
 elseif(UNIX)
     if (BODY_PACK)
-        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND bash "${CMAKE_SOURCE_DIR}/tools/package-appimage.sh" "${CMAKE_BINARY_DIR}" "${CMAKE_BINARY_DIR}/AppDir" "$<CONFIG>"
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            COMMENT "Packaging AppImage (BODY_PACK=ON)"
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/eva" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/AppDir/usr/share/applications/eva.desktop
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
         )
-    else()
-        # Copy helper scripts (when not packaging)
-        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/gguf-py"
-                    "$<TARGET_FILE_DIR:${EVA_TARGET}>/../scripts/gguf-py"
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    "${CMAKE_SOURCE_DIR}/thirdparty/llama.cpp/convert_hf_to_gguf.py"
-                    "$<TARGET_FILE_DIR:${EVA_TARGET}>/../scripts/convert_hf_to_gguf.py"
-            COMMENT "Copy helper scripts"
+        # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+            COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
+            COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
+            COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "eva.AppImage"
         )
     endif()
 endif()

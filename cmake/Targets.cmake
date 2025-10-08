@@ -43,10 +43,6 @@ target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils)
 
 message(STATUS "eva型号: ${eva_OUTPUT_NAME}")
 
-# Ensure third-party command-line tools are built and staged alongside eva
-add_dependencies(${EVA_TARGET} backends)
-
-
 
 
 

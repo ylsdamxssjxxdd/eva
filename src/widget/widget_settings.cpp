@@ -42,13 +42,7 @@ void Widget::set_SetDialog()
             if (isAuto)
             {
                 // 计算 auto 实际生效的后端（按 cuda>vulkan>opencl>cpu 顺序）
-                const QStringList avail = DeviceManager::availableBackends();
-                const QStringList pref = {QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl"), QStringLiteral("cpu")};
-                QString eff = QStringLiteral("cpu");
-                for (const QString &p : pref)
-                {
-                    if (avail.contains(p)) { eff = p; break; }
-                }
+                const QString eff = DeviceManager::effectiveBackend();
                 settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
             }
             else
@@ -273,4 +267,5 @@ void Widget::set_set()
         on_reset_clicked();
     }
 }
+
 

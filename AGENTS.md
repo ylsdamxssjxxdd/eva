@@ -16,7 +16,7 @@ cmake -B build -DBODY_PACK=OFF -DGGML_CUDA=OFF -DGGML_VULKAN=OFF
 cmake --build build --config Release -j
  ``` 
 - Run locally:  `./build/bin/eva` (Linux) or `build \\bin\\eva.exe ` (Windows). 
-- Package (AppImage/EXE): add  `-DBODY_PACK=ON`; details in `tools/README_cmake.md`. 
+- Package (AppImage/EXE): add  `-DBODY_PACK=ON`.
 
 ## Coding Style & Naming Conventions
 - C++17 + Qt5.15; 4-space indent; braces on same line (K&R); UTF-8 source.

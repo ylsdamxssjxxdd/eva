@@ -35,6 +35,7 @@ void Expend::embedding_server_start()
 {
     // Resolve llama.cpp server from current backend
     QString program = DeviceManager::programPath(QStringLiteral("llama-server"));
+    if (program.isEmpty() || !QFileInfo::exists(program)) { ui->embedding_test_log->appendPlainText("[error] llama-server not found under current device folder"); return; }
 
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
@@ -701,5 +702,6 @@ void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
+
 
 

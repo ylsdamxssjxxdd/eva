@@ -187,6 +187,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     sd_process->kill();
 
     const QString program = DeviceManager::programPath(QStringLiteral("sd")); // 设置要运行的exe文件的路径
+    if (program.isEmpty() || !QFileInfo::exists(program)) { ui->sd_log->appendPlainText("[error] sd backend not found under current device folder"); return; }
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 
@@ -469,5 +470,6 @@ void Expend::recv_draw(QString prompt_)
     //触发绘制
     ui->sd_draw_pushButton->click();
 }
+
 
 

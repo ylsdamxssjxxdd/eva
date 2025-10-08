@@ -35,7 +35,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
     resampleWav(wav_path_c, wav_path_c);
 
     // 设置要运行的exe文件的路径
-    QString program = localPath;
+    QString program = localPath; if (program.isEmpty() || !QFileInfo::exists(program)) { ui->whisper_log->appendPlainText("[error] whisper backend not found under current device folder"); return; }
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 
@@ -144,5 +144,6 @@ void Expend::on_whisper_execute_pushbutton_clicked()
     whisper_process->kill();
     recv_speechdecode(ui->whisper_wavpath_lineedit->text(), ui->whisper_output_format->currentText());
 }
+
 
 

@@ -3,6 +3,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QFileInfo>
 #include <QProcessEnvironment>
 
@@ -32,16 +33,13 @@ QStringList DeviceManager::availableBackends()
 {
     const QString root = backendsRootDir();
     QStringList out;
-    const QStringList candidates = preferredOrder();
-    for (const QString &b : candidates)
+    QDir d(root);
+    if (!d.exists()) return out;
+    const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    for (const QFileInfo &fi : subs)
     {
-        const QString dir = QDir(root).filePath(b);
-        if (QFileInfo::exists(dir) && QFileInfo(dir).isDir())
-        {
-            out.push_back(b);
-        }
+        out << fi.fileName();
     }
-    // Always ensure CPU appears if a cpu folder exists; otherwise do not synthesize it
     return out;
 }
 
@@ -68,10 +66,12 @@ QString DeviceManager::effectiveBackend()
     const QStringList avail = availableBackends();
     if (g_userChoice == QLatin1String("auto"))
     {
+        // Prefer known accelerators if present, otherwise first available folder
         for (const QString &b : preferredOrder())
         {
             if (avail.contains(b)) return b;
         }
+        if (!avail.isEmpty()) return avail.first();
         return QStringLiteral("cpu");
     }
     // If explicit choice exists, honor it; otherwise fall back to auto strategy
@@ -80,7 +80,19 @@ QString DeviceManager::effectiveBackend()
     {
         if (avail.contains(b)) return b;
     }
+    if (!avail.isEmpty()) return avail.first();
     return QStringLiteral("cpu");
+}
+
+static QString findProgramRecursive(const QString &dir, const QString &exe)
+{
+    QDirIterator it(dir, QStringList{exe}, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext())
+    {
+        const QString p = it.next();
+        if (QFileInfo::exists(p)) return p;
+    }
+    return QString();
 }
 
 QString DeviceManager::programPath(const QString &name)
@@ -90,37 +102,25 @@ QString DeviceManager::programPath(const QString &name)
     const QString backendDir = QDir(root).filePath(backend);
     const QString exe = name + QStringLiteral(SFX_NAME);
 
-    // 1) New layout: bin/backend/<device>/<project>/<exe>
-    // Try project-specific preferred order for well-known tools
-    QStringList prefProjects;
-    if (name == QLatin1String("llama-server") || name == QLatin1String("llama-quantize") || name == QLatin1String("llama-tts"))
-        prefProjects << QStringLiteral("llama.cpp");
-    else if (name == QLatin1String("whisper-cli"))
-        prefProjects << QStringLiteral("whisper.cpp");
-    else if (name == QLatin1String("sd"))
-        prefProjects << QStringLiteral("stable-diffusion.cpp");
-
-    for (const QString &proj : prefProjects)
+    // Search recursively under backend/<device>/ for the executable
+    if (QFileInfo::exists(backendDir))
     {
-        const QString candidate = QDir(QDir(backendDir).filePath(proj)).filePath(exe);
-        if (QFileInfo::exists(candidate)) return candidate;
-    }
-    // Fallback: search any project subfolder one level deep
-    QDir d(backendDir);
-    const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
-    for (const QFileInfo &fi : subs)
-    {
-        const QString candidate = QDir(fi.absoluteFilePath()).filePath(exe);
-        if (QFileInfo::exists(candidate)) return candidate;
+        // 1) direct file in backend dir
+        const QString direct = QDir(backendDir).filePath(exe);
+        if (QFileInfo::exists(direct)) return direct;
+        // 2) any subfolder
+        const QString rec = findProgramRecursive(backendDir, exe);
+        if (!rec.isEmpty()) return rec;
     }
 
-    // 2) Legacy layout: bin/<device>/<exe>
-    const QString legacy = QDir(backendDir).filePath(exe);
-    if (QFileInfo::exists(legacy)) return legacy;
-
-    // 3) Last resort: alongside application (useful for dev without staging)
-    const QString beside = QDir(QCoreApplication::applicationDirPath()).filePath(exe);
-    return beside;
+    // Not found in backend device dir; do not guess arbitrary locations
+    return QString();
 }
+
+
+
+
+
+
 
 

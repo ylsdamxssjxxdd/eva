@@ -6,19 +6,11 @@ include_guard(GLOBAL)
 # ---- User-facing options ----
 option(BODY_PACK   "pack eva"                                   OFF)
 
-# Backend toggles. Default values are finalized by auto-detection below.
-# We still declare them as options so users can opt-out by disabling
-# GGML_BACKEND_AUTO and toggling these manually.
+# Backend toggles (kept for compatibility; not used to probe SDKs)
 option(GGML_CUDA   "ggml: use CUDA"                             OFF)
 option(GGML_VULKAN "ggml: use Vulkan"                           OFF)
 option(GGML_OPENCL "ggml: use OpenCL"                           OFF)
-
-# When enabled, CMake will probe locally installed SDKs (CUDA/Vulkan/OpenCL)
-# and build all detected backends in one go. The main app still compiles
-# with a single preferred backend (CUDA > Vulkan > CPU) to keep compile-time
-# feature switches simple, but all detected backends are built out-of-tree
-# and staged under build/bin/<backend>/ for runtime selection.
-option(GGML_BACKEND_AUTO "auto-detect CUDA/Vulkan/OpenCL SDKs and build all detected backends" ON)
+option(GGML_BACKEND_AUTO "auto-detect CUDA/Vulkan/OpenCL SDKs (disabled)" OFF)
 option(BODY_32BIT  "support 32 BIT"                             OFF)
 option(BODY_DOTPORD "使用常规arm dotprod加速"                    OFF)
 
@@ -31,41 +23,13 @@ option(MCP_SSL                   "Enable SSL support" OFF)
 add_compile_definitions(_WIN32_WINNT=0x0601)
 set(GGML_WIN_VER "0x601" CACHE STRING "ggml: Windows version")
 
-# ---- Auto-detect available GPU backends (SDK presence) ----
-if (GGML_BACKEND_AUTO)
-    # Probe CUDA (Toolkit), Vulkan, OpenCL SDKs and toggle backends accordingly
-    find_package(CUDAToolkit QUIET)
-    if (CUDAToolkit_FOUND)
-        set(GGML_CUDA ON CACHE BOOL "ggml: use CUDA" FORCE)
-    endif()
-
-    find_package(Vulkan QUIET)
-    if (Vulkan_FOUND)
-        set(GGML_VULKAN ON CACHE BOOL "ggml: use Vulkan" FORCE)
-    endif()
-
-    find_package(OpenCL QUIET)
-    if (OpenCL_FOUND)
-        set(GGML_OPENCL ON CACHE BOOL "ggml: use OpenCL" FORCE)
-    endif()
-
-    if (NOT (GGML_CUDA OR GGML_VULKAN OR GGML_OPENCL))
-        message(STATUS "No GPU SDKs detected; building CPU-only third-party tools")
-    else()
-        message(STATUS "Auto-detected backends:"
-                        " CUDA=${GGML_CUDA}" 
-                        " Vulkan=${GGML_VULKAN}"
-                        " OpenCL=${GGML_OPENCL}")
-    endif()
-endif()
-
-# ---- Mutually exclusive acceleration mode for the main app ----
+# ---- Acceleration mode for the main app ----
 if (BODY_32BIT)
     # 32-bit Windows 7 support requires MinGW; disable CPU/GPU opt flags
     if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Windows"))
         message(FATAL_ERROR "This project requires MinGW for 32-bit build.")
     endif()
-    message(STATUS "32bit关闭所有加速")
+    message(STATUS "32bit 构建：关闭高阶 CPU 指令以兼容 Win7")
     set(GGML_NATIVE OFF)
     option(GGML_FMA          "ggml: enable FMA"              OFF)
     option(GGML_F16C         "ggml: enable F16C"             OFF)
@@ -74,19 +38,8 @@ if (BODY_32BIT)
     option(GGML_BMI2         "ggml: enable BMI2"             OFF)
     option(GGML_CPU_AARCH64  "ggml: use runtime weight conversion of Q4_0 to Q4_X_X" OFF)
     add_compile_definitions(BODY_USE_32BIT)
-elseif (GGML_CUDA)
-    set(GGML_NATIVE OFF)
-    add_compile_definitions(BODY_USE_CUDA)
-    add_compile_definitions(BODY_USE_GPU)
-    add_compile_definitions(GGML_USE_CUDA)
-    add_definitions(-DSD_USE_CUBLAS)
-elseif (GGML_VULKAN)
-    find_package(Vulkan)
-    add_compile_definitions(BODY_USE_VULKAN)
-    add_compile_definitions(BODY_USE_GPU)
-    add_definitions(-DSD_USE_VULKAN)
 else()
-    # CPU default
+    # CPU default; no SDK probing and no GPU defines from CMake
 endif()
 
 # ---- Packaging specific flags ----
@@ -104,16 +57,8 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /DNOMINMAX /DWIN32_LEAN_AND_MEAN")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /utf-8")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
-    # Silence MSVC STL deprecation warning STL4043 for checked array iterators
-    # These warnings originate in MS headers and aren't actionable in this project; see build logs
+    # Silence MSVC STL deprecation warning for checked array iterators
     add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
-    if (GGML_CUDA)
-        find_package(CUDAToolkit)
-        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})
-        string(REGEX MATCH "^[0-9]+\\.[0-9]+" CUDA_VERSION ${CUDAToolkit_VERSION})
-        message(STATUS "cuda主版本 ${CUDA_VERSION_MAJOR}")
-        message(STATUS "cuda库路径 ${CUDAToolkit_BIN_DIR}")
-    endif()
 elseif (MINGW)
     add_compile_definitions(_XOPEN_SOURCE=600)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -Wall -Wextra -ffunction-sections -fdata-sections -fexceptions -mthreads")
@@ -122,27 +67,20 @@ elseif (UNIX)
     message(STATUS "Compiling on Unix/Linux")
     find_package(X11 REQUIRED)
     list(APPEND extra_LIBS X11::Xtst)
-    if (GGML_CUDA)
-        list(APPEND extra_INCLUDES ${CMAKE_SOURCE_DIR}/src/utils/gpuchecker.h)
-        find_package(CUDAToolkit)
-        string(REGEX MATCH "^[0-9]+" CUDA_VERSION_MAJOR ${CUDAToolkit_VERSION})
-        string(REGEX MATCH "^[0-9]+\\.[0-9]+" CUDA_VERSION ${CUDAToolkit_VERSION})
-        message(STATUS "cuda主版本 ${CUDA_VERSION_MAJOR}")
-        message(STATUS "cuda库路径 ${CUDAToolkit_BIN_DIR}")
-    endif()
 endif()
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm" AND NOT BODY_DOTPORD)
-    message(STATUS "arm下关闭所有cpu加速，使用clang编译器可提高一定速度")
+    message(STATUS "ARM 架构：建议使用 clang 以获得更好优化")
     set(GGML_NATIVE OFF)
 endif()
 
 if (NOT DEFINED GGML_LLAMAFILE)
-    set(GGML_LLAMAFILE_DEFAULT ON) # 默认开启LLAMAFILE加速
+    set(GGML_LLAMAFILE_DEFAULT ON)
 endif()
 if (NOT DEFINED GGML_CUDA_GRAPHS)
-    set(GGML_CUDA_GRAPHS_DEFAULT ON) # 默认开启CUDA_GRAPHS加速
+    set(GGML_CUDA_GRAPHS_DEFAULT ON)
 endif()
+
 # ---- Language standard ----
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

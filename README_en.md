@@ -334,3 +334,14 @@ In local mode and chat state, you can click on the date button to mount the tool
 - prob: The final selection probability of all tokens in the vocabulary in this sampling
 
 </details>
+
+## Prepare Backends (Manual)
+
+- Obtain prebuilt binaries and create a `backend/` folder at the project root (next to `CMakeLists.txt`).
+- Place required executables under `backend/<device>/` (any subfolder depth; EVA searches recursively):
+  - Local LLM: `llama-server` (with its dependent DLLs/SOs in the same folder)
+  - Speech2Text: `whisper-cli`
+  - Text2Image: `sd`
+- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `backend/`.
+- During build, CMake copies `backend/` to `build/bin/backend/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
+- On Windows with non-ASCII model paths, EVA auto-generates ASCII-safe aliases for third-party tools.

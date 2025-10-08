@@ -176,6 +176,15 @@ void LocalServerManager::ensureRunning()
 {
     const QString prog = programPath();
     const QStringList args = buildArgs();
+    // Validate executable presence
+    if (prog.isEmpty() || !QFileInfo::exists(prog))
+    {
+        const QString eb = DeviceManager::effectiveBackend();
+        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2'").arg(QStringLiteral("llama-server"), eb);
+        emit serverState(msg, WRONG_SIGNAL);
+        emit serverOutput(msg + "\n");
+        return;
+    }
     // If not running -> start; if running with different args -> restart
     if (!isRunning())
     {
@@ -190,7 +199,16 @@ void LocalServerManager::ensureRunning()
 
 void LocalServerManager::restart()
 {
+    const QString prog = programPath();
     const QStringList args = buildArgs();
+    if (prog.isEmpty() || !QFileInfo::exists(prog))
+    {
+        const QString eb = DeviceManager::effectiveBackend();
+        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2'").arg(QStringLiteral("llama-server"), eb);
+        emit serverState(msg, WRONG_SIGNAL);
+        emit serverOutput(msg + "\n");
+        return;
+    }
     if (isRunning())
     {
         proc_->kill(); // fast stop is fine here
@@ -299,4 +317,5 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
+
 
