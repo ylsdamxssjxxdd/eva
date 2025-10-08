@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include <QThread>
 
 Expend::Expend(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Expend)
@@ -176,8 +177,6 @@ void Expend::changeEvent(QEvent *event)
 Expend::~Expend()
 {
     delete ui;
-    // 尽量优雅停止，必要时强杀，避免服务残留
-    stopEmbeddingServer(true);
     sd_process->kill();
     whisper_process->kill();
     quantize_process->kill();
@@ -188,6 +187,25 @@ void Expend::stopEmbeddingServer(bool force)
 {
     if (!server_process)
         return;
+    auto killByPid = [&](qint64 pid) {
+#ifdef _WIN32
+        if (pid > 0)
+        {
+            QStringList args;
+            args << "/PID" << QString::number(pid) << "/T" << (force ? "/F" : QString());
+            args.erase(std::remove_if(args.begin(), args.end(), [](const QString &s) { return s.isEmpty(); }), args.end());
+            QProcess::execute("taskkill", args);
+        }
+#else
+        if (pid > 0)
+        {
+            // Try graceful then force kill as a fallback
+            QProcess::execute("kill", {"-TERM", QString::number(pid)});
+            QThread::msleep(200);
+            QProcess::execute("kill", {"-KILL", QString::number(pid)});
+        }
+#endif
+    };
 
     if (server_process->state() == QProcess::Running)
     {
@@ -196,27 +214,19 @@ void Expend::stopEmbeddingServer(bool force)
         if (!server_process->waitForFinished(1500))
         {
             // 超时后尝试强杀
-#ifdef _WIN32
             const qint64 pid = server_process->processId();
-            if (pid > 0)
-            {
-                // /T 终止整个进程树；/F 强制
-                QStringList args;
-                args << "/PID" << QString::number(pid) << "/T" << (force ? "/F" : QString());
-                // 过滤空参数，避免在某些 shell 下解析问题
-                args.erase(std::remove_if(args.begin(), args.end(), [](const QString &s) { return s.isEmpty(); }), args.end());
-                QProcess::execute("taskkill", args);
-            }
+            if (pid > 0) killByPid(pid);
             else
             {
                 server_process->kill();
             }
-#else
-            Q_UNUSED(force);
-            server_process->kill();
-#endif
             server_process->waitForFinished(1000);
         }
+    }
+    else if (embedding_server_pid > 0)
+    {
+        // QProcess 未跟踪，但进程可能仍在：按缓存 PID 再清一次
+        killByPid(embedding_server_pid);
     }
 }
 

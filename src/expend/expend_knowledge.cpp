@@ -48,6 +48,8 @@ void Expend::embedding_server_start()
     if (!DEFAULT_USE_MMAP) { arguments << "--no-mmap"; }
     // 开始运行程序
     server_process->start(program, arguments);
+    // 记录 PID（可能需要在 started 信号后再次刷新）
+    embedding_server_pid = server_process->processId();
 }
 
 // 获取server_process日志输出
@@ -96,7 +98,7 @@ void Expend::readyRead_server_process_StandardError()
 }
 
 //进程开始响应
-void Expend::server_onProcessStarted() {}
+void Expend::server_onProcessStarted() { embedding_server_pid = server_process->processId(); }
 
 //进程结束响应
 void Expend::server_onProcessFinished()
@@ -104,6 +106,7 @@ void Expend::server_onProcessFinished()
     ui->embedding_test_log->appendPlainText(jtr("embedding server abort"));
     ui->embedding_txt_modelpath_button->setText("...");
     qDebug() << "嵌入服务终止";
+    embedding_server_pid = -1;
 }
 
 //用户点击上传路径时响应

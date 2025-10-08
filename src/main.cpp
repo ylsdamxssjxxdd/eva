@@ -180,6 +180,9 @@ int main(int argc, char *argv[])
     QObject::connect(
         &a, &QCoreApplication::aboutToQuit, &net, [&net]() { net.recv_stop(true); }, Qt::QueuedConnection);
     QObject::connect(&a, &QCoreApplication::aboutToQuit, net_thread, &QThread::quit, Qt::QueuedConnection);
+    // Ensure knowledge-base embedding server is stopped when the app quits,
+    // even if the Expend window was closed earlier
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, &expend, [&expend]() { expend.stopEmbeddingServer(true); }, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
