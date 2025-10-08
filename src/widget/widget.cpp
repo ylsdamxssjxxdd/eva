@@ -77,8 +77,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     setApiDialog();                                               //设置api选项
     set_DateDialog();                                             //设置约定选项
     set_SetDialog();                                              //设置设置选项
-            lastServerRestart_ = false;
-ui_state_init();                                              //初始界面状态
+    lastServerRestart_ = false;
+    ui_state_init();                                              //初始界面状态
     ui->input->textEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
     ui->input->installEventFilter(this);                          //安装事件过滤器
     ui->input->textEdit->installEventFilter(this);                //安装事件过滤器
