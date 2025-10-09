@@ -721,6 +721,19 @@ void Widget::auto_save_user()
 }
 
 // Update engineer working directory, propagate to xTool, without forcing reset
+// Update engineer working directory without emitting signal (used during startup restore)
+void Widget::setEngineerWorkDirSilently(const QString &dir)
+{
+    if (dir.isEmpty()) return;
+    engineerWorkDir = QDir::cleanPath(dir);
+    if (date_ui && date_ui->date_engineer_workdir_LineEdit)
+    {
+        date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+    }
+    // Note: no emit here; caller decides when to notify tools
+    // Also refresh extra prompt so UI shows updated path in system message
+    ui_extra_prompt = create_extra_prompt();
+}
 void Widget::setEngineerWorkDir(const QString &dir)
 {
     if (dir.isEmpty()) return;

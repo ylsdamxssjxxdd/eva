@@ -1,4 +1,4 @@
-﻿#ifndef WIDGET_H
+#ifndef WIDGET_H
 #define WIDGET_H
 
 #include <QApplication>
@@ -126,6 +126,8 @@ class Widget : public QWidget
     void get_date();        //获取约定中的纸面值
     // Set engineer working directory and propagate to xTool
     void setEngineerWorkDir(const QString &dir);
+    // Set workdir without emitting signals (for early restore during startup)
+    void setEngineerWorkDirSilently(const QString &dir);
 
     void ui_state_init();      //初始界面状态
     void ui_state_loading();   //装载中界面状态

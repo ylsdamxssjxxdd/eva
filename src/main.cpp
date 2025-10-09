@@ -301,6 +301,13 @@ int main(int argc, char *argv[])
         w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", 0).toBool());
         w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", 0).toBool());
         w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", 0).toBool());
+        // Restore engineer work dir before toggling engineer checkbox (avoid double emits)
+        {
+            const QString saved = settings.value("engineer_work_dir", QDir(w.applicationDirPath).filePath("EVA_WORK")).toString();
+            QString norm = QDir::cleanPath(saved);
+            if (!QDir(norm).exists()) { norm = QDir(w.applicationDirPath).filePath("EVA_WORK"); }
+            w.setEngineerWorkDirSilently(norm);
+        }
         w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
         w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
