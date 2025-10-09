@@ -250,6 +250,7 @@ int main(int argc, char *argv[])
     QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           //完成推理
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               //传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            //开始推理
+    QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);                 // 设置工程师工作目录
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 //传递已嵌入文本段数据
@@ -290,6 +291,12 @@ int main(int argc, char *argv[])
     w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
     w.apis.api_key = w.api_key_LineEdit->text();
     w.apis.api_model = w.api_model_LineEdit->text();
+    // Engineer working directory: persist user's choice; fallback to EVA_WORK under app dir
+    {
+        const QString defWork = QDir(applicationDirPath).filePath("EVA_WORK");
+        const QString engWork = settings.value("engineer_work_dir", defWork).toString();
+        w.setEngineerWorkDir(engWork);
+    }
     w.custom1_date_system = settings.value("custom1_date_system", "").toString();
     w.custom1_user_name = settings.value("custom1_user_name", "").toString();
     w.custom1_model_name = settings.value("custom1_model_name", "").toString();

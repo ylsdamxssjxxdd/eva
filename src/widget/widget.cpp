@@ -15,6 +15,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->setupUi(this);
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
+    // Default engineer workdir under application directory
+    engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); //设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1); //设置分隔器中第二个元素初始高度占比为1
 
@@ -151,7 +153,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         EVA_title = jtr("current model") + " ";
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
-        ui_state_init();
+        unlockButtonsAfterError();
     });
 
     //应用语言语种，注意不能影响行动纲领（主要流程）

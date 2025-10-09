@@ -59,6 +59,9 @@ class xTool : public QObject
     xTool(QString applicationDirPath_ = "./");
     ~xTool();
     QString applicationDirPath;
+    // Root directory for engineer tools to read/write and execute.
+    // Defaults to {applicationDirPath}/EVA_WORK but can be overridden from UI.
+    QString workDirRoot;
     //拯救中文
     QJsonObject wordsObj;
     int language_flag = 0;
@@ -88,6 +91,8 @@ class xTool : public QObject
     void recv_language(int language_flag_);
     void recv_callTool_over(QString result);
     void recv_calllist_over();
+    // Update working directory root for engineer tools
+    void recv_workdir(QString dir);
   signals:
     void tool2mcp_toollist();
     void tool2mcp_toolcall(QString tool_name, QString tool_args);

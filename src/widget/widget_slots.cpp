@@ -150,6 +150,16 @@ void Widget::tool_change()
         {
             python_env = checkPython();
             compile_env = checkCompile();
+            // Prompt user to pick a working directory for engineer tools
+            QString startDir = engineerWorkDir.isEmpty() ? QDir(applicationDirPath).filePath("EVA_WORK") : engineerWorkDir;
+            QString picked = QFileDialog::getExistingDirectory(this, jtr("choose work dir"), startDir,
+                                                               QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+            if (!picked.isEmpty())
+            {
+                setEngineerWorkDir(picked);
+                // Persist immediately to avoid losing selection on crash
+                auto_save_user();
+            }
         }
     }
 
@@ -971,6 +981,26 @@ void Widget::recv_reasoning_tokens(int tokens)
 void Widget::onServerOutput(const QString &line)
 {
     
+    // Detect fatal/failed patterns in llama.cpp server logs and unlock UI promptly
+    {
+        const QString l = line.toLower();
+        static const QStringList badKeys = {
+            QStringLiteral(" failed"), QStringLiteral("fatal"), QStringLiteral("segmentation fault"),
+            QStringLiteral("assertion failed"), QStringLiteral("panic"), QStringLiteral("unhandled"),
+            QStringLiteral("exception"), QStringLiteral("could not"), QStringLiteral("cannot "),
+            QStringLiteral("error:")
+        };
+        bool hit = false;
+        for (const QString &k : badKeys) { if (l.contains(k)) { hit = true; break; } }
+        // Filter out benign phrases like "no error" if present
+        if (hit && !l.contains("no error"))
+        {
+            reflash_state(QString::fromUtf8("ui:后端异常输出，已解锁控件"), WRONG_SIGNAL);
+            if (decode_pTimer && decode_pTimer->isActive()) decode_fail();
+            is_load = false;
+            unlockButtonsAfterError();
+        }
+    }
     // 0) Track turn lifecycle heuristics
     // Start/resume turn timer when server prints a new prompt line
     if (line.contains("new prompt") || line.contains("launch_slot_"))
@@ -1181,7 +1211,8 @@ void Widget::onServerStartFailed(const QString &reason)
     load_action = 0;
 
     // 解锁界面，允许用户立即调整设置或重新装载
-    ui_state_normal();
-    // 明确允许打开“设置”以便更换后端/设备
+    unlockButtonsAfterError();
+    // 明确允许打开“设置/约定”以便更换后端/设备/提示词
     if (ui && ui->set) ui->set->setEnabled(true);
+    if (ui && ui->date) ui->date->setEnabled(true);
 }

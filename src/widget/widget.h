@@ -81,6 +81,8 @@ class Widget : public QWidget
     Widget(QWidget *parent = nullptr, QString applicationDirPath_ = "./");
     ~Widget();
     QString applicationDirPath;
+    // Engineer tool working directory; default to {applicationDirPath}/EVA_WORK
+    QString engineerWorkDir;
     bool eventFilter(QObject *obj, QEvent *event) override; // 事件过滤器函数
     // QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
     QHotkey *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
@@ -122,6 +124,8 @@ class Widget : public QWidget
     void auto_save_user();  //每次约定和设置后都保存配置到本地
     void get_set();         //获取设置中的纸面值
     void get_date();        //获取约定中的纸面值
+    // Set engineer working directory and propagate to xTool
+    void setEngineerWorkDir(const QString &dir);
 
     void ui_state_init();      //初始界面状态
     void ui_state_loading();   //装载中界面状态
@@ -129,6 +133,7 @@ class Widget : public QWidget
     void ui_state_servering(); //服务中界面状态
     void ui_state_normal();    //待机界面状态
     void ui_state_recoding();  //录音界面状态
+    void unlockButtonsAfterError(); // 异常后解锁：强制开放“约定/设置/装载”
 
     //模型控制相关
     EVA_CHATS_TEMPLATE bot_chat;       // 经过模型自带模板格式化后的内容
@@ -344,6 +349,7 @@ SETTINGS settings_snapshot_;
     //发送给tool的信号
     void ui2tool_language(int language_flag_); //传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   //开始推理
+    void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
     void recv_controller_over(QString result);
 
     //发送给expend的信号

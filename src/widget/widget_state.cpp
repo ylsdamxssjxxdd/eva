@@ -118,6 +118,19 @@ void Widget::ui_state_normal()
     }
 }
 
+// After backend exceptions or unexpected stops, ensure core controls are usable.
+// Always allow "约定" and "设置" so user can adjust and recover.
+void Widget::unlockButtonsAfterError()
+{
+    // Base normalization
+    ui_state_normal();
+    // Force-enable key controls regardless of current load flag
+    if (ui && ui->load) ui->load->setEnabled(true);
+    if (ui && ui->date) ui->date->setEnabled(true);
+    if (ui && ui->set)  ui->set->setEnabled(true);
+    // Send/reset remain governed by whether a model/endpoint is active
+}
+
 //录音界面状态
 void Widget::ui_state_recoding()
 {

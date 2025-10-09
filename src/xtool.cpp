@@ -4,12 +4,22 @@
 xTool::xTool(QString applicationDirPath_)
 {
     applicationDirPath = applicationDirPath_;
-
+    // Default engineer working directory under app path
+    workDirRoot = QDir::cleanPath(applicationDirPath + "/EVA_WORK");
     qDebug() << "tool init over";
 }
 xTool::~xTool()
 {
     ;
+}
+
+// Update working directory root for engineer tools (created lazily)
+void xTool::recv_workdir(QString dir)
+{
+    if (dir.isEmpty()) return;
+    workDirRoot = QDir::cleanPath(dir);
+    // Do not force-create here to avoid unwanted dirs; Exec() ensures presence
+    emit tool2ui_state("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
 }
 
 void xTool::Exec(mcp::json tools_call)
@@ -40,9 +50,9 @@ void xTool::Exec(mcp::json tools_call)
     {
         const QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
         emit tool2ui_state("tool:" + QString("execute_command(") + content + ")");
-        // Ensure working dir exists
-        createTempDirectory(applicationDirPath + "/EVA_WORK");
-        const QString work = applicationDirPath + "/EVA_WORK";
+        // Ensure working dir exists (UI can override workDirRoot)
+        if (!workDirRoot.isEmpty()) { createTempDirectory(workDirRoot); }
+        const QString work = workDirRoot.isEmpty() ? QDir::cleanPath(applicationDirPath + "/EVA_WORK") : workDirRoot;
         // Inherit system env; on Linux prepend common bin dirs
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 #ifdef __linux__
@@ -116,8 +126,11 @@ void xTool::Exec(mcp::json tools_call)
         // 获取路径参数
         QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "path"));
         QString filepath = build_in_tool_arg;
-        filepath.replace(applicationDirPath + "/EVA_WORK/", ""); //去重
-        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+        // Normalize to work root; strip duplicated root prefix then join
+        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
+        filepath = QDir::fromNativeSeparators(filepath);
+        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
+        filepath = QDir(root).filePath(filepath);
 
         // 获取行号参数，默认为1
         int start_line = get_int_safely(tools_args_, "start_line", 1);
@@ -165,8 +178,10 @@ void xTool::Exec(mcp::json tools_call)
     {
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
         QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
-        filepath.replace(applicationDirPath + "/EVA_WORK/", ""); //去重
-        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
+        filepath = QDir::fromNativeSeparators(filepath);
+        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
+        filepath = QDir(root).filePath(filepath);
         // Extract the directory path from the file path
         QFileInfo fileInfo(filepath);
         QString dirPath = fileInfo.absolutePath();
@@ -211,8 +226,10 @@ void xTool::Exec(mcp::json tools_call)
         }
 
         // 必须使用工作目录根做一次“去重 + 归一化”
-        filepath.replace(applicationDirPath + "/EVA_WORK/", "");
-        filepath = applicationDirPath + "/EVA_WORK/" + filepath;
+        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
+        filepath = QDir::fromNativeSeparators(filepath);
+        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
+        filepath = QDir(root).filePath(filepath);
 
         // ─────── 2. 读取文件 ───────
         QFile inFile(filepath);

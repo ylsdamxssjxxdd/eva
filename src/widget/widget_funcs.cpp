@@ -367,7 +367,9 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{SHELL}", shell);
     engineer_system_info_.replace("{COMPILE_ENV}", compile_env);
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
-    engineer_system_info_.replace("{DIR}", applicationDirPath + "/EVA_WORK");
+    // Use selected engineer working directory (fallback to default)
+    const QString dir = engineerWorkDir.isEmpty() ? (applicationDirPath + "/EVA_WORK") : engineerWorkDir;
+    engineer_system_info_.replace("{DIR}", dir);
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
@@ -700,6 +702,7 @@ void Widget::auto_save_user()
     settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); //计算器工具
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer工具
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
+    settings.setValue("engineer_work_dir", engineerWorkDir);                                       // 工程师工作目录
     settings.setValue("extra_lan", ui_extra_lan);                                                  //额外指令语种
     //保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
@@ -714,6 +717,15 @@ void Widget::auto_save_user()
     settings.setValue("api_model", apis.api_model);
         settings.sync(); // flush to disk immediately
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
+}
+
+// Update engineer working directory, propagate to xTool, without forcing reset
+void Widget::setEngineerWorkDir(const QString &dir)
+{
+    if (dir.isEmpty()) return;
+    engineerWorkDir = QDir::cleanPath(dir);
+    emit ui2tool_workdir(engineerWorkDir);
+    reflash_state(QString::fromUtf8("ui:工程师工作目录 -> ") + engineerWorkDir, SIGNAL_SIGNAL);
 }
 //监视时间到
 void Widget::monitorTime()

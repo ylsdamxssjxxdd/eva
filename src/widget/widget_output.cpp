@@ -146,4 +146,22 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         format.clearForeground();                //清除前景颜色
         ui->state->setCurrentCharFormat(format); //设置光标格式
     }
+
+    // Lightweight auto-wait indicator for long-running tool actions
+    // If we see a tool "start" line and no spinner is active, start a spinner;
+    // when we see a tool "return" line, stop it. This avoids interfering
+    // with the main decode spinner during model generation.
+    if (state_string.startsWith("tool:"))
+    {
+        const bool isReturn = state_string.contains(jtr("return")) || state_string.contains("return");
+        const bool looksStart = state_string.contains('(') && !isReturn;
+        if (looksStart && (!decode_pTimer || !decode_pTimer->isActive()))
+        {
+            wait_play("tool executing");
+        }
+        else if (isReturn && decode_pTimer && decode_pTimer->isActive() && decodeLabelKey_ == QStringLiteral("tool executing"))
+        {
+            decode_finish();
+        }
+    }
 }
