@@ -39,6 +39,8 @@ void xNet::resetState()
     promptMs_ = 0.0;
     predictedTokens_ = -1;
     predictedMs_ = 0.0;
+    promptPerSec_ = -1.0;
+    predictedPerSec_ = -1.0;
     timingsReceived_ = false;
 }
 
@@ -249,6 +251,9 @@ void xNet::run()
                         predictedTokens_ = tobj.value("predicted_n").toInt(predictedTokens_);
                         predictedMs_ = tobj.value("predicted_ms").toDouble(predictedMs_);
                         timingsReceived_ = true;
+                        // optional direct speeds (tokens/sec) if provided by server
+                        if (tobj.contains("prompt_per_second")) promptPerSec_ = tobj.value("prompt_per_second").toDouble(promptPerSec_);
+                        if (tobj.contains("predicted_per_second")) predictedPerSec_ = tobj.value("predicted_per_second").toDouble(predictedPerSec_);
                     }
                 };
 
@@ -303,6 +308,13 @@ void xNet::run()
                 if (httpCode)
                     emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
             }
+            // Report final speeds from timings if available
+            if (timingsReceived_) {
+                double promptPerSec = promptPerSec_ >= 0.0 ? promptPerSec_ : ((promptMs_ > 0.0 && promptTokens_ >= 0) ? (1000.0 * double(promptTokens_) / promptMs_) : -1.0);
+                double genPerSec = predictedPerSec_ >= 0.0 ? predictedPerSec_ : ((predictedMs_ > 0.0 && predictedTokens_ >= 0) ? (1000.0 * double(predictedTokens_) / predictedMs_) : -1.0);
+                emit net2ui_speeds(promptPerSec, genPerSec);
+            }
+
         }
 
         if (reply_)

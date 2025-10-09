@@ -419,21 +419,6 @@ void Widget::on_send_clicked()
 //模型输出完毕的后处理
 void Widget::recv_pushover()
 {
-    // Finalize speed display for LINK mode (remote server): single-line output
-    if (ui_mode == LINK_MODE)
-    {
-        turnActive_ = false;
-        double genTps = -1.0;
-        const double secs = turnTimer_.isValid() ? (turnTimer_.nsecsElapsed() / 1e9) : 0.0;
-        if (secs > 0.0 && kvStreamedTurn_ > 0)
-        {
-            genTps = double(kvStreamedTurn_) / secs;
-        }
-        const QString genStr = (genTps > 0.0) ? (QString::number(genTps, 'f', 2) + " tokens/s") : QString::fromUtf8("--");
-        const QString promptStr = QString::fromUtf8("--"); // 链接模式不显示上文处理速度
-        reflash_state(QString::fromUtf8("ui: 文字生成 ") + genStr + QString::fromUtf8("  上文处理 ") + promptStr, USUAL_SIGNAL);
-    }
-
     // Separate reasoning (<think>...</think>) from final content; don't add reasoning to messagesArray
     QString reasoningText;
     QString finalText = temp_assistant_history;
@@ -699,10 +684,6 @@ void Widget::on_reset_clicked()
     kvUsed_ = 0;
     kvUsedBeforeTurn_ = 0;
     kvStreamedTurn_ = 0;
-    lastPromptTps_ = -1.0;
-    lastGenTps_ = -1.0;
-    sawPromptTps_ = false;
-    sawGenTps_ = false;
     turnActive_ = false;
     updateKvBarUi();
     currentSlotId_ = -1; // new conversation -> no slot yet
@@ -981,3 +962,14 @@ void Widget::restoreSessionById(const QString &sessionId)
 }
 
 
+
+// Receive final per-turn speeds from xNet timings and print a single UI line
+void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
+{
+    const bool haveGen = genPerSec > 0.0;
+    const bool havePrompt = promptPerSec > 0.0;
+    if (!haveGen && !havePrompt) return; // 没有就不打印
+    const QString genStr = haveGen ? (QString::number(genPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
+    const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
+    reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
+}

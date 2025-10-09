@@ -168,23 +168,13 @@ class Widget : public QWidget
     int kvTokensAccum_ = 0;    // accumulated used tokens across the conversation
     int kvTokensTurn_ = 0;     // this-turn processed tokens (prompt_n + generated)
     int server_nctx_ = 0;      // captured from llama_server logs for verification
-    // KV / speed tracking (both local + link modes)
+        // KV tracking
     int slotCtxMax_ = 0;       // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
     int kvUsed_ = 0;           // current server-side n_past approximation
     int kvUsedBeforeTurn_ = 0; // n_past at the beginning of current turn
     int kvStreamedTurn_ = 0;   // approximate streamed tokens in this turn (from xNet)
     bool turnActive_ = false;  // a request is in-flight
-    QElapsedTimer turnTimer_;  // used for fallback generation speed
-    double lastPromptTps_ = -1.0; // prompt processing speed (tokens/s), -1 if unknown
-    double lastGenTps_ = -1.0;    // generation speed (tokens/s), -1 if unknown
-    bool sawPromptTps_ = false;
-    bool sawGenTps_ = false;
     bool sawFinalPast_ = false;   // saw stop processing n_past -> prefer this over totals
-    // 在本地后端完成一次冷启动/重启后，llama-server 会先打印一条
-    // "update_slots: all slots are idle" 作为基线。该条不代表一次真实
-    // 推理轮次结束，不应刷新一次“速度”状态行。用该标志抑制下一次
-    // all-idle 日志对应的速度输出。
-    bool suppressNextAllIdle_ = false;
     int ui_maxngl = 0;         //模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1;           //最大线程数
@@ -393,6 +383,7 @@ SETTINGS settings_snapshot_;
     void recv_kv_from_net(int usedTokens);                                       // update kv from llama.cpp server timings
     void onSlotAssigned(int slotId);                                             // server slot id notification
     void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
+    void recv_net_speeds(double promptPerSec, double genPerSec);                 // final speeds from xNet timings
     void recv_monitor_decode_ok();
 
     //处理expend信号的槽
@@ -468,3 +459,5 @@ SETTINGS settings_snapshot_;
 };
 
 #endif // WIDGET_H
+
+

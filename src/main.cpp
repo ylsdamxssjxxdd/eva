@@ -235,6 +235,7 @@ int main(int argc, char *argv[])
     QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
     QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
     QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             //流式近似KV用量（链接模式兜底）
+    QObject::connect(net, &xNet::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
     QObject::connect(net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
     QObject::connect(net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
     QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               //开始推理
@@ -388,3 +389,4 @@ int main(int argc, char *argv[])
     w.show(); //展示窗口
     return a.exec(); //进入事件循环
 }
+

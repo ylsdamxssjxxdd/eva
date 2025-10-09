@@ -486,7 +486,6 @@ void Widget::ensureLocalServer()
     lastServerRestart_ = serverManager->needsRestart();
     const bool hadOld = serverManager->isRunning();
     // Fresh start or planned restart -> next "all slots are idle" is just baseline; suppress one speed line
-    if (lastServerRestart_ || !hadOld) suppressNextAllIdle_ = true;
     ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
     if (lastServerRestart_)
     {
@@ -557,17 +556,10 @@ void Widget::onServerReady(const QString &endpoint)
 void Widget::api_send_clicked_slove()
 {
     // 注：联机模式也加前后缀
-    QString input;
-
-    // Begin a new turn: reset KV/speed trackers
+    QString input;    // Begin a new turn: reset KV trackers
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
     kvStreamedTurn_ = 0;
-    lastPromptTps_ = -1.0;
-    lastGenTps_ = -1.0;
-    sawPromptTps_ = false;
-    sawGenTps_ = false;
-    turnTimer_.restart();
 
     emit ui2net_stop(0);
     ENDPOINT_DATA data;
@@ -1040,18 +1032,12 @@ void Widget::onServerOutput(const QString &line)
         }
     }
     // 0) Track turn lifecycle heuristics
-    // Start/resume turn timer when server prints a new prompt line
     if (line.contains("new prompt") || line.contains("launch_slot_"))
     {
         turnActive_ = true;
         kvUsedBeforeTurn_ = kvUsed_;
         kvStreamedTurn_ = 0;
-        lastPromptTps_ = -1.0;
-        lastGenTps_ = -1.0;
-        sawPromptTps_ = false;
-        sawGenTps_ = false;
         sawFinalPast_ = false;
-        turnTimer_.restart();
     }
 
     // 1) capture n_ctx for verification
@@ -1145,37 +1131,8 @@ void Widget::onServerOutput(const QString &line)
         // reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
     }
 
-    // 3) prompt eval / eval time speeds and total tokens
-    static QRegularExpression rePrompt(
-        "prompt\\s*(?:eval\\s*)?time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)",
-        QRegularExpression::CaseInsensitiveOption);
-    static QRegularExpression rePromptAlt(
-        "prompt\\s*(?:processing\\s*)?time\\s*=\\s*([0-9.]+)\\s*ms.*?([0-9.]+)\\s*tokens per second",
-        QRegularExpression::CaseInsensitiveOption);
-    static QRegularExpression reGen(
-        "^\\s*eval\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens\\s*\\(.*?,\\s*([0-9.]+)\\s*tokens per second\\)",
-        QRegularExpression::CaseInsensitiveOption);
+    // 3) total tokens (for KV correction)
     static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
-
-    QRegularExpressionMatch mPrompt = rePrompt.match(line);
-    if (mPrompt.hasMatch()) {
-        // tokens per second for prompt processing is group 3
-        lastPromptTps_ = mPrompt.captured(3).toDouble();
-        sawPromptTps_ = true;
-    } else {
-        QRegularExpressionMatch m1b = rePromptAlt.match(line);
-        if (m1b.hasMatch()) {
-            lastPromptTps_ = m1b.captured(2).toDouble();
-            sawPromptTps_ = true;
-        }
-    }
-
-    QRegularExpressionMatch mGen = reGen.match(line);
-    if (mGen.hasMatch()) {
-        lastGenTps_ = mGen.captured(3).toDouble();
-        sawGenTps_ = true;
-    }
-
     QRegularExpressionMatch m3 = reTotal.match(line);
     if (m3.hasMatch())
     {
@@ -1208,24 +1165,6 @@ void Widget::onServerOutput(const QString &line)
     if (mStop.hasMatch()) {
         bool ok=false; int past = mStop.captured(1).toInt(&ok);
         if (ok) { kvUsed_ = qMax(0, past); sawFinalPast_ = true; updateKvBarUi(); }
-    }
-    // 5) all slots idle -> finalize speeds for this turn
-    if (line.contains("all slots are idle"))
-    {
-        // Suppress the very first idle baseline after (re)start to avoid a fake "速度"行闪烁
-        if (suppressNextAllIdle_) { suppressNextAllIdle_ = false; return; }
-        turnActive_ = false;
-        double promptTps = sawPromptTps_ ? lastPromptTps_ : -1.0;
-        double genTps = sawGenTps_ ? lastGenTps_ : -1.0;
-        if (genTps <= 0.0) {
-            // fallback: use streamed token count divided by turn time (seconds)
-            const double secs = turnTimer_.isValid() ? (turnTimer_.nsecsElapsed() / 1e9) : 0.0;
-            if (secs > 0.0 && kvStreamedTurn_ > 0) genTps = double(kvStreamedTurn_) / secs;
-        }
-        // report one-line combined speeds with prefix "ui:"
-        const QString genStr = (genTps > 0.0) ? (QString::number(genTps, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
-        const QString promptStr = (promptTps > 0.0) ? (QString::number(promptTps, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
-        reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr  + " " + jtr("batch decode")  + " " + (ui_mode == LOCAL_MODE ? promptStr : QString::fromUtf8("--")), SUCCESS_SIGNAL);
     }
 }
 

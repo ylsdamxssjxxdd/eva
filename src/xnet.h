@@ -59,6 +59,9 @@ class xNet : public QObject
     void net2ui_kv_tokens(int usedTokens);                                                        // streaming used token count -> UI
     void net2ui_slot_id(int slotId);                                                              // server-assigned slot id for this conversation
     void net2ui_reasoning_tokens(int count);                                                      // tokens generated inside <think>..</think> this turn (approx)
+    // Final per-turn speeds from llama.cpp server timings (tokens/second)
+    // prompt_per_second = 上文处理速度; predicted_per_second = 文字生成速度
+    void net2ui_speeds(double prompt_per_second, double predicted_per_second);
 
   private:
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead
@@ -82,6 +85,9 @@ class xNet : public QObject
     double predictedMs_ = 0.0;     // timings.predicted_ms
     bool timingsReceived_ = false; // whether timings were seen in SSE stream
     int reasoningTokensTurn_ = 0;  // approx count for <think> tokens this turn
+    // Optional direct speeds when provided by server (tokens/second); -1 if unknown
+    double promptPerSec_ = -1.0;
+    double predictedPerSec_ = -1.0;
 
     // Keep track of connections to safely disconnect on abort
     QMetaObject::Connection connReadyRead_;
