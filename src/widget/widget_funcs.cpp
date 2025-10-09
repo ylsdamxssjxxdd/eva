@@ -1,6 +1,8 @@
 //功能函数
 #include "ui_widget.h"
 #include "widget.h"
+#include "../utils/depresolver.h"
+#include "../utils/processrunner.h"
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDialog>
@@ -242,87 +244,22 @@ QString Widget::truncateString(const QString &str, int maxLength)
 //获取环境中的python版本以及库信息
 QString Widget::checkPython()
 {
-    QString result;
-    // Initialize the python executable name
-    QString pythonExecutable = DEFAULT_PYTHON;
-    QProcess process;
-    QStringList shellArgs;
-    shellArgs << CMDGUID << pythonExecutable + " --version";
-    process.start(shell, shellArgs);
-    process.waitForFinished();
-    QString versionOutput = process.readAllStandardOutput();
-    QString versionError = process.readAllStandardError();
-    QString versionInfo = versionOutput + versionError;
-    // If still not found, return an error message
-    if (versionInfo.isEmpty())
-    {
-        result += "Python interpreter not found in the system environment.\n";
-        return result;
+    // Prefer project-local venv; fallback to system python3 (Windows-aware)
+    const QString projDir = applicationDirPath; // base of app
+    ExecSpec spec = DependencyResolver::discoverPython3(projDir);
+    if (spec.program.isEmpty()) {
+        return QStringLiteral("Python interpreter not found in PATH or project venv.\n");
     }
-    else
-    {
-        QStringList shellArgs2;
-#ifdef Q_OS_WIN
-        shellArgs2 << CMDGUID << pythonExecutable << "-c"
-                   << "import sys; print(sys.executable)";
-#elif defined(Q_OS_LINUX)
-        // 注意linux下不能有两个-c
-        shellArgs2 << CMDGUID << pythonExecutable + "-c \"import sys; print(sys.executable)\"";
-#endif
-        process.start(shell, shellArgs2);
-        process.waitForFinished();
-        QString python_absolutePath = process.readAllStandardOutput().trimmed();
-        result += versionInfo + " " + python_absolutePath + "\n";
-    }
-    // // 获取安装库信息
-    // QStringList shellArgs3;
-    // shellArgs3 << CMDGUID << pythonExecutable + " -m pip list";
-    // process.start(shell, shellArgs3);
-    // process.waitForFinished();
-    // QString pipOutput = process.readAllStandardOutput();
-    // QString pipError = process.readAllStandardError();
-    // QString pipList = pipOutput + pipError;
-    // // 不想展示的库
-    // QStringList excludeLibraries = {
-    //     "anyio", "appdirs", "archspec", "arrow", "astroid", "astropy", "astropy-iers-data", "asttokens", "async-lru", "attrs", "autopep8", "Babel", "black", "bleach", "bokeh", "botocore", "Bottleneck",
-    //     "aiohttp", "aioitertools", "altair", "anaconda-anon-usage", "anaconda-catalogs", "anaconda-client", "anaconda-cloud-auth", "anaconda-navigator", "anaconda-project",
-    //     "aiobotocore", "aiohappyeyeballs", "aiosignal", "alabaster", "annotated-types", "argon2-cffi", "argon2-cffi-bindings", "atomicwrites", "Automat", "bcrypt", "binaryornot",
-    //     "blinker", "boltons", "Brotli", "cachetools", "cffi", "chardet", "charset-normalizer", "colorama", "cssselect", "cycler", "cytoolz", "decorator", "defusedxml", "diff-match-patch",
-    //     "distro", "docstring-to-markdown", "et-xmlfile", "executing", "frozenlist", "frozendict", "h11", "HeapDict", "hyperlink", "idna", "imagecodecs", "imagesize", "importlib-metadata",
-    //     "incremental", "iniconfig", "intervaltree", "ipython-genutils", "jaraco.classes", "jmespath", "jsonpointer", "jsonpatch", "json5", "lazy-object-proxy", "lazy_loader", "locket",
-    //     "mdit-py-plugins", "mdurl", "mkl_fft", "mkl_random", "mkl-service", "more-itertools", "mpmath", "multidict", "multipledispatch", "mypy-extensions", "navigator-updater", "nest-asyncio", "overrides",
-    //     "pkce", "platformdirs", "pluggy", "pure-eval", "py-cpuinfo", "pyasn1", "pyasn1-modules", "pycosat", "pyct", "pydocstyle", "pyerfa", "pylint-venv", "pyls-spyder", "pytoolconfig", "pyviz_comms",
-    //     "pywin32-ctypes", "pywinpty", "queuelib", "referencing", "rfc3339-validator", "rfc3986-validator", "rope", "rpds-py", "ruamel.yaml.clib", "ruamel-yaml-conda", "safetensors", "semver",
-    //     "service-identity", "sip", "smmap", "sniffio", "snowballstemmer", "sortedcontainers", "stack-data", "tblib", "tenacity", "text-unidecode", "textdistance", "threadpoolctl", "three-merge", "tinycss2", "tldextract",
-    //     "tomli", "toolz", "truststore", "twisted-iocpsupport", "ua-parser", "ua-parser-builtins", "uc-micro-py", "unicodedata2", "user-agents", "w3lib", "whatthepatch", "windows-curses", "zict", "zope.interface", "zstandard"
-    // };
-    // // If pip output is empty, pip may not be installed
-    // if (pipList.contains("No module named pip")) {
-    //     result += "pip is not installed for the detected Python interpreter.\n";
-    // } else if (pipList.isEmpty()) {
-    //     result += "No Python libraries installed or unable to retrieve the list.\n";
-    // } else {
-    //     // Extract package names from the pip list output
-    //     QStringList lines = pipList.split('\n');
-    //     QStringList packageNames;
-    //     // Skip the first line (header) and process the rest
-    //     for (int i = 2; i < lines.size(); ++i) {  // Start from the second line
-    //         QString line = lines[i].trimmed();
-    //         if (line.isEmpty()) continue;  // Skip empty lines
-    //         QStringList parts = line.split(QRegExp("\\s+"));  // Split by whitespace
-    //         if (parts.size() > 0) {
-    //             QString packageName = parts[0];
-    //             if (!excludeLibraries.contains(packageName)) {  // Exclude foundational libraries
-    //                 packageNames.append(packageName);
-    //             }
-    //         }
-    //     }
-    //     // Join the package names into a single string, separated by spaces
-    //     result += "Part Installed Python Libraries: " + truncateString(packageNames.join(" "),MAX_INPUT);
-    // }
-    return result;
-}
-QString Widget::checkCompile()
+    const QString ver = DependencyResolver::pythonVersion(spec);
+    QString path = spec.absolutePath.isEmpty() ? spec.program : spec.absolutePath;
+    QString out = ver + " " + path + "\n";
+    // Append core tool locations
+    const QString git = DependencyResolver::findGit();
+    const QString cm = DependencyResolver::findCMake();
+    out += QStringLiteral("git: %1\n").arg(git.isEmpty() ? QStringLiteral("not found") : git);
+    out += QStringLiteral("cmake: %1\n").arg(cm.isEmpty() ? QStringLiteral("not found") : cm);
+    return out;
+}QString Widget::checkCompile()
 {
     QString compilerInfo;
     QProcess process;
@@ -1087,4 +1024,8 @@ void Widget::openHistoryManager()
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
+
+
+
+
 

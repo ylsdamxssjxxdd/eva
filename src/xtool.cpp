@@ -1,4 +1,5 @@
 #include "xtool.h"
+#include "utils/processrunner.h"
 
 xTool::xTool(QString applicationDirPath_)
 {
@@ -37,35 +38,19 @@ void xTool::Exec(mcp::json tools_call)
     //----------------------命令提示符------------------
     else if (tools_name == "execute_command")
     {
-        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "content"));
-        QProcess *process = new QProcess();
-        createTempDirectory(applicationDirPath + "/EVA_WORK");          //防止没有这个目录
-        process->setWorkingDirectory(applicationDirPath + "/EVA_WORK"); // 设置运行目录
-        // +++ 添加环境变量支持 +++
+        const QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
+        emit tool2ui_state("tool:" + QString("execute_command(") + content + ")");
+        // Ensure working dir exists
+        createTempDirectory(applicationDirPath + "/EVA_WORK");
+        const QString work = applicationDirPath + "/EVA_WORK";
+        // Inherit system env; on Linux prepend common bin dirs
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 #ifdef __linux__
-        // 追加Linux终端PATH（通常包含用户级工具路径）
-        QString path = env.value("PATH");
-        env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + path);
+        env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + env.value("PATH"));
 #endif
-        process->setProcessEnvironment(env); // 关键设置
-        // +++++++++++++++++++++++
-        QStringList shellArgs;
-        shellArgs << CMDGUID << build_in_tool_arg;
-
-        process->start(shell, shellArgs);
-        qDebug() << "Executing command:" << shell << shellArgs;
-        emit tool2ui_state(QString("tool: ") + shell + " " + shellArgs.join(" "));
-
-        process->waitForFinished();                                  //process->waitForFinished()程序将会阻塞
-        QByteArray byteArray = process->readAll();                   // 获取标准输出
-        QByteArray errorByteArray = process->readAllStandardError(); // 获取标准错误输出
-        QByteArray combinedOutput = byteArray + errorByteArray;      // 合并输出
-#ifdef Q_OS_WIN
-        QString output = QString::fromLocal8Bit(combinedOutput); // 转换为QString
-#else
-        QString output = QString::fromUtf8(combinedOutput); // 转换为QString
-#endif
+        // Run via platform shell; capture both stdout and stderr
+        ProcessResult r = ProcessRunner::runShellCommand(content, work, env, 0);
+        const QString output = (r.stdOut + r.stdErr);
         emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + output, TOOL_SIGNAL);
         emit tool2ui_pushover(QString("execute_command ") + "\n" + output);
         qDebug() << QString("execute_command ") + "\n" + output;
@@ -704,3 +689,4 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
     }
     msleep(100); // 强制等待0.1s，让电脑显示出最终结果
 }
+
