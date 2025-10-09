@@ -850,9 +850,9 @@ bool Widget::checkAudio()
 {
     // 设置编码器
     audioSettings.setCodec("audio/x-raw");
-    audioSettings.setSampleRate(44100);
+    audioSettings.setSampleRate(16000);
     audioSettings.setBitRate(128000);
-    audioSettings.setChannelCount(2);
+    audioSettings.setChannelCount(1);
     audioSettings.setQuality(QMultimedia::HighQuality);
     // 设置音频编码器参数
     audioRecorder.setEncodingSettings(audioSettings);

@@ -25,14 +25,7 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
 
     const QString localPath = DeviceManager::programPath(QStringLiteral("whisper-cli"));
 
-    //将wav文件重采样为16khz音频文件
-#ifdef _WIN32
-    QTextCodec *code = QTextCodec::codecForName("GB2312"); // mingw中文路径支持
-    std::string wav_path_c = code->fromUnicode(wavpath).data();
-#elif __linux__
-    std::string wav_path_c = wavpath.toStdString();
-#endif
-    resampleWav(wav_path_c, wav_path_c);
+    // 录音/输入音频交由 whisper-cli 处理采样率，无需在应用内重采样
 
     // 设置要运行的exe文件的路径
     QString program = localPath; if (program.isEmpty() || !QFileInfo::exists(program)) { ui->whisper_log->appendPlainText("[error] whisper backend not found under current device folder"); return; }

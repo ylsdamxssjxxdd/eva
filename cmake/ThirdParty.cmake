@@ -5,9 +5,7 @@ include_guard(GLOBAL)
 
 # Always keep these as in-tree: small, stable libraries we link directly
 add_subdirectory(thirdparty/QHotkey)
-add_subdirectory(thirdparty/libsamplerate)
-add_subdirectory(thirdparty/libsndfile)
-list(APPEND extra_LIBS samplerate sndfile)
+# libsamplerate/libsndfile no longer required; whisper-cli handles resampling
 
 if (WIN32)
     set(sfx_NAME ".exe")

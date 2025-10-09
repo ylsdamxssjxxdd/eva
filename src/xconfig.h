@@ -18,8 +18,7 @@
 #include <QWidget>
 #include <array>
 #include <iostream>
-#include <samplerate.h> // 音频重采样
-#include <sndfile.h>
+// removed libsamplerate/libsndfile usage; whisper-cli handles resampling
 #include <sstream>
 #include <string>
 #include <thread>
@@ -443,65 +442,7 @@ struct SD_PARAMS
         : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt), width(width), height(height), steps(steps), batch_count(batch_count), seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}
 };
 
-// 对音频重采样为16khz
-inline bool resampleWav(const std::string &inputPath, const std::string &outputPath)
-{
-    SF_INFO inputFileInfo;
-    SF_INFO outputFileInfo;
-    SNDFILE *inputFile = sf_open(inputPath.c_str(), SFM_READ, &inputFileInfo);
-
-    if (!inputFile)
-    {
-        std::cerr << "Error opening input file: " << sf_strerror(nullptr) << std::endl;
-        return false;
-    }
-
-    int channels = inputFileInfo.channels;
-    int inputSampleRate = inputFileInfo.samplerate;
-    int outputSampleRate = 16000;
-
-    std::vector<float> inputBuffer(inputFileInfo.frames * channels);
-    sf_readf_float(inputFile, inputBuffer.data(), inputFileInfo.frames);
-
-    double ratio = static_cast<double>(outputSampleRate) / inputSampleRate;
-    int outputFrames = static_cast<int>(inputFileInfo.frames * ratio);
-    std::vector<float> outputBuffer(outputFrames * channels);
-
-    SRC_DATA srcData;
-    srcData.data_in = inputBuffer.data();
-    srcData.input_frames = inputFileInfo.frames;
-    srcData.data_out = outputBuffer.data();
-    srcData.output_frames = outputFrames;
-    srcData.src_ratio = ratio;
-    srcData.end_of_input = SF_TRUE;
-
-    int srcError = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, channels);
-    if (srcError != 0)
-    {
-        std::cerr << "Error during resampling: " << src_strerror(srcError) << std::endl;
-        sf_close(inputFile);
-        return false;
-    }
-
-    outputFileInfo.channels = channels;
-    outputFileInfo.samplerate = outputSampleRate;
-    outputFileInfo.format = inputFileInfo.format;
-
-    SNDFILE *outputFile = sf_open(outputPath.c_str(), SFM_WRITE, &outputFileInfo);
-    if (!outputFile)
-    {
-        std::cerr << "Error opening output file: " << sf_strerror(nullptr) << std::endl;
-        sf_close(inputFile);
-        return false;
-    }
-
-    sf_writef_float(outputFile, outputBuffer.data(), srcData.output_frames_gen);
-
-    sf_close(inputFile);
-    sf_close(outputFile);
-
-    return true;
-}
+// resampleWav removed
 
 inline QString parseFirstKeyValue(const QString &jsonString)
 {
