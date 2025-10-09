@@ -794,9 +794,27 @@ void Widget::on_date_clicked()
 //应用用户设置的约定内容
 void Widget::set_date()
 {
+    // 如果用户在“约定”对话框中修改了工程师工作目录，点击“确定”后立即生效
+    // 仅当已勾选“软件工程师”工具时才向 xTool 下发（未勾选时仅保存值供下次使用）
+    if (date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked()
+        && date_ui->date_engineer_workdir_LineEdit)
+    {
+        const QString typed = date_ui->date_engineer_workdir_LineEdit->text().trimmed();
+        if (!typed.isEmpty())
+        {
+            const QString norm = QDir::cleanPath(typed);
+            if (norm != engineerWorkDir)
+            {
+                // setEngineerWorkDir 会更新成员变量、同步到 xTool，并刷新行编辑显示
+                setEngineerWorkDir(norm);
+            }
+        }
+    }
+
+    // 同步其余“约定”参数到内存
     get_date(); //获取约定中的纸面值
 
-    // 约定变化后统一重置对话上下文（本地/远端一致）
+    // 约定变化后统一重置对话上下文（本地/远端一致）并持久化
     auto_save_user(); // persist date settings
 
     on_reset_clicked();
@@ -960,6 +978,5 @@ void Widget::restoreSessionById(const QString &sessionId)
     }
     currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }
-
 
 

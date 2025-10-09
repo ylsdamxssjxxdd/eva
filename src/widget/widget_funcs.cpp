@@ -731,6 +731,9 @@ void Widget::setEngineerWorkDir(const QString &dir)
     {
         date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
     }
+    // Workdir affects the engineer info injected into extra prompt; rebuild so
+    // that the main UI system message shows the latest path immediately.
+    ui_extra_prompt = create_extra_prompt();
 }
 //监视时间到
 void Widget::monitorTime()
