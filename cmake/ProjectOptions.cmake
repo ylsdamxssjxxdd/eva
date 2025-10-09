@@ -17,7 +17,6 @@ endif()
 option(EVA_STATIC  "MinGW: static libgcc/libstdc++/winpthread (Qt stays dynamic)" ${DEFAULT_EVA_STATIC})
 
 # ---- Global toggles that affect subprojects ----
-option(LLAMA_CURL                "llama: use libcurl to download model from an URL" OFF)
 option(MCP_SSL                   "Enable SSL support" OFF)
 
 add_compile_definitions(_WIN32_WINNT=0x0601)

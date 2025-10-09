@@ -6,7 +6,6 @@ project(body)
 set(EVA_TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(version b6123)
-set(LLAMA_BUILD_NUMBER 9999)
 
 # 输出目录（所有构建类型）
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
