@@ -125,14 +125,6 @@ void Widget::set_SetDialog()
 
     settings_dialog->setWindowTitle(jtr("set"));
 
-    // 将工程师工作目录入口移至约定对话框：这里隐藏设置页中的备份入口
-    if (settings_ui->engineer_workdir_label)
-    {
-        settings_ui->engineer_workdir_label->setVisible(false);
-        settings_ui->engineer_workdir_LineEdit->setVisible(false);
-        if (settings_ui->engineer_workdir_browse)
-            settings_ui->engineer_workdir_browse->setVisible(false);
-    }
 }
 
 // 设置选项卡确认按钮响应

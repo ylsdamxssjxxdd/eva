@@ -618,17 +618,9 @@ void Widget::apply_language(int language_flag_)
     settings_ui->complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     settings_ui->chat_btn->setText(jtr("chat state"));
     settings_ui->chat_btn->setToolTip(jtr("chat_btn_tooltip"));
-    // 服务模式已移除
     settings_ui->port_label->setText(jtr("exposed port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
-    if (settings_ui->engineer_workdir_label)
-    {
-        settings_ui->engineer_workdir_label->setText(jtr("engineer") + " " + jtr("work dir"));
-        settings_ui->engineer_workdir_LineEdit->setToolTip(jtr("engineer workdir tooltip"));
-        if (settings_ui->engineer_workdir_browse)
-            settings_ui->engineer_workdir_browse->setText(jtr("browse"));
-    }
     settings_ui->frame_label->setText(jtr("frame"));
     settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
     settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));

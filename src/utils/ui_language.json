@@ -1,5 +1,9 @@
 {
     "words": {
+        "work dir": [
+            "工作目录",
+            "work dir"
+        ],
         "click load and choose a gguf file": [
             "点击装载选择gguf格式模型文件",
             "click load and choose a gguf file "

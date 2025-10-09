@@ -877,8 +877,6 @@ void Widget::on_set_clicked()
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
     settings_ui->port_lineEdit->setText(ui_port);
-    if (settings_ui->engineer_workdir_LineEdit)
-        settings_ui->engineer_workdir_LineEdit->setText(engineerWorkDir);
     // 打开设置时记录当前设置快照，用于确认时判断是否有修改
     settings_snapshot_ = ui_SETTINGS;
     port_snapshot_ = ui_port;

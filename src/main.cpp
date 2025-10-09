@@ -269,121 +269,115 @@ int main(int argc, char *argv[])
     QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       //开始调用mcp可用工具
     QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); //mcp可用工具调用完成
 
-    w.show(); //展示窗口
-
     //---------------读取配置文件并执行------------------
-    emit w.gpu_reflash(); //强制刷新gpu信息，为了获取未装载时的显存占用
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
-
-    // 读取配置文件中的值
-    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-    settings.setIniCodec("utf-8");
-    w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
-    w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
-    QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //模型路径
-    w.currentpath = w.historypath = expend.currentpath = modelpath;                                                             // 默认打开路径
-    w.ui_SETTINGS.modelpath = modelpath;
-    w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
-    w.ui_monitor_frame = settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toDouble();
-    w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
-    w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
-    w.api_model_LineEdit->setText(settings.value("api_model", "default").toString());
-    w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
-    w.apis.api_key = w.api_key_LineEdit->text();
-    w.apis.api_model = w.api_model_LineEdit->text();
-    // Engineer working directory: persist user's choice; fallback to EVA_WORK under app dir
+    if (configfile.exists())
     {
-        const QString defWork = QDir(applicationDirPath).filePath("EVA_WORK");
-        const QString engWork = settings.value("engineer_work_dir", defWork).toString();
-        w.setEngineerWorkDir(engWork);
-    }
-    w.custom1_date_system = settings.value("custom1_date_system", "").toString();
-    w.custom1_user_name = settings.value("custom1_user_name", "").toString();
-    w.custom1_model_name = settings.value("custom1_model_name", "").toString();
-    w.custom2_date_system = settings.value("custom2_date_system", "").toString();
-    w.custom2_user_name = settings.value("custom2_user_name", "").toString();
-    w.custom2_model_name = settings.value("custom2_model_name", "").toString();
-    w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
-    w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", 0).toBool());
-    w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", 0).toBool());
-    w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", 0).toBool());
-    w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", 0).toBool());
-    w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
-    w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
-    if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
-    // 推理设备：先根据目录填充选项，再应用用户偏好
-    const QString savedDevice = settings.value("device_backend", "auto").toString();
-    DeviceManager::setUserChoice(savedDevice);
-    int devIdx = w.settings_ui->device_comboBox->findText(DeviceManager::userChoice());
-    if (devIdx >= 0) w.settings_ui->device_comboBox->setCurrentIndex(devIdx);
+        emit w.gpu_reflash(); //强制刷新gpu信息，为了获取未装载时的显存占用
+         // 读取配置文件中的值
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
+        w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
+        w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
+        QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //模型路径
+        w.currentpath = w.historypath = expend.currentpath = modelpath;                                                             // 默认打开路径
+        w.ui_SETTINGS.modelpath = modelpath;
+        w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
+        w.ui_monitor_frame = settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toDouble();
+        w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
+        w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
+        w.api_model_LineEdit->setText(settings.value("api_model", "default").toString());
+        w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
+        w.apis.api_key = w.api_key_LineEdit->text();
+        w.apis.api_model = w.api_model_LineEdit->text();
+        w.custom1_date_system = settings.value("custom1_date_system", "").toString();
+        w.custom1_user_name = settings.value("custom1_user_name", "").toString();
+        w.custom1_model_name = settings.value("custom1_model_name", "").toString();
+        w.custom2_date_system = settings.value("custom2_date_system", "").toString();
+        w.custom2_user_name = settings.value("custom2_user_name", "").toString();
+        w.custom2_model_name = settings.value("custom2_model_name", "").toString();
+        w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
+        w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", 0).toBool());
+        w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", 0).toBool());
+        w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", 0).toBool());
+        w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", 0).toBool());
+        w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
+        w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
+        if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
+        // 推理设备：先根据目录填充选项，再应用用户偏好
+        const QString savedDevice = settings.value("device_backend", "auto").toString();
+        DeviceManager::setUserChoice(savedDevice);
+        int devIdx = w.settings_ui->device_comboBox->findText(DeviceManager::userChoice());
+        if (devIdx >= 0) w.settings_ui->device_comboBox->setCurrentIndex(devIdx);
 
-    w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
-    w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());
-    w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());
-    w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
-    w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
-    w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
-    // 采样：top_p（作为隐藏参数持久化；此处提供显式滑块以便 LINK 模式也可调整）
-    w.settings_ui->topp_slider->setValue(settings.value("hid_top_p", DEFAULT_TOP_P).toFloat() * 100);
-    w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
-    w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
-    w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
-    bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //默认不主动嵌入词向量
-    QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
-    QFile checkFile(settings.value("lorapath", "").toString());
-    if (checkFile.exists()) { w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString()); }
-    QFile checkFile2(settings.value("mmprojpath", "").toString());
-    if (checkFile2.exists()) { w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString()); }
-    int mode_num = settings.value("ui_state", 0).toInt();
-    if (mode_num == 0) { w.settings_ui->chat_btn->setChecked(1); }
-    else if (mode_num == 1)
-    {
-        w.settings_ui->complete_btn->setChecked(1);
-    }
-
-    // 初次启动强制赋予隐藏的设定值
-    w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
-    w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
-    w.ui_SETTINGS.hid_top_p = settings.value("hid_top_p", DEFAULT_TOP_P).toFloat();
-    w.ui_SETTINGS.hid_batch = settings.value("hid_batch", DEFAULT_BATCH).toInt();
-    w.ui_SETTINGS.hid_n_ubatch = settings.value("hid_n_ubatch", DEFAULT_UBATCH).toInt();
-    w.ui_SETTINGS.hid_use_mmap = settings.value("hid_use_mmap", DEFAULT_USE_MMAP).toBool();
-    w.ui_SETTINGS.hid_use_mlock = settings.value("hid_use_mlock", DEFAULT_USE_MLOCCK).toBool();
-    w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
-    w.ui_SETTINGS.hid_parallel = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
-
-    // ui显示值传给ui内部值
-    w.get_date(); //获取约定中的纸面值
-    w.get_set();  //获取设置中的纸面值
-    w.is_config = true;
-
-    // 初次启动强制赋予隐藏的设定值
-    // 处理模型装载相关
-    QFile modelpath_file(modelpath);
-    if (w.ui_mode == LOCAL_MODE && modelpath_file.exists())
-    {
-        w.ensureLocalServer();
-    }
-    else if (w.ui_mode == LINK_MODE)
-    {
-        w.set_api();
-    }
-
-    // 是否需要自动重构知识库, 源文档在expend实例化时已经完成
-    if (embedding_server_need)
-    {
-        QFile embedding_modelpath_file(embedding_modelpath);
-        if (embedding_modelpath_file.exists())
+        w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
+        w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());
+        w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());
+        w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
+        w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
+        w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
+        // 采样：top_p（作为隐藏参数持久化；此处提供显式滑块以便 LINK 模式也可调整）
+        w.settings_ui->topp_slider->setValue(settings.value("hid_top_p", DEFAULT_TOP_P).toFloat() * 100);
+        w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
+        w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
+        w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
+        bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //默认不主动嵌入词向量
+        QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
+        QFile checkFile(settings.value("lorapath", "").toString());
+        if (checkFile.exists()) { w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString()); }
+        QFile checkFile2(settings.value("mmprojpath", "").toString());
+        if (checkFile2.exists()) { w.settings_ui->mmproj_LineEdit->setText(settings.value("mmprojpath", "").toString()); }
+        int mode_num = settings.value("ui_state", 0).toInt();
+        if (mode_num == 0) { w.settings_ui->chat_btn->setChecked(1); }
+        else if (mode_num == 1)
         {
-            expend.embedding_embed_need = true;
-            expend.embedding_params.modelpath = embedding_modelpath;
-            expend.embedding_server_start(); //启动嵌入服务
+            w.settings_ui->complete_btn->setChecked(1);
         }
-        else //借助端点直接嵌入
+
+        // 初次启动强制赋予隐藏的设定值
+        w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
+        w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
+        w.ui_SETTINGS.hid_top_p = settings.value("hid_top_p", DEFAULT_TOP_P).toFloat();
+        w.ui_SETTINGS.hid_batch = settings.value("hid_batch", DEFAULT_BATCH).toInt();
+        w.ui_SETTINGS.hid_n_ubatch = settings.value("hid_n_ubatch", DEFAULT_UBATCH).toInt();
+        w.ui_SETTINGS.hid_use_mmap = settings.value("hid_use_mmap", DEFAULT_USE_MMAP).toBool();
+        w.ui_SETTINGS.hid_use_mlock = settings.value("hid_use_mlock", DEFAULT_USE_MLOCCK).toBool();
+        w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
+        w.ui_SETTINGS.hid_parallel = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
+
+        // ui显示值传给ui内部值
+        w.get_date(); //获取约定中的纸面值
+        w.get_set();  //获取设置中的纸面值
+        w.is_config = true;
+
+        // 初次启动强制赋予隐藏的设定值
+        // 处理模型装载相关
+        QFile modelpath_file(modelpath);
+        if (w.ui_mode == LOCAL_MODE && modelpath_file.exists())
         {
-            expend.embedding_processing(); //执行嵌入
+            w.ensureLocalServer();
+        }
+        else if (w.ui_mode == LINK_MODE)
+        {
+            w.set_api();
+        }
+
+        // 是否需要自动重构知识库, 源文档在expend实例化时已经完成
+        if (embedding_server_need)
+        {
+            QFile embedding_modelpath_file(embedding_modelpath);
+            if (embedding_modelpath_file.exists())
+            {
+                expend.embedding_embed_need = true;
+                expend.embedding_params.modelpath = embedding_modelpath;
+                expend.embedding_server_start(); //启动嵌入服务
+            }
+            else //借助端点直接嵌入
+            {
+                expend.embedding_processing(); //执行嵌入
+            }
         }
     }
-
+    w.show(); //展示窗口
     return a.exec(); //进入事件循环
 }
