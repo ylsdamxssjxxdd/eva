@@ -214,6 +214,8 @@ QString Widget::create_extra_prompt()
             available_tools_describe += Buildin_tools_read_file.text + "\n\n";
             available_tools_describe += Buildin_tools_write_file.text + "\n\n";
             available_tools_describe += Buildin_tools_edit_file.text + "\n\n";
+            available_tools_describe += Buildin_tools_list_files.text + "\n\n";
+            available_tools_describe += Buildin_tools_search_content.text + "\n\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info(); //构建工程师信息
         }

@@ -157,6 +157,41 @@ static TOOLS_INFO Buildin_tools_execute_command(
         "required": ["content"]
 })");
 
+// 内置的工程师-列出目录文件工具
+static TOOLS_INFO Buildin_tools_list_files(
+    "list_files",
+    // 工具描述
+    R"(List all immediate subfolders and files under a given directory. Paths are resolved relative to the engineer working directory. Output is compact, one entry per line.)",
+    // JSON-Schema，用于验证调用参数
+    R"({
+        "type": "object",
+        "properties": {
+            "path": {
+            "type": "string",
+            "description": "Directory path to list (relative to the engineer working directory)."
+            }
+        },
+        "required": ["path"]
+})");
+
+// 内置的工程师-搜索文件内容工具
+static TOOLS_INFO Buildin_tools_search_content(
+    "search_content",
+    // 工具描述
+    R"(Search all text files under the engineer working directory for a query string (case-insensitive). Returns lines in the form <path>:<line>:<content>.)",
+    // JSON-Schema，用于验证调用参数
+    R"({
+        "type": "object",
+        "properties": {
+            "query": {
+            "type": "string",
+            "description": "The text to search for."
+            }
+        },
+        "required": ["query"]
+})");
+
+
 // 内置的工程师-读文件工具
 static TOOLS_INFO Buildin_tools_read_file(
     "read_file",
