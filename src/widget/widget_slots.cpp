@@ -1035,7 +1035,7 @@ void Widget::onServerOutput(const QString &line)
         {
             reflash_state(QString::fromUtf8("ui:后端异常输出，已解锁控件"), WRONG_SIGNAL);
             if (decode_pTimer && decode_pTimer->isActive()) decode_fail();
-            is_load = false;
+                        is_run = false;
             unlockButtonsAfterError();
         }
     }
@@ -1249,6 +1249,7 @@ void Widget::onServerStartFailed(const QString &reason)
     load_action = 0;
 
     // 解锁界面，允许用户立即调整设置或重新装载
+    is_run = false;
     unlockButtonsAfterError();
     // 明确允许打开“设置/约定”以便更换后端/设备/提示词
     if (ui && ui->set) ui->set->setEnabled(true);

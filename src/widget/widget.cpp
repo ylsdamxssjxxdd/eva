@@ -153,6 +153,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         EVA_title = jtr("current model") + " ";
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
+        is_run = false;
         unlockButtonsAfterError();
     });
 
