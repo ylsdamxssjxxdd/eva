@@ -65,3 +65,25 @@ void Widget::date_ui_cancel_button_clicked()
 }
 
 
+    // 工程师工作目录（默认隐藏，仅在勾选“软件工程师”后显示）
+    if (date_ui->date_engineer_workdir_label)
+    {
+        date_ui->date_engineer_workdir_label->setText(jtr("engineer") + " " + jtr("work dir"));
+        date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+        date_ui->date_engineer_workdir_LineEdit->setToolTip(jtr("engineer workdir tooltip"));
+        date_ui->date_engineer_workdir_label->setVisible(false);
+        date_ui->date_engineer_workdir_LineEdit->setVisible(false);
+        date_ui->date_engineer_workdir_browse->setText(jtr("browse"));
+        date_ui->date_engineer_workdir_browse->setVisible(false);
+        connect(date_ui->date_engineer_workdir_browse, &QPushButton::clicked, this, [this]() {
+            const QString startDir = engineerWorkDir.isEmpty() ? QDir(applicationDirPath).filePath("EVA_WORK") : engineerWorkDir;
+            QString picked = QFileDialog::getExistingDirectory(this, jtr("choose work dir"), startDir,
+                                                               QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+            if (!picked.isEmpty())
+            {
+                setEngineerWorkDir(picked);
+                date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+                auto_save_user();
+            }
+        });
+    }

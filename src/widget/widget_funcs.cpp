@@ -622,6 +622,13 @@ void Widget::apply_language(int language_flag_)
     settings_ui->port_label->setText(jtr("exposed port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    if (settings_ui->engineer_workdir_label)
+    {
+        settings_ui->engineer_workdir_label->setText(jtr("engineer") + " " + jtr("work dir"));
+        settings_ui->engineer_workdir_LineEdit->setToolTip(jtr("engineer workdir tooltip"));
+        if (settings_ui->engineer_workdir_browse)
+            settings_ui->engineer_workdir_browse->setText(jtr("browse"));
+    }
     settings_ui->frame_label->setText(jtr("frame"));
     settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
     settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));
@@ -726,6 +733,10 @@ void Widget::setEngineerWorkDir(const QString &dir)
     engineerWorkDir = QDir::cleanPath(dir);
     emit ui2tool_workdir(engineerWorkDir);
     reflash_state(QString::fromUtf8("ui:工程师工作目录 -> ") + engineerWorkDir, SIGNAL_SIGNAL);
+    if (date_ui && date_ui->date_engineer_workdir_LineEdit)
+    {
+        date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+    }
 }
 //监视时间到
 void Widget::monitorTime()

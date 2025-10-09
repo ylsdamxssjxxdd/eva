@@ -777,6 +777,14 @@ void Widget::on_date_clicked()
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
+    if (date_ui->date_engineer_workdir_LineEdit)
+    {
+        date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+        const bool vis = date_ui->engineer_checkbox->isChecked();
+        date_ui->date_engineer_workdir_label->setVisible(vis);
+        date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
+        date_ui->date_engineer_workdir_browse->setVisible(vis);
+    }
 
     date_ui->switch_lan_button->setText(ui_extra_lan);
 
@@ -806,6 +814,14 @@ void Widget::cancel_date()
     date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
+    if (date_ui->date_engineer_workdir_LineEdit)
+    {
+        date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+        const bool vis = date_ui->engineer_checkbox->isChecked();
+        date_ui->date_engineer_workdir_label->setVisible(vis);
+        date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
+        date_ui->date_engineer_workdir_browse->setVisible(vis);
+    }
     date_ui->switch_lan_button->setText(ui_extra_lan);
     //复原语言
     if (ui_extra_lan == "zh")
@@ -861,6 +877,8 @@ void Widget::on_set_clicked()
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);
     settings_ui->port_lineEdit->setText(ui_port);
+    if (settings_ui->engineer_workdir_LineEdit)
+        settings_ui->engineer_workdir_LineEdit->setText(engineerWorkDir);
     // 打开设置时记录当前设置快照，用于确认时判断是否有修改
     settings_snapshot_ = ui_SETTINGS;
     port_snapshot_ = ui_port;
