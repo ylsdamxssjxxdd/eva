@@ -130,7 +130,13 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
         {
             avaliable_speech_list << speech.name();
         }
-        connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::speechOver); //朗读结束后动作
+        // 仅在朗读完成（回到 Ready）时推进下一段
+        connect(sys_speech, &QTextToSpeech::stateChanged, this, [this](QTextToSpeech::State st) {
+            if (st == QTextToSpeech::Ready)
+            {
+                speechOver();
+            }
+        });
         is_sys_speech_available = true;
     }
     else

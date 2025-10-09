@@ -2,6 +2,9 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+// Bring in backend path resolver and path helpers to run llama-tts robustly
+#include "../utils/devicemanager.h"
+#include "../utils/pathutil.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------文转声相关--------------------------------
@@ -97,16 +100,21 @@ void Expend::start_tts(QString str)
 
 void Expend::speechOver()
 {
+    // 解锁并尽量无等待地触发下一段生成
+    is_speech = false;
+    // 继续事件驱动的推进；保留定时器作为兜底
+    startNextTTSIfIdle();
     speechTimer.stop();
     speechTimer.start(500);
-    is_speech = false; //解锁
 }
 
 void Expend::speechPlayOver()
 {
+    // 解锁并尽量无等待地触发下一段播放
+    is_speech_play = false;
+    startNextPlayIfIdle();
     speechPlayTimer.stop();
     speechPlayTimer.start(500);
-    is_speech_play = false; //解锁
 }
 
 //每半秒检查列表，列表中有文字就读然后删，直到读完
@@ -145,17 +153,41 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
 {
     if (is_while)
     {
-        //添加待朗读的文字
-        temp_speech_txt += result; // 累计输出的文本
-        //如果积累到包含 叹号/分号/顿号/逗号/句号/问号/冒号 时分段并等待朗读
-        // QRegularExpression re("[！；、，。？：!;,?:]");
-        QRegularExpression re("[！；、，。？：!;,?:]|\\.\\s"); //新增对小数点后跟空格的捕获，但是如果模型输出带空格的字符将会分割异常，待修复
-        QRegularExpressionMatch match = re.match(temp_speech_txt);
-        if (match.hasMatch())
+        // 累计输出的文本
+        temp_speech_txt += result;
+        // 句末标点切分：中文句号/问号/叹号，以及英文 .!?（排除小数点），以及顿号、逗号、分号、冒号
+        static const QRegularExpression re(QString::fromUtf8("([。！？]|(?<!\\d)[.!?](?=\\s|$)|[；;：:,，、])"));
+
+        // 逐段切出已成句的部分，剩余作为缓存
+        while (true)
         {
-            wait_speech_txt_list << temp_speech_txt;
-            temp_speech_txt = "";
+            const QRegularExpressionMatch m = re.match(temp_speech_txt);
+            if (!m.hasMatch()) break;
+            const int cut = m.capturedEnd();
+            const QString seg = temp_speech_txt.left(cut).trimmed();
+            if (!seg.isEmpty())
+            {
+                wait_speech_txt_list << seg;
+            }
+            temp_speech_txt.remove(0, cut);
         }
+
+        // 兜底：缓存过长但没有标点，按空白或定长切一刀，避免长时间不朗读
+        const int MAX_BUF = 240; // 约一到两句
+        if (temp_speech_txt.size() > MAX_BUF)
+        {
+            int cut = temp_speech_txt.lastIndexOf(QRegularExpression("\\s"), MAX_BUF);
+            if (cut < 40) cut = MAX_BUF; // 避免切得太短
+            const QString seg = temp_speech_txt.left(cut).trimmed();
+            if (!seg.isEmpty())
+            {
+                wait_speech_txt_list << seg;
+            }
+            temp_speech_txt.remove(0, cut);
+        }
+
+        // 事件驱动推进
+        startNextTTSIfIdle();
     }
 }
 
@@ -178,22 +210,39 @@ void Expend::recv_resettts()
 //使用outetts进行文转声
 void Expend::outettsProcess(QString str)
 {
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/llama-tts") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#else
-    QString localPath = QString("./llama-tts") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
-#endif
+    // 解析 llama-tts 路径（按设备后端）
+    const QString program = DeviceManager::programPath(QStringLiteral("llama-tts"));
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->speech_log->appendPlainText("[error] llama-tts not found under current device folder");
+        speechOver();
+        return;
+    }
 
-    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    // 目标输出文件（唯一名）
+    createTempDirectory(outettsDir);
+    outetts_last_output_file = QDir(outettsDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
+
+    // 组装参数
     QStringList arguments;
-    arguments << "-m" << ui->speech_outetts_modelpath_lineEdit->text();
-    arguments << "-mv" << ui->speech_wavtokenizer_modelpath_lineEdit->text();
-    arguments << "-ngl"
-              << "99";
+    arguments << "-m" << ensureToolFriendlyFilePath(ui->speech_outetts_modelpath_lineEdit->text());
+    arguments << "-mv" << ensureToolFriendlyFilePath(ui->speech_wavtokenizer_modelpath_lineEdit->text());
+    arguments << "-ngl" << QString::number(99); 
+    arguments << "-o" << ensureToolFriendlyFilePath(outetts_last_output_file);
     arguments << "-p" << str;
+
+    // 设置运行环境与工作目录，确保依赖 DLL/so 可见
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+    outetts_process->setProcessEnvironment(env);
+    outetts_process->setWorkingDirectory(toolDir);
 
     // 开始运行程序
     outetts_process->start(program, arguments);
@@ -205,24 +254,29 @@ void Expend::outetts_onProcessStarted() {}
 //进程结束响应
 void Expend::outetts_onProcessFinished()
 {
-    //修改生成的音频名称，添加一个时间后缀
-    createTempDirectory(outettsDir);
-    // 获取当前日期和时间，精确到分钟
-    QString currentDateTime = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz"); // 格式化为 20241226_1430
-    QString destinationPath = outettsDir + currentDateTime + ".wav";
-    // 使用 QFile 移动并重命名文件
-    QFile file("output.wav");
-    if (file.rename(destinationPath))
+    // 优先采用显式 -o 指定的输出路径
+    if (!outetts_last_output_file.isEmpty() && QFileInfo::exists(outetts_last_output_file))
     {
-        // qDebug() << "File moved and renamed successfully.";
-        wait_speech_play_list << destinationPath;
+        wait_speech_play_list << outetts_last_output_file;
     }
     else
     {
-        qDebug() << "Failed to move and rename file." << file.errorString();
+        // 兼容旧行为：若工具写在工作目录 output.wav，尝试搬运
+        const QString fallback = QDir(outettsDir).filePath("output.wav");
+        if (QFileInfo::exists(fallback))
+        {
+            const QString dst = QDir(outettsDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
+            if (QFile::rename(fallback, dst)) { wait_speech_play_list << dst; }
+            else { ui->speech_log->appendPlainText("[warn] failed to move fallback output.wav"); }
+        }
+        else
+        {
+            ui->speech_log->appendPlainText("[error] TTS finished but no output file produced");
+        }
     }
 
-    speechOver(); // 利用speechOver再次进入文转声生成处理流程
+    // 推进生成管线
+    speechOver();
 }
 
 void Expend::readyRead_outetts_process_StandardOutput()
@@ -267,5 +321,28 @@ void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
     {
         // 播放停止时执行的操作
         speechPlayOver();
+        startNextPlayIfIdle();
+    }
+}
+
+// 立即推进下一段生成/播放（事件驱动，减少轮询等待）
+void Expend::startNextTTSIfIdle()
+{
+    if (!is_speech && !wait_speech_txt_list.isEmpty())
+    {
+        is_speech = true;
+        const QString seg = wait_speech_txt_list.takeFirst();
+        start_tts(seg);
+    }
+}
+
+void Expend::startNextPlayIfIdle()
+{
+    if (!is_speech_play && !wait_speech_play_list.isEmpty())
+    {
+        is_speech_play = true;
+        const QString path = wait_speech_play_list.takeFirst();
+        speech_player->setMedia(QUrl::fromLocalFile(path));
+        speech_player->play();
     }
 }

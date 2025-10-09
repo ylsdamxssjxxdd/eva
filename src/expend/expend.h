@@ -245,6 +245,7 @@ class Expend : public QWidget
 
   public:
     QString outettsDir;                                     // outetts生成的音频存放目录
+    QString outetts_last_output_file;                       // 最近一次 outetts 指定的输出文件
     QStringList avaliable_speech_list;                      // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list); // 设置系统可用声源
     Speech_Params speech_params;
@@ -276,6 +277,8 @@ class Expend : public QWidget
     void readyRead_outetts_process_StandardError();
     void outetts_onProcessStarted();  //进程开始响应
     void outetts_onProcessFinished(); //进程结束响应
+    void startNextTTSIfIdle();        // 若空闲则立即开始下一段生成
+    void startNextPlayIfIdle();       // 若空闲则立即开始下一段播放
   private slots:
     void speech_enable_change(); //用户点击启用声音选项响应
     void speech_source_change(); //用户切换音源响应
