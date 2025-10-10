@@ -3,11 +3,14 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QDirIterator>
 #include <QFont>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QStyleFactory>
 #include <locale>
+#include <functional>
+#include <climits>
 
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
@@ -119,6 +122,62 @@ int main(int argc, char *argv[])
     //linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
     createDesktopShortcut(appPath);
     qDebug() << "EVA_PATH" << appPath;
+    // Auto-discover default models from EVA_MODELS when no config exists
+    {
+        const QString tempDir = applicationDirPath + "/EVA_TEMP";
+        QDir().mkpath(tempDir);
+        const QString cfgPath = tempDir + "/eva_config.ini";
+        if (!QFile::exists(cfgPath)) {
+            auto findSmallest = [](const QString &root, const QStringList &exts, std::function<bool(const QFileInfo&)> pred = nullptr) -> QString {
+                if (root.isEmpty() || !QDir(root).exists()) return QString();
+                QString best; qint64 bestSz = LLONG_MAX;
+                QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
+                while (it.hasNext()) {
+                    const QString p = it.next();
+                    QFileInfo fi(p);
+                    if (!fi.isFile()) continue;
+                    const QString suffix = fi.suffix().toLower();
+                    if (!exts.contains("*." + suffix)) continue;
+                    if (pred && !pred(fi)) continue;
+                    const qint64 sz = fi.size();
+                    if (sz > 0 && sz < bestSz) { best = fi.absoluteFilePath(); bestSz = sz; }
+                }
+                return best;
+            };
+            const QString modelsRoot = QDir(applicationDirPath).filePath("EVA_MODELS");
+            QString llmModel, embModel, whisperModel, outettsModel, wavTokenizerModel, sdModel;
+            if (QDir(modelsRoot).exists()) {
+                // LLM: EVA_MODELS/llm -> smallest .gguf
+                llmModel = findSmallest(QDir(modelsRoot).filePath("llm"), {"*.gguf"});
+                // Embedding: EVA_MODELS/embedding -> smallest .gguf
+                embModel = findSmallest(QDir(modelsRoot).filePath("embedding"), {"*.gguf"});
+                // Whisper(STT): EVA_MODELS/speech2text -> prefer filenames containing 'whisper'
+                const QString sttRoot = QDir(modelsRoot).filePath("speech2text");
+                whisperModel = findSmallest(sttRoot, {"*.bin","*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("whisper"); });
+                // TTS: OuteTTS + WavTokenizer; look under speech2text first, then text2speech
+                auto findOute = [&](const QString &root){ return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("outetts"); }); };
+                auto findWavTok = [&](const QString &root){ return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("wavtokenizer"); }); };
+                outettsModel = findOute(QDir(modelsRoot).filePath("text2speech")); if (outettsModel.isEmpty()) outettsModel = findOute(sttRoot);
+                wavTokenizerModel = findWavTok(QDir(modelsRoot).filePath("text2speech")); if (wavTokenizerModel.isEmpty()) wavTokenizerModel = findWavTok(sttRoot);
+                // SD: Prefer fixed path EVA_MODELS/text2image/sd1.5-anything-3-q8_0.gguf; fallback: smallest .gguf under text2image
+                const QString sdFixed = QDir(modelsRoot).filePath("text2image/sd1.5-anything-3-q8_0.gguf");
+                if (QFile::exists(sdFixed)) sdModel = QFileInfo(sdFixed).absoluteFilePath();
+                if (sdModel.isEmpty()) sdModel = findSmallest(QDir(modelsRoot).filePath("text2image"), {"*.gguf"});
+            }
+            // Persist discovered defaults so subsequent startup path applies uniformly
+            QSettings s(cfgPath, QSettings::IniFormat); s.setIniCodec("utf-8");
+            if (!llmModel.isEmpty()) s.setValue("modelpath", llmModel);
+            if (!embModel.isEmpty()) s.setValue("embedding_modelpath", embModel);
+            if (!whisperModel.isEmpty()) s.setValue("whisper_modelpath", whisperModel);
+            if (!outettsModel.isEmpty()) s.setValue("outetts_modelpath", outettsModel);
+            if (!wavTokenizerModel.isEmpty()) s.setValue("wavtokenizer_modelpath", wavTokenizerModel);
+            if (!sdModel.isEmpty()) { s.setValue("sd_modelpath", sdModel); s.setValue("sd_params_template", "sd1.5-anything-3"); }
+            // Default to local mode and auto device backend on first boot
+            s.setValue("ui_mode", 0);
+            s.setValue("device_backend", DeviceManager::userChoice().isEmpty() ? "auto" : DeviceManager::userChoice());
+            s.sync();
+        }
+    }
     //------------------实例化主要节点------------------
     Widget w(nullptr, applicationDirPath);      //窗口实例
     Expend expend(nullptr, applicationDirPath); //增殖窗口实例
@@ -394,4 +453,5 @@ int main(int argc, char *argv[])
     w.show(); //展示窗口
     return a.exec(); //进入事件循环
 }
+
 
