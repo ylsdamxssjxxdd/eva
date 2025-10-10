@@ -1,6 +1,6 @@
 # EVA
 
-A smooth llama. cpp launcher
+A smooth llama.cpp launcher + lightweight Agent desktop app (unified OpenAI-compatible interface for local/remote)
 
 <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
@@ -20,7 +20,7 @@ A smooth llama. cpp launcher
 
 ## Quick start
 
-1. Download eva
+1. Download EVA
 
     - https://github.com/ylsdamxssjxxdd/eva/releases
 
@@ -33,11 +33,22 @@ A smooth llama. cpp launcher
         It's better to .AppImage is placed in a stable pure English path and only needs to be run once .AppImage will automatically configure desktop shortcuts and start menu
     ```
 
-2. Download gguf model
+2. Prepare Models/Backends
+
+    - Optional: place third-party executables under the same-folder `EVA_BACKEND/<arch>/<device>/<project>/` (e.g. `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server.exe`). EVA will auto-detect the best available device backend at runtime.
+
+    - Models (gguf recommended): keep them under `EVA_MODELS` for painless management:
+      - `EVA_MODELS/llm` for LLMs;
+      - `EVA_MODELS/embedding` for embeddings;
+      - `EVA_MODELS/speech2text` for Whisper;
+      - `EVA_MODELS/text2speech` for OuteTTS & WavTokenizer;
+      - `EVA_MODELS/text2image` for SD/Flux (default prefers `sd1.5-anything-3-q8_0.gguf`).
+
+    - On the first launch (no config), EVA auto-discovers sensible defaults from `EVA_MODELS/**` and persists them to `EVA_TEMP/eva_config.ini`.
 
     - https://huggingface.com , eva supports almost all open-source llms
 
-3. Load！
+3. Load
 
     - Click the load button, select a gguf model to load into memory
 
@@ -47,22 +58,22 @@ A smooth llama. cpp launcher
 
 5. Accelerate!
 
-    - Click Settings to set gpu offload. Recommended setting to maximum, but if the VRAM occupies more than 95%, it will be too laggy
+    - Click Settings to adjust GPU offload (ngl). If VRAM is sufficient, push to the maximum; beware >95% VRAM may cause stutters. On the first load EVA will estimate whether full offload is feasible.
 
     - If running SD simultaneously, make sure to leave enough VRAM for SD
 
 
 ## Function
 
-### Foundation function
+### Foundation
 
 <details>
 
 <summary> Two mode </summary>
 
-1. Local mode: you left clicks the load button to interact by loading the local model
+1. Local mode: click Load, pick a gguf model. EVA runs `llama.cpp tools/server` locally and talks over HTTP+SSE.
 
-2. Link mode: you right clicks the load button and inputs the API endpoint of a certain model service for interaction (Currently supports openai type compatible interfaces)
+2. Link mode: right-click Load, fill `endpoint/key/model` and switch to a remote OpenAI-compatible endpoint (`/v1/chat/completions`).
 
 </details>
 
@@ -74,7 +85,7 @@ A smooth llama. cpp launcher
 
     - The default state, where chat content is entered in the input area and the model responds
 
-    - You can set prompt templatee in date button
+    - You can set the system prompt template in the Date panel
 
     - You can mount tools for the model, but they may affect the model's intelligence
 
@@ -95,8 +106,7 @@ A smooth llama. cpp launcher
 In local mode and chat state, you can click on the date button to mount the tool
 
 ```txt
-    The principle is to add an additional instruction in the system instruction to guide the model to call the corresponding tool
-    After each model prediction is completed, eva will automatically detects whether it contains the XML field of the calling tool. If it does, the corresponding tool is called. After the tool is executed, the result is sent to the model for further prediction
+    EVA injects a tool-calling protocol in the system prompt. The model issues a `<tool_call>{"name":...,"arguments":...}</tool_call>` JSON; EVA executes, then continues with "tool_response: ..." until no more calls.
 ```
 
 1. calculator
@@ -117,7 +127,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 3. engineer
 
-    - An automated tool execution chain similar to Cline
+    - Automated engineer toolchain like Cline (execute_command/read_file/write_file/edit_file/list_files/search_content/MCP …)
 
     - Example: help me build an initial project for cmake qt
 
@@ -125,7 +135,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 4. knowledge
 
-    - Model output query text to the knowledge tool, which will return the three most relevant embedded knowledge items
+    - The tool computes embeddings and returns Top-N similar chunks.
 
     - Requirement: you need to upload documents and build a knowledge base in the proliferation window first
 
@@ -139,7 +149,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
     - Model output drawing prompt words to the stablediffusion tool, which will return the drawn 
 
-    - Requirement: you need to first configure the model path of the text2image in the proliferation window
+    - Requirement: configure the text2image model path in the Proliferation window (supports SD & Flux).
 
     - Example: drawing a girl
 
@@ -165,7 +175,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Introduction: In Local Mode + Conversation State, you can mount visual models. Visual models typically have "mmproj" in their name and are usually compatible with specific models. Once successfully mounted, users can select an image for pre-decoding, which will serve as the context for the model.
 
-- Activation: Right-click on the "load mmproj" input box in the settings and select the mmproj model. You can pre-decode an image by dragging it into the input box, right-clicking the input box to click, or pressing F1 to take a screenshot. Then, click the send button to pre-decode the image, and after decoding, you can proceed with the Q&A.
+- Activation: In Settings, right-click the "load mmproj" input to choose mmproj; drag image / right-click upload / press F1 to capture; click Send to pre-decode the image, then ask questions.
 
 </details>
 
@@ -175,7 +185,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Introduction: With the help of the whisper.cpp project, the user's speech can be converted to text.You can also directly input audio and convert it into subtitle files
 
-- Activation: Right-click the status area to open the expansion window, select the speech2text tab, and choose the path where the whisper model is located. Return to the main interface, press the F2 shortcut to start recording, press F2 again to end the recording, and it will automatically convert to text and fill into the input area.
+- Activation: Right-click status area to open Proliferation → speech2text, choose your whisper model. Press F2 to start/stop recording; result is transcribed back to the input area.
 
 </details>
 
@@ -185,7 +195,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 - Introduction: Using the speech function of the Windows system or outetts model, the llm's output text can be converted to speech and automatically played.
 
-- Activation: Right-click the status area to open the expansion window, select the text2speech tab, and enable a sound source.
+- Activation: Right-click status area → Proliferation → text2speech, choose a voice (system or OuteTTS+WavTokenizer) and start.
 
 </details>
 
@@ -203,7 +213,7 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 <summary> Automatic monitoring </summary>
 
-- In local mode, after mounting the vision, the monitoring frame rate can be set, and the model will automatically monitor the screen at this frequency
+- In local chat mode with vision mounted, set a monitor frame rate; EVA will automatically attach recent screen frames (last 60s) to the next send, then clean up expired frames.
 
 </details>
 
@@ -238,7 +248,7 @@ In local mode and chat state, you can click on the date button to mount the tool
   - `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)`
   - arch: `x86_64`, `x86_32`, `arm64`, `arm32`
   - device: `cpu`, `cuda`, `vulkan`, `opencl` (extend as needed)
-  - project: e.g. `llama.cpp`, `whisper.cpp`
+  - project: e.g. `llama.cpp`, `whisper.cpp`, `llama-tts`
 - At runtime, EVA enumerates devices only under the same-arch folder and discovers executables there; it also prepends the program folder to the dynamic library search path (Windows: PATH; Linux: LD_LIBRARY_PATH; macOS: DYLD_LIBRARY_PATH).
 
 4. Build
@@ -249,7 +259,17 @@ In local mode and chat state, you can click on the date button to mount the tool
     cmake --build build --config Release
     ```
 
-    - BODY_PACK: Flag indicating whether packaging is required. If enabled, all components will be place in the bin directory in Windows; and all components will be packaged as an AppImage file in Linux. Note that tools such as linuxdeploy need to be configured by oneself
+    - BODY_PACK: packaging switch for Linux AppImage, requires your own linuxdeploy setup.
+
+5. Distribute (Unzip-and-run)
+
+    - Bundle the executable (build/bin/eva[.exe]), `EVA_BACKEND/`, required thirdparty/ resources, and optional `EVA_MODELS/` into one package;
+    - Example layout:
+      - `EVA_BACKEND/<arch>/<device>/llama.cpp/llama-server(.exe)`
+      - `EVA_BACKEND/<arch>/<device>/whisper.cpp/whisper-cli(.exe)`
+      - `EVA_BACKEND/<arch>/<device>/llama-tts/llama-tts(.exe)`
+      - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
+    - On first launch, EVA creates `EVA_TEMP/` next to the app to store config, history and artifacts.
 
 </details>
 
@@ -274,6 +294,16 @@ In local mode and chat state, you can click on the date button to mount the tool
 - predict: (Decoding + Sampling) Loop
 
 - predecode: Decode only without sampling, used to cache context such as system instructions
+
+## Hints: Speed & Memory UI
+
+- After each turn ends, the status line prints `single decode` (generation speed) and `batch decode` (prompt processing speed) in tokens/s; speeds come from server-side `timings` in SSE when available.
+- The "memory" progress bar shows context cache usage percentage (tooltip shows used/max tokens). Local mode uses server logs for precise correction; link mode uses a streaming approximation.
+
+## Notes & Limits
+
+- KV reuse: we reuse server-assigned `slot_id` within the same endpoint/session. Persistent `slot-save-path` is not enabled by default.
+- Engineer tool safety: file-related tools are restricted to the engineer work directory (EVA_WORK), and all paths are normalized back to that root.
 
 ---
 
