@@ -31,8 +31,15 @@ class DeviceManager
     // Base directory holding backend subfolders (cpu/cuda/...) for current platform
     static QString backendsRootDir();
 
+    // Return normalized architecture id for current runtime
+    // One of: x86_64, x86_32, arm64, arm32
+    static QString currentArchId();
+
   private:
     static QStringList preferredOrder();
+    // Map a known executable name to its canonical project folder
+    // For example: "llama-server" -> "llama.cpp"
+    static QString projectForProgram(const QString &name);
 };
 
 #endif // EVA_DEVICE_MANAGER_H

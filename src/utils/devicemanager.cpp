@@ -6,6 +6,7 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QProcessEnvironment>
+#include <QSysInfo>
 
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 
@@ -31,9 +32,12 @@ QStringList DeviceManager::preferredOrder()
 
 QStringList DeviceManager::availableBackends()
 {
+    // Enumerate device folders under EVA_BACKEND/<arch>/
     const QString root = backendsRootDir();
+    const QString arch = currentArchId();
     QStringList out;
-    QDir d(root);
+    const QString archDir = QDir(root).filePath(arch);
+    QDir d(archDir);
     if (!d.exists()) return out;
     const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QFileInfo &fi : subs)
@@ -97,26 +101,60 @@ static QString findProgramRecursive(const QString &dir, const QString &exe)
 
 QString DeviceManager::programPath(const QString &name)
 {
+    // Central doctrine layout:
+    // EVA_BACKEND/<arch>/<device>/<project>/<exe>
+    // example: EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)
     const QString root = backendsRootDir();
-    const QString backend = effectiveBackend();
-    const QString backendDir = QDir(root).filePath(backend);
+    const QString arch = currentArchId();
+    const QString device = effectiveBackend();
+    const QString project = projectForProgram(name);
     const QString exe = name + QStringLiteral(SFX_NAME);
 
-    // Search recursively under backend/<device>/ for the executable
-    if (QFileInfo::exists(backendDir))
+    // 1) strict path within project folder
+    const QString projDir = QDir(QDir(QDir(root).filePath(arch)).filePath(device)).filePath(project);
+    if (QFileInfo::exists(projDir))
     {
-        // 1) direct file in backend dir
-        const QString direct = QDir(backendDir).filePath(exe);
+        // try direct and recursive within project
+        const QString direct = QDir(projDir).filePath(exe);
         if (QFileInfo::exists(direct)) return direct;
-        // 2) any subfolder
-        const QString rec = findProgramRecursive(backendDir, exe);
+        const QString rec = findProgramRecursive(projDir, exe);
         if (!rec.isEmpty()) return rec;
     }
 
-    // Not found in backend device dir; do not guess arbitrary locations
+    // 2) fallback: search under device dir (still within this arch) to be resilient
+    const QString devDir = QDir(QDir(root).filePath(arch)).filePath(device);
+    if (QFileInfo::exists(devDir))
+    {
+        const QString rec = findProgramRecursive(devDir, exe);
+        if (!rec.isEmpty()) return rec;
+    }
+
+    // Not found
     return QString();
 }
 
+QString DeviceManager::currentArchId()
+{
+    // Normalize to one of: x86_64, x86_32, arm64, arm32
+    const QString cpu = QSysInfo::currentCpuArchitecture().toLower();
+    if (cpu.contains("x86_64") || cpu.contains("amd64") || cpu.contains("x64")) return QStringLiteral("x86_64");
+    if (cpu.contains("i386") || cpu.contains("i686") || cpu == QLatin1String("x86") || cpu.contains("x86_32")) return QStringLiteral("x86_32");
+    if (cpu.contains("aarch64") || cpu.contains("arm64")) return QStringLiteral("arm64");
+    if (cpu == QLatin1String("arm") || cpu.contains("armv7") || cpu.contains("armv8") || cpu.contains("arm32")) return QStringLiteral("arm32");
+
+    // Fallback: assume 64-bit x86 if pointer size is 8, otherwise 32-bit x86
+    if (sizeof(void*) == 8) return QStringLiteral("x86_64");
+    return QStringLiteral("x86_32");
+}
+
+QString DeviceManager::projectForProgram(const QString &name)
+{
+    // Minimal mapping for known third-party projects; extend as new tools are added
+    if (name == QLatin1String("llama-server")) return QStringLiteral("llama.cpp");
+    if (name == QLatin1String("whisper-cli")) return QStringLiteral("whisper.cpp");
+    // default to using the name itself as folder (best-effort)
+    return name;
+}
 
 
 

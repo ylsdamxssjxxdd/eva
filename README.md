@@ -243,12 +243,12 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 3. 后端准备
 
 - 从上游或第三方获取已编译的推理程序，并在项目根目录创建 `EVA_BACKEND/` 目录（与 `CMakeLists.txt` 同级）。
-- 在 `EVA_BACKEND/<设备名>/` 下放置对应可执行文件（可任意子目录，EVA 会递归查找）：
-  - 本地 LLM: `llama-server`（及同目录所需的动态库）
-  - 声转文: `whisper-cli`
-  - 文生图: `sd`
-- 设备名不限（例如 `cpu`、`cuda`、`vulkan`、`opencl`、`mygpu`）。EVA 设置页会自动列出 `EVA_BACKEND/` 下的所有一级目录名。
-- 构建时 CMake 会将 `EVA_BACKEND/` 复制到 `build/bin/EVA_BACKEND/`；运行时 EVA 会在该目录下递归定位可执行文件并自动补充库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
+- 按中央教条放置第三方程序：`EVA_BACKEND/<架构>/<设备>/<项目>/`，例如：
+  - `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)`
+  - 架构：`x86_64`、`x86_32`、`arm64`、`arm32`
+  - 设备：`cpu`、`cuda`、`vulkan`、`opencl`（可自定义扩展）
+  - 项目：如 `llama.cpp`、`whisper.cpp`
+- 运行时 EVA 仅在本机同架构目录下枚举设备并查找可执行文件，并自动补全库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH；macOS: DYLD_LIBRARY_PATH）。
 
 4. 编译
 

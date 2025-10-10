@@ -233,13 +233,13 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 3. Prepare Backends
 
-- Obtain prebuilt binaries and create a `EVA_BACKEND/` folder at the project root (next to `CMakeLists.txt`).
-- Place required executables under `EVA_BACKEND/<device>/` (any subfolder depth; EVA searches recursively):
-  - Local LLM: `llama-server` (with its dependent DLLs/SOs in the same folder)
-  - Speech2Text: `whisper-cli`
-  - Text2Image: `sd`
-- The `<device>` name is arbitrary (e.g., `cpu`, `cuda`, `vulkan`, `opencl`, `mygpu`). The Settings dialog lists all first-level folders under `EVA_BACKEND/`.
-- During build, CMake copies `EVA_BACKEND/` to `build/bin/EVA_BACKEND/`. At runtime, EVA discovers executables recursively and prepends their folder to the library search path (PATH / LD_LIBRARY_PATH).
+- Obtain prebuilt binaries and create an `EVA_BACKEND/` folder at the project root (next to `CMakeLists.txt`).
+- Follow the central layout: `EVA_BACKEND/<arch>/<device>/<project>/`, for example:
+  - `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)`
+  - arch: `x86_64`, `x86_32`, `arm64`, `arm32`
+  - device: `cpu`, `cuda`, `vulkan`, `opencl` (extend as needed)
+  - project: e.g. `llama.cpp`, `whisper.cpp`
+- At runtime, EVA enumerates devices only under the same-arch folder and discovers executables there; it also prepends the program folder to the dynamic library search path (Windows: PATH; Linux: LD_LIBRARY_PATH; macOS: DYLD_LIBRARY_PATH).
 
 4. Build
 
