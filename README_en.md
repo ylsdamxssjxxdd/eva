@@ -253,58 +253,6 @@ In local mode and chat state, you can click on the date button to mount the tool
 
 </details>
 
-## Guideline
-
-<details>
-
-<summary> expand </summary>
-
-- Load (Local Mode)
-
-    - [ui] User clicks Load -> choose Local Mode -> pick model -> preLoad (clear/lock/spinner) -> [backend] ensureRunning starts/restarts llama-server with current settings -> wait for serverReady(endpoint) -> [ui] switch to local endpoint, initialize session (insert system message), finish animation -> unlockLoad -> normal UI -> END
-
-    - On first load, estimate ngl=999 or 0 from free VRAM vs model size; after load, correct display to n_layer+1; GPU/CPU stats are refreshed periodically
-
-- Load (Link Mode)
-
-    - [ui] User clicks Load -> choose Link Mode -> enter endpoint/key/model -> set_api -> switch to LINK_MODE, stop local server and inflight requests -> clear and inject system message -> [net] points to remote endpoint -> normal UI -> END
-
-- Send/Inference (Unified)
-
-    - [ui] Build OpenAI-compatible messages (system+user; may include text/image_url/input_audio) -> emit ui2net_data + ui2net_push -> [net] POST to /v1/chat/completions or /completions and parse SSE -> net2ui_output streams chunks; net2ui_state reports status; net2ui_kv_tokens and net2ui_reasoning_tokens update metrics -> on finish net2ui_pushover -> [ui] normal_finish_pushover unlocks; if tools are requested, branch to Tool Call -> END
-
-- Tool Call
-
-    - [ui] Parse tool XML in assistant output -> emit ui2tool_exec -> [tool] execute by name (calculator/execute_command/knowledge/controller/stablediffusion/...) -> return result -> [ui] wrap as "tool_response: ..." user message and show -> auto continue -> until no tool request -> END
-
-- Image/Audio Inputs
-
-    - Image: drag/drop/upload or F1 screenshot -> append as {type:image_url} in user message; multi-image supported
-
-    - Audio: attach WAV/MP3/OGG/FLAC -> UI keeps as audio_url; [net] converts to OpenAI input_audio before sending
-
-- Speech to Text (Whisper)
-
-    - [ui] First F2 opens Expend to select whisper model -> F2 start recording -> F2 stop -> save WAV and resample to 16 kHz -> [expend] call whisper-cli -> write result and send back to input box -> END
-
-- Agreement and Settings
-
-    - Agreement: Click "Agreement" -> edit system prompt / user and model names / tool toggles -> confirm -> set_date -> on_reset_clicked resets context -> END
-
-    - Settings: Click Settings -> modify parameters -> if backend-affecting (model/device/nctx/ngl/lora/mmproj/parallel/batch, mmap/mlock/flash_attn, port) -> [backend] restart and recover UI on serverReady; sampling-only changes -> do not restart, just reset context -> END
-
-- Knowledge Base
-
-    - Build: In Expend > Knowledge tab choose embedding model -> [expend] start embedding service (--embedding) -> upload/edit text -> call /v1/embeddings per chunk -> store vectors and sync to [tool] -> END
-
-    - Q&A: goes through the "Tool Call" knowledge flow (compute query vector and return top-3 similar chunks) -> END
-
-- Notes
-
-    - All inference goes through [net] (request-based). [backend] only hosts llama-server in local mode and switches endpoints
-
-</details>
-
 ## Concepts
 
 <details>

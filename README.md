@@ -263,58 +263,6 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 </details>
 
-## 行动纲领
-
-<details>
-
-<summary> 展开 </summary>
-
-- 装载（本地模式）
-
-    - 【ui】用户点击装载→选择本地模式→选择模型→预装载 preLoad（清屏/锁定/动画）→【backend】根据当前设置 ensureRunning 启动/重启 llama-server→监听 serverReady(endpoint)→【ui】切换到本地端点、初始化会话（插入系统指令）、收尾动画→unlockLoad→正常界面状态→END
-
-    - 首次装载按可用显存与模型体积粗估 ngl=999/0，装载后以 n_layer+1 修正显示；GPU/CPU 状态定时刷新
-
-- 装载（链接模式）
-
-    - 【ui】用户点击装载→选择链接模式→填写 endpoint/key/model→set_api→切换为 LINK_MODE、停止本地服务与在途请求→清屏并注入系统指令→【net】指向远端端点→正常界面状态→END
-
-- 发送/推理（统一）
-
-    - 【ui】构建 OpenAI 兼容消息（system+user，可含 text/image_url/input_audio）→emit ui2net_data + ui2net_push→【net】POST /v1/chat/completions 或 /completions，SSE 流式解析→net2ui_output 逐片输出，net2ui_state 汇报状态，net2ui_kv_tokens/… 统计用量→完成时 net2ui_pushover→【ui】normal_finish_pushover 收尾、解锁；若启用工具则转入工具调用→END
-
-- 工具调用
-
-    - 【ui】解析 assistant 输出中的工具 XML→emit ui2tool_exec→【tool】按 name 执行（calculator/execute_command/knowledge/controller/stablediffusion/…）→返回结果→【ui】以“tool_response: …”封装到 user 消息并着色显示→自动继续发送→直至无工具请求→END
-
-- 图像/音频输入
-
-    - 图像：拖拽/上传/按 F1 截图→以 {type:image_url} 追加到 user 消息；支持多图
-
-    - 音频：上传 WAV/MP3/OGG/FLAC→UI 临时以 audio_url 表示→【net】发送前转换为 OpenAI input_audio 结构
-
-- 录音转文字（Whisper）
-
-    - 【ui】首次 F2 打开增殖窗口选择 whisper 模型→再次 F2 开始录音→再次 F2 结束→保存 WAV 并重采样 16kHz→【expend】调用 whisper-cli 解码→结果写盘并通过信号回填输入框→END
-
-- 约定与设置
-
-    - 约定：用户点击约定→编辑系统指令/昵称/工具开关→确认→set_date→统一重置上下文 on_reset_clicked→END
-
-    - 设置：用户点击设置→修改参数→若涉及后端（模型/设备/nctx/ngl/lora/mmproj/并发/批等）→【backend】按需重启并在 serverReady 后恢复 UI；仅采样参数变化→不重启，仅重置上下文→END
-
-- 知识库
-
-    - 构建：用户在增殖-知识库选择嵌入模型→【expend】启动嵌入服务（--embedding）→上传/编辑文本→逐段调用 /v1/embeddings 得到向量→入库并同步给【tool】→END
-
-    - 问答：通过“工具调用”中的 knowledge 流程完成（计算查询向量并返回相似度最高的文本段）→END
-
-- 说明
-
-    - 所有推理均经由【net】请求式完成；【backend】仅负责在本地模式下托管 llama-server 进程与端点切换
-
-</details>
-
 ## 概念
 
 <details>

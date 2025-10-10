@@ -1,56 +1,36 @@
-# Repository Guidelines
-
-## Project Structure & Module Organization
-- Root:  `CMakeLists.txt` builds Qt5 app `eva`; runtime outputs to `build/bin/`. 
--  `src/`: core app - `xbot.*` (LLM runtime/sampling), `widget.*` (Qt UI), `xnet.*` (link mode), `xtool.*` (tools), `xmcp.*` (MCP), `utils/` (widgets, checks, config). 
--  `resource/`: Qt resources (`*.qrc`, images; fonts added on Linux). 
--  `thirdparty/`: `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`, `QHotkey` (built as subprojects). Prefer upstream syncs; see `tools/README_cmake.md` before editing. 
--  `tools/`: helper scripts (`build.sh`, `build-docker.bat`) and CMake notes. 
-- The project relies on llama. cpp's server as the inference core. Please refer to `thirdparty\llama.cpp\tools\server` for related interfaces
-- You have complete authority to manage this project. By good refactoring, the entire project can be modularized, with better maintainability/stability/operational efficiency, and a better user experience.
-
-## Build, Test, and Development Commands
-- Configure & build (Release):
- ```bash 
-cmake -B build -DBODY_PACK=OFF
-cmake --build build --config Release -j
- ``` 
-- Run locally:  `./build/bin/eva` (Linux) or `build \\bin\\eva.exe ` (Windows). 
-- Package (AppImage/EXE): add  `-DBODY_PACK=ON`.
-
-## Coding Style & Naming Conventions
-- C++17 + Qt5.15; 4-space indent; braces on same line (K&R); UTF-8 source.
-- Prefer Qt types/containers for UI;  `std::vector` OK in compute paths. 
-- Files: headers  `.h`, sources `.cpp`, Qt Designer `.ui`; lowercase names (e.g., `xbot.cpp`, `widget.ui`). 
-- Methods/vars lowerCamelCase; classes/types PascalCase; macros/constants UPPER_SNAKE_CASE.
-
-## Testing Guidelines
-- No project-local unit tests yet; keep changes easy to exercise via UI flows.
-- If adding tests, use QtTest under  `tests/` and wire with `add_test()`. 
-- Validate on Windows (MSVC) and Linux; document GPU flags used.
-
-## Commit & Pull Request Guidelines
-- Never attempt to create branches or commit using Git
-
-## Security & Configuration Tips
-- Do not commit models/large binaries; extend  `.gitignore` if needed. 
-- Ensure Qt/CUDA/Vulkan SDKs are on PATH; verify  `build/bin/eva(.exe)` runs before pushing. 
-
-
-# 给后续智能体的编码提示（重要）
-
-为避免中文注释再次变成问号，请严格遵循以下约定：
-
-- 全部源码文件统一使用 UTF-8 编码（推荐无 BOM）。如使用 MSVC/Windows，请确保编译与编辑器均为 UTF-8：
-  - VSCode：设置 files.encoding=utf8；必要时关闭自动猜测编码（files.autoGuessEncoding=false）。
-  - Qt Creator：工具-选项-文本编辑器-编码 选择 UTF-8。
-  - MSVC 项目：如需，可为编译器添加 /utf-8（本仓库已通过 CMake 配置统一为 UTF-8）。
-- 请勿使用 GBK/ANSI 等本地编码保存源码，提交前确认中文注释正常显示（不应出现成片问号）。
-- 跨平台换行符保持一致（LF 优先）。在 Windows 编辑时，保持与文件现有换行符一致，避免混用。
-- 若需在终端查看中文日志，Windows 建议使用支持 UTF-8 的终端并启用 UTF-8 模式。
-- 若发现编码异常：
-  1) 先检查编辑器的文件编码；
-  2) 使用十六进制或常见工具（如 file、iconv）确认实际编码；
-  3) 统一转为 UTF-8 后再修改或提交。
-
-说明：本项目源码约定为 UTF-8。此前 src 目录中多处中文注释因编码问题被保存为问号，本次已修复。后续请严格遵守上述约定。
+# 中央教条"System Design"
+机体"eva"是一款流畅的大模型推理工具，可以方便的构建、部署和使用。同时它也是一个智能体"agent"，即大模型驱动的，能够与现实交互并自主完成复杂任务的系统。智能体通过约定框架"data framework"实现。
+项目的灵感来源于新世纪福音战士，整个机体程序"eva"实际上是一个拘束装置，第三方后端程序llama.cpp是素体，而大模型就是驾驶员，用户是指挥员。用户通过将不同的驾驶员装载进机体，命令驾驶员驾驶机体完成任务，满足指挥员的野心。在面向用户呈现的部分，可以多用新世纪福音战士相关元素以增强趣味性。
+机体结构：由四个类构成的大前端，网络类"net"、窗口类"widget"、工具类"tool"、增殖类"expend"。窗口类是项目的核心，用于交互和控制模型。网络类负责请求各种api端点，主要是openai兼容的api。工具类提供多种工具来执行即将到来的任务并返回合理的结果（计算器工具、文生图工具、知识库工具、软件工程师工具、mcp工具、鼠标键盘工具）。增殖类也是一个窗口，用于拓展其他好玩的功能（软件介绍、模型信息、模型量化、知识库、文生图、声转文、文转声）。各个系统应当能良好的独立运行，也能保持联系。
+约定框架"data framework"：机体调用工具，成为行动决策智能体的实现方式。约定框架是由用户、开发者、模型共同组成的系统。开发者提供拘束器（解析模型输出，提取其中约定好的内容）、约定指令（如何行动的方法）和工具（与现实交互的方式）。模型被包裹在拘束器和约定指令中，通过拘束器与工具和用户交流，并通过工具和外界间接交流。用户自己选择需要给模型设置怎样的约定指令和挂载什么样的工具。整个系统运行时，用户提出一个问题，模型接受到问题后根据情况自主选择如何解决问题，通过多次工具调用，观察返回的结果，最终将答案回复给用户。这里面需要用户、开发者、模型默契配合所以称为约定框架。
+部署分发：将所有架构的后端，机体程序，模型等压缩为一个包，让用户解压即用。
+五个按钮：装载、约定、设置、重置、发送。
+点击装载可以选择本地模式或者链接模式。点击约定按钮打开约定窗口，可以设置系统提示词和挂载工具，挂载工具意味着启用那个工具并将调用方法附加到提示词里。点击设置按钮打开设置窗口，可以控制模型的采样参数、后端设置和机体的状态。点击重置可以使当前对话终止，再点击可以清空并开始新对话。点击发送将当前上文内容给模型。
+主要功能：两种模式（本地模式，链接模式），两种状态（对话状态，补完状态），六个工具（计算器工具、文生图工具、知识库工具、软件工程师工具、mcp工具、鼠标键盘工具），五个增殖（模型量化、知识库、文生图、声转文、文转声）。
+界面状态：装载前，装载中，正常，推理中，录音中。装载前只有装载按钮可点击，装载中5个按钮都不可用，正常时所有按钮均可用，推理中只有重置按钮可用。
+行动纲领：为了使机体能在本地模式下正常运行，需要开发者准备一套后端，机体通过qprocess调用同一目录下后端里的可执行程序来实现模型推理等功能。后端文件夹名固定为EVA_BACKEND，里面的文件夹结构为<架构arch>-<设备device>-<项目proj>，项目文件夹里就放置着第三方的可执行程序和依赖。机体会自动寻找同架构的程序来运行，例如EVA_BACKEND/x86/cuda/llama.cpp/llama-server.exe。
+装载（本地）
+点击"装载"→选择"本地模式"→选择 gguf 模型→进入装载中（清屏/锁定/转轮）→后台按当前设置启动或重启 llama.cpp server→就绪后自动切换到本地端点并新建会话（插入系统指令）→解锁→可聊天
+首次装载会按可用显存与模型体积自动估算 GPU offload（尽量拉满，装载后以 n_layer+1 修正显示）；CPU/GPU 状态定时刷新
+装载（链接）
+点击"装载"→选择"链接模式"→填写 endpoint/key/model→确认后切换为远端模式并停止本地服务/在途请求→清屏并注入系统指令→解锁→可聊天
+发送/推理（统一）
+无论本地/远端，UI 会构建 OpenAI 兼容消息（system+user，可含 text/image_url/input_audio）并发送；以 SSE 流式接收模型输出，完成后自动收尾并解锁；如启用工具则进入工具调用直至结束
+工具调用
+模型在答复中给出工具调用（<tool>...</tool> 包含 JSON：name/arguments）；EVA 执行对应工具（calculator/execute_command/knowledge/controller/stablediffusion/MCP…），把结果以"tool_response: ..."追加到对话，并自动继续发送，直到没有新的工具请求
+图像/音频输入
+图像：拖拽/上传/按 F1 截图，作为 user 消息中的 image_url；支持多图。本地对话模式下，可按“监视帧率”自动附带最近屏幕帧
+音频：上传 WAV/MP3/OGG/FLAC，UI 先以 audio_url 暂存，发送前转换为 OpenAI input_audio 结构
+录音转文字（Whisper）
+第一次按 F2 选择 whisper 模型；再次 F2 开始录音，再按 F2 结束并保存 WAV→自动调用 whisper-cli 转写→结果回填输入框
+约定与设置
+约定：编辑系统指令/昵称/工具开关→确认→统一重置上下文生效
+设置：仅采样参数（温度/top_k/top_p/npredict/…）变化不重启后端，只重置上下文；涉及后端（模型/设备/nctx/ngl/lora/mmproj/并发/批/端口）时按需重启本地 server，就绪后恢复 UI。设备可选 auto/cuda/vulkan/opencl/cpu；auto 会按环境自动选择
+知识库
+构建：在增殖-知识库选择嵌入模型→启动 llama.cpp 嵌入服务（--embedding）→上传/编辑文本→逐段调用 /v1/embeddings 获取向量→存入本地向量库并同步给“知识库”工具
+问答：启用“知识库”工具后，模型可发起查询；工具计算查询向量并返回相似度最高的文本段
+说明
+所有推理均通过 HTTP 请求完成；本地模式仅由内置后端管理器托管 llama.cpp server 并负责端点切换与按需重启
+色系：系统相关是蓝色，例如约定窗口、系统提示等。模型相关是橙色，例如设置窗口、记忆等。
+机体行为：持久化配置，机体会在同级目录创建EVA_TEMP文件夹用于保存配置文件、数据库、中间产物等，每次启动时也会自动寻找这个目录中的配置。第三方后端，机体会在同级目录下寻找EVA_BACKEND并自动应用最合适的后端程序。模型文件，机体会在同级目录下寻找EVA_MODELS，如果没有历史配置文件，则自动装载其中的模型，并配置好其他相关路径。
+编码要求：项目基于c++17 qt5.15开发，代码要有简洁的英文注释，开发时不必考虑与之前的代码兼容，老代码和注释直接舍弃。不要尝试使用git创建分支或提交，这是用户做的。你全权负责管理这个项目，遵守中央教条的规定，如果有冲突的地方要请求当前用户裁处。通过良好的重构和优化，使整个项目具有更好的可维护性、稳定性、运行效率和用户体验。
