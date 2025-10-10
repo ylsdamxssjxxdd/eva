@@ -8,7 +8,10 @@
 #include <QtDebug>
 
 VectorDB::VectorDB() {}
-VectorDB::~VectorDB() { close(); }
+VectorDB::~VectorDB()
+{
+    close();
+}
 
 bool VectorDB::open(const QString &dbPath)
 {
@@ -216,4 +219,3 @@ QVector<Embedding_vector> VectorDB::loadAll() const
     }
     return out;
 }
-

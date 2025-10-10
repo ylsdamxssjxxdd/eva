@@ -1,15 +1,15 @@
 // pathutil.cpp - see header
 #include "pathutil.h"
 
-#include <QFileInfo>
-#include <QDir>
-#include <QString>
 #include <QCryptographicHash>
-#include <QFile>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QString>
 
 #ifdef Q_OS_WIN
-#  include <windows.h>
+#include <windows.h>
 #endif
 
 static inline QString toNativeAbs(const QString &p)
@@ -33,7 +33,8 @@ QString toToolFriendlyPath(const QString &path)
     const wchar_t *longPath = reinterpret_cast<const wchar_t *>(native.utf16());
     // GetShortPathNameW requires the path to exist.
     DWORD required = GetShortPathNameW(longPath, nullptr, 0);
-    if (required == 0) {
+    if (required == 0)
+    {
         // Fallback: return native path; QProcess will pass Unicode. Some tools may still handle it.
         return native;
     }
@@ -42,7 +43,8 @@ QString toToolFriendlyPath(const QString &path)
     out.resize(int(required)); // includes room for terminator
     wchar_t *buf = reinterpret_cast<wchar_t *>(out.data());
     DWORD written = GetShortPathNameW(longPath, buf, required);
-    if (written == 0) {
+    if (written == 0)
+    {
         return native; // fallback
     }
     // QString length handling: written excludes terminator

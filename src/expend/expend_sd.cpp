@@ -1,8 +1,8 @@
 #include "expend.h"
 
-#include "ui_expend.h"
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
+#include "ui_expend.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------文生图相关--------------------------------
@@ -29,7 +29,7 @@ QStringList Expend::listFiles(const QString &path)
     return file_paths;
 }
 
-//用户点击选择sd模型路径时响应
+// 用户点击选择sd模型路径时响应
 void Expend::on_sd_modelpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose diffusion model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -44,7 +44,7 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     // 自动寻找其它模型
     if (QFile::exists(modelpath))
     {
-        //先清空其它路径
+        // 先清空其它路径
         ui->sd_lorapath_lineEdit->setText("");
         ui->sd_vaepath_lineEdit->setText("");
         ui->sd_clip_l_path_lineEdit->setText("");
@@ -97,7 +97,7 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     }
 }
 
-//用户点击选择vae模型路径时响应
+// 用户点击选择vae模型路径时响应
 void Expend::on_sd_vaepath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose vae model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -107,7 +107,7 @@ void Expend::on_sd_vaepath_pushButton_clicked()
     }
 }
 
-//用户点击选择clip模型路径时响应
+// 用户点击选择clip模型路径时响应
 void Expend::on_sd_clip_l_path_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose clip_l model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -117,7 +117,7 @@ void Expend::on_sd_clip_l_path_pushButton_clicked()
     }
 }
 
-//用户点击选择clip模型路径时响应
+// 用户点击选择clip模型路径时响应
 void Expend::on_sd_clip_g_path_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose clip_g model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -127,7 +127,7 @@ void Expend::on_sd_clip_g_path_pushButton_clicked()
     }
 }
 
-//用户点击选择t5模型路径时响应
+// 用户点击选择t5模型路径时响应
 void Expend::on_sd_t5path_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose t5 model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -137,7 +137,7 @@ void Expend::on_sd_t5path_pushButton_clicked()
     }
 }
 
-//用户点击选择lora模型路径时响应
+// 用户点击选择lora模型路径时响应
 void Expend::on_sd_lorapath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose lora model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
@@ -147,14 +147,14 @@ void Expend::on_sd_lorapath_pushButton_clicked()
     }
 }
 
-//用户点击开始绘制时响应
+// 用户点击开始绘制时响应
 void Expend::on_sd_draw_pushButton_clicked()
 {
-    //处理stop的情况
+    // 处理stop的情况
     if (ui->sd_img2img_pushButton->text() == "stop" || ui->sd_draw_pushButton->text() == "stop")
     {
         ui->sd_log->appendPlainText("stop");
-        sd_process->kill(); //强制结束sd
+        sd_process->kill(); // 强制结束sd
         ui->sd_draw_pushButton->setText(jtr("text to image"));
         ui->sd_img2img_pushButton->setText(jtr("image to image"));
         img2img = false;
@@ -183,28 +183,32 @@ void Expend::on_sd_draw_pushButton_clicked()
     QString timeString = currentTime.toString("-hh-mm-ss"); // 格式化时间为时-分-秒
     sd_outputpath = applicationDirPath + "/EVA_TEMP/sd_output" + timeString + ".png";
 
-    //结束sd
+    // 结束sd
     sd_process->kill();
 
     const QString program = DeviceManager::programPath(QStringLiteral("sd")); // 设置要运行的exe文件的路径
-    if (program.isEmpty() || !QFileInfo::exists(program)) { ui->sd_log->appendPlainText("[error] sd backend not found under current device folder"); return; }
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->sd_log->appendPlainText("[error] sd backend not found under current device folder");
+        return;
+    }
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 
     if (img2img)
     {
         arguments << "-M"
-                  << "img_gen";                               //运行模式 图生图
+                  << "img_gen";                                                           // 运行模式 图生图
         arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text()); // 传入图像路径（处理中文路径）
         img2img = false;
     }
     else
     {
         arguments << "-M"
-                  << "img_gen"; //运行模式 文生图
+                  << "img_gen"; // 运行模式 文生图
     }
 
-    //模型路径 sd系列模型用-m flux模型用--diffusion-model
+    // 模型路径 sd系列模型用-m flux模型用--diffusion-model
     if (ui->sd_modelpath_lineEdit->text().contains("flux"))
     {
         arguments << "--diffusion-model" << ensureToolFriendlyFilePath(ui->sd_modelpath_lineEdit->text());
@@ -229,7 +233,7 @@ void Expend::on_sd_draw_pushButton_clicked()
     if (QFile::exists(ui->sd_t5path_lineEdit->text()))
     {
         arguments << "--t5xxl" << ensureToolFriendlyFilePath(ui->sd_t5path_lineEdit->text());
-    }                                         // vae路径
+    } // vae路径
     QString lora_prompt = "<lora:{model}:1>"; // 应用lora的提示，将会添加到提示词的最后
     if (QFile::exists(ui->sd_lorapath_lineEdit->text()))
     {
@@ -243,17 +247,17 @@ void Expend::on_sd_draw_pushButton_clicked()
         }
     }
 
-    arguments << "-W" << QString::number(ui->sd_imagewidth->value());        //图像宽
-    arguments << "-H" << QString::number(ui->sd_imageheight->value());       //图像长
-    arguments << "--sampling-method" << ui->sd_sampletype->currentText();    //采样方法
-    arguments << "--clip-skip" << QString::number(ui->sd_clipskip->value()); //跳层
-    arguments << "--cfg-scale" << QString::number(ui->sd_cfgscale->value()); //相关系数
-    arguments << "--steps" << QString::number(ui->sd_samplesteps->value());  //采样步数
-    arguments << "-s" << QString::number(ui->sd_seed->value());              //随机种子
-    arguments << "-b" << QString::number(ui->sd_batch_count->value());       //出图张数
-    arguments << "-n" << ui->sd_negative_lineEdit->text();                   //反向提示词
+    arguments << "-W" << QString::number(ui->sd_imagewidth->value());        // 图像宽
+    arguments << "-H" << QString::number(ui->sd_imageheight->value());       // 图像长
+    arguments << "--sampling-method" << ui->sd_sampletype->currentText();    // 采样方法
+    arguments << "--clip-skip" << QString::number(ui->sd_clipskip->value()); // 跳层
+    arguments << "--cfg-scale" << QString::number(ui->sd_cfgscale->value()); // 相关系数
+    arguments << "--steps" << QString::number(ui->sd_samplesteps->value());  // 采样步数
+    arguments << "-s" << QString::number(ui->sd_seed->value());              // 随机种子
+    arguments << "-b" << QString::number(ui->sd_batch_count->value());       // 出图张数
+    arguments << "-n" << ui->sd_negative_lineEdit->text();                   // 反向提示词
 
-    //提示词
+    // 提示词
     if (arguments.contains("--lora-model-dir"))
     {
         // 应用lora的情况
@@ -264,13 +268,14 @@ void Expend::on_sd_draw_pushButton_clicked()
         arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();
     }
 
-    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5); //线程数
-    arguments << "-o" << toToolFriendlyPath(sd_outputpath);                           // 输出路径（确保无中文）
-    arguments << "--strength" << DEFAULT_SD_NOISE;                                   //噪声系数
+    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5); // 线程数
+    arguments << "-o" << toToolFriendlyPath(sd_outputpath);                          // 输出路径（确保无中文）
+    arguments << "--strength" << DEFAULT_SD_NOISE;                                   // 噪声系数
     arguments << "-v";                                                               // 打印细节
 
-    //连接信号和槽,获取程序的输出
-    connect(sd_process, &QProcess::readyReadStandardOutput, [=]() {
+    // 连接信号和槽,获取程序的输出
+    connect(sd_process, &QProcess::readyReadStandardOutput, [=]()
+            {
         QByteArray sd_process_output_byte = sd_process->readAllStandardOutput(); // 读取子进程的标准错误输出
 #ifdef Q_OS_WIN
         QString sd_process_output = QString::fromLocal8Bit(sd_process_output_byte); // 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
@@ -285,9 +290,9 @@ void Expend::on_sd_draw_pushButton_clicked()
         if (sd_process_output.contains("CUDA error"))
         {
             sd_process->kill();
-        }
-    });
-    connect(sd_process, &QProcess::readyReadStandardError, [=]() {
+        } });
+    connect(sd_process, &QProcess::readyReadStandardError, [=]()
+            {
         QByteArray sd_process_output_byte = sd_process->readAllStandardError(); // 读取子进程的标准错误输出
 #ifdef Q_OS_WIN
         QString sd_process_output = QString::fromLocal8Bit(sd_process_output_byte); // 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
@@ -301,8 +306,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         if (sd_process_output.contains("CUDA error"))
         {
             sd_process->kill();
-        }
-    });
+        } });
 
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     // Add tool dir to library search path and set working directory
@@ -319,15 +323,15 @@ void Expend::on_sd_draw_pushButton_clicked()
     sd_process->setWorkingDirectory(toolDir);
     sd_process->start(program, arguments);
 }
-//进程开始响应
+// 进程开始响应
 void Expend::sd_onProcessStarted() {}
-//进程结束响应
+// 进程结束响应
 void Expend::sd_onProcessFinished()
 {
     ui->sd_draw_pushButton->setText(jtr("text to image"));
     ui->sd_img2img_pushButton->setText(jtr("image to image"));
 
-    //绘制结果
+    // 绘制结果
     QImage image(sd_outputpath);
     int originalWidth = image.width() / devicePixelRatioF();
     int originalHeight = image.height() / devicePixelRatioF();
@@ -339,8 +343,8 @@ void Expend::sd_onProcessFinished()
     imageFormat.setHeight(originalHeight); // 设置图片的高度
     imageFormat.setName(sd_outputpath);    // 图片资源路径
     cursor.insertImage(imageFormat);
-    ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); //滚动条滚动到最下面
-    //如果是多幅
+    ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
+    // 如果是多幅
     if (ui->sd_batch_count->value() > 1)
     {
         for (int i = 1; i < ui->sd_batch_count->value(); ++i)
@@ -350,16 +354,16 @@ void Expend::sd_onProcessFinished()
             imageFormats.setHeight(originalHeight);                                                       // 设置图片的高度
             imageFormats.setName(sd_outputpath.split(".png")[0] + "_" + QString::number(i + 1) + ".png"); // 图片资源路径
             cursor.insertImage(imageFormats);
-            ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); //滚动条滚动到最下面
+            ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
         }
     }
 
-    //处理工具调用情况
+    // 处理工具调用情况
     if (!is_handle_sd && originalWidth > 0)
     {
         is_handle_sd = true;
         emit expend2ui_state("expend:" + jtr("draw over"), USUAL_SIGNAL);
-        emit expend2tool_drawover(sd_outputpath, 1); //绘制完成信号
+        emit expend2tool_drawover(sd_outputpath, 1); // 绘制完成信号
     }
     else if (!is_handle_sd)
     {
@@ -367,17 +371,17 @@ void Expend::sd_onProcessFinished()
         if (sd_process_output.contains("CUDA error"))
         {
             emit expend2ui_state("expend:" + jtr("draw fail cuda"), WRONG_SIGNAL);
-            emit expend2tool_drawover(jtr("draw fail cuda"), 0); //绘制完成信号
+            emit expend2tool_drawover(jtr("draw fail cuda"), 0); // 绘制完成信号
         }
         else
         {
             emit expend2ui_state("expend:" + jtr("draw fail prompt"), WRONG_SIGNAL);
-            emit expend2tool_drawover(jtr("draw fail prompt"), 0); //绘制完成信号
+            emit expend2tool_drawover(jtr("draw fail prompt"), 0); // 绘制完成信号
         }
     }
 }
 
-//参数模板改变响应
+// 参数模板改变响应
 void Expend::on_params_template_comboBox_currentIndexChanged(int index)
 {
     // 以前是自定义模板，触发这个函数说明现在换了，保存以前的这个模板
@@ -442,34 +446,31 @@ void Expend::sd_apply_template(SD_PARAMS sd_params)
     ui->sd_modify_lineEdit->setText(sd_params.modify_prompt);
 }
 
-//用户点击图生图时响应
+// 用户点击图生图时响应
 void Expend::on_sd_img2img_pushButton_clicked()
 {
     img2img = true;
     ui->sd_draw_pushButton->click();
 }
 
-//接收到tool的开始绘制图像信号
+// 接收到tool的开始绘制图像信号
 void Expend::recv_draw(QString prompt_)
 {
-    //判断是否空闲
+    // 判断是否空闲
     if (!ui->sd_draw_pushButton->isEnabled())
     {
-        emit expend2tool_drawover("stablediffusion" + jtr("Running, please try again later"), 0); //绘制完成信号
+        emit expend2tool_drawover("stablediffusion" + jtr("Running, please try again later"), 0); // 绘制完成信号
         return;
     }
     else if (ui->sd_modelpath_lineEdit->text() == "")
     {
-        emit expend2tool_drawover(jtr("The command is invalid. Please ask the user to specify the SD model path in the breeding window first"), 0); //绘制完成信号
+        emit expend2tool_drawover(jtr("The command is invalid. Please ask the user to specify the SD model path in the breeding window first"), 0); // 绘制完成信号
         return;
     }
-    //先把提示词写进输入框
+    // 先把提示词写进输入框
     ui->sd_prompt_textEdit->setText(prompt_);
-    //不是手动
+    // 不是手动
     is_handle_sd = false;
-    //触发绘制
+    // 触发绘制
     ui->sd_draw_pushButton->click();
 }
-
-
-

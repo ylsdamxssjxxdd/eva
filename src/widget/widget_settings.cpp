@@ -7,7 +7,7 @@
 void Widget::set_SetDialog()
 {
     settings_dialog = new QDialog(this);
-    settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint); //隐藏?按钮
+    settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint); // 隐藏?按钮
     // settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);// 隐藏关闭按钮
     settings_ui = new Ui::Settings_Dialog_Ui;
     settings_ui->setupUi(settings_dialog);
@@ -26,9 +26,10 @@ void Widget::set_SetDialog()
         if (idx >= 0) settings_ui->device_comboBox->setCurrentIndex(idx);
 
         // helper：刷新设备相关 UI（auto 时在“推理设备”文本后追加提示；CPU 禁用 gpu 层数）
-        auto refreshDeviceUI = [this]() {
+        auto refreshDeviceUI = [this]()
+        {
             const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
-            const bool isCpu = (sel == QLatin1String("cpu")||sel == QLatin1String("opencl"));
+            const bool isCpu = (sel == QLatin1String("cpu") || sel == QLatin1String("opencl"));
             const bool isAuto = (sel == QLatin1String("auto"));
 
             // 当选择 CPU 时，禁止选择 gpu 负载层数
@@ -52,18 +53,17 @@ void Widget::set_SetDialog()
         };
 
         // 监听选择变化并初始化一次
-        connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &) {
-            refreshDeviceUI();
-        });
+        connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
+                { refreshDeviceUI(); });
         refreshDeviceUI();
     }
 
-    //温度控制
+    // 温度控制
     settings_ui->temp_slider->setRange(0, 100); // 设置范围为1到99
     settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
     settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
     connect(settings_ui->temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
-    //重复惩罚控制
+    // 重复惩罚控制
     settings_ui->repeat_slider->setRange(0, 200); // 设置范围
     settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
@@ -81,7 +81,7 @@ void Widget::set_SetDialog()
     settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
                                             .arg(QString::number(settings_ui->topp_slider->value() / 100.0, 'f', 2)));
     connect(settings_ui->topp_slider, &QSlider::valueChanged, this, &Widget::topp_change);
-    //加速支持
+    // 加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
     settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(settings_ui->ngl_slider->value()));
@@ -100,31 +100,30 @@ void Widget::set_SetDialog()
     settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(settings_ui->parallel_slider->value()));
     connect(settings_ui->parallel_slider, &QSlider::valueChanged, this, &Widget::parallel_change);
     // load lora
-    settings_ui->lora_LineEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
+    settings_ui->lora_LineEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
     settings_ui->lora_LineEdit->installEventFilter(this);
     // load mmproj
-    settings_ui->mmproj_LineEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
+    settings_ui->mmproj_LineEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
     settings_ui->mmproj_LineEdit->installEventFilter(this);
-    //补完控制
+    // 补完控制
     connect(settings_ui->complete_btn, &QRadioButton::clicked, this, &Widget::complete_change);
-    //多轮对话
+    // 多轮对话
     settings_ui->chat_btn->setChecked(1);
     connect(settings_ui->chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
-    //网页服务控制（服务状态已移除，仅保留端口）
-    QHBoxLayout *layout_H10 = new QHBoxLayout(); //水平布局器
+    // 网页服务控制（服务状态已移除，仅保留端口）
+    QHBoxLayout *layout_H10 = new QHBoxLayout(); // 水平布局器
     settings_ui->port_lineEdit->setText(ui_port);
-    QIntValidator *validator = new QIntValidator(0, 65535); //限制端口输入
+    QIntValidator *validator = new QIntValidator(0, 65535); // 限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
     settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
     // web_btn 已从 UI 移除
-    //监视帧率设置
+    // 监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
 
     connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
 
     settings_dialog->setWindowTitle(jtr("set"));
-
 }
 
 // 设置选项卡确认按钮响应
@@ -134,16 +133,20 @@ void Widget::settings_ui_confirm_button_clicked()
     // 注意：get_set() 会把控件值写入 ui_SETTINGS 与 ui_port
     get_set();
 
-    auto eq_str = [](const QString &a, const QString &b) { return a == b; };
-    auto eq_ngl = [&](int a, int b) {
+    auto eq_str = [](const QString &a, const QString &b)
+    { return a == b; };
+    auto eq_ngl = [&](int a, int b)
+    {
         // 视 999 与 (n_layer+1) 为等价（已知服务端最大层数时）
         if (a == b) return true;
-        if (ui_maxngl > 0) {
+        if (ui_maxngl > 0)
+        {
             if ((a == 999 && b == ui_maxngl) || (b == 999 && a == ui_maxngl)) return true;
         }
         return false;
     };
-    auto eq = [&](const SETTINGS &A, const SETTINGS &B) {
+    auto eq = [&](const SETTINGS &A, const SETTINGS &B)
+    {
         // 影响 llama-server 启动参数的设置项（保持与 LocalServerManager::buildArgs 一致）
         if (A.modelpath != B.modelpath) return false;
         if (A.mmprojpath != B.mmprojpath) return false;
@@ -173,7 +176,8 @@ void Widget::settings_ui_confirm_button_clicked()
     const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
     // 仅比较会触发后端重启的设置项
-    auto eq_server = [&](const SETTINGS &A, const SETTINGS &B) {
+    auto eq_server = [&](const SETTINGS &A, const SETTINGS &B)
+    {
         if (A.modelpath != B.modelpath) return false;
         if (A.mmprojpath != B.mmprojpath) return false;
         if (A.lorapath != B.lorapath) return false;
@@ -228,7 +232,7 @@ void Widget::settings_ui_confirm_button_clicked()
 void Widget::settings_ui_cancel_button_clicked()
 {
     settings_dialog->close();
-    if (!is_load) //如果没有装载模型则装载
+    if (!is_load) // 如果没有装载模型则装载
     {
         set_set();
     }
@@ -237,10 +241,10 @@ void Widget::settings_ui_cancel_button_clicked()
 // 设置用户设置内容
 void Widget::set_set()
 {
-    EVA_STATE current_ui_state = ui_state; //上一次机体的状态
-    get_set();                             //获取设置中的纸面值
+    EVA_STATE current_ui_state = ui_state; // 上一次机体的状态
+    get_set();                             // 获取设置中的纸面值
 
-    //如果不是对话模式则禁用约定
+    // 如果不是对话模式则禁用约定
     if (ui_state != CHAT_STATE)
     {
         date_ui->prompt_box->setEnabled(0);
@@ -268,5 +272,3 @@ void Widget::set_set()
         on_reset_clicked();
     }
 }
-
-

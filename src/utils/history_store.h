@@ -8,8 +8,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QVector>
 #include <QString>
+#include <QVector>
 
 // Lightweight session metadata for future retrieval/resume
 struct SessionMeta
@@ -43,7 +43,12 @@ class HistoryStore
 {
   public:
     // Recent list entry
-    struct ListItem { QString id; QString title; QDateTime startedAt; };
+    struct ListItem
+    {
+        QString id;
+        QString title;
+        QDateTime startedAt;
+    };
 
   public:
     explicit HistoryStore(const QString &baseDir)
@@ -104,7 +109,11 @@ class HistoryStore
     QString sessionDir() const { return sessionDir_; }
 
     // Clear current in-memory session context
-    void clearCurrent() { sessionDir_.clear(); meta_ = SessionMeta(); }
+    void clearCurrent()
+    {
+        sessionDir_.clear();
+        meta_ = SessionMeta();
+    }
 
     // Resume an existing session (load meta.json into memory)
     bool resume(const QString &id)
@@ -175,7 +184,8 @@ class HistoryStore
             it.startedAt = QDateTime::fromString(o.value("started_at").toString(), Qt::ISODate);
             out.append(it);
         }
-        std::sort(out.begin(), out.end(), [](const ListItem &a, const ListItem &b) { return a.startedAt > b.startedAt; });
+        std::sort(out.begin(), out.end(), [](const ListItem &a, const ListItem &b)
+                  { return a.startedAt > b.startedAt; });
         if (maxCount > 0 && out.size() > maxCount) out.resize(maxCount);
         return out;
     }

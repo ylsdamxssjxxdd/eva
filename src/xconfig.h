@@ -24,7 +24,7 @@
 #include <thread>
 #include <vector>
 
-//默认约定
+// 默认约定
 #define DEFAULT_DATE_PROMPT "You are a helpful assistant."
 #define DEFAULT_SYSTEM_NAME "system"
 #define DEFAULT_USER_NAME "user"
@@ -35,7 +35,7 @@
 #define DEFAULT_THINK_END "</think>"
 #define DEFAULT_SPLITER "\n" // 分隔符
 
-//采样
+// 采样
 #define DEFAULT_NPREDICT 4096
 #define DEFAULT_TEMP 0.7
 #define DEFAULT_REPEAT 1.2
@@ -43,18 +43,17 @@
 // 采样：top_k（<=0 表示使用词表大小；常用范围 0~100）
 #define DEFAULT_TOP_K 40
 
-//推理
+// 推理
 #define DEFAULT_NTHREAD 1    // 默认线程数为1，但是后面会变的
 #define DEFAULT_SPECIAL true // 默认显示特殊token
 
-#define DEFAULT_NCTX 4096       // 默认上下文长度
-#define DEFAULT_BATCH 2048      // 默认虚拟批处理大小
-#define DEFAULT_UBATCH 512      // 默认物理批处理大小
-#define DEFAULT_PARALLEL 1      // 默认并发数
-#define DEFAULT_USE_MMAP false  // 默认关闭内存映射
-#define DEFAULT_FLASH_ATTN true // 默认开启注意力加速
+#define DEFAULT_NCTX 4096        // 默认上下文长度
+#define DEFAULT_BATCH 2048       // 默认虚拟批处理大小
+#define DEFAULT_UBATCH 512       // 默认物理批处理大小
+#define DEFAULT_PARALLEL 1       // 默认并发数
+#define DEFAULT_USE_MMAP false   // 默认关闭内存映射
+#define DEFAULT_FLASH_ATTN true  // 默认开启注意力加速
 #define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
-
 
 #define DEFAULT_NGL 0
 #define DEFAULT_MONITOR_FRAME 0                // 默认监视帧率
@@ -65,26 +64,26 @@
 #define DEFAULT_EMBEDDING_SPLITLENTH 300
 #define DEFAULT_EMBEDDING_OVERLAP 20
 #define DEFAULT_EMBEDDING_RESULTNUMB 3
-#define MAX_INPUT 80000 //一次最大输入字符数
+#define MAX_INPUT 80000 // 一次最大输入字符数
 
 // llama日志信号字样，用来指示下一步动作
 #define SERVER_START "server is listening on"              // server启动成功返回的字样
 #define SERVER_EMBD_INFO "print_info: n_embd           = " // 模型装载成功返回的词嵌入维度字样
 
-//默认的模型路径
+// 默认的模型路径
 #define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen3-8B-Q3_K_M.gguf"
 #define DEFAULT_SD_MODEL_PATH "/EVA_MODELS/文生图模型/sd1.5-anything-3/sd1.5-anything-3-q8_0.gguf"
 #define DEFAULT_WHISPER_MODEL_PATH "/EVA_MODELS/声转文模型/whisper-base-q5_1.bin"
 #define DEFAULT_OUTETTS_MODEL_PATH "/EVA_MODELS/文转声模型/OuteTTS-0.2-500M-Q8_0.gguf"
 #define DEFAULT_WAVTOKENIZER_MODEL_PATH "/EVA_MODELS/文转声模型/WavTokenizer-Large-75-F16.gguf"
 
-//不同操作系统相关
+// 不同操作系统相关
 #ifdef _WIN32
 #define SFX_NAME ".exe" // 第三方程序后缀名
 #define DEFAULT_SHELL "cmd.exe"
 #define DEFAULT_PYTHON "python"
 #elif __linux__
-#define SFX_NAME "" //第三方程序后缀名
+#define SFX_NAME "" // 第三方程序后缀名
 #define DEFAULT_SHELL "/bin/sh"
 #define DEFAULT_PYTHON "python3"
 #endif
@@ -92,14 +91,14 @@ namespace mcp
 {
 using json = nlohmann::ordered_json;
 };
-//约定内容
+// 约定内容
 struct EVA_DATES
 {
     QString date_prompt = DEFAULT_DATE_PROMPT; // 约定指令 影响 系统指令
     QString user_name = DEFAULT_USER_NAME;     // 用户昵称 影响 输入前缀
     QString model_name = DEFAULT_MODEL_NAME;   // 模型昵称 影响 输入后缀
     bool is_load_tool = false;                 // 是否挂载了工具
-    QStringList extra_stop_words = {};         //额外停止标志
+    QStringList extra_stop_words = {};         // 额外停止标志
 };
 
 // 经过模型自带模板格式化后的内容
@@ -111,7 +110,7 @@ struct EVA_CHATS_TEMPLATE
     QString tool_prefix;   // 输入前缀（工具）
 };
 
-//发送内容的角色
+// 发送内容的角色
 enum EVA_ROLE
 {
     EVA_ROLE_SYSTEM,      // 系统角色
@@ -120,7 +119,7 @@ enum EVA_ROLE
     EVA_ROLE_OBSERVATION, // 工具角色
 };
 
-//一次发送的内容
+// 一次发送的内容
 struct EVA_INPUTS
 {
     EVA_ROLE role;               // 角色
@@ -129,38 +128,38 @@ struct EVA_INPUTS
     QStringList wavs_filepath;   // 音频路径
 };
 
-//机体模式枚举
+// 机体模式枚举
 enum EVA_MODE
 {
-    LOCAL_MODE, //本地模式
-    LINK_MODE,  //链接模式
+    LOCAL_MODE, // 本地模式
+    LINK_MODE,  // 链接模式
 };
 
-//机体状态枚举
+// 机体状态枚举
 enum EVA_STATE
 {
-    CHAT_STATE,     //对话状态
-    COMPLETE_STATE, //补完状态
+    CHAT_STATE,     // 对话状态
+    COMPLETE_STATE, // 补完状态
 };
 
-//增殖窗口枚举
+// 增殖窗口枚举
 enum EXPEND_WINDOW
 {
-    INTRODUCTION_WINDOW, //软件介绍窗口
-    MODELINFO_WINDOW,    //模型信息窗口
-    MODELCARD_WINDOW,    //模型下载窗口
-    MODELCONVERT_WINDOW, //模型转换窗口
-    QUANTIZE_WINDOW,     //模型量化窗口
-    MCP_WINDOW,          //MCP服务器窗口
-    KNOWLEDGE_WINDOW,    //知识库窗口
-    TXT2IMG_WINDOW,      //文生图窗口
-    WHISPER_WINDOW,      //声转文窗口
-    TTS_WINDOW,          //文转声窗口
-    NO_WINDOW,           //关闭窗口
-    PREV_WINDOW,         //上一次的窗口
+    INTRODUCTION_WINDOW, // 软件介绍窗口
+    MODELINFO_WINDOW,    // 模型信息窗口
+    MODELCARD_WINDOW,    // 模型下载窗口
+    MODELCONVERT_WINDOW, // 模型转换窗口
+    QUANTIZE_WINDOW,     // 模型量化窗口
+    MCP_WINDOW,          // MCP服务器窗口
+    KNOWLEDGE_WINDOW,    // 知识库窗口
+    TXT2IMG_WINDOW,      // 文生图窗口
+    WHISPER_WINDOW,      // 声转文窗口
+    TTS_WINDOW,          // 文转声窗口
+    NO_WINDOW,           // 关闭窗口
+    PREV_WINDOW,         // 上一次的窗口
 };
 
-//窗口索引
+// 窗口索引
 const QMap<EXPEND_WINDOW, int> window_map = {
     {INTRODUCTION_WINDOW, 0},
     {MODELINFO_WINDOW, 1},
@@ -175,16 +174,16 @@ const QMap<EXPEND_WINDOW, int> window_map = {
     {NO_WINDOW, 999},
     {PREV_WINDOW, -1}};
 
-//模型类型枚举
+// 模型类型枚举
 enum MODEL_TYPE
 {
-    MODEL_TYPE_LLM,     //大语言模型
-    MODEL_TYPE_WHISPER, //WHISPER模型
-    MODEL_TYPE_SD,      //SD模型
-    MODEL_TYPE_OUTETTS, //OUTETTS模型
+    MODEL_TYPE_LLM,     // 大语言模型
+    MODEL_TYPE_WHISPER, // WHISPER模型
+    MODEL_TYPE_SD,      // SD模型
+    MODEL_TYPE_OUTETTS, // OUTETTS模型
 };
 
-//模型量化级别枚举
+// 模型量化级别枚举
 enum MODEL_QUANTIZE
 {
     MODEL_QUANTIZE_F32,
@@ -193,13 +192,13 @@ enum MODEL_QUANTIZE
     MODEL_QUANTIZE_Q8_0,
 };
 
-//模型转换脚本
+// 模型转换脚本
 #define CONVERT_HF_TO_GGUF_SCRIPT "convert_hf_to_gguf.py"
 
 const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM, "llm"}, {MODEL_TYPE_WHISPER, "whisper"}, {MODEL_TYPE_SD, "sd"}, {MODEL_TYPE_OUTETTS, "outetts"}};
 const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32, "f32"}, {MODEL_QUANTIZE_F16, "f16"}, {MODEL_QUANTIZE_BF16, "bf16"}, {MODEL_QUANTIZE_Q8_0, "q8_0"}};
 
-//设置参数
+// 设置参数
 struct SETTINGS
 {
     double temp = DEFAULT_TEMP;
@@ -213,7 +212,7 @@ struct SETTINGS
     QString mmprojpath = "";
     bool complete_mode = false;
 
-    //隐藏的设置
+    // 隐藏的设置
     int hid_npredict = DEFAULT_NPREDICT;
     bool hid_special = DEFAULT_SPECIAL; // enable special token output
     double hid_top_p = DEFAULT_TOP_P;
@@ -225,7 +224,7 @@ struct SETTINGS
     int hid_parallel = DEFAULT_PARALLEL;
 };
 
-//模型参数,模型装载后发送给ui的参数
+// 模型参数,模型装载后发送给ui的参数
 struct MODEL_PARAMS
 {
     int n_ctx_train; // 最大上下文长度
@@ -246,7 +245,7 @@ struct APIS
     bool is_cache = true;
 };
 
-//端点接收参数
+// 端点接收参数
 struct ENDPOINT_DATA
 {
     QString date_prompt;      // 约定指令
@@ -260,16 +259,16 @@ struct ENDPOINT_DATA
     int top_k;                // 采样：top_k
     double top_p;             // 采样：top_p（0~1）
     int n_predict;            // 最大预测数
-    QStringList stopwords;    //停止标志
+    QStringList stopwords;    // 停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
 };
 
-//单参数工具
+// 单参数工具
 struct TOOLS
 {
-    QString tool_name;     //工具名
-    QString func_name;     //函数名
-    QString func_describe; //功能描述
+    QString tool_name;     // 工具名
+    QString func_name;     // 函数名
+    QString func_describe; // 功能描述
 };
 
 struct TOOLS_INFO
@@ -301,7 +300,7 @@ struct TOOLS_INFO
     }
 };
 
-//MCP连接状态枚举
+// MCP连接状态枚举
 enum MCP_CONNECT_STATE
 {
     MCP_CONNECT_LINK, // 正常连接
@@ -310,19 +309,19 @@ enum MCP_CONNECT_STATE
 };
 
 inline std::vector<TOOLS_INFO> MCP_TOOLS_INFO_LIST; // 保存所有用户要用的mcp工具，全局变量
-inline mcp::json MCP_TOOLS_INFO_ALL;                //当前服务可用的所有工具，全局变量
+inline mcp::json MCP_TOOLS_INFO_ALL;                // 当前服务可用的所有工具，全局变量
 
-//状态区信号枚举
+// 状态区信号枚举
 enum SIGNAL_STATE
 {
-    USUAL_SIGNAL,   //一般输出，黑色
-    SIGNAL_SIGNAL,  //信号，蓝色
-    SUCCESS_SIGNAL, //成功，绿色
-    WRONG_SIGNAL,   //错误，红色
-    EVA_SIGNAL,     //机体，紫色
-    TOOL_SIGNAL,    //工具，天蓝色
-    SYNC_SIGNAL,    //同步，橘黄色
-    MATRIX_SIGNAL,  //文本表格，黑色，不过滤回车符
+    USUAL_SIGNAL,   // 一般输出，黑色
+    SIGNAL_SIGNAL,  // 信号，蓝色
+    SUCCESS_SIGNAL, // 成功，绿色
+    WRONG_SIGNAL,   // 错误，红色
+    EVA_SIGNAL,     // 机体，紫色
+    TOOL_SIGNAL,    // 工具，天蓝色
+    SYNC_SIGNAL,    // 同步，橘黄色
+    MATRIX_SIGNAL,  // 文本表格，黑色，不过滤回车符
 };
 
 // whisper可以传入的参数
@@ -395,16 +394,16 @@ struct Embedding_vector
     std::vector<double> value; // 支持任意维度向量
 };
 
-//量化方法说明数据结构
+// 量化方法说明数据结构
 struct QuantizeType
 {
-    QString typename_;  //方法名
-    QString bit;        //压缩率,fp16为基准
-    QString perplexity; //困惑度
-    QString recommand;  //推荐度
+    QString typename_;  // 方法名
+    QString bit;        // 压缩率,fp16为基准
+    QString perplexity; // 困惑度
+    QString recommand;  // 推荐度
 };
 
-//文转声参数
+// 文转声参数
 struct Speech_Params
 {
     bool enable_speech = false;
@@ -413,29 +412,29 @@ struct Speech_Params
 
 #define SPPECH_OUTETTS "outetts"
 
-//记忆单元（当前记忆）
+// 记忆单元（当前记忆）
 struct Brain_Cell
 {
-    int id;       //在缓存中的序号
-    int token;    //缓存的词索引
-    QString word; //词索引对应的词
+    int id;       // 在缓存中的序号
+    int token;    // 缓存的词索引
+    QString word; // 词索引对应的词
 };
 
 // 文生图参数
-#define DEFAULT_SD_NOISE "0.75" //噪声系数
+#define DEFAULT_SD_NOISE "0.75" // 噪声系数
 
 struct SD_PARAMS
 {
-    QString sample_type;     //采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
-    QString negative_prompt; //反向提示词
-    QString modify_prompt;   //修饰词
-    int width;               //图像宽度
-    int height;              //图像高度
-    int steps;               //采样步数
-    int batch_count;         //出图张数
-    int seed;                //随机数种子 -1随机
-    int clip_skip;           //跳层
-    double cfg_scale;        //提示词与图像相关系数
+    QString sample_type;     // 采样算法euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, dpm++2mv2, lcm
+    QString negative_prompt; // 反向提示词
+    QString modify_prompt;   // 修饰词
+    int width;               // 图像宽度
+    int height;              // 图像高度
+    int steps;               // 采样步数
+    int batch_count;         // 出图张数
+    int seed;                // 随机数种子 -1随机
+    int clip_skip;           // 跳层
+    double cfg_scale;        // 提示词与图像相关系数
 
     // 构造函数
     SD_PARAMS(QString sample_type = "euler", QString negative_prompt = "", QString modify_prompt = "", int width = 512, int height = 512, int steps = 20, int batch_count = 1, int seed = -1, int clip_skip = -1, double cfg_scale = 7.5)
@@ -497,7 +496,7 @@ inline QString getLinuxOSName()
     file.close();
     return osName + " " + osVersion;
 }
-//操作系统版本
+// 操作系统版本
 #ifdef Q_OS_LINUX
 const QString USEROS = getLinuxOSName();
 const QString CMDGUID = "-c";
@@ -643,7 +642,7 @@ inline std::vector<mcp::json> get_json_array_safely(const mcp::json &json_, cons
     }
 }
 
-//颜色
+// 颜色
 const QColor BODY_WHITE(255, 255, 240);   // 乳白色
 const QColor SIGNAL_BLUE(0, 0, 255);      // 蓝色
 const QColor SYSTEM_BLUE(0, 0, 255, 200); // 蓝紫色

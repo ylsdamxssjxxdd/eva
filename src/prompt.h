@@ -191,7 +191,6 @@ static TOOLS_INFO Buildin_tools_search_content(
         "required": ["query"]
 })");
 
-
 // 内置的工程师-读文件工具
 static TOOLS_INFO Buildin_tools_read_file(
     "read_file",

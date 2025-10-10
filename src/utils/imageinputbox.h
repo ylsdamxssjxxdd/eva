@@ -39,7 +39,7 @@ class ImageInputBox : public QWidget
         textEdit->setAcceptDrops(false);
         thumbnailContainer->setAcceptDrops(false);
         textEdit->viewport()->setAcceptDrops(false);
-        scrollArea->viewport()->setAcceptDrops(false); //禁用视口
+        scrollArea->viewport()->setAcceptDrops(false); // 禁用视口
         this->setAcceptDrops(true);
         this->setMouseTracking(true);
         thumbnailContainer->installEventFilter(this); // 添加事件过滤器
@@ -176,13 +176,13 @@ class ImageInputBox : public QWidget
             "}"
             "QPushButton:hover { background: rgba(255, 0, 0, 200); }");
         closeBtn->move(THUMBNAIL_SIZE - 15, 2);
-        connect(closeBtn, &QPushButton::clicked, [this, path, previewLabel]() {
+        connect(closeBtn, &QPushButton::clicked, [this, path, previewLabel]()
+                {
             filePaths.removeAll(path);
             thumbnailLayout->removeWidget(previewLabel);
             previewLabel->deleteLater();
             updateLayout();
-            adjustHeight();
-        });
+            adjustHeight(); });
 
         thumbnailLayout->addWidget(previewLabel);
         filePaths.append(path);
@@ -361,7 +361,7 @@ class ImageInputBox : public QWidget
     int m_minHeight = 80;  // 最小高度
     int m_maxHeight = 300; // 最大高度
   private slots:
-    //添加文件进来
+    // 添加文件进来
     void handleFileUpload(QStringList paths)
     {
         foreach (QString path, paths)

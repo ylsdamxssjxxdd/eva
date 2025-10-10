@@ -1,12 +1,13 @@
 #ifndef EVA_PROCESS_RUNNER_H
 #define EVA_PROCESS_RUNNER_H
 
-#include <QString>
-#include <QStringList>
 #include <QByteArray>
 #include <QProcessEnvironment>
+#include <QString>
+#include <QStringList>
 
-struct ProcessResult {
+struct ProcessResult
+{
     int exitCode = -1;
     bool timedOut = false;
     QString stdOut;
@@ -14,7 +15,8 @@ struct ProcessResult {
 };
 
 // Cross-platform process execution wrapper; avoids shell unless requested.
-class ProcessRunner {
+class ProcessRunner
+{
   public:
     // Run a program with args. Working dir and env are explicit. Timeout ms (0 = no timeout).
     static ProcessResult run(const QString &program,

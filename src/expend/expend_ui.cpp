@@ -7,30 +7,30 @@
 //----------------------------------界面相关--------------------------------
 //-------------------------------------------------------------------------
 
-//初始化增殖窗口
+// 初始化增殖窗口
 void Expend::init_expend()
 {
-    this->setWindowTitle(jtr("expend window"));                                                //标题
-    ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));           //软件介绍
-    ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));                //模型信息
+    this->setWindowTitle(jtr("expend window"));                                                // 标题
+    ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));           // 软件介绍
+    ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));                // 模型信息
     ui->tabWidget->setTabText(window_map[MODELCARD_WINDOW], jtr("model download"));            // 模型下载
-    ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model") + jtr("convert")); //模型转换
-    ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));    //模型量化
-    ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                      //软件介绍
-    ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));                 //知识库
-    ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));                  //文生图
-    ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));                 //声转文
-    ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                     //文转声
+    ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model") + jtr("convert")); // 模型转换
+    ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));    // 模型量化
+    ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                      // 软件介绍
+    ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));                 // 知识库
+    ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));                  // 文生图
+    ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));                 // 声转文
+    ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                     // 文转声
 
-    //模型信息
+    // 模型信息
     ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
     ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
     ui->modellog_groupBox->setTitle(jtr("model log"));
 
-    //软件介绍
+    // 软件介绍
     showReadme();
 
-    //模型转换
+    // 模型转换
     ui->modelconvert_modeltype_label->setText(jtr("modelconvert_modeltype_label_text"));
     ui->modelconvert_script_label->setText(jtr("modelconvert_script_label_text"));
     ui->modelconvert_modelpath_label->setText(jtr("modelconvert_modelpath_label_text"));
@@ -46,7 +46,7 @@ void Expend::init_expend()
     {
         ui->modelconvert_exec_pushButton->setText(jtr("shut down"));
     }
-    //模型量化
+    // 模型量化
     ui->model_quantize_label->setText(jtr("model_quantize_label_text"));
     ui->model_quantize_label_2->setText(jtr("model_quantize_label_2_text"));
     ui->model_quantize_label_3->setText(jtr("model_quantize_label_3_text"));
@@ -58,9 +58,9 @@ void Expend::init_expend()
     ui->model_quantize_type_label->setText(jtr("select quantize type"));
     ui->model_quantize_execute->setText(jtr("execute quantize"));
     ui->quantize_log_groupBox->setTitle("llama-quantize " + jtr("execute log"));
-    //知识库
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});   //设置列名
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); //设置列名
+    // 知识库
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});   // 设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); // 设置列名
     ui->embedding_model_label->setText(jtr("embd model"));
     ui->embedding_dim_label->setText(jtr("embd dim"));
     ui->embedding_model_lineedit->setPlaceholderText(jtr("embedding_model_lineedit_placeholder"));
@@ -77,7 +77,7 @@ void Expend::init_expend()
     ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
-    //文生图
+    // 文生图
     ui->sd_pathset_groupBox->setTitle(jtr("path set"));
     ui->sd_paramsset_groupBox->setTitle(jtr("params set"));
     ui->sd_prompt_groupBox->setTitle(jtr("prompt"));
@@ -126,7 +126,7 @@ void Expend::init_expend()
 
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
 
-    //声转文
+    // 声转文
     ui->whisper_modelpath_label->setText(jtr("whisper path"));
     ui->whisper_load_modelpath_linedit->setPlaceholderText(jtr("whisper_load_modelpath_linedit_placeholder"));
     ui->speech_load_groupBox_4->setTitle("whisper " + jtr("log"));
@@ -135,7 +135,7 @@ void Expend::init_expend()
     ui->whisper_format_label->setText(jtr("format"));
     ui->whisper_execute_pushbutton->setText(jtr("exec convert"));
 
-    //文转声
+    // 文转声
     ui->speech_available_label->setText(jtr("Available sound"));
     ui->speech_enable_radioButton->setText(jtr("enable"));
     ui->speech_outetts_modelpath_label->setText("OuteTTS " + jtr("model"));
@@ -157,51 +157,51 @@ void Expend::init_expend()
     // 模型卡
     if (language_flag == 0)
     {
-        ui->model_card->openCsv(":/model_card_zh.csv"); //更新视图
+        ui->model_card->openCsv(":/model_card_zh.csv"); // 更新视图
     }
     else
     {
-        ui->model_card->openCsv(":/model_card_en.csv"); //更新视图
+        ui->model_card->openCsv(":/model_card_en.csv"); // 更新视图
     }
 }
 
-//用户切换选项卡时响应
-// 0软件介绍,1模型信息
+// 用户切换选项卡时响应
+//  0软件介绍,1模型信息
 void Expend::on_tabWidget_tabBarClicked(int index)
 {
-    if (index == window_map[INTRODUCTION_WINDOW] && is_first_show_info) //第一次点软件介绍
+    if (index == window_map[INTRODUCTION_WINDOW] && is_first_show_info) // 第一次点软件介绍
     {
         is_first_show_info = false;
 
-        //展示readme内容
+        // 展示readme内容
         showReadme();
 
-        //强制延迟见顶
-        QTimer::singleShot(0, this, [this]() {
+        // 强制延迟见顶
+        QTimer::singleShot(0, this, [this]()
+                           {
             ui->info_card->verticalScrollBar()->setValue(0);
-            ui->info_card->horizontalScrollBar()->setValue(0);
-        });
+            ui->info_card->horizontalScrollBar()->setValue(0); });
     }
-    else if (index == window_map[QUANTIZE_WINDOW] && is_first_show_modelproliferation) //第一次展示量化方法
+    else if (index == window_map[QUANTIZE_WINDOW] && is_first_show_modelproliferation) // 第一次展示量化方法
     {
         is_first_show_modelproliferation = false;
         show_quantize_types();
     }
-    else if (index == window_map[MODELINFO_WINDOW] && is_first_show_modelinfo) //第一次展示模型信息窗口
+    else if (index == window_map[MODELINFO_WINDOW] && is_first_show_modelinfo) // 第一次展示模型信息窗口
     {
         is_first_show_modelinfo = false;
-        ui->vocab_card->setPlainText(vocab); //更新一次模型词表
+        ui->vocab_card->setPlainText(vocab); // 更新一次模型词表
     }
-    else if (index == window_map[MODELCARD_WINDOW] && is_first_show_modelcard) //第一次展示模型信息窗口
+    else if (index == window_map[MODELCARD_WINDOW] && is_first_show_modelcard) // 第一次展示模型信息窗口
     {
         is_first_show_modelcard = false;
         if (language_flag == 0)
         {
-            ui->model_card->openCsv(":/model_card_zh.csv"); //更新视图
+            ui->model_card->openCsv(":/model_card_zh.csv"); // 更新视图
         }
         else
         {
-            ui->model_card->openCsv(":/model_card_en.csv"); //更新视图
+            ui->model_card->openCsv(":/model_card_en.csv"); // 更新视图
         }
     }
 }
@@ -215,7 +215,7 @@ void Expend::recv_vocab(QString vocab_)
     reflash_brain_matrix();
 }
 
-//通知显示增殖窗口
+// 通知显示增殖窗口
 void Expend::recv_expend_show(EXPEND_WINDOW window)
 {
     if (window == NO_WINDOW)
@@ -223,7 +223,7 @@ void Expend::recv_expend_show(EXPEND_WINDOW window)
         this->close();
         return;
     }
-    if (is_first_show_expend) //第一次显示的话
+    if (is_first_show_expend) // 第一次显示的话
     {
         is_first_show_expend = false;
         this->init_expend();
@@ -239,10 +239,10 @@ void Expend::recv_expend_show(EXPEND_WINDOW window)
         }
     }
 
-    //词表滑动到底部
+    // 词表滑动到底部
     QScrollBar *vScrollBar = ui->vocab_card->verticalScrollBar();
     vScrollBar->setValue(vScrollBar->maximum());
-    //打开指定页数窗口
+    // 打开指定页数窗口
     ui->tabWidget->setCurrentIndex(window_map[window]);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
     this->setWindowFlags(Qt::Window);
@@ -259,19 +259,19 @@ QString Expend::customOpenfile(QString dirpath, QString describe, QString format
     return filepath;
 }
 
-//传递使用的语言
+// 传递使用的语言
 void Expend::recv_language(int language_flag_)
 {
     language_flag = language_flag_;
     init_expend();
 }
 
-//读取配置文件并应用
+// 读取配置文件并应用
 void Expend::readConfig()
 {
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
 
-    //如果默认要填入的模型存在，则默认填入
+    // 如果默认要填入的模型存在，则默认填入
     QString default_sd_modelpath = applicationDirPath + DEFAULT_SD_MODEL_PATH;
     QString default_sd_params_template = "sd1.5-anything-3";
     QFile default_sd_modelpath_file(default_sd_modelpath);
@@ -279,19 +279,19 @@ void Expend::readConfig()
     {
         default_sd_modelpath = "";
         default_sd_params_template = "custom1";
-    } //不存在则默认为空
+    } // 不存在则默认为空
 
     QString default_whisper_modelpath = applicationDirPath + DEFAULT_WHISPER_MODEL_PATH;
     QFile default_whisper_modelpath_file(default_whisper_modelpath);
-    if (!default_whisper_modelpath_file.exists()) { default_whisper_modelpath = ""; } //不存在则默认为空
+    if (!default_whisper_modelpath_file.exists()) { default_whisper_modelpath = ""; } // 不存在则默认为空
 
     QString default_outetts_modelpath = applicationDirPath + DEFAULT_OUTETTS_MODEL_PATH;
     QFile default_outetts_modelpath_file(default_outetts_modelpath);
-    if (!default_outetts_modelpath_file.exists()) { default_outetts_modelpath = ""; } //不存在则默认为空
+    if (!default_outetts_modelpath_file.exists()) { default_outetts_modelpath = ""; } // 不存在则默认为空
 
     QString default_WavTokenizer_modelpath = applicationDirPath + DEFAULT_WAVTOKENIZER_MODEL_PATH;
     QFile default_WavTokenizer_modelpath_file(default_WavTokenizer_modelpath);
-    if (!default_WavTokenizer_modelpath_file.exists()) { default_WavTokenizer_modelpath = ""; } //不存在则默认为空
+    if (!default_WavTokenizer_modelpath_file.exists()) { default_WavTokenizer_modelpath = ""; } // 不存在则默认为空
 
     // 读取配置文件中的值
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
@@ -309,14 +309,14 @@ void Expend::readConfig()
 
     QString whisper_modelpath = settings.value("whisper_modelpath", default_whisper_modelpath).toString(); // whisper模型路径
 
-    speech_params.enable_speech = settings.value("speech_enable", "").toBool();                                           //是否启用语音朗读
-    speech_params.speech_name = settings.value("speech_name", "").toString();                                             //朗读者
+    speech_params.enable_speech = settings.value("speech_enable", "").toBool();                                           // 是否启用语音朗读
+    speech_params.speech_name = settings.value("speech_name", "").toString();                                             // 朗读者
     QString outetts_modelpath = settings.value("outetts_modelpath", default_outetts_modelpath).toString();                // outetts模型路径
     QString wavtokenizer_modelpath = settings.value("wavtokenizer_modelpath", default_WavTokenizer_modelpath).toString(); // wavtokenizer模型路径
     ui->speech_outetts_modelpath_lineEdit->setText(outetts_modelpath);
     ui->speech_wavtokenizer_modelpath_lineEdit->setText(wavtokenizer_modelpath);
 
-    ui->mcp_server_config_textEdit->setText(settings.value("Mcpconfig", "").toString()); //mcp配置
+    ui->mcp_server_config_textEdit->setText(settings.value("Mcpconfig", "").toString()); // mcp配置
 
     // 应用值
     QFile sd_modelpath_file(sd_modelpath);
@@ -388,20 +388,20 @@ void Expend::readConfig()
         whisper_params.model = whisper_modelpath.toStdString();
     }
 
-    //知识库，在main.cpp里有启动的部分
-    ui->embedding_txt_describe_lineEdit->setText(settings.value("embedding_describe", "").toString()); //知识库描述
+    // 知识库，在main.cpp里有启动的部分
+    ui->embedding_txt_describe_lineEdit->setText(settings.value("embedding_describe", "").toString()); // 知识库描述
     ui->embedding_split_spinbox->setValue(settings.value("embedding_split", DEFAULT_EMBEDDING_SPLITLENTH).toInt());
     ui->embedding_resultnumb_spinBox->setValue(settings.value("embedding_resultnumb", DEFAULT_EMBEDDING_RESULTNUMB).toInt());
     ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", DEFAULT_EMBEDDING_OVERLAP).toInt());
     ui->embedding_dim_spinBox->setValue(settings.value("embedding_dim", 1024).toInt());
 
-    QString embedding_sourcetxt = settings.value("embedding_sourcetxt", "").toString(); //源文档路径
+    QString embedding_sourcetxt = settings.value("embedding_sourcetxt", "").toString(); // 源文档路径
     QFile embedding_sourcetxt_file(embedding_sourcetxt);
     if (embedding_sourcetxt_file.exists())
     {
         txtpath = embedding_sourcetxt;
         ui->embedding_txt_lineEdit->setText(txtpath);
-        preprocessTXT(); //预处理文件内容
+        preprocessTXT(); // 预处理文件内容
     }
 }
 

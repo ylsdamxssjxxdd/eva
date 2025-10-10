@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------
 //----------------------------------装载相关--------------------------------
 //-------------------------------------------------------------------------
-//动画播放逻辑
+// 动画播放逻辑
 // 1.先展示背景load_play()
 // 2.启动load_begin_pTimer动画,向中滑动
 // 2.启动load_pTimer动画,连接动画
@@ -48,35 +48,35 @@ void Widget::init_movie()
     movie_dot << QPointF(14, 31) << QPointF(13, 33) << QPointF(12, 34) << QPointF(11, 35) << QPointF(10, 36) << QPointF(9, 37) << QPointF(8, 38) << QPointF(7, 39) << QPointF(6, 40) << QPointF(5, 41); // load_action 11
     movie_dot << QPointF(14, 31) << QPointF(13, 34) << QPointF(12, 38) << QPointF(11, 41);                                                                                                              // load_action 12
 
-    //添加颜色
+    // 添加颜色
     for (int i = 0; i < 12; ++i)
     {
-        //彩色
-        // movie_color <<QColor(QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256));
-        //黑色
+        // 彩色
+        //  movie_color <<QColor(QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256), QRandomGenerator::global()->bounded(256));
+        // 黑色
         movie_color << NORMAL_BLACK;
     }
 
-    //设置动画内容字体格式
+    // 设置动画内容字体格式
     movie_format.setFontWeight(QFont::Bold); // 设置粗体
     movie_font.setPointSize(6);
     // movie_font.setFamily(DEFAULT_FONT);
     movie_format.setFont(movie_font);
 
-    load_pTimer = new QTimer(this);                                                        //连接接动画
-    load_begin_pTimer = new QTimer(this);                                                  //向中滑动
-    load_over_pTimer = new QTimer(this);                                                   //向下滑动
-    force_unlockload_pTimer = new QTimer(this);                                            //强制解锁
-    connect(load_pTimer, SIGNAL(timeout()), this, SLOT(load_handleTimeout()));             //设置终止信号触发的槽函数
-    connect(load_begin_pTimer, SIGNAL(timeout()), this, SLOT(load_begin_handleTimeout())); //设置终止信号触发的槽函数
-    connect(load_over_pTimer, SIGNAL(timeout()), this, SLOT(load_over_handleTimeout()));   //设置终止信号触发的槽函数
-    connect(force_unlockload_pTimer, SIGNAL(timeout()), this, SLOT(unlockLoad()));         //新开一个线程
+    load_pTimer = new QTimer(this);                                                        // 连接接动画
+    load_begin_pTimer = new QTimer(this);                                                  // 向中滑动
+    load_over_pTimer = new QTimer(this);                                                   // 向下滑动
+    force_unlockload_pTimer = new QTimer(this);                                            // 强制解锁
+    connect(load_pTimer, SIGNAL(timeout()), this, SLOT(load_handleTimeout()));             // 设置终止信号触发的槽函数
+    connect(load_begin_pTimer, SIGNAL(timeout()), this, SLOT(load_begin_handleTimeout())); // 设置终止信号触发的槽函数
+    connect(load_over_pTimer, SIGNAL(timeout()), this, SLOT(load_over_handleTimeout()));   // 设置终止信号触发的槽函数
+    connect(force_unlockload_pTimer, SIGNAL(timeout()), this, SLOT(unlockLoad()));         // 新开一个线程
 
-    decode_pTimer = new QTimer(this);                                              //启动后,达到规定时间将发射终止信号
-    connect(decode_pTimer, SIGNAL(timeout()), this, SLOT(decode_handleTimeout())); //设置终止信号触发的槽函数
+    decode_pTimer = new QTimer(this);                                              // 启动后,达到规定时间将发射终止信号
+    connect(decode_pTimer, SIGNAL(timeout()), this, SLOT(decode_handleTimeout())); // 设置终止信号触发的槽函数
 }
 
-//设置72个点的字体前景色颜色
+// 设置72个点的字体前景色颜色
 void Widget::set_dotcolor(QTextCharFormat *format, int load_action)
 {
     if (load_action < 4)
@@ -129,37 +129,37 @@ void Widget::set_dotcolor(QTextCharFormat *format, int load_action)
     }
 }
 
-//连接动画的下一帧
+// 连接动画的下一帧
 void Widget::load_move()
 {
     QTextCursor cursor = ui->state->textCursor();
 
     if (load_action % 2 == 0)
     {
-        cursor.movePosition(QTextCursor::Start);                                                                                 //移到文本开头
-        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2).x() - 2 + playlineNumber); //向下移动到指定行
-        cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2).y() - 1);                 //向右移动到指定列
-        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);                                                         //选中当前字符
-        cursor.removeSelectedText();                                                                                             //删除选中字符
-        set_dotcolor(&movie_format, load_action / 2);                                                                            //设置字体颜色
-        cursor.setCharFormat(movie_format);                                                                                      //设置字体
-        cursor.insertText("*");                                                                                                  //插入字符
+        cursor.movePosition(QTextCursor::Start);                                                                                 // 移到文本开头
+        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2).x() - 2 + playlineNumber); // 向下移动到指定行
+        cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2).y() - 1);                 // 向右移动到指定列
+        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);                                                         // 选中当前字符
+        cursor.removeSelectedText();                                                                                             // 删除选中字符
+        set_dotcolor(&movie_format, load_action / 2);                                                                            // 设置字体颜色
+        cursor.setCharFormat(movie_format);                                                                                      // 设置字体
+        cursor.insertText("*");                                                                                                  // 插入字符
     }
     else
     {
-        cursor.movePosition(QTextCursor::Start);                                                                                     //移到文本开头
-        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2 + 1).x() - 2 + playlineNumber); //向下移动到指定行
-        cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2 + 1).y() - 1);                 //向右移动到指定列
-        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);                                                             //选中当前字符
-        cursor.removeSelectedText();                                                                                                 //删除选中字符
-        cursor.setCharFormat(movie_format);                                                                                          //设置字体
-        cursor.insertText(" ");                                                                                                      //插入字符
+        cursor.movePosition(QTextCursor::Start);                                                                                     // 移到文本开头
+        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2 + 1).x() - 2 + playlineNumber); // 向下移动到指定行
+        cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, movie_dot.at(load_action / 2 + 1).y() - 1);                 // 向右移动到指定列
+        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);                                                             // 选中当前字符
+        cursor.removeSelectedText();                                                                                                 // 删除选中字符
+        cursor.setCharFormat(movie_format);                                                                                          // 设置字体
+        cursor.insertText(" ");                                                                                                      // 插入字符
     }
 
     load_action++;
 }
 
-//开始播放
+// 开始播放
 void Widget::load_play()
 {
     // 简化装载动画：不再播放复杂 ASCII/连线动画，改为复用“解码转轮”
@@ -167,46 +167,46 @@ void Widget::load_play()
     wait_play("load model");
 }
 
-//连接动画
+// 连接动画
 void Widget::load_handleTimeout()
 {
     if (load_pTimer->isActive())
     {
         load_pTimer->stop();
-    } //控制超时处理函数只会处理一次
+    } // 控制超时处理函数只会处理一次
     if (load_action < all_fps)
     {
-        load_move(); //下一帧
+        load_move(); // 下一帧
     }
 
-    //循环播放
+    // 循环播放
     if (load_action < all_fps)
     {
         if (is_load)
         {
-            load_pTimer->start(10); //延时多少ms后发出timeout()信号
+            load_pTimer->start(10); // 延时多少ms后发出timeout()信号
         }
         else
         {
-            load_pTimer->start(1100); //延时多少ms后发出timeout()信号
+            load_pTimer->start(1100); // 延时多少ms后发出timeout()信号
         }
     }
     else if (is_load)
     {
-        load_action = 0; //重置动作计数
-        all_fps--;       //减去补上的最后一帧
+        load_action = 0; // 重置动作计数
+        all_fps--;       // 减去补上的最后一帧
         load_over_pTimer->start(100);
     }
 }
 
-//滑动到最佳动画位置
+// 滑动到最佳动画位置
 void Widget::load_begin_handleTimeout()
 {
     if (load_begin_pTimer->isActive())
     {
         load_begin_pTimer->stop();
-    }                                                           //控制超时处理函数只会处理一次
-    int currentValue = ui->state->verticalScrollBar()->value(); //当前滑动条位置
+    } // 控制超时处理函数只会处理一次
+    int currentValue = ui->state->verticalScrollBar()->value(); // 当前滑动条位置
     ui->state->verticalScrollBar()->setValue(currentValue + 1);
     // qDebug() << currentValue <<playlineNumber;
     if (currentValue < playlineNumber - 2)
@@ -219,26 +219,26 @@ void Widget::load_begin_handleTimeout()
     }
 }
 
-//模型装载完毕动画,并解锁按钮
+// 模型装载完毕动画,并解锁按钮
 void Widget::load_over_handleTimeout()
 {
     if (load_over_pTimer->isActive())
     {
         load_over_pTimer->stop();
-    } //控制超时处理函数只会处理一次
+    } // 控制超时处理函数只会处理一次
 
-    int currentValue = ui->state->verticalScrollBar()->value(); //当前滑动条位置
+    int currentValue = ui->state->verticalScrollBar()->value(); // 当前滑动条位置
     ui->state->verticalScrollBar()->setValue(currentValue + 1);
     currentValue++;
-    //展示完就停止
+    // 展示完就停止
     if (currentValue <= ui->state->verticalScrollBar()->maximum())
     {
         load_over_pTimer->start(100);
     }
-    //滚到最下面才解锁按钮,真正装载完毕
+    // 滚到最下面才解锁按钮,真正装载完毕
     else
     {
-        force_unlockload_pTimer->start(0); //强制解锁
+        force_unlockload_pTimer->start(0); // 强制解锁
     }
 
     if (ui_monitor_frame > 0 && ui_state == CHAT_STATE)
@@ -266,23 +266,23 @@ void Widget::unlockLoad()
         EVA_icon = QIcon(":/logo/green_logo.png");
         QApplication::setWindowIcon(EVA_icon);
         trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
-    }                                // 设置应用程序图标
+    } // 设置应用程序图标
     else
     {
         EVA_icon = QIcon(":/logo/blue_logo.png");
         QApplication::setWindowIcon(EVA_icon);
         trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
-    }                                // 设置应用程序图标
+    } // 设置应用程序图标
     EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
-    auto_save_user(); //保存ui配置
+    auto_save_user(); // 保存ui配置
     force_unlockload_pTimer->stop();
-    is_load_play_over = true; //标记模型动画已经完成
-    ui_state_normal();        //解锁界面
+    is_load_play_over = true; // 标记模型动画已经完成
+    ui_state_normal();        // 解锁界面
     reflash_output(bot_predecode_content, 0, SYSTEM_BLUE);
-    ; //显示预解码内容
+    ; // 显示预解码内容
 }
 
 // 按日志显示装载进度

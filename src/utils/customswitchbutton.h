@@ -31,7 +31,7 @@ class CustomSwitchButton : public QAbstractButton
         this->setGraphicsEffect(shadowEffect);
     }
 
-    //默认宽高
+    // 默认宽高
     QSize sizeHint() const { return QSize(55, 25); }
 
   protected:
@@ -49,7 +49,7 @@ class CustomSwitchButton : public QAbstractButton
         p.drawEllipse(QRect(m_offset, 0, height(), height()));
 
         p.setBrush(borderColor);
-        p.drawRoundedRect(0, 0, width(), height(), 5, 5); //圆角弧度5
+        p.drawRoundedRect(0, 0, width(), height(), 5, 5); // 圆角弧度5
 
         // 设置字体属性
         QFont font = p.font();
@@ -59,7 +59,7 @@ class CustomSwitchButton : public QAbstractButton
 
         // 对于背景使用渐变色
         QLinearGradient backgroundGradient(0, 0, width(), 0);
-        //有一种开关的感觉
+        // 有一种开关的感觉
         if (this->isChecked())
         {
             backgroundGradient.setColorAt(0, borderColor.lighter());

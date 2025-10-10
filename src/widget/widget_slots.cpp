@@ -1,13 +1,13 @@
 #include "ui_widget.h"
 #include "widget.h"
-#include <QTcpServer>
 #include <QHostAddress>
+#include <QTcpServer>
 
 //-------------------------------------------------------------------------
 //-------------------------------响应槽相关---------------------------------
 //-------------------------------------------------------------------------
 
-//温度滑块响应
+// 温度滑块响应
 void Widget::temp_change()
 {
     settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
@@ -54,10 +54,10 @@ void Widget::nthread_change()
     settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
 }
 
-//补完状态按钮响应
+// 补完状态按钮响应
 void Widget::complete_change()
 {
-    //选中则禁止约定输入
+    // 选中则禁止约定输入
     if (settings_ui->complete_btn->isChecked())
     {
         settings_ui->sample_box->setEnabled(1);
@@ -69,7 +69,7 @@ void Widget::complete_change()
     }
 }
 
-//对话状态按钮响应
+// 对话状态按钮响应
 void Widget::chat_change()
 {
     if (settings_ui->chat_btn->isChecked())
@@ -82,13 +82,13 @@ void Widget::chat_change()
     }
 }
 
-//服务状态按钮响应
+// 服务状态按钮响应
 void Widget::web_change()
 {
     // 服务状态已移除
 }
 
-//提示词模板下拉框响应
+// 提示词模板下拉框响应
 void Widget::prompt_template_change()
 {
     if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set1"))
@@ -124,7 +124,7 @@ void Widget::prompt_template_change()
 
 void Widget::chooseLorapath()
 {
-    //用户选择模型位置
+    // 用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("choose lora model"), "(*.bin *.gguf)");
 
     settings_ui->lora_LineEdit->setText(currentpath);
@@ -132,13 +132,13 @@ void Widget::chooseLorapath()
 
 void Widget::chooseMmprojpath()
 {
-    //用户选择模型位置
+    // 用户选择模型位置
     currentpath = customOpenfile(currentpath, jtr("choose mmproj model"), "(*.bin *.gguf)");
 
     settings_ui->mmproj_LineEdit->setText(currentpath);
 }
 
-//响应工具选择
+// 响应工具选择
 void Widget::tool_change()
 {
     QObject *senderObj = sender(); // gets the object that sent the signal
@@ -221,38 +221,38 @@ void Widget::tool_change()
     ui_extra_prompt = create_extra_prompt();
 }
 
-//用户按下F1键响应
+// 用户按下F1键响应
 void Widget::onShortcutActivated_F1()
 {
     createTempDirectory("./EVA_TEMP");
-    cutscreen_dialog->showFullScreen(); //处理截图事件
+    cutscreen_dialog->showFullScreen(); // 处理截图事件
 }
 
-//用户按下F2键响应
+// 用户按下F2键响应
 void Widget::onShortcutActivated_F2()
 {
-    if (whisper_model_path == "") //如果还未指定模型路径则先指定
+    if (whisper_model_path == "") // 如果还未指定模型路径则先指定
     {
-        emit ui2expend_show(WHISPER_WINDOW); //语音增殖界面
+        emit ui2expend_show(WHISPER_WINDOW); // 语音增殖界面
     }
     else if (!is_recodering)
     {
-        recordAudio(); //开始录音
+        recordAudio(); // 开始录音
         is_recodering = true;
     }
     else if (is_recodering)
     {
-        stop_recordAudio(); //停止录音
+        stop_recordAudio(); // 停止录音
     }
 }
 
-//用户按下CTRL+ENTER键响应
+// 用户按下CTRL+ENTER键响应
 void Widget::onShortcutActivated_CTRL_ENTER()
 {
     ui->send->click();
 }
 
-//接收传来的图像
+// 接收传来的图像
 void Widget::recv_qimagepath(QString cut_imagepath_)
 {
     reflash_state("ui:" + jtr("cut image success"), USUAL_SIGNAL);
@@ -271,25 +271,24 @@ void Widget::recv_params(MODEL_PARAMS p)
     if (ui_SETTINGS.ngl == 999)
     {
         ui_SETTINGS.ngl = ui_maxngl;
-    } //及时修正999值
+    } // 及时修正999值
 }
 
-//接收缓存量
+// 接收缓存量
 void Widget::recv_kv(float percent, int ctx_size)
 {
     Q_UNUSED(percent);
     Q_UNUSED(ctx_size);
-
 }
 
 // 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
 
-//更新gpu内存使用率
+// 更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {
-    vfree = vfree_; //剩余显存
+    vfree = vfree_; // 剩余显存
     ui->vcore_bar->setValue(vcore);
-    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
+    // 取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
     if (is_first_getvram)
     {
         is_first_getvram = false;
@@ -300,7 +299,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 
     if (gpu_wait_load)
     {
-        gpu_wait_load = false;        // 以文件体积近似估计显存占用：若模型大小低于当前可用显存的95%，则尝试全量 offload（ngl=999）
+        gpu_wait_load = false;                       // 以文件体积近似估计显存占用：若模型大小低于当前可用显存的95%，则尝试全量 offload（ngl=999）
         QFileInfo fileInfo(ui_SETTINGS.modelpath);   // 模型文件大小
         QFileInfo fileInfo2(ui_SETTINGS.mmprojpath); // mmproj 文件大小（可为空）
         const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
@@ -318,11 +317,11 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     }
 }
 
-//传递cpu信息
+// 传递cpu信息
 void Widget::recv_cpu_status(double cpuload, double memload)
 {
     ui->cpu_bar->setValue(cpuload);
-    //取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
+    // 取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
     if (is_first_getmem)
     {
         first_memp = memload;
@@ -334,10 +333,10 @@ void Widget::recv_cpu_status(double cpuload, double memload)
     // ui->mem_bar->setSecondValue((model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
 }
 
-//事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
+// 事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == ui->input && event->type() == QEvent::ContextMenu && ui_state == CHAT_STATE)
     {
         QContextMenuEvent *contextMenuEvent = static_cast<QContextMenuEvent *>(event);
@@ -345,27 +344,27 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         right_menu->exec(contextMenuEvent->globalPos());
         return true;
     }
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == settings_ui->lora_LineEdit && event->type() == QEvent::ContextMenu)
     {
         chooseLorapath();
         return true;
     }
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == settings_ui->mmproj_LineEdit && event->type() == QEvent::ContextMenu)
     {
         chooseMmprojpath();
         return true;
     }
     // 取消通过右击装载按钮进入链接模式的逻辑（改为点击装载后弹模式选择）
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == api_endpoint_LineEdit && event->type() == QEvent::ContextMenu)
     {
         QString api_endpoint = "http://" + getFirstNonLoopbackIPv4Address() + ":8080";
         api_endpoint_LineEdit->setText(api_endpoint);
         return true;
     }
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == ui->state && event->type() == QEvent::ContextMenu)
     {
         emit ui2expend_show(PREV_WINDOW); // 1是模型信息页
@@ -375,13 +374,13 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
-//传递模型预解码的内容
+// 传递模型预解码的内容
 void Widget::recv_predecode(QString bot_predecode_content_)
 {
     bot_predecode_content = bot_predecode_content_;
 }
 
-//接收whisper解码后的结果
+// 接收whisper解码后的结果
 void Widget::recv_speechdecode_over(QString result)
 {
     ui_state_normal();
@@ -389,7 +388,7 @@ void Widget::recv_speechdecode_over(QString result)
     // ui->send->click();//尝试一次发送
 }
 
-//接收模型路径
+// 接收模型路径
 void Widget::recv_whisper_modelpath(QString modelpath)
 {
     whisper_model_path = modelpath;
@@ -426,17 +425,20 @@ void Widget::ensureLocalServer()
         }
     }
     // Determine bind host and a usable port before starting server.
-    auto pickFreePort = []() -> QString {
+    auto pickFreePort = []() -> QString
+    {
         QTcpServer s;
         // Ask OS for any free IPv4 port
-        if (s.listen(QHostAddress::AnyIPv4, 0)) {
+        if (s.listen(QHostAddress::AnyIPv4, 0))
+        {
             const quint16 p = s.serverPort();
             s.close();
             return QString::number(p);
         }
         return QString(DEFAULT_SERVER_PORT);
     };
-    auto isPortFree = [](quint16 port, const QHostAddress &addr) -> bool {
+    auto isPortFree = [](quint16 port, const QHostAddress &addr) -> bool
+    {
         QTcpServer s;
         const bool ok = s.listen(addr, port);
         if (ok) s.close();
@@ -446,33 +448,40 @@ void Widget::ensureLocalServer()
     QString bindHost = "0.0.0.0"; // default: expose to LAN
     QString chosenPort = ui_port.trimmed();
 
-    if (chosenPort.isEmpty()) {
+    if (chosenPort.isEmpty())
+    {
         // If user cleared the port, bind only to localhost with a random port
         bindHost = "127.0.0.1";
         chosenPort = pickFreePort();
         // keep ui_port empty to indicate no exposure
-        if (settings_ui && settings_ui->port_lineEdit) {
+        if (settings_ui && settings_ui->port_lineEdit)
+        {
             settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
         }
         reflash_state("ui:port cleared -> bind 127.0.0.1", SIGNAL_SIGNAL);
-    } else {
+    }
+    else
+    {
         bool ok = false;
         const quint16 portNum = chosenPort.toUShort(&ok);
-        if (!ok || portNum == 0) {
+        if (!ok || portNum == 0)
+        {
             // Invalid user value -> treat as cleared: bind localhost with a random port; do not change UI field
             bindHost = "127.0.0.1";
             chosenPort = pickFreePort();
             reflash_state("ui:invalid port -> bind 127.0.0.1 (random)", SIGNAL_SIGNAL);
-        } else if (!isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4))) {
+        }
+        else if (!isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4)))
+        {
             // User-specified port is busy -> temporarily use a free random port for this run only; keep UI unchanged
             const QString newPort = pickFreePort();
-            if (newPort != chosenPort) {
+            if (newPort != chosenPort)
+            {
                 reflash_state("ui:port in use, temp use " + newPort, SIGNAL_SIGNAL);
                 chosenPort = newPort;
             }
         }
     }
-
 
     // 同步配置到本地后端管理器
     serverManager->setSettings(ui_SETTINGS);
@@ -552,11 +561,11 @@ void Widget::onServerReady(const QString &endpoint)
     updateMonitorTimer();
 }
 
-//链接模式的发送处理
+// 链接模式的发送处理
 void Widget::api_send_clicked_slove()
 {
     // 注：联机模式也加前后缀
-    QString input;    // Begin a new turn: reset KV trackers
+    QString input; // Begin a new turn: reset KV trackers
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
     kvStreamedTurn_ = 0;
@@ -593,22 +602,24 @@ void Widget::api_send_clicked_slove()
         {
             const QString old = monitorFrames_.front().path;
             monitorFrames_.pop_front();
-            QFile f(old); if (f.exists()) f.remove();
+            QFile f(old);
+            if (f.exists()) f.remove();
         }
         for (const auto &mf : monitorFrames_) images_filepath.append(mf.path);
     }
-    QStringList wavs_filepath = ui->input->wavFilePaths();     // 获取音频列表
-    ui->input->clearThumbnails();                              // 清空发送区缩略图
+    QStringList wavs_filepath = ui->input->wavFilePaths(); // 获取音频列表
+    ui->input->clearThumbnails();                          // 清空发送区缩略图
 
     if (ui_state == CHAT_STATE)
     {
         // ensure persistent history session is created only when sending, not on reset
-        if (history_ && history_->sessionId().isEmpty()) {
+        if (history_ && history_->sessionId().isEmpty())
+        {
             SessionMeta meta;
             meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
             meta.title = "";
             meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
-                                               : (serverManager ? serverManager->endpointBase() : "");
+                                                   : (serverManager ? serverManager->endpointBase() : "");
             meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
             meta.system = ui_DATES.date_prompt;
             meta.n_ctx = ui_SETTINGS.nctx;
@@ -746,9 +757,9 @@ void Widget::api_send_clicked_slove()
             }
 
             data.messagesArray = ui_messagesArray;
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  //前缀蓝色
-            reflash_output(input, 0, NORMAL_BLACK);                                                           //正文黑色
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE); //后缀蓝色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);  // 前缀蓝色
+            reflash_output(input, 0, NORMAL_BLACK);                                                           // 正文黑色
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE); // 后缀蓝色
             data.n_predict = ui_SETTINGS.hid_npredict;
             emit ui2net_data(data);
             // 成功打包并发送后，清空已发送的监视帧缓存
@@ -769,62 +780,66 @@ void Widget::api_send_clicked_slove()
     is_run = true; // 模型运行标记
     ui_state_pushing();
     // carry over tokens from previous turn before starting a new one
-    if (kvTokensTurn_ > 0) { kvTokensAccum_ += kvTokensTurn_; kvTokensTurn_ = 0; }
+    if (kvTokensTurn_ > 0)
+    {
+        kvTokensAccum_ += kvTokensTurn_;
+        kvTokensTurn_ = 0;
+    }
     emit ui2net_push();
 }
-//传递知识库的描述
+// 传递知识库的描述
 void Widget::recv_embeddingdb_describe(QString describe)
 {
     embeddingdb_describe = describe;
 }
 
-//传递控制信息
+// 传递控制信息
 void Widget::recv_controller(int num)
 {
     QString result;
-    if (num == 1) //最大化主窗口
+    if (num == 1) // 最大化主窗口
     {
-        setWindowState(windowState() | Qt::WindowMaximized); //设置窗口最大化
+        setWindowState(windowState() | Qt::WindowMaximized); // 设置窗口最大化
         result = jtr("main window") + jtr("maximized");
     }
-    else if (num == 2) //最小化主窗口
+    else if (num == 2) // 最小化主窗口
     {
         this->showMinimized();
         result = jtr("main window") + jtr("minimized");
     }
-    else if (num == 3) //主窗口置顶
+    else if (num == 3) // 主窗口置顶
     {
         setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
         show();
         result = jtr("main window") + jtr("topped");
     }
-    else if (num == 4) //取消主窗口置顶
+    else if (num == 4) // 取消主窗口置顶
     {
         setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
         show();
         result = jtr("main window") + jtr("topped canceled");
     }
-    else if (num == 5) //关闭主窗口
+    else if (num == 5) // 关闭主窗口
     {
         this->close();
         result = jtr("main window") + jtr("closed");
     }
-    else if (num == 6) //播放音乐
+    else if (num == 6) // 播放音乐
     {
         music_player.play();
         result = jtr("music") + jtr("started playing");
     }
-    else if (num == 7) //关闭音乐
+    else if (num == 7) // 关闭音乐
     {
         music_player.stop();
         result = jtr("music") + jtr("stopped playback");
     }
-    else if (num == 8) //打开增殖窗口
+    else if (num == 8) // 打开增殖窗口
     {
         emit ui2expend_show(PREV_WINDOW);
         result = jtr("expend window") + jtr("opened");
     }
-    else if (num == 9) //关闭增殖窗口
+    else if (num == 9) // 关闭增殖窗口
     {
         emit ui2expend_show(NO_WINDOW);
         result = jtr("expend window") + jtr("closed");
@@ -836,7 +851,7 @@ void Widget::recv_controller(int num)
     emit recv_controller_over(result);
 }
 
-//分割器被用户拉动时响应
+// 分割器被用户拉动时响应
 void Widget::onSplitterMoved(int pos, int index) {}
 
 // 根据language.json和language_flag中找到对应的文字
@@ -901,7 +916,7 @@ bool Widget::checkAudio()
     return true;
 }
 
-//传递格式化后的对话内容
+// 传递格式化后的对话内容
 void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
 {
     bot_chat = chats;
@@ -1010,7 +1025,7 @@ void Widget::recv_reasoning_tokens(int tokens)
 // Parse llama-server output lines to capture n_ctx value for verification
 void Widget::onServerOutput(const QString &line)
 {
-    
+
     // Detect fatal/failed patterns in llama.cpp server logs and unlock UI promptly
     {
         const QString l = line.toLower();
@@ -1018,16 +1033,22 @@ void Widget::onServerOutput(const QString &line)
             QStringLiteral(" failed"), QStringLiteral("fatal"), QStringLiteral("segmentation fault"),
             QStringLiteral("assertion failed"), QStringLiteral("panic"), QStringLiteral("unhandled"),
             QStringLiteral("exception"), QStringLiteral("could not"), QStringLiteral("cannot "),
-            QStringLiteral("error:")
-        };
+            QStringLiteral("error:")};
         bool hit = false;
-        for (const QString &k : badKeys) { if (l.contains(k)) { hit = true; break; } }
+        for (const QString &k : badKeys)
+        {
+            if (l.contains(k))
+            {
+                hit = true;
+                break;
+            }
+        }
         // Filter out benign phrases like "no error" if present
         if (hit && !l.contains("no error"))
         {
             reflash_state(QString::fromUtf8("ui:后端异常输出，已解锁控件"), WRONG_SIGNAL);
             if (decode_pTimer && decode_pTimer->isActive()) decode_fail();
-                        is_run = false;
+            is_run = false;
             unlockButtonsAfterError();
         }
     }
@@ -1081,18 +1102,30 @@ void Widget::onServerOutput(const QString &line)
 
     // 1.2) capture per-slot capacity n_ctx_slot
     static QRegularExpression reCtxSlot("n_ctx_slot\\s*=\\s*(\\d+)");
-    for (auto it = reCtxSlot.globalMatch(line); it.hasNext();) {
+    for (auto it = reCtxSlot.globalMatch(line); it.hasNext();)
+    {
         const QRegularExpressionMatch m = it.next();
-        bool ok = false; const int v = m.captured(1).toInt(&ok);
-        if (ok && v > 0) { slotCtxMax_ = v; updateKvBarUi(); }
+        bool ok = false;
+        const int v = m.captured(1).toInt(&ok);
+        if (ok && v > 0)
+        {
+            slotCtxMax_ = v;
+            updateKvBarUi();
+        }
     }
 
     // 1.3) kv cache rm [hit, end) -> use left number to correct current memory right away
     static QRegularExpression reKvRm("kv cache rm\\s*\\[\\s*(\\d+)");
     QRegularExpressionMatch mRm = reKvRm.match(line);
-    if (mRm.hasMatch()) {
-        bool ok=false; int hit = mRm.captured(1).toInt(&ok);
-        if (ok) { kvUsed_ = qMax(0, hit); updateKvBarUi(); }
+    if (mRm.hasMatch())
+    {
+        bool ok = false;
+        int hit = mRm.captured(1).toInt(&ok);
+        if (ok)
+        {
+            kvUsed_ = qMax(0, hit);
+            updateKvBarUi();
+        }
     }
 
     // 1.5) capture n_layer and clamp GPU offload slider max to n_layer + 1
@@ -1152,19 +1185,38 @@ void Widget::onServerOutput(const QString &line)
     static QRegularExpression reProgress("prompt\\s+processing\\s+progress,\\s*n_past\\s*=\\s*(\\d+)");
     static QRegularExpression reStop("stop\\s+processing.*n_past\\s*=\\s*(\\d+)");
     QRegularExpressionMatch mPD = rePromptDone.match(line);
-    if (mPD.hasMatch()) {
-        bool ok=false; int past = mPD.captured(1).toInt(&ok);
-        if (ok) { kvUsed_ = qMax(0, past); updateKvBarUi(); }
+    if (mPD.hasMatch())
+    {
+        bool ok = false;
+        int past = mPD.captured(1).toInt(&ok);
+        if (ok)
+        {
+            kvUsed_ = qMax(0, past);
+            updateKvBarUi();
+        }
     }
     QRegularExpressionMatch mProg = reProgress.match(line);
-    if (mProg.hasMatch()) {
-        bool ok=false; int past = mProg.captured(1).toInt(&ok);
-        if (ok) { kvUsed_ = qMax(0, past); updateKvBarUi(); }
+    if (mProg.hasMatch())
+    {
+        bool ok = false;
+        int past = mProg.captured(1).toInt(&ok);
+        if (ok)
+        {
+            kvUsed_ = qMax(0, past);
+            updateKvBarUi();
+        }
     }
     QRegularExpressionMatch mStop = reStop.match(line);
-    if (mStop.hasMatch()) {
-        bool ok=false; int past = mStop.captured(1).toInt(&ok);
-        if (ok) { kvUsed_ = qMax(0, past); sawFinalPast_ = true; updateKvBarUi(); }
+    if (mStop.hasMatch())
+    {
+        bool ok = false;
+        int past = mStop.captured(1).toInt(&ok);
+        if (ok)
+        {
+            kvUsed_ = qMax(0, past);
+            sawFinalPast_ = true;
+            updateKvBarUi();
+        }
     }
     // qDebug()<< "Server log:" << line;
 }

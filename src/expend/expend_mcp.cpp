@@ -10,14 +10,14 @@
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
     ui->mcp_server_reflash_pushButton->setEnabled(false);
-    ui->mcp_server_state_listWidget->clear(); //清空展示的服务选项
+    ui->mcp_server_state_listWidget->clear(); // 清空展示的服务选项
     ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);
-    QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText(); //获取用户的mcp服务配置
+    QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText(); // 获取用户的mcp服务配置
     ui->mcp_server_log_plainTextEdit->appendPlainText("start add servers...");
     emit expend2mcp_addService(mcp_json_str);
 }
 
-//帮助
+// 帮助
 void Expend::on_mcp_server_help_pushButton_clicked()
 {
     QString config = R"({
@@ -32,16 +32,16 @@ void Expend::on_mcp_server_help_pushButton_clicked()
         }
     }
 })";
-    ui->mcp_server_config_textEdit->setText(config); //直接将示例填入
+    ui->mcp_server_config_textEdit->setText(config); // 直接将示例填入
 }
 
-//响应mcp添加服务完毕时事件
+// 响应mcp添加服务完毕时事件
 void Expend::recv_addService_over(MCP_CONNECT_STATE state)
 {
     ui->mcp_server_statusLed->setState(state);
     ui->mcp_server_reflash_pushButton->setEnabled(true);
     ui->mcp_server_log_plainTextEdit->appendPlainText("add servers over");
-    //列出所有可用工具
+    // 列出所有可用工具
 }
 
 // 添加某个mcp服务完成
@@ -49,7 +49,7 @@ void Expend::recv_addService_single_over(QString name, MCP_CONNECT_STATE state)
 {
     add_mcp_server_iteration(name, state);
 }
-//添加mcp服务信息
+// 添加mcp服务信息
 void Expend::add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state)
 {
     QListWidgetItem *item = new QListWidgetItem();

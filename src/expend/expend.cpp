@@ -9,27 +9,27 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
 
-    //初始化选项卡
+    // 初始化选项卡
     ui->info_card->setReadOnly(1);                                   // 只读
     ui->vocab_card->setReadOnly(1);                                  // 只读
     ui->modellog_card->setReadOnly(1);                               // 只读
-    ui->tabWidget->setCurrentIndex(0);                               //默认显示模机体介绍窗口
-    ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); //取消右键菜单
-    ui->sd_prompt_textEdit->installEventFilter(this);                //安装事件过滤器
-    ui->sd_negative_lineEdit->installEventFilter(this);              //安装事件过滤器
-    ui->sd_modify_lineEdit->installEventFilter(this);                //安装事件过滤器
-    ui->sd_img2img_lineEdit->installEventFilter(this);               //安装事件过滤器
+    ui->tabWidget->setCurrentIndex(0);                               // 默认显示模机体介绍窗口
+    ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
+    ui->sd_prompt_textEdit->installEventFilter(this);                // 安装事件过滤器
+    ui->sd_negative_lineEdit->installEventFilter(this);              // 安装事件过滤器
+    ui->sd_modify_lineEdit->installEventFilter(this);                // 安装事件过滤器
+    ui->sd_img2img_lineEdit->installEventFilter(this);               // 安装事件过滤器
 
-    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   //灰色
-    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                //灰色
-    ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  //灰色
-    ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           //灰色
-    ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");        //灰色
-    ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           //灰色
-    ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                       //灰色
-    ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   //灰色
-    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");             //灰色
-    ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);"); //灰色
+    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   // 灰色
+    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                // 灰色
+    ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  // 灰色
+    ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           // 灰色
+    ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");        // 灰色
+    ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           // 灰色
+    ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                       // 灰色
+    ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   // 灰色
+    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");             // 灰色
+    ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);"); // 灰色
     ui->mcp_server_config_textEdit->setLineWrapMode(QTextEdit::NoWrap);                             // 禁用自动换行
     ui->mcp_server_log_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                      // 禁用自动换行
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                     // 禁用自动换行
@@ -38,61 +38,61 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->vocab_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                        // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap);
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
-    ui->splitter->setStretchFactor(0, 2);                                                                 //设置分隔器中第一个元素初始宽度占比为3
-    ui->splitter->setStretchFactor(1, 1);                                                                 //设置分隔器中第二个元素初始宽度占比为1
-    //模型转换相关
-    // ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
+    ui->splitter->setStretchFactor(0, 2);                                                                 // 设置分隔器中第一个元素初始宽度占比为3
+    ui->splitter->setStretchFactor(1, 1);                                                                 // 设置分隔器中第二个元素初始宽度占比为1
+    // 模型转换相关
+    //  ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
     ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
     ui->modelconvert_converttype_comboBox->addItems({modelquantize_map[MODEL_QUANTIZE_F32], modelquantize_map[MODEL_QUANTIZE_F16], modelquantize_map[MODEL_QUANTIZE_BF16], modelquantize_map[MODEL_QUANTIZE_Q8_0]});
-    ui->modelconvert_converttype_comboBox->setCurrentText(modelquantize_map[MODEL_QUANTIZE_F16]); //默认转换为f16的模型
+    ui->modelconvert_converttype_comboBox->setCurrentText(modelquantize_map[MODEL_QUANTIZE_F16]); // 默认转换为f16的模型
     ui->modelconvert_script_comboBox->addItems({CONVERT_HF_TO_GGUF_SCRIPT});
     convert_command_process = new QProcess(this);
-    connect(convert_command_process, &QProcess::started, this, &Expend::convert_command_onProcessStarted);                                             //连接开始信号
-    connect(convert_command_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::convert_command_onProcessFinished); //连接结束信号
+    connect(convert_command_process, &QProcess::started, this, &Expend::convert_command_onProcessStarted);                                             // 连接开始信号
+    connect(convert_command_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::convert_command_onProcessFinished); // 连接结束信号
     connect(convert_command_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_convert_command_process_StandardOutput);
     connect(convert_command_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_convert_command_process_StandardError);
 
     // 塞入第三方 exe
     server_process = new QProcess(this);                                                                                             // 创建一个QProcess实例用来启动llama-server
-    connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);                                             //连接开始信号
-    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::server_onProcessFinished); //连接结束信号
+    connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);                                             // 连接开始信号
+    connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::server_onProcessFinished); // 连接结束信号
 
     quantize_process = new QProcess(this);                                                                                               // 创建一个QProcess实例用来启动llama-quantize
-    connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);                                             //连接开始信号
-    connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::quantize_onProcessFinished); //连接结束信号
+    connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);                                             // 连接开始信号
+    connect(quantize_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::quantize_onProcessFinished); // 连接结束信号
 
-    whisper_process = new QProcess(this);                                                                                              //实例化
-    connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);                                             //连接开始信号
-    connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::whisper_onProcessFinished); //连接结束信号
+    whisper_process = new QProcess(this);                                                                                              // 实例化
+    connect(whisper_process, &QProcess::started, this, &Expend::whisper_onProcessStarted);                                             // 连接开始信号
+    connect(whisper_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::whisper_onProcessFinished); // 连接结束信号
 
     sd_process = new QProcess(this);                                                                                         // 创建一个QProcess实例用来启动llama-quantize
-    connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);                                             //连接开始信号
-    connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::sd_onProcessFinished); //连接结束信号
+    connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);                                             // 连接开始信号
+    connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::sd_onProcessFinished); // 连接结束信号
 
     outetts_process = new QProcess(this);
-    connect(outetts_process, &QProcess::started, this, &Expend::outetts_onProcessStarted);                                             //连接开始信号
-    connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished); //连接结束信号
+    connect(outetts_process, &QProcess::started, this, &Expend::outetts_onProcessStarted);                                             // 连接开始信号
+    connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished); // 连接结束信号
     connect(outetts_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_outetts_process_StandardOutput);
     connect(outetts_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_outetts_process_StandardError);
 
-    ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu); //添加右键菜单
+    ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu); // 添加右键菜单
     connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
     // 已嵌入表格右键菜单（支持删除）
     ui->embedding_txt_over->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->embedding_txt_over, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_over_menu);
 
-    //知识库相关
-    ui->embedding_txt_wait->setColumnCount(1);                                              //设置一列
-    ui->embedding_txt_over->setColumnCount(1);                                              //设置一列
+    // 知识库相关
+    ui->embedding_txt_wait->setColumnCount(1);                                              // 设置一列
+    ui->embedding_txt_over->setColumnCount(1);                                              // 设置一列
     ui->embedding_txt_wait->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); // 充满
     ui->embedding_txt_over->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); // 充满
     connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput);
     connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError);
 
-    //添加采样算法
+    // 添加采样算法
     ui->sd_sampletype->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "lcm"});
     ui->sd_sampletype->setCurrentText("euler");
-    //添加输出格式
+    // 添加输出格式
     ui->whisper_output_format->addItems({"txt", "srt", "csv", "json"});
 
     // 文生图相关
@@ -117,11 +117,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
         ui->params_template_comboBox->addItem(key); // 添加模板选项
     }
 
-    //记忆矩阵相关
-    ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); //让表格自动撑满所在区域
+    // 记忆矩阵相关
+    ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); // 让表格自动撑满所在区域
     ui->brain_tableWidget->verticalHeader()->setVisible(false);                            // 隐藏行头部
 
-    //文转声相关
+    // 文转声相关
     connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
     sys_speech = new QTextToSpeech(); // 系统声源
@@ -134,12 +134,12 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
             avaliable_speech_list << speech.name();
         }
         // 仅在朗读完成（回到 Ready）时推进下一段
-        connect(sys_speech, &QTextToSpeech::stateChanged, this, [this](QTextToSpeech::State st) {
+        connect(sys_speech, &QTextToSpeech::stateChanged, this, [this](QTextToSpeech::State st)
+                {
             if (st == QTextToSpeech::Ready)
             {
                 speechOver();
-            }
-        });
+            } });
         is_sys_speech_available = true;
     }
     else
@@ -150,7 +150,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     this->set_sys_speech(avaliable_speech_list); // 设置可用声源
 
     // 在应用退出前确保清理嵌入服务（防止 llama-server 残留）
-    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() { stopEmbeddingServer(true); });
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
+            { stopEmbeddingServer(true); });
 
     // 创建播放器对象
     speech_player = new QMediaPlayer;
@@ -159,9 +160,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     outettsDir = applicationDirPath + "/EVA_TEMP/outetts/"; // outetts生成的音频存放目录
     connect(&speechTimer, SIGNAL(timeout()), this, SLOT(speech_process()));
     connect(&speechPlayTimer, SIGNAL(timeout()), this, SLOT(speech_play_process()));
-    speechTimer.start(500);     //每半秒检查一次是否需要朗读
-    speechPlayTimer.start(500); //每半秒检查一次是否有音频需要朗读
-    //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
+    speechTimer.start(500);     // 每半秒检查一次是否需要朗读
+    speechPlayTimer.start(500); // 每半秒检查一次是否有音频需要朗读
+    // 如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
 
     // 初始化向量数据库（SQLite）并加载已有知识库
@@ -217,13 +218,16 @@ void Expend::stopEmbeddingServer(bool force)
 {
     if (!server_process)
         return;
-    auto killByPid = [&](qint64 pid) {
+    auto killByPid = [&](qint64 pid)
+    {
 #ifdef _WIN32
         if (pid > 0)
         {
             QStringList args;
             args << "/PID" << QString::number(pid) << "/T" << (force ? "/F" : QString());
-            args.erase(std::remove_if(args.begin(), args.end(), [](const QString &s) { return s.isEmpty(); }), args.end());
+            args.erase(std::remove_if(args.begin(), args.end(), [](const QString &s)
+                                      { return s.isEmpty(); }),
+                       args.end());
             QProcess::execute("taskkill", args);
         }
 #else
@@ -237,14 +241,16 @@ void Expend::stopEmbeddingServer(bool force)
 #endif
     };
 
-        if (server_process->state() == QProcess::Running)
+    if (server_process->state() == QProcess::Running)
     {
         if (force)
         {
             // Force kill immediately to avoid exit stall
             const qint64 pid = server_process->processId();
-            if (pid > 0) killByPid(pid);
-            else server_process->kill();
+            if (pid > 0)
+                killByPid(pid);
+            else
+                server_process->kill();
             server_process->waitForFinished(100);
         }
         else
@@ -254,8 +260,10 @@ void Expend::stopEmbeddingServer(bool force)
             if (!server_process->waitForFinished(1500))
             {
                 const qint64 pid = server_process->processId();
-                if (pid > 0) killByPid(pid);
-                else server_process->kill();
+                if (pid > 0)
+                    killByPid(pid);
+                else
+                    server_process->kill();
                 server_process->waitForFinished(500);
             }
         }
@@ -267,7 +275,7 @@ void Expend::stopEmbeddingServer(bool force)
     }
 }
 
-//创建临时文件夹EVA_TEMP
+// 创建临时文件夹EVA_TEMP
 bool Expend::createTempDirectory(const QString &path)
 {
     QDir dir;
@@ -290,7 +298,7 @@ bool Expend::createTempDirectory(const QString &path)
     }
 }
 
-//传递llama.cpp的log，显示模型日志
+// 传递llama.cpp的log，显示模型日志
 void Expend::recv_llama_log(QString log)
 {
     QTextCursor cursor = ui->modellog_card->textCursor();
@@ -305,10 +313,10 @@ QString Expend::jtr(QString customstr)
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
 
-//事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
+// 事件过滤器,鼠标跟踪效果不好要在各种控件单独实现
 bool Expend::eventFilter(QObject *obj, QEvent *event)
 {
-    //响应已安装控件上的鼠标右击事件
+    // 响应已安装控件上的鼠标右击事件
     if (obj == ui->sd_prompt_textEdit && event->type() == QEvent::ContextMenu)
     {
         // 自动填充提示词
@@ -317,18 +325,18 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
     }
     else if (obj == ui->sd_negative_lineEdit && event->type() == QEvent::ContextMenu)
     {
-        //还原负面词
+        // 还原负面词
         ui->sd_negative_lineEdit->setText(sd_params_templates[ui->params_template_comboBox->currentText()].negative_prompt);
         return true;
     }
     else if (obj == ui->sd_modify_lineEdit && event->type() == QEvent::ContextMenu)
     {
-        //还原修饰词
+        // 还原修饰词
         ui->sd_modify_lineEdit->setText(sd_params_templates[ui->params_template_comboBox->currentText()].modify_prompt);
     }
     else if (obj == ui->sd_img2img_lineEdit && event->type() == QEvent::ContextMenu)
     {
-        //选择图像
+        // 选择图像
         currentpath = customOpenfile(currentpath, "choose an imgage", "(*.png *.jpg *.bmp)");
         if (currentpath != "")
         {
@@ -346,7 +354,7 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
-//关闭事件
+// 关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
     //--------------保存当前用户配置---------------
@@ -402,11 +410,9 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("embedding_overlap", ui->embedding_overlap_spinbox->value());
     settings.setValue("embedding_sourcetxt", ui->embedding_txt_lineEdit->text());
     settings.setValue("embedding_describe", ui->embedding_txt_describe_lineEdit->text());
-    settings.setValue("shell", shell);                                             //shell路径
-    settings.setValue("python", pythonExecutable);                                 //python版本
-    settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText()); //mcp配置
-        settings.sync(); // flush to disk immediately on close
+    settings.setValue("shell", shell);                                             // shell路径
+    settings.setValue("python", pythonExecutable);                                 // python版本
+    settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText()); // mcp配置
+    settings.sync();                                                               // flush to disk immediately on close
     event->accept();
 }
-
-

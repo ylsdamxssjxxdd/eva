@@ -8,9 +8,9 @@
 #include <QByteArray>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QString>
 #include <QVariant>
 #include <QVector>
-#include <QString>
 #include <vector>
 
 #include "../xconfig.h" // Embedding_vector
@@ -51,4 +51,3 @@ class VectorDB
     QString modelId_;
     int dim_ = 0;
 };
-

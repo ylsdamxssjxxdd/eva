@@ -1,25 +1,25 @@
 #include "cmakeconfig.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
-#include <QDirIterator>
 #include <QFont>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QStyleFactory>
-#include <locale>
-#include <functional>
 #include <climits>
+#include <functional>
+#include <locale>
 
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
+#include "utils/devicemanager.h"
 #include "utils/gpuchecker.h"
 #include "widget/widget.h"
 #include "xmcp.h"
 #include "xnet.h"
 #include "xtool.h"
-#include "utils/devicemanager.h"
 
 static inline void createDesktopShortcut(QString appPath)
 {
@@ -84,16 +84,16 @@ int main(int argc, char *argv[])
     setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1); // 指定找动态库的默认路径 LD_LIBRARY_PATH
 #endif
 
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       //自适应缩放
-    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); //适配非整数倍缩放
-    QApplication a(argc, argv);                                                                              //事件实例
-    a.setQuitOnLastWindowClosed(false);                                                                      //即使关闭所有窗口也不退出程序，为了保持系统托盘正常
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       // 自适应缩放
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); // 适配非整数倍缩放
+    QApplication a(argc, argv);                                                                              // 事件实例
+    a.setQuitOnLastWindowClosed(false);                                                                      // 即使关闭所有窗口也不退出程序，为了保持系统托盘正常
     // 加载资源文件中的字体, 统一使用宋体
     int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
     if (fontId == -1)
-    { //如果没有说明是在window下
+    { // 如果没有说明是在window下
         QFont font("SimSun");
-        font.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+        font.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
         QApplication::setFont(font);
         // qDebug() << "Loaded font:" << "windows SimSun";
     }
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
         if (!loadedFonts.empty())
         {
             QFont customFont(loadedFonts.at(0));
-            customFont.setStyleStrategy(QFont::PreferAntialias); //应用反锯齿
+            customFont.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
             QApplication::setFont(customFont);
             // qDebug() << "Loaded font:" << customFont.family();
         }
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
     const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
     const QString appPath = applicationDirPath;
 #endif
-    //linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
+    // linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
     createDesktopShortcut(appPath);
     qDebug() << "EVA_PATH" << appPath;
     // Auto-discover default models from EVA_MODELS when no config exists
@@ -127,12 +127,16 @@ int main(int argc, char *argv[])
         const QString tempDir = applicationDirPath + "/EVA_TEMP";
         QDir().mkpath(tempDir);
         const QString cfgPath = tempDir + "/eva_config.ini";
-        if (!QFile::exists(cfgPath)) {
-            auto findSmallest = [](const QString &root, const QStringList &exts, std::function<bool(const QFileInfo&)> pred = nullptr) -> QString {
+        if (!QFile::exists(cfgPath))
+        {
+            auto findSmallest = [](const QString &root, const QStringList &exts, std::function<bool(const QFileInfo &)> pred = nullptr) -> QString
+            {
                 if (root.isEmpty() || !QDir(root).exists()) return QString();
-                QString best; qint64 bestSz = LLONG_MAX;
+                QString best;
+                qint64 bestSz = LLONG_MAX;
                 QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
-                while (it.hasNext()) {
+                while (it.hasNext())
+                {
                     const QString p = it.next();
                     QFileInfo fi(p);
                     if (!fi.isFile()) continue;
@@ -140,38 +144,55 @@ int main(int argc, char *argv[])
                     if (!exts.contains("*." + suffix)) continue;
                     if (pred && !pred(fi)) continue;
                     const qint64 sz = fi.size();
-                    if (sz > 0 && sz < bestSz) { best = fi.absoluteFilePath(); bestSz = sz; }
+                    if (sz > 0 && sz < bestSz)
+                    {
+                        best = fi.absoluteFilePath();
+                        bestSz = sz;
+                    }
                 }
                 return best;
             };
             const QString modelsRoot = QDir(applicationDirPath).filePath("EVA_MODELS");
             QString llmModel, embModel, whisperModel, outettsModel, wavTokenizerModel, sdModel;
-            if (QDir(modelsRoot).exists()) {
+            if (QDir(modelsRoot).exists())
+            {
                 // LLM: EVA_MODELS/llm -> smallest .gguf
                 llmModel = findSmallest(QDir(modelsRoot).filePath("llm"), {"*.gguf"});
                 // Embedding: EVA_MODELS/embedding -> smallest .gguf
                 embModel = findSmallest(QDir(modelsRoot).filePath("embedding"), {"*.gguf"});
                 // Whisper(STT): EVA_MODELS/speech2text -> prefer filenames containing 'whisper'
                 const QString sttRoot = QDir(modelsRoot).filePath("speech2text");
-                whisperModel = findSmallest(sttRoot, {"*.bin","*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("whisper"); });
+                whisperModel = findSmallest(sttRoot, {"*.bin", "*.gguf"}, [](const QFileInfo &fi)
+                                            { return fi.fileName().toLower().contains("whisper"); });
                 // TTS: OuteTTS + WavTokenizer; look under speech2text first, then text2speech
-                auto findOute = [&](const QString &root){ return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("outetts"); }); };
-                auto findWavTok = [&](const QString &root){ return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi){ return fi.fileName().toLower().contains("wavtokenizer"); }); };
-                outettsModel = findOute(QDir(modelsRoot).filePath("text2speech")); if (outettsModel.isEmpty()) outettsModel = findOute(sttRoot);
-                wavTokenizerModel = findWavTok(QDir(modelsRoot).filePath("text2speech")); if (wavTokenizerModel.isEmpty()) wavTokenizerModel = findWavTok(sttRoot);
+                auto findOute = [&](const QString &root)
+                { return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
+                                      { return fi.fileName().toLower().contains("outetts"); }); };
+                auto findWavTok = [&](const QString &root)
+                { return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
+                                      { return fi.fileName().toLower().contains("wavtokenizer"); }); };
+                outettsModel = findOute(QDir(modelsRoot).filePath("text2speech"));
+                if (outettsModel.isEmpty()) outettsModel = findOute(sttRoot);
+                wavTokenizerModel = findWavTok(QDir(modelsRoot).filePath("text2speech"));
+                if (wavTokenizerModel.isEmpty()) wavTokenizerModel = findWavTok(sttRoot);
                 // SD: Prefer fixed path EVA_MODELS/text2image/sd1.5-anything-3-q8_0.gguf; fallback: smallest .gguf under text2image
                 const QString sdFixed = QDir(modelsRoot).filePath("text2image/sd1.5-anything-3-q8_0.gguf");
                 if (QFile::exists(sdFixed)) sdModel = QFileInfo(sdFixed).absoluteFilePath();
                 if (sdModel.isEmpty()) sdModel = findSmallest(QDir(modelsRoot).filePath("text2image"), {"*.gguf"});
             }
             // Persist discovered defaults so subsequent startup path applies uniformly
-            QSettings s(cfgPath, QSettings::IniFormat); s.setIniCodec("utf-8");
+            QSettings s(cfgPath, QSettings::IniFormat);
+            s.setIniCodec("utf-8");
             if (!llmModel.isEmpty()) s.setValue("modelpath", llmModel);
             if (!embModel.isEmpty()) s.setValue("embedding_modelpath", embModel);
             if (!whisperModel.isEmpty()) s.setValue("whisper_modelpath", whisperModel);
             if (!outettsModel.isEmpty()) s.setValue("outetts_modelpath", outettsModel);
             if (!wavTokenizerModel.isEmpty()) s.setValue("wavtokenizer_modelpath", wavTokenizerModel);
-            if (!sdModel.isEmpty()) { s.setValue("sd_modelpath", sdModel); s.setValue("sd_params_template", "sd1.5-anything-3"); }
+            if (!sdModel.isEmpty())
+            {
+                s.setValue("sd_modelpath", sdModel);
+                s.setValue("sd_params_template", "sd1.5-anything-3");
+            }
             // Default to local mode and auto device backend on first boot
             s.setValue("ui_mode", 0);
             s.setValue("device_backend", DeviceManager::userChoice().isEmpty() ? "auto" : DeviceManager::userChoice());
@@ -179,14 +200,14 @@ int main(int argc, char *argv[])
         }
     }
     //------------------实例化主要节点------------------
-    Widget w(nullptr, applicationDirPath);      //窗口实例
-    Expend expend(nullptr, applicationDirPath); //增殖窗口实例
-    xTool tool(applicationDirPath);             //工具实例
+    Widget w(nullptr, applicationDirPath);      // 窗口实例
+    Expend expend(nullptr, applicationDirPath); // 增殖窗口实例
+    xTool tool(applicationDirPath);             // 工具实例
     // 将 xNet 改为堆对象，确保在其所属线程内析构，避免 Windows 下 QWinEventNotifier 跨线程清理告警
-    xNet *net = new xNet;         // 链接实例（worker 线程内生命周期）
-    xMcp mcp;         //mcp管理实例
-    gpuChecker gpuer; //监测显卡信息
-    cpuChecker cpuer; //监视系统信息
+    xNet *net = new xNet; // 链接实例（worker 线程内生命周期）
+    xMcp mcp;             // mcp管理实例
+    gpuChecker gpuer;     // 监测显卡信息
+    cpuChecker cpuer;     // 监视系统信息
 
     //-----------------初始值设定-----------------------
     // 传递语言（注意 net 改为指针）
@@ -194,7 +215,7 @@ int main(int argc, char *argv[])
     net->wordsObj = w.wordsObj;
     tool.wordsObj = w.wordsObj;
     expend.max_thread = w.max_thread;
-    tool.embedding_server_resultnumb = expend.embedding_resultnumb;          //同步数目
+    tool.embedding_server_resultnumb = expend.embedding_resultnumb;          // 同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
 
@@ -238,86 +259,86 @@ int main(int argc, char *argv[])
     QObject::connect(net_thread, &QThread::finished, net, &QObject::deleteLater);
     net_thread->start();
     // 退出前先请求停止网络流（排队到 net 所在线程）
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net]() {
-        QMetaObject::invokeMethod(net, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
-    });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net]()
+                     { QMetaObject::invokeMethod(net, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true)); });
     // 再优雅退出并等待线程结束，确保 xNet 在其线程内清理完毕，避免退出时短暂卡住
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net_thread]() {
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net_thread]()
+                     {
         net_thread->quit();
-        net_thread->wait(3000);
-    });
+        net_thread->wait(3000); });
     // Ensure knowledge-base embedding server is stopped when the app quits,
     // even if the Expend window was closed earlier
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, &expend, [&expend]() { expend.stopEmbeddingServer(true); }, Qt::QueuedConnection);
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, &expend, [&expend]()
+                     { expend.stopEmbeddingServer(true); }, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
 
     // 统一的应用退出收尾：优雅停止各工作线程，避免退出阶段跨线程清理产生告警/卡顿
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [gpuer_thread]() {
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [gpuer_thread]()
+                     {
         gpuer_thread->quit();
-        gpuer_thread->wait(1000);
-    });
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [cpuer_thread]() {
+        gpuer_thread->wait(1000); });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [cpuer_thread]()
+                     {
         cpuer_thread->quit();
-        cpuer_thread->wait(1000);
-    });
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [tool_thread]() {
+        cpuer_thread->wait(1000); });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [tool_thread]()
+                     {
         tool_thread->quit();
-        tool_thread->wait(2000);
-    });
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp_thread]() {
+        tool_thread->wait(2000); });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp_thread]()
+                     {
         mcp_thread->quit();
-        mcp_thread->wait(2000);
-    });
+        mcp_thread->wait(2000); });
     //------------------监测gpu信息-------------------
-    QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); //传递gpu信息
-    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       //强制刷新gpu信息
+    QObject::connect(&gpuer, &gpuChecker::gpu_status, &w, &Widget::recv_gpu_status); // 传递gpu信息
+    QObject::connect(&w, &Widget::gpu_reflash, &gpuer, &gpuChecker::checkGpu);       // 强制刷新gpu信息
 
     //------------------监测系统信息-------------------
-    QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status); //传递cpu信息
-    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        //强制刷新cpu信息
+    QObject::connect(&cpuer, &cpuChecker::cpu_status, &w, &Widget::recv_cpu_status); // 传递cpu信息
+    QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        // 强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
-    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         //传递使用的语言
-    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          //通知显示扩展窗口
-    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 //开始语音转文字
-    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         //重置文字转语音
-    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       //转换完成返回结果
-    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       //传递模型路径
-    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            //窗口状态区更新
-    QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); //传递知识库的描述
-    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        //传递llama日志
+    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          // 通知显示扩展窗口
+    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 // 开始语音转文字
+    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         // 重置文字转语音
+    QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       // 转换完成返回结果
+    QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       // 传递模型路径
+    QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            // 窗口状态区更新
+    QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); // 传递知识库的描述
+    QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 传递llama日志
 
     //------------------连接net和窗口-------------------
-    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  //窗口输出区更新
-    QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    //窗口状态区更新
-    QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 //完成推理
-    QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             //流式近似KV用量（链接模式兜底）
+    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  // 窗口输出区更新
+    QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
+    QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
+    QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // 流式近似KV用量（链接模式兜底）
     QObject::connect(net, &xNet::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
     QObject::connect(net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
     QObject::connect(net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
-    QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               //开始推理
-    QObject::connect(&w, &Widget::ui2net_language, net, &xNet::recv_language, Qt::QueuedConnection);                 //传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, net, &xNet::recv_apis, Qt::QueuedConnection);                         //传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, net, &xNet::recv_data, Qt::QueuedConnection);                         //传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, net, &xNet::recv_stop, Qt::QueuedConnection);                         //传递停止信号
+    QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               // 开始推理
+    QObject::connect(&w, &Widget::ui2net_language, net, &xNet::recv_language, Qt::QueuedConnection);                 // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2net_apis, net, &xNet::recv_apis, Qt::QueuedConnection);                         // 传递api设置参数
+    QObject::connect(&w, &Widget::ui2net_data, net, &xNet::recv_data, Qt::QueuedConnection);                         // 传递端点参数
+    QObject::connect(&w, &Widget::ui2net_stop, net, &xNet::recv_stop, Qt::QueuedConnection);                         // 传递停止信号
 
     //------------------连接tool和窗口-------------------
-    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  //窗口状态区更新
-    QObject::connect(&tool, &xTool::tool2ui_controller, &w, &Widget::recv_controller);           //传递控制信息
-    QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over); //传递控制完成结果
-    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           //完成推理
-    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               //传递使用的语言
-    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            //开始推理
+    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  // 窗口状态区更新
+    QObject::connect(&tool, &xTool::tool2ui_controller, &w, &Widget::recv_controller);           // 传递控制信息
+    QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over); // 传递控制完成结果
+    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           // 完成推理
+    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            // 开始推理
     QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);                 // 设置工程师工作目录
 
     //------------------连接增殖窗口和tool-------------------
-    QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 //传递已嵌入文本段数据
-    QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb); //传递嵌入结果返回个数
+    QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 // 传递已嵌入文本段数据
+    QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb); // 传递嵌入结果返回个数
 
-    QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         //开始绘制图像
-    QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover); //图像绘制完成
+    QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         // 开始绘制图像
+    QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover); // 图像绘制完成
 
     // 将持久化向量库的内容同步给工具层（若已存在）
     if (!expend.Embedding_DB.isEmpty())
@@ -330,22 +351,22 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);
     QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // 添加某个mcp服务完成
     QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
-    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       //查询mcp可用工具
-    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); //查询mcp可用工具完成
-    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       //开始调用mcp可用工具
-    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); //mcp可用工具调用完成
+    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       // 查询mcp可用工具
+    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); // 查询mcp可用工具完成
+    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       // 开始调用mcp可用工具
+    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); // mcp可用工具调用完成
 
     //---------------读取配置文件并执行------------------
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
     if (configfile.exists())
     {
-        emit w.gpu_reflash(); //强制刷新gpu信息，为了获取未装载时的显存占用
-         // 读取配置文件中的值
+        emit w.gpu_reflash(); // 强制刷新gpu信息，为了获取未装载时的显存占用
+                              //  读取配置文件中的值
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
         w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
         w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
-        QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    //模型路径
+        QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    // 模型路径
         w.currentpath = w.historypath = expend.currentpath = modelpath;                                                             // 默认打开路径
         w.ui_SETTINGS.modelpath = modelpath;
         w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
@@ -419,8 +440,8 @@ int main(int argc, char *argv[])
         w.ui_SETTINGS.hid_parallel = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
 
         // ui显示值传给ui内部值
-        w.get_date(); //获取约定中的纸面值
-        w.get_set();  //获取设置中的纸面值
+        w.get_date(); // 获取约定中的纸面值
+        w.get_set();  // 获取设置中的纸面值
         w.is_config = true;
 
         // 初次启动强制赋予隐藏的设定值
@@ -450,8 +471,6 @@ int main(int argc, char *argv[])
             }
         }
     }
-    w.show(); //展示窗口
-    return a.exec(); //进入事件循环
+    w.show();        // 展示窗口
+    return a.exec(); // 进入事件循环
 }
-
-

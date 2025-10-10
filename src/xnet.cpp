@@ -1,14 +1,13 @@
 #include "xnet.h"
 #include "prompt_builder.h"
 #if QT_CONFIG(ssl)
-#  include <QSslError>
+#include <QSslError>
 #endif
 
 xNet::xNet()
 {
     // Defer creation of network objects until we are in worker thread
     qDebug() << "xNet init over";
-
 }
 
 xNet::~xNet()
@@ -17,8 +16,17 @@ xNet::~xNet()
     if (QThread::currentThread() == this->thread())
     {
         abortActiveReply();
-        if (timeoutTimer_) { timeoutTimer_->stop(); timeoutTimer_->deleteLater(); timeoutTimer_ = nullptr; }
-        if (nam_) { nam_->deleteLater(); nam_ = nullptr; }
+        if (timeoutTimer_)
+        {
+            timeoutTimer_->stop();
+            timeoutTimer_->deleteLater();
+            timeoutTimer_ = nullptr;
+        }
+        if (nam_)
+        {
+            nam_->deleteLater();
+            nam_ = nullptr;
+        }
     }
     else
     {
@@ -60,17 +68,17 @@ void xNet::abortActiveReply()
         QObject::disconnect(connFinished_);
         QObject::disconnect(connError_);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-        #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
         QObject::disconnect(connSslErrors_);
-        #endif
+#endif
 #endif
         connReadyRead_ = QMetaObject::Connection{};
         connFinished_ = QMetaObject::Connection{};
         connError_ = QMetaObject::Connection{};
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
-        #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
         connSslErrors_ = QMetaObject::Connection{};
-        #endif
+#endif
 #endif
         // finally, abort and delete the reply safely
         reply_->abort();
@@ -124,7 +132,8 @@ void xNet::run()
     // Timers
     t_all_.start();
     bool ttfbStarted = false;
-    connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]() {
+    connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]()
+                             {
         if (aborted_ || !reply_) return; // guard against late events after abort
         if (!ttfbStarted)
         {
@@ -276,11 +285,11 @@ void xNet::run()
             is_stop = false;
             emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
             abortActiveReply();
-        }
-    });
+        } });
 
     // Handle finish: stop timeout and finalize
-    connFinished_ = connect(reply_, &QNetworkReply::finished, this, [this]() {
+    connFinished_ = connect(reply_, &QNetworkReply::finished, this, [this]()
+                            {
         if (timeoutTimer_) timeoutTimer_->stop();
 
         // Determine if finish is due to user abort/cancel
@@ -324,19 +333,18 @@ void xNet::run()
         running_ = false;
         // Report reasoning token count of this turn before finishing
         emit net2ui_reasoning_tokens(reasoningTokensTurn_);
-        emit net2ui_pushover();
-    });
+        emit net2ui_pushover(); });
 
     // Network errors should not hang the loop
-    connError_ = connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError) {
-        if (timeoutTimer_) timeoutTimer_->stop();
-    });
+    connError_ = connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError)
+                         {
+        if (timeoutTimer_) timeoutTimer_->stop(); });
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
-    connSslErrors_ = connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors) {
+    connSslErrors_ = connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors)
+                             {
         Q_UNUSED(errors);
         // Report but do not ignore by default
-        emit net2ui_state("net: SSL error", WRONG_SIGNAL);
-    });
+        emit net2ui_state("net: SSL error", WRONG_SIGNAL); });
 #endif
 
     // Arm an overall timeout (no bytes + no finish)
@@ -356,14 +364,14 @@ void xNet::ensureNetObjects()
     {
         timeoutTimer_ = new QTimer(this);
         timeoutTimer_->setSingleShot(true);
-        connect(timeoutTimer_, &QTimer::timeout, this, [this]() {
+        connect(timeoutTimer_, &QTimer::timeout, this, [this]()
+                {
             emit net2ui_state("net: timeout", WRONG_SIGNAL);
-            abortActiveReply();
-        });
+            abortActiveReply(); });
     }
 }
 
-//构造请求的数据体
+// 构造请求的数据体
 QByteArray xNet::createChatBody()
 { // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
@@ -421,7 +429,7 @@ QByteArray xNet::createChatBody()
     return doc.toJson();
 }
 
-//构造请求的数据体,补完模式
+// 构造请求的数据体,补完模式
 QByteArray xNet::createCompleteBody()
 {
     // 创建 JSON 数据
@@ -452,7 +460,7 @@ void xNet::recv_data(ENDPOINT_DATA data)
 {
     endpoint_data = data;
 }
-//传递api设置参数
+// 传递api设置参数
 void xNet::recv_apis(APIS apis_)
 {
     apis = apis_;
@@ -508,5 +516,3 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
-
-

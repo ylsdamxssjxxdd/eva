@@ -1,10 +1,10 @@
 #include "xbackend.h"
+#include "utils/devicemanager.h"
+#include "utils/pathutil.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QTextCodec>
-#include "utils/devicemanager.h"
-#include "utils/pathutil.h"
 
 LocalServerManager::LocalServerManager(QObject *parent, const QString &appDirPath)
     : QObject(parent), appDirPath_(appDirPath) {}
@@ -104,23 +104,25 @@ void LocalServerManager::hookProcessSignals()
 {
     if (!proc_) return;
 
-    connect(proc_, &QProcess::started, this, [this]() {
-        // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
-    });
-    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
+    connect(proc_, &QProcess::started, this, [this]()
+            {
+                // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
+            });
+    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
+            {
         // emit serverState("ui:backend stopped", SIGNAL_SIGNAL);
-        emit serverStopped();
-    });
-    connect(proc_, &QProcess::readyReadStandardOutput, this, [this]() {
+        emit serverStopped(); });
+    connect(proc_, &QProcess::readyReadStandardOutput, this, [this]()
+            {
         const QString out = QString::fromUtf8(proc_->readAllStandardOutput());
         if (!out.isEmpty()) emit serverOutput(out);
         if (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on"))
         {
             // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
             emit serverReady(endpointBase());
-        }
-    });
-    connect(proc_, &QProcess::readyReadStandardError, this, [this]() {
+        } });
+    connect(proc_, &QProcess::readyReadStandardError, this, [this]()
+            {
         const QString err = QString::fromUtf8(proc_->readAllStandardError());
         if (!err.isEmpty()) emit serverOutput(err);
         // llama.cpp may print slightly different phrases across versions
@@ -128,9 +130,9 @@ void LocalServerManager::hookProcessSignals()
         {
             // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
             emit serverReady(endpointBase());
-        }
-    });    // Report process errors immediately so UI can recover
-    connect(proc_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e) {
+        } }); // Report process errors immediately so UI can recover
+    connect(proc_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e)
+            {
         QString msg;
         switch (e) {
         case QProcess::FailedToStart: msg = QStringLiteral("ui:backend failed to start"); break;
@@ -142,8 +144,7 @@ void LocalServerManager::hookProcessSignals()
         if(msg!="") {emit serverState(msg, WRONG_SIGNAL);}
         emit serverOutput(msg);
         if(!msg.isEmpty()) emit serverStartFailed(msg);
-        emit serverStopped();
-    });
+        emit serverStopped(); });
 }
 
 void LocalServerManager::startProcess(const QStringList &args)
@@ -158,7 +159,7 @@ void LocalServerManager::startProcess(const QStringList &args)
     const QString prog = programPath();
     lastProgram_ = prog;
     lastArgs_ = args;
-        // Ensure program-local runtime deps can be found by the child process
+    // Ensure program-local runtime deps can be found by the child process
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString toolDir = QFileInfo(prog).absolutePath();
 #ifdef _WIN32
@@ -274,17 +275,18 @@ void LocalServerManager::stopAsync()
     proc_->terminate();
 
     // When it finishes, clean up and notify
-    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus) {
+    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
+            {
         if (proc_)
         {
             proc_->deleteLater();
             proc_.clear();
         }
-        emit serverStopped();
-    });
+        emit serverStopped(); });
 
     // Guard: force kill if it doesn't exit in time; avoid blocking UI
-    QTimer::singleShot(1500, this, [this]() {
+    QTimer::singleShot(1500, this, [this]()
+                       {
         if (!proc_) return;
         if (proc_->state() == QProcess::Running)
         {
@@ -303,10 +305,8 @@ void LocalServerManager::stopAsync()
 #else
             proc_->kill();
 #endif
-        }
-    });
+        } });
 }
-
 
 bool LocalServerManager::needsRestart() const
 {
@@ -320,5 +320,3 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
-
-

@@ -7,7 +7,7 @@
 //----------------------------------记忆相关--------------------------------
 //-------------------------------------------------------------------------
 
-//传递记忆向量和上下文长度
+// 传递记忆向量和上下文长度
 void Expend::recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash)
 {
     if (nctx != nctx_)
@@ -23,35 +23,35 @@ void Expend::recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, 
     }
 }
 
-//重置记忆矩阵(新词表过来时/nctx变化时)
+// 重置记忆矩阵(新词表过来时/nctx变化时)
 void Expend::init_brain_matrix()
 {
     ui->brain_tableWidget->clear();
-    ui->brain_tableWidget->setColumnCount(3);                                                   //设置多少列
-    ui->brain_tableWidget->setRowCount(nctx);                                                   //创建很多行
-    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence", "token", "word"}); //设置列名
+    ui->brain_tableWidget->setColumnCount(3);                                                   // 设置多少列
+    ui->brain_tableWidget->setRowCount(nctx);                                                   // 创建很多行
+    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence", "token", "word"}); // 设置列名
 }
 
-//刷新一次记忆矩阵
+// 刷新一次记忆矩阵
 void Expend::reflash_brain_matrix()
 {
     ui->brain_tableWidget->clear();
-    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence", "token", "word"}); //设置列名
+    ui->brain_tableWidget->setHorizontalHeaderLabels(QStringList{"sequence", "token", "word"}); // 设置列名
     QTableWidgetItem *lastItem = nullptr;                                                       // 初始化指向最后一个单元格的指针
     for (int i = 0; i < int(Brain_vector.size()); ++i)
     {
         QTableWidgetItem *newItem1 = new QTableWidgetItem(QString::number(Brain_vector.at(i).id));
-        newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable); //单元格不可编辑
+        newItem1->setFlags(newItem1->flags() & ~Qt::ItemIsEditable); // 单元格不可编辑
         newItem1->setBackground(LCL_ORANGE);                         // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 0, newItem1);
 
         QTableWidgetItem *newItem2 = new QTableWidgetItem(QString::number(Brain_vector.at(i).token));
-        newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable); //单元格不可编辑
+        newItem2->setFlags(newItem2->flags() & ~Qt::ItemIsEditable); // 单元格不可编辑
         newItem2->setBackground(LCL_ORANGE);                         // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 1, newItem2);
 
         QTableWidgetItem *newItem3 = new QTableWidgetItem(Brain_vector.at(i).word.replace("\n", "\\n"));
-        newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable); //单元格不可编辑
+        newItem3->setFlags(newItem3->flags() & ~Qt::ItemIsEditable); // 单元格不可编辑
         newItem3->setBackground(LCL_ORANGE);                         // 设置单元格背景颜色,橘黄色
         ui->brain_tableWidget->setItem(i, 2, newItem3);
 

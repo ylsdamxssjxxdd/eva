@@ -6,28 +6,28 @@
 //----------------------------------模型量化相关--------------------------------
 //-------------------------------------------------------------------------
 
-//用户点击选择待量化模型路径时响应
+// 用户点击选择待量化模型路径时响应
 void Expend::on_model_quantize_row_modelpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, jtr("model_quantize_row_modelpath_lineedit_placeholder"), "(*.gguf)");
     ui->model_quantize_row_modelpath_lineedit->setText(currentpath);
 }
 
-//用户点击选择重要性矩阵路径时响应
+// 用户点击选择重要性矩阵路径时响应
 void Expend::on_model_quantize_important_datapath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, jtr("model_quantize_important_datapath_lineedit_placeholder"), "(*.dat)");
     ui->model_quantize_important_datapath_lineedit->setText(currentpath);
 }
-//待量化模型路径改变响应
+// 待量化模型路径改变响应
 void Expend::on_model_quantize_row_modelpath_lineedit_textChanged()
 {
-    output_modelpath_change(); //根据待量化模型路径和量化方法填入量化后模型路径
+    output_modelpath_change(); // 根据待量化模型路径和量化方法填入量化后模型路径
 }
-//展示量化方法
+// 展示量化方法
 void Expend::show_quantize_types()
 {
-    //量化方法说明
+    // 量化方法说明
     quantize_types.clear();
     ui->model_quantize_type->clear();
     // 以f16-7B模型的大小为准，8bit是一个字节，f16就是两字节，或者16bpw(每个权重占16位)
@@ -65,16 +65,16 @@ void Expend::show_quantize_types()
         {"IQ1_S", "90.3%", jtr("related to the imatrix"), "⭐"},
     };
 
-    //添加量化方法选项
+    // 添加量化方法选项
     for (int i = 0; i < quantize_types.size(); ++i)
     {
         ui->model_quantize_type->addItem(quantize_types.at(i).typename_);
     }
 
-    //添加量化方法说明
-    ui->model_quantize_info->setRowCount(quantize_types.size()); //创建行
+    // 添加量化方法说明
+    ui->model_quantize_info->setRowCount(quantize_types.size()); // 创建行
     ui->model_quantize_info->setColumnCount(5);
-    ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{jtr("quantize type"), jtr("compression") + "（f16->）", jtr("perplexity"), jtr("recommend"), jtr("estimated size") + "（f16->）"}); //设置列名
+    ui->model_quantize_info->setHorizontalHeaderLabels(QStringList{jtr("quantize type"), jtr("compression") + "（f16->）", jtr("perplexity"), jtr("recommend"), jtr("estimated size") + "（f16->）"}); // 设置列名
     for (int i = 0; i < quantize_types.size(); ++i)
     {
         QTableWidgetItem *newItem1 = new QTableWidgetItem(quantize_types.at(i).typename_);
@@ -89,7 +89,7 @@ void Expend::show_quantize_types()
         QTableWidgetItem *newItem4 = new QTableWidgetItem(quantize_types.at(i).recommand);
         ui->model_quantize_info->setItem(i, 3, newItem4);
     }
-    QHeaderView *headerView = ui->model_quantize_info->horizontalHeader(); //水平表头对象,用来控制列宽
+    QHeaderView *headerView = ui->model_quantize_info->horizontalHeader(); // 水平表头对象,用来控制列宽
     headerView->setSectionResizeMode(QHeaderView::Stretch);                // 设置所有列为等宽且撑满整个表格宽度
 
     // 默认的量化级别
@@ -99,17 +99,17 @@ void Expend::show_quantize_types()
 // 根据待量化模型路径和量化方法填入量化后模型路径
 void Expend::output_modelpath_change()
 {
-    //提取模型名
+    // 提取模型名
     QString modelpath = ui->model_quantize_row_modelpath_lineedit->text();
     if (modelpath.contains(".gguf") && QFile::exists(modelpath))
     {
-        //重构名称，将尾部的量化词条更换为当前量化方法
+        // 重构名称，将尾部的量化词条更换为当前量化方法
         QString output_modelpath = modelpath.replace(modelpath.split(".gguf")[0].split("-").last(), ui->model_quantize_type->currentText());
         // qDebug()<<output_modelpath<<modelpath.split(".gguf")[0].split("-").last()<<modelpath.split(".gguf")[0];
         ui->model_quantize_output_modelpath_lineedit->setText(output_modelpath);
 
-        //顺便改变量化方法说明中的预估量化后大小
-        QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text()); //获取文件大小
+        // 顺便改变量化方法说明中的预估量化后大小
+        QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text()); // 获取文件大小
         float in_modelsize = fileInfo1.size() / 1024.0 / 1024.0 / 1024.0;
 
 #ifdef _WIN32
@@ -153,7 +153,7 @@ void Expend::output_modelpath_change()
             QTableWidgetItem *newItem1 = new QTableWidgetItem(estimate_modelsize_str);
             ui->model_quantize_info->setItem(i, 4, newItem1);
 
-            //加星,如果量化后的大小比本机内存小20%以上就加一颗星
+            // 加星,如果量化后的大小比本机内存小20%以上就加一颗星
             QString star;
             if (estimate_modelsize < totalPhysMem / 1024.0 / 1024.0 / 1024.0 * 0.8)
             {
@@ -168,10 +168,10 @@ void Expend::output_modelpath_change()
         }
     }
 }
-//量化方法改变响应
+// 量化方法改变响应
 void Expend::on_model_quantize_type_currentIndexChanged(int index)
 {
-    //根据待量化模型路径和量化方法填入量化后模型路径
+    // 根据待量化模型路径和量化方法填入量化后模型路径
     output_modelpath_change();
 
     // 表格中对应的量化信息高亮
@@ -179,23 +179,23 @@ void Expend::on_model_quantize_type_currentIndexChanged(int index)
     ui->model_quantize_info->setSelectionBehavior(QAbstractItemView::SelectRows); // 设置选择行为为选择行
     ui->model_quantize_info->selectRow(index);                                    // 选择指定的行
 }
-//用户点击执行量化按钮时响应
+// 用户点击执行量化按钮时响应
 void Expend::on_model_quantize_execute_clicked()
 {
-    //锁定界面
+    // 锁定界面
     ui->model_quantize_frame1->setEnabled(0);
     ui->model_quantize_frame2->setEnabled(0);
     ui->model_quantize_frame3->setEnabled(0);
     ui->model_quantize_frame4->setEnabled(0);
 
-    //执行量化
+    // 执行量化
     quantize(ui->model_quantize_row_modelpath_lineedit->text(), ui->model_quantize_output_modelpath_lineedit->text(), ui->model_quantize_important_datapath_lineedit->text(), ui->model_quantize_type->currentText());
 }
 
-//执行量化
+// 执行量化
 void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
 {
-    //结束llama-quantize
+    // 结束llama-quantize
     quantize_process->kill();
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR");
@@ -210,43 +210,44 @@ void Expend::quantize(QString in_modelpath, QString out_modelpath, QString impor
     if (important_datapath != "")
     {
         arguments << "--imatrix" << important_datapath;
-    }                                               //重要性矩阵路径
-    arguments << in_modelpath;                      //待量化模型路径
-    arguments << out_modelpath;                     //输出路径
-    arguments << quantize_type;                     //量化方法
-    arguments << QString::number(max_thread * 0.5); //使用线程数
+    } // 重要性矩阵路径
+    arguments << in_modelpath;                      // 待量化模型路径
+    arguments << out_modelpath;                     // 输出路径
+    arguments << quantize_type;                     // 量化方法
+    arguments << QString::number(max_thread * 0.5); // 使用线程数
 
-    //连接信号和槽,获取程序的输出
-    connect(quantize_process, &QProcess::readyReadStandardOutput, [=]() {
+    // 连接信号和槽,获取程序的输出
+    connect(quantize_process, &QProcess::readyReadStandardOutput, [=]()
+            {
         QString output = quantize_process->readAllStandardOutput();
-        ui->model_quantize_log->appendPlainText(output);
-    });
-    connect(quantize_process, &QProcess::readyReadStandardError, [=]() {
-        QString output = quantize_process->readAllStandardError();
-        ui->model_quantize_log->appendPlainText(output);
-        // if(output.contains("llama_model_quantize_internal: model size  =  "))
-        // {
-        //     in_modelsize = output.split("llama_model_quantize_internal: model size  =  ")[1];
-        //     qDebug()<<in_modelsize;
-        // }
-    });
+        ui->model_quantize_log->appendPlainText(output); });
+    connect(quantize_process, &QProcess::readyReadStandardError, [=]()
+            {
+                QString output = quantize_process->readAllStandardError();
+                ui->model_quantize_log->appendPlainText(output);
+                // if(output.contains("llama_model_quantize_internal: model size  =  "))
+                // {
+                //     in_modelsize = output.split("llama_model_quantize_internal: model size  =  ")[1];
+                //     qDebug()<<in_modelsize;
+                // }
+            });
     quantize_process->start(program, arguments);
 }
-//开始信号
+// 开始信号
 void Expend::quantize_onProcessStarted() {}
-//结束信号
+// 结束信号
 void Expend::quantize_onProcessFinished()
 {
-    //解锁界面
+    // 解锁界面
     ui->model_quantize_frame1->setEnabled(1);
     ui->model_quantize_frame2->setEnabled(1);
     ui->model_quantize_frame3->setEnabled(1);
     ui->model_quantize_frame4->setEnabled(1);
 
     ui->model_quantize_log->appendPlainText(jtr("quantize completed! model save") + ":" + ui->model_quantize_output_modelpath_lineedit->text());
-    QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text()); //获取文件大小
+    QFileInfo fileInfo1(ui->model_quantize_row_modelpath_lineedit->text()); // 获取文件大小
     float modelsize1_GB = fileInfo1.size() / 1024.0 / 1024.0 / 1024.0;
-    QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text()); //获取文件大小
+    QFileInfo fileInfo2(ui->model_quantize_output_modelpath_lineedit->text()); // 获取文件大小
     float modelsize2_GB = fileInfo2.size() / 1024.0 / 1024.0 / 1024.0;
     ui->model_quantize_log->appendPlainText(QString::number(modelsize1_GB) + " GB" + " -> " + QString::number(modelsize2_GB) + " GB " + jtr("compression") + " :" + QString::number((1 - modelsize2_GB / modelsize1_GB) * 100) + "%");
 }

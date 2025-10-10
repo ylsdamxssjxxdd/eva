@@ -6,20 +6,20 @@
 //----------------------------------链接相关--------------------------------
 //-------------------------------------------------------------------------
 
-//应用api设置
+// 应用api设置
 void Widget::set_api()
 {
     // 纯请求式：不再使用本地嵌入模型进程（xbot）
     is_load = false;  // 重置
     historypath = ""; // 重置
 
-    //获取设置值
+    // 获取设置值
     apis.api_endpoint = api_endpoint_LineEdit->text();
     apis.api_key = api_key_LineEdit->text();
     apis.api_model = api_model_LineEdit->text();
 
     // 切换为链接模式
-    ui_mode = LINK_MODE; //按照链接模式的行为来
+    ui_mode = LINK_MODE; // 按照链接模式的行为来
     // 进入链接模式后：
     // 1) 终止当前的流式请求（若有）
     emit ui2net_stop(true);
@@ -43,13 +43,13 @@ void Widget::set_api()
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
     EVA_icon = QIcon(":/logo/dark_logo.png");
-    QApplication::setWindowIcon(EVA_icon); //设置应用程序图标
+    QApplication::setWindowIcon(EVA_icon); // 设置应用程序图标
     trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
 
     emit ui2net_apis(apis);
     ui->output->clear();
     reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
-    //构造系统指令
+    // 构造系统指令
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
@@ -74,7 +74,7 @@ void Widget::set_api()
     auto_save_user();
 }
 
-//链接模式下工具返回结果时延迟发送
+// 链接模式下工具返回结果时延迟发送
 void Widget::tool_testhandleTimeout()
 {
     ENDPOINT_DATA data;
@@ -107,7 +107,7 @@ void Widget::send_testhandleTimeout()
     on_send_clicked();
 }
 
-//链接模式切换时某些控件可见状态
+// 链接模式切换时某些控件可见状态
 void Widget::change_api_dialog(bool enable)
 {
     // 链接模式隐藏“后端设置”整组；保留“采样设置”和“状态设置”

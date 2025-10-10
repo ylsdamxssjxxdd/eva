@@ -143,7 +143,7 @@ QString DeviceManager::currentArchId()
     if (cpu == QLatin1String("arm") || cpu.contains("armv7") || cpu.contains("armv8") || cpu.contains("arm32")) return QStringLiteral("arm32");
 
     // Fallback: assume 64-bit x86 if pointer size is 8, otherwise 32-bit x86
-    if (sizeof(void*) == 8) return QStringLiteral("x86_64");
+    if (sizeof(void *) == 8) return QStringLiteral("x86_64");
     return QStringLiteral("x86_32");
 }
 
@@ -155,10 +155,3 @@ QString DeviceManager::projectForProgram(const QString &name)
     // default to using the name itself as folder (best-effort)
     return name;
 }
-
-
-
-
-
-
-

@@ -107,13 +107,13 @@ class CustomQPlainTextEdit : public QPlainTextEdit
 {
     Q_OBJECT
   public:
-    //初始化控件
+    // 初始化控件
     CustomQPlainTextEdit(QWidget *parent = nullptr)
         : QPlainTextEdit(parent)
     {
-        set_searchBar(); //初始化搜索框
+        set_searchBar(); // 初始化搜索框
     }
-    //析构函数
+    // 析构函数
     ~CustomQPlainTextEdit() { ; }
 
     // resize事件处理函数
@@ -133,10 +133,10 @@ class CustomQPlainTextEdit : public QPlainTextEdit
     QLabel *search_label;
     QTextCharFormat highlightFormat;        // 用于所有匹配项
     QTextCharFormat currentHighlightFormat; // 用于当前选中项
-    int searchBar_width = 160;              //搜索框宽度
-    int searchBar_height = 20;              //搜索框高度
+    int searchBar_width = 160;              // 搜索框宽度
+    int searchBar_height = 20;              // 搜索框高度
 
-    //初始化状态区的搜索框
+    // 初始化状态区的搜索框
     void set_searchBar()
     {
         //-----------初始化搜索框------------
@@ -149,7 +149,7 @@ class CustomQPlainTextEdit : public QPlainTextEdit
         search_lineedit->setFixedSize(80, 20);
         prev_searchButton->setFixedSize(20, 20);
         next_searchButton->setFixedSize(20, 20);
-        search_label->setStyleSheet("QLabel { color : rgb(255, 165, 0); font-weight: bold; }"); //橘黄色字体
+        search_label->setStyleSheet("QLabel { color : rgb(255, 165, 0); font-weight: bold; }"); // 橘黄色字体
         QByteArray rightData(reinterpret_cast<const char *>(Nav_green_right_ico), Nav_green_right_ico_len);
         QByteArray leftData(reinterpret_cast<const char *>(Nav_green_left_ico), Nav_green_left_ico_len);
         next_searchButton->setIcon(QIcon(QPixmap::fromImage(QImage::fromData(rightData))));
@@ -179,7 +179,7 @@ class CustomQPlainTextEdit : public QPlainTextEdit
         QShortcut *shortcut = new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_F), this);
         connect(shortcut, &QShortcut::activated, this, &CustomQPlainTextEdit::onsearch_ShortcutActivated);
     }
-    //将视图滚动到游标中心
+    // 将视图滚动到游标中心
     void centerCursorInTextEdit(QTextCursor cursor)
     {
         this->setTextCursor(cursor);
@@ -191,14 +191,14 @@ class CustomQPlainTextEdit : public QPlainTextEdit
 
   private slots:
 
-    //状态区搜索框快捷键响应
+    // 状态区搜索框快捷键响应
     void onsearch_ShortcutActivated()
     {
         if (searchBar->isHidden()) // 目前只支持在模型词表选项卡搜索
         {
             searchBar->show();
             search_lineedit->setFocus();
-            searchTextChanged(search_lineedit->text()); //激活一次搜索
+            searchTextChanged(search_lineedit->text()); // 激活一次搜索
         }
         else
         {
@@ -212,7 +212,7 @@ class CustomQPlainTextEdit : public QPlainTextEdit
         }
     }
 
-    //搜索框文本改变响应
+    // 搜索框文本改变响应
     void searchTextChanged(const QString &text)
     {
         QString searchText = text.toLower();
@@ -243,7 +243,7 @@ class CustomQPlainTextEdit : public QPlainTextEdit
             {
                 cursor.mergeCharFormat(highlightFormat);
                 searchResults.append(cursor);
-                //找到离用户最近的结果
+                // 找到离用户最近的结果
                 int pos = cursor.selectionStart(); // 获取结果的起始位置
                 int distance = std::abs(pos - currentCursorPos);
                 if (distance < minDistance)
@@ -261,12 +261,12 @@ class CustomQPlainTextEdit : public QPlainTextEdit
         search_label->setText(QString::number(current_searchResultIndex + 1) + "/" + QString::number(searchResults.size()));
         if (current_searchResultIndex >= 0) centerCursorInTextEdit(searchResults[current_searchResultIndex]);
     }
-    //上一个
+    // 上一个
     void onPrevClicked()
     {
         if (!searchResults.isEmpty())
         {
-            searchResults[current_searchResultIndex].mergeCharFormat(highlightFormat); //恢复一般高亮
+            searchResults[current_searchResultIndex].mergeCharFormat(highlightFormat); // 恢复一般高亮
             if (current_searchResultIndex > 0)
             {
                 --current_searchResultIndex;
@@ -281,12 +281,12 @@ class CustomQPlainTextEdit : public QPlainTextEdit
         }
         search_label->setText(QString::number(current_searchResultIndex + 1) + "/" + QString::number(searchResults.size()));
     }
-    //下一个
+    // 下一个
     void onNextClicked()
     {
         if (!searchResults.isEmpty())
         {
-            searchResults[current_searchResultIndex].mergeCharFormat(highlightFormat); //恢复一般高亮
+            searchResults[current_searchResultIndex].mergeCharFormat(highlightFormat); // 恢复一般高亮
             if (current_searchResultIndex < searchResults.count() - 1)
             {
                 ++current_searchResultIndex;

@@ -10,7 +10,7 @@
 //----------------------------------文转声相关--------------------------------
 //-------------------------------------------------------------------------
 
-//用户点击启用声音选项响应
+// 用户点击启用声音选项响应
 void Expend::speech_enable_change()
 {
     if (ui->speech_enable_radioButton->isChecked())
@@ -23,7 +23,7 @@ void Expend::speech_enable_change()
     }
 }
 
-//用户切换声源响应
+// 用户切换声源响应
 void Expend::speech_source_change()
 {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
@@ -44,17 +44,17 @@ void Expend::set_sys_speech(QStringList avaliable_speech_list)
 {
     for (int i = 0; i < avaliable_speech_list.size(); ++i)
     {
-        ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i)); //添加到下拉框
+        ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i)); // 添加到下拉框
     }
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
 }
 
-//开始文字转语音
+// 开始文字转语音
 void Expend::start_tts(QString str)
 {
-    //如果禁用了朗读则直接退出
-    // qDebug()<<speech_params.is_speech<<speech_params.speech_name;
+    // 如果禁用了朗读则直接退出
+    //  qDebug()<<speech_params.is_speech<<speech_params.speech_name;
     if (!speech_params.enable_speech)
     {
         speechOver();
@@ -78,7 +78,7 @@ void Expend::start_tts(QString str)
                 // qDebug() << "Name:" << speech.name();
                 // qDebug() << "Age:" << speech.age();
                 // qDebug() << "Gender:" << speech.gender();
-                //使用用户选择的音色
+                // 使用用户选择的音色
                 if (voice.name() == speech_params.speech_name)
                 {
                     sys_speech->setVoice(voice);
@@ -117,7 +117,7 @@ void Expend::speechPlayOver()
     speechPlayTimer.start(500);
 }
 
-//每半秒检查列表，列表中有文字就读然后删，直到读完
+// 每半秒检查列表，列表中有文字就读然后删，直到读完
 void Expend::speech_process()
 {
     if (!is_speech)
@@ -132,7 +132,7 @@ void Expend::speech_process()
     }
 }
 
-//每半秒检查待播放列表，列表中有文字就读然后删，直到读完
+// 每半秒检查待播放列表，列表中有文字就读然后删，直到读完
 void Expend::speech_play_process()
 {
     if (!is_speech_play)
@@ -194,20 +194,20 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
 // 收到重置信号
 void Expend::recv_resettts()
 {
-    temp_speech_txt = "";          //清空待读列表
-    wait_speech_txt_list.clear();  //清空待读列表
-    wait_speech_play_list.clear(); //清空待读列表
+    temp_speech_txt = "";          // 清空待读列表
+    wait_speech_txt_list.clear();  // 清空待读列表
+    wait_speech_play_list.clear(); // 清空待读列表
     if (is_sys_speech_available)
     {
-        sys_speech->stop(); //停止朗读
+        sys_speech->stop(); // 停止朗读
     }
 
-    outetts_process->kill(); //终止继续生成
+    outetts_process->kill(); // 终止继续生成
     speech_player->stop();
-    removeDir(outettsDir); //清空产生的音频
+    removeDir(outettsDir); // 清空产生的音频
 }
 
-//使用outetts进行文转声
+// 使用outetts进行文转声
 void Expend::outettsProcess(QString str)
 {
     // 解析 llama-tts 路径（按设备后端）
@@ -227,7 +227,7 @@ void Expend::outettsProcess(QString str)
     QStringList arguments;
     arguments << "-m" << ensureToolFriendlyFilePath(ui->speech_outetts_modelpath_lineEdit->text());
     arguments << "-mv" << ensureToolFriendlyFilePath(ui->speech_wavtokenizer_modelpath_lineEdit->text());
-    arguments << "-ngl" << QString::number(99); 
+    arguments << "-ngl" << QString::number(99);
     arguments << "-o" << ensureToolFriendlyFilePath(outetts_last_output_file);
     arguments << "-p" << str;
 
@@ -248,10 +248,10 @@ void Expend::outettsProcess(QString str)
     outetts_process->start(program, arguments);
 }
 
-//进程开始响应
+// 进程开始响应
 void Expend::outetts_onProcessStarted() {}
 
-//进程结束响应
+// 进程结束响应
 void Expend::outetts_onProcessFinished()
 {
     // 优先采用显式 -o 指定的输出路径
@@ -267,7 +267,10 @@ void Expend::outetts_onProcessFinished()
         {
             const QString dst = QDir(outettsDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
             if (QFile::rename(fallback, dst)) { wait_speech_play_list << dst; }
-            else { ui->speech_log->appendPlainText("[warn] failed to move fallback output.wav"); }
+            else
+            {
+                ui->speech_log->appendPlainText("[warn] failed to move fallback output.wav");
+            }
         }
         else
         {
@@ -291,21 +294,21 @@ void Expend::readyRead_outetts_process_StandardError()
     ui->speech_log->appendPlainText(outetts_output);
 }
 
-//用户点击选择模型路径时响应
+// 用户点击选择模型路径时响应
 void Expend::on_speech_outetts_modelpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
     ui->speech_outetts_modelpath_lineEdit->setText(currentpath);
 }
 
-//用户点击选择模型路径时响应
+// 用户点击选择模型路径时响应
 void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
     ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
 }
 
-//用户点击转为音频按钮时响应
+// 用户点击转为音频按钮时响应
 void Expend::on_speech_manual_pushButton_clicked()
 {
     if (ui->speech_outetts_modelpath_lineEdit->text() != "" && ui->speech_wavtokenizer_modelpath_lineEdit->text() != "")
@@ -314,7 +317,7 @@ void Expend::on_speech_manual_pushButton_clicked()
     }
 }
 
-//音频播放完响应
+// 音频播放完响应
 void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
 {
     if (status == QMediaPlayer::MediaStatus::EndOfMedia)

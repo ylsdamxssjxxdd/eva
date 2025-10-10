@@ -1,15 +1,15 @@
 #include "expend.h"
 
-#include "ui_expend.h"
-#include "../utils/pathutil.h"
 #include "../utils/devicemanager.h"
+#include "../utils/pathutil.h"
+#include "ui_expend.h"
 #include <QSet>
 
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
 //-------------------------------------------------------------------------
 
-//用户点击选择嵌入模型路径时响应
+// 用户点击选择嵌入模型路径时响应
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     // 停止已有嵌入服务，避免重复启动导致残留
@@ -26,9 +26,9 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
     }
     // 清空内存与 UI 视图
     Embedding_DB.clear();
-    ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
-    ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
+    ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+    ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
 
     // 100 ms后尝试启动服务, 因为要等待server_process->kill()
     QTimer::singleShot(100, this, &Expend::embedding_server_start);
@@ -39,17 +39,21 @@ void Expend::embedding_server_start()
 {
     // Resolve llama.cpp server from current backend
     QString program = DeviceManager::programPath(QStringLiteral("llama-server"));
-    if (program.isEmpty() || !QFileInfo::exists(program)) { ui->embedding_test_log->appendPlainText("[error] llama-server not found under current device folder"); return; }
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->embedding_test_log->appendPlainText("[error] llama-server not found under current device folder");
+        return;
+    }
 
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
     arguments << "-m" << ensureToolFriendlyFilePath(embedding_params.modelpath);
     arguments << "--host"
-              << "0.0.0.0";                                        //暴露本机ip
-    arguments << "--port" << DEFAULT_EMBEDDING_PORT;               //服务端口
-    arguments << "--threads" << QString::number(max_thread * 0.5); //使用线程
-    arguments << "-cb";                                            //允许连续批处理
-    arguments << "--embedding";                                    //允许词嵌入
+              << "0.0.0.0";                                        // 暴露本机ip
+    arguments << "--port" << DEFAULT_EMBEDDING_PORT;               // 服务端口
+    arguments << "--threads" << QString::number(max_thread * 0.5); // 使用线程
+    arguments << "-cb";                                            // 允许连续批处理
+    arguments << "--embedding";                                    // 允许词嵌入
     // arguments << "--log-disable";                                   //不要日志
     if (!DEFAULT_USE_MMAP) { arguments << "--no-mmap"; }
     // 开始运行程序
@@ -82,7 +86,7 @@ void Expend::readyRead_server_process_StandardError()
 {
     QString server_output = server_process->readAllStandardError();
     // qDebug()<<"error "<<server_output;
-    //启动成功的标志
+    // 启动成功的标志
     QString log_output;
     if (server_output.contains(SERVER_START))
     {
@@ -109,18 +113,21 @@ void Expend::readyRead_server_process_StandardError()
         qDebug() << "该模型的嵌入维度为: " << embedding_server_dim << ui->embedding_dim_spinBox->value();
         // 更新向量库绑定的模型维度，若不一致将清空
         vectorDb.setCurrentModel(embedding_params.modelpath, embedding_server_dim);
-        if (embedding_embed_need) //用来自动构建知识库
+        if (embedding_embed_need) // 用来自动构建知识库
         {
             embedding_embed_need = false;
-            QTimer::singleShot(1000, this, SLOT(embedding_processing())); //1s后再执行构建以免冲突
+            QTimer::singleShot(1000, this, SLOT(embedding_processing())); // 1s后再执行构建以免冲突
         }
     }
 }
 
-//进程开始响应
-void Expend::server_onProcessStarted() { embedding_server_pid = server_process->processId(); }
+// 进程开始响应
+void Expend::server_onProcessStarted()
+{
+    embedding_server_pid = server_process->processId();
+}
 
-//进程结束响应
+// 进程结束响应
 void Expend::server_onProcessFinished()
 {
     ui->embedding_test_log->appendPlainText(jtr("embedding server abort"));
@@ -129,14 +136,14 @@ void Expend::server_onProcessFinished()
     embedding_server_pid = -1;
 }
 
-//用户点击上传路径时响应
+// 用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
     currentpath = customOpenfile(currentpath, jtr("choose a txt to embed"), "(*.txt)");
     txtpath = currentpath;
     ui->embedding_txt_lineEdit->setText(txtpath);
 
-    preprocessTXT(); //预处理文件内容
+    preprocessTXT(); // 预处理文件内容
 }
 
 // 分词函数
@@ -181,7 +188,7 @@ QStringList Expend::tokenizeContent(const QString &content)
     return tokens;
 }
 
-//预处理文件内容
+// 预处理文件内容
 void Expend::preprocessTXT()
 {
 
@@ -255,9 +262,9 @@ void Expend::preprocessTXT()
     // 打印总分段数
     qDebug() << "分段数:" << splitNums;
 
-    //显示在待嵌入表格中
+    // 显示在待嵌入表格中
     ui->embedding_txt_wait->clear();
-    ui->embedding_txt_wait->setRowCount(splitNums); //创建splitNums很多行
+    ui->embedding_txt_wait->setRowCount(splitNums); // 创建splitNums很多行
 
     for (int i = 0; i < paragraphs.size(); ++i)
     {
@@ -267,10 +274,10 @@ void Expend::preprocessTXT()
     ui->embedding_txt_wait->setColumnWidth(0, qMax(ui->embedding_txt_wait->width(), 400)); // 列宽保持控件宽度
 
     ui->embedding_txt_wait->resizeRowsToContents();                                                // 自动调整行高
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); //设置列名
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); // 设置列名
 }
 
-//右击表格显示菜单
+// 右击表格显示菜单
 void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
 {
     // 创建菜单并添加动作
@@ -333,7 +340,8 @@ void Expend::embedding_txt_over_onDelete()
     Embedding_DB.swap(kept);
 
     // 重排索引：按当前 Embedding_DB 顺序重新赋值 index = 0..N-1
-    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b) { return a.index < b.index; });
+    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b)
+              { return a.index < b.index; });
     for (int i = 0; i < Embedding_DB.size(); ++i) { Embedding_DB[i].index = i; }
 
     // 持久化新的索引顺序
@@ -358,7 +366,7 @@ void Expend::embedding_txt_over_onDelete()
     emit expend2tool_embeddingdb(Embedding_DB);
 }
 
-//添加表格
+// 添加表格
 void Expend::embedding_txt_wait_onAdd()
 {
     // 获取选中的行
@@ -369,7 +377,7 @@ void Expend::embedding_txt_wait_onAdd()
     QTableWidgetItem *newItem = new QTableWidgetItem(jtr("please input the text that needs to be embedded"));
     ui->embedding_txt_wait->setItem(row, 0, newItem); // 假设我们只设置第一列
 }
-//删除表格
+// 删除表格
 void Expend::embedding_txt_wait_onDelete()
 {
     // 获取选中的行号
@@ -392,20 +400,20 @@ void Expend::embedding_txt_wait_onDelete()
 }
 
 //---------------构建知识库------------------
-//用户点击嵌入时响应
+// 用户点击嵌入时响应
 void Expend::on_embedding_txt_embedding_clicked()
 {
     embedding_processing();
 }
 
-//用户点击检索时响应
+// 用户点击检索时响应
 void Expend::on_embedding_test_pushButton_clicked()
 {
-    //锁定界面
-    ui->embedding_txt_upload->setEnabled(0);           //上传按钮
-    ui->embedding_txt_embedding->setEnabled(0);        //嵌入按钮
-    ui->embedding_test_pushButton->setEnabled(0);      //检索按钮
-    ui->embedding_txt_modelpath_button->setEnabled(0); //选择模型按钮
+    // 锁定界面
+    ui->embedding_txt_upload->setEnabled(0);           // 上传按钮
+    ui->embedding_txt_embedding->setEnabled(0);        // 嵌入按钮
+    ui->embedding_test_pushButton->setEnabled(0);      // 检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(0); // 选择模型按钮
 
     QEventLoop loop; // 进入事件循环，等待回复
     QNetworkAccessManager manager;
@@ -415,7 +423,7 @@ void Expend::on_embedding_test_pushButton_clicked()
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     QString api_key = "Bearer " + QString("sjxx");
     request.setRawHeader("Authorization", api_key.toUtf8());
-    //构造请求的数据体
+    // 构造请求的数据体
     QJsonObject json;
     json.insert("model", "default");
     json.insert("encoding_format", "float");
@@ -427,7 +435,8 @@ void Expend::on_embedding_test_pushButton_clicked()
     QNetworkReply *reply = manager.post(request, data);
 
     // 处理响应
-    QObject::connect(reply, &QNetworkReply::readyRead, [&]() {
+    QObject::connect(reply, &QNetworkReply::readyRead, [&]()
+                     {
         QString jsonString = reply->readAll();
         QJsonDocument document = QJsonDocument::fromJson(jsonString.toUtf8()); // 使用QJsonDocument解析JSON数据
         QJsonObject rootObject = document.object();
@@ -460,10 +469,10 @@ void Expend::on_embedding_test_pushButton_clicked()
             }
         }
         vector_str += "]";
-        ui->embedding_test_log->appendPlainText(jtr("The query text segment has been embedded") + "! " + jtr("dimension") + ": " + QString::number(user_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str);
-    });
+        ui->embedding_test_log->appendPlainText(jtr("The query text segment has been embedded") + "! " + jtr("dimension") + ": " + QString::number(user_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str); });
     // 完成
-    QObject::connect(reply, &QNetworkReply::finished, [&]() {
+    QObject::connect(reply, &QNetworkReply::finished, [&]()
+                     {
         if (reply->error() == QNetworkReply::NoError)
         {
             // 请求完成，所有数据都已正常接收
@@ -486,18 +495,17 @@ void Expend::on_embedding_test_pushButton_clicked()
         }
 
         reply->abort(); //终止
-        reply->deleteLater();
-    });
+        reply->deleteLater(); });
 
     // 回复完成时退出事件循环
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     // 进入事件循环
     loop.exec();
-    //解锁界面
-    ui->embedding_txt_upload->setEnabled(1);           //上传按钮
-    ui->embedding_txt_embedding->setEnabled(1);        //嵌入按钮
-    ui->embedding_test_pushButton->setEnabled(1);      //检索按钮
-    ui->embedding_txt_modelpath_button->setEnabled(1); //选择模型按钮
+    // 解锁界面
+    ui->embedding_txt_upload->setEnabled(1);           // 上传按钮
+    ui->embedding_txt_embedding->setEnabled(1);        // 嵌入按钮
+    ui->embedding_test_pushButton->setEnabled(1);      // 检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(1); // 选择模型按钮
 }
 
 // 计算两个向量的余弦相似度
@@ -534,24 +542,25 @@ std::vector<std::pair<int, double>> Expend::similar_indices(const std::vector<do
     }
 
     // 根据相似度得分排序（降序）
-    std::sort(scores.begin(), scores.end(), [](const std::pair<int, double> &a, const std::pair<int, double> &b) { return a.second > b.second; });
+    std::sort(scores.begin(), scores.end(), [](const std::pair<int, double> &a, const std::pair<int, double> &b)
+              { return a.second > b.second; });
 
     return scores;
 }
 
-//知识库构建过程
+// 知识库构建过程
 void Expend::embedding_processing()
 {
-    //锁定界面
-    ui->embedding_txt_upload->setEnabled(0);           //上传按钮
-    ui->embedding_txt_embedding->setEnabled(0);        //嵌入按钮
-    ui->embedding_test_pushButton->setEnabled(0);      //检索按钮
-    ui->embedding_txt_modelpath_button->setEnabled(0); //选择模型按钮
+    // 锁定界面
+    ui->embedding_txt_upload->setEnabled(0);           // 上传按钮
+    ui->embedding_txt_embedding->setEnabled(0);        // 嵌入按钮
+    ui->embedding_test_pushButton->setEnabled(0);      // 检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(0); // 选择模型按钮
 
-    ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
-    ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行
-    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
-    show_chunk_index = 0;                                                                        //待显示的嵌入文本段的序号
+    ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+    ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
+    show_chunk_index = 0;                                                                        // 待显示的嵌入文本段的序号
 
     //---------------------- 先保留全部已嵌入，再把新内容追加到末尾 -----------------------
     QVector<int> save_list; // 存放已存在条目的 index（用于跳过重嵌入）
@@ -560,10 +569,14 @@ void Expend::embedding_processing()
 
     // 2) 计算当前最大索引，作为追加基准
     int maxIndex = -1;
-    for (const auto &e : Embedding_DB) { if (e.index > maxIndex) maxIndex = e.index; }
+    for (const auto &e : Embedding_DB)
+    {
+        if (e.index > maxIndex) maxIndex = e.index;
+    }
 
     // 3) 读取待嵌入表格中的内容；与现有去重，仅追加新文本段
-    QSet<QString> seenChunks; for (const auto &e : Embedding_DB) { seenChunks.insert(e.chunk); }
+    QSet<QString> seenChunks;
+    for (const auto &e : Embedding_DB) { seenChunks.insert(e.chunk); }
     for (int r = 0; r < ui->embedding_txt_wait->rowCount(); ++r)
     {
         QTableWidgetItem *item = ui->embedding_txt_wait->item(r, 0);
@@ -575,10 +588,11 @@ void Expend::embedding_processing()
     }
 
     // 4) 将 Embedding_DB 按 index 升序排序，保证显示与检索一致
-    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b) { return a.index < b.index; });
+    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b)
+              { return a.index < b.index; });
 
-    //进行嵌入工作,发送ready_embedding_chunks给llama-server
-    //测试v1/embedding端点
+    // 进行嵌入工作,发送ready_embedding_chunks给llama-server
+    // 测试v1/embedding端点
     QElapsedTimer time;
     time.start();
     QEventLoop loop; // 进入事件循环，等待回复
@@ -591,7 +605,7 @@ void Expend::embedding_processing()
     request.setRawHeader("Authorization", api_key.toUtf8());
 
     //-------------------循环发送请求直到文本段处理完-------------------
-    int toleran_times = 3; //最大重试次数
+    int toleran_times = 3; // 最大重试次数
     QList<int> remain_index;
     for (int o = 0; o < Embedding_DB.size(); o++)
     {
@@ -601,12 +615,12 @@ void Expend::embedding_processing()
     // 一直向服务发送请求，直到所有数据被正确处理
     while (remain_index.size() != 0 && toleran_times != 0)
     {
-        //已经嵌入的就不处理了
+        // 已经嵌入的就不处理了
         if (save_list.contains(Embedding_DB.at(remain_index.front()).index))
         {
             ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount()); // 在表格末尾添加新行
             QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(remain_index.front()).chunk);
-            newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable); //单元格不可编辑
+            newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable); // 单元格不可编辑
             newItem->setBackground(QColor(255, 165, 0, 60));           // 设置单元格背景颜色,橘黄色
             ui->embedding_txt_over->setItem(remain_index.front(), 0, newItem);
             ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400)); // 列宽保持控件宽度
@@ -617,11 +631,11 @@ void Expend::embedding_processing()
             continue;
         }
 
-        //构造请求的数据体
+        // 构造请求的数据体
         QJsonObject json;
         json.insert("model", "default");
         json.insert("encoding_format", "float");
-        json.insert("input", Embedding_DB.at(remain_index.front()).chunk); //待嵌入文本段
+        json.insert("input", Embedding_DB.at(remain_index.front()).chunk); // 待嵌入文本段
         QJsonDocument doc(json);
         QByteArray data = doc.toJson();
 
@@ -629,7 +643,8 @@ void Expend::embedding_processing()
         QNetworkReply *reply = manager.post(request, data);
 
         // 处理响应
-        QObject::connect(reply, &QNetworkReply::readyRead, [&]() {
+        QObject::connect(reply, &QNetworkReply::readyRead, [&]()
+                         {
             QString jsonString = reply->readAll();
 
             QJsonDocument document = QJsonDocument::fromJson(jsonString.toUtf8()); // 使用QJsonDocument解析JSON数据
@@ -666,10 +681,10 @@ void Expend::embedding_processing()
             ui->embedding_test_log->appendPlainText(message);
             ui->embedding_test_log->verticalScrollBar()->setValue(ui->embedding_test_log->verticalScrollBar()->maximum());     //滚动条滚动到最下面
             ui->embedding_test_log->horizontalScrollBar()->setValue(ui->embedding_test_log->horizontalScrollBar()->minimum()); // 水平滚动条滚动到最左边
-            emit expend2ui_state("expend:" + message, USUAL_SIGNAL);
-        });
+            emit expend2ui_state("expend:" + message, USUAL_SIGNAL); });
         // 完成
-        QObject::connect(reply, &QNetworkReply::finished, [&]() {
+        QObject::connect(reply, &QNetworkReply::finished, [&]()
+                         {
             if (reply->error() == QNetworkReply::NoError)
             {
                 // 请求完成，所有数据都已正常接收
@@ -703,8 +718,7 @@ void Expend::embedding_processing()
             }
 
             reply->abort(); //终止
-            reply->deleteLater();
-        });
+            reply->deleteLater(); });
 
         // 回复完成时退出事件循环
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -712,11 +726,11 @@ void Expend::embedding_processing()
         loop.exec();
     }
 
-    //解锁界面
-    ui->embedding_txt_upload->setEnabled(1);           //上传按钮
-    ui->embedding_txt_embedding->setEnabled(1);        //嵌入按钮
-    ui->embedding_test_pushButton->setEnabled(1);      //检索按钮
-    ui->embedding_txt_modelpath_button->setEnabled(1); //选择模型按钮
+    // 解锁界面
+    ui->embedding_txt_upload->setEnabled(1);           // 上传按钮
+    ui->embedding_txt_embedding->setEnabled(1);        // 嵌入按钮
+    ui->embedding_test_pushButton->setEnabled(1);      // 检索按钮
+    ui->embedding_txt_modelpath_button->setEnabled(1); // 选择模型按钮
 
     // 将当前索引顺序持久化，避免重启后索引还原造成困惑
     for (const auto &ev : Embedding_DB)
@@ -725,41 +739,38 @@ void Expend::embedding_processing()
     }
 
     ui->embedding_test_log->appendPlainText(jtr("embedding over") + " " + jtr("use time") + QString::number(time.nsecsElapsed() / 1000000000.0, 'f', 2) + "s");
-    emit expend2tool_embeddingdb(Embedding_DB); //发送已嵌入文本段数据给tool
+    emit expend2tool_embeddingdb(Embedding_DB); // 发送已嵌入文本段数据给tool
 }
 
-//嵌入服务端点改变响应
+// 嵌入服务端点改变响应
 void Expend::on_embedding_model_lineedit_textChanged()
 {
     if (!keep_embedding_server)
     {
-        server_process->kill();                                                                      // 终止server
-        Embedding_DB.clear();                                                                        // 清空向量数据库
+        server_process->kill(); // 终止server
+        Embedding_DB.clear();   // 清空向量数据库
         // 绑定至新端点/模型；维度由 server 日志刷新；仅在确实变化时清空
         const QString newId = ui->embedding_model_lineedit->text();
         if (newId != vectorDb.currentModelId())
         {
             vectorDb.setCurrentModel(newId, 0 /*keep existing*/);
-            vectorDb.clearAll();                                                                      // 清空持久化向量库
+            vectorDb.clearAll(); // 清空持久化向量库
         }
-        ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
-        ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行
-        ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
+        ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+        ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
+        ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
     }
 }
 
-//知识库描述改变响应
+// 知识库描述改变响应
 void Expend::on_embedding_txt_describe_lineEdit_textChanged()
 {
-    emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text()); //传递知识库的描述
+    emit expend2ui_embeddingdb_describe(ui->embedding_txt_describe_lineEdit->text()); // 传递知识库的描述
 }
 
-//嵌入结果返回个数改变响应
+// 嵌入结果返回个数改变响应
 void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
 {
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
-
-
-

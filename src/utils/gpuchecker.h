@@ -9,12 +9,11 @@
 
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QObject>
 #include <QProcess>
-#include <QThread>
 #include <QStandardPaths>
-#include <QFileInfo>
-
+#include <QThread>
 
 // 进程执行辅助：带超时、失败安全
 // Try to robustly start an external process and capture its standard output.
@@ -28,7 +27,8 @@ static inline QString resolveProgramPath(const QString &program)
     QFileInfo fi(program);
     if (fi.isAbsolute() && fi.exists()) return fi.absoluteFilePath();
 
-    auto ensureExe = [](QString name) {
+    auto ensureExe = [](QString name)
+    {
         return name.endsWith(".exe", Qt::CaseInsensitive) ? name : (name + ".exe");
     };
 
@@ -102,7 +102,8 @@ static inline bool runProcessReadAll(const QString &program,
         if (!err.isEmpty()) qDebug() << "stderr:" << err;
     }
     return p.exitCode() == 0 && !stdOut.trimmed().isEmpty();
-}class GpuInfoProvider : public QObject
+}
+class GpuInfoProvider : public QObject
 {
     Q_OBJECT
   public:
@@ -129,14 +130,14 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
             emit gpu_status(0, 0, 0, 0);
             return;
         }
-// qDebug() << "nvidia-smi output:" << output;
+        // qDebug() << "nvidia-smi output:" << output;
         const QStringList gpuInfoList = output.split('\n', Qt::SkipEmptyParts);
         if (gpuInfoList.isEmpty())
         {
             emit gpu_status(0, 0, 0, 0);
             return;
         }
-// qDebug() << "Parsed GPU info lines:" << gpuInfoList;
+        // qDebug() << "Parsed GPU info lines:" << gpuInfoList;
         // 仅取第一个 GPU（UI 若需多卡，可扩展为列表信号）
         const QString &info = gpuInfoList.first();
         const QStringList values = info.split(',', Qt::SkipEmptyParts);
@@ -145,7 +146,7 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
             emit gpu_status(0, 0, 0, 0);
             return;
         }
-// qDebug() << "Parsed GPU info values:" << values;
+        // qDebug() << "Parsed GPU info values:" << values;
         bool ok0 = false, ok1 = false, ok2 = false, ok3 = false;
         const int totalMemory = values[0].trimmed().toInt(&ok0);
         const int freeMemory = values[1].trimmed().toInt(&ok1);
@@ -156,7 +157,7 @@ class NvidiaGpuInfoProvider : public GpuInfoProvider
             emit gpu_status(0, 0, 0, 0);
             return;
         }
-// qDebug() << "Parsed GPU info integers:"<< totalMemory << freeMemory << usedMemory << utilization;
+        // qDebug() << "Parsed GPU info integers:"<< totalMemory << freeMemory << usedMemory << utilization;
         const float vmem = float(totalMemory);
         const float vram = float(usedMemory) / float(totalMemory) * 100.0f;
         const float vcore = float(utilization);
@@ -289,6 +290,3 @@ class gpuChecker : public QObject
 };
 
 #endif // GPUCHECKER_H
-
-
-

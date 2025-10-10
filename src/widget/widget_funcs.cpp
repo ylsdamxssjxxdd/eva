@@ -1,21 +1,21 @@
-//功能函数
-#include "ui_widget.h"
-#include "widget.h"
+// 功能函数
 #include "../utils/depresolver.h"
 #include "../utils/processrunner.h"
-#include <QInputDialog>
-#include <QMessageBox>
+#include "ui_widget.h"
+#include "widget.h"
 #include <QDialog>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QTableWidget>
 #include <QHeaderView>
-#include <QPushButton>
+#include <QInputDialog>
 #include <QLineEdit>
-//添加右击问题
+#include <QMessageBox>
+#include <QPushButton>
+#include <QTableWidget>
+#include <QVBoxLayout>
+// 添加右击问题
 void Widget::create_right_menu()
 {
-    QDate currentDate = QDate::currentDate(); //历史中的今天
+    QDate currentDate = QDate::currentDate(); // 历史中的今天
     QString dateString = currentDate.toString("M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     //---------------创建一般问题菜单--------------
     if (right_menu != nullptr)
@@ -29,34 +29,36 @@ void Widget::create_right_menu()
         if (i == 4)
         {
             question = jtr(QString("Q%1").arg(i)).replace("{today}", dateString);
-        } //历史中的今天
+        } // 历史中的今天
         else
         {
             question = jtr(QString("Q%1").arg(i));
         }
         QAction *action = right_menu->addAction(question);
-        connect(action, &QAction::triggered, this, [=]() { ui->input->textEdit->setPlainText(question); });
+        connect(action, &QAction::triggered, this, [=]()
+                { ui->input->textEdit->setPlainText(question); });
     }
     //------------创建自动化问题菜单-------------
-    //上传图像
+    // 上传图像
     QAction *action14 = right_menu->addAction(jtr("Q14"));
-    connect(action14, &QAction::triggered, this, [=]() {
+    connect(action14, &QAction::triggered, this, [=]()
+            {
         //用户选择图片
         QStringList paths = QFileDialog::getOpenFileNames(nullptr, jtr("Q14"), currentpath, "(*.png *.jpg *.bmp)");
-        ui->input->addFiles(paths);
-    });
+        ui->input->addFiles(paths); });
     // 历史对话入口（打开管理界面）
     right_menu->addSeparator();
     QAction *histMgr = right_menu->addAction(jtr("history sessions"));
-    connect(histMgr, &QAction::triggered, this, [this]() { openHistoryManager(); });
+    connect(histMgr, &QAction::triggered, this, [this]()
+            { openHistoryManager(); });
 }
-//添加托盘右击事件
+// 添加托盘右击事件
 void Widget::create_tray_right_menu()
 {
     trayMenu->clear();
     QAction *showAction_shortcut = trayMenu->addAction(jtr("shortcut"));
-    QAction *blank1 = trayMenu->addAction(""); //占位符
-    QAction *blank2 = trayMenu->addAction(""); //占位符，目的是把截图顶出去，用户点击后才会隐藏
+    QAction *blank1 = trayMenu->addAction(""); // 占位符
+    QAction *blank2 = trayMenu->addAction(""); // 占位符，目的是把截图顶出去，用户点击后才会隐藏
     blank1->setEnabled(false);
     blank2->setEnabled(false);
     trayMenu->addSeparator(); // 添加分割线
@@ -64,19 +66,21 @@ void Widget::create_tray_right_menu()
     QAction *showAction_expend = trayMenu->addAction(jtr("show expend"));
     trayMenu->addSeparator(); // 添加分割线
     QAction *exitAction = trayMenu->addAction(jtr("quit"));
-    QObject::connect(showAction_widget, &QAction::triggered, this, [&]() {
-        toggleWindowVisibility(this, true); // 显示窗体
-    });
-    QObject::connect(showAction_expend, &QAction::triggered, this, [&]() {
-        emit ui2expend_show(PREV_WINDOW);
-    });
-    QObject::connect(showAction_shortcut, &QAction::triggered, this, [&]() {
-        trayMenu->hide();
-        QTimer::singleShot(100, [this]() { onShortcutActivated_F1(); }); // 触发截图
-    });
+    QObject::connect(showAction_widget, &QAction::triggered, this, [&]()
+                     {
+                         toggleWindowVisibility(this, true); // 显示窗体
+                     });
+    QObject::connect(showAction_expend, &QAction::triggered, this, [&]()
+                     { emit ui2expend_show(PREV_WINDOW); });
+    QObject::connect(showAction_shortcut, &QAction::triggered, this, [&]()
+                     {
+                         trayMenu->hide();
+                         QTimer::singleShot(100, [this]()
+                                            { onShortcutActivated_F1(); }); // 触发截图
+                     });
     QObject::connect(exitAction, &QAction::triggered, QApplication::quit); // 退出程序
 }
-//获取设置中的纸面值
+// 获取设置中的纸面值
 void Widget::get_set()
 {
     ui_SETTINGS.temp = settings_ui->temp_slider->value() / 100.0;
@@ -85,8 +89,8 @@ void Widget::get_set()
     ui_SETTINGS.top_k = settings_ui->topk_slider->value();
     ui_SETTINGS.hid_top_p = settings_ui->topp_slider->value() / 100.0;
     ui_SETTINGS.nthread = settings_ui->nthread_slider->value();
-    ui_SETTINGS.nctx = settings_ui->nctx_slider->value(); //获取nctx滑块的值
-    ui_SETTINGS.ngl = settings_ui->ngl_slider->value();   //获取ngl滑块的值
+    ui_SETTINGS.nctx = settings_ui->nctx_slider->value(); // 获取nctx滑块的值
+    ui_SETTINGS.ngl = settings_ui->ngl_slider->value();   // 获取ngl滑块的值
     ui_SETTINGS.lorapath = settings_ui->lora_LineEdit->text();
     ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
@@ -105,11 +109,11 @@ void Widget::get_set()
     ui_device_backend = settings_ui->device_comboBox->currentText().trimmed().toLower();
     DeviceManager::setUserChoice(ui_device_backend);
 }
-//获取约定中的纸面值
+// 获取约定中的纸面值
 void Widget::get_date()
 {
     ui_date_prompt = date_ui->date_prompt_TextEdit->toPlainText();
-    //合并附加指令
+    // 合并附加指令
     if (ui_extra_prompt != "")
     {
         ui_DATES.date_prompt = ui_date_prompt + "\n\n" + ui_extra_prompt;
@@ -129,7 +133,7 @@ void Widget::get_date()
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
-    //记录自定义模板
+    // 记录自定义模板
     if (ui_template == jtr("custom set1"))
     {
         custom1_date_system = ui_date_prompt;
@@ -142,15 +146,15 @@ void Widget::get_date()
         custom2_user_name = ui_DATES.user_name;
         custom2_model_name = ui_DATES.model_name;
     }
-    //添加额外停止标志
+    // 添加额外停止标志
     addStopwords();
 }
-//手搓输出解析器，提取可能的xml，目前只支持一个参数
+// 手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(QString text)
 {
     if (text.contains("</think>"))
     {
-        text = text.split("</think>")[1]; //移除思考标签前面的所有内容
+        text = text.split("</think>")[1]; // 移除思考标签前面的所有内容
     }
     mcp::json toolsarg; // 提取出的工具名和参数
     // 匹配<tool></tool>之间的内容
@@ -175,12 +179,12 @@ mcp::json Widget::XMLparser(QString text)
     }
     return toolsarg;
 }
-//构建额外指令
+// 构建额外指令
 QString Widget::create_extra_prompt()
 {
-    QString extra_prompt_;            //额外指令
-    QString available_tools_describe; //工具名和描述
-    QString engineer_info;            //软件工程师信息
+    QString extra_prompt_;            // 额外指令
+    QString available_tools_describe; // 工具名和描述
+    QString engineer_info;            // 软件工程师信息
     extra_prompt_ = EXTRA_PROMPT_FORMAT;
     extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool)
@@ -205,7 +209,7 @@ QString Widget::create_extra_prompt()
         }
         if (date_ui->controller_checkbox->isChecked())
         {
-            screen_info = create_screen_info(); //构建屏幕信息
+            screen_info = create_screen_info(); // 构建屏幕信息
             available_tools_describe += Buildin_tools_controller.text.replace("{screen_info}", screen_info) + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
@@ -217,14 +221,14 @@ QString Widget::create_extra_prompt()
             available_tools_describe += Buildin_tools_list_files.text + "\n\n";
             available_tools_describe += Buildin_tools_search_content.text + "\n\n";
             // 这里添加更多工程师的工具
-            engineer_info = create_engineer_info(); //构建工程师信息
+            engineer_info = create_engineer_info(); // 构建工程师信息
         }
-        extra_prompt_.replace("{available_tools_describe}", available_tools_describe); //替换相应内容
-        extra_prompt_.replace("{engineer_info}", engineer_info);                       //替换相应内容
+        extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
+        extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
     }
     else
     {
-        extra_prompt_ = ""; //没有挂载工具则为空
+        extra_prompt_ = ""; // 没有挂载工具则为空
     }
     return extra_prompt_;
 }
@@ -243,13 +247,14 @@ QString Widget::truncateString(const QString &str, int maxLength)
     stream.seek(startIndex);
     return QString(stream.readAll());
 }
-//获取环境中的python版本以及库信息
+// 获取环境中的python版本以及库信息
 QString Widget::checkPython()
 {
     // Prefer project-local venv; fallback to system python3 (Windows-aware)
     const QString projDir = applicationDirPath; // base of app
     ExecSpec spec = DependencyResolver::discoverPython3(projDir);
-    if (spec.program.isEmpty()) {
+    if (spec.program.isEmpty())
+    {
         return QStringLiteral("Python interpreter not found in PATH or project venv.\n");
     }
     const QString ver = DependencyResolver::pythonVersion(spec);
@@ -261,7 +266,8 @@ QString Widget::checkPython()
     out += QStringLiteral("git: %1\n").arg(git.isEmpty() ? QStringLiteral("not found") : git);
     out += QStringLiteral("cmake: %1\n").arg(cm.isEmpty() ? QStringLiteral("not found") : cm);
     return out;
-}QString Widget::checkCompile()
+}
+QString Widget::checkCompile()
 {
     QString compilerInfo;
     QProcess process;
@@ -362,7 +368,7 @@ QString Widget::create_engineer_info()
 {
     QString engineer_info_ = ENGINEER_INFO;
     QString engineer_system_info_ = ENGINEER_SYSTEM_INFO;
-    QDate currentDate = QDate::currentDate(); //今天日期
+    QDate currentDate = QDate::currentDate(); // 今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info_.replace("{OS}", USEROS);
     engineer_system_info_.replace("{DATE}", dateString);
@@ -375,16 +381,16 @@ QString Widget::create_engineer_info()
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
-//添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
+// 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()
 {
-    ui_DATES.extra_stop_words.clear(); //重置额外停止标志
-    if (ui_DATES.is_load_tool) //如果挂载了工具则增加额外停止标志
+    ui_DATES.extra_stop_words.clear(); // 重置额外停止标志
+    if (ui_DATES.is_load_tool)         // 如果挂载了工具则增加额外停止标志
     {
         // ui_DATES.extra_stop_words << DEFAULT_OBSERVATION_STOPWORD;//在后端已经处理了
     }
 }
-//获取本机第一个ip地址 排除以.1结尾的地址 如果只有一个.1结尾的则保留它
+// 获取本机第一个ip地址 排除以.1结尾的地址 如果只有一个.1结尾的则保留它
 QString Widget::getFirstNonLoopbackIPv4Address()
 {
     QList<QHostAddress> list = QNetworkInterface::allAddresses();
@@ -418,7 +424,7 @@ void Widget::bench_onProcessFinished()
 {
     qDebug() << "llama-bench进程结束响应";
 }
-//显示文件名和图像
+// 显示文件名和图像
 void Widget::showImages(QStringList images_filepath)
 {
     for (int i = 0; i < images_filepath.size(); ++i)
@@ -438,11 +444,11 @@ void Widget::showImages(QStringList images_filepath)
         imageFormat.setName(imagepath);            // 图片资源路径
         cursor.insertImage(imageFormat);
         output_scroll("\n");
-        //滚动到底部展示
-        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); //滚动条滚动到最下面
+        // 滚动到底部展示
+        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
     }
 }
-//开始录音
+// 开始录音
 void Widget::recordAudio()
 {
     reflash_state("ui:" + jtr("recoding") + "... ");
@@ -454,9 +460,9 @@ void Widget::recordAudio()
 void Widget::monitorAudioLevel()
 {
     audio_time += 100;
-    ui_state_recoding(); //更新输入区
+    ui_state_recoding(); // 更新输入区
 }
-//停止录音
+// 停止录音
 void Widget::stop_recordAudio()
 {
     QString wav_path = applicationDirPath + "/EVA_TEMP/" + QString("EVA_") + ".wav";
@@ -466,19 +472,19 @@ void Widget::stop_recordAudio()
     reflash_state("ui:" + jtr("recoding over") + " " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s");
     audio_time = 0;
     // 录音已直接以 16kHz/mono 输出，无需再做重采样
-    emit ui2expend_speechdecode(wav_path, "txt"); //传一个wav文件开始解码
+    emit ui2expend_speechdecode(wav_path, "txt"); // 传一个wav文件开始解码
 }
-//更新gpu内存使用率
+// 更新gpu内存使用率
 void Widget::updateGpuStatus()
 {
     emit gpu_reflash();
 }
-//更新cpu内存使用率
+// 更新cpu内存使用率
 void Widget::updateCpuStatus()
 {
     emit cpu_reflash();
 }
-//拯救中文
+// 拯救中文
 void Widget::getWords(QString json_file_path)
 {
     QFile jfile(json_file_path);
@@ -495,7 +501,7 @@ void Widget::getWords(QString json_file_path)
     QJsonObject jsonObj = doc.object();
     wordsObj = jsonObj["words"].toObject();
 }
-//切换额外指令的语言
+// 切换额外指令的语言
 void Widget::switch_lan_change()
 {
     if (date_ui->switch_lan_button->text() == "zh")
@@ -514,10 +520,10 @@ void Widget::switch_lan_change()
     emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
 }
-//改变语种相关
+// 改变语种相关
 void Widget::apply_language(int language_flag_)
 {
-    //主界面语种
+    // 主界面语种
     ui->load->setText(jtr("load"));
     ui->load->setToolTip(jtr("load_button_tooltip"));
     ui->date->setText(jtr("date"));
@@ -527,12 +533,12 @@ void Widget::apply_language(int language_flag_)
     ui->send->setToolTip(jtr("send_tooltip"));
     cutscreen_dialog->initAction(jtr("save cut image"), jtr("svae screen image"));
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(std::thread::hardware_concurrency()));
-    ui->mem_bar->setShowText(jtr("mem"));   //进度条里面的文本,强制重绘
-    ui->vram_bar->setShowText(jtr("vram")); //进度条里面的文本,强制重绘
-    ui->cpu_bar->show_text = "cpu ";        //进度条里面的文本
-    ui->vcore_bar->show_text = "gpu ";      //进度条里面的文本
-    //输入区右击菜单语种
-    create_right_menu(); //添加右击问题
+    ui->mem_bar->setShowText(jtr("mem"));   // 进度条里面的文本,强制重绘
+    ui->vram_bar->setShowText(jtr("vram")); // 进度条里面的文本,强制重绘
+    ui->cpu_bar->show_text = "cpu ";        // 进度条里面的文本
+    ui->vcore_bar->show_text = "gpu ";      // 进度条里面的文本
+    // 输入区右击菜单语种
+    create_right_menu(); // 添加右击问题
     create_tray_right_menu();
     // api设置语种
     api_dialog->setWindowTitle(jtr("link") + jtr("set"));
@@ -545,8 +551,8 @@ void Widget::apply_language(int language_flag_)
     api_model_label->setText(jtr("api model"));
     api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_model_LineEdit->setToolTip(jtr("input api model"));
-    //约定选项语种
-    date_ui->prompt_box->setTitle(jtr("character")); //提示词模板设置区域
+    // 约定选项语种
+    date_ui->prompt_box->setTitle(jtr("character")); // 提示词模板设置区域
     date_ui->chattemplate_label->setText(jtr("chat template"));
     date_ui->chattemplate_label->setToolTip(jtr("chattemplate_label_tooltip"));
     date_ui->chattemplate_comboBox->setToolTip(jtr("chattemplate_label_tooltip"));
@@ -576,8 +582,8 @@ void Widget::apply_language(int language_flag_)
     date_ui->confirm_button->setText(jtr("ok"));
     date_ui->cancel_button->setText(jtr("cancel"));
     date_dialog->setWindowTitle(jtr("date"));
-    //设置选项语种
-    settings_ui->sample_box->setTitle(jtr("sample set")); //采样设置区域
+    // 设置选项语种
+    settings_ui->sample_box->setTitle(jtr("sample set")); // 采样设置区域
     settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(ui_SETTINGS.temp));
     settings_ui->temp_label->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
     settings_ui->temp_slider->setToolTip(jtr("The higher the temperature, the more divergent the response; the lower the temperature, the more accurate the response"));
@@ -590,7 +596,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->parallel_label->setToolTip(jtr("parallel_label_tooltip"));
     settings_ui->repeat_label->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
     settings_ui->repeat_slider->setToolTip(jtr("Reduce the probability of the model outputting synonymous words"));
-    settings_ui->backend_box->setTitle(jtr("backend set")); //后端设置区域
+    settings_ui->backend_box->setTitle(jtr("backend set")); // 后端设置区域
     settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
     settings_ui->ngl_label->setToolTip(jtr("put some model paragram to gpu and reload model"));
     settings_ui->ngl_slider->setToolTip(jtr("put some model paragram to gpu and reload model"));
@@ -608,7 +614,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->mmproj_label->setToolTip(jtr("mmproj_label_tooltip"));
     settings_ui->mmproj_LineEdit->setToolTip(jtr("mmproj_label_tooltip"));
     settings_ui->mmproj_LineEdit->setPlaceholderText(jtr("right click and choose mmproj"));
-    settings_ui->mode_box->setTitle(jtr("state set")); //状态设置区域
+    settings_ui->mode_box->setTitle(jtr("state set")); // 状态设置区域
     settings_ui->complete_btn->setText(jtr("complete state"));
     settings_ui->complete_btn->setToolTip(jtr("complete_btn_tooltip"));
     settings_ui->chat_btn->setText(jtr("chat state"));
@@ -623,7 +629,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->cancel->setText(jtr("cancel"));
     settings_dialog->setWindowTitle(jtr("set"));
 }
-//创建临时文件夹EVA_TEMP
+// 创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path)
 {
     QDir dir;
@@ -652,8 +658,8 @@ QString Widget::customOpenfile(QString dirpath, QString describe, QString format
     filepath = QFileDialog::getOpenFileName(nullptr, describe, dirpath, format);
     return filepath;
 }
-//语音朗读相关 文转声相关
-//每次约定和设置后都保存配置到本地
+// 语音朗读相关 文转声相关
+// 每次约定和设置后都保存配置到本地
 void Widget::auto_save_user()
 {
     //--------------保存当前用户配置---------------
@@ -661,23 +667,23 @@ void Widget::auto_save_user()
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    settings.setValue("ui_mode", ui_mode);         //机体模式
-    settings.setValue("ui_state", ui_state);       //机体状态
-    settings.setValue("shell", shell);             //shell路径
-    settings.setValue("python", pythonExecutable); //python版本
-    //保存设置参数
-    settings.setValue("modelpath", ui_SETTINGS.modelpath); //模型路径
-    settings.setValue("temp", ui_SETTINGS.temp);           //温度
-    settings.setValue("repeat", ui_SETTINGS.repeat);       //惩罚系数
+    settings.setValue("ui_mode", ui_mode);         // 机体模式
+    settings.setValue("ui_state", ui_state);       // 机体状态
+    settings.setValue("shell", shell);             // shell路径
+    settings.setValue("python", pythonExecutable); // python版本
+    // 保存设置参数
+    settings.setValue("modelpath", ui_SETTINGS.modelpath); // 模型路径
+    settings.setValue("temp", ui_SETTINGS.temp);           // 温度
+    settings.setValue("repeat", ui_SETTINGS.repeat);       // 惩罚系数
     settings.setValue("top_k", ui_SETTINGS.top_k);         // top-k 采样
     settings.setValue("ngl", ui_SETTINGS.ngl);             // gpu负载层数
     settings.setValue("nthread", ui_SETTINGS.nthread);     // cpu线程数
     settings.setValue("nctx", ui_SETTINGS.nctx);
-    settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath); //视觉
+    settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath); // 视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);     // lora
     settings.setValue("monitor_frame", ui_monitor_frame);    // 监视帧率
-    //保存隐藏设置
-    settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); //最大输出长度
+    // 保存隐藏设置
+    settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); // 最大输出长度
     settings.setValue("hid_special", ui_SETTINGS.hid_special);
     settings.setValue("hid_top_p", ui_SETTINGS.hid_top_p);
     settings.setValue("hid_batch", ui_SETTINGS.hid_batch);
@@ -686,30 +692,30 @@ void Widget::auto_save_user()
     settings.setValue("hid_use_mlock", ui_SETTINGS.hid_use_mlock);
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
-    settings.setValue("port", ui_port); //服务端口
+    settings.setValue("port", ui_port);                     // 服务端口
     settings.setValue("device_backend", ui_device_backend); // 推理设备（auto/cpu/cuda/vulkan/opencl）
-    //保存约定参数
-    settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());              //对话模板
-    settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           //计算器工具
+    // 保存约定参数
+    settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());              // 对话模板
+    settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge工具
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller工具
-    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); //计算器工具
+    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); // 计算器工具
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer工具
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
     settings.setValue("engineer_work_dir", engineerWorkDir);                                       // 工程师工作目录
-    settings.setValue("extra_lan", ui_extra_lan);                                                  //额外指令语种
-    //保存自定义的约定模板
+    settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
+    // 保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
     settings.setValue("custom1_user_name", custom1_user_name);
     settings.setValue("custom1_model_name", custom1_model_name);
     settings.setValue("custom2_date_system", custom2_date_system);
     settings.setValue("custom2_user_name", custom2_user_name);
     settings.setValue("custom2_model_name", custom2_model_name);
-    //保存api参数
+    // 保存api参数
     settings.setValue("api_endpoint", apis.api_endpoint);
     settings.setValue("api_key", apis.api_key);
     settings.setValue("api_model", apis.api_model);
-        settings.sync(); // flush to disk immediately
+    settings.sync(); // flush to disk immediately
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
 
@@ -741,7 +747,7 @@ void Widget::setEngineerWorkDir(const QString &dir)
     // that the main UI system message shows the latest path immediately.
     ui_extra_prompt = create_extra_prompt();
 }
-//监视时间到
+// 监视时间到
 void Widget::monitorTime()
 {
     // 不在本地聊天模式 / 推理中 / 未装载 等情况下不处理
@@ -850,9 +856,9 @@ QString Widget::saveScreen()
 }
 void Widget::recv_monitor_decode_ok()
 {
-    is_monitor = false; //解锁
+    is_monitor = false; // 解锁
 }
-//构建屏幕信息
+// 构建屏幕信息
 QString Widget::create_screen_info()
 {
     // 屏幕左上角坐标为(0,0) 右下角坐标为(x,y)
@@ -924,7 +930,8 @@ void Widget::openHistoryManager()
     table->setSelectionMode(QAbstractItemView::SingleSelection);
     table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     v->addWidget(table);
-    auto fill = [&, self](const QString &filter) {
+    auto fill = [&, self](const QString &filter)
+    {
         // Limit how long a title is shown to avoid extremely wide columns
         const int kTitleMaxChars = 48; // display limit; full title is available via tooltip
         table->setRowCount(0);
@@ -969,27 +976,30 @@ void Widget::openHistoryManager()
     h->addWidget(clearBtn);
     h->addWidget(closeBtn);
     v->addLayout(h);
-    auto currentId = [&]() -> QString {
+    auto currentId = [&]() -> QString
+    {
         const auto ranges = table->selectedRanges();
         if (ranges.isEmpty()) return QString();
         const int row = ranges.first().topRow();
         if (!table->item(row, 0)) return QString();
         return table->item(row, 0)->data(Qt::UserRole).toString();
     };
-    QObject::connect(search, &QLineEdit::textChanged, &dlg, [&, self](const QString &t) { fill(t); });
-    QObject::connect(table, &QTableWidget::itemDoubleClicked, &dlg, [self, &currentId, d](QTableWidgetItem *) {
+    QObject::connect(search, &QLineEdit::textChanged, &dlg, [&, self](const QString &t)
+                     { fill(t); });
+    QObject::connect(table, &QTableWidget::itemDoubleClicked, &dlg, [self, &currentId, d](QTableWidgetItem *)
+                     {
         const QString id = currentId();
         if (id.isEmpty()) return;
         self->restoreSessionById(id);
-        d->accept();
-    });
-    QObject::connect(restoreBtn, &QPushButton::clicked, &dlg, [self, &currentId, d]() {
+        d->accept(); });
+    QObject::connect(restoreBtn, &QPushButton::clicked, &dlg, [self, &currentId, d]()
+                     {
         const QString id = currentId();
         if (id.isEmpty()) return;
         self->restoreSessionById(id);
-        d->accept();
-    });
-    QObject::connect(renameBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, table]() {
+        d->accept(); });
+    QObject::connect(renameBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, table]()
+                     {
         const QString id = currentId();
         if (id.isEmpty()) return;
         bool ok = false;
@@ -1017,9 +1027,9 @@ void Widget::openHistoryManager()
         else
         {
             self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
-        }
-    });
-    QObject::connect(deleteBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, &fill, search]() {
+        } });
+    QObject::connect(deleteBtn, &QPushButton::clicked, &dlg, [self, &currentId, d, &fill, search]()
+                     {
         const QString id = currentId();
         if (id.isEmpty()) return;
         auto btn = QMessageBox::question(d, self->jtr("delete"), self->jtr("confirm delete?"));
@@ -1032,9 +1042,9 @@ void Widget::openHistoryManager()
         else
         {
             self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
-        }
-    });
-    QObject::connect(clearBtn, &QPushButton::clicked, &dlg, [self, &fill, search, d]() {
+        } });
+    QObject::connect(clearBtn, &QPushButton::clicked, &dlg, [self, &fill, search, d]()
+                     {
         auto btn = QMessageBox::question(d, self->jtr("clear all history"), self->jtr("confirm delete?"));
         if (btn != QMessageBox::Yes) return;
         if (self->history_->purgeAll())
@@ -1045,13 +1055,7 @@ void Widget::openHistoryManager()
         else
         {
             self->reflash_state(self->jtr("history db error"), WRONG_SIGNAL);
-        }
-    });
+        } });
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
-
-
-
-
-

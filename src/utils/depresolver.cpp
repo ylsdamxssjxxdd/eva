@@ -3,18 +3,20 @@
 
 #include <QDir>
 #include <QFileInfo>
-#include <QStandardPaths>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 
 #ifdef Q_OS_WIN
-static inline QStringList venvCandidates(const QString &base) {
-    return { QDir(base).filePath(".venv/Scripts/python.exe"),
-             QDir(base).filePath("venv/Scripts/python.exe") };
+static inline QStringList venvCandidates(const QString &base)
+{
+    return {QDir(base).filePath(".venv/Scripts/python.exe"),
+            QDir(base).filePath("venv/Scripts/python.exe")};
 }
 #else
-static inline QStringList venvCandidates(const QString &base) {
-    return { QDir(base).filePath(".venv/bin/python3"),
-             QDir(base).filePath("venv/bin/python3") };
+static inline QStringList venvCandidates(const QString &base)
+{
+    return {QDir(base).filePath(".venv/bin/python3"),
+            QDir(base).filePath("venv/bin/python3")};
 }
 #endif
 
@@ -35,10 +37,13 @@ ExecSpec DependencyResolver::discoverPython3(const QString &projectDir)
 {
     ExecSpec spec;
     // 1) prefer local venv under project dir
-    for (const QString &cand : venvCandidates(projectDir)) {
-        if (QFileInfo::exists(cand)) {
+    for (const QString &cand : venvCandidates(projectDir))
+    {
+        if (QFileInfo::exists(cand))
+        {
             QString ver;
-            if (looksLikePython3(cand, {}, &ver)) {
+            if (looksLikePython3(cand, {}, &ver))
+            {
                 spec.program = cand;
                 spec.absolutePath = cand;
                 spec.version = ver;
@@ -50,7 +55,8 @@ ExecSpec DependencyResolver::discoverPython3(const QString &projectDir)
     // 2) try py -3 launcher
     {
         QString ver;
-        if (looksLikePython3(QStringLiteral("py"), {"-3"}, &ver)) {
+        if (looksLikePython3(QStringLiteral("py"), {"-3"}, &ver))
+        {
             spec.program = QStringLiteral("py");
             spec.extraArgs = QStringList{QStringLiteral("-3")};
             // try to get absolute path to the selected interpreter
@@ -66,11 +72,14 @@ ExecSpec DependencyResolver::discoverPython3(const QString &projectDir)
 #else
     const QStringList names = {QStringLiteral("python3"), QStringLiteral("python")};
 #endif
-    for (const QString &n : names) {
+    for (const QString &n : names)
+    {
         const QString exe = ProcessRunner::findExecutable(n);
-        if (!exe.isEmpty()) {
+        if (!exe.isEmpty())
+        {
             QString ver;
-            if (looksLikePython3(exe, {}, &ver)) {
+            if (looksLikePython3(exe, {}, &ver))
+            {
                 spec.program = exe;
                 spec.absolutePath = exe;
                 spec.version = ver;
@@ -117,9 +126,12 @@ QString DependencyResolver::doctorReport(const QString &projectDir)
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     lines << QStringLiteral("PATH=%1").arg(env.value(QStringLiteral("PATH")));
     ExecSpec py = discoverPython3(projectDir);
-    if (py.program.isEmpty()) {
+    if (py.program.isEmpty())
+    {
         lines << QStringLiteral("python: not found");
-    } else {
+    }
+    else
+    {
         const QString ver = pythonVersion(py);
         lines << QStringLiteral("python: %1 (%2) program=%3 extra=%4").arg(ver, py.absolutePath, py.program, py.extraArgs.join(' '));
     }
@@ -129,4 +141,3 @@ QString DependencyResolver::doctorReport(const QString &projectDir)
     lines << QStringLiteral("cmake: %1").arg(cm.isEmpty() ? QStringLiteral("not found") : cm);
     return lines.join('\n');
 }
-

@@ -1,11 +1,11 @@
 #include "processrunner.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QProcess>
 #include <QStandardPaths>
-#include <QFileInfo>
-#include <QDir>
 #ifdef Q_OS_WIN
-#  include <windows.h>
+#include <windows.h>
 #endif
 
 ProcessResult ProcessRunner::run(const QString &program,
@@ -20,19 +20,24 @@ ProcessResult ProcessRunner::run(const QString &program,
 
     ProcessResult r;
     p.start(program, args);
-    if (!p.waitForStarted()) {
+    if (!p.waitForStarted())
+    {
         r.stdErr = QString::fromUtf8("failed to start: ") + program;
         r.exitCode = -1;
         return r;
     }
 
-    if (timeoutMs > 0) {
-        if (!p.waitForFinished(timeoutMs)) {
+    if (timeoutMs > 0)
+    {
+        if (!p.waitForFinished(timeoutMs))
+        {
             r.timedOut = true;
             p.kill();
             p.waitForFinished(500);
         }
-    } else {
+    }
+    else
+    {
         p.waitForFinished(-1);
     }
 
@@ -56,10 +61,12 @@ ProcessResult ProcessRunner::runShellCommand(const QString &commandLine,
 {
 #ifdef Q_OS_WIN
     const QString shell = QStringLiteral("cmd.exe");
-    QStringList args; args << "/c" << commandLine;
+    QStringList args;
+    args << "/c" << commandLine;
 #else
     const QString shell = QStringLiteral("/bin/sh");
-    QStringList args; args << "-lc" << commandLine;
+    QStringList args;
+    args << "-lc" << commandLine;
 #endif
     return run(shell, args, workingDir, env, timeoutMs);
 }
@@ -83,20 +90,19 @@ QProcessEnvironment ProcessRunner::envWithPathPrepend(const QStringList &pathsTo
 QString ProcessRunner::findExecutable(const QString &name)
 {
     // QStandardPaths::findExecutable handles PATH search and suffixes on Windows
-#include <QFileInfo>
 #include <QDir>
+#include <QFileInfo>
     QString path = QStandardPaths::findExecutable(name);
-#include <QFileInfo>
 #include <QDir>
+#include <QFileInfo>
     if (!path.isEmpty()) return path;
 #ifdef Q_OS_WIN
     // Fallback: check App Execution Aliases directory explicitly
     const QString aliasDir = QDir::home().filePath(QStringLiteral("AppData/Local/Microsoft/WindowsApps"));
     QString cand = QStandardPaths::findExecutable(name, {aliasDir});
-#include <QFileInfo>
 #include <QDir>
+#include <QFileInfo>
     if (!cand.isEmpty()) return cand;
 #endif
     return QString();
 }
-

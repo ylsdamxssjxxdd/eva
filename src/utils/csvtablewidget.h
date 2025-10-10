@@ -270,7 +270,8 @@ class CsvTableWidget : public QWidget
         m_filterEdit = new QLineEdit;
         m_filterEdit->setPlaceholderText(tr("SEARCH..."));
         connect(m_filterEdit, &QLineEdit::textChanged,
-                [this](const QString &txt) {
+                [this](const QString &txt)
+                {
                     m_proxyModel->setFilterFixedString(txt);
                 });
 
@@ -332,7 +333,8 @@ class CsvTableWidget : public QWidget
 
         m_connTimer = new QTimer(this);
         m_connTimer->setInterval(30);
-        connect(m_connTimer, &QTimer::timeout, this, [=] {
+        connect(m_connTimer, &QTimer::timeout, this, [=]
+                {
             double oldStep = m_connectionStep;
             m_connectionStep += m_connAnimStep;
             double newStep = m_connectionStep;
@@ -378,8 +380,7 @@ class CsvTableWidget : public QWidget
             {
                 m_connTimer->stop();
                 m_pauseTimer->start(10000);
-            }
-        });
+            } });
         m_connTimer->start();
 
         // 脉冲动画计时器
@@ -683,9 +684,8 @@ class CsvTableWidget : public QWidget
         QVector<int> sort_indices(n);
         for (int i = 0; i < n; ++i) sort_indices[i] = i;
 
-        std::sort(sort_indices.begin(), sort_indices.end(), [&](int a, int b) {
-            return rotated[a].z < rotated[b].z;
-        });
+        std::sort(sort_indices.begin(), sort_indices.end(), [&](int a, int b)
+                  { return rotated[a].z < rotated[b].z; });
 
         QVector<QPointF> sortedProjected(n);
         sortedRotated.resize(n);
@@ -1110,7 +1110,8 @@ class CsvTableWidget : public QWidget
 
         // 移除已结束的脉冲动画
         auto itPulse = std::remove_if(m_activePulsations.begin(), m_activePulsations.end(),
-                                      [&](const Pulsation &p) {
+                                      [&](const Pulsation &p)
+                                      {
                                           return (currentTime - p.startTime) > p.duration;
                                       });
 

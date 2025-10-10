@@ -197,7 +197,7 @@ class ClientFactory
         else
         {
             std::string command = get_string_safely(config, "command");
-            std::vector<std::string> args = get_string_list_safely(config, "args"); //取文本列表
+            std::vector<std::string> args = get_string_list_safely(config, "args"); // 取文本列表
             if (command != "" && args.size() != 0)
             {
                 mcp::json env = get_json_object_safely(config, "env");
@@ -248,7 +248,8 @@ class McpToolManager
         // 检查工具是否存在
         auto &tools = tools_cache_[serviceName];
         auto tool_it = std::find_if(tools.begin(), tools.end(),
-                                    [&toolName](const mcp::tool &t) { return t.name == toolName; });
+                                    [&toolName](const mcp::tool &t)
+                                    { return t.name == toolName; });
 
         if (tool_it == tools.end())
         {

@@ -1,14 +1,14 @@
 #include "expend.h"
 
-#include "ui_expend.h"
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
+#include "ui_expend.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 
-//用户点击选择whisper路径时响应
+// 用户点击选择whisper路径时响应
 void Expend::on_whisper_load_modelpath_button_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose whisper model", "(*.bin *.gguf)");
@@ -18,7 +18,7 @@ void Expend::on_whisper_load_modelpath_button_clicked()
     ui->whisper_log->setPlainText(jtr("once selected, you can record by pressing f2"));
 }
 
-//开始语音转文字
+// 开始语音转文字
 void Expend::recv_speechdecode(QString wavpath, QString out_format)
 {
     whisper_time.restart();
@@ -28,21 +28,26 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
     // 录音/输入音频交由 whisper-cli 处理采样率，无需在应用内重采样
 
     // 设置要运行的exe文件的路径
-    QString program = localPath; if (program.isEmpty() || !QFileInfo::exists(program)) { ui->whisper_log->appendPlainText("[error] whisper backend not found under current device folder"); return; }
+    QString program = localPath;
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->whisper_log->appendPlainText("[error] whisper backend not found under current device folder");
+        return;
+    }
     // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
     QStringList arguments;
 
     // Convert potentially non-ASCII paths to tool-friendly form on Windows
     const QString modelPathArg = ensureToolFriendlyFilePath(ui->whisper_load_modelpath_linedit->text());
-    const QString wavPathArg   = ensureToolFriendlyFilePath(wavpath);
-    arguments << "-m" << modelPathArg;       // 模型路径（可能为 8.3 短路径）
-    arguments << "-f" << wavPathArg;         // wav 文件路径（可能为 8.3 短路径）
-    arguments << "--language" << QString::fromStdString(whisper_params.language); //识别语种
+    const QString wavPathArg = ensureToolFriendlyFilePath(wavpath);
+    arguments << "-m" << modelPathArg;                                            // 模型路径（可能为 8.3 短路径）
+    arguments << "-f" << wavPathArg;                                              // wav 文件路径（可能为 8.3 短路径）
+    arguments << "--language" << QString::fromStdString(whisper_params.language); // 识别语种
     arguments << "--threads" << QString::number(max_thread * 0.5);
     if (out_format == "txt")
     {
         arguments << "--output-txt";
-    } //结果输出为一个txt
+    } // 结果输出为一个txt
     else if (out_format == "srt")
     {
         arguments << "--output-srt";
@@ -57,15 +62,15 @@ void Expend::recv_speechdecode(QString wavpath, QString out_format)
     }
 
     // 开始运行程序
-    //连接信号和槽,获取程序的输出
-    connect(whisper_process, &QProcess::readyReadStandardOutput, [=]() {
+    // 连接信号和槽,获取程序的输出
+    connect(whisper_process, &QProcess::readyReadStandardOutput, [=]()
+            {
         QString output = whisper_process->readAllStandardOutput();
-        ui->whisper_log->appendPlainText(output);
-    });
-    connect(whisper_process, &QProcess::readyReadStandardError, [=]() {
+        ui->whisper_log->appendPlainText(output); });
+    connect(whisper_process, &QProcess::readyReadStandardError, [=]()
+            {
         QString output = whisper_process->readAllStandardError();
-        ui->whisper_log->appendPlainText(output);
-    });
+        ui->whisper_log->appendPlainText(output); });
 
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     // Add tool dir to library search path and set working directory
@@ -118,7 +123,7 @@ void Expend::whisper_onProcessFinished()
     is_handle_whisper = false;
 }
 
-//用户点击选择wav路径时响应
+// 用户点击选择wav路径时响应
 void Expend::on_whisper_wavpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose a .wav file", "(*.wav)");
@@ -129,14 +134,11 @@ void Expend::on_whisper_wavpath_pushButton_clicked()
     }
     ui->whisper_wavpath_lineedit->setText(wavpath);
 }
-//用户点击执行转换时响应
+// 用户点击执行转换时响应
 void Expend::on_whisper_execute_pushbutton_clicked()
 {
-    //执行whisper
+    // 执行whisper
     is_handle_whisper = true;
     whisper_process->kill();
     recv_speechdecode(ui->whisper_wavpath_lineedit->text(), ui->whisper_output_format->currentText());
 }
-
-
-
