@@ -72,8 +72,6 @@ void xNet::abortActiveReply()
         connSslErrors_ = QMetaObject::Connection{};
         #endif
 #endif
-
-
         // finally, abort and delete the reply safely
         reply_->abort();
         reply_->deleteLater();

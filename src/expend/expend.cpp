@@ -77,6 +77,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu); //添加右键菜单
     connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu);
+    // 已嵌入表格右键菜单（支持删除）
+    ui->embedding_txt_over->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->embedding_txt_over, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_over_menu);
 
     //知识库相关
     ui->embedding_txt_wait->setColumnCount(1);                                              //设置一列
@@ -160,6 +163,32 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     speechPlayTimer.start(500); //每半秒检查一次是否有音频需要朗读
     //如果存在配置文件则读取它，并且应用，目前主要是文生图/声转文/文转声
     readConfig();
+
+    // 初始化向量数据库（SQLite）并加载已有知识库
+    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    const QString dbPath = applicationDirPath + "/EVA_TEMP/embeddings.sqlite";
+    if (vectorDb.open(dbPath))
+    {
+        // 不主动覆盖数据库中的 model_id/dim，避免 savedModel 为空时误清空
+        Embedding_DB = vectorDb.loadAll();
+        if (!Embedding_DB.isEmpty())
+        {
+            ui->embedding_txt_over->clear();
+            ui->embedding_txt_over->setRowCount(0);
+            ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});
+            for (int i = 0; i < Embedding_DB.size(); ++i)
+            {
+                ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());
+                QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(i).chunk);
+                newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
+                newItem->setBackground(LCL_ORANGE);
+                ui->embedding_txt_over->setItem(i, 0, newItem);
+            }
+            ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400));
+            ui->embedding_txt_over->resizeRowsToContents();
+        }
+    }
+
     qDebug() << "expend init over";
 }
 

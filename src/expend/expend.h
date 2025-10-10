@@ -46,6 +46,7 @@
 #include "../mcp_tools.h"
 #include "../xconfig.h"
 #include "./src/utils/toggleswitch.h"
+#include "../utils/vectordb.h"
 namespace Ui
 {
 class Expend;
@@ -143,6 +144,7 @@ class Expend : public QWidget
     void preprocessTXT();                   //预处理文件内容
     int show_chunk_index = 0;               //待显示的嵌入文本段的序号
     QVector<Embedding_vector> Embedding_DB; //嵌入的所有文本段的词向量，向量数据库
+    VectorDB vectorDb;                      // SQLite 持久化向量库
     Embedding_vector user_embedding_vector;
     double cosine_similarity(const std::vector<double> &a, const std::vector<double> &b);
     std::vector<std::pair<int, double>> similar_indices(const std::vector<double> &user_vector, const QVector<Embedding_vector> &embedding_DB);
@@ -161,6 +163,8 @@ class Expend : public QWidget
     void show_embedding_txt_wait_menu(const QPoint &pos);         //右击表格显示菜单
     void embedding_txt_wait_onAdd();                              //添加表格
     void embedding_txt_wait_onDelete();                           //删除表格
+    void show_embedding_txt_over_menu(const QPoint &pos);         // 右击已嵌入表格显示菜单
+    void embedding_txt_over_onDelete();                           // 删除已嵌入选中行（多选）并重排索引
     void on_embedding_txt_modelpath_button_clicked();             //用户点击选择嵌入模型路径时响应
     void on_embedding_txt_upload_clicked();                       //用户点击上传文档时响应
     void on_embedding_txt_embedding_clicked();                    //用户点击嵌入时响应

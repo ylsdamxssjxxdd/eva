@@ -26,6 +26,7 @@ add_executable(
     src/expend/expend_mcp.cpp src/expend/expend_convert.cpp src/expend/expend_brain.cpp src/expend/expend_tts.cpp
     src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp
+    src/utils/vectordb.cpp src/utils/vectordb.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
     src/utils/pathutil.cpp src/utils/pathutil.h src/utils/processrunner.cpp src/utils/processrunner.h src/utils/depresolver.cpp src/utils/depresolver.h
     src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h

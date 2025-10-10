@@ -1166,6 +1166,7 @@ void Widget::onServerOutput(const QString &line)
         bool ok=false; int past = mStop.captured(1).toInt(&ok);
         if (ok) { kvUsed_ = qMax(0, past); sawFinalPast_ = true; updateKvBarUi(); }
     }
+    // qDebug()<< "Server log:" << line;
 }
 
 // 后端启动失败：停止装载动画并解锁按钮，便于用户更换模型或后端

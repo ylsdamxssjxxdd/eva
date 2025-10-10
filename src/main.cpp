@@ -260,6 +260,12 @@ int main(int argc, char *argv[])
     QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         //开始绘制图像
     QObject::connect(&expend, &Expend::expend2tool_drawover, &tool, &xTool::recv_drawover); //图像绘制完成
 
+    // 将持久化向量库的内容同步给工具层（若已存在）
+    if (!expend.Embedding_DB.isEmpty())
+    {
+        emit expend.expend2tool_embeddingdb(expend.Embedding_DB);
+    }
+
     //------------------连接mcp管理器-------------------
     QObject::connect(&mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
     QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);
@@ -329,7 +335,7 @@ int main(int argc, char *argv[])
         w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
         w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
         w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
-        bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); //默认不主动嵌入词向量
+        bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); // 是否需要自动启动嵌入相关流程
         QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
         QFile checkFile(settings.value("lorapath", "").toString());
         if (checkFile.exists()) { w.settings_ui->lora_LineEdit->setText(settings.value("lorapath", "").toString()); }
@@ -370,19 +376,18 @@ int main(int argc, char *argv[])
             w.set_api();
         }
 
-        // 是否需要自动重构知识库, 源文档在expend实例化时已经完成
-        if (embedding_server_need)
+        // 自动启动嵌入服务：
+        // - 若已有持久化向量(Expend::Embedding_DB非空)，为支持查询自动启动服务（仅用于查询向量），不触发重嵌入
+        // - 或者用户显式开启了 embedding_server_need（兼容旧配置），同样仅启动服务，不自动重嵌
         {
-            QFile embedding_modelpath_file(embedding_modelpath);
-            if (embedding_modelpath_file.exists())
+            QString autoModel = embedding_modelpath;
+            if (autoModel.isEmpty()) { autoModel = expend.vectorDb.currentModelId(); }
+            QFile embedding_modelpath_file(autoModel);
+            if (embedding_modelpath_file.exists() && (!expend.Embedding_DB.isEmpty() || embedding_server_need))
             {
-                expend.embedding_embed_need = true;
-                expend.embedding_params.modelpath = embedding_modelpath;
-                expend.embedding_server_start(); //启动嵌入服务
-            }
-            else //借助端点直接嵌入
-            {
-                expend.embedding_processing(); //执行嵌入
+                expend.embedding_embed_need = false; // 不进行自动重嵌，只启动服务供查询使用
+                expend.embedding_params.modelpath = autoModel;
+                expend.embedding_server_start();
             }
         }
     }

@@ -3,6 +3,7 @@
 #include "ui_expend.h"
 #include "../utils/pathutil.h"
 #include "../utils/devicemanager.h"
+#include <QSet>
 
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
@@ -13,18 +14,21 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 {
     // 停止已有嵌入服务，避免重复启动导致残留
     stopEmbeddingServer(true);
-    Embedding_DB.clear();                                                                        // 清空向量数据库
+    // 选择模型
+    currentpath = customOpenfile(currentpath, jtr("select embedding model"), "(*.bin *.gguf)");
+    if (currentpath.isEmpty()) { return; }
+    embedding_params.modelpath = currentpath;
+    // 若为新模型，立即清空持久化库，避免混用；维度稍后由服务日志刷新
+    if (embedding_params.modelpath != vectorDb.currentModelId())
+    {
+        vectorDb.setCurrentModel(embedding_params.modelpath, 0 /*keep dim until server reports*/);
+        vectorDb.clearAll();
+    }
+    // 清空内存与 UI 视图
+    Embedding_DB.clear();
     ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
     ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
-    // 清空表格
-    currentpath = customOpenfile(currentpath, jtr("select embedding model"), "(*.bin *.gguf)");
-    embedding_params.modelpath = currentpath;
-    if (embedding_params.modelpath == "")
-    {
-        ui->embedding_model_lineedit->setText(""); //清空启动的服务
-        return;
-    }
 
     // 100 ms后尝试启动服务, 因为要等待server_process->kill()
     QTimer::singleShot(100, this, &Expend::embedding_server_start);
@@ -103,6 +107,8 @@ void Expend::readyRead_server_process_StandardError()
         embedding_server_dim = server_output.split(SERVER_EMBD_INFO).at(1).split("\n").at(0).toInt();
         ui->embedding_dim_spinBox->setValue(embedding_server_dim);
         qDebug() << "该模型的嵌入维度为: " << embedding_server_dim << ui->embedding_dim_spinBox->value();
+        // 更新向量库绑定的模型维度，若不一致将清空
+        vectorDb.setCurrentModel(embedding_params.modelpath, embedding_server_dim);
         if (embedding_embed_need) //用来自动构建知识库
         {
             embedding_embed_need = false;
@@ -280,6 +286,76 @@ void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
 
     // 显示菜单
     contextMenu.exec(ui->embedding_txt_wait->viewport()->mapToGlobal(pos));
+}
+
+// 已嵌入表格右键菜单
+void Expend::show_embedding_txt_over_menu(const QPoint &pos)
+{
+    QMenu contextMenu(tr("Context menu"), this);
+    QAction actionDelete(jtr("delete"), this);
+    connect(&actionDelete, &QAction::triggered, this, &Expend::embedding_txt_over_onDelete);
+    contextMenu.addAction(&actionDelete);
+
+    contextMenu.exec(ui->embedding_txt_over->viewport()->mapToGlobal(pos));
+}
+
+// 删除已嵌入选中行，并重排索引与持久化
+void Expend::embedding_txt_over_onDelete()
+{
+    // 收集被选中的行（去重，从大到小删除避免位移问题）
+    QList<QTableWidgetItem *> selectedItems = ui->embedding_txt_over->selectedItems();
+    QSet<int> rows;
+    for (auto *it : selectedItems) { rows.insert(it->row()); }
+    QList<int> sortedRows = QList<int>(rows.begin(), rows.end());
+    std::sort(sortedRows.begin(), sortedRows.end(), std::greater<int>());
+
+    // 基于 chunk 删除 Embedding_DB 和 SQLite（chunk 已去重，作为唯一键）
+    QSet<QString> delChunks;
+    for (int row : sortedRows)
+    {
+        QTableWidgetItem *it = ui->embedding_txt_over->item(row, 0);
+        if (!it) continue;
+        delChunks.insert(it->text());
+    }
+
+    if (delChunks.isEmpty()) return;
+
+    // 从 SQLite 删除
+    for (const QString &c : delChunks) { vectorDb.deleteByChunk(c); }
+
+    // 从内存 Embedding_DB 删除
+    QVector<Embedding_vector> kept;
+    kept.reserve(Embedding_DB.size());
+    for (const auto &ev : Embedding_DB)
+    {
+        if (!delChunks.contains(ev.chunk)) kept.push_back(ev);
+    }
+    Embedding_DB.swap(kept);
+
+    // 重排索引：按当前 Embedding_DB 顺序重新赋值 index = 0..N-1
+    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b) { return a.index < b.index; });
+    for (int i = 0; i < Embedding_DB.size(); ++i) { Embedding_DB[i].index = i; }
+
+    // 持久化新的索引顺序
+    for (const auto &ev : Embedding_DB) { vectorDb.upsertChunk(ev.index, ev.chunk, ev.value); }
+
+    // 刷新 UI 表格
+    ui->embedding_txt_over->clear();
+    ui->embedding_txt_over->setRowCount(0);
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});
+    for (int i = 0; i < Embedding_DB.size(); ++i)
+    {
+        ui->embedding_txt_over->insertRow(ui->embedding_txt_over->rowCount());
+        QTableWidgetItem *newItem = new QTableWidgetItem(Embedding_DB.at(i).chunk);
+        newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable);
+        newItem->setBackground(LCL_ORANGE);
+        ui->embedding_txt_over->setItem(i, 0, newItem);
+    }
+    ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400));
+    ui->embedding_txt_over->resizeRowsToContents();
+
+    // 通知工具层刷新内存向量数据库
+    emit expend2tool_embeddingdb(Embedding_DB);
 }
 
 //添加表格
@@ -477,67 +553,28 @@ void Expend::embedding_processing()
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
     show_chunk_index = 0;                                                                        //待显示的嵌入文本段的序号
 
-    //----------------------相同的内容不再嵌入, 先保留再新增-----------------------
-    QVector<Embedding_vector> new_Embedding_DB;
-    QVector<int> save_list;
-    //构造一个如果文本段一致则保留的数据库
-    for (int i = 0; i < Embedding_DB.size(); ++i)
+    //---------------------- 先保留全部已嵌入，再把新内容追加到末尾 -----------------------
+    QVector<int> save_list; // 存放已存在条目的 index（用于跳过重嵌入）
+    // 1) 保持现有 Embedding_DB 不变（不按待嵌入表过滤），并记录 save_list
+    for (const auto &e : Embedding_DB) { save_list.append(e.index); }
+
+    // 2) 计算当前最大索引，作为追加基准
+    int maxIndex = -1;
+    for (const auto &e : Embedding_DB) { if (e.index > maxIndex) maxIndex = e.index; }
+
+    // 3) 读取待嵌入表格中的内容；与现有去重，仅追加新文本段
+    QSet<QString> seenChunks; for (const auto &e : Embedding_DB) { seenChunks.insert(e.chunk); }
+    for (int r = 0; r < ui->embedding_txt_wait->rowCount(); ++r)
     {
-        bool remove_flag = true;
-        int current_index_table = 0; //记录未嵌入之前在表格中的序号，保证将来在表格的位置
-        //如果原来的数据库中有当前待嵌入文本一致的内容则保留
-        for (int j = 0; j < ui->embedding_txt_wait->rowCount(); ++j)
-        {
-            QTableWidgetItem *item = ui->embedding_txt_wait->item(j, 0);
-            if (item)
-            {
-                if (Embedding_DB.at(i).chunk == item->text())
-                {
-                    bool already_save = false;
-
-                    // 若已经保留则不保留
-                    for (int k = 0; k < new_Embedding_DB.size(); ++k)
-                    {
-                        if (new_Embedding_DB.at(k).chunk == item->text())
-                        {
-                            already_save = true;
-                        }
-                    }
-
-                    if (!already_save)
-                    {
-                        remove_flag = false;
-                        current_index_table = j;
-                    }
-                }
-            }
-        }
-        if (!remove_flag)
-        {
-            new_Embedding_DB.append(Embedding_DB.at(i));
-            new_Embedding_DB.last().index = current_index_table;
-            save_list.append(current_index_table);
-            // qDebug()<<"保留的"<<i<<Embedding_DB.at(i).chunk;
-        }
-    }
-    Embedding_DB.clear();
-    Embedding_DB = new_Embedding_DB;
-
-    //读取待嵌入表格中的内容
-    for (int i = 0; i < ui->embedding_txt_wait->rowCount(); ++i)
-    {
-        QTableWidgetItem *item = ui->embedding_txt_wait->item(i, 0);
-        if (item)
-        {
-            if (!save_list.contains(i))
-            {
-                Embedding_DB.append({i, item->text()});
-                // qDebug()<<"新增的"<<i<<item->text();
-            }
-        }
+        QTableWidgetItem *item = ui->embedding_txt_wait->item(r, 0);
+        if (!item) continue;
+        const QString chunk = item->text();
+        if (seenChunks.contains(chunk)) continue; // 已存在，跳过
+        seenChunks.insert(chunk);
+        Embedding_DB.append({++maxIndex, chunk}); // 追加到末尾，index 连续递增
     }
 
-    //先排好序
+    // 4) 将 Embedding_DB 按 index 升序排序，保证显示与检索一致
     std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b) { return a.index < b.index; });
 
     //进行嵌入工作,发送ready_embedding_chunks给llama-server
@@ -645,8 +682,16 @@ void Expend::embedding_processing()
                 ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400)); // 列宽保持控件宽度
                 ui->embedding_txt_over->resizeRowsToContents();                                        // 自动调整行高
                 ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);       // 滚动到新添加的行
+                // 持久化当前段落向量
+                const int r = remain_index.front();
+                if (r >= 0 && r < Embedding_DB.size())
+                {
+                    const auto &ev = Embedding_DB.at(r);
+                    vectorDb.upsertChunk(ev.index, ev.chunk, ev.value);
+                }
                 show_chunk_index++;
-                embedding_server_need = true; // 下次启动自动执行嵌入
+                // 不再在重启时自动重建知识库；向量已持久化
+                embedding_server_need = false;
                 remain_index.removeFirst();
             }
             else
@@ -673,6 +718,12 @@ void Expend::embedding_processing()
     ui->embedding_test_pushButton->setEnabled(1);      //检索按钮
     ui->embedding_txt_modelpath_button->setEnabled(1); //选择模型按钮
 
+    // 将当前索引顺序持久化，避免重启后索引还原造成困惑
+    for (const auto &ev : Embedding_DB)
+    {
+        if (!ev.chunk.isEmpty()) { vectorDb.upsertChunk(ev.index, ev.chunk, ev.value); }
+    }
+
     ui->embedding_test_log->appendPlainText(jtr("embedding over") + " " + jtr("use time") + QString::number(time.nsecsElapsed() / 1000000000.0, 'f', 2) + "s");
     emit expend2tool_embeddingdb(Embedding_DB); //发送已嵌入文本段数据给tool
 }
@@ -684,6 +735,13 @@ void Expend::on_embedding_model_lineedit_textChanged()
     {
         server_process->kill();                                                                      // 终止server
         Embedding_DB.clear();                                                                        // 清空向量数据库
+        // 绑定至新端点/模型；维度由 server 日志刷新；仅在确实变化时清空
+        const QString newId = ui->embedding_model_lineedit->text();
+        if (newId != vectorDb.currentModelId())
+        {
+            vectorDb.setCurrentModel(newId, 0 /*keep existing*/);
+            vectorDb.clearAll();                                                                      // 清空持久化向量库
+        }
         ui->embedding_txt_over->clear();                                                             //清空已嵌入文本段表格内容
         ui->embedding_txt_over->setRowCount(0);                                                      //设置已嵌入文本段表格为0行
         ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); //设置列名
