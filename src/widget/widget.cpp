@@ -356,38 +356,55 @@ void Widget::preLoad()
 // xBot 装载完成的槽已废弃；改由 onServerReady() 收尾本地动画
 
 // 用户点击发出按钮处理
-void Widget::on_send_clicked()
+
+// Build common endpoint data for a turn
+ENDPOINT_DATA Widget::prepareEndpointData()
 {
-    turnThinkHeaderPrinted_ = false;
-    turnAssistantHeaderPrinted_ = false;
-    turnThinkActive_ = false;
-    // reset per-turn role headers and KV trackers
-    reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
-    turnActive_ = true;
-    kvUsedBeforeTurn_ = kvUsed_;
-    kvStreamedTurn_ = 0;
+    ENDPOINT_DATA d;
+    d.date_prompt = ui_DATES.date_prompt;
+    d.stopwords = ui_DATES.extra_stop_words;
+    d.is_complete_state = (ui_state == COMPLETE_STATE);
+    d.temp = ui_SETTINGS.temp;
+    d.repeat = ui_SETTINGS.repeat;
+    d.top_k = ui_SETTINGS.top_k;
+    d.top_p = ui_SETTINGS.hid_top_p;
+    d.n_predict = ui_SETTINGS.hid_npredict;
+    d.messagesArray = ui_messagesArray;
+    d.id_slot = currentSlotId_;
+    return d;
+}
 
-    emit ui2net_stop(0);
-    ENDPOINT_DATA data;
-    data.date_prompt = ui_DATES.date_prompt;
-    data.stopwords = ui_DATES.extra_stop_words;
-    data.is_complete_state = (ui_state == COMPLETE_STATE);
-    data.temp = ui_SETTINGS.temp;
-    data.repeat = ui_SETTINGS.repeat;
-    data.top_k = ui_SETTINGS.top_k;
-    data.top_p = ui_SETTINGS.hid_top_p;
-    data.n_predict = ui_SETTINGS.hid_npredict;
-    data.messagesArray = ui_messagesArray;
-    data.id_slot = currentSlotId_;
+// Start a persistent history session if needed (chat mode only)
+void Widget::beginSessionIfNeeded()
+{
+    if (!(history_ && ui_state == CHAT_STATE && history_->sessionId().isEmpty())) return;
+    SessionMeta meta;
+    meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+    meta.title = "";
+    meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
+                                           : (serverManager ? serverManager->endpointBase() : "");
+    meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+    meta.system = ui_DATES.date_prompt;
+    meta.n_ctx = ui_SETTINGS.nctx;
+    meta.slot_id = currentSlotId_;
+    meta.startedAt = QDateTime::currentDateTime();
+    history_->begin(meta);
+    QJsonObject systemMessage;
+    systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+    systemMessage.insert("content", ui_DATES.date_prompt);
+    history_->appendMessage(systemMessage);
+}
 
-    QString input;
-    if (tool_result == "")
+// Collect text/images/audio inputs from UI (includes monitor frames if enabled)
+void Widget::collectUserInputs(InputPack &pack)
+{
+    pack.text.clear();
+    if (tool_result.isEmpty())
     {
-        input = ui->input->textEdit->toPlainText().toUtf8().data();
+        pack.text = ui->input->textEdit->toPlainText().toUtf8().data();
         ui->input->textEdit->clear();
     }
-
-    QStringList images_filepath = ui->input->imageFilePaths();
+    pack.images = ui->input->imageFilePaths();
     if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
     {
         const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -398,83 +415,114 @@ void Widget::on_send_clicked()
             monitorFrames_.pop_front();
             QFile f(old); if (f.exists()) f.remove();
         }
-        for (const auto &mf : monitorFrames_) images_filepath.append(mf.path);
+        for (const auto &mf : monitorFrames_) pack.images.append(mf.path);
     }
-    QStringList wavs_filepath = ui->input->wavFilePaths();
+    pack.wavs = ui->input->wavFilePaths();
     ui->input->clearThumbnails();
+}
+
+// Handle normal chat reply turn
+void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
+{
+    // user message assembly
+    if (in.images.isEmpty())
+    {
+        QJsonObject roleMessage;
+        roleMessage.insert("role", DEFAULT_USER_NAME);
+        roleMessage.insert("content", in.text);
+        ui_messagesArray.append(roleMessage);
+        if (history_) history_->appendMessage(roleMessage);
+    }
+    else
+    {
+        QJsonObject message;
+        message["role"] = DEFAULT_USER_NAME;
+        QJsonArray contentArray;
+        if (!in.text.isEmpty())
+        {
+            QJsonObject textMessage; textMessage.insert("type", "text"); textMessage.insert("text", in.text);
+            contentArray.append(textMessage);
+        }
+        for (int i = 0; i < in.images.size(); ++i)
+        {
+            QFile imageFile(in.images[i]); if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
+            QByteArray imageData = imageFile.readAll(); QByteArray base64Data = imageData.toBase64(); QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+            QJsonObject imageObject; imageObject["type"] = "image_url"; QJsonObject imageUrlObject; imageUrlObject["url"] = base64String; imageObject["image_url"] = imageUrlObject; contentArray.append(imageObject);
+            showImages({in.images[i]});
+        }
+        message["content"] = contentArray;
+        ui_messagesArray.append(message); if (history_) history_->appendMessage(message);
+    }
+    if (!in.wavs.isEmpty())
+    {
+        QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
+        for (int i = 0; i < in.wavs.size(); ++i)
+        {
+            QString filePath = in.wavs[i]; QFile audioFile(filePath); if (!audioFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open audio file:" << filePath; continue; }
+            QByteArray audioData = audioFile.readAll(); QByteArray base64Data = audioData.toBase64();
+            QFileInfo fileInfo(filePath); QString extension = fileInfo.suffix().toLower();
+            QString mimeType = "audio/mpeg"; if (extension == "wav") mimeType = "audio/wav"; else if (extension == "ogg") mimeType = "audio/ogg"; else if (extension == "flac") mimeType = "audio/flac";
+            QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
+            QJsonObject audioObject; audioObject["type"] = "audio_url"; QJsonObject audioUrlObject; audioUrlObject["url"] = base64String; audioObject["audio_url"] = audioUrlObject; contentArray.append(audioObject);
+            showImages({":/logo/wav.png"});
+        }
+        if (!contentArray.isEmpty()) { message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message); }
+    }
+    data.messagesArray = ui_messagesArray;
+    appendRoleHeader(QStringLiteral("user")); reflash_output(in.text, 0, NORMAL_BLACK);
+    data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) monitorFrames_.clear();
+}
+
+// Handle completion mode turn
+void Widget::handleCompletion(ENDPOINT_DATA &data)
+{
+    data.input_prompt = ui->output->toPlainText();
+    data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+}
+
+// Handle tool loop: append tool message and schedule a continue tick
+void Widget::handleToolLoop(ENDPOINT_DATA &data)
+{
+    Q_UNUSED(data);
+    QJsonObject roleMessage; roleMessage.insert("role", QStringLiteral("tool")); roleMessage.insert("content", tool_result);
+    ui_messagesArray.append(roleMessage); if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+    appendRoleHeader(QStringLiteral("tool")); reflash_output(tool_result, 0, TOOL_BLUE);
+    tool_result = "";
+    QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
+    is_run = true; ui_state_pushing();
+}
+
+void Widget::on_send_clicked()
+{
+    // Reset headers and kv tracker
+    turnThinkHeaderPrinted_ = false;
+    turnAssistantHeaderPrinted_ = false;
+    turnThinkActive_ = false;
+    reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
+    turnActive_ = true;
+    kvUsedBeforeTurn_ = kvUsed_;
+    kvStreamedTurn_ = 0;
+
+    emit ui2net_stop(0);
+    ENDPOINT_DATA data = prepareEndpointData();
+
+    if (ui_state == CHAT_STATE) beginSessionIfNeeded();
+
+    if (!tool_result.isEmpty())
+    {
+        handleToolLoop(data);
+        return;
+    }
 
     if (ui_state == CHAT_STATE)
     {
-        if (history_ && history_->sessionId().isEmpty())
-        {
-            SessionMeta meta;
-            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-            meta.title = "";
-            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
-                                                   : (serverManager ? serverManager->endpointBase() : "");
-            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
-            meta.system = ui_DATES.date_prompt;
-            meta.n_ctx = ui_SETTINGS.nctx;
-            meta.slot_id = currentSlotId_;
-            meta.startedAt = QDateTime::currentDateTime();
-            history_->begin(meta);
-            QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
-            history_->appendMessage(systemMessage);
-        }
-        // tool result -> append tool message and continue
-        if (tool_result != "")
-        {
-            QJsonObject roleMessage; roleMessage.insert("role", QStringLiteral("tool")); roleMessage.insert("content", tool_result);
-            ui_messagesArray.append(roleMessage); if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
-            appendRoleHeader(QStringLiteral("tool")); reflash_output(tool_result, 0, TOOL_BLUE);
-            tool_result = "";
-            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
-            is_run = true; ui_state_pushing(); return;
-        }
-        // normal user message
-        else
-        {
-            if (images_filepath.isEmpty())
-            {
-                QJsonObject roleMessage; roleMessage.insert("role", DEFAULT_USER_NAME); roleMessage.insert("content", input);
-                ui_messagesArray.append(roleMessage); if (history_) history_->appendMessage(roleMessage);
-            }
-            else
-            {
-                QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
-                if (!input.isEmpty()) { QJsonObject textMessage; textMessage.insert("type", "text"); textMessage.insert("text", input); contentArray.append(textMessage); }
-                for (int i = 0; i < images_filepath.size(); ++i)
-                {
-                    QFile imageFile(images_filepath[i]); if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
-                    QByteArray imageData = imageFile.readAll(); QByteArray base64Data = imageData.toBase64(); QString base64String = QString("data:image/jpeg;base64,") + base64Data;
-                    QJsonObject imageObject; imageObject["type"] = "image_url"; QJsonObject imageUrlObject; imageUrlObject["url"] = base64String; imageObject["image_url"] = imageUrlObject; contentArray.append(imageObject);
-                    showImages({images_filepath[i]});
-                }
-                message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message);
-            }
-            if (!wavs_filepath.isEmpty())
-            {
-                QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
-                for (int i = 0; i < wavs_filepath.size(); ++i)
-                {
-                    QString filePath = wavs_filepath[i]; QFile audioFile(filePath); if (!audioFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open audio file:" << filePath; continue; }
-                    QByteArray audioData = audioFile.readAll(); QByteArray base64Data = audioData.toBase64();
-                    QFileInfo fileInfo(filePath); QString extension = fileInfo.suffix().toLower(); QString mimeType = "audio/mpeg"; if (extension == "wav") mimeType = "audio/wav"; else if (extension == "ogg") mimeType = "audio/ogg"; else if (extension == "flac") mimeType = "audio/flac";
-                    QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
-                    QJsonObject audioObject; audioObject["type"] = "audio_url"; QJsonObject audioUrlObject; audioUrlObject["url"] = base64String; audioObject["audio_url"] = audioUrlObject; contentArray.append(audioObject);
-                    showImages({":/logo/wav.png"});
-                }
-                if (!contentArray.isEmpty()) { message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message); }
-            }
-            data.messagesArray = ui_messagesArray;
-            appendRoleHeader(QStringLiteral("user")); reflash_output(input, 0, NORMAL_BLACK);
-            data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
-            if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) { monitorFrames_.clear(); }
-        }
+        InputPack in; collectUserInputs(in);
+        handleChatReply(data, in);
     }
-    else if (ui_state == COMPLETE_STATE)
+    else // COMPLETE_STATE
     {
-        data.input_prompt = ui->output->toPlainText(); data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+        handleCompletion(data);
     }
 
     is_run = true; ui_state_pushing();
@@ -1047,4 +1095,5 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
     const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
 }
+
 

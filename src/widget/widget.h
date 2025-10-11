@@ -73,6 +73,10 @@ class Widget;
 }
 QT_END_NAMESPACE
 
+// Task dispatch for send flow
+enum class ConversationTask { ChatReply, Completion, ToolLoop };
+struct InputPack { QString text; QStringList images; QStringList wavs; };
+
 class Widget : public QWidget
 {
     Q_OBJECT
@@ -450,6 +454,13 @@ class Widget : public QWidget
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state
+    // Send-task helpers
+    ENDPOINT_DATA prepareEndpointData();
+    void beginSessionIfNeeded();
+    void collectUserInputs(InputPack &pack);
+    void handleChatReply(ENDPOINT_DATA &data, const InputPack &in);
+    void handleCompletion(ENDPOINT_DATA &data);
+    void handleToolLoop(ENDPOINT_DATA &data);
 
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);
