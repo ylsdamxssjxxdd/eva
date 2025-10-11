@@ -792,9 +792,7 @@ void Widget::onServerOutput(const QString &line)
         const QString l = line.toLower();
         static const QStringList badKeys = {
             QStringLiteral(" failed"), QStringLiteral("fatal"), QStringLiteral("segmentation fault"),
-            QStringLiteral("assertion failed"), QStringLiteral("panic"), QStringLiteral("unhandled"),
-            QStringLiteral("exception"), QStringLiteral("could not"), QStringLiteral("cannot "),
-            QStringLiteral("error:")};
+            QStringLiteral("assertion failed"),QStringLiteral("error:")};
         bool hit = false;
         for (const QString &k : badKeys)
         {

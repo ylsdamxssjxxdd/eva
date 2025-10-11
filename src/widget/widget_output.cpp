@@ -111,6 +111,7 @@ void Widget::appendRoleHeader(const QString &role)
     const QString r = role.trimmed().toLower();
     if (r == QStringLiteral("tool")) c = TOOL_BLUE;
     else if (r == QStringLiteral("think")) c = THINK_GRAY;
+    else if (r == QStringLiteral("assistant")) c = LCL_ORANGE;
     // Insert role label and a newline
     output_scroll(r, c);
     output_scroll(QString(DEFAULT_SPLITER), NORMAL_BLACK);
