@@ -661,8 +661,9 @@ void Widget::auto_save_user()
     settings.setValue("python", pythonExecutable); // python版本
     // 保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath); // 模型路径
-    settings.setValue("temp", ui_SETTINGS.temp);           // 温度
-    settings.setValue("repeat", ui_SETTINGS.repeat);       // 惩罚系数
+    // Persist core sampling params as strings only to avoid float drift on reload
+    settings.setValue("temp_str", QString::number(ui_SETTINGS.temp, 'f', 6));
+    settings.setValue("repeat_str", QString::number(ui_SETTINGS.repeat, 'f', 6));
     settings.setValue("top_k", ui_SETTINGS.top_k);         // top-k 采样
     settings.setValue("ngl", ui_SETTINGS.ngl);             // gpu负载层数
     settings.setValue("nthread", ui_SETTINGS.nthread);     // cpu线程数
@@ -673,7 +674,14 @@ void Widget::auto_save_user()
     // 保存隐藏设置
     settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); // 最大输出长度
     settings.setValue("hid_special", ui_SETTINGS.hid_special);
-    settings.setValue("hid_top_p", ui_SETTINGS.hid_top_p);
+    settings.setValue("hid_top_p_str", QString::number(ui_SETTINGS.hid_top_p, 'f', 6));
+    // Clean legacy percent keys and numeric keys to keep only string keys
+    settings.remove("hid_top_p_percent");
+    settings.remove("temp_percent");
+    settings.remove("repeat_percent");
+    settings.remove("temp");
+    settings.remove("repeat");
+    settings.remove("hid_top_p");
     settings.setValue("hid_batch", ui_SETTINGS.hid_batch);
     settings.setValue("hid_n_ubatch", ui_SETTINGS.hid_n_ubatch);
     settings.setValue("hid_use_mmap", ui_SETTINGS.hid_use_mmap);

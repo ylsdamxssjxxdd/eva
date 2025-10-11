@@ -6,6 +6,8 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QProcessEnvironment>
+#include <QtGlobal> // qRound/qBound
+#include <QLocale>  // C-locale parsing for numeric strings
 #include <QStandardPaths>
 #include <QStyleFactory>
 #include <climits>
@@ -376,6 +378,52 @@ int main(int argc, char *argv[])
         w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
         w.apis.api_key = w.api_key_LineEdit->text();
         w.apis.api_model = w.api_model_LineEdit->text();
+
+        // Migrate numeric keys -> string keys, then remove numeric/percent keys to keep only strings
+        {
+            // top_p
+            bool okS = false;
+            const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
+            const QString s = settings.value("hid_top_p_str", "").toString().trimmed();
+            const double strv = s.isEmpty() ? -1.0 : QLocale::c().toDouble(s, &okS);
+            const bool num_valid = (num > 0.0 && num <= 1.0);
+            const bool str_valid = okS && (strv > 0.0 && strv <= 1.0);
+            if (num_valid && (!str_valid || qAbs(num - strv) > 0.0005))
+            {
+                settings.setValue("hid_top_p_str", QString::number(num, 'f', 6));
+            }
+            settings.remove("hid_top_p");
+            settings.remove("hid_top_p_percent");
+
+            // temp
+            bool okTs = false;
+            const QString ts = settings.value("temp_str", "").toString().trimmed();
+            const double tsv = ts.isEmpty() ? -1.0 : QLocale::c().toDouble(ts, &okTs);
+            const double tnum = settings.value("temp", DEFAULT_TEMP).toDouble();
+            const bool tnum_valid = (tnum >= 0.0 && tnum <= 2.0); // UI maps 0~2
+            const bool tstr_valid = okTs && (tsv >= 0.0 && tsv <= 2.0);
+            if (tnum_valid && (!tstr_valid || qAbs(tnum - tsv) > 0.0005))
+            {
+                settings.setValue("temp_str", QString::number(tnum, 'f', 6));
+            }
+            settings.remove("temp");
+            settings.remove("temp_percent");
+
+            // repeat
+            bool okRs = false;
+            const QString rs = settings.value("repeat_str", "").toString().trimmed();
+            const double rsv = rs.isEmpty() ? -1.0 : QLocale::c().toDouble(rs, &okRs);
+            const double rnum = settings.value("repeat", DEFAULT_REPEAT).toDouble();
+            const bool rnum_valid = (rnum >= 0.0 && rnum <= 2.0);
+            const bool rstr_valid = okRs && (rsv >= 0.0 && rsv <= 2.0);
+            if (rnum_valid && (!rstr_valid || qAbs(rnum - rsv) > 0.0005))
+            {
+                settings.setValue("repeat_str", QString::number(rnum, 'f', 6));
+            }
+            settings.remove("repeat");
+            settings.remove("repeat_percent");
+            settings.sync();
+        }
         w.custom1_date_system = settings.value("custom1_date_system", "").toString();
         w.custom2_date_system = settings.value("custom2_date_system", "").toString();
         w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
@@ -399,14 +447,59 @@ int main(int argc, char *argv[])
         int devIdx = w.settings_ui->device_comboBox->findText(DeviceManager::userChoice());
         if (devIdx >= 0) w.settings_ui->device_comboBox->setCurrentIndex(devIdx);
 
-        w.settings_ui->repeat_slider->setValue(settings.value("repeat", DEFAULT_REPEAT).toFloat() * 100);
+        // Use string-first read to eliminate drift; fallback to numeric
+        {
+            double repeat = DEFAULT_REPEAT;
+            const QString repStr = settings.value("repeat_str", "").toString().trimmed();
+            bool ok = false;
+            if (!repStr.isEmpty())
+            {
+                repeat = QLocale::c().toDouble(repStr, &ok);
+                if (!ok) repeat = DEFAULT_REPEAT;
+            }
+            else
+            {
+                repeat = settings.value("repeat", DEFAULT_REPEAT).toDouble();
+            }
+            w.settings_ui->repeat_slider->setValue(qBound(0, qRound(repeat * 100.0), 200));
+        }
         w.settings_ui->nthread_slider->setValue(settings.value("nthread", w.ui_SETTINGS.nthread).toInt());
         w.settings_ui->nctx_slider->setValue(settings.value("nctx", DEFAULT_NCTX).toInt());
         w.settings_ui->ngl_slider->setValue(settings.value("ngl", DEFAULT_NGL).toInt());
-        w.settings_ui->temp_slider->setValue(settings.value("temp", DEFAULT_TEMP).toFloat() * 100);
+        {
+            double temp = DEFAULT_TEMP;
+            const QString tempStr = settings.value("temp_str", "").toString().trimmed();
+            bool ok = false;
+            if (!tempStr.isEmpty())
+            {
+                temp = QLocale::c().toDouble(tempStr, &ok);
+                if (!ok) temp = DEFAULT_TEMP;
+            }
+            else
+            {
+                temp = settings.value("temp", DEFAULT_TEMP).toDouble();
+            }
+            w.settings_ui->temp_slider->setValue(qBound(0, qRound(temp * 100.0), 100));
+        }
         w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
         // 采样：top_p（作为隐藏参数持久化；此处提供显式滑块以便 LINK 模式也可调整）
-        w.settings_ui->topp_slider->setValue(settings.value("hid_top_p", DEFAULT_TOP_P).toFloat() * 100);
+        {
+            // Prefer string value; then numeric; then legacy percent
+            bool ok = false;
+            const QString pStr = settings.value("hid_top_p_str", "").toString().trimmed();
+            const double strv = !pStr.isEmpty() ? QLocale::c().toDouble(pStr, &ok) : DEFAULT_TOP_P;
+            const bool str_valid = ok && (strv > 0.0 && strv <= 1.0);
+            const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
+            const bool num_valid = (num > 0.0 && num <= 1.0);
+            double topp;
+            if (str_valid) topp = strv;
+            else if (num_valid) topp = num;
+            else {
+                const int perc = settings.value("hid_top_p_percent", int(DEFAULT_TOP_P * 100)).toInt();
+                topp = qBound(0, perc, 100) / 100.0;
+            }
+            w.settings_ui->topp_slider->setValue(qBound(0, qRound(topp * 100.0), 100));
+        }
         w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
         w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
         w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
@@ -426,7 +519,22 @@ int main(int argc, char *argv[])
         // 初次启动强制赋予隐藏的设定值
         w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
         w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
-        w.ui_SETTINGS.hid_top_p = settings.value("hid_top_p", DEFAULT_TOP_P).toFloat();
+        // Keep hidden top_p in sync using string-first read (will be overwritten by get_set later)
+        {
+            // Same precedence as above: string > numeric > percent
+            bool ok = false;
+            const QString pStr = settings.value("hid_top_p_str", "").toString().trimmed();
+            const double strv = !pStr.isEmpty() ? QLocale::c().toDouble(pStr, &ok) : DEFAULT_TOP_P;
+            const bool str_valid = ok && (strv > 0.0 && strv <= 1.0);
+            const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
+            const bool num_valid = (num > 0.0 && num <= 1.0);
+            if (str_valid) w.ui_SETTINGS.hid_top_p = strv;
+            else if (num_valid) w.ui_SETTINGS.hid_top_p = num;
+            else {
+                const int perc = settings.value("hid_top_p_percent", int(DEFAULT_TOP_P * 100)).toInt();
+                w.ui_SETTINGS.hid_top_p = qBound(0, perc, 100) / 100.0;
+            }
+        }
         w.ui_SETTINGS.hid_batch = settings.value("hid_batch", DEFAULT_BATCH).toInt();
         w.ui_SETTINGS.hid_n_ubatch = settings.value("hid_n_ubatch", DEFAULT_UBATCH).toInt();
         w.ui_SETTINGS.hid_use_mmap = settings.value("hid_use_mmap", DEFAULT_USE_MMAP).toBool();

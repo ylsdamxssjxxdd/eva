@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QtGlobal>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -1004,10 +1005,20 @@ void Widget::on_set_clicked()
     }
     // 服务模式已移除
     // 展示最近一次设置值
-    settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100);
+    settings_ui->temp_slider->setValue(qRound(ui_SETTINGS.temp * 100.0));
+    settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
     settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
-    settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.00);
+    settings_ui->repeat_slider->setValue(qRound(ui_SETTINGS.repeat * 100.0));
+    settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
+    // Ensure top-k/top-p sliders reflect last confirmed settings on every open
+    settings_ui->topk_slider->setValue(ui_SETTINGS.top_k);
+    settings_ui->topp_slider->setValue(qRound(ui_SETTINGS.hid_top_p * 100.0));
+    {
+        const double val = settings_ui->topp_slider->value() / 100.0;
+        settings_ui->topp_label->setText("TOP_P " + QString::number(val));
+        settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1").arg(QString::number(val, 'f', 2)));
+    }
     settings_ui->lora_LineEdit->setText(ui_SETTINGS.lorapath);
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);

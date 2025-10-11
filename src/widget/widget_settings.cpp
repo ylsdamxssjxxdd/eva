@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include <QtGlobal>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -60,12 +61,12 @@ void Widget::set_SetDialog()
 
     // 温度控制
     settings_ui->temp_slider->setRange(0, 100); // 设置范围为1到99
-    settings_ui->temp_slider->setValue(ui_SETTINGS.temp * 100.0);
+    settings_ui->temp_slider->setValue(qRound(ui_SETTINGS.temp * 100.0));
     settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
     connect(settings_ui->temp_slider, &QSlider::valueChanged, this, &Widget::temp_change);
     // 重复惩罚控制
     settings_ui->repeat_slider->setRange(0, 200); // 设置范围
-    settings_ui->repeat_slider->setValue(ui_SETTINGS.repeat * 100.0);
+    settings_ui->repeat_slider->setValue(qRound(ui_SETTINGS.repeat * 100.0));
     settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
     connect(settings_ui->repeat_slider, &QSlider::valueChanged, this, &Widget::repeat_change);
     // TOP_K 控制（采样）
@@ -75,7 +76,7 @@ void Widget::set_SetDialog()
     connect(settings_ui->topk_slider, &QSlider::valueChanged, this, &Widget::topk_change);
     // TOP_P 控制（采样）
     settings_ui->topp_slider->setRange(0, 100);
-    settings_ui->topp_slider->setValue(ui_SETTINGS.hid_top_p * 100.0);
+    settings_ui->topp_slider->setValue(qRound(ui_SETTINGS.hid_top_p * 100.0));
     settings_ui->topp_label->setText("TOP_P " + QString::number(settings_ui->topp_slider->value() / 100.0));
     // 提示：核采样阈值（nucleus sampling）范围 0.00–1.00
     settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
@@ -231,11 +232,9 @@ void Widget::settings_ui_confirm_button_clicked()
 // 设置选项卡取消按钮响应
 void Widget::settings_ui_cancel_button_clicked()
 {
+    // Cancel should not mutate any in-memory settings or persist to disk.
+    // Simply close the dialog and discard any slider edits.
     settings_dialog->close();
-    if (!is_load) // 如果没有装载模型则装载
-    {
-        set_set();
-    }
 }
 
 // 设置用户设置内容
