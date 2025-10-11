@@ -400,7 +400,7 @@ void Widget::collectUserInputs(InputPack &pack)
 {
     pack.text.clear();
     if (tool_result.isEmpty())
-    {
+    {   currentTask_ = ConversationTask::ToolLoop; logCurrentTask(currentTask_);
         pack.text = ui->input->textEdit->toPlainText().toUtf8().data();
         ui->input->textEdit->clear();
     }
@@ -493,12 +493,30 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     is_run = true; ui_state_pushing();
 }
 
+void Widget::logCurrentTask(ConversationTask task)
+{
+    QString name;
+    switch (task)
+    {
+    case ConversationTask::ChatReply:   name = QStringLiteral("chat-reply"); break;
+    case ConversationTask::Completion:  name = QStringLiteral("completion"); break;
+    case ConversationTask::ToolLoop:    name = QStringLiteral("tool-loop"); break;
+    }
+    // Prefer i18n key if present
+    const QString label = jtr("current task");
+    if (!label.isEmpty())
+        reflash_state(QStringLiteral("ui:") + label + QStringLiteral(" ") + name, SIGNAL_SIGNAL);
+    else
+        reflash_state(QStringLiteral("ui:current task ") + name, SIGNAL_SIGNAL);
+}
+
 void Widget::on_send_clicked()
 {
     // Reset headers and kv tracker
     turnThinkHeaderPrinted_ = false;
     turnAssistantHeaderPrinted_ = false;
     turnThinkActive_ = false;
+    sawPromptPast_ = false; sawFinalPast_ = false;
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
@@ -511,21 +529,25 @@ void Widget::on_send_clicked()
 
     if (!tool_result.isEmpty())
     {
+        currentTask_ = ConversationTask::ToolLoop; logCurrentTask(currentTask_);
         handleToolLoop(data);
         return;
     }
 
     if (ui_state == CHAT_STATE)
     {
+        currentTask_ = ConversationTask::ChatReply; logCurrentTask(currentTask_);
         InputPack in; collectUserInputs(in);
         handleChatReply(data, in);
     }
-    else // COMPLETE_STATE
+    else
     {
+        currentTask_ = ConversationTask::Completion; logCurrentTask(currentTask_);
         handleCompletion(data);
     }
 
-    is_run = true; ui_state_pushing();
+    is_run = true;
+    ui_state_pushing();
 }
 void Widget::recv_pushover()
 {
@@ -1095,5 +1117,9 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
     const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
 }
+
+
+
+
 
 

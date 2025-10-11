@@ -152,6 +152,7 @@ class Widget : public QWidget
     bool is_run = false;             // 模型运行标签,方便设置界面的状态
     EVA_MODE ui_mode = LOCAL_MODE;   // 机体的模式
     EVA_STATE ui_state = CHAT_STATE; // 机体的状态
+    ConversationTask currentTask_ = ConversationTask::ChatReply;  // current send task
 
     QString history_lorapath = "";
     QString history_mmprojpath = "";
@@ -177,6 +178,7 @@ class Widget : public QWidget
     bool turnThinkHeaderPrinted_ = false;  // printed think header this turn
     bool turnAssistantHeaderPrinted_ = false; // printed assistant header this turn
     bool turnThinkActive_ = false;        // streaming: inside <think> section
+    bool sawPromptPast_ = false; // saw prompt done n_past -> use as turn baseline
     bool sawFinalPast_ = false; // saw stop processing n_past -> prefer this over totals
     int ui_maxngl = 0;          // 模型可卸载到gpu上的层数
     bool load_percent_tag;
@@ -461,6 +463,7 @@ class Widget : public QWidget
     void handleChatReply(ENDPOINT_DATA &data, const InputPack &in);
     void handleCompletion(ENDPOINT_DATA &data);
     void handleToolLoop(ENDPOINT_DATA &data);
+    void logCurrentTask(ConversationTask task);
 
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);

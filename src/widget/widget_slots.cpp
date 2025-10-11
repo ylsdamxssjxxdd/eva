@@ -751,13 +751,21 @@ void Widget::updateKvBarUi()
 void Widget::recv_kv_from_net(int usedTokens)
 {
     // Approximate KV usage accumulation during streaming tokens from xNet.
-    // In LINK mode, we don't have local server logs; use this as fallback.
     if (!turnActive_) return;
-    kvStreamedTurn_ = qMax(0, usedTokens); // count observed streamed chunks as tokens
-    // For both local and link, keep a running approximation; local will be corrected by server logs later
+    kvStreamedTurn_ = qMax(0, usedTokens);
+    if (ui_mode == LINK_MODE)
+    {
+        // In LINK mode, we do not have server logs; base on turn start baseline
+        kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+        updateKvBarUi();
+        return;
+    }
+    // LOCAL mode: apply only after server reported prompt baseline (prompt done)
+    if (!sawPromptPast_) return;
     kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
     updateKvBarUi();
 }
+
 
 // server-assigned slot id -> persist and reuse for KV cache efficiency
 void Widget::onSlotAssigned(int slotId)
@@ -916,7 +924,6 @@ void Widget::onServerOutput(const QString &line)
         const QString fmt = mFmt.captured(1).trimmed();
         // reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
     }
-
     // 3) total tokens (for KV correction)
     static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
     QRegularExpressionMatch m3 = reTotal.match(line);
@@ -924,18 +931,22 @@ void Widget::onServerOutput(const QString &line)
     {
         const int totalTokens = m3.captured(2).toInt();
         // Use total tokens to correct current slot KV usage for this turn
-        // 优先级：如果已看到 stop processing 的 n_past，则不再用 total 覆盖
-        kvStreamedTurn_ = totalTokens; // better approximation than chunk count
-        if (!sawFinalPast_)
+        // 本地模式：提示完成后（sawPromptPast_）才基于基线增量更新；避免回跳到上一轮
+        kvStreamedTurn_ = totalTokens;
+        if (ui_mode == LINK_MODE)
+        {
+            kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+            updateKvBarUi();
+        }
+        else if (sawPromptPast_ && !sawFinalPast_)
         {
             kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
             updateKvBarUi();
         }
     }
 
-    // 4) prompt done / progress / stop processing -> correct kvUsed_ from n_past immediately
+    // 4) prompt done /stop processing -> correct kvUsed_ from n_past immediately
     static QRegularExpression rePromptDone("prompt\\s+done,\\s*n_past\\s*=\\s*(\\d+)");
-    static QRegularExpression reProgress("prompt\\s+processing\\s+progress,\\s*n_past\\s*=\\s*(\\d+)");
     static QRegularExpression reStop("stop\\s+processing.*n_past\\s*=\\s*(\\d+)");
     QRegularExpressionMatch mPD = rePromptDone.match(line);
     if (mPD.hasMatch())
@@ -945,17 +956,9 @@ void Widget::onServerOutput(const QString &line)
         if (ok)
         {
             kvUsed_ = qMax(0, past);
-            updateKvBarUi();
-        }
-    }
-    QRegularExpressionMatch mProg = reProgress.match(line);
-    if (mProg.hasMatch())
-    {
-        bool ok = false;
-        int past = mProg.captured(1).toInt(&ok);
-        if (ok)
-        {
-            kvUsed_ = qMax(0, past);
+            kvUsedBeforeTurn_ = qMax(0, past);
+            kvStreamedTurn_ = 0;
+            sawPromptPast_ = true;
             updateKvBarUi();
         }
     }
@@ -1000,3 +1003,6 @@ void Widget::onServerStartFailed(const QString &reason)
     if (ui && ui->set) ui->set->setEnabled(true);
     if (ui && ui->date) ui->date->setEnabled(true);
 }
+
+
+
