@@ -16,7 +16,8 @@ void Widget::set_api()
 
     // 获取设置值
     // Sanitize endpoint/key/model: strip all whitespace to avoid mistakes
-    auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
+    auto sanitize = [](const QString &s)
+    { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
     QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
     // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
     {
@@ -24,9 +25,12 @@ void Widget::set_api()
         QString host = u.host().toLower();
         QString scheme = u.scheme().toLower();
         const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
-        if (scheme.isEmpty()) {
+        if (scheme.isEmpty())
+        {
             u.setScheme(isLocal ? "http" : "https");
-        } else if (scheme == "http" && !isLocal) {
+        }
+        else if (scheme == "http" && !isLocal)
+        {
             u.setScheme("https");
         }
         clean_endpoint = u.toString(QUrl::RemoveFragment);
@@ -71,7 +75,17 @@ void Widget::set_api()
 
     emit ui2net_apis(apis);
     ui->output->clear();
-    appendRoleHeader(QStringLiteral("system")); reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+    appendRoleHeader(QStringLiteral("system"));
+    reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+    {
+        int __idx = recordCreate(RecordRole::System);
+        recordAppendText(__idx, ui_DATES.date_prompt);
+        if (!ui_messagesArray.isEmpty())
+        {
+            int mi = ui_messagesArray.size() - 1;
+            recordEntries_[__idx].msgIndex = mi;
+        }
+    }
     // 构造系统指令
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
@@ -138,6 +152,3 @@ void Widget::change_api_dialog(bool enable)
         settings_ui->backend_box->setVisible(enable);
     }
 }
-
-
-

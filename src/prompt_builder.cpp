@@ -119,23 +119,25 @@ QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
     // Ensure first message is the system prompt
     if (out.isEmpty())
     {
-        QJsonObject sys; sys.insert("role", systemRole); sys.insert("content", systemPrompt);
+        QJsonObject sys;
+        sys.insert("role", systemRole);
+        sys.insert("content", systemPrompt);
         out.append(sys);
         return out;
     }
     const QJsonObject first = out.at(0).toObject();
     if (first.value("role").toString() != systemRole)
     {
-        QJsonObject sys; sys.insert("role", systemRole); sys.insert("content", systemPrompt);
-        QJsonArray fixed; fixed.append(sys); for (const auto &v2 : out) fixed.append(v2);
+        QJsonObject sys;
+        sys.insert("role", systemRole);
+        sys.insert("content", systemPrompt);
+        QJsonArray fixed;
+        fixed.append(sys);
+        for (const auto &v2 : out) fixed.append(v2);
         return fixed;
     }
 
     return out;
 }
 
-
 } // namespace promptx
-
-
-

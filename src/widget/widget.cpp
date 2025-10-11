@@ -3,19 +3,24 @@
 #include "widget.h"
 
 #include "ui_widget.h"
-#include <QFile>
-#include <QFileInfo>
 #include <QDateTime>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QRegularExpression>
-#include <QtGlobal>
+#include <QtGlobal>`r`n#include <QDialog>`r`n#include <QVBoxLayout>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
 {
     //---------------初始化ui--------------
     ui->setupUi(this);
+    if (ui->recordBar)
+    {
+        connect(ui->recordBar, &RecordBar::nodeClicked, this, &Widget::onRecordClicked);
+        connect(ui->recordBar, &RecordBar::nodeDoubleClicked, this, &Widget::onRecordDoubleClicked);
+    }
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
     // Default engineer workdir under application directory
@@ -417,7 +422,8 @@ void Widget::collectUserInputs(InputPack &pack)
         {
             const QString old = monitorFrames_.front().path;
             monitorFrames_.pop_front();
-            QFile f(old); if (f.exists()) f.remove();
+            QFile f(old);
+            if (f.exists()) f.remove();
         }
         for (const auto &mf : monitorFrames_) pack.images.append(mf.path);
     }
@@ -444,37 +450,86 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         QJsonArray contentArray;
         if (!in.text.isEmpty())
         {
-            QJsonObject textMessage; textMessage.insert("type", "text"); textMessage.insert("text", in.text);
+            QJsonObject textMessage;
+            textMessage.insert("type", "text");
+            textMessage.insert("text", in.text);
             contentArray.append(textMessage);
         }
         for (int i = 0; i < in.images.size(); ++i)
         {
-            QFile imageFile(in.images[i]); if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
-            QByteArray imageData = imageFile.readAll(); QByteArray base64Data = imageData.toBase64(); QString base64String = QString("data:image/jpeg;base64,") + base64Data;
-            QJsonObject imageObject; imageObject["type"] = "image_url"; QJsonObject imageUrlObject; imageUrlObject["url"] = base64String; imageObject["image_url"] = imageUrlObject; contentArray.append(imageObject);
+            QFile imageFile(in.images[i]);
+            if (!imageFile.open(QIODevice::ReadOnly))
+            {
+                qDebug() << "Failed to open image file";
+                continue;
+            }
+            QByteArray imageData = imageFile.readAll();
+            QByteArray base64Data = imageData.toBase64();
+            QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+            QJsonObject imageObject;
+            imageObject["type"] = "image_url";
+            QJsonObject imageUrlObject;
+            imageUrlObject["url"] = base64String;
+            imageObject["image_url"] = imageUrlObject;
+            contentArray.append(imageObject);
             showImages({in.images[i]});
         }
         message["content"] = contentArray;
-        ui_messagesArray.append(message); if (history_) history_->appendMessage(message);
+        ui_messagesArray.append(message);
+        if (history_) history_->appendMessage(message);
     }
     if (!in.wavs.isEmpty())
     {
-        QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
+        QJsonObject message;
+        message["role"] = DEFAULT_USER_NAME;
+        QJsonArray contentArray;
         for (int i = 0; i < in.wavs.size(); ++i)
         {
-            QString filePath = in.wavs[i]; QFile audioFile(filePath); if (!audioFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open audio file:" << filePath; continue; }
-            QByteArray audioData = audioFile.readAll(); QByteArray base64Data = audioData.toBase64();
-            QFileInfo fileInfo(filePath); QString extension = fileInfo.suffix().toLower();
-            QString mimeType = "audio/mpeg"; if (extension == "wav") mimeType = "audio/wav"; else if (extension == "ogg") mimeType = "audio/ogg"; else if (extension == "flac") mimeType = "audio/flac";
+            QString filePath = in.wavs[i];
+            QFile audioFile(filePath);
+            if (!audioFile.open(QIODevice::ReadOnly))
+            {
+                qDebug() << "Failed to open audio file:" << filePath;
+                continue;
+            }
+            QByteArray audioData = audioFile.readAll();
+            QByteArray base64Data = audioData.toBase64();
+            QFileInfo fileInfo(filePath);
+            QString extension = fileInfo.suffix().toLower();
+            QString mimeType = "audio/mpeg";
+            if (extension == "wav")
+                mimeType = "audio/wav";
+            else if (extension == "ogg")
+                mimeType = "audio/ogg";
+            else if (extension == "flac")
+                mimeType = "audio/flac";
             QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
-            QJsonObject audioObject; audioObject["type"] = "audio_url"; QJsonObject audioUrlObject; audioUrlObject["url"] = base64String; audioObject["audio_url"] = audioUrlObject; contentArray.append(audioObject);
+            QJsonObject audioObject;
+            audioObject["type"] = "audio_url";
+            QJsonObject audioUrlObject;
+            audioUrlObject["url"] = base64String;
+            audioObject["audio_url"] = audioUrlObject;
+            contentArray.append(audioObject);
             showImages({":/logo/wav.png"});
         }
-        if (!contentArray.isEmpty()) { message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message); }
+        if (!contentArray.isEmpty())
+        {
+            message["content"] = contentArray;
+            ui_messagesArray.append(message);
+            if (history_) history_->appendMessage(message);
+        }
     }
     data.messagesArray = ui_messagesArray;
-    appendRoleHeader(QStringLiteral("user")); reflash_output(in.text, 0, NORMAL_BLACK);
-    data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+    appendRoleHeader(QStringLiteral("user"));
+    reflash_output(in.text, 0, NORMAL_BLACK);
+    {
+        int __idx = recordCreate(RecordRole::User);
+        recordAppendText(__idx, in.text);
+        if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
+    }
+    data.n_predict = ui_SETTINGS.hid_npredict;
+    emit ui2net_data(data);
+    emit ui2net_push();
     if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) monitorFrames_.clear();
 }
 
@@ -482,19 +537,31 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
 void Widget::handleCompletion(ENDPOINT_DATA &data)
 {
     data.input_prompt = ui->output->toPlainText();
-    data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+    data.n_predict = ui_SETTINGS.hid_npredict;
+    emit ui2net_data(data);
+    emit ui2net_push();
 }
 
 // Handle tool loop: append tool message and schedule a continue tick
 void Widget::handleToolLoop(ENDPOINT_DATA &data)
 {
     Q_UNUSED(data);
-    QJsonObject roleMessage; roleMessage.insert("role", QStringLiteral("tool")); roleMessage.insert("content", tool_result);
-    ui_messagesArray.append(roleMessage); if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
-    appendRoleHeader(QStringLiteral("tool")); reflash_output(tool_result, 0, TOOL_BLUE);
+    QJsonObject roleMessage;
+    roleMessage.insert("role", QStringLiteral("tool"));
+    roleMessage.insert("content", tool_result);
+    ui_messagesArray.append(roleMessage);
+    if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+    appendRoleHeader(QStringLiteral("tool"));
+    reflash_output(tool_result, 0, TOOL_BLUE);
+    {
+        int __idx = recordCreate(RecordRole::Tool);
+        recordAppendText(__idx, tool_result);
+        if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
+    }
     tool_result = "";
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
-    is_run = true; ui_state_pushing();
+    is_run = true;
+    ui_state_pushing();
 }
 
 void Widget::logCurrentTask(ConversationTask task)
@@ -502,9 +569,9 @@ void Widget::logCurrentTask(ConversationTask task)
     QString name;
     switch (task)
     {
-    case ConversationTask::ChatReply:   name = QStringLiteral("chat-reply"); break;
-    case ConversationTask::Completion:  name = QStringLiteral("completion"); break;
-    case ConversationTask::ToolLoop:    name = QStringLiteral("tool-loop"); break;
+    case ConversationTask::ChatReply: name = QStringLiteral("chat-reply"); break;
+    case ConversationTask::Completion: name = QStringLiteral("completion"); break;
+    case ConversationTask::ToolLoop: name = QStringLiteral("tool-loop"); break;
     }
     // Prefer i18n key if present
     const QString label = jtr("current task");
@@ -520,7 +587,8 @@ void Widget::on_send_clicked()
     turnThinkHeaderPrinted_ = false;
     turnAssistantHeaderPrinted_ = false;
     turnThinkActive_ = false;
-    sawPromptPast_ = false; sawFinalPast_ = false;
+    sawPromptPast_ = false;
+    sawFinalPast_ = false;
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
@@ -533,20 +601,24 @@ void Widget::on_send_clicked()
 
     if (!tool_result.isEmpty())
     {
-        currentTask_ = ConversationTask::ToolLoop; logCurrentTask(currentTask_);
+        currentTask_ = ConversationTask::ToolLoop;
+        logCurrentTask(currentTask_);
         handleToolLoop(data);
         return;
     }
 
     if (ui_state == CHAT_STATE)
     {
-        currentTask_ = ConversationTask::ChatReply; logCurrentTask(currentTask_);
-        InputPack in; collectUserInputs(in);
+        currentTask_ = ConversationTask::ChatReply;
+        logCurrentTask(currentTask_);
+        InputPack in;
+        collectUserInputs(in);
         handleChatReply(data, in);
     }
     else
     {
-        currentTask_ = ConversationTask::Completion; logCurrentTask(currentTask_);
+        currentTask_ = ConversationTask::Completion;
+        logCurrentTask(currentTask_);
         handleCompletion(data);
     }
 
@@ -580,6 +652,7 @@ void Widget::recv_pushover()
         thinkMsg.insert("content", reasoningText);
         ui_messagesArray.append(thinkMsg);
         if (history_ && ui_state == CHAT_STATE) history_->appendMessage(thinkMsg);
+        if (currentThinkIndex_ >= 0) { recordEntries_[currentThinkIndex_].msgIndex = ui_messagesArray.size() - 1; }
     }
     QJsonObject roleMessage;
     roleMessage.insert("role", DEFAULT_MODEL_NAME);
@@ -589,6 +662,12 @@ void Widget::recv_pushover()
     {
         history_->appendMessage(roleMessage);
     }
+    if (currentAssistantIndex_ >= 0)
+    {
+        recordEntries_[currentAssistantIndex_].msgIndex = ui_messagesArray.size() - 1;
+    }
+    currentThinkIndex_ = -1;
+    currentAssistantIndex_ = -1;
     temp_assistant_history = "";
 
     if (ui_state == COMPLETE_STATE) // 补完模式的回答只输出一次
@@ -831,7 +910,8 @@ void Widget::on_reset_clicked()
     // Note: QTextEdit takes ownership of the previous document and will
     // delete it; do not manually delete the old one here.
     if (ui_state == CHAT_STATE) resetOutputDocument();
-    ui_state_normal(); // 待机界面状态
+    ui_state_normal();
+    recordClear(); // 待机界面状态
 
     // 请求式统一处理（本地/远端）
     ui_messagesArray = QJsonArray(); // 清空
@@ -842,7 +922,17 @@ void Widget::on_reset_clicked()
     ui_messagesArray.append(systemMessage);
     if (ui_state == CHAT_STATE)
     {
-        appendRoleHeader(QStringLiteral("system")); reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+        appendRoleHeader(QStringLiteral("system"));
+        reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+        {
+            int __idx = recordCreate(RecordRole::System);
+            recordAppendText(__idx, ui_DATES.date_prompt);
+            if (!ui_messagesArray.isEmpty())
+            {
+                int mi = ui_messagesArray.size() - 1;
+                recordEntries_[__idx].msgIndex = mi;
+            }
+        }
     }
 
     // Do not record reset into history; clear current session only
@@ -1034,6 +1124,7 @@ void Widget::on_set_clicked()
 void Widget::restoreSessionById(const QString &sessionId)
 {
     if (!history_) return;
+    recordClear();
     SessionMeta meta;
     QJsonArray msgs;
     if (!history_->loadSession(sessionId, meta, msgs))
@@ -1055,46 +1146,73 @@ void Widget::restoreSessionById(const QString &sessionId)
         const QString role = m.value("role").toString();
         QString content = m.value("content").toString();
         content.replace(QString(DEFAULT_THINK_BEGIN), QString());
-        content.replace(QString(DEFAULT_THINK_END),   QString());
+        content.replace(QString(DEFAULT_THINK_END), QString());
         if (role == QStringLiteral("system"))
         {
+            int __rec_idx_sys = recordCreate(RecordRole::System);
             appendRoleHeader(QStringLiteral("system"));
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o; o.insert("role", QStringLiteral("system")); o.insert("content", content);
+            recordAppendText(__rec_idx_sys, content);
+            QJsonObject o;
+            o.insert("role", QStringLiteral("system"));
+            o.insert("content", content);
             ui_messagesArray.append(o);
+            recordEntries_[__rec_idx_sys].msgIndex = ui_messagesArray.size() - 1;
         }
         else if (role == QStringLiteral("user"))
         {
+            int __rec_idx_user = recordCreate(RecordRole::User);
             appendRoleHeader(QStringLiteral("user"));
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o; o.insert("role", QStringLiteral("user")); o.insert("content", content);
+            recordAppendText(__rec_idx_user, content);
+            QJsonObject o;
+            o.insert("role", QStringLiteral("user"));
+            o.insert("content", content);
             ui_messagesArray.append(o);
+            recordEntries_[__rec_idx_user].msgIndex = ui_messagesArray.size() - 1;
         }
         else if (role == QStringLiteral("think"))
         {
+            int __rec_idx_think = recordCreate(RecordRole::Think);
             appendRoleHeader(QStringLiteral("think"));
             reflash_output(content, 0, THINK_GRAY);
-            QJsonObject o; o.insert("role", QStringLiteral("think")); o.insert("content", content);
+            recordAppendText(__rec_idx_think, content);
+            QJsonObject o;
+            o.insert("role", QStringLiteral("think"));
+            o.insert("content", content);
             ui_messagesArray.append(o);
+            recordEntries_[__rec_idx_think].msgIndex = ui_messagesArray.size() - 1;
         }
         else if (role == QStringLiteral("tool"))
         {
+            int __rec_idx_tool = recordCreate(RecordRole::Tool);
             appendRoleHeader(QStringLiteral("tool"));
             reflash_output(content, 0, TOOL_BLUE);
-            QJsonObject o; o.insert("role", QStringLiteral("tool")); o.insert("content", content);
+            recordAppendText(__rec_idx_tool, content);
+            QJsonObject o;
+            o.insert("role", QStringLiteral("tool"));
+            o.insert("content", content);
             ui_messagesArray.append(o);
+            recordEntries_[__rec_idx_tool].msgIndex = ui_messagesArray.size() - 1;
         }
         else if (role == QStringLiteral("assistant"))
         {
+            int __rec_idx_ass = recordCreate(RecordRole::Assistant);
             appendRoleHeader(QStringLiteral("assistant"));
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o; o.insert("role", QStringLiteral("assistant")); o.insert("content", content);
+            recordAppendText(__rec_idx_ass, content);
+            QJsonObject o;
+            o.insert("role", QStringLiteral("assistant"));
+            o.insert("content", content);
             ui_messagesArray.append(o);
+            recordEntries_[__rec_idx_ass].msgIndex = ui_messagesArray.size() - 1;
         }
         else
         {
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o; o.insert("role", role); o.insert("content", content);
+            QJsonObject o;
+            o.insert("role", role);
+            o.insert("content", content);
             ui_messagesArray.append(o);
         }
     }
@@ -1119,8 +1237,6 @@ void Widget::restoreSessionById(const QString &sessionId)
     currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }
 
-
-
 // Receive final per-turn speeds from xNet timings and print a single UI line
 void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
 {
@@ -1132,8 +1248,117 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
 }
 
+// ===== Record Bar helpers and slots =====
+int Widget::recordCreate(RecordRole role)
+{
+    RecordEntry e;
+    e.role = role;
+    e.docFrom = outputDocEnd();
+    e.docTo = e.docFrom;
+    e.text.clear();
+    e.msgIndex = -1;
+    recordEntries_.push_back(e);
+    const int idx = recordEntries_.size() - 1;
+    if (ui->recordBar) ui->recordBar->addNode(chipColorForRole(role), QString());
+    return idx;
+}
 
+void Widget::recordAppendText(int index, const QString &text)
+{
+    if (index < 0 || index >= recordEntries_.size()) return;
+    recordEntries_[index].text += text;
+    recordEntries_[index].docTo = outputDocEnd();
+    QString tip = recordEntries_[index].text;
+    if (tip.size() > 600) tip = tip.left(600) + "...";
+    if (ui->recordBar) ui->recordBar->updateNode(index, tip);
+}
 
+void Widget::recordClear()
+{
+    recordEntries_.clear();
+    currentThinkIndex_ = -1;
+    currentAssistantIndex_ = -1;
+    if (ui->recordBar) ui->recordBar->clearNodes();
+}
 
+void Widget::gotoRecord(int index)
+{
+    if (index < 0 || index >= recordEntries_.size()) return;
+    const auto &e = recordEntries_[index];
+    QTextCursor c(ui->output->document());
+    c.setPosition(qBound(0, e.docFrom, outputDocEnd()));
+    c.setPosition(qBound(0, e.docTo, outputDocEnd()), QTextCursor::KeepAnchor);
+    ui->output->setTextCursor(c);
+    ui->output->ensureCursorVisible();
+    ui->output->setFocus();
+}
 
+void Widget::replaceOutputRangeColored(int from, int to, const QString &text, QColor color)
+{
+    QTextCursor c(ui->output->document());
+    const int endBound = outputDocEnd();
+    from = qBound(0, from, endBound);
+    to = qBound(0, to, endBound);
+    if (to < from) std::swap(to, from);
+    c.setPosition(from);
+    c.setPosition(to, QTextCursor::KeepAnchor);
+    c.removeSelectedText();
+    QTextCharFormat fmt;
+    fmt.setForeground(QBrush(color));
+    c.mergeCharFormat(fmt);
+    c.insertText(text);
+    QTextCharFormat fmt0;
+    c.mergeCharFormat(fmt0);
+}
 
+void Widget::onRecordClicked(int index)
+{
+    gotoRecord(index);
+}
+
+void Widget::onRecordDoubleClicked(int index)
+{
+    if (index < 0 || index >= recordEntries_.size()) return;
+    auto &e = recordEntries_[index];
+    QDialog dlg(this);
+    dlg.setWindowTitle(jtr("edit"));
+    dlg.setModal(true);
+    QVBoxLayout *lay = new QVBoxLayout(&dlg);
+    QTextEdit *ed = new QTextEdit(&dlg);
+    ed->setPlainText(e.text);
+    ed->setMinimumSize(QSize(480, 280));
+    QDialogButtonBox *box = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+    lay->addWidget(ed);
+    lay->addWidget(box);
+    connect(box, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(box, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+    if (dlg.exec() != QDialog::Accepted) return;
+    const QString newText = ed->toPlainText();
+    if (newText == e.text) return;
+    replaceOutputRangeColored(e.docFrom, e.docTo, newText, textColorForRole(e.role));
+    const int newEnd = e.docFrom + newText.size();
+    const int delta = newEnd - e.docTo;
+    e.text = newText;
+    e.docTo = newEnd;
+    for (int i = index + 1; i < recordEntries_.size(); ++i)
+    {
+        recordEntries_[i].docFrom += delta;
+        recordEntries_[i].docTo += delta;
+    }
+    QString tip = newText;
+    if (tip.size() > 600) tip = tip.left(600) + "...";
+    if (ui->recordBar) ui->recordBar->updateNode(index, tip);
+    if (e.msgIndex >= 0 && e.msgIndex < ui_messagesArray.size())
+    {
+        QJsonObject m = ui_messagesArray[e.msgIndex].toObject();
+        m.insert("content", newText);
+        ui_messagesArray[e.msgIndex] = m;
+    }
+}
+
+int Widget::outputDocEnd() const
+{
+    QTextCursor c(ui->output->document());
+    c.movePosition(QTextCursor::End);
+    return c.position();
+}

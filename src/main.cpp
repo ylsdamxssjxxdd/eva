@@ -5,11 +5,11 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QLocale> // C-locale parsing for numeric strings
 #include <QProcessEnvironment>
-#include <QtGlobal> // qRound/qBound
-#include <QLocale>  // C-locale parsing for numeric strings
 #include <QStandardPaths>
 #include <QStyleFactory>
+#include <QtGlobal> // qRound/qBound
 #include <climits>
 #include <functional>
 #include <locale>
@@ -492,9 +492,12 @@ int main(int argc, char *argv[])
             const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
             const bool num_valid = (num > 0.0 && num <= 1.0);
             double topp;
-            if (str_valid) topp = strv;
-            else if (num_valid) topp = num;
-            else {
+            if (str_valid)
+                topp = strv;
+            else if (num_valid)
+                topp = num;
+            else
+            {
                 const int perc = settings.value("hid_top_p_percent", int(DEFAULT_TOP_P * 100)).toInt();
                 topp = qBound(0, perc, 100) / 100.0;
             }
@@ -528,9 +531,12 @@ int main(int argc, char *argv[])
             const bool str_valid = ok && (strv > 0.0 && strv <= 1.0);
             const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
             const bool num_valid = (num > 0.0 && num <= 1.0);
-            if (str_valid) w.ui_SETTINGS.hid_top_p = strv;
-            else if (num_valid) w.ui_SETTINGS.hid_top_p = num;
-            else {
+            if (str_valid)
+                w.ui_SETTINGS.hid_top_p = strv;
+            else if (num_valid)
+                w.ui_SETTINGS.hid_top_p = num;
+            else
+            {
                 const int perc = settings.value("hid_top_p_percent", int(DEFAULT_TOP_P * 100)).toInt();
                 w.ui_SETTINGS.hid_top_p = qBound(0, perc, 100) / 100.0;
             }

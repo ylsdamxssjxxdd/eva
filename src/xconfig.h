@@ -633,7 +633,4 @@ const QColor NORMAL_BLACK(0, 0, 0);       // 黑色
 const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
 
-#endif XCONFIG_H
-
-
-
+#endif // XCONFIG_H

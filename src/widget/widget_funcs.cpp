@@ -664,9 +664,9 @@ void Widget::auto_save_user()
     // Persist core sampling params as strings only to avoid float drift on reload
     settings.setValue("temp_str", QString::number(ui_SETTINGS.temp, 'f', 6));
     settings.setValue("repeat_str", QString::number(ui_SETTINGS.repeat, 'f', 6));
-    settings.setValue("top_k", ui_SETTINGS.top_k);         // top-k 采样
-    settings.setValue("ngl", ui_SETTINGS.ngl);             // gpu负载层数
-    settings.setValue("nthread", ui_SETTINGS.nthread);     // cpu线程数
+    settings.setValue("top_k", ui_SETTINGS.top_k);     // top-k 采样
+    settings.setValue("ngl", ui_SETTINGS.ngl);         // gpu负载层数
+    settings.setValue("nthread", ui_SETTINGS.nthread); // cpu线程数
     settings.setValue("nctx", ui_SETTINGS.nctx);
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath); // 视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);     // lora
@@ -1050,4 +1050,3 @@ void Widget::openHistoryManager()
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
-

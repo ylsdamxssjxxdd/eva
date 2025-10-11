@@ -23,10 +23,10 @@ QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
 
 // Backward-compatible overload: 5-parameter wrapper calls 6-parameter version with tool role = "tool"
 inline QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
-                                const QString &systemPrompt,
-                                const QString &systemRole,
-                                const QString &userRole,
-                                const QString &asstRole)
+                                       const QString &systemPrompt,
+                                       const QString &systemRole,
+                                       const QString &userRole,
+                                       const QString &asstRole)
 {
     return buildOaiChatMessages(uiMessages, systemPrompt, systemRole, userRole, asstRole, QStringLiteral("tool"));
 }

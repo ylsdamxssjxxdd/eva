@@ -62,8 +62,9 @@
 #include "../utils/devicemanager.h" // backend runtime detection / selection
 #include "../utils/doubleqprogressbar.h"
 #include "../utils/history_store.h" // per-session history persistence
-#include "../xbackend.h"            // local llama.cpp server manager
-#include "../xconfig.h"             // ui和bot都要导入的共有配置
+#include "../utils/recordbar.h"
+#include "../xbackend.h" // local llama.cpp server manager
+#include "../xconfig.h"  // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 
 QT_BEGIN_NAMESPACE
@@ -74,8 +75,18 @@ class Widget;
 QT_END_NAMESPACE
 
 // Task dispatch for send flow
-enum class ConversationTask { ChatReply, Completion, ToolLoop };
-struct InputPack { QString text; QStringList images; QStringList wavs; };
+enum class ConversationTask
+{
+    ChatReply,
+    Completion,
+    ToolLoop
+};
+struct InputPack
+{
+    QString text;
+    QStringList images;
+    QStringList wavs;
+};
 
 class Widget : public QWidget
 {
@@ -146,13 +157,13 @@ class Widget : public QWidget
     QMap<QString, EVA_DATES> date_map; // 约定模板
     QString custom1_date_system;
     QString custom2_date_system;
-    void preLoad();                  // 装载前动作
-    bool is_load = false;            // 模型装载标签
-    bool is_load_play_over = false;  // 模型装载动画结束后
-    bool is_run = false;             // 模型运行标签,方便设置界面的状态
-    EVA_MODE ui_mode = LOCAL_MODE;   // 机体的模式
-    EVA_STATE ui_state = CHAT_STATE; // 机体的状态
-    ConversationTask currentTask_ = ConversationTask::ChatReply;  // current send task
+    void preLoad();                                              // 装载前动作
+    bool is_load = false;                                        // 模型装载标签
+    bool is_load_play_over = false;                              // 模型装载动画结束后
+    bool is_run = false;                                         // 模型运行标签,方便设置界面的状态
+    EVA_MODE ui_mode = LOCAL_MODE;                               // 机体的模式
+    EVA_STATE ui_state = CHAT_STATE;                             // 机体的状态
+    ConversationTask currentTask_ = ConversationTask::ChatReply; // current send task
 
     QString history_lorapath = "";
     QString history_mmprojpath = "";
@@ -162,25 +173,25 @@ class Widget : public QWidget
     bool gpu_wait_load = false;          // 等待检测完显存信息重新装载的标签
     bool firstAutoNglEvaluated_ = false; // 首次装载前是否已进行显存阈值判断
 
-    EVA_DATES ui_DATES;        // ui的约定
-    SETTINGS ui_SETTINGS;      // ui的设置
-    int kvTokensLast_ = 0;     // last known used tokens for kv cache (accumulate within one conversation)
-    int ui_n_ctx_train = 2048; // 模型最大上下文长度
-    int kvTokensAccum_ = 0;    // accumulated used tokens across the conversation
-    int kvTokensTurn_ = 0;     // this-turn processed tokens (prompt_n + generated)
-    int server_nctx_ = 0;      // captured from llama_server logs for verification
-                          // KV tracking
-    int slotCtxMax_ = 0;        // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
-    int kvUsed_ = 0;            // current server-side n_past approximation
-    int kvUsedBeforeTurn_ = 0;  // n_past at the beginning of current turn
-    int kvStreamedTurn_ = 0;    // approximate streamed tokens in this turn (from xNet)
-    bool turnActive_ = false;   // a request is in-flight
-    bool turnThinkHeaderPrinted_ = false;  // printed think header this turn
+    EVA_DATES ui_DATES;                       // ui的约定
+    SETTINGS ui_SETTINGS;                     // ui的设置
+    int kvTokensLast_ = 0;                    // last known used tokens for kv cache (accumulate within one conversation)
+    int ui_n_ctx_train = 2048;                // 模型最大上下文长度
+    int kvTokensAccum_ = 0;                   // accumulated used tokens across the conversation
+    int kvTokensTurn_ = 0;                    // this-turn processed tokens (prompt_n + generated)
+    int server_nctx_ = 0;                     // captured from llama_server logs for verification
+                                              // KV tracking
+    int slotCtxMax_ = 0;                      // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
+    int kvUsed_ = 0;                          // current server-side n_past approximation
+    int kvUsedBeforeTurn_ = 0;                // n_past at the beginning of current turn
+    int kvStreamedTurn_ = 0;                  // approximate streamed tokens in this turn (from xNet)
+    bool turnActive_ = false;                 // a request is in-flight
+    bool turnThinkHeaderPrinted_ = false;     // printed think header this turn
     bool turnAssistantHeaderPrinted_ = false; // printed assistant header this turn
-    bool turnThinkActive_ = false;        // streaming: inside <think> section
-    bool sawPromptPast_ = false; // saw prompt done n_past -> use as turn baseline
-    bool sawFinalPast_ = false; // saw stop processing n_past -> prefer this over totals
-    int ui_maxngl = 0;          // 模型可卸载到gpu上的层数
+    bool turnThinkActive_ = false;            // streaming: inside <think> section
+    bool sawPromptPast_ = false;              // saw prompt done n_past -> use as turn baseline
+    bool sawFinalPast_ = false;               // saw stop processing n_past -> prefer this over totals
+    int ui_maxngl = 0;                        // 模型可卸载到gpu上的层数
     bool load_percent_tag;
     int max_thread = 1;           // 最大线程数
     int lastReasoningTokens_ = 0; // approximate reasoning tokens in last turn
@@ -406,6 +417,9 @@ class Widget : public QWidget
 
     // 自用的槽
   private slots:
+
+    void onRecordClicked(int index);
+    void onRecordDoubleClicked(int index);
     void monitorTime();                       // 监视时间到
     void onSplitterMoved(int pos, int index); // 分割器被用户拉动时响应
     void stop_recordAudio();                  // 停止录音
@@ -457,6 +471,54 @@ class Widget : public QWidget
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state
     // Send-task helpers
+    // Record bar: capture key nodes and map to output document positions
+    enum class RecordRole
+    {
+        System,
+        User,
+        Assistant,
+        Think,
+        Tool
+    };
+    struct RecordEntry
+    {
+        RecordRole role;
+        int docFrom = 0;
+        int docTo = 0;
+        QString text;
+        int msgIndex = -1;
+    };
+    QVector<RecordEntry> recordEntries_;
+    int currentThinkIndex_ = -1;     // index of streaming think in current turn
+    int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
+    // Record helpers
+    int outputDocEnd() const;
+    QColor chipColorForRole(RecordRole r) const
+    {
+        switch (r)
+        {
+        case RecordRole::Tool: return TOOL_BLUE;
+        case RecordRole::Think: return THINK_GRAY;
+        case RecordRole::Assistant: return LCL_ORANGE;
+        case RecordRole::System: return SYSTEM_BLUE;
+        case RecordRole::User:
+        default: return SYSTEM_BLUE;
+        }
+    }
+    QColor textColorForRole(RecordRole r) const
+    {
+        switch (r)
+        {
+        case RecordRole::Think: return THINK_GRAY;
+        case RecordRole::Tool: return TOOL_BLUE;
+        default: return NORMAL_BLACK;
+        }
+    }
+    int recordCreate(RecordRole role);
+    void recordAppendText(int index, const QString &text);
+    void recordClear();
+    void gotoRecord(int index);
+    void replaceOutputRangeColored(int from, int to, const QString &text, QColor color);
     ENDPOINT_DATA prepareEndpointData();
     void beginSessionIfNeeded();
     void collectUserInputs(InputPack &pack);
@@ -468,7 +530,7 @@ class Widget : public QWidget
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);
 
-    void updateKvBarUi();                  // refresh kv_bar from kvUsed_/slotCtxMax_
+    void updateKvBarUi(); // refresh kv_bar from kvUsed_/slotCtxMax_
   private:
     Ui::Widget *ui;
 };

@@ -13,9 +13,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
     if (is_while)
     {
         const QString begin = QString(DEFAULT_THINK_BEGIN);
-        const QString tend  = QString(DEFAULT_THINK_END);
+        const QString tend = QString(DEFAULT_THINK_END);
         const bool hasBegin = (s.indexOf(begin) != -1);
-        const bool hasEnd   = (s.indexOf(tend)  != -1);
+        const bool hasEnd = (s.indexOf(tend) != -1);
 
         // Enter think: print think header once and mark active; strip begin marker
         if (hasBegin)
@@ -25,6 +25,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             {
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
             }
             turnThinkActive_ = true;
         }
@@ -34,21 +35,23 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             const int pos = result.indexOf(tend);
             QString beforeEnd = result.left(pos);
-            QString afterEnd  = result.mid(pos + tend.size());
+            QString afterEnd = result.mid(pos + tend.size());
             // sanitize both sides
             beforeEnd.replace(begin, QString());
-            beforeEnd.replace(tend,  QString());
-            afterEnd.replace(begin,  QString());
-            afterEnd.replace(tend,   QString());
+            beforeEnd.replace(tend, QString());
+            afterEnd.replace(begin, QString());
+            afterEnd.replace(tend, QString());
 
             // ensure think header (if we missed it due to split)
             if (!turnThinkHeaderPrinted_)
             {
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
             }
             // emit remaining think text before the end
             if (!beforeEnd.isEmpty()) output_scroll(beforeEnd, THINK_GRAY);
+            if (!beforeEnd.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, beforeEnd);
 
             // leaving think -> assistant header appears below think
             turnThinkActive_ = false;
@@ -56,8 +59,10 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             {
                 appendRoleHeader(QStringLiteral("assistant"));
                 turnAssistantHeaderPrinted_ = true;
+                if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
             }
             if (!afterEnd.isEmpty()) output_scroll(afterEnd, NORMAL_BLACK);
+            if (!afterEnd.isEmpty() && currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, afterEnd);
 
             // keep accumulating raw stream (with markers) for final separation
             temp_assistant_history += result;
@@ -69,8 +74,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             QString thinkChunk = s;
             thinkChunk.replace(begin, QString());
-            thinkChunk.replace(tend,  QString());
+            thinkChunk.replace(tend, QString());
             if (!thinkChunk.isEmpty()) output_scroll(thinkChunk, THINK_GRAY);
+            if (!thinkChunk.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkChunk);
             temp_assistant_history += result;
             return;
         }
@@ -80,6 +86,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         {
             appendRoleHeader(QStringLiteral("assistant"));
             turnAssistantHeaderPrinted_ = true;
+            if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
         }
         // fallthrough to output assistant content below
     }
@@ -87,16 +94,14 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
     // Default: output sanitized text (no <think> tags) in provided color
     QString out = result;
     out.replace(QString(DEFAULT_THINK_BEGIN), QString());
-    out.replace(QString(DEFAULT_THINK_END),   QString());
+    out.replace(QString(DEFAULT_THINK_END), QString());
     output_scroll(out, color);
+    if (is_while && currentAssistantIndex_ >= 0) { recordAppendText(currentAssistantIndex_, out); }
     if (is_while)
     {
         temp_assistant_history += result;
     }
 }
-
-
-
 
 // Print a role header above content; color by role
 void Widget::appendRoleHeader(const QString &role)
@@ -109,16 +114,16 @@ void Widget::appendRoleHeader(const QString &role)
     }
     QColor c = SYSTEM_BLUE;
     const QString r = role.trimmed().toLower();
-    if (r == QStringLiteral("tool")) c = TOOL_BLUE;
-    else if (r == QStringLiteral("think")) c = THINK_GRAY;
-    else if (r == QStringLiteral("assistant")) c = LCL_ORANGE;
+    if (r == QStringLiteral("tool"))
+        c = TOOL_BLUE;
+    else if (r == QStringLiteral("think"))
+        c = THINK_GRAY;
+    else if (r == QStringLiteral("assistant"))
+        c = LCL_ORANGE;
     // Insert role label and a newline
     output_scroll(r, c);
     output_scroll(QString(DEFAULT_SPLITER), NORMAL_BLACK);
 }
-
-
-
 
 // 输出区滚动条事件响应
 void Widget::output_scrollBarValueChanged(int value)

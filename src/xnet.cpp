@@ -133,7 +133,7 @@ void xNet::run()
     t_all_.start();
     bool ttfbStarted = false;
     connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]()
-    {
+                             {
         if (aborted_ || !reply_) return; // guard against late events after abort
         if (!ttfbStarted)
         {
@@ -460,7 +460,8 @@ QByteArray xNet::createCompleteBody()
     json.insert("repeat_penalty", endpoint_data.repeat);
     // optional stop sequences
     QJsonArray stopkeys2;
-    for (int i = 0; i < endpoint_data.stopwords.size(); ++i) {
+    for (int i = 0; i < endpoint_data.stopwords.size(); ++i)
+    {
         stopkeys2.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys2);
@@ -534,5 +535,3 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
-
-

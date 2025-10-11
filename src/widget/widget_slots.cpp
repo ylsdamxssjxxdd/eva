@@ -685,8 +685,6 @@ void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
     bot_chat = chats;
 }
 
-
-
 // Initialize memory policy for text widgets: disable undo, cap logs
 void Widget::initTextComponentsMemoryPolicy()
 {
@@ -766,7 +764,6 @@ void Widget::recv_kv_from_net(int usedTokens)
     updateKvBarUi();
 }
 
-
 // server-assigned slot id -> persist and reuse for KV cache efficiency
 void Widget::onSlotAssigned(int slotId)
 {
@@ -792,7 +789,7 @@ void Widget::onServerOutput(const QString &line)
         const QString l = line.toLower();
         static const QStringList badKeys = {
             QStringLiteral(" failed"), QStringLiteral("fatal"), QStringLiteral("segmentation fault"),
-            QStringLiteral("assertion failed"),QStringLiteral("error:")};
+            QStringLiteral("assertion failed"), QStringLiteral("error:")};
         bool hit = false;
         for (const QString &k : badKeys)
         {
@@ -1001,6 +998,3 @@ void Widget::onServerStartFailed(const QString &reason)
     if (ui && ui->set) ui->set->setEnabled(true);
     if (ui && ui->date) ui->date->setEnabled(true);
 }
-
-
-

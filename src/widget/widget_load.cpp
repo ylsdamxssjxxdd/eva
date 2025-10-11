@@ -281,7 +281,8 @@ void Widget::unlockLoad()
     force_unlockload_pTimer->stop();
     is_load_play_over = true; // 标记模型动画已经完成
     ui_state_normal();        // 解锁界面
-    appendRoleHeader(QStringLiteral("system")); reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
+    appendRoleHeader(QStringLiteral("system"));
+    reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
     ; // 显示预解码内容
 }
 

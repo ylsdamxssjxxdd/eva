@@ -916,8 +916,7 @@ QString xTool::embedding_query_process(QString query_str)
 
                          vector_str += "]";
 
-                         emit tool2ui_state("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": " + QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str, USUAL_SIGNAL);
-                     });
+                         emit tool2ui_state("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": " + QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str, USUAL_SIGNAL); });
 
     // 完成
 
@@ -976,8 +975,7 @@ QString xTool::embedding_query_process(QString query_str)
 
                          reply->abort(); // 终止
 
-                         reply->deleteLater();
-                     });
+                         reply->deleteLater(); });
 
     // 回复完成时退出事件循环
 
@@ -1264,14 +1262,10 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
                 auto trim = [](std::string &s)
                 {
                     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch)
-                                                    {
-                                                        return !std::isspace(ch);
-                                                    }));
+                                                    { return !std::isspace(ch); }));
 
                     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch)
-                                         {
-                                             return !std::isspace(ch);
-                                         })
+                                         { return !std::isspace(ch); })
                                 .base(),
 
                             s.end());

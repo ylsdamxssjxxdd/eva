@@ -54,4 +54,3 @@ void Widget::setApiDialog()
     connect(buttonBox, &QDialogButtonBox::accepted, api_dialog, &QDialog::reject); // 点击确定后直接退出
     connect(buttonBox, &QDialogButtonBox::rejected, api_dialog, &QDialog::reject);
 }
-
