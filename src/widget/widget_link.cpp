@@ -1,6 +1,7 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include <QDateTime>
+#include <QUrl>
 
 //-------------------------------------------------------------------------
 //----------------------------------链接相关--------------------------------
@@ -14,9 +15,31 @@ void Widget::set_api()
     historypath = ""; // 重置
 
     // 获取设置值
-    apis.api_endpoint = api_endpoint_LineEdit->text();
-    apis.api_key = api_key_LineEdit->text();
-    apis.api_model = api_model_LineEdit->text();
+    // Sanitize endpoint/key/model: strip all whitespace to avoid mistakes
+    auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
+    QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
+    // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
+    {
+        QUrl u = QUrl::fromUserInput(clean_endpoint);
+        QString host = u.host().toLower();
+        QString scheme = u.scheme().toLower();
+        const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
+        if (scheme.isEmpty()) {
+            u.setScheme(isLocal ? "http" : "https");
+        } else if (scheme == "http" && !isLocal) {
+            u.setScheme("https");
+        }
+        clean_endpoint = u.toString(QUrl::RemoveFragment);
+    }
+    const QString clean_key = sanitize(api_key_LineEdit->text());
+    const QString clean_model = sanitize(api_model_LineEdit->text());
+    // Reflect cleaned values in UI
+    api_endpoint_LineEdit->setText(clean_endpoint);
+    api_key_LineEdit->setText(clean_key);
+    api_model_LineEdit->setText(clean_model);
+    apis.api_endpoint = clean_endpoint;
+    apis.api_key = clean_key;
+    apis.api_model = clean_model;
 
     // 切换为链接模式
     ui_mode = LINK_MODE; // 按照链接模式的行为来
@@ -115,3 +138,6 @@ void Widget::change_api_dialog(bool enable)
         settings_ui->backend_box->setVisible(enable);
     }
 }
+
+
+

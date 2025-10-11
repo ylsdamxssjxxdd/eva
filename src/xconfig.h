@@ -216,7 +216,7 @@ struct MODEL_PARAMS
 };
 
 #define CHAT_ENDPOINT "/v1/chat/completions"
-#define COMPLETION_ENDPOINT "/completions"
+#define COMPLETION_ENDPOINT "/v1/completions"
 
 // api配置参数
 struct APIS
@@ -634,4 +634,6 @@ const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
 
 #endif XCONFIG_H
+
+
 

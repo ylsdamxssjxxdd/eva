@@ -233,6 +233,19 @@ void xNet::run()
                         // fallback: nested { completion, tokens }
                         if (content.isEmpty() && obj.contains("completion"))
                             content = obj.value("completion").toString();
+                        // OAI /v1/completions streaming: choices[0].text
+                        if (content.isEmpty() && obj.contains("choices") && obj.value("choices").isArray()) {
+                            QJsonArray chs = obj.value("choices").toArray();
+                            if (!chs.isEmpty()) {
+                                QJsonObject first = chs.at(0).toObject();
+                                if (first.contains("text") && first.value("text").isString()) {
+                                    content = first.value("text").toString();
+                                }
+                                if (first.contains("finish_reason") && first.value("finish_reason").isString()) {
+                                    stop = (first.value("finish_reason").toString() == "stop");
+                                }
+                            }
+                        }
 
                         if (!content.isEmpty())
                         {
@@ -386,7 +399,6 @@ QByteArray xNet::createChatBody()
     // expose full sampling knobs in LINK/LOCAL request body
     json.insert("top_p", endpoint_data.top_p);
     json.insert("repeat_penalty", endpoint_data.repeat);
-    json.insert("max_tokens", endpoint_data.n_predict);
 
     // stop words
     QJsonArray stopkeys;
@@ -440,12 +452,18 @@ QByteArray xNet::createCompleteBody()
     } // 缓存上文
     json.insert("model", apis.api_model);
     json.insert("prompt", endpoint_data.input_prompt);
-    json.insert("n_predict", endpoint_data.n_predict);
+    json.insert("max_tokens", endpoint_data.n_predict);
     json.insert("stream", true);
-    json.insert("temperature", endpoint_data.temp);
+    json.insert("temperature", 2 * endpoint_data.temp);
     json.insert("top_k", endpoint_data.top_k);
     json.insert("top_p", endpoint_data.top_p);
     json.insert("repeat_penalty", endpoint_data.repeat);
+    // optional stop sequences
+    QJsonArray stopkeys2;
+    for (int i = 0; i < endpoint_data.stopwords.size(); ++i) {
+        stopkeys2.append(endpoint_data.stopwords.at(i));
+    }
+    json.insert("stop", stopkeys2);
     if (endpoint_data.id_slot >= 0)
     {
         json.insert("id_slot", endpoint_data.id_slot);
@@ -516,3 +534,5 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
