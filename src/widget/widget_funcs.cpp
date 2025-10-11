@@ -702,10 +702,13 @@ void Widget::auto_save_user()
     settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
     // 保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
-    // 保存api参数
-    settings.setValue("api_endpoint", apis.api_endpoint);
-    settings.setValue("api_key", apis.api_key);
-    settings.setValue("api_model", apis.api_model);
+    // 保存 api 参数：仅在链接模式下更新，避免切到本地模式后把远端配置覆盖掉
+    if (ui_mode == LINK_MODE)
+    {
+        settings.setValue("api_endpoint", apis.api_endpoint);
+        settings.setValue("api_key", apis.api_key);
+        settings.setValue("api_model", apis.api_model);
+    }
     settings.sync(); // flush to disk immediately
     reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }

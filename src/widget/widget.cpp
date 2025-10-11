@@ -314,10 +314,17 @@ void Widget::on_load_clicked()
         // 用户选择链接模式：打开链接设置对话框
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
-        // 预填当前值
-        api_endpoint_LineEdit->setText(apis.api_endpoint);
-        api_key_LineEdit->setText(apis.api_key);
-        api_model_LineEdit->setText(apis.api_model);
+        // 预填：优先使用已持久化的链接配置，避免本地模式切换时被覆盖
+        {
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            const QString ep = settings.value("api_endpoint", apis.api_endpoint).toString();
+            const QString key = settings.value("api_key", apis.api_key).toString();
+            const QString model = settings.value("api_model", apis.api_model).toString();
+            api_endpoint_LineEdit->setText(ep);
+            api_key_LineEdit->setText(key);
+            api_model_LineEdit->setText(model);
+        }
         api_dialog->exec(); // 确定后触发 set_api()
     }
     else
