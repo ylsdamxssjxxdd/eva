@@ -1,4 +1,4 @@
-﻿#ifndef XCONFIG_H
+#ifndef XCONFIG_H
 #define XCONFIG_H
 
 #include "mcp_message.h"
@@ -111,22 +111,8 @@ struct EVA_CHATS_TEMPLATE
 };
 
 // 发送内容的角色
-enum EVA_ROLE
-{
-    EVA_ROLE_SYSTEM,      // 系统角色
-    EVA_ROLE_MODEL,       // 模型角色
-    EVA_ROLE_USER,        // 用户角色
-    EVA_ROLE_OBSERVATION, // 工具角色
-};
 
 // 一次发送的内容
-struct EVA_INPUTS
-{
-    EVA_ROLE role;               // 角色
-    QString text_content;        // 文本内容
-    QStringList images_filepath; // 图片路径
-    QStringList wavs_filepath;   // 音频路径
-};
 
 // 机体模式枚举
 enum EVA_MODE

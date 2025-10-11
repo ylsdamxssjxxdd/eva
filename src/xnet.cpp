@@ -133,7 +133,7 @@ void xNet::run()
     t_all_.start();
     bool ttfbStarted = false;
     connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]()
-                             {
+    {
         if (aborted_ || !reply_) return; // guard against late events after abort
         if (!ttfbStarted)
         {

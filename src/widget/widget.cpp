@@ -3,6 +3,8 @@
 #include "widget.h"
 
 #include "ui_widget.h"
+#include <QFile>
+#include <QFileInfo>
 #include <QDateTime>
 #include <QDir>
 #include <QMessageBox>
@@ -364,56 +366,218 @@ void Widget::on_send_clicked()
 {
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
 
-    EVA_INPUTS inputs;           // 待构造的输入消息
-    QString text_content;        // 文本内容
-    QStringList images_filepath; // 图像内容
-    QStringList wavs_filepath;   // 音频内容
+    // Begin a new turn: reset KV trackers
+    turnActive_ = true;
+    kvUsedBeforeTurn_ = kvUsed_;
+    kvStreamedTurn_ = 0;
 
-    // 统一通过 xNet 发送（本地和远端都是请求式）
-    api_send_clicked_slove();
-    return;
+    emit ui2net_stop(0);
+    ENDPOINT_DATA data;
+    data.date_prompt = ui_DATES.date_prompt;
+    data.input_pfx = ui_DATES.user_name;
+    data.input_sfx = ui_DATES.model_name;
+    data.stopwords = ui_DATES.extra_stop_words;
+    data.is_complete_state = (ui_state == COMPLETE_STATE);
+    data.temp = ui_SETTINGS.temp;
+    data.repeat = ui_SETTINGS.repeat;
+    data.top_k = ui_SETTINGS.top_k;
+    data.top_p = ui_SETTINGS.hid_top_p;
+    data.n_predict = ui_SETTINGS.hid_npredict;
+    data.messagesArray = ui_messagesArray;
+    data.id_slot = currentSlotId_;
 
-    // 如果是对话模式,主要流程就是构建text_content,发送text_content,然后触发推理
+    QString input;
+    if (tool_result == "")
+    {
+        input = ui->input->textEdit->toPlainText().toUtf8().data();
+        ui->input->textEdit->clear();
+    }
+
+    QStringList images_filepath = ui->input->imageFilePaths();
+    // In local chat mode, optionally append recent monitor frames
+    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
+    {
+        const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+        const qint64 cutoff = nowMs - qint64(kMonitorKeepSeconds_) * 1000;
+        while (!monitorFrames_.isEmpty() && monitorFrames_.front().tsMs < cutoff)
+        {
+            const QString old = monitorFrames_.front().path;
+            monitorFrames_.pop_front();
+            QFile f(old);
+            if (f.exists()) f.remove();
+        }
+        for (const auto &mf : monitorFrames_) images_filepath.append(mf.path);
+    }
+    QStringList wavs_filepath = ui->input->wavFilePaths();
+    ui->input->clearThumbnails();
+
     if (ui_state == CHAT_STATE)
     {
-        if (tool_result == "")
+        // ensure persistent history session is created only when sending, not on reset
+        if (history_ && history_->sessionId().isEmpty())
         {
-            text_content = ui->input->textEdit->toPlainText().toUtf8().data();
-            ui->input->textEdit->clear(); // 获取用户输入
-            images_filepath = ui->input->imageFilePaths();
-            wavs_filepath = ui->input->wavFilePaths();
-            // qDebug()<<"wavs_filepath"<<wavs_filepath;
-            // qDebug()<<images_filepath;
-            ui->input->clearThumbnails();
+            SessionMeta meta;
+            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+            meta.title = "";
+            meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
+                                                   : (serverManager ? serverManager->endpointBase() : "");
+            meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
+            meta.system = ui_DATES.date_prompt;
+            meta.n_ctx = ui_SETTINGS.nctx;
+            meta.slot_id = currentSlotId_;
+            meta.startedAt = QDateTime::currentDateTime();
+            history_->begin(meta);
+            QJsonObject systemMessage;
+            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+            systemMessage.insert("content", ui_DATES.date_prompt);
+            history_->appendMessage(systemMessage);
         }
-        // 如果挂载了鼠标键盘工具，则每次发送时附带一张屏幕截图
-        if (ui_controller_ischecked)
-        {
-            QString imgfilePath = saveScreen();
-            images_filepath.append(imgfilePath);
-        }
-        // 如果工具返回的结果不为空，则认为输入源是观察者
+        //----------------------- tool observation ----------------------------
         if (tool_result != "")
         {
+            // pass to net as a user message prefixed with tool_response:
+            QJsonObject roleMessage;
+            roleMessage.insert("role", DEFAULT_USER_NAME);
+            roleMessage.insert("content", "tool_response: " + tool_result);
+            ui_messagesArray.append(roleMessage);
+            if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
 
-            text_content = tool_result;
             tool_result = "";
-            inputs = {EVA_ROLE_OBSERVATION, text_content, images_filepath};
+            QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
+            is_run = true;
+            ui_state_pushing();
+            return;
         }
+        //----------------------- normal user message ----------------------------
         else
         {
-            inputs = {EVA_ROLE_USER, text_content, images_filepath, wavs_filepath};
+            if (images_filepath.isEmpty())
+            {
+                QJsonObject roleMessage;
+                roleMessage.insert("role", DEFAULT_USER_NAME);
+                roleMessage.insert("content", input);
+                ui_messagesArray.append(roleMessage);
+                if (history_) history_->appendMessage(roleMessage);
+            }
+            else
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+
+                if (!input.isEmpty())
+                {
+                    QJsonObject textMessage;
+                    textMessage.insert("type", "text");
+                    textMessage.insert("text", input);
+                    contentArray.append(textMessage);
+                }
+
+                for (int i = 0; i < images_filepath.size(); ++i)
+                {
+                    QFile imageFile(images_filepath[i]);
+                    if (!imageFile.open(QIODevice::ReadOnly))
+                    {
+                        qDebug() << "Failed to open image file";
+                        continue;
+                    }
+                    QByteArray imageData = imageFile.readAll();
+                    QByteArray base64Data = imageData.toBase64();
+                    QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+
+                    QJsonObject imageObject;
+                    imageObject["type"] = "image_url";
+                    QJsonObject imageUrlObject;
+                    imageUrlObject["url"] = base64String;
+                    imageObject["image_url"] = imageUrlObject;
+                    contentArray.append(imageObject);
+                    showImages({images_filepath[i]});
+                }
+
+                message["content"] = contentArray;
+                ui_messagesArray.append(message);
+                if (history_) history_->appendMessage(message);
+            }
+
+            // Optional audio attachments -> xnet converts audio_url to input_audio
+            if (!wavs_filepath.isEmpty())
+            {
+                QJsonObject message;
+                message["role"] = DEFAULT_USER_NAME;
+                QJsonArray contentArray;
+
+                for (int i = 0; i < wavs_filepath.size(); ++i)
+                {
+                    QString filePath = wavs_filepath[i];
+                    QFile audioFile(filePath);
+                    if (!audioFile.open(QIODevice::ReadOnly))
+                    {
+                        qDebug() << "Failed to open audio file:" << filePath;
+                        continue;
+                    }
+
+                    QByteArray audioData = audioFile.readAll();
+                    QByteArray base64Data = audioData.toBase64();
+
+                    QFileInfo fileInfo(filePath);
+                    QString extension = fileInfo.suffix().toLower();
+                    QString mimeType = "audio/mpeg";
+                    if (extension == "wav")
+                    {
+                        mimeType = "audio/wav";
+                    }
+                    else if (extension == "ogg")
+                    {
+                        mimeType = "audio/ogg";
+                    }
+                    else if (extension == "flac")
+                    {
+                        mimeType = "audio/flac";
+                    }
+
+                    QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
+
+                    QJsonObject audioObject;
+                    audioObject["type"] = "audio_url";
+                    QJsonObject audioUrlObject;
+                    audioUrlObject["url"] = base64String;
+                    audioObject["audio_url"] = audioUrlObject;
+                    contentArray.append(audioObject);
+                    showImages({":/logo/wav.png"});
+                }
+
+                if (!contentArray.isEmpty())
+                {
+                    message["content"] = contentArray;
+                    ui_messagesArray.append(message);
+                    if (history_) history_->appendMessage(message);
+                }
+            }
+
+            data.messagesArray = ui_messagesArray;
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
+            reflash_output(input, 0, NORMAL_BLACK);
+            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
+            data.n_predict = ui_SETTINGS.hid_npredict;
+            emit ui2net_data(data);
+    emit ui2net_push();
+            if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
+            {
+                monitorFrames_.clear();
+            }
         }
     }
     else if (ui_state == COMPLETE_STATE)
     {
-        text_content = ui->output->toPlainText().toUtf8().data(); // 直接用output上的文本进行推理
-        inputs = {EVA_ROLE_USER, text_content};                   // 传递用户输入
+        data.input_prompt = ui->output->toPlainText();
+        data.n_predict = ui_SETTINGS.hid_npredict;
+        emit ui2net_data(data);
+    emit ui2net_push();
     }
-    // qDebug()<<text_content;
-    is_run = true;      // 模型正在运行标签
-    ui_state_pushing(); // 推理中界面状态
-    // xbot 已弃用
+
+    is_run = true;
+    ui_state_pushing();
 }
 
 // 模型输出完毕的后处理

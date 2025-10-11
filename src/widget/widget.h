@@ -316,7 +316,6 @@ class Widget : public QWidget
     void setApiDialog();                               // 初始化设置api选项
     void set_api();                                    // 应用api设置
     void startConnection(const QString &ip, int port); // 检测ip是否通畅
-    void api_send_clicked_slove();                     // 链接模式的发送处理
     QDialog *api_dialog;
     QLabel *api_endpoint_label;
     QLineEdit *api_endpoint_LineEdit;

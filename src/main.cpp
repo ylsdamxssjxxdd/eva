@@ -233,7 +233,6 @@ int main(int argc, char *argv[])
     qRegisterMetaType<SIGNAL_STATE>("SIGNAL_STATE");
     qRegisterMetaType<EVA_DATES>("EVA_DATES");
     qRegisterMetaType<SETTINGS>("SETTINGS");
-    qRegisterMetaType<EVA_INPUTS>("EVA_INPUTS");
     qRegisterMetaType<QVector<Embedding_vector>>("QVector<Embedding_vector>");
     qRegisterMetaType<Speech_Params>("Speech_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
