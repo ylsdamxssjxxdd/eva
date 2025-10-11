@@ -146,17 +146,9 @@
             "触发约定",
             "clicked date "
         ],
-        "input predecode": [
-            "对输入进行预解码",
-            "input predecode "
-        ],
         "input decode": [
-            "对输入进行解码",
-            "input decode "
-        ],
-        "ctx decode": [
-            "对上下文进行解码",
-            "context decode "
+            "解码中",
+            "decode input "
         ],
         "reset": [
             "重置",
