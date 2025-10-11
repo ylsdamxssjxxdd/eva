@@ -399,8 +399,11 @@ void Widget::beginSessionIfNeeded()
 void Widget::collectUserInputs(InputPack &pack)
 {
     pack.text.clear();
+    // Only collect user text when we are NOT in a tool loop. The current task
+    // is already logged by on_send_clicked(); do not log here to avoid
+    // duplicate/misleading "current task" lines.
     if (tool_result.isEmpty())
-    {   currentTask_ = ConversationTask::ToolLoop; logCurrentTask(currentTask_);
+    {
         pack.text = ui->input->textEdit->toPlainText().toUtf8().data();
         ui->input->textEdit->clear();
     }
