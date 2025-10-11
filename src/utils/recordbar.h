@@ -108,6 +108,9 @@ class RecordBar : public QWidget
     {
         QWidget::resizeEvent(e);
         chipRectsCache_.resize(nodes_.size());
+        // Clamp scroll offset to new max after width changes to keep chips responsive
+        scrollX_ = qMin(maxScroll(), qMax(0, scrollX_));
+        update();
     }
 
     void wheelEvent(QWheelEvent *ev) override

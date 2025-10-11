@@ -520,13 +520,13 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         }
     }
     data.messagesArray = ui_messagesArray;
+    // Create record BEFORE printing header/content so docFrom anchors at header line
+    int __idx = recordCreate(RecordRole::User);
     appendRoleHeader(QStringLiteral("user"));
     reflash_output(in.text, 0, NORMAL_BLACK);
-    {
-        int __idx = recordCreate(RecordRole::User);
-        recordAppendText(__idx, in.text);
-        if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
-    }
+    // After content is printed, update record's text and docTo, and link msgIndex
+    recordAppendText(__idx, in.text);
+    if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
     data.n_predict = ui_SETTINGS.hid_npredict;
     emit ui2net_data(data);
     emit ui2net_push();
@@ -551,13 +551,14 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     roleMessage.insert("content", tool_result);
     ui_messagesArray.append(roleMessage);
     if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+
+    // Create record BEFORE printing header/content so docFrom anchors at header area
+    int __idx = recordCreate(RecordRole::Tool);
     appendRoleHeader(QStringLiteral("tool"));
     reflash_output(tool_result, 0, TOOL_BLUE);
-    {
-        int __idx = recordCreate(RecordRole::Tool);
-        recordAppendText(__idx, tool_result);
-        if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
-    }
+    recordAppendText(__idx, tool_result);
+    if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
+
     tool_result = "";
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
     is_run = true;
@@ -922,16 +923,15 @@ void Widget::on_reset_clicked()
     ui_messagesArray.append(systemMessage);
     if (ui_state == CHAT_STATE)
     {
+        // Create record BEFORE header so gotoRecord can place role name at top
+        int __idx = recordCreate(RecordRole::System);
         appendRoleHeader(QStringLiteral("system"));
         reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+        recordAppendText(__idx, ui_DATES.date_prompt);
+        if (!ui_messagesArray.isEmpty())
         {
-            int __idx = recordCreate(RecordRole::System);
-            recordAppendText(__idx, ui_DATES.date_prompt);
-            if (!ui_messagesArray.isEmpty())
-            {
-                int mi = ui_messagesArray.size() - 1;
-                recordEntries_[__idx].msgIndex = mi;
-            }
+            int mi = ui_messagesArray.size() - 1;
+            recordEntries_[__idx].msgIndex = mi;
         }
     }
 
@@ -1285,11 +1285,27 @@ void Widget::gotoRecord(int index)
 {
     if (index < 0 || index >= recordEntries_.size()) return;
     const auto &e = recordEntries_[index];
-    QTextCursor c(ui->output->document());
-    c.setPosition(qBound(0, e.docFrom, outputDocEnd()));
-    c.setPosition(qBound(0, e.docTo, outputDocEnd()), QTextCursor::KeepAnchor);
+    QTextDocument *doc = ui->output->document();
+    const int end = outputDocEnd();
+
+    // Normalize start: skip any leading blank lines so the role header is the first visible line
+    int from = qBound(0, e.docFrom, end);
+    while (from < end && doc->characterAt(from) == QChar('\n')) ++from;
+
+    // Place caret at header start and ensure it's visible
+    QTextCursor c(doc);
+    c.setPosition(from);
     ui->output->setTextCursor(c);
     ui->output->ensureCursorVisible();
+
+    // Align header line to the very top of the viewport
+    if (QScrollBar *vs = ui->output->verticalScrollBar())
+    {
+        const QRect r = ui->output->cursorRect(c);
+        const int target = qBound(0, vs->maximum(), vs->value() + r.top());
+        vs->setValue(target);
+    }
+
     ui->output->setFocus();
 }
 
@@ -1335,9 +1351,49 @@ void Widget::onRecordDoubleClicked(int index)
     if (dlg.exec() != QDialog::Accepted) return;
     const QString newText = ed->toPlainText();
     if (newText == e.text) return;
-    replaceOutputRangeColored(e.docFrom, e.docTo, newText, textColorForRole(e.role));
-    const int newEnd = e.docFrom + newText.size();
-    const int delta = newEnd - e.docTo;
+
+    // Compute content range to replace (preserve role header line)
+    QTextDocument *doc = ui->output->document();
+    const int docEnd = outputDocEnd();
+    int contentFrom = qBound(0, e.docFrom, docEnd);
+
+    // Skip leading blank line inserted before header (if any)
+    while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
+
+    auto roleName = [](RecordRole r) -> QString {
+        switch (r)
+        {
+        case RecordRole::System: return QStringLiteral("system");
+        case RecordRole::User: return QStringLiteral("user");
+        case RecordRole::Assistant: return QStringLiteral("assistant");
+        case RecordRole::Think: return QStringLiteral("think");
+        case RecordRole::Tool: return QStringLiteral("tool");
+        }
+        return QStringLiteral("user");
+    };
+
+    const QString header = roleName(e.role);
+    // If header is present right after contentFrom, skip "header\n"
+    if (contentFrom + header.size() + 1 <= docEnd)
+    {
+        bool headerMatch = true;
+        for (int i = 0; i < header.size() && contentFrom + i < docEnd; ++i)
+        {
+            if (doc->characterAt(contentFrom + i) != header.at(i)) { headerMatch = false; break; }
+        }
+        if (headerMatch && (contentFrom + header.size() < docEnd) && doc->characterAt(contentFrom + header.size()) == QChar('\n'))
+        {
+            contentFrom += header.size() + 1;
+        }
+    }
+
+    const int oldContentTo = qBound(contentFrom, e.docTo, docEnd);
+    // Replace only the content region, keep coloring by role
+    replaceOutputRangeColored(contentFrom, oldContentTo, newText, textColorForRole(e.role));
+
+    // Update current entry and cascade position delta to following entries
+    const int newEnd = contentFrom + newText.size();
+    const int delta = newEnd - oldContentTo;
     e.text = newText;
     e.docTo = newEnd;
     for (int i = index + 1; i < recordEntries_.size(); ++i)
@@ -1345,14 +1401,74 @@ void Widget::onRecordDoubleClicked(int index)
         recordEntries_[i].docFrom += delta;
         recordEntries_[i].docTo += delta;
     }
+
     QString tip = newText;
     if (tip.size() > 600) tip = tip.left(600) + "...";
     if (ui->recordBar) ui->recordBar->updateNode(index, tip);
+
+    // Ensure role header line exists after editing (guard against accidental deletion)
+    {
+        QTextDocument *doc = ui->output->document();
+        const int docEnd2 = outputDocEnd();
+        int s = qBound(0, recordEntries_[index].docFrom, docEnd2);
+        // Skip any leading blank lines before header
+        while (s < docEnd2 && doc->characterAt(s) == QChar('\n')) ++s;
+
+        const auto roleName = [](RecordRole r) -> QString {
+            switch (r)
+            {
+            case RecordRole::System: return QStringLiteral("system");
+            case RecordRole::User: return QStringLiteral("user");
+            case RecordRole::Assistant: return QStringLiteral("assistant");
+            case RecordRole::Think: return QStringLiteral("think");
+            case RecordRole::Tool: return QStringLiteral("tool");
+            }
+            return QStringLiteral("user");
+        };
+        const QString header = roleName(e.role);
+
+        bool headerOk = false;
+        if (s + header.size() + 1 <= docEnd2)
+        {
+            headerOk = true;
+            for (int i = 0; i < header.size(); ++i)
+            {
+                if (doc->characterAt(s + i) != header.at(i)) { headerOk = false; break; }
+            }
+            if (!(headerOk && doc->characterAt(s + header.size()) == QChar('\n')))
+            {
+                headerOk = false;
+            }
+        }
+
+        if (!headerOk)
+        {
+            // Insert header + newline at position s with role color
+            QTextCursor ic(doc);
+            ic.setPosition(s);
+            QTextCharFormat headerFmt;
+            headerFmt.setForeground(QBrush(chipColorForRole(e.role)));
+            ic.mergeCharFormat(headerFmt);
+            ic.insertText(header + QString(DEFAULT_SPLITER));
+
+            // Adjust current and subsequent record ranges by the inserted length
+            const int ins = header.size() + 1;
+            e.docTo += ins;
+            for (int i = index + 1; i < recordEntries_.size(); ++i)
+            {
+                recordEntries_[i].docFrom += ins;
+                recordEntries_[i].docTo += ins;
+            }
+        }
+    }
+
+    // Update in-memory message content and persist to history
     if (e.msgIndex >= 0 && e.msgIndex < ui_messagesArray.size())
     {
         QJsonObject m = ui_messagesArray[e.msgIndex].toObject();
         m.insert("content", newText);
         ui_messagesArray[e.msgIndex] = m;
+        if (history_ && !history_->sessionId().isEmpty()) { history_->rewriteAllMessages(ui_messagesArray); }
     }
 }
 

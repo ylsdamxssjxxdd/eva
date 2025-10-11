@@ -96,6 +96,27 @@ class HistoryStore
         }
     }
 
+    // Rewrite the entire messages.jsonl from a UI messages array (persist edits)
+    // Each element must be a JSON object; one compact JSON per line will be written.
+    bool rewriteAllMessages(const QJsonArray &messages)
+    {
+        if (sessionDir_.isEmpty()) return false;
+        QFile m(QDir(sessionDir_).filePath("messages.jsonl"));
+        if (!m.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return false;
+        for (const auto &v : messages)
+        {
+            QJsonObject obj = v.toObject();
+            if (obj.isEmpty())
+                continue; // skip non-object entries to keep file valid
+            QJsonDocument d(obj);
+            QByteArray line = d.toJson(QJsonDocument::Compact);
+            line.append('\n');
+            m.write(line);
+        }
+        m.close();
+        return true;
+    }
+
     // Update slot id in meta.json (persist for later resume)
     void updateSlotId(int slot_id)
     {

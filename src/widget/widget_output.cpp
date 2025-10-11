@@ -23,9 +23,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             s.replace(begin, QString());
             if (!turnThinkHeaderPrinted_)
             {
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
-                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
             }
             turnThinkActive_ = true;
         }
@@ -45,9 +45,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             // ensure think header (if we missed it due to split)
             if (!turnThinkHeaderPrinted_)
             {
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
-                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
             }
             // emit remaining think text before the end
             if (!beforeEnd.isEmpty()) output_scroll(beforeEnd, THINK_GRAY);
@@ -57,9 +57,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
             turnThinkActive_ = false;
             if (!turnAssistantHeaderPrinted_)
             {
+                if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
                 appendRoleHeader(QStringLiteral("assistant"));
                 turnAssistantHeaderPrinted_ = true;
-                if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
             }
             if (!afterEnd.isEmpty()) output_scroll(afterEnd, NORMAL_BLACK);
             if (!afterEnd.isEmpty() && currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, afterEnd);
@@ -84,9 +84,9 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         // No think markers and not in think -> assistant region; print header at first token
         if (!turnAssistantHeaderPrinted_)
         {
+            if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
             appendRoleHeader(QStringLiteral("assistant"));
             turnAssistantHeaderPrinted_ = true;
-            if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
         }
         // fallthrough to output assistant content below
     }
