@@ -281,9 +281,11 @@ void Widget::unlockLoad()
     force_unlockload_pTimer->stop();
     is_load_play_over = true; // 标记模型动画已经完成
     ui_state_normal();        // 解锁界面
+    // 初次加载：创建记录锚点，使记录条显示系统标题与预解码内容
+    int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
     reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
-    ; // 显示预解码内容
+    recordAppendText(__idx, bot_predecode_content);
 }
 
 // 按日志显示装载进度

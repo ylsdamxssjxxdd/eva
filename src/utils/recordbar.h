@@ -4,6 +4,8 @@
 #include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
+#include <QLinearGradient>
 #include <QRect>
 #include <QResizeEvent>
 #include <QSizePolicy>
@@ -12,6 +14,7 @@
 #include <QVector>
 #include <QWheelEvent>
 #include <QWidget>
+#include <QEvent>
 
 // A thin horizontal bar that displays key conversation nodes as colored chips.
 // - Hover: shows tooltip text (content snippet)
@@ -68,6 +71,34 @@ class RecordBar : public QWidget
         nodes_.clear();
         chipRectsCache_.clear();
         scrollX_ = 0;
+        selectedIndex_ = -1;
+        hoveredIndex_ = -1;
+        update();
+    }
+
+    // Programmatically set selection highlight and auto-scroll into view
+    void setSelectedIndex(int idx)
+    {
+        if (idx < 0 || idx >= nodes_.size())
+        {
+            selectedIndex_ = -1;
+        }
+        else
+        {
+            selectedIndex_ = idx;
+            // Ensure selected chip is visible
+            if (selectedIndex_ >= 0 && chipW_ > 0)
+            {
+                const int stride = chipW_ + spacing_;
+                const int xStart = margin_ + selectedIndex_ * stride;
+                const int xEnd = xStart + chipW_;
+
+                if (xStart - scrollX_ < 0)
+                    scrollX_ = qMax(0, xStart);
+                else if (xEnd - scrollX_ > width())
+                    scrollX_ = qMin(maxScroll(), xEnd - width());
+            }
+        }
         update();
     }
 
@@ -79,27 +110,67 @@ class RecordBar : public QWidget
     void paintEvent(QPaintEvent *) override
     {
         QPainter p(this);
-        // draw styled background to match UI theme
+        p.setRenderHint(QPainter::Antialiasing, false); // crisp EVA style (no soft edges)
+
+        // Respect QSS/theming background
         QStyleOption opt;
         opt.init(this);
         style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+
         const int N = nodes_.size();
         if (chipRectsCache_.size() != N) chipRectsCache_.resize(N);
         if (N <= 0) return;
+
         const int H = height();
         const int y = 2;
         const int h = H - 4;
         int x = margin_ - scrollX_;
+        const int sl = qBound(0, slant_, chipW_ / 2);
+
         for (int i = 0; i < N; ++i)
         {
             const QRect r(x, y, chipW_, h);
+            chipRectsCache_[i] = QRect(r);
+
             if (r.right() >= 0 && r.left() <= width())
             {
-                p.setPen(QPen(QColor(0, 0, 0), 1));
-                p.setBrush(nodes_[i].color);
-                p.drawRect(r.adjusted(0, 0, -1, -1));
+                const QColor base = nodes_[i].color;
+                const bool isSel = (i == selectedIndex_);
+                const bool isHover = (i == hoveredIndex_);
+
+                // EVA: clean parallelogram (no radius, no shadow, no gradient)
+                QPolygon poly;
+                poly << QPoint(r.left() + sl, r.top())
+                     << QPoint(r.right() + sl, r.top())
+                     << QPoint(r.right() - sl, r.bottom())
+                     << QPoint(r.left() - sl, r.bottom());
+
+                QColor fill = base;
+                if (isSel)
+                    fill = base.lighter(140);
+                else if (isHover)
+                    fill = base.lighter(115);
+
+                p.setPen(Qt::NoPen);
+                p.setBrush(fill);
+                p.drawPolygon(poly);
+
+                // Outline: crisp contour; thicker when selected
+                QPen outline(isSel ? base.lighter(110) : base.darker(160), isSel ? 2 : 1);
+                outline.setJoinStyle(Qt::MiterJoin);
+                p.setPen(outline);
+                p.setBrush(Qt::NoBrush);
+                p.drawPolygon(poly);
+
+                // Hover accent line at top edge (subtle)
+                if (isHover && !isSel)
+                {
+                    QPen hoverPen(base.lighter(140), 1);
+                    p.setPen(hoverPen);
+                    p.drawLine(QPoint(r.left() + sl + 1, r.top() + 1), QPoint(r.right() + sl - 1, r.top() + 1));
+                }
             }
-            chipRectsCache_[i] = QRect(r);
+
             x += chipW_ + spacing_;
         }
     }
@@ -132,13 +203,22 @@ class RecordBar : public QWidget
         const int idx = indexAt(ev->pos());
         if (idx >= 0)
         {
+            hoveredIndex_ = idx;
             QToolTip::showText(ev->globalPos(), nodes_[idx].tooltip, this);
         }
         else
         {
+            hoveredIndex_ = -1;
             QToolTip::hideText();
             ev->ignore();
         }
+        update();
+    }
+
+    void leaveEvent(QEvent *) override
+    {
+        hoveredIndex_ = -1;
+        update();
     }
 
     void mousePressEvent(QMouseEvent *ev) override
@@ -149,7 +229,12 @@ class RecordBar : public QWidget
             return;
         }
         const int idx = indexAt(ev->pos());
-        if (idx >= 0) emit nodeClicked(idx);
+        if (idx >= 0)
+        {
+            selectedIndex_ = idx; // persist highlight on click
+            update();
+            emit nodeClicked(idx);
+        }
     }
 
     void mouseDoubleClickEvent(QMouseEvent *ev) override
@@ -160,7 +245,12 @@ class RecordBar : public QWidget
             return;
         }
         const int idx = indexAt(ev->pos());
-        if (idx >= 0) emit nodeDoubleClicked(idx);
+        if (idx >= 0)
+        {
+            selectedIndex_ = idx;
+            update();
+            emit nodeDoubleClicked(idx);
+        }
     }
 
   private:
@@ -196,9 +286,13 @@ class RecordBar : public QWidget
     QVector<QRect> chipRectsCache_;
     int scrollX_ = 0;
     // visuals
-    int chipW_ = 14;
-    int spacing_ = 4;
+    int chipW_ = 16;
+    int spacing_ = 6;
     int margin_ = 6;
+    int slant_ = 4; // EVA style tilt (px)
+    // interaction state
+    int selectedIndex_ = -1;
+    int hoveredIndex_ = -1;
 };
 
 #endif // RECORDBAR_H

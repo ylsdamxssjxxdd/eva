@@ -75,10 +75,13 @@ void Widget::set_api()
 
     emit ui2net_apis(apis);
     ui->output->clear();
+    // Reset record bar to avoid residual nodes when switching to LINK mode
+    recordClear();
+    // Create record BEFORE printing header/content so docFrom anchors at header area
+    int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
     reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
     {
-        int __idx = recordCreate(RecordRole::System);
         recordAppendText(__idx, ui_DATES.date_prompt);
         if (!ui_messagesArray.isEmpty())
         {

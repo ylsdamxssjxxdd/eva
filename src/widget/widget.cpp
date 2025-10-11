@@ -344,6 +344,8 @@ void Widget::preLoad()
         ui->output->clear(); // 清空输出区
     }
     ui->state->clear(); // 清空状态区
+    // 清空记录条与记录锚点，避免重新装载后残留旧节点
+    recordClear();
     ui_state_loading(); // 装载中界面状态
     // 开始“装载中”转轮动画并计时（复用解码动画作为统一的简单动画）
     wait_play("load model");
@@ -1284,6 +1286,7 @@ void Widget::recordClear()
 void Widget::gotoRecord(int index)
 {
     if (index < 0 || index >= recordEntries_.size()) return;
+    if (ui->recordBar) ui->recordBar->setSelectedIndex(index);
     const auto &e = recordEntries_[index];
     QTextDocument *doc = ui->output->document();
     const int end = outputDocEnd();
@@ -1335,6 +1338,7 @@ void Widget::onRecordClicked(int index)
 void Widget::onRecordDoubleClicked(int index)
 {
     if (index < 0 || index >= recordEntries_.size()) return;
+    if (ui->recordBar) ui->recordBar->setSelectedIndex(index);
     auto &e = recordEntries_[index];
     QDialog dlg(this);
     dlg.setWindowTitle(jtr("edit"));
