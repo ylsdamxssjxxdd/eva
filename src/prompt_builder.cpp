@@ -71,7 +71,6 @@ static inline QJsonArray fixContentArray(const QJsonArray &arr)
     return fixed;
 }
 } // namespace
-
 namespace promptx
 {
 
@@ -79,17 +78,21 @@ QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
                                 const QString &systemPrompt,
                                 const QString &systemRole,
                                 const QString &userRole,
-                                const QString &asstRole)
+                                const QString &asstRole,
+                                const QString &toolRole)
 {
     QJsonArray out;
 
-    // Copy messages, preserving multimodal arrays and stripping past reasoning
+    // Copy messages and strip past reasoning from assistant; skip explicit think role
     for (const auto &v : uiMessages)
     {
         if (!v.isObject()) continue;
         QJsonObject m = v.toObject();
         const QString role = m.value("role").toString();
-        if (!(role == userRole || role == asstRole || role == systemRole)) continue;
+        if (!(role == userRole || role == asstRole || role == systemRole || role == toolRole)) continue;
+
+        if (role == QStringLiteral("think"))
+            continue;
 
         QJsonValue contentVal = m.value("content");
         if (contentVal.isArray())
@@ -116,25 +119,23 @@ QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
     // Ensure first message is the system prompt
     if (out.isEmpty())
     {
-        QJsonObject sys;
-        sys.insert("role", systemRole);
-        sys.insert("content", systemPrompt);
+        QJsonObject sys; sys.insert("role", systemRole); sys.insert("content", systemPrompt);
         out.append(sys);
         return out;
     }
     const QJsonObject first = out.at(0).toObject();
     if (first.value("role").toString() != systemRole)
     {
-        QJsonObject sys;
-        sys.insert("role", systemRole);
-        sys.insert("content", systemPrompt);
-        QJsonArray fixed;
-        fixed.append(sys);
-        for (const auto &v2 : out) fixed.append(v2);
+        QJsonObject sys; sys.insert("role", systemRole); sys.insert("content", systemPrompt);
+        QJsonArray fixed; fixed.append(sys); for (const auto &v2 : out) fixed.append(v2);
         return fixed;
     }
 
     return out;
 }
 
+
 } // namespace promptx
+
+
+

@@ -16,8 +16,19 @@ namespace promptx
 // - multimodal parts (image_url / input_audio) are preserved
 QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
                                 const QString &systemPrompt,
-                                const QString &systemRole = QStringLiteral("system"),
-                                const QString &userRole = QStringLiteral("user"),
-                                const QString &asstRole = QStringLiteral("assistant"));
+                                const QString &systemRole,
+                                const QString &userRole,
+                                const QString &asstRole,
+                                const QString &toolRole);
+
+// Backward-compatible overload: 5-parameter wrapper calls 6-parameter version with tool role = "tool"
+inline QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
+                                const QString &systemPrompt,
+                                const QString &systemRole,
+                                const QString &userRole,
+                                const QString &asstRole)
+{
+    return buildOaiChatMessages(uiMessages, systemPrompt, systemRole, userRole, asstRole, QStringLiteral("tool"));
+}
 
 } // namespace promptx

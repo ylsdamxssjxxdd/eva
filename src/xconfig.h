@@ -95,8 +95,6 @@ using json = nlohmann::ordered_json;
 struct EVA_DATES
 {
     QString date_prompt = DEFAULT_DATE_PROMPT; // 约定指令 影响 系统指令
-    QString user_name = DEFAULT_USER_NAME;     // 用户昵称 影响 输入前缀
-    QString model_name = DEFAULT_MODEL_NAME;   // 模型昵称 影响 输入后缀
     bool is_load_tool = false;                 // 是否挂载了工具
     QStringList extra_stop_words = {};         // 额外停止标志
 };
@@ -235,16 +233,14 @@ struct APIS
 struct ENDPOINT_DATA
 {
     QString date_prompt;      // 约定指令
-    QString input_pfx;        // 输入前缀
-    QString input_sfx;        // 输入后缀
-    QString input_prompt;     // 续写模式提示词
+    QString input_prompt;     // 补完模式提示词
     QJsonArray messagesArray; // 将要构造的历史数据
     bool is_complete_state;   // 是否为补完状态
     float temp;               // 温度
     double repeat;            // 重复惩罚
-    int top_k;                // 采样：top_k
-    double top_p;             // 采样：top_p（0~1）
-    int n_predict;            // 最大预测数
+    int top_k;                // 采样 top_k
+    double top_p;             // 采样 top_p，0~1
+    int n_predict;            // 最大生成 Token
     QStringList stopwords;    // 停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
 };
@@ -638,3 +634,4 @@ const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
 
 #endif XCONFIG_H
+

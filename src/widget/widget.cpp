@@ -49,20 +49,14 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
-    ui_DATES.user_name = DEFAULT_USER_NAME;
-    ui_DATES.model_name = DEFAULT_MODEL_NAME;
     ui_DATES.is_load_tool = false;
     date_map.insert("default", ui_DATES);
     EVA_DATES troll;
     troll.date_prompt = jtr("you are a troll please respect any question for user");
-    troll.user_name = jtr("user");
-    troll.model_name = jtr("troll");
     troll.is_load_tool = false;
     date_map.insert(jtr("troll"), troll);
     EVA_DATES ghost;
     ghost.date_prompt = jtr("Mediocre ghost prompt");
-    ghost.user_name = jtr("user");
-    ghost.model_name = jtr("Mediocre ghost");
     ghost.is_load_tool = false;
     date_map.insert(jtr("Mediocre ghost"), ghost);
 
@@ -364,9 +358,11 @@ void Widget::preLoad()
 // 用户点击发出按钮处理
 void Widget::on_send_clicked()
 {
+    turnThinkHeaderPrinted_ = false;
+    turnAssistantHeaderPrinted_ = false;
+    turnThinkActive_ = false;
+    // reset per-turn role headers and KV trackers
     reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
-
-    // Begin a new turn: reset KV trackers
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
     kvStreamedTurn_ = 0;
@@ -374,8 +370,6 @@ void Widget::on_send_clicked()
     emit ui2net_stop(0);
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;
-    data.input_pfx = ui_DATES.user_name;
-    data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     data.is_complete_state = (ui_state == COMPLETE_STATE);
     data.temp = ui_SETTINGS.temp;
@@ -394,7 +388,6 @@ void Widget::on_send_clicked()
     }
 
     QStringList images_filepath = ui->input->imageFilePaths();
-    // In local chat mode, optionally append recent monitor frames
     if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
     {
         const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -403,8 +396,7 @@ void Widget::on_send_clicked()
         {
             const QString old = monitorFrames_.front().path;
             monitorFrames_.pop_front();
-            QFile f(old);
-            if (f.exists()) f.remove();
+            QFile f(old); if (f.exists()) f.remove();
         }
         for (const auto &mf : monitorFrames_) images_filepath.append(mf.path);
     }
@@ -413,7 +405,6 @@ void Widget::on_send_clicked()
 
     if (ui_state == CHAT_STATE)
     {
-        // ensure persistent history session is created only when sending, not on reset
         if (history_ && history_->sessionId().isEmpty())
         {
             SessionMeta meta;
@@ -427,163 +418,70 @@ void Widget::on_send_clicked()
             meta.slot_id = currentSlotId_;
             meta.startedAt = QDateTime::currentDateTime();
             history_->begin(meta);
-            QJsonObject systemMessage;
-            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-            systemMessage.insert("content", ui_DATES.date_prompt);
+            QJsonObject systemMessage; systemMessage.insert("role", DEFAULT_SYSTEM_NAME); systemMessage.insert("content", ui_DATES.date_prompt);
             history_->appendMessage(systemMessage);
         }
-        //----------------------- tool observation ----------------------------
+        // tool result -> append tool message and continue
         if (tool_result != "")
         {
-            // pass to net as a user message prefixed with tool_response:
-            QJsonObject roleMessage;
-            roleMessage.insert("role", DEFAULT_USER_NAME);
-            roleMessage.insert("content", "tool_response: " + tool_result);
-            ui_messagesArray.append(roleMessage);
-            if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
-            reflash_output(QString(DEFAULT_SPLITER) + DEFAULT_USER_NAME + DEFAULT_SPLITER + "tool_response: " + tool_result + DEFAULT_SPLITER + ui_DATES.model_name + DEFAULT_SPLITER, 0, TOOL_BLUE);
-
+            QJsonObject roleMessage; roleMessage.insert("role", QStringLiteral("tool")); roleMessage.insert("content", tool_result);
+            ui_messagesArray.append(roleMessage); if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+            appendRoleHeader(QStringLiteral("tool")); reflash_output(tool_result, 0, TOOL_BLUE);
             tool_result = "";
             QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
-            is_run = true;
-            ui_state_pushing();
-            return;
+            is_run = true; ui_state_pushing(); return;
         }
-        //----------------------- normal user message ----------------------------
+        // normal user message
         else
         {
             if (images_filepath.isEmpty())
             {
-                QJsonObject roleMessage;
-                roleMessage.insert("role", DEFAULT_USER_NAME);
-                roleMessage.insert("content", input);
-                ui_messagesArray.append(roleMessage);
-                if (history_) history_->appendMessage(roleMessage);
+                QJsonObject roleMessage; roleMessage.insert("role", DEFAULT_USER_NAME); roleMessage.insert("content", input);
+                ui_messagesArray.append(roleMessage); if (history_) history_->appendMessage(roleMessage);
             }
             else
             {
-                QJsonObject message;
-                message["role"] = DEFAULT_USER_NAME;
-                QJsonArray contentArray;
-
-                if (!input.isEmpty())
-                {
-                    QJsonObject textMessage;
-                    textMessage.insert("type", "text");
-                    textMessage.insert("text", input);
-                    contentArray.append(textMessage);
-                }
-
+                QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
+                if (!input.isEmpty()) { QJsonObject textMessage; textMessage.insert("type", "text"); textMessage.insert("text", input); contentArray.append(textMessage); }
                 for (int i = 0; i < images_filepath.size(); ++i)
                 {
-                    QFile imageFile(images_filepath[i]);
-                    if (!imageFile.open(QIODevice::ReadOnly))
-                    {
-                        qDebug() << "Failed to open image file";
-                        continue;
-                    }
-                    QByteArray imageData = imageFile.readAll();
-                    QByteArray base64Data = imageData.toBase64();
-                    QString base64String = QString("data:image/jpeg;base64,") + base64Data;
-
-                    QJsonObject imageObject;
-                    imageObject["type"] = "image_url";
-                    QJsonObject imageUrlObject;
-                    imageUrlObject["url"] = base64String;
-                    imageObject["image_url"] = imageUrlObject;
-                    contentArray.append(imageObject);
+                    QFile imageFile(images_filepath[i]); if (!imageFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open image file"; continue; }
+                    QByteArray imageData = imageFile.readAll(); QByteArray base64Data = imageData.toBase64(); QString base64String = QString("data:image/jpeg;base64,") + base64Data;
+                    QJsonObject imageObject; imageObject["type"] = "image_url"; QJsonObject imageUrlObject; imageUrlObject["url"] = base64String; imageObject["image_url"] = imageUrlObject; contentArray.append(imageObject);
                     showImages({images_filepath[i]});
                 }
-
-                message["content"] = contentArray;
-                ui_messagesArray.append(message);
-                if (history_) history_->appendMessage(message);
+                message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message);
             }
-
-            // Optional audio attachments -> xnet converts audio_url to input_audio
             if (!wavs_filepath.isEmpty())
             {
-                QJsonObject message;
-                message["role"] = DEFAULT_USER_NAME;
-                QJsonArray contentArray;
-
+                QJsonObject message; message["role"] = DEFAULT_USER_NAME; QJsonArray contentArray;
                 for (int i = 0; i < wavs_filepath.size(); ++i)
                 {
-                    QString filePath = wavs_filepath[i];
-                    QFile audioFile(filePath);
-                    if (!audioFile.open(QIODevice::ReadOnly))
-                    {
-                        qDebug() << "Failed to open audio file:" << filePath;
-                        continue;
-                    }
-
-                    QByteArray audioData = audioFile.readAll();
-                    QByteArray base64Data = audioData.toBase64();
-
-                    QFileInfo fileInfo(filePath);
-                    QString extension = fileInfo.suffix().toLower();
-                    QString mimeType = "audio/mpeg";
-                    if (extension == "wav")
-                    {
-                        mimeType = "audio/wav";
-                    }
-                    else if (extension == "ogg")
-                    {
-                        mimeType = "audio/ogg";
-                    }
-                    else if (extension == "flac")
-                    {
-                        mimeType = "audio/flac";
-                    }
-
+                    QString filePath = wavs_filepath[i]; QFile audioFile(filePath); if (!audioFile.open(QIODevice::ReadOnly)) { qDebug() << "Failed to open audio file:" << filePath; continue; }
+                    QByteArray audioData = audioFile.readAll(); QByteArray base64Data = audioData.toBase64();
+                    QFileInfo fileInfo(filePath); QString extension = fileInfo.suffix().toLower(); QString mimeType = "audio/mpeg"; if (extension == "wav") mimeType = "audio/wav"; else if (extension == "ogg") mimeType = "audio/ogg"; else if (extension == "flac") mimeType = "audio/flac";
                     QString base64String = QString("data:%1;base64,").arg(mimeType) + base64Data;
-
-                    QJsonObject audioObject;
-                    audioObject["type"] = "audio_url";
-                    QJsonObject audioUrlObject;
-                    audioUrlObject["url"] = base64String;
-                    audioObject["audio_url"] = audioUrlObject;
-                    contentArray.append(audioObject);
+                    QJsonObject audioObject; audioObject["type"] = "audio_url"; QJsonObject audioUrlObject; audioUrlObject["url"] = base64String; audioObject["audio_url"] = audioUrlObject; contentArray.append(audioObject);
                     showImages({":/logo/wav.png"});
                 }
-
-                if (!contentArray.isEmpty())
-                {
-                    message["content"] = contentArray;
-                    ui_messagesArray.append(message);
-                    if (history_) history_->appendMessage(message);
-                }
+                if (!contentArray.isEmpty()) { message["content"] = contentArray; ui_messagesArray.append(message); if (history_) history_->appendMessage(message); }
             }
-
             data.messagesArray = ui_messagesArray;
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
-            reflash_output(input, 0, NORMAL_BLACK);
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
-            data.n_predict = ui_SETTINGS.hid_npredict;
-            emit ui2net_data(data);
-    emit ui2net_push();
-            if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
-            {
-                monitorFrames_.clear();
-            }
+            appendRoleHeader(QStringLiteral("user")); reflash_output(input, 0, NORMAL_BLACK);
+            data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
+            if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) { monitorFrames_.clear(); }
         }
     }
     else if (ui_state == COMPLETE_STATE)
     {
-        data.input_prompt = ui->output->toPlainText();
-        data.n_predict = ui_SETTINGS.hid_npredict;
-        emit ui2net_data(data);
-    emit ui2net_push();
+        data.input_prompt = ui->output->toPlainText(); data.n_predict = ui_SETTINGS.hid_npredict; emit ui2net_data(data); emit ui2net_push();
     }
 
-    is_run = true;
-    ui_state_pushing();
+    is_run = true; ui_state_pushing();
 }
-
-// 模型输出完毕的后处理
 void Widget::recv_pushover()
 {
-    // Separate reasoning (<think>...</think>) from final content; don't add reasoning to messagesArray
+    // Separate reasoning (<think>...</think>) from final content; capture both roles
     QString reasoningText;
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
@@ -600,49 +498,52 @@ void Widget::recv_pushover()
             finalText.remove(startIdx, (endIdx + tEnd.size()) - startIdx);
         }
     }
+    // Append think and assistant messages to UI array/history
+    if (!reasoningText.isEmpty())
+    {
+        QJsonObject thinkMsg;
+        thinkMsg.insert("role", QStringLiteral("think"));
+        thinkMsg.insert("content", reasoningText);
+        ui_messagesArray.append(thinkMsg);
+        if (history_ && ui_state == CHAT_STATE) history_->appendMessage(thinkMsg);
+    }
     QJsonObject roleMessage;
     roleMessage.insert("role", DEFAULT_MODEL_NAME);
     roleMessage.insert("content", finalText);
     ui_messagesArray.append(roleMessage);
-    // history: store reasoning separately for future display/search
     if (history_ && ui_state == CHAT_STATE)
     {
-        QJsonObject hist = roleMessage;
-        if (!reasoningText.isEmpty()) hist.insert("reasoning", reasoningText);
-        history_->appendMessage(hist);
+        history_->appendMessage(roleMessage);
     }
     temp_assistant_history = "";
 
-    if (ui_state == COMPLETE_STATE) // 补完模式的话额外重置一下
+    if (ui_state == COMPLETE_STATE) // 补完模式的回答只输出一次
     {
         normal_finish_pushover();
-        on_reset_clicked(); // 触发重置
+        on_reset_clicked(); // 自动重置
     }
     else
     {
-        // 如果挂载了工具,则尝试提取里面的json
+        // 工具链开关开启时，尝试解析工具 JSON
         if (is_load_tool)
         {
-            // qDebug()<<ui_messagesArray.last().first;
-            QString tool_str = ui_messagesArray.last().toObject().value("content").toString(); // 移除think标签;
-
-            tools_call = XMLparser(tool_str); // 取巧预解码的系统指令故意不让解析出
+            QString tool_str = ui_messagesArray.last().toObject().value("content").toString();
+            tools_call = XMLparser(tool_str);
             if (tools_call.empty())
             {
                 normal_finish_pushover();
             }
             else
             {
-                if (tools_call.contains("name") && tools_call.contains("arguments")) // 要包含这两个字段才能调用工具
+                if (tools_call.contains("name") && tools_call.contains("arguments"))
                 {
                     QString tools_name = QString::fromStdString(tools_call.value("name", ""));
                     reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
-                    // 包含以下字段则停止调用
+                    // 工具层面指出结束
                     if (tools_name == "answer" || tools_name == "response")
                     {
                         normal_finish_pushover();
                     }
-                    // 正常调用情况
                     else
                     {
                         // accumulate current-turn tokens before launching tool (exclude reasoning)
@@ -653,14 +554,12 @@ void Widget::recv_pushover()
                             kvTokensTurn_ = 0;
                             lastReasoningTokens_ = 0;
                         }
-                        emit ui2tool_exec(tools_call); // 调用tool
-                        // 使用工具时解码动画不停
+                        emit ui2tool_exec(tools_call);
+                        // use tool; decoding remains paused
                     }
                 }
             }
         }
-
-        // 正常结束
         else
         {
             normal_finish_pushover();
@@ -671,6 +570,8 @@ void Widget::recv_pushover()
 // 正常情况处理推理完毕
 void Widget::normal_finish_pushover()
 {
+    turnThinkActive_ = false;
+    // Reset per-turn header flags
     is_run = false;
     ui_state_normal(); // 待机界面状态
     // integrate this-turn tokens into conversation accumulation
@@ -867,7 +768,7 @@ void Widget::on_reset_clicked()
     ui_messagesArray.append(systemMessage);
     if (ui_state == CHAT_STATE)
     {
-        reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+        appendRoleHeader(QStringLiteral("system")); reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
     }
 
     // Do not record reset into history; clear current session only
@@ -914,8 +815,6 @@ void Widget::on_date_clicked()
     // 展示最近一次设置值
     date_ui->chattemplate_comboBox->setCurrentText(ui_template); // 默认使用default的提示词模板
     date_ui->date_prompt_TextEdit->setPlainText(ui_date_prompt);
-    date_ui->user_name_LineEdit->setText(ui_DATES.user_name);
-    date_ui->model_name_LineEdit->setText(ui_DATES.model_name);
 
     date_ui->calculator_checkbox->setChecked(ui_calculator_ischecked);
     date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
@@ -1070,44 +969,48 @@ void Widget::restoreSessionById(const QString &sessionId)
     {
         const QJsonObject m = v.toObject();
         const QString role = m.value("role").toString();
-        const QString content = m.value("content").toString();
-        if (role == QString(DEFAULT_SYSTEM_NAME))
+        QString content = m.value("content").toString();
+        content.replace(QString(DEFAULT_THINK_BEGIN), QString());
+        content.replace(QString(DEFAULT_THINK_END),   QString());
+        if (role == QStringLiteral("system"))
         {
-            reflash_output(content, 0, SYSTEM_BLUE);
-            QJsonObject o;
-            o.insert("role", DEFAULT_SYSTEM_NAME);
-            o.insert("content", content);
+            appendRoleHeader(QStringLiteral("system"));
+            reflash_output(content, 0, NORMAL_BLACK);
+            QJsonObject o; o.insert("role", QStringLiteral("system")); o.insert("content", content);
             ui_messagesArray.append(o);
         }
         else if (role == QStringLiteral("user"))
         {
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.user_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
+            appendRoleHeader(QStringLiteral("user"));
             reflash_output(content, 0, NORMAL_BLACK);
-            reflash_output(QString(DEFAULT_SPLITER) + ui_DATES.model_name + DEFAULT_SPLITER, 0, SYSTEM_BLUE);
-            QJsonObject o;
-            o.insert("role", "user");
-            o.insert("content", content);
+            QJsonObject o; o.insert("role", QStringLiteral("user")); o.insert("content", content);
             ui_messagesArray.append(o);
         }
-        else if (role == QString(DEFAULT_MODEL_NAME))
+        else if (role == QStringLiteral("think"))
         {
-            const QString reasoning = m.value("reasoning").toString();
-            if (!reasoning.isEmpty())
-            {
-                reflash_output(QString(DEFAULT_THINK_BEGIN) + reasoning + QString(DEFAULT_THINK_END), 0, THINK_GRAY);
-            }
+            appendRoleHeader(QStringLiteral("think"));
+            reflash_output(content, 0, THINK_GRAY);
+            QJsonObject o; o.insert("role", QStringLiteral("think")); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+        else if (role == QStringLiteral("tool"))
+        {
+            appendRoleHeader(QStringLiteral("tool"));
+            reflash_output(content, 0, TOOL_BLUE);
+            QJsonObject o; o.insert("role", QStringLiteral("tool")); o.insert("content", content);
+            ui_messagesArray.append(o);
+        }
+        else if (role == QStringLiteral("assistant"))
+        {
+            appendRoleHeader(QStringLiteral("assistant"));
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o;
-            o.insert("role", DEFAULT_MODEL_NAME);
-            o.insert("content", content);
+            QJsonObject o; o.insert("role", QStringLiteral("assistant")); o.insert("content", content);
             ui_messagesArray.append(o);
         }
         else
         {
             reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o;
-            o.insert("role", role);
-            o.insert("content", content);
+            QJsonObject o; o.insert("role", role); o.insert("content", content);
             ui_messagesArray.append(o);
         }
     }
@@ -1132,6 +1035,8 @@ void Widget::restoreSessionById(const QString &sessionId)
     currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }
 
+
+
 // Receive final per-turn speeds from xNet timings and print a single UI line
 void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
 {
@@ -1142,3 +1047,4 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
     const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
 }
+

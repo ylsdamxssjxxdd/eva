@@ -141,11 +141,7 @@ class Widget : public QWidget
     EVA_CHATS_TEMPLATE bot_chat;       // 经过模型自带模板格式化后的内容
     QMap<QString, EVA_DATES> date_map; // 约定模板
     QString custom1_date_system;
-    QString custom1_user_name;
-    QString custom1_model_name; // 自定义约定模板1
     QString custom2_date_system;
-    QString custom2_user_name;
-    QString custom2_model_name;      // 自定义约定模板2
     void preLoad();                  // 装载前动作
     bool is_load = false;            // 模型装载标签
     bool is_load_play_over = false;  // 模型装载动画结束后
@@ -174,6 +170,9 @@ class Widget : public QWidget
     int kvUsedBeforeTurn_ = 0;  // n_past at the beginning of current turn
     int kvStreamedTurn_ = 0;    // approximate streamed tokens in this turn (from xNet)
     bool turnActive_ = false;   // a request is in-flight
+    bool turnThinkHeaderPrinted_ = false;  // printed think header this turn
+    bool turnAssistantHeaderPrinted_ = false; // printed assistant header this turn
+    bool turnThinkActive_ = false;        // streaming: inside <think> section
     bool sawFinalPast_ = false; // saw stop processing n_past -> prefer this over totals
     int ui_maxngl = 0;          // 模型可卸载到gpu上的层数
     bool load_percent_tag;
@@ -363,8 +362,6 @@ class Widget : public QWidget
     void onServerReady(const QString &endpoint);
     void onServerOutput(const QString &line);                                    // parse llama_server logs for n_ctx
     void onServerStartFailed(const QString &reason);                             // 后端启动失败：立即停止动画并解锁
-    void recv_predecoding();                                                     // 正在预解码
-    void recv_predecoding_over();                                                // 完成预解码
     void recv_chat_format(EVA_CHATS_TEMPLATE chats);                             // 传递格式化后的对话内容
     void recv_freeover_loadlater();                                              // 模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容
@@ -453,6 +450,10 @@ class Widget : public QWidget
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state
+
+    // Output helpers: print a role header then content separately
+    void appendRoleHeader(const QString &role);
+
     void updateKvBarUi();                  // refresh kv_bar from kvUsed_/slotCtxMax_
   private:
     Ui::Widget *ui;

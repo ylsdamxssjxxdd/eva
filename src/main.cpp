@@ -377,11 +377,7 @@ int main(int argc, char *argv[])
         w.apis.api_key = w.api_key_LineEdit->text();
         w.apis.api_model = w.api_model_LineEdit->text();
         w.custom1_date_system = settings.value("custom1_date_system", "").toString();
-        w.custom1_user_name = settings.value("custom1_user_name", "").toString();
-        w.custom1_model_name = settings.value("custom1_model_name", "").toString();
         w.custom2_date_system = settings.value("custom2_date_system", "").toString();
-        w.custom2_user_name = settings.value("custom2_user_name", "").toString();
-        w.custom2_model_name = settings.value("custom2_model_name", "").toString();
         w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
         w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", 0).toBool());
         w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", 0).toBool());

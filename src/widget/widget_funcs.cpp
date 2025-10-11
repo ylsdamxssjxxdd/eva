@@ -122,8 +122,6 @@ void Widget::get_date()
     {
         ui_DATES.date_prompt = ui_date_prompt;
     }
-    ui_DATES.user_name = date_ui->user_name_LineEdit->text();
-    ui_DATES.model_name = date_ui->model_name_LineEdit->text();
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = date_ui->chattemplate_comboBox->currentText();
     ui_extra_lan = date_ui->switch_lan_button->text();
@@ -137,14 +135,10 @@ void Widget::get_date()
     if (ui_template == jtr("custom set1"))
     {
         custom1_date_system = ui_date_prompt;
-        custom1_user_name = ui_DATES.user_name;
-        custom1_model_name = ui_DATES.model_name;
     }
     else if (ui_template == jtr("custom set2"))
     {
         custom2_date_system = ui_date_prompt;
-        custom2_user_name = ui_DATES.user_name;
-        custom2_model_name = ui_DATES.model_name;
     }
     // 添加额外停止标志
     addStopwords();
@@ -559,12 +553,6 @@ void Widget::apply_language(int language_flag_)
     date_ui->date_prompt_label->setText(jtr("date prompt"));
     date_ui->date_prompt_label->setToolTip(jtr("date_prompt_label_tooltip"));
     date_ui->date_prompt_TextEdit->setToolTip(jtr("date_prompt_label_tooltip"));
-    date_ui->user_name_label->setText(jtr("user name"));
-    date_ui->user_name_label->setToolTip(jtr("user_name_label_tooltip"));
-    date_ui->user_name_LineEdit->setToolTip(jtr("user_name_label_tooltip"));
-    date_ui->model_name_label->setText(jtr("model name"));
-    date_ui->model_name_label->setToolTip(jtr("model_name_label_tooltip"));
-    date_ui->model_name_LineEdit->setToolTip(jtr("model_name_label_tooltip"));
     date_ui->tool_box->setTitle(jtr("mount") + jtr("tool"));
     date_ui->calculator_checkbox->setText(jtr("calculator"));
     date_ui->calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
@@ -706,11 +694,6 @@ void Widget::auto_save_user()
     settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
     // 保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
-    settings.setValue("custom1_user_name", custom1_user_name);
-    settings.setValue("custom1_model_name", custom1_model_name);
-    settings.setValue("custom2_date_system", custom2_date_system);
-    settings.setValue("custom2_user_name", custom2_user_name);
-    settings.setValue("custom2_model_name", custom2_model_name);
     // 保存api参数
     settings.setValue("api_endpoint", apis.api_endpoint);
     settings.setValue("api_key", apis.api_key);
@@ -1059,3 +1042,4 @@ void Widget::openHistoryManager()
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
+

@@ -12,6 +12,11 @@ void Widget::set_DateDialog()
     date_dialog->setWindowFlags(date_dialog->windowFlags() & ~Qt::WindowContextHelpButtonHint); // 隐藏?按钮
     date_ui = new Ui::Date_Dialog_Ui;
     date_ui->setupUi(date_dialog);
+    // Hide unused nickname fields in date dialog
+    if (date_ui->user_name_label) date_ui->user_name_label->setVisible(false);
+    if (date_ui->user_name_LineEdit) date_ui->user_name_LineEdit->setVisible(false);
+    if (date_ui->model_name_label) date_ui->model_name_label->setVisible(false);
+    if (date_ui->model_name_LineEdit) date_ui->model_name_LineEdit->setVisible(false);
     for (const QString &key : date_map.keys())
     {
         date_ui->chattemplate_comboBox->addItem(key);

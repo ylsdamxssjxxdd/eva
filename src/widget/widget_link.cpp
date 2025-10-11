@@ -48,7 +48,7 @@ void Widget::set_api()
 
     emit ui2net_apis(apis);
     ui->output->clear();
-    reflash_output(ui_DATES.date_prompt, 0, SYSTEM_BLUE);
+    appendRoleHeader(QStringLiteral("system")); reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
     // 构造系统指令
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
@@ -79,8 +79,6 @@ void Widget::tool_testhandleTimeout()
 {
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;
-    data.input_pfx = ui_DATES.user_name;
-    data.input_sfx = ui_DATES.model_name;
     data.stopwords = ui_DATES.extra_stop_words;
     if (ui_state == COMPLETE_STATE)
     {

@@ -94,31 +94,19 @@ void Widget::prompt_template_change()
     if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set1"))
     {
         date_ui->date_prompt_TextEdit->setEnabled(1);
-        date_ui->user_name_LineEdit->setEnabled(1);
-        date_ui->model_name_LineEdit->setEnabled(1);
 
         date_ui->date_prompt_TextEdit->setPlainText(custom1_date_system);
-        date_ui->user_name_LineEdit->setText(custom1_user_name);
-        date_ui->model_name_LineEdit->setText(custom1_model_name);
     }
     else if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set2"))
     {
         date_ui->date_prompt_TextEdit->setEnabled(1);
-        date_ui->user_name_LineEdit->setEnabled(1);
-        date_ui->model_name_LineEdit->setEnabled(1);
 
         date_ui->date_prompt_TextEdit->setPlainText(custom2_date_system);
-        date_ui->user_name_LineEdit->setText(custom2_user_name);
-        date_ui->model_name_LineEdit->setText(custom2_model_name);
     }
     else
     {
         date_ui->date_prompt_TextEdit->setPlainText(date_map[date_ui->chattemplate_comboBox->currentText()].date_prompt);
         date_ui->date_prompt_TextEdit->setEnabled(0);
-        date_ui->user_name_LineEdit->setText(date_map[date_ui->chattemplate_comboBox->currentText()].user_name);
-        date_ui->user_name_LineEdit->setEnabled(0);
-        date_ui->model_name_LineEdit->setText(date_map[date_ui->chattemplate_comboBox->currentText()].model_name);
-        date_ui->model_name_LineEdit->setEnabled(0);
     }
 }
 
@@ -697,17 +685,7 @@ void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
     bot_chat = chats;
 }
 
-// 正在预解码
-void Widget::recv_predecoding()
-{
-    ui_state_pushing();
-}
 
-// 完成预解码
-void Widget::recv_predecoding_over()
-{
-    ui_state_normal();
-}
 
 // Initialize memory policy for text widgets: disable undo, cap logs
 void Widget::initTextComponentsMemoryPolicy()
