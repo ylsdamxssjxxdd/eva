@@ -2,10 +2,11 @@
 #define RECORDBAR_H
 
 #include <QColor>
+#include <QEvent>
+#include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QLinearGradient>
 #include <QRect>
 #include <QResizeEvent>
 #include <QSizePolicy>
@@ -14,7 +15,6 @@
 #include <QVector>
 #include <QWheelEvent>
 #include <QWidget>
-#include <QEvent>
 
 // A thin horizontal bar that displays key conversation nodes as colored chips.
 // - Hover: shows tooltip text (content snippet)

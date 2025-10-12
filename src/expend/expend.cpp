@@ -1,8 +1,8 @@
 #include "expend.h"
 
+#include "../utils/introanimedit.h" // 自定义：软件介绍页动画背景
+#include "../utils/neuronlogedit.h" // 自定义：模型信息页动画日志
 #include "ui_expend.h"
-#include "../utils/neuronlogedit.h"     // 自定义：模型信息页动画日志
-#include "../utils/introanimedit.h"      // 自定义：软件介绍页动画背景
 #include <QThread>
 
 Expend::Expend(QWidget *parent, QString applicationDirPath_)
@@ -12,8 +12,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     applicationDirPath = applicationDirPath_;
 
     // 初始化选项卡
-    ui->info_card->setReadOnly(1);                                   // 只读
-    ui->tabWidget->setCurrentIndex(0);                               // 默认显示
+    ui->info_card->setReadOnly(1);     // 只读
+    ui->tabWidget->setCurrentIndex(0); // 默认显示
     // Track tab changes to control heavy animations lifecycle
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &Expend::onTabCurrentChanged);
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单

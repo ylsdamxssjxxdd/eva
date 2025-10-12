@@ -1,4 +1,4 @@
-#ifndef CUTSCREENDIALOG_H
+﻿#ifndef CUTSCREENDIALOG_H
 #define CUTSCREENDIALOG_H
 
 #include <QApplication>
@@ -76,6 +76,7 @@ class CutScreenDialog : public QDialog
     // 显示事件处理，初始化截图背景
     void showEvent(QShowEvent *event) override
     {
+        Q_UNUSED(event);
         QSize desktopSize = QApplication::desktop()->size();                                                                     // 获取桌面尺寸
         QScreen *screen = QApplication::primaryScreen();                                                                         // 获取主屏幕
         m_screenPicture = screen->grabWindow(QApplication::desktop()->winId(), 0, 0, desktopSize.width(), desktopSize.height()); // 截取屏幕
@@ -89,6 +90,7 @@ class CutScreenDialog : public QDialog
     // 绘制事件处理，绘制截图框和截图内容
     void paintEvent(QPaintEvent *event) override
     {
+        Q_UNUSED(event);
         QPainter painter(this);
         QPen pen(Qt::red); // 设置绘制的笔为红色
         pen.setWidth(1);   // 设置笔宽
@@ -128,6 +130,7 @@ class CutScreenDialog : public QDialog
     // 鼠标释放事件处理，显示右键菜单
     void mouseReleaseEvent(QMouseEvent *event) override
     {
+        Q_UNUSED(event);
         m_isMousePressed = false;
         m_screenMenu.exec(cursor().pos()); // 弹出右键菜单
         clearInformation();                // 清除起点终点数据
@@ -137,6 +140,7 @@ class CutScreenDialog : public QDialog
     // 右键菜单事件处理
     void contextMenuEvent(QContextMenuEvent *event) override
     {
+        Q_UNUSED(event);
         setCursor(Qt::ArrowCursor);        // 设置箭头光标
         m_screenMenu.exec(cursor().pos()); // 弹出右键菜单
     }
@@ -144,35 +148,12 @@ class CutScreenDialog : public QDialog
     // 键盘按下事件处理，取消截图并隐藏窗口
     void keyPressEvent(QKeyEvent *event) override
     {
+        Q_UNUSED(event);
         clearInformation(); // 清除截图区域信息
         hide();             // 隐藏窗口
     }
 
   public:
-    // 调整图片的长宽比，如果长边与短边比大于3，则进行调整
-    // QImage adjustImageAspectRatio(const QImage &image) {
-    //     int width = image.width();
-    //     int height = image.height();
-    //     int longSide = qMax(width, height);  // 长边
-    //     int shortSide = qMin(width, height);  // 短边
-    //     double aspectRatio = static_cast<double>(longSide) / shortSide;  // 计算长宽比
-    //     if (aspectRatio > 3) {
-    //         int newShortSide = longSide / 3;  // 新的短边
-    //         int padding = newShortSide - shortSide;  // 需要填充的宽度
-    //         QImage newImage = (width < height)
-    //                           ? QImage(width + padding, height, image.format())
-    //                           : QImage(width, height + padding, image.format());
-    //         newImage.fill(Qt::white);  // 用白色填充
-    //         for (int y = 0; y < height; ++y) {
-    //             for (int x = 0; x < width; ++x) {
-    //                 newImage.setPixel(x, y, image.pixel(x, y));  // 将原图像素复制到新图像
-    //             }
-    //         }
-    //         return newImage;
-    //     }
-    //     return image;  // 长宽比不需要调整时，返回原图
-    // }
-
     // 保存图片到文件和剪贴板
     void saveImage(const QImage &image)
     {

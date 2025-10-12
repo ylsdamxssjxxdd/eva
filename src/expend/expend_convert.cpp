@@ -1,4 +1,4 @@
-
+﻿
 #include "expend.h"
 
 #include "ui_expend.h"
@@ -115,6 +115,7 @@ void Expend::readyRead_convert_command_process_StandardError()
 // 用户改变转换类型响应
 void Expend::on_modelconvert_converttype_comboBox_currentTextChanged(QString text)
 {
+    Q_UNUSED(text);
     get_convertmodel_name(); // 自动构建输出文件名
 }
 

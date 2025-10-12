@@ -37,6 +37,7 @@ class CustomSwitchButton : public QAbstractButton
   protected:
     void paintEvent(QPaintEvent *event) override
     {
+        Q_UNUSED(event);
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
 

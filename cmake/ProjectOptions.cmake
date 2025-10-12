@@ -53,8 +53,7 @@ elseif (MINGW)
             -fno-keep-inline-dllexport
             -fopenmp
             -O2
-            -std=gnu++17
-            -Wall -Wextra
+                        -Wall -Wextra
             -ffunction-sections -fdata-sections
             -fexceptions
             -mthreads)
@@ -90,3 +89,4 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+

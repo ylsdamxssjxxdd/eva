@@ -1,4 +1,4 @@
-
+﻿
 #include "expend.h"
 
 #include "ui_expend.h"
@@ -151,6 +151,7 @@ void Expend::speech_play_process()
 
 void Expend::recv_output(const QString result, bool is_while, QColor color)
 {
+    Q_UNUSED(color);
     if (is_while)
     {
         // 累计输出的文本

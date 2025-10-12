@@ -482,7 +482,7 @@ void Expend::on_embedding_test_pushButton_clicked()
             score = similar_indices(user_embedding_vector.value, Embedding_DB);
             ui->embedding_test_result->appendPlainText(jtr("The text segments with the highest similarity") + ":");
             //将分数前几的结果显示出来
-            for (int i = 0; i < embedding_resultnumb && i < score.size(); ++i)
+            for (int i = 0; i < embedding_resultnumb && i < int(score.size()); ++i)
             {
                 // qDebug()<<score[i].first<<score[i].second;
                 ui->embedding_test_result->appendPlainText(QString::number(score[i].first + 1) + " " + jtr("Number text segment similarity") + ": " + QString::number(score[i].second));

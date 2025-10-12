@@ -177,7 +177,6 @@ void Expend::on_tabWidget_tabBarClicked(int index)
     updateModelInfoAnim();
 }
 
-
 // 通知显示增殖窗口
 void Expend::recv_expend_show(EXPEND_WINDOW window)
 {

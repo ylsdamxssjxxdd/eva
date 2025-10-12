@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Zlib
+﻿// SPDX-License-Identifier: Zlib
 /*
  * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
  *
@@ -42,6 +42,12 @@ For log = natural log uncomment the next line. */
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 
 #ifndef NAN
 #define NAN (0.0/0.0)
@@ -732,3 +738,7 @@ static void pn (const te_expr *n, int depth) {
 void te_print(const te_expr *n) {
     pn(n, 0);
 }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

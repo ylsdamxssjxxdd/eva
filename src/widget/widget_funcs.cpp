@@ -517,6 +517,7 @@ void Widget::switch_lan_change()
 // 改变语种相关
 void Widget::apply_language(int language_flag_)
 {
+    Q_UNUSED(language_flag_);
     // 主界面语种
     ui->load->setText(jtr("load"));
     ui->load->setToolTip(jtr("load_button_tooltip"));
@@ -773,7 +774,6 @@ QString Widget::saveScreen()
 {
     QScreen *screen = QApplication::primaryScreen();
     // 获取屏幕几何信息
-    QRect screenGeometry = screen->geometry();
     qreal devicePixelRatio = screen->devicePixelRatio();
     // qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
     // qDebug() << "缩放比例:" << devicePixelRatio;

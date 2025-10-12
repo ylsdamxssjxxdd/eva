@@ -98,7 +98,12 @@ QNetworkRequest xNet::buildRequest(const QUrl &url) const
     req.setRawHeader("Accept", "text/event-stream");
     req.setRawHeader("Connection", "keep-alive");
     req.setRawHeader("Cache-Control", "no-cache");
+    // FollowRedirectsAttribute is deprecated; use RedirectPolicyAttribute
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
+    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+#else
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#endif
     req.setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     req.setTransferTimeout(60000); // 60s transfer timeout
@@ -141,6 +146,7 @@ void xNet::run()
             t_first_.start();
             // Report approximate prompt processing time (TTFB)
             const double t_prompt = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
+            Q_UNUSED(t_prompt);
             // emit net2ui_state(QString("net:prompt time %1 s").arg(QString::number(t_prompt, 'f', 2)));
         }
 
@@ -315,7 +321,9 @@ void xNet::run()
             const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
             const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
             const double tAll = t_all_.nsecsElapsed() / 1e9;
+            Q_UNUSED(tAll);
             const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
+            Q_UNUSED(tokps);
 
             if (err == QNetworkReply::NoError)
             {

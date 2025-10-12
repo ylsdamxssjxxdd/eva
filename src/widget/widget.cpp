@@ -1,15 +1,17 @@
-// 主函数和主要槽函数
+﻿// 主函数和主要槽函数
 
 #include "widget.h"
 
 #include "ui_widget.h"
 #include <QDateTime>
+#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QRegularExpression>
-#include <QtGlobal>`r`n#include <QDialog>`r`n#include <QVBoxLayout>
+#include <QVBoxLayout>
+#include <QtGlobal>
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -27,8 +29,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); // 设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1); // 设置分隔器中第二个元素初始高度占比为1
-
-    connect(ui->splitter, &QSplitter::splitterMoved, this, &Widget::onSplitterMoved);
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
     // 注册 发送 快捷键
@@ -75,7 +75,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                  // 设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL); // 初始提示
 
-
     //-------------初始化各种控件-------------
     setApiDialog();   // 设置api选项
     set_DateDialog(); // 设置约定选项
@@ -94,7 +93,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     // Setup decode timer for wait animation
     decode_pTimer = new QTimer(this);
     connect(decode_pTimer, &QTimer::timeout, this, &Widget::decode_handleTimeout);
-    trayMenu = new QMenu(this);                                   // 托盘菜单
+    trayMenu = new QMenu(this); // 托盘菜单
 
     //-------------获取cpu内存信息-------------
     max_thread = std::thread::hardware_concurrency();
@@ -774,15 +773,6 @@ void Widget::recv_stopover()
     } // 补完模式终止后需要重置
 }
 
-// 模型达到最大上下文的后处理
-void Widget::recv_arrivemaxctx(bool predecode)
-{
-    EVA_icon = QIcon(":/logo/red_logo.png");
-    QApplication::setWindowIcon(EVA_icon); // 设置应用程序图标
-    trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
-    // if(predecode){history_prompt = "";}//取巧使下一次重置触发预解码
-}
-
 // 重置完毕的后处理
 void Widget::recv_resetover()
 {
@@ -1366,7 +1356,8 @@ void Widget::onRecordDoubleClicked(int index)
     // Skip leading blank line inserted before header (if any)
     while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
 
-    auto roleName = [](RecordRole r) -> QString {
+    auto roleName = [](RecordRole r) -> QString
+    {
         switch (r)
         {
         case RecordRole::System: return QStringLiteral("system");
@@ -1385,7 +1376,11 @@ void Widget::onRecordDoubleClicked(int index)
         bool headerMatch = true;
         for (int i = 0; i < header.size() && contentFrom + i < docEnd; ++i)
         {
-            if (doc->characterAt(contentFrom + i) != header.at(i)) { headerMatch = false; break; }
+            if (doc->characterAt(contentFrom + i) != header.at(i))
+            {
+                headerMatch = false;
+                break;
+            }
         }
         if (headerMatch && (contentFrom + header.size() < docEnd) && doc->characterAt(contentFrom + header.size()) == QChar('\n'))
         {
@@ -1420,7 +1415,8 @@ void Widget::onRecordDoubleClicked(int index)
         // Skip any leading blank lines before header
         while (s < docEnd2 && doc->characterAt(s) == QChar('\n')) ++s;
 
-        const auto roleName = [](RecordRole r) -> QString {
+        const auto roleName = [](RecordRole r) -> QString
+        {
             switch (r)
             {
             case RecordRole::System: return QStringLiteral("system");
@@ -1439,7 +1435,11 @@ void Widget::onRecordDoubleClicked(int index)
             headerOk = true;
             for (int i = 0; i < header.size(); ++i)
             {
-                if (doc->characterAt(s + i) != header.at(i)) { headerOk = false; break; }
+                if (doc->characterAt(s + i) != header.at(i))
+                {
+                    headerOk = false;
+                    break;
+                }
             }
             if (!(headerOk && doc->characterAt(s + header.size()) == QChar('\n')))
             {
@@ -1484,7 +1484,3 @@ int Widget::outputDocEnd() const
     c.movePosition(QTextCursor::End);
     return c.position();
 }
-
-
-
-

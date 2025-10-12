@@ -1,10 +1,10 @@
 #include "neuronlogedit.h"
 
 #include <QAbstractTextDocumentLayout>
-#include <QPalette>
 #include <QDateTime>
-#include <algorithm>
 #include <QPainterPath>
+#include <QPalette>
+#include <algorithm>
 NeuronLogEdit::NeuronLogEdit(QWidget *parent)
     : QPlainTextEdit(parent)
 {
@@ -160,9 +160,8 @@ void NeuronLogEdit::onPulseTick()
     bool needs = !m_pulsations.isEmpty() || !m_highlights.isEmpty();
 
     // Trim finished pulses
-    auto it = std::remove_if(m_pulsations.begin(), m_pulsations.end(), [&](const Pulsation &p) {
-        return (now - p.startTime) > p.duration;
-    });
+    auto it = std::remove_if(m_pulsations.begin(), m_pulsations.end(), [&](const Pulsation &p)
+                             { return (now - p.startTime) > p.duration; });
     if (it != m_pulsations.end()) m_pulsations.erase(it, m_pulsations.end());
 
     // Update highlights; drop invalid/expired
@@ -306,7 +305,8 @@ QVector<int> NeuronLogEdit::sortNodesByDepth(QVector<QPointF> &projected, const 
 
     QVector<int> order(n);
     for (int i = 0; i < n; ++i) order[i] = i;
-    std::sort(order.begin(), order.end(), [&](int a, int b) { return rotated[a].z < rotated[b].z; });
+    std::sort(order.begin(), order.end(), [&](int a, int b)
+              { return rotated[a].z < rotated[b].z; });
 
     QVector<QPointF> sortedProj(n);
     sortedRotated.resize(n);

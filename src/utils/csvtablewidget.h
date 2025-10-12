@@ -551,6 +551,7 @@ class CsvTableWidget : public QWidget
 
     void wheelEvent(QWheelEvent *event) override
     {
+        Q_UNUSED(event);
         // if (event->modifiers() & Qt::ControlModifier) {
         //     int delta = event->angleDelta().y();
         //     double zoomDelta = delta > 0 ? 1.1 : 1.0 / 1.1;

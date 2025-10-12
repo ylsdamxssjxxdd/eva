@@ -1,5 +1,15 @@
 ﻿#ifndef EXPEND_H
 #define EXPEND_H
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
 
 #include <QAbstractSocket>
 #include <QApplication>
@@ -35,7 +45,6 @@
 #include <algorithm>
 #include <math.h>
 #ifdef _WIN32
-#include <windows.h>
 #elif __linux__
 #include <fstream>
 #include <iostream>
@@ -91,7 +100,7 @@ class Expend : public QWidget
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
 
   public slots:
-    void recv_language(int language_flag_); // 传递语言标志
+    void recv_language(int language_flag_);      // 传递语言标志
     void recv_expend_show(EXPEND_WINDOW window); // 通知显示增殖窗口
     void recv_llama_log(QString log);            // 传递llama.cpp的log
   private slots:

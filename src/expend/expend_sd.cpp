@@ -1,4 +1,4 @@
-#include "expend.h"
+﻿#include "expend.h"
 
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
@@ -391,6 +391,7 @@ void Expend::sd_onProcessFinished()
 // 参数模板改变响应
 void Expend::on_params_template_comboBox_currentIndexChanged(int index)
 {
+    Q_UNUSED(index);
     // 以前是自定义模板，触发这个函数说明现在换了，保存以前的这个模板
     if (is_readconfig)
     {

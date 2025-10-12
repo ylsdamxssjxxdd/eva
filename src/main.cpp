@@ -325,11 +325,11 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2net_stop, net, &xNet::recv_stop, Qt::QueuedConnection);                         // 传递停止信号
 
     //------------------连接tool和窗口-------------------
-    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  // 窗口状态区更新
-    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           // 完成推理
-    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               // 传递使用的语言
-    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            // 开始推理
-    QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);                 // 设置工程师工作目录
+    QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);        // 窗口状态区更新
+    QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover); // 完成推理
+    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);     // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                  // 开始推理
+    QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);       // 设置工程师工作目录
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 // 传递已嵌入文本段数据

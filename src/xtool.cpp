@@ -654,11 +654,11 @@ void xTool::Exec(mcp::json tools_call)
 
         auto isLikelyText = [](const QString &path, qint64 size) -> bool
         {
-            static const QSet<QString> exts = QSet<QString>::fromList({
+            static const QSet<QString> exts = {
 
                 "txt", "md", "markdown", "log", "ini", "cfg", "conf", "csv", "tsv", "json", "yaml", "yml", "toml", "xml", "html", "htm", "css", "js", "ts", "tsx", "jsx", "py", "ipynb", "c", "cc", "cpp", "h", "hpp", "hh", "java", "kt", "rs", "go", "rb", "php", "sh", "bash", "zsh", "ps1", "bat", "cmake", "mak", "make", "gradle", "properties", "sql"
 
-            });
+            };
 
             const QString ext = QFileInfo(path).suffix().toLower();
 
@@ -942,11 +942,8 @@ QString xTool::embedding_query_process(QString query_str)
 
                                  knowledge_result += jtr("The three text segments with the highest similarity") + DEFAULT_SPLITER;
                              }
-
-                             // 将分数前几的结果显示出来
-
-                             for (int i = 0; i < embedding_server_resultnumb && i < score.size(); ++i)
-
+                              size_t limit = std::min<size_t>(static_cast<size_t>(embedding_server_resultnumb), score.size());
+                              for (size_t i = 0; i < limit; ++i)
                              {
 
                                  knowledge_result += QString::number(score[i].first + 1) + jtr("Number text segment similarity") + ": " + QString::number(score[i].second);

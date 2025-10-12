@@ -346,6 +346,7 @@ class ImageInputBox : public QWidget
     }
     void dragLeaveEvent(QDragLeaveEvent *event) override
     {
+        Q_UNUSED(event);
         setStyleSheet(""); // 恢复样式
     }
 

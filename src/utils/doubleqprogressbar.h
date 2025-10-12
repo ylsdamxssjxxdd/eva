@@ -43,6 +43,7 @@ class DoubleQProgressBar : public QProgressBar
   protected:
     void paintEvent(QPaintEvent *event) override
     {
+        Q_UNUSED(event);
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing);
 

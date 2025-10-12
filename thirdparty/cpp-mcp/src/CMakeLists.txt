@@ -22,3 +22,8 @@ target_link_libraries(${TARGET} PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 if(OPENSSL_FOUND)
     target_link_libraries(${TARGET} PUBLIC ${OPENSSL_LIBRARIES})
 endif()
+
+# Link Winsock2 on Windows
+if (WIN32)
+    target_link_libraries(${TARGET} PUBLIC ws2_32)
+endif()

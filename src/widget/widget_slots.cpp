@@ -274,6 +274,7 @@ void Widget::recv_kv(float percent, int ctx_size)
 // 更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {
+    Q_UNUSED(vmem);
     vfree = vfree_; // 剩余显存
     ui->vcore_bar->setValue(vcore);
     // 取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
@@ -556,12 +557,10 @@ void Widget::recv_embeddingdb_describe(QString describe)
     embeddingdb_describe = describe;
 }
 
-// 分割器被用户拉动时响应
-void Widget::onSplitterMoved(int pos, int index) {}
-
 // 根据language.json和language_flag中找到对应的文字
 QString Widget::jtr(QString customstr)
 {
+
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
 

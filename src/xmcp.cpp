@@ -57,7 +57,7 @@ void xMcp::addService(const QString mcp_json_str)
     // 获取所有可用工具信息
     MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
     mcp::json servers = get_json_object_safely(config, "mcpServers");
-    if (ok_num == servers.size()) { emit addService_over(MCP_CONNECT_LINK); }
+    if (ok_num == static_cast<int>(servers.size())) { emit addService_over(MCP_CONNECT_LINK); }
     else if (ok_num == 0)
     {
         emit addService_over(MCP_CONNECT_MISS);

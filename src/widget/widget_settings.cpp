@@ -112,7 +112,6 @@ void Widget::set_SetDialog()
     settings_ui->chat_btn->setChecked(1);
     connect(settings_ui->chat_btn, &QRadioButton::clicked, this, &Widget::chat_change);
     // 网页服务控制（服务状态已移除，仅保留端口）
-    QHBoxLayout *layout_H10 = new QHBoxLayout(); // 水平布局器
     settings_ui->port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535); // 限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
@@ -240,7 +239,6 @@ void Widget::settings_ui_cancel_button_clicked()
 // 设置用户设置内容
 void Widget::set_set()
 {
-    EVA_STATE current_ui_state = ui_state; // 上一次机体的状态
     get_set();                             // 获取设置中的纸面值
 
     // 如果不是对话模式则禁用约定

@@ -1,9 +1,9 @@
 #include "introanimedit.h"
 
 #include <QAbstractTextDocumentLayout>
+#include <QPainterPath>
 #include <QPalette>
 #include <QtMath>
-#include <QPainterPath>
 
 IntroAnimEdit::IntroAnimEdit(QWidget *parent)
     : QTextEdit(parent)
@@ -24,7 +24,8 @@ IntroAnimEdit::IntroAnimEdit(QWidget *parent)
 
     // Do not start timers automatically; caller controls lifecycle
     m_timer.setInterval(30); // ~33 FPS keeps CPU low
-    connect(&m_timer, &QTimer::timeout, this, [this]() {
+    connect(&m_timer, &QTimer::timeout, this, [this]()
+            {
         qint64 ms = m_clock.elapsed();
         const qreal dt = qBound<qint64>(0, ms, 100) / 1000.0; // clamp to avoid spikes
         // Smooth, gentle motion
@@ -32,8 +33,7 @@ IntroAnimEdit::IntroAnimEdit(QWidget *parent)
         m_angle = 5.0 * qSin(m_phase*0.8); // sway angle in degrees
         // Restart clock to avoid numerical blow-up
         m_clock.restart();
-        update();
-    });
+        update(); });
 }
 
 void IntroAnimEdit::setActive(bool on)
@@ -78,7 +78,7 @@ void IntroAnimEdit::drawBackground(QPainter &p)
     drawHexGrid(p, 34, QColor(80, 180, 255, 32));
 
     // Kabbalah Tree of Life as focal element
-    QRect area = r.adjusted(r.width()*0.18, r.height()*0.06, -r.width()*0.18, -r.height()*0.10);
+    QRect area = r.adjusted(r.width() * 0.18, r.height() * 0.06, -r.width() * 0.18, -r.height() * 0.10);
     drawKabbalahTree(p, area);
 }
 
@@ -119,15 +119,17 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
     const qreal x = area.left();
     const qreal y = area.top();
 
-    auto rel = [&](qreal fx, qreal fy) {
-        return QPointF(x + fx*w, y + fy*h);
+    auto rel = [&](qreal fx, qreal fy)
+    {
+        return QPointF(x + fx * w, y + fy * h);
     };
 
     // Vertical stretch of the tree (slightly taller overall)
     const qreal _yMin = 0.04, _yMax = 0.88;
     const qreal _yMid = (_yMin + _yMax) * 0.5;
     const qreal _yStretch = 1.08; // 8% taller as requested
-    auto relY = [&](qreal fy) -> qreal { return _yMid + (fy - _yMid) * _yStretch; };
+    auto relY = [&](qreal fy) -> qreal
+    { return _yMid + (fy - _yMid) * _yStretch; };
 
     // Sephiroth positions (10 nodes)
     QVector<QPointF> S(10);
@@ -143,18 +145,8 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
     S[9] = rel(0.50, relY(0.88)); // Malkuth
 
     // Connections per UI request: center column fully linked; bottom center connects to left/right bottoms; left/right pillars 2nd to 3rd linked
-    QVector<QPair<int,int>> E = {
-        {0,1},{0,2},{1,2},
-        {0,5},
-        {1,3},{2,4},{3,4},
-        {3,5},{4,5},
-        {3,6},{4,7},
-        {5,6},{5,7},{6,7},
-        {5,8},
-        {6,8},{7,8},{8,9},
-        {9,6},{9,7},
-        {1,5},{2,5}
-    };
+    QVector<QPair<int, int>> E = {
+        {0, 1}, {0, 2}, {1, 2}, {0, 5}, {1, 3}, {2, 4}, {3, 4}, {3, 5}, {4, 5}, {3, 6}, {4, 7}, {5, 6}, {5, 7}, {6, 7}, {5, 8}, {6, 8}, {7, 8}, {8, 9}, {9, 6}, {9, 7}, {1, 5}, {2, 5}};
 
     // Base paths
     p.setPen(QPen(QColor(80, 180, 255, 110), 2.0, Qt::SolidLine, Qt::RoundCap));
@@ -167,9 +159,9 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
         const auto &e = E[i];
         QPointF a = S[e.first];
         QPointF b = S[e.second];
-        qreal t = fmod(m_phase*0.35 + i*0.07, 1.0);
-        QPointF cpt = a + t*(b - a);
-        qreal rad = qMax<qreal>(3.0, 5.0 * (1.0 + 0.2*qSin(6*m_phase + i)));
+        qreal t = fmod(m_phase * 0.35 + i * 0.07, 1.0);
+        QPointF cpt = a + t * (b - a);
+        qreal rad = qMax<qreal>(3.0, 5.0 * (1.0 + 0.2 * qSin(6 * m_phase + i)));
         QRadialGradient glow(cpt, rad);
         glow.setColorAt(0.0, QColor(190, 255, 255, 220));
         glow.setColorAt(1.0, QColor(0, 0, 0, 0));
@@ -182,16 +174,16 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
     for (int i = 0; i < S.size(); ++i)
     {
         qreal base = qMin(w, h) * (i == 0 || i == 9 ? 0.038 : 0.034);
-        qreal pulse = 1.0 + 0.10 * qSin(m_phase*2.0 + i*0.7);
+        qreal pulse = 1.0 + 0.10 * qSin(m_phase * 2.0 + i * 0.7);
         qreal R = base * pulse;
 
         // Outer soft aura
-        QRadialGradient aura(S[i], R*1.8);
+        QRadialGradient aura(S[i], R * 1.8);
         aura.setColorAt(0.0, QColor(120, 210, 255, 90));
         aura.setColorAt(1.0, QColor(0, 0, 0, 0));
         p.setBrush(aura);
         p.setPen(Qt::NoPen);
-        p.drawEllipse(S[i], R*1.6, R*1.6);
+        p.drawEllipse(S[i], R * 1.6, R * 1.6);
 
         // Core sphere
         QRadialGradient core(S[i], R);
@@ -205,6 +197,3 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
 
     p.restore();
 }
-
-
-

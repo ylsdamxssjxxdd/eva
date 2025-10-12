@@ -195,7 +195,7 @@ class Widget : public QWidget
     int lastReasoningTokens_ = 0; // approximate reasoning tokens in last turn
 
     float load_time = 0;
-    QElapsedTimer load_timer;        // measure local-server load duration
+    QElapsedTimer load_timer; // measure local-server load duration
 
     // 监视相关
     bool is_monitor = false;
@@ -341,7 +341,6 @@ class Widget : public QWidget
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
 
-
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言
     void ui2expend_show(EXPEND_WINDOW window);                        // 通知显示扩展窗口
@@ -369,7 +368,6 @@ class Widget : public QWidget
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 更新状态区
     void recv_pushover();                                                        // 推理完毕的后处理
     void recv_stopover();                                                        // 停止完毕的后处理
-    void recv_arrivemaxctx(bool prepush);                                        // 模型达到最大上下文的后处理
     void recv_resetover();                                                       // 重置完毕的后处理
     void recv_reload();                                                          // gpu负载层数改变,重载模型
     void recv_setreset();                                                        // bot发信号请求ui触发reset
@@ -387,7 +385,6 @@ class Widget : public QWidget
     void recv_whisper_modelpath(QString modelpath);   // 传递模型路径
     void recv_embeddingdb_describe(QString describe); // 传递知识库的描述
 
-
     // 自用的槽
   public slots:
     void showImages(QStringList images_filepath);                             // 显示文件名和图像
@@ -400,9 +397,8 @@ class Widget : public QWidget
 
     void onRecordClicked(int index);
     void onRecordDoubleClicked(int index);
-    void monitorTime();                       // 监视时间到
-    void onSplitterMoved(int pos, int index); // 分割器被用户拉动时响应
-    void stop_recordAudio();                  // 停止录音
+    void monitorTime();      // 监视时间到
+    void stop_recordAudio(); // 停止录音
     void unlockLoad();
     void send_testhandleTimeout();                // 链接模式下测试时延迟发送
     void tool_testhandleTimeout();                // 链接模式下测试时延迟发送
@@ -512,4 +508,3 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
-
