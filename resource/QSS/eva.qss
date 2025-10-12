@@ -509,19 +509,19 @@ QSlider::sub-page:horizontal:disabled {
 
 /* === 滚动条 (QScrollBar) - 浅色拟物化设计 === */
 QScrollBar:horizontal {
-    height: 16px;
+    height: 12px;
     background: #f8f8f8;
     border-top: 1px solid #e0e0e0;
     border-bottom: 1px solid #e0e0e0;
-    margin: 0px 16px 0 16px;
+    margin: 0px 12px 0 12px;
 }
 
 QScrollBar:vertical {
-    width: 16px;
+    width: 12px;
     background: #f8f8f8;
     border-left: 1px solid #e0e0e0;
     border-right: 1px solid #e0e0e0;
-    margin: 16px 0 16px 0;
+    margin: 12px 0 12px 0;
 }
 
 /* 滑道样式 */
@@ -592,28 +592,28 @@ QScrollBar::left-arrow, QScrollBar::right-arrow {
 QScrollBar::add-line:horizontal {
     subcontrol-position: right;
     subcontrol-origin: margin;
-    width: 16px;
+    width: 12px;
     border-left: 1px solid #d0d0d0;
 }
 
 QScrollBar::sub-line:horizontal {
     subcontrol-position: left;
     subcontrol-origin: margin;
-    width: 16px;
+    width: 12px;
     border-right: 1px solid #d0d0d0;
 }
 
 QScrollBar::add-line:vertical {
     subcontrol-position: bottom;
     subcontrol-origin: margin;
-    height: 16px;
+    height: 12px;
     border-top: 1px solid #d0d0d0;
 }
 
 QScrollBar::sub-line:vertical {
     subcontrol-position: top;
     subcontrol-origin: margin;
-    height: 16px;
+    height: 12px;
     border-bottom: 1px solid #d0d0d0;
 }
 
