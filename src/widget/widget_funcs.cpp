@@ -710,7 +710,7 @@ void Widget::auto_save_user()
         settings.setValue("api_model", apis.api_model);
     }
     settings.sync(); // flush to disk immediately
-    reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
+    // reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
 
 // Update engineer working directory, propagate to xTool, without forcing reset

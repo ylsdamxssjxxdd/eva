@@ -269,7 +269,7 @@ void Widget::recv_kv(float percent, int ctx_size)
     Q_UNUSED(ctx_size);
 }
 
-// 播放装载动画的槽已废弃；直接在 preLoad() 中调用 load_play()
+// 装载动画相关的槽已移除；现统一使用等待动画 wait_play()
 
 // 更新gpu内存使用率
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
@@ -977,11 +977,7 @@ void Widget::onServerStartFailed(const QString &reason)
 {
     Q_UNUSED(reason);
     // 停止任何进行中的动画/计时
-    if (load_begin_pTimer) load_begin_pTimer->stop();
-    if (load_pTimer) load_pTimer->stop();
-    if (load_over_pTimer) load_over_pTimer->stop();
     if (decode_pTimer) decode_pTimer->stop();
-    if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
     // 用失败标志收尾“装载中”转轮行
     decode_fail();
 
@@ -989,7 +985,6 @@ void Widget::onServerStartFailed(const QString &reason)
     lastServerRestart_ = false;
     ignoreNextServerStopped_ = true; // 紧随其后的 serverStopped 属于同一次失败，忽略之
     is_load = false;
-    load_action = 0;
 
     // 解锁界面，允许用户立即调整设置或重新装载
     is_run = false;
@@ -997,4 +992,38 @@ void Widget::onServerStartFailed(const QString &reason)
     // 明确允许打开“设置/约定”以便更换后端/设备/提示词
     if (ui && ui->set) ui->set->setEnabled(true);
     if (ui && ui->date) ui->date->setEnabled(true);
+}
+
+// Finalize UI after a successful model load
+void Widget::unlockLoad()
+{
+    if (ui_SETTINGS.ngl < ui_maxngl)
+    {
+        reflash_state("ui:" + jtr("ngl tips"), USUAL_SIGNAL);
+    }
+
+    reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time, 'f', 2) + " s " + jtr("right click and check model log"), SUCCESS_SIGNAL);
+    if (ui_SETTINGS.ngl > 0)
+    {
+        EVA_icon = QIcon(":/logo/green_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon);
+    }
+    else
+    {
+        EVA_icon = QIcon(":/logo/blue_logo.png");
+        QApplication::setWindowIcon(EVA_icon);
+        trayIcon->setIcon(EVA_icon);
+    }
+    EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
+    this->setWindowTitle(EVA_title);
+    trayIcon->setToolTip(EVA_title);
+    ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
+    auto_save_user();
+    ui_state_normal();
+    // Record a system header and show system prompt as pre-decode content
+    int __idx = recordCreate(RecordRole::System);
+    appendRoleHeader(QStringLiteral("system"));
+    reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
+    recordAppendText(__idx, bot_predecode_content);
 }

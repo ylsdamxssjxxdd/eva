@@ -159,7 +159,6 @@ class Widget : public QWidget
     QString custom2_date_system;
     void preLoad();                                              // 装载前动作
     bool is_load = false;                                        // 模型装载标签
-    bool is_load_play_over = false;                              // 模型装载动画结束后
     bool is_run = false;                                         // 模型运行标签,方便设置界面的状态
     EVA_MODE ui_mode = LOCAL_MODE;                               // 机体的模式
     EVA_STATE ui_state = CHAT_STATE;                             // 机体的状态
@@ -198,7 +197,6 @@ class Widget : public QWidget
 
     float load_time = 0;
     QElapsedTimer load_timer;        // measure local-server load duration
-    QTimer *force_unlockload_pTimer; // 到时间强制解锁
 
     // 监视相关
     bool is_monitor = false;
@@ -287,21 +285,6 @@ class Widget : public QWidget
     QString create_screen_info(); // 构建屏幕信息
 
     // 装载动画相关
-    int all_fps = 142;    // 总帧数
-    int load_percent;     // 装载百分比
-    void load_log_play(); // 按日志显示装载进度
-    QVector<QString> movie_line;
-    QVector<QPointF> movie_dot;
-    QVector<QColor> movie_color;
-    QTextCharFormat movie_format; // 动画内容格式
-    QFont movie_font;             // 动画内容字体
-    int load_action = 0;          // 动作计数
-    QTimer *load_pTimer, *load_over_pTimer, *load_begin_pTimer;
-    void init_movie();                                      // 初始化动画参数
-    void load_move();                                       // 下一帧动画
-    void load_play();                                       // 连续播放
-    void set_dotcolor(QTextCharFormat *format, int action); // 设置点颜色
-    int playlineNumber = 0;                                 // 动画播放的起始行
 
     // 解码/通用转轮动画相关（在装载与推理中复用）
     QTimer *decode_pTimer;
@@ -451,9 +434,6 @@ class Widget : public QWidget
     void topp_change();                           // top_p 滑块响应
     void parallel_change();                       // 并发数量滑块响应
     void nthread_change();                        // nthread
-    void load_handleTimeout();                    // 装载动画时间控制
-    void load_begin_handleTimeout();              // 滑动到最佳动画位置
-    void load_over_handleTimeout();               // 模型装载完毕动画,滑动条向下滚,一定要滚到最下面才会停
     void decode_handleTimeout();                  // 编码动画时间控制
     void on_send_clicked();                       // 用户点击发送按钮响应
     void on_load_clicked();                       // 用户点击装载按钮响应
@@ -465,7 +445,6 @@ class Widget : public QWidget
     void onShortcutActivated_CTRL_ENTER();        // 用户按下CTRL+ENTER键响应
     void recv_qimagepath(QString cut_imagepath_); // 接收传来的图像
     void monitorAudioLevel();                     // 每隔100毫秒刷新一次监视录音
-
   private:
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
@@ -536,3 +515,4 @@ class Widget : public QWidget
 };
 
 #endif // WIDGET_H
+

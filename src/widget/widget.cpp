@@ -75,7 +75,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                  // 设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL); // 初始提示
 
-    init_movie(); // 初始化动画参数
 
     //-------------初始化各种控件-------------
     setApiDialog();   // 设置api选项
@@ -91,7 +90,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->state->setContextMenuPolicy(Qt::NoContextMenu);           // 取消右键
     ui->state->installEventFilter(this);                          // 安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);           // 禁用自动换行
-    ui->state->setFocus();                                        // 设为当前焦点
+    ui->state->setFocus();
+    // Setup decode timer for wait animation
+    decode_pTimer = new QTimer(this);
+    connect(decode_pTimer, &QTimer::timeout, this, &Widget::decode_handleTimeout);
     trayMenu = new QMenu(this);                                   // 托盘菜单
 
     //-------------获取cpu内存信息-------------
@@ -146,14 +148,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
         ui->state->clear();
         reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
-        if (load_begin_pTimer) load_begin_pTimer->stop();
-        if (load_pTimer) load_pTimer->stop();
-        if (load_over_pTimer) load_over_pTimer->stop();
         if (decode_pTimer) decode_pTimer->stop();
-        if (force_unlockload_pTimer) force_unlockload_pTimer->stop();
         lastServerRestart_ = false;
         is_load = false;
-        load_action = 0;
         EVA_title = jtr("current model") + " ";
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
@@ -345,7 +342,6 @@ void Widget::recv_freeover_loadlater()
 void Widget::preLoad()
 {
     is_load = false; // 重置is_load标签
-    is_load_play_over = false;
     if (ui_state == CHAT_STATE)
     {
         ui->output->clear(); // 清空输出区
@@ -1489,3 +1485,7 @@ int Widget::outputDocEnd() const
     c.movePosition(QTextCursor::End);
     return c.position();
 }
+
+
+
+
