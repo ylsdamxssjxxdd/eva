@@ -79,7 +79,7 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_39">
        <item>
-        <widget class="CustomQPlainTextEdit" name="modellog_card">
+        <widget class="QPlainTextEdit" name="modellog_card">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -4523,11 +4523,6 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>CustomQPlainTextEdit</class>
-   <extends>QPlainTextEdit</extends>
-   <header>src/utils/customqplaintextedit.h</header>
-  </customwidget>
   <customwidget>
    <class>StatusLed</class>
    <extends>QWidget</extends>

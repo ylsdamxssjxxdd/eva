@@ -32,7 +32,7 @@ add_executable(
     src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/csvtablewidget.h
-    src/utils/gpuchecker.h src/utils/waterwaveplaintextedit.h src/utils/cpuchecker.h src/utils/customqplaintextedit.h src/utils/doubleqprogressbar.h 
+    src/utils/gpuchecker.h src/utils/cpuchecker.h src/utils/doubleqprogressbar.h 
     src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
     src/utils/recordbar.cpp src/utils/recordbar.h
