@@ -14,8 +14,7 @@
 #include <QToolTip>
 #include <QVector>
 #include <QWheelEvent>
-#include <QWidget>
-
+#include <QPixmap>
 // A thin horizontal bar that displays key conversation nodes as colored chips.
 // - Hover: shows tooltip text (content snippet)
 // - Single click: emit nodeClicked(index)
@@ -29,7 +28,7 @@ class RecordBar : public QWidget
         : QWidget(parent)
     {
         setMouseTracking(true);
-        setMinimumHeight(18);
+        setMinimumHeight(14);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setAttribute(Qt::WA_StyledBackground, true);
     }
@@ -116,6 +115,36 @@ class RecordBar : public QWidget
         QStyleOption opt;
         opt.init(this);
         style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+        // Subtle textured background for better depth
+        QRect bg = rect();
+        QColor base = palette().color(QPalette::Window);
+        // Vertical gradient overlay (very light)
+        QLinearGradient g(0, 0, 0, bg.height());
+        QColor top = base.lighter(108); top.setAlpha(64);
+        QColor mid = base;                mid.setAlpha(32);
+        QColor bot = base.darker(108);    bot.setAlpha(64);
+        g.setColorAt(0.0, top);
+        g.setColorAt(0.5, mid);
+        g.setColorAt(1.0, bot);
+        p.fillRect(bg, g);
+        // Diagonal hatch with tiny alpha to add micro-texture
+        QPixmap hatch(8, 8); hatch.fill(Qt::transparent);
+        {
+            QPainter hp(&hatch);
+            hp.setRenderHint(QPainter::Antialiasing, false);
+            QColor line1 = base.lighter(120); line1.setAlpha(18);
+            QColor line2 = base.darker(120);  line2.setAlpha(12);
+            hp.setPen(QPen(line1, 1));
+            for (int i = -8; i < 8; ++i) hp.drawLine(i, 7, i + 7, 0);
+            hp.setPen(QPen(line2, 1));
+            for (int i = -8; i < 8; ++i) hp.drawLine(i, 8, i + 8, 0); // slight offset
+        }
+        p.fillRect(bg, QBrush(hatch));
+        // Top/bottom hairlines for separation
+        p.setPen(QPen(base.lighter(120), 1));
+        p.drawLine(bg.left(), 0, bg.right(), 0);
+        p.setPen(QPen(base.darker(120), 1));
+        p.drawLine(bg.left(), bg.bottom(), bg.right(), bg.bottom());
 
         const int N = nodes_.size();
         if (chipRectsCache_.size() != N) chipRectsCache_.resize(N);
@@ -286,10 +315,10 @@ class RecordBar : public QWidget
     QVector<QRect> chipRectsCache_;
     int scrollX_ = 0;
     // visuals
-    int chipW_ = 16;
-    int spacing_ = 6;
-    int margin_ = 6;
-    int slant_ = 4; // EVA style tilt (px)
+    int chipW_ = 12;
+    int spacing_ = 2;
+    int margin_ = 4;
+    int slant_ = 3; // EVA style tilt (px)
     // interaction state
     int selectedIndex_ = -1;
     int hoveredIndex_ = -1;
