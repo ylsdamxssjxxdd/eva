@@ -3,6 +3,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QPalette>
 #include <QtMath>
+#include <QPainterPath>
 
 IntroAnimEdit::IntroAnimEdit(QWidget *parent)
     : QTextEdit(parent)
@@ -25,10 +26,10 @@ IntroAnimEdit::IntroAnimEdit(QWidget *parent)
     m_timer.setInterval(30); // ~33 FPS keeps CPU low
     connect(&m_timer, &QTimer::timeout, this, [this]() {
         qint64 ms = m_clock.elapsed();
-        // Phase advances slowly for a relaxed feel
-        m_phase = fmod(m_phase + 0.0025 * ms, 1.0);
-        m_angle += 0.15; // slow rotation
-        if (m_angle >= 360.0) m_angle -= 360.0;
+        const qreal dt = qBound<qint64>(0, ms, 100) / 1000.0; // clamp to avoid spikes
+        // Smooth, gentle motion
+        m_phase += 0.6 * dt;              // bobbing phase
+        m_angle = 5.0 * qSin(m_phase*0.8); // sway angle in degrees
         // Restart clock to avoid numerical blow-up
         m_clock.restart();
         update();
@@ -76,11 +77,9 @@ void IntroAnimEdit::drawBackground(QPainter &p)
     // Subtle hex grid
     drawHexGrid(p, 34, QColor(80, 180, 255, 32));
 
-    // Diagonal scanlines
-    drawScanLines(p, QColor(80, 180, 255, 28));
-
-    // Rotating rings
-    drawRings(p, QColor(60, 140, 220, 50));
+    // Kabbalah Tree of Life as focal element
+    QRect area = r.adjusted(r.width()*0.18, r.height()*0.06, -r.width()*0.18, -r.height()*0.10);
+    drawKabbalahTree(p, area);
 }
 
 void IntroAnimEdit::drawHexGrid(QPainter &p, qreal hexSize, const QColor &color)
@@ -110,65 +109,89 @@ void IntroAnimEdit::drawHexGrid(QPainter &p, qreal hexSize, const QColor &color)
     p.restore();
 }
 
-void IntroAnimEdit::drawScanLines(QPainter &p, const QColor &color)
-{
-    p.save();
-    p.setPen(Qt::NoPen);
-    QRect r = viewport()->rect();
-    // Move bands diagonally using phase
-    const qreal spacing = 18.0;
-    const qreal band = 8.0;
-    const qreal dx = spacing * m_phase * 2.0;
-    QTransform tr;
-    tr.translate(r.center().x(), r.center().y());
-    tr.rotate(-28.0);
-    tr.translate(-r.center().x(), -r.center().y());
-    p.setTransform(tr);
-    for (qreal x = r.left() - 200 + fmod(dx, spacing); x < r.right() + 200; x += spacing)
-    {
-        QRectF stripe(x, r.top() - 200, band, r.height() + 400);
-        QLinearGradient lg(stripe.topLeft(), stripe.topRight());
-        lg.setColorAt(0.0, QColor(0, 0, 0, 0));
-        lg.setColorAt(0.5, color);
-        lg.setColorAt(1.0, QColor(0, 0, 0, 0));
-        p.fillRect(stripe, lg);
-    }
-    p.resetTransform();
-    p.restore();
-}
-
-void IntroAnimEdit::drawRings(QPainter &p, const QColor &color)
+void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
 {
     p.save();
     p.setRenderHint(QPainter::Antialiasing, true);
-    QRect r = viewport()->rect();
-    QPointF c = r.center();
-    p.translate(c);
-    p.rotate(m_angle);
+    // Geometry helpers
+    const qreal w = area.width();
+    const qreal h = area.height();
+    const qreal x = area.left();
+    const qreal y = area.top();
 
-    QVector<qreal> radii = { qMin(r.width(), r.height()) * 0.18,
-                              qMin(r.width(), r.height()) * 0.30,
-                              qMin(r.width(), r.height()) * 0.42 };
-    for (int i = 0; i < radii.size(); ++i)
+    auto rel = [&](qreal fx, qreal fy) {
+        return QPointF(x + fx*w, y + fy*h);
+    };
+
+    // Sephiroth positions (10 nodes)
+    QVector<QPointF> S(10);
+    S[0] = rel(0.50, 0.04); // Kether
+    S[1] = rel(0.76, 0.16); // Chokmah
+    S[2] = rel(0.24, 0.16); // Binah
+    S[3] = rel(0.76, 0.32); // Chesed
+    S[4] = rel(0.24, 0.32); // Geburah
+    S[5] = rel(0.50, 0.46); // Tiphareth
+    S[6] = rel(0.76, 0.60); // Netzach
+    S[7] = rel(0.24, 0.60); // Hod
+    S[8] = rel(0.50, 0.74); // Yesod
+    S[9] = rel(0.50, 0.88); // Malkuth
+
+    // Canonical connections (subset; aesthetically balanced)
+    QVector<QPair<int,int>> E = {
+        {0,1},{0,2},{1,2},
+        {1,3},{2,4},{3,4},
+        {3,5},{4,5},
+        {5,6},{5,7},{6,7},
+        {6,8},{7,8},{8,9},
+        {1,5},{2,5}
+    };
+
+    // Base paths
+    p.setPen(QPen(QColor(80, 180, 255, 110), 2.0, Qt::SolidLine, Qt::RoundCap));
+    for (const auto &e : E)
+        p.drawLine(S[e.first], S[e.second]);
+
+    // Traveling glow along each path
+    for (int i = 0; i < E.size(); ++i)
     {
-        qreal rad = radii[i];
-        QColor ringCol = color;
-        ringCol.setAlpha(30 + 18 * i);
-        p.setPen(QPen(ringCol, 1.2));
-        p.drawEllipse(QPointF(0, 0), rad, rad);
-
-        // Tick marks
-        const int ticks = 36;
-        for (int t = 0; t < ticks; ++t)
-        {
-            qreal a = (t * 360.0 / ticks) * M_PI / 180.0;
-            qreal inner = rad * 0.96;
-            qreal outer = rad * (t % 6 == 0 ? 1.04 : 1.02);
-            QPointF p1(inner * cos(a), inner * sin(a));
-            QPointF p2(outer * cos(a), outer * sin(a));
-            p.setPen(QPen(ringCol, t % 6 == 0 ? 1.6 : 1.0));
-            p.drawLine(p1, p2);
-        }
+        const auto &e = E[i];
+        QPointF a = S[e.first];
+        QPointF b = S[e.second];
+        qreal t = fmod(m_phase*0.35 + i*0.07, 1.0);
+        QPointF cpt = a + t*(b - a);
+        qreal rad = qMax<qreal>(3.0, 5.0 * (1.0 + 0.2*qSin(6*m_phase + i)));
+        QRadialGradient glow(cpt, rad);
+        glow.setColorAt(0.0, QColor(190, 255, 255, 220));
+        glow.setColorAt(1.0, QColor(0, 0, 0, 0));
+        p.setBrush(glow);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(cpt, rad, rad);
     }
+
+    // Sephiroth nodes
+    for (int i = 0; i < S.size(); ++i)
+    {
+        qreal base = qMin(w, h) * (i == 0 || i == 9 ? 0.038 : 0.034);
+        qreal pulse = 1.0 + 0.10 * qSin(m_phase*2.0 + i*0.7);
+        qreal R = base * pulse;
+
+        // Outer soft aura
+        QRadialGradient aura(S[i], R*1.8);
+        aura.setColorAt(0.0, QColor(120, 210, 255, 90));
+        aura.setColorAt(1.0, QColor(0, 0, 0, 0));
+        p.setBrush(aura);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(S[i], R*1.6, R*1.6);
+
+        // Core sphere
+        QRadialGradient core(S[i], R);
+        core.setColorAt(0.0, QColor(230, 245, 255, 240));
+        core.setColorAt(0.6, QColor(140, 210, 255, 220));
+        core.setColorAt(1.0, QColor(20, 40, 60, 220));
+        p.setBrush(core);
+        p.setPen(QPen(QColor(180, 230, 255, 200), 1.4));
+        p.drawEllipse(S[i], R, R);
+    }
+
     p.restore();
 }

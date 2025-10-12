@@ -25,16 +25,14 @@ class IntroAnimEdit : public QTextEdit
   private:
     void drawBackground(QPainter &p);
     void drawHexGrid(QPainter &p, qreal hexSize, const QColor &color);
-    void drawScanLines(QPainter &p, const QColor &color);
-    void drawRings(QPainter &p, const QColor &color);
+    void drawKabbalahTree(QPainter &p, const QRect &area);
 
   private:
     QTimer m_timer;        // frame timer (~30–60 FPS)
     QElapsedTimer m_clock; // for smooth motion
     bool m_active = false; // timers running
-    qreal m_phase = 0.0;   // scanline phase
-    qreal m_angle = 0.0;   // ring rotation
+    qreal m_phase = 0.0;   // general phase (bobbing)
+    qreal m_angle = 0.0;   // subtle head sway angle (deg)
 };
 
 #endif // INTROANIMEDIT_H
-

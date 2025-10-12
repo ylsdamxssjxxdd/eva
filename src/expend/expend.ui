@@ -78,6 +78,21 @@ p, li { white-space: pre-wrap; }
        <string>模型信息</string>
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_39">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
         <widget class="NeuronLogEdit" name="modellog_card">
          <property name="font">
@@ -4523,12 +4538,12 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <customwidgets>
- <customwidget>
-  <class>StatusLed</class>
-  <extends>QWidget</extends>
-  <header>src/utils/statusindicator.h</header>
-  <container>1</container>
- </customwidget>
+  <customwidget>
+   <class>StatusLed</class>
+   <extends>QWidget</extends>
+   <header>src/utils/statusindicator.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>IntroAnimEdit</class>
    <extends>QTextEdit</extends>
