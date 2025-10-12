@@ -556,64 +556,6 @@ void Widget::recv_embeddingdb_describe(QString describe)
     embeddingdb_describe = describe;
 }
 
-// 传递控制信息
-void Widget::recv_controller(int num)
-{
-    QString result;
-    if (num == 1) // 最大化主窗口
-    {
-        setWindowState(windowState() | Qt::WindowMaximized); // 设置窗口最大化
-        result = jtr("main window") + jtr("maximized");
-    }
-    else if (num == 2) // 最小化主窗口
-    {
-        this->showMinimized();
-        result = jtr("main window") + jtr("minimized");
-    }
-    else if (num == 3) // 主窗口置顶
-    {
-        setWindowFlags(windowFlags() | Qt::WindowStaysOnTopHint);
-        show();
-        result = jtr("main window") + jtr("topped");
-    }
-    else if (num == 4) // 取消主窗口置顶
-    {
-        setWindowFlags(windowFlags() & ~Qt::WindowStaysOnTopHint);
-        show();
-        result = jtr("main window") + jtr("topped canceled");
-    }
-    else if (num == 5) // 关闭主窗口
-    {
-        this->close();
-        result = jtr("main window") + jtr("closed");
-    }
-    else if (num == 6) // 播放音乐
-    {
-        music_player.play();
-        result = jtr("music") + jtr("started playing");
-    }
-    else if (num == 7) // 关闭音乐
-    {
-        music_player.stop();
-        result = jtr("music") + jtr("stopped playback");
-    }
-    else if (num == 8) // 打开增殖窗口
-    {
-        emit ui2expend_show(PREV_WINDOW);
-        result = jtr("expend window") + jtr("opened");
-    }
-    else if (num == 9) // 关闭增殖窗口
-    {
-        emit ui2expend_show(NO_WINDOW);
-        result = jtr("expend window") + jtr("closed");
-    }
-    else
-    {
-        result = jtr("The number passed in does not have a corresponding action");
-    }
-    emit recv_controller_over(result);
-}
-
 // 分割器被用户拉动时响应
 void Widget::onSplitterMoved(int pos, int index) {}
 

@@ -326,8 +326,6 @@ int main(int argc, char *argv[])
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);                  // 窗口状态区更新
-    QObject::connect(&tool, &xTool::tool2ui_controller, &w, &Widget::recv_controller);           // 传递控制信息
-    QObject::connect(&w, &Widget::recv_controller_over, &tool, &xTool::tool2ui_controller_over); // 传递控制完成结果
     QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover);           // 完成推理
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);               // 传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                            // 开始推理

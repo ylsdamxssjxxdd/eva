@@ -1,6 +1,7 @@
 #include "expend.h"
 
 #include "ui_expend.h"
+#include "../utils/neuronlogedit.h"
 #include <QThread>
 
 Expend::Expend(QWidget *parent, QString applicationDirPath_)
@@ -11,7 +12,21 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // 初始化选项卡
     ui->info_card->setReadOnly(1);                                   // 只读
-    ui->modellog_card->setReadOnly(1);                               // 只读
+
+    // // Replace default model log editor with animated neuron log edit
+    // {
+    //     QPlainTextEdit *old = ui->modellog_card;
+    //     NeuronLogEdit *neu = new NeuronLogEdit(old->parentWidget());
+    //     neu->setPlaceholderText(old->placeholderText());
+    //     neu->setLineWrapMode(QPlainTextEdit::NoWrap);
+    //     if (QLayout *lay = old->parentWidget() ? old->parentWidget()->layout() : nullptr)
+    //     {
+    //         lay->replaceWidget(old, neu);
+    //     }
+    //     old->hide();
+    //     old->deleteLater();
+    //     ui->modellog_card = neu; // keep ui pointer usable everywhere
+    // }
     ui->tabWidget->setCurrentIndex(0);                               // 默认显示模机体介绍窗口
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                // 安装事件过滤器
@@ -19,7 +34,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->sd_modify_lineEdit->installEventFilter(this);                // 安装事件过滤器
     ui->sd_img2img_lineEdit->installEventFilter(this);               // 安装事件过滤器
 
-    ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                // 灰色
+    // 模型日志背景改用动画神经元效果（透明底），不再设置统一灰底
     ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  // 灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           // 灰色
     ui->embedding_test_result->setStyleSheet("background-color: rgba(128, 128, 128, 200);");        // 灰色
@@ -30,7 +45,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);"); // 灰色
     ui->mcp_server_config_textEdit->setLineWrapMode(QTextEdit::NoWrap);                             // 禁用自动换行
     ui->mcp_server_log_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                      // 禁用自动换行
-    ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                     // 禁用自动换行
+    ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                     // 禁用自动换行（保持不变）
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap);

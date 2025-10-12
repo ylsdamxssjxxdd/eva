@@ -36,6 +36,7 @@ add_executable(
     src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
     src/utils/recordbar.cpp src/utils/recordbar.h
+    src/utils/neuronlogedit.cpp src/utils/neuronlogedit.h
 )
 
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)

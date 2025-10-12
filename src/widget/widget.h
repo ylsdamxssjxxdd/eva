@@ -126,7 +126,6 @@ class Widget : public QWidget
     mcp::json tools_call;                                               // 提取出来的工具名和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QFont ui_font; // 约定和设置的字体大小
-    QMediaPlayer music_player;
     QString currentpath;
     QString historypath;
     void apply_language(int language_flag_); // 改变语种相关
@@ -341,7 +340,7 @@ class Widget : public QWidget
     void ui2tool_language(int language_flag_); // 传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
-    void recv_controller_over(QString result);
+
 
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言
@@ -388,8 +387,6 @@ class Widget : public QWidget
     void recv_whisper_modelpath(QString modelpath);   // 传递模型路径
     void recv_embeddingdb_describe(QString describe); // 传递知识库的描述
 
-    // 处理tool信号的槽
-    void recv_controller(int num); // 传递控制信息
 
     // 自用的槽
   public slots:

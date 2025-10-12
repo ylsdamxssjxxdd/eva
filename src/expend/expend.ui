@@ -79,7 +79,7 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_39">
        <item>
-        <widget class="QPlainTextEdit" name="modellog_card">
+        <widget class="NeuronLogEdit" name="modellog_card">
          <property name="font">
           <font>
            <family>Arial</family>
@@ -4528,6 +4528,11 @@ p, li { white-space: pre-wrap; }
    <extends>QWidget</extends>
    <header>src/utils/statusindicator.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>NeuronLogEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>src/utils/neuronlogedit.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
