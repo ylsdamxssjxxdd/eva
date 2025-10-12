@@ -123,26 +123,36 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
         return QPointF(x + fx*w, y + fy*h);
     };
 
+    // Vertical stretch of the tree (slightly taller overall)
+    const qreal _yMin = 0.04, _yMax = 0.88;
+    const qreal _yMid = (_yMin + _yMax) * 0.5;
+    const qreal _yStretch = 1.08; // 8% taller as requested
+    auto relY = [&](qreal fy) -> qreal { return _yMid + (fy - _yMid) * _yStretch; };
+
     // Sephiroth positions (10 nodes)
     QVector<QPointF> S(10);
-    S[0] = rel(0.50, 0.04); // Kether
-    S[1] = rel(0.76, 0.16); // Chokmah
-    S[2] = rel(0.24, 0.16); // Binah
-    S[3] = rel(0.76, 0.32); // Chesed
-    S[4] = rel(0.24, 0.32); // Geburah
-    S[5] = rel(0.50, 0.46); // Tiphareth
-    S[6] = rel(0.76, 0.60); // Netzach
-    S[7] = rel(0.24, 0.60); // Hod
-    S[8] = rel(0.50, 0.74); // Yesod
-    S[9] = rel(0.50, 0.88); // Malkuth
+    S[0] = rel(0.50, relY(0.04)); // Kether
+    S[1] = rel(0.76, relY(0.16)); // Chokmah
+    S[2] = rel(0.24, relY(0.16)); // Binah
+    S[3] = rel(0.76, relY(0.32)); // Chesed
+    S[4] = rel(0.24, relY(0.32)); // Geburah
+    S[5] = rel(0.50, relY(0.46)); // Tiphareth
+    S[6] = rel(0.76, relY(0.60)); // Netzach
+    S[7] = rel(0.24, relY(0.60)); // Hod
+    S[8] = rel(0.50, relY(0.74)); // Yesod
+    S[9] = rel(0.50, relY(0.88)); // Malkuth
 
-    // Canonical connections (subset; aesthetically balanced)
+    // Connections per UI request: center column fully linked; bottom center connects to left/right bottoms; left/right pillars 2nd to 3rd linked
     QVector<QPair<int,int>> E = {
         {0,1},{0,2},{1,2},
+        {0,5},
         {1,3},{2,4},{3,4},
         {3,5},{4,5},
+        {3,6},{4,7},
         {5,6},{5,7},{6,7},
+        {5,8},
         {6,8},{7,8},{8,9},
+        {9,6},{9,7},
         {1,5},{2,5}
     };
 
@@ -195,3 +205,6 @@ void IntroAnimEdit::drawKabbalahTree(QPainter &p, const QRect &area)
 
     p.restore();
 }
+
+
+

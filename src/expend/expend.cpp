@@ -13,22 +13,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // 初始化选项卡
     ui->info_card->setReadOnly(1);                                   // 只读
-
-    // // Replace default model log editor with animated neuron log edit
-    // {
-    //     QPlainTextEdit *old = ui->modellog_card;
-    //     NeuronLogEdit *neu = new NeuronLogEdit(old->parentWidget());
-    //     neu->setPlaceholderText(old->placeholderText());
-    //     neu->setLineWrapMode(QPlainTextEdit::NoWrap);
-    //     if (QLayout *lay = old->parentWidget() ? old->parentWidget()->layout() : nullptr)
-    //     {
-    //         lay->replaceWidget(old, neu);
-    //     }
-    //     old->hide();
-    //     old->deleteLater();
-    //     ui->modellog_card = neu; // keep ui pointer usable everywhere
-    // }
-    ui->tabWidget->setCurrentIndex(0);                               // 默认显示模机体介绍窗口
+    ui->tabWidget->setCurrentIndex(0);                               // 默认显示
     // Track tab changes to control heavy animations lifecycle
     connect(ui->tabWidget, &QTabWidget::currentChanged, this, &Expend::onTabCurrentChanged);
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
