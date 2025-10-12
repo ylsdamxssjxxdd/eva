@@ -97,7 +97,7 @@ class Expend : public QWidget
   private slots:
     void on_tabWidget_tabBarClicked(int index); // 用户切换选项卡时响应
     void onTabCurrentChanged(int index);        // 选项卡变更（包含编程切换）
-    void updateModelInfoAnim();                 // 根据可见性/选项卡启停模型信息动画
+    void updateModelInfoAnim();                 // 根据可见性/选项卡启停动画（模型信息/软件介绍）
   private:
     Ui::Expend *ui;
     //-------------------------------------------------------------------------

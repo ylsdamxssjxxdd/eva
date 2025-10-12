@@ -61,7 +61,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QTextEdit" name="info_card">
+        <widget class="IntroAnimEdit" name="info_card">
          <property name="html">
           <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
@@ -4523,11 +4523,16 @@ p, li { white-space: pre-wrap; }
   </layout>
  </widget>
  <customwidgets>
+ <customwidget>
+  <class>StatusLed</class>
+  <extends>QWidget</extends>
+  <header>src/utils/statusindicator.h</header>
+  <container>1</container>
+ </customwidget>
   <customwidget>
-   <class>StatusLed</class>
-   <extends>QWidget</extends>
-   <header>src/utils/statusindicator.h</header>
-   <container>1</container>
+   <class>IntroAnimEdit</class>
+   <extends>QTextEdit</extends>
+   <header>src/utils/introanimedit.h</header>
   </customwidget>
   <customwidget>
    <class>NeuronLogEdit</class>

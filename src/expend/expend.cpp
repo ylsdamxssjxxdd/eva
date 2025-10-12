@@ -1,7 +1,8 @@
 #include "expend.h"
 
 #include "ui_expend.h"
-#include "../utils/neuronlogedit.h"
+#include "../utils/neuronlogedit.h"     // 自定义：模型信息页动画日志
+#include "../utils/introanimedit.h"      // 自定义：软件介绍页动画背景
 #include <QThread>
 
 Expend::Expend(QWidget *parent, QString applicationDirPath_)
@@ -316,7 +317,7 @@ void Expend::recv_llama_log(QString log)
     ui->modellog_card->setTextCursor(cursor);
 }
 
-// 启停“模型信息”页的动画以节省资源
+// 启停“模型信息/软件介绍”页的动画以节省资源
 void Expend::onTabCurrentChanged(int index)
 {
     Q_UNUSED(index);
@@ -326,12 +327,18 @@ void Expend::onTabCurrentChanged(int index)
 void Expend::updateModelInfoAnim()
 {
     if (!ui) return;
+    const bool onIntroTab = (ui->tabWidget->currentIndex() == window_map[INTRODUCTION_WINDOW]);
     const bool onModelTab = (ui->tabWidget->currentIndex() == window_map[MODELINFO_WINDOW]);
-    const bool shouldRun = this->isVisible() && onModelTab;
+    const bool shouldRunIntro = this->isVisible() && onIntroTab;
+    const bool shouldRunModel = this->isVisible() && onModelTab;
+
+    // 模型信息页动画启停
     if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card))
-    {
-        neu->setActive(shouldRun);
-    }
+        neu->setActive(shouldRunModel);
+
+    // 机体介绍页动画启停
+    if (auto intro = qobject_cast<IntroAnimEdit *>(ui->info_card))
+        intro->setActive(shouldRunIntro);
 }
 
 // 根据language.json和language_flag中找到对应的文字
@@ -384,13 +391,13 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 // 关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
-    // Stop model-info heavy animation on close to free resources
-    if (ui && ui->modellog_card)
+    // Stop animations on close to free resources
+    if (ui)
     {
         if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card))
-        {
             neu->setActive(false);
-        }
+        if (auto intro = qobject_cast<IntroAnimEdit *>(ui->info_card))
+            intro->setActive(false);
     }
     //--------------保存当前用户配置---------------
     sd_save_template(ui->params_template_comboBox->currentText());
