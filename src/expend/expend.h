@@ -92,7 +92,6 @@ class Expend : public QWidget
 
   public slots:
     void recv_language(int language_flag_); // 传递语言标志
-    void recv_vocab(QString vocab);
     void recv_expend_show(EXPEND_WINDOW window); // 通知显示增殖窗口
     void recv_llama_log(QString log);            // 传递llama.cpp的log
   private slots:
@@ -299,14 +298,6 @@ class Expend : public QWidget
     bool is_first_show_modelinfo = true;
     QString model_logs;
 
-    int nctx = 0;
-    std::vector<Brain_Cell> Brain_vector;
-    void init_brain_matrix();    // 重置记忆矩阵(新词表过来时/nctx变化时)
-    void reflash_brain_matrix(); // 刷新一次记忆矩阵
-
-  public slots:
-    void recv_brainvector(std::vector<Brain_Cell> Brain_vector_, int nctx_, bool reflash); // 传递记忆向量和上下文长度
-
     //-------------------------------------------------------------------------
     //--------------------------------mcp服务器相关-----------------------------
     //-------------------------------------------------------------------------
@@ -323,10 +314,6 @@ class Expend : public QWidget
     void on_mcp_server_reflash_pushButton_clicked();
     void on_mcp_server_help_pushButton_clicked();
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state); // 添加mcp服务信息
-
-    //-------------------------------------------------------------------------
-    //----------------------------------模型下载相关--------------------------------
-    //-------------------------------------------------------------------------
   public:
     bool is_first_show_modelcard = true;
 };

@@ -8,6 +8,13 @@
 //----------------------------------文生图相关--------------------------------
 //-------------------------------------------------------------------------
 
+// 用于设置sd模型路径
+void Expend::setSdModelpath(QString modelpath)
+{
+    ui->sd_modelpath_lineEdit->setText(modelpath);
+    ui->params_template_comboBox->setCurrentText("sd1.5-anything-3"); // 默认
+}
+
 // 遍历目录
 QStringList Expend::listFiles(const QString &path)
 {

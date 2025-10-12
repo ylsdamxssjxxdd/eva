@@ -13,7 +13,6 @@ void Expend::init_expend()
     this->setWindowTitle(jtr("expend window"));                                                // 标题
     ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));           // 软件介绍
     ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));                // 模型信息
-    ui->tabWidget->setTabText(window_map[MODELCARD_WINDOW], jtr("model download"));            // 模型下载
     ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model") + jtr("convert")); // 模型转换
     ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));    // 模型量化
     ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                      // 软件介绍
@@ -21,17 +20,10 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));                  // 文生图
     ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));                 // 声转文
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                     // 文转声
-
-    // 模型信息
-    ui->vocab_groupBox->setTitle(jtr("vocab_groupBox_title"));
-    ui->brain_groupBox->setTitle(jtr("brain_groupBox_title"));
-    ui->modellog_groupBox->setTitle(jtr("model log"));
-
     // 软件介绍
     showReadme();
 
     // 模型转换
-    ui->modelconvert_modeltype_label->setText(jtr("modelconvert_modeltype_label_text"));
     ui->modelconvert_script_label->setText(jtr("modelconvert_script_label_text"));
     ui->modelconvert_modelpath_label->setText(jtr("modelconvert_modelpath_label_text"));
     ui->modelconvert_converttype_label->setText(jtr("modelconvert_converttype_label_text"));
@@ -153,16 +145,6 @@ void Expend::init_expend()
     ui->mcp_server_config_groupBox->setTitle(jtr("mcp_server_config"));
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
-
-    // 模型卡
-    if (language_flag == 0)
-    {
-        ui->model_card->openCsv(":/model_card_zh.csv"); // 更新视图
-    }
-    else
-    {
-        ui->model_card->openCsv(":/model_card_en.csv"); // 更新视图
-    }
 }
 
 // 用户切换选项卡时响应
@@ -190,30 +172,10 @@ void Expend::on_tabWidget_tabBarClicked(int index)
     else if (index == window_map[MODELINFO_WINDOW] && is_first_show_modelinfo) // 第一次展示模型信息窗口
     {
         is_first_show_modelinfo = false;
-        ui->vocab_card->setPlainText(vocab); // 更新一次模型词表
     }
-    else if (index == window_map[MODELCARD_WINDOW] && is_first_show_modelcard) // 第一次展示模型信息窗口
-    {
-        is_first_show_modelcard = false;
-        if (language_flag == 0)
-        {
-            ui->model_card->openCsv(":/model_card_zh.csv"); // 更新视图
-        }
-        else
-        {
-            ui->model_card->openCsv(":/model_card_en.csv"); // 更新视图
-        }
-    }
+
 }
 
-// 接收模型词表
-void Expend::recv_vocab(QString vocab_)
-{
-    vocab = vocab_;
-    if (!is_first_show_modelinfo) { ui->vocab_card->setPlainText(vocab); }
-    init_brain_matrix();
-    reflash_brain_matrix();
-}
 
 // 通知显示增殖窗口
 void Expend::recv_expend_show(EXPEND_WINDOW window)
@@ -239,9 +201,6 @@ void Expend::recv_expend_show(EXPEND_WINDOW window)
         }
     }
 
-    // 词表滑动到底部
-    QScrollBar *vScrollBar = ui->vocab_card->verticalScrollBar();
-    vScrollBar->setValue(vScrollBar->maximum());
     // 打开指定页数窗口
     ui->tabWidget->setCurrentIndex(window_map[window]);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态

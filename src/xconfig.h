@@ -131,7 +131,6 @@ enum EXPEND_WINDOW
 {
     INTRODUCTION_WINDOW, // 软件介绍窗口
     MODELINFO_WINDOW,    // 模型信息窗口
-    MODELCARD_WINDOW,    // 模型下载窗口
     MODELCONVERT_WINDOW, // 模型转换窗口
     QUANTIZE_WINDOW,     // 模型量化窗口
     MCP_WINDOW,          // MCP服务器窗口
@@ -147,14 +146,13 @@ enum EXPEND_WINDOW
 const QMap<EXPEND_WINDOW, int> window_map = {
     {INTRODUCTION_WINDOW, 0},
     {MODELINFO_WINDOW, 1},
-    {MODELCARD_WINDOW, 2},
-    {MODELCONVERT_WINDOW, 3},
-    {QUANTIZE_WINDOW, 4},
-    {MCP_WINDOW, 5},
-    {KNOWLEDGE_WINDOW, 6},
-    {TXT2IMG_WINDOW, 7},
-    {WHISPER_WINDOW, 8},
-    {TTS_WINDOW, 9},
+    {MODELCONVERT_WINDOW, 2},
+    {QUANTIZE_WINDOW, 3},
+    {MCP_WINDOW, 4},
+    {KNOWLEDGE_WINDOW, 5},
+    {TXT2IMG_WINDOW, 6},
+    {WHISPER_WINDOW, 7},
+    {TTS_WINDOW, 8},
     {NO_WINDOW, 999},
     {PREV_WINDOW, -1}};
 
@@ -393,14 +391,6 @@ struct Speech_Params
 };
 
 #define SPPECH_OUTETTS "outetts"
-
-// 记忆单元（当前记忆）
-struct Brain_Cell
-{
-    int id;       // 在缓存中的序号
-    int token;    // 缓存的词索引
-    QString word; // 词索引对应的词
-};
 
 // 文生图参数
 #define DEFAULT_SD_NOISE "0.75" // 噪声系数

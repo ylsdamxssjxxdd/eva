@@ -11,7 +11,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // 初始化选项卡
     ui->info_card->setReadOnly(1);                                   // 只读
-    ui->vocab_card->setReadOnly(1);                                  // 只读
     ui->modellog_card->setReadOnly(1);                               // 只读
     ui->tabWidget->setCurrentIndex(0);                               // 默认显示模机体介绍窗口
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
@@ -20,7 +19,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->sd_modify_lineEdit->installEventFilter(this);                // 安装事件过滤器
     ui->sd_img2img_lineEdit->installEventFilter(this);               // 安装事件过滤器
 
-    ui->vocab_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   // 灰色
     ui->modellog_card->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                // 灰色
     ui->whisper_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                  // 灰色
     ui->embedding_test_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           // 灰色
@@ -35,11 +33,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                     // 禁用自动换行
     ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                // 禁用自动换行
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
-    ui->vocab_card->setLineWrapMode(QPlainTextEdit::NoWrap);                                        // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap);
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
-    ui->splitter->setStretchFactor(0, 2);                                                                 // 设置分隔器中第一个元素初始宽度占比为3
-    ui->splitter->setStretchFactor(1, 1);                                                                 // 设置分隔器中第二个元素初始宽度占比为1
     // 模型转换相关
     //  ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
     ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
@@ -116,11 +111,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     {
         ui->params_template_comboBox->addItem(key); // 添加模板选项
     }
-
-    // 记忆矩阵相关
-    ui->brain_tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); // 让表格自动撑满所在区域
-    ui->brain_tableWidget->verticalHeader()->setVisible(false);                            // 隐藏行头部
-
     // 文转声相关
     connect(ui->speech_enable_radioButton, &QRadioButton::clicked, this, &Expend::speech_enable_change);
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);

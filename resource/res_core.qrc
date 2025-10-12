@@ -1,7 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>model_card_zh.csv</file>
-        <file>model_card_en.csv</file>
         <file>../src/utils/ui_language.json</file>
         <file>fly_me_to_the_moon.mp3</file>
         <file>logo/Player.ico</file>

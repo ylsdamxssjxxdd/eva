@@ -239,7 +239,6 @@ int main(int argc, char *argv[])
     qRegisterMetaType<Speech_Params>("Speech_Params");
     qRegisterMetaType<QPair<QString, QString>>("QPair<QString, QString>");
     qRegisterMetaType<mcp::json>("mcp::json");
-    qRegisterMetaType<std::vector<Brain_Cell>>("std::vector<Brain_Cell>");
     qRegisterMetaType<ENDPOINT_DATA>("ENDPOINT_DATA");
     qRegisterMetaType<APIS>("APIS");
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");

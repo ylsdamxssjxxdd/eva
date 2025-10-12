@@ -8,6 +8,13 @@
 //----------------------------------声转文相关--------------------------------
 //-------------------------------------------------------------------------
 
+// 用于设置whisper模型路径
+void Expend::setWhisperModelpath(QString modelpath)
+{
+    ui->whisper_load_modelpath_linedit->setText(modelpath);
+    whisper_params.model = modelpath.toStdString();
+}
+
 // 用户点击选择whisper路径时响应
 void Expend::on_whisper_load_modelpath_button_clicked()
 {
