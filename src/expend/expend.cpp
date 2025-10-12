@@ -28,6 +28,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     //     ui->modellog_card = neu; // keep ui pointer usable everywhere
     // }
     ui->tabWidget->setCurrentIndex(0);                               // 默认显示模机体介绍窗口
+    // Track tab changes to control heavy animations lifecycle
+    connect(ui->tabWidget, &QTabWidget::currentChanged, this, &Expend::onTabCurrentChanged);
     ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
     ui->sd_prompt_textEdit->installEventFilter(this);                // 安装事件过滤器
     ui->sd_negative_lineEdit->installEventFilter(this);              // 安装事件过滤器
@@ -218,6 +220,8 @@ Expend::~Expend()
     quantize_process->kill();
 }
 
+// (closeEvent implementation located later to persist user config)
+
 // 停止知识库嵌入服务
 void Expend::stopEmbeddingServer(bool force)
 {
@@ -312,6 +316,24 @@ void Expend::recv_llama_log(QString log)
     ui->modellog_card->setTextCursor(cursor);
 }
 
+// 启停“模型信息”页的动画以节省资源
+void Expend::onTabCurrentChanged(int index)
+{
+    Q_UNUSED(index);
+    updateModelInfoAnim();
+}
+
+void Expend::updateModelInfoAnim()
+{
+    if (!ui) return;
+    const bool onModelTab = (ui->tabWidget->currentIndex() == window_map[MODELINFO_WINDOW]);
+    const bool shouldRun = this->isVisible() && onModelTab;
+    if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card))
+    {
+        neu->setActive(shouldRun);
+    }
+}
+
 // 根据language.json和language_flag中找到对应的文字
 QString Expend::jtr(QString customstr)
 {
@@ -362,6 +384,14 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 // 关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
+    // Stop model-info heavy animation on close to free resources
+    if (ui && ui->modellog_card)
+    {
+        if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card))
+        {
+            neu->setActive(false);
+        }
+    }
     //--------------保存当前用户配置---------------
     sd_save_template(ui->params_template_comboBox->currentText());
 

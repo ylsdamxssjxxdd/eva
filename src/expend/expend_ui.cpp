@@ -173,7 +173,8 @@ void Expend::on_tabWidget_tabBarClicked(int index)
     {
         is_first_show_modelinfo = false;
     }
-
+    // 每次手动点击切换后，依据目标页启停动画
+    updateModelInfoAnim();
 }
 
 
@@ -208,6 +209,8 @@ void Expend::recv_expend_show(EXPEND_WINDOW window)
     this->show();
     this->raise();
     this->activateWindow(); // 激活增殖窗口
+    // 窗口显示后，按当前页决定是否启动模型信息动画
+    updateModelInfoAnim();
 }
 
 QString Expend::customOpenfile(QString dirpath, QString describe, QString format)

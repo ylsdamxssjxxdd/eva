@@ -30,26 +30,53 @@ NeuronLogEdit::NeuronLogEdit(QWidget *parent)
     m_rand.seed(QDateTime::currentMSecsSinceEpoch());
     initNeuralNetwork();
 
-    // Timers
+    // Timers (do not start by default; start when setActive(true))
     m_animTimer.setInterval(30);
     connect(&m_animTimer, &QTimer::timeout, this, &NeuronLogEdit::onAnimTick);
-    m_animTimer.start();
 
     m_pauseTimer.setSingleShot(true);
     connect(&m_pauseTimer, &QTimer::timeout, this, &NeuronLogEdit::onPauseFinished);
 
     m_connTimer.setInterval(30);
     connect(&m_connTimer, &QTimer::timeout, this, &NeuronLogEdit::onConnTick);
-    m_connTimer.start();
 
     m_pulseTimer.setInterval(16); // ~60 FPS
     connect(&m_pulseTimer, &QTimer::timeout, this, &NeuronLogEdit::onPulseTick);
-    m_pulseTimer.start();
-    m_clock.start();
+    // m_pulseTimer will be started in setActive(true)
+    // m_clock will be started in setActive(true)
 
     m_highlightTimer.setInterval(220);
     connect(&m_highlightTimer, &QTimer::timeout, this, &NeuronLogEdit::spawnRandomHighlight);
-    m_highlightTimer.start();
+    // m_highlightTimer will be started in setActive(true)
+}
+
+void NeuronLogEdit::setActive(bool on)
+{
+    if (on == m_active) return;
+    m_active = on;
+    if (on)
+    {
+        // Reset progression to provide a clean start each time
+        m_connStep = 0.0;
+        m_clock.restart();
+        if (!m_animTimer.isActive()) m_animTimer.start();
+        if (!m_connTimer.isActive()) m_connTimer.start();
+        if (!m_pulseTimer.isActive()) m_pulseTimer.start();
+        if (!m_highlightTimer.isActive()) m_highlightTimer.start();
+        // Drop any lingering pause state
+        if (m_pauseTimer.isActive()) m_pauseTimer.stop();
+        update();
+    }
+    else
+    {
+        // Stop all timers to save resources
+        if (m_animTimer.isActive()) m_animTimer.stop();
+        if (m_connTimer.isActive()) m_connTimer.stop();
+        if (m_pulseTimer.isActive()) m_pulseTimer.stop();
+        if (m_highlightTimer.isActive()) m_highlightTimer.stop();
+        if (m_pauseTimer.isActive()) m_pauseTimer.stop();
+        // Keep current frame; no aggressive clear to allow quick resume
+    }
 }
 
 void NeuronLogEdit::paintEvent(QPaintEvent *e)

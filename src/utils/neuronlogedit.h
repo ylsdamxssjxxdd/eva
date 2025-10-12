@@ -67,6 +67,9 @@ class NeuronLogEdit : public QPlainTextEdit
     };
 
     explicit NeuronLogEdit(QWidget *parent = nullptr);
+    // Control animation lifecycle explicitly to save CPU/GPU when hidden
+    void setActive(bool on);    // start/stop timers
+    bool isActive() const { return m_active; }
 
   protected:
     void paintEvent(QPaintEvent *e) override;
@@ -109,6 +112,7 @@ class NeuronLogEdit : public QPlainTextEdit
     QTimer m_pulseTimer;
     QTimer m_highlightTimer;
     QElapsedTimer m_clock;
+    bool m_active = false; // whether timers are running
 
     double m_rotX = 28.0;
     double m_rotY = 38.0;
