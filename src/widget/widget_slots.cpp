@@ -671,40 +671,60 @@ void Widget::resetStateDocument()
 // Refresh kv progress bar based on current counters
 void Widget::updateKvBarUi()
 {
-    // determine capacity: prefer n_ctx_slot from server; fallback to UI nctx
+    // Prefer server-reported n_ctx_slot; fallback to UI nctx
     int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
     if (cap <= 0) cap = DEFAULT_NCTX;
+
     int used = qMax(0, kvUsed_);
+    if (used > cap) used = cap;
+
+    // Convert used/cap to percent in a single (orange) segment
     int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
-    if (percent < 0) percent = 0;
-    if (percent > 100) percent = 100;
-    // Use second (yellow) segment to indicate memory; first (blue) set to 0
+    if (percent < 0) percent = 0; if (percent > 100) percent = 100;
+    // Visual minimum: if any memory, show at least 1%
+    if (used > 0 && percent == 0) percent = 1;
+
+    // Force progress range 0..100; use second segment only (orange)
+    if (ui->kv_bar->maximum() != 100 || ui->kv_bar->minimum() != 0) ui->kv_bar->setRange(0, 100);
     ui->kv_bar->setValue(0);
     ui->kv_bar->setSecondValue(percent);
     ui->kv_bar->setShowText(QString::fromUtf8("记忆:"));
-    ui->kv_bar->setCenterText(""); // use show_text + auto % rendering
+    ui->kv_bar->setCenterText("");
     ui->kv_bar->setToolTip(QString::fromUtf8("上下文缓存量 %1 / %2 token").arg(used).arg(cap));
 }
-
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
+
+// Set prompt baseline tokens (LINK mode) from usage in SSE
+void Widget::recv_prompt_baseline(int tokens)
+{
+    if (tokens < 0) return;
+    // Apply baseline immediately for this turn
+    kvUsedBeforeTurn_ = qMax(0, tokens);
+    kvUsed_ = kvUsedBeforeTurn_;
+    sawPromptPast_ = true;
+    updateKvBarUi();
+}
+
 void Widget::recv_kv_from_net(int usedTokens)
 {
     // Approximate KV usage accumulation during streaming tokens from xNet.
-    if (!turnActive_) return;
-    kvStreamedTurn_ = qMax(0, usedTokens);
     if (ui_mode == LINK_MODE)
     {
-        // In LINK mode, we do not have server logs; base on turn start baseline
+        // In LINK mode, we may not have server logs; accept updates regardless of turnActive_
+        if (!turnActive_) turnActive_ = true;
+        kvStreamedTurn_ = qMax(0, usedTokens);
         kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
         updateKvBarUi();
         return;
     }
-    // LOCAL mode: apply only after server reported prompt baseline (prompt done)
+    // LOCAL mode
+    if (!turnActive_) return;
+    kvStreamedTurn_ = qMax(0, usedTokens);
+    // apply only after server reported prompt baseline (prompt done)
     if (!sawPromptPast_) return;
     kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
     updateKvBarUi();
 }
-
 // server-assigned slot id -> persist and reuse for KV cache efficiency
 void Widget::onSlotAssigned(int slotId)
 {

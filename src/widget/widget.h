@@ -375,6 +375,7 @@ class Widget : public QWidget
     void recv_params(MODEL_PARAMS p);                                            // bot将模型参数传递给ui
     void recv_kv(float percent, int ctx_size);                                   // 接收缓存量
     void recv_kv_from_net(int usedTokens);                                       // update kv from llama.cpp server timings
+    void recv_prompt_baseline(int tokens);                                     // set prompt baseline tokens in LINK mode
     void onSlotAssigned(int slotId);                                             // server slot id notification
     void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
     void recv_net_speeds(double promptPerSec, double genPerSec);                 // final speeds from xNet timings
@@ -503,6 +504,7 @@ class Widget : public QWidget
     void appendRoleHeader(const QString &role);
 
     void updateKvBarUi(); // refresh kv_bar from kvUsed_/slotCtxMax_
+    void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)
   private:
     Ui::Widget *ui;
 };

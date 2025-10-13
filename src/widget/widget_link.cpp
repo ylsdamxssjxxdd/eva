@@ -74,6 +74,7 @@ void Widget::set_api()
     trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
 
     emit ui2net_apis(apis);
+    fetchRemoteContextLimit();
     ui->output->clear();
     // Reset record bar to avoid residual nodes when switching to LINK mode
     recordClear();
@@ -154,4 +155,92 @@ void Widget::change_api_dialog(bool enable)
     {
         settings_ui->backend_box->setVisible(enable);
     }
+}
+
+// Probe remote /v1/models to determine max context for current model (LINK mode)
+void Widget::fetchRemoteContextLimit()
+{
+    if (ui_mode != LINK_MODE) return;
+    // Build URL: base endpoint + /v1/models
+    QUrl base = QUrl::fromUserInput(apis.api_endpoint);
+    if (!base.isValid()) return;
+    QUrl url(base);
+    QString path = url.path();
+    if (!path.endsWith('/')) path += '/';
+    path += QLatin1String("v1/models");
+    url.setPath(path);
+
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    if (!apis.api_key.isEmpty())
+        req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+
+    auto *nam = new QNetworkAccessManager(this);
+    QNetworkReply *rp = nam->get(req);
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]() {
+        rp->deleteLater();
+        nam->deleteLater();
+        if (rp->error() != QNetworkReply::NoError)
+        {
+            // leave slotCtxMax_ unchanged on error
+            return;
+        }
+        const QByteArray body = rp->readAll();
+        QJsonParseError perr{};
+        QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+        if (perr.error != QJsonParseError::NoError)
+            return;
+        int maxCtx = -1;
+        auto tryPick = [&](const QJsonObject &o) {
+            // Try common fields from various providers
+            const char *keys[] = {"context_length","max_input_tokens","max_context_length","max_input_length","prompt_token_limit","input_token_limit"};
+            for (auto k : keys) {
+                if (o.contains(k)) { int v = o.value(k).toInt(-1); if (v > 0) return v; }
+            }
+            // Also look under nested objects
+            if (o.contains("capabilities") && o.value("capabilities").isObject()) {
+                const QJsonObject cap = o.value("capabilities").toObject();
+                const int v = cap.value("context_length").toInt(-1); if (v > 0) return v;
+            }
+            if (o.contains("limits") && o.value("limits").isObject()) {
+                const QJsonObject lim = o.value("limits").toObject();
+                const int v = lim.value("max_input_tokens").toInt(-1); if (v > 0) return v;
+            }
+            return -1;
+        };
+        auto matchModel = [&](const QString &id) {
+            if (id == apis.api_model) return true;
+            // accept provider-prefixed ids like provider:model
+            return id.endsWith(":" + apis.api_model) || id.endsWith("/" + apis.api_model);
+        };
+        if (doc.isObject())
+        {
+            const QJsonObject root = doc.object();
+            if (root.contains("data") && root.value("data").isArray())
+            {
+                const QJsonArray arr = root.value("data").toArray();
+                for (const auto &v : arr)
+                {
+                    if (!v.isObject()) continue;
+                    const QJsonObject m = v.toObject();
+                    const QString mid = m.value("id").toString();
+                    if (!mid.isEmpty() && matchModel(mid))
+                    {
+                        maxCtx = tryPick(m);
+                        if (maxCtx > 0) break;
+                    }
+                }
+            }
+            // Some providers might return a single object for the model
+            if (maxCtx <= 0)
+            {
+                maxCtx = tryPick(root);
+            }
+        }
+        if (maxCtx > 0)
+        {
+            slotCtxMax_ = maxCtx;
+            updateKvBarUi();
+        }
+    });
 }

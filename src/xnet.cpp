@@ -167,8 +167,9 @@ void xNet::run()
             for (QByteArray &ln : lines)
             {
                 ln = ln.trimmed();
+                qDebug() << "SSE line:" << ln;
                 if (!ln.startsWith("data:")) continue;
-
+                
                 QByteArray payload = ln.mid(5).trimmed();
                 if (payload.isEmpty()) continue;
                 if (payload == "[DONE]" || payload == "DONE")
@@ -268,6 +269,32 @@ void xNet::run()
                     }
 
                     // Parse optional timings from llama.cpp server and cache for final reporting
+                                        // Parse OpenAI-style usage if provided (for LINK mode prompt baseline)
+                    // Parse OpenAI-style usage if provided (for LINK mode totals/baseline)
+                    if (obj.contains("usage") && obj.value("usage").isObject())
+                    {
+                        const QJsonObject u = obj.value("usage").toObject();
+                        int promptTokens = -1;
+                        int completionTokens = -1;
+                        int totalTokens = -1;
+                        // Prefer total_tokens number if available
+                        if (u.contains("total_tokens") && (u.value("total_tokens").isDouble() || u.value("total_tokens").isString()))
+                            totalTokens = u.value("total_tokens").toInt(-1);
+                        if (u.contains("prompt_tokens")) promptTokens = u.value("prompt_tokens").toInt(-1);
+                        if (promptTokens < 0 && u.contains("input_tokens")) promptTokens = u.value("input_tokens").toInt(-1);
+                        if (u.contains("completion_tokens")) completionTokens = u.value("completion_tokens").toInt(-1);
+                        // Some providers wrap totals in an object { input, output }
+                        if (totalTokens < 0 && u.contains("total_tokens") && u.value("total_tokens").isObject()) {
+                            QJsonObject tt = u.value("total_tokens").toObject();
+                            int inTok = tt.value("input").toInt(-1);
+                            int outTok = tt.value("output").toInt(-1);
+                            if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
+                            else if (inTok >= 0) totalTokens = inTok;
+                        }
+                        if (totalTokens < 0 && promptTokens >= 0 && completionTokens >= 0) totalTokens = promptTokens + completionTokens;
+                        if (totalTokens >= 0) emit net2ui_prompt_baseline(totalTokens);
+                        else if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
+                    }
                     if (obj.contains("timings") && obj.value("timings").isObject())
                     {
                         const QJsonObject tobj = obj.value("timings").toObject();
@@ -402,6 +429,7 @@ QByteArray xNet::createChatBody()
     }
     json.insert("model", apis.api_model);
     json.insert("stream", true);
+    json.insert("include_usage", true);
     json.insert("temperature", 2 * endpoint_data.temp); // OpenAI temperature 0-2; ours 0-1
     json.insert("top_k", endpoint_data.top_k);
     // expose full sampling knobs in LINK/LOCAL request body
@@ -462,6 +490,7 @@ QByteArray xNet::createCompleteBody()
     json.insert("prompt", endpoint_data.input_prompt);
     json.insert("max_tokens", endpoint_data.n_predict);
     json.insert("stream", true);
+    json.insert("include_usage", true);
     json.insert("temperature", 2 * endpoint_data.temp);
     json.insert("top_k", endpoint_data.top_k);
     json.insert("top_p", endpoint_data.top_p);
@@ -543,3 +572,7 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
+
+
