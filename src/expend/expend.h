@@ -1,4 +1,4 @@
-﻿#ifndef EXPEND_H
+#ifndef EXPEND_H
 #define EXPEND_H
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -150,8 +150,10 @@ class Expend : public QWidget
     void stopEmbeddingServer(bool force = false);
     void embedding_server_start();          // 尝试启动server
     QString txtpath;                        // 用户上传的txt文件路径
+    QStringList upload_paths;               // selected source files (txt/md/docx)
     int embedding_server_dim = 1024;        // 开启嵌入服务的嵌入维度
     void preprocessTXT();                   // 预处理文件内容
+    void preprocessFiles(const QStringList &paths); // preprocess multiple files
     int show_chunk_index = 0;               // 待显示的嵌入文本段的序号
     QVector<Embedding_vector> Embedding_DB; // 嵌入的所有文本段的词向量，向量数据库
     VectorDB vectorDb;                      // SQLite 持久化向量库

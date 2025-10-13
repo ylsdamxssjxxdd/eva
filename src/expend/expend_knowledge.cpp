@@ -2,6 +2,7 @@
 
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
+#include "../utils/docparser.h" // parse txt/md/docx
 #include "ui_expend.h"
 #include <QSet>
 
@@ -139,11 +140,14 @@ void Expend::server_onProcessFinished()
 // 用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    currentpath = customOpenfile(currentpath, jtr("choose a txt to embed"), "(*.txt)");
-    txtpath = currentpath;
-    ui->embedding_txt_lineEdit->setText(txtpath);
-
-    preprocessTXT(); // 预处理文件内容
+    QStringList paths = QFileDialog::getOpenFileNames(this, jtr("choose files to embed"), currentpath, QStringLiteral("Text/Docs (*.txt *.md *.markdown *.docx);;All Files (*.*)"));
+    if (paths.isEmpty()) return;
+    upload_paths = paths;
+    txtpath = paths.first();
+    currentpath = QFileInfo(txtpath).absolutePath();
+    if (paths.size() == 1) ui->embedding_txt_lineEdit->setText(txtpath);
+    else ui->embedding_txt_lineEdit->setText(QString::number(paths.size()) + jtr(" files selected"));
+    preprocessFiles(upload_paths);
 }
 
 // 分词函数
@@ -189,95 +193,88 @@ QStringList Expend::tokenizeContent(const QString &content)
 }
 
 // 预处理文件内容
+// 预处理文件内容（多文件，多格式）
 void Expend::preprocessTXT()
 {
+    // legacy wrapper
+    if (!txtpath.isEmpty()) preprocessFiles(QStringList{txtpath});
+}
 
-    // 读取文件内容
-    QString content;
-    QFile file(txtpath);
-    // 打开文件
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-        QTextStream in(&file); // 创建 QTextStream 对象
-        in.setCodec("UTF-8");
-        content = in.readAll(); // 读取文件内容
-    }
-    file.close();
+void Expend::preprocessFiles(const QStringList &paths)
+{
+    if (paths.isEmpty()) return;
 
-    // -------------------分词-----------------
-    QStringList tokens = tokenizeContent(content);
+    // Aggregate all paragraphs from all files
+    QStringList allParagraphs;
+    const int splitLength = ui->embedding_split_spinbox->value();
+    const int overlap = ui->embedding_overlap_spinbox->value();
 
-    // -------------------分段-----------------
-    QStringList paragraphs;
-    int splitLength = ui->embedding_split_spinbox->value();
-    int overlap = ui->embedding_overlap_spinbox->value();
-    int splitNums = 0;
-    int startTokenIndex = 0;
-
-    while (startTokenIndex < tokens.size())
-    {
-        int currentLength = 0;
-        int endTokenIndex = startTokenIndex;
-
-        // 构建当前段落，确保不超过splitLength
-        while (endTokenIndex < tokens.size())
+    auto splitContent = [&](const QString &content) {
+        // tokenize then sliding-window split by character length with overlap
+        const QStringList tokens = tokenizeContent(content);
+        int startTokenIndex = 0;
+        while (startTokenIndex < tokens.size())
         {
-            int tokenLength = tokens[endTokenIndex].length();
-            if (currentLength + tokenLength > splitLength)
+            int currentLength = 0;
+            int endTokenIndex = startTokenIndex;
+            while (endTokenIndex < tokens.size())
             {
-                break;
+                const int tokenLength = tokens[endTokenIndex].length();
+                if (currentLength + tokenLength > splitLength) break;
+                currentLength += tokenLength;
+                ++endTokenIndex;
             }
-            currentLength += tokenLength;
-            endTokenIndex++;
-        }
-
-        // 提取当前段落的tokens
-        QString paragraph;
-        for (int i = startTokenIndex; i < endTokenIndex; ++i)
-        {
-            paragraph += tokens[i];
-        }
-        paragraphs << paragraph;
-        splitNums++;
-
-        // 计算下一段的起始index，考虑重叠部分
-        if (endTokenIndex < tokens.size())
-        {
+            QString paragraph;
+            for (int i = startTokenIndex; i < endTokenIndex; ++i) paragraph += tokens[i];
+            if (!paragraph.trimmed().isEmpty()) allParagraphs << paragraph;
+            if (endTokenIndex >= tokens.size()) break;
             int overlapLength = 0;
             int overlapTokens = 0;
-            // 从当前结束位置回退，直到覆盖至少'overlap'个字符
             while (endTokenIndex - overlapTokens > startTokenIndex && overlapLength < overlap)
-            {
-                overlapLength += tokens[endTokenIndex - 1 - overlapTokens].length();
-                overlapTokens++;
-            }
+            { overlapLength += tokens[endTokenIndex - 1 - overlapTokens].length(); ++overlapTokens; }
             startTokenIndex = endTokenIndex - overlapTokens;
+        }
+    };
+
+    // Parse each file to plain text
+    for (const QString &p : paths)
+    {
+        QString plain;
+        const QString ext = QFileInfo(p).suffix().toLower();
+        if (ext == "docx")
+        {
+            plain = DocParser::readDocxText(p);
+            if (plain.isEmpty())
+            {
+                ui->embedding_test_log->appendPlainText(jtr("docx parse failed") + ": " + p);
+                continue;
+            }
+        }
+        else if (ext == "md" || ext == "markdown")
+        {
+            plain = DocParser::markdownToText(DocParser::readPlainTextFile(p));
         }
         else
         {
-            break;
+            plain = DocParser::readPlainTextFile(p);
         }
+        splitContent(plain);
     }
 
-    // 打印总分段数
-    qDebug() << "分段数:" << splitNums;
-
-    // 显示在待嵌入表格中
+    // Show in pending table
     ui->embedding_txt_wait->clear();
-    ui->embedding_txt_wait->setRowCount(splitNums); // 创建splitNums很多行
-
-    for (int i = 0; i < paragraphs.size(); ++i)
+    ui->embedding_txt_wait->setRowCount(allParagraphs.size());
+    for (int i = 0; i < allParagraphs.size(); ++i)
     {
-        QTableWidgetItem *newItem = new QTableWidgetItem(paragraphs.at(i));
+        QTableWidgetItem *newItem = new QTableWidgetItem(allParagraphs.at(i));
         ui->embedding_txt_wait->setItem(i, 0, newItem);
     }
-    ui->embedding_txt_wait->setColumnWidth(0, qMax(ui->embedding_txt_wait->width(), 400)); // 列宽保持控件宽度
+    ui->embedding_txt_wait->setColumnWidth(0, qMax(ui->embedding_txt_wait->width(), 400));
+    ui->embedding_txt_wait->resizeRowsToContents();
+    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});
 
-    ui->embedding_txt_wait->resizeRowsToContents();                                                // 自动调整行高
-    ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); // 设置列名
+    ui->embedding_test_log->appendPlainText(jtr("pending chunks") + ": " + QString::number(allParagraphs.size()));
 }
-
-// 右击表格显示菜单
 void Expend::show_embedding_txt_wait_menu(const QPoint &pos)
 {
     // 创建菜单并添加动作
@@ -774,3 +771,8 @@ void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
+
+
+
+
+
