@@ -17,7 +17,7 @@ void Widget::set_api()
     // 获取设置值
     // Sanitize endpoint/key/model: strip all whitespace to avoid mistakes
     auto sanitize = [](const QString &s)
-    { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
+    { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
     QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
     // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
     {
@@ -121,7 +121,7 @@ void Widget::tool_testhandleTimeout()
     // Ensure latest LINK apis before pushing (users may edit endpoint/key/model after linking)
     if (ui_mode == LINK_MODE)
     {
-        auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
+        auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
         QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
         // Normalize scheme for remote hosts
         {
@@ -142,6 +142,17 @@ void Widget::tool_testhandleTimeout()
             apis.api_model = clean_model;
             emit ui2net_apis(apis);
         }
+            // Reset memory/kv usage immediately after param change
+            kvUsed_ = 0;
+            kvUsedBeforeTurn_ = 0;
+            kvStreamedTurn_ = 0;
+            turnActive_ = false;
+            sawPromptPast_ = false;
+            sawFinalPast_ = false;
+            currentSlotId_ = -1;
+            slotCtxMax_ = 0;
+            updateKvBarUi();
+            fetchRemoteContextLimit();
     }
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;
@@ -269,4 +280,5 @@ void Widget::fetchRemoteContextLimit()
         }
     });
 }
+
 
