@@ -43,6 +43,7 @@ void xNet::resetState()
     aborted_ = false;
     reasoningTokensTurn_ = 0;
     extThinkActive_ = false;
+    sawToolStopword_ = false;
     // reset timing stats
     promptTokens_ = -1;
     promptMs_ = 0.0;
@@ -254,6 +255,11 @@ void xNet::run()
                                 // if this chunk is part of <think>, count it approximately
                                 const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                                 if (isReasoningChunk) reasoningTokensTurn_++;
+                                // Detect tool-call end; do not abort here, just mark seen to allow tail meta
+                                if (!thinkFlag && !sawToolStopword_ && current_content.contains(DEFAULT_OBSERVATION_STOPWORD))
+                                {
+                                    sawToolStopword_ = true;
+                                }
                                 // 不再在状态区流式输出内容；仅把内容流式发往输出区
                                 if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
                                 if (thinkFlag)
@@ -367,8 +373,8 @@ void xNet::run()
             }
         }
 
-        // Early stop: UI stop or tool stop-word outside of think block
-        if (is_stop || (!thinkFlag && current_content.contains(DEFAULT_OBSERVATION_STOPWORD)))
+        // Early stop: only honor explicit user stop. Do not abort on tool stop-word; wait for finish/meta.
+        if (is_stop)
         {
             is_stop = false;
             emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);

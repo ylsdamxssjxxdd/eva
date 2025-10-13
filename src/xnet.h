@@ -93,6 +93,8 @@ class xNet : public QObject
     // Optional direct speeds when provided by server (tokens/second); -1 if unknown
     double promptPerSec_ = -1.0;
     double predictedPerSec_ = -1.0;
+    // Tool-call handling: do not abort immediately on DEFAULT_OBSERVATION_STOPWORD
+    bool sawToolStopword_ = false; // seen </tool_call> this turn; allow coasting to receive usage/timings
 
     // Keep track of connections to safely disconnect on abort
     QMetaObject::Connection connReadyRead_;
