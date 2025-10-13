@@ -307,30 +307,35 @@ void xNet::run()
 
                     // Parse optional timings from llama.cpp server and cache for final reporting
                                         // Parse OpenAI-style usage if provided (for LINK mode prompt baseline)
-                    // Parse OpenAI-style usage if provided (for LINK mode totals/baseline)
+                    // Parse OpenAI-style usage if provided (LINK mode baseline should be prompt tokens only)
                     if (obj.contains("usage") && obj.value("usage").isObject())
                     {
                         const QJsonObject u = obj.value("usage").toObject();
                         int promptTokens = -1;
-                        int completionTokens = -1;
-                        int totalTokens = -1;
-                        // Prefer total_tokens number if available
-                        if (u.contains("total_tokens") && (u.value("total_tokens").isDouble() || u.value("total_tokens").isString()))
-                            totalTokens = u.value("total_tokens").toInt(-1);
+                        // Prefer explicit prompt/input tokens for baseline
                         if (u.contains("prompt_tokens")) promptTokens = u.value("prompt_tokens").toInt(-1);
                         if (promptTokens < 0 && u.contains("input_tokens")) promptTokens = u.value("input_tokens").toInt(-1);
-                        if (u.contains("completion_tokens")) completionTokens = u.value("completion_tokens").toInt(-1);
-                        // Some providers wrap totals in an object { input, output }
-                        if (totalTokens < 0 && u.contains("total_tokens") && u.value("total_tokens").isObject()) {
-                            QJsonObject tt = u.value("total_tokens").toObject();
-                            int inTok = tt.value("input").toInt(-1);
-                            int outTok = tt.value("output").toInt(-1);
-                            if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
-                            else if (inTok >= 0) totalTokens = inTok;
+                        // Fallback: derive prompt tokens from total - streamed (approx) when provider only exposes totals
+                        if (promptTokens < 0 && u.contains("total_tokens"))
+                        {
+                            int totalTokens = -1;
+                            const QJsonValue tv = u.value("total_tokens");
+                            if (tv.isDouble() || tv.isString()) totalTokens = tv.toInt(-1);
+                            if (tv.isObject())
+                            {
+                                const QJsonObject tt = tv.toObject();
+                                int inTok = tt.value("input").toInt(-1);
+                                int outTok = tt.value("output").toInt(-1);
+                                if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
+                                else if (inTok >= 0) totalTokens = inTok; // rare partial info
+                            }
+                            if (totalTokens >= 0 && tokens_ >= 0)
+                            {
+                                int derived = totalTokens - tokens_;
+                                if (derived >= 0) promptTokens = derived;
+                            }
                         }
-                        if (totalTokens < 0 && promptTokens >= 0 && completionTokens >= 0) totalTokens = promptTokens + completionTokens;
-                        if (totalTokens >= 0) emit net2ui_prompt_baseline(totalTokens);
-                        else if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
+                        if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
                     }
                     if (obj.contains("timings") && obj.value("timings").isObject())
                     {

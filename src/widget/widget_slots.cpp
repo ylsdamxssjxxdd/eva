@@ -680,7 +680,8 @@ void Widget::updateKvBarUi()
 
     // Convert used/cap to percent in a single (orange) segment
     int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
-    if (percent < 0) percent = 0; if (percent > 100) percent = 100;
+    if (percent < 0) percent = 0; 
+    if (percent > 100) percent = 100;
     // Visual minimum: if any memory, show at least 1%
     if (used > 0 && percent == 0) percent = 1;
 
@@ -698,9 +699,10 @@ void Widget::updateKvBarUi()
 void Widget::recv_prompt_baseline(int tokens)
 {
     if (tokens < 0) return;
-    // Apply baseline immediately for this turn
-    kvUsedBeforeTurn_ = qMax(0, tokens);
-    kvUsed_ = kvUsedBeforeTurn_;
+    // LINK: accumulate across conversation. on_send_clicked() pre-set kvUsedBeforeTurn_ = kvUsed_
+    // Add this turn's prompt/input tokens to the existing baseline, not replace it.
+    kvUsedBeforeTurn_ = qMax(0, kvUsedBeforeTurn_ + tokens);
+    kvUsed_ = kvUsedBeforeTurn_ + qMax(0, kvStreamedTurn_);
     sawPromptPast_ = true;
     updateKvBarUi();
 }
