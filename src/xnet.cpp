@@ -451,7 +451,7 @@ void xNet::run()
 #endif
 
     // Arm an overall timeout (no bytes + no finish)
-    if (timeoutTimer_) timeoutTimer_->start(120000); // 120s guard
+    if (timeoutTimer_) timeoutTimer_->start(180000); // 180s guard 超时设置
 
     // Fully async: return immediately
 }
@@ -504,7 +504,40 @@ QByteArray xNet::createChatBody()
                                                            QStringLiteral(DEFAULT_SYSTEM_NAME),
                                                            QStringLiteral(DEFAULT_USER_NAME),
                                                            QStringLiteral(DEFAULT_MODEL_NAME));
-    json.insert("messages", oaiMessages);
+    // Some remote providers (e.g., OpenRouter/xAI) do not accept role="tool" unless using
+    // OpenAI-native tool_calls schema. We do not use tool_calls; instead we stream a plain
+    // observation back to the model. To maximize compatibility, convert any historical
+    // tool messages to a user message prefixed with DEFAULT_OBSERVATION_NAME.
+    QJsonArray compatMsgs;
+    for (const auto &v : oaiMessages) {
+        if (!v.isObject()) { compatMsgs.append(v); continue; }
+        QJsonObject m = v.toObject();
+        const QString role = m.value("role").toString();
+        if (role == QStringLiteral("tool")) {
+            QString content;
+            const QJsonValue cv = m.value("content");
+            if (cv.isString()) content = cv.toString();
+            else if (cv.isArray()) {
+                // flatten parts to text if needed
+                QStringList parts;
+                for (const auto &pv : cv.toArray()) {
+                    if (pv.isObject()) {
+                        QJsonObject po = pv.toObject();
+                        if (po.value("type").toString() == QStringLiteral("text"))
+                            parts << po.value("text").toString();
+                    }
+                }
+                content = parts.join(QString());
+            }
+            QJsonObject u;
+            u.insert("role", QStringLiteral("user"));
+            u.insert("content", QString(DEFAULT_OBSERVATION_NAME) + content);
+            compatMsgs.append(u);
+        } else {
+            compatMsgs.append(m);
+        }
+    }
+    json.insert("messages", compatMsgs);
     // Reuse llama.cpp server slot KV cache if available
     if (endpoint_data.id_slot >= 0)
     {
