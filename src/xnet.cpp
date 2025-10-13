@@ -108,7 +108,7 @@ QNetworkRequest xNet::buildRequest(const QUrl &url) const
 #endif
     req.setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    req.setTransferTimeout(60000); // 60s transfer timeout
+    req.setTransferTimeout(0); // disable per-transfer timeout for SSE; rely on our inactivity guard
 #endif
     return req;
 }
@@ -142,57 +142,66 @@ void xNet::run()
     connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]()
                              {
         if (aborted_ || !reply_) return; // guard against late events after abort
+        // Refresh inactivity guard on any activity
+        if (timeoutTimer_) timeoutTimer_->start(120000);
         if (!ttfbStarted)
         {
             ttfbStarted = true;
             t_first_.start();
-            // Report approximate prompt processing time (TTFB)
             const double t_prompt = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
             Q_UNUSED(t_prompt);
-            // emit net2ui_state(QString("net:prompt time %1 s").arg(QString::number(t_prompt, 'f', 2)));
         }
 
         const QByteArray chunk = reply_->readAll();
         if (chunk.isEmpty()) return;
         sseBuffer_.append(chunk);
 
-        // Normalize line endings and process complete SSE events (separated by blank line)
+        // Normalize CRLF to LF so we can reliably detect blank-line boundaries
+        sseBuffer_.replace("\r\n", "\n");
+
+        // Process complete SSE events separated by a blank line
         int idx;
         while ((idx = sseBuffer_.indexOf("\n\n")) != -1)
         {
             QByteArray event = sseBuffer_.left(idx);
             sseBuffer_.remove(0, idx + 2);
 
-            // Find a line starting with "data:"
-            // Allow for CRLF and spaces after colon
+            // Accumulate all data: lines into one payload
             QList<QByteArray> lines = event.split('\n');
-            for (QByteArray &ln : lines)
+            QByteArray payloadAgg;
+            for (QByteArray ln : lines)
             {
                 ln = ln.trimmed();
-                qDebug() << "SSE line:" << ln;
                 if (!ln.startsWith("data:")) continue;
-                
-                QByteArray payload = ln.mid(5).trimmed();
-                if (payload.isEmpty()) continue;
-                if (payload == "[DONE]" || payload == "DONE")
-                {
-                    // emit net2ui_state("net: DONE");
-                    continue;
-                }
+                QByteArray part = ln.mid(5).trimmed();
+                if (part.isEmpty()) continue;
+                if (!payloadAgg.isEmpty()) payloadAgg.append('\n');
+                payloadAgg.append(part);
+            }
+            if (payloadAgg.isEmpty()) continue;
+            if (payloadAgg == "[DONE]" || payloadAgg == "DONE")
+            {
+                continue; // end-of-stream marker
+            }
 
-                // Some servers may prepend junk before JSON; try to locate '{'
-                int jpos = payload.indexOf('{');
-                if (jpos > 0) payload.remove(0, jpos);
+            // Some servers prepend junk before JSON; locate first '{' or '['
+            int jposObj = payloadAgg.indexOf('{');
+            int jposArr = payloadAgg.indexOf('[');
+            int jpos = -1;
+            if (jposObj >= 0 && jposArr >= 0) jpos = qMin(jposObj, jposArr);
+            else jpos = qMax(jposObj, jposArr);
+            if (jpos > 0) payloadAgg.remove(0, jpos);
 
-                QJsonParseError perr{};
-                const QJsonDocument doc = QJsonDocument::fromJson(payload, &perr);
-                if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
-                {
-                    emit net2ui_state("net:resolve json fail", WRONG_SIGNAL);
-                    continue;
-                }
+            QJsonParseError perr{};
+            const QJsonDocument doc = QJsonDocument::fromJson(payloadAgg, &perr);
+            if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
+            {
+                // noisy providers may send partials; keep silent in UI
+                qDebug() << "net: json parse fail" << perr.errorString();
+                continue;
+            }
 
-                auto processObj = [&](const QJsonObject &obj) {
+            auto processObj = [&](const QJsonObject &obj) {
                     // capture server-assigned slot id for KV reuse
                     if (obj.contains("slot_id"))
                     {
@@ -372,16 +381,17 @@ void xNet::run()
                 }
             }
         }
-
+    );
         // Early stop: only honor explicit user stop. Do not abort on tool stop-word; wait for finish/meta.
         if (is_stop)
         {
             is_stop = false;
             emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
             abortActiveReply();
-        } });
+        };
 
     // Handle finish: stop timeout and finalize
+
     connFinished_ = connect(reply_, &QNetworkReply::finished, this, [this]()
                             {
         if (timeoutTimer_) timeoutTimer_->stop();
@@ -451,7 +461,7 @@ void xNet::run()
 #endif
 
     // Arm an overall timeout (no bytes + no finish)
-    if (timeoutTimer_) timeoutTimer_->start(180000); // 180s guard 超时设置
+    if (timeoutTimer_) timeoutTimer_->start(120000); // 120s guard 超时设置
 
     // Fully async: return immediately
 }
@@ -485,11 +495,17 @@ QByteArray xNet::createChatBody()
     json.insert("model", apis.api_model);
     json.insert("stream", true);
     json.insert("include_usage", true);
-    json.insert("temperature", 2 * endpoint_data.temp); // OpenAI temperature 0-2; ours 0-1
-    json.insert("top_k", endpoint_data.top_k);
+    {
+        double t = qBound(0.0, 2.0 * double(endpoint_data.temp), 2.0);
+        json.insert("temperature", t); // OpenAI range [0,2]
+    }
+    /* top_k only for local llama.cpp */
     // expose full sampling knobs in LINK/LOCAL request body
-    json.insert("top_p", endpoint_data.top_p);
-    json.insert("repeat_penalty", endpoint_data.repeat);
+    {
+        double p = qBound(0.0, double(endpoint_data.top_p), 1.0);
+        json.insert("top_p", p);
+    }
+    /* repeat_penalty only for local llama.cpp */
 
     // stop words
     QJsonArray stopkeys;
@@ -498,6 +514,12 @@ QByteArray xNet::createChatBody()
         stopkeys.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys);
+
+    // Heuristic: treat localhost/LAN as local llama.cpp endpoint
+    QUrl __ep = QUrl::fromUserInput(apis.api_endpoint);
+    QString __host = __ep.host().toLower();
+    const bool __isLocal = __host.isEmpty() || __host == "localhost" || __host == "127.0.0.1" || __host.startsWith("192.") || __host.startsWith("10.") || __host.startsWith("172.");
+    if (__isLocal) { json.insert("top_k", endpoint_data.top_k); json.insert("repeat_penalty", endpoint_data.repeat); }
 
     // Normalize UI messages into OpenAI-compatible messages
     QJsonArray oaiMessages = promptx::buildOaiChatMessages(endpoint_data.messagesArray, endpoint_data.date_prompt,
@@ -539,10 +561,7 @@ QByteArray xNet::createChatBody()
     }
     json.insert("messages", compatMsgs);
     // Reuse llama.cpp server slot KV cache if available
-    if (endpoint_data.id_slot >= 0)
-    {
-        json.insert("id_slot", endpoint_data.id_slot);
-    }
+    if (__isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
@@ -579,10 +598,16 @@ QByteArray xNet::createCompleteBody()
     json.insert("max_tokens", endpoint_data.n_predict);
     json.insert("stream", true);
     json.insert("include_usage", true);
-    json.insert("temperature", 2 * endpoint_data.temp);
-    json.insert("top_k", endpoint_data.top_k);
-    json.insert("top_p", endpoint_data.top_p);
-    json.insert("repeat_penalty", endpoint_data.repeat);
+    {
+        double t = qBound(0.0, 2.0 * double(endpoint_data.temp), 2.0);
+        json.insert("temperature", t); // OpenAI range [0,2]
+    }
+    /* top_k only for local llama.cpp */
+    {
+        double p = qBound(0.0, double(endpoint_data.top_p), 1.0);
+        json.insert("top_p", p);
+    }
+    /* repeat_penalty only for local llama.cpp */
     // optional stop sequences
     QJsonArray stopkeys2;
     for (int i = 0; i < endpoint_data.stopwords.size(); ++i)
@@ -590,10 +615,14 @@ QByteArray xNet::createCompleteBody()
         stopkeys2.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys2);
-    if (endpoint_data.id_slot >= 0)
-    {
-        json.insert("id_slot", endpoint_data.id_slot);
+    QUrl __ep2 = QUrl::fromUserInput(apis.api_endpoint);
+    QString __host2 = __ep2.host().toLower();
+    const bool __isLocal2 = __host2.isEmpty() || __host2 == "localhost" || __host2 == "127.0.0.1" || __host2.startsWith("192.") || __host2.startsWith("10.") || __host2.startsWith("172.");
+    if (__isLocal2) {
+        json.insert("top_k", endpoint_data.top_k);
+        json.insert("repeat_penalty", endpoint_data.repeat);
     }
+    if (__isLocal2 && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);
@@ -673,6 +702,13 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
+
+
+
+
+
+
+
 
 
 
