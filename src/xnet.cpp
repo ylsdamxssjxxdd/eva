@@ -519,7 +519,20 @@ void xNet::recv_data(ENDPOINT_DATA data)
 // 传递api设置参数
 void xNet::recv_apis(APIS apis_)
 {
+    // If API parameters changed, abort current reply and reset state so next run uses new settings
+    const bool changed = (apis.api_endpoint != apis_.api_endpoint) ||
+                         (apis.api_key != apis_.api_key) ||
+                         (apis.api_model != apis_.api_model) ||
+                         (apis.api_chat_endpoint != apis_.api_chat_endpoint) ||
+                         (apis.api_completion_endpoint != apis_.api_completion_endpoint) ||
+                         (apis.is_cache != apis_.is_cache);
     apis = apis_;
+    if (changed)
+    {
+        abortActiveReply();
+        resetState();
+        emit net2ui_state("net: apis updated", SIGNAL_SIGNAL);
+    }
 }
 void xNet::recv_stop(bool stop)
 {

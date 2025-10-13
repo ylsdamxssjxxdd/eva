@@ -118,6 +118,31 @@ void Widget::set_api()
 // 链接模式下工具返回结果时延迟发送
 void Widget::tool_testhandleTimeout()
 {
+    // Ensure latest LINK apis before pushing (users may edit endpoint/key/model after linking)
+    if (ui_mode == LINK_MODE)
+    {
+        auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression(" +"), ""); return out; };
+        QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
+        // Normalize scheme for remote hosts
+        {
+            QUrl u = QUrl::fromUserInput(clean_endpoint);
+            QString host = u.host().toLower();
+            QString scheme = u.scheme().toLower();
+            const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
+            if (scheme.isEmpty()) u.setScheme(isLocal ? "http" : "https");
+            else if (scheme == "http" && !isLocal) u.setScheme("https");
+            clean_endpoint = u.toString(QUrl::RemoveFragment);
+        }
+        const QString clean_key = sanitize(api_key_LineEdit->text());
+        const QString clean_model = sanitize(api_model_LineEdit->text());
+        if (clean_endpoint != apis.api_endpoint || clean_key != apis.api_key || clean_model != apis.api_model)
+        {
+            apis.api_endpoint = clean_endpoint;
+            apis.api_key = clean_key;
+            apis.api_model = clean_model;
+            emit ui2net_apis(apis);
+        }
+    }
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;
     data.stopwords = ui_DATES.extra_stop_words;
@@ -244,3 +269,4 @@ void Widget::fetchRemoteContextLimit()
         }
     });
 }
+
