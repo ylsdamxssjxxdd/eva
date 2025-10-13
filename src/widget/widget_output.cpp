@@ -9,98 +9,96 @@
 // 更新输出，is_while 表示从流式输出的 token
 void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
-    QString s = result;
     if (is_while)
     {
+        // Robust segmented rendering: handle multiple <think>...</think> in a single chunk
         const QString begin = QString(DEFAULT_THINK_BEGIN);
         const QString tend = QString(DEFAULT_THINK_END);
-        const bool hasBegin = (s.indexOf(begin) != -1);
-        const bool hasEnd = (s.indexOf(tend) != -1);
 
-        // Enter think: print think header once and mark active; strip begin marker
-        if (hasBegin)
+        int pos = 0;
+        const int n = result.size();
+        while (pos < n)
         {
-            s.replace(begin, QString());
-            if (!turnThinkHeaderPrinted_)
+            if (turnThinkActive_)
             {
-                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
-                appendRoleHeader(QStringLiteral("think"));
-                turnThinkHeaderPrinted_ = true;
+                // Inside think: find closing tag
+                int endIdx = result.indexOf(tend, pos);
+                const int until = (endIdx == -1) ? n : endIdx;
+                QString thinkPart = result.mid(pos, until - pos);
+                thinkPart.replace(begin, QString());
+                thinkPart.replace(tend, QString());
+                if (!turnThinkHeaderPrinted_)
+                {
+                    if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
+                    appendRoleHeader(QStringLiteral("think"));
+                    turnThinkHeaderPrinted_ = true;
+                }
+                if (!thinkPart.isEmpty()) output_scroll(thinkPart, THINK_GRAY);
+                if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
+                if (endIdx == -1)
+                {
+                    // Still open, consume all
+                    break;
+                }
+                // Close think and continue after </think>
+                turnThinkActive_ = false;
+                pos = endIdx + tend.size();
+                // Ensure assistant header after leaving think
+                if (!turnAssistantHeaderPrinted_)
+                {
+                    if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
+                    appendRoleHeader(QStringLiteral("assistant"));
+                    turnAssistantHeaderPrinted_ = true;
+                }
+                continue;
             }
-            turnThinkActive_ = true;
-        }
-
-        // Handle end of think: split chunk around </think> so closing marker stays in think region
-        if (hasEnd)
-        {
-            const int pos = result.indexOf(tend);
-            QString beforeEnd = result.left(pos);
-            QString afterEnd = result.mid(pos + tend.size());
-            // sanitize both sides
-            beforeEnd.replace(begin, QString());
-            beforeEnd.replace(tend, QString());
-            afterEnd.replace(begin, QString());
-            afterEnd.replace(tend, QString());
-
-            // ensure think header (if we missed it due to split)
-            if (!turnThinkHeaderPrinted_)
+            else
             {
-                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
-                appendRoleHeader(QStringLiteral("think"));
-                turnThinkHeaderPrinted_ = true;
+                // Outside think: find next <think>
+                int beginIdx = result.indexOf(begin, pos);
+                const int until = (beginIdx == -1) ? n : beginIdx;
+                QString asstPart = result.mid(pos, until - pos);
+                asstPart.replace(begin, QString());
+                asstPart.replace(tend, QString());
+                if (!asstPart.isEmpty())
+                {
+                    if (!turnAssistantHeaderPrinted_)
+                    {
+                        if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
+                        appendRoleHeader(QStringLiteral("assistant"));
+                        turnAssistantHeaderPrinted_ = true;
+                    }
+                    output_scroll(asstPart, NORMAL_BLACK);
+                    if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
+                }
+                if (beginIdx == -1)
+                {
+                    // No think begins; done
+                    break;
+                }
+                // Enter think after printing assistant prefix
+                if (!turnThinkHeaderPrinted_)
+                {
+                    if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
+                    appendRoleHeader(QStringLiteral("think"));
+                    turnThinkHeaderPrinted_ = true;
+                }
+                turnThinkActive_ = true;
+                pos = beginIdx + begin.size();
+                continue;
             }
-            // emit remaining think text before the end
-            if (!beforeEnd.isEmpty()) output_scroll(beforeEnd, THINK_GRAY);
-            if (!beforeEnd.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, beforeEnd);
-
-            // leaving think -> assistant header appears below think
-            turnThinkActive_ = false;
-            if (!turnAssistantHeaderPrinted_)
-            {
-                if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
-                appendRoleHeader(QStringLiteral("assistant"));
-                turnAssistantHeaderPrinted_ = true;
-            }
-            if (!afterEnd.isEmpty()) output_scroll(afterEnd, NORMAL_BLACK);
-            if (!afterEnd.isEmpty() && currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, afterEnd);
-
-            // keep accumulating raw stream (with markers) for final separation
-            temp_assistant_history += result;
-            return;
         }
 
-        // Still inside think: render in gray with markers removed
-        if (turnThinkActive_)
-        {
-            QString thinkChunk = s;
-            thinkChunk.replace(begin, QString());
-            thinkChunk.replace(tend, QString());
-            if (!thinkChunk.isEmpty()) output_scroll(thinkChunk, THINK_GRAY);
-            if (!thinkChunk.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkChunk);
-            temp_assistant_history += result;
-            return;
-        }
-
-        // No think markers and not in think -> assistant region; print header at first token
-        if (!turnAssistantHeaderPrinted_)
-        {
-            if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
-            appendRoleHeader(QStringLiteral("assistant"));
-            turnAssistantHeaderPrinted_ = true;
-        }
-        // fallthrough to output assistant content below
+        // Keep accumulating raw stream (with markers) for final separation
+        temp_assistant_history += result;
+        return;
     }
 
-    // Default: output sanitized text (no <think> tags) in provided color
+    // Non-stream: sanitize and print with provided color
     QString out = result;
     out.replace(QString(DEFAULT_THINK_BEGIN), QString());
     out.replace(QString(DEFAULT_THINK_END), QString());
     output_scroll(out, color);
-    if (is_while && currentAssistantIndex_ >= 0) { recordAppendText(currentAssistantIndex_, out); }
-    if (is_while)
-    {
-        temp_assistant_history += result;
-    }
 }
 
 // Print a role header above content; color by role

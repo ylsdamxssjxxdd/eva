@@ -631,23 +631,25 @@ void Widget::on_send_clicked()
 }
 void Widget::recv_pushover()
 {
-    // Separate reasoning (<think>...</think>) from final content; capture both roles
-    QString reasoningText;
+    // Separate all reasoning (<think>...</think>) blocks from final content; capture both roles
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
     const QString tEnd = QString(DEFAULT_THINK_END);
-    int endIdx = finalText.indexOf(tEnd);
-    if (endIdx != -1)
+    QStringList reasonings;
+    int searchPos = 0;
+    while (true)
     {
-        int startIdx = finalText.lastIndexOf(tBegin, endIdx);
-        if (startIdx != -1)
-        {
-            const int rStart = startIdx + tBegin.size();
-            reasoningText = finalText.mid(rStart, endIdx - rStart);
-            // remove the whole <think>...</think> segment from finalText
-            finalText.remove(startIdx, (endIdx + tEnd.size()) - startIdx);
-        }
+        int s = finalText.indexOf(tBegin, searchPos);
+        if (s == -1) break;
+        int e = finalText.indexOf(tEnd, s + tBegin.size());
+        if (e == -1) break; // unmatched tail -> leave as is
+        const int rStart = s + tBegin.size();
+        reasonings << finalText.mid(rStart, e - rStart);
+        // remove the whole <think>...</think> segment from finalText
+        finalText.remove(s, (e + tEnd.size()) - s);
+        searchPos = s; // continue scanning from removal point
     }
+    const QString reasoningText = reasonings.join("");
     // Append think and assistant messages to UI array/history
     if (!reasoningText.isEmpty())
     {

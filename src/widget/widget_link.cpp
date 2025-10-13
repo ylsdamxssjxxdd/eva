@@ -156,17 +156,6 @@ void Widget::tool_testhandleTimeout()
             apis.api_model = clean_model;
             emit ui2net_apis(apis);
         }
-            // Reset memory/kv usage immediately after param change
-            kvUsed_ = 0;
-            kvUsedBeforeTurn_ = 0;
-            kvStreamedTurn_ = 0;
-            turnActive_ = false;
-            sawPromptPast_ = false;
-            sawFinalPast_ = false;
-            currentSlotId_ = -1;
-            slotCtxMax_ = 0;
-            updateKvBarUi();
-            fetchRemoteContextLimit();
     }
     ENDPOINT_DATA data;
     data.date_prompt = ui_DATES.date_prompt;

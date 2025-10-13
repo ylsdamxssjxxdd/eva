@@ -96,7 +96,9 @@ QNetworkRequest xNet::buildRequest(const QUrl &url) const
 {
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+    // Only attach Authorization when api_key is present
+    if (!apis.api_key.trimmed().isEmpty())
+        req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
     req.setRawHeader("Accept", "text/event-stream");
     req.setRawHeader("Connection", "keep-alive");
     req.setRawHeader("Cache-Control", "no-cache");
@@ -148,16 +150,24 @@ void xNet::run()
         {
             ttfbStarted = true;
             t_first_.start();
-            const double t_prompt = t_all_.isValid() ? (t_all_.nsecsElapsed() / 1e9) : 0.0;
-            Q_UNUSED(t_prompt);
         }
 
-        const QByteArray chunk = reply_->readAll();
+        QByteArray chunk = reply_->readAll();
         if (chunk.isEmpty()) return;
+        // Normalize CRLF to LF for the newly arrived bytes only
+        chunk.replace("\r\n", "\n");
         sseBuffer_.append(chunk);
 
-        // Normalize CRLF to LF so we can reliably detect blank-line boundaries
-        sseBuffer_.replace("\r\n", "\n");
+        // Guard against unbounded growth when server sends noisy/partial data
+        static const int kMaxSseBuffer = 4 * 1024 * 1024; // 4MB
+        if (sseBuffer_.size() > kMaxSseBuffer)
+        {
+            // Drop up to first newline or half of the buffer if no newline found
+            int cut = sseBuffer_.indexOf('\n');
+            if (cut < 0 || cut > sseBuffer_.size() / 2) cut = sseBuffer_.size() / 2;
+            sseBuffer_.remove(0, cut);
+            emit net2ui_state("net: sse overflow drop", SIGNAL_SIGNAL);
+        }
 
         // Process complete SSE events separated by a blank line
         int idx;
@@ -255,7 +265,6 @@ void xNet::run()
                                 thinkFlag = false;
                             }
 
-                            QString content_flag = finish == "stop" ? jtr("<end>") : current_content;
                             if (!current_content.isEmpty())
                             {
                                 tokens_++;
@@ -314,7 +323,6 @@ void xNet::run()
                             // completion style may also contain <think>
                             const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
                             if (isReasoningChunk) reasoningTokensTurn_++;
-                            const QString content_flag = stop ? jtr("<end>") : content;
                             // 不再在状态区流式输出内容；仅把内容流式发往输出区
                             emit net2ui_output(content, true);
                         }
@@ -656,41 +664,7 @@ void xNet::recv_stop(bool stop)
     is_stop = stop;
 }
 
-QString xNet::extractContentFromJson(const QString &jsonString)
-{
-    QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
-    if (!doc.isObject()) return QString();
-
-    QJsonObject jsonObject = doc.object();
-    QJsonArray choicesArray = jsonObject["choices"].toArray();
-    if (choicesArray.isEmpty()) return QString();
-
-    QJsonObject firstChoice = choicesArray.first().toObject();
-    QJsonObject delta = firstChoice["delta"].toObject();
-    return delta["content"].toString();
-}
-// 处理整个原始数据字符串，提取所有 content 字段
-QStringList xNet::extractAllContent(const QString &data)
-{
-    QStringList contentList;
-
-    // 使用正则表达式匹配 JSON 对象
-    QRegularExpression re("(\\{.*?\\})");
-    QRegularExpressionMatchIterator i = re.globalMatch(data);
-
-    while (i.hasNext())
-    {
-        QRegularExpressionMatch match = i.next();
-        QString json = match.captured(1); // 捕获单个 JSON 对象字符串
-        QString content = extractContentFromJson(json);
-        if (!content.isEmpty())
-        {
-            contentList << content;
-        }
-    }
-
-    return contentList;
-}
+// Legacy JSON extract helpers removed; SSE parser now handles deltas incrementally.
 
 void xNet::recv_language(int language_flag_)
 {

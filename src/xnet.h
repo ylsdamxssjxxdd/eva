@@ -43,8 +43,6 @@ class xNet : public QObject
     QString jtr(QString customstr);                    // 根据language.json(wordsObj)和language_flag找到对应的文字
     QByteArray createChatBody();                       // 构造请求的数据体: 对话模式
     QByteArray createCompleteBody();                   // 构造请求的数据体: 补完模式
-    QString extractContentFromJson(const QString &js); // 解析delta.content
-    QStringList extractAllContent(const QString &data);
 
   public slots:
     void recv_data(ENDPOINT_DATA data); // 传递端点参数
