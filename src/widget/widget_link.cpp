@@ -74,6 +74,19 @@ void Widget::set_api()
     trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
 
     emit ui2net_apis(apis);
+    // Reset LINK-mode memory/state since endpoint/key/model changed
+    kvTokensAccum_ = 0;
+    kvTokensTurn_ = 0;
+    kvUsed_ = 0;
+    kvUsedBeforeTurn_ = 0;
+    kvStreamedTurn_ = 0;
+    lastReasoningTokens_ = 0;
+    turnActive_ = false;
+    sawPromptPast_ = false;
+    sawFinalPast_ = false;
+    currentSlotId_ = -1;
+    slotCtxMax_ = 0;
+    updateKvBarUi();
     fetchRemoteContextLimit();
     ui->output->clear();
     // Reset record bar to avoid residual nodes when switching to LINK mode
@@ -90,7 +103,8 @@ void Widget::set_api()
             recordEntries_[__idx].msgIndex = mi;
         }
     }
-    // 构造系统指令
+    // 重置对话消息并注入系统指令
+    ui_messagesArray = QJsonArray();
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
@@ -219,13 +233,17 @@ void Widget::fetchRemoteContextLimit()
         if (rp->error() != QNetworkReply::NoError)
         {
             // leave slotCtxMax_ unchanged on error
+            fetchPropsContextLimit();
             return;
         }
         const QByteArray body = rp->readAll();
         QJsonParseError perr{};
         QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
         if (perr.error != QJsonParseError::NoError)
+        {
+            fetchPropsContextLimit();
             return;
+        }
         int maxCtx = -1;
         auto tryPick = [&](const QJsonObject &o) {
             // Try common fields from various providers
@@ -277,6 +295,59 @@ void Widget::fetchRemoteContextLimit()
         {
             slotCtxMax_ = maxCtx;
             updateKvBarUi();
+        }
+        else
+        {
+            // Fallback: try llama.cpp tools/server props API
+            fetchPropsContextLimit();
+        }
+    });
+}
+
+// Fallback: GET /props from llama.cpp tools/server to obtain global n_ctx
+void Widget::fetchPropsContextLimit()
+{
+    if (ui_mode != LINK_MODE) return;
+    QUrl base = QUrl::fromUserInput(apis.api_endpoint);
+    if (!base.isValid()) return;
+    QUrl url(base);
+    QString path = url.path();
+    if (!path.endsWith('/')) path += '/';
+    path += QLatin1String("props");
+    url.setPath(path);
+
+    QNetworkRequest req(url);
+    if (!apis.api_key.isEmpty())
+        req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+
+    auto *nam = new QNetworkAccessManager(this);
+    QNetworkReply *rp = nam->get(req);
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]() {
+        rp->deleteLater();
+        nam->deleteLater();
+        if (rp->error() != QNetworkReply::NoError) return;
+        const QByteArray body = rp->readAll();
+        QJsonParseError perr{};
+        QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+        if (perr.error != QJsonParseError::NoError) return;
+        if (!doc.isObject()) return;
+        const QJsonObject root = doc.object();
+        int nctx = -1;
+        if (root.contains("default_generation_settings") && root.value("default_generation_settings").isObject())
+        {
+            const QJsonObject dgs = root.value("default_generation_settings").toObject();
+            nctx = dgs.value("n_ctx").toInt(-1);
+            if (nctx <= 0 && dgs.contains("params") && dgs.value("params").isObject())
+            {
+                const QJsonObject params = dgs.value("params").toObject();
+                nctx = params.value("n_ctx").toInt(nctx);
+            }
+        }
+        if (nctx > 0)
+        {
+            slotCtxMax_ = nctx;
+            updateKvBarUi();
+            reflash_state(QString("net:ctx via /props = %1").arg(nctx), SIGNAL_SIGNAL);
         }
     });
 }
