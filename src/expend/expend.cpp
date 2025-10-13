@@ -29,7 +29,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->model_quantize_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");           // 灰色
     ui->sd_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                       // 灰色
     ui->speech_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");                   // 灰色
-    ui->modelconvert_log->setStyleSheet("background-color: rgba(128, 128, 128, 200);");             // 灰色
     ui->mcp_server_log_plainTextEdit->setStyleSheet("background-color: rgba(128, 128, 128, 200);"); // 灰色
     ui->mcp_server_config_textEdit->setLineWrapMode(QTextEdit::NoWrap);                             // 禁用自动换行
     ui->mcp_server_log_plainTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);                      // 禁用自动换行
@@ -38,17 +37,6 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);                                            // 禁用自动换行
     ui->speech_log->setLineWrapMode(QPlainTextEdit::NoWrap);
     ui->model_quantize_info->setStyleSheet("QTableWidget::item:selected { background-color: #FFA500; }"); // 设置选中行的颜色为橘黄色
-    // 模型转换相关
-    //  ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM],modeltype_map[MODEL_TYPE_WHISPER],modeltype_map[MODEL_TYPE_SD],modeltype_map[MODEL_TYPE_OUTETTS]});
-    ui->modelconvert_modeltype_comboBox->addItems({modeltype_map[MODEL_TYPE_LLM]});
-    ui->modelconvert_converttype_comboBox->addItems({modelquantize_map[MODEL_QUANTIZE_F32], modelquantize_map[MODEL_QUANTIZE_F16], modelquantize_map[MODEL_QUANTIZE_BF16], modelquantize_map[MODEL_QUANTIZE_Q8_0]});
-    ui->modelconvert_converttype_comboBox->setCurrentText(modelquantize_map[MODEL_QUANTIZE_F16]); // 默认转换为f16的模型
-    ui->modelconvert_script_comboBox->addItems({CONVERT_HF_TO_GGUF_SCRIPT});
-    convert_command_process = new QProcess(this);
-    connect(convert_command_process, &QProcess::started, this, &Expend::convert_command_onProcessStarted);                                             // 连接开始信号
-    connect(convert_command_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::convert_command_onProcessFinished); // 连接结束信号
-    connect(convert_command_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_convert_command_process_StandardOutput);
-    connect(convert_command_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_convert_command_process_StandardError);
 
     // 塞入第三方 exe
     server_process = new QProcess(this);                                                                                             // 创建一个QProcess实例用来启动llama-server

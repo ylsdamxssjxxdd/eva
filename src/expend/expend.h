@@ -184,25 +184,11 @@ class Expend : public QWidget
     void on_embedding_resultnumb_spinBox_valueChanged(int value); // 嵌入结果返回个数改变响应
 
     //-------------------------------------------------------------------------
-    //----------------------------------模型转换相关--------------------------------
+    //----------------------------------模型量化相关--------------------------------
     //-------------------------------------------------------------------------
   public:
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
-    QProcess *convert_command_process;
-    void get_convertmodel_name(); // 自动构建输出文件名
-  private slots:
-    void on_modelconvert_modelpath_pushButton_clicked();                        // 用户点击选择原始模型目录响应
-    void on_modelconvert_exec_pushButton_clicked();                             // 用户点击执行转换响应
-    void convert_command_onProcessStarted();                                    // 命令行程序开始
-    void convert_command_onProcessFinished();                                   // 命令行程序结束
-    void readyRead_convert_command_process_StandardOutput();                    // 获取标准输出
-    void readyRead_convert_command_process_StandardError();                     // 获取错误输出
-    void on_modelconvert_converttype_comboBox_currentTextChanged(QString text); // 用户改变转换类型响应
-                                                                                //-------------------------------------------------------------------------
-                                                                                //----------------------------------模型量化相关--------------------------------
-                                                                                //-------------------------------------------------------------------------
-  public:
     QVector<QuantizeType> quantize_types; // 量化方法说明数据
     void show_quantize_types();           // 展示量化方法
     void output_modelpath_change();       // 根据待量化模型路径和量化方法填入量化后模型路径

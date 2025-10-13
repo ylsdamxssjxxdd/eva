@@ -131,7 +131,6 @@ enum EXPEND_WINDOW
 {
     INTRODUCTION_WINDOW, // 软件介绍窗口
     MODELINFO_WINDOW,    // 模型信息窗口
-    MODELCONVERT_WINDOW, // 模型转换窗口
     QUANTIZE_WINDOW,     // 模型量化窗口
     MCP_WINDOW,          // MCP服务器窗口
     KNOWLEDGE_WINDOW,    // 知识库窗口
@@ -146,13 +145,12 @@ enum EXPEND_WINDOW
 const QMap<EXPEND_WINDOW, int> window_map = {
     {INTRODUCTION_WINDOW, 0},
     {MODELINFO_WINDOW, 1},
-    {MODELCONVERT_WINDOW, 2},
-    {QUANTIZE_WINDOW, 3},
-    {MCP_WINDOW, 4},
-    {KNOWLEDGE_WINDOW, 5},
-    {TXT2IMG_WINDOW, 6},
-    {WHISPER_WINDOW, 7},
-    {TTS_WINDOW, 8},
+    {QUANTIZE_WINDOW, 2},
+    {MCP_WINDOW, 3},
+    {KNOWLEDGE_WINDOW, 4},
+    {TXT2IMG_WINDOW, 5},
+    {WHISPER_WINDOW, 6},
+    {TTS_WINDOW, 7},
     {NO_WINDOW, 999},
     {PREV_WINDOW, -1}};
 

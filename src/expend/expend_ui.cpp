@@ -13,7 +13,6 @@ void Expend::init_expend()
     this->setWindowTitle(jtr("expend window"));                                                // 标题
     ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));           // 软件介绍
     ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));                // 模型信息
-    ui->tabWidget->setTabText(window_map[MODELCONVERT_WINDOW], jtr("model") + jtr("convert")); // 模型转换
     ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));    // 模型量化
     ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                      // 软件介绍
     ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));                 // 知识库
@@ -22,22 +21,6 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                     // 文转声
     // 软件介绍
     showReadme();
-
-    // 模型转换
-    ui->modelconvert_script_label->setText(jtr("modelconvert_script_label_text"));
-    ui->modelconvert_modelpath_label->setText(jtr("modelconvert_modelpath_label_text"));
-    ui->modelconvert_converttype_label->setText(jtr("modelconvert_converttype_label_text"));
-    ui->modelconvert_outputname_label->setText(jtr("modelconvert_outputname_label_text"));
-    ui->modelconvert_modelpath_lineEdit->setPlaceholderText(jtr("modelconvert_modelpath_lineEdit_placeholder"));
-    ui->modelconvert_outputname_lineEdit->setPlaceholderText(jtr("modelconvert_outputname_lineEdit_placeholder"));
-    ui->modelconvert_log->setPlaceholderText(jtr("modelconvert_log_placeholder"));
-    ui->modelconvert_log_groupBox->setTitle(jtr("log"));
-
-    if (ui->modelconvert_exec_pushButton->text() == wordsObj["exec convert"].toArray()[0].toString() || ui->modelconvert_exec_pushButton->text() == wordsObj["exec convert"].toArray()[1].toString()) { ui->modelconvert_exec_pushButton->setText(jtr("exec convert")); }
-    else
-    {
-        ui->modelconvert_exec_pushButton->setText(jtr("shut down"));
-    }
     // 模型量化
     ui->model_quantize_label->setText(jtr("model_quantize_label_text"));
     ui->model_quantize_label_2->setText(jtr("model_quantize_label_2_text"));
