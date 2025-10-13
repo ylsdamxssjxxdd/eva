@@ -703,12 +703,13 @@ void Widget::recv_pushover()
                     }
                     else
                     {
-                        // accumulate current-turn tokens before launching tool (exclude reasoning)
-                        if (kvTokensTurn_ > 0)
+                        // Before entering tool loop, correct LINK memory by subtracting this turn's reasoning tokens
+                        if (ui_mode == LINK_MODE && lastReasoningTokens_ > 0)
                         {
-                            const int adjustedTurn = qMax(0, kvTokensTurn_ - lastReasoningTokens_);
-                            kvTokensAccum_ += adjustedTurn;
-                            kvTokensTurn_ = 0;
+                            // Reasoning text is not sent back in LINK mode, so exclude it from memory usage
+                            kvUsed_ = qMax(0, kvUsed_ - lastReasoningTokens_);
+                            kvStreamedTurn_ = qMax(0, kvStreamedTurn_ - lastReasoningTokens_);
+                            updateKvBarUi();
                             lastReasoningTokens_ = 0;
                         }
                         emit ui2tool_exec(tools_call);
@@ -731,12 +732,12 @@ void Widget::normal_finish_pushover()
     // Reset per-turn header flags
     is_run = false;
     ui_state_normal(); // 待机界面状态
-    // integrate this-turn tokens into conversation accumulation
-    if (kvTokensTurn_ > 0)
+    // LINK mode: final correction of memory by excluding this turn's reasoning tokens
+    if (ui_mode == LINK_MODE && lastReasoningTokens_ > 0)
     {
-        const int adjustedTurn = qMax(0, kvTokensTurn_ - lastReasoningTokens_);
-        kvTokensAccum_ += adjustedTurn;
-        kvTokensTurn_ = 0;
+        kvUsed_ = qMax(0, kvUsed_ - lastReasoningTokens_);
+        kvStreamedTurn_ = qMax(0, kvStreamedTurn_ - lastReasoningTokens_);
+        updateKvBarUi();
         lastReasoningTokens_ = 0;
     }
     decode_finish();
