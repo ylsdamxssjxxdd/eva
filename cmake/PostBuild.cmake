@@ -59,13 +59,13 @@ if (WIN32)
 
 elseif(UNIX)
     if (BODY_PACK)
-        add_custom_command(TARGET ${TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/eva" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
+        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/eva" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/blue_logo.png ${CMAKE_BINARY_DIR}/AppDir/usr/share/icons/hicolor/64x64/apps/blue_logo.png
         )
         # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
-        add_custom_command(TARGET ${TARGET} POST_BUILD
+        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
             COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
             COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
             COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "eva.AppImage"

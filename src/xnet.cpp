@@ -661,7 +661,14 @@ void xNet::recv_apis(APIS apis_)
 }
 void xNet::recv_stop(bool stop)
 {
+    // Immediate, deterministic stop: abort active network reply in-place.
+    // Do not rely on periodic checks; user expects instant termination.
     is_stop = stop;
+    if (stop)
+    {
+        emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
+        abortActiveReply(); // cancels reply_, disconnects signals, emits pushover
+    }
 }
 
 // Legacy JSON extract helpers removed; SSE parser now handles deltas incrementally.
