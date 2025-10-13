@@ -13,17 +13,39 @@ static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 QString DeviceManager::backendsRootDir()
 {
 #ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    if (appDirPath.isEmpty())
+    // Prefer AppImage layout when APPDIR is present; otherwise fall back to alongside the executable.
+    const QString appDir = QString::fromLocal8Bit(qgetenv("APPDIR"));
+    if (!appDir.isEmpty())
     {
-        appDirPath = QCoreApplication::applicationDirPath();
+        // Standard AppImage path: $APPDIR/usr/bin/EVA_BACKEND
+        const QString packaged = QDir(appDir).filePath("usr/bin/EVA_BACKEND");
+        if (QFileInfo::exists(packaged)) return packaged;
+        // Some packs may place it at $APPDIR/EVA_BACKEND
+        const QString packagedAlt = QDir(appDir).filePath("EVA_BACKEND");
+        if (QFileInfo::exists(packagedAlt)) return packagedAlt;
     }
-    return appDirPath + "/usr/bin/EVA_BACKEND";
+    // Dev run or missing APPDIR: try alongside the executable first
+    const QString exeDir = QCoreApplication::applicationDirPath();
+    const QString local = QDir(exeDir).filePath("EVA_BACKEND");
+    if (QFileInfo::exists(local)) return local;
+    // If the executable resides under .../usr/bin, attempt to resolve relative to APPDIR
+    QDir maybeUsrBin(exeDir);
+    if (maybeUsrBin.path().endsWith("/usr/bin"))
+    {
+        maybeUsrBin.cdUp(); // usr
+        maybeUsrBin.cdUp(); // APPDIR
+        const QString packaged = maybeUsrBin.filePath("usr/bin/EVA_BACKEND");
+        if (QFileInfo::exists(packaged)) return packaged;
+        const QString rootAlt = maybeUsrBin.filePath("EVA_BACKEND");
+        if (QFileInfo::exists(rootAlt)) return rootAlt;
+    }
+    // Fall back to the default next-to-exe path (may not exist)
+    return local;
 #else
+    // Default: expect EVA_BACKEND next to the executable
     return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
 #endif
 }
-
 QStringList DeviceManager::preferredOrder()
 {
     // Best-effort preference. Do not query hardware here; we only reflect what was shipped.
