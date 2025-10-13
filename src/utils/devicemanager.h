@@ -8,7 +8,7 @@
 #include "../xconfig.h" // for SFX_NAME and BODY_LINUX_PACK
 
 // Lightweight helper to:
-// - detect available backends under the app directory (cpu/cuda/vulkan/opencl)
+// - detect available backends under EVA_BACKEND/<arch>/<os> (cpu/cuda/vulkan/opencl)
 // - remember user's backend choice (auto/cpu/cuda/vulkan/opencl)
 // - resolve executable paths for third-party tools per selected backend
 class DeviceManager
@@ -34,7 +34,8 @@ class DeviceManager
     // Return normalized architecture id for current runtime
     // One of: x86_64, x86_32, arm64, arm32
     static QString currentArchId();
-
+    // Normalized OS id: win, linux, mac
+    static QString currentOsId();
   private:
     static QStringList preferredOrder();
     // Map a known executable name to its canonical project folder
@@ -43,3 +44,4 @@ class DeviceManager
 };
 
 #endif // EVA_DEVICE_MANAGER_H
+

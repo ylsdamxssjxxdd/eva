@@ -244,8 +244,8 @@ In local mode and chat state, you can click on the date button to mount the tool
 3. Prepare Backends
 
 - Obtain prebuilt binaries and create an `EVA_BACKEND/` folder at the project root (next to `CMakeLists.txt`).
-- Follow the central layout: `EVA_BACKEND/<arch>/<device>/<project>/`, for example:
-  - `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)`
+- Follow the central layout: `EVA_BACKEND/<arch>/<os>/<device>/<project>/`, for example:
+  - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
   - arch: `x86_64`, `x86_32`, `arm64`, `arm32`
   - device: `cpu`, `cuda`, `vulkan`, `opencl` (extend as needed)
   - project: e.g. `llama.cpp`, `whisper.cpp`, `llama-tts`

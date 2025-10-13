@@ -32,13 +32,16 @@ QStringList DeviceManager::preferredOrder()
 
 QStringList DeviceManager::availableBackends()
 {
-    // Enumerate device folders under EVA_BACKEND/<arch>/
+    // Enumerate device folders under EVA_BACKEND/<arch>/<os>/ (no legacy fallback)
     const QString root = backendsRootDir();
     const QString arch = currentArchId();
+    const QString os = currentOsId();
     QStringList out;
-    const QString archDir = QDir(root).filePath(arch);
-    QDir d(archDir);
-    if (!d.exists()) return out;
+
+    const QString osDir = QDir(QDir(root).filePath(arch)).filePath(os);
+    QDir d(osDir);
+    if (!d.exists()) return out; // no fallback, require new layout
+
     const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QFileInfo &fi : subs)
     {
@@ -102,37 +105,37 @@ static QString findProgramRecursive(const QString &dir, const QString &exe)
 QString DeviceManager::programPath(const QString &name)
 {
     // Central doctrine layout:
-    // EVA_BACKEND/<arch>/<device>/<project>/<exe>
-    // example: EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server(.exe)
+    // EVA_BACKEND/<arch>/<os>/<device>/<project>/<exe>
+    // example: EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)
     const QString root = backendsRootDir();
     const QString arch = currentArchId();
+    const QString os = currentOsId();
     const QString device = effectiveBackend();
     const QString project = projectForProgram(name);
     const QString exe = name + QStringLiteral(SFX_NAME);
 
-    // 1) strict path within project folder
-    const QString projDir = QDir(QDir(QDir(root).filePath(arch)).filePath(device)).filePath(project);
-    if (QFileInfo::exists(projDir))
+    // 1) strict path within project folder (new layout only)
+    const QString projDirNew = QDir(QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device)).filePath(project);
+    if (QFileInfo::exists(projDirNew))
     {
         // try direct and recursive within project
-        const QString direct = QDir(projDir).filePath(exe);
+        const QString direct = QDir(projDirNew).filePath(exe);
         if (QFileInfo::exists(direct)) return direct;
-        const QString rec = findProgramRecursive(projDir, exe);
+        const QString rec = findProgramRecursive(projDirNew, exe);
         if (!rec.isEmpty()) return rec;
     }
 
-    // 2) fallback: search under device dir (still within this arch) to be resilient
-    const QString devDir = QDir(QDir(root).filePath(arch)).filePath(device);
-    if (QFileInfo::exists(devDir))
+    // 2) fallback within new layout: search under device dir
+    const QString devDirNew = QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device);
+    if (QFileInfo::exists(devDirNew))
     {
-        const QString rec = findProgramRecursive(devDir, exe);
+        const QString rec = findProgramRecursive(devDirNew, exe);
         if (!rec.isEmpty()) return rec;
     }
 
-    // Not found
+    // Not found under new layout; no legacy fallback
     return QString();
 }
-
 QString DeviceManager::currentArchId()
 {
     // Normalize to one of: x86_64, x86_32, arm64, arm32
@@ -147,7 +150,23 @@ QString DeviceManager::currentArchId()
     return QStringLiteral("x86_32");
 }
 
-QString DeviceManager::projectForProgram(const QString &name)
+QString DeviceManager::currentOsId()
+{
+#if defined(Q_OS_WIN)
+    return QStringLiteral("win");
+#elif defined(Q_OS_LINUX)
+    return QStringLiteral("linux");
+#elif defined(Q_OS_MAC)
+    return QStringLiteral("mac");
+#else
+    // Fallback to QSysInfo productType for uncommon OSes
+    const QString t = QSysInfo::productType().toLower();
+    if (t.contains("win")) return QStringLiteral("win");
+    if (t.contains("linux")) return QStringLiteral("linux");
+    if (t.contains("osx") || t.contains("mac")) return QStringLiteral("mac");
+    return QStringLiteral("linux"); // default to linux-like
+#endif
+}QString DeviceManager::projectForProgram(const QString &name)
 {
     // Minimal mapping for known third-party projects; extend as new tools are added
     if (name == QLatin1String("llama-server")) return QStringLiteral("llama.cpp");
@@ -155,3 +174,8 @@ QString DeviceManager::projectForProgram(const QString &name)
     // default to using the name itself as folder (best-effort)
     return name;
 }
+
+
+
+
+
