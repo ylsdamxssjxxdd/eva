@@ -86,6 +86,10 @@ class xNet : public QObject
     double predictedMs_ = 0.0;     // timings.predicted_ms
     bool timingsReceived_ = false; // whether timings were seen in SSE stream
     int reasoningTokensTurn_ = 0;  // approx count for <think> tokens this turn
+    // Some providers (e.g. xAI, OpenAI reasoning models) stream reasoning in
+    // separate fields (e.g. reasoning / reasoning_content) without <think> markers.
+    // Track an emulated think region for those to render nicely in UI.
+    bool extThinkActive_ = false; // true when we opened a synthetic <think> block
     // Optional direct speeds when provided by server (tokens/second); -1 if unknown
     double promptPerSec_ = -1.0;
     double predictedPerSec_ = -1.0;

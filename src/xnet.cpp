@@ -42,6 +42,7 @@ void xNet::resetState()
     sseBuffer_.clear();
     aborted_ = false;
     reasoningTokensTurn_ = 0;
+    extThinkActive_ = false;
     // reset timing stats
     promptTokens_ = -1;
     promptMs_ = 0.0;
@@ -206,7 +207,43 @@ void xNet::run()
                             const QJsonObject firstChoice = choices.at(0).toObject();
                             const QString finish = firstChoice.value("finish_reason").toString();
                             const QJsonObject delta = firstChoice.value("delta").toObject();
+                            // 1) xAI/OpenAI reasoning fields (no <think> markers)
+                            QString reasoning = delta.value("reasoning_content").toString();
+                            if (reasoning.isEmpty() && delta.contains("reasoning"))
+                            {
+                                // Some providers stream as string under `reasoning`
+                                const QJsonValue rv = delta.value("reasoning");
+                                if (rv.isString()) reasoning = rv.toString();
+                            }
+
+                            if (!reasoning.isEmpty())
+                            {
+                                // Open synthetic think block at first reasoning token
+                                if (!extThinkActive_)
+                                {
+                                    extThinkActive_ = true;
+                                    thinkFlag = true; // mark inside think for token counters
+                                    // Emit a begin marker so UI opens a Think section
+                                    emit net2ui_output(QString(DEFAULT_THINK_BEGIN), true);
+                                }
+                                // Count reasoning token and update KV indicator
+                                tokens_++;
+                                reasoningTokensTurn_++;
+                                emit net2ui_kv_tokens(tokens_);
+                                // Stream reasoning in gray
+                                emit net2ui_output(reasoning, true, THINK_GRAY);
+                            }
+
+                            // 2) Normal assistant content
                             current_content = delta.value("content").toString();
+
+                            // If reasoning section is open and normal content arrives, close think.
+                            if (extThinkActive_ && !current_content.isEmpty())
+                            {
+                                current_content = QString(DEFAULT_THINK_END) + current_content;
+                                extThinkActive_ = false;
+                                thinkFlag = false;
+                            }
 
                             QString content_flag = finish == "stop" ? jtr("<end>") : current_content;
                             if (!current_content.isEmpty())
@@ -362,6 +399,13 @@ void xNet::run()
                 emit net2ui_state("net:" + errStr, WRONG_SIGNAL);
                 if (httpCode)
                     emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
+            }
+            // If we streamed provider-specific reasoning without explicit </think>, close it now
+            if (extThinkActive_)
+            {
+                emit net2ui_output(QString(DEFAULT_THINK_END), true);
+                extThinkActive_ = false;
+                thinkFlag = false;
             }
             // Report final speeds from timings if available
             if (timingsReceived_) {
