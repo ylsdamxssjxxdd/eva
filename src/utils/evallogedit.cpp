@@ -173,23 +173,27 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     const int h = r.height();
     if (w <= 0 || h <= 0) return;
 
-    // All waves share the same baseline; simple, clean lines only
-    const double cy = h * 0.35;
+    // Use amplitude so that peak-to-peak occupies ~1/3 of window height
+    const double amp = qMax(10.0, h / 6.0);
+    double cy = h * 0.45; // center baseline toward middle; adjust if needed
+    if (cy < amp + 6) cy = amp + 6;
+    if (cy > h - amp - 6) cy = h - amp - 6;
+
     const double TAU = 6.283185307179586;
     const double k = TAU / m_waveLen; // spatial frequency
 
-    // Global horizontal drift to move pattern; setActive/onAnimTick updates m_phase
+    // Global horizontal drift handled by m_phase (updated in onAnimTick)
     const double basePhase = m_phase;
 
-    // Converge/diverge animation by modulating phase separation between lines (no vertical shift)
+    // Lines converge/diverge by phase separation; keep no vertical shift
     const double t = m_clock.elapsed() / 1000.0;
-    const double breath = 0.5 + 0.5 * sin(TAU * t / 8.0); // 8s period
-    const double minSep = 0.12;  // radians between adjacent lines when close
-    const double maxSep = 0.55;  // radians when spread out
+    const double breath = 0.5 + 0.5 * sin(TAU * t / 8.0); // ~8s period
+    const double minSep = 0.28;  // radians (avoid merging when close)
+    const double maxSep = 0.75;  // radians when spread out
     const double delta = minSep + (maxSep - minSep) * breath;
 
-    // Simple single-stroke lines; no dash/glow/core
-    QPen pen(QColor(255, 210, 120, 200));
+    // Simple, single-stroke lines
+    QPen pen(QColor(255, 210, 120, 210));
     pen.setWidthF(2.0);
     pen.setCapStyle(Qt::RoundCap);
     pen.setJoinStyle(Qt::RoundJoin);
@@ -200,11 +204,11 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     {
         const double phi = basePhase + (i - (m_lines - 1) / 2.0) * delta;
         QPainterPath path;
-        path.moveTo(0, cy + m_baseAmp * sin(phi));
-        const int step = 6; // px sampling step
+        path.moveTo(0, cy + amp * sin(phi));
+        const int step = 4; // px sampling step (denser for large amplitude)
         for (int x = step; x <= w; x += step)
         {
-            double y = cy + m_baseAmp * sin(k * x + phi);
+            double y = cy + amp * sin(k * x + phi);
             path.lineTo(x, y);
         }
         p.drawPath(path);
@@ -212,4 +216,3 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
 
     p.restore();
 }
-
