@@ -275,16 +275,29 @@ void Widget::on_load_clicked()
 {
     reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
-    // 弹出模式选择对话框：本地模式 或 链接模式
-    QMessageBox box(this);
-    box.setWindowTitle(jtr("load"));
-    box.setText(jtr("load") + ": " + jtr("local mode") + " / " + jtr("link mode"));
-    QPushButton *localBtn = box.addButton(jtr("local mode"), QMessageBox::AcceptRole);
-    QPushButton *linkBtn = box.addButton(jtr("link mode"), QMessageBox::ActionRole);
-    box.addButton(QMessageBox::Cancel);
-    box.exec();
+    // 弹出模式选择对话框：本地模式 或 链接模式（上下结构、紧凑、无“取消”按钮）
+    // Build a minimal modal dialog with vertical buttons to satisfy the UI spec.
+    QDialog modeDlg(this);
+    modeDlg.setModal(true);
+    modeDlg.setWindowTitle(jtr("load"));
+    // Remove help button, keep close button; do not add a Cancel control.
+    modeDlg.setWindowFlags(modeDlg.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+    QVBoxLayout *vbox = new QVBoxLayout(&modeDlg);
+    vbox->setContentsMargins(12, 12, 12, 12); // compact
+    vbox->setSpacing(6);
+    QPushButton *localBtn = new QPushButton(jtr("local mode"), &modeDlg);
+    QPushButton *linkBtn = new QPushButton(jtr("link mode"), &modeDlg);
+    // Make them expand horizontally but stack vertically
+    localBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    linkBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    vbox->addWidget(localBtn);
+    vbox->addWidget(linkBtn);
+    // Clicking a button ends the dialog with distinct codes
+    QObject::connect(localBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]() { modeDlg.done(1); });
+    QObject::connect(linkBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]() { modeDlg.done(2); });
+    const int ret = modeDlg.exec();
 
-    if (box.clickedButton() == localBtn)
+    if (ret == 1)
     {
         // 用户选择本地模式：选择模型并启动本地 llama-server
         currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
@@ -304,7 +317,7 @@ void Widget::on_load_clicked()
         // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
         ensureLocalServer();
     }
-    else if (box.clickedButton() == linkBtn)
+    else if (ret == 2)
     {
         // 用户选择链接模式：打开链接设置对话框
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
@@ -324,7 +337,7 @@ void Widget::on_load_clicked()
     }
     else
     {
-        // 取消 -> 不做任何事
+        // 用户关闭对话框（未选择） -> 不做任何事
         return;
     }
 }

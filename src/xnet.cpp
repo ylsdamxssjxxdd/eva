@@ -394,7 +394,7 @@ void xNet::run()
         if (is_stop)
         {
             is_stop = false;
-            emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
+            // emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
             abortActiveReply();
         };
 
@@ -666,7 +666,7 @@ void xNet::recv_stop(bool stop)
     is_stop = stop;
     if (stop)
     {
-        emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
+        // emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
         abortActiveReply(); // cancels reply_, disconnects signals, emits pushover
     }
 }
