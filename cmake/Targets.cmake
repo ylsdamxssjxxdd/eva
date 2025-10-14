@@ -40,6 +40,7 @@ add_executable(
     src/utils/recordbar.cpp src/utils/recordbar.h
     src/utils/neuronlogedit.cpp src/utils/neuronlogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
+    src/utils/minibarchart.cpp src/utils/minibarchart.h
 )
 
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)

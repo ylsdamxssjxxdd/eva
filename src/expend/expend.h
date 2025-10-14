@@ -326,15 +326,16 @@ class Expend : public QWidget
     double m_genCharsPerSec = -1.0;
     double m_qaScore = -1.0;
     double m_toolScore = -1.0;
-    double m_finalScore = -1.0;
+    double m_syncRate = -1.0; // ratio of correct items (QA+tool)
     // Steps progress
-    const int stepsTotal = 4; // latency, gen-speed, QA, tool
+    int stepsUnitsTotal = 4; // latency(1)+gen(1)+QA(N)+tool(1), recomputed at start
     int stepsDone = 0;
     QElapsedTimer stepTimer;
     // QA set state
     QVector<QPair<QString, QString>> qaPairs_;
     int qaIndex_ = 0;
     int qaCorrect_ = 0;
+    int qaPlanned_ = 5; // planned QA question count for progress planning
     // Eval pipeline
     int evalStep = 0; // 0..N
     void ensureEvalNet();
@@ -342,8 +343,10 @@ class Expend : public QWidget
     void evalResetUi();
     void evalLog(const QString &line);
     void evalSetTable(int row, const QString &name, const QString &val, const QString &desc = QString());
+    void evalSetStatus(int row, const QString &status);
+    void evalSetElapsed(int row, double seconds);
     void evalNext();
-    void evalInitSteps();
+    void evalInitTable();
     void evalUpdateProgress();
     void updateScoreBars();
     void setValueColor(int row, const QString &nameKey, double scoreOrValue, const QString &metric);

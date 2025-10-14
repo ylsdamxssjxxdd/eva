@@ -171,53 +171,30 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="eval_steps_groupBox">
-         <property name="title"><string>步骤进度</string></property>
-         <layout class="QVBoxLayout" name="verticalLayout_eval_steps">
+        <widget class="QGroupBox" name="eval_result_groupBox">
+         <property name="title"><string>步骤与结果</string></property>
+         <layout class="QVBoxLayout" name="verticalLayout_eval_table">
           <item>
-           <widget class="QTableWidget" name="eval_steps">
-            <property name="columnCount"><number>3</number></property>
-            <property name="rowCount"><number>4</number></property>
-            <column><property name="text"><string>步骤</string></property></column>
+           <widget class="QTableWidget" name="eval_table">
+            <property name="columnCount"><number>5</number></property>
+            <property name="rowCount"><number>6</number></property>
+            <column><property name="text"><string>指标/步骤</string></property></column>
             <column><property name="text"><string>状态</string></property></column>
             <column><property name="text"><string>用时(s)</string></property></column>
+            <column><property name="text"><string>值</string></property></column>
+            <column><property name="text"><string>说明</string></property></column>
            </widget>
           </item>
          </layout>
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="eval_result_groupBox">
-         <property name="title"><string>分项结果</string></property>
-         <layout class="QVBoxLayout" name="verticalLayout_eval_table">
-          <item>
-           <widget class="QTableWidget" name="eval_table">
-            <property name="columnCount"><number>3</number></property>
-            <property name="rowCount"><number>6</number></property>
-            <column><property name="text"><string>指标</string></property></column>
-            <column><property name="text"><string>值</string></property></column>
-            <column><property name="text"><string>说明</string></property></column>
-           </widget>
-          </item>
-         </layout>
-       </widget>
-       </item>
-       <item>
         <widget class="QGroupBox" name="eval_score_groupBox">
          <property name="title"><string>评分可视化</string></property>
-         <layout class="QGridLayout" name="gridLayout_eval_score">
-          <item row="0" column="0"><widget class="QLabel" name="lbl_ttfb"><property name="text"><string>首次响应</string></property></widget></item>
-          <item row="0" column="1"><widget class="QProgressBar" name="eval_bar_ttfb"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
-          <item row="1" column="0"><widget class="QLabel" name="lbl_prompt"><property name="text"><string>上文速度</string></property></widget></item>
-          <item row="1" column="1"><widget class="QProgressBar" name="eval_bar_prompt"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
-          <item row="2" column="0"><widget class="QLabel" name="lbl_gen"><property name="text"><string>生成速度</string></property></widget></item>
-          <item row="2" column="1"><widget class="QProgressBar" name="eval_bar_gen"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
-          <item row="3" column="0"><widget class="QLabel" name="lbl_qa"><property name="text"><string>常识问答</string></property></widget></item>
-          <item row="3" column="1"><widget class="QProgressBar" name="eval_bar_qa"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
-          <item row="4" column="0"><widget class="QLabel" name="lbl_tool"><property name="text"><string>工具调用</string></property></widget></item>
-          <item row="4" column="1"><widget class="QProgressBar" name="eval_bar_tool"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
-          <item row="5" column="0"><widget class="QLabel" name="lbl_final"><property name="text"><string>综合评分</string></property></widget></item>
-          <item row="5" column="1"><widget class="QProgressBar" name="eval_bar_final"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+         <layout class="QVBoxLayout" name="verticalLayout_eval_score">
+          <item>
+           <widget class="MiniBarChart" name="eval_bar_chart"/>
+          </item>
          </layout>
         </widget>
        </item>
@@ -4300,6 +4277,7 @@ p, li { white-space: pre-wrap; }
       </layout>
      </widget>
     </widget>
+    
    </item>
   </layout>
  </widget>
@@ -4319,6 +4297,11 @@ p, li { white-space: pre-wrap; }
    <class>NeuronLogEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>src/utils/neuronlogedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MiniBarChart</class>
+   <extends>QWidget</extends>
+   <header>src/utils/minibarchart.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
