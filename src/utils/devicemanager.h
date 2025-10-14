@@ -45,3 +45,5 @@ class DeviceManager
 
 #endif // EVA_DEVICE_MANAGER_H
 
+
+

@@ -1,6 +1,8 @@
-#include "expend.h"
+﻿#include "expend.h"
 
 #include "ui_expend.h"
+// Resolve backend program path to find llama-quantize consistently
+#include "../utils/devicemanager.h"
 
 //-------------------------------------------------------------------------
 //----------------------------------模型量化相关--------------------------------
@@ -194,18 +196,31 @@ void Expend::on_model_quantize_execute_clicked()
 
 // 执行量化
 void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
-{
-    // 结束llama-quantize
+{    // Start fresh process and resolve llama-quantize from EVA_BACKEND
     quantize_process->kill();
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR");
-    QString localPath = QString(appDirPath + "/usr/bin/llama-quantize") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
+    const QString program = DeviceManager::programPath(QStringLiteral("llama-quantize"));
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->model_quantize_log->appendPlainText("[error] llama-quantize not found under current device folder");
+        ui->model_quantize_frame1->setEnabled(1);
+        ui->model_quantize_frame2->setEnabled(1);
+        ui->model_quantize_frame3->setEnabled(1);
+        ui->model_quantize_frame4->setEnabled(1);
+        return;
+    }
+
+    // Ensure dependent DLLs/so are discoverable
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
 #else
-    QString localPath = QString("./llama-quantize") + SFX_NAME;
-    QString program = localPath; // 设置要运行的exe文件的路径
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
 #endif
-    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    quantize_process->setProcessEnvironment(env);
+    quantize_process->setWorkingDirectory(toolDir);
     QStringList arguments;
     if (important_datapath != "")
     {
@@ -251,3 +266,5 @@ void Expend::quantize_onProcessFinished()
     float modelsize2_GB = fileInfo2.size() / 1024.0 / 1024.0 / 1024.0;
     ui->model_quantize_log->appendPlainText(QString::number(modelsize1_GB) + " GB" + " -> " + QString::number(modelsize2_GB) + " GB " + jtr("compression") + " :" + QString::number((1 - modelsize2_GB / modelsize1_GB) * 100) + "%");
 }
+
+

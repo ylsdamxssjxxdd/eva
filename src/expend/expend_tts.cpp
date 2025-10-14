@@ -1,4 +1,4 @@
-﻿
+
 #include "expend.h"
 
 #include "ui_expend.h"
@@ -249,11 +249,16 @@ void Expend::outettsProcess(QString str)
     // 解析 llama-tts 路径（按设备后端）
     const QString program = DeviceManager::programPath(QStringLiteral("llama-tts"));
     if (program.isEmpty() || !QFileInfo::exists(program))
-    {
-        ui->speech_log->appendPlainText("[error] llama-tts not found under current device folder");
-        speechOver();
-        return;
-    }
+{
+    ui->speech_log->appendPlainText("[error] llama-tts not found under current device folder");
+    ui->speech_log->appendPlainText(QString("[hint] search root=%1, arch=%2, os=%3, device=%4")
+                                    .arg(DeviceManager::backendsRootDir())
+                                    .arg(DeviceManager::currentArchId())
+                                    .arg(DeviceManager::currentOsId())
+                                    .arg(DeviceManager::effectiveBackend()));
+    speechOver();
+    return;
+}
 
     // 目标输出文件（唯一名）
     createTempDirectory(outettsDir);
@@ -385,3 +390,4 @@ void Expend::startNextPlayIfIdle()
         speech_player->play();
     }
 }
+

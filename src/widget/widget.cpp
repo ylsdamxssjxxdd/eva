@@ -583,6 +583,7 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
 
 void Widget::logCurrentTask(ConversationTask task)
 {
+    Q_UNUSED(task);
     // QString name;
     // switch (task)
     // {

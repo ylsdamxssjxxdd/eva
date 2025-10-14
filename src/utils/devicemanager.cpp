@@ -193,9 +193,12 @@ QString DeviceManager::currentOsId()
     // Minimal mapping for known third-party projects; extend as new tools are added
     if (name == QLatin1String("llama-server")) return QStringLiteral("llama.cpp");
     if (name == QLatin1String("whisper-cli")) return QStringLiteral("whisper.cpp");
+    if (name == QLatin1String("llama-quantize")) return QStringLiteral("llama.cpp");
+    if (name == QLatin1String("llama-tts")) return QStringLiteral("llama-tts");
     // default to using the name itself as folder (best-effort)
     return name;
 }
+
 
 
 
