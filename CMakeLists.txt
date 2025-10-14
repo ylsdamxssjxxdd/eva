@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 project(body)
 set(EVA_TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(version b6123)
+set(version b6746)
 
 # 输出目录（所有构建类型）
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
