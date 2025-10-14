@@ -2,6 +2,7 @@
 
 #include "../utils/introanimedit.h" // 自定义：软件介绍页动画背景
 #include "../utils/neuronlogedit.h" // 自定义：模型信息页动画日志
+#include "../xnet.h"                // xNet for eval worker control
 #include "ui_expend.h"
 #include <QThread>
 
@@ -132,7 +133,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // 在应用退出前确保清理嵌入服务（防止 llama-server 残留）
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
-            { stopEmbeddingServer(true); });
+            {
+                // Stop eval worker and any local embedding server to ensure clean exit
+                shutdownEvalWorker();
+                stopEmbeddingServer(true);
+            });
 
     // 创建播放器对象
     speech_player = new QMediaPlayer;
@@ -188,6 +193,8 @@ void Expend::changeEvent(QEvent *event)
 
 Expend::~Expend()
 {
+    // Ensure eval worker is cleanly stopped before object destruction
+    shutdownEvalWorker();
     delete ui;
     sd_process->kill();
     whisper_process->kill();
@@ -364,6 +371,8 @@ bool Expend::eventFilter(QObject *obj, QEvent *event)
 // 关闭事件
 void Expend::closeEvent(QCloseEvent *event)
 {
+    // Stop eval worker if user closes the Expend window while eval was used
+    shutdownEvalWorker();
     // Stop animations on close to free resources
     if (ui)
     {
@@ -430,4 +439,29 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("Mcpconfig", ui->mcp_server_config_textEdit->toPlainText()); // mcp配置
     settings.sync();                                                               // flush to disk immediately on close
     event->accept();
+}
+
+// Gracefully stop the eval worker thread and its network worker
+void Expend::shutdownEvalWorker()
+{
+    // Signal any in-flight eval request to stop
+    if (evalNet)
+    {
+        QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
+    }
+    evalRunning = false;
+    // Ask the thread to quit and wait briefly
+    if (evalThread)
+    {
+        if (evalThread->isRunning())
+        {
+            evalThread->quit();
+            if (!evalThread->wait(2000))
+            {
+                // Last resort to avoid destructor warning
+                evalThread->terminate();
+                evalThread->wait(200);
+            }
+        }
+    }
 }

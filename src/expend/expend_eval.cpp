@@ -29,6 +29,8 @@ void Expend::ensureEvalNet()
     evalNet = new xNet();
     evalThread = new QThread(this);
     evalNet->moveToThread(evalThread);
+    // Ensure worker is destroyed in its own thread context when the thread exits
+    connect(evalThread, &QThread::finished, evalNet, &QObject::deleteLater);
     evalThread->start();
 
     // Wire signals into this window (only for eval tab)

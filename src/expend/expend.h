@@ -359,6 +359,8 @@ class Expend : public QWidget
     // Helpers
     ENDPOINT_DATA makeBaseData(double temp = 0.2, int npredict = 64);
     QJsonArray makeMsgs(const QString &sys, const QString &user);
+    // Shutdown helper: gracefully stop eval worker thread and xNet
+    void shutdownEvalWorker();
   private slots:
     // evalNet handlers
     void onEvalOutput(const QString &text, bool streaming, QColor color);
