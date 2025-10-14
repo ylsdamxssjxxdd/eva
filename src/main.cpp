@@ -304,6 +304,10 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          // 通知显示扩展窗口
     QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 // 开始语音转文字
     QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         // 重置文字转语音
+    // 模型评估：同步 UI 端点/设置/模式
+    QObject::connect(&w, &Widget::ui2expend_apis, &expend, &Expend::recv_eval_apis);
+    QObject::connect(&w, &Widget::ui2expend_settings, &expend, &Expend::recv_eval_settings);
+    QObject::connect(&w, &Widget::ui2expend_mode, &expend, &Expend::recv_eval_mode);
     QObject::connect(&expend, &Expend::expend2ui_speechdecode_over, &w, &Widget::recv_speechdecode_over);       // 转换完成返回结果
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       // 传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            // 窗口状态区更新
@@ -549,6 +553,8 @@ int main(int argc, char *argv[])
         // ui显示值传给ui内部值
         w.get_date(); // 获取约定中的纸面值
         w.get_set();  // 获取设置中的纸面值
+        // Broadcast initial settings to Expend (evaluation tab)
+        emit w.ui2expend_settings(w.ui_SETTINGS);
         w.is_config = true;
 
         // 初次启动强制赋予隐藏的设定值

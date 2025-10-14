@@ -344,6 +344,9 @@ class Widget : public QWidget
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言
     void ui2expend_show(EXPEND_WINDOW window);                        // 通知显示扩展窗口
+    void ui2expend_apis(APIS apis);                                   // 传递 API 配置（评估使用）
+    void ui2expend_settings(SETTINGS s);                               // 传递设置（评估使用）
+    void ui2expend_mode(EVA_MODE m);                                   // 传递当前模式（评估使用）
     void ui2expend_speechdecode(QString wavpath, QString out_format); // 传一个wav文件开始解码
     void ui2expend_resettts();                                        // 重置文字转语音
     // 将后端（llama-server）日志输出给增殖窗口的“模型日志”

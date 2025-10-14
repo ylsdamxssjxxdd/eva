@@ -23,6 +23,7 @@ add_executable(
     src/widget/widget_link.cpp src/widget/widget_api.cpp src/widget/widget_state.cpp src/widget/widget_date.cpp src/widget/widget_settings.cpp 
     src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_anim.cpp
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
+    src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp
     src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp

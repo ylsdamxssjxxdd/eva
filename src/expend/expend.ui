@@ -118,6 +118,80 @@ p, li { white-space: pre-wrap; }
       <attribute name="title">
        <string>模型评估</string>
       </attribute>
+      <layout class="QVBoxLayout" name="eval_verticalLayout">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <property name="leftMargin">
+        <number>6</number>
+       </property>
+       <property name="topMargin">
+        <number>6</number>
+       </property>
+       <property name="rightMargin">
+        <number>6</number>
+       </property>
+       <property name="bottomMargin">
+        <number>6</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="eval_info_groupBox">
+         <property name="title">
+          <string>当前信息</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_eval_info">
+          <item row="0" column="0"><widget class="QLabel" name="eval_mode_label"><property name="text"><string>模式</string></property></widget></item>
+          <item row="0" column="1"><widget class="QLabel" name="eval_mode_value"><property name="text"><string>-</string></property></widget></item>
+          <item row="0" column="2"><widget class="QLabel" name="eval_endpoint_label"><property name="text"><string>端点</string></property></widget></item>
+          <item row="0" column="3"><widget class="QLabel" name="eval_endpoint_value"><property name="text"><string>-</string></property></widget></item>
+          <item row="1" column="0"><widget class="QLabel" name="eval_model_label"><property name="text"><string>模型</string></property></widget></item>
+          <item row="1" column="1"><widget class="QLabel" name="eval_model_value"><property name="text"><string>-</string></property></widget></item>
+          <item row="1" column="2"><widget class="QLabel" name="eval_device_label"><property name="text"><string>设备</string></property></widget></item>
+          <item row="1" column="3"><widget class="QLabel" name="eval_device_value"><property name="text"><string>-</string></property></widget></item>
+          <item row="2" column="0"><widget class="QLabel" name="eval_nctx_label"><property name="text"><string>n_ctx</string></property></widget></item>
+          <item row="2" column="1"><widget class="QLabel" name="eval_nctx_value"><property name="text"><string>-</string></property></widget></item>
+          <item row="2" column="2"><widget class="QLabel" name="eval_threads_label"><property name="text"><string>线程</string></property></widget></item>
+          <item row="2" column="3"><widget class="QLabel" name="eval_threads_value"><property name="text"><string>-</string></property></widget></item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_eval_buttons">
+         <item><spacer name="eval_buttons_spacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+         <item><widget class="QPushButton" name="eval_start_pushButton"><property name="minimumSize"><size><width>120</width><height>28</height></size></property><property name="text"><string>一键评估</string></property></widget></item>
+         <item><widget class="QPushButton" name="eval_stop_pushButton"><property name="minimumSize"><size><width>80</width><height>28</height></size></property><property name="text"><string>停止</string></property></widget></item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="eval_result_groupBox">
+         <property name="title"><string>分项结果</string></property>
+         <layout class="QVBoxLayout" name="verticalLayout_eval_table">
+          <item>
+           <widget class="QTableWidget" name="eval_table">
+            <property name="columnCount"><number>3</number></property>
+            <property name="rowCount"><number>6</number></property>
+            <column><property name="text"><string>指标</string></property></column>
+            <column><property name="text"><string>值</string></property></column>
+            <column><property name="text"><string>说明</string></property></column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="eval_log_groupBox">
+         <property name="title"><string>评估日志</string></property>
+         <layout class="QVBoxLayout" name="verticalLayout_eval_log">
+          <item>
+           <widget class="QPlainTextEdit" name="eval_log_plainTextEdit">
+            <property name="minimumSize"><size><width>0</width><height>120</height></size></property>
+            <property name="readOnly"><bool>true</bool></property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
      </widget>
      <widget class="QWidget" name="tab_4">
       <attribute name="title">

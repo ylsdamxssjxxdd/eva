@@ -132,6 +132,8 @@ void Widget::settings_ui_confirm_button_clicked()
     // 先读取对话框中的值，与打开对话框时的快照对比；完全一致则不做任何动作
     // 注意：get_set() 会把控件值写入 ui_SETTINGS 与 ui_port
     get_set();
+    // Inform Expend (evaluation tab) of latest settings snapshot
+    emit ui2expend_settings(ui_SETTINGS);
 
     auto eq_str = [](const QString &a, const QString &b)
     { return a == b; };

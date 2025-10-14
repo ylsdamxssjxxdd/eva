@@ -103,10 +103,17 @@ class Expend : public QWidget
     void recv_language(int language_flag_);      // 传递语言标志
     void recv_expend_show(EXPEND_WINDOW window); // 通知显示增殖窗口
     void recv_llama_log(QString log);            // 传递llama.cpp的log
+    // Eval: receive current UI mode/apis/settings snapshot from main UI
+    void recv_eval_mode(EVA_MODE m) { eval_mode = m; }
+    void recv_eval_apis(APIS a) { eval_apis = a; updateEvalInfoUi(); }
+    void recv_eval_settings(SETTINGS s) { eval_settings = s; updateEvalInfoUi(); }
   private slots:
     void on_tabWidget_tabBarClicked(int index); // 用户切换选项卡时响应
     void onTabCurrentChanged(int index);        // 选项卡变更（包含编程切换）
     void updateModelInfoAnim();                 // 根据可见性/选项卡启停动画（模型信息/软件介绍）
+    // Eval: user actions
+    void on_eval_start_pushButton_clicked();
+    void on_eval_stop_pushButton_clicked();
   private:
     Ui::Expend *ui;
     //-------------------------------------------------------------------------
@@ -296,6 +303,57 @@ class Expend : public QWidget
     QString vocab;
     bool is_first_show_modelinfo = true;
     QString model_logs;
+
+    //-------------------------------------------------------------------------
+    //----------------------------------模型评估相关--------------------------------
+    //-------------------------------------------------------------------------
+  private:
+    // Snapshot from main UI
+    EVA_MODE eval_mode = LOCAL_MODE;
+    APIS eval_apis;         // endpoint/key/model
+    SETTINGS eval_settings; // sampling/back-end
+    // Internal evaluator state
+    class xNet *evalNet = nullptr; // dedicated network worker for eval
+    QThread *evalThread = nullptr;  // worker thread
+    bool evalRunning = false;
+    bool evalFirstToken = false;
+    QElapsedTimer evalTimer; // general timer
+    QString evalAccum;       // aggregated content of current turn
+    // Metrics
+    double m_firstTokenMs = -1.0;
+    double m_promptTokPerSec = -1.0;
+    double m_genTokPerSec = -1.0;
+    double m_genCharsPerSec = -1.0;
+    double m_qaScore = -1.0;
+    double m_toolScore = -1.0;
+    double m_finalScore = -1.0;
+    // QA set state
+    QVector<QPair<QString, QString>> qaPairs_;
+    int qaIndex_ = 0;
+    int qaCorrect_ = 0;
+    // Eval pipeline
+    int evalStep = 0; // 0..N
+    void ensureEvalNet();
+    void updateEvalInfoUi();
+    void evalResetUi();
+    void evalLog(const QString &line);
+    void evalSetTable(int row, const QString &name, const QString &val, const QString &desc = QString());
+    void evalNext();
+    // Sub-tests
+    void runLatencyTest();
+    void runGenSpeedTest();
+    void runQATest();
+    void runToolcallTest();
+    void evalFinish();
+    // Helpers
+    ENDPOINT_DATA makeBaseData(double temp = 0.2, int npredict = 64);
+    QJsonArray makeMsgs(const QString &sys, const QString &user);
+  private slots:
+    // evalNet handlers
+    void onEvalOutput(const QString &text, bool streaming, QColor color);
+    void onEvalState(const QString &line, SIGNAL_STATE st);
+    void onEvalSpeeds(double prompt_per_s, double gen_per_s);
+    void onEvalPushover();
 
     //-------------------------------------------------------------------------
     //--------------------------------mcp服务器相关-----------------------------

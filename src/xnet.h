@@ -27,7 +27,8 @@ class xNet : public QObject
     ~xNet() override;
 
     // Start one request based on current endpoint_data/apis
-    void run();
+    // Mark as invokable so QMetaObject::invokeMethod can call it across threads
+    Q_INVOKABLE void run();
 
   public:
     // Public settings (populated via recv_* from UI)

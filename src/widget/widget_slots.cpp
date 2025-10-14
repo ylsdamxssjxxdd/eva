@@ -500,6 +500,9 @@ void Widget::ensureLocalServer()
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
+    // Broadcast to Expend (evaluation tab)
+    emit ui2expend_apis(apis);
+    emit ui2expend_mode(ui_mode);
 }
 
 // When local server is ready, switch UI to xNet over local endpoint
@@ -510,6 +513,8 @@ void Widget::onServerReady(const QString &endpoint)
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
+    emit ui2expend_apis(apis);
+    emit ui2expend_mode(ui_mode);
 
     // 完成装载：记录耗时，统一用简单转轮动画（decode_*）收尾，然后解锁 UI
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;

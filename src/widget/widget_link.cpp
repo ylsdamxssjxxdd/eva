@@ -74,6 +74,9 @@ void Widget::set_api()
     trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
 
     emit ui2net_apis(apis);
+    // Broadcast to Expend (evaluation tab) as well
+    emit ui2expend_apis(apis);
+    emit ui2expend_mode(ui_mode);
     // Reset LINK-mode memory/state since endpoint/key/model changed
     kvTokensAccum_ = 0;
     kvTokensTurn_ = 0;

@@ -16,6 +16,7 @@
 #include <QStandardPaths>
 #include <QThread>
 #include <QWidget>
+#include <QMetaType>
 #include <array>
 #include <iostream>
 // removed libsamplerate/libsndfile usage; whisper-cli handles resampling
@@ -622,5 +623,11 @@ const QColor TOOL_BLUE(0, 191, 255);      // 天蓝色
 const QColor NORMAL_BLACK(0, 0, 0);       // 黑色
 const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
+
+// Qt meta-type declarations for queued signal/slot delivery
+Q_DECLARE_METATYPE(APIS)
+Q_DECLARE_METATYPE(ENDPOINT_DATA)
+Q_DECLARE_METATYPE(SETTINGS)
+Q_DECLARE_METATYPE(EVA_MODE)
 
 #endif // XCONFIG_H
