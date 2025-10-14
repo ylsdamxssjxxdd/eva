@@ -113,7 +113,10 @@
             "补完状态",
             "COMPLETE "
         ],
-        
+        "device": [
+            "推理设备",
+            "device"
+        ],
         "system calling": [
             "系统指令",
             "system "
@@ -126,25 +129,9 @@
             "触发",
             "clicked "
         ],
-        "clicked load": [
-            "触发装载",
-            "clicked load "
-        ],
         "model location": [
             "模型位置",
             "model location "
-        ],
-        "clicked send": [
-            "触发发送",
-            "clicked send "
-        ],
-        "clicked reset": [
-            "触发重置",
-            "clicked reset "
-        ],
-        "clicked date": [
-            "触发约定",
-            "clicked date "
         ],
         "input decode": [
             "解码中",
