@@ -325,10 +325,11 @@ class Expend : public QWidget
     double m_genTokPerSec = -1.0;
     double m_genCharsPerSec = -1.0;
     double m_qaScore = -1.0;
+    double m_logicScore = -1.0; // logical reasoning score (0..100)
     double m_toolScore = -1.0;
-    double m_syncRate = -1.0; // ratio of correct items (QA+tool)
+    double m_syncRate = -1.0; // overall weighted score (0..100)
     // Steps progress
-    int stepsUnitsTotal = 4; // latency(1)+gen(1)+QA(N)+tool(1), recomputed at start
+    int stepsUnitsTotal = 5; // latency(1)+gen(1)+QA(N)+logic(N)+tool(M), recomputed at start
     int stepsDone = 0;
     QElapsedTimer stepTimer;
     // QA set state
@@ -336,6 +337,19 @@ class Expend : public QWidget
     int qaIndex_ = 0;
     int qaCorrect_ = 0;
     int qaPlanned_ = 5; // planned QA question count for progress planning
+    // Logical reasoning set state
+    QVector<QPair<QString, QString>> logicPairs_;
+    int logicIndex_ = 0;
+    int logicCorrect_ = 0;
+    int logicPlanned_ = 5;
+    // Tools test cases
+    struct ToolCase { QString name; QString user; QString desc; };
+    QVector<ToolCase> toolCases_;
+    int toolIndex_ = 0;
+    int toolCorrect_ = 0;
+    // Generation test measurement: exclude think time
+    bool genCounting_ = false;
+    qint64 genStartNsRel_ = 0; // relative to stepTimer
     // Eval pipeline
     int evalStep = 0; // 0..N
     void ensureEvalNet();
@@ -354,11 +368,13 @@ class Expend : public QWidget
     void runLatencyTest();
     void runGenSpeedTest();
     void runQATest();
+    void runLogicTest();
     void runToolcallTest();
     void evalFinish();
     // Helpers
     ENDPOINT_DATA makeBaseData(double temp = 0.2, int npredict = 64);
     QJsonArray makeMsgs(const QString &sys, const QString &user);
+    QChar parseMCAnswer(const QString &ans);
     // Shutdown helper: gracefully stop eval worker thread and xNet
     void shutdownEvalWorker();
   private slots:
