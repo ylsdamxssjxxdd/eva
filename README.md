@@ -5,22 +5,6 @@
 \[ 中文 | [English](README_en.md) \]
 
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
-
-
-## 特点
-
-- 易用的操作界面 🧮
-
-- 原生的运行效率 🚀
-
-- 直观的推理流程 👀
-
-- 全面的模型支援 🐳
-
-- 简洁的智能体实现 🤖
-
-- 丰富的增殖功能 🐣
 
 
 ## 快速开始
@@ -29,31 +13,29 @@
 
     - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 
-    ```txt
-        windows下载 .exe 后缀的程序，linux下载 .AppImage 后缀的程序
-        
-        其中cpu版本使用avx加速，兼容性较好；cuda版本使用nvidia显卡加速；vulkan版本可以使用任意显卡加速，速度不如cuda版本
-        
-        linux下需要在终端中输入这个命令以使机体获得运行权限：chmod 777 ***.AppImage 
-        最好将.AppImage放到一个稳定的纯英文路径中，只要运行一次.AppImage就会自动配置桌面快捷方式和开始菜单
-    ```
+    - 包括eva程序前端和EVA_BACKEND后端。
 
-2. 准备模型/后端
+    - EVA_BACKEND后端结构：`EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/`（例如 `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server.exe`）。也可以自己编译相应后端，按照这个结构摆放，机体运行时会自动识别。
 
-    - 可选：将第三方可执行放入同级目录 `EVA_BACKEND/<架构>/<设备>/<项目>/`（例如 `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server.exe`）。首次运行会自动识别最合适的设备后端。
-
-    - 模型（推荐 gguf）：放在同级目录 `EVA_MODELS` 下更易管理：
-      - `EVA_MODELS/llm`：LLM 模型；
-      - `EVA_MODELS/embedding`：嵌入模型；
-      - `EVA_MODELS/speech2text`：Whisper；
-      - `EVA_MODELS/text2speech`：OuteTTS 与 WavTokenizer；
-      - `EVA_MODELS/text2image`：SD/Flux 模型（默认优先 sd1.5-anything-3-q8_0.gguf）。
-
-    - 首次启动且没有配置文件时，会自动在 `EVA_MODELS/**` 中选择“合适的默认模型路径”并写回 `EVA_TEMP/eva_config.ini`。
+2. 下载模型
 
     - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 
+    - EVA_MODELS模型目录：
+      - `EVA_MODELS/llm`：大语言模型（主要），选一个小于你的设备内存/显存大小的模型
+      - `EVA_MODELS/multimodal`：多模态模型（非必要）
+      - `EVA_MODELS/embedding`：嵌入模型（非必要）
+      - `EVA_MODELS/speech2text`：Whisper模型（非必要）
+      - `EVA_MODELS/text2speech`：OuteTTS 与 WavTokenizer模型（非必要）
+      - `EVA_MODELS/text2image`：SD/Flux 模型（非必要）
+
     - 也可以前往 https://hf-mirror.com 搜索，机体支持几乎所有开源大语言模型
+
+2. 启动
+
+    - windows双击打开eva.exe，linux 运行eva.appimage（运行前赋予程序可执行权限 chmod 777 eva.appimage）
+
+    - 运行时确保机体程序与后端在同一目录
 
 3. 装载！
 
@@ -63,13 +45,6 @@
 
     - 在输入区输入聊天内容，点击发送
 
-5. 加速！
-
-    - 点击设置，调整 GPU 负载层数（ngl）。显存充足建议拉满，注意占用超过 95% 可能卡顿；首次装载会按“模型体积 vs 可用显存”自动估算是否全量 offload。
-
-    - 同时运行sd的话要确保给sd留足显存
-
-
 ## 功能
 
 ### 基础功能
@@ -78,9 +53,9 @@
 
 <summary> 两种模式 </summary>
 
-1. 本地模式：点击“装载”，选择 gguf 模型后，内置后端管理器托管 `llama.cpp tools/server`，以 HTTP+SSE 推理。
+1. 本地模式：选择 gguf 模型后，启动本地的 `llama-server` 程序并默认开放端口8080，也可以网页访问。
 
-2. 链接模式：右击“装载”，填写 `endpoint/key/model` 切换到远端，使用 OpenAI 兼容接口（`/v1/chat/completions`）。
+2. 链接模式：填写 `endpoint/key/model` 切换到远端模型，使用 OpenAI 兼容接口（`/v1/chat/completions`）。
 
 </details>
 
@@ -90,9 +65,7 @@
 
 1. 对话状态
 
-    - 机体的默认状态，在输入区输入聊天内容，模型进行回复
-
-    - 可以事先约定好角色
+    - 在输入区输入聊天内容，模型进行回复
 
     - 可以使用挂载的工具
 
@@ -102,15 +75,11 @@
 
     - 在输出区键入任意文字，模型对其进行补完
 
- 
-
 </details>
 
 <details>
 
 <summary> 六个工具 </summary>
-
-在 本地模式 + 对话状态 下，用户可以点击约定为模型挂载工具
 
 ```txt
     在系统指令中附加“工具协议”，指导模型以 <tool_call>JSON</tool_call> 发起调用；
@@ -151,8 +120,6 @@
 
     - 调用难度：⭐⭐⭐
 
-    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
-
 5. 文生图
 
     - 模型输出绘画提示词给文生图工具，工具将返回绘制好的图像
@@ -162,8 +129,6 @@
     - 例如：画一个女孩
 
     - 调用难度：⭐⭐
-
-    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
 
 6. MCP工具
 
@@ -176,8 +141,6 @@
 </details>
 
 ### 增强功能
-
-https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <details>
 
@@ -223,7 +186,7 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
 <summary> 自动监视 </summary>
 
-- 本地对话状态下，挂载视觉后，可设置监视帧率；随后会自动附带最近 1 分钟的屏幕帧到下一次发送（发送后自动清理旧帧）。
+- 本地对话状态下，挂载视觉后，可设置监视帧率；随后会自动附带最近 1 分钟的屏幕帧到下一次发送。
 
 </details>
 
@@ -241,17 +204,23 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
 
     - 安装cmake https://cmake.org/
 
-    - 如果要用nvidia显卡加速，安装cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
-
-    - 如果要用各种型号显卡加速，安装VulkanSDK https://vulkan.lunarg.com/sdk/home
-
 2. 克隆源代码
 
     ```bash
     git clone https://github.com/ylsdamxssjxxdd/eva.git
     ```
 
-3. 后端准备
+3. 编译
+
+    ```bash
+    cd eva
+    cmake -B build -DBODY_PACK=OFF
+    cmake --build build --config Release -j 8
+    ```
+
+    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
+
+4. 后端准备
 
 - 从上游或第三方获取已编译的推理程序，并在项目根目录创建 `EVA_BACKEND/` 目录（与 `CMakeLists.txt` 同级）。
 - 按中央教条放置第三方程序：`EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/`，例如：
@@ -259,16 +228,8 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
   - 架构：`x86_64`、`x86_32`、`arm64`、`arm32`
   - 系统：`win`、`linux`
   - 设备：`cpu`、`cuda`、`vulkan`、`opencl`（可自定义扩展）
-  - 项目：如 `llama.cpp`、`whisper.cpp`
-- 运行时 EVA 仅在本机同架构目录下枚举设备并查找可执行文件，并自动补全库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH；macOS: DYLD_LIBRARY_PATH）。
-
-4. 编译
-
-    ```bash
-    cd eva
-    cmake -B build -DBODY_PACK=OFF
-    cmake --build build --config Release -j 8
-    ```
+  - 项目：如 `llama.cpp`、`whisper.cpp`、`stable-diffusion.cpp`
+- 运行时 EVA 仅在本机同架构目录下枚举设备并查找可执行文件，并自动补全库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
 
 5. 打包分发（解压即用）
 
@@ -280,54 +241,4 @@ https://github.com/user-attachments/assets/d1c7b961-24e0-4a30-af37-9c8daf33aa8a
       - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
     - 程序首次启动会在同级目录创建 `EVA_TEMP/`，用于保存配置、历史与中间产物。
 
-## 提示：速度/记忆显示
-
-- 输出结束后，状态区打印：`single decode`（生成速度）与 `batch decode`（上文处理速度），单位 tokens/s；
-- “记忆”进度条展示上下文缓存使用百分比（工具提示显示 used/max token），本地模式按 server 日志精确修正，链接模式按流式近似。
-
-## 说明与约束
-
-- KV 复用：同端点/同会话内复用 server 分配的 `slot_id`，当前未启用服务端的持久化 `slot-save-path`；
-- 工具安全域：工程师工具默认仅在工作目录（EVA_WORK）内读写；路径会被归一化回工作根避免越权。
-
-    - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
-
-
 </details>
-
-## 概念
-
-<details>
-
-<summary> 展开 </summary>
-
-- model（模型）: 由一个公式和一组参数组成
-
-- token（词元）: 词的编号，例如，你好 token=123，我 token=14，他的 token=3249，不同模型编号不一样
-
-- vocab（词表）: 该模型训练时所设置的全部词的token，不同模型词表不一样，词表里中文占比越高的往往中文能力强
-
-- kv cache（上下文缓存）: 先前计算的模型注意力机制的键和值，相当于模型的记忆
-
-- decoding（解码）：模型根据上下文缓存和送入的新token计算出向量表，并得到新的上下文缓存
-
-- sampling（采样）：根据向量表计算出概率表并选出下一个词
-
-- predict（预测）：（解码 + 采样）循环
-
-- predecode（预解码）：只解码不采样，用于缓存上下文如系统指令
-
----
-
-- n_ctx_train（最大上下文长度）: 该模型训练时能送入解码的最大token数量
-
-- n_ctx（上下文长度）: 用户设置的解码时模型能接受的的最大token数量，不能超过n_ctx_train，相当于记忆容量
-
-- temperature（温度）: 采样时会根据温度值将向量表转为概率表，温度越高随机性越大
-
-- vecb（向量表）: 本次解码中词表里所有token的概率分布
-
-- prob（概率表）: 本次采样中词表里所有token的最终选用概率
-
-</details>
-

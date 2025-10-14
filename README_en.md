@@ -2,319 +2,231 @@
 
 A smooth llama.cpp launcher + lightweight Agent desktop app (unified OpenAI-compatible interface for local/remote)
 
-<img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a7c5943a-aa4f-4e46-a6c6-284be990fd59" width="300px">
 
-## Features
 
-- Easy to use operating interface 🧮
-
-- Native operational efficiency 🚀
-
-- Intuitive running process 👀
-
-- Comprehensive model support 🐳
-
-- Concise implementation of agent 🤖
-
-- Rich proliferation function 🐣
-
-## Quick start
+## Quick Start
 
 1. Download EVA
 
-    - https://github.com/ylsdamxssjxxdd/eva/releases
+    - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 
-    - download programs with the .exe suffix for Windows or .AppImage suffix for Linux
+    - Including the eva program frontend and EVA_BACKEND backend.
 
-    ```txt
-        The cpu version for the best compatibility; The cuda version uses an NVIDIA graphics card for acceleration and requires cuda to be installed on the computer; The Vulkan version uses any graphics card for acceleration and requires the computer to have a graphics card installed
-        
-        Under Linux, this command needs to be entered in the terminal to grant EVA permission to run: chmod 777 ***** AppImage 
-        It's better to .AppImage is placed in a stable pure English path and only needs to be run once .AppImage will automatically configure desktop shortcuts and start menu
-    ```
+    - EVA_BACKEND structure: `EVA_BACKEND/<architecture>/<system>/<device>/<project>/` (e.g., `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server.exe`). You can also compile the corresponding backend yourself and place it according to this structure; EVA will automatically recognize it during runtime.
 
-2. Prepare Models/Backends
+2. Download Models
 
-    - Optional: place third-party executables under the same-folder `EVA_BACKEND/<arch>/<device>/<project>/` (e.g. `EVA_BACKEND/x86_64/cuda/llama.cpp/llama-server.exe`). EVA will auto-detect the best available device backend at runtime.
+    - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
 
-    - Models (gguf recommended): keep them under `EVA_MODELS` for painless management:
-      - `EVA_MODELS/llm` for LLMs;
-      - `EVA_MODELS/embedding` for embeddings;
-      - `EVA_MODELS/speech2text` for Whisper;
-      - `EVA_MODELS/text2speech` for OuteTTS & WavTokenizer;
-      - `EVA_MODELS/text2image` for SD/Flux (default prefers `sd1.5-anything-3-q8_0.gguf`).
+    - EVA_MODELS directory:
+      - `EVA_MODELS/llm`: Large language models (main), choose one smaller than your device's memory/vRAM size.
+      - `EVA_MODELS/multimodal`: Multimodal models (non-essential).
+      - `EVA_MODELS/embedding`: Embedding models (non-essential).
+      - `EVA_MODELS/speech2text`: Whisper models (non-essential).
+      - `EVA_MODELS/text2speech`: OuteTTS and WavTokenizer models (non-essential).
+      - `EVA_MODELS/text2image`: SD/Flux models (non-essential).
 
-    - On the first launch (no config), EVA auto-discovers sensible defaults from `EVA_MODELS/**` and persists them to `EVA_TEMP/eva_config.ini`.
+    - You can also visit https://hf-mirror.com to search; EVA supports almost all open-source large language models.
 
-    - https://huggingface.com , eva supports almost all open-source llms
+3. Launch
 
-3. Load
+    - On Windows: Double-click eva.exe to open. On Linux: Run eva.appimage (grant executable permission before running: chmod 777 eva.appimage).
 
-    - Click the load button, select a gguf model to load into memory
+    - Ensure the EVA program and the backend are in the same directory during runtime.
 
-4. Send！
+4. Load!
 
-    - Enter the chat content in the input area and click send
+    - Click the Load button and select a gguf model to load into memory.
 
-5. Accelerate!
+5. Send!
 
-    - Click Settings to adjust GPU offload (ngl). If VRAM is sufficient, push to the maximum; beware >95% VRAM may cause stutters. On the first load EVA will estimate whether full offload is feasible.
+    - Enter chat content in the input area and click Send.
+    
+## Features
 
-    - If running SD simultaneously, make sure to leave enough VRAM for SD
-
-
-## Function
-
-### Foundation
+### Basic Features
 
 <details>
+<summary> Two Modes </summary>
 
-<summary> Two mode </summary>
+1. Local Mode: After selecting a gguf model, start the local `llama-server` program, which by default opens port 8080 and can also be accessed via a web page.
 
-1. Local mode: click Load, pick a gguf model. EVA runs `llama.cpp tools/server` locally and talks over HTTP+SSE.
-
-2. Link mode: right-click Load, fill `endpoint/key/model` and switch to a remote OpenAI-compatible endpoint (`/v1/chat/completions`).
+2. Connection Mode: Fill in `endpoint/key/model` to switch to a remote model, using the OpenAI-compatible interface (`/v1/chat/completions`).
 
 </details>
 
 <details>
+<summary> Two States </summary>
 
-<summary> Two state </summary>
+1. Conversation State
+   
+   - Enter chat content in the input area, and the model will respond.
+   
+   - Mounted tools can be used.
+   
+   - Press F1 to take a screenshot, press F2 to record audio; screenshots and recordings will be sent to multimodal or Whisper models for corresponding processing.
 
-1. Chat state
-
-    - The default state, where chat content is entered in the input area and the model responds
-
-    - You can set the system prompt template in the Date panel
-
-    - You can mount tools for the model, but they may affect the model's intelligence
-
-    - You can take a screenshot by pressing f1 and record speech by pressing f2. The screenshot and recording will be sent to the multimodal or whisper for corresponding processing
-
-2. Completion state
-
-    - Typing any text in the output area and the model completing it
-
- 
+2. Completion State
+   
+   - Type any text in the output area, and the model will complete it.
 
 </details>
 
 <details>
-
-<summary> Six tool </summary>
-
-In local mode and chat state, you can click on the date button to mount the tool
+<summary> Six Tools </summary>
 
 ```txt
-    EVA injects a tool-calling protocol in the system prompt. The model issues a `<tool_call>{"name":...,"arguments":...}</tool_call>` JSON; EVA executes, then continues with "tool_response: ..." until no more calls.
+    Attach the "tool protocol" to the system prompt to guide the model to initiate calls with <tool_call>JSON</tool_call>;
+    After inference, automatically parse tool requests, execute them, and send the results as "tool_response: ..." until there are no new requests.
 ```
 
-1. calculator
+1. Calculator
+   
+   - The model outputs calculation formulas to the calculator tool, which returns the results.
+   
+   - Example: Calculate 888*999
+   
+   - Difficulty level: ⭐
 
-    - Model output the calculation formula to the calculator tool, and the tool will return the calculation result
+2. Mouse & Keyboard
+   
+   - The model outputs action sequences to control the user's mouse and keyboard; the model needs to have vision to complete positioning.
+   
+   - Example: Help me automatically farm in MapleStory
+   
+   - Difficulty level: ⭐⭐⭐⭐⭐
 
-    - Example: Calculate 888 * 999
+3. Software Engineer
+   
+   - Similar to Cline's automated tool execution chain (execute_command/read_file/write_file/edit_file/list_files/search_content/MCP...).
+   
+   - Example: Help me build an initial CMake Qt project
+   
+   - Difficulty level: ⭐⭐⭐⭐⭐
 
-    - Difficulty of calling: ⭐
+4. Knowledge Base
+   
+   - The model outputs query text to the knowledge base tool, which returns the three most relevant embedded knowledge entries.
+   
+   - Requirement: First upload text and build in "Proliferation - Knowledge Base" (start the embedding service → store segments one by one via /v1/embeddings).
+   
+   - Example: What features does EVA have?
+   
+   - Difficulty level: ⭐⭐⭐
 
-2. controller
+5. Text-to-Image
+   
+   - The model outputs painting prompts to the text-to-image tool, which returns the generated image.
+   
+   - Requirement: Users need to configure the path of the text-to-image model in the proliferation window first; supports SD and Flux models.
+   
+   - Example: Draw a girl
+   
+   - Difficulty level: ⭐⭐
 
-    - The model outputs a sequence of actions to control the user's mouse and keyboard, requiring the model to have vision to complete positioning
-
-    - Example: playing games
-
-    - Difficulty of calling: ⭐⭐⭐⭐⭐
-
-3. engineer
-
-    - Automated engineer toolchain like Cline (execute_command/read_file/write_file/edit_file/list_files/search_content/MCP …)
-
-    - Example: help me build an initial project for cmake qt
-
-    - Difficulty of calling: ⭐⭐⭐⭐⭐
-
-4. knowledge
-
-    - The tool computes embeddings and returns Top-N similar chunks.
-
-    - Requirement: you need to upload documents and build a knowledge base in the proliferation window first
-
-    - Example: What are the functions of the EVA?
-
-    - Difficulty of calling: ⭐⭐⭐
-
-    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/a0b8c4e7-e8dd-4e08-bcb2-2f890d77d632" width="500px">
-
-5. stablediffusion
-
-    - Model output drawing prompt words to the stablediffusion tool, which will return the drawn 
-
-    - Requirement: configure the text2image model path in the Proliferation window (supports SD & Flux).
-
-    - Example: drawing a girl
-
-    - Difficulty of calling: ⭐⭐
-
-    <img src="https://github.com/ylsdamxssjxxdd/eva/assets/63994076/627e5cd2-2361-4112-9df4-41b908fb91c7" width="500px">
-
-6. MCPtools
-
-    - Through MCP services, access a wealth of external tools
-
-    - Explanation: After mounting the tool, you need to go to the proliferation window to configure the MCP service
-
-    - Difficulty of calling：⭐⭐⭐⭐⭐
+6. MCP Tool
+   
+   - Obtain rich external tools through the MCP service.
+   
+   - Note: After mounting the tool, you need to go to the proliferation window to configure the MCP service.
+   
+   - Difficulty level: ⭐⭐⭐⭐⭐
 
 </details>
 
-### Enhancements
+### Enhanced Features
 
 <details>
+<summary> Vision </summary>
 
-<summary> Visual </summary>
+- Introduction: In Local Mode + Conversation State, you can mount a vision model. Vision models usually have "mmproj" in their names and only match specific models. After successful mounting, users can select images for pre-decoding to serve as the model's context.
 
-- Introduction: In Local Mode + Conversation State, you can mount visual models. Visual models typically have "mmproj" in their name and are usually compatible with specific models. Once successfully mounted, users can select an image for pre-decoding, which will serve as the context for the model.
-
-- Activation: In Settings, right-click the "load mmproj" input to choose mmproj; drag image / right-click upload / press F1 to capture; click Send to pre-decode the image, then ask questions.
+- Activation method: Right-click "Mount Vision" in settings and select mmproj; after dragging/dropping, right-clicking to upload, or pressing F1 to take a screenshot, click "Send" for pre-decoding, then proceed with Q&A.
 
 </details>
 
 <details>
+<summary> Audition </summary>
 
-<summary> Auditory </summary>
+- Introduction: Convert the user's voice to text with the whisper.cpp project, or directly input audio to convert to subtitle files.
 
-- Introduction: With the help of the whisper.cpp project, the user's speech can be converted to text.You can also directly input audio and convert it into subtitle files
-
-- Activation: Right-click status area to open Proliferation → speech2text, choose your whisper model. Press F2 to start/stop recording; result is transcribed back to the input area.
-
-</details>
-
-<details>
-
-<summary> Speech </summary>
-
-- Introduction: Using the speech function of the Windows system or outetts model, the llm's output text can be converted to speech and automatically played.
-
-- Activation: Right-click status area → Proliferation → text2speech, choose a voice (system or OuteTTS+WavTokenizer) and start.
-
-</details>
-
-### Auxiliary functions
-
-<details>
-
-<summary> Model quantification </summary>
-
-- You can right-click on the status area to pop up a proliferation window, and quantify the unquantized gguf models of fp32, fp16, and bf16 in the model quantization tab
+- Activation method: Right-click the status area to open "Proliferation - Speech-to-Text", select the Whisper model path; return to the main interface, press F2 to start/end recording, and the transcription will be automatically filled in the input box after ending.
 
 </details>
 
 <details>
+<summary> Voice </summary>
 
-<summary> Automatic monitoring </summary>
+- Introduction: Convert the text output by the model to voice and play it automatically using Windows' voice function, or configure the OuteTTS model for text-to-speech.
 
-- In local chat mode with vision mounted, set a monitor frame rate; EVA will automatically attach recent screen frames (last 60s) to the next send, then clean up expired frames.
+- Activation method: Right-click the status area to open "Proliferation - Text-to-Speech", select system voice or OuteTTS+WavTokenizer and start.
 
 </details>
 
-## Build
+### Auxiliary Features
 
 <details>
+<summary> Model Quantization </summary>
 
-<summary> expand </summary>
+- You can right-click the status area to pop up the proliferation window, and quantize unquantized fp32, fp16, bf16 gguf models in the model quantization tab.
+
+</details>
+
+<details>
+<summary> Auto-Monitoring </summary>
+
+- In local conversation state, after mounting vision, you can set the monitoring frame rate; then the latest 1-minute screen frames will be automatically attached to the next sending.
+
+</details>
+
+## Source Code Compilation
+
+<details>
+<summary> Expand </summary>
 
 1. Configure the environment
+   
+   - Install a compiler: Use MSVC or MinGW for Windows; use g++ or clang for Linux.
+   
+   - Install Qt5.15 library: https://download.qt.io/
+   
+   - Install cmake: https://cmake.org/
 
-    - installing the compiler for Windows can be done using MSVC or MingW, while Linux requires g++ or Clang
+2. Clone the source code
+   
+   ```bash
+   git clone https://github.com/ylsdamxssjxxdd/eva.git
+   ```
 
-    - install Qt5.15 https://download.qt.io/
+3. Compile
+   
+   ```bash
+   cd eva
+   cmake -B build -DBODY_PACK=OFF
+   cmake --build build --config Release -j 8
+   ```
+   
+   - BODY_PACK: A flag for packaging. If enabled, all components will be placed in the bin directory on Windows; all components will be packaged into an AppImage file on Linux, but dependencies such as linuxdeploy need to be configured by yourself.
 
-    - install cmake https://cmake.org/
-
-    - nvidia gpu accelerate, install cuda-tooklit https://developer.nvidia.com/cuda-toolkit-archive
-
-    - more gpu accelerate, install VulkanSDK https://vulkan.lunarg.com/sdk/home
-
-2. Clone source code
-
-    ```bash
-    git clone https://github.com/ylsdamxssjxxdd/eva.git
-    ```
-
-3. Prepare Backends
-
-- Obtain prebuilt binaries and create an `EVA_BACKEND/` folder at the project root (next to `CMakeLists.txt`).
-- Follow the central layout: `EVA_BACKEND/<arch>/<os>/<device>/<project>/`, for example:
+4. Backend preparation
+   
+- Obtain compiled inference programs from upstream or third parties, and create an `EVA_BACKEND/` directory in the project root directory (at the same level as `CMakeLists.txt`).
+- Place third-party programs according to the central doctrine: `EVA_BACKEND/<architecture>/<system>/<device>/<project>/`, for example:
   - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
-  - arch: `x86_64`, `x86_32`, `arm64`, `arm32`
-  - device: `cpu`, `cuda`, `vulkan`, `opencl` (extend as needed)
-  - project: e.g. `llama.cpp`, `whisper.cpp`, `llama-tts`
-- At runtime, EVA enumerates devices only under the same-arch folder and discovers executables there; it also prepends the program folder to the dynamic library search path (Windows: PATH; Linux: LD_LIBRARY_PATH; macOS: DYLD_LIBRARY_PATH).
+  - Architecture: `x86_64`, `x86_32`, `arm64`, `arm32`
+  - System: `win`, `linux`
+  - Device: `cpu`, `cuda`, `vulkan`, `opencl` (custom extensions allowed)
+  - Project: e.g., `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`
+- During runtime, EVA only enumerates devices and searches for executable files in the same architecture directory of the local machine, and automatically completes the library search path (Windows: PATH; Linux: LD_LIBRARY_PATH).
 
-4. Build
-
-    ```bash
-    cd eva
-    cmake -B build -DBODY_PACK=OFF
-    cmake --build build --config Release
-    ```
-
-    - BODY_PACK: packaging switch for Linux AppImage, requires your own linuxdeploy setup.
-
-5. Distribute (Unzip-and-run)
-
-    - Bundle the executable (build/bin/eva[.exe]), `EVA_BACKEND/`, required thirdparty/ resources, and optional `EVA_MODELS/` into one package;
-    - Example layout:
-      - `EVA_BACKEND/<arch>/<device>/llama.cpp/llama-server(.exe)`
-      - `EVA_BACKEND/<arch>/<device>/whisper.cpp/whisper-cli(.exe)`
-      - `EVA_BACKEND/<arch>/<device>/llama-tts/llama-tts(.exe)`
-      - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
-    - On first launch, EVA creates `EVA_TEMP/` next to the app to store config, history and artifacts.
-
-</details>
-
-## Concepts
-
-<details>
-
-<summary> expand </summary>
-
-- model: Composed of a formula and a set of parameters
-
-- token: The number of words, for example, hello token=123, my token=14, his token=3249, different model numbers are different
-
-- vocab: The tokens for all words set during the training of this model are different for different model word lists
-
-- kv cache: The keys and values of the previously calculated model's attention mechanism are equivalent to the model's memory
-
-- decoding: The model calculates a vector table based on the context cache and the incoming new token, and obtains a new context cache
-
-- sampling: Calculate the probability table based on the vector table and select the next word
-
-- predict: (Decoding + Sampling) Loop
-
-- predecode: Decode only without sampling, used to cache context such as system instructions
-
-## Hints: Speed & Memory UI
-
-- After each turn ends, the status line prints `single decode` (generation speed) and `batch decode` (prompt processing speed) in tokens/s; speeds come from server-side `timings` in SSE when available.
-- The "memory" progress bar shows context cache usage percentage (tooltip shows used/max tokens). Local mode uses server logs for precise correction; link mode uses a streaming approximation.
-
-## Notes & Limits
-
-- KV reuse: we reuse server-assigned `slot_id` within the same endpoint/session. Persistent `slot-save-path` is not enabled by default.
-- Engineer tool safety: file-related tools are restricted to the engineer work directory (EVA_WORK), and all paths are normalized back to that root.
-
----
-
-- n_ctx_train: The maximum number of tokens that can be decoded during model training
-
-- n_ctx: The maximum number of tokens that the model can accept during decoding set by the you cannot exceed n_ctx_train, which is equivalent to memory capacity
-
-- temperature: During sampling, the vector table will be converted into a probability table based on the temperature value, and the higher the temperature, the greater the randomness
-
-- vecb: The probability distribution of all tokens in the word list during this decoding
-
-- prob: The final selection probability of all tokens in the vocabulary in this sampling
+5. Packaging and distribution (ready to use after decompression)
+   
+   - Package the executable (build/bin/eva[.exe]), the同级 directory `EVA_BACKEND/`, necessary third-party components and resources, and the optional `EVA_MODELS/` together;
+   - Directory example:
+     - `EVA_BACKEND/<arch>/<os>/<device>/llama.cpp/llama-server(.exe)`
+     - `EVA_BACKEND/<arch>/<os>/<device>/whisper.cpp/whisper-cli(.exe)`
+     - `EVA_BACKEND/<arch>/<os>/<device>/llama-tts/llama-tts(.exe)`
+     - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
+   - The program will create `EVA_TEMP/` in the same directory on first startup to save configurations, history, and intermediate products.
 
 </details>
