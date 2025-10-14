@@ -273,7 +273,7 @@ void Widget::closeEvent(QCloseEvent *event)
 // 用户点击装载按钮处理
 void Widget::on_load_clicked()
 {
-    reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
+    // reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
     // 弹出模式选择对话框：本地模式 或 链接模式（上下结构、紧凑、无“取消”按钮）
     // Build a minimal modal dialog with vertical buttons to satisfy the UI spec.
@@ -583,19 +583,19 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
 
 void Widget::logCurrentTask(ConversationTask task)
 {
-    QString name;
-    switch (task)
-    {
-    case ConversationTask::ChatReply: name = QStringLiteral("chat-reply"); break;
-    case ConversationTask::Completion: name = QStringLiteral("completion"); break;
-    case ConversationTask::ToolLoop: name = QStringLiteral("tool-loop"); break;
-    }
-    // Prefer i18n key if present
-    const QString label = jtr("current task");
-    if (!label.isEmpty())
-        reflash_state(QStringLiteral("ui:") + label + QStringLiteral(" ") + name, SIGNAL_SIGNAL);
-    else
-        reflash_state(QStringLiteral("ui:current task ") + name, SIGNAL_SIGNAL);
+    // QString name;
+    // switch (task)
+    // {
+    // case ConversationTask::ChatReply: name = QStringLiteral("chat-reply"); break;
+    // case ConversationTask::Completion: name = QStringLiteral("completion"); break;
+    // case ConversationTask::ToolLoop: name = QStringLiteral("tool-loop"); break;
+    // }
+    // // Prefer i18n key if present
+    // const QString label = jtr("current task");
+    // if (!label.isEmpty())
+    //     reflash_state(QStringLiteral("ui:") + label + QStringLiteral(" ") + name, SIGNAL_SIGNAL);
+    // else
+    //     reflash_state(QStringLiteral("ui:current task ") + name, SIGNAL_SIGNAL);
 }
 
 void Widget::on_send_clicked()
@@ -606,7 +606,7 @@ void Widget::on_send_clicked()
     turnThinkActive_ = false;
     sawPromptPast_ = false;
     sawFinalPast_ = false;
-    reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
+    // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
     kvStreamedTurn_ = 0;
@@ -906,7 +906,7 @@ void Widget::on_reset_clicked()
         return;
     }
 
-    reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
+    // reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
     kvTokensAccum_ = 0;
     kvTokensTurn_ = 0; // reset conversation kv tokens
     // reset KV/speed tracking and progress bar
@@ -984,7 +984,7 @@ void Widget::on_reset_clicked()
 // 用户点击约定按钮处理
 void Widget::on_date_clicked()
 {
-    reflash_state("ui:" + jtr("clicked date"), SIGNAL_SIGNAL);
+    // reflash_state("ui:" + jtr("clicked date"), SIGNAL_SIGNAL);
 
     // 展示最近一次设置值
     date_ui->chattemplate_comboBox->setCurrentText(ui_template); // 默认使用default的提示词模板

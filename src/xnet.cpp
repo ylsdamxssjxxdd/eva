@@ -656,7 +656,7 @@ void xNet::recv_apis(APIS apis_)
     {
         abortActiveReply();
         resetState();
-        emit net2ui_state("net: apis updated", SIGNAL_SIGNAL);
+        // emit net2ui_state("net: apis updated", SIGNAL_SIGNAL);
     }
 }
 void xNet::recv_stop(bool stop)
