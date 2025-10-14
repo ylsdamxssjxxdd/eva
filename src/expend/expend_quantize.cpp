@@ -196,7 +196,7 @@ void Expend::on_model_quantize_execute_clicked()
 
 // 执行量化
 void Expend::quantize(QString in_modelpath, QString out_modelpath, QString important_datapath, QString quantize_type)
-{    // Start fresh process and resolve llama-quantize from EVA_BACKEND
+{ // Start fresh process and resolve llama-quantize from EVA_BACKEND
     quantize_process->kill();
     const QString program = DeviceManager::programPath(QStringLiteral("llama-quantize"));
     if (program.isEmpty() || !QFileInfo::exists(program))
@@ -266,5 +266,3 @@ void Expend::quantize_onProcessFinished()
     float modelsize2_GB = fileInfo2.size() / 1024.0 / 1024.0 / 1024.0;
     ui->model_quantize_log->appendPlainText(QString::number(modelsize1_GB) + " GB" + " -> " + QString::number(modelsize2_GB) + " GB " + jtr("compression") + " :" + QString::number((1 - modelsize2_GB / modelsize1_GB) * 100) + "%");
 }
-
-

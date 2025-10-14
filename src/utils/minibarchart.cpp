@@ -1,9 +1,9 @@
 // MiniBarChart - compact 6-bar chart for evaluation scores
 #include "minibarchart.h"
-#include <QPainter>
-#include <QPaintEvent>
-#include <QPen>
 #include <QBrush>
+#include <QPaintEvent>
+#include <QPainter>
+#include <QPen>
 #include <algorithm>
 
 MiniBarChart::MiniBarChart(QWidget *parent)
@@ -53,12 +53,12 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     const double gap = std::max(4.0, plot.width() * 0.02);
     const double barW = std::max(12.0, (plot.width() - gap * (n + 1)) / n);
     const double x0 = plot.x() + gap;
-    
+
     // Colors
-    QColor barOk(255, 170, 64);     // orange (model related)
+    QColor barOk(255, 170, 64); // orange (model related)
     QColor barWarn(255, 200, 120);
     QColor barNA(220, 220, 220);
-    QColor barGood(100, 180, 255);  // blue (system-ish)
+    QColor barGood(100, 180, 255); // blue (system-ish)
 
     // Draw bars and labels
     QFont f = font();
@@ -75,7 +75,12 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         QColor c = barNA;
         if (val >= 0)
         {
-            if (val >= 85) c = barGood; else if (val >= 60) c = barOk; else c = barWarn;
+            if (val >= 85)
+                c = barGood;
+            else if (val >= 60)
+                c = barOk;
+            else
+                c = barWarn;
         }
         p.setBrush(QBrush(c));
         p.setPen(Qt::NoPen);
@@ -88,7 +93,7 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         p.drawText(vrc, Qt::AlignHCenter | Qt::AlignBottom, vt);
 
         // X label
-        const QString lb = (i < m_labels.size() ? m_labels[i] : QString("#%1").arg(i+1));
+        const QString lb = (i < m_labels.size() ? m_labels[i] : QString("#%1").arg(i + 1));
         const QRectF lrc(x - 8, rc.bottom() - bottomPad + 4, barW + 16, bottomPad - 4);
         p.drawText(lrc, Qt::AlignHCenter | Qt::AlignTop, lb);
     }

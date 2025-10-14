@@ -105,8 +105,16 @@ class Expend : public QWidget
     void recv_llama_log(QString log);            // 传递llama.cpp的log
     // Eval: receive current UI mode/apis/settings snapshot from main UI
     void recv_eval_mode(EVA_MODE m) { eval_mode = m; }
-    void recv_eval_apis(APIS a) { eval_apis = a; updateEvalInfoUi(); }
-    void recv_eval_settings(SETTINGS s) { eval_settings = s; updateEvalInfoUi(); }
+    void recv_eval_apis(APIS a)
+    {
+        eval_apis = a;
+        updateEvalInfoUi();
+    }
+    void recv_eval_settings(SETTINGS s)
+    {
+        eval_settings = s;
+        updateEvalInfoUi();
+    }
   private slots:
     void on_tabWidget_tabBarClicked(int index); // 用户切换选项卡时响应
     void onTabCurrentChanged(int index);        // 选项卡变更（包含编程切换）
@@ -114,6 +122,7 @@ class Expend : public QWidget
     // Eval: user actions
     void on_eval_start_pushButton_clicked();
     void on_eval_stop_pushButton_clicked();
+
   private:
     Ui::Expend *ui;
     //-------------------------------------------------------------------------
@@ -155,15 +164,15 @@ class Expend : public QWidget
     qint64 embedding_server_pid = -1;
     // 停止知识库嵌入服务；force=true 时强制杀进程树（Windows 使用 taskkill /T /F）
     void stopEmbeddingServer(bool force = false);
-    void embedding_server_start();          // 尝试启动server
-    QString txtpath;                        // 用户上传的txt文件路径
-    QStringList upload_paths;               // selected source files (txt/md/docx)
-    int embedding_server_dim = 1024;        // 开启嵌入服务的嵌入维度
-    void preprocessTXT();                   // 预处理文件内容
+    void embedding_server_start();                  // 尝试启动server
+    QString txtpath;                                // 用户上传的txt文件路径
+    QStringList upload_paths;                       // selected source files (txt/md/docx)
+    int embedding_server_dim = 1024;                // 开启嵌入服务的嵌入维度
+    void preprocessTXT();                           // 预处理文件内容
     void preprocessFiles(const QStringList &paths); // preprocess multiple files
-    int show_chunk_index = 0;               // 待显示的嵌入文本段的序号
-    QVector<Embedding_vector> Embedding_DB; // 嵌入的所有文本段的词向量，向量数据库
-    VectorDB vectorDb;                      // SQLite 持久化向量库
+    int show_chunk_index = 0;                       // 待显示的嵌入文本段的序号
+    QVector<Embedding_vector> Embedding_DB;         // 嵌入的所有文本段的词向量，向量数据库
+    VectorDB vectorDb;                              // SQLite 持久化向量库
     Embedding_vector user_embedding_vector;
     double cosine_similarity(const std::vector<double> &a, const std::vector<double> &b);
     std::vector<std::pair<int, double>> similar_indices(const std::vector<double> &user_vector, const QVector<Embedding_vector> &embedding_DB);
@@ -314,7 +323,7 @@ class Expend : public QWidget
     SETTINGS eval_settings; // sampling/back-end
     // Internal evaluator state
     class xNet *evalNet = nullptr; // dedicated network worker for eval
-    QThread *evalThread = nullptr;  // worker thread
+    QThread *evalThread = nullptr; // worker thread
     bool evalRunning = false;
     bool evalFirstToken = false;
     QElapsedTimer evalTimer; // general timer
@@ -343,7 +352,12 @@ class Expend : public QWidget
     int logicCorrect_ = 0;
     int logicPlanned_ = 5;
     // Tools test cases
-    struct ToolCase { QString name; QString user; QString desc; };
+    struct ToolCase
+    {
+        QString name;
+        QString user;
+        QString desc;
+    };
     QVector<ToolCase> toolCases_;
     int toolIndex_ = 0;
     int toolCorrect_ = 0;

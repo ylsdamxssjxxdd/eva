@@ -59,7 +59,8 @@ void Expend::updateEvalInfoUi()
             modelStr = QFileInfo(p).fileName();
             if (modelStr.isEmpty())
             {
-                QString t = p; t.replace("\\", "/");
+                QString t = p;
+                t.replace("\\", "/");
                 const int k = t.lastIndexOf('/');
                 modelStr = (k >= 0 ? t.mid(k + 1) : p);
             }
@@ -103,7 +104,8 @@ void Expend::evalResetUi()
 
     ui->eval_log_plainTextEdit->clear();
     // Progress bar (units recomputed by start); put text inside the bar
-    if (ui->eval_progressBar) {
+    if (ui->eval_progressBar)
+    {
         ui->eval_progressBar->setMaximum(stepsUnitsTotal);
         ui->eval_progressBar->setValue(0);
         ui->eval_progressBar->setTextVisible(true);
@@ -116,7 +118,8 @@ void Expend::evalResetUi()
 
 void Expend::evalSetTable(int row, const QString &name, const QString &val, const QString &desc)
 {
-    auto setItem = [&](int r, int c, const QString &text) {
+    auto setItem = [&](int r, int c, const QString &text)
+    {
         QTableWidgetItem *it = ui->eval_table->item(r, c);
         if (!it)
         {
@@ -136,7 +139,12 @@ void Expend::evalSetStatus(int row, const QString &status)
 {
     if (!ui || !ui->eval_table) return;
     QTableWidgetItem *it = ui->eval_table->item(row, 1);
-    if (!it) { it = new QTableWidgetItem(); it->setFlags(it->flags() & ~Qt::ItemIsEditable); ui->eval_table->setItem(row, 1, it); }
+    if (!it)
+    {
+        it = new QTableWidgetItem();
+        it->setFlags(it->flags() & ~Qt::ItemIsEditable);
+        ui->eval_table->setItem(row, 1, it);
+    }
     it->setText(status);
 }
 
@@ -144,9 +152,16 @@ void Expend::evalSetElapsed(int row, double seconds)
 {
     if (!ui || !ui->eval_table) return;
     QTableWidgetItem *it = ui->eval_table->item(row, 2);
-    if (!it) { it = new QTableWidgetItem(); it->setFlags(it->flags() & ~Qt::ItemIsEditable); ui->eval_table->setItem(row, 2, it); }
-    if (seconds >= 0) it->setText(QString::number(seconds, 'f', 2));
-    else it->setText(QString());
+    if (!it)
+    {
+        it = new QTableWidgetItem();
+        it->setFlags(it->flags() & ~Qt::ItemIsEditable);
+        ui->eval_table->setItem(row, 2, it);
+    }
+    if (seconds >= 0)
+        it->setText(QString::number(seconds, 'f', 2));
+    else
+        it->setText(QString());
 }
 
 void Expend::evalLog(const QString &line)
@@ -172,8 +187,12 @@ ENDPOINT_DATA Expend::makeBaseData(double temp, int npredict)
 QJsonArray Expend::makeMsgs(const QString &sys, const QString &user)
 {
     QJsonArray arr;
-    QJsonObject s; s.insert("role", DEFAULT_SYSTEM_NAME); s.insert("content", sys);
-    QJsonObject u; u.insert("role", DEFAULT_USER_NAME);   u.insert("content", user);
+    QJsonObject s;
+    s.insert("role", DEFAULT_SYSTEM_NAME);
+    s.insert("content", sys);
+    QJsonObject u;
+    u.insert("role", DEFAULT_USER_NAME);
+    u.insert("content", user);
     arr.append(s);
     arr.append(u);
     return arr;
@@ -221,10 +240,14 @@ void Expend::on_eval_start_pushButton_clicked()
     m_toolScore = -1.0;
     m_syncRate = -1.0;
     // reset per-run indices
-    qaIndex_ = 0; qaCorrect_ = 0;
-    logicIndex_ = 0; logicCorrect_ = 0;
-    toolIndex_ = 0; toolCorrect_ = 0;
-    genCounting_ = false; genStartNsRel_ = 0;
+    qaIndex_ = 0;
+    qaCorrect_ = 0;
+    logicIndex_ = 0;
+    logicCorrect_ = 0;
+    toolIndex_ = 0;
+    toolCorrect_ = 0;
+    genCounting_ = false;
+    genStartNsRel_ = 0;
     evalUpdateProgress();
     evalNext();
 }
@@ -260,9 +283,9 @@ void Expend::evalNext()
     {
     case 0: runLatencyTest(); break;
     case 1: runGenSpeedTest(); break;
-    case 2: runQATest(); break;        // Common-sense MC
-    case 3: runLogicTest(); break;     // Logical MC
-    case 4: runToolcallTest(); break;  // Tools multi-cases
+    case 2: runQATest(); break;       // Common-sense MC
+    case 3: runLogicTest(); break;    // Logical MC
+    case 4: runToolcallTest(); break; // Tools multi-cases
     default: evalFinish(); break;
     }
 }
@@ -295,7 +318,8 @@ void Expend::runGenSpeedTest()
     evalAccum.clear();
     evalTimer.restart();
     stepTimer.restart();
-    genCounting_ = false; genStartNsRel_ = 0;
+    genCounting_ = false;
+    genStartNsRel_ = 0;
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -312,7 +336,8 @@ void Expend::runQATest()
         qaPairs_.push_back({QStringLiteral("常识问答3：地球绕太阳一周大约需要?\nA) 24 小时\nB) 7 天\nC) 365 天\nD) 12 小时\n仅输出 A/B/C/D。"), QStringLiteral("c")});
         qaPairs_.push_back({QStringLiteral("常识问答4：'傲慢与偏见'的作者是谁?\nA) 奥斯汀\nB) 雪莱\nC) 狄更斯\nD) 莎士比亚\n仅输出 A/B/C/D。"), QStringLiteral("a")});
         qaPairs_.push_back({QStringLiteral("常识问答5：太阳从哪个方向升起?\nA) 南\nB) 北\nC) 西\nD) 东\n仅输出 A/B/C/D。"), QStringLiteral("d")});
-        qaIndex_ = 0; qaCorrect_ = 0;
+        qaIndex_ = 0;
+        qaCorrect_ = 0;
         evalLog(QStringLiteral("[3/5] 常识问答 (5 题，单选)"));
     }
     if (qaIndex_ >= qaPairs_.size())
@@ -345,13 +370,14 @@ void Expend::runLogicTest()
         // Initialize 5 harder MC questions (Olympiad-style, simplified)
         logicPairs_.clear();
         logicPairs_.push_back({QStringLiteral("逻辑推理1：数列 2, 6, 12, 20, ? 的下一个数是?\nA) 28\nB) 30\nC) 32\nD) 34\n仅输出 A/B/C/D。"), QStringLiteral("b")}); // pattern +4,+6,+8,+10
-        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("c")}); // n(n-3)/2 = 9 ? Wait hexagon: 6*3/2=9; but options; correct is B=9. Fix to b
+        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("c")});          // n(n-3)/2 = 9 ? Wait hexagon: 6*3/2=9; but options; correct is B=9. Fix to b
         logicPairs_.last().second = QStringLiteral("b");
-        logicPairs_.push_back({QStringLiteral("逻辑推理3：在1到100的整数中，数字9出现的次数是?\nA) 18\nB) 19\nC) 20\nD) 21\n仅输出 A/B/C/D。"), QStringLiteral("c")}); // 20
+        logicPairs_.push_back({QStringLiteral("逻辑推理3：在1到100的整数中，数字9出现的次数是?\nA) 18\nB) 19\nC) 20\nD) 21\n仅输出 A/B/C/D。"), QStringLiteral("c")});                    // 20
         logicPairs_.push_back({QStringLiteral("逻辑推理4：一个两位数，十位与个位之和为9，且该数是9的倍数，该数是?\nA) 18\nB) 27\nC) 45\nD) 54\n仅输出 A/B/C/D。"), QStringLiteral("d")}); // 54 (6+? actually 5+4=9 and 54 divisible by 9)
-        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("b")}); // often prime? Actually n(n+1)(n+2)(n+3)+1 is not guaranteed prime; Known for n=1 gives 25 not prime. So D is correct. Fix to D.
+        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("b")});       // often prime? Actually n(n+1)(n+2)(n+3)+1 is not guaranteed prime; Known for n=1 gives 25 not prime. So D is correct. Fix to D.
         logicPairs_.last().second = QStringLiteral("d");
-        logicIndex_ = 0; logicCorrect_ = 0;
+        logicIndex_ = 0;
+        logicCorrect_ = 0;
         evalLog(QStringLiteral("[4/5] 逻辑推理 (5 题，单选)"));
     }
     if (logicIndex_ >= logicPairs_.size())
@@ -389,20 +415,14 @@ void Expend::runToolcallTest()
         m_toolScore = 100.0 * double(toolCorrect_) / double(total);
         evalSetTable(4, QStringLiteral("工具调用(0-100)"), QString::number(m_toolScore, 'f', 0), QStringLiteral("六项综合"));
         evalSetStatus(4, QStringLiteral("完成"));
-        evalSetElapsed(4, stepTimer.nsecsElapsed()/1e9);
+        evalSetElapsed(4, stepTimer.nsecsElapsed() / 1e9);
         evalStep++;
         evalNext();
         return;
     }
     // Prepare one tool case
     const ToolCase &tc = toolCases_[toolIndex_];
-    QString toolsDesc = Buildin_tools_answer.text + QString("\n\n")
-                        + Buildin_tools_calculator.text + QString("\n\n")
-                        + Buildin_tools_stablediffusion.text + QString("\n\n")
-                        + Buildin_tools_knowledge.text + QString("\n\n")
-                        + Buildin_tools_execute_command.text + QString("\n\n")
-                        + Buildin_tools_controller.text + QString("\n\n")
-                        + Buildin_tools_mcp_tools_list.text;
+    QString toolsDesc = Buildin_tools_answer.text + QString("\n\n") + Buildin_tools_calculator.text + QString("\n\n") + Buildin_tools_stablediffusion.text + QString("\n\n") + Buildin_tools_knowledge.text + QString("\n\n") + Buildin_tools_execute_command.text + QString("\n\n") + Buildin_tools_controller.text + QString("\n\n") + Buildin_tools_mcp_tools_list.text;
     QString sys = EXTRA_PROMPT_FORMAT;
     sys.replace("{available_tools_describe}", toolsDesc);
     sys.replace("{engineer_info}", QString());
@@ -422,15 +442,20 @@ void Expend::runToolcallTest()
 void Expend::evalFinish()
 {
     // Weighted overall score per spec: 10% TTFB, 20% Gen, 20% Common QA, 20% Logic, 30% Tools
-    auto scoreTTFB = [&](double ms) {
-        if (ms < 0) return 0.0; if (ms <= 500.0) return 100.0; if (ms >= 10000.0) return 0.0; return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
+    auto scoreTTFB = [&](double ms)
+    {
+        if (ms < 0) return 0.0;
+        if (ms <= 500.0) return 100.0;
+        if (ms >= 10000.0) return 0.0;
+        return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
     };
-    auto scoreGen = [&](double tokps) {
+    auto scoreGen = [&](double tokps)
+    {
         if (tokps < 0) return 0.0; if (tokps >= 100.0) return 100.0; if (tokps <= 0.0) return 0.0; return tokps; /* linear to 100 */ };
     const double s_ttfb = scoreTTFB(m_firstTokenMs);
-    const double s_gen  = scoreGen(m_genTokPerSec);
-    const double s_qa   = qMax(0.0, m_qaScore);
-    const double s_log  = qMax(0.0, m_logicScore);
+    const double s_gen = scoreGen(m_genTokPerSec);
+    const double s_qa = qMax(0.0, m_qaScore);
+    const double s_log = qMax(0.0, m_logicScore);
     const double s_tool = qMax(0.0, m_toolScore);
     m_syncRate = std::max(0.0, std::min(100.0, 0.10 * s_ttfb + 0.20 * s_gen + 0.20 * s_qa + 0.20 * s_log + 0.30 * s_tool));
     // Do not show overall score in the table; only log it and reflect on bar chart
@@ -454,8 +479,12 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         {
             m_firstTokenMs = ms;
             // Display score (0-100) in the "值" column for TTFB
-            auto scoreTTFB = [&](double t_ms) {
-                if (t_ms < 0) return 0.0; if (t_ms <= 500.0) return 100.0; if (t_ms >= 10000.0) return 0.0; return (10000.0 - t_ms) * 100.0 / (10000.0 - 500.0);
+            auto scoreTTFB = [&](double t_ms)
+            {
+                if (t_ms < 0) return 0.0;
+                if (t_ms <= 500.0) return 100.0;
+                if (t_ms >= 10000.0) return 0.0;
+                return (10000.0 - t_ms) * 100.0 / (10000.0 - 500.0);
             };
             const double s = scoreTTFB(m_firstTokenMs);
             evalSetTable(0, QStringLiteral("首次响应(ms)"), QString::number(s, 'f', 0));
@@ -490,9 +519,18 @@ void Expend::onEvalState(const QString &line, SIGNAL_STATE st)
         // Mark current step as failed
         // Map evalStep -> row index in merged table
         int r = 0;
-        if (evalStep == 0) r = 0; else if (evalStep == 1) r = 1; else if (evalStep == 2) r = 2; else if (evalStep == 3) r = 3; else /*evalStep>=4*/ r = 4;
+        if (evalStep == 0)
+            r = 0;
+        else if (evalStep == 1)
+            r = 1;
+        else if (evalStep == 2)
+            r = 2;
+        else if (evalStep == 3)
+            r = 3;
+        else /*evalStep>=4*/
+            r = 4;
         evalSetStatus(r, QStringLiteral("错误"));
-        evalSetElapsed(r, stepTimer.nsecsElapsed()/1e9);
+        evalSetElapsed(r, stepTimer.nsecsElapsed() / 1e9);
         evalRunning = false;
         evalFinish();
     }
@@ -530,7 +568,7 @@ void Expend::onEvalPushover()
         if (m_firstTokenMs >= 0)
             evalSetElapsed(0, m_firstTokenMs / 1000.0);
         else
-            evalSetElapsed(0, stepTimer.nsecsElapsed()/1e9);
+            evalSetElapsed(0, stepTimer.nsecsElapsed() / 1e9);
         stepsDone++;
         evalUpdateProgress();
         updateScoreBars();
@@ -566,7 +604,7 @@ void Expend::onEvalPushover()
         // Log actual generated content
         evalLog(QStringLiteral("[生成速度] 生成内容(长度=") + QString::number(evalAccum.size()) + QStringLiteral(")：\n") + evalAccum);
         evalSetStatus(1, QStringLiteral("完成"));
-        evalSetElapsed(1, stepTimer.nsecsElapsed()/1e9);
+        evalSetElapsed(1, stepTimer.nsecsElapsed() / 1e9);
         stepsDone++;
         evalUpdateProgress();
         evalStep++;
@@ -585,7 +623,7 @@ void Expend::onEvalPushover()
         // Log this Q/A clearly
         evalLog(QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + ")：\n" + question +
                 QStringLiteral("\n标准答案：") + expect.toUpper() +
-                QStringLiteral("\n模型回答：") + (pick.isNull()? ansRaw : QString(pick).toUpper()) +
+                QStringLiteral("\n模型回答：") + (pick.isNull() ? ansRaw : QString(pick).toUpper()) +
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
         qaIndex_++;
         stepsDone++; // count each QA as a progress unit
@@ -593,9 +631,10 @@ void Expend::onEvalPushover()
         evalUpdateProgress();
         // Next QA or finish QA stage
         runQATest();
-        if (qaIndex_ >= qaPairs_.size()) {
+        if (qaIndex_ >= qaPairs_.size())
+        {
             evalSetStatus(2, QStringLiteral("完成"));
-            evalSetElapsed(2, stepTimer.nsecsElapsed()/1e9);
+            evalSetElapsed(2, stepTimer.nsecsElapsed() / 1e9);
             updateScoreBars();
         }
         break;
@@ -611,16 +650,17 @@ void Expend::onEvalPushover()
         if (ok) logicCorrect_++;
         evalLog(QStringLiteral("[逻辑推理] 题目(") + QString::number(logicIndex_ + 1) + ")：\n" + question +
                 QStringLiteral("\n标准答案：") + expect.toUpper() +
-                QStringLiteral("\n模型回答：") + (pick.isNull()? ansRaw : QString(pick).toUpper()) +
+                QStringLiteral("\n模型回答：") + (pick.isNull() ? ansRaw : QString(pick).toUpper()) +
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
         logicIndex_++;
         stepsDone++;
         evalSetStatus(3, QStringLiteral("进行中 ") + QString::number(std::min(logicIndex_, logicPlanned_)) + "/" + QString::number(logicPlanned_));
         evalUpdateProgress();
         runLogicTest();
-        if (logicIndex_ >= logicPairs_.size()) {
+        if (logicIndex_ >= logicPairs_.size())
+        {
             evalSetStatus(3, QStringLiteral("完成"));
-            evalSetElapsed(3, stepTimer.nsecsElapsed()/1e9);
+            evalSetElapsed(3, stepTimer.nsecsElapsed() / 1e9);
             updateScoreBars();
         }
         break;
@@ -636,15 +676,20 @@ void Expend::onEvalPushover()
         if (s >= 0 && e > s)
         {
             jsonStr = all.mid(s + 11, e - (s + 11)).trimmed();
-            try {
+            try
+            {
                 mcp::json call = mcp::json::parse(jsonStr.toStdString());
                 const QString name = QString::fromStdString(get_string_safely(call, "name"));
                 ok = (name == toolCases_[toolIndex_].name);
-            } catch (...) { ok = false; }
+            }
+            catch (...)
+            {
+                ok = false;
+            }
         }
         toolCorrect_ += ok ? 1 : 0;
-        evalLog(QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_+1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc +
-                QStringLiteral("\n模型输出：\n") + (jsonStr.isEmpty()? all : jsonStr) +
+        evalLog(QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc +
+                QStringLiteral("\n模型输出：\n") + (jsonStr.isEmpty() ? all : jsonStr) +
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确工具") : QStringLiteral("错误或缺失")));
         // Update partial tool score to refresh bar chart
         const int total = qMax(1, (int)toolCases_.size());
@@ -670,17 +715,23 @@ void Expend::evalInitTable()
 
 void Expend::evalUpdateProgress()
 {
-    if (ui->eval_progressBar) { ui->eval_progressBar->setMaximum(stepsUnitsTotal); ui->eval_progressBar->setValue(stepsDone); }
+    if (ui->eval_progressBar)
+    {
+        ui->eval_progressBar->setMaximum(stepsUnitsTotal);
+        ui->eval_progressBar->setValue(stepsDone);
+    }
 }
 
 void Expend::updateScoreBars()
 {
     // Update compact chart in score group (6 bars: TTFB / Gen / QA / Logic / Tools / Overall)
-    auto scoreTTFB = [&](double ms) {
+    auto scoreTTFB = [&](double ms)
+    {
         if (ms < 0) return 0.0; if (ms <= 500) return 100.0; if (ms >= 10000) return 0.0; return (10000.0 - ms) * 100.0 / (10000.0 - 500.0); };
-    auto scoreGen = [&](double tps) { if (tps < 0) return 0.0; if (tps >= 100.0) return 100.0; if (tps <= 0) return 0.0; return tps; };
+    auto scoreGen = [&](double tps)
+    { if (tps < 0) return 0.0; if (tps >= 100.0) return 100.0; if (tps <= 0) return 0.0; return tps; };
     const double s1 = (m_firstTokenMs >= 0 ? scoreTTFB(m_firstTokenMs) : -1);
-    const double s2 = (m_genTokPerSec >= 0 ? scoreGen(m_genTokPerSec) : (m_genCharsPerSec > 0 ? scoreGen(m_genCharsPerSec/4.0) : -1));
+    const double s2 = (m_genTokPerSec >= 0 ? scoreGen(m_genTokPerSec) : (m_genCharsPerSec > 0 ? scoreGen(m_genCharsPerSec / 4.0) : -1));
     const double s3 = (m_qaScore >= 0 ? m_qaScore : -1);
     const double s4 = (m_logicScore >= 0 ? m_logicScore : -1);
     const double s5 = (m_toolScore >= 0 ? m_toolScore : -1);
@@ -694,7 +745,8 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
     if (!ui || !ui->eval_table) return;
     QTableWidgetItem *cell = ui->eval_table->item(row, 3);
     if (!cell) return;
-    auto setBg = [&](const QColor &c){ cell->setBackground(QBrush(c)); };
+    auto setBg = [&](const QColor &c)
+    { cell->setBackground(QBrush(c)); };
     const QColor good(180, 255, 180);
     const QColor warn(255, 235, 150);
     const QColor bad(255, 180, 180);
@@ -702,41 +754,56 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
     if (key.contains("首次响应"))
     {
         if (m_firstTokenMs < 0) return;
-        if (m_firstTokenMs <= 500) setBg(good);
-        else if (m_firstTokenMs <= 2000) setBg(warn);
-        else setBg(bad);
+        if (m_firstTokenMs <= 500)
+            setBg(good);
+        else if (m_firstTokenMs <= 2000)
+            setBg(warn);
+        else
+            setBg(bad);
         return;
     }
     if (key.contains("生成速度"))
     {
         if (val <= 0) return;
-        if (val >= 100) setBg(good);
-        else if (val >= 60) setBg(warn);
-        else setBg(bad);
+        if (val >= 100)
+            setBg(good);
+        else if (val >= 60)
+            setBg(warn);
+        else
+            setBg(bad);
         return;
     }
     if (key.contains("常识问答"))
     {
         if (val < 0) return;
-        if (val >= 80) setBg(good);
-        else if (val >= 60) setBg(warn);
-        else setBg(bad);
+        if (val >= 80)
+            setBg(good);
+        else if (val >= 60)
+            setBg(warn);
+        else
+            setBg(bad);
         return;
     }
     if (key.contains("逻辑推理"))
     {
         if (val < 0) return;
-        if (val >= 80) setBg(good);
-        else if (val >= 60) setBg(warn);
-        else setBg(bad);
+        if (val >= 80)
+            setBg(good);
+        else if (val >= 60)
+            setBg(warn);
+        else
+            setBg(bad);
         return;
     }
     if (key.contains("工具调用"))
     {
         if (val < 0) return;
-        if (val >= 90) setBg(good);
-        else if (val >= 50) setBg(warn);
-        else setBg(bad);
+        if (val >= 90)
+            setBg(good);
+        else if (val >= 50)
+            setBg(warn);
+        else
+            setBg(bad);
         return;
     }
 }

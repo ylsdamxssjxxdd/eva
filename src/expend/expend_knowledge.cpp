@@ -1,8 +1,8 @@
 #include "expend.h"
 
 #include "../utils/devicemanager.h"
-#include "../utils/pathutil.h"
 #include "../utils/docparser.h" // parse txt/md/docx
+#include "../utils/pathutil.h"
 #include "ui_expend.h"
 #include <QSet>
 
@@ -145,8 +145,10 @@ void Expend::on_embedding_txt_upload_clicked()
     upload_paths = paths;
     txtpath = paths.first();
     currentpath = QFileInfo(txtpath).absolutePath();
-    if (paths.size() == 1) ui->embedding_txt_lineEdit->setText(txtpath);
-    else ui->embedding_txt_lineEdit->setText(QString::number(paths.size()) + jtr(" files selected"));
+    if (paths.size() == 1)
+        ui->embedding_txt_lineEdit->setText(txtpath);
+    else
+        ui->embedding_txt_lineEdit->setText(QString::number(paths.size()) + jtr(" files selected"));
     preprocessFiles(upload_paths);
 }
 
@@ -209,7 +211,8 @@ void Expend::preprocessFiles(const QStringList &paths)
     const int splitLength = ui->embedding_split_spinbox->value();
     const int overlap = ui->embedding_overlap_spinbox->value();
 
-    auto splitContent = [&](const QString &content) {
+    auto splitContent = [&](const QString &content)
+    {
         // tokenize then sliding-window split by character length with overlap
         const QStringList tokens = tokenizeContent(content);
         int startTokenIndex = 0;
@@ -231,7 +234,10 @@ void Expend::preprocessFiles(const QStringList &paths)
             int overlapLength = 0;
             int overlapTokens = 0;
             while (endTokenIndex - overlapTokens > startTokenIndex && overlapLength < overlap)
-            { overlapLength += tokens[endTokenIndex - 1 - overlapTokens].length(); ++overlapTokens; }
+            {
+                overlapLength += tokens[endTokenIndex - 1 - overlapTokens].length();
+                ++overlapTokens;
+            }
             startTokenIndex = endTokenIndex - overlapTokens;
         }
     };
@@ -771,8 +777,3 @@ void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
 }
-
-
-
-
-

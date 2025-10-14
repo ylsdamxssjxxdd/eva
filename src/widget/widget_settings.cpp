@@ -246,7 +246,7 @@ void Widget::settings_ui_cancel_button_clicked()
 // 设置用户设置内容
 void Widget::set_set()
 {
-    get_set();                             // 获取设置中的纸面值
+    get_set(); // 获取设置中的纸面值
 
     // 如果不是对话模式则禁用约定
     if (ui_state != CHAT_STATE)

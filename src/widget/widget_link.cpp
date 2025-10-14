@@ -138,7 +138,8 @@ void Widget::tool_testhandleTimeout()
     // Ensure latest LINK apis before pushing (users may edit endpoint/key/model after linking)
     if (ui_mode == LINK_MODE)
     {
-        auto sanitize = [](const QString &s) { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
+        auto sanitize = [](const QString &s)
+        { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
         QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
         // Normalize scheme for remote hosts
         {
@@ -146,8 +147,10 @@ void Widget::tool_testhandleTimeout()
             QString host = u.host().toLower();
             QString scheme = u.scheme().toLower();
             const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
-            if (scheme.isEmpty()) u.setScheme(isLocal ? "http" : "https");
-            else if (scheme == "http" && !isLocal) u.setScheme("https");
+            if (scheme.isEmpty())
+                u.setScheme(isLocal ? "http" : "https");
+            else if (scheme == "http" && !isLocal)
+                u.setScheme("https");
             clean_endpoint = u.toString(QUrl::RemoveFragment);
         }
         const QString clean_key = sanitize(api_key_LineEdit->text());
@@ -219,7 +222,8 @@ void Widget::fetchRemoteContextLimit()
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]() {
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
+            {
         rp->deleteLater();
         nam->deleteLater();
         if (rp->error() != QNetworkReply::NoError)
@@ -296,8 +300,7 @@ void Widget::fetchRemoteContextLimit()
         {
             // Fallback: try llama.cpp tools/server props API
             fetchPropsContextLimit();
-        }
-    });
+        } });
 }
 
 // Fallback: GET /props from llama.cpp tools/server to obtain global n_ctx
@@ -318,7 +321,8 @@ void Widget::fetchPropsContextLimit()
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]() {
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
+            {
         rp->deleteLater();
         nam->deleteLater();
         if (rp->error() != QNetworkReply::NoError) return;
@@ -348,8 +352,5 @@ void Widget::fetchPropsContextLimit()
             SETTINGS snap = ui_SETTINGS;
             if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
             emit ui2expend_settings(snap);
-        }
-    });
+        } });
 }
-
-

@@ -11,12 +11,12 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QMetaType>
 #include <QOperatingSystemVersion>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QThread>
 #include <QWidget>
-#include <QMetaType>
 #include <array>
 #include <iostream>
 // removed libsamplerate/libsndfile usage; whisper-cli handles resampling

@@ -47,6 +47,7 @@ class DeviceManager
     static QString currentArchId();
     // Normalized OS id: win, linux, mac
     static QString currentOsId();
+
   private:
     static QStringList preferredOrder();
     // Map a known executable name to its canonical project folder
@@ -55,6 +56,3 @@ class DeviceManager
 };
 
 #endif // EVA_DEVICE_MANAGER_H
-
-
-

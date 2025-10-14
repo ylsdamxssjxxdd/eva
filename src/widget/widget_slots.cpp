@@ -685,7 +685,7 @@ void Widget::updateKvBarUi()
 
     // Convert used/cap to percent in a single (orange) segment
     int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
-    if (percent < 0) percent = 0; 
+    if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
     // Visual minimum: if any memory, show at least 1%
     if (used > 0 && percent == 0) percent = 1;

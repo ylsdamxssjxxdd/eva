@@ -4,11 +4,11 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include <QProcess>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QTextStream>
 #include <QXmlStreamReader>
-#include <QProcess>
 
 namespace DocParser
 {
@@ -103,22 +103,24 @@ QString readDocxText(const QString &path)
 {
 #ifdef _WIN32
     // Try: read document.xml directly via .NET ZipFile to avoid disk extraction.
-    auto psReadDocXml = [&](const QString &psExe) -> QString {
+    auto psReadDocXml = [&](const QString &psExe) -> QString
+    {
         QString pEsc = path;
         pEsc.replace("'", "''");
         const QString script =
             "$ErrorActionPreference='Stop';"
             "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;"
             "Add-Type -AssemblyName 'System.IO.Compression.FileSystem';"
-            "$p='" + pEsc + "';"
-            "$zip=[System.IO.Compression.ZipFile]::OpenRead($p);"
-            "try{"
-            "$e=$zip.GetEntry('word/document.xml');"
-            "if($e -eq $null){ exit 2 }"
-            "$sr=New-Object System.IO.StreamReader($e.Open(),[System.Text.Encoding]::UTF8);"
-            "$xml=$sr.ReadToEnd();$sr.Close();"
-            "[Console]::Write($xml)"
-            "}finally{$zip.Dispose()}";
+            "$p='" +
+            pEsc + "';"
+                   "$zip=[System.IO.Compression.ZipFile]::OpenRead($p);"
+                   "try{"
+                   "$e=$zip.GetEntry('word/document.xml');"
+                   "if($e -eq $null){ exit 2 }"
+                   "$sr=New-Object System.IO.StreamReader($e.Open(),[System.Text.Encoding]::UTF8);"
+                   "$xml=$sr.ReadToEnd();$sr.Close();"
+                   "[Console]::Write($xml)"
+                   "}finally{$zip.Dispose()}";
         QProcess pr;
         QStringList args;
         args << QStringLiteral("-NoLogo") << QStringLiteral("-NoProfile") << QStringLiteral("-Command") << script;
@@ -138,9 +140,9 @@ QString readDocxText(const QString &path)
     if (!tmp.isValid()) return {};
     const QString dst = tmp.path();
     const QString ps = QStringLiteral(
-        "$ErrorActionPreference='Stop';"
-        "Expand-Archive -Force -LiteralPath \"%1\" -DestinationPath \"%2\""
-    ).arg(path, dst);
+                           "$ErrorActionPreference='Stop';"
+                           "Expand-Archive -Force -LiteralPath \"%1\" -DestinationPath \"%2\"")
+                           .arg(path, dst);
     QProcess proc;
     QStringList args;
     args << QStringLiteral("-NoLogo") << QStringLiteral("-NoProfile") << QStringLiteral("-Command") << ps;

@@ -17,5 +17,4 @@ QString markdownToText(const QString &md);
 // Windows: uses PowerShell Expand-Archive to a temp dir then parses word/document.xml.
 // Non-Windows: returns empty string (graceful fallback).
 QString readDocxText(const QString &path);
-}
-
+} // namespace DocParser

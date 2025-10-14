@@ -230,7 +230,8 @@ QString DeviceManager::currentOsId()
     if (t.contains("osx") || t.contains("mac")) return QStringLiteral("mac");
     return QStringLiteral("linux"); // default to linux-like
 #endif
-}QString DeviceManager::projectForProgram(const QString &name)
+}
+QString DeviceManager::projectForProgram(const QString &name)
 {
     // Minimal mapping for known third-party projects; extend as new tools are added
     if (name == QLatin1String("llama-server")) return QStringLiteral("llama.cpp");
@@ -240,9 +241,3 @@ QString DeviceManager::currentOsId()
     // default to using the name itself as folder (best-effort)
     return name;
 }
-
-
-
-
-
-

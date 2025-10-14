@@ -7,6 +7,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmap>
 #include <QRect>
 #include <QResizeEvent>
 #include <QSizePolicy>
@@ -14,7 +15,6 @@
 #include <QToolTip>
 #include <QVector>
 #include <QWheelEvent>
-#include <QPixmap>
 // A thin horizontal bar that displays key conversation nodes as colored chips.
 // - Hover: shows tooltip text (content snippet)
 // - Single click: emit nodeClicked(index)
@@ -120,20 +120,26 @@ class RecordBar : public QWidget
         QColor base = palette().color(QPalette::Window);
         // Vertical gradient overlay (very light)
         QLinearGradient g(0, 0, 0, bg.height());
-        QColor top = base.lighter(108); top.setAlpha(64);
-        QColor mid = base;                mid.setAlpha(32);
-        QColor bot = base.darker(108);    bot.setAlpha(64);
+        QColor top = base.lighter(108);
+        top.setAlpha(64);
+        QColor mid = base;
+        mid.setAlpha(32);
+        QColor bot = base.darker(108);
+        bot.setAlpha(64);
         g.setColorAt(0.0, top);
         g.setColorAt(0.5, mid);
         g.setColorAt(1.0, bot);
         p.fillRect(bg, g);
         // Diagonal hatch with tiny alpha to add micro-texture
-        QPixmap hatch(8, 8); hatch.fill(Qt::transparent);
+        QPixmap hatch(8, 8);
+        hatch.fill(Qt::transparent);
         {
             QPainter hp(&hatch);
             hp.setRenderHint(QPainter::Antialiasing, false);
-            QColor line1 = base.lighter(120); line1.setAlpha(18);
-            QColor line2 = base.darker(120);  line2.setAlpha(12);
+            QColor line1 = base.lighter(120);
+            line1.setAlpha(18);
+            QColor line2 = base.darker(120);
+            line2.setAlpha(12);
             hp.setPen(QPen(line1, 1));
             for (int i = -8; i < 8; ++i) hp.drawLine(i, 7, i + 7, 0);
             hp.setPen(QPen(line2, 1));

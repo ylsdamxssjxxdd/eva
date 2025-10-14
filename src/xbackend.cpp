@@ -187,7 +187,7 @@ void LocalServerManager::ensureRunning()
         const QString os = DeviceManager::currentOsId();
         const QStringList searched = DeviceManager::probedBackendRoots();
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
-                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+                                .arg(QStringLiteral("llama-server"), eb, root, arch, os);
         QString hint;
         if (!searched.isEmpty())
         {
@@ -222,7 +222,7 @@ void LocalServerManager::restart()
         const QString os = DeviceManager::currentOsId();
         const QStringList searched = DeviceManager::probedBackendRoots();
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
-                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+                                .arg(QStringLiteral("llama-server"), eb, root, arch, os);
         QString hint;
         if (!searched.isEmpty())
         {

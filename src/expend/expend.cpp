@@ -136,8 +136,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
             {
                 // Stop eval worker and any local embedding server to ensure clean exit
                 shutdownEvalWorker();
-                stopEmbeddingServer(true);
-            });
+                stopEmbeddingServer(true); });
 
     // 创建播放器对象
     speech_player = new QMediaPlayer;

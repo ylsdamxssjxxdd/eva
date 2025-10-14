@@ -396,9 +396,7 @@ void xNet::run()
                         if (v.isObject()) processObj(v.toObject());
                     }
                 }
-            }
-        }
-    );
+            } });
 
     // Handle finish: stop timeout and finalize
 
@@ -529,7 +527,11 @@ QByteArray xNet::createChatBody()
     QUrl __ep = QUrl::fromUserInput(apis.api_endpoint);
     QString __host = __ep.host().toLower();
     const bool __isLocal = __host.isEmpty() || __host == "localhost" || __host == "127.0.0.1" || __host.startsWith("192.") || __host.startsWith("10.") || __host.startsWith("172.");
-    if (__isLocal) { json.insert("top_k", endpoint_data.top_k); json.insert("repeat_penalty", endpoint_data.repeat); }
+    if (__isLocal)
+    {
+        json.insert("top_k", endpoint_data.top_k);
+        json.insert("repeat_penalty", endpoint_data.repeat);
+    }
 
     // Normalize UI messages into OpenAI-compatible messages
     QJsonArray oaiMessages = promptx::buildOaiChatMessages(endpoint_data.messagesArray, endpoint_data.date_prompt,
@@ -541,19 +543,29 @@ QByteArray xNet::createChatBody()
     // observation back to the model. To maximize compatibility, convert any historical
     // tool messages to a user message prefixed with DEFAULT_OBSERVATION_NAME.
     QJsonArray compatMsgs;
-    for (const auto &v : oaiMessages) {
-        if (!v.isObject()) { compatMsgs.append(v); continue; }
+    for (const auto &v : oaiMessages)
+    {
+        if (!v.isObject())
+        {
+            compatMsgs.append(v);
+            continue;
+        }
         QJsonObject m = v.toObject();
         const QString role = m.value("role").toString();
-        if (role == QStringLiteral("tool")) {
+        if (role == QStringLiteral("tool"))
+        {
             QString content;
             const QJsonValue cv = m.value("content");
-            if (cv.isString()) content = cv.toString();
-            else if (cv.isArray()) {
+            if (cv.isString())
+                content = cv.toString();
+            else if (cv.isArray())
+            {
                 // flatten parts to text if needed
                 QStringList parts;
-                for (const auto &pv : cv.toArray()) {
-                    if (pv.isObject()) {
+                for (const auto &pv : cv.toArray())
+                {
+                    if (pv.isObject())
+                    {
                         QJsonObject po = pv.toObject();
                         if (po.value("type").toString() == QStringLiteral("text"))
                             parts << po.value("text").toString();
@@ -565,7 +577,9 @@ QByteArray xNet::createChatBody()
             u.insert("role", QStringLiteral("user"));
             u.insert("content", QString(DEFAULT_OBSERVATION_NAME) + content);
             compatMsgs.append(u);
-        } else {
+        }
+        else
+        {
             compatMsgs.append(m);
         }
     }
@@ -628,7 +642,8 @@ QByteArray xNet::createCompleteBody()
     QUrl __ep2 = QUrl::fromUserInput(apis.api_endpoint);
     QString __host2 = __ep2.host().toLower();
     const bool __isLocal2 = __host2.isEmpty() || __host2 == "localhost" || __host2 == "127.0.0.1" || __host2.startsWith("192.") || __host2.startsWith("10.") || __host2.startsWith("172.");
-    if (__isLocal2) {
+    if (__isLocal2)
+    {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
     }
@@ -685,14 +700,3 @@ QString xNet::jtr(QString customstr)
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
-
-
-
-
-
-
-
-
-
-
-

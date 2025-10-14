@@ -41,9 +41,9 @@ class xNet : public QObject
     QString current_content; // 模型最近的输出
 
     // Helpers
-    QString jtr(QString customstr);                    // 根据language.json(wordsObj)和language_flag找到对应的文字
-    QByteArray createChatBody();                       // 构造请求的数据体: 对话模式
-    QByteArray createCompleteBody();                   // 构造请求的数据体: 补完模式
+    QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag找到对应的文字
+    QByteArray createChatBody();     // 构造请求的数据体: 对话模式
+    QByteArray createCompleteBody(); // 构造请求的数据体: 补完模式
 
   public slots:
     void recv_data(ENDPOINT_DATA data); // 传递端点参数
@@ -56,9 +56,9 @@ class xNet : public QObject
     void net2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0)); // 输出
     void net2ui_pushover();                                                                       // 推理完成
     void net2ui_kv_tokens(int usedTokens);
-    void net2ui_prompt_baseline(int promptTokens);                                          // baseline prompt tokens (LINK mode usage)                                                        // streaming used token count -> UI
-    void net2ui_slot_id(int slotId);                                                              // server-assigned slot id for this conversation
-    void net2ui_reasoning_tokens(int count);                                                      // tokens generated inside <think>..</think> this turn (approx)
+    void net2ui_prompt_baseline(int promptTokens); // baseline prompt tokens (LINK mode usage)                                                        // streaming used token count -> UI
+    void net2ui_slot_id(int slotId);               // server-assigned slot id for this conversation
+    void net2ui_reasoning_tokens(int count);       // tokens generated inside <think>..</think> this turn (approx)
     // Final per-turn speeds from llama.cpp server timings (tokens/second)
     // prompt_per_second = 上文处理速度; predicted_per_second = 文字生成速度
     void net2ui_speeds(double prompt_per_second, double predicted_per_second);

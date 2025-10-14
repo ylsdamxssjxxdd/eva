@@ -300,10 +300,10 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::cpu_reflash, &cpuer, &cpuChecker::chekCpu);        // 强制刷新cpu信息
 
     //------------------连接窗口和增殖窗口-------------------
-    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);                         // 传递使用的语言
-    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);                          // 通知显示扩展窗口
-    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode);                 // 开始语音转文字
-    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);                         // 重置文字转语音
+    QObject::connect(&w, &Widget::ui2expend_language, &expend, &Expend::recv_language);         // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2expend_show, &expend, &Expend::recv_expend_show);          // 通知显示扩展窗口
+    QObject::connect(&w, &Widget::ui2expend_speechdecode, &expend, &Expend::recv_speechdecode); // 开始语音转文字
+    QObject::connect(&w, &Widget::ui2expend_resettts, &expend, &Expend::recv_resettts);         // 重置文字转语音
     // 模型评估：同步 UI 端点/设置/模式
     QObject::connect(&w, &Widget::ui2expend_apis, &expend, &Expend::recv_eval_apis);
     QObject::connect(&w, &Widget::ui2expend_settings, &expend, &Expend::recv_eval_settings);
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
     QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // 流式近似KV用量（链接模式兜底）
     QObject::connect(net, &xNet::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
-    QObject::connect(net, &xNet::net2ui_prompt_baseline, &w, &Widget::recv_prompt_baseline, Qt::QueuedConnection);       // prompt baseline tokens (LINK mode)
+    QObject::connect(net, &xNet::net2ui_prompt_baseline, &w, &Widget::recv_prompt_baseline, Qt::QueuedConnection);   // prompt baseline tokens (LINK mode)
     QObject::connect(net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
     QObject::connect(net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
     QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               // 开始推理

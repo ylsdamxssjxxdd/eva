@@ -10,15 +10,15 @@
 // 初始化增殖窗口
 void Expend::init_expend()
 {
-    this->setWindowTitle(jtr("expend window"));                                                // 标题
-    ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));           // 软件介绍
-    ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));                // 模型信息
-    ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize"));    // 模型量化
-    ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                      // 软件介绍
-    ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));                 // 知识库
-    ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));                  // 文生图
-    ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));                 // 声转文
-    ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                     // 文转声
+    this->setWindowTitle(jtr("expend window"));                                             // 标题
+    ui->tabWidget->setTabText(window_map[INTRODUCTION_WINDOW], jtr("introduction"));        // 软件介绍
+    ui->tabWidget->setTabText(window_map[MODELINFO_WINDOW], jtr("model info"));             // 模型信息
+    ui->tabWidget->setTabText(window_map[QUANTIZE_WINDOW], jtr("model") + jtr("quantize")); // 模型量化
+    ui->tabWidget->setTabText(window_map[MCP_WINDOW], jtr("mcp_server"));                   // 软件介绍
+    ui->tabWidget->setTabText(window_map[KNOWLEDGE_WINDOW], jtr("knowledge"));              // 知识库
+    ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));               // 文生图
+    ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              // 声转文
+    ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                  // 文转声
     // 软件介绍
     showReadme();
     // 模型量化

@@ -293,8 +293,10 @@ void Widget::on_load_clicked()
     vbox->addWidget(localBtn);
     vbox->addWidget(linkBtn);
     // Clicking a button ends the dialog with distinct codes
-    QObject::connect(localBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]() { modeDlg.done(1); });
-    QObject::connect(linkBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]() { modeDlg.done(2); });
+    QObject::connect(localBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]()
+                     { modeDlg.done(1); });
+    QObject::connect(linkBtn, &QPushButton::clicked, &modeDlg, [&modeDlg]()
+                     { modeDlg.done(2); });
     const int ret = modeDlg.exec();
 
     if (ret == 1)
