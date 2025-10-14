@@ -327,6 +327,10 @@ class Expend : public QWidget
     double m_qaScore = -1.0;
     double m_toolScore = -1.0;
     double m_finalScore = -1.0;
+    // Steps progress
+    const int stepsTotal = 4; // latency, gen-speed, QA, tool
+    int stepsDone = 0;
+    QElapsedTimer stepTimer;
     // QA set state
     QVector<QPair<QString, QString>> qaPairs_;
     int qaIndex_ = 0;
@@ -339,6 +343,10 @@ class Expend : public QWidget
     void evalLog(const QString &line);
     void evalSetTable(int row, const QString &name, const QString &val, const QString &desc = QString());
     void evalNext();
+    void evalInitSteps();
+    void evalUpdateProgress();
+    void updateScoreBars();
+    void setValueColor(int row, const QString &nameKey, double scoreOrValue, const QString &metric);
     // Sub-tests
     void runLatencyTest();
     void runGenSpeedTest();

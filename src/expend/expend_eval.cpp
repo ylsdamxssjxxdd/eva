@@ -73,6 +73,17 @@ void Expend::evalResetUi()
     evalSetTable(5, QStringLiteral("综合评分"), QStringLiteral("-"), QStringLiteral("加权汇总"));
 
     ui->eval_log_plainTextEdit->clear();
+    // Steps table init
+    evalInitSteps();
+    // Progress bar
+    if (ui->eval_progressBar) { ui->eval_progressBar->setMaximum(stepsTotal); ui->eval_progressBar->setValue(0); }
+    // Reset bars
+    if (ui->eval_bar_ttfb) ui->eval_bar_ttfb->setValue(0);
+    if (ui->eval_bar_prompt) ui->eval_bar_prompt->setValue(0);
+    if (ui->eval_bar_gen) ui->eval_bar_gen->setValue(0);
+    if (ui->eval_bar_qa) ui->eval_bar_qa->setValue(0);
+    if (ui->eval_bar_tool) ui->eval_bar_tool->setValue(0);
+    if (ui->eval_bar_final) { ui->eval_bar_final->setValue(0); ui->eval_bar_final->setVisible(false); }
 }
 
 void Expend::evalSetTable(int row, const QString &name, const QString &val, const QString &desc)
@@ -90,6 +101,8 @@ void Expend::evalSetTable(int row, const QString &name, const QString &val, cons
     setItem(row, 0, name);
     setItem(row, 1, val);
     setItem(row, 2, desc);
+    // Colorize value cell by metric threshold if possible
+    setValueColor(row, name, val.toDouble(), name);
 }
 
 void Expend::evalLog(const QString &line)
@@ -142,6 +155,8 @@ void Expend::on_eval_start_pushButton_clicked()
     updateEvalInfoUi();
     evalRunning = true;
     evalStep = 0;
+    stepsDone = 0;
+    stepTimer.invalidate();
     m_firstTokenMs = -1.0;
     m_promptTokPerSec = -1.0;
     m_genTokPerSec = -1.0;
@@ -149,6 +164,7 @@ void Expend::on_eval_start_pushButton_clicked()
     m_qaScore = -1.0;
     m_toolScore = -1.0;
     m_finalScore = -1.0;
+    evalUpdateProgress();
     evalNext();
 }
 
@@ -180,6 +196,11 @@ void Expend::evalNext()
 void Expend::runLatencyTest()
 {
     evalLog(QStringLiteral("[1/4] 测试首次响应延迟与上文处理速度"));
+    // Mark step 1 running
+    if (ui->eval_steps) {
+        QTableWidgetItem *st = ui->eval_steps->item(0, 1);
+        if (st) st->setText(QStringLiteral("进行中"));
+    }
     ENDPOINT_DATA d = makeBaseData(0.2, 16);
     const QString bigUser = QString(2000, QLatin1Char('A')) + QStringLiteral("\n请回答 ok");
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant."), bigUser);
@@ -187,6 +208,7 @@ void Expend::runLatencyTest()
     evalFirstToken = false;
     evalAccum.clear();
     evalTimer.restart();
+    stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -195,12 +217,17 @@ void Expend::runLatencyTest()
 void Expend::runGenSpeedTest()
 {
     evalLog(QStringLiteral("[2/4] 测试文字生成速度"));
+    if (ui->eval_steps) {
+        QTableWidgetItem *st = ui->eval_steps->item(1, 1);
+        if (st) st->setText(QStringLiteral("进行中"));
+    }
     ENDPOINT_DATA d = makeBaseData(0.0, 512);
     const QString ask = QStringLiteral("请输出恰好 512 个小写字母 a，不要包含空格、换行或其他字符。仅输出 a 字符串。");
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant. Reply strictly as asked."), ask);
     evalFirstToken = false;
     evalAccum.clear();
     evalTimer.restart();
+    stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -232,11 +259,15 @@ void Expend::runQATest()
     }
     // One question per turn
     const auto &p = qaPairs_[qaIndex_];
+    if (qaIndex_ == 0) {
+        if (ui->eval_steps) { if (auto *st = ui->eval_steps->item(2,1)) st->setText(QStringLiteral("进行中")); }
+    }
     ENDPOINT_DATA d = makeBaseData(0.1, 64);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply briefly."), p.first);
     evalFirstToken = false;
     evalAccum.clear();
     evalTimer.restart();
+    if (qaIndex_ == 0) stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -245,6 +276,9 @@ void Expend::runQATest()
 void Expend::runToolcallTest()
 {
     evalLog(QStringLiteral("[4/4] 工具调用能力 (calculator)"));
+    if (ui->eval_steps) {
+        if (auto *st = ui->eval_steps->item(3,1)) st->setText(QStringLiteral("进行中"));
+    }
     // Build a minimal tool schema prompt: answer + calculator
     QString toolsDesc = Buildin_tools_answer.text + QString("\n\n") + Buildin_tools_calculator.text;
     QString sys = EXTRA_PROMPT_FORMAT;
@@ -258,6 +292,7 @@ void Expend::runToolcallTest()
     evalFirstToken = false;
     evalAccum.clear();
     evalTimer.restart();
+    stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -295,6 +330,7 @@ void Expend::evalFinish()
     evalSetTable(5, QStringLiteral("综合评分"), QString::number(m_finalScore, 'f', 1), QString());
     evalLog(QStringLiteral("评估完成"));
     evalRunning = false;
+    updateScoreBars();
 }
 
 // ---------------- evalNet signal handlers ----------------
@@ -312,6 +348,7 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         {
             m_firstTokenMs = ms;
             evalSetTable(0, QStringLiteral("首次响应(ms)"), QString::number(m_firstTokenMs, 'f', 1));
+            updateScoreBars();
         }
         // Log per-step ttfb briefly
         evalLog(QStringLiteral("ttfb: ") + QString::number(ms, 'f', 1) + QStringLiteral(" ms"));
@@ -326,6 +363,18 @@ void Expend::onEvalState(const QString &line, SIGNAL_STATE st)
     // Reduce noise; only log important errors or http codes
     if (line.startsWith("net:http") || line.startsWith("net:"))
         evalLog(line);
+    if (st == WRONG_SIGNAL)
+    {
+        // Mark current step as failed
+        int r = qBound(0, evalStep, stepsTotal - 1);
+        if (ui->eval_steps)
+        {
+            if (auto *stc = ui->eval_steps->item(r,1)) stc->setText(QStringLiteral("错误"));
+            if (auto *tm = ui->eval_steps->item(r,2)) tm->setText(QString::number(stepTimer.nsecsElapsed()/1e9, 'f', 2));
+        }
+        evalRunning = false;
+        evalFinish();
+    }
 }
 
 void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
@@ -335,11 +384,13 @@ void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
     {
         m_promptTokPerSec = prompt_per_s;
         evalSetTable(1, QStringLiteral("上文处理(tok/s)"), QString::number(m_promptTokPerSec, 'f', 1));
+        updateScoreBars();
     }
     if (gen_per_s > 0)
     {
         m_genTokPerSec = gen_per_s;
         evalSetTable(2, QStringLiteral("生成速度(tok/s)"), QString::number(m_genTokPerSec, 'f', 1));
+        updateScoreBars();
     }
 }
 
@@ -351,6 +402,16 @@ void Expend::onEvalPushover()
     {
     case 0:
         // Nothing else; rely on server-reported speeds if any
+        // Log model's actual answer
+        evalLog(QStringLiteral("[首次响应/上文速度] 模型回答：\n") + evalAccum);
+        // Mark step 1 done
+        if (ui->eval_steps) {
+            if (auto *st = ui->eval_steps->item(0,1)) st->setText(QStringLiteral("完成"));
+            if (auto *tm = ui->eval_steps->item(0,2)) tm->setText(QString::number(stepTimer.nsecsElapsed()/1e9, 'f', 2));
+        }
+        stepsDone++;
+        evalUpdateProgress();
+        updateScoreBars();
         evalStep++;
         evalNext();
         break;
@@ -366,7 +427,22 @@ void Expend::onEvalPushover()
             // If server did not report token-speed, keep a hint in desc
             QString desc = (m_genTokPerSec > 0) ? QStringLiteral("服务器报告") : QStringLiteral("估算: ") + QString::number(cps, 'f', 1) + QStringLiteral(" chars/s");
             evalSetTable(2, QStringLiteral("生成速度(tok/s)"), (m_genTokPerSec > 0 ? QString::number(m_genTokPerSec, 'f', 1) : QStringLiteral("-")), desc);
+            // If no token speed, derive a rough estimate from chars/s to drive the bar
+            if (m_genTokPerSec <= 0 && cps > 0)
+            {
+                const double estTokPerSec = cps / 4.0; // heuristic: ~4 chars per token
+                m_genTokPerSec = estTokPerSec;
+            }
+            updateScoreBars();
         }
+        // Log actual generated content
+        evalLog(QStringLiteral("[生成速度] 生成内容(长度=") + QString::number(evalAccum.size()) + QStringLiteral(")：\n") + evalAccum);
+        if (ui->eval_steps) {
+            if (auto *st = ui->eval_steps->item(1,1)) st->setText(QStringLiteral("完成"));
+            if (auto *tm = ui->eval_steps->item(1,2)) tm->setText(QString::number(stepTimer.nsecsElapsed()/1e9, 'f', 2));
+        }
+        stepsDone++;
+        evalUpdateProgress();
         evalStep++;
         evalNext();
         break;
@@ -374,12 +450,26 @@ void Expend::onEvalPushover()
     case 2:
     {
         // Judge this QA item
-        const QString ans = evalAccum.trimmed().toLower();
+        const QString ansRaw = evalAccum.trimmed();
+        const QString ans = ansRaw.toLower();
         const QString expect = qaPairs_[qaIndex_].second;
+        const QString question = qaPairs_[qaIndex_].first;
         if (!expect.isEmpty() && ans.contains(expect)) qaCorrect_++;
+        // Log this Q/A
+        evalLog(QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + ")：" + question +
+                QStringLiteral("\n模型回答：\n") + ansRaw);
         qaIndex_++;
         // Next QA or finish QA stage
         runQATest();
+        if (qaIndex_ >= qaPairs_.size()) {
+            if (ui->eval_steps) {
+                if (auto *st = ui->eval_steps->item(2,1)) st->setText(QStringLiteral("完成"));
+                if (auto *tm = ui->eval_steps->item(2,2)) tm->setText(QString::number(stepTimer.nsecsElapsed()/1e9, 'f', 2));
+            }
+            stepsDone++;
+            evalUpdateProgress();
+            updateScoreBars();
+        }
         break;
     }
     case 3:
@@ -393,6 +483,7 @@ void Expend::onEvalPushover()
         if (s >= 0 && e > s)
         {
             const QString jsonStr = all.mid(s + 11, e - (s + 11)).trimmed();
+            evalLog(QStringLiteral("[工具调用] 模型返回工具请求 JSON：\n") + jsonStr);
             try
             {
                 mcp::json call = mcp::json::parse(jsonStr.toStdString());
@@ -410,6 +501,7 @@ void Expend::onEvalPushover()
                     loop.exec();
                     // Expect 13*17+29 = 250
                     if (result.contains("250")) m_toolScore = 100.0; else m_toolScore = 50.0; // half credit for structured call
+                    evalLog(QStringLiteral("[工具调用] 工具执行结果：\n") + result);
                 }
                 else
                 {
@@ -426,6 +518,13 @@ void Expend::onEvalPushover()
             m_toolScore = 0.0;
         }
         evalSetTable(4, QStringLiteral("工具调用"), QString::number(m_toolScore, 'f', 0), QStringLiteral("calculator"));
+        if (ui->eval_steps) {
+            if (auto *st = ui->eval_steps->item(3,1)) st->setText(QStringLiteral("完成"));
+            if (auto *tm = ui->eval_steps->item(3,2)) tm->setText(QString::number(stepTimer.nsecsElapsed()/1e9, 'f', 2));
+        }
+        stepsDone++;
+        evalUpdateProgress();
+        updateScoreBars();
         evalStep++;
         evalNext();
         break;
@@ -433,5 +532,92 @@ void Expend::onEvalPushover()
     default:
         evalFinish();
         break;
+    }
+}
+
+void Expend::evalInitSteps()
+{
+    if (!ui->eval_steps) return;
+    ui->eval_steps->clearContents();
+    ui->eval_steps->setRowCount(4);
+    ui->eval_steps->setColumnCount(3);
+    QStringList headers; headers << QStringLiteral("步骤") << QStringLiteral("状态") << QStringLiteral("用时(s)");
+    ui->eval_steps->setHorizontalHeaderLabels(headers);
+    auto setRow = [&](int r, const QString &name){
+        QTableWidgetItem *i0 = new QTableWidgetItem(name); i0->setFlags(i0->flags() & ~Qt::ItemIsEditable);
+        QTableWidgetItem *i1 = new QTableWidgetItem(QStringLiteral("待开始")); i1->setFlags(i1->flags() & ~Qt::ItemIsEditable);
+        QTableWidgetItem *i2 = new QTableWidgetItem(QString()); i2->setFlags(i2->flags() & ~Qt::ItemIsEditable);
+        ui->eval_steps->setItem(r,0,i0);
+        ui->eval_steps->setItem(r,1,i1);
+        ui->eval_steps->setItem(r,2,i2);
+    };
+    setRow(0, QStringLiteral("首次响应/上文速度"));
+    setRow(1, QStringLiteral("生成速度"));
+    setRow(2, QStringLiteral("常识问答"));
+    setRow(3, QStringLiteral("工具调用"));
+}
+
+void Expend::evalUpdateProgress()
+{
+    if (ui->eval_progressBar) ui->eval_progressBar->setValue(stepsDone);
+}
+
+void Expend::updateScoreBars()
+{
+    // Same score mapping as evalFinish(); update incrementally when各指标可用
+    auto scoreTTFB = [&](double ms) {
+        if (ms < 0) return 0.0; if (ms <= 600) return 100.0; if (ms <= 1200) return 85.0; if (ms <= 2500) return 70.0; if (ms <= 4000) return 50.0; return 30.0; };
+    auto scoreTokps = [&](double tps) {
+        if (tps < 0) return 0.0; if (tps >= 250) return 100.0; if (tps >= 150) return 85.0; if (tps >= 90) return 70.0; if (tps >= 50) return 50.0; return 30.0; };
+    if (ui->eval_bar_ttfb && m_firstTokenMs >= 0) ui->eval_bar_ttfb->setValue(int(scoreTTFB(m_firstTokenMs)));
+    if (ui->eval_bar_prompt && m_promptTokPerSec >= 0) ui->eval_bar_prompt->setValue(int(scoreTokps(m_promptTokPerSec)));
+    if (ui->eval_bar_gen && m_genTokPerSec >= 0) ui->eval_bar_gen->setValue(int(scoreTokps(m_genTokPerSec)));
+    if (ui->eval_bar_qa && m_qaScore >= 0) ui->eval_bar_qa->setValue(int(m_qaScore));
+    if (ui->eval_bar_tool && m_toolScore >= 0) ui->eval_bar_tool->setValue(int(m_toolScore));
+    if (ui->eval_bar_final && m_finalScore >= 0) ui->eval_bar_final->setValue(int(m_finalScore));
+}
+
+void Expend::setValueColor(int row, const QString &nameKey, double val, const QString &metric)
+{
+    // Apply color thresholds to the "值" cell
+    if (!ui || !ui->eval_table) return;
+    QTableWidgetItem *cell = ui->eval_table->item(row, 1);
+    if (!cell) return;
+    auto setBg = [&](const QColor &c){ cell->setBackground(QBrush(c)); };
+    const QColor good(180, 255, 180);
+    const QColor warn(255, 235, 150);
+    const QColor bad(255, 180, 180);
+    QString key = metric;
+    if (key.contains("首次响应"))
+    {
+        if (m_firstTokenMs < 0) return;
+        if (m_firstTokenMs <= 1000) setBg(good);
+        else if (m_firstTokenMs <= 2500) setBg(warn);
+        else setBg(bad);
+        return;
+    }
+    if (key.contains("上文处理") || key.contains("生成速度"))
+    {
+        if (val <= 0) return;
+        if (val >= 150) setBg(good);
+        else if (val >= 70) setBg(warn);
+        else setBg(bad);
+        return;
+    }
+    if (key.contains("常识问答"))
+    {
+        if (val < 0) return;
+        if (val >= 80) setBg(good);
+        else if (val >= 60) setBg(warn);
+        else setBg(bad);
+        return;
+    }
+    if (key.contains("工具调用"))
+    {
+        if (val < 0) return;
+        if (val >= 90) setBg(good);
+        else if (val >= 50) setBg(warn);
+        else setBg(bad);
+        return;
     }
 }

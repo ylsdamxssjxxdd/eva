@@ -156,11 +156,35 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_eval_buttons">
+       <layout class="QHBoxLayout" name="horizontalLayout_eval_buttons">
          <item><spacer name="eval_buttons_spacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
          <item><widget class="QPushButton" name="eval_start_pushButton"><property name="minimumSize"><size><width>120</width><height>28</height></size></property><property name="text"><string>一键评估</string></property></widget></item>
          <item><widget class="QPushButton" name="eval_stop_pushButton"><property name="minimumSize"><size><width>80</width><height>28</height></size></property><property name="text"><string>停止</string></property></widget></item>
         </layout>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="eval_progressBar">
+         <property name="minimum"><number>0</number></property>
+         <property name="maximum"><number>4</number></property>
+         <property name="value"><number>0</number></property>
+         <property name="format"><string>进度：%v/%m 步</string></property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="eval_steps_groupBox">
+         <property name="title"><string>步骤进度</string></property>
+         <layout class="QVBoxLayout" name="verticalLayout_eval_steps">
+          <item>
+           <widget class="QTableWidget" name="eval_steps">
+            <property name="columnCount"><number>3</number></property>
+            <property name="rowCount"><number>4</number></property>
+            <column><property name="text"><string>步骤</string></property></column>
+            <column><property name="text"><string>状态</string></property></column>
+            <column><property name="text"><string>用时(s)</string></property></column>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </item>
        <item>
         <widget class="QGroupBox" name="eval_result_groupBox">
@@ -175,6 +199,25 @@ p, li { white-space: pre-wrap; }
             <column><property name="text"><string>说明</string></property></column>
            </widget>
           </item>
+         </layout>
+       </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="eval_score_groupBox">
+         <property name="title"><string>评分可视化</string></property>
+         <layout class="QGridLayout" name="gridLayout_eval_score">
+          <item row="0" column="0"><widget class="QLabel" name="lbl_ttfb"><property name="text"><string>首次响应</string></property></widget></item>
+          <item row="0" column="1"><widget class="QProgressBar" name="eval_bar_ttfb"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+          <item row="1" column="0"><widget class="QLabel" name="lbl_prompt"><property name="text"><string>上文速度</string></property></widget></item>
+          <item row="1" column="1"><widget class="QProgressBar" name="eval_bar_prompt"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+          <item row="2" column="0"><widget class="QLabel" name="lbl_gen"><property name="text"><string>生成速度</string></property></widget></item>
+          <item row="2" column="1"><widget class="QProgressBar" name="eval_bar_gen"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+          <item row="3" column="0"><widget class="QLabel" name="lbl_qa"><property name="text"><string>常识问答</string></property></widget></item>
+          <item row="3" column="1"><widget class="QProgressBar" name="eval_bar_qa"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+          <item row="4" column="0"><widget class="QLabel" name="lbl_tool"><property name="text"><string>工具调用</string></property></widget></item>
+          <item row="4" column="1"><widget class="QProgressBar" name="eval_bar_tool"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
+          <item row="5" column="0"><widget class="QLabel" name="lbl_final"><property name="text"><string>综合评分</string></property></widget></item>
+          <item row="5" column="1"><widget class="QProgressBar" name="eval_bar_final"><property name="minimum"><number>0</number></property><property name="maximum"><number>100</number></property><property name="value"><number>0</number></property></widget></item>
          </layout>
         </widget>
        </item>
