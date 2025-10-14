@@ -173,61 +173,43 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     const int h = r.height();
     if (w <= 0 || h <= 0) return;
 
-    // Compute breathing spread between lines (0..1)
-    double t = m_clock.elapsed() / 1000.0;
-    // Slow 8s period breathing
-    double breath = 0.5 + 0.5 * sin(t * (2 * M_PI / 8.0));
-    double spread = m_spreadMin + (m_spreadMax - m_spreadMin) * breath;
+    // All waves share the same baseline; simple, clean lines only
+    const double cy = h * 0.35;
+    const double TAU = 6.283185307179586;
+    const double k = TAU / m_waveLen; // spatial frequency
 
-    // Vertical center around 35% height so text is readable
-    double cy = h * 0.35;
+    // Global horizontal drift to move pattern; setActive/onAnimTick updates m_phase
+    const double basePhase = m_phase;
 
-    // Prepare dashed pen for segmented tubes
-    QVector<qreal> dashes; dashes << 18 << 8; // segment/gap in px
+    // Converge/diverge animation by modulating phase separation between lines (no vertical shift)
+    const double t = m_clock.elapsed() / 1000.0;
+    const double breath = 0.5 + 0.5 * sin(TAU * t / 8.0); // 8s period
+    const double minSep = 0.12;  // radians between adjacent lines when close
+    const double maxSep = 0.55;  // radians when spread out
+    const double delta = minSep + (maxSep - minSep) * breath;
 
-    // One geometry shared phase so segments do not pulse; minor optional phase drift kept minimal
-    double k = 2 * M_PI / m_waveLen;
-    double phase = m_phase; // very slow drift
+    // Simple single-stroke lines; no dash/glow/core
+    QPen pen(QColor(255, 210, 120, 200));
+    pen.setWidthF(2.0);
+    pen.setCapStyle(Qt::RoundCap);
+    pen.setJoinStyle(Qt::RoundJoin);
+    p.save();
+    p.setPen(pen);
 
-    // Draw back-to-front: outer glow then inner core for each line
     for (int i = 0; i < m_lines; ++i)
     {
-        double offset = (i - (m_lines - 1) / 2.0) * spread;
-        // Build path across width
+        const double phi = basePhase + (i - (m_lines - 1) / 2.0) * delta;
         QPainterPath path;
-        path.moveTo(0, cy + offset + m_baseAmp * sin(0 * k + phase));
-        int step = 6; // px
+        path.moveTo(0, cy + m_baseAmp * sin(phi));
+        const int step = 6; // px sampling step
         for (int x = step; x <= w; x += step)
         {
-            double y = cy + offset + m_baseAmp * sin(x * k + phase);
+            double y = cy + m_baseAmp * sin(k * x + phi);
             path.lineTo(x, y);
         }
-
-        // Outer glow
-        QPen glowPen(tubeColorOuter(i));
-        glowPen.setWidthF(10.0);
-        glowPen.setCapStyle(Qt::RoundCap);
-        glowPen.setJoinStyle(Qt::RoundJoin);
-        glowPen.setDashPattern(dashes);
-        p.setPen(glowPen);
-        p.drawPath(path);
-
-        // Middle tube
-        QPen midPen(QColor(255, 190, 110, 130));
-        midPen.setWidthF(6.0);
-        midPen.setCapStyle(Qt::RoundCap);
-        midPen.setJoinStyle(Qt::RoundJoin);
-        midPen.setDashPattern(dashes);
-        p.setPen(midPen);
-        p.drawPath(path);
-
-        // Inner bright core
-        QPen corePen(tubeColorInner(i));
-        corePen.setWidthF(3.0);
-        corePen.setCapStyle(Qt::RoundCap);
-        corePen.setJoinStyle(Qt::RoundJoin);
-        corePen.setDashPattern(dashes);
-        p.setPen(corePen);
         p.drawPath(path);
     }
+
+    p.restore();
 }
+
