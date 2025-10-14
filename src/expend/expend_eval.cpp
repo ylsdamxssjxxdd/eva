@@ -62,20 +62,19 @@ void Expend::evalResetUi()
     // Initialize merged table: [指标/步骤 | 状态 | 用时(s) | 值 | 说明]
     if (!ui->eval_table) return;
     ui->eval_table->clearContents();
-    ui->eval_table->setRowCount(6);
+    ui->eval_table->setRowCount(5);
     ui->eval_table->setColumnCount(5);
     QStringList headers;
     headers << QStringLiteral("指标/步骤") << QStringLiteral("状态") << QStringLiteral("用时(s)")
             << QStringLiteral("值") << QStringLiteral("说明");
     ui->eval_table->setHorizontalHeaderLabels(headers);
-    // Init rows with default status (5 steps + summary)
+    // Init rows with default status (5 steps)
     evalSetTable(0, QStringLiteral("首次响应(ms)"), QStringLiteral("-"), QStringLiteral("1024 字符上文，测首 token 时延"));
     evalSetTable(1, QStringLiteral("生成速度(tok/s)"), QStringLiteral("-"), QStringLiteral("生成 1024 字符，排除思考时间"));
     evalSetTable(2, QStringLiteral("常识问答(%)"), QStringLiteral("-"), QStringLiteral("5 题单选，A-D"));
     evalSetTable(3, QStringLiteral("逻辑推理(%)"), QStringLiteral("-"), QStringLiteral("5 题单选，A-D（较难）"));
     evalSetTable(4, QStringLiteral("工具调用(0-100)"), QStringLiteral("-"), QStringLiteral("6 项：计算器/文生图/知识库/工程师/MCP/鼠键"));
-    evalSetTable(5, QStringLiteral("同步率(%)"), QStringLiteral("-"), QStringLiteral("加权综合得分"));
-    for (int r = 0; r < 6; ++r) evalSetStatus(r, QStringLiteral("待开始"));
+    for (int r = 0; r < 5; ++r) evalSetStatus(r, QStringLiteral("待开始"));
 
     ui->eval_log_plainTextEdit->clear();
     // Progress bar (units recomputed by start)
@@ -404,8 +403,8 @@ void Expend::evalFinish()
     const double s_log  = qMax(0.0, m_logicScore);
     const double s_tool = qMax(0.0, m_toolScore);
     m_syncRate = std::max(0.0, std::min(100.0, 0.10 * s_ttfb + 0.20 * s_gen + 0.20 * s_qa + 0.20 * s_log + 0.30 * s_tool));
-    evalSetTable(5, QStringLiteral("同步率(%)"), QString::number(m_syncRate, 'f', 1), QStringLiteral("加权：10/20/20/20/30"));
-    evalLog(QStringLiteral("评估完成。加权综合= ") + QString::number(m_syncRate, 'f', 1));
+    // Do not show overall score in the table; only log it and reflect on bar chart
+    evalLog(QStringLiteral("评估完成。综合(10/20/20/20/30)= ") + QString::number(m_syncRate, 'f', 1));
     evalRunning = false;
     updateScoreBars();
 }
@@ -451,7 +450,7 @@ void Expend::onEvalState(const QString &line, SIGNAL_STATE st)
         // Mark current step as failed
         // Map evalStep -> row index in merged table
         int r = 0;
-        if (evalStep == 0) r = 0; else if (evalStep == 1) r = 1; else if (evalStep == 2) r = 2; else if (evalStep == 3) r = 3; else if (evalStep == 4) r = 4; else r = 5;
+        if (evalStep == 0) r = 0; else if (evalStep == 1) r = 1; else if (evalStep == 2) r = 2; else if (evalStep == 3) r = 3; else /*evalStep>=4*/ r = 4;
         evalSetStatus(r, QStringLiteral("错误"));
         evalSetElapsed(r, stepTimer.nsecsElapsed()/1e9);
         evalRunning = false;
@@ -603,6 +602,10 @@ void Expend::onEvalPushover()
         evalLog(QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_+1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc +
                 QStringLiteral("\n模型输出：\n") + (jsonStr.isEmpty()? all : jsonStr) +
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确工具") : QStringLiteral("错误或缺失")));
+        // Update partial tool score to refresh bar chart
+        const int total = qMax(1, (int)toolCases_.size());
+        m_toolScore = 100.0 * double(toolCorrect_) / double(total);
+        updateScoreBars();
         toolIndex_++;
         stepsDone++;
         evalSetStatus(4, QStringLiteral("进行中 ") + QString::number(std::min(toolIndex_, toolCases_.size())) + "/" + QString::number(toolCases_.size()));

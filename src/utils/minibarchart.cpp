@@ -11,10 +11,11 @@ MiniBarChart::MiniBarChart(QWidget *parent)
 {
     // Initialize scores as N/A
     m_scores = QVector<double>(6, -1.0);
+    // New rubric: TTFB / Generation / Common QA / Logic / Tools / Overall
     m_labels << QStringLiteral("首次响应")
-             << QStringLiteral("上文速度")
              << QStringLiteral("生成速度")
              << QStringLiteral("常识问答")
+             << QStringLiteral("逻辑推理")
              << QStringLiteral("工具调用")
              << QStringLiteral("同步率");
     setMinimumHeight(120);
@@ -92,4 +93,3 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         p.drawText(lrc, Qt::AlignHCenter | Qt::AlignTop, lb);
     }
 }
-
