@@ -1,6 +1,6 @@
 # 机体
 
-一款轻量 Agent 桌面端（本地/远端统一 OpenAI 兼容接口）
+一款轻量 Agent 桌面端拘束器（本地/远端统一 OpenAI 兼容接口）
 
 \[ 中文 | [English](README_en.md) \]
 

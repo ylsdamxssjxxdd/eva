@@ -39,6 +39,7 @@ add_executable(
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
     src/utils/recordbar.cpp src/utils/recordbar.h
     src/utils/neuronlogedit.cpp src/utils/neuronlogedit.h
+    src/utils/evallogedit.cpp src/utils/evallogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
     src/utils/minibarchart.cpp src/utils/minibarchart.h
 )

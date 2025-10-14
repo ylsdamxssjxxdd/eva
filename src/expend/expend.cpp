@@ -2,6 +2,7 @@
 
 #include "../utils/introanimedit.h" // 自定义：软件介绍页动画背景
 #include "../utils/neuronlogedit.h" // 自定义：模型信息页动画日志
+#include "../utils/evallogedit.h" // 自定义：评估日志动画背景
 #include "../xnet.h"                // xNet for eval worker control
 #include "ui_expend.h"
 #include <QThread>
@@ -308,8 +309,10 @@ void Expend::updateModelInfoAnim()
     if (!ui) return;
     const bool onIntroTab = (ui->tabWidget->currentIndex() == window_map[INTRODUCTION_WINDOW]);
     const bool onModelTab = (ui->tabWidget->currentIndex() == window_map[MODELINFO_WINDOW]);
+    const bool onEvalTab = (ui->tabWidget->currentIndex() == window_map[MODELEVAL_WINDOW]);
     const bool shouldRunIntro = this->isVisible() && onIntroTab;
     const bool shouldRunModel = this->isVisible() && onModelTab;
+    const bool shouldRunEval = this->isVisible() && onEvalTab;
 
     // 模型信息页动画启停
     if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card))
@@ -318,6 +321,9 @@ void Expend::updateModelInfoAnim()
     // 机体介绍页动画启停
     if (auto intro = qobject_cast<IntroAnimEdit *>(ui->info_card))
         intro->setActive(shouldRunIntro);
+
+    if (auto evalLog = qobject_cast<EvalLogEdit *>(ui->eval_log_plainTextEdit))
+        evalLog->setActive(shouldRunEval);
 }
 
 // 根据language.json和language_flag中找到对应的文字

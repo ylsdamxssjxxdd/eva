@@ -1,6 +1,6 @@
 # EVA
 
-A lightweight Agent desktop app (unified OpenAI-compatible interface for local/remote)
+A lightweight Agent desktop restraint (unified OpenAI-compatible interface for local/remote)
 
 <img width="1906" height="984" alt="约定框架-DATE Framework" src="https://github.com/user-attachments/assets/20e655a2-cd60-4649-9fb2-21dced3d2664" />
 

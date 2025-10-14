@@ -458,7 +458,7 @@ p, li { white-space: pre-wrap; }
            <number>0</number>
           </property>
           <item>
-           <widget class="QPlainTextEdit" name="eval_log_plainTextEdit">
+           <widget class="EvalLogEdit" name="eval_log_plainTextEdit">
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -4542,29 +4542,35 @@ p, li { white-space: pre-wrap; }
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>StatusLed</class>
-   <extends>QWidget</extends>
-   <header>src/utils/statusindicator.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>IntroAnimEdit</class>
-   <extends>QTextEdit</extends>
-   <header>src/utils/introanimedit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>NeuronLogEdit</class>
-   <extends>QPlainTextEdit</extends>
-   <header>src/utils/neuronlogedit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>MiniBarChart</class>
-   <extends>QWidget</extends>
-   <header>src/utils/minibarchart.h</header>
-  </customwidget>
- </customwidgets>
- <resources/>
- <connections/>
+
+  <customwidgets>
+   <customwidget>
+    <class>StatusLed</class>
+    <extends>QWidget</extends>
+    <header>src/utils/statusindicator.h</header>
+    <container>1</container>
+   </customwidget>
+   <customwidget>
+    <class>IntroAnimEdit</class>
+    <extends>QTextEdit</extends>
+    <header>src/utils/introanimedit.h</header>
+   </customwidget>
+   <customwidget>
+    <class>NeuronLogEdit</class>
+    <extends>QPlainTextEdit</extends>
+    <header>src/utils/neuronlogedit.h</header>
+   </customwidget>
+   <customwidget>
+    <class>MiniBarChart</class>
+    <extends>QWidget</extends>
+    <header>src/utils/minibarchart.h</header>
+   </customwidget>
+   <customwidget>
+    <class>EvalLogEdit</class>
+    <extends>QPlainTextEdit</extends>
+    <header>src/utils/evallogedit.h</header>
+   </customwidget>
+  </customwidgets>
+  <resources/>
+  <connections/>
 </ui>
