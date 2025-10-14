@@ -280,7 +280,7 @@ p, li { white-space: pre-wrap; }
                 </size>
                </property>
                <property name="text">
-                <string>n_ctx</string>
+                <string>记忆容量</string>
                </property>
               </widget>
              </item>

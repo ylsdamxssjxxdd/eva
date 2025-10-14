@@ -125,6 +125,8 @@ void xNet::run()
 
     running_ = true;
     resetState();
+    // Clear any stale stop flag from previous aborted turn
+    is_stop = false;
     ensureNetObjects();
     // emit net2ui_state("net:" + jtr("send message to api"));
 
@@ -137,6 +139,13 @@ void xNet::run()
 
     // Fire asynchronous request
     reply_ = nam_->post(request, body);
+    if (!reply_)
+    {
+        running_ = false;
+        emit net2ui_state("net: failed to create request", WRONG_SIGNAL);
+        emit net2ui_pushover();
+        return;
+    }
 
     // Timers
     t_all_.start();
@@ -390,13 +399,6 @@ void xNet::run()
             }
         }
     );
-        // Early stop: only honor explicit user stop. Do not abort on tool stop-word; wait for finish/meta.
-        if (is_stop)
-        {
-            is_stop = false;
-            // emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
-            abortActiveReply();
-        };
 
     // Handle finish: stop timeout and finalize
 
