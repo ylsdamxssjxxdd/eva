@@ -173,9 +173,9 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     const int h = r.height();
     if (w <= 0 || h <= 0) return;
 
-    // Use amplitude so that peak-to-peak occupies ~1/3 of window height
+    // Peak-to-peak occupies about one-third of the window height
     const double amp = qMax(10.0, h / 6.0);
-    double cy = h * 0.45; // center baseline toward middle; adjust if needed
+    double cy = h * 0.45;
     if (cy < amp + 6) cy = amp + 6;
     if (cy > h - amp - 6) cy = h - amp - 6;
 
@@ -185,20 +185,14 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     // Global horizontal drift handled by m_phase (updated in onAnimTick)
     const double basePhase = m_phase;
 
-    // Lines converge/diverge by phase separation; keep no vertical shift
+    // Lines converge/diverge via phase separation (no vertical offsets)
     const double t = m_clock.elapsed() / 1000.0;
     const double breath = 0.5 + 0.5 * sin(TAU * t / 8.0); // ~8s period
-    const double minSep = 0.28;  // radians (avoid merging when close)
-    const double maxSep = 0.75;  // radians when spread out
+    const double minSep = 0.28; // radians when close (avoid merging)
+    const double maxSep = 0.75; // radians when spread out
     const double delta = minSep + (maxSep - minSep) * breath;
 
-    // Simple, single-stroke lines
-    QPen pen(QColor(255, 210, 120, 210));
-    pen.setWidthF(2.0);
-    pen.setCapStyle(Qt::RoundCap);
-    pen.setJoinStyle(Qt::RoundJoin);
     p.save();
-    p.setPen(pen);
 
     for (int i = 0; i < m_lines; ++i)
     {
@@ -211,8 +205,22 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
             double y = cy + amp * sin(k * x + phi);
             path.lineTo(x, y);
         }
+        // Thicker outer stroke
+        QPen outerPen(QColor(255, 210, 120, 230));
+        outerPen.setWidthF(7.0);
+        outerPen.setCapStyle(Qt::RoundCap);
+        outerPen.setJoinStyle(Qt::RoundJoin);
+        p.setPen(outerPen);
+        p.drawPath(path);
+        // Hollow center: carve a thin black line along the middle
+        QPen innerPen(QColor(0, 0, 0, 255));
+        innerPen.setWidthF(3.0);
+        innerPen.setCapStyle(Qt::RoundCap);
+        innerPen.setJoinStyle(Qt::RoundJoin);
+        p.setPen(innerPen);
         p.drawPath(path);
     }
 
     p.restore();
 }
+
