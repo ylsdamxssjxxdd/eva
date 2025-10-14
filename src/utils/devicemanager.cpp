@@ -9,42 +9,86 @@
 #include <QSysInfo>
 
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
+static QStringList g_lastProbed;                      // debug: last probed paths
 
 QString DeviceManager::backendsRootDir()
 {
 #ifdef BODY_LINUX_PACK
-    // Prefer AppImage layout when APPDIR is present; otherwise fall back to alongside the executable.
+    const QStringList roots = candidateBackendRoots();
+    if (!roots.isEmpty()) return roots.first();
+    // Fall back to next-to-exe path even if not existing
+    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
+#else
+    // Default: expect EVA_BACKEND next to the executable
+    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
+#endif
+}
+
+QStringList DeviceManager::candidateBackendRoots()
+{
+    QStringList probes; // include non-existing for diagnostics
+
+    // 0) Explicit override via env (power users/packagers)
+    const QString envRoot = QString::fromLocal8Bit(qgetenv("EVA_BACKEND_ROOT"));
+    if (!envRoot.isEmpty()) probes << envRoot;
+
+#ifdef BODY_LINUX_PACK
+    // 1) AppImage internal mount (packaged)
     const QString appDir = QString::fromLocal8Bit(qgetenv("APPDIR"));
     if (!appDir.isEmpty())
     {
-        // Standard AppImage path: $APPDIR/usr/bin/EVA_BACKEND
-        const QString packaged = QDir(appDir).filePath("usr/bin/EVA_BACKEND");
-        if (QFileInfo::exists(packaged)) return packaged;
-        // Some packs may place it at $APPDIR/EVA_BACKEND
-        const QString packagedAlt = QDir(appDir).filePath("EVA_BACKEND");
-        if (QFileInfo::exists(packagedAlt)) return packagedAlt;
+        probes << QDir(appDir).filePath("usr/bin/EVA_BACKEND");
+        probes << QDir(appDir).filePath("EVA_BACKEND");
     }
-    // Dev run or missing APPDIR: try alongside the executable first
+
+    // 2) Next to the running executable (inside mount in AppImage case)
     const QString exeDir = QCoreApplication::applicationDirPath();
-    const QString local = QDir(exeDir).filePath("EVA_BACKEND");
-    if (QFileInfo::exists(local)) return local;
-    // If the executable resides under .../usr/bin, attempt to resolve relative to APPDIR
+    probes << QDir(exeDir).filePath("EVA_BACKEND");
+
+    // 3) If exe under /usr/bin, try resolving root of mount
     QDir maybeUsrBin(exeDir);
     if (maybeUsrBin.path().endsWith("/usr/bin"))
     {
         maybeUsrBin.cdUp(); // usr
         maybeUsrBin.cdUp(); // APPDIR
-        const QString packaged = maybeUsrBin.filePath("usr/bin/EVA_BACKEND");
-        if (QFileInfo::exists(packaged)) return packaged;
-        const QString rootAlt = maybeUsrBin.filePath("EVA_BACKEND");
-        if (QFileInfo::exists(rootAlt)) return rootAlt;
+        probes << maybeUsrBin.filePath("usr/bin/EVA_BACKEND");
+        probes << maybeUsrBin.filePath("EVA_BACKEND");
     }
-    // Fall back to the default next-to-exe path (may not exist)
-    return local;
+
+    // 4) External folder next to the .AppImage file
+    const QString appImage = QString::fromLocal8Bit(qgetenv("APPIMAGE"));
+    if (!appImage.isEmpty())
+    {
+        const QString outer = QFileInfo(appImage).absoluteDir().filePath("EVA_BACKEND");
+        probes << outer;
+    }
+
+    // 5) CWD fallback for developers launching from a folder
+    probes << QDir::currentPath() + "/EVA_BACKEND";
+
 #else
-    // Default: expect EVA_BACKEND next to the executable
-    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
+    // Non-linux builds: next to the executable and CWD
+    const QString exeDir = QCoreApplication::applicationDirPath();
+    probes << QDir(exeDir).filePath("EVA_BACKEND");
+    probes << QDir::currentPath() + "/EVA_BACKEND";
 #endif
+
+    // De-duplicate while preserving order
+    QStringList seen;
+    QStringList existing;
+    for (const QString &p : probes)
+    {
+        if (seen.contains(p)) continue;
+        seen << p;
+        if (QFileInfo::exists(p)) existing << p;
+    }
+    g_lastProbed = seen; // save for diagnostics
+    return existing;
+}
+
+QStringList DeviceManager::probedBackendRoots()
+{
+    return g_lastProbed;
 }
 QStringList DeviceManager::preferredOrder()
 {
@@ -54,20 +98,21 @@ QStringList DeviceManager::preferredOrder()
 
 QStringList DeviceManager::availableBackends()
 {
-    // Enumerate device folders under EVA_BACKEND/<arch>/<os>/ (no legacy fallback)
-    const QString root = backendsRootDir();
+    // Enumerate device folders under each candidate root.
+    const QStringList roots = candidateBackendRoots();
     const QString arch = currentArchId();
     const QString os = currentOsId();
     QStringList out;
-
-    const QString osDir = QDir(QDir(root).filePath(arch)).filePath(os);
-    QDir d(osDir);
-    if (!d.exists()) return out; // no fallback, require new layout
-
-    const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-    for (const QFileInfo &fi : subs)
+    for (const QString &root : roots)
     {
-        out << fi.fileName();
+        const QString osDir = QDir(QDir(root).filePath(arch)).filePath(os);
+        QDir d(osDir);
+        if (!d.exists()) continue;
+        const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        for (const QFileInfo &fi : subs)
+        {
+            if (!out.contains(fi.fileName())) out << fi.fileName();
+        }
     }
     return out;
 }
@@ -129,33 +174,30 @@ QString DeviceManager::programPath(const QString &name)
     // Central doctrine layout:
     // EVA_BACKEND/<arch>/<os>/<device>/<project>/<exe>
     // example: EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)
-    const QString root = backendsRootDir();
+    const QStringList roots = candidateBackendRoots();
     const QString arch = currentArchId();
     const QString os = currentOsId();
     const QString device = effectiveBackend();
     const QString project = projectForProgram(name);
     const QString exe = name + QStringLiteral(SFX_NAME);
 
-    // 1) strict path within project folder (new layout only)
-    const QString projDirNew = QDir(QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device)).filePath(project);
-    if (QFileInfo::exists(projDirNew))
+    for (const QString &root : roots)
     {
-        // try direct and recursive within project
-        const QString direct = QDir(projDirNew).filePath(exe);
-        if (QFileInfo::exists(direct)) return direct;
-        const QString rec = findProgramRecursive(projDirNew, exe);
-        if (!rec.isEmpty()) return rec;
+        const QString projDirNew = QDir(QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device)).filePath(project);
+        if (QFileInfo::exists(projDirNew))
+        {
+            const QString direct = QDir(projDirNew).filePath(exe);
+            if (QFileInfo::exists(direct)) return direct;
+            const QString rec = findProgramRecursive(projDirNew, exe);
+            if (!rec.isEmpty()) return rec;
+        }
+        const QString devDirNew = QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device);
+        if (QFileInfo::exists(devDirNew))
+        {
+            const QString rec = findProgramRecursive(devDirNew, exe);
+            if (!rec.isEmpty()) return rec;
+        }
     }
-
-    // 2) fallback within new layout: search under device dir
-    const QString devDirNew = QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device);
-    if (QFileInfo::exists(devDirNew))
-    {
-        const QString rec = findProgramRecursive(devDirNew, exe);
-        if (!rec.isEmpty()) return rec;
-    }
-
-    // Not found under new layout; no legacy fallback
     return QString();
 }
 QString DeviceManager::currentArchId()

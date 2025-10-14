@@ -182,12 +182,19 @@ void LocalServerManager::ensureRunning()
     if (prog.isEmpty() || !QFileInfo::exists(prog))
     {
         const QString eb = DeviceManager::effectiveBackend();
-                const QString root = DeviceManager::backendsRootDir();
+        const QString root = DeviceManager::backendsRootDir();
         const QString arch = DeviceManager::currentArchId();
         const QString os = DeviceManager::currentOsId();
-        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)").arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        const QStringList searched = DeviceManager::probedBackendRoots();
+        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
+                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        QString hint;
+        if (!searched.isEmpty())
+        {
+            hint = QStringLiteral("searched: ") + searched.join("; ");
+        }
         emit serverState(msg, WRONG_SIGNAL);
-        emit serverOutput(msg + "\n");
+        emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
         emit serverStartFailed(msg);
         return;
     }
@@ -210,12 +217,19 @@ void LocalServerManager::restart()
     if (prog.isEmpty() || !QFileInfo::exists(prog))
     {
         const QString eb = DeviceManager::effectiveBackend();
-                const QString root = DeviceManager::backendsRootDir();
+        const QString root = DeviceManager::backendsRootDir();
         const QString arch = DeviceManager::currentArchId();
         const QString os = DeviceManager::currentOsId();
-        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)").arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        const QStringList searched = DeviceManager::probedBackendRoots();
+        const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
+                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        QString hint;
+        if (!searched.isEmpty())
+        {
+            hint = QStringLiteral("searched: ") + searched.join("; ");
+        }
         emit serverState(msg, WRONG_SIGNAL);
-        emit serverOutput(msg + "\n");
+        emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
         emit serverStartFailed(msg);
         return;
     }

@@ -29,7 +29,18 @@ class DeviceManager
     static QString programPath(const QString &name);
 
     // Base directory holding backend subfolders (cpu/cuda/...) for current platform
+    // Returns the first existing candidate (see candidateBackendRoots).
     static QString backendsRootDir();
+
+    // All candidate root directories we probe in priority order. Only existing
+    // directories are returned. Useful for robust lookup (e.g., AppImage
+    // outside-bundle EVA_BACKEND next to the .AppImage file).
+    static QStringList candidateBackendRoots();
+
+    // Most recent list of probed paths (including non-existing) from the last
+    // candidateBackendRoots()/backendsRootDir() invocation. Intended for error
+    // diagnostics.
+    static QStringList probedBackendRoots();
 
     // Return normalized architecture id for current runtime
     // One of: x86_64, x86_32, arm64, arm32
