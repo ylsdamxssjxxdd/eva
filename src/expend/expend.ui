@@ -340,7 +340,7 @@ p, li { white-space: pre-wrap; }
                <number>0</number>
               </property>
               <property name="format">
-               <string>进度：%v/%m 步</string>
+               <string/>
               </property>
              </widget>
             </item>

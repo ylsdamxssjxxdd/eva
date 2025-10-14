@@ -8,6 +8,7 @@
 
 #include "ui_expend.h"
 #include <QFileInfo>
+#include <QHeaderView>
 
 // Simple helper: strip think markers from a chunk
 static inline QString stripThink(const QString &s)
@@ -78,26 +79,36 @@ void Expend::updateEvalInfoUi()
 
 void Expend::evalResetUi()
 {
-    // Initialize merged table: [指标/步骤 | 状态 | 用时(s) | 值 | 说明]
+    // Initialize merged table: [指标/步骤 | 状态 | 用时(s) | 值]
     if (!ui->eval_table) return;
     ui->eval_table->clearContents();
     ui->eval_table->setRowCount(5);
-    ui->eval_table->setColumnCount(5);
+    ui->eval_table->setColumnCount(4);
     QStringList headers;
     headers << QStringLiteral("指标/步骤") << QStringLiteral("状态") << QStringLiteral("用时(s)")
-            << QStringLiteral("值") << QStringLiteral("说明");
+            << QStringLiteral("值");
     ui->eval_table->setHorizontalHeaderLabels(headers);
+    // Make the table auto-fit the available area
+    ui->eval_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->eval_table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->eval_table->setWordWrap(false);
     // Init rows with default status (5 steps)
-    evalSetTable(0, QStringLiteral("首次响应(ms)"), QStringLiteral("-"), QStringLiteral("1024 字符上文，测首 token 时延"));
-    evalSetTable(1, QStringLiteral("生成速度(tok/s)"), QStringLiteral("-"), QStringLiteral("生成 1024 字符，排除思考时间"));
-    evalSetTable(2, QStringLiteral("常识问答(%)"), QStringLiteral("-"), QStringLiteral("5 题单选，A-D"));
-    evalSetTable(3, QStringLiteral("逻辑推理(%)"), QStringLiteral("-"), QStringLiteral("5 题单选，A-D（较难）"));
-    evalSetTable(4, QStringLiteral("工具调用(0-100)"), QStringLiteral("-"), QStringLiteral("6 项：计算器/文生图/知识库/工程师/MCP/鼠键"));
+    evalSetTable(0, QStringLiteral("首次响应(ms)"), QStringLiteral("-"));
+    evalSetTable(1, QStringLiteral("生成速度(tok/s)"), QStringLiteral("-"));
+    evalSetTable(2, QStringLiteral("常识问答(%)"), QStringLiteral("-"));
+    evalSetTable(3, QStringLiteral("逻辑推理(%)"), QStringLiteral("-"));
+    evalSetTable(4, QStringLiteral("工具调用(0-100)"), QStringLiteral("-"));
     for (int r = 0; r < 5; ++r) evalSetStatus(r, QStringLiteral("待开始"));
 
     ui->eval_log_plainTextEdit->clear();
-    // Progress bar (units recomputed by start)
-    if (ui->eval_progressBar) { ui->eval_progressBar->setMaximum(stepsUnitsTotal); ui->eval_progressBar->setValue(0); }
+    // Progress bar (units recomputed by start); put text inside the bar
+    if (ui->eval_progressBar) {
+        ui->eval_progressBar->setMaximum(stepsUnitsTotal);
+        ui->eval_progressBar->setValue(0);
+        ui->eval_progressBar->setTextVisible(true);
+        ui->eval_progressBar->setFormat(QStringLiteral("进度：%v/%m 步"));
+        ui->eval_progressBar->setStyleSheet(QStringLiteral("QProgressBar { text-align: center; }"));
+    }
     // Reset chart if present
     if (ui->eval_bar_chart) ui->eval_bar_chart->setScores(-1, -1, -1, -1, -1, -1);
 }
@@ -116,7 +127,6 @@ void Expend::evalSetTable(int row, const QString &name, const QString &val, cons
     };
     setItem(row, 0, name);
     setItem(row, 3, val);
-    setItem(row, 4, desc);
     // Colorize value cell by metric threshold if possible
     setValueColor(row, name, val.toDouble(), name);
 }
