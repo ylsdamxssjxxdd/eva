@@ -114,6 +114,11 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="model_evaluate_tab">
+      <attribute name="title">
+       <string>模型评估</string>
+      </attribute>
+     </widget>
      <widget class="QWidget" name="tab_4">
       <attribute name="title">
        <string>模型量化</string>
