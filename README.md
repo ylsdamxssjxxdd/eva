@@ -211,28 +211,26 @@
     ```
 
 3. 编译
-
     ```bash
     cd eva
     cmake -B build -DBODY_PACK=OFF
     cmake --build build --config Release -j 8
     ```
-
     - BODY_PACK：是否需要打包的标志，若开启，windows下将所有组件放置在bin目录下；linux下将所有组件打包为一个AppImage文件，但是依赖linuxdeploy等工具需要自行配置
 
 4. 后端准备
 
-- 从上游或第三方获取已编译的推理程序，并在项目根目录创建 `EVA_BACKEND/` 目录（与 `CMakeLists.txt` 同级）。
-- 按中央教条放置第三方程序：`EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/`，例如：
-  - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
-  - 架构：`x86_64`、`x86_32`、`arm64`、`arm32`
-  - 系统：`win`、`linux`
-  - 设备：`cpu`、`cuda`、`vulkan`、`opencl`（可自定义扩展）
-  - 项目：如 `llama.cpp`、`whisper.cpp`、`stable-diffusion.cpp`
-- 运行时 EVA 仅在本机同架构目录下枚举设备并查找可执行文件，并自动补全库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
+    - 从上游或第三方获取已编译的推理程序。
+    - 也可以在nerv项目中获取所有三方源码自行编译 git clone https://github.com/ylsdamxssjxxdd/nerv.git
+    - 按中央教条放置第三方程序：`EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/`，例如：
+    - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
+    - 架构：`x86_64`、`x86_32`、`arm64`、`arm32`
+    - 系统：`win`、`linux`
+    - 设备：`cpu`、`cuda`、`vulkan`、`opencl`（可自定义扩展）
+    - 项目：如 `llama.cpp`、`whisper.cpp`、`stable-diffusion.cpp`
+    - 运行时 EVA 仅在本机同架构目录下枚举设备并查找可执行文件，并自动补全库搜索路径（Windows: PATH；Linux: LD_LIBRARY_PATH）。
 
 5. 打包分发（解压即用）
-
     - 将可执行（build/bin/eva[.exe]）、同级目录 `EVA_BACKEND/`、必要 thirdparty 与资源、以及可选 `EVA_MODELS/` 一并打包；
     - 目录示例：
       - `EVA_BACKEND/<arch>/<os>/<device>/llama.cpp/llama-server(.exe)`

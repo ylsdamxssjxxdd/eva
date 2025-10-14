@@ -210,14 +210,14 @@ A smooth llama.cpp launcher + lightweight Agent desktop app (unified OpenAI-comp
 
 4. Backend preparation
    
-- Obtain compiled inference programs from upstream or third parties, and create an `EVA_BACKEND/` directory in the project root directory (at the same level as `CMakeLists.txt`).
-- Place third-party programs according to the central doctrine: `EVA_BACKEND/<architecture>/<system>/<device>/<project>/`, for example:
-  - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
-  - Architecture: `x86_64`, `x86_32`, `arm64`, `arm32`
-  - System: `win`, `linux`
-  - Device: `cpu`, `cuda`, `vulkan`, `opencl` (custom extensions allowed)
-  - Project: e.g., `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`
-- During runtime, EVA only enumerates devices and searches for executable files in the same architecture directory of the local machine, and automatically completes the library search path (Windows: PATH; Linux: LD_LIBRARY_PATH).
+    - Obtain compiled inference programs from upstream or third parties.
+    - Alternatively, you can obtain all third-party source codes from the Nerv project and compile them yourself: git clone https://github.com/ylsdamxssjxxdd/nerv.git
+    - `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)`
+    - Architecture: `x86_64`, `x86_32`, `arm64`, `arm32`
+    - System: `win`, `linux`
+    - Device: `cpu`, `cuda`, `vulkan`, `opencl` (custom extensions allowed)
+    - Project: e.g., `llama.cpp`, `whisper.cpp`, `stable-diffusion.cpp`
+    - During runtime, EVA only enumerates devices and searches for executable files in the same architecture directory of the local machine, and automatically completes the library search path (Windows: PATH; Linux: LD_LIBRARY_PATH).
 
 5. Packaging and distribution (ready to use after decompression)
    
