@@ -554,7 +554,13 @@ int main(int argc, char *argv[])
         w.get_date(); // 获取约定中的纸面值
         w.get_set();  // 获取设置中的纸面值
         // Broadcast initial settings to Expend (evaluation tab)
-        emit w.ui2expend_settings(w.ui_SETTINGS);
+        // In LINK mode, use discovered maximum context as n_ctx for display
+        {
+            SETTINGS snap = w.ui_SETTINGS;
+            if (w.ui_mode == LINK_MODE && w.slotCtxMax_ > 0)
+                snap.nctx = w.slotCtxMax_;
+            emit w.ui2expend_settings(snap);
+        }
         w.is_config = true;
 
         // 初次启动强制赋予隐藏的设定值

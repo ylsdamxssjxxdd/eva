@@ -73,6 +73,7 @@ void Expend::updateEvalInfoUi()
     ui->eval_model_value->setText(modelStr);
     // Device and key runtime toggles (best-effort)
     ui->eval_device_value->setText(DeviceManager::effectiveBackend());
+    // n_ctx: for LINK mode, Widget side passes the discovered maximum context via settings.nctx
     ui->eval_nctx_value->setText(eval_settings.nctx > 0 ? QString::number(eval_settings.nctx) : QStringLiteral("-"));
     ui->eval_threads_value->setText(eval_settings.nthread > 0 ? QString::number(eval_settings.nthread) : QStringLiteral("-"));
 }
@@ -452,8 +453,18 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         if (evalStep == 0)
         {
             m_firstTokenMs = ms;
-            evalSetTable(0, QStringLiteral("首次响应(ms)"), QString::number(m_firstTokenMs, 'f', 1));
+            // Display score (0-100) in the "值" column for TTFB
+            auto scoreTTFB = [&](double t_ms) {
+                if (t_ms < 0) return 0.0; if (t_ms <= 500.0) return 100.0; if (t_ms >= 10000.0) return 0.0; return (10000.0 - t_ms) * 100.0 / (10000.0 - 500.0);
+            };
+            const double s = scoreTTFB(m_firstTokenMs);
+            evalSetTable(0, QStringLiteral("首次响应(ms)"), QString::number(s, 'f', 0));
             updateScoreBars();
+            // Immediately stop the request after first token to measure TTFB only
+            if (evalNet)
+            {
+                QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
+            }
         }
         else if (evalStep == 1)
         {
@@ -515,7 +526,11 @@ void Expend::onEvalPushover()
         evalLog(QStringLiteral("[首次响应] 模型回答：\n") + evalAccum);
         // Mark step 1 done
         evalSetStatus(0, QStringLiteral("完成"));
-        evalSetElapsed(0, stepTimer.nsecsElapsed()/1e9);
+        // 用时列单位为 s；首次响应以 ms 计，需转换
+        if (m_firstTokenMs >= 0)
+            evalSetElapsed(0, m_firstTokenMs / 1000.0);
+        else
+            evalSetElapsed(0, stepTimer.nsecsElapsed()/1e9);
         stepsDone++;
         evalUpdateProgress();
         updateScoreBars();

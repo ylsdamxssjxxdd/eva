@@ -133,7 +133,12 @@ void Widget::settings_ui_confirm_button_clicked()
     // 注意：get_set() 会把控件值写入 ui_SETTINGS 与 ui_port
     get_set();
     // Inform Expend (evaluation tab) of latest settings snapshot
-    emit ui2expend_settings(ui_SETTINGS);
+    {
+        SETTINGS snap = ui_SETTINGS;
+        if (ui_mode == LINK_MODE && slotCtxMax_ > 0)
+            snap.nctx = slotCtxMax_;
+        emit ui2expend_settings(snap);
+    }
 
     auto eq_str = [](const QString &a, const QString &b)
     { return a == b; };

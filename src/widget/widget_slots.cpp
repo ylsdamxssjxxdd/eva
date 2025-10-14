@@ -835,6 +835,10 @@ void Widget::onServerOutput(const QString &line)
         {
             slotCtxMax_ = v;
             updateKvBarUi();
+            // Notify Expend (evaluation tab) to refresh displayed n_ctx in LINK mode
+            SETTINGS snap = ui_SETTINGS;
+            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+            emit ui2expend_settings(snap);
         }
     }
 

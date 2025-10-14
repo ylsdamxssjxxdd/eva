@@ -287,6 +287,10 @@ void Widget::fetchRemoteContextLimit()
         {
             slotCtxMax_ = maxCtx;
             updateKvBarUi();
+            // Notify Expend (evaluation tab) to refresh displayed n_ctx
+            SETTINGS snap = ui_SETTINGS;
+            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+            emit ui2expend_settings(snap);
         }
         else
         {
@@ -340,6 +344,10 @@ void Widget::fetchPropsContextLimit()
             slotCtxMax_ = nctx;
             updateKvBarUi();
             reflash_state(QString("net:ctx via /props = %1").arg(nctx), SIGNAL_SIGNAL);
+            // Notify Expend to refresh displayed n_ctx
+            SETTINGS snap = ui_SETTINGS;
+            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+            emit ui2expend_settings(snap);
         }
     });
 }
