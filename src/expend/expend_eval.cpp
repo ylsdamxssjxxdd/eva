@@ -7,6 +7,7 @@
 #include "../xtool.h"
 
 #include "ui_expend.h"
+#include <QFileInfo>
 
 // Simple helper: strip think markers from a chunk
 static inline QString stripThink(const QString &s)
@@ -47,8 +48,26 @@ void Expend::updateEvalInfoUi()
 
     ui->eval_mode_value->setText(eval_mode == LOCAL_MODE ? QStringLiteral("本地模式") : QStringLiteral("链接模式"));
     ui->eval_endpoint_value->setText(eval_apis.api_endpoint.isEmpty() ? QStringLiteral("-") : eval_apis.api_endpoint);
-    // Model: local shows file name if set; link shows provider model id
-    QString modelStr = eval_mode == LOCAL_MODE ? eval_settings.modelpath : eval_apis.api_model;
+    // Model: local shows only file name (not full path); link shows provider model id
+    QString modelStr;
+    if (eval_mode == LOCAL_MODE)
+    {
+        const QString p = eval_settings.modelpath.trimmed();
+        if (!p.isEmpty())
+        {
+            modelStr = QFileInfo(p).fileName();
+            if (modelStr.isEmpty())
+            {
+                QString t = p; t.replace("\\", "/");
+                const int k = t.lastIndexOf('/');
+                modelStr = (k >= 0 ? t.mid(k + 1) : p);
+            }
+        }
+    }
+    else
+    {
+        modelStr = eval_apis.api_model;
+    }
     if (modelStr.isEmpty()) modelStr = QStringLiteral("-");
     ui->eval_model_value->setText(modelStr);
     // Device and key runtime toggles (best-effort)
