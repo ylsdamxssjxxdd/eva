@@ -4,6 +4,7 @@
 
 \[ 中文 | [English](README_en.md) \]
 
+<img width="1906" height="984" alt="约定框架-DATE Framework" src="https://github.com/user-attachments/assets/20e655a2-cd60-4649-9fb2-21dced3d2664" />
 
 
 
@@ -238,5 +239,6 @@
       - `EVA_BACKEND/<arch>/<os>/<device>/llama-tts/llama-tts(.exe)`
       - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
     - 程序首次启动会在同级目录创建 `EVA_TEMP/`，用于保存配置、历史与中间产物。
+
 
 </details>
