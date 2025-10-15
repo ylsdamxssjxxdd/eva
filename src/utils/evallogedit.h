@@ -27,6 +27,7 @@ class EvalLogEdit : public QPlainTextEdit
     void ensureSymbols();
     void drawBackground(QPainter &p);
     void drawTicks(QPainter &p);
+    void drawSymbols(QPainter &p); // edge +/- symbols overlay
     void drawSyncTubes(QPainter &p);
     // Helpers
     QColor tubeColorOuter(int i) const; // outer glow color per line
@@ -36,11 +37,12 @@ class EvalLogEdit : public QPlainTextEdit
     QTimer m_animTimer;
     QElapsedTimer m_clock;
     bool m_active = false;
+    bool m_showTubes = false; // draw sine tubes or not (off per user request)
 
     // Wave params
-    int m_lines = 7;
+    int m_lines = 7; // number of parallel tubes when enabled
     double m_baseAmp = 16.0;      // sine amplitude in px
-    double m_waveLen = 220.0;     // wavelength in px
+    double m_waveLen = 440.0;     // wavelength in px (doubled for longer curves)
     double m_spreadMax = 12.0;    // max offset between lines
     double m_spreadMin = 2.5;     // min offset between lines (near overlap)
     double m_phase = 0.0;         // optional gentle drift

@@ -7,9 +7,14 @@
 #include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QSysInfo>
+#include <QOperatingSystemVersion>
+#include <QLibrary>
+#include <QHash>
+
 
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 static QStringList g_lastProbed;                      // debug: last probed paths
+static QHash<QString, QString> g_lastResolvedDevice;   // program -> device that was actually resolved
 
 QString DeviceManager::backendsRootDir()
 {
@@ -90,6 +95,122 @@ QStringList DeviceManager::probedBackendRoots()
 {
     return g_lastProbed;
 }
+
+// --- Runtime capability probes (very lightweight; best-effort) ---
+static bool supportsCuda()
+{
+#if defined(Q_OS_WIN)
+    QLibrary lib(QStringLiteral("nvcuda"));
+    const bool ok = lib.load();
+    if (ok) lib.unload();
+    return ok;
+#elif defined(Q_OS_LINUX)
+    QLibrary lib(QStringLiteral("libcuda.so.1"));
+    if (lib.load()) { lib.unload(); return true; }
+    // Fallback heuristics
+    return QFileInfo::exists("/proc/driver/nvidia/version") || QFileInfo::exists("/dev/nvidiactl");
+#else
+    return false; // no CUDA on macOS and others
+#endif
+}
+static bool supportsVulkan()
+{
+#if defined(Q_OS_WIN)
+    QLibrary lib(QStringLiteral("vulkan-1"));
+    const bool ok = lib.load();
+    if (ok) lib.unload();
+    return ok;
+#elif defined(Q_OS_LINUX)
+    QLibrary lib(QStringLiteral("libvulkan.so.1"));
+    const bool ok = lib.load();
+    if (ok) lib.unload();
+    return ok;
+#else
+    return false;
+#endif
+}
+static bool supportsOpenCL()
+{
+#if defined(Q_OS_WIN)
+    QLibrary lib(QStringLiteral("OpenCL"));
+    const bool ok = lib.load();
+    if (ok) lib.unload();
+    return ok;
+#elif defined(Q_OS_LINUX)
+    QLibrary lib(QStringLiteral("libOpenCL.so.1"));
+    const bool ok = lib.load();
+    if (ok) lib.unload();
+    return ok;
+#else
+    return false;
+#endif
+}
+
+// Windows 7/8 detection; Qt may lie without manifest, so be redundant
+static bool isWindows7Or8Family()
+{
+#if defined(Q_OS_WIN)
+    const auto v = QOperatingSystemVersion::current();
+    if (v.majorVersion() == 6 && v.minorVersion() >= 1 && v.minorVersion() <= 3) return true; // 6.1 (Win7), 6.2 (Win8), 6.3 (8.1)
+    const QString pv = QSysInfo::productVersion();
+    if (pv.startsWith("7") || pv.startsWith("8")) return true;
+    return false;
+#else
+    return false;
+#endif
+}
+
+// OS search order for EVA_BACKEND lookup. On Win7/8, try win7/ then fallback to win/.
+static QStringList osSearchOrder()
+{
+    QStringList out;
+#if defined(Q_OS_WIN)
+    if (isWindows7Or8Family()) { out << QStringLiteral("win7") << QStringLiteral("win"); }
+    else { out << QStringLiteral("win"); }
+#elif defined(Q_OS_LINUX)
+    out << QStringLiteral("linux");
+#elif defined(Q_OS_MAC)
+    out << QStringLiteral("mac");
+#else
+    out << QStringLiteral("linux");
+#endif
+    return out;
+}
+
+// Device search order honoring user's choice and runtime capability
+static QStringList deviceSearchOrder()
+{
+    QStringList order;
+    const QString choice = DeviceManager::userChoice();
+    auto add = [&](const QString &b){ if (!order.contains(b)) order << b; };
+    auto addIf = [&](const QString &b, bool ok){ if (ok) add(b); };
+
+    if (choice == QLatin1String("auto"))
+    {
+        addIf(QStringLiteral("cuda"), supportsCuda());
+        addIf(QStringLiteral("vulkan"), supportsVulkan());
+        addIf(QStringLiteral("opencl"), supportsOpenCL());
+        add(QStringLiteral("cpu")); // always present logically
+    }
+    else
+    {
+        if (choice == QLatin1String("cuda")) addIf(QStringLiteral("cuda"), supportsCuda());
+        else if (choice == QLatin1String("vulkan")) addIf(QStringLiteral("vulkan"), supportsVulkan());
+        else if (choice == QLatin1String("opencl")) addIf(QStringLiteral("opencl"), supportsOpenCL());
+        else if (choice == QLatin1String("cpu")) add(QStringLiteral("cpu"));
+        else {
+            addIf(QStringLiteral("cuda"), supportsCuda());
+            addIf(QStringLiteral("vulkan"), supportsVulkan());
+            addIf(QStringLiteral("opencl"), supportsOpenCL());
+        }
+        // Fallback chain
+        addIf(QStringLiteral("cuda"), supportsCuda());
+        addIf(QStringLiteral("vulkan"), supportsVulkan());
+        addIf(QStringLiteral("opencl"), supportsOpenCL());
+        add(QStringLiteral("cpu"));
+    }
+    return order;
+}
 QStringList DeviceManager::preferredOrder()
 {
     // Best-effort preference. Do not query hardware here; we only reflect what was shipped.
@@ -98,16 +219,21 @@ QStringList DeviceManager::preferredOrder()
 
 QStringList DeviceManager::availableBackends()
 {
-    // Enumerate device folders under each candidate root.
+    // Enumerate device folders under first matching OS dir for each candidate root.
     const QStringList roots = candidateBackendRoots();
     const QString arch = currentArchId();
-    const QString os = currentOsId();
     QStringList out;
+    const QStringList osOrder = osSearchOrder();
     for (const QString &root : roots)
     {
-        const QString osDir = QDir(QDir(root).filePath(arch)).filePath(os);
+        QString osDir;
+        for (const QString &osName : osOrder)
+        {
+            const QString tryDir = QDir(QDir(root).filePath(arch)).filePath(osName);
+            if (QDir(tryDir).exists()) { osDir = tryDir; break; }
+        }
+        if (osDir.isEmpty()) continue;
         QDir d(osDir);
-        if (!d.exists()) continue;
         const QFileInfoList subs = d.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
         for (const QFileInfo &fi : subs)
         {
@@ -138,24 +264,27 @@ QString DeviceManager::userChoice()
 QString DeviceManager::effectiveBackend()
 {
     const QStringList avail = availableBackends();
-    if (g_userChoice == QLatin1String("auto"))
+    auto isAvail = [&](const QString &b){ return avail.contains(b); };
+    const QString choice = userChoice();
+
+    auto firstSupportedAvail = [&]()->QString {
+        if (supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
+        if (supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
+        if (supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
+        if (isAvail("cpu")) return QStringLiteral("cpu");
+        return avail.isEmpty() ? QStringLiteral("cpu") : avail.first();
+    };
+
+    if (choice == QLatin1String("auto"))
     {
-        // Prefer known accelerators if present, otherwise first available folder
-        for (const QString &b : preferredOrder())
-        {
-            if (avail.contains(b)) return b;
-        }
-        if (!avail.isEmpty()) return avail.first();
-        return QStringLiteral("cpu");
+        return firstSupportedAvail();
     }
-    // If explicit choice exists, honor it; otherwise fall back to auto strategy
-    if (avail.contains(g_userChoice)) return g_userChoice;
-    for (const QString &b : preferredOrder())
-    {
-        if (avail.contains(b)) return b;
-    }
-    if (!avail.isEmpty()) return avail.first();
-    return QStringLiteral("cpu");
+    // Explicit choice: honor if available and supported; else degrade
+    if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
+    if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
+    if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
+    if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
+    return firstSupportedAvail();
 }
 
 static QString findProgramRecursive(const QString &dir, const QString &exe)
@@ -176,26 +305,39 @@ QString DeviceManager::programPath(const QString &name)
     // example: EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)
     const QStringList roots = candidateBackendRoots();
     const QString arch = currentArchId();
-    const QString os = currentOsId();
-    const QString device = effectiveBackend();
+    const QStringList osOrder = osSearchOrder();
+    const QStringList devices = deviceSearchOrder();
     const QString project = projectForProgram(name);
     const QString exe = name + QStringLiteral(SFX_NAME);
 
+    g_lastResolvedDevice.remove(name);
+
     for (const QString &root : roots)
     {
-        const QString projDirNew = QDir(QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device)).filePath(project);
-        if (QFileInfo::exists(projDirNew))
+        QString osDir;
+        for (const QString &osName : osOrder)
         {
-            const QString direct = QDir(projDirNew).filePath(exe);
-            if (QFileInfo::exists(direct)) return direct;
-            const QString rec = findProgramRecursive(projDirNew, exe);
-            if (!rec.isEmpty()) return rec;
+            const QString tryDir = QDir(QDir(root).filePath(arch)).filePath(osName);
+            if (QDir(tryDir).exists()) { osDir = tryDir; break; }
         }
-        const QString devDirNew = QDir(QDir(QDir(root).filePath(arch)).filePath(os)).filePath(device);
-        if (QFileInfo::exists(devDirNew))
+        if (osDir.isEmpty()) continue;
+
+        for (const QString &device : devices)
         {
-            const QString rec = findProgramRecursive(devDirNew, exe);
-            if (!rec.isEmpty()) return rec;
+            const QString projDirNew = QDir(QDir(osDir).filePath(device)).filePath(project);
+            if (QFileInfo::exists(projDirNew))
+            {
+                const QString direct = QDir(projDirNew).filePath(exe);
+                if (QFileInfo::exists(direct)) { g_lastResolvedDevice.insert(name, device); return direct; }
+                const QString rec = findProgramRecursive(projDirNew, exe);
+                if (!rec.isEmpty()) { g_lastResolvedDevice.insert(name, device); return rec; }
+            }
+            const QString devDirNew = QDir(osDir).filePath(device);
+            if (QFileInfo::exists(devDirNew))
+            {
+                const QString rec = findProgramRecursive(devDirNew, exe);
+                if (!rec.isEmpty()) { g_lastResolvedDevice.insert(name, device); return rec; }
+            }
         }
     }
     return QString();
@@ -217,7 +359,7 @@ QString DeviceManager::currentArchId()
 QString DeviceManager::currentOsId()
 {
 #if defined(Q_OS_WIN)
-    return QStringLiteral("win");
+    return isWindows7Or8Family() ? QStringLiteral("win7") : QStringLiteral("win");
 #elif defined(Q_OS_LINUX)
     return QStringLiteral("linux");
 #elif defined(Q_OS_MAC)
@@ -240,4 +382,10 @@ QString DeviceManager::projectForProgram(const QString &name)
     if (name == QLatin1String("llama-tts")) return QStringLiteral("llama-tts");
     // default to using the name itself as folder (best-effort)
     return name;
+}
+QString DeviceManager::lastResolvedDeviceFor(const QString &programName)
+{
+    const QString d = g_lastResolvedDevice.value(programName);
+    if (!d.isEmpty()) return d;
+    return effectiveBackend();
 }

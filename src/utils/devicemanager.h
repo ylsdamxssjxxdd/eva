@@ -45,8 +45,12 @@ class DeviceManager
     // Return normalized architecture id for current runtime
     // One of: x86_64, x86_32, arm64, arm32
     static QString currentArchId();
-    // Normalized OS id: win, linux, mac
+    // Normalized OS id: win, linux, mac, or win7 on Windows 7/8 family
     static QString currentOsId();
+
+    // The backend device actually resolved for a given program (from last
+    // programPath() call). Falls back to effectiveBackend() if unknown.
+    static QString lastResolvedDeviceFor(const QString &programName);
 
   private:
     static QStringList preferredOrder();
@@ -56,3 +60,4 @@ class DeviceManager
 };
 
 #endif // EVA_DEVICE_MANAGER_H
+

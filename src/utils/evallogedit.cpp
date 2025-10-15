@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QFont>
 #include <QPainterPath>
+#include <QLinearGradient>
 #include <QPalette>
 
 EvalLogEdit::EvalLogEdit(QWidget *parent)
@@ -52,9 +53,13 @@ void EvalLogEdit::paintEvent(QPaintEvent *e)
 {
     QPainter p(viewport());
     p.setRenderHint(QPainter::Antialiasing, true);
+    // 1) black background
     drawBackground(p);
-    drawTicks(p);
+    // 2) tubes under overlays
     drawSyncTubes(p);
+    // 3) grid ticks and edge symbols over tubes
+    drawTicks(p);
+    drawSymbols(p);
     p.end();
     QPlainTextEdit::paintEvent(e);
 }
@@ -100,11 +105,16 @@ void EvalLogEdit::ensureSymbols()
 
 void EvalLogEdit::drawBackground(QPainter &p)
 {
-    // Pure black background
+    // Pure black background only
     p.save();
     p.fillRect(viewport()->rect(), QColor(0, 0, 0));
+    p.restore();
+}
 
-    // Edge symbols: +/- in dim orange-white
+void EvalLogEdit::drawSymbols(QPainter &p)
+{
+    // Edge symbols: +/- in dim orange-white (overlay above tubes)
+    p.save();
     ensureSymbols();
     QFont f = font();
     f.setPointSizeF(qMax(8.0, f.pointSizeF()));
@@ -168,6 +178,15 @@ QColor EvalLogEdit::tubeColorInner(int i) const
 
 void EvalLogEdit::drawSyncTubes(QPainter &p)
 {
+    // Sine tubes are disabled by default as requested; keep function for possible reuse.
+    if (!m_showTubes) return;
+    // Render several EVA‑style sine "tubes" that look hollow and segmented.
+    // Implementation notes:
+    // 1) Wide translucent outer stroke (orange/white) gives the tube rim.
+    // 2) A thinner dark stroke on top carves a hollow center.
+    // 3) Short crossbars are drawn perpendicular to the curve at regular spacing
+    //    to give a segmented, section-by-section feel similar to the reference.
+
     const QRect r = viewport()->rect();
     const int w = r.width();
     const int h = r.height();
@@ -192,6 +211,14 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     const double maxSep = 0.75; // radians when spread out
     const double delta = minSep + (maxSep - minSep) * breath;
 
+    // Visual parameters of the tube (orange-white rim + hollow center)
+    const qreal outerW = 24.0;    // outer rim width (3x thicker)
+    const qreal innerW = 9.0;     // central hollow width (carve out the core)
+    const qreal barHalf = 7.5;    // crossbar half length (slightly larger for readability)
+    // Adaptive sampling: coarser at large widths to reduce CPU cost
+    const int sampleDx = qBound(6, w / 220, 10);
+    const int barStep = 22;       // crossbar spacing in px along x
+
     p.save();
 
     for (int i = 0; i < m_lines; ++i)
@@ -199,26 +226,59 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
         const double phi = basePhase + (i - (m_lines - 1) / 2.0) * delta;
         QPainterPath path;
         path.moveTo(0, cy + amp * sin(phi));
-        const int step = 4; // px sampling step (denser for large amplitude)
-        for (int x = step; x <= w; x += step)
+        for (int x = sampleDx; x <= w; x += sampleDx)
         {
-            double y = cy + amp * sin(k * x + phi);
+            const double y = cy + amp * sin(k * x + phi);
             path.lineTo(x, y);
         }
-        // Thicker outer stroke
-        QPen outerPen(QColor(255, 210, 120, 230));
-        outerPen.setWidthF(7.0);
-        outerPen.setCapStyle(Qt::RoundCap);
-        outerPen.setJoinStyle(Qt::RoundJoin);
-        p.setPen(outerPen);
+
+        // Prebuild pens (reuse per line)
+        static const QPen spineTpl(QColor(255, 245, 220, 150), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        static const QPen barTpl(QColor(255, 240, 200, 170), 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        // 1) Outer translucent rim (orange/white gradient)
+        QLinearGradient g(0, 0, 0, h);
+        g.setColorAt(0.00, QColor(255, 220, 160, 180));
+        g.setColorAt(0.50, QColor(255, 210, 140, 220));
+        g.setColorAt(1.00, QColor(255, 230, 190, 180));
+        QPen rim(g, outerW, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        p.setPen(rim);
         p.drawPath(path);
-        // Hollow center: carve a thin black line along the middle
-        QPen innerPen(QColor(0, 0, 0, 255));
-        innerPen.setWidthF(3.0);
-        innerPen.setCapStyle(Qt::RoundCap);
-        innerPen.setJoinStyle(Qt::RoundJoin);
-        p.setPen(innerPen);
+
+        // Optional inner highlight dashed spine to hint segments along the path
+        QPen spine = spineTpl;
+        spine.setStyle(Qt::CustomDashLine);
+        spine.setDashPattern(QVector<qreal>{7.0, 12.0});
+        p.setPen(spine);
         p.drawPath(path);
+
+        // 2) Hollow center carve (dark line)
+        QPen carve(QColor(0, 0, 0, 230));
+        carve.setWidthF(innerW);
+        carve.setCapStyle(Qt::RoundCap);
+        carve.setJoinStyle(Qt::RoundJoin);
+        p.setPen(carve);
+        p.drawPath(path);
+
+        // 3) Crossbars: short segments perpendicular to the curve
+        // Keep default composition for speed
+        QPen barPen = barTpl;
+        p.setPen(barPen);
+        for (int x = 0; x <= w; x += barStep)
+        {
+            // y = A sin(kx + phi); y' = A k cos(kx + phi)
+            const double phase = k * x + phi;
+            const double y = cy + amp * sin(phase);
+            const double dydx = amp * k * cos(phase);
+            // Normal vector to the curve ~ (-dydx, 1)
+            double nx = -dydx, ny = 1.0;
+            const double invLen = 1.0 / qMax(1e-6, std::sqrt(nx * nx + ny * ny));
+            nx *= invLen; ny *= invLen;
+            const QPointF c(x, y);
+            const QPointF a = c - QPointF(nx * barHalf, ny * barHalf);
+            const QPointF b = c + QPointF(nx * barHalf, ny * barHalf);
+            p.drawLine(a, b);
+        }
+        // end crossbars
     }
 
     p.restore();

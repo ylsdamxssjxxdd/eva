@@ -64,7 +64,8 @@ QStringList LocalServerManager::buildArgs() const
     args << "--port" << port_;
     args << "-c" << QString::number(settings_.nctx);
     // 仅在 GPU 型后端下传递 -ngl；CPU 后端无此选项意义
-    if (DeviceManager::effectiveBackend() != QLatin1String("cpu"))
+    const QString __resolvedDev = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    if (__resolvedDev != QLatin1String("cpu"))
     {
         args << "-ngl" << QString::number(settings_.ngl);
     }
@@ -340,3 +341,4 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
+
