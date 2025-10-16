@@ -23,6 +23,7 @@ add_executable(
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp
+    src/expend/sd_params_dialog.cpp src/expend/sd_params_dialog.h
     src/expend/expend.cpp src/xnet.cpp src/xtool.cpp src/xmcp.cpp src/xbackend.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h

@@ -3,6 +3,7 @@
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
 #include "ui_expend.h"
+#include <QDir>
 
 //-------------------------------------------------------------------------
 //----------------------------------文生图相关--------------------------------
@@ -47,6 +48,8 @@ void Expend::on_sd_modelpath_pushButton_clicked()
 
     QString modelpath = currentpath;
     ui->sd_modelpath_lineEdit->setText(currentpath);
+    // Mirror to advanced run config (main model path)
+    sd_run_config_.modelPath = currentpath;
 
     // 自动寻找其它模型
     if (QFile::exists(modelpath))
@@ -86,17 +89,22 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     }
 
     // 自动设置参数模板
-    if (modelpath.contains("sd1.5-anything-3"))
+    if (modelpath.contains("qwen", Qt::CaseInsensitive))
+    {
+        ui->params_template_comboBox->setCurrentText("qwen-image");
+    }
+    else if (modelpath.contains("sd1.5-anything-3"))
     {
         ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");
     }
     else if (modelpath.contains("sdxl-animagine-3.1"))
     {
-        ui->params_template_comboBox->setCurrentText("sdxl-animagine-3.1");
+        // Deprecated preset removed in favor of compact set; fallback to custom1
+        ui->params_template_comboBox->setCurrentText("custom1");
     }
     else if (modelpath.contains("sd3.5-large"))
     {
-        ui->params_template_comboBox->setCurrentText("sd3.5-large");
+        ui->params_template_comboBox->setCurrentText("custom1");
     }
     else if (modelpath.contains("flux1-dev"))
     {
@@ -154,6 +162,71 @@ void Expend::on_sd_lorapath_pushButton_clicked()
     }
 }
 
+// 打开新的文生图高级参数弹窗
+void Expend::on_sd_open_params_button_clicked()
+{
+    if (!sdParamsDialog_)
+    {
+        sdParamsDialog_ = new SdParamsDialog(this);
+        // Initialize preset matching the current combo box
+        sdParamsDialog_->applyPreset(ui->params_template_comboBox->currentText());
+        sdParamsDialog_->setConfig(sd_run_config_);
+        connect(sdParamsDialog_, &SdParamsDialog::accepted, this, [this](const SDRunConfig &cfg, const QString &preset) {
+            // Persist to memory and mirror essential fields to inline UI for visibility
+            sd_run_config_ = cfg;
+            if (!cfg.modelPath.isEmpty()) ui->sd_modelpath_lineEdit->setText(cfg.modelPath);
+            if (!cfg.vaePath.isEmpty()) ui->sd_vaepath_lineEdit->setText(cfg.vaePath);
+            if (!cfg.clipLPath.isEmpty()) ui->sd_clip_l_path_lineEdit->setText(cfg.clipLPath);
+            if (!cfg.clipGPath.isEmpty()) ui->sd_clip_g_path_lineEdit->setText(cfg.clipGPath);
+            if (!cfg.t5xxlPath.isEmpty()) ui->sd_t5path_lineEdit->setText(cfg.t5xxlPath);
+            if (!preset.isEmpty()) ui->params_template_comboBox->setCurrentText(preset);
+            // Save advanced config immediately
+            createTempDirectory(applicationDirPath + "/EVA_TEMP");
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            settings.setValue("sd_adv_model_path", sd_run_config_.modelPath);
+            settings.setValue("sd_adv_vae_path", sd_run_config_.vaePath);
+            settings.setValue("sd_adv_clip_l_path", sd_run_config_.clipLPath);
+            settings.setValue("sd_adv_clip_g_path", sd_run_config_.clipGPath);
+            settings.setValue("sd_adv_clip_vision_path", sd_run_config_.clipVisionPath);
+            settings.setValue("sd_adv_t5xxl_path", sd_run_config_.t5xxlPath);
+            settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
+            settings.setValue("sd_adv_lora_dir", sd_run_config_.loraDirPath);
+            settings.setValue("sd_adv_taesd_path", sd_run_config_.taesdPath);
+            settings.setValue("sd_adv_upscale_model", sd_run_config_.upscaleModelPath);
+            settings.setValue("sd_adv_control_net", sd_run_config_.controlNetPath);
+            settings.setValue("sd_adv_control_img", sd_run_config_.controlImagePath);
+            settings.setValue("sd_adv_width", sd_run_config_.width);
+            settings.setValue("sd_adv_height", sd_run_config_.height);
+            settings.setValue("sd_adv_sampler", sd_run_config_.sampler);
+            settings.setValue("sd_adv_scheduler", sd_run_config_.scheduler);
+            settings.setValue("sd_adv_steps", sd_run_config_.steps);
+            settings.setValue("sd_adv_cfg", sd_run_config_.cfgScale);
+            settings.setValue("sd_adv_clip_skip", sd_run_config_.clipSkip);
+            settings.setValue("sd_adv_batch", sd_run_config_.batchCount);
+            settings.setValue("sd_adv_seed", sd_run_config_.seed);
+            settings.setValue("sd_adv_strength", sd_run_config_.strength);
+            settings.setValue("sd_adv_guidance", sd_run_config_.guidance);
+            settings.setValue("sd_adv_rng", sd_run_config_.rng);
+            settings.setValue("sd_adv_flow_shift_en", sd_run_config_.flowShiftEnabled);
+            settings.setValue("sd_adv_flow_shift", sd_run_config_.flowShift);
+            settings.setValue("sd_adv_offload_cpu", sd_run_config_.offloadToCpu);
+            settings.setValue("sd_adv_clip_cpu", sd_run_config_.clipOnCpu);
+            settings.setValue("sd_adv_vae_cpu", sd_run_config_.vaeOnCpu);
+            settings.setValue("sd_adv_control_cpu", sd_run_config_.controlNetOnCpu);
+            settings.setValue("sd_adv_diff_fa", sd_run_config_.diffusionFA);
+            settings.setValue("sd_adv_vae_tiling", sd_run_config_.vaeTiling);
+            settings.setValue("sd_adv_vae_tile_x", sd_run_config_.vaeTileX);
+            settings.setValue("sd_adv_vae_tile_y", sd_run_config_.vaeTileY);
+            settings.setValue("sd_adv_vae_tile_overlap", sd_run_config_.vaeTileOverlap);
+            settings.sync();
+        });
+    }
+    sdParamsDialog_->show();
+    sdParamsDialog_->raise();
+    sdParamsDialog_->activateWindow();
+}
+
 // 用户点击开始绘制时响应
 void Expend::on_sd_draw_pushButton_clicked()
 {
@@ -199,86 +272,111 @@ void Expend::on_sd_draw_pushButton_clicked()
         ui->sd_log->appendPlainText("[error] sd backend not found under current device folder");
         return;
     }
-    // 如果你的程序需要命令行参数,你可以将它们放在一个QStringList中
+    // Build unified argument list using the new advanced run-config
     QStringList arguments;
-
+    // mode
+    arguments << "-M" << "img_gen";
     if (img2img)
     {
-        arguments << "-M"
-                  << "img_gen";                                                           // 运行模式 图生图
-        arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text()); // 传入图像路径（处理中文路径）
+        arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text());
         img2img = false;
+        // strength for img2img (from config)
+        arguments << "--strength" << QString::number(sd_run_config_.strength);
     }
+    // main model arg
+    SDModelArgKind argk = sd_run_config_.modelArg;
+    if (argk == SDModelArgKind::Auto)
+    {
+        // Heuristic: prefer --diffusion-model when clip/t5/qwen2vl provided or filename hints
+        const bool hasExtra = !sd_run_config_.t5xxlPath.isEmpty() || !sd_run_config_.qwen2vlPath.isEmpty() || !sd_run_config_.clipLPath.isEmpty() || !sd_run_config_.clipGPath.isEmpty();
+        if (hasExtra || sd_run_config_.modelPath.contains("flux", Qt::CaseInsensitive) || sd_run_config_.modelPath.contains("qwen", Qt::CaseInsensitive))
+            argk = SDModelArgKind::Diffusion;
+        else
+            argk = SDModelArgKind::LegacyM;
+    }
+    if (argk == SDModelArgKind::Diffusion)
+        arguments << "--diffusion-model" << ensureToolFriendlyFilePath(sd_run_config_.modelPath);
     else
-    {
-        arguments << "-M"
-                  << "img_gen"; // 运行模式 文生图
-    }
+        arguments << "-m" << ensureToolFriendlyFilePath(sd_run_config_.modelPath);
 
-    // 模型路径 sd系列模型用-m flux模型用--diffusion-model
-    if (ui->sd_modelpath_lineEdit->text().contains("flux"))
-    {
-        arguments << "--diffusion-model" << ensureToolFriendlyFilePath(ui->sd_modelpath_lineEdit->text());
-    }
-    else
-    {
-        arguments << "-m" << ensureToolFriendlyFilePath(ui->sd_modelpath_lineEdit->text());
-    }
+    // optional components
+    if (!sd_run_config_.vaePath.isEmpty()) arguments << "--vae" << ensureToolFriendlyFilePath(sd_run_config_.vaePath);
+    if (!sd_run_config_.clipLPath.isEmpty()) arguments << "--clip_l" << ensureToolFriendlyFilePath(sd_run_config_.clipLPath);
+    if (!sd_run_config_.clipGPath.isEmpty()) arguments << "--clip_g" << ensureToolFriendlyFilePath(sd_run_config_.clipGPath);
+    if (!sd_run_config_.clipVisionPath.isEmpty()) arguments << "--clip_vision" << ensureToolFriendlyFilePath(sd_run_config_.clipVisionPath);
+    if (!sd_run_config_.t5xxlPath.isEmpty()) arguments << "--t5xxl" << ensureToolFriendlyFilePath(sd_run_config_.t5xxlPath);
+    if (!sd_run_config_.qwen2vlPath.isEmpty()) arguments << "--qwen2vl" << ensureToolFriendlyFilePath(sd_run_config_.qwen2vlPath);
+    if (!sd_run_config_.taesdPath.isEmpty()) arguments << "--taesd" << ensureToolFriendlyFilePath(sd_run_config_.taesdPath);
+    if (!sd_run_config_.upscaleModelPath.isEmpty()) arguments << "--upscale-model" << ensureToolFriendlyFilePath(sd_run_config_.upscaleModelPath);
+    if (!sd_run_config_.controlNetPath.isEmpty()) arguments << "--control-net" << ensureToolFriendlyFilePath(sd_run_config_.controlNetPath);
+    if (!sd_run_config_.controlImagePath.isEmpty()) arguments << "--control-image" << ensureToolFriendlyFilePath(sd_run_config_.controlImagePath);
 
-    if (QFile::exists(ui->sd_vaepath_lineEdit->text()))
+    // LoRA directory (and heuristic prompt injection)
+    QString lora_prompt;
+    if (!sd_run_config_.loraDirPath.isEmpty())
     {
-        arguments << "--vae" << ensureToolFriendlyFilePath(ui->sd_vaepath_lineEdit->text());
-    } // vae路径
-    if (QFile::exists(ui->sd_clip_l_path_lineEdit->text()))
-    {
-        arguments << "--clip_l" << ensureToolFriendlyFilePath(ui->sd_clip_l_path_lineEdit->text());
-    } // clip_l路径
-    if (QFile::exists(ui->sd_clip_g_path_lineEdit->text()))
-    {
-        arguments << "--clip_g" << ensureToolFriendlyFilePath(ui->sd_clip_g_path_lineEdit->text());
-    } // clip_g路径
-    if (QFile::exists(ui->sd_t5path_lineEdit->text()))
-    {
-        arguments << "--t5xxl" << ensureToolFriendlyFilePath(ui->sd_t5path_lineEdit->text());
-    } // vae路径
-    QString lora_prompt = "<lora:{model}:1>"; // 应用lora的提示，将会添加到提示词的最后
-    if (QFile::exists(ui->sd_lorapath_lineEdit->text()))
+        arguments << "--lora-model-dir" << toToolFriendlyPath(sd_run_config_.loraDirPath);
+        // Heuristically pick first .safetensors file name for prompt tag
+        QDir ld(sd_run_config_.loraDirPath);
+        QStringList loraFiles = ld.entryList(QStringList() << "*.safetensors", QDir::Files);
+        if (!loraFiles.isEmpty())
+        {
+            const QString name = QFileInfo(loraFiles.first()).fileName().replace(".safetensors", "");
+            lora_prompt = QString(" <lora:%1:1>").arg(name);
+        }
+    }
+    // Also support legacy single-file line edit if provided (backward compat)
+    if (lora_prompt.isEmpty() && QFile::exists(ui->sd_lorapath_lineEdit->text()))
     {
         QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
-        QString lora_directoryPath = lorafileInfo.absolutePath(); // 提取lora目录路径
+        QString lora_directoryPath = lorafileInfo.absolutePath();
         QString lora_name = lorafileInfo.fileName().replace(".safetensors", "");
-        if (lora_directoryPath != "")
+        if (!lora_directoryPath.isEmpty())
         {
             arguments << "--lora-model-dir" << toToolFriendlyPath(lora_directoryPath);
-            lora_prompt.replace("{model}", lora_name);
+            lora_prompt = QString(" <lora:%1:1>").arg(lora_name);
         }
     }
 
-    arguments << "-W" << QString::number(ui->sd_imagewidth->value());        // 图像宽
-    arguments << "-H" << QString::number(ui->sd_imageheight->value());       // 图像长
-    arguments << "--sampling-method" << ui->sd_sampletype->currentText();    // 采样方法
-    arguments << "--clip-skip" << QString::number(ui->sd_clipskip->value()); // 跳层
-    arguments << "--cfg-scale" << QString::number(ui->sd_cfgscale->value()); // 相关系数
-    arguments << "--steps" << QString::number(ui->sd_samplesteps->value());  // 采样步数
-    arguments << "-s" << QString::number(ui->sd_seed->value());              // 随机种子
-    arguments << "-b" << QString::number(ui->sd_batch_count->value());       // 出图张数
-    arguments << "-n" << ui->sd_negative_lineEdit->text();                   // 反向提示词
+    // dims and sampling
+    arguments << "-W" << QString::number(sd_run_config_.width);
+    arguments << "-H" << QString::number(sd_run_config_.height);
+    arguments << "--sampling-method" << sd_run_config_.sampler;
+    if (!sd_run_config_.scheduler.isEmpty()) arguments << "--scheduler" << sd_run_config_.scheduler;
+    arguments << "--clip-skip" << QString::number(sd_run_config_.clipSkip);
+    arguments << "--cfg-scale" << QString::number(sd_run_config_.cfgScale);
+    arguments << "--steps" << QString::number(sd_run_config_.steps);
+    arguments << "-s" << QString::number(sd_run_config_.seed);
+    arguments << "-b" << QString::number(sd_run_config_.batchCount);
+    if (sd_run_config_.guidance > 0.0) arguments << "--guidance" << QString::number(sd_run_config_.guidance);
+    arguments << "--rng" << sd_run_config_.rng;
 
-    // 提示词
-    if (arguments.contains("--lora-model-dir"))
-    {
-        // 应用lora的情况
-        arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText() + lora_prompt;
-    }
+    // negative prompt and prompt assembly
+    arguments << "-n" << ui->sd_negative_lineEdit->text();
+    const QString promptCore = ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();
+    if (!lora_prompt.isEmpty())
+        arguments << "-p" << (promptCore + lora_prompt);
     else
+        arguments << "-p" << promptCore;
+
+    // Backend toggles
+    if (sd_run_config_.offloadToCpu) arguments << "--offload-to-cpu";
+    if (sd_run_config_.clipOnCpu) arguments << "--clip-on-cpu";
+    if (sd_run_config_.vaeOnCpu) arguments << "--vae-on-cpu";
+    if (sd_run_config_.controlNetOnCpu) arguments << "--control-net-cpu";
+    if (sd_run_config_.diffusionFA) arguments << "--diffusion-fa";
+    if (sd_run_config_.flowShiftEnabled) arguments << "--flow-shift" << QString::number(sd_run_config_.flowShift);
+    if (sd_run_config_.vaeTiling)
     {
-        arguments << "-p" << ui->sd_modify_lineEdit->text() + ", " + ui->sd_prompt_textEdit->toPlainText();
+        arguments << "--vae-tiling";
+        arguments << "--vae-tile-size" << QString("%1x%2").arg(sd_run_config_.vaeTileX).arg(sd_run_config_.vaeTileY);
+        arguments << "--vae-tile-overlap" << QString::number(sd_run_config_.vaeTileOverlap);
     }
 
-    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5); // 线程数
-    arguments << "-o" << toToolFriendlyPath(sd_outputpath);                          // 输出路径（确保无中文）
-    arguments << "--strength" << DEFAULT_SD_NOISE;                                   // 噪声系数
-    arguments << "-v";                                                               // 打印细节
+    // threads, output, verbosity
+    arguments << "-t" << QString::number(std::thread::hardware_concurrency() * 0.5);
+    arguments << "-o" << toToolFriendlyPath(sd_outputpath);
+    arguments << "-v";
 
     // 连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]()
@@ -420,7 +518,49 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
             is_sd_custom2 = false;
         }
     }
+    // Apply prompt/size knobs
     sd_apply_template(sd_params_templates[ui->params_template_comboBox->currentText()]);
+    // Also pre-configure advanced run config according to selected preset
+    const QString preset = ui->params_template_comboBox->currentText();
+    if (preset == "flux1-dev")
+    {
+        sd_run_config_.modelArg = SDModelArgKind::Diffusion;
+        sd_run_config_.width = sd_params_templates[preset].width;
+        sd_run_config_.height = sd_params_templates[preset].height;
+        sd_run_config_.sampler = "euler";
+        sd_run_config_.steps = 30;
+        sd_run_config_.cfgScale = 1.0;
+        sd_run_config_.clipSkip = -1;
+        sd_run_config_.offloadToCpu = false;
+        sd_run_config_.diffusionFA = false;
+        sd_run_config_.flowShiftEnabled = false;
+    }
+    else if (preset == "qwen-image")
+    {
+        sd_run_config_.modelArg = SDModelArgKind::Diffusion;
+        sd_run_config_.width = sd_params_templates[preset].width;
+        sd_run_config_.height = sd_params_templates[preset].height;
+        sd_run_config_.sampler = "euler";
+        sd_run_config_.steps = 30;
+        sd_run_config_.cfgScale = 2.5;
+        sd_run_config_.clipSkip = -1;
+        sd_run_config_.offloadToCpu = true;
+        sd_run_config_.diffusionFA = true;
+        sd_run_config_.flowShiftEnabled = true; sd_run_config_.flowShift = 3.0;
+    }
+    else if (preset == "sd1.5-anything-3")
+    {
+        sd_run_config_.modelArg = SDModelArgKind::LegacyM;
+        sd_run_config_.width = sd_params_templates[preset].width;
+        sd_run_config_.height = sd_params_templates[preset].height;
+        sd_run_config_.sampler = "euler_a";
+        sd_run_config_.steps = 20;
+        sd_run_config_.cfgScale = 7.5;
+        sd_run_config_.clipSkip = 1;
+        sd_run_config_.offloadToCpu = false;
+        sd_run_config_.diffusionFA = false;
+        sd_run_config_.flowShiftEnabled = false;
+    }
 }
 
 // 保存参数到自定义模板

@@ -2055,9 +2055,9 @@ p, li { white-space: pre-wrap; }
           <number>0</number>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
-          <property name="spacing">
-           <number>3</number>
-          </property>
+           <property name="spacing">
+            <number>3</number>
+           </property>
           <property name="leftMargin">
            <number>0</number>
           </property>
@@ -2070,6 +2070,25 @@ p, li { white-space: pre-wrap; }
           <property name="bottomMargin">
            <number>0</number>
           </property>
+          <item>
+           <widget class="QPushButton" name="sd_open_params_button">
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>26</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>26</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>高级设置...</string>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QGroupBox" name="sd_pathset_groupBox">
             <property name="title">

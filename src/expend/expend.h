@@ -55,6 +55,7 @@
 #include "../mcp_tools.h"
 #include "../utils/vectordb.h"
 #include "../xconfig.h"
+#include "sd_params_dialog.h"
 #include "./src/utils/toggleswitch.h"
 namespace Ui
 {
@@ -239,6 +240,9 @@ class Expend : public QWidget
     bool is_sd_custom1 = false;                   // 当前是否为自定义的参数模板
     bool is_sd_custom2 = false;                   // 当前是否为自定义的参数模板
     void sd_save_template(QString template_name); // 保存参数到自定义模板
+    // 高级参数弹窗与运行配置
+    SdParamsDialog *sdParamsDialog_ = nullptr; // 弹窗（延迟创建）
+    SDRunConfig sd_run_config_;                // 运行配置（持久化）
   public slots:
     void sd_onProcessStarted();  // 进程开始响应
     void sd_onProcessFinished(); // 进程结束响应
@@ -256,6 +260,7 @@ class Expend : public QWidget
     void on_sd_draw_pushButton_clicked();                            // 用户点击文生图时响应
     void on_sd_img2img_pushButton_clicked();                         // 用户点击图生图时响应
     void on_params_template_comboBox_currentIndexChanged(int index); // 参数模板改变响应
+    void on_sd_open_params_button_clicked();                          // 打开高级参数弹窗
 
     //-------------------------------------------------------------------------
     //----------------------------------文转声相关--------------------------------

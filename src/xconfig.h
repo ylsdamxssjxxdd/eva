@@ -414,6 +414,67 @@ struct SD_PARAMS
         : sample_type(sample_type), negative_prompt(negative_prompt), modify_prompt(modify_prompt), width(width), height(height), steps(steps), batch_count(batch_count), seed(seed), clip_skip(clip_skip), cfg_scale(cfg_scale) {}
 };
 
+// Advanced SD run-time configuration used by the new popup settings dialog.
+// This complements SD_PARAMS (which focuses on prompts/sampler/size) with
+// model paths and backend toggles so we can cover Flux, Qwen-Image, SD1.x, etc.
+enum class SDModelArgKind
+{
+    Auto,       // decide between -m / --diffusion-model by inspecting template or file name
+    LegacyM,    // force "-m <model>"
+    Diffusion   // force "--diffusion-model <model>"
+};
+
+struct SDRunConfig
+{
+    // Which argument to use for the main model path
+    SDModelArgKind modelArg = SDModelArgKind::Auto;
+    QString modelPath; // main model: for SD1.x/2.x/SDXL via -m, Flux/Qwen via --diffusion-model
+
+    // Optional component models
+    QString vaePath;
+    QString clipLPath;
+    QString clipGPath;
+    QString clipVisionPath;
+    QString t5xxlPath;
+    QString qwen2vlPath;
+    QString loraDirPath;  // directory containing LoRA files
+    QString taesdPath;    // optional fast decoder
+    QString upscaleModelPath; // ESRGAN model
+    QString controlNetPath;
+    QString controlImagePath;
+
+    // Generation parameters (superset of SD_PARAMS)
+    int width = 512;
+    int height = 512;
+    QString sampler = "euler"; // sampling method
+    QString scheduler = "discrete"; // sigma scheduler
+    int steps = 20;
+    double cfgScale = 7.5;
+    int clipSkip = -1;   // -1 = auto by model
+    int batchCount = 1;
+    int seed = -1;       // -1 = random
+    double strength = 0.75; // for img2img
+    double guidance = 3.5;  // distilled guidance (for models that support)
+    QString rng = "cuda";   // std_default | cuda
+
+    // Optional DiT/Flow knobs
+    bool flowShiftEnabled = false;
+    double flowShift = 0.0; // used only if enabled
+
+    // Backend / memory toggles
+    bool offloadToCpu = false;
+    bool clipOnCpu = false;
+    bool vaeOnCpu = false;
+    bool controlNetOnCpu = false;
+    bool diffusionFA = false; // flash-attention for diffusion model
+
+    // VAE tiling
+    bool vaeTiling = false;
+    int vaeTileX = 32;
+    int vaeTileY = 32;
+    double vaeTileOverlap = 0.5; // fraction of tile size
+};
+
 // resampleWav removed
 
 inline QString parseFirstKeyValue(const QString &jsonString)

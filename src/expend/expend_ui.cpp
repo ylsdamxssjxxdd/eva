@@ -269,13 +269,49 @@ void Expend::readConfig()
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
 
-    QString sd_params_template = settings.value("sd_params_template", default_sd_params_template).toString(); // 参数模板，默认是custom1
+    QString sd_params_template = settings.value("sd_params_template", default_sd_params_template).toString(); // 参数模板
     QString sd_modelpath = settings.value("sd_modelpath", default_sd_modelpath).toString();                   // sd模型路径
-    QString vae_modelpath = settings.value("vae_modelpath", "").toString();                                   // vae模型路径
-    QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();                             // clip_l模型路径
-    QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();                             // clip_g模型路径
-    QString t5_modelpath = settings.value("t5_modelpath", "").toString();                                     // t5模型路径
-    QString lora_modelpath = settings.value("lora_modelpath", "").toString();                                 // lora模型路径
+    QString vae_modelpath = settings.value("vae_modelpath", "").toString();                                  // vae模型路径
+    QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();                            // clip_l模型路径
+    QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();                            // clip_g模型路径
+    QString t5_modelpath = settings.value("t5_modelpath", "").toString();                                    // t5模型路径
+    QString lora_modelpath = settings.value("lora_modelpath", "").toString();                                // lora模型路径
+    // Advanced run-config (new popup)
+    sd_run_config_.modelPath = settings.value("sd_adv_model_path", sd_modelpath).toString();
+    sd_run_config_.vaePath = settings.value("sd_adv_vae_path", vae_modelpath).toString();
+    sd_run_config_.clipLPath = settings.value("sd_adv_clip_l_path", clip_l_modelpath).toString();
+    sd_run_config_.clipGPath = settings.value("sd_adv_clip_g_path", clip_g_modelpath).toString();
+    sd_run_config_.clipVisionPath = settings.value("sd_adv_clip_vision_path", "").toString();
+    sd_run_config_.t5xxlPath = settings.value("sd_adv_t5xxl_path", t5_modelpath).toString();
+    sd_run_config_.qwen2vlPath = settings.value("sd_adv_qwen2vl_path", "").toString();
+    sd_run_config_.loraDirPath = settings.value("sd_adv_lora_dir", "").toString();
+    sd_run_config_.taesdPath = settings.value("sd_adv_taesd_path", "").toString();
+    sd_run_config_.upscaleModelPath = settings.value("sd_adv_upscale_model", "").toString();
+    sd_run_config_.controlNetPath = settings.value("sd_adv_control_net", "").toString();
+    sd_run_config_.controlImagePath = settings.value("sd_adv_control_img", "").toString();
+    sd_run_config_.width = settings.value("sd_adv_width", 512).toInt();
+    sd_run_config_.height = settings.value("sd_adv_height", 512).toInt();
+    sd_run_config_.sampler = settings.value("sd_adv_sampler", "euler").toString();
+    sd_run_config_.scheduler = settings.value("sd_adv_scheduler", "discrete").toString();
+    sd_run_config_.steps = settings.value("sd_adv_steps", 20).toInt();
+    sd_run_config_.cfgScale = settings.value("sd_adv_cfg", 7.5).toDouble();
+    sd_run_config_.clipSkip = settings.value("sd_adv_clip_skip", -1).toInt();
+    sd_run_config_.batchCount = settings.value("sd_adv_batch", 1).toInt();
+    sd_run_config_.seed = settings.value("sd_adv_seed", -1).toInt();
+    sd_run_config_.strength = settings.value("sd_adv_strength", DEFAULT_SD_NOISE).toDouble();
+    sd_run_config_.guidance = settings.value("sd_adv_guidance", 3.5).toDouble();
+    sd_run_config_.rng = settings.value("sd_adv_rng", "cuda").toString();
+    sd_run_config_.flowShiftEnabled = settings.value("sd_adv_flow_shift_en", false).toBool();
+    sd_run_config_.flowShift = settings.value("sd_adv_flow_shift", 0.0).toDouble();
+    sd_run_config_.offloadToCpu = settings.value("sd_adv_offload_cpu", false).toBool();
+    sd_run_config_.clipOnCpu = settings.value("sd_adv_clip_cpu", false).toBool();
+    sd_run_config_.vaeOnCpu = settings.value("sd_adv_vae_cpu", false).toBool();
+    sd_run_config_.controlNetOnCpu = settings.value("sd_adv_control_cpu", false).toBool();
+    sd_run_config_.diffusionFA = settings.value("sd_adv_diff_fa", false).toBool();
+    sd_run_config_.vaeTiling = settings.value("sd_adv_vae_tiling", false).toBool();
+    sd_run_config_.vaeTileX = settings.value("sd_adv_vae_tile_x", 32).toInt();
+    sd_run_config_.vaeTileY = settings.value("sd_adv_vae_tile_y", 32).toInt();
+    sd_run_config_.vaeTileOverlap = settings.value("sd_adv_vae_tile_overlap", 0.5).toDouble();
 
     QString sd_prompt = settings.value("sd_prompt", "").toString(); // sd提示词
 
@@ -349,8 +385,34 @@ void Expend::readConfig()
     sd_params_templates["custom2"].negative_prompt = settings.value("sd_custom2_negative", "").toString();
     sd_params_templates["custom2"].modify_prompt = settings.value("sd_custom2_modify", "").toString();
 
-    ui->params_template_comboBox->setCurrentText(sd_params_template); // 应用模板
-    sd_apply_template(sd_params_templates[ui->params_template_comboBox->currentText()]);
+    // Rebuild presets to exactly 5 entries: flux1-dev, qwen-image, sd1.5-anything-3, custom1, custom2
+    // Preserve user custom templates loaded above
+    SD_PARAMS custom1 = sd_params_templates.value("custom1", SD_PARAMS{});
+    SD_PARAMS custom2 = sd_params_templates.value("custom2", SD_PARAMS{});
+    sd_params_templates.clear();
+    SD_PARAMS sd_flux{"euler", "", "", 768, 768, 30, 1, -1, -1, 1.0};
+    SD_PARAMS sd_qwen{"euler", "", "", 1024, 1024, 30, 1, -1, -1, 2.5};
+    SD_PARAMS sd_anything{"euler_a",
+                          "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure",
+                          "masterpieces, best quality, beauty, detailed, Pixar, 8k",
+                          512, 512, 20, 1, -1, 1, 7.5};
+    sd_params_templates.insert("flux1-dev", sd_flux);
+    sd_params_templates.insert("qwen-image", sd_qwen);
+    sd_params_templates.insert("sd1.5-anything-3", sd_anything);
+    sd_params_templates.insert("custom1", custom1);
+    sd_params_templates.insert("custom2", custom2);
+
+    // Apply saved custom1/custom2 values loaded above
+    // Ensure combo box only shows the 5 presets
+    ui->params_template_comboBox->clear();
+    ui->params_template_comboBox->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"});
+    // Clamp template key to supported set
+    if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"}).contains(sd_params_template))
+        sd_params_template = "sd1.5-anything-3";
+    ui->params_template_comboBox->setCurrentText(sd_params_template);
+    sd_apply_template(sd_params_templates.value(sd_params_template, sd_anything));
+    // Also pre-configure advanced defaults to selected preset
+    on_params_template_comboBox_currentIndexChanged(-1);
     is_readconfig = true;
 
     QFile whisper_load_modelpath_file(whisper_modelpath);
