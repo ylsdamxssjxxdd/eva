@@ -26,39 +26,10 @@ void Widget::set_SetDialog()
         int idx = settings_ui->device_comboBox->findText(DeviceManager::userChoice());
         if (idx >= 0) settings_ui->device_comboBox->setCurrentIndex(idx);
 
-        // helper：刷新设备相关 UI（auto 时在“推理设备”文本后追加提示；CPU 禁用 gpu 层数）
-        auto refreshDeviceUI = [this]()
-        {
-            const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
-            const bool isAuto = (sel == QLatin1String("auto"));
-
-            // 预估当前选择（包含 auto）下将使用的实际后端，用于 UI 呈现
-            const QString eff = DeviceManager::effectiveBackendFor(sel);
-
-            // 当实际为 CPU（或 OpenCL 视作 CPU）时，禁止选择 gpu 负载层数
-            const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("opencl"));
-            settings_ui->ngl_slider->setEnabled(!cpuLike);
-
-            // 在“推理设备”标签文本后附加当前 auto 的实际后端
-            if (deviceLabelBaseText.isEmpty())
-            {
-                deviceLabelBaseText = settings_ui->device_label->text();
-            }
-            if (isAuto)
-            {
-                // 展示 auto 预估解析结果（不改变全局设置）
-                settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
-            }
-            else
-            {
-                settings_ui->device_label->setText(deviceLabelBaseText);
-            }
-        };
-
         // 监听选择变化并初始化一次
         connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
-                { refreshDeviceUI(); });
-        refreshDeviceUI();
+                { this->refreshDeviceBackendUI(); });
+        refreshDeviceBackendUI();
     }
 
     // 温度控制
@@ -243,6 +214,26 @@ void Widget::settings_ui_cancel_button_clicked()
     // Cancel should not mutate any in-memory settings or persist to disk.
     // Simply close the dialog and discard any slider edits.
     settings_dialog->close();
+}
+
+// Centralized device/backend UI refresh implementation (see header for rules)
+void Widget::refreshDeviceBackendUI()
+{
+    if (!settings_ui) return;
+    const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    const QString eff = DeviceManager::effectiveBackendFor(sel);
+    const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("opencl"));
+    settings_ui->ngl_slider->setEnabled(!cpuLike);
+    // Keep base label text in sync with current language
+    deviceLabelBaseText = jtr("device");
+    if (sel == QLatin1String("auto"))
+    {
+        settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
+    }
+    else
+    {
+        settings_ui->device_label->setText(deviceLabelBaseText);
+    }
 }
 
 // 设置用户设置内容

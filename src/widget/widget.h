@@ -443,6 +443,12 @@ class Widget : public QWidget
     void recv_qimagepath(QString cut_imagepath_); // 接收传来的图像
     void monitorAudioLevel();                     // 每隔100毫秒刷新一次监视录音
   private:
+    // Refresh UI hints related to device/backend selection:
+    // - When current selection is auto, append the actually resolved backend
+    //   to the device label text, e.g. "device (cuda)".
+    // - Enable/disable NGL slider based on the effective backend
+    //   (cpu/opencl -> disabled; gpu backends -> enabled).
+    void refreshDeviceBackendUI();
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state

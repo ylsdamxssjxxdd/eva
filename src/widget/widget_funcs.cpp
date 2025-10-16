@@ -618,6 +618,9 @@ void Widget::apply_language(int language_flag_)
     settings_ui->confirm->setText(jtr("ok"));
     settings_ui->cancel->setText(jtr("cancel"));
     settings_dialog->setWindowTitle(jtr("set"));
+    // Language refresh rewrites many labels including device_label.
+    // Re-apply device/backend UI hint so that auto(effective) suffix stays visible after first boot.
+    refreshDeviceBackendUI();
 }
 // 创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path)
