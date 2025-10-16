@@ -319,8 +319,11 @@ int main(int argc, char *argv[])
 
     //------------------连接net和窗口-------------------
     QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  // 窗口输出区更新
+    // Forward streaming output to Expend for TTS segmentation/playback
+    QObject::connect(net, &xNet::net2ui_output, &expend, &Expend::recv_output, Qt::QueuedConnection);                // 文转声：接收模型流式输出
     QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
     QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
+    QObject::connect(net, &xNet::net2ui_pushover, &expend, &Expend::onNetTurnDone, Qt::QueuedConnection);            // 文转声：回合结束时刷新未完句
     QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // 流式近似KV用量（链接模式兜底）
     QObject::connect(net, &xNet::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
     QObject::connect(net, &xNet::net2ui_prompt_baseline, &w, &Widget::recv_prompt_baseline, Qt::QueuedConnection);   // prompt baseline tokens (LINK mode)

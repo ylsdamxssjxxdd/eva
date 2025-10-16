@@ -239,5 +239,4 @@
       - `EVA_MODELS/{llm,embedding,speech2text,text2speech,text2image}/...`
     - 程序首次启动会在同级目录创建 `EVA_TEMP/`，用于保存配置、历史与中间产物。
 
-
 </details>

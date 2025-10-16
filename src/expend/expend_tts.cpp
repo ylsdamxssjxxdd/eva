@@ -154,8 +154,27 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
     Q_UNUSED(color);
     if (is_while)
     {
-        // 累计输出的文本
-        temp_speech_txt += result;
+        // 处理思考标记：<think>..</think> 内的内容不进入语音
+        QString chunk = result;
+        // 进入/退出 think 区域（xNet 会单独发送 begin/end 标记与灰色内容）
+        if (chunk.contains(QString(DEFAULT_THINK_BEGIN)))
+        {
+            tts_in_think_ = true;
+            chunk.replace(QString(DEFAULT_THINK_BEGIN), QString());
+        }
+        if (chunk.contains(QString(DEFAULT_THINK_END)))
+        {
+            tts_in_think_ = false;
+            chunk.replace(QString(DEFAULT_THINK_END), QString());
+        }
+        if (tts_in_think_)
+        {
+            // 忽略思考内容
+            return;
+        }
+
+        // 累计输出的文本（仅普通助理内容）
+        temp_speech_txt += chunk;
         // 句末标点切分：中文句号/问号/叹号，以及英文 .!?（排除小数点），以及顿号、逗号、分号、冒号
         static const QRegularExpression re(QString::fromUtf8("([。！？]|(?<!\\d)[.!?](?=\\s|$)|[；;：:,，、])"));
 
@@ -190,6 +209,19 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
         // 事件驱动推进
         startNextTTSIfIdle();
     }
+}
+
+// 一轮推理结束：若缓冲里还有尾段（无终止标点），也加入待读列表
+void Expend::onNetTurnDone()
+{
+    if (!temp_speech_txt.trimmed().isEmpty())
+    {
+        wait_speech_txt_list << temp_speech_txt.trimmed();
+        temp_speech_txt.clear();
+    }
+    // 立即推进朗读/播放
+    startNextTTSIfIdle();
+    startNextPlayIfIdle();
 }
 
 // 递归删除文件夹及其内容的函数

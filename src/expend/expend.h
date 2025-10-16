@@ -288,6 +288,7 @@ class Expend : public QWidget
     void speechOver();
     void speechPlayOver();
     void recv_output(const QString result, bool is_while, QColor color); // 接收模型的输出
+    void onNetTurnDone();                                       // 一轮推理结束：冲刷缓存片段以便朗读
     void recv_resettts();                                                // 重置文字转语音
     void speech_process();                                               // 每半秒检查列表，列表中有文字就读然后删，直到读完
     void speech_play_process();                                          // 每半秒检查播放列表，列表中有文字就读然后删，直到读完
@@ -427,5 +428,7 @@ class Expend : public QWidget
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state); // 添加mcp服务信息
   public:
     bool is_first_show_modelcard = true;
+    // TTS streaming parser state
+    bool tts_in_think_ = false; // skip content inside <think>..</think>
 };
 #endif // EXPEND_H
