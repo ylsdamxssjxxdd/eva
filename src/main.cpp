@@ -37,13 +37,13 @@ static inline void createDesktopShortcut(QString appPath)
     QString desktopContent = QString(
                                  "[Desktop Entry]\n"
                                  "Type=Application\n"
-                                 "Name=%1\n"
+                                 "Name=eva\n"
                                  "Comment=a lite llm tool\n"
-                                 "Exec=%2\n"
+                                 "Exec=\\"%2\\"\\n"
                                  "Icon=%3\n"
                                  "Terminal=false\n"
-                                 "Categories=Utility\n")
-                                 .arg(EVA_VERSION, appPath, iconPath);
+                                 "Categories=Utility;\n")
+                                 \.arg(QStringLiteral("eva"), appPath, iconPath);
 
     // write to ~/.local/share/applications/eva.desktop
     QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
@@ -116,13 +116,15 @@ int main(int argc, char *argv[])
     const QString appImagePath = env.value("APPIMAGE");
     const QFileInfo fileInfo(appImagePath);
     const QString applicationDirPath = fileInfo.absolutePath();                        // 在打包程序运行时所在目录创建EVA_TEMP文件夹
-    const QString appPath = fileInfo.absolutePath() + "/" + EVA_VERSION + ".AppImage"; // .AppImage所在路径
+    const QString appPath = appImagePath; // .AppImage所在路径
 #else
     const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
-    const QString appPath = applicationDirPath;
+    const QString appPath = QCoreApplication::applicationFilePath();
 #endif
     // linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
-    createDesktopShortcut(appPath);
+    #ifdef Q_OS_LINUX
+            createDesktopShortcut(appPath);
+    #endif
     qDebug() << "EVA_PATH" << appPath;
     // Auto-discover default models from EVA_MODELS when no config exists
     {
@@ -593,3 +595,8 @@ int main(int argc, char *argv[])
     w.show();        // 展示窗口
     return a.exec(); // 进入事件循环
 }
+
+
+
+
+
