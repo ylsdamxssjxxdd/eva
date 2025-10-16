@@ -16,6 +16,7 @@
 #include <QFileInfo>
 #include <QScrollBar>
 #include <QTimer>
+#include <QVariant>
 
 // Lightweight item widget for image display
 class ImageItem : public QWidget
@@ -58,7 +59,9 @@ class VideoItem : public QWidget
         title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         title_->setStyleSheet("color:#888");
         videoWidget_ = new QVideoWidget(this);
+        // Start with a reasonable minimum height; adjust to exact frame later
         videoWidget_->setMinimumHeight(240);
+        videoWidget_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         player_ = new QMediaPlayer(this);
         player_->setVideoOutput(videoWidget_);
         player_->setMedia(QUrl::fromLocalFile(path));
@@ -87,6 +90,22 @@ class VideoItem : public QWidget
         connect(player_, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State s){
             switch (s) { case QMediaPlayer::PlayingState: status_->setText("playing"); break; case QMediaPlayer::PausedState: status_->setText("paused"); break; default: status_->setText("stopped"); break; }
         });
+        // Adjust to native video resolution when available
+        auto tryAdjust = [this]() {
+            QVariant v = player_->metaData("Resolution");
+            if (v.isValid()) {
+                const QSize res = v.toSize();
+                if (res.isValid() && res.width() > 0 && res.height() > 0) {
+                    videoWidget_->setFixedSize(res);
+                    this->updateGeometry();
+                }
+            }
+        };
+        connect(player_, &QMediaPlayer::mediaStatusChanged, this, [tryAdjust](QMediaPlayer::MediaStatus s){
+            if (s == QMediaPlayer::LoadedMedia || s == QMediaPlayer::BufferedMedia) tryAdjust();
+        });
+        connect(player_, &QMediaPlayer::videoAvailableChanged, this, [tryAdjust](bool ok){ if (ok) tryAdjust(); });
+        QTimer::singleShot(200, this, [tryAdjust]{ tryAdjust(); });
         lay->addWidget(title_);
         lay->addWidget(videoWidget_);
         lay->addWidget(ctrl);
