@@ -323,6 +323,7 @@ void Expend::evalNext()
 
 void Expend::runLatencyTest()
 {
+    // Step header (no leading blank for the very first step)
     evalLog(QStringLiteral("首次响应：发送 1024 个 'A' 字符，测首 token 时延"));
     evalSetStatus(0, QStringLiteral("进行中"));
     ENDPOINT_DATA d = makeBaseData(0.2, 1);
@@ -341,7 +342,7 @@ void Expend::runLatencyTest()
 void Expend::runGenSpeedTest()
 {
     // Two-run measurement: show progress like 进行中 i/N
-    if (genRunIndex_ == 0) evalLog(QStringLiteral("生成速度：生成 1024 个字符 (2 轮取平均)"));
+    if (genRunIndex_ == 0) { evalLog(QString()); evalLog(QStringLiteral("生成速度：生成 1024 个字符 (2 轮取平均)")); }
     evalSetStatus(1, QStringLiteral("进行中 ") + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
     const QString ask = QStringLiteral("请写一篇1024个字的作文，主题自拟。");
@@ -377,6 +378,8 @@ void Expend::runQATest()
         qaPairs_.push_back({QStringLiteral("常识问答5：太阳从哪个方向升起?\nA) 南\nB) 北\nC) 西\nD) 东\n仅输出 A/B/C/D。"), QStringLiteral("d")});
         qaIndex_ = 0;
         qaCorrect_ = 0;
+        // Blank line to visually separate previous step
+        evalLog(QString());
         evalLog(QStringLiteral("常识问答 (5 题，单选)"));
     }
     if (qaIndex_ >= qaPairs_.size())
@@ -422,6 +425,8 @@ void Expend::runLogicTest()
         logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("c")});  
         logicIndex_ = 0;
         logicCorrect_ = 0;
+        // Blank line to visually separate previous step
+        evalLog(QString());
         evalLog(QStringLiteral("逻辑推理 (5 题，单选)"));
     }
     if (logicIndex_ >= logicPairs_.size())
@@ -456,6 +461,8 @@ void Expend::runToolcallTest()
 {
     if (toolIndex_ == 0)
     {
+        // Blank line to visually separate previous step
+        evalLog(QString());
         evalLog(QStringLiteral("工具调用能力 (6 项)"));
         evalSetStatus(4, QStringLiteral("进行中 0/") + QString::number(toolCases_.size()));
     }
@@ -520,6 +527,8 @@ void Expend::evalFinish()
     const double s_tool = qMax(0.0, m_toolScore);
     m_syncRate = std::max(0.0, std::min(100.0, 0.10 * s_ttfb + 0.20 * s_gen + 0.20 * s_qa + 0.20 * s_log + 0.30 * s_tool));
     // Do not show overall score in the table; only log it and reflect on bar chart
+    // Insert spacing before the final summary for better visual grouping
+    evalLog(QString());
     evalLog(QStringLiteral("评估完成。同步率= ") + QString::number(m_syncRate, 'f', 1));
     evalRunning = false;
     updateScoreBars();
@@ -684,6 +693,8 @@ void Expend::onEvalPushover()
         // Nothing else; rely on server-reported speeds if any
         // Log model's actual answer
         evalLog(QStringLiteral("[首次响应] 模型回答：\n") + evalAccum);
+        // Visual separation after this step's output
+        evalLog(QString());
         // Mark step 1 done
         evalSetStatus(0, QStringLiteral("完成"));
         // 用时列单位为 s；首次响应以 ms 计，需转换
@@ -738,6 +749,8 @@ void Expend::onEvalPushover()
         }
         // Log generated content without length postfix
         evalLog(QStringLiteral("[生成速度] 生成内容：\n") + evalAccum);
+        // Add a blank line after the run's output when this stage will finish
+        if (genRunIndex_ + 1 >= genPlanned_) evalLog(QString());
 
         // Accumulate per-run token speed and advance single run
         const double currTok = m_genTokPerSec;
@@ -782,18 +795,19 @@ void Expend::onEvalPushover()
         const QString question = qaPairs_[qaIndex_].first;
         const bool ok = (!expect.isEmpty() && !pick.isNull() && QString(pick).toLower() == expect);
         if (ok) qaCorrect_++;
-        // Log this Q/A clearly, including reasoning (<think>) and the final output
+        // Log result only (question already printed when the step started)
         const QString thinkText = evalReasoning_.trimmed();
         const QString outText = ansVisible.trimmed();
         QString logLine;
-        logLine += QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + ")：\n" + question;
-        logLine += QStringLiteral("\n标准答案：") + expect.toUpper();
+        logLine += QStringLiteral("标准答案：") + expect.toUpper();
         if (!thinkText.isEmpty())
             logLine += QStringLiteral("\n思考过程：\n") + thinkText;
         logLine += QStringLiteral("\n输出：") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
         logLine += QStringLiteral("\n模型选择：") + (pick.isNull() ? QStringLiteral("<未识别>") : QString(pick).toUpper());
         logLine += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误"));
         evalLog(logLine);
+        // Space between QA items for readability
+        evalLog(QString());
         qaIndex_++;
         stepsDone++; // count each QA as a progress unit
         // IMPORTANT: if this stage just finished, set elapsed BEFORE triggering next stage
@@ -823,18 +837,19 @@ void Expend::onEvalPushover()
         const QString question = logicPairs_[logicIndex_].first;
         const bool ok = (!expect.isEmpty() && !pick.isNull() && QString(pick).toLower() == expect);
         if (ok) logicCorrect_++;
-        // Log with reasoning and output
+        // Log result only (question already printed when the step started)
         const QString thinkText = evalReasoning_.trimmed();
         const QString outText = ansVisible.trimmed();
         QString logLine;
-        logLine += QStringLiteral("[逻辑推理] 题目(") + QString::number(logicIndex_ + 1) + ")：\n" + question;
-        logLine += QStringLiteral("\n标准答案：") + expect.toUpper();
+        logLine += QStringLiteral("标准答案：") + expect.toUpper();
         if (!thinkText.isEmpty())
             logLine += QStringLiteral("\n思考过程：\n") + thinkText;
         logLine += QStringLiteral("\n输出：") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
         logLine += QStringLiteral("\n模型选择：") + (pick.isNull() ? QStringLiteral("<未识别>") : QString(pick).toUpper());
         logLine += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误"));
         evalLog(logLine);
+        // Space between Logic items for readability
+        evalLog(QString());
         logicIndex_++;
         stepsDone++;
         // As with QA, compute elapsed BEFORE runLogicTest() may advance and restart the timer
@@ -877,16 +892,17 @@ void Expend::onEvalPushover()
             }
         }
         toolCorrect_ += ok ? 1 : 0;
-        // Log with reasoning/output split for debugging
+        // Log result only (case header already printed before sending the task)
         QString tlog;
-        tlog += QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc;
         const QString thinkText = evalReasoning_.trimmed();
         const QString outText = (evalAnswer_.trimmed().isEmpty() ? all : evalAnswer_.trimmed());
-        if (!thinkText.isEmpty()) tlog += QStringLiteral("\n思考过程：\n") + thinkText;
-        tlog += QStringLiteral("\n输出：\n") + outText;
+        if (!thinkText.isEmpty()) tlog += QStringLiteral("思考过程：\n") + thinkText + QStringLiteral("\n");
+        tlog += QStringLiteral("输出：\n") + outText;
         if (!jsonStr.isEmpty()) tlog += QStringLiteral("\n解析到的工具调用JSON：\n") + jsonStr;
         tlog += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确工具") : QStringLiteral("错误或缺失"));
         evalLog(tlog);
+        // Space between Tool-call items for readability
+        evalLog(QString());
         // Update partial tool score to refresh bar chart
         const int total = qMax(1, (int)toolCases_.size());
         m_toolScore = 100.0 * double(toolCorrect_) / double(total);
