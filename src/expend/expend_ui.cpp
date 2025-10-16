@@ -143,19 +143,18 @@ void Expend::init_expend()
     if (ui->eval_result_groupBox) ui->eval_result_groupBox->setTitle(jtr("steps and results"));
     if (ui->eval_log_groupBox) ui->eval_log_groupBox->setTitle(jtr("evaluation log"));
     if (ui->eval_progressBar) ui->eval_progressBar->setFormat(jtr("progress steps"));
-    if (ui->eval_table) {
+    if (ui->eval_table)
+    {
         QStringList headers;
         headers << jtr("metric/step") << jtr("state") << jtr("elapsed(s)") << jtr("value");
         ui->eval_table->setHorizontalHeaderLabels(headers);
     }
-    if (ui->eval_bar_chart) ui->eval_bar_chart->setLabels({
-            jtr("first token"),
-            jtr("gen speed"),
-            jtr("common qa"),
-            jtr("logic"),
-            jtr("tool call"),
-            jtr("sync rate")
-        });
+    if (ui->eval_bar_chart) ui->eval_bar_chart->setLabels({jtr("first token"),
+                                                           jtr("gen speed"),
+                                                           jtr("common qa"),
+                                                           jtr("logic"),
+                                                           jtr("tool call"),
+                                                           jtr("sync rate")});
 }
 
 // 用户切换选项卡时响应
@@ -403,7 +402,7 @@ void Expend::showReadme()
         file.close();
     }
 
-        // Strip images from README: HTML <img>, Markdown images, and common containers
+    // Strip images from README: HTML <img>, Markdown images, and common containers
     // 1) Remove any HTML <img ...> tags (case-insensitive)
     readme_content.remove(QRegularExpression("<img\\b[^>]*>", QRegularExpression::CaseInsensitiveOption));
     // 2) Replace Markdown inline images ![alt](url) with just the alt text

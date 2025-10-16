@@ -2,12 +2,12 @@
 // EVA-blue glossy style; the sweeping highlight is confined to the filled chunk only.
 #pragma once
 
-#include <QProgressBar>
-#include <QTimer>
-#include <QPainter>
 #include <QLinearGradient>
 #include <QPaintEvent>
+#include <QPainter>
 #include <QPainterPath>
+#include <QProgressBar>
+#include <QTimer>
 #include <algorithm>
 
 class FlowProgressBar : public QProgressBar
@@ -15,17 +15,15 @@ class FlowProgressBar : public QProgressBar
     Q_OBJECT
   public:
     explicit FlowProgressBar(QWidget *parent = nullptr)
-        : QProgressBar(parent)
-        , m_flowing(false)
-        , m_offset(0)
+        : QProgressBar(parent), m_flowing(false), m_offset(0)
     {
         // Smooth but calm animation
         m_timer.setInterval(50); // ~20 FPS
-        connect(&m_timer, &QTimer::timeout, this, [this]() {
+        connect(&m_timer, &QTimer::timeout, this, [this]()
+                {
             if (!m_flowing) return;
             m_offset += 2; // ~40 px/s at 20 FPS
-            update();
-        });
+            update(); });
         setTextVisible(true);
         setMinimumHeight(22);
     }
@@ -34,7 +32,10 @@ class FlowProgressBar : public QProgressBar
     {
         if (m_flowing == on) return;
         m_flowing = on;
-        if (m_flowing) m_timer.start(); else m_timer.stop();
+        if (m_flowing)
+            m_timer.start();
+        else
+            m_timer.stop();
         update();
     }
     bool isFlowing() const { return m_flowing; }
@@ -74,15 +75,15 @@ class FlowProgressBar : public QProgressBar
             g.setColorAt(0.55, QColor(0x2e, 0x7f, 0xd6));
             g.setColorAt(1.00, QColor(0x1e, 0x62, 0xb0));
             p.setBrush(g);
-            p.setPen(QPen(QColor(255,255,255,20)));
+            p.setPen(QPen(QColor(255, 255, 255, 20)));
             p.drawRoundedRect(chunkRect, 9, 9);
 
             // Top gloss highlight (static)
             QRectF gloss = chunkRect;
             gloss.setHeight(gloss.height() * 0.45);
             QLinearGradient hi(gloss.topLeft(), gloss.bottomLeft());
-            hi.setColorAt(0.0, QColor(255,255,255,70));
-            hi.setColorAt(1.0, QColor(255,255,255,0));
+            hi.setColorAt(0.0, QColor(255, 255, 255, 70));
+            hi.setColorAt(1.0, QColor(255, 255, 255, 0));
             p.setBrush(hi);
             p.setPen(Qt::NoPen);
             p.drawRoundedRect(gloss, 9, 9);
@@ -97,9 +98,9 @@ class FlowProgressBar : public QProgressBar
             const QRectF bandRect(chunkRect.x() + x, chunkRect.y(), bandW, chunkRect.height());
 
             QLinearGradient sg(bandRect.topLeft(), bandRect.topRight());
-            sg.setColorAt(0.00, QColor(255,255,255,0));
-            sg.setColorAt(0.50, QColor(255,255,255,55));
-            sg.setColorAt(1.00, QColor(255,255,255,0));
+            sg.setColorAt(0.00, QColor(255, 255, 255, 0));
+            sg.setColorAt(0.50, QColor(255, 255, 255, 55));
+            sg.setColorAt(1.00, QColor(255, 255, 255, 0));
 
             p.save();
             QPainterPath clip;
@@ -114,7 +115,7 @@ class FlowProgressBar : public QProgressBar
         // Centered text
         if (isTextVisible())
         {
-            p.setPen(QColor(0xE8,0xF2,0xFF));
+            p.setPen(QColor(0xE8, 0xF2, 0xFF));
             p.drawText(rc.adjusted(4, 0, -4, 0), Qt::AlignCenter, text());
         }
     }

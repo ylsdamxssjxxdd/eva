@@ -341,4 +341,3 @@ void LocalServerManager::setHost(const QString &host)
 {
     host_ = host;
 }
-

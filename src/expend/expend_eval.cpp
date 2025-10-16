@@ -130,8 +130,7 @@ void Expend::evalResetUi()
             "                               stop:0.45 #489ef7,\n"
             "                               stop:0.55 #2e7fd6,\n"
             "                               stop:1 #1e62b0);\n"
-            "}\n"
-        ));
+            "}\n"));
     }
     // Reset chart if present
     if (ui->eval_bar_chart) ui->eval_bar_chart->setScores(-1, -1, -1, -1, -1, -1);
@@ -221,9 +220,10 @@ QJsonArray Expend::makeMsgs(const QString &sys, const QString &user)
 }
 
 void Expend::on_eval_start_pushButton_clicked()
-{    // Animate progress bar while evaluating
-    if (ui && ui->eval_progressBar) {
-        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(true);
+{ // Animate progress bar while evaluating
+    if (ui && ui->eval_progressBar)
+    {
+        if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(true);
     }
     if (evalRunning)
     {
@@ -295,9 +295,10 @@ QChar Expend::parseMCAnswer(const QString &ans)
 }
 
 void Expend::on_eval_stop_pushButton_clicked()
-{    // Stop progress animation on user abort
-    if (ui && ui->eval_progressBar) {
-        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(false);
+{ // Stop progress animation on user abort
+    if (ui && ui->eval_progressBar)
+    {
+        if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(false);
     }
     if (!evalRunning) return;
     // Abort active eval request if any
@@ -347,7 +348,11 @@ void Expend::runLatencyTest()
 void Expend::runGenSpeedTest()
 {
     // Two-run measurement: show progress like i/N
-    if (genRunIndex_ == 0) { evalLog(QString()); evalLog(jtr("gen intro")); }
+    if (genRunIndex_ == 0)
+    {
+        evalLog(QString());
+        evalLog(jtr("gen intro"));
+    }
     evalSetStatus(1, jtr("in progress") + " " + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
     // Note: per-run counters are reset after timers restart below to ensure
     // a clean boundary between runs (see duplicates after stepTimer.restart()).
@@ -427,10 +432,10 @@ void Expend::runLogicTest()
         // Initialize 5 harder MC questions (Olympiad-style, simplified)
         logicPairs_.clear();
         logicPairs_.push_back({jtr("logic1"), QStringLiteral("b")});
-        logicPairs_.push_back({jtr("logic2"), QStringLiteral("b")}); 
+        logicPairs_.push_back({jtr("logic2"), QStringLiteral("b")});
         logicPairs_.push_back({jtr("logic3"), QStringLiteral("c")});
-        logicPairs_.push_back({jtr("logic4"), QStringLiteral("d")}); 
-        logicPairs_.push_back({jtr("logic5"), QStringLiteral("c")});  
+        logicPairs_.push_back({jtr("logic4"), QStringLiteral("d")});
+        logicPairs_.push_back({jtr("logic5"), QStringLiteral("c")});
         logicIndex_ = 0;
         logicCorrect_ = 0;
         // Blank line to visually separate previous step
@@ -496,7 +501,7 @@ void Expend::runToolcallTest()
     sys.replace("{engineer_info}", QString());
     const QString task = tc.user + QStringLiteral(" Strictly output exactly one <tool_call> JSON and stop.");
 
-    ENDPOINT_DATA d = makeBaseData(0.2,640);
+    ENDPOINT_DATA d = makeBaseData(0.2, 640);
     d.messagesArray = makeMsgs(sys, task);
     evalFirstToken = false;
     // Reset per-turn accumulators for tool case
@@ -513,9 +518,10 @@ void Expend::runToolcallTest()
 }
 
 void Expend::evalFinish()
-{    // Stop progress animation on finish
-    if (ui && ui->eval_progressBar) {
-        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(false);
+{ // Stop progress animation on finish
+    if (ui && ui->eval_progressBar)
+    {
+        if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(false);
     }
     // Weighted overall score per spec: 10% TTFB, 20% Gen, 20% Common QA, 20% Logic, 30% Tools
     auto scoreTTFB = [&](double ms)
@@ -525,7 +531,8 @@ void Expend::evalFinish()
         if (ms >= 10000.0) return 0.0;
         return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
     };
-    auto scoreGen = [&](double tokps) -> double {
+    auto scoreGen = [&](double tokps) -> double
+    {
         if (tokps < 0) return 0.0;
         if (tokps >= 100.0) return 100.0;
         if (tokps <= 0.0) return 0.0;
@@ -602,7 +609,7 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
             }
         }
         // For generation speed, start counting when ANY output arrives (including <think>)
-        if (evalStep == 1 &&  !genCounting_ && !text.trimmed().isEmpty()) 
+        if (evalStep == 1 && !genCounting_ && !text.trimmed().isEmpty())
         {
             genCounting_ = true;
             genStartNsRel_ = stepTimer.nsecsElapsed();
@@ -640,7 +647,7 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         else if (evalStep == 1)
         {
             // Start counting gen speed on first output token (including <think>)
-            if ( !genCounting_ && !text.trimmed().isEmpty()) 
+            if (!genCounting_ && !text.trimmed().isEmpty())
             {
                 genCounting_ = true;
                 genStartNsRel_ = stepTimer.nsecsElapsed();
@@ -695,7 +702,10 @@ void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
     if (gen_per_s > 0 && evalStep == 1)
     {
         m_genTokPerSec = gen_per_s;
-        { double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec)); evalSetTable(1, jtr("gen speed"), QString::number(__score, 'f', 0)); }
+        {
+            double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec));
+            evalSetTable(1, jtr("gen speed"), QString::number(__score, 'f', 0));
+        }
         updateScoreBars();
     }
 }
@@ -953,13 +963,15 @@ void Expend::evalUpdateProgress()
 void Expend::updateScoreBars()
 {
     // Update compact chart in score group (6 bars: TTFB / Gen / QA / Logic / Tools / Overall)
-    auto scoreTTFB = [&](double ms) -> double {
+    auto scoreTTFB = [&](double ms) -> double
+    {
         if (ms < 0) return 0.0;
         if (ms <= 500) return 100.0;
         if (ms >= 10000) return 0.0;
         return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
     };
-    auto scoreGen = [&](double tps) -> double {
+    auto scoreGen = [&](double tps) -> double
+    {
         if (tps < 0) return 0.0;
         if (tps >= 100.0) return 100.0;
         if (tps <= 0) return 0.0;
@@ -1043,7 +1055,3 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
         return;
     }
 }
-
-
-
-

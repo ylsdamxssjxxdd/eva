@@ -1,7 +1,7 @@
 // MiniBarChart - compact 6-bar chart for evaluation scores
 #include "minibarchart.h"
-#include <QPainter>
 #include <QPaintEvent>
+#include <QPainter>
 #include <QPen>
 #include <algorithm>
 
@@ -28,7 +28,8 @@ void MiniBarChart::setScores(double s1, double s2, double s3, double s4, double 
 
 void MiniBarChart::setLabels(const QStringList &labels)
 {
-    if (labels.size() == 6) {
+    if (labels.size() == 6)
+    {
         m_labels = labels;
         update();
     }
@@ -45,7 +46,7 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     // Chart paddings
     const int n = m_scores.size();
     if (n <= 0) return;
-    const int leftPad = 28;   // allow ticks/labels
+    const int leftPad = 28; // allow ticks/labels
     const int rightPad = 12;
     const int topPad = 10;
     const int bottomPad = 28; // for labels
@@ -62,7 +63,8 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     p.save();
     const QColor grid = QColor(255, 255, 255, 22);
     p.setPen(QPen(grid, 1));
-    for (int i = 0; i <= 4; ++i) {
+    for (int i = 0; i <= 4; ++i)
+    {
         const qreal y = plot.y() + plot.height() * (1.0 - i / 4.0);
         p.drawLine(QPointF(plot.left(), y), QPointF(plot.right(), y));
     }
@@ -78,10 +80,10 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     const double x0 = plot.x() + gap;
 
     // Colors
-    const QColor colBlue(80, 160, 255);     // metrics
-    const QColor colOrange(255, 165, 0);    // overall (同步率)
-    const QColor colGray(180, 180, 180);    // low score (<60)
-    const QColor colNA(220, 220, 220);      // N/A
+    const QColor colBlue(80, 160, 255);  // metrics
+    const QColor colOrange(255, 165, 0); // overall (同步率)
+    const QColor colGray(180, 180, 180); // low score (<60)
+    const QColor colNA(220, 220, 220);   // N/A
 
     // Draw bars and labels
     QFont f = font();
@@ -100,11 +102,15 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         {
             const bool low = (val < 60.0);
             const bool overall = (i == 5); // 6th bar is Overall/同步率
-            if (low) base = colGray; else base = (overall ? colOrange : colBlue);
+            if (low)
+                base = colGray;
+            else
+                base = (overall ? colOrange : colBlue);
         }
 
         // Build a vertical gradient from a lighter tone to the base to add depth
-        auto tone = [&](const QColor &c, int lighter) {
+        auto tone = [&](const QColor &c, int lighter)
+        {
             QColor t = c;
             return t.lighter(lighter);
         };
@@ -120,11 +126,12 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         p.drawRoundedRect(QRectF(x, y, barW, h), radius, radius);
 
         // Gloss highlight (top 40%)
-        if (h > 6.0) {
+        if (h > 6.0)
+        {
             QRectF gloss(x, y, barW, h * 0.4);
             QLinearGradient hi(gloss.topLeft(), gloss.bottomLeft());
-            hi.setColorAt(0.0, QColor(255,255,255,65));
-            hi.setColorAt(1.0, QColor(255,255,255,0));
+            hi.setColorAt(0.0, QColor(255, 255, 255, 65));
+            hi.setColorAt(1.0, QColor(255, 255, 255, 0));
             p.setBrush(hi);
             p.setPen(Qt::NoPen);
             p.drawRoundedRect(gloss, radius, radius);
@@ -143,8 +150,9 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     }
 
     // Left ticks 0/50/100 (small, unobtrusive)
-    p.setPen(QPen(QColor(200,200,200,120)));
-    for (int i : {0, 50, 100}) {
+    p.setPen(QPen(QColor(200, 200, 200, 120)));
+    for (int i : {0, 50, 100})
+    {
         const qreal y = plot.y() + plot.height() * (1.0 - i / 100.0);
         p.drawText(QRectF(2, y - 8, leftPad - 6, 16), Qt::AlignRight | Qt::AlignVCenter, QString::number(i));
     }

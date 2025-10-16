@@ -548,7 +548,7 @@ void Widget::onServerReady(const QString &endpoint)
     // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
     // 收尾动画：将“装载中”转轮替换为完成标志
-        // Sync settings device combobox with actually resolved backend if user chose an explicit device.
+    // Sync settings device combobox with actually resolved backend if user chose an explicit device.
     // Example: user selected vulkan but runtime fell back to cpu -> fix combobox to cpu (auto remains untouched).
     {
         const QString userSel = DeviceManager::userChoice();
@@ -576,7 +576,8 @@ void Widget::onServerReady(const QString &endpoint)
                 reflash_state(QStringLiteral("ui:device fallback -> ") + resolved, SIGNAL_SIGNAL);
             }
         }
-    }decode_finish();
+    }
+    decode_finish();
     // 直接解锁界面（不再补帧播放复杂装载动画）
     unlockLoad();
     // 刚装载完成：若已设置监视帧率，则启动监视
@@ -1027,4 +1028,3 @@ void Widget::unlockLoad()
     reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
     recordAppendText(__idx, bot_predecode_content);
 }
-

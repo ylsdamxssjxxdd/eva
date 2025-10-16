@@ -1,8 +1,8 @@
 #include "expend.h"
 
+#include "../utils/evallogedit.h"   // 自定义：评估日志动画背景
 #include "../utils/introanimedit.h" // 自定义：软件介绍页动画背景
 #include "../utils/neuronlogedit.h" // 自定义：模型信息页动画日志
-#include "../utils/evallogedit.h" // 自定义：评估日志动画背景
 #include "../xnet.h"                // xNet for eval worker control
 #include "ui_expend.h"
 #include <QThread>

@@ -3,8 +3,8 @@
 #include <QAbstractTextDocumentLayout>
 #include <QDateTime>
 #include <QFont>
-#include <QPainterPath>
 #include <QLinearGradient>
+#include <QPainterPath>
 #include <QPalette>
 
 EvalLogEdit::EvalLogEdit(QWidget *parent)
@@ -84,8 +84,14 @@ void EvalLogEdit::ensureSymbols()
     const QSize sz = viewport()->size();
     if (m_cachedSize == sz) return;
     m_cachedSize = sz;
-    m_plusLeft.clear(); m_minusLeft.clear(); m_plusRight.clear(); m_minusRight.clear();
-    m_plusTop.clear(); m_minusTop.clear(); m_plusBottom.clear(); m_minusBottom.clear();
+    m_plusLeft.clear();
+    m_minusLeft.clear();
+    m_plusRight.clear();
+    m_minusRight.clear();
+    m_plusTop.clear();
+    m_minusTop.clear();
+    m_plusBottom.clear();
+    m_minusBottom.clear();
 
     // Place +/- along edges at fixed spacing
     const int w = sz.width();
@@ -93,13 +99,25 @@ void EvalLogEdit::ensureSymbols()
     const int step = 28;
     for (int y = 14; y < h - 8; y += step)
     {
-        if (((y / step) % 2) == 0) m_plusLeft << QPoint(6, y); else m_minusLeft << QPoint(6, y);
-        if (((y / step) % 2) == 0) m_minusRight << QPoint(w - 12, y); else m_plusRight << QPoint(w - 12, y);
+        if (((y / step) % 2) == 0)
+            m_plusLeft << QPoint(6, y);
+        else
+            m_minusLeft << QPoint(6, y);
+        if (((y / step) % 2) == 0)
+            m_minusRight << QPoint(w - 12, y);
+        else
+            m_plusRight << QPoint(w - 12, y);
     }
     for (int x = 16; x < w - 8; x += step)
     {
-        if (((x / step) % 2) == 0) m_plusTop << QPoint(x, 10); else m_minusTop << QPoint(x, 10);
-        if (((x / step) % 2) == 0) m_minusBottom << QPoint(x, h - 12); else m_plusBottom << QPoint(x, h - 12);
+        if (((x / step) % 2) == 0)
+            m_plusTop << QPoint(x, 10);
+        else
+            m_minusTop << QPoint(x, 10);
+        if (((x / step) % 2) == 0)
+            m_minusBottom << QPoint(x, h - 12);
+        else
+            m_plusBottom << QPoint(x, h - 12);
     }
 }
 
@@ -207,17 +225,17 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
     // Lines converge/diverge via phase separation (no vertical offsets)
     const double t = m_clock.elapsed() / 1000.0;
     const double breath = 0.5 + 0.5 * sin(TAU * t / 8.0); // ~8s period
-    const double minSep = 0.28; // radians when close (avoid merging)
-    const double maxSep = 0.75; // radians when spread out
+    const double minSep = 0.28;                           // radians when close (avoid merging)
+    const double maxSep = 0.75;                           // radians when spread out
     const double delta = minSep + (maxSep - minSep) * breath;
 
     // Visual parameters of the tube (orange-white rim + hollow center)
-    const qreal outerW = 24.0;    // outer rim width (3x thicker)
-    const qreal innerW = 9.0;     // central hollow width (carve out the core)
-    const qreal barHalf = 7.5;    // crossbar half length (slightly larger for readability)
+    const qreal outerW = 24.0; // outer rim width (3x thicker)
+    const qreal innerW = 9.0;  // central hollow width (carve out the core)
+    const qreal barHalf = 7.5; // crossbar half length (slightly larger for readability)
     // Adaptive sampling: coarser at large widths to reduce CPU cost
     const int sampleDx = qBound(6, w / 220, 10);
-    const int barStep = 22;       // crossbar spacing in px along x
+    const int barStep = 22; // crossbar spacing in px along x
 
     p.save();
 
@@ -272,7 +290,8 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
             // Normal vector to the curve ~ (-dydx, 1)
             double nx = -dydx, ny = 1.0;
             const double invLen = 1.0 / qMax(1e-6, std::sqrt(nx * nx + ny * ny));
-            nx *= invLen; ny *= invLen;
+            nx *= invLen;
+            ny *= invLen;
             const QPointF c(x, y);
             const QPointF a = c - QPointF(nx * barHalf, ny * barHalf);
             const QPointF b = c + QPointF(nx * barHalf, ny * barHalf);
@@ -283,4 +302,3 @@ void EvalLogEdit::drawSyncTubes(QPainter &p)
 
     p.restore();
 }
-

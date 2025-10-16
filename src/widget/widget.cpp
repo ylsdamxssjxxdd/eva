@@ -1180,7 +1180,8 @@ void Widget::restoreSessionById(const QString &sessionId)
     ui_messagesArray = QJsonArray();
 
     // Helper to map role string to UI color and record role
-    auto roleToRecord = [](const QString &r) -> RecordRole {
+    auto roleToRecord = [](const QString &r) -> RecordRole
+    {
         if (r == QLatin1String("system")) return RecordRole::System;
         if (r == QLatin1String("user")) return RecordRole::User;
         if (r == QLatin1String("assistant")) return RecordRole::Assistant;
@@ -1188,7 +1189,8 @@ void Widget::restoreSessionById(const QString &sessionId)
         if (r == QLatin1String("tool")) return RecordRole::Tool;
         return RecordRole::User;
     };
-    auto roleToColor = [&](const QString &r) -> QColor {
+    auto roleToColor = [&](const QString &r) -> QColor
+    {
         if (r == QLatin1String("think")) return THINK_GRAY;
         if (r == QLatin1String("tool")) return TOOL_BLUE;
         return NORMAL_BLACK;

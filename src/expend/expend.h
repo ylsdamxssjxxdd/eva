@@ -329,9 +329,9 @@ class Expend : public QWidget
     QElapsedTimer evalTimer; // general timer
     QString evalAccum;       // aggregated (visible+think stripped) content of current turn
     // Debug buffers for eval turns (used notably in QA to inspect reasoning)
-    QString evalAccumRaw_;   // raw streamed content including <think> markers
-    QString evalReasoning_;  // aggregated content inside <think>..</think>
-    QString evalAnswer_;     // aggregated content outside <think>..</think>
+    QString evalAccumRaw_;       // raw streamed content including <think> markers
+    QString evalReasoning_;      // aggregated content inside <think>..</think>
+    QString evalAnswer_;         // aggregated content outside <think>..</think>
     bool evalThinkMode_ = false; // whether the current stream cursor is inside <think>
     // Metrics
     double m_firstTokenMs = -1.0;
@@ -372,8 +372,8 @@ class Expend : public QWidget
     bool genCounting_ = false;
     qint64 genStartNsRel_ = 0; // relative to stepTimer
     // Generation speed multi-run (average over N runs)
-    int genPlanned_ = 2;        // number of generation speed runs
-    int genRunIndex_ = 0;       // current finished runs count
+    int genPlanned_ = 2;           // number of generation speed runs
+    int genRunIndex_ = 0;          // current finished runs count
     double genTokPerSecSum_ = 0.0; // sum of per-run tok/s for averaging
     // Eval pipeline
     int evalStep = 0; // 0..N
