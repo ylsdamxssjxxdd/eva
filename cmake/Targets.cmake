@@ -40,6 +40,7 @@ add_executable(
     src/utils/evallogedit.cpp src/utils/evallogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
     src/utils/minibarchart.cpp src/utils/minibarchart.h
+    src/utils/flowprogressbar.h
 )
 
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)
@@ -66,6 +67,7 @@ if (TARGET backends)
 endif()
 
 message(STATUS "eva型号: ${eva_OUTPUT_NAME}")
+
 
 
 

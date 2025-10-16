@@ -329,7 +329,7 @@ p, li { white-space: pre-wrap; }
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_eval_buttons">
             <item>
-             <widget class="QProgressBar" name="eval_progressBar">
+             <widget class="FlowProgressBar" name="eval_progressBar">
               <property name="minimum">
                <number>0</number>
               </property>
@@ -4567,7 +4567,12 @@ p, li { white-space: pre-wrap; }
    <extends>QPlainTextEdit</extends>
    <header>src/utils/evallogedit.h</header>
   </customwidget>
- </customwidgets>
+   <customwidget>
+   <class>FlowProgressBar</class>
+   <extends>QProgressBar</extends>
+   <header>src/utils/flowprogressbar.h</header>
+  </customwidget> </customwidgets>
  <resources/>
  <connections/>
 </ui>
+

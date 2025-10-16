@@ -221,7 +221,10 @@ QJsonArray Expend::makeMsgs(const QString &sys, const QString &user)
 }
 
 void Expend::on_eval_start_pushButton_clicked()
-{
+{    // Animate progress bar while evaluating
+    if (ui && ui->eval_progressBar) {
+        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(true);
+    }
     if (evalRunning)
     {
         evalLog(QStringLiteral("eval: ") + jtr("already running"));
@@ -292,7 +295,10 @@ QChar Expend::parseMCAnswer(const QString &ans)
 }
 
 void Expend::on_eval_stop_pushButton_clicked()
-{
+{    // Stop progress animation on user abort
+    if (ui && ui->eval_progressBar) {
+        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(false);
+    }
     if (!evalRunning) return;
     // Abort active eval request if any
     if (evalNet)
@@ -507,7 +513,10 @@ void Expend::runToolcallTest()
 }
 
 void Expend::evalFinish()
-{
+{    // Stop progress animation on finish
+    if (ui && ui->eval_progressBar) {
+        if (auto fp = qobject_cast<FlowProgressBar*>(ui->eval_progressBar)) fp->setFlowing(false);
+    }
     // Weighted overall score per spec: 10% TTFB, 20% Gen, 20% Common QA, 20% Logic, 30% Tools
     auto scoreTTFB = [&](double ms)
     {
@@ -1034,3 +1043,7 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
         return;
     }
 }
+
+
+
+
