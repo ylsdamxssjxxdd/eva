@@ -339,8 +339,11 @@ p, li { white-space: pre-wrap; }
               <property name="value">
                <number>0</number>
               </property>
+              <property name="textVisible">
+               <bool>true</bool>
+              </property>
               <property name="format">
-               <string/>
+               <string>进度：%v/%m 步</string>
               </property>
              </widget>
             </item>

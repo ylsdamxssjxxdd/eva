@@ -206,6 +206,9 @@ void Expend::on_eval_start_pushButton_clicked()
         evalLog(QStringLiteral("eval: 已在运行"));
         return;
     }
+    // Disable the start button while an evaluation is running to prevent re-entry
+    if (ui && ui->eval_start_pushButton)
+        ui->eval_start_pushButton->setEnabled(false);
     ensureEvalNet();
     // Best-effort: fill endpoint for LOCAL_MODE if missing
     if (eval_apis.api_endpoint.trimmed().isEmpty())
@@ -275,6 +278,9 @@ void Expend::on_eval_stop_pushButton_clicked()
     }
     evalRunning = false;
     evalLog(QStringLiteral("eval: 已停止"));
+    // Re-enable the start button so user can run a new evaluation
+    if (ui && ui->eval_start_pushButton)
+        ui->eval_start_pushButton->setEnabled(true);
 }
 
 void Expend::evalNext()
@@ -489,6 +495,9 @@ void Expend::evalFinish()
     evalLog(QStringLiteral("评估完成。综合(10/20/20/20/30)= ") + QString::number(m_syncRate, 'f', 1));
     evalRunning = false;
     updateScoreBars();
+    // Evaluation finished (either success or error path reaching here): allow starting again
+    if (ui && ui->eval_start_pushButton)
+        ui->eval_start_pushButton->setEnabled(true);
 }
 
 // ---------------- evalNet signal handlers ----------------
@@ -665,6 +674,7 @@ void Expend::onEvalPushover()
     {
         // Derive char/s as a fallback
         double tSec = evalTimer.isValid() ? (evalTimer.nsecsElapsed() / 1e9) : -1.0;
+        bool tokEstimated = false; // whether token/s is estimated from chars/s
         // Exclude think time: use relative start captured at first non-think output
         if (genCounting_ && stepTimer.isValid())
         {
@@ -685,6 +695,7 @@ void Expend::onEvalPushover()
             {
                 const double estTokPerSec = cps / 4.0; // heuristic: ~4 chars per token
                 m_genTokPerSec = estTokPerSec;
+                tokEstimated = true;
             }
             {
                 // After estimation, compute score from token/s (cap to 100) and show it in the table
@@ -692,6 +703,25 @@ void Expend::onEvalPushover()
                 evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
             }
             updateScoreBars();
+
+            // Log actual speeds after the test completes (prefer server-reported tok/s; fallback to estimate)
+            QString speedLine = QStringLiteral("[生成速度] 速度：");
+            if (m_genTokPerSec > 0)
+            {
+                speedLine += QString::number(m_genTokPerSec, 'f', 1) + QStringLiteral(" tok/s");
+                speedLine += QStringLiteral("（") + (tokEstimated ? QStringLiteral("估算") : QStringLiteral("服务器报告/实时")) + QStringLiteral("）");
+            }
+            if (m_genCharsPerSec > 0)
+            {
+                if (!speedLine.endsWith(QStringLiteral("速度："))) speedLine += QStringLiteral("；");
+                speedLine += QString::number(m_genCharsPerSec, 'f', 1) + QStringLiteral(" chars/s");
+            }
+            if (tSec > 0)
+            {
+                speedLine += QStringLiteral("；用时 ") + QString::number(tSec, 'f', 2) + QStringLiteral(" s");
+            }
+            speedLine += QStringLiteral("；输出长度 ") + QString::number(n);
+            evalLog(speedLine);
         }
         // Log actual generated content
         evalLog(QStringLiteral("[生成速度] 生成内容(长度=") + QString::number(evalAccum.size()) + QStringLiteral(")：\n") + evalAccum);
