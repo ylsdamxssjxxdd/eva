@@ -62,6 +62,7 @@ namespace Ui
 class Expend;
 }
 
+class ImageDropWidget;
 class Expend : public QWidget
 {
     Q_OBJECT
@@ -78,6 +79,7 @@ class Expend : public QWidget
     void setWhisperModelpath(QString modelpath);            // 用于设置whisper模型路径
     // SD inline path setters removed; configuration handled by advanced dialog
     QJsonObject wordsObj;
+    ImageDropWidget* sd_imgDrop = nullptr; // img2img drop area
     int language_flag = 0;
     QString jtr(QString customstr); // 根据language.json(wordsObj)和language_flag中找到对应的文字
     bool is_first_show_modelproliferation = true;
@@ -252,8 +254,6 @@ class Expend : public QWidget
   private slots:
     // Inline SD path selection slots removed: use advanced dialog
     void on_sd_draw_pushButton_clicked();                            // 用户点击文生图时响应
-    void on_sd_img2img_pushButton_clicked();                         // 用户点击图生图时响应
-    void on_params_template_comboBox_currentIndexChanged(int index); // 参数模板改变响应
     void on_sd_open_params_button_clicked();                          // 打开高级参数弹窗
 
     //-------------------------------------------------------------------------
@@ -442,3 +442,5 @@ class Expend : public QWidget
     bool tts_in_think_ = false; // skip content inside <think>..</think>
 };
 #endif // EXPEND_H
+
+

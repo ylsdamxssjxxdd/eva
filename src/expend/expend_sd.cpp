@@ -1,8 +1,9 @@
-﻿#include "expend.h"
+#include "expend.h"
 
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
 #include "ui_expend.h"
+#include <src/utils/imagedropwidget.h>
 #include <QDir>
 
 //-------------------------------------------------------------------------
@@ -193,8 +194,6 @@ void Expend::on_sd_open_params_button_clicked()
             // Update current run config and dialog fields
             sd_run_config_ = sd_preset_configs_.value(p);
             sdParamsDialog_->setConfig(sd_run_config_);
-            // Apply defaults for special presets
-            on_params_template_comboBox_currentIndexChanged(-1);
         });
         // Unmute autosave after initial programmatic setup
         sdParamsDialog_->setAutosaveMuted(false);
@@ -255,10 +254,10 @@ void Expend::on_sd_draw_pushButton_clicked()
     else
         arguments << "-M" << "img_gen";
     // Decide img2img by whether user provided an init image
-    img2img = QFile::exists(ui->sd_img2img_lineEdit->text());
+    img2img = (sd_imgDrop && QFile::exists(sd_imgDrop->imagePath()));
     if (img2img)
     {
-        arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text());
+        arguments << "-i" << ensureToolFriendlyFilePath(sd_imgDrop->imagePath());
         img2img = false;
         // strength for img2img (from config)
         arguments << "--strength" << QString::number(sd_run_config_.strength);
@@ -446,49 +445,6 @@ void Expend::sd_onProcessFinished()
             emit expend2tool_drawover(jtr("draw fail prompt"), 0); // 绘制完成信号
         }
     }
-}
-
-// 参数模板改变响应
-void Expend::on_params_template_comboBox_currentIndexChanged(int index)
-{
-    Q_UNUSED(index);
-    // Apply current preset from settings; UI combobox removed.
-    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-    settings.setIniCodec("utf-8");
-    const QString preset = settings.value("sd_params_template", QStringLiteral("sd1.5-anything-3")).toString();
-
-    if (!sd_preset_configs_.contains(preset))
-        sd_preset_configs_[preset] = loadPresetConfig(preset);
-    sd_run_config_ = sd_preset_configs_.value(preset);
-
-    // Defaults for special presets
-    if (preset == QStringLiteral("sd1.5-anything-3"))
-    {
-        const QString defMod = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
-        const QString defNeg = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
-        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = defMod;
-        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = defNeg;
-    }
-    if (preset == QStringLiteral("wan2.2"))
-    {
-        if (sd_run_config_.negativePrompt.isEmpty())
-            sd_run_config_.negativePrompt = QStringLiteral("色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走");
-        if (sd_run_config_.videoFrames <= 0) sd_run_config_.videoFrames = 33;
-    }
-    // Persist compat keys
-    settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
-    settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
-    settings.sync();
-
-    // Refresh dialog if open
-    if (sdParamsDialog_) sdParamsDialog_->setConfig(sd_run_config_);
-}
-
-// 用户点击图生图时响应
-void Expend::on_sd_img2img_pushButton_clicked()
-{
-    img2img = true;
-    ui->sd_draw_pushButton->click();
 }
 
 // 接收到tool的开始绘制图像信号
