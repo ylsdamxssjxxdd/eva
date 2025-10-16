@@ -1,8 +1,7 @@
 // MiniBarChart - compact 6-bar chart for evaluation scores
 #include "minibarchart.h"
-#include <QBrush>
-#include <QPaintEvent>
 #include <QPainter>
+#include <QPaintEvent>
 #include <QPen>
 #include <algorithm>
 
@@ -11,7 +10,7 @@ MiniBarChart::MiniBarChart(QWidget *parent)
 {
     // Initialize scores as N/A
     m_scores = QVector<double>(6, -1.0);
-    // New rubric: TTFB / Generation / Common QA / Logic / Tools / Overall
+    // Labels: TTFB / Generation / Common QA / Logic / Tools / Overall
     m_labels << QStringLiteral("首次响应")
              << QStringLiteral("生成速度")
              << QStringLiteral("常识问答")
@@ -45,7 +44,7 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     const QRectF plot(leftPad, topPad, rc.width() - leftPad - rightPad, rc.height() - topPad - bottomPad);
     if (plot.width() <= 0 || plot.height() <= 0) return;
 
-    // Draw axis baseline
+    // Axis frame
     p.setPen(QPen(QColor(200, 200, 200)));
     p.drawRect(plot);
 
@@ -55,10 +54,10 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
     const double x0 = plot.x() + gap;
 
     // Colors
-    QColor barOk(255, 170, 64); // orange (model related)
-    QColor barWarn(255, 200, 120);
-    QColor barNA(220, 220, 220);
-    QColor barGood(100, 180, 255); // blue (system-ish)
+    const QColor colBlue(80, 160, 255);     // metrics
+    const QColor colOrange(255, 165, 0);    // overall (同步率)
+    const QColor colGray(180, 180, 180);    // low score (<60)
+    const QColor colNA(220, 220, 220);      // N/A
 
     // Draw bars and labels
     QFont f = font();
@@ -71,16 +70,13 @@ void MiniBarChart::paintEvent(QPaintEvent *ev)
         const double x = x0 + i * (barW + gap);
         const double y = plot.y() + (plot.height() - h);
 
-        // Color by value
-        QColor c = barNA;
+        // Color per spec: overall(同步率) orange; others blue; <60 gray
+        QColor c = colNA;
         if (val >= 0)
         {
-            if (val >= 85)
-                c = barGood;
-            else if (val >= 60)
-                c = barOk;
-            else
-                c = barWarn;
+            const bool low = (val < 60.0);
+            const bool overall = (i == 5); // 6th bar is Overall/同步率
+            if (low) c = colGray; else c = (overall ? colOrange : colBlue);
         }
         p.setBrush(QBrush(c));
         p.setPen(Qt::NoPen);

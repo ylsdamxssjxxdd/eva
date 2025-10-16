@@ -133,7 +133,7 @@ void Expend::evalSetTable(int row, const QString &name, const QString &val, cons
     setItem(row, 0, name);
     setItem(row, 3, val);
     // Colorize value cell by metric threshold if possible
-    setValueColor(row, name, val.toDouble(), name);
+    /* no color fill for value column by request */
 }
 
 void Expend::evalSetStatus(int row, const QString &status)
@@ -310,7 +310,7 @@ void Expend::runLatencyTest()
 
 void Expend::runGenSpeedTest()
 {
-    evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符（排除<think>时间）"));
+    evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符"));
     evalSetStatus(1, QStringLiteral("进行中"));
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
     const QString ask = QStringLiteral("请写一篇1024个字的作文，主题自拟。");
@@ -381,12 +381,11 @@ void Expend::runLogicTest()
     {
         // Initialize 5 harder MC questions (Olympiad-style, simplified)
         logicPairs_.clear();
-        logicPairs_.push_back({QStringLiteral("逻辑推理1：数列 2, 6, 12, 20, ? 的下一个数是?\nA) 28\nB) 30\nC) 32\nD) 34\n仅输出 A/B/C/D。"), QStringLiteral("b")}); // pattern +4,+6,+8,+10
-        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("b")});          // n(n-3)/2 = 9 ? Wait hexagon: 6*3/2=9; but options; correct is B=9. Fix to b
-        logicPairs_.push_back({QStringLiteral("逻辑推理3：在1到100的整数中，数字9出现的次数是?\nA) 18\nB) 19\nC) 20\nD) 21\n仅输出 A/B/C/D。"), QStringLiteral("c")});                    // 20
-        logicPairs_.push_back({QStringLiteral("逻辑推理4：一个两位数，十位与个位之和为9，且该数是9的倍数，该数是?\nA) 18\nB) 27\nC) 45\nD) 54\n仅输出 A/B/C/D。"), QStringLiteral("d")}); // 54 (6+? actually 5+4=9 and 54 divisible by 9)
-        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("c")});       // often prime? Actually n(n+1)(n+2)(n+3)+1 is not guaranteed prime; Known for n=1 gives 25 not prime. So D is correct. Fix to D.
-        logicPairs_.last().second = QStringLiteral("d");
+        logicPairs_.push_back({QStringLiteral("逻辑推理1：数列 2, 6, 12, 20, ? 的下一个数是?\nA) 28\nB) 30\nC) 32\nD) 34\n仅输出 A/B/C/D。"), QStringLiteral("b")});
+        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("b")}); 
+        logicPairs_.push_back({QStringLiteral("逻辑推理3：在1到100的整数中，数字9出现的次数是?\nA) 18\nB) 19\nC) 20\nD) 21\n仅输出 A/B/C/D。"), QStringLiteral("c")});
+        logicPairs_.push_back({QStringLiteral("逻辑推理4：一个两位数，十位与个位之和为9，且该数是9的倍数，该数是?\nA) 18\nB) 27\nC) 45\nD) 54\n仅输出 A/B/C/D。"), QStringLiteral("d")}); 
+        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("c")});  
         logicIndex_ = 0;
         logicCorrect_ = 0;
         evalLog(QStringLiteral("[4/5] 逻辑推理 (5 题，单选)"));
@@ -546,8 +545,8 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
                 }
             }
         }
-        // For the generation speed step, start counting only when normal content begins
-        if (evalStep == 1 && !genCounting_ && evalAnswer_.size() > ansBefore)
+        // For generation speed, start counting when ANY output arrives (including <think>)
+        if (evalStep == 1 &&  !genCounting_ && !text.trimmed().isEmpty()) 
         {
             genCounting_ = true;
             genStartNsRel_ = stepTimer.nsecsElapsed();
@@ -581,8 +580,8 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         }
         else if (evalStep == 1)
         {
-            // Start counting gen speed only when we have emitted non-think content
-            if (!genCounting_ && !evalAnswer_.isEmpty())
+            // Start counting gen speed on first output token (including <think>)
+            if ( !genCounting_ && !text.trimmed().isEmpty()) 
             {
                 genCounting_ = true;
                 genStartNsRel_ = stepTimer.nsecsElapsed();
@@ -674,7 +673,8 @@ void Expend::onEvalPushover()
         }
         if (tSec > 0)
         {
-            const int n = evalAccum.size();
+            // const int n = evalAccum.size(); // old (excluded think), replaced to include think + answer
+            const int n = (evalReasoning_.size() + evalAnswer_.size()); // include think and final output
             const double cps = double(n) / tSec;
             m_genCharsPerSec = cps;
             // If server did not report token-speed, keep a hint in desc
@@ -942,4 +942,6 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
         return;
     }
 }
+
+
 
