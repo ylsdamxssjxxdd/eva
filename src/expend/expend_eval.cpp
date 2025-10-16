@@ -228,7 +228,7 @@ void Expend::on_eval_start_pushButton_clicked()
     toolCases_.push_back({QStringLiteral("mcp_tools_list"), QStringLiteral("List available MCP tools using the mcp_tools_list tool."), QStringLiteral("MCP: 列出工具")});
     toolCases_.push_back({QStringLiteral("controller"), QStringLiteral("Simulate a simple double-click at (100,200) using the controller tool."), QStringLiteral("鼠键: 双击(100,200)")});
 
-    stepsUnitsTotal = 1 /*latency*/ + 1 /*gen*/ + qaPlanned_ /*qa*/ + logicPlanned_ /*logic*/ + toolCases_.size() /*tools*/;
+    stepsUnitsTotal = 1 /*latency*/ + genPlanned_ /*gen (multi-run)*/ + qaPlanned_ /*qa*/ + logicPlanned_ /*logic*/ + toolCases_.size() /*tools*/;
     evalResetUi();
     updateEvalInfoUi();
     evalRunning = true;
@@ -244,6 +244,8 @@ void Expend::on_eval_start_pushButton_clicked()
     m_toolScore = -1.0;
     m_syncRate = -1.0;
     // reset per-run indices
+    genRunIndex_ = 0;
+    genTokPerSecSum_ = 0.0;
     qaIndex_ = 0;
     qaCorrect_ = 0;
     logicIndex_ = 0;
@@ -316,8 +318,9 @@ void Expend::runLatencyTest()
 
 void Expend::runGenSpeedTest()
 {
-    evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符"));
-    evalSetStatus(1, QStringLiteral("进行中"));
+    // Two-run measurement: show progress like 进行中 i/N
+    if (genRunIndex_ == 0) evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符 (2 轮取平均)"));
+    evalSetStatus(1, QStringLiteral("进行中 ") + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
     const QString ask = QStringLiteral("请写一篇1024个字的作文，主题自拟。");
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant."), ask);
@@ -331,6 +334,9 @@ void Expend::runGenSpeedTest()
     stepTimer.restart();
     genCounting_ = false;
     genStartNsRel_ = 0;
+    // Reset token speed holders for this run
+    m_genTokPerSec = -1.0;
+    m_genCharsPerSec = -1.0;
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -672,7 +678,7 @@ void Expend::onEvalPushover()
         break;
     case 1:
     {
-        // Derive char/s as a fallback
+        // Derive tok/s; prefer server-reported. If missing, estimate from chars using heuristic.
         double tSec = evalTimer.isValid() ? (evalTimer.nsecsElapsed() / 1e9) : -1.0;
         bool tokEstimated = false; // whether token/s is estimated from chars/s
         // Exclude think time: use relative start captured at first non-think output
@@ -683,54 +689,66 @@ void Expend::onEvalPushover()
         }
         if (tSec > 0)
         {
-            // const int n = evalAccum.size(); // old (excluded think), replaced to include think + answer
-            const int n = (evalReasoning_.size() + evalAnswer_.size()); // include think and final output
-            const double cps = double(n) / tSec;
-            m_genCharsPerSec = cps;
-            // If server did not report token-speed, keep a hint in desc
-            // QString desc = (m_genTokPerSec > 0) ? QStringLiteral("服务器报告") : QStringLiteral("估算: ") + QString::number(cps, 'f', 1) + QStringLiteral(" chars/s");
-            // replaced: show 0-100 score instead of raw tok/s (set after estimation)
-            // If no token speed, derive a rough estimate from chars/s to drive the bar
-            if (m_genTokPerSec <= 0 && cps > 0)
+            // include think + output chars only to estimate tok/s when server hasn't provided
+            const int nChars = (evalReasoning_.size() + evalAnswer_.size());
+            if (m_genTokPerSec <= 0 && nChars > 0)
             {
-                const double estTokPerSec = cps / 4.0; // heuristic: ~4 chars per token
+                const double estTokPerSec = (double(nChars) / tSec) / 4.0; // heuristic: ~4 chars per token
                 m_genTokPerSec = estTokPerSec;
                 tokEstimated = true;
             }
-            {
-                // After estimation, compute score from token/s (cap to 100) and show it in the table
-                double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec));
-                evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
-            }
+            // After estimation or server report, compute and show score (0..100)
+            double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec));
+            evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
             updateScoreBars();
 
-            // Log actual speeds after the test completes (prefer server-reported tok/s; fallback to estimate)
+            // Per-run token speed log (no chars/s or length)
             QString speedLine = QStringLiteral("[生成速度] 速度：");
             if (m_genTokPerSec > 0)
             {
                 speedLine += QString::number(m_genTokPerSec, 'f', 1) + QStringLiteral(" tok/s");
                 speedLine += QStringLiteral("（") + (tokEstimated ? QStringLiteral("估算") : QStringLiteral("服务器报告/实时")) + QStringLiteral("）");
             }
-            if (m_genCharsPerSec > 0)
-            {
-                if (!speedLine.endsWith(QStringLiteral("速度："))) speedLine += QStringLiteral("；");
-                speedLine += QString::number(m_genCharsPerSec, 'f', 1) + QStringLiteral(" chars/s");
-            }
             if (tSec > 0)
             {
                 speedLine += QStringLiteral("；用时 ") + QString::number(tSec, 'f', 2) + QStringLiteral(" s");
             }
-            speedLine += QStringLiteral("；输出长度 ") + QString::number(n);
             evalLog(speedLine);
         }
-        // Log actual generated content
-        evalLog(QStringLiteral("[生成速度] 生成内容(长度=") + QString::number(evalAccum.size()) + QStringLiteral(")：\n") + evalAccum);
-        evalSetStatus(1, QStringLiteral("完成"));
-        evalSetElapsed(1, stepTimer.nsecsElapsed() / 1e9);
+        // Log generated content without length postfix
+        evalLog(QStringLiteral("[生成速度] 生成内容：\n") + evalAccum);
+
+        // Accumulate per-run token speed and advance single run
+        const double currTok = m_genTokPerSec;
+        if (currTok > 0) genTokPerSecSum_ += currTok;
+        genRunIndex_++;
         stepsDone++;
         evalUpdateProgress();
-        evalStep++;
-        evalNext();
+
+        // If more runs planned, schedule next run; otherwise finalize this stage
+        if (genRunIndex_ < genPlanned_)
+        {
+            evalSetStatus(1, QStringLiteral("进行中 ") + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
+            // Start next run immediately
+            runGenSpeedTest();
+        }
+        else
+        {
+            // Compute average tok/s across runs and update score once more
+            const double avgTok = (genTokPerSecSum_ > 0 ? (genTokPerSecSum_ / double(genPlanned_)) : m_genTokPerSec);
+            if (avgTok > 0)
+            {
+                m_genTokPerSec = avgTok;
+                double __score = (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec);
+                evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
+                evalLog(QStringLiteral("[生成速度] 平均速度：") + QString::number(m_genTokPerSec, 'f', 1) + QStringLiteral(" tok/s"));
+                updateScoreBars();
+            }
+            evalSetStatus(1, QStringLiteral("完成"));
+            evalSetElapsed(1, stepTimer.nsecsElapsed() / 1e9);
+            evalStep++;
+            evalNext();
+        }
         break;
     }
     case 2:

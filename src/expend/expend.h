@@ -369,6 +369,10 @@ class Expend : public QWidget
     // Generation test measurement: exclude think time
     bool genCounting_ = false;
     qint64 genStartNsRel_ = 0; // relative to stepTimer
+    // Generation speed multi-run (average over N runs)
+    int genPlanned_ = 2;        // number of generation speed runs
+    int genRunIndex_ = 0;       // current finished runs count
+    double genTokPerSecSum_ = 0.0; // sum of per-run tok/s for averaging
     // Eval pipeline
     int evalStep = 0; // 0..N
     void ensureEvalNet();
