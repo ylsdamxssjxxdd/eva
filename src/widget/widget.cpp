@@ -494,7 +494,19 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         }
         message["content"] = contentArray;
         ui_messagesArray.append(message);
-        if (history_) history_->appendMessage(message);
+        // Persist a history-only copy with local file paths for reliable restoration
+        if (history_)
+        {
+            QJsonObject histMsg = message; // copy
+            QJsonArray locals;
+            for (const QString &p : in.images)
+            {
+                // Store absolute path to improve robustness across cwd changes
+                locals.append(QFileInfo(p).absoluteFilePath());
+            }
+            if (!locals.isEmpty()) histMsg.insert("local_images", locals);
+            history_->appendMessage(histMsg);
+        }
     }
     if (!in.wavs.isEmpty())
     {
@@ -568,7 +580,19 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     roleMessage.insert("role", QStringLiteral("tool"));
     roleMessage.insert("content", tool_result);
     ui_messagesArray.append(roleMessage);
-    if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+    if (history_ && ui_state == CHAT_STATE)
+    {
+        // Include any pending image paths produced by tools so we can restore them later
+        QJsonObject histMsg = roleMessage;
+        if (!wait_to_show_images_filepath.isEmpty())
+        {
+            QJsonArray locals;
+            for (const QString &p : wait_to_show_images_filepath)
+                locals.append(QFileInfo(p).absoluteFilePath());
+            histMsg.insert("local_images", locals);
+        }
+        history_->appendMessage(histMsg);
+    }
 
     // Create record BEFORE printing header/content so docFrom anchors at header area
     int __idx = recordCreate(RecordRole::Tool);
@@ -1155,80 +1179,89 @@ void Widget::restoreSessionById(const QString &sessionId)
     ui->output->clear();
     ui_messagesArray = QJsonArray();
 
+    // Helper to map role string to UI color and record role
+    auto roleToRecord = [](const QString &r) -> RecordRole {
+        if (r == QLatin1String("system")) return RecordRole::System;
+        if (r == QLatin1String("user")) return RecordRole::User;
+        if (r == QLatin1String("assistant")) return RecordRole::Assistant;
+        if (r == QLatin1String("think")) return RecordRole::Think;
+        if (r == QLatin1String("tool")) return RecordRole::Tool;
+        return RecordRole::User;
+    };
+    auto roleToColor = [&](const QString &r) -> QColor {
+        if (r == QLatin1String("think")) return THINK_GRAY;
+        if (r == QLatin1String("tool")) return TOOL_BLUE;
+        return NORMAL_BLACK;
+    };
+
     for (const auto &v : msgs)
     {
-        const QJsonObject m = v.toObject();
+        QJsonObject m = v.toObject();
         const QString role = m.value("role").toString();
-        QString content = m.value("content").toString();
-        content.replace(QString(DEFAULT_THINK_BEGIN), QString());
-        content.replace(QString(DEFAULT_THINK_END), QString());
-        if (role == QStringLiteral("system"))
+        const QJsonValue contentVal = m.value("content");
+
+        // Build displayable text from content (string or multimodal array)
+        QString displayText;
+        if (contentVal.isArray())
         {
-            int __rec_idx_sys = recordCreate(RecordRole::System);
-            appendRoleHeader(QStringLiteral("system"));
-            reflash_output(content, 0, NORMAL_BLACK);
-            recordAppendText(__rec_idx_sys, content);
-            QJsonObject o;
-            o.insert("role", QStringLiteral("system"));
-            o.insert("content", content);
-            ui_messagesArray.append(o);
-            recordEntries_[__rec_idx_sys].msgIndex = ui_messagesArray.size() - 1;
-        }
-        else if (role == QStringLiteral("user"))
-        {
-            int __rec_idx_user = recordCreate(RecordRole::User);
-            appendRoleHeader(QStringLiteral("user"));
-            reflash_output(content, 0, NORMAL_BLACK);
-            recordAppendText(__rec_idx_user, content);
-            QJsonObject o;
-            o.insert("role", QStringLiteral("user"));
-            o.insert("content", content);
-            ui_messagesArray.append(o);
-            recordEntries_[__rec_idx_user].msgIndex = ui_messagesArray.size() - 1;
-        }
-        else if (role == QStringLiteral("think"))
-        {
-            int __rec_idx_think = recordCreate(RecordRole::Think);
-            appendRoleHeader(QStringLiteral("think"));
-            reflash_output(content, 0, THINK_GRAY);
-            recordAppendText(__rec_idx_think, content);
-            QJsonObject o;
-            o.insert("role", QStringLiteral("think"));
-            o.insert("content", content);
-            ui_messagesArray.append(o);
-            recordEntries_[__rec_idx_think].msgIndex = ui_messagesArray.size() - 1;
-        }
-        else if (role == QStringLiteral("tool"))
-        {
-            int __rec_idx_tool = recordCreate(RecordRole::Tool);
-            appendRoleHeader(QStringLiteral("tool"));
-            reflash_output(content, 0, TOOL_BLUE);
-            recordAppendText(__rec_idx_tool, content);
-            QJsonObject o;
-            o.insert("role", QStringLiteral("tool"));
-            o.insert("content", content);
-            ui_messagesArray.append(o);
-            recordEntries_[__rec_idx_tool].msgIndex = ui_messagesArray.size() - 1;
-        }
-        else if (role == QStringLiteral("assistant"))
-        {
-            int __rec_idx_ass = recordCreate(RecordRole::Assistant);
-            appendRoleHeader(QStringLiteral("assistant"));
-            reflash_output(content, 0, NORMAL_BLACK);
-            recordAppendText(__rec_idx_ass, content);
-            QJsonObject o;
-            o.insert("role", QStringLiteral("assistant"));
-            o.insert("content", content);
-            ui_messagesArray.append(o);
-            recordEntries_[__rec_idx_ass].msgIndex = ui_messagesArray.size() - 1;
+            const QJsonArray parts = contentVal.toArray();
+            for (const auto &pv : parts)
+            {
+                if (!pv.isObject()) continue;
+                const QJsonObject po = pv.toObject();
+                const QString type = po.value("type").toString();
+                if (type == QLatin1String("text"))
+                    displayText += po.value("text").toString();
+            }
         }
         else
         {
-            reflash_output(content, 0, NORMAL_BLACK);
-            QJsonObject o;
-            o.insert("role", role);
-            o.insert("content", content);
-            ui_messagesArray.append(o);
+            QString s = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
+            s.replace(QString(DEFAULT_THINK_BEGIN), QString());
+            s.replace(QString(DEFAULT_THINK_END), QString());
+            displayText = s;
+        }
+
+        // Create record entry and print role header + content
+        const int recIdx = recordCreate(roleToRecord(role));
+        appendRoleHeader(role);
+        reflash_output(displayText, 0, roleToColor(role));
+        recordAppendText(recIdx, displayText);
+
+        // Append sanitized message back to UI memory (remove local-only metadata)
+        QJsonObject uiMsg = m;
+        uiMsg.remove("local_images");
+        ui_messagesArray.append(uiMsg);
+        recordEntries_[recIdx].msgIndex = ui_messagesArray.size() - 1;
+
+        // Restore any local images recorded in history
+        QStringList localPaths;
+        const QJsonValue localsVal = m.value("local_images");
+        if (localsVal.isArray())
+        {
+            for (const auto &lv : localsVal.toArray())
+            {
+                if (lv.isString()) localPaths << lv.toString();
+            }
+        }
+        if (!localPaths.isEmpty())
+        {
+            QStringList showable;
+            for (const QString &p : localPaths)
+            {
+                if (QFileInfo::exists(p))
+                {
+                    showable << p;
+                }
+                else
+                {
+                    // Warn user that the original image file is missing
+                    reflash_state(QStringLiteral("ui: missing image file -> ") + p, WRONG_SIGNAL);
+                    // Also print a visible placeholder into the transcript
+                    output_scroll(p + QStringLiteral(" (missing)\n"));
+                }
+            }
+            if (!showable.isEmpty()) showImages(showable);
         }
     }
 
