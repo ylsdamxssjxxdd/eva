@@ -343,6 +343,8 @@ void Expend::runGenSpeedTest()
     // Two-run measurement: show progress like i/N
     if (genRunIndex_ == 0) { evalLog(QString()); evalLog(jtr("gen intro")); }
     evalSetStatus(1, jtr("in progress") + " " + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
+    // Note: per-run counters are reset after timers restart below to ensure
+    // a clean boundary between runs (see duplicates after stepTimer.restart()).
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
     const QString ask = jtr("gen essay prompt");
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant."), ask);
@@ -673,12 +675,15 @@ void Expend::onEvalState(const QString &line, SIGNAL_STATE st)
 void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
 {
     if (!evalRunning) return;
-    if (prompt_per_s > 0)
+    // Only update generation-related speeds during the generation stage.
+    // Otherwise later stages (QA/Logic/Tools) would keep changing the Gen bar
+    // causing visual flicker until the final summary fixes it.
+    if (prompt_per_s > 0 && evalStep == 1)
     {
         m_promptTokPerSec = prompt_per_s;
         // no explicit row for prompt speed in the new rubric
     }
-    if (gen_per_s > 0)
+    if (gen_per_s > 0 && evalStep == 1)
     {
         m_genTokPerSec = gen_per_s;
         { double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec)); evalSetTable(1, jtr("gen speed"), QString::number(__score, 'f', 0)); }
