@@ -1566,7 +1566,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="placeholderText">
-             <string>选择上传一个txt文件，可以在待嵌入文本区进行修改</string>
+             <string>选择上传一个文档文件，可以在待嵌入文本区进行修改</string>
             </property>
            </widget>
           </item>

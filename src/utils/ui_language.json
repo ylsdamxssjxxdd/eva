@@ -1275,8 +1275,8 @@
             "abort server"
         ],
         "embedding_txt_lineEdit_placeholder": [
-            "选择上传一个txt文件，可以在待嵌入文本区进行修改",
-            "upload a txt"
+            "选择上传一个文档文件，可以在待嵌入文本区进行修改",
+            "upload a doc"
         ],
         "knowledge base description": [
             "知识库描述",
