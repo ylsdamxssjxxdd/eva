@@ -95,11 +95,11 @@ void Expend::evalResetUi()
     ui->eval_table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->eval_table->setWordWrap(false);
     // Init rows with default status (5 steps)
-    evalSetTable(0, QStringLiteral("首次响应(ms)"), QStringLiteral("-"));
-    evalSetTable(1, QStringLiteral("生成速度(tok/s)"), QStringLiteral("-"));
-    evalSetTable(2, QStringLiteral("常识问答(%)"), QStringLiteral("-"));
-    evalSetTable(3, QStringLiteral("逻辑推理(%)"), QStringLiteral("-"));
-    evalSetTable(4, QStringLiteral("工具调用(0-100)"), QStringLiteral("-"));
+    evalSetTable(0, QStringLiteral("首次响应"), QStringLiteral("-"));
+    evalSetTable(1, QStringLiteral("生成速度"), QStringLiteral("-"));
+    evalSetTable(2, QStringLiteral("常识问答"), QStringLiteral("-"));
+    evalSetTable(3, QStringLiteral("逻辑推理"), QStringLiteral("-"));
+    evalSetTable(4, QStringLiteral("工具调用"), QStringLiteral("-"));
     for (int r = 0; r < 5; ++r) evalSetStatus(r, QStringLiteral("待开始"));
 
     ui->eval_log_plainTextEdit->clear();
@@ -294,7 +294,7 @@ void Expend::runLatencyTest()
 {
     evalLog(QStringLiteral("[1/5] 首次响应：发送 1024 个 'A' 字符，测首 token 时延"));
     evalSetStatus(0, QStringLiteral("进行中"));
-    ENDPOINT_DATA d = makeBaseData(0.2, 16);
+    ENDPOINT_DATA d = makeBaseData(0.2, 1);
     const QString bigUser = QString(1024, QLatin1Char('A'));
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant. Reply briefly."), bigUser);
     // Prepare and fire
@@ -312,8 +312,8 @@ void Expend::runGenSpeedTest()
     evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符（排除<think>时间）"));
     evalSetStatus(1, QStringLiteral("进行中"));
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
-    const QString ask = QStringLiteral("请输出恰好 1024 个小写字母 a，不要包含空格、换行或其他字符。仅输出 a 字符串。Strictly output 1024 'a'.");
-    d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant. Reply strictly as asked."), ask);
+    const QString ask = QStringLiteral("请写一篇1024个字的作文，主题自拟。");
+    d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant."), ask);
     evalFirstToken = false;
     evalAccum.clear();
     evalTimer.restart();
@@ -370,11 +370,10 @@ void Expend::runLogicTest()
         // Initialize 5 harder MC questions (Olympiad-style, simplified)
         logicPairs_.clear();
         logicPairs_.push_back({QStringLiteral("逻辑推理1：数列 2, 6, 12, 20, ? 的下一个数是?\nA) 28\nB) 30\nC) 32\nD) 34\n仅输出 A/B/C/D。"), QStringLiteral("b")}); // pattern +4,+6,+8,+10
-        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("c")});          // n(n-3)/2 = 9 ? Wait hexagon: 6*3/2=9; but options; correct is B=9. Fix to b
-        logicPairs_.last().second = QStringLiteral("b");
+        logicPairs_.push_back({QStringLiteral("逻辑推理2：一个正六边形的对角线条数为?\nA) 6\nB) 9\nC) 12\nD) 15\n仅输出 A/B/C/D。"), QStringLiteral("b")});          // n(n-3)/2 = 9 ? Wait hexagon: 6*3/2=9; but options; correct is B=9. Fix to b
         logicPairs_.push_back({QStringLiteral("逻辑推理3：在1到100的整数中，数字9出现的次数是?\nA) 18\nB) 19\nC) 20\nD) 21\n仅输出 A/B/C/D。"), QStringLiteral("c")});                    // 20
         logicPairs_.push_back({QStringLiteral("逻辑推理4：一个两位数，十位与个位之和为9，且该数是9的倍数，该数是?\nA) 18\nB) 27\nC) 45\nD) 54\n仅输出 A/B/C/D。"), QStringLiteral("d")}); // 54 (6+? actually 5+4=9 and 54 divisible by 9)
-        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("b")});       // often prime? Actually n(n+1)(n+2)(n+3)+1 is not guaranteed prime; Known for n=1 gives 25 not prime. So D is correct. Fix to D.
+        logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("c")});       // often prime? Actually n(n+1)(n+2)(n+3)+1 is not guaranteed prime; Known for n=1 gives 25 not prime. So D is correct. Fix to D.
         logicPairs_.last().second = QStringLiteral("d");
         logicIndex_ = 0;
         logicCorrect_ = 0;
@@ -428,7 +427,7 @@ void Expend::runToolcallTest()
     sys.replace("{engineer_info}", QString());
     const QString task = tc.user + QStringLiteral(" Strictly output exactly one <tool_call> JSON and stop.");
 
-    ENDPOINT_DATA d = makeBaseData(0.2, 64);
+    ENDPOINT_DATA d = makeBaseData(0.2,640);
     d.messagesArray = makeMsgs(sys, task);
     evalFirstToken = false;
     evalAccum.clear();
@@ -627,16 +626,21 @@ void Expend::onEvalPushover()
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
         qaIndex_++;
         stepsDone++; // count each QA as a progress unit
-        evalSetStatus(2, QStringLiteral("进行中 ") + QString::number(std::min(qaIndex_, qaPlanned_)) + "/" + QString::number(qaPlanned_));
-        evalUpdateProgress();
-        // Next QA or finish QA stage
-        runQATest();
-        if (qaIndex_ >= qaPairs_.size())
+        // IMPORTANT: if this stage just finished, set elapsed BEFORE triggering next stage
+        const bool finished = (qaIndex_ >= qaPairs_.size());
+        if (finished)
         {
             evalSetStatus(2, QStringLiteral("完成"));
             evalSetElapsed(2, stepTimer.nsecsElapsed() / 1e9);
-            updateScoreBars();
         }
+        else
+        {
+            evalSetStatus(2, QStringLiteral("进行中 ") + QString::number(std::min(qaIndex_, qaPlanned_)) + "/" + QString::number(qaPlanned_));
+        }
+        evalUpdateProgress();
+        // Next QA or finish QA stage
+        runQATest();
+        if (finished) updateScoreBars();
         break;
     }
     case 3:
@@ -654,15 +658,20 @@ void Expend::onEvalPushover()
                 QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
         logicIndex_++;
         stepsDone++;
-        evalSetStatus(3, QStringLiteral("进行中 ") + QString::number(std::min(logicIndex_, logicPlanned_)) + "/" + QString::number(logicPlanned_));
-        evalUpdateProgress();
-        runLogicTest();
-        if (logicIndex_ >= logicPairs_.size())
+        // As with QA, compute elapsed BEFORE runLogicTest() may advance and restart the timer
+        const bool finished = (logicIndex_ >= logicPairs_.size());
+        if (finished)
         {
             evalSetStatus(3, QStringLiteral("完成"));
             evalSetElapsed(3, stepTimer.nsecsElapsed() / 1e9);
-            updateScoreBars();
         }
+        else
+        {
+            evalSetStatus(3, QStringLiteral("进行中 ") + QString::number(std::min(logicIndex_, logicPlanned_)) + "/" + QString::number(logicPlanned_));
+        }
+        evalUpdateProgress();
+        runLogicTest();
+        if (finished) updateScoreBars();
         break;
     }
     case 4:
