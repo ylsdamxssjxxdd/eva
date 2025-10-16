@@ -456,6 +456,8 @@ struct SDRunConfig
     double strength = 0.75; // for img2img
     double guidance = 3.5;  // distilled guidance (for models that support)
     QString rng = "cuda";   // std_default | cuda
+    // Video generation
+    int videoFrames = 0; // >0: use -M vid_gen and emit --video-frames
 
     // Optional DiT/Flow knobs
     bool flowShiftEnabled = false;

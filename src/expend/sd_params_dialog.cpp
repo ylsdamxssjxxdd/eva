@@ -32,7 +32,7 @@ void SdParamsDialog::buildUi()
 
     // Preset selector
     presetBox_ = new QComboBox;
-    presetBox_->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"});
+    presetBox_->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"});
     connect(presetBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SdParamsDialog::onPresetChanged);
     root->addWidget(wrapH(new QLabel("Preset"), presetBox_));
 
@@ -97,6 +97,8 @@ void SdParamsDialog::buildUi()
     strengthSpin_ = new QDoubleSpinBox; strengthSpin_->setRange(0.0, 1.0); strengthSpin_->setSingleStep(0.01);
     guidanceSpin_ = new QDoubleSpinBox; guidanceSpin_->setRange(0.0, 20.0); guidanceSpin_->setSingleStep(0.1);
     rngBox_ = new QComboBox; rngBox_->addItems({"cuda", "std_default"});
+    // Video frames (0=image mode; >0=vid_gen)
+    videoFramesSpin_ = new QSpinBox; videoFramesSpin_->setRange(0, 1024); videoFramesSpin_->setValue(0);
 
     formGen->addRow("Width", wSpin_); wSpin_->setToolTip("Image width (px), multiple of 64 recommended");
     formGen->addRow("Height", hSpin_); hSpin_->setToolTip("Image height (px), multiple of 64 recommended");
@@ -107,6 +109,7 @@ void SdParamsDialog::buildUi()
     formGen->addRow("Clip Skip", clipSkipSpin_); clipSkipSpin_->setToolTip("Ignore last CLIP layers (-1 = auto)");
     formGen->addRow("Batch Count", batchSpin_); batchSpin_->setToolTip("Number of images to generate");
     formGen->addRow("Seed", seedSpin_); seedSpin_->setToolTip("Random seed (-1 = random)");
+    formGen->addRow("Video Frames", videoFramesSpin_); videoFramesSpin_->setToolTip("0 = image; >0 = number of video frames");
     formGen->addRow("Strength", strengthSpin_); strengthSpin_->setToolTip("Img2img strength (0..1)");
     formGen->addRow("Guidance", guidanceSpin_); guidanceSpin_->setToolTip("Distilled guidance (for SD3/WAN)");
     formGen->addRow("RNG", rngBox_); rngBox_->setToolTip("RNG backend (cuda/std_default)");
@@ -221,6 +224,7 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     strengthSpin_->setValue(c.strength);
     guidanceSpin_->setValue(c.guidance);
     rngBox_->setCurrentText(c.rng);
+    if (videoFramesSpin_) videoFramesSpin_->setValue(c.videoFrames);
 
     flowShiftEnable_->setChecked(c.flowShiftEnabled);
     flowShiftSpin_->setValue(c.flowShift);
@@ -271,6 +275,7 @@ SDRunConfig SdParamsDialog::config() const
     c.strength = strengthSpin_->value();
     c.guidance = guidanceSpin_->value();
     c.rng = rngBox_->currentText();
+    c.videoFrames = videoFramesSpin_? videoFramesSpin_->value() : 0;
 
     c.flowShiftEnabled = flowShiftEnable_->isChecked();
     c.flowShift = flowShiftSpin_->value();
@@ -346,6 +351,23 @@ void SdParamsDialog::applyPreset(const QString &name)
         if (negativeEdit_ && negativeEdit_->toPlainText().trimmed().isEmpty())
             negativeEdit_->setPlainText(defaultNegative);
     }
+    else if (name == "wan2.2")
+    {
+        modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::Diffusion));
+        samplerBox_->setCurrentText("euler");
+        wSpin_->setValue(480); hSpin_->setValue(832);
+        stepsSpin_->setValue(30); cfgSpin_->setValue(6.0);
+        clipSkipSpin_->setValue(-1); batchSpin_->setValue(1); seedSpin_->setValue(-1);
+        rngBox_->setCurrentText("cuda");
+        diffFaCb_->setChecked(true);
+        offloadCpuCb_->setChecked(true);
+        flowShiftEnable_->setChecked(true);
+        flowShiftSpin_->setValue(3.0);
+        if (videoFramesSpin_) videoFramesSpin_->setValue(33);
+        // Wan2.2 recommended negative prompt (Chinese); keep user's content if any
+        if (negativeEdit_ && negativeEdit_->toPlainText().trimmed().isEmpty())
+            negativeEdit_->setPlainText(QStringLiteral("色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"));
+    }
     else if (name == "custom1" || name == "custom2")
     {
         // Keep user's saved config; do not override fields here.
@@ -409,7 +431,7 @@ void SdParamsDialog::hookAutosave()
     // Text edits
     if (negativeEdit_) connect(negativeEdit_, &QPlainTextEdit::textChanged, this, arm);
     // Spin boxes
-    for (QSpinBox *sb : {wSpin_, hSpin_, stepsSpin_, clipSkipSpin_, batchSpin_, seedSpin_, vaeTileX_, vaeTileY_})
+    for (QSpinBox *sb : {wSpin_, hSpin_, stepsSpin_, clipSkipSpin_, batchSpin_, seedSpin_, videoFramesSpin_, vaeTileX_, vaeTileY_})
         if (sb) connect(sb, QOverload<int>::of(&QSpinBox::valueChanged), this, arm);
     for (QDoubleSpinBox *ds : {cfgSpin_, strengthSpin_, guidanceSpin_, vaeTileOverlap_})
         if (ds) connect(ds, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, arm);

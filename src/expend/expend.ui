@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>860</width>
-    <height>594</height>
+    <width>862</width>
+    <height>605</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -343,7 +343,7 @@ p, li { white-space: pre-wrap; }
                <bool>true</bool>
               </property>
               <property name="format">
-               <string>进度：%v/%m 步</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -2055,9 +2055,9 @@ p, li { white-space: pre-wrap; }
           <number>0</number>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
-           <property name="spacing">
-            <number>3</number>
-           </property>
+          <property name="spacing">
+           <number>3</number>
+          </property>
           <property name="leftMargin">
            <number>0</number>
           </property>
@@ -4586,12 +4586,12 @@ p, li { white-space: pre-wrap; }
    <extends>QPlainTextEdit</extends>
    <header>src/utils/evallogedit.h</header>
   </customwidget>
-   <customwidget>
+  <customwidget>
    <class>FlowProgressBar</class>
    <extends>QProgressBar</extends>
    <header>src/utils/flowprogressbar.h</header>
-  </customwidget> </customwidgets>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
-

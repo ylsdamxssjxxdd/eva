@@ -101,6 +101,7 @@ class SdParamsDialog : public QWidget
     QDoubleSpinBox *strengthSpin_ = nullptr;
     QDoubleSpinBox *guidanceSpin_ = nullptr;
     QComboBox *rngBox_ = nullptr;
+    QSpinBox *videoFramesSpin_ = nullptr; // 0 = image mode; >0 = video frames for vid_gen
     // Flow/DiT
     QCheckBox *flowShiftEnable_ = nullptr;
     QDoubleSpinBox *flowShiftSpin_ = nullptr;

@@ -407,7 +407,7 @@ void Expend::readConfig()
     sd_params_templates["custom2"].negative_prompt = settings.value("sd_custom2_negative", "").toString();
     sd_params_templates["custom2"].modify_prompt = settings.value("sd_custom2_modify", "").toString();
 
-    // Rebuild presets to exactly 5 entries: flux1-dev, qwen-image, sd1.5-anything-3, custom1, custom2
+    // Rebuild presets为固定集合：flux1-dev, qwen-image, sd1.5-anything-3, wan2.2, custom1, custom2
     // Preserve user custom templates loaded above
     SD_PARAMS custom1 = sd_params_templates.value("custom1", SD_PARAMS{});
     SD_PARAMS custom2 = sd_params_templates.value("custom2", SD_PARAMS{});
@@ -418,18 +418,23 @@ void Expend::readConfig()
                           "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure",
                           "masterpieces, best quality, beauty, detailed, Pixar, 8k",
                           512, 512, 20, 1, -1, 1, 7.5};
+    SD_PARAMS sd_wan{"euler",
+                     QStringLiteral("色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"),
+                     "",
+                     480, 832, 30, 1, -1, -1, 6.0};
     sd_params_templates.insert("flux1-dev", sd_flux);
     sd_params_templates.insert("qwen-image", sd_qwen);
     sd_params_templates.insert("sd1.5-anything-3", sd_anything);
+    sd_params_templates.insert("wan2.2", sd_wan);
     sd_params_templates.insert("custom1", custom1);
     sd_params_templates.insert("custom2", custom2);
 
     // Apply saved custom1/custom2 values loaded above
-    // Ensure combo box only shows the 5 presets
+    // Ensure combo box只显示支持的预设
     ui->params_template_comboBox->clear();
-    ui->params_template_comboBox->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"});
+    ui->params_template_comboBox->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"});
     // Clamp template key to supported set
-    if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"}).contains(sd_params_template))
+    if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"}).contains(sd_params_template))
         sd_params_template = "sd1.5-anything-3";
     ui->params_template_comboBox->setCurrentText(sd_params_template);
     // Make current run-config match the stored config for this preset
@@ -444,7 +449,7 @@ void Expend::readConfig()
     applyPresetToInlineUi(sd_params_template);
     // Load per-preset prompts from config (avoid cross-preset leakage)
     auto sanitize = [this](QString s){ return sanitizePresetKey(s); };
-    const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","custom1","custom2"};
+    const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","wan2.2","custom1","custom2"};
     for (const QString &p : presets)
     {
         const QString key = sanitize(p);

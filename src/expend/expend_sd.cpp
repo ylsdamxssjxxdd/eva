@@ -21,6 +21,7 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     if (preset == "flux1-dev") { defW=768; defH=768; defSteps=30; defCfg=1.0; defSampler="euler"; defClipSkip=-1; defOffload=false; defFA=false; defFlowEn=false; }
     else if (preset == "qwen-image") { defW=1024; defH=1024; defSteps=30; defCfg=2.5; defSampler="euler"; defClipSkip=-1; defOffload=true; defFA=true; defFlowEn=true; defFlow=3.0; }
     else if (preset == "sd1.5-anything-3") { defW=512; defH=512; defSteps=20; defCfg=7.5; defSampler="euler_a"; defClipSkip=1; }
+    else if (preset == "wan2.2") { defW=480; defH=832; defSteps=30; defCfg=6.0; defSampler="euler"; defClipSkip=-1; defOffload=true; defFA=true; defFlowEn=true; defFlow=3.0; }
 
     c.modelArg = static_cast<SDModelArgKind>(get("sd_preset_"+key+"_model_arg", static_cast<int>(SDModelArgKind::Auto)).toInt());
     c.modelPath = get("sd_preset_"+key+"_model_path", "").toString();
@@ -48,6 +49,7 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     c.strength = get("sd_preset_"+key+"_strength", 0.75).toDouble();
     c.guidance = get("sd_preset_"+key+"_guidance", 3.5).toDouble();
     c.rng = get("sd_preset_"+key+"_rng", defRng).toString();
+    c.videoFrames = get("sd_preset_"+key+"_video_frames", preset=="wan2.2"?33:0).toInt();
 
     c.flowShiftEnabled = get("sd_preset_"+key+"_flow_shift_en", defFlowEn).toBool();
     c.flowShift = get("sd_preset_"+key+"_flow_shift", defFlow).toDouble();
@@ -102,6 +104,7 @@ void Expend::savePresetConfig(const QString &preset, const SDRunConfig &cfg) con
     settings.setValue("sd_preset_"+key+"_strength", cfg.strength);
     settings.setValue("sd_preset_"+key+"_guidance", cfg.guidance);
     settings.setValue("sd_preset_"+key+"_rng", cfg.rng);
+    settings.setValue("sd_preset_"+key+"_video_frames", cfg.videoFrames);
 
     settings.setValue("sd_preset_"+key+"_flow_shift_en", cfg.flowShiftEnabled);
     settings.setValue("sd_preset_"+key+"_flow_shift", cfg.flowShift);
@@ -238,6 +241,10 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     else if (modelpath.contains("flux1-dev"))
     {
         ui->params_template_comboBox->setCurrentText("flux1-dev");
+    }
+    else if (modelpath.contains("wan2", Qt::CaseInsensitive))
+    {
+        ui->params_template_comboBox->setCurrentText("wan2.2");
     }
     // Persist per-preset config immediately (isolation)
     const QString preset = ui->params_template_comboBox->currentText();
@@ -424,8 +431,11 @@ void Expend::on_sd_draw_pushButton_clicked()
     }
     // Build unified argument list using the new advanced run-config
     QStringList arguments;
-    // mode
-    arguments << "-M" << "img_gen";
+    // mode: image or video
+    if (sd_run_config_.videoFrames > 0)
+        arguments << "-M" << "vid_gen";
+    else
+        arguments << "-M" << "img_gen";
     if (img2img)
     {
         arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text());
@@ -500,6 +510,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     arguments << "-b" << QString::number(sd_run_config_.batchCount);
     if (sd_run_config_.guidance > 0.0) arguments << "--guidance" << QString::number(sd_run_config_.guidance);
     arguments << "--rng" << sd_run_config_.rng;
+    if (sd_run_config_.videoFrames > 0)
+        arguments << "--video-frames" << QString::number(sd_run_config_.videoFrames);
 
     // negative prompt and prompt assembly (strictly per-preset values; do not fallback to hidden UI)
     const QString neg = sd_run_config_.negativePrompt.trimmed();
@@ -692,6 +704,14 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
     {
         if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[preset].modify_prompt;
         if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[preset].negative_prompt;
+    }
+    // wan2.2: ensure default negative & video frames if missing
+    if (preset == "wan2.2")
+    {
+        if (sd_run_config_.negativePrompt.isEmpty())
+            sd_run_config_.negativePrompt = sd_params_templates.value(preset).negative_prompt;
+        if (sd_run_config_.videoFrames <= 0)
+            sd_run_config_.videoFrames = 33;
     }
     // Mirror essentials to inline widgets
     applyPresetToInlineUi(preset);
