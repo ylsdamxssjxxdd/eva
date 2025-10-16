@@ -42,6 +42,8 @@ add_executable(
     src/utils/introanimedit.cpp src/utils/introanimedit.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
 )
+## Name the produced executable by eva_OUTPUT_NAME (computed in EnvInfo.cmake)
+set_target_properties(${EVA_TARGET} PROPERTIES OUTPUT_NAME "${eva_OUTPUT_NAME}")
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header

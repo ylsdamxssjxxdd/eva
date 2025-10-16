@@ -60,7 +60,7 @@ if (WIN32)
 elseif(UNIX)
     if (BODY_PACK)
         add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/bin/eva" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
+            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${EVA_TARGET}>" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/AppDir/usr/share/applications/eva.desktop
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/eva.png ${CMAKE_BINARY_DIR}/AppDir/usr/share/icons/hicolor/64x64/apps/eva.png
         )
