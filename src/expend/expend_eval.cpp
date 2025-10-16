@@ -110,7 +110,29 @@ void Expend::evalResetUi()
         ui->eval_progressBar->setValue(0);
         ui->eval_progressBar->setTextVisible(true);
         ui->eval_progressBar->setFormat(QStringLiteral("进度：%v/%m 步"));
-        ui->eval_progressBar->setStyleSheet(QStringLiteral("QProgressBar { text-align: center; }"));
+        ui->eval_progressBar->setMinimumHeight(22);
+        // Blue-themed, glossy progress bar with subtle depth
+        // Scoped to this widget by setting the stylesheet on the instance.
+        ui->eval_progressBar->setStyleSheet(QStringLiteral(
+            "QProgressBar {\n"
+            "  text-align: center;\n"
+            "  color: #E8F2FF;\n"
+            "  min-height: 22px;\n"
+            "  border: none;\n"
+            "  border-radius: 5px;\n"
+            "  background: QLinearGradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0b1e33, stop:1 #0f2b4a);\n"
+            "}\n"
+            "QProgressBar::chunk {\n"
+            "  margin: 1px;\n"
+            "  border-radius: 9px;\n"
+            "  border: 1px solid rgba(255,255,255,20);\n"
+            "  background: QLinearGradient(x1:0, y1:0, x2:0, y2:1,\n"
+            "                               stop:0 #6fc1ff,\n"
+            "                               stop:0.45 #489ef7,\n"
+            "                               stop:0.55 #2e7fd6,\n"
+            "                               stop:1 #1e62b0);\n"
+            "}\n"
+        ));
     }
     // Reset chart if present
     if (ui->eval_bar_chart) ui->eval_bar_chart->setScores(-1, -1, -1, -1, -1, -1);
@@ -301,7 +323,7 @@ void Expend::evalNext()
 
 void Expend::runLatencyTest()
 {
-    evalLog(QStringLiteral("[1/5] 首次响应：发送 1024 个 'A' 字符，测首 token 时延"));
+    evalLog(QStringLiteral("首次响应：发送 1024 个 'A' 字符，测首 token 时延"));
     evalSetStatus(0, QStringLiteral("进行中"));
     ENDPOINT_DATA d = makeBaseData(0.2, 1);
     const QString bigUser = QString(1024, QLatin1Char('A'));
@@ -319,7 +341,7 @@ void Expend::runLatencyTest()
 void Expend::runGenSpeedTest()
 {
     // Two-run measurement: show progress like 进行中 i/N
-    if (genRunIndex_ == 0) evalLog(QStringLiteral("[2/5] 生成速度：生成 1024 个字符 (2 轮取平均)"));
+    if (genRunIndex_ == 0) evalLog(QStringLiteral("生成速度：生成 1024 个字符 (2 轮取平均)"));
     evalSetStatus(1, QStringLiteral("进行中 ") + QString::number(genRunIndex_) + "/" + QString::number(genPlanned_));
     ENDPOINT_DATA d = makeBaseData(0.0, 1024);
     const QString ask = QStringLiteral("请写一篇1024个字的作文，主题自拟。");
@@ -355,13 +377,13 @@ void Expend::runQATest()
         qaPairs_.push_back({QStringLiteral("常识问答5：太阳从哪个方向升起?\nA) 南\nB) 北\nC) 西\nD) 东\n仅输出 A/B/C/D。"), QStringLiteral("d")});
         qaIndex_ = 0;
         qaCorrect_ = 0;
-        evalLog(QStringLiteral("[3/5] 常识问答 (5 题，单选)"));
+        evalLog(QStringLiteral("常识问答 (5 题，单选)"));
     }
     if (qaIndex_ >= qaPairs_.size())
     {
         // Finalize score
         m_qaScore = (qaPairs_.isEmpty() ? 0.0 : (100.0 * double(qaCorrect_) / double(qaPairs_.size())));
-        evalSetTable(2, QStringLiteral("常识问答(%)"), QString::number(m_qaScore, 'f', 1), QStringLiteral("命中率"));
+        evalSetTable(2, QStringLiteral("常识问答"), QString::number(m_qaScore, 'f', 1), QStringLiteral("命中率"));
         evalStep++;
         evalNext();
         return;
@@ -400,12 +422,12 @@ void Expend::runLogicTest()
         logicPairs_.push_back({QStringLiteral("逻辑推理5：四个连着的整数乘积加一，一定是?\nA) 合数\nB) 质数\nC) 完全平方数\nD) 不能确定\n仅输出 A/B/C/D。"), QStringLiteral("c")});  
         logicIndex_ = 0;
         logicCorrect_ = 0;
-        evalLog(QStringLiteral("[4/5] 逻辑推理 (5 题，单选)"));
+        evalLog(QStringLiteral("逻辑推理 (5 题，单选)"));
     }
     if (logicIndex_ >= logicPairs_.size())
     {
         m_logicScore = (logicPairs_.isEmpty() ? 0.0 : (100.0 * double(logicCorrect_) / double(logicPairs_.size())));
-        evalSetTable(3, QStringLiteral("逻辑推理(%)"), QString::number(m_logicScore, 'f', 1), QStringLiteral("命中率"));
+        evalSetTable(3, QStringLiteral("逻辑推理"), QString::number(m_logicScore, 'f', 1), QStringLiteral("命中率"));
         evalStep++;
         evalNext();
         return;
@@ -434,7 +456,7 @@ void Expend::runToolcallTest()
 {
     if (toolIndex_ == 0)
     {
-        evalLog(QStringLiteral("[5/5] 工具调用能力 (6 项)"));
+        evalLog(QStringLiteral("工具调用能力 (6 项)"));
         evalSetStatus(4, QStringLiteral("进行中 0/") + QString::number(toolCases_.size()));
     }
     if (toolIndex_ >= toolCases_.size())
@@ -442,7 +464,7 @@ void Expend::runToolcallTest()
         // Finalize tool score
         const int total = qMax(1, toolCases_.size());
         m_toolScore = 100.0 * double(toolCorrect_) / double(total);
-        evalSetTable(4, QStringLiteral("工具调用(0-100)"), QString::number(m_toolScore, 'f', 0), QStringLiteral("六项综合"));
+        evalSetTable(4, QStringLiteral("工具调用"), QString::number(m_toolScore, 'f', 0), QStringLiteral("六项综合"));
         evalSetStatus(4, QStringLiteral("完成"));
         evalSetElapsed(4, stepTimer.nsecsElapsed() / 1e9);
         evalStep++;
@@ -498,7 +520,7 @@ void Expend::evalFinish()
     const double s_tool = qMax(0.0, m_toolScore);
     m_syncRate = std::max(0.0, std::min(100.0, 0.10 * s_ttfb + 0.20 * s_gen + 0.20 * s_qa + 0.20 * s_log + 0.30 * s_tool));
     // Do not show overall score in the table; only log it and reflect on bar chart
-    evalLog(QStringLiteral("评估完成。综合(10/20/20/20/30)= ") + QString::number(m_syncRate, 'f', 1));
+    evalLog(QStringLiteral("评估完成。同步率= ") + QString::number(m_syncRate, 'f', 1));
     evalRunning = false;
     updateScoreBars();
     // Evaluation finished (either success or error path reaching here): allow starting again
@@ -584,7 +606,7 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
                 return (10000.0 - t_ms) * 100.0 / (10000.0 - 500.0);
             };
             const double s = scoreTTFB(m_firstTokenMs);
-            evalSetTable(0, QStringLiteral("首次响应(ms)"), QString::number(s, 'f', 0));
+            evalSetTable(0, QStringLiteral("首次响应"), QString::number(s, 'f', 0));
             updateScoreBars();
             // Immediately stop the request after first token to measure TTFB only
             if (evalNet)
@@ -647,7 +669,7 @@ void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
     if (gen_per_s > 0)
     {
         m_genTokPerSec = gen_per_s;
-        { double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec)); evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0)); }
+        { double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec)); evalSetTable(1, QStringLiteral("生成速度"), QString::number(__score, 'f', 0)); }
         updateScoreBars();
     }
 }
@@ -698,7 +720,7 @@ void Expend::onEvalPushover()
             }
             // After estimation or server report, compute and show score (0..100)
             double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec));
-            evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
+            evalSetTable(1, QStringLiteral("生成速度"), QString::number(__score, 'f', 0));
             updateScoreBars();
 
             // Per-run token speed log (no chars/s or length)
@@ -739,7 +761,7 @@ void Expend::onEvalPushover()
             {
                 m_genTokPerSec = avgTok;
                 double __score = (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec);
-                evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
+                evalSetTable(1, QStringLiteral("生成速度"), QString::number(__score, 'f', 0));
                 evalLog(QStringLiteral("[生成速度] 平均速度：") + QString::number(m_genTokPerSec, 'f', 1) + QStringLiteral(" tok/s"));
                 updateScoreBars();
             }
