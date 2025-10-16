@@ -17,6 +17,7 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <QPushButton>
+#include <QPlainTextEdit>
 #include <QLabel>
 #include <QFileDialog>
 
@@ -83,6 +84,11 @@ class SdParamsDialog : public QWidget
     QCheckBox *flowShiftEnable_ = nullptr;
     QDoubleSpinBox *flowShiftSpin_ = nullptr;
 
+    // Prompts
+    QGroupBox *grpPrompts_ = nullptr;
+    QPlainTextEdit *promptEdit_ = nullptr;
+    QPlainTextEdit *negativeEdit_ = nullptr;
+
     // Backend toggles
     QCheckBox *offloadCpuCb_ = nullptr;
     QCheckBox *clipCpuCb_ = nullptr;
@@ -96,4 +102,3 @@ class SdParamsDialog : public QWidget
     QSpinBox *vaeTileY_ = nullptr;
     QDoubleSpinBox *vaeTileOverlap_ = nullptr;
 };
-

@@ -73,6 +73,14 @@ void Expend::init_expend()
     ui->sd_t5path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     ui->sd_lorapath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
 
+    // Only keep the new Advanced Settings popup for SD; hide legacy inline path/params panels
+    if (ui->sd_pathset_groupBox) ui->sd_pathset_groupBox->hide();
+    if (ui->sd_paramsset_groupBox) ui->sd_paramsset_groupBox->hide();
+    if (ui->sd_settings) {
+        ui->sd_settings->setMinimumWidth(260);
+        ui->sd_settings->setMaximumWidth(320);
+    }
+
     ui->params_template_label->setText(jtr("params template"));
     ui->sd_imagewidth_label->setText(jtr("image width"));
     ui->sd_imageheight_label->setText(jtr("image height"));

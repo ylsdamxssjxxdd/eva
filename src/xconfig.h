@@ -473,6 +473,10 @@ struct SDRunConfig
     int vaeTileX = 32;
     int vaeTileY = 32;
     double vaeTileOverlap = 0.5; // fraction of tile size
+
+    // Prompts (advanced dialog only manages positive/negative)
+    QString positivePrompt; // main positive prompt
+    QString negativePrompt; // negative prompt
 };
 
 // resampleWav removed

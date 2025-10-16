@@ -55,6 +55,14 @@ void SdParamsDialog::buildUi()
     upscaleLe_ = addPathRow(formModel, "ESRGAN", "(*.pth *.pt *.onnx)");
     controlNetLe_ = addPathRow(formModel, "ControlNet", "(*.safetensors *.gguf *.ggml)");
     controlImgLe_ = addPathRow(formModel, "Control Image", "(*.png *.jpg *.jpeg)");
+    // Prompts group (right column top)
+    grpPrompts_ = new QGroupBox("Prompts");
+    auto *formP = new QFormLayout(grpPrompts_);
+    promptEdit_ = new QPlainTextEdit; promptEdit_->setFixedHeight(60);
+    negativeEdit_ = new QPlainTextEdit; negativeEdit_->setFixedHeight(60);
+    formP->addRow("Positive", promptEdit_);
+    formP->addRow("Negative", negativeEdit_);
+
     // Generation group (right column, stacked with backend)
     auto *grpGen = new QGroupBox("Generation");
     auto *formGen = new QFormLayout(grpGen);
@@ -124,6 +132,8 @@ void SdParamsDialog::buildUi()
     cols->setSpacing(10);
     auto *leftCol = new QVBoxLayout; leftCol->setContentsMargins(0,0,0,0); leftCol->setSpacing(8);
     auto *rightCol = new QVBoxLayout; rightCol->setContentsMargins(0,0,0,0); rightCol->setSpacing(8);
+    // Move prompts to left side to reduce perceived dialog length and improve focus
+    leftCol->addWidget(grpPrompts_);
     leftCol->addWidget(grpModel, /*stretch*/1);
     rightCol->addWidget(grpGen);
     rightCol->addWidget(grpBk);
@@ -216,6 +226,10 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     vaeTileX_->setValue(c.vaeTileX);
     vaeTileY_->setValue(c.vaeTileY);
     vaeTileOverlap_->setValue(c.vaeTileOverlap);
+
+    // Prompts
+    if (promptEdit_) promptEdit_->setPlainText(c.positivePrompt);
+    if (negativeEdit_) negativeEdit_->setPlainText(c.negativePrompt);
 }
 
 SDRunConfig SdParamsDialog::config() const
@@ -261,11 +275,19 @@ SDRunConfig SdParamsDialog::config() const
     c.vaeTileX = vaeTileX_->value();
     c.vaeTileY = vaeTileY_->value();
     c.vaeTileOverlap = vaeTileOverlap_->value();
+    // Prompts
+    c.positivePrompt = promptEdit_ ? promptEdit_->toPlainText() : QString();
+    c.negativePrompt = negativeEdit_ ? negativeEdit_->toPlainText() : QString();
     return c;
 }
 
 void SdParamsDialog::applyPreset(const QString &name)
 {
+    // Reflect preset in combobox selection first
+    if (presetBox_) {
+        int idx = presetBox_->findText(name);
+        if (idx >= 0) presetBox_->setCurrentIndex(idx);
+    }
     // Minimal sensible defaults tailored for the three main families.
     if (name == "flux1-dev")
     {
@@ -277,6 +299,7 @@ void SdParamsDialog::applyPreset(const QString &name)
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(false);
         offloadCpuCb_->setChecked(false);
+        clipCpuCb_->setChecked(true); // recommended: --clip-on-cpu
         flowShiftEnable_->setChecked(false);
     }
     else if (name == "qwen-image")
@@ -303,6 +326,11 @@ void SdParamsDialog::applyPreset(const QString &name)
         diffFaCb_->setChecked(false);
         offloadCpuCb_->setChecked(false);
         flowShiftEnable_->setChecked(false);
+    }
+    else if (name == "custom1" || name == "custom2")
+    {
+        // Keep user's saved config; do not override fields here.
+        // Selection is already applied to presetBox_.
     }
 }
 
