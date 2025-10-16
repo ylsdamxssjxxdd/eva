@@ -403,9 +403,16 @@ void Expend::showReadme()
         file.close();
     }
 
-    // 使用正则表达式删除指定的 HTML 内容
-    QRegularExpression imgRegex("<img src=\"https://github.com/ylsdamxssjxxdd/eva/assets/[^>]+>");
-    readme_content.remove(imgRegex);
+        // Strip images from README: HTML <img>, Markdown images, and common containers
+    // 1) Remove any HTML <img ...> tags (case-insensitive)
+    readme_content.remove(QRegularExpression("<img\\b[^>]*>", QRegularExpression::CaseInsensitiveOption));
+    // 2) Replace Markdown inline images ![alt](url) with just the alt text
+    readme_content = readme_content.replace(QRegularExpression("!\\[([^\\]]*)\\]\\(([^\\)]*)\\)"), "\\1");
+    // 3) Replace Markdown reference-style images ![alt][id] with alt text
+    readme_content = readme_content.replace(QRegularExpression("!\\[([^\\]]*)\\]\\s*\\[[^\\]]*\\]"), "\\1");
+    // 4) Remove HTML picture/figure blocks that often wrap images
+    readme_content.remove(QRegularExpression("<picture\\b[\\s\\S]*?</picture>", QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption));
+    readme_content.remove(QRegularExpression("<figure\\b[\\s\\S]*?</figure>", QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption));
 
     // 删除 <summary> 和 </summary> 标签
     readme_content.remove(QRegularExpression("<summary>|</summary>"));

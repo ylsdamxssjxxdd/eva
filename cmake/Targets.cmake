@@ -9,9 +9,7 @@ if (WIN32)
 else()
     set(resource_FILES resource/res_core.qrc resource/font.qrc)
 endif()
-if (BODY_PACK)
-    list(APPEND resource_FILES resource/res_docs.qrc)
-endif()
+list(APPEND resource_FILES resource/res_docs.qrc)
 set(logo_FILES resource/logo/ico.rc)
 
 
