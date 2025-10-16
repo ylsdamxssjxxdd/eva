@@ -359,6 +359,7 @@ void Expend::runGenSpeedTest()
     // Reset token speed holders for this run
     m_genTokPerSec = -1.0;
     m_genCharsPerSec = -1.0;
+    m_genStreamChunks = 0;
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
     QMetaObject::invokeMethod(evalNet, "recv_data", Qt::QueuedConnection, Q_ARG(ENDPOINT_DATA, d));
     QMetaObject::invokeMethod(evalNet, "run", Qt::QueuedConnection);
@@ -598,6 +599,9 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
     }
 
     const QString chunk = stripThink(text);
+    // Count only chunks with actual content (exclude pure <think>/</think> markers and whitespace)
+    if (evalStep == 1 && !chunk.trimmed().isEmpty())
+        ++m_genStreamChunks;
     if (!evalFirstToken && !chunk.trimmed().isEmpty())
     {
         evalFirstToken = true;
@@ -720,11 +724,10 @@ void Expend::onEvalPushover()
         }
         if (tSec > 0)
         {
-            // include think + output chars only to estimate tok/s when server hasn't provided
-            const int nChars = (evalReasoning_.size() + evalAnswer_.size());
-            if (m_genTokPerSec <= 0 && nChars > 0)
+            // Prefer server-reported tok/s. If missing, estimate by counting streamed chunks.
+            if (m_genTokPerSec <= 0 && m_genStreamChunks > 0)
             {
-                const double estTokPerSec = (double(nChars) / tSec) / 4.0; // heuristic: ~4 chars per token
+                const double estTokPerSec = double(m_genStreamChunks) / tSec; // 1 chunk ~= 1 token
                 m_genTokPerSec = estTokPerSec;
                 tokEstimated = true;
             }

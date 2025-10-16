@@ -338,6 +338,8 @@ class Expend : public QWidget
     double m_promptTokPerSec = -1.0;
     double m_genTokPerSec = -1.0;
     double m_genCharsPerSec = -1.0;
+    // Stream-chunk counting for language-agnostic token speed estimation
+    int m_genStreamChunks = 0; // increments on each non-empty streamed chunk during gen-speed stage
     double m_qaScore = -1.0;
     double m_logicScore = -1.0; // logical reasoning score (0..100)
     double m_toolScore = -1.0;
