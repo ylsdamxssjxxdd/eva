@@ -327,7 +327,12 @@ class Expend : public QWidget
     bool evalRunning = false;
     bool evalFirstToken = false;
     QElapsedTimer evalTimer; // general timer
-    QString evalAccum;       // aggregated content of current turn
+    QString evalAccum;       // aggregated (visible+think stripped) content of current turn
+    // Debug buffers for eval turns (used notably in QA to inspect reasoning)
+    QString evalAccumRaw_;   // raw streamed content including <think> markers
+    QString evalReasoning_;  // aggregated content inside <think>..</think>
+    QString evalAnswer_;     // aggregated content outside <think>..</think>
+    bool evalThinkMode_ = false; // whether the current stream cursor is inside <think>
     // Metrics
     double m_firstTokenMs = -1.0;
     double m_promptTokPerSec = -1.0;

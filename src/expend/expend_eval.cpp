@@ -316,6 +316,10 @@ void Expend::runGenSpeedTest()
     d.messagesArray = makeMsgs(QStringLiteral("You are a helpful assistant."), ask);
     evalFirstToken = false;
     evalAccum.clear();
+    evalAccumRaw_.clear();
+    evalReasoning_.clear();
+    evalAnswer_.clear();
+    evalThinkMode_ = false;
     evalTimer.restart();
     stepTimer.restart();
     genCounting_ = false;
@@ -355,7 +359,12 @@ void Expend::runQATest()
     ENDPOINT_DATA d = makeBaseData(0.1, 64);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
+    // Reset per-turn accumulators
     evalAccum.clear();
+    evalAccumRaw_.clear();
+    evalReasoning_.clear();
+    evalAnswer_.clear();
+    evalThinkMode_ = false;
     evalTimer.restart();
     if (qaIndex_ == 0) stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
@@ -392,7 +401,12 @@ void Expend::runLogicTest()
     ENDPOINT_DATA d = makeBaseData(0.1, 64);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
+    // Reset per-turn accumulators for logic question
     evalAccum.clear();
+    evalAccumRaw_.clear();
+    evalReasoning_.clear();
+    evalAnswer_.clear();
+    evalThinkMode_ = false;
     evalTimer.restart();
     if (logicIndex_ == 0) stepTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
@@ -430,7 +444,12 @@ void Expend::runToolcallTest()
     ENDPOINT_DATA d = makeBaseData(0.2,640);
     d.messagesArray = makeMsgs(sys, task);
     evalFirstToken = false;
+    // Reset per-turn accumulators for tool case
     evalAccum.clear();
+    evalAccumRaw_.clear();
+    evalReasoning_.clear();
+    evalAnswer_.clear();
+    evalThinkMode_ = false;
     if (toolIndex_ == 0) stepTimer.restart();
     evalTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
@@ -469,6 +488,62 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
 {
     Q_UNUSED(streaming);
     if (!evalRunning) return;
+
+    // Capture raw stream and split into reasoning/output segments for debugging
+    // We keep a lightweight state machine here to accumulate content inside/outside <think>
+    // so that QA can print the model's thought process and final output separately.
+    {
+        const QString begin = QString(DEFAULT_THINK_BEGIN);
+        const QString end = QString(DEFAULT_THINK_END);
+        QString s = text;
+        const int ansBefore = evalAnswer_.size();
+        if (!s.isEmpty())
+            evalAccumRaw_ += s; // keep raw stream for reference
+        while (!s.isEmpty())
+        {
+            if (evalThinkMode_)
+            {
+                const int e = s.indexOf(end);
+                if (e >= 0)
+                {
+                    // Append content up to </think>, then switch to normal mode
+                    evalReasoning_ += s.left(e);
+                    s.remove(0, e + end.size());
+                    evalThinkMode_ = false;
+                }
+                else
+                {
+                    // Entire chunk belongs to reasoning
+                    evalReasoning_ += s;
+                    s.clear();
+                }
+            }
+            else
+            {
+                const int b = s.indexOf(begin);
+                if (b >= 0)
+                {
+                    // Append normal content before <think>, then enter think mode
+                    evalAnswer_ += s.left(b);
+                    s.remove(0, b + begin.size());
+                    evalThinkMode_ = true;
+                }
+                else
+                {
+                    // Entire chunk is normal content
+                    evalAnswer_ += s;
+                    s.clear();
+                }
+            }
+        }
+        // For the generation speed step, start counting only when normal content begins
+        if (evalStep == 1 && !genCounting_ && evalAnswer_.size() > ansBefore)
+        {
+            genCounting_ = true;
+            genStartNsRel_ = stepTimer.nsecsElapsed();
+        }
+    }
+
     const QString chunk = stripThink(text);
     if (!evalFirstToken && !chunk.trimmed().isEmpty())
     {
@@ -496,9 +571,12 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         }
         else if (evalStep == 1)
         {
-            // Start counting gen speed excluding any preceding <think>
-            genCounting_ = true;
-            genStartNsRel_ = stepTimer.nsecsElapsed();
+            // Start counting gen speed only when we have emitted non-think content
+            if (!genCounting_ && !evalAnswer_.isEmpty())
+            {
+                genCounting_ = true;
+                genStartNsRel_ = stepTimer.nsecsElapsed();
+            }
         }
         // Log per-step ttfb briefly
         evalLog(QStringLiteral("ttfb: ") + QString::number(ms, 'f', 1) + QStringLiteral(" ms"));
@@ -612,18 +690,26 @@ void Expend::onEvalPushover()
     }
     case 2:
     {
-        // Judge this QA item (MC A-D)
-        const QString ansRaw = evalAccum.trimmed();
+        // Judge this QA item (MC A-D). Prefer outside-<think> text as the final answer.
+        const QString ansVisible = evalAnswer_.trimmed();
+        const QString ansRaw = (ansVisible.isEmpty() ? evalAccum.trimmed() : ansVisible);
         const QChar pick = parseMCAnswer(ansRaw);
         const QString expect = qaPairs_[qaIndex_].second;
         const QString question = qaPairs_[qaIndex_].first;
         const bool ok = (!expect.isEmpty() && !pick.isNull() && QString(pick).toLower() == expect);
         if (ok) qaCorrect_++;
-        // Log this Q/A clearly
-        evalLog(QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + ")：\n" + question +
-                QStringLiteral("\n标准答案：") + expect.toUpper() +
-                QStringLiteral("\n模型回答：") + (pick.isNull() ? ansRaw : QString(pick).toUpper()) +
-                QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
+        // Log this Q/A clearly, including reasoning (<think>) and the final output
+        const QString thinkText = evalReasoning_.trimmed();
+        const QString outText = ansVisible.trimmed();
+        QString logLine;
+        logLine += QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + ")：\n" + question;
+        logLine += QStringLiteral("\n标准答案：") + expect.toUpper();
+        if (!thinkText.isEmpty())
+            logLine += QStringLiteral("\n思考过程：\n") + thinkText;
+        logLine += QStringLiteral("\n输出：") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
+        logLine += QStringLiteral("\n模型选择：") + (pick.isNull() ? QStringLiteral("<未识别>") : QString(pick).toUpper());
+        logLine += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误"));
+        evalLog(logLine);
         qaIndex_++;
         stepsDone++; // count each QA as a progress unit
         // IMPORTANT: if this stage just finished, set elapsed BEFORE triggering next stage
@@ -645,17 +731,26 @@ void Expend::onEvalPushover()
     }
     case 3:
     {
-        // Judge logic MC
-        const QString ansRaw = evalAccum.trimmed();
+        // Judge logic MC, prefer outside-<think> as final output
+        const QString ansVisible = evalAnswer_.trimmed();
+        const QString ansRaw = (ansVisible.isEmpty() ? evalAccum.trimmed() : ansVisible);
         const QChar pick = parseMCAnswer(ansRaw);
         const QString expect = logicPairs_[logicIndex_].second;
         const QString question = logicPairs_[logicIndex_].first;
         const bool ok = (!expect.isEmpty() && !pick.isNull() && QString(pick).toLower() == expect);
         if (ok) logicCorrect_++;
-        evalLog(QStringLiteral("[逻辑推理] 题目(") + QString::number(logicIndex_ + 1) + ")：\n" + question +
-                QStringLiteral("\n标准答案：") + expect.toUpper() +
-                QStringLiteral("\n模型回答：") + (pick.isNull() ? ansRaw : QString(pick).toUpper()) +
-                QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误")));
+        // Log with reasoning and output
+        const QString thinkText = evalReasoning_.trimmed();
+        const QString outText = ansVisible.trimmed();
+        QString logLine;
+        logLine += QStringLiteral("[逻辑推理] 题目(") + QString::number(logicIndex_ + 1) + ")：\n" + question;
+        logLine += QStringLiteral("\n标准答案：") + expect.toUpper();
+        if (!thinkText.isEmpty())
+            logLine += QStringLiteral("\n思考过程：\n") + thinkText;
+        logLine += QStringLiteral("\n输出：") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
+        logLine += QStringLiteral("\n模型选择：") + (pick.isNull() ? QStringLiteral("<未识别>") : QString(pick).toUpper());
+        logLine += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确") : QStringLiteral("错误"));
+        evalLog(logLine);
         logicIndex_++;
         stepsDone++;
         // As with QA, compute elapsed BEFORE runLogicTest() may advance and restart the timer
@@ -677,7 +772,8 @@ void Expend::onEvalPushover()
     case 4:
     {
         // Tools: evaluate current case then proceed to next
-        const QString all = evalAccum;
+        // Prefer outside-<think> text when extracting the tool_call JSON
+        const QString all = (evalAnswer_.trimmed().isEmpty() ? evalAccum : evalAnswer_);
         int s = all.indexOf("<tool_call>");
         int e = all.indexOf("</tool_call>");
         bool ok = false;
@@ -697,9 +793,16 @@ void Expend::onEvalPushover()
             }
         }
         toolCorrect_ += ok ? 1 : 0;
-        evalLog(QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc +
-                QStringLiteral("\n模型输出：\n") + (jsonStr.isEmpty() ? all : jsonStr) +
-                QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确工具") : QStringLiteral("错误或缺失")));
+        // Log with reasoning/output split for debugging
+        QString tlog;
+        tlog += QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + toolCases_[toolIndex_].desc;
+        const QString thinkText = evalReasoning_.trimmed();
+        const QString outText = (evalAnswer_.trimmed().isEmpty() ? all : evalAnswer_.trimmed());
+        if (!thinkText.isEmpty()) tlog += QStringLiteral("\n思考过程：\n") + thinkText;
+        tlog += QStringLiteral("\n输出：\n") + outText;
+        if (!jsonStr.isEmpty()) tlog += QStringLiteral("\n解析到的工具调用JSON：\n") + jsonStr;
+        tlog += QStringLiteral("\n判定：") + (ok ? QStringLiteral("正确工具") : QStringLiteral("错误或缺失"));
+        evalLog(tlog);
         // Update partial tool score to refresh bar chart
         const int total = qMax(1, (int)toolCases_.size());
         m_toolScore = 100.0 * double(toolCorrect_) / double(total);
