@@ -64,6 +64,18 @@ void Expend::init_expend()
     // 文生图（仅保留 Prompt/Result/Log；路径与参数在“高级设置…”中配置）
     ui->sd_result_groupBox->setTitle(jtr("result"));
     ui->sd_log_groupBox->setTitle(jtr("log"));
+    // Replace legacy QTextEdit result with media-capable widget
+    if (!sd_mediaResult) {
+        sd_mediaResult = new MediaResultWidget(this);
+        sd_mediaResult->setObjectName("sd_media_result");
+    }
+    if (ui->sd_result) {
+        ui->sd_result->hide();
+        // Add the new media widget to the same layout
+        if (auto lay = ui->sd_result_groupBox->layout()) {
+            lay->addWidget(sd_mediaResult);
+        }
+    }
     // 旧的修饰词/负面词行内输入移除；请在“高级设置…”中编辑
 
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));

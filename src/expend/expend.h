@@ -57,6 +57,7 @@
 #include "../xconfig.h"
 #include "sd_params_dialog.h"
 #include "./src/utils/toggleswitch.h"
+#include "../utils/mediaresultwidget.h"
 namespace Ui
 {
 class Expend;
@@ -80,6 +81,7 @@ class Expend : public QWidget
     // SD inline path setters removed; configuration handled by advanced dialog
     QJsonObject wordsObj;
     ImageDropWidget* sd_imgDrop = nullptr; // img2img drop area
+    MediaResultWidget* sd_mediaResult = nullptr; // image/video result area
     int language_flag = 0;
     QString jtr(QString customstr); // 根据language.json(wordsObj)和language_flag中找到对应的文字
     bool is_first_show_modelproliferation = true;

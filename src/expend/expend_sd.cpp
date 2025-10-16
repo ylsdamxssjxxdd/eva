@@ -5,6 +5,7 @@
 #include "ui_expend.h"
 #include <src/utils/imagedropwidget.h>
 #include <QDir>
+#include <QFileInfo>
 
 //-------------------------------------------------------------------------
 //----------------------------------文生图相关--------------------------------
@@ -235,7 +236,9 @@ void Expend::on_sd_draw_pushButton_clicked()
 
     QTime currentTime = QTime::currentTime();               // 获取当前时间
     QString timeString = currentTime.toString("-hh-mm-ss"); // 格式化时间为时-分-秒
-    sd_outputpath = applicationDirPath + "/EVA_TEMP/sd_output" + timeString + ".png";
+    // Decide output extension by mode (image/video)
+    const bool genVideo = (sd_run_config_.videoFrames > 0);
+    sd_outputpath = applicationDirPath + "/EVA_TEMP/sd_output" + timeString + (genVideo? ".avi" : ".png");
 
     // 结束sd
     sd_process->kill();
@@ -405,27 +408,46 @@ void Expend::on_sd_draw_pushButton_clicked()
 }
 // 进程开始响应
 void Expend::sd_onProcessStarted() {}
-// 进程结束响应
+    // 进程结束响应
 void Expend::sd_onProcessFinished()
 {
     ui->sd_draw_pushButton->setText(QStringLiteral("生成"));
 
-    // 绘制结果
-    QImage image(sd_outputpath);
-    int originalWidth = image.width() / devicePixelRatioF();
-    int originalHeight = image.height() / devicePixelRatioF();
-    QTextCursor cursor(ui->sd_result->textCursor());
-    cursor.movePosition(QTextCursor::End);
+    // Detect media type by file suffix
+    const QString suffix = QFileInfo(sd_outputpath).suffix().toLower();
+    const bool isVideo = (suffix == "avi" || suffix == "mp4" || suffix == "mov" || suffix == "mkv");
 
-    QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);   // 设置图片的宽度
-    imageFormat.setHeight(originalHeight); // 设置图片的高度
-    imageFormat.setName(sd_outputpath);    // 图片资源路径
-    cursor.insertImage(imageFormat);
-    ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
+    bool ok = false;
+    if (isVideo)
+    {
+        // Some sd backends may ignore -o name and produce sd_output-..avi, try to discover
+        QString path = sd_outputpath;
+        if (!QFileInfo::exists(path))
+        {
+            QDir dir(applicationDirPath + "/EVA_TEMP");
+            const QStringList cands = dir.entryList(QStringList() << "sd_output-*.avi" << "sd_output*.avi", QDir::Files, QDir::Time);
+            if (!cands.isEmpty()) path = dir.absoluteFilePath(cands.first());
+        }
+        if (QFileInfo::exists(path) && sd_mediaResult)
+        {
+            sd_mediaResult->addVideo(path);
+            ok = true;
+            sd_outputpath = path; // normalize for tool signal
+        }
+    }
+    else
+    {
+        QImage image(sd_outputpath);
+        const int originalWidth = image.width() / qMax(1.0, devicePixelRatioF());
+        if (originalWidth > 0 && sd_mediaResult)
+        {
+            sd_mediaResult->addImage(sd_outputpath);
+            ok = true;
+        }
+    }
 
     // 处理工具调用情况
-    if (!is_handle_sd && originalWidth > 0)
+    if (!is_handle_sd && ok)
     {
         is_handle_sd = true;
         emit expend2ui_state("expend:" + jtr("draw over"), USUAL_SIGNAL);
