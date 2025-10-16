@@ -10,13 +10,13 @@ MiniBarChart::MiniBarChart(QWidget *parent)
 {
     // Initialize scores as N/A
     m_scores = QVector<double>(6, -1.0);
-    // Labels: TTFB / Generation / Common QA / Logic / Tools / Overall
-    m_labels << QStringLiteral("首次响应")
-             << QStringLiteral("生成速度")
-             << QStringLiteral("常识问答")
-             << QStringLiteral("逻辑推理")
-             << QStringLiteral("工具调用")
-             << QStringLiteral("同步率");
+    // Default labels; UI may override via setLabels()
+    m_labels << QStringLiteral("TTFB")
+             << QStringLiteral("Gen")
+             << QStringLiteral("QA")
+             << QStringLiteral("Logic")
+             << QStringLiteral("Tools")
+             << QStringLiteral("Sync");
     setMinimumHeight(120);
 }
 
@@ -24,6 +24,14 @@ void MiniBarChart::setScores(double s1, double s2, double s3, double s4, double 
 {
     m_scores = {s1, s2, s3, s4, s5, s6};
     update();
+}
+
+void MiniBarChart::setLabels(const QStringList &labels)
+{
+    if (labels.size() == 6) {
+        m_labels = labels;
+        update();
+    }
 }
 
 void MiniBarChart::paintEvent(QPaintEvent *ev)

@@ -587,7 +587,8 @@ void Expend::embedding_processing()
         const QString chunk = item->text();
         if (seenChunks.contains(chunk)) continue; // 已存在，跳过
         seenChunks.insert(chunk);
-        Embedding_DB.append({++maxIndex, chunk}); // 追加到末尾，index 连续递增
+        // Append placeholder entry; value will be filled after embedding
+        Embedding_DB.append(Embedding_vector{++maxIndex, chunk, {}}); // 追加到末尾，index 连续递增
     }
 
     // 4) 将 Embedding_DB 按 index 升序排序，保证显示与检索一致

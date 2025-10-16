@@ -19,6 +19,7 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));               // 文生图
     ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              // 声转文
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                  // 文转声
+    ui->tabWidget->setTabText(window_map[MODELEVAL_WINDOW], jtr("model evaluate"));         // 模型评估
     // 软件介绍
     showReadme();
     // 模型量化
@@ -128,6 +129,33 @@ void Expend::init_expend()
     ui->mcp_server_config_groupBox->setTitle(jtr("mcp_server_config"));
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
+
+    // 模型评估（双语）
+    if (ui->eval_info_groupBox) ui->eval_info_groupBox->setTitle(jtr("current info"));
+    if (ui->eval_mode_label) ui->eval_mode_label->setText(jtr("mode"));
+    if (ui->eval_endpoint_label) ui->eval_endpoint_label->setText(jtr("endpoint"));
+    if (ui->eval_model_label) ui->eval_model_label->setText(jtr("model"));
+    if (ui->eval_device_label) ui->eval_device_label->setText(jtr("device"));
+    if (ui->eval_nctx_label) ui->eval_nctx_label->setText(jtr("context length"));
+    if (ui->eval_threads_label) ui->eval_threads_label->setText(jtr("threads"));
+    if (ui->eval_start_pushButton) ui->eval_start_pushButton->setText(jtr("evaluate"));
+    if (ui->eval_stop_pushButton) ui->eval_stop_pushButton->setText(jtr("stop evaluate"));
+    if (ui->eval_result_groupBox) ui->eval_result_groupBox->setTitle(jtr("steps and results"));
+    if (ui->eval_log_groupBox) ui->eval_log_groupBox->setTitle(jtr("evaluation log"));
+    if (ui->eval_progressBar) ui->eval_progressBar->setFormat(jtr("progress steps"));
+    if (ui->eval_table) {
+        QStringList headers;
+        headers << jtr("metric/step") << jtr("state") << jtr("elapsed(s)") << jtr("value");
+        ui->eval_table->setHorizontalHeaderLabels(headers);
+    }
+    if (ui->eval_bar_chart) ui->eval_bar_chart->setLabels({
+            jtr("first token"),
+            jtr("gen speed"),
+            jtr("common qa"),
+            jtr("logic"),
+            jtr("tool call"),
+            jtr("sync rate")
+        });
 }
 
 // 用户切换选项卡时响应
@@ -208,6 +236,7 @@ void Expend::recv_language(int language_flag_)
 {
     language_flag = language_flag_;
     init_expend();
+    updateEvalInfoUi();
 }
 
 // 读取配置文件并应用
