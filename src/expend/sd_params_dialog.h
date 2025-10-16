@@ -37,6 +37,9 @@ class SdParamsDialog : public QWidget
     // "custom1", "custom2"
     void applyPreset(const QString &name);
 
+    // Mute autosave emissions during programmatic updates
+    void setAutosaveMuted(bool on) { muteSignals_ = on; if (on) autosaveTimer_.stop(); }
+
   signals:
     // Emitted whenever any field changes (debounced); caller should persist
     // the per-preset configuration immediately.

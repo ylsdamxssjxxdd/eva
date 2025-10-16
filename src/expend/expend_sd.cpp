@@ -323,6 +323,7 @@ void Expend::on_sd_open_params_button_clicked()
     {
         sdParamsDialog_ = new SdParamsDialog(this);
         // Initialize preset matching the current combo box and inject its stored config
+        sdParamsDialog_->setAutosaveMuted(true);
         const QString presetNow = ui->params_template_comboBox->currentText();
         sdParamsDialog_->applyPreset(presetNow);
         // Load stored config for current preset and reflect into dialog
@@ -368,6 +369,8 @@ void Expend::on_sd_open_params_button_clicked()
             if (ui && ui->params_template_comboBox)
                 ui->params_template_comboBox->setCurrentText(p);
         });
+        // Unmute autosave after initial programmatic setup
+        sdParamsDialog_->setAutosaveMuted(false);
     }
     sdParamsDialog_->show();
     sdParamsDialog_->raise();

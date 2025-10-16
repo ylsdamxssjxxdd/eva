@@ -358,6 +358,9 @@ void SdParamsDialog::applyPreset(const QString &name)
 void SdParamsDialog::onPresetChanged(int)
 {
     const QString name = presetBox_->currentText();
+    // Mute autosave while programmatically switching preset UI
+    const bool prevMute = muteSignals_;
+    muteSignals_ = true;
     applyPreset(name);
     // If caller provided per-preset store, reflect it.
     if (modifyEdit_ && negativeEdit_)
@@ -379,6 +382,9 @@ void SdParamsDialog::onPresetChanged(int)
             negativeEdit_->setPlainText(neg);
         }
     }
+    muteSignals_ = prevMute;
+    // Notify owner to load preset-specific stored config
+    emit presetChanged(name);
 }
 
 // Connect all fields to a debounced autosave callback
