@@ -95,6 +95,38 @@ void Expend::init_expend()
     ui->sd_modify_label->setText(jtr("modify"));
     ui->sd_modify_lineEdit->setPlaceholderText(jtr("sd_modify_lineEdit_placeholder"));
 
+    // Persist modify/negative per preset immediately on edit (isolation)
+    if (ui->sd_modify_lineEdit)
+    {
+        connect(ui->sd_modify_lineEdit, &QLineEdit::textChanged, this, [this](const QString &text){
+            const QString preset = ui->params_template_comboBox ? ui->params_template_comboBox->currentText() : QString("sd1.5-anything-3");
+            sd_run_config_.modifyPrompt = text;
+            sd_preset_configs_[preset] = sd_run_config_;
+            sd_preset_modify_[preset] = text;
+            savePresetConfig(preset, sd_run_config_);
+            // Mirror last-used global keys
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            settings.setValue("sd_adv_modify", text);
+            settings.sync();
+        });
+    }
+    if (ui->sd_negative_lineEdit)
+    {
+        connect(ui->sd_negative_lineEdit, &QLineEdit::textChanged, this, [this](const QString &text){
+            const QString preset = ui->params_template_comboBox ? ui->params_template_comboBox->currentText() : QString("sd1.5-anything-3");
+            sd_run_config_.negativePrompt = text;
+            sd_preset_configs_[preset] = sd_run_config_;
+            sd_preset_negative_[preset] = text;
+            savePresetConfig(preset, sd_run_config_);
+            // Mirror last-used global keys
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            settings.setValue("sd_adv_negative", text);
+            settings.sync();
+        });
+    }
+
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
     if (ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[0].toString() || ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[1].toString()) { ui->sd_draw_pushButton->setText(jtr("text to image")); }
     else
@@ -297,31 +329,11 @@ void Expend::readConfig()
     sd_run_config_.loraDirPath = settings.value("sd_adv_lora_dir", "").toString();
     sd_run_config_.taesdPath = settings.value("sd_adv_taesd_path", "").toString();
     sd_run_config_.upscaleModelPath = settings.value("sd_adv_upscale_model", "").toString();
-    sd_run_config_.controlNetPath = settings.value("sd_adv_control_net", "").toString();
-    sd_run_config_.controlImagePath = settings.value("sd_adv_control_img", "").toString();
-    sd_run_config_.width = settings.value("sd_adv_width", 512).toInt();
-    sd_run_config_.height = settings.value("sd_adv_height", 512).toInt();
-    sd_run_config_.sampler = settings.value("sd_adv_sampler", "euler").toString();
-    sd_run_config_.scheduler = settings.value("sd_adv_scheduler", "discrete").toString();
-    sd_run_config_.steps = settings.value("sd_adv_steps", 20).toInt();
-    sd_run_config_.cfgScale = settings.value("sd_adv_cfg", 7.5).toDouble();
-    sd_run_config_.clipSkip = settings.value("sd_adv_clip_skip", -1).toInt();
-    sd_run_config_.batchCount = settings.value("sd_adv_batch", 1).toInt();
-    sd_run_config_.seed = settings.value("sd_adv_seed", -1).toInt();
-    sd_run_config_.strength = settings.value("sd_adv_strength", DEFAULT_SD_NOISE).toDouble();
-    sd_run_config_.guidance = settings.value("sd_adv_guidance", 3.5).toDouble();
-    sd_run_config_.rng = settings.value("sd_adv_rng", "cuda").toString();
-    sd_run_config_.flowShiftEnabled = settings.value("sd_adv_flow_shift_en", false).toBool();
-    sd_run_config_.flowShift = settings.value("sd_adv_flow_shift", 0.0).toDouble();
-    sd_run_config_.offloadToCpu = settings.value("sd_adv_offload_cpu", false).toBool();
-    sd_run_config_.clipOnCpu = settings.value("sd_adv_clip_cpu", false).toBool();
-    sd_run_config_.vaeOnCpu = settings.value("sd_adv_vae_cpu", false).toBool();
-    sd_run_config_.controlNetOnCpu = settings.value("sd_adv_control_cpu", false).toBool();
-    sd_run_config_.diffusionFA = settings.value("sd_adv_diff_fa", false).toBool();
-    sd_run_config_.vaeTiling = settings.value("sd_adv_vae_tiling", false).toBool();
-    sd_run_config_.vaeTileX = settings.value("sd_adv_vae_tile_x", 32).toInt();
-    sd_run_config_.vaeTileY = settings.value("sd_adv_vae_tile_y", 32).toInt();
-    sd_run_config_.vaeTileOverlap = settings.value("sd_adv_vae_tile_overlap", 0.5).toDouble();
+    // Build strict per-preset configuration map and pick the active one
+    const QStringList presetsAll = {"flux1-dev","qwen-image","sd1.5-anything-3","custom1","custom2"};
+    for (const QString &p : presetsAll)
+        sd_preset_configs_[p] = loadPresetConfig(p);
+    // Active preset is read below (sd_params_template); sync current run config after that
 
     QString sd_prompt = settings.value("sd_prompt", "").toString(); // sd提示词
 
@@ -420,11 +432,18 @@ void Expend::readConfig()
     if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"}).contains(sd_params_template))
         sd_params_template = "sd1.5-anything-3";
     ui->params_template_comboBox->setCurrentText(sd_params_template);
-    sd_apply_template(sd_params_templates.value(sd_params_template, sd_anything));
-    // Also pre-configure advanced defaults to selected preset
-    on_params_template_comboBox_currentIndexChanged(-1);
+    // Make current run-config match the stored config for this preset
+    sd_run_config_ = sd_preset_configs_.value(sd_params_template, SDRunConfig{});
+    // sd1.5: provide default prompts if empty
+    if (sd_params_template == "sd1.5-anything-3")
+    {
+        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_anything.modify_prompt;
+        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_anything.negative_prompt;
+    }
+    // Mirror essentials to inline widgets
+    applyPresetToInlineUi(sd_params_template);
     // Load per-preset prompts from config (avoid cross-preset leakage)
-    auto sanitize = [](QString s){ QString t=s; t.replace('.', '_').replace(' ', '_'); return t; };
+    auto sanitize = [this](QString s){ return sanitizePresetKey(s); };
     const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","custom1","custom2"};
     for (const QString &p : presets)
     {
@@ -435,9 +454,14 @@ void Expend::readConfig()
     // Ensure sd1.5 has defaults if empty
     if (sd_preset_modify_["sd1.5-anything-3"].isEmpty()) sd_preset_modify_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].modify_prompt;
     if (sd_preset_negative_["sd1.5-anything-3"].isEmpty()) sd_preset_negative_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].negative_prompt;
-    // Apply current preset prompts from store
-    sd_run_config_.modifyPrompt = sd_preset_modify_.value(sd_params_template);
-    sd_run_config_.negativePrompt = sd_preset_negative_.value(sd_params_template);
+    // Apply current preset prompts from store (kept for compatibility)
+    if (!sd_preset_modify_.value(sd_params_template).isEmpty())
+        sd_run_config_.modifyPrompt = sd_preset_modify_.value(sd_params_template);
+    if (!sd_preset_negative_.value(sd_params_template).isEmpty())
+        sd_run_config_.negativePrompt = sd_preset_negative_.value(sd_params_template);
+    // Mirror last-used global keys for older flows
+    settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
+    settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
     is_readconfig = true;
 
     QFile whisper_load_modelpath_file(whisper_modelpath);

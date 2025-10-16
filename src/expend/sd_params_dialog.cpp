@@ -157,18 +157,10 @@ void SdParamsDialog::buildUi()
     cols->addLayout(rightCol, /*stretch*/1);
     root->addLayout(cols);
 
-    // Actions
-    auto *btnRow = new QWidget; auto *btnLay = new QHBoxLayout(btnRow);
-    btnLay->setContentsMargins(0,0,0,0);
-    auto *applyBtn = new QPushButton("Apply");
-    auto *closeBtn = new QPushButton("Close");
-    btnLay->addStretch(1);
-    btnLay->addWidget(applyBtn);
-    btnLay->addWidget(closeBtn);
-    root->addWidget(btnRow);
+    // No Apply/Cancel/Close buttons: changes are autosaved immediately.
+    // The window close button remains available from the title bar.
 
-    connect(applyBtn, &QPushButton::clicked, this, &SdParamsDialog::onApplyClicked);
-    connect(closeBtn, &QPushButton::clicked, this, &QWidget::close);
+    hookAutosave();
 }
 
 QLineEdit *SdParamsDialog::addPathRow(QFormLayout *form, const QString &label, const QString &filter, bool directory)
@@ -200,6 +192,8 @@ void SdParamsDialog::onBrowseDir(QLineEdit *le)
 
 void SdParamsDialog::setConfig(const SDRunConfig &c)
 {
+    // Avoid triggering autosave while populating fields
+    muteSignals_ = true;
     // Preset stays unchanged here; caller controls presetBox_ if needed
     modelArgBox_->setCurrentIndex(static_cast<int>(c.modelArg));
     modelPathLe_->setText(c.modelPath);
@@ -245,6 +239,7 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     // Prompts
     if (modifyEdit_) modifyEdit_->setText(c.modifyPrompt);
     if (negativeEdit_) negativeEdit_->setPlainText(c.negativePrompt);
+    muteSignals_ = false;
 }
 
 SDRunConfig SdParamsDialog::config() const
@@ -356,11 +351,8 @@ void SdParamsDialog::applyPreset(const QString &name)
         // Keep user's saved config; do not override fields here.
         // Selection is already applied to presetBox_.
     }
-}
-
-void SdParamsDialog::onApplyClicked()
-{
-    emit accepted(config(), presetBox_->currentText());
+    // Notify owner to load preset-specific stored config
+    emit presetChanged(name);
 }
 
 void SdParamsDialog::onPresetChanged(int)
@@ -387,4 +379,40 @@ void SdParamsDialog::onPresetChanged(int)
             negativeEdit_->setPlainText(neg);
         }
     }
+}
+
+// Connect all fields to a debounced autosave callback
+void SdParamsDialog::hookAutosave()
+{
+    autosaveTimer_.setSingleShot(true);
+    autosaveTimer_.setInterval(250); // debounce interval
+    connect(&autosaveTimer_, &QTimer::timeout, this, [this]{
+        if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString());
+    });
+
+    auto arm = [this]{ if (!muteSignals_) { autosaveTimer_.start(); } };
+
+    // Combo boxes
+    connect(modelArgBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
+    connect(samplerBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
+    connect(schedulerBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
+    connect(rngBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
+    // Line edits
+    for (QLineEdit *le : {modelPathLe_, vaeLe_, clipLLe_, clipGLe_, clipVisionLe_, t5Le_, qwen2vlLe_, loraDirLe_, taesdLe_, upscaleLe_, controlNetLe_, controlImgLe_, modifyEdit_})
+        if (le) connect(le, &QLineEdit::textChanged, this, arm);
+    // Text edits
+    if (negativeEdit_) connect(negativeEdit_, &QPlainTextEdit::textChanged, this, arm);
+    // Spin boxes
+    for (QSpinBox *sb : {wSpin_, hSpin_, stepsSpin_, clipSkipSpin_, batchSpin_, seedSpin_, vaeTileX_, vaeTileY_})
+        if (sb) connect(sb, QOverload<int>::of(&QSpinBox::valueChanged), this, arm);
+    for (QDoubleSpinBox *ds : {cfgSpin_, strengthSpin_, guidanceSpin_, vaeTileOverlap_})
+        if (ds) connect(ds, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, arm);
+    // Checkboxes
+    for (QCheckBox *cb : {flowShiftEnable_, offloadCpuCb_, clipCpuCb_, vaeCpuCb_, controlCpuCb_, diffFaCb_, vaeTilingCb_})
+        if (cb) connect(cb, &QCheckBox::toggled, this, arm);
+}
+
+void SdParamsDialog::onAnyChanged()
+{
+    if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString());
 }

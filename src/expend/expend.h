@@ -313,6 +313,17 @@ class Expend : public QWidget
     void on_speech_wavtokenizer_modelpath_pushButton_clicked();
     void on_speech_manual_pushButton_clicked();
 
+  private:
+    // Strict per-preset isolation for SD advanced configuration
+    QMap<QString, SDRunConfig> sd_preset_configs_; // key: preset name -> config
+    QString sanitizePresetKey(const QString &preset) const
+    {
+        QString t = preset; return t.replace('.', '_').replace(' ', '_').replace('-', '_');
+    }
+    SDRunConfig loadPresetConfig(const QString &preset) const;  // read from QSettings
+    void savePresetConfig(const QString &preset, const SDRunConfig &cfg) const; // write to QSettings
+    void applyPresetToInlineUi(const QString &preset); // mirror essentials to inline fields
+
     //-------------------------------------------------------------------------
     //----------------------------------模型信息相关--------------------------------
     //-------------------------------------------------------------------------

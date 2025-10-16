@@ -9,6 +9,135 @@
 //----------------------------------文生图相关--------------------------------
 //-------------------------------------------------------------------------
 
+// Compute per-preset config keys and read the stored config
+SDRunConfig Expend::loadPresetConfig(const QString &preset) const
+{
+    const QString key = sanitizePresetKey(preset);
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    const auto get = [&settings](const QString &k, const QVariant &def){ return settings.value(k, def); };
+    SDRunConfig c;
+    // Recommended family defaults
+    int defW = 512, defH = 512, defSteps = 20, defClipSkip = -1, defBatch = 1, defSeed = -1; double defCfg = 7.5; QString defSampler = "euler"; bool defFlowEn=false; double defFlow=0.0; bool defOffload=false, defFA=false; QString defRng="cuda";
+    if (preset == "flux1-dev") { defW=768; defH=768; defSteps=30; defCfg=1.0; defSampler="euler"; defClipSkip=-1; defOffload=false; defFA=false; defFlowEn=false; }
+    else if (preset == "qwen-image") { defW=1024; defH=1024; defSteps=30; defCfg=2.5; defSampler="euler"; defClipSkip=-1; defOffload=true; defFA=true; defFlowEn=true; defFlow=3.0; }
+    else if (preset == "sd1.5-anything-3") { defW=512; defH=512; defSteps=20; defCfg=7.5; defSampler="euler_a"; defClipSkip=1; }
+
+    c.modelArg = static_cast<SDModelArgKind>(get("sd_preset_"+key+"_model_arg", static_cast<int>(SDModelArgKind::Auto)).toInt());
+    c.modelPath = get("sd_preset_"+key+"_model_path", "").toString();
+    c.vaePath = get("sd_preset_"+key+"_vae_path", "").toString();
+    c.clipLPath = get("sd_preset_"+key+"_clip_l_path", "").toString();
+    c.clipGPath = get("sd_preset_"+key+"_clip_g_path", "").toString();
+    c.clipVisionPath = get("sd_preset_"+key+"_clip_vision_path", "").toString();
+    c.t5xxlPath = get("sd_preset_"+key+"_t5xxl_path", "").toString();
+    c.qwen2vlPath = get("sd_preset_"+key+"_qwen2vl_path", "").toString();
+    c.loraDirPath = get("sd_preset_"+key+"_lora_dir", "").toString();
+    c.taesdPath = get("sd_preset_"+key+"_taesd_path", "").toString();
+    c.upscaleModelPath = get("sd_preset_"+key+"_upscale_model", "").toString();
+    c.controlNetPath = get("sd_preset_"+key+"_control_net", "").toString();
+    c.controlImagePath = get("sd_preset_"+key+"_control_img", "").toString();
+
+    c.width = get("sd_preset_"+key+"_width", defW).toInt();
+    c.height = get("sd_preset_"+key+"_height", defH).toInt();
+    c.sampler = get("sd_preset_"+key+"_sampler", defSampler).toString();
+    c.scheduler = get("sd_preset_"+key+"_scheduler", "discrete").toString();
+    c.steps = get("sd_preset_"+key+"_steps", defSteps).toInt();
+    c.cfgScale = get("sd_preset_"+key+"_cfg", defCfg).toDouble();
+    c.clipSkip = get("sd_preset_"+key+"_clip_skip", defClipSkip).toInt();
+    c.batchCount = get("sd_preset_"+key+"_batch", defBatch).toInt();
+    c.seed = get("sd_preset_"+key+"_seed", defSeed).toInt();
+    c.strength = get("sd_preset_"+key+"_strength", 0.75).toDouble();
+    c.guidance = get("sd_preset_"+key+"_guidance", 3.5).toDouble();
+    c.rng = get("sd_preset_"+key+"_rng", defRng).toString();
+
+    c.flowShiftEnabled = get("sd_preset_"+key+"_flow_shift_en", defFlowEn).toBool();
+    c.flowShift = get("sd_preset_"+key+"_flow_shift", defFlow).toDouble();
+
+    c.offloadToCpu = get("sd_preset_"+key+"_offload_cpu", defOffload).toBool();
+    c.clipOnCpu = get("sd_preset_"+key+"_clip_cpu", false).toBool();
+    c.vaeOnCpu = get("sd_preset_"+key+"_vae_cpu", false).toBool();
+    c.controlNetOnCpu = get("sd_preset_"+key+"_control_cpu", false).toBool();
+    c.diffusionFA = get("sd_preset_"+key+"_diff_fa", defFA).toBool();
+
+    c.vaeTiling = get("sd_preset_"+key+"_vae_tiling", false).toBool();
+    c.vaeTileX = get("sd_preset_"+key+"_vae_tile_x", 32).toInt();
+    c.vaeTileY = get("sd_preset_"+key+"_vae_tile_y", 32).toInt();
+    c.vaeTileOverlap = get("sd_preset_"+key+"_vae_tile_overlap", 0.5).toDouble();
+
+    c.modifyPrompt = get("sd_preset_"+key+"_modify", "").toString();
+    c.negativePrompt = get("sd_preset_"+key+"_negative", "").toString();
+    return c;
+}
+
+void Expend::savePresetConfig(const QString &preset, const SDRunConfig &cfg) const
+{
+    const QString key = sanitizePresetKey(preset);
+    // Ensure directory exists and persist both per-preset and last-used (sd_adv_*) for compatibility
+    QDir().mkpath(applicationDirPath + "/EVA_TEMP");
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+
+    settings.setValue("sd_preset_"+key+"_model_arg", static_cast<int>(cfg.modelArg));
+    settings.setValue("sd_preset_"+key+"_model_path", cfg.modelPath);
+    settings.setValue("sd_preset_"+key+"_vae_path", cfg.vaePath);
+    settings.setValue("sd_preset_"+key+"_clip_l_path", cfg.clipLPath);
+    settings.setValue("sd_preset_"+key+"_clip_g_path", cfg.clipGPath);
+    settings.setValue("sd_preset_"+key+"_clip_vision_path", cfg.clipVisionPath);
+    settings.setValue("sd_preset_"+key+"_t5xxl_path", cfg.t5xxlPath);
+    settings.setValue("sd_preset_"+key+"_qwen2vl_path", cfg.qwen2vlPath);
+    settings.setValue("sd_preset_"+key+"_lora_dir", cfg.loraDirPath);
+    settings.setValue("sd_preset_"+key+"_taesd_path", cfg.taesdPath);
+    settings.setValue("sd_preset_"+key+"_upscale_model", cfg.upscaleModelPath);
+    settings.setValue("sd_preset_"+key+"_control_net", cfg.controlNetPath);
+    settings.setValue("sd_preset_"+key+"_control_img", cfg.controlImagePath);
+
+    settings.setValue("sd_preset_"+key+"_width", cfg.width);
+    settings.setValue("sd_preset_"+key+"_height", cfg.height);
+    settings.setValue("sd_preset_"+key+"_sampler", cfg.sampler);
+    settings.setValue("sd_preset_"+key+"_scheduler", cfg.scheduler);
+    settings.setValue("sd_preset_"+key+"_steps", cfg.steps);
+    settings.setValue("sd_preset_"+key+"_cfg", cfg.cfgScale);
+    settings.setValue("sd_preset_"+key+"_clip_skip", cfg.clipSkip);
+    settings.setValue("sd_preset_"+key+"_batch", cfg.batchCount);
+    settings.setValue("sd_preset_"+key+"_seed", cfg.seed);
+    settings.setValue("sd_preset_"+key+"_strength", cfg.strength);
+    settings.setValue("sd_preset_"+key+"_guidance", cfg.guidance);
+    settings.setValue("sd_preset_"+key+"_rng", cfg.rng);
+
+    settings.setValue("sd_preset_"+key+"_flow_shift_en", cfg.flowShiftEnabled);
+    settings.setValue("sd_preset_"+key+"_flow_shift", cfg.flowShift);
+    settings.setValue("sd_preset_"+key+"_offload_cpu", cfg.offloadToCpu);
+    settings.setValue("sd_preset_"+key+"_clip_cpu", cfg.clipOnCpu);
+    settings.setValue("sd_preset_"+key+"_vae_cpu", cfg.vaeOnCpu);
+    settings.setValue("sd_preset_"+key+"_control_cpu", cfg.controlNetOnCpu);
+    settings.setValue("sd_preset_"+key+"_diff_fa", cfg.diffusionFA);
+
+    settings.setValue("sd_preset_"+key+"_vae_tiling", cfg.vaeTiling);
+    settings.setValue("sd_preset_"+key+"_vae_tile_x", cfg.vaeTileX);
+    settings.setValue("sd_preset_"+key+"_vae_tile_y", cfg.vaeTileY);
+    settings.setValue("sd_preset_"+key+"_vae_tile_overlap", cfg.vaeTileOverlap);
+
+    settings.setValue("sd_preset_"+key+"_modify", cfg.modifyPrompt);
+    settings.setValue("sd_preset_"+key+"_negative", cfg.negativePrompt);
+    // Also mirror modify/negative to legacy last-used global keys for older flows
+    settings.setValue("sd_adv_modify", cfg.modifyPrompt);
+    settings.setValue("sd_adv_negative", cfg.negativePrompt);
+    settings.sync();
+}
+
+void Expend::applyPresetToInlineUi(const QString &preset)
+{
+    // Mirror essential fields to visible inline widgets for user awareness.
+    const SDRunConfig &c = sd_preset_configs_.value(preset, sd_run_config_);
+    if (ui->sd_modelpath_lineEdit) ui->sd_modelpath_lineEdit->setText(c.modelPath);
+    if (ui->sd_vaepath_lineEdit) ui->sd_vaepath_lineEdit->setText(c.vaePath);
+    if (ui->sd_clip_l_path_lineEdit) ui->sd_clip_l_path_lineEdit->setText(c.clipLPath);
+    if (ui->sd_clip_g_path_lineEdit) ui->sd_clip_g_path_lineEdit->setText(c.clipGPath);
+    if (ui->sd_t5path_lineEdit) ui->sd_t5path_lineEdit->setText(c.t5xxlPath);
+    if (ui->sd_lorapath_lineEdit) ui->sd_lorapath_lineEdit->setText(c.loraDirPath);
+    if (ui->sd_modify_lineEdit) ui->sd_modify_lineEdit->setText(c.modifyPrompt);
+    if (ui->sd_negative_lineEdit) ui->sd_negative_lineEdit->setText(c.negativePrompt);
+}
+
 // 用于设置sd模型路径
 void Expend::setSdModelpath(QString modelpath)
 {
@@ -110,6 +239,10 @@ void Expend::on_sd_modelpath_pushButton_clicked()
     {
         ui->params_template_comboBox->setCurrentText("flux1-dev");
     }
+    // Persist per-preset config immediately (isolation)
+    const QString preset = ui->params_template_comboBox->currentText();
+    sd_preset_configs_[preset] = sd_run_config_;
+    savePresetConfig(preset, sd_run_config_);
 }
 
 // 用户点击选择vae模型路径时响应
@@ -119,6 +252,10 @@ void Expend::on_sd_vaepath_pushButton_clicked()
     if (currentpath != "")
     {
         ui->sd_vaepath_lineEdit->setText(currentpath);
+        sd_run_config_.vaePath = currentpath;
+        const QString preset = ui->params_template_comboBox->currentText();
+        sd_preset_configs_[preset] = sd_run_config_;
+        savePresetConfig(preset, sd_run_config_);
     }
 }
 
@@ -129,6 +266,10 @@ void Expend::on_sd_clip_l_path_pushButton_clicked()
     if (currentpath != "")
     {
         ui->sd_clip_l_path_lineEdit->setText(currentpath);
+        sd_run_config_.clipLPath = currentpath;
+        const QString preset = ui->params_template_comboBox->currentText();
+        sd_preset_configs_[preset] = sd_run_config_;
+        savePresetConfig(preset, sd_run_config_);
     }
 }
 
@@ -139,6 +280,10 @@ void Expend::on_sd_clip_g_path_pushButton_clicked()
     if (currentpath != "")
     {
         ui->sd_clip_g_path_lineEdit->setText(currentpath);
+        sd_run_config_.clipGPath = currentpath;
+        const QString preset = ui->params_template_comboBox->currentText();
+        sd_preset_configs_[preset] = sd_run_config_;
+        savePresetConfig(preset, sd_run_config_);
     }
 }
 
@@ -149,6 +294,10 @@ void Expend::on_sd_t5path_pushButton_clicked()
     if (currentpath != "")
     {
         ui->sd_t5path_lineEdit->setText(currentpath);
+        sd_run_config_.t5xxlPath = currentpath;
+        const QString preset = ui->params_template_comboBox->currentText();
+        sd_preset_configs_[preset] = sd_run_config_;
+        savePresetConfig(preset, sd_run_config_);
     }
 }
 
@@ -159,6 +308,11 @@ void Expend::on_sd_lorapath_pushButton_clicked()
     if (currentpath != "")
     {
         ui->sd_lorapath_lineEdit->setText(currentpath);
+        QFileInfo fi(currentpath);
+        sd_run_config_.loraDirPath = fi.isDir()? currentpath : fi.absolutePath();
+        const QString preset = ui->params_template_comboBox->currentText();
+        sd_preset_configs_[preset] = sd_run_config_;
+        savePresetConfig(preset, sd_run_config_);
     }
 }
 
@@ -168,83 +322,51 @@ void Expend::on_sd_open_params_button_clicked()
     if (!sdParamsDialog_)
     {
         sdParamsDialog_ = new SdParamsDialog(this);
-        // Initialize preset matching the current combo box
+        // Initialize preset matching the current combo box and inject its stored config
         const QString presetNow = ui->params_template_comboBox->currentText();
         sdParamsDialog_->applyPreset(presetNow);
-        // Load prompts from per-preset store
-        sd_run_config_.modifyPrompt = sd_preset_modify_.value(presetNow);
-        sd_run_config_.negativePrompt = sd_preset_negative_.value(presetNow);
-        // Ensure sd1.5 shows defaults if still empty
+        // Load stored config for current preset and reflect into dialog
+        if (!sd_preset_configs_.contains(presetNow))
+            sd_preset_configs_[presetNow] = loadPresetConfig(presetNow);
+        SDRunConfig cfgNow = sd_preset_configs_.value(presetNow, SDRunConfig{});
+        // Default sd1.5 prompts if empty
         if (presetNow == "sd1.5-anything-3")
         {
-            if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[presetNow].modify_prompt;
-            if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[presetNow].negative_prompt;
+            if (cfgNow.modifyPrompt.isEmpty()) cfgNow.modifyPrompt = sd_params_templates[presetNow].modify_prompt;
+            if (cfgNow.negativePrompt.isEmpty()) cfgNow.negativePrompt = sd_params_templates[presetNow].negative_prompt;
         }
-        sdParamsDialog_->setConfig(sd_run_config_);
+        sdParamsDialog_->setConfig(cfgNow);
+        // Keep legacy per-preset prompt store in sync for compatibility
         sdParamsDialog_->setPresetPromptStore(sd_preset_modify_, sd_preset_negative_);
+        // Autosave handler: persist strictly per preset
         connect(sdParamsDialog_, &SdParamsDialog::accepted, this, [this](const SDRunConfig &cfg, const QString &preset) {
-            // Persist to memory and mirror essential fields to inline UI for visibility
-            sd_run_config_ = cfg;
-            if (!cfg.modelPath.isEmpty()) ui->sd_modelpath_lineEdit->setText(cfg.modelPath);
-            if (!cfg.vaePath.isEmpty()) ui->sd_vaepath_lineEdit->setText(cfg.vaePath);
-            if (!cfg.clipLPath.isEmpty()) ui->sd_clip_l_path_lineEdit->setText(cfg.clipLPath);
-            if (!cfg.clipGPath.isEmpty()) ui->sd_clip_g_path_lineEdit->setText(cfg.clipGPath);
-            if (!cfg.t5xxlPath.isEmpty()) ui->sd_t5path_lineEdit->setText(cfg.t5xxlPath);
-            // Sync prompts back to visible prompt area
-            if (!cfg.modifyPrompt.isEmpty()) ui->sd_modify_lineEdit->setText(cfg.modifyPrompt);
-            if (!cfg.negativePrompt.isEmpty()) ui->sd_negative_lineEdit->setText(cfg.negativePrompt);
-            if (!preset.isEmpty()) ui->params_template_comboBox->setCurrentText(preset);
-            // Update per-preset prompt store and persist
-            auto sanitize = [](QString s){ QString t=s; t.replace('.', '_').replace(' ', '_'); return t; };
-            sd_preset_modify_[preset] = cfg.modifyPrompt;
-            sd_preset_negative_[preset] = cfg.negativePrompt;
-            // Save advanced config immediately
+            const QString p = preset.isEmpty()? ui->params_template_comboBox->currentText() : preset;
+            sd_preset_configs_[p] = cfg;
+            sd_run_config_ = cfg; // make it current
+            // Mirror essentials to inline fields
+            applyPresetToInlineUi(p);
+            // Keep compatibility maps for prompts
+            sd_preset_modify_[p] = cfg.modifyPrompt;
+            sd_preset_negative_[p] = cfg.negativePrompt;
+            // Persist to QSettings by preset
             createTempDirectory(applicationDirPath + "/EVA_TEMP");
+            savePresetConfig(p, cfg);
+            // Also persist current positive prompt for convenience (global)
             QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
             settings.setIniCodec("utf-8");
-            settings.setValue("sd_adv_model_path", sd_run_config_.modelPath);
-            settings.setValue("sd_adv_vae_path", sd_run_config_.vaePath);
-            settings.setValue("sd_adv_clip_l_path", sd_run_config_.clipLPath);
-            settings.setValue("sd_adv_clip_g_path", sd_run_config_.clipGPath);
-            settings.setValue("sd_adv_clip_vision_path", sd_run_config_.clipVisionPath);
-            settings.setValue("sd_adv_t5xxl_path", sd_run_config_.t5xxlPath);
-            settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
-            settings.setValue("sd_adv_lora_dir", sd_run_config_.loraDirPath);
-            settings.setValue("sd_adv_taesd_path", sd_run_config_.taesdPath);
-            settings.setValue("sd_adv_upscale_model", sd_run_config_.upscaleModelPath);
-            settings.setValue("sd_adv_control_net", sd_run_config_.controlNetPath);
-            settings.setValue("sd_adv_control_img", sd_run_config_.controlImagePath);
-            settings.setValue("sd_adv_width", sd_run_config_.width);
-            settings.setValue("sd_adv_height", sd_run_config_.height);
-            settings.setValue("sd_adv_sampler", sd_run_config_.sampler);
-            settings.setValue("sd_adv_scheduler", sd_run_config_.scheduler);
-            settings.setValue("sd_adv_steps", sd_run_config_.steps);
-            settings.setValue("sd_adv_cfg", sd_run_config_.cfgScale);
-            settings.setValue("sd_adv_clip_skip", sd_run_config_.clipSkip);
-            settings.setValue("sd_adv_batch", sd_run_config_.batchCount);
-            settings.setValue("sd_adv_seed", sd_run_config_.seed);
-            settings.setValue("sd_adv_strength", sd_run_config_.strength);
-            settings.setValue("sd_adv_guidance", sd_run_config_.guidance);
-            settings.setValue("sd_adv_rng", sd_run_config_.rng);
-            settings.setValue("sd_adv_flow_shift_en", sd_run_config_.flowShiftEnabled);
-            settings.setValue("sd_adv_flow_shift", sd_run_config_.flowShift);
-            settings.setValue("sd_adv_offload_cpu", sd_run_config_.offloadToCpu);
-            settings.setValue("sd_adv_clip_cpu", sd_run_config_.clipOnCpu);
-            settings.setValue("sd_adv_vae_cpu", sd_run_config_.vaeOnCpu);
-            settings.setValue("sd_adv_control_cpu", sd_run_config_.controlNetOnCpu);
-            settings.setValue("sd_adv_diff_fa", sd_run_config_.diffusionFA);
-            settings.setValue("sd_adv_vae_tiling", sd_run_config_.vaeTiling);
-            settings.setValue("sd_adv_vae_tile_x", sd_run_config_.vaeTileX);
-            settings.setValue("sd_adv_vae_tile_y", sd_run_config_.vaeTileY);
-            settings.setValue("sd_adv_vae_tile_overlap", sd_run_config_.vaeTileOverlap);
-            settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
-            settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
-            const QString key = sanitize(preset);
-            settings.setValue("sd_preset_"+key+"_modify", sd_preset_modify_.value(preset));
-            settings.setValue("sd_preset_"+key+"_negative", sd_preset_negative_.value(preset));
-            // Also persist current prompts for convenience
             settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
+            // Keep last-used global keys aligned
+            settings.setValue("sd_adv_modify", cfg.modifyPrompt);
+            settings.setValue("sd_adv_negative", cfg.negativePrompt);
             settings.sync();
+        });
+        // When user switches preset inside dialog, inject stored config so fields do not leak
+        connect(sdParamsDialog_, &SdParamsDialog::presetChanged, this, [this](const QString &p){
+            if (!sd_preset_configs_.contains(p)) sd_preset_configs_[p] = loadPresetConfig(p);
+            sdParamsDialog_->setConfig(sd_preset_configs_.value(p));
+            // Switch inline preset selector as well
+            if (ui && ui->params_template_comboBox)
+                ui->params_template_comboBox->setCurrentText(p);
         });
     }
     sdParamsDialog_->show();
@@ -547,69 +669,31 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
             is_sd_custom2 = false;
         }
     }
-    // Apply prompt/size knobs
-    sd_apply_template(sd_params_templates[ui->params_template_comboBox->currentText()]);
-    // Also pre-configure advanced run config according to selected preset
     const QString preset = ui->params_template_comboBox->currentText();
-    if (preset == "flux1-dev")
+    // Persist the selected preset immediately
     {
-        sd_run_config_.modelArg = SDModelArgKind::Diffusion;
-        sd_run_config_.width = sd_params_templates[preset].width;
-        sd_run_config_.height = sd_params_templates[preset].height;
-        sd_run_config_.sampler = "euler";
-        sd_run_config_.steps = 30;
-        sd_run_config_.cfgScale = 1.0;
-        sd_run_config_.clipSkip = -1;
-        sd_run_config_.offloadToCpu = false;
-        sd_run_config_.diffusionFA = false;
-        sd_run_config_.flowShiftEnabled = false;
-        // Keep user's saved modify/negative for flux (do not override)
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
+        settings.setValue("sd_params_template", preset);
+        // Keep last-used global keys aligned for modify/negative
+        settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
+        settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
+        settings.sync();
     }
-    else if (preset == "qwen-image")
+    // Load per-preset config (isolated)
+    if (!sd_preset_configs_.contains(preset))
+        sd_preset_configs_[preset] = loadPresetConfig(preset);
+    sd_run_config_ = sd_preset_configs_.value(preset);
+    // sd1.5: ensure defaults for empty prompts
+    if (preset == "sd1.5-anything-3")
     {
-        sd_run_config_.modelArg = SDModelArgKind::Diffusion;
-        sd_run_config_.width = sd_params_templates[preset].width;
-        sd_run_config_.height = sd_params_templates[preset].height;
-        sd_run_config_.sampler = "euler";
-        sd_run_config_.steps = 30;
-        sd_run_config_.cfgScale = 2.5;
-        sd_run_config_.clipSkip = -1;
-        sd_run_config_.offloadToCpu = true;
-        sd_run_config_.diffusionFA = true;
-        sd_run_config_.flowShiftEnabled = true; sd_run_config_.flowShift = 3.0;
-        // Keep user's saved modify/negative for qwen-image (do not override)
+        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[preset].modify_prompt;
+        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[preset].negative_prompt;
     }
-    else if (preset == "sd1.5-anything-3")
-    {
-        sd_run_config_.modelArg = SDModelArgKind::LegacyM;
-        sd_run_config_.width = sd_params_templates[preset].width;
-        sd_run_config_.height = sd_params_templates[preset].height;
-        sd_run_config_.sampler = "euler_a";
-        sd_run_config_.steps = 20;
-        sd_run_config_.cfgScale = 7.5;
-        sd_run_config_.clipSkip = 1;
-        sd_run_config_.offloadToCpu = false;
-        sd_run_config_.diffusionFA = false;
-        sd_run_config_.flowShiftEnabled = false;
-        // Load from per-preset store; if empty, fallback to template defaults
-        QString mod = sd_preset_modify_.value(preset);
-        QString neg = sd_preset_negative_.value(preset);
-        if (mod.isEmpty()) mod = sd_params_templates[preset].modify_prompt;
-        if (neg.isEmpty()) neg = sd_params_templates[preset].negative_prompt;
-        sd_run_config_.modifyPrompt = mod;
-        sd_run_config_.negativePrompt = neg;
-    }
-    else
-    {
-        // Non-sd1.5 presets: load from their own store (may be empty by design)
-        sd_run_config_.modifyPrompt = sd_preset_modify_.value(preset);
-        sd_run_config_.negativePrompt = sd_preset_negative_.value(preset);
-    }
-    // Reflect per-preset prompts to (hidden) UI fields to avoid cross-preset residue
-    if (ui->sd_modify_lineEdit)
-        ui->sd_modify_lineEdit->setText(sd_run_config_.modifyPrompt);
-    if (ui->sd_negative_lineEdit)
-        ui->sd_negative_lineEdit->setText(sd_run_config_.negativePrompt);
+    // Mirror essentials to inline widgets
+    applyPresetToInlineUi(preset);
+    // If advanced dialog is open, refresh it to show this preset values only
+    if (sdParamsDialog_) sdParamsDialog_->setConfig(sd_run_config_);
 }
 
 // 保存参数到自定义模板

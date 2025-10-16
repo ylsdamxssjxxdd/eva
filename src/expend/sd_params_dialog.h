@@ -20,6 +20,7 @@
 #include <QPlainTextEdit>
 #include <QLabel>
 #include <QFileDialog>
+#include <QTimer>
 
 #include "../xconfig.h"
 
@@ -37,13 +38,18 @@ class SdParamsDialog : public QWidget
     void applyPreset(const QString &name);
 
   signals:
+    // Emitted whenever any field changes (debounced); caller should persist
+    // the per-preset configuration immediately.
     void accepted(const SDRunConfig &cfg, const QString &presetName);
+    // Emitted when preset selector changes so the owner can inject the
+    // stored config for this preset via setConfig().
+    void presetChanged(const QString &presetName);
 
   private slots:
     void onBrowse(QLineEdit *le, const QString &filter = QString());
     void onBrowseDir(QLineEdit *le);
-    void onApplyClicked();
     void onPresetChanged(int idx);
+    void onAnyChanged();
 
   private:
     // Optional per-preset prompt store injected by caller (Expend)
@@ -60,6 +66,7 @@ class SdParamsDialog : public QWidget
     // UI helpers
     QLineEdit *addPathRow(QFormLayout *form, const QString &label, const QString &filter = QString(), bool directory = false);
     void buildUi();
+    void hookAutosave();
 
     // Widgets
     QComboBox *presetBox_ = nullptr;
@@ -112,4 +119,8 @@ class SdParamsDialog : public QWidget
     QSpinBox *vaeTileX_ = nullptr;
     QSpinBox *vaeTileY_ = nullptr;
     QDoubleSpinBox *vaeTileOverlap_ = nullptr;
+
+    // Debounce for autosave to avoid excessive writes
+    QTimer autosaveTimer_;
+    bool muteSignals_ = false; // block autosave during programmatic setConfig
 };
