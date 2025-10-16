@@ -180,8 +180,8 @@ void Expend::on_sd_open_params_button_clicked()
             if (!cfg.clipGPath.isEmpty()) ui->sd_clip_g_path_lineEdit->setText(cfg.clipGPath);
             if (!cfg.t5xxlPath.isEmpty()) ui->sd_t5path_lineEdit->setText(cfg.t5xxlPath);
             // Sync prompts back to visible prompt area
+            if (!cfg.modifyPrompt.isEmpty()) ui->sd_modify_lineEdit->setText(cfg.modifyPrompt);
             if (!cfg.negativePrompt.isEmpty()) ui->sd_negative_lineEdit->setText(cfg.negativePrompt);
-            if (!cfg.positivePrompt.isEmpty()) ui->sd_prompt_textEdit->setText(cfg.positivePrompt);
             if (!preset.isEmpty()) ui->params_template_comboBox->setCurrentText(preset);
             // Save advanced config immediately
             createTempDirectory(applicationDirPath + "/EVA_TEMP");
@@ -222,6 +222,8 @@ void Expend::on_sd_open_params_button_clicked()
             settings.setValue("sd_adv_vae_tile_x", sd_run_config_.vaeTileX);
             settings.setValue("sd_adv_vae_tile_y", sd_run_config_.vaeTileY);
             settings.setValue("sd_adv_vae_tile_overlap", sd_run_config_.vaeTileOverlap);
+            settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
+            settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
             // Also persist current prompts for convenience
             settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
             settings.sync();
@@ -356,12 +358,12 @@ void Expend::on_sd_draw_pushButton_clicked()
     if (sd_run_config_.guidance > 0.0) arguments << "--guidance" << QString::number(sd_run_config_.guidance);
     arguments << "--rng" << sd_run_config_.rng;
 
-    // negative prompt and prompt assembly (no separate Modify prefix)
+    // negative prompt and prompt assembly
     const QString neg = !sd_run_config_.negativePrompt.trimmed().isEmpty() ? sd_run_config_.negativePrompt : ui->sd_negative_lineEdit->text();
     arguments << "-n" << neg;
-    const QString pos = !sd_run_config_.positivePrompt.trimmed().isEmpty() ? sd_run_config_.positivePrompt : ui->sd_prompt_textEdit->toPlainText();
-    const QString modUi = ui->sd_modify_lineEdit->text();
-    const QString promptCore = (modUi.isEmpty() ? pos : (modUi + ", " + pos));
+    const QString pos = ui->sd_prompt_textEdit->toPlainText(); // main UI prompt
+    const QString mod = !sd_run_config_.modifyPrompt.trimmed().isEmpty() ? sd_run_config_.modifyPrompt : ui->sd_modify_lineEdit->text();
+    const QString promptCore = (mod.isEmpty() ? pos : (mod + ", " + pos));
     if (!lora_prompt.isEmpty())
         arguments << "-p" << (promptCore + lora_prompt);
     else
@@ -542,6 +544,9 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = false;
         sd_run_config_.diffusionFA = false;
         sd_run_config_.flowShiftEnabled = false;
+        // No preset modify/negative for flux
+        sd_run_config_.modifyPrompt.clear();
+        sd_run_config_.negativePrompt.clear();
     }
     else if (preset == "qwen-image")
     {
@@ -555,6 +560,9 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = true;
         sd_run_config_.diffusionFA = true;
         sd_run_config_.flowShiftEnabled = true; sd_run_config_.flowShift = 3.0;
+        // No preset modify/negative for qwen-image
+        sd_run_config_.modifyPrompt.clear();
+        sd_run_config_.negativePrompt.clear();
     }
     else if (preset == "sd1.5-anything-3")
     {
@@ -568,6 +576,9 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = false;
         sd_run_config_.diffusionFA = false;
         sd_run_config_.flowShiftEnabled = false;
+        // Restore template default modify & negative if not already set (so saved values win)
+        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[preset].modify_prompt;
+        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[preset].negative_prompt;
     }
 }
 

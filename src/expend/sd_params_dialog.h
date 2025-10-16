@@ -84,9 +84,9 @@ class SdParamsDialog : public QWidget
     QCheckBox *flowShiftEnable_ = nullptr;
     QDoubleSpinBox *flowShiftSpin_ = nullptr;
 
-    // Prompts
+    // Prompts (Modify + Negative only)
     QGroupBox *grpPrompts_ = nullptr;
-    QPlainTextEdit *promptEdit_ = nullptr;
+    QLineEdit *modifyEdit_ = nullptr;
     QPlainTextEdit *negativeEdit_ = nullptr;
 
     // Backend toggles

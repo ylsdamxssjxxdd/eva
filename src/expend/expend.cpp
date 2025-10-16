@@ -242,6 +242,8 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("sd_adv_vae_tile_x", sd_run_config_.vaeTileX);
     settings.setValue("sd_adv_vae_tile_y", sd_run_config_.vaeTileY);
     settings.setValue("sd_adv_vae_tile_overlap", sd_run_config_.vaeTileOverlap);
+    settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
+    settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
     settings.sync();
 
     event->accept();

@@ -42,25 +42,38 @@ void SdParamsDialog::buildUi()
     formModel->setLabelAlignment(Qt::AlignRight);
     modelArgBox_ = new QComboBox; // Auto / -m / --diffusion-model
     modelArgBox_->addItems({"auto", "-m (legacy)", "--diffusion-model"});
+    modelArgBox_->setToolTip("Main model argument: auto/-m/--diffusion-model");
     formModel->addRow("Model Arg", modelArgBox_);
     modelPathLe_ = addPathRow(formModel, "Model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
+    modelPathLe_->setToolTip("Main model file path");
     vaeLe_ = addPathRow(formModel, "VAE", "(*.ckpt *.safetensors *.gguf *.ggml *.pt)");
+    vaeLe_->setToolTip("VAE model (optional)");
     qwen2vlLe_ = addPathRow(formModel, "Qwen2VL", "(*.gguf *.ggml *.safetensors)");
+    qwen2vlLe_->setToolTip("Qwen2-VL text encoder (Qwen-Image)");
     clipLLe_ = addPathRow(formModel, "CLIP-L", "(*.safetensors *.gguf *.ggml)");
+    clipLLe_->setToolTip("CLIP-L text encoder");
     clipGLe_ = addPathRow(formModel, "CLIP-G", "(*.safetensors *.gguf *.ggml)");
+    clipGLe_->setToolTip("CLIP-G text encoder");
     clipVisionLe_ = addPathRow(formModel, "CLIP-Vision", "(*.safetensors *.gguf *.ggml)");
+    clipVisionLe_->setToolTip("CLIP-Vision encoder (optional)");
     t5Le_ = addPathRow(formModel, "T5XXL", "(*.safetensors *.gguf *.ggml)");
+    t5Le_->setToolTip("T5-XXL text encoder");
     loraDirLe_ = addPathRow(formModel, "LoRA Dir", QString(), /*directory*/ true);
+    loraDirLe_->setToolTip("Directory containing LoRA .safetensors");
     taesdLe_ = addPathRow(formModel, "TAESD", "(*.safetensors *.gguf *.ggml)");
+    taesdLe_->setToolTip("Tiny AutoEncoder for fast decoding (lower quality)");
     upscaleLe_ = addPathRow(formModel, "ESRGAN", "(*.pth *.pt *.onnx)");
+    upscaleLe_->setToolTip("ESRGAN upscaler model");
     controlNetLe_ = addPathRow(formModel, "ControlNet", "(*.safetensors *.gguf *.ggml)");
+    controlNetLe_->setToolTip("ControlNet model (optional)");
     controlImgLe_ = addPathRow(formModel, "Control Image", "(*.png *.jpg *.jpeg)");
+    controlImgLe_->setToolTip("Image for ControlNet conditioning");
     // Prompts group (right column top)
     grpPrompts_ = new QGroupBox("Prompts");
     auto *formP = new QFormLayout(grpPrompts_);
-    promptEdit_ = new QPlainTextEdit; promptEdit_->setFixedHeight(60);
+    modifyEdit_ = new QLineEdit;
     negativeEdit_ = new QPlainTextEdit; negativeEdit_->setFixedHeight(60);
-    formP->addRow("Positive", promptEdit_);
+    formP->addRow("Modify", modifyEdit_);
     formP->addRow("Negative", negativeEdit_);
 
     // Generation group (right column, stacked with backend)
@@ -72,8 +85,10 @@ void SdParamsDialog::buildUi()
     hSpin_->setRange(64, 4096); hSpin_->setSingleStep(64);
     samplerBox_ = new QComboBox;
     samplerBox_->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "ipndm", "ipndm_v", "lcm", "ddim_trailing", "tcd"});
+    samplerBox_->setToolTip("Sampling method (e.g. euler/euler_a/dpm++2m/…)");
     schedulerBox_ = new QComboBox;
     schedulerBox_->addItems({"discrete", "karras", "exponential", "ays", "gits", "smoothstep", "sgm_uniform", "simple"});
+    schedulerBox_->setToolTip("Sigma scheduler for denoising");
     stepsSpin_ = new QSpinBox; stepsSpin_->setRange(1, 200);
     cfgSpin_ = new QDoubleSpinBox; cfgSpin_->setRange(0.0, 50.0); cfgSpin_->setDecimals(2); cfgSpin_->setSingleStep(0.1);
     clipSkipSpin_ = new QSpinBox; clipSkipSpin_->setRange(-1, 12);
@@ -83,18 +98,18 @@ void SdParamsDialog::buildUi()
     guidanceSpin_ = new QDoubleSpinBox; guidanceSpin_->setRange(0.0, 20.0); guidanceSpin_->setSingleStep(0.1);
     rngBox_ = new QComboBox; rngBox_->addItems({"cuda", "std_default"});
 
-    formGen->addRow("Width", wSpin_);
-    formGen->addRow("Height", hSpin_);
+    formGen->addRow("Width", wSpin_); wSpin_->setToolTip("Image width (px), multiple of 64 recommended");
+    formGen->addRow("Height", hSpin_); hSpin_->setToolTip("Image height (px), multiple of 64 recommended");
     formGen->addRow("Sampler", samplerBox_);
     formGen->addRow("Scheduler", schedulerBox_);
-    formGen->addRow("Steps", stepsSpin_);
-    formGen->addRow("CFG Scale", cfgSpin_);
-    formGen->addRow("Clip Skip", clipSkipSpin_);
-    formGen->addRow("Batch Count", batchSpin_);
-    formGen->addRow("Seed", seedSpin_);
-    formGen->addRow("Strength", strengthSpin_);
-    formGen->addRow("Guidance", guidanceSpin_);
-    formGen->addRow("RNG", rngBox_);
+    formGen->addRow("Steps", stepsSpin_); stepsSpin_->setToolTip("Sampling steps");
+    formGen->addRow("CFG Scale", cfgSpin_); cfgSpin_->setToolTip("Prompt adherence: higher = closer to prompt");
+    formGen->addRow("Clip Skip", clipSkipSpin_); clipSkipSpin_->setToolTip("Ignore last CLIP layers (-1 = auto)");
+    formGen->addRow("Batch Count", batchSpin_); batchSpin_->setToolTip("Number of images to generate");
+    formGen->addRow("Seed", seedSpin_); seedSpin_->setToolTip("Random seed (-1 = random)");
+    formGen->addRow("Strength", strengthSpin_); strengthSpin_->setToolTip("Img2img strength (0..1)");
+    formGen->addRow("Guidance", guidanceSpin_); guidanceSpin_->setToolTip("Distilled guidance (for SD3/WAN)");
+    formGen->addRow("RNG", rngBox_); rngBox_->setToolTip("RNG backend (cuda/std_default)");
     // Flow
     auto *flowRow = new QWidget; auto *flowLay = new QHBoxLayout(flowRow); flowLay->setContentsMargins(0,0,0,0);
     flowShiftEnable_ = new QCheckBox("enable");
@@ -104,18 +119,18 @@ void SdParamsDialog::buildUi()
     // Backend group (right column)
     auto *grpBk = new QGroupBox("Backend/Memory");
     auto *bkLay = new QGridLayout(grpBk);
-    offloadCpuCb_ = new QCheckBox("--offload-to-cpu");
-    clipCpuCb_ = new QCheckBox("--clip-on-cpu");
-    vaeCpuCb_ = new QCheckBox("--vae-on-cpu");
-    controlCpuCb_ = new QCheckBox("--control-net-cpu");
-    diffFaCb_ = new QCheckBox("--diffusion-fa");
+    offloadCpuCb_ = new QCheckBox("--offload-to-cpu"); offloadCpuCb_->setToolTip("Keep weights in RAM and load to VRAM on demand");
+    clipCpuCb_ = new QCheckBox("--clip-on-cpu"); clipCpuCb_->setToolTip("Keep CLIP on CPU (save VRAM)");
+    vaeCpuCb_ = new QCheckBox("--vae-on-cpu"); vaeCpuCb_->setToolTip("Keep VAE on CPU (save VRAM)");
+    controlCpuCb_ = new QCheckBox("--control-net-cpu"); controlCpuCb_->setToolTip("Keep ControlNet on CPU (save VRAM)");
+    diffFaCb_ = new QCheckBox("--diffusion-fa"); diffFaCb_->setToolTip("Use flash-attention in diffusion (save VRAM)");
     bkLay->addWidget(offloadCpuCb_, 0, 0);
     bkLay->addWidget(clipCpuCb_, 0, 1);
     bkLay->addWidget(vaeCpuCb_, 1, 0);
     bkLay->addWidget(controlCpuCb_, 1, 1);
     bkLay->addWidget(diffFaCb_, 2, 0);
     // VAE tiling row
-    vaeTilingCb_ = new QCheckBox("--vae-tiling");
+    vaeTilingCb_ = new QCheckBox("--vae-tiling"); vaeTilingCb_->setToolTip("Process VAE in tiles to reduce VRAM usage");
     vaeTileX_ = new QSpinBox; vaeTileX_->setRange(1, 2048); vaeTileX_->setValue(32);
     vaeTileY_ = new QSpinBox; vaeTileY_->setRange(1, 2048); vaeTileY_->setValue(32);
     vaeTileOverlap_ = new QDoubleSpinBox; vaeTileOverlap_->setRange(0.0, 1.0); vaeTileOverlap_->setSingleStep(0.05); vaeTileOverlap_->setValue(0.5);
@@ -132,9 +147,9 @@ void SdParamsDialog::buildUi()
     cols->setSpacing(10);
     auto *leftCol = new QVBoxLayout; leftCol->setContentsMargins(0,0,0,0); leftCol->setSpacing(8);
     auto *rightCol = new QVBoxLayout; rightCol->setContentsMargins(0,0,0,0); rightCol->setSpacing(8);
-    // Move prompts to left side to reduce perceived dialog length and improve focus
-    leftCol->addWidget(grpPrompts_);
+    // Put prompts under model paths on the left side
     leftCol->addWidget(grpModel, /*stretch*/1);
+    leftCol->addWidget(grpPrompts_);
     rightCol->addWidget(grpGen);
     rightCol->addWidget(grpBk);
     rightCol->addStretch(1);
@@ -228,7 +243,7 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     vaeTileOverlap_->setValue(c.vaeTileOverlap);
 
     // Prompts
-    if (promptEdit_) promptEdit_->setPlainText(c.positivePrompt);
+    if (modifyEdit_) modifyEdit_->setText(c.modifyPrompt);
     if (negativeEdit_) negativeEdit_->setPlainText(c.negativePrompt);
 }
 
@@ -276,7 +291,7 @@ SDRunConfig SdParamsDialog::config() const
     c.vaeTileY = vaeTileY_->value();
     c.vaeTileOverlap = vaeTileOverlap_->value();
     // Prompts
-    c.positivePrompt = promptEdit_ ? promptEdit_->toPlainText() : QString();
+    c.modifyPrompt = modifyEdit_ ? modifyEdit_->text() : QString();
     c.negativePrompt = negativeEdit_ ? negativeEdit_->toPlainText() : QString();
     return c;
 }

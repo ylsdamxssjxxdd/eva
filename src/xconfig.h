@@ -474,9 +474,9 @@ struct SDRunConfig
     int vaeTileY = 32;
     double vaeTileOverlap = 0.5; // fraction of tile size
 
-    // Prompts (advanced dialog only manages positive/negative)
-    QString positivePrompt; // main positive prompt
-    QString negativePrompt; // negative prompt
+    // Prompts: advanced dialog manages modifier and negative; positive is main UI
+    QString modifyPrompt;    // optional modifier prefix
+    QString negativePrompt;  // negative prompt
 };
 
 // resampleWav removed

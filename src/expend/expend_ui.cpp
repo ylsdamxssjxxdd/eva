@@ -292,6 +292,8 @@ void Expend::readConfig()
     sd_run_config_.clipVisionPath = settings.value("sd_adv_clip_vision_path", "").toString();
     sd_run_config_.t5xxlPath = settings.value("sd_adv_t5xxl_path", t5_modelpath).toString();
     sd_run_config_.qwen2vlPath = settings.value("sd_adv_qwen2vl_path", "").toString();
+    sd_run_config_.modifyPrompt = settings.value("sd_adv_modify", "").toString();
+    sd_run_config_.negativePrompt = settings.value("sd_adv_negative", "").toString();
     sd_run_config_.loraDirPath = settings.value("sd_adv_lora_dir", "").toString();
     sd_run_config_.taesdPath = settings.value("sd_adv_taesd_path", "").toString();
     sd_run_config_.upscaleModelPath = settings.value("sd_adv_upscale_model", "").toString();
@@ -421,6 +423,12 @@ void Expend::readConfig()
     sd_apply_template(sd_params_templates.value(sd_params_template, sd_anything));
     // Also pre-configure advanced defaults to selected preset
     on_params_template_comboBox_currentIndexChanged(-1);
+    // If saved modify/negative exist, keep them; otherwise for sd1.5 preset, fall back to template defaults
+    if (sd_params_template == "sd1.5-anything-3")
+    {
+        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[sd_params_template].modify_prompt;
+        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[sd_params_template].negative_prompt;
+    }
     is_readconfig = true;
 
     QFile whisper_load_modelpath_file(whisper_modelpath);
