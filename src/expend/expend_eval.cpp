@@ -520,7 +520,6 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
         const QString begin = QString(DEFAULT_THINK_BEGIN);
         const QString end = QString(DEFAULT_THINK_END);
         QString s = text;
-        const int ansBefore = evalAnswer_.size();
         if (!s.isEmpty())
             evalAccumRaw_ += s; // keep raw stream for reference
         while (!s.isEmpty())

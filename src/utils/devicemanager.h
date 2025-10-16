@@ -23,6 +23,11 @@ class DeviceManager
 
     // Effective backend after applying "auto" and fallbacks
     static QString effectiveBackend();
+    // Compute the effective backend as if the given choice were active,
+    // without mutating the global user choice. Useful for UI preview
+    // (e.g., when combobox is on "auto"). The input should be one of
+    // auto/cpu/cuda/vulkan/opencl (case-insensitive).
+    static QString effectiveBackendFor(const QString &preferred);
 
     // Resolve absolute path to a tool in the selected backend folder
     // name examples: "llama-server", "whisper-cli", "sd"

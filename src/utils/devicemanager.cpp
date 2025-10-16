@@ -287,6 +287,34 @@ QString DeviceManager::effectiveBackend()
     return firstSupportedAvail();
 }
 
+// UI helper: compute effective backend for a given preferred value without
+// changing the stored user choice. Mirrors effectiveBackend() but uses the
+// provided string instead of DeviceManager::userChoice().
+QString DeviceManager::effectiveBackendFor(const QString &preferred)
+{
+    const QStringList avail = availableBackends();
+    auto isAvail = [&](const QString &b){ return avail.contains(b); };
+    const QString choice = preferred.trimmed().toLower();
+
+    auto firstSupportedAvail = [&]()->QString {
+        if (supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
+        if (supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
+        if (supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
+        if (isAvail("cpu")) return QStringLiteral("cpu");
+        return avail.isEmpty() ? QStringLiteral("cpu") : avail.first();
+    };
+
+    if (choice == QLatin1String("auto"))
+    {
+        return firstSupportedAvail();
+    }
+    if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
+    if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
+    if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
+    if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
+    return firstSupportedAvail();
+}
+
 static QString findProgramRecursive(const QString &dir, const QString &exe)
 {
     QDirIterator it(dir, QStringList{exe}, QDir::Files, QDirIterator::Subdirectories);

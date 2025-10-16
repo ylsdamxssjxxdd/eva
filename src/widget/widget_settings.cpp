@@ -30,11 +30,14 @@ void Widget::set_SetDialog()
         auto refreshDeviceUI = [this]()
         {
             const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
-            const bool isCpu = (sel == QLatin1String("cpu") || sel == QLatin1String("opencl"));
             const bool isAuto = (sel == QLatin1String("auto"));
 
-            // 当选择 CPU 时，禁止选择 gpu 负载层数
-            settings_ui->ngl_slider->setEnabled(!isCpu);
+            // 预估当前选择（包含 auto）下将使用的实际后端，用于 UI 呈现
+            const QString eff = DeviceManager::effectiveBackendFor(sel);
+
+            // 当实际为 CPU（或 OpenCL 视作 CPU）时，禁止选择 gpu 负载层数
+            const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("opencl"));
+            settings_ui->ngl_slider->setEnabled(!cpuLike);
 
             // 在“推理设备”标签文本后附加当前 auto 的实际后端
             if (deviceLabelBaseText.isEmpty())
@@ -43,8 +46,7 @@ void Widget::set_SetDialog()
             }
             if (isAuto)
             {
-                // 计算 auto 实际生效的后端（按 cuda>vulkan>opencl>cpu 顺序）
-                const QString eff = DeviceManager::effectiveBackend();
+                // 展示 auto 预估解析结果（不改变全局设置）
                 settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
             }
             else
