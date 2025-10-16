@@ -54,22 +54,12 @@ void Expend::init_expend()
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
     // 文生图（仅保留 Prompt/Result/Log；路径与参数在“高级设置…”中配置）
-    ui->sd_prompt_groupBox->setTitle(jtr("prompt"));
     ui->sd_result_groupBox->setTitle(jtr("result"));
     ui->sd_log_groupBox->setTitle(jtr("log"));
     // 旧的修饰词/负面词行内输入移除；请在“高级设置…”中编辑
 
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
-    if (ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[0].toString() || ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[1].toString()) { ui->sd_draw_pushButton->setText(jtr("text to image")); }
-    else
-    {
-        ui->sd_draw_pushButton->setText("stop");
-    }
-    if (ui->sd_img2img_pushButton->text() == wordsObj["image to image"].toArray()[0].toString() || ui->sd_img2img_pushButton->text() == wordsObj["image to image"].toArray()[1].toString()) { ui->sd_img2img_pushButton->setText(jtr("image to image")); }
-    else
-    {
-        ui->sd_img2img_pushButton->setText("stop");
-    }
+    if (ui->sd_draw_pushButton->text() != "stop") { ui->sd_draw_pushButton->setText(QStringLiteral("生成")); }
     ui->sd_img2img_lineEdit->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
 
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));

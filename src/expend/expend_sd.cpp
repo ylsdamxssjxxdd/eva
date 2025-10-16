@@ -207,18 +207,16 @@ void Expend::on_sd_open_params_button_clicked()
 // 用户点击开始绘制时响应
 void Expend::on_sd_draw_pushButton_clicked()
 {
-    // 处理stop的情况
-    if (ui->sd_img2img_pushButton->text() == "stop" || ui->sd_draw_pushButton->text() == "stop")
+    // 处理stop的情况（单按钮）
+    if (ui->sd_draw_pushButton->text() == "stop")
     {
         ui->sd_log->appendPlainText("stop");
         sd_process->kill(); // 强制结束sd
-        ui->sd_draw_pushButton->setText(jtr("text to image"));
-        ui->sd_img2img_pushButton->setText(jtr("image to image"));
+        ui->sd_draw_pushButton->setText(QStringLiteral("生成"));
         img2img = false;
         return;
     }
 
-    ui->sd_img2img_pushButton->setText("stop");
     ui->sd_draw_pushButton->setText("stop");
 
     if (is_handle_sd && ui->sd_prompt_textEdit->toPlainText() == "")
@@ -256,6 +254,8 @@ void Expend::on_sd_draw_pushButton_clicked()
         arguments << "-M" << "vid_gen";
     else
         arguments << "-M" << "img_gen";
+    // Decide img2img by whether user provided an init image
+    img2img = QFile::exists(ui->sd_img2img_lineEdit->text());
     if (img2img)
     {
         arguments << "-i" << ensureToolFriendlyFilePath(ui->sd_img2img_lineEdit->text());
@@ -409,8 +409,7 @@ void Expend::sd_onProcessStarted() {}
 // 进程结束响应
 void Expend::sd_onProcessFinished()
 {
-    ui->sd_draw_pushButton->setText(jtr("text to image"));
-    ui->sd_img2img_pushButton->setText(jtr("image to image"));
+    ui->sd_draw_pushButton->setText(QStringLiteral("生成"));
 
     // 绘制结果
     QImage image(sd_outputpath);
