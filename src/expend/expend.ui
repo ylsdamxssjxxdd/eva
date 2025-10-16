@@ -396,7 +396,7 @@ p, li { white-space: pre-wrap; }
                 <number>5</number>
                </property>
                <property name="columnCount">
-                <number>5</number>
+                <number>4</number>
                </property>
                <row/>
                <row/>
@@ -421,11 +421,6 @@ p, li { white-space: pre-wrap; }
                <column>
                 <property name="text">
                  <string>值</string>
-                </property>
-               </column>
-               <column>
-                <property name="text">
-                 <string>说明</string>
                 </property>
                </column>
               </widget>
@@ -4542,35 +4537,34 @@ p, li { white-space: pre-wrap; }
    </item>
   </layout>
  </widget>
-
-  <customwidgets>
-   <customwidget>
-    <class>StatusLed</class>
-    <extends>QWidget</extends>
-    <header>src/utils/statusindicator.h</header>
-    <container>1</container>
-   </customwidget>
-   <customwidget>
-    <class>IntroAnimEdit</class>
-    <extends>QTextEdit</extends>
-    <header>src/utils/introanimedit.h</header>
-   </customwidget>
-   <customwidget>
-    <class>NeuronLogEdit</class>
-    <extends>QPlainTextEdit</extends>
-    <header>src/utils/neuronlogedit.h</header>
-   </customwidget>
-   <customwidget>
-    <class>MiniBarChart</class>
-    <extends>QWidget</extends>
-    <header>src/utils/minibarchart.h</header>
-   </customwidget>
-   <customwidget>
-    <class>EvalLogEdit</class>
-    <extends>QPlainTextEdit</extends>
-    <header>src/utils/evallogedit.h</header>
-   </customwidget>
-  </customwidgets>
-  <resources/>
-  <connections/>
+ <customwidgets>
+  <customwidget>
+   <class>StatusLed</class>
+   <extends>QWidget</extends>
+   <header>src/utils/statusindicator.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>IntroAnimEdit</class>
+   <extends>QTextEdit</extends>
+   <header>src/utils/introanimedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>NeuronLogEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>src/utils/neuronlogedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MiniBarChart</class>
+   <extends>QWidget</extends>
+   <header>src/utils/minibarchart.h</header>
+  </customwidget>
+  <customwidget>
+   <class>EvalLogEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>src/utils/evallogedit.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
 </ui>

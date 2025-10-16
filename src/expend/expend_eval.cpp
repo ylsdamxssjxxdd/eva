@@ -118,6 +118,7 @@ void Expend::evalResetUi()
 
 void Expend::evalSetTable(int row, const QString &name, const QString &val, const QString &desc)
 {
+    Q_UNUSED(desc);
     auto setItem = [&](int r, int c, const QString &text)
     {
         QTableWidgetItem *it = ui->eval_table->item(r, c);
@@ -356,6 +357,8 @@ void Expend::runQATest()
     // One question per turn
     const auto &p = qaPairs_[qaIndex_];
     if (qaIndex_ == 0) evalSetStatus(2, QStringLiteral("进行中 0/") + QString::number(qaPlanned_));
+    // Print question first for QA
+    evalLog(QStringLiteral("[常识问答] 题目(") + QString::number(qaIndex_ + 1) + "/" + QString::number(qaPlanned_) + QStringLiteral(")\n") + p.first);
     ENDPOINT_DATA d = makeBaseData(0.1, 64);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
@@ -398,6 +401,8 @@ void Expend::runLogicTest()
     }
     const auto &p = logicPairs_[logicIndex_];
     if (logicIndex_ == 0) evalSetStatus(3, QStringLiteral("进行中 0/") + QString::number(logicPlanned_));
+    // Print question first for Logic
+    evalLog(QStringLiteral("[逻辑推理] 题目(") + QString::number(logicIndex_ + 1) + "/" + QString::number(logicPlanned_) + QStringLiteral(")\n") + p.first);
     ENDPOINT_DATA d = makeBaseData(0.1, 64);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
@@ -436,6 +441,8 @@ void Expend::runToolcallTest()
     // Prepare one tool case
     const ToolCase &tc = toolCases_[toolIndex_];
     QString toolsDesc = Buildin_tools_answer.text + QString("\n\n") + Buildin_tools_calculator.text + QString("\n\n") + Buildin_tools_stablediffusion.text + QString("\n\n") + Buildin_tools_knowledge.text + QString("\n\n") + Buildin_tools_execute_command.text + QString("\n\n") + Buildin_tools_controller.text + QString("\n\n") + Buildin_tools_mcp_tools_list.text;
+    // Print tool case header and task before model output
+    evalLog(QStringLiteral("[工具调用]") + QString(" (%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + tc.desc + QStringLiteral("\n任务\n") + tc.user);
     QString sys = EXTRA_PROMPT_FORMAT;
     sys.replace("{available_tools_describe}", toolsDesc);
     sys.replace("{engineer_info}", QString());
@@ -467,9 +474,12 @@ void Expend::evalFinish()
         if (ms >= 10000.0) return 0.0;
         return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
     };
-    auto scoreGen = [&](double tokps)
-    {
-        if (tokps < 0) return 0.0; if (tokps >= 100.0) return 100.0; if (tokps <= 0.0) return 0.0; return tokps; /* linear to 100 */ };
+    auto scoreGen = [&](double tokps) -> double {
+        if (tokps < 0) return 0.0;
+        if (tokps >= 100.0) return 100.0;
+        if (tokps <= 0.0) return 0.0;
+        return tokps;
+    };
     const double s_ttfb = scoreTTFB(m_firstTokenMs);
     const double s_gen = scoreGen(m_genTokPerSec);
     const double s_qa = qMax(0.0, m_qaScore);
@@ -624,7 +634,7 @@ void Expend::onEvalSpeeds(double prompt_per_s, double gen_per_s)
     if (gen_per_s > 0)
     {
         m_genTokPerSec = gen_per_s;
-        evalSetTable(1, QStringLiteral("生成速度(tok/s)"), QString::number(m_genTokPerSec, 'f', 1));
+        { double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec)); evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0)); }
         updateScoreBars();
     }
 }
@@ -668,13 +678,18 @@ void Expend::onEvalPushover()
             const double cps = double(n) / tSec;
             m_genCharsPerSec = cps;
             // If server did not report token-speed, keep a hint in desc
-            QString desc = (m_genTokPerSec > 0) ? QStringLiteral("服务器报告") : QStringLiteral("估算: ") + QString::number(cps, 'f', 1) + QStringLiteral(" chars/s");
-            evalSetTable(1, QStringLiteral("生成速度(tok/s)"), (m_genTokPerSec > 0 ? QString::number(m_genTokPerSec, 'f', 1) : QStringLiteral("-")), desc);
+            // QString desc = (m_genTokPerSec > 0) ? QStringLiteral("服务器报告") : QStringLiteral("估算: ") + QString::number(cps, 'f', 1) + QStringLiteral(" chars/s");
+            // replaced: show 0-100 score instead of raw tok/s (set after estimation)
             // If no token speed, derive a rough estimate from chars/s to drive the bar
             if (m_genTokPerSec <= 0 && cps > 0)
             {
                 const double estTokPerSec = cps / 4.0; // heuristic: ~4 chars per token
                 m_genTokPerSec = estTokPerSec;
+            }
+            {
+                // After estimation, compute score from token/s (cap to 100) and show it in the table
+                double __score = (m_genTokPerSec <= 0 ? 0.0 : (m_genTokPerSec >= 100.0 ? 100.0 : m_genTokPerSec));
+                evalSetTable(1, QStringLiteral("生成速度(分)"), QString::number(__score, 'f', 0));
             }
             updateScoreBars();
         }
@@ -837,11 +852,18 @@ void Expend::evalUpdateProgress()
 void Expend::updateScoreBars()
 {
     // Update compact chart in score group (6 bars: TTFB / Gen / QA / Logic / Tools / Overall)
-    auto scoreTTFB = [&](double ms)
-    {
-        if (ms < 0) return 0.0; if (ms <= 500) return 100.0; if (ms >= 10000) return 0.0; return (10000.0 - ms) * 100.0 / (10000.0 - 500.0); };
-    auto scoreGen = [&](double tps)
-    { if (tps < 0) return 0.0; if (tps >= 100.0) return 100.0; if (tps <= 0) return 0.0; return tps; };
+    auto scoreTTFB = [&](double ms) -> double {
+        if (ms < 0) return 0.0;
+        if (ms <= 500) return 100.0;
+        if (ms >= 10000) return 0.0;
+        return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
+    };
+    auto scoreGen = [&](double tps) -> double {
+        if (tps < 0) return 0.0;
+        if (tps >= 100.0) return 100.0;
+        if (tps <= 0) return 0.0;
+        return tps;
+    };
     const double s1 = (m_firstTokenMs >= 0 ? scoreTTFB(m_firstTokenMs) : -1);
     const double s2 = (m_genTokPerSec >= 0 ? scoreGen(m_genTokPerSec) : (m_genCharsPerSec > 0 ? scoreGen(m_genCharsPerSec / 4.0) : -1));
     const double s3 = (m_qaScore >= 0 ? m_qaScore : -1);
@@ -853,6 +875,7 @@ void Expend::updateScoreBars()
 
 void Expend::setValueColor(int row, const QString &nameKey, double val, const QString &metric)
 {
+    Q_UNUSED(nameKey);
     // Apply color thresholds to the "值" cell
     if (!ui || !ui->eval_table) return;
     QTableWidgetItem *cell = ui->eval_table->item(row, 3);
@@ -919,3 +942,4 @@ void Expend::setValueColor(int row, const QString &nameKey, double val, const QS
         return;
     }
 }
+
