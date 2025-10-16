@@ -245,12 +245,19 @@ void Expend::on_eval_start_pushButton_clicked()
     // Plan fine-grained steps for progress (latency + gen + qa + logic + tools)
     // Initialize tool test cases once per run
     toolCases_.clear();
+    // Double the items: two natural tasks per tool (no explicit tool names in tasks)
     toolCases_.push_back({QStringLiteral("calculator"), jtr("tc_desc_calculator"), jtr("tc_tag_calculator")});
+    toolCases_.push_back({QStringLiteral("calculator"), jtr("tc_desc_calculator_2"), jtr("tc_tag_calculator_2")});
     toolCases_.push_back({QStringLiteral("stablediffusion"), jtr("tc_desc_sd"), jtr("tc_tag_sd")});
+    toolCases_.push_back({QStringLiteral("stablediffusion"), jtr("tc_desc_sd_2"), jtr("tc_tag_sd_2")});
     toolCases_.push_back({QStringLiteral("knowledge"), jtr("tc_desc_knowledge"), jtr("tc_tag_knowledge")});
+    toolCases_.push_back({QStringLiteral("knowledge"), jtr("tc_desc_knowledge_2"), jtr("tc_tag_knowledge_2")});
     toolCases_.push_back({QStringLiteral("execute_command"), jtr("tc_desc_exec"), jtr("tc_tag_exec")});
+    toolCases_.push_back({QStringLiteral("execute_command"), jtr("tc_desc_exec_2"), jtr("tc_tag_exec_2")});
     toolCases_.push_back({QStringLiteral("mcp_tools_list"), jtr("tc_desc_mcp"), jtr("tc_tag_mcp")});
+    toolCases_.push_back({QStringLiteral("mcp_tools_list"), jtr("tc_desc_mcp_2"), jtr("tc_tag_mcp_2")});
     toolCases_.push_back({QStringLiteral("controller"), jtr("tc_desc_controller"), jtr("tc_tag_controller")});
+    toolCases_.push_back({QStringLiteral("controller"), jtr("tc_desc_controller_2"), jtr("tc_tag_controller_2")});
 
     stepsUnitsTotal = 1 /*latency*/ + genPlanned_ /*gen (multi-run)*/ + qaPlanned_ /*qa*/ + logicPlanned_ /*logic*/ + toolCases_.size() /*tools*/;
     evalResetUi();
@@ -484,7 +491,8 @@ void Expend::runToolcallTest()
         // Finalize tool score
         const int total = qMax(1, toolCases_.size());
         m_toolScore = 100.0 * double(toolCorrect_) / double(total);
-        evalSetTable(4, jtr("tool call"), QString::number(m_toolScore, 'f', 0), jtr("overall of six"));
+        // Use a generic description consistent with QA/Logic
+        evalSetTable(4, jtr("tool call"), QString::number(m_toolScore, 'f', 0), jtr("hit rate"));
         evalSetStatus(4, jtr("completed"));
         evalSetElapsed(4, stepTimer.nsecsElapsed() / 1e9);
         evalStep++;
