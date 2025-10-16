@@ -169,8 +169,19 @@ void Expend::on_sd_open_params_button_clicked()
     {
         sdParamsDialog_ = new SdParamsDialog(this);
         // Initialize preset matching the current combo box
-        sdParamsDialog_->applyPreset(ui->params_template_comboBox->currentText());
+        const QString presetNow = ui->params_template_comboBox->currentText();
+        sdParamsDialog_->applyPreset(presetNow);
+        // Load prompts from per-preset store
+        sd_run_config_.modifyPrompt = sd_preset_modify_.value(presetNow);
+        sd_run_config_.negativePrompt = sd_preset_negative_.value(presetNow);
+        // Ensure sd1.5 shows defaults if still empty
+        if (presetNow == "sd1.5-anything-3")
+        {
+            if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[presetNow].modify_prompt;
+            if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[presetNow].negative_prompt;
+        }
         sdParamsDialog_->setConfig(sd_run_config_);
+        sdParamsDialog_->setPresetPromptStore(sd_preset_modify_, sd_preset_negative_);
         connect(sdParamsDialog_, &SdParamsDialog::accepted, this, [this](const SDRunConfig &cfg, const QString &preset) {
             // Persist to memory and mirror essential fields to inline UI for visibility
             sd_run_config_ = cfg;
@@ -183,6 +194,10 @@ void Expend::on_sd_open_params_button_clicked()
             if (!cfg.modifyPrompt.isEmpty()) ui->sd_modify_lineEdit->setText(cfg.modifyPrompt);
             if (!cfg.negativePrompt.isEmpty()) ui->sd_negative_lineEdit->setText(cfg.negativePrompt);
             if (!preset.isEmpty()) ui->params_template_comboBox->setCurrentText(preset);
+            // Update per-preset prompt store and persist
+            auto sanitize = [](QString s){ QString t=s; t.replace('.', '_').replace(' ', '_'); return t; };
+            sd_preset_modify_[preset] = cfg.modifyPrompt;
+            sd_preset_negative_[preset] = cfg.negativePrompt;
             // Save advanced config immediately
             createTempDirectory(applicationDirPath + "/EVA_TEMP");
             QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
@@ -224,6 +239,9 @@ void Expend::on_sd_open_params_button_clicked()
             settings.setValue("sd_adv_vae_tile_overlap", sd_run_config_.vaeTileOverlap);
             settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
             settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
+            const QString key = sanitize(preset);
+            settings.setValue("sd_preset_"+key+"_modify", sd_preset_modify_.value(preset));
+            settings.setValue("sd_preset_"+key+"_negative", sd_preset_negative_.value(preset));
             // Also persist current prompts for convenience
             settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
             settings.sync();
@@ -358,11 +376,12 @@ void Expend::on_sd_draw_pushButton_clicked()
     if (sd_run_config_.guidance > 0.0) arguments << "--guidance" << QString::number(sd_run_config_.guidance);
     arguments << "--rng" << sd_run_config_.rng;
 
-    // negative prompt and prompt assembly
-    const QString neg = !sd_run_config_.negativePrompt.trimmed().isEmpty() ? sd_run_config_.negativePrompt : ui->sd_negative_lineEdit->text();
-    arguments << "-n" << neg;
-    const QString pos = ui->sd_prompt_textEdit->toPlainText(); // main UI prompt
-    const QString mod = !sd_run_config_.modifyPrompt.trimmed().isEmpty() ? sd_run_config_.modifyPrompt : ui->sd_modify_lineEdit->text();
+    // negative prompt and prompt assembly (strictly per-preset values; do not fallback to hidden UI)
+    const QString neg = sd_run_config_.negativePrompt.trimmed();
+    if (!neg.isEmpty())
+        arguments << "-n" << neg;
+    const QString pos = ui->sd_prompt_textEdit->toPlainText(); // main UI prompt (positive)
+    const QString mod = sd_run_config_.modifyPrompt.trimmed();
     const QString promptCore = (mod.isEmpty() ? pos : (mod + ", " + pos));
     if (!lora_prompt.isEmpty())
         arguments << "-p" << (promptCore + lora_prompt);
@@ -544,9 +563,7 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = false;
         sd_run_config_.diffusionFA = false;
         sd_run_config_.flowShiftEnabled = false;
-        // No preset modify/negative for flux
-        sd_run_config_.modifyPrompt.clear();
-        sd_run_config_.negativePrompt.clear();
+        // Keep user's saved modify/negative for flux (do not override)
     }
     else if (preset == "qwen-image")
     {
@@ -560,9 +577,7 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = true;
         sd_run_config_.diffusionFA = true;
         sd_run_config_.flowShiftEnabled = true; sd_run_config_.flowShift = 3.0;
-        // No preset modify/negative for qwen-image
-        sd_run_config_.modifyPrompt.clear();
-        sd_run_config_.negativePrompt.clear();
+        // Keep user's saved modify/negative for qwen-image (do not override)
     }
     else if (preset == "sd1.5-anything-3")
     {
@@ -576,10 +591,25 @@ void Expend::on_params_template_comboBox_currentIndexChanged(int index)
         sd_run_config_.offloadToCpu = false;
         sd_run_config_.diffusionFA = false;
         sd_run_config_.flowShiftEnabled = false;
-        // Restore template default modify & negative if not already set (so saved values win)
-        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[preset].modify_prompt;
-        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[preset].negative_prompt;
+        // Load from per-preset store; if empty, fallback to template defaults
+        QString mod = sd_preset_modify_.value(preset);
+        QString neg = sd_preset_negative_.value(preset);
+        if (mod.isEmpty()) mod = sd_params_templates[preset].modify_prompt;
+        if (neg.isEmpty()) neg = sd_params_templates[preset].negative_prompt;
+        sd_run_config_.modifyPrompt = mod;
+        sd_run_config_.negativePrompt = neg;
     }
+    else
+    {
+        // Non-sd1.5 presets: load from their own store (may be empty by design)
+        sd_run_config_.modifyPrompt = sd_preset_modify_.value(preset);
+        sd_run_config_.negativePrompt = sd_preset_negative_.value(preset);
+    }
+    // Reflect per-preset prompts to (hidden) UI fields to avoid cross-preset residue
+    if (ui->sd_modify_lineEdit)
+        ui->sd_modify_lineEdit->setText(sd_run_config_.modifyPrompt);
+    if (ui->sd_negative_lineEdit)
+        ui->sd_negative_lineEdit->setText(sd_run_config_.negativePrompt);
 }
 
 // 保存参数到自定义模板

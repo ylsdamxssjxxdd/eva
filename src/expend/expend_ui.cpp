@@ -423,12 +423,21 @@ void Expend::readConfig()
     sd_apply_template(sd_params_templates.value(sd_params_template, sd_anything));
     // Also pre-configure advanced defaults to selected preset
     on_params_template_comboBox_currentIndexChanged(-1);
-    // If saved modify/negative exist, keep them; otherwise for sd1.5 preset, fall back to template defaults
-    if (sd_params_template == "sd1.5-anything-3")
+    // Load per-preset prompts from config (avoid cross-preset leakage)
+    auto sanitize = [](QString s){ QString t=s; t.replace('.', '_').replace(' ', '_'); return t; };
+    const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","custom1","custom2"};
+    for (const QString &p : presets)
     {
-        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[sd_params_template].modify_prompt;
-        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[sd_params_template].negative_prompt;
+        const QString key = sanitize(p);
+        sd_preset_modify_[p] = settings.value("sd_preset_"+key+"_modify", "").toString();
+        sd_preset_negative_[p] = settings.value("sd_preset_"+key+"_negative", "").toString();
     }
+    // Ensure sd1.5 has defaults if empty
+    if (sd_preset_modify_["sd1.5-anything-3"].isEmpty()) sd_preset_modify_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].modify_prompt;
+    if (sd_preset_negative_["sd1.5-anything-3"].isEmpty()) sd_preset_negative_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].negative_prompt;
+    // Apply current preset prompts from store
+    sd_run_config_.modifyPrompt = sd_preset_modify_.value(sd_params_template);
+    sd_run_config_.negativePrompt = sd_preset_negative_.value(sd_params_template);
     is_readconfig = true;
 
     QFile whisper_load_modelpath_file(whisper_modelpath);

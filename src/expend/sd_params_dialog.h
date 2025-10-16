@@ -46,6 +46,17 @@ class SdParamsDialog : public QWidget
     void onPresetChanged(int idx);
 
   private:
+    // Optional per-preset prompt store injected by caller (Expend)
+    QMap<QString, QString> presetModify_;
+    QMap<QString, QString> presetNegative_;
+  public:
+    void setPresetPromptStore(const QMap<QString, QString> &modifyMap,
+                              const QMap<QString, QString> &negativeMap)
+    {
+        presetModify_ = modifyMap;
+        presetNegative_ = negativeMap;
+    }
+  private:
     // UI helpers
     QLineEdit *addPathRow(QFormLayout *form, const QString &label, const QString &filter = QString(), bool directory = false);
     void buildUi();

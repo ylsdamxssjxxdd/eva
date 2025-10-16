@@ -316,6 +316,7 @@ void SdParamsDialog::applyPreset(const QString &name)
         offloadCpuCb_->setChecked(false);
         clipCpuCb_->setChecked(true); // recommended: --clip-on-cpu
         flowShiftEnable_->setChecked(false);
+        // keep user's prompts as-is
     }
     else if (name == "qwen-image")
     {
@@ -329,6 +330,7 @@ void SdParamsDialog::applyPreset(const QString &name)
         offloadCpuCb_->setChecked(true);
         flowShiftEnable_->setChecked(true);
         flowShiftSpin_->setValue(3.0);
+        // keep user's prompts as-is
     }
     else if (name == "sd1.5-anything-3")
     {
@@ -341,6 +343,13 @@ void SdParamsDialog::applyPreset(const QString &name)
         diffFaCb_->setChecked(false);
         offloadCpuCb_->setChecked(false);
         flowShiftEnable_->setChecked(false);
+        // Provide sd1.5 default prompts if empty (do not override user content)
+        const QString defaultModify = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+        const QString defaultNegative = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+        if (modifyEdit_ && modifyEdit_->text().trimmed().isEmpty())
+            modifyEdit_->setText(defaultModify);
+        if (negativeEdit_ && negativeEdit_->toPlainText().trimmed().isEmpty())
+            negativeEdit_->setPlainText(defaultNegative);
     }
     else if (name == "custom1" || name == "custom2")
     {
@@ -356,5 +365,26 @@ void SdParamsDialog::onApplyClicked()
 
 void SdParamsDialog::onPresetChanged(int)
 {
-    applyPreset(presetBox_->currentText());
+    const QString name = presetBox_->currentText();
+    applyPreset(name);
+    // If caller provided per-preset store, reflect it.
+    if (modifyEdit_ && negativeEdit_)
+    {
+        const QString mod = presetModify_.value(name);
+        const QString neg = presetNegative_.value(name);
+        if (name == "sd1.5-anything-3")
+        {
+            // sd1.5: if empty, provide defaults
+            const QString defaultModify = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+            const QString defaultNegative = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+            modifyEdit_->setText(mod.isEmpty() ? defaultModify : mod);
+            negativeEdit_->setPlainText(neg.isEmpty() ? defaultNegative : neg);
+        }
+        else
+        {
+            // Non-sd1.5: reflect own store only (may be empty), avoid cross-preset residue
+            modifyEdit_->setText(mod);
+            negativeEdit_->setPlainText(neg);
+        }
+    }
 }

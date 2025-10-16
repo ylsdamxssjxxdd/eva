@@ -243,6 +243,9 @@ class Expend : public QWidget
     // 高级参数弹窗与运行配置
     SdParamsDialog *sdParamsDialog_ = nullptr; // 弹窗（延迟创建）
     SDRunConfig sd_run_config_;                // 运行配置（持久化）
+    // Per-preset prompt storage (avoid cross-preset leakage)
+    QMap<QString, QString> sd_preset_modify_;   // key: preset name -> modify
+    QMap<QString, QString> sd_preset_negative_; // key: preset name -> negative
   public slots:
     void sd_onProcessStarted();  // 进程开始响应
     void sd_onProcessFinished(); // 进程结束响应
