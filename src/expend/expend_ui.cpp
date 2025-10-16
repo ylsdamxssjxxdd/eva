@@ -53,79 +53,11 @@ void Expend::init_expend()
     ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
-    // 文生图
-    ui->sd_pathset_groupBox->setTitle(jtr("path set"));
-    ui->sd_paramsset_groupBox->setTitle(jtr("params set"));
+    // 文生图（仅保留 Prompt/Result/Log；路径与参数在“高级设置…”中配置）
     ui->sd_prompt_groupBox->setTitle(jtr("prompt"));
     ui->sd_result_groupBox->setTitle(jtr("result"));
     ui->sd_log_groupBox->setTitle(jtr("log"));
-
-    ui->sd_modelpath_label->setText(jtr("diffusion") + jtr("model"));
-    ui->sd_vaepath_label->setText("vae " + jtr("model"));
-    ui->sd_clip_l_path_label->setText("clip_l " + jtr("model"));
-    ui->sd_clip_g_path_label->setText("clip_g " + jtr("model"));
-    ui->sd_t5path_label->setText("t5 " + jtr("model"));
-    ui->sd_lorapath_label->setText("lora " + jtr("model"));
-    ui->sd_modelpath_lineEdit->setPlaceholderText(jtr("sd_modelpath_lineEdit_placeholder"));
-    ui->sd_vaepath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-    ui->sd_clip_l_path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-    ui->sd_clip_g_path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-    ui->sd_t5path_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-    ui->sd_lorapath_lineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
-
-    // Only keep the new Advanced Settings popup for SD; hide legacy inline path/params panels
-    if (ui->sd_pathset_groupBox) ui->sd_pathset_groupBox->hide();
-    if (ui->sd_paramsset_groupBox) ui->sd_paramsset_groupBox->hide();
-    if (ui->sd_settings) {
-        ui->sd_settings->setMinimumWidth(260);
-        ui->sd_settings->setMaximumWidth(320);
-    }
-
-    ui->params_template_label->setText(jtr("params template"));
-    ui->sd_imagewidth_label->setText(jtr("image width"));
-    ui->sd_imageheight_label->setText(jtr("image height"));
-    ui->sd_sampletype_label->setText(jtr("sample type"));
-    ui->sd_samplesteps_label->setText(jtr("sample steps"));
-    ui->sd_cfg_label->setText(jtr("cfg scale"));
-    ui->sd_imagenums_label->setText(jtr("image nums"));
-    ui->sd_seed_label->setText(jtr("seed"));
-    ui->sd_clipskip_label->setText(jtr("clip skip"));
-    ui->sd_negative_label->setText(jtr("negative"));
-    ui->sd_negative_lineEdit->setPlaceholderText(jtr("sd_negative_lineEdit_placeholder"));
-    ui->sd_modify_label->setText(jtr("modify"));
-    ui->sd_modify_lineEdit->setPlaceholderText(jtr("sd_modify_lineEdit_placeholder"));
-
-    // Persist modify/negative per preset immediately on edit (isolation)
-    if (ui->sd_modify_lineEdit)
-    {
-        connect(ui->sd_modify_lineEdit, &QLineEdit::textChanged, this, [this](const QString &text){
-            const QString preset = ui->params_template_comboBox ? ui->params_template_comboBox->currentText() : QString("sd1.5-anything-3");
-            sd_run_config_.modifyPrompt = text;
-            sd_preset_configs_[preset] = sd_run_config_;
-            sd_preset_modify_[preset] = text;
-            savePresetConfig(preset, sd_run_config_);
-            // Mirror last-used global keys
-            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-            settings.setIniCodec("utf-8");
-            settings.setValue("sd_adv_modify", text);
-            settings.sync();
-        });
-    }
-    if (ui->sd_negative_lineEdit)
-    {
-        connect(ui->sd_negative_lineEdit, &QLineEdit::textChanged, this, [this](const QString &text){
-            const QString preset = ui->params_template_comboBox ? ui->params_template_comboBox->currentText() : QString("sd1.5-anything-3");
-            sd_run_config_.negativePrompt = text;
-            sd_preset_configs_[preset] = sd_run_config_;
-            sd_preset_negative_[preset] = text;
-            savePresetConfig(preset, sd_run_config_);
-            // Mirror last-used global keys
-            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-            settings.setIniCodec("utf-8");
-            settings.setValue("sd_adv_negative", text);
-            settings.sync();
-        });
-    }
+    // 旧的修饰词/负面词行内输入移除；请在“高级设置…”中编辑
 
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
     if (ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[0].toString() || ui->sd_draw_pushButton->text() == wordsObj["text to image"].toArray()[1].toString()) { ui->sd_draw_pushButton->setText(jtr("text to image")); }
@@ -348,105 +280,14 @@ void Expend::readConfig()
 
     ui->mcp_server_config_textEdit->setText(settings.value("Mcpconfig", "").toString()); // mcp配置
 
-    // 应用值
-    QFile sd_modelpath_file(sd_modelpath);
-    if (sd_modelpath_file.exists())
-    {
-        ui->sd_modelpath_lineEdit->setText(sd_modelpath);
-    }
+    // 旧的行内路径/参数不再应用到界面；统一由高级设置管理
 
-    QFile vae_modelpath_file(vae_modelpath);
-    if (vae_modelpath_file.exists())
-    {
-        ui->sd_vaepath_lineEdit->setText(vae_modelpath);
-    }
-
-    QFile clip_l_modelpath_file(clip_l_modelpath);
-    if (clip_l_modelpath_file.exists())
-    {
-        ui->sd_clip_l_path_lineEdit->setText(clip_l_modelpath);
-    }
-
-    QFile clip_g_modelpath_file(clip_g_modelpath);
-    if (clip_g_modelpath_file.exists())
-    {
-        ui->sd_clip_g_path_lineEdit->setText(clip_g_modelpath);
-    }
-
-    QFile t5_modelpath_file(t5_modelpath);
-    if (t5_modelpath_file.exists())
-    {
-        ui->sd_t5path_lineEdit->setText(t5_modelpath);
-    }
-
-    QFile lora_modelpath_file(lora_modelpath);
-    if (lora_modelpath_file.exists())
-    {
-        ui->sd_lorapath_lineEdit->setText(lora_modelpath);
-    }
-
-    sd_params_templates["custom1"].batch_count = settings.value("sd_custom1_image_nums", 1).toInt();
-    sd_params_templates["custom1"].cfg_scale = settings.value("sd_custom1_cfg", 7.5).toFloat();
-    sd_params_templates["custom1"].clip_skip = settings.value("sd_custom1_clip_skip", -1).toInt();
-    sd_params_templates["custom1"].height = settings.value("sd_custom1_image_height", 512).toInt();
-    sd_params_templates["custom1"].width = settings.value("sd_custom1_image_width", 512).toInt();
-    sd_params_templates["custom1"].seed = settings.value("sd_custom1_seed", -1).toInt();
-    sd_params_templates["custom1"].steps = settings.value("sd_custom1_sample_steps", 20).toInt();
-    sd_params_templates["custom1"].sample_type = settings.value("sd_custom1_sample_type", "euler").toString();
-    sd_params_templates["custom1"].negative_prompt = settings.value("sd_custom1_negative", "").toString();
-    sd_params_templates["custom1"].modify_prompt = settings.value("sd_custom1_modify", "").toString();
-
-    sd_params_templates["custom2"].batch_count = settings.value("sd_custom2_image_nums", 1).toInt();
-    sd_params_templates["custom2"].cfg_scale = settings.value("sd_custom2_cfg", 7.5).toFloat();
-    sd_params_templates["custom2"].clip_skip = settings.value("sd_custom2_clip_skip", -1).toInt();
-    sd_params_templates["custom2"].height = settings.value("sd_custom2_image_height", 512).toInt();
-    sd_params_templates["custom2"].width = settings.value("sd_custom2_image_width", 512).toInt();
-    sd_params_templates["custom2"].seed = settings.value("sd_custom2_seed", -1).toInt();
-    sd_params_templates["custom2"].steps = settings.value("sd_custom2_sample_steps", 20).toInt();
-    sd_params_templates["custom2"].sample_type = settings.value("sd_custom2_sample_type", "euler").toString();
-    sd_params_templates["custom2"].negative_prompt = settings.value("sd_custom2_negative", "").toString();
-    sd_params_templates["custom2"].modify_prompt = settings.value("sd_custom2_modify", "").toString();
-
-    // Rebuild presets为固定集合：flux1-dev, qwen-image, sd1.5-anything-3, wan2.2, custom1, custom2
-    // Preserve user custom templates loaded above
-    SD_PARAMS custom1 = sd_params_templates.value("custom1", SD_PARAMS{});
-    SD_PARAMS custom2 = sd_params_templates.value("custom2", SD_PARAMS{});
-    sd_params_templates.clear();
-    SD_PARAMS sd_flux{"euler", "", "", 768, 768, 30, 1, -1, -1, 1.0};
-    SD_PARAMS sd_qwen{"euler", "", "", 1024, 1024, 30, 1, -1, -1, 2.5};
-    SD_PARAMS sd_anything{"euler_a",
-                          "EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure",
-                          "masterpieces, best quality, beauty, detailed, Pixar, 8k",
-                          512, 512, 20, 1, -1, 1, 7.5};
-    SD_PARAMS sd_wan{"euler",
-                     QStringLiteral("色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"),
-                     "",
-                     480, 832, 30, 1, -1, -1, 6.0};
-    sd_params_templates.insert("flux1-dev", sd_flux);
-    sd_params_templates.insert("qwen-image", sd_qwen);
-    sd_params_templates.insert("sd1.5-anything-3", sd_anything);
-    sd_params_templates.insert("wan2.2", sd_wan);
-    sd_params_templates.insert("custom1", custom1);
-    sd_params_templates.insert("custom2", custom2);
-
-    // Apply saved custom1/custom2 values loaded above
-    // Ensure combo box只显示支持的预设
-    ui->params_template_comboBox->clear();
-    ui->params_template_comboBox->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"});
+    // 预设列表固定：flux1-dev, qwen-image, sd1.5-anything-3, wan2.2, custom1, custom2
     // Clamp template key to supported set
     if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"}).contains(sd_params_template))
         sd_params_template = "sd1.5-anything-3";
-    ui->params_template_comboBox->setCurrentText(sd_params_template);
-    // Make current run-config match the stored config for this preset
+    // 当前预设的运行配置
     sd_run_config_ = sd_preset_configs_.value(sd_params_template, SDRunConfig{});
-    // sd1.5: provide default prompts if empty
-    if (sd_params_template == "sd1.5-anything-3")
-    {
-        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_anything.modify_prompt;
-        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_anything.negative_prompt;
-    }
-    // Mirror essentials to inline widgets
-    applyPresetToInlineUi(sd_params_template);
     // Load per-preset prompts from config (avoid cross-preset leakage)
     auto sanitize = [this](QString s){ return sanitizePresetKey(s); };
     const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","wan2.2","custom1","custom2"};
@@ -456,9 +297,9 @@ void Expend::readConfig()
         sd_preset_modify_[p] = settings.value("sd_preset_"+key+"_modify", "").toString();
         sd_preset_negative_[p] = settings.value("sd_preset_"+key+"_negative", "").toString();
     }
-    // Ensure sd1.5 has defaults if empty
-    if (sd_preset_modify_["sd1.5-anything-3"].isEmpty()) sd_preset_modify_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].modify_prompt;
-    if (sd_preset_negative_["sd1.5-anything-3"].isEmpty()) sd_preset_negative_["sd1.5-anything-3"] = sd_params_templates["sd1.5-anything-3"].negative_prompt;
+    // Ensure sd1.5 defaults if empty (compat only)
+    if (sd_preset_modify_["sd1.5-anything-3"].isEmpty()) sd_preset_modify_["sd1.5-anything-3"] = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+    if (sd_preset_negative_["sd1.5-anything-3"].isEmpty()) sd_preset_negative_["sd1.5-anything-3"] = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
     // Apply current preset prompts from store (kept for compatibility)
     if (!sd_preset_modify_.value(sd_params_template).isEmpty())
         sd_run_config_.modifyPrompt = sd_preset_modify_.value(sd_params_template);

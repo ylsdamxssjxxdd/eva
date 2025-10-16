@@ -76,7 +76,7 @@ class Expend : public QWidget
     void changeEvent(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override; // 事件过滤器函数
     void setWhisperModelpath(QString modelpath);            // 用于设置whisper模型路径
-    void setSdModelpath(QString modelpath);                 // 用于设置sd模型路径
+    // SD inline path setters removed; configuration handled by advanced dialog
     QJsonObject wordsObj;
     int language_flag = 0;
     QString jtr(QString customstr); // 根据language.json(wordsObj)和language_flag中找到对应的文字
@@ -227,19 +227,15 @@ class Expend : public QWidget
     //-------------------------------------------------------------------------
 
   public:
-    QString sd_current_template = "default";      // 当前使用的模板 default,sd1.5-anything-3,sdxl-animagine-3.1,sd3-medium,flux1-dev,custom1,custom2
-    QMap<QString, SD_PARAMS> sd_params_templates; // sd参数模板们
-    void sd_apply_template(SD_PARAMS sd_params);  // 应用sd参数模板
+    // Legacy inline SD template panel removed; presets managed by advanced dialog only
     QString sd_outputpath;                        // 最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
     bool img2img = false;                         // 是否是图生图操作
-    QStringList listFiles(const QString &path);   // 遍历目录
+    // Legacy file scanning removed (was used by inline SD path panel)
     bool is_readconfig = false;                   // 用于控制模板的应用
-    bool is_sd_custom1 = false;                   // 当前是否为自定义的参数模板
-    bool is_sd_custom2 = false;                   // 当前是否为自定义的参数模板
-    void sd_save_template(QString template_name); // 保存参数到自定义模板
+    // Legacy custom template flags removed
     // 高级参数弹窗与运行配置
     SdParamsDialog *sdParamsDialog_ = nullptr; // 弹窗（延迟创建）
     SDRunConfig sd_run_config_;                // 运行配置（持久化）
@@ -254,12 +250,7 @@ class Expend : public QWidget
   signals:
     void expend2tool_drawover(QString result_, bool ok_); // 绘制完成信号
   private slots:
-    void on_sd_modelpath_pushButton_clicked();                       // 用户点击选择sd模型路径时响应
-    void on_sd_vaepath_pushButton_clicked();                         // 用户点击选择vae模型路径时响应
-    void on_sd_clip_l_path_pushButton_clicked();                     // 用户点击选择clip模型路径时响应
-    void on_sd_clip_g_path_pushButton_clicked();                     // 用户点击选择clip模型路径时响应
-    void on_sd_t5path_pushButton_clicked();                          // 用户点击选择t5模型路径时响应
-    void on_sd_lorapath_pushButton_clicked();                        // 用户点击选择lora模型路径时响应
+    // Inline SD path selection slots removed: use advanced dialog
     void on_sd_draw_pushButton_clicked();                            // 用户点击文生图时响应
     void on_sd_img2img_pushButton_clicked();                         // 用户点击图生图时响应
     void on_params_template_comboBox_currentIndexChanged(int index); // 参数模板改变响应

@@ -129,199 +129,11 @@ void Expend::savePresetConfig(const QString &preset, const SDRunConfig &cfg) con
 
 void Expend::applyPresetToInlineUi(const QString &preset)
 {
-    // Mirror essential fields to visible inline widgets for user awareness.
-    const SDRunConfig &c = sd_preset_configs_.value(preset, sd_run_config_);
-    if (ui->sd_modelpath_lineEdit) ui->sd_modelpath_lineEdit->setText(c.modelPath);
-    if (ui->sd_vaepath_lineEdit) ui->sd_vaepath_lineEdit->setText(c.vaePath);
-    if (ui->sd_clip_l_path_lineEdit) ui->sd_clip_l_path_lineEdit->setText(c.clipLPath);
-    if (ui->sd_clip_g_path_lineEdit) ui->sd_clip_g_path_lineEdit->setText(c.clipGPath);
-    if (ui->sd_t5path_lineEdit) ui->sd_t5path_lineEdit->setText(c.t5xxlPath);
-    if (ui->sd_lorapath_lineEdit) ui->sd_lorapath_lineEdit->setText(c.loraDirPath);
-    if (ui->sd_modify_lineEdit) ui->sd_modify_lineEdit->setText(c.modifyPrompt);
-    if (ui->sd_negative_lineEdit) ui->sd_negative_lineEdit->setText(c.negativePrompt);
+    Q_UNUSED(preset);
+    // Legacy inline SD fields removed; advanced dialog is the single source of truth.
 }
 
-// 用于设置sd模型路径
-void Expend::setSdModelpath(QString modelpath)
-{
-    ui->sd_modelpath_lineEdit->setText(modelpath);
-    ui->params_template_comboBox->setCurrentText("sd1.5-anything-3"); // 默认
-}
-
-// 遍历目录
-QStringList Expend::listFiles(const QString &path)
-{
-    QStringList file_paths;
-    QDir dir(path);
-
-    // Set the filter to include files and no special files/links
-    dir.setFilter(QDir::Files | QDir::NoSymLinks);
-
-    // Get the list of files in the directory
-    QFileInfoList fileList = dir.entryInfoList();
-
-    // Iterate through the list and print the absolute file paths
-    foreach (const QFileInfo &fileInfo, fileList)
-    {
-        file_paths << fileInfo.absoluteFilePath();
-    }
-
-    return file_paths;
-}
-
-// 用户点击选择sd模型路径时响应
-void Expend::on_sd_modelpath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose diffusion model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath == "")
-    {
-        return;
-    }
-
-    QString modelpath = currentpath;
-    ui->sd_modelpath_lineEdit->setText(currentpath);
-    // Mirror to advanced run config (main model path)
-    sd_run_config_.modelPath = currentpath;
-
-    // 自动寻找其它模型
-    if (QFile::exists(modelpath))
-    {
-        // 先清空其它路径
-        ui->sd_lorapath_lineEdit->setText("");
-        ui->sd_vaepath_lineEdit->setText("");
-        ui->sd_clip_l_path_lineEdit->setText("");
-        ui->sd_clip_g_path_lineEdit->setText("");
-        ui->sd_t5path_lineEdit->setText("");
-
-        // 遍历当前目录
-        QFileInfo modelfileInfo(modelpath);
-        QString model_directoryPath = modelfileInfo.absolutePath(); // 提取目录路径
-        QStringList file_list = listFiles(model_directoryPath);
-
-        for (int i = 0; i < file_list.size(); ++i)
-        {
-            QString file_path_name = file_list.at(i);
-            if (file_path_name.contains("vae"))
-            {
-                ui->sd_vaepath_lineEdit->setText(file_path_name);
-            }
-            else if (file_path_name.contains("clip_l"))
-            {
-                ui->sd_clip_l_path_lineEdit->setText(file_path_name);
-            }
-            else if (file_path_name.contains("clip_g"))
-            {
-                ui->sd_clip_g_path_lineEdit->setText(file_path_name);
-            }
-            else if (file_path_name.contains("t5"))
-            {
-                ui->sd_t5path_lineEdit->setText(file_path_name);
-            }
-        }
-    }
-
-    // 自动设置参数模板
-    if (modelpath.contains("qwen", Qt::CaseInsensitive))
-    {
-        ui->params_template_comboBox->setCurrentText("qwen-image");
-    }
-    else if (modelpath.contains("sd1.5-anything-3"))
-    {
-        ui->params_template_comboBox->setCurrentText("sd1.5-anything-3");
-    }
-    else if (modelpath.contains("sdxl-animagine-3.1"))
-    {
-        // Deprecated preset removed in favor of compact set; fallback to custom1
-        ui->params_template_comboBox->setCurrentText("custom1");
-    }
-    else if (modelpath.contains("sd3.5-large"))
-    {
-        ui->params_template_comboBox->setCurrentText("custom1");
-    }
-    else if (modelpath.contains("flux1-dev"))
-    {
-        ui->params_template_comboBox->setCurrentText("flux1-dev");
-    }
-    else if (modelpath.contains("wan2", Qt::CaseInsensitive))
-    {
-        ui->params_template_comboBox->setCurrentText("wan2.2");
-    }
-    // Persist per-preset config immediately (isolation)
-    const QString preset = ui->params_template_comboBox->currentText();
-    sd_preset_configs_[preset] = sd_run_config_;
-    savePresetConfig(preset, sd_run_config_);
-}
-
-// 用户点击选择vae模型路径时响应
-void Expend::on_sd_vaepath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose vae model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath != "")
-    {
-        ui->sd_vaepath_lineEdit->setText(currentpath);
-        sd_run_config_.vaePath = currentpath;
-        const QString preset = ui->params_template_comboBox->currentText();
-        sd_preset_configs_[preset] = sd_run_config_;
-        savePresetConfig(preset, sd_run_config_);
-    }
-}
-
-// 用户点击选择clip模型路径时响应
-void Expend::on_sd_clip_l_path_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose clip_l model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath != "")
-    {
-        ui->sd_clip_l_path_lineEdit->setText(currentpath);
-        sd_run_config_.clipLPath = currentpath;
-        const QString preset = ui->params_template_comboBox->currentText();
-        sd_preset_configs_[preset] = sd_run_config_;
-        savePresetConfig(preset, sd_run_config_);
-    }
-}
-
-// 用户点击选择clip模型路径时响应
-void Expend::on_sd_clip_g_path_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose clip_g model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath != "")
-    {
-        ui->sd_clip_g_path_lineEdit->setText(currentpath);
-        sd_run_config_.clipGPath = currentpath;
-        const QString preset = ui->params_template_comboBox->currentText();
-        sd_preset_configs_[preset] = sd_run_config_;
-        savePresetConfig(preset, sd_run_config_);
-    }
-}
-
-// 用户点击选择t5模型路径时响应
-void Expend::on_sd_t5path_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose t5 model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath != "")
-    {
-        ui->sd_t5path_lineEdit->setText(currentpath);
-        sd_run_config_.t5xxlPath = currentpath;
-        const QString preset = ui->params_template_comboBox->currentText();
-        sd_preset_configs_[preset] = sd_run_config_;
-        savePresetConfig(preset, sd_run_config_);
-    }
-}
-
-// 用户点击选择lora模型路径时响应
-void Expend::on_sd_lorapath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose lora model", "(*.ckpt *.safetensors *.diffusers *.gguf *.ggml *.pt)");
-    if (currentpath != "")
-    {
-        ui->sd_lorapath_lineEdit->setText(currentpath);
-        QFileInfo fi(currentpath);
-        sd_run_config_.loraDirPath = fi.isDir()? currentpath : fi.absolutePath();
-        const QString preset = ui->params_template_comboBox->currentText();
-        sd_preset_configs_[preset] = sd_run_config_;
-        savePresetConfig(preset, sd_run_config_);
-    }
-}
+// Legacy inline SD path selection and auto-completion removed; advanced dialog contains all controls.
 
 // 打开新的文生图高级参数弹窗
 void Expend::on_sd_open_params_button_clicked()
@@ -329,9 +141,11 @@ void Expend::on_sd_open_params_button_clicked()
     if (!sdParamsDialog_)
     {
         sdParamsDialog_ = new SdParamsDialog(this);
-        // Initialize preset matching the current combo box and inject its stored config
+        // Initialize preset matching the last-used selection and inject its stored config
         sdParamsDialog_->setAutosaveMuted(true);
-        const QString presetNow = ui->params_template_comboBox->currentText();
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
+        const QString presetNow = settings.value("sd_params_template", QStringLiteral("sd1.5-anything-3")).toString();
         sdParamsDialog_->applyPreset(presetNow);
         // Load stored config for current preset and reflect into dialog
         if (!sd_preset_configs_.contains(presetNow))
@@ -340,19 +154,22 @@ void Expend::on_sd_open_params_button_clicked()
         // Default sd1.5 prompts if empty
         if (presetNow == "sd1.5-anything-3")
         {
-            if (cfgNow.modifyPrompt.isEmpty()) cfgNow.modifyPrompt = sd_params_templates[presetNow].modify_prompt;
-            if (cfgNow.negativePrompt.isEmpty()) cfgNow.negativePrompt = sd_params_templates[presetNow].negative_prompt;
+            const QString defMod = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+            const QString defNeg = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+            if (cfgNow.modifyPrompt.isEmpty()) cfgNow.modifyPrompt = defMod;
+            if (cfgNow.negativePrompt.isEmpty()) cfgNow.negativePrompt = defNeg;
         }
         sdParamsDialog_->setConfig(cfgNow);
         // Keep legacy per-preset prompt store in sync for compatibility
         sdParamsDialog_->setPresetPromptStore(sd_preset_modify_, sd_preset_negative_);
         // Autosave handler: persist strictly per preset
         connect(sdParamsDialog_, &SdParamsDialog::accepted, this, [this](const SDRunConfig &cfg, const QString &preset) {
-            const QString p = preset.isEmpty()? ui->params_template_comboBox->currentText() : preset;
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            const QString p = preset.isEmpty()? settings.value("sd_params_template", QStringLiteral("sd1.5-anything-3")).toString() : preset;
             sd_preset_configs_[p] = cfg;
             sd_run_config_ = cfg; // make it current
-            // Mirror essentials to inline fields
-            applyPresetToInlineUi(p);
+            // Inline fields removed; no mirroring
             // Keep compatibility maps for prompts
             sd_preset_modify_[p] = cfg.modifyPrompt;
             sd_preset_negative_[p] = cfg.negativePrompt;
@@ -360,8 +177,6 @@ void Expend::on_sd_open_params_button_clicked()
             createTempDirectory(applicationDirPath + "/EVA_TEMP");
             savePresetConfig(p, cfg);
             // Also persist current positive prompt for convenience (global)
-            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-            settings.setIniCodec("utf-8");
             settings.setValue("sd_prompt", ui->sd_prompt_textEdit->toPlainText());
             // Keep last-used global keys aligned
             settings.setValue("sd_adv_modify", cfg.modifyPrompt);
@@ -370,11 +185,16 @@ void Expend::on_sd_open_params_button_clicked()
         });
         // When user switches preset inside dialog, inject stored config so fields do not leak
         connect(sdParamsDialog_, &SdParamsDialog::presetChanged, this, [this](const QString &p){
+            QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+            settings.setIniCodec("utf-8");
+            settings.setValue("sd_params_template", p);
+            settings.sync();
             if (!sd_preset_configs_.contains(p)) sd_preset_configs_[p] = loadPresetConfig(p);
-            sdParamsDialog_->setConfig(sd_preset_configs_.value(p));
-            // Switch inline preset selector as well
-            if (ui && ui->params_template_comboBox)
-                ui->params_template_comboBox->setCurrentText(p);
+            // Update current run config and dialog fields
+            sd_run_config_ = sd_preset_configs_.value(p);
+            sdParamsDialog_->setConfig(sd_run_config_);
+            // Apply defaults for special presets
+            on_params_template_comboBox_currentIndexChanged(-1);
         });
         // Unmute autosave after initial programmatic setup
         sdParamsDialog_->setAutosaveMuted(false);
@@ -406,7 +226,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         ui->sd_log->appendPlainText(jtr("Please enter prompt words to tell the model what you want the image to look like"));
         return;
     }
-    else if (is_handle_sd && ui->sd_modelpath_lineEdit->text() == "")
+    else if (is_handle_sd && sd_run_config_.modelPath.isEmpty())
     {
         ui->sd_log->appendPlainText(jtr("Please specify the SD model path first"));
         return;
@@ -486,17 +306,7 @@ void Expend::on_sd_draw_pushButton_clicked()
         }
     }
     // Also support legacy single-file line edit if provided (backward compat)
-    if (lora_prompt.isEmpty() && QFile::exists(ui->sd_lorapath_lineEdit->text()))
-    {
-        QFileInfo lorafileInfo(ui->sd_lorapath_lineEdit->text());
-        QString lora_directoryPath = lorafileInfo.absolutePath();
-        QString lora_name = lorafileInfo.fileName().replace(".safetensors", "");
-        if (!lora_directoryPath.isEmpty())
-        {
-            arguments << "--lora-model-dir" << toToolFriendlyPath(lora_directoryPath);
-            lora_prompt = QString(" <lora:%1:1>").arg(lora_name);
-        }
-    }
+    // Legacy single-file LoRA fallback removed; advanced dialog uses directory
 
     // dims and sampling
     arguments << "-W" << QString::number(sd_run_config_.width);
@@ -615,19 +425,6 @@ void Expend::sd_onProcessFinished()
     imageFormat.setName(sd_outputpath);    // 图片资源路径
     cursor.insertImage(imageFormat);
     ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
-    // 如果是多幅
-    if (ui->sd_batch_count->value() > 1)
-    {
-        for (int i = 1; i < ui->sd_batch_count->value(); ++i)
-        {
-            QTextImageFormat imageFormats;
-            imageFormats.setWidth(originalWidth);                                                         // 设置图片的宽度
-            imageFormats.setHeight(originalHeight);                                                       // 设置图片的高度
-            imageFormats.setName(sd_outputpath.split(".png")[0] + "_" + QString::number(i + 1) + ".png"); // 图片资源路径
-            cursor.insertImage(imageFormats);
-            ui->sd_result->verticalScrollBar()->setValue(ui->sd_result->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
-        }
-    }
 
     // 处理工具调用情况
     if (!is_handle_sd && originalWidth > 0)
@@ -656,98 +453,36 @@ void Expend::sd_onProcessFinished()
 void Expend::on_params_template_comboBox_currentIndexChanged(int index)
 {
     Q_UNUSED(index);
-    // 以前是自定义模板，触发这个函数说明现在换了，保存以前的这个模板
-    if (is_readconfig)
-    {
-        if (is_sd_custom1)
-        {
-            sd_save_template("custom1");
-        }
-        else if (is_sd_custom2)
-        {
-            sd_save_template("custom2");
-        }
+    // Apply current preset from settings; UI combobox removed.
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    const QString preset = settings.value("sd_params_template", QStringLiteral("sd1.5-anything-3")).toString();
 
-        if (ui->params_template_comboBox->currentText().contains("custom1"))
-        {
-            is_sd_custom1 = true;
-            is_sd_custom2 = false;
-        }
-        else if (ui->params_template_comboBox->currentText().contains("custom2"))
-        {
-            is_sd_custom2 = true;
-            is_sd_custom1 = false;
-        }
-        else
-        {
-            is_sd_custom1 = false;
-            is_sd_custom2 = false;
-        }
-    }
-    const QString preset = ui->params_template_comboBox->currentText();
-    // Persist the selected preset immediately
-    {
-        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-        settings.setIniCodec("utf-8");
-        settings.setValue("sd_params_template", preset);
-        // Keep last-used global keys aligned for modify/negative
-        settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
-        settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
-        settings.sync();
-    }
-    // Load per-preset config (isolated)
     if (!sd_preset_configs_.contains(preset))
         sd_preset_configs_[preset] = loadPresetConfig(preset);
     sd_run_config_ = sd_preset_configs_.value(preset);
-    // sd1.5: ensure defaults for empty prompts
-    if (preset == "sd1.5-anything-3")
+
+    // Defaults for special presets
+    if (preset == QStringLiteral("sd1.5-anything-3"))
     {
-        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = sd_params_templates[preset].modify_prompt;
-        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = sd_params_templates[preset].negative_prompt;
+        const QString defMod = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+        const QString defNeg = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+        if (sd_run_config_.modifyPrompt.isEmpty()) sd_run_config_.modifyPrompt = defMod;
+        if (sd_run_config_.negativePrompt.isEmpty()) sd_run_config_.negativePrompt = defNeg;
     }
-    // wan2.2: ensure default negative & video frames if missing
-    if (preset == "wan2.2")
+    if (preset == QStringLiteral("wan2.2"))
     {
         if (sd_run_config_.negativePrompt.isEmpty())
-            sd_run_config_.negativePrompt = sd_params_templates.value(preset).negative_prompt;
-        if (sd_run_config_.videoFrames <= 0)
-            sd_run_config_.videoFrames = 33;
+            sd_run_config_.negativePrompt = QStringLiteral("色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走");
+        if (sd_run_config_.videoFrames <= 0) sd_run_config_.videoFrames = 33;
     }
-    // Mirror essentials to inline widgets
-    applyPresetToInlineUi(preset);
-    // If advanced dialog is open, refresh it to show this preset values only
+    // Persist compat keys
+    settings.setValue("sd_adv_modify", sd_run_config_.modifyPrompt);
+    settings.setValue("sd_adv_negative", sd_run_config_.negativePrompt);
+    settings.sync();
+
+    // Refresh dialog if open
     if (sdParamsDialog_) sdParamsDialog_->setConfig(sd_run_config_);
-}
-
-// 保存参数到自定义模板
-void Expend::sd_save_template(QString template_name)
-{
-    sd_params_templates[template_name].batch_count = ui->sd_batch_count->value();
-    sd_params_templates[template_name].cfg_scale = ui->sd_cfgscale->value();
-    sd_params_templates[template_name].clip_skip = ui->sd_clipskip->value();
-    sd_params_templates[template_name].height = ui->sd_imageheight->value();
-    sd_params_templates[template_name].width = ui->sd_imagewidth->value();
-    sd_params_templates[template_name].seed = ui->sd_seed->value();
-    sd_params_templates[template_name].steps = ui->sd_samplesteps->value();
-    sd_params_templates[template_name].sample_type = ui->sd_sampletype->currentText();
-    sd_params_templates[template_name].negative_prompt = ui->sd_negative_lineEdit->text();
-    sd_params_templates[template_name].modify_prompt = ui->sd_modify_lineEdit->text();
-}
-
-// 应用sd参数模板
-void Expend::sd_apply_template(SD_PARAMS sd_params)
-{
-    ui->sd_imagewidth->setValue(sd_params.width);
-    ui->sd_imageheight->setValue(sd_params.height);
-    ui->sd_sampletype->setCurrentText(sd_params.sample_type);
-    ui->sd_samplesteps->setValue(sd_params.steps);
-    ui->sd_cfgscale->setValue(sd_params.cfg_scale);
-    ui->sd_batch_count->setValue(sd_params.batch_count);
-    ui->sd_imagewidth->setValue(sd_params.width);
-    ui->sd_seed->setValue(sd_params.seed);
-    ui->sd_clipskip->setValue(sd_params.clip_skip);
-    ui->sd_negative_lineEdit->setText(sd_params.negative_prompt);
-    ui->sd_modify_lineEdit->setText(sd_params.modify_prompt);
 }
 
 // 用户点击图生图时响应
@@ -766,7 +501,7 @@ void Expend::recv_draw(QString prompt_)
         emit expend2tool_drawover("stablediffusion" + jtr("Running, please try again later"), 0); // 绘制完成信号
         return;
     }
-    else if (ui->sd_modelpath_lineEdit->text() == "")
+    else if (sd_run_config_.modelPath.isEmpty())
     {
         emit expend2tool_drawover(jtr("The command is invalid. Please ask the user to specify the SD model path in the breeding window first"), 0); // 绘制完成信号
         return;

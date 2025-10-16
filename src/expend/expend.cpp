@@ -191,20 +191,7 @@ void Expend::closeEvent(QCloseEvent *event)
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    if (ui && ui->params_template_comboBox)
-        settings.setValue("sd_params_template", ui->params_template_comboBox->currentText());
-    if (ui && ui->sd_modelpath_lineEdit)
-        settings.setValue("sd_modelpath", ui->sd_modelpath_lineEdit->text());
-    if (ui && ui->sd_vaepath_lineEdit)
-        settings.setValue("vae_modelpath", ui->sd_vaepath_lineEdit->text());
-    if (ui && ui->sd_clip_l_path_lineEdit)
-        settings.setValue("clip_l_modelpath", ui->sd_clip_l_path_lineEdit->text());
-    if (ui && ui->sd_clip_g_path_lineEdit)
-        settings.setValue("clip_g_modelpath", ui->sd_clip_g_path_lineEdit->text());
-    if (ui && ui->sd_t5path_lineEdit)
-        settings.setValue("t5_modelpath", ui->sd_t5path_lineEdit->text());
-    if (ui && ui->sd_lorapath_lineEdit)
-        settings.setValue("lora_modelpath", ui->sd_lorapath_lineEdit->text());
+    // Legacy inline SD path fields removed
 
     // Save advanced popup config as well
     settings.setValue("sd_adv_model_path", sd_run_config_.modelPath);
