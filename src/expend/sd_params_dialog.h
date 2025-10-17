@@ -83,6 +83,7 @@ class SdParamsDialog : public QWidget
     QLineEdit *t5Le_ = nullptr;
     QLineEdit *qwen2vlLe_ = nullptr;
     QLineEdit *loraDirLe_ = nullptr;
+    QLineEdit *qwen2vlVisionLe_ = nullptr;
     QLineEdit *taesdLe_ = nullptr;
     QLineEdit *upscaleLe_ = nullptr;
     QLineEdit *controlNetLe_ = nullptr;

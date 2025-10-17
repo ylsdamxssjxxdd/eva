@@ -200,7 +200,8 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("sd_adv_clip_g_path", sd_run_config_.clipGPath);
     settings.setValue("sd_adv_clip_vision_path", sd_run_config_.clipVisionPath);
     settings.setValue("sd_adv_t5xxl_path", sd_run_config_.t5xxlPath);
-    settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
+    settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
+    settings.setValue("sd_adv_qwen2vl_vision_path", sd_run_config_.qwen2vlVisionPath);
     settings.setValue("sd_adv_lora_dir", sd_run_config_.loraDirPath);
     settings.setValue("sd_adv_taesd_path", sd_run_config_.taesdPath);
     settings.setValue("sd_adv_upscale_model", sd_run_config_.upscaleModelPath);

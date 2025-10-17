@@ -50,6 +50,10 @@ void SdParamsDialog::buildUi()
     vaeLe_->setToolTip("VAE model (optional)");
     qwen2vlLe_ = addPathRow(formModel, "Qwen2VL", "(*.gguf *.ggml *.safetensors)");
     qwen2vlLe_->setToolTip("Qwen2-VL text encoder (Qwen-Image)");
+
+    qwen2vlVisionLe_ = addPathRow(formModel, "Qwen2VL-Vision", "(*.safetensors *.gguf *.ggml)");
+
+    qwen2vlVisionLe_->setToolTip("Qwen2-VL vision encoder (optional)");
     clipLLe_ = addPathRow(formModel, "CLIP-L", "(*.safetensors *.gguf *.ggml)");
     clipLLe_->setToolTip("CLIP-L text encoder");
     clipGLe_ = addPathRow(formModel, "CLIP-G", "(*.safetensors *.gguf *.ggml)");
@@ -206,6 +210,8 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     clipVisionLe_->setText(c.clipVisionPath);
     t5Le_->setText(c.t5xxlPath);
     qwen2vlLe_->setText(c.qwen2vlPath);
+
+    qwen2vlVisionLe_->setText(c.qwen2vlVisionPath);
     loraDirLe_->setText(c.loraDirPath);
     taesdLe_->setText(c.taesdPath);
     upscaleLe_->setText(c.upscaleModelPath);
@@ -257,6 +263,7 @@ SDRunConfig SdParamsDialog::config() const
     c.clipVisionPath = clipVisionLe_->text();
     c.t5xxlPath = t5Le_->text();
     c.qwen2vlPath = qwen2vlLe_->text();
+    c.qwen2vlVisionPath = qwen2vlVisionLe_->text();
     c.loraDirPath = loraDirLe_->text();
     c.taesdPath = taesdLe_->text();
     c.upscaleModelPath = upscaleLe_->text();
@@ -426,7 +433,7 @@ void SdParamsDialog::hookAutosave()
     connect(schedulerBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
     connect(rngBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
     // Line edits
-    for (QLineEdit *le : {modelPathLe_, vaeLe_, clipLLe_, clipGLe_, clipVisionLe_, t5Le_, qwen2vlLe_, loraDirLe_, taesdLe_, upscaleLe_, controlNetLe_, controlImgLe_, modifyEdit_})
+    for (QLineEdit *le : {modelPathLe_, vaeLe_, clipLLe_, clipGLe_, clipVisionLe_, t5Le_, qwen2vlLe_, qwen2vlVisionLe_, loraDirLe_, taesdLe_, upscaleLe_, controlNetLe_, controlImgLe_, modifyEdit_})
         if (le) connect(le, &QLineEdit::textChanged, this, arm);
     // Text edits
     if (negativeEdit_) connect(negativeEdit_, &QPlainTextEdit::textChanged, this, arm);

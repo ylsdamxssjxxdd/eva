@@ -437,6 +437,7 @@ struct SDRunConfig
     QString clipVisionPath;
     QString t5xxlPath;
     QString qwen2vlPath;
+    QString qwen2vlVisionPath;
     QString loraDirPath;  // directory containing LoRA files
     QString taesdPath;    // optional fast decoder
     QString upscaleModelPath; // ESRGAN model
