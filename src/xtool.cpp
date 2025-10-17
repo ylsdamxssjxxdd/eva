@@ -4,6 +4,8 @@
 
 #include <QDirIterator>
 #include <QEventLoop>
+#include <QRegularExpression>
+#include <algorithm>
 
 namespace
 {
@@ -30,6 +32,95 @@ QString clampToolMessage(const QString &message)
                  .arg(totalKb, 0, 'f', 1)
                  .arg(headKb, 0, 'f', 1)
                  .arg(tailKb, 0, 'f', 1);
+}
+
+struct MatchRange
+{
+    int start = -1;
+    int length = 0;
+};
+
+QString normalizeNewlines(QString text)
+{
+    text.replace("\r\n", "\n");
+    text.replace('\r', '\n');
+    return text;
+}
+
+QString restoreNewlines(QString text, bool hadCRLF, bool hadCR)
+{
+    if (hadCRLF) return text.replace("\n", "\r\n");
+    if (hadCR)
+    {
+        text.replace('\n', '\r');
+        return text;
+    }
+    return text;
+}
+
+QVector<MatchRange> findExactMatches(const QString &text, const QString &needle)
+{
+    QVector<MatchRange> results;
+    if (needle.isEmpty()) return results;
+
+    int idx = 0;
+    while ((idx = text.indexOf(needle, idx, Qt::CaseSensitive)) != -1)
+    {
+        results.append({idx, needle.length()});
+        idx += needle.length();
+    }
+    return results;
+}
+
+QString buildFlexiblePattern(const QString &needle)
+{
+    QString pattern;
+    pattern.reserve(needle.size() * 2);
+    bool lastWasWhitespace = false;
+
+    for (const QChar ch : needle)
+    {
+        if (ch.isSpace())
+        {
+            if (!lastWasWhitespace)
+            {
+                pattern += "\\s+";
+                lastWasWhitespace = true;
+            }
+        }
+        else
+        {
+            pattern += QRegularExpression::escape(QString(ch));
+            lastWasWhitespace = false;
+        }
+    }
+    return pattern;
+}
+
+QVector<MatchRange> findFlexibleMatches(const QString &text, const QString &needle)
+{
+    QVector<MatchRange> results;
+    QString pattern = buildFlexiblePattern(needle);
+    if (pattern.isEmpty()) return results;
+
+    QRegularExpression regex(pattern, QRegularExpression::UseUnicodePropertiesOption);
+    QRegularExpressionMatchIterator it = regex.globalMatch(text);
+    while (it.hasNext())
+    {
+        const QRegularExpressionMatch match = it.next();
+        if (!match.hasMatch()) continue;
+        results.append({match.capturedStart(), match.capturedLength()});
+    }
+    return results;
+}
+
+QString snippetPreview(const QString &text)
+{
+    QString trimmed = text.trimmed();
+    if (trimmed.isEmpty()) return {};
+    constexpr int kPreviewLimit = 160;
+    if (trimmed.size() > kPreviewLimit) trimmed = trimmed.left(kPreviewLimit) + "...";
+    return trimmed;
 }
 } // namespace
 
@@ -497,153 +588,122 @@ void xTool::Exec(mcp::json tools_call)
     }
 
     else if (tools_name == "edit_file")
-
     {
-
-        // ─────── 1. 解析参数 ───────
-
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
+        QString oldStrRaw = QString::fromStdString(get_string_safely(tools_args_, "old_string"));
+        QString newStrRaw = QString::fromStdString(get_string_safely(tools_args_, "new_string"));
 
-        QString oldStr = QString::fromStdString(get_string_safely(tools_args_, "old_string"));
-
-        QString newStr = QString::fromStdString(get_string_safely(tools_args_, "new_string"));
-
-        int expectedRepl = 1; // 默认 1 次
-
+        bool expectedProvided = false;
+        int expectedRepl = 1;
         if (tools_args_.contains("expected_replacements"))
-
         {
-
-            expectedRepl = static_cast<int>(tools_args_["expected_replacements"].get<int>());
-
-            if (expectedRepl < 1) expectedRepl = 1;
+            expectedProvided = true;
+            try
+            {
+                expectedRepl = std::max(1, tools_args_["expected_replacements"].get<int>());
+            }
+            catch (...)
+            {
+                expectedRepl = 1;
+            }
         }
 
-        // 必须使用工作目录根做一次“去重 + 归一化”
+        if (oldStrRaw.isEmpty())
+        {
+            sendPushMessage("edit_file " + jtr("return") + " old_string is empty.");
+            return;
+        }
 
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-
         filepath = QDir::fromNativeSeparators(filepath);
-
         if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
-
         filepath = QDir(root).filePath(filepath);
 
-        // ─────── 2. 读取文件 ───────
-
         QFile inFile(filepath);
-
         if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
-
         {
-
             sendPushMessage("edit_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
-
             return;
         }
 
-        QString fileContent = QString::fromUtf8(inFile.readAll());
-
+        QString originalContent = QString::fromUtf8(inFile.readAll());
         inFile.close();
 
-        // ─────── 3. 统计出现次数并校验 ───────
+        const bool hadCRLF = originalContent.contains("\r\n");
+        const bool hadCR = !hadCRLF && originalContent.contains('\r');
 
-        int occurrences = fileContent.count(oldStr, Qt::CaseSensitive);
+        QString normalizedContent = normalizeNewlines(originalContent);
+        const QString normalizedOld = normalizeNewlines(oldStrRaw);
+        const QString normalizedNew = normalizeNewlines(newStrRaw);
 
-        if (occurrences == 0)
-
+        QVector<MatchRange> matches = findExactMatches(normalizedContent, normalizedOld);
+        bool usedFlexibleMatch = false;
+        if (matches.isEmpty())
         {
+            matches = findFlexibleMatches(normalizedContent, normalizedOld);
+            usedFlexibleMatch = !matches.isEmpty();
+        }
 
-            sendPushMessage("edit_file " + jtr("return") + "old_string NOT found.");
-
+        if (matches.isEmpty())
+        {
+            QString message = "edit_file " + jtr("return") + " old_string NOT found.";
+            const QString preview = snippetPreview(normalizedOld);
+            if (!preview.isEmpty())
+            {
+                message += "\nSnippet: " + preview;
+            }
+            message += "\nHint: provide more surrounding context or verify indentation.";
+            sendPushMessage(message);
             return;
         }
 
-        if (occurrences != expectedRepl)
-
+        if (expectedProvided && matches.size() != expectedRepl)
         {
-
-            sendPushMessage(
-
-                "edit_file " + jtr("return") +
-
-                QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(occurrences));
-
+            sendPushMessage("edit_file " + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
             return;
         }
 
-        // ─────── 4. 执行替换 ───────
+        const bool autoExpanded = !expectedProvided && matches.size() > expectedRepl;
+        int replacementsToApply = expectedProvided ? expectedRepl : matches.size();
+        if (replacementsToApply > matches.size()) replacementsToApply = matches.size();
 
-        int replacedCount = 0;
-
-        int idx = 0;
-
-        while ((idx = fileContent.indexOf(oldStr, idx, Qt::CaseSensitive)) != -1)
-
+        int applied = 0;
+        for (int i = replacementsToApply - 1; i >= 0; --i)
         {
-
-            fileContent.replace(idx, oldStr.length(), newStr);
-
-            idx += newStr.length();
-
-            ++replacedCount;
+            const MatchRange &range = matches.at(i);
+            normalizedContent.replace(range.start, range.length, normalizedNew);
+            ++applied;
         }
 
-        // 再安全校验
-
-        if (replacedCount != expectedRepl)
-
-        {
-
-            sendPushMessage(
-
-                "edit_file " + jtr("return") +
-
-                QString("Replacement count mismatch, replaced %1 time(s).").arg(replacedCount));
-
-            return;
-        }
-
-        // ─────── 5. 写回文件 ───────
+        QString finalContent = restoreNewlines(normalizedContent, hadCRLF, hadCR);
 
         QFileInfo fi(filepath);
-
         QDir dir;
-
         if (!dir.mkpath(fi.absolutePath()))
-
         {
-
             sendPushMessage("edit_file " + jtr("return") + "Failed to create directory.");
-
             return;
         }
 
         QFile outFile(filepath);
-
         if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
-
         {
-
             sendPushMessage("edit_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
-
             return;
         }
 
         QTextStream ts(&outFile);
-
         ts.setCodec("UTF-8");
-
-        ts << fileContent;
-
+        ts << finalContent;
         outFile.close();
 
-        // ─────── 6. 成功反馈 ───────
-
-        QString result = QString("replaced %1 occurrence(s)").arg(replacedCount);
+        QString result = QString("replaced %1 occurrence(s)").arg(applied);
+        QStringList notes;
+        if (usedFlexibleMatch) notes << "whitespace-insensitive search";
+        if (autoExpanded && applied > 1) notes << QString("auto-applied to %1 identical matches").arg(applied);
+        if (!notes.isEmpty()) result += QString(" [%1]").arg(notes.join("; "));
 
         sendStateMessage("tool:edit_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
-
         sendPushMessage("edit_file " + jtr("return") + "\n" + result);
     }
 
