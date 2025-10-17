@@ -107,7 +107,11 @@ class xTool : public QObject
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 发送的状态信号
     void tool2expend_draw(QString prompt_);
-    void tool2ui_controller(int num); // 传递控制信息
+    void tool2ui_controller(int num); // Notify drawing progress
+
+  private:
+    void sendStateMessage(const QString &message, SIGNAL_STATE state = USUAL_SIGNAL);
+    void sendPushMessage(const QString &message);
 };
 
 // 鼠标键盘工具的函数

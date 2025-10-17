@@ -5,6 +5,44 @@
 #include <QDirIterator>
 #include <QEventLoop>
 
+namespace
+{
+constexpr int kMaxToolMessageBytes = 256 * 1024;
+constexpr int kToolMessageHeadBytes = 192 * 1024;
+constexpr int kToolMessageTailBytes = 48 * 1024;
+
+QString clampToolMessage(const QString &message)
+{
+    const QByteArray utf8 = message.toUtf8();
+    if (utf8.size() <= kMaxToolMessageBytes) return message;
+
+    const QByteArray headBytes = utf8.left(kToolMessageHeadBytes);
+    const QByteArray tailBytes = utf8.right(kToolMessageTailBytes);
+
+    const QString head = QString::fromUtf8(headBytes.constData(), headBytes.size());
+    const QString tail = QString::fromUtf8(tailBytes.constData(), tailBytes.size());
+    const double totalKb = utf8.size() / 1024.0;
+    const double headKb = headBytes.size() / 1024.0;
+    const double tailKb = tailBytes.size() / 1024.0;
+
+    return head + "\n...\n" + tail
+           + QString("\n[tool output truncated: %1 KB total, showing first %2 KB and last %3 KB]")
+                 .arg(totalKb, 0, 'f', 1)
+                 .arg(headKb, 0, 'f', 1)
+                 .arg(tailKb, 0, 'f', 1);
+}
+} // namespace
+
+void xTool::sendStateMessage(const QString &message, SIGNAL_STATE state)
+{
+    emit tool2ui_state(clampToolMessage(message), state);
+}
+
+void xTool::sendPushMessage(const QString &message)
+{
+    emit tool2ui_pushover(clampToolMessage(message));
+}
+
 xTool::xTool(QString applicationDirPath_)
 
 {
@@ -37,7 +75,7 @@ void xTool::recv_workdir(QString dir)
 
     // Do not force-create here to avoid unwanted dirs; Exec() ensures presence
 
-    emit tool2ui_state("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
+    sendStateMessage("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
 }
 
 void xTool::cancelExecuteCommand()
@@ -70,7 +108,7 @@ void xTool::Exec(mcp::json tools_call)
 
         QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "expression"));
 
-        emit tool2ui_state("tool:" + QString("calculator(") + build_in_tool_arg + ")");
+        sendStateMessage("tool:" + QString("calculator(") + build_in_tool_arg + ")");
 
         QString result = QString::number(te_interp(build_in_tool_arg.toStdString().c_str(), 0));
 
@@ -80,17 +118,17 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(QString("calculator ") + jtr("return") + "Calculation failed, please confirm if the calculation formula is reasonable");
+            sendPushMessage(QString("calculator ") + jtr("return") + "Calculation failed, please confirm if the calculation formula is reasonable");
         }
 
         else
 
         {
 
-            emit tool2ui_pushover(QString("calculator ") + jtr("return") + "\n" + result);
+            sendPushMessage(QString("calculator ") + jtr("return") + "\n" + result);
         }
 
-        emit tool2ui_state("tool:" + QString("calculator ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("calculator ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
     }
 
     //----------------------命令提示符------------------
@@ -98,7 +136,7 @@ void xTool::Exec(mcp::json tools_call)
     else if (tools_name == "execute_command")
     {
         const QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
-        emit tool2ui_state("tool:" + QString("execute_command(") + content + ")");
+        sendStateMessage("tool:" + QString("execute_command(") + content + ")");
 
         if (!workDirRoot.isEmpty()) { createTempDirectory(workDirRoot); }
         const QString work = workDirRoot.isEmpty() ? QDir::cleanPath(applicationDirPath + "/EVA_WORK") : workDirRoot;
@@ -158,8 +196,8 @@ void xTool::Exec(mcp::json tools_call)
             const QString err = process.errorString();
             emit tool2ui_terminalStderr(err + "\n");
             emit tool2ui_terminalCommandFinished(-1, false);
-            emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + err, WRONG_SIGNAL);
-            emit tool2ui_pushover(QString("execute_command ") + "\n" + err);
+            sendStateMessage("tool:" + QString("execute_command ") + "\n" + err, WRONG_SIGNAL);
+            sendPushMessage(QString("execute_command ") + "\n" + err);
             qWarning() << "execute_command start failed:" << err;
             activeCommandProcess_ = nullptr;
             activeCommandInterrupted_ = false;
@@ -205,8 +243,8 @@ void xTool::Exec(mcp::json tools_call)
             finalOutput += QStringLiteral("[command interrupted]");
         }
 
-        emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + finalOutput, TOOL_SIGNAL);
-        emit tool2ui_pushover(QString("execute_command ") + "\n" + finalOutput);
+        sendStateMessage("tool:" + QString("execute_command ") + "\n" + finalOutput, TOOL_SIGNAL);
+        sendPushMessage(QString("execute_command ") + "\n" + finalOutput);
         qDebug() << QString("execute_command ") + "\n" + finalOutput;
     }
 
@@ -228,9 +266,9 @@ void xTool::Exec(mcp::json tools_call)
 
             result = jtr("Please tell user to embed knowledge into the knowledge base first");
 
-            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+            sendStateMessage("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-            emit tool2ui_pushover(QString("knowledge ") + jtr("return") + "\n" + result);
+            sendPushMessage(QString("knowledge ") + jtr("return") + "\n" + result);
         }
 
         else
@@ -239,15 +277,15 @@ void xTool::Exec(mcp::json tools_call)
 
             // 查询计算词向量和计算相似度，返回匹配的文本段
 
-            emit tool2ui_state("tool:" + jtr("qureying"));
+            sendStateMessage("tool:" + jtr("qureying"));
 
             result = embedding_query_process(build_in_tool_arg);
 
-            emit tool2ui_state("tool:" + jtr("qurey&timeuse") + QString(": ") + QString::number(time4.nsecsElapsed() / 1000000000.0, 'f', 2) + " s");
+            sendStateMessage("tool:" + jtr("qurey&timeuse") + QString(": ") + QString::number(time4.nsecsElapsed() / 1000000000.0, 'f', 2) + " s");
 
-            emit tool2ui_state("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+            sendStateMessage("tool:" + QString("knowledge ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-            emit tool2ui_pushover(QString("knowledge ") + jtr("return") + "\n" + result);
+            sendPushMessage(QString("knowledge ") + jtr("return") + "\n" + result);
         }
     }
 
@@ -279,13 +317,13 @@ void xTool::Exec(mcp::json tools_call)
 
         std::string build_in_tool_arg_ = oss.str();
 
-        emit tool2ui_state("tool:" + QString("controller(") + QString::fromStdString(build_in_tool_arg_) + ")");
+        sendStateMessage("tool:" + QString("controller(") + QString::fromStdString(build_in_tool_arg_) + ")");
 
         // 执行行动序列
 
         excute_sequence(build_in_tool_arg);
 
-        emit tool2ui_pushover(QString("controller ") + jtr("return") + "\n" + "excute sequence over" + "\n");
+        sendPushMessage(QString("controller ") + jtr("return") + "\n" + "excute sequence over" + "\n");
     }
 
     //----------------------文生图------------------
@@ -347,7 +385,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath)); // 返回错误
+            sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath)); // 返回错误
 
             return;
         }
@@ -386,9 +424,9 @@ void xTool::Exec(mcp::json tools_call)
 
         result = lines.join("\n");
 
-        emit tool2ui_state("tool:" + QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result); // 返回结果
+        sendPushMessage(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result); // 返回结果
     }
 
     //----------------------写入文件------------------
@@ -423,7 +461,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "Failed to create directory"); // 返回错误
+            sendPushMessage(QString("write_file ") + jtr("return") + "Failed to create directory"); // 返回错误
 
             return; // or handle the error as appropriate
         }
@@ -434,7 +472,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString()); // 返回错误
+            sendPushMessage(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString()); // 返回错误
 
             return; // or handle the error as appropriate
         }
@@ -453,9 +491,9 @@ void xTool::Exec(mcp::json tools_call)
 
         QString result = "write over";
 
-        emit tool2ui_state("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover(QString("write_file ") + jtr("return") + "\n" + result);
+        sendPushMessage(QString("write_file ") + jtr("return") + "\n" + result);
     }
 
     else if (tools_name == "edit_file")
@@ -499,7 +537,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover("edit_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
+            sendPushMessage("edit_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
 
             return;
         }
@@ -516,7 +554,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover("edit_file " + jtr("return") + "old_string NOT found.");
+            sendPushMessage("edit_file " + jtr("return") + "old_string NOT found.");
 
             return;
         }
@@ -525,7 +563,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(
+            sendPushMessage(
 
                 "edit_file " + jtr("return") +
 
@@ -557,7 +595,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover(
+            sendPushMessage(
 
                 "edit_file " + jtr("return") +
 
@@ -576,7 +614,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover("edit_file " + jtr("return") + "Failed to create directory.");
+            sendPushMessage("edit_file " + jtr("return") + "Failed to create directory.");
 
             return;
         }
@@ -587,7 +625,7 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
-            emit tool2ui_pushover("edit_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
+            sendPushMessage("edit_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
 
             return;
         }
@@ -604,9 +642,9 @@ void xTool::Exec(mcp::json tools_call)
 
         QString result = QString("replaced %1 occurrence(s)").arg(replacedCount);
 
-        emit tool2ui_state("tool:edit_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendStateMessage("tool:edit_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover("edit_file " + jtr("return") + "\n" + result);
+        sendPushMessage("edit_file " + jtr("return") + "\n" + result);
     }
 
     //----------------------列出目录（工程师）------------------
@@ -617,7 +655,7 @@ void xTool::Exec(mcp::json tools_call)
 
         QString reqPath = QString::fromStdString(get_string_safely(tools_args_, "path"));
 
-        emit tool2ui_state("tool:" + QString("list_files(") + reqPath + ")");
+        sendStateMessage("tool:" + QString("list_files(") + reqPath + ")");
 
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
 
@@ -639,9 +677,9 @@ void xTool::Exec(mcp::json tools_call)
 
             const QString msg = QString("Access denied: path outside work root -> %1").arg(dirInfo.absoluteFilePath());
 
-            emit tool2ui_pushover(QString("list_files ") + jtr("return") + " " + msg);
+            sendPushMessage(QString("list_files ") + jtr("return") + " " + msg);
 
-            emit tool2ui_state("tool:" + QString("list_files ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+            sendStateMessage("tool:" + QString("list_files ") + jtr("return") + " " + msg, TOOL_SIGNAL);
 
             return;
         }
@@ -652,9 +690,9 @@ void xTool::Exec(mcp::json tools_call)
 
             const QString msg = QString("Not a directory: %1").arg(dirInfo.absoluteFilePath());
 
-            emit tool2ui_pushover(QString("list_files ") + jtr("return") + " " + msg);
+            sendPushMessage(QString("list_files ") + jtr("return") + " " + msg);
 
-            emit tool2ui_state("tool:" + QString("list_files ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+            sendStateMessage("tool:" + QString("list_files ") + jtr("return") + " " + msg, TOOL_SIGNAL);
 
             return;
         }
@@ -705,9 +743,9 @@ void xTool::Exec(mcp::json tools_call)
 
         const QString result = outLines.join(" ");
 
-        emit tool2ui_state("tool:" + QString("list_files ") + jtr("return") + " " + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("list_files ") + jtr("return") + " " + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover(QString("list_files ") + jtr("return") + " " + result);
+        sendPushMessage(QString("list_files ") + jtr("return") + " " + result);
     }
 
     //----------------------搜索内容（工程师）------------------
@@ -718,7 +756,7 @@ void xTool::Exec(mcp::json tools_call)
 
         const QString query = QString::fromStdString(get_string_safely(tools_args_, "query"));
 
-        emit tool2ui_state("tool:" + QString("search_content(") + query + ")");
+        sendStateMessage("tool:" + QString("search_content(") + query + ")");
 
         if (query.trimmed().isEmpty())
 
@@ -726,9 +764,9 @@ void xTool::Exec(mcp::json tools_call)
 
             const QString msg = QString("Empty query.");
 
-            emit tool2ui_pushover(QString("search_content ") + jtr("return") + " " + msg);
+            sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
 
-            emit tool2ui_state("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+            sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
 
             return;
         }
@@ -840,9 +878,9 @@ void xTool::Exec(mcp::json tools_call)
             result += QString("... truncated; first %1 matches shown").arg(kMaxMatches);
         }
 
-        emit tool2ui_state("tool:" + QString("search_content ") + jtr("return") + " " + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover(QString("search_content ") + jtr("return") + " " + result);
+        sendPushMessage(QString("search_content ") + jtr("return") + " " + result);
     }
 
     else if (tools_name.contains("mcp_tools_list")) // 查询mcp可用工具
@@ -865,7 +903,7 @@ void xTool::Exec(mcp::json tools_call)
 
     {
 
-        emit tool2ui_pushover(jtr("not load tool"));
+        sendPushMessage(jtr("not load tool"));
     }
 }
 
@@ -1003,7 +1041,7 @@ QString xTool::embedding_query_process(QString query_str)
 
                          vector_str += "]";
 
-                         emit tool2ui_state("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": " + QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str, USUAL_SIGNAL); });
+                         sendStateMessage("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": " + QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str, USUAL_SIGNAL); });
 
     // 完成
 
@@ -1052,7 +1090,7 @@ QString xTool::embedding_query_process(QString query_str)
 
                              // 请求出错
 
-                             emit tool2ui_state("tool:" + jtr("Request error") + " " + reply->error(), WRONG_SIGNAL);
+                             sendStateMessage("tool:" + jtr("Request error") + " " + reply->error(), WRONG_SIGNAL);
 
                              knowledge_result += jtr("Request error") + " " + reply->error();
                          }
@@ -1161,7 +1199,7 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
 
     Embedding_DB = Embedding_DB_;
 
-    emit tool2ui_state("tool:" + jtr("Received embedded text segment data"), USUAL_SIGNAL);
+    sendStateMessage("tool:" + jtr("Received embedded text segment data"), USUAL_SIGNAL);
 }
 
 // 传递嵌入结果返回个数
@@ -1185,7 +1223,7 @@ void xTool::recv_drawover(QString result_, bool ok_)
 
     {
 
-        emit tool2ui_pushover(result_);
+        sendPushMessage(result_);
 
         return;
     }
@@ -1194,9 +1232,9 @@ void xTool::recv_drawover(QString result_, bool ok_)
 
     // 添加绘制成功并显示图像指令
 
-    emit tool2ui_state("tool:" + QString("stablediffusion ") + jtr("return") + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_, TOOL_SIGNAL);
+    sendStateMessage("tool:" + QString("stablediffusion ") + jtr("return") + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_, TOOL_SIGNAL);
 
-    emit tool2ui_pushover("<ylsdamxssjxxdd:showdraw>" + result_);
+    sendPushMessage("<ylsdamxssjxxdd:showdraw>" + result_);
 }
 
 // 传递控制完成结果
@@ -1205,9 +1243,9 @@ void xTool::tool2ui_controller_over(QString result)
 
 {
 
-    emit tool2ui_state("tool:" + QString("controller ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+    sendStateMessage("tool:" + QString("controller ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-    emit tool2ui_pushover(QString("controller ") + jtr("return") + "\n" + result);
+    sendPushMessage(QString("controller ") + jtr("return") + "\n" + result);
 }
 
 void xTool::recv_language(int language_flag_)
@@ -1234,16 +1272,16 @@ void xTool::recv_callTool_over(QString result)
 
     {
 
-        emit tool2ui_pushover(jtr("not load tool"));
+        sendPushMessage(jtr("not load tool"));
     }
 
     else
 
     {
 
-        emit tool2ui_state("tool:" + QString("mcp ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendStateMessage("tool:" + QString("mcp ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-        emit tool2ui_pushover(QString("mcp ") + jtr("return") + "\n" + result);
+        sendPushMessage(QString("mcp ") + jtr("return") + "\n" + result);
     }
 }
 
@@ -1255,9 +1293,9 @@ void xTool::recv_calllist_over()
 
     QString result = mcpToolParser(MCP_TOOLS_INFO_ALL);
 
-    emit tool2ui_state("tool:" + QString("mcp_tool_list ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+    sendStateMessage("tool:" + QString("mcp_tool_list ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
-    emit tool2ui_pushover(QString("mcp_tool_list ") + jtr("return") + "\n" + result);
+    sendPushMessage(QString("mcp_tool_list ") + jtr("return") + "\n" + result);
 }
 
 // 解析出所有mcp工具信息拼接为一段文本
