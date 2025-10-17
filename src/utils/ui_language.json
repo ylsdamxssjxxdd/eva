@@ -417,6 +417,10 @@
             "上文处理",
             "pp"
         ],
+        "generate": [
+            "生成",
+            "Generate"
+        ],
         "single decode": [
             "文字生成",
             "tg"
@@ -1399,8 +1403,8 @@
             "the best appearance of an image"
         ],
         "sd_img2img_lineEdit_placeholder": [
-            "右击选择图像进行图生图",
-            "right click and select an image for image generation"
+            "选择图像进行图生图（非必须）",
+            "Select image for image generation (not mandatory)"
         ],
         "settings": [
             "配置",
@@ -1447,8 +1451,8 @@
             "upload image"
         ],
         "sd_prompt_textEdit_placeholder": [
-            "使用纯英文描述，会自动将修饰词加到前面",
-            "using pure English description, will automatically add modify to the front"
+            "先在参数设置中配置好模型和参数（可以参考EVA_MODELS/text2image各个目录下的截图进行配置），在这里输入你想绘制的内容，点击生成~",
+            "First, configure the model and parameters in the parameter settings (you can refer to the screenshots in various directories of EVA-PODELS/text2image for configuration), enter the content you want to draw here, and click generate~"
         ],
         "sd_log_plainText": [
             "",

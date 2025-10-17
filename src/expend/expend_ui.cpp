@@ -76,6 +76,9 @@ void Expend::init_expend()
         sd_imgDrop->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
     }
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
+    ui->sd_open_params_button->setText(jtr("params set"));
+    ui->sd_draw_pushButton->setText(jtr("generate"));
+
 
     // 声转文
     ui->whisper_modelpath_label->setText(jtr("whisper path"));
