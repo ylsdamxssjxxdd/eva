@@ -8,6 +8,7 @@
 #include <QMimeData>
 #include <QFileDialog>
 #include <QPainter>
+#include <QFileInfo>
 
 // Local lightweight image drop/click widget for img2img
 
@@ -114,7 +115,37 @@ void Expend::init_expend()
     ui->speech_manual_plainTextEdit->setPlaceholderText(jtr("speech_manual_plainTextEdit placehold"));
     ui->speech_manual_pushButton->setText(jtr("convert to audio"));
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
-    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
+    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);    // Initialize Text-to-Speech source list: always provide outetts, plus system voices if available
+    QStringList ttsSources;
+    ttsSources << SPPECH_OUTETTS;
+    // Lazily create system TTS and enumerate voices
+    if (!sys_speech) sys_speech = new QTextToSpeech(this);
+    is_sys_speech_available = false;
+    if (sys_speech)
+    {
+        const auto voices = sys_speech->availableVoices();
+        if (!voices.isEmpty())
+        {
+            is_sys_speech_available = true;
+            for (const QVoice &v : voices) ttsSources << v.name();
+        }
+    }
+    // Pick a sensible default on first boot
+    if (speech_params.speech_name.trimmed().isEmpty())
+    {
+        const bool haveOute = QFileInfo::exists(ui->speech_outetts_modelpath_lineEdit->text()) &&
+                              QFileInfo::exists(ui->speech_wavtokenizer_modelpath_lineEdit->text());
+        if (haveOute) speech_params.speech_name = SPPECH_OUTETTS;
+        else if (is_sys_speech_available)
+        {
+            for (const QString &n : ttsSources) { if (n != SPPECH_OUTETTS) { speech_params.speech_name = n; break; } }
+        }
+    }
+    set_sys_speech(ttsSources);
+    // React to toggles/selection changes
+    connect(ui->speech_enable_radioButton, &QRadioButton::toggled, this, &Expend::speech_enable_change);
+    connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
+    speech_source_change();
 
     // mcp服务器
     ui->mcp_server_state_groupBox->setTitle(jtr("mcp_available_servers"));
@@ -425,4 +456,6 @@ void Expend::showReadme()
     cursor.insertImage(imageFormat);
     cursor.insertText("\n\n");
 }
+
+
 

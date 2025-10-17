@@ -268,7 +268,7 @@ class Expend : public QWidget
     QStringList avaliable_speech_list;                      // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list); // 设置系统可用声源
     Speech_Params speech_params;
-    QTextToSpeech *sys_speech;
+    QTextToSpeech *sys_speech = nullptr;
     QMediaPlayer *speech_player;
     bool is_sys_speech_available = false; // 语音朗读是否可用
     bool is_speech = false;               // 是否系统声源正在朗读
@@ -444,5 +444,6 @@ class Expend : public QWidget
     bool tts_in_think_ = false; // skip content inside <think>..</think>
 };
 #endif // EXPEND_H
+
 
 

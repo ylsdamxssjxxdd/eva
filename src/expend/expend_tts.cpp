@@ -13,38 +13,36 @@
 // 用户点击启用声音选项响应
 void Expend::speech_enable_change()
 {
-    if (ui->speech_enable_radioButton->isChecked())
-    {
-        speech_params.enable_speech = true;
-    }
-    else
-    {
-        speech_params.enable_speech = false;
-    }
+    const bool on = ui->speech_enable_radioButton->isChecked();
+    speech_params.enable_speech = on;
+    // Persist immediately so it survives restarts
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    settings.setValue("speech_enable", on);
 }
 
 // 用户切换声源响应
 void Expend::speech_source_change()
 {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
-    if (speech_params.speech_name == SPPECH_OUTETTS)
-    {
-        ui->speech_outetts_modelpath_frame->setEnabled(1);
-        ui->speech_wavtokenizer_modelpath_frame->setEnabled(1);
-    }
-    else
-    {
-        ui->speech_outetts_modelpath_frame->setEnabled(0);
-        ui->speech_wavtokenizer_modelpath_frame->setEnabled(0);
-    }
+    // Persist selection
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    settings.setValue("speech_name", speech_params.speech_name);
+
+    const bool isOute = (speech_params.speech_name == SPPECH_OUTETTS);
+    ui->speech_outetts_modelpath_frame->setEnabled(isOute);
+    ui->speech_wavtokenizer_modelpath_frame->setEnabled(isOute);
 }
 
 // 添加可用声源
 void Expend::set_sys_speech(QStringList avaliable_speech_list)
 {
+    // Refresh the combo with newly discovered sources
+    ui->speech_source_comboBox->clear();
     for (int i = 0; i < avaliable_speech_list.size(); ++i)
     {
-        ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i)); // 添加到下拉框
+        ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i)); // add to dropdown
     }
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
@@ -73,7 +71,7 @@ void Expend::start_tts(QString str)
         else
         {
             // 遍历所有可用音色
-            foreach (const QVoice &voice, sys_speech->availableVoices())
+            if (!sys_speech) sys_speech = new QTextToSpeech(this); foreach (const QVoice &voice, sys_speech->availableVoices())
             {
                 // qDebug() << "Name:" << speech.name();
                 // qDebug() << "Age:" << speech.age();
@@ -368,18 +366,10 @@ void Expend::readyRead_outetts_process_StandardError()
 }
 
 // 用户点击选择模型路径时响应
-void Expend::on_speech_outetts_modelpath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
-    ui->speech_outetts_modelpath_lineEdit->setText(currentpath);
-}
+void Expend::on_speech_outetts_modelpath_pushButton_clicked() { currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)"); ui->speech_outetts_modelpath_lineEdit->setText(currentpath); if (!currentpath.isEmpty()) { QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat); settings.setIniCodec("utf-8"); settings.setValue("outetts_modelpath", currentpath); } }
 
 // 用户点击选择模型路径时响应
-void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
-    ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
-}
+void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() { currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)"); ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath); if (!currentpath.isEmpty()) { QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat); settings.setIniCodec("utf-8"); settings.setValue("wavtokenizer_modelpath", currentpath); } }
 
 // 用户点击转为音频按钮时响应
 void Expend::on_speech_manual_pushButton_clicked()
@@ -422,3 +412,8 @@ void Expend::startNextPlayIfIdle()
         speech_player->play();
     }
 }
+
+
+
+
+
