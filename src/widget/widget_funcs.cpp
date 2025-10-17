@@ -3,6 +3,7 @@
 #include "../utils/processrunner.h"
 #include "ui_widget.h"
 #include "widget.h"
+#include <QByteArray>
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -146,32 +147,81 @@ void Widget::get_date()
 // 手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(QString text)
 {
-    if (text.contains("</think>"))
+    static const QRegularExpression thinkBlock(QStringLiteral("<think>.*?</think>"),
+                                               QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression toolBlock(QStringLiteral("<tool_call>(.*?)</tool_call>"),
+                                              QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression leadingFence(QStringLiteral("^```[a-zA-Z0-9_+\\-]*\\s*"));
+    static const QRegularExpression trailingFence(QStringLiteral("\\s*```\\s*$"));
+
+    QString payload = text;
+    payload.remove(thinkBlock);
+
+    QStringList candidates;
+    QRegularExpressionMatchIterator it = toolBlock.globalMatch(payload);
+    while (it.hasNext())
     {
-        text = text.split("</think>")[1]; // 移除思考标签前面的所有内容
+        candidates.append(it.next().captured(1));
     }
-    mcp::json toolsarg; // 提取出的工具名和参数
-    // 匹配<tool></tool>之间的内容
-    QRegularExpression toolRegex("<([^>]+)>(.*)</\\1>", QRegularExpression::DotMatchesEverythingOption);
-    QRegularExpressionMatch toolMatch = toolRegex.match(text);
-    if (toolMatch.hasMatch())
+
+    mcp::json result; // empty by default
+    for (int i = candidates.size() - 1; i >= 0; --i)
     {
-        QString toolContent = toolMatch.captured(2);
-        qDebug() << "toolContent:" << toolContent;
+        QString content = candidates.at(i).trimmed();
+        if (content.isEmpty())
+        {
+            continue;
+        }
+
+        content.remove(leadingFence);
+        content.remove(trailingFence);
+        content = content.trimmed();
+        if (content.startsWith(QStringLiteral("json"), Qt::CaseInsensitive))
+        {
+            const int newlineIndex = content.indexOf('\n');
+            if (newlineIndex > -1)
+            {
+                content = content.mid(newlineIndex + 1).trimmed();
+            }
+            else
+            {
+                content.clear();
+            }
+        }
+        if (content.isEmpty())
+        {
+            continue;
+        }
+
+        QString candidateJson = content;
+        const int firstBrace = candidateJson.indexOf('{');
+        const int lastBrace = candidateJson.lastIndexOf('}');
+        if (firstBrace == -1 || lastBrace <= firstBrace)
+        {
+            qWarning() << "tool_call candidate missing braces at slot" << i;
+            continue;
+        }
+        candidateJson = candidateJson.mid(firstBrace, lastBrace - firstBrace + 1).trimmed();
+        if (candidateJson.isEmpty())
+        {
+            continue;
+        }
+
+        const QByteArray jsonBytes = candidateJson.toUtf8();
         try
         {
-            toolsarg = mcp::json::parse(toolContent.toStdString());
+            result = mcp::json::parse(jsonBytes.constData(), jsonBytes.constData() + jsonBytes.size());
+            qDebug() << "parsed tool_call from slot" << i;
+            return result;
         }
         catch (const std::exception &e)
         {
-            qCritical() << "tool JSON parse error:" << e.what();
+            qCritical() << "tool JSON parse error at slot" << i << ":" << e.what();
         }
     }
-    else
-    {
-        qDebug() << "no tool matched";
-    }
-    return toolsarg;
+
+    qDebug() << "no valid tool_call found";
+    return result;
 }
 // 构建额外指令
 QString Widget::create_extra_prompt()
