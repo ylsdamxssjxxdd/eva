@@ -33,7 +33,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     if (ui->statusTerminalSplitter)
     {
         ui->statusTerminalSplitter->setStretchFactor(0, 1);
-        ui->statusTerminalSplitter->setStretchFactor(1, 2);
+        ui->statusTerminalSplitter->setStretchFactor(1, 0);
     }
     if (ui->terminalPane)
     {

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>328</width>
-    <height>648</height>
+    <width>396</width>
+    <height>613</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -523,7 +523,7 @@
          <widget class="QPlainTextEdit" name="state">
           <property name="minimumSize">
            <size>
-            <width>0</width>
+            <width>150</width>
             <height>170</height>
            </size>
           </property>
@@ -556,11 +556,11 @@
            <string/>
           </property>
          </widget>
-         <widget class="TerminalPane" name="terminalPane">
+         <widget class="TerminalPane" name="terminalPane" native="true">
           <property name="minimumSize">
            <size>
-            <width>240</width>
-            <height>170</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
          </widget>
@@ -572,7 +572,7 @@
    </item>
   </layout>
  </widget>
-  <customwidgets>
+ <customwidgets>
   <customwidget>
    <class>DoubleQProgressBar</class>
    <extends>QProgressBar</extends>
