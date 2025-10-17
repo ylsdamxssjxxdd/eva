@@ -136,18 +136,20 @@ void SdParamsDialog::buildUi()
     bkLay->addWidget(vaeCpuCb_, 1, 0);
     bkLay->addWidget(controlCpuCb_, 1, 1);
     bkLay->addWidget(diffFaCb_, 2, 0);
-    // VAE tiling row
+        // VAE tiling row
     vaeTilingCb_ = new QCheckBox("--vae-tiling"); vaeTilingCb_->setToolTip("Process VAE in tiles to reduce VRAM usage");
-    vaeTileX_ = new QSpinBox; vaeTileX_->setRange(1, 2048); vaeTileX_->setValue(32);
-    vaeTileY_ = new QSpinBox; vaeTileY_->setRange(1, 2048); vaeTileY_->setValue(32);
+    vaeTileX_ = new QSpinBox; vaeTileX_->setRange(1, 2048); vaeTileX_->setValue(32); vaeTileX_->setSuffix(" px");
+    vaeTileY_ = new QSpinBox; vaeTileY_->setRange(1, 2048); vaeTileY_->setValue(32); vaeTileY_->setSuffix(" px");
     vaeTileOverlap_ = new QDoubleSpinBox; vaeTileOverlap_->setRange(0.0, 1.0); vaeTileOverlap_->setSingleStep(0.05); vaeTileOverlap_->setValue(0.5);
-    bkLay->addWidget(vaeTilingCb_, 3, 0);
-    bkLay->addWidget(new QLabel("tile X"), 3, 1);
-    bkLay->addWidget(vaeTileX_, 3, 2);
-    bkLay->addWidget(new QLabel("tile Y"), 3, 3);
-    bkLay->addWidget(vaeTileY_, 3, 4);
-    bkLay->addWidget(new QLabel("overlap"), 3, 5);
-    bkLay->addWidget(vaeTileOverlap_, 3, 6);
+    bkLay->addWidget(vaeTilingCb_, 3, 0, 1, 2);
+    // Pack tile controls into an inline row to keep layout tidy
+    auto *tilingRow = new QWidget; auto *tilingLay = new QHBoxLayout(tilingRow);
+    tilingLay->setContentsMargins(0,0,0,0); tilingLay->setSpacing(6);
+    tilingLay->addWidget(new QLabel("tile")); tilingLay->addWidget(vaeTileX_); tilingLay->addWidget(new QLabel("x")); tilingLay->addWidget(vaeTileY_);
+    tilingLay->addSpacing(12); tilingLay->addWidget(new QLabel("overlap")); tilingLay->addWidget(vaeTileOverlap_); tilingLay->addStretch(1);
+    bkLay->addWidget(tilingRow, 4, 0, 1, 2);
+    tilingRow->setEnabled(false);
+    connect(vaeTilingCb_, &QCheckBox::toggled, tilingRow, &QWidget::setEnabled);
     // Two-column layout to reduce vertical length
     auto *cols = new QHBoxLayout;
     cols->setContentsMargins(0,0,0,0);
@@ -451,3 +453,4 @@ void SdParamsDialog::onAnyChanged()
 {
     if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString());
 }
+
