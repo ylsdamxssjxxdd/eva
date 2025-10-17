@@ -10,15 +10,21 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QShortcut>
+#include <QTextDocument>
 #include <QTextCursor>
 #include <QTextCharFormat>
 #include <QTextOption>
+#include <QTimer>
 #include <QtGlobal>
 
 namespace
 {
 constexpr int kMaxBlocks = 4000;
+constexpr int kMaxCharacters = 250000;
+constexpr int kTrimBatchBlocks = 200;
+constexpr int kFlushIntervalMs = 30;
 const QColor kStdOutGreen(90, 247, 141);
 const QColor kStdErrRed(255, 123, 109);
 const QColor kSystemGray(135, 158, 189);
@@ -150,6 +156,11 @@ TerminalPane::TerminalPane(QWidget *parent)
     setStyleSheet(theme);
 
     updateControls();
+
+    flushTimer_ = new QTimer(this);
+    flushTimer_->setSingleShot(true);
+    flushTimer_->setInterval(kFlushIntervalMs);
+    connect(flushTimer_, &QTimer::timeout, this, &TerminalPane::flushPendingChunks);
 }
 
 void TerminalPane::setManualWorkingDirectory(const QString &path)
@@ -241,27 +252,24 @@ void TerminalPane::handleInterrupt()
 void TerminalPane::appendChunk(const QString &text, Channel channel)
 {
     if (text.isEmpty()) return;
-    QTextCursor cursor = output_->textCursor();
-    cursor.movePosition(QTextCursor::End);
+    pendingChunks_.append({text, channel});
 
-    QTextCharFormat format = cursor.charFormat();
-    switch (channel)
+    if (!flushTimer_)
     {
-    case Channel::StdOut:
-        format.setForeground(kStdOutGreen);
-        break;
-    case Channel::StdErr:
-        format.setForeground(kStdErrRed);
-        break;
-    case Channel::System:
-        format.setForeground(kSystemGray);
-        break;
+        flushPendingChunks();
+        return;
     }
 
-    cursor.setCharFormat(format);
-    cursor.insertText(text);
-    output_->setTextCursor(cursor);
-    output_->ensureCursorVisible();
+    if (!flushTimer_->isActive())
+    {
+        flushTimer_->start(kFlushIntervalMs);
+    }
+
+    if (pendingChunks_.size() >= 128)
+    {
+        flushTimer_->stop();
+        flushPendingChunks();
+    }
 }
 
 void TerminalPane::startManualCommand(const QString &command)
@@ -318,4 +326,103 @@ void TerminalPane::updateControls()
     const bool busy = manualRunning_ || externalRunning_;
     input_->setEnabled(!busy);
     interruptButton_->setEnabled(busy);
+}
+
+void TerminalPane::flushPendingChunks()
+{
+    if (!output_) return;
+
+    QVector<PendingChunk> chunks;
+    chunks.swap(pendingChunks_);
+    if (chunks.isEmpty())
+    {
+        if (flushTimer_ && flushTimer_->isActive()) flushTimer_->stop();
+        return;
+    }
+
+    const bool stickToBottom = isAtBottom();
+    output_->setUpdatesEnabled(false);
+
+    QTextCursor cursor = output_->textCursor();
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::End);
+
+    for (const PendingChunk &chunk : chunks)
+    {
+        if (chunk.text.isEmpty()) continue;
+
+        QTextCharFormat format = cursor.charFormat();
+        switch (chunk.channel)
+        {
+        case Channel::StdOut:
+            format.setForeground(kStdOutGreen);
+            break;
+        case Channel::StdErr:
+            format.setForeground(kStdErrRed);
+            break;
+        case Channel::System:
+            format.setForeground(kSystemGray);
+            break;
+        }
+        cursor.setCharFormat(format);
+        cursor.insertText(chunk.text);
+    }
+
+    cursor.endEditBlock();
+    output_->setTextCursor(cursor);
+
+    trimToMaximum();
+
+    output_->setUpdatesEnabled(true);
+
+    if (stickToBottom) output_->ensureCursorVisible();
+
+    if (flushTimer_ && flushTimer_->isActive()) flushTimer_->stop();
+
+    if (!pendingChunks_.isEmpty() && flushTimer_)
+    {
+        flushTimer_->start(kFlushIntervalMs);
+    }
+}
+
+void TerminalPane::trimToMaximum()
+{
+    if (!output_) return;
+    QTextDocument *doc = output_->document();
+    if (!doc) return;
+
+    const int blockOverflow = doc->blockCount() - kMaxBlocks;
+    const int charOverflow = doc->characterCount() - kMaxCharacters;
+    if (blockOverflow <= 0 && charOverflow <= 0) return;
+
+    const int totalBlocks = doc->blockCount();
+    if (totalBlocks <= 1 && blockOverflow <= 0) return;
+
+    int blocksToRemove = blockOverflow > 0 ? blockOverflow + kTrimBatchBlocks : 0;
+    if (blocksToRemove <= 0 && charOverflow > 0 && totalBlocks > 0)
+    {
+        const int approxCharsPerBlock = qMax(1, doc->characterCount() / totalBlocks);
+        blocksToRemove = (charOverflow / approxCharsPerBlock) + kTrimBatchBlocks;
+    }
+
+    blocksToRemove = qMax(1, blocksToRemove);
+    if (totalBlocks > 0) blocksToRemove = qMin(blocksToRemove, totalBlocks - 1);
+    if (blocksToRemove <= 0) return;
+
+    QTextCursor cursor(doc);
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::Start);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, blocksToRemove);
+    cursor.removeSelectedText();
+    cursor.endEditBlock();
+}
+
+bool TerminalPane::isAtBottom() const
+{
+    if (!output_) return true;
+    if (QScrollBar *bar = output_->verticalScrollBar())
+    {
+        return (bar->maximum() - bar->value()) <= 2;
+    }
+    return true;
 }

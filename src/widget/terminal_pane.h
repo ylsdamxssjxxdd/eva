@@ -3,10 +3,12 @@
 
 #include <QProcess>
 #include <QWidget>
+#include <QVector>
 
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
+class QTimer;
 
 // Simple command runner panel with streaming output and interrupt support.
 class TerminalPane : public QWidget
@@ -44,14 +46,24 @@ class TerminalPane : public QWidget
     void startManualCommand(const QString &command);
     void resetManualProcess(bool interrupted);
     void updateControls();
+    void flushPendingChunks();
+    void trimToMaximum();
+    bool isAtBottom() const;
 
     QPlainTextEdit *output_ = nullptr;
     QLineEdit *input_ = nullptr;
     QPushButton *interruptButton_ = nullptr;
+    QTimer *flushTimer_ = nullptr;
     QProcess *manualProcess_ = nullptr;
     bool manualRunning_ = false;
     bool externalRunning_ = false;
     QString manualWorkingDir_;
+    struct PendingChunk
+    {
+        QString text;
+        Channel channel;
+    };
+    QVector<PendingChunk> pendingChunks_;
 };
 
 #endif // TERMINAL_PANE_H
