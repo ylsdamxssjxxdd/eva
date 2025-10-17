@@ -8,6 +8,7 @@
 #include <QScrollArea>
 #include <QPointer>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMediaPlayer>
 #include <QVideoWidget>
@@ -28,16 +29,30 @@ class ImageItem : public QWidget
         auto *lay = new QVBoxLayout(this);
         lay->setContentsMargins(6, 6, 6, 6);
         lay->setSpacing(4);
-        title_ = new QLabel(QFileInfo(path).fileName(), this);
+        // Title bar with close button
+        auto *bar = new QWidget(this);
+        auto *barLay = new QHBoxLayout(bar);
+        barLay->setContentsMargins(0,0,0,0);
+        barLay->setSpacing(4);
+        title_ = new QLabel(QFileInfo(path).fileName(), bar);
         title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         title_->setStyleSheet("color:#888");
+        auto *closeBtn = new QToolButton(bar);
+        closeBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeBtn->setAutoRaise(true);
+        closeBtn->setToolTip("Close");
+        barLay->addWidget(title_);
+        barLay->addStretch(1);
+        barLay->addWidget(closeBtn);
+        bar->setLayout(barLay);
         view_ = new QLabel(this);
         view_->setAlignment(Qt::AlignCenter);
         view_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        lay->addWidget(title_);
+        lay->addWidget(bar);
         lay->addWidget(view_);
         QPixmap pm(path);
         view_->setPixmap(pm);
+        connect(closeBtn, &QToolButton::clicked, this, [this]{ this->deleteLater(); });
     }
   private:
     QString path_;
@@ -55,9 +70,22 @@ class VideoItem : public QWidget
         auto *lay = new QVBoxLayout(this);
         lay->setContentsMargins(6, 6, 6, 6);
         lay->setSpacing(4);
-        title_ = new QLabel(QFileInfo(path).fileName(), this);
+        // Title bar with close button
+        auto *bar = new QWidget(this);
+        auto *barLay = new QHBoxLayout(bar);
+        barLay->setContentsMargins(0,0,0,0);
+        barLay->setSpacing(4);
+        title_ = new QLabel(QFileInfo(path).fileName(), bar);
         title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         title_->setStyleSheet("color:#888");
+        auto *closeBtn = new QToolButton(bar);
+        closeBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeBtn->setAutoRaise(true);
+        closeBtn->setToolTip("Close");
+        barLay->addWidget(title_);
+        barLay->addStretch(1);
+        barLay->addWidget(closeBtn);
+        bar->setLayout(barLay);
         videoWidget_ = new QVideoWidget(this);
         // Start with a reasonable minimum height; adjust to exact frame later
         videoWidget_->setMinimumHeight(240);
@@ -106,10 +134,11 @@ class VideoItem : public QWidget
         });
         connect(player_, &QMediaPlayer::videoAvailableChanged, this, [tryAdjust](bool ok){ if (ok) tryAdjust(); });
         QTimer::singleShot(200, this, [tryAdjust]{ tryAdjust(); });
-        lay->addWidget(title_);
+        lay->addWidget(bar);
         lay->addWidget(videoWidget_);
         lay->addWidget(ctrl);
         setLayout(lay);
+        connect(closeBtn, &QToolButton::clicked, this, [this]{ if (player_) player_->stop(); this->deleteLater(); });
     }
     ~VideoItem() override { if (player_) player_->stop(); }
   private:

@@ -2,6 +2,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMouseEvent>
@@ -9,6 +10,8 @@
 #include <QMimeData>
 #include <QPainter>
 #include <QPushButton>
+#include <QToolButton>
+#include <QStyle>
 #include <QContextMenuEvent>
 #include <QMenu>
 
@@ -28,6 +31,23 @@ public:
         lay->setContentsMargins(8, 8, 8, 8);
         lay->setSpacing(4);
 
+        // Title bar with filename and a close button (reusing media result design)
+        bar_ = new QWidget(this);
+        QHBoxLayout* barLay = new QHBoxLayout(bar_);
+        barLay->setContentsMargins(0,0,0,0);
+        barLay->setSpacing(4);
+        title_ = new QLabel(tr("No image"), bar_);
+        title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        title_->setStyleSheet("color:#888");
+        closeBtn_ = new QToolButton(bar_);
+        closeBtn_->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeBtn_->setAutoRaise(true);
+        closeBtn_->setToolTip(tr("Clear image"));
+        barLay->addWidget(title_);
+        barLay->addStretch(1);
+        barLay->addWidget(closeBtn_);
+        bar_->setLayout(barLay);
+
         preview_ = new QLabel(this);
         preview_->setAlignment(Qt::AlignCenter);
         preview_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -37,15 +57,13 @@ public:
         hint_->setAlignment(Qt::AlignCenter);
         hint_->setStyleSheet("color:#777; font-size:12px;");
 
+        lay->addWidget(bar_);
         lay->addWidget(preview_, /*stretch*/1);
         lay->addWidget(hint_);
 
-        clearBtn_ = new QPushButton("x", this);
-        clearBtn_->setFixedSize(20,20);
-        clearBtn_->setToolTip(tr("Clear image"));
-        clearBtn_->setStyleSheet("QPushButton{background:rgba(0,0,0,120);color:#fff;border:none;border-radius:10px;} QPushButton:hover{background:rgba(30,30,30,160);} ");
-        clearBtn_->hide();
-        QObject::connect(clearBtn_, &QPushButton::clicked, this, [this]{ clear(); });
+        // Close button clears the selected image
+        closeBtn_->hide();
+        QObject::connect(closeBtn_, &QToolButton::clicked, this, [this]{ clear(); });
 
         updateVisual();
     }
@@ -143,26 +161,25 @@ private:
         }
     }
     void updateClearButton() {
-        if (!clearBtn_) return;
-        clearBtn_->setVisible(hasImage());
-        int x = width() - clearBtn_->width() - 6;
-        int y = 6;
-        clearBtn_->move(x, y);
-        clearBtn_->raise();
+        if (!closeBtn_) return;
+        closeBtn_->setVisible(hasImage());
     }
     void updateVisual() {
         const bool has = !image_.isNull();
         hint_->setVisible(!has);
+        title_->setText(has ? QFileInfo(imagePath_).fileName() : tr("No image"));
         updatePreviewPixmap();
         updateClearButton();
         update();
     }
 
 private:
+    QWidget* bar_ = nullptr;
+    QLabel* title_ = nullptr;
     QLabel* preview_ = nullptr;
     QLabel* hint_ = nullptr;
     QImage image_;
     QString imagePath_;
     bool hover_ = false;
-    QPushButton* clearBtn_ = nullptr;
+    QToolButton* closeBtn_ = nullptr;
 };

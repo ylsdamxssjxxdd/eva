@@ -260,7 +260,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     img2img = (sd_imgDrop && QFile::exists(sd_imgDrop->imagePath()));
     if (img2img)
     {
-        arguments << "-i" << ensureToolFriendlyFilePath(sd_imgDrop->imagePath());
+        // Align with reference CLI: use -r <image> to enable image-to-image
+        arguments << "-r" << ensureToolFriendlyFilePath(sd_imgDrop->imagePath());
         img2img = false;
         // strength for img2img (from config)
         arguments << "--strength" << QString::number(sd_run_config_.strength);
