@@ -21,25 +21,29 @@ if (WIN32)
         message(WARNING "Qt SQLite plugin not found at ${Qt5_PLUGINS_DIR}/sqldrivers/qsqlite.dll")
     endif()
     if (BODY_PACK)
-        # Deploy Qt runtime beside eva.exe using windeployqt
-        if (EXISTS "${Qt5_BIN_DIR}/windeployqt.exe")
-            add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-                COMMAND "${Qt5_BIN_DIR}/windeployqt.exe"
-                        --release
-                        --no-translations
-                        --compiler-runtime
-                        --dir "$<TARGET_FILE_DIR:${EVA_TARGET}>"
-                        "$<TARGET_FILE:${EVA_TARGET}>"
-                COMMENT "windeployqt: bundling Qt runtime into bin"
-            )
+        # Deploy Qt runtime beside eva.exe using windeployqt unless explicitly skipped
+        if (NOT BODY_SKIP_WINDEPLOYQT)
+            if (EXISTS "${Qt5_BIN_DIR}/windeployqt.exe")
+                add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+                    COMMAND "${Qt5_BIN_DIR}/windeployqt.exe"
+                            --release
+                            --no-translations
+                            --compiler-runtime
+                            --dir "$<TARGET_FILE_DIR:${EVA_TARGET}>"
+                            "$<TARGET_FILE:${EVA_TARGET}>"
+                    COMMENT "windeployqt: bundling Qt runtime into bin"
+                )
+            else()
+                message(WARNING "windeployqt.exe not found under Qt5_BIN_DIR=${Qt5_BIN_DIR}")
+            endif()
         else()
-            message(WARNING "windeployqt.exe not found under Qt5_BIN_DIR=${Qt5_BIN_DIR}")
+            message(STATUS "BODY_PACK enabled: skipping windeployqt (BODY_SKIP_WINDEPLOYQT=ON)")
         endif()
 
-        # Extra runtime for MinGW builds
-        # Note: even with -static-libgcc/-static-libstdc++, libwinpthread typically remains a DLL on MinGW.
-        # Always copy it (and friends) to be robust.
-        if (MINGW)
+        # Extra runtime for MinGW builds (optional)
+        # When BODY_COPY_MINGW_RUNTIME is ON, copy a minimal set of GCC runtime DLLs.
+        # Default is OFF if EVA_STATIC=ON.
+        if (MINGW AND BODY_COPY_MINGW_RUNTIME)
             get_filename_component(COMPILER_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
             add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different

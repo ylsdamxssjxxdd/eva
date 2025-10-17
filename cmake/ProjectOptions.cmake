@@ -4,7 +4,7 @@
 include_guard(GLOBAL)
 
 # ---- User-facing options ----
-option(BODY_PACK   "pack eva"                                   OFF)
+option(BODY_PACK   "pack eva"                                   ON)
 
 # MinGW static runtime option (mirrors the pattern in the reference CMake)
 # Default: Windows ON, others OFF. This aims to statically link libgcc/libstdc++/winpthread
@@ -15,6 +15,16 @@ else()
     set(DEFAULT_EVA_STATIC OFF)
 endif()
 option(EVA_STATIC  "MinGW: static libgcc/libstdc++/winpthread (Qt stays dynamic)" ${DEFAULT_EVA_STATIC})
+
+# MinGW: whether to copy runtime DLLs after build. Default OFF when EVA_STATIC=ON.
+if (WIN32 AND MINGW)
+    if (EVA_STATIC)
+        set(DEFAULT_BODY_COPY_MINGW_RUNTIME OFF)
+    else()
+        set(DEFAULT_BODY_COPY_MINGW_RUNTIME ON)
+    endif()
+    option(BODY_COPY_MINGW_RUNTIME "Copy MinGW runtime DLLs after build (libgcc/libstdc++/winpthread)" ${DEFAULT_BODY_COPY_MINGW_RUNTIME})
+endif()
 
 # ---- Global toggles that affect subprojects ----
 option(MCP_SSL                   "Enable SSL support" OFF)
@@ -29,6 +39,17 @@ if (BODY_PACK)
     elseif(UNIX)
         add_compile_definitions(BODY_LINUX_PACK)
     endif()
+endif()
+
+# Control whether to run windeployqt during Windows packaging.
+# Default: skip for MinGW (static Qt is common there), run for MSVC.
+if (WIN32)
+    if (MINGW)
+        set(DEFAULT_BODY_SKIP_WINDEPLOYQT ON)
+    else()
+        set(DEFAULT_BODY_SKIP_WINDEPLOYQT OFF)
+    endif()
+    option(BODY_SKIP_WINDEPLOYQT "Skip running windeployqt when BODY_PACK=ON (useful for static Qt)" ${DEFAULT_BODY_SKIP_WINDEPLOYQT})
 endif()
 
 # ---- Compiler & platform flags ----
