@@ -9,6 +9,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSplitter>
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QVBoxLayout>
@@ -34,11 +35,28 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     {
         ui->statusTerminalSplitter->setStretchFactor(0, 1);
         ui->statusTerminalSplitter->setStretchFactor(1, 0);
+        ui->statusTerminalSplitter->setHandleWidth(8);
+        ui->statusTerminalSplitter->setCollapsible(0, false);
+        ui->statusTerminalSplitter->setCollapsible(1, true);
+        connect(ui->statusTerminalSplitter, &QSplitter::splitterMoved, this, [this](int, int) {
+            if (!ui->statusTerminalSplitter) return;
+            const QList<int> sizes = ui->statusTerminalSplitter->sizes();
+            if (sizes.size() < 2) return;
+            const int terminalWidth = sizes[1];
+            terminalCollapsed_ = terminalWidth < 8;
+            if (!terminalCollapsed_)
+            {
+                terminalAutoExpandSize_ = qMax(240, terminalWidth);
+            }
+        });
     }
     if (ui->terminalPane)
     {
         connect(ui->terminalPane, &TerminalPane::interruptRequested, this, &Widget::onTerminalInterruptRequested);
+        ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
+        terminalAutoExpandSize_ = qMax(320, ui->terminalPane->sizeHint().width());
     }
+    QTimer::singleShot(0, this, &Widget::collapseTerminalPane);
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
     // 注册 发送 快捷键
@@ -817,8 +835,44 @@ void Widget::recv_toolpushover(QString tool_result_)
     on_send_clicked(); // 触发发送继续预测下一个词
 }
 
+
+void Widget::collapseTerminalPane()
+{
+    if (!ui->statusTerminalSplitter || !ui->terminalPane) return;
+    QList<int> sizes;
+    sizes << 1 << 0;
+    ui->statusTerminalSplitter->setSizes(sizes);
+    terminalCollapsed_ = true;
+}
+
+void Widget::ensureTerminalPaneVisible()
+{
+    if (!ui->statusTerminalSplitter || !ui->terminalPane) return;
+    if (!terminalCollapsed_) return;
+    const int available = ui->statusTerminalSplitter->size().width();
+    int desired = qMax(terminalAutoExpandSize_, 240);
+    if (available > 0)
+    {
+        const int maxAllowed = qMax(240, available - 160);
+        desired = qMin(desired, maxAllowed);
+        if (desired <= 0) desired = qMax(available / 2, 240);
+    }
+    else
+    {
+        desired = qMax(desired, 320);
+    }
+    int left = (available > 0) ? qMax(available - desired, 240) : desired * 2;
+    if (left <= 0) left = desired;
+    QList<int> sizes;
+    sizes << left << desired;
+    ui->statusTerminalSplitter->setSizes(sizes);
+    terminalAutoExpandSize_ = qMax(240, desired);
+    terminalCollapsed_ = false;
+}
+
 void Widget::toolCommandStarted(const QString &command, const QString &workingDir)
 {
+    ensureTerminalPaneVisible();
     if (ui->terminalPane)
     {
         ui->terminalPane->handleExternalStart(command, workingDir);

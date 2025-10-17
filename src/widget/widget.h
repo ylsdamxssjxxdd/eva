@@ -460,6 +460,8 @@ class Widget : public QWidget
     void initTextComponentsMemoryPolicy(); // disable undo, set limits
     void resetOutputDocument();            // replace QTextDocument of output
     void resetStateDocument();             // replace QTextDocument of state
+    void collapseTerminalPane();
+    void ensureTerminalPaneVisible();
     // Send-task helpers
     // Record bar: capture key nodes and map to output document positions
     enum class RecordRole
@@ -525,6 +527,8 @@ class Widget : public QWidget
     void fetchPropsContextLimit();  // fallback: GET /props and read default_generation_settings.n_ctx
   private:
     Ui::Widget *ui;
+    int terminalAutoExpandSize_ = 320;
+    bool terminalCollapsed_ = true;
 };
 
 #endif // WIDGET_H

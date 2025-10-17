@@ -1,8 +1,8 @@
 #ifndef TERMINAL_PANE_H
 #define TERMINAL_PANE_H
 
-#include <QWidget>
 #include <QProcess>
+#include <QWidget>
 
 class QLineEdit;
 class QPlainTextEdit;
@@ -16,6 +16,7 @@ class TerminalPane : public QWidget
   public:
     explicit TerminalPane(QWidget *parent = nullptr);
 
+    void setManualWorkingDirectory(const QString &path);
     void handleExternalStart(const QString &command, const QString &workingDir);
     void handleExternalStdout(const QString &chunk);
     void handleExternalStderr(const QString &chunk);
@@ -50,6 +51,7 @@ class TerminalPane : public QWidget
     QProcess *manualProcess_ = nullptr;
     bool manualRunning_ = false;
     bool externalRunning_ = false;
+    QString manualWorkingDir_;
 };
 
 #endif // TERMINAL_PANE_H

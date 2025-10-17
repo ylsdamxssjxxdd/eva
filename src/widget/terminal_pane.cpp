@@ -2,6 +2,8 @@
 
 #include <QBoxLayout>
 #include <QColor>
+#include <QDir>
+#include <QFontDatabase>
 #include <QKeySequence>
 #include <QLineEdit>
 #include <QPlainTextEdit>
@@ -9,13 +11,17 @@
 #include <QProcessEnvironment>
 #include <QPushButton>
 #include <QShortcut>
-#include <QtGlobal>
 #include <QTextCursor>
 #include <QTextCharFormat>
+#include <QTextOption>
+#include <QtGlobal>
 
 namespace
 {
 constexpr int kMaxBlocks = 4000;
+const QColor kStdOutGreen(90, 247, 141);
+const QColor kStdErrRed(255, 123, 109);
+const QColor kSystemGray(135, 158, 189);
 
 QString makePrompt(const QString &command, const QString &workingDir)
 {
@@ -36,27 +42,38 @@ QString decodeBytes(const QByteArray &bytes)
 TerminalPane::TerminalPane(QWidget *parent)
     : QWidget(parent)
 {
+    setAttribute(Qt::WA_StyledBackground, true);
+
     output_ = new QPlainTextEdit(this);
+    output_->setObjectName(QStringLiteral("terminalOutput"));
     output_->setReadOnly(true);
     output_->setFrameShape(QFrame::NoFrame);
     output_->setMaximumBlockCount(kMaxBlocks);
     output_->setUndoRedoEnabled(false);
+    output_->setWordWrapMode(QTextOption::NoWrap);
+    QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    monoFont.setPointSizeF(qMax(10.0, monoFont.pointSizeF()));
+    output_->setFont(monoFont);
 
     input_ = new QLineEdit(this);
+    input_->setObjectName(QStringLiteral("terminalInput"));
     input_->setPlaceholderText(tr("Enter command and press Enter"));
+    input_->setFont(monoFont);
 
     interruptButton_ = new QPushButton(tr("Stop"), this);
+    interruptButton_->setObjectName(QStringLiteral("terminalInterrupt"));
     interruptButton_->setToolTip(tr("Send Ctrl+C to stop the current command"));
+    interruptButton_->setCursor(Qt::PointingHandCursor);
 
     auto *controls = new QHBoxLayout;
     controls->setContentsMargins(0, 0, 0, 0);
-    controls->setSpacing(8);
+    controls->setSpacing(6);
     controls->addWidget(input_);
     controls->addWidget(interruptButton_);
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(6);
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->setSpacing(4);
     layout->addWidget(output_);
     layout->addLayout(controls);
 
@@ -67,7 +84,82 @@ TerminalPane::TerminalPane(QWidget *parent)
     shortcut->setContext(Qt::WidgetWithChildrenShortcut);
     connect(shortcut, &QShortcut::activated, this, &TerminalPane::handleInterrupt);
 
+    // Apply a cohesive dark theme so the terminal area feels self-contained.
+    const QString theme = QStringLiteral(
+        "TerminalPane {"
+        "  background-color: #080808;"
+        "  border: 1px solid #141414;"
+        "  border-radius: 8px;"
+        "}"
+        "TerminalPane QPlainTextEdit#terminalOutput {"
+        "  background: transparent;"
+        "  color: #5af78d;"
+        "  border: none;"
+        "  selection-background-color: #1b3521;"
+        "  selection-color: #98ffc2;"
+        "  padding: 0px;"
+        "}"
+        "TerminalPane QScrollBar {"
+        "  background: #080808;"
+        "  border: none;"
+        "  width: 10px;"
+        "  margin: 0px;"
+        "}"
+        "TerminalPane QScrollBar::handle {"
+        "  background: #1a3324;"
+        "  border-radius: 4px;"
+        "}"
+        "TerminalPane QScrollBar::handle:hover {"
+        "  background: #25523a;"
+        "}"
+        "TerminalPane QScrollBar::add-line, TerminalPane QScrollBar::sub-line {"
+        "  height: 0px;"
+        "  width: 0px;"
+        "}"
+        "TerminalPane QScrollBar::add-page, TerminalPane QScrollBar::sub-page {"
+        "  background: transparent;"
+        "}"
+        "TerminalPane QLineEdit#terminalInput {"
+        "  background-color: #0c0c0c;"
+        "  color: #5af78d;"
+        "  border: 1px solid #1c1c1c;"
+        "  border-radius: 4px;"
+        "  padding: 6px 8px;"
+        "}"
+        "TerminalPane QLineEdit#terminalInput:disabled {"
+        "  color: #335c42;"
+        "  background-color: #0c0c0c;"
+        "}"
+        "TerminalPane QPushButton#terminalInterrupt {"
+        "  background-color: #0c0c0c;"
+        "  color: #5af78d;"
+        "  border: 1px solid #1c1c1c;"
+        "  border-radius: 4px;"
+        "  padding: 6px 14px;"
+        "}"
+        "TerminalPane QPushButton#terminalInterrupt:hover {"
+        "  border-color: #5af78d;"
+        "}"
+        "TerminalPane QPushButton#terminalInterrupt:pressed {"
+        "  background-color: #111;"
+        "}"
+        "TerminalPane QPushButton#terminalInterrupt:disabled {"
+        "  color: #2f4a3a;"
+        "  border-color: #1c1c1c;"
+        "}");
+    setStyleSheet(theme);
+
     updateControls();
+}
+
+void TerminalPane::setManualWorkingDirectory(const QString &path)
+{
+    if (path.isEmpty())
+    {
+        manualWorkingDir_.clear();
+        return;
+    }
+    manualWorkingDir_ = QDir::cleanPath(path);
 }
 
 void TerminalPane::handleExternalStart(const QString &command, const QString &workingDir)
@@ -156,13 +248,13 @@ void TerminalPane::appendChunk(const QString &text, Channel channel)
     switch (channel)
     {
     case Channel::StdOut:
-        format.setForeground(QColor(Qt::black));
+        format.setForeground(kStdOutGreen);
         break;
     case Channel::StdErr:
-        format.setForeground(QColor(202, 62, 71));
+        format.setForeground(kStdErrRed);
         break;
     case Channel::System:
-        format.setForeground(QColor(70, 86, 122));
+        format.setForeground(kSystemGray);
         break;
     }
 
@@ -174,10 +266,15 @@ void TerminalPane::appendChunk(const QString &text, Channel channel)
 
 void TerminalPane::startManualCommand(const QString &command)
 {
-    appendChunk(makePrompt(command, QString()), Channel::System);
+    const QString promptDir = manualWorkingDir_.isEmpty() ? QString() : QDir::toNativeSeparators(manualWorkingDir_);
+    appendChunk(makePrompt(command, promptDir), Channel::System);
     manualProcess_ = new QProcess(this);
     manualProcess_->setProcessEnvironment(QProcessEnvironment::systemEnvironment());
     manualProcess_->setProcessChannelMode(QProcess::SeparateChannels);
+    if (!manualWorkingDir_.isEmpty())
+    {
+        manualProcess_->setWorkingDirectory(manualWorkingDir_);
+    }
 
 #ifdef Q_OS_WIN
     QString program = QStringLiteral("cmd.exe");

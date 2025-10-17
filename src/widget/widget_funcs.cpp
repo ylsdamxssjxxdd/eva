@@ -3,6 +3,7 @@
 #include "../utils/processrunner.h"
 #include "ui_widget.h"
 #include "widget.h"
+#include "terminal_pane.h"
 #include <QByteArray>
 #include <QDialog>
 #include <QHBoxLayout>
@@ -774,6 +775,10 @@ void Widget::setEngineerWorkDirSilently(const QString &dir)
 {
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
+    }
     if (date_ui && date_ui->date_engineer_workdir_LineEdit)
     {
         date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
@@ -786,6 +791,10 @@ void Widget::setEngineerWorkDir(const QString &dir)
 {
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
+    }
     emit ui2tool_workdir(engineerWorkDir);
     reflash_state(QString::fromUtf8("ui:工程师工作目录 -> ") + engineerWorkDir, SIGNAL_SIGNAL);
     if (date_ui && date_ui->date_engineer_workdir_LineEdit)
