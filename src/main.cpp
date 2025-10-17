@@ -18,6 +18,7 @@
 #include "utils/cpuchecker.h"
 #include "utils/devicemanager.h"
 #include "utils/gpuchecker.h"
+#include "utils/singleinstance.h" // single-instance guard (per app path)
 #include "widget/widget.h"
 #include "xmcp.h"
 #include "xnet.h"
@@ -126,6 +127,16 @@ int main(int argc, char *argv[])
     createDesktopShortcut(appPath);
 #endif
     qDebug() << "EVA_PATH" << appPath;
+
+    // Single-instance: only one process per application path. If another is running,
+    // ping it to raise the window and exit quietly.
+    const QString instanceKey = SingleInstance::keyForAppPath(appPath);
+    SingleInstance instanceGuard(instanceKey);
+    if (!instanceGuard.ensurePrimary())
+    {
+        instanceGuard.notifyRunning("ACTIVATE");
+        return 0;
+    }
     // Auto-discover default models from EVA_MODELS when no config exists
     {
         const QString tempDir = applicationDirPath + "/EVA_TEMP";
@@ -222,6 +233,13 @@ int main(int argc, char *argv[])
     tool.embedding_server_resultnumb = expend.embedding_resultnumb;          // 同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
+
+    //------------------二次启动激活已开窗口------------------
+    QObject::connect(&instanceGuard, &SingleInstance::received, &w, [&w](const QByteArray &)
+                     {
+                         // Show and activate the main window when a secondary instance pings us
+                         toggleWindowVisibility(&w, true);
+                     });
 
     //-----------------加载皮肤-----------------------
     QFile file(":/QSS/eva.qss");

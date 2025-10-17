@@ -30,6 +30,7 @@ add_executable(
     src/utils/docparser.cpp src/utils/docparser.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
     src/utils/pathutil.cpp src/utils/pathutil.h src/utils/processrunner.cpp src/utils/processrunner.h src/utils/depresolver.cpp src/utils/depresolver.h
+    src/utils/singleinstance.cpp src/utils/singleinstance.h
     src/widget/widget.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/csvtablewidget.h
