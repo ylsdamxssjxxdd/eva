@@ -3,6 +3,7 @@
 #include "utils/processrunner.h"
 
 #include <QDirIterator>
+#include <QEventLoop>
 
 xTool::xTool(QString applicationDirPath_)
 
@@ -37,6 +38,16 @@ void xTool::recv_workdir(QString dir)
     // Do not force-create here to avoid unwanted dirs; Exec() ensures presence
 
     emit tool2ui_state("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
+}
+
+void xTool::cancelExecuteCommand()
+{
+    if (!activeCommandProcess_) return;
+    activeCommandInterrupted_ = true;
+    if (activeCommandProcess_->state() != QProcess::NotRunning)
+    {
+        activeCommandProcess_->kill();
+    }
 }
 
 void xTool::Exec(mcp::json tools_call)
@@ -85,43 +96,119 @@ void xTool::Exec(mcp::json tools_call)
     //----------------------命令提示符------------------
 
     else if (tools_name == "execute_command")
-
     {
-
         const QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
-
         emit tool2ui_state("tool:" + QString("execute_command(") + content + ")");
 
-        // Ensure working dir exists (UI can override workDirRoot)
-
         if (!workDirRoot.isEmpty()) { createTempDirectory(workDirRoot); }
-
         const QString work = workDirRoot.isEmpty() ? QDir::cleanPath(applicationDirPath + "/EVA_WORK") : workDirRoot;
 
-        // Inherit system env; on Linux prepend common bin dirs
-
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-
 #ifdef __linux__
-
         env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + env.value("PATH"));
-
 #endif
 
-        // Run via platform shell; capture both stdout and stderr
+#ifdef _WIN32
+        const QString program = QStringLiteral("cmd.exe");
+        const QStringList args{QStringLiteral("/c"), content};
+#else
+        const QString program = QStringLiteral("/bin/sh");
+        const QStringList args{QStringLiteral("-lc"), content};
+#endif
 
-        ProcessResult r = ProcessRunner::runShellCommand(content, work, env, 0);
+        QProcess process;
+        process.setProcessEnvironment(env);
+        process.setWorkingDirectory(work);
+        process.setProcessChannelMode(QProcess::SeparateChannels);
 
-        const QString output = (r.stdOut + r.stdErr);
+        QString aggregated;
+        activeCommandProcess_ = &process;
+        activeCommandInterrupted_ = false;
 
-        emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + output, TOOL_SIGNAL);
+        emit tool2ui_terminalCommandStarted(content, work);
 
-        emit tool2ui_pushover(QString("execute_command ") + "\n" + output);
+        QObject::connect(&process, &QProcess::readyReadStandardOutput, this, [this, &process, &aggregated]()
+                         {
+                             const QByteArray data = process.readAllStandardOutput();
+                             if (data.isEmpty()) return;
+#ifdef Q_OS_WIN
+                             const QString text = QString::fromLocal8Bit(data);
+#else
+                             const QString text = QString::fromUtf8(data);
+#endif
+                             aggregated += text;
+                             emit tool2ui_terminalStdout(text);
+                         });
+        QObject::connect(&process, &QProcess::readyReadStandardError, this, [this, &process, &aggregated]()
+                         {
+                             const QByteArray data = process.readAllStandardError();
+                             if (data.isEmpty()) return;
+#ifdef Q_OS_WIN
+                             const QString text = QString::fromLocal8Bit(data);
+#else
+                             const QString text = QString::fromUtf8(data);
+#endif
+                             aggregated += text;
+                             emit tool2ui_terminalStderr(text);
+                         });
 
-        qDebug() << QString("execute_command ") + "\n" + output;
+        process.start(program, args);
+        if (!process.waitForStarted())
+        {
+            const QString err = process.errorString();
+            emit tool2ui_terminalStderr(err + "\n");
+            emit tool2ui_terminalCommandFinished(-1, false);
+            emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + err, WRONG_SIGNAL);
+            emit tool2ui_pushover(QString("execute_command ") + "\n" + err);
+            qWarning() << "execute_command start failed:" << err;
+            activeCommandProcess_ = nullptr;
+            activeCommandInterrupted_ = false;
+            return;
+        }
+
+        QEventLoop loop;
+        QObject::connect(&process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::quit);
+        loop.exec();
+
+        const auto drain = [&](QProcess::ProcessChannel channel)
+        {
+            QByteArray bytes = (channel == QProcess::StandardOutput) ? process.readAllStandardOutput() : process.readAllStandardError();
+            if (bytes.isEmpty()) return;
+#ifdef Q_OS_WIN
+            const QString text = QString::fromLocal8Bit(bytes);
+#else
+            const QString text = QString::fromUtf8(bytes);
+#endif
+            aggregated += text;
+            if (channel == QProcess::StandardOutput)
+                emit tool2ui_terminalStdout(text);
+            else
+                emit tool2ui_terminalStderr(text);
+        };
+        drain(QProcess::StandardOutput);
+        drain(QProcess::StandardError);
+
+        const int exitCode = process.exitCode();
+        const bool interrupted = activeCommandInterrupted_ || process.exitStatus() == QProcess::CrashExit;
+        activeCommandProcess_ = nullptr;
+        activeCommandInterrupted_ = false;
+        emit tool2ui_terminalCommandFinished(exitCode, interrupted);
+
+        QString finalOutput = aggregated;
+        if (finalOutput.isEmpty())
+        {
+            finalOutput = interrupted ? QStringLiteral("[command interrupted]") : QStringLiteral("[no output]");
+        }
+        else if (interrupted)
+        {
+            if (!finalOutput.endsWith('\n')) finalOutput.append('\n');
+            finalOutput += QStringLiteral("[command interrupted]");
+        }
+
+        emit tool2ui_state("tool:" + QString("execute_command ") + "\n" + finalOutput, TOOL_SIGNAL);
+        emit tool2ui_pushover(QString("execute_command ") + "\n" + finalOutput);
+        qDebug() << QString("execute_command ") + "\n" + finalOutput;
     }
-
-    //----------------------知识库------------------
 
     else if (tools_name == "knowledge")
 

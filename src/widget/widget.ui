@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>Widget</class>
  <widget class="QWidget" name="Widget">
@@ -516,41 +516,54 @@
         </widget>
        </item>
        <item>
-        <widget class="QPlainTextEdit" name="state">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>170</height>
-          </size>
+        <widget class="QSplitter" name="statusTerminalSplitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <family>黑体</family>
-           <pointsize>10</pointsize>
-           <stylestrategy>PreferDefault</stylestrategy>
-          </font>
-         </property>
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
-         </property>
-         <property name="lineWidth">
-          <number>0</number>
-         </property>
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-         <property name="plainText">
-          <string/>
-         </property>
-         <property name="placeholderText">
-          <string/>
-         </property>
+         <widget class="QPlainTextEdit" name="state">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>170</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <family>����</family>
+            <pointsize>10</pointsize>
+            <stylestrategy>PreferDefault</stylestrategy>
+           </font>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="lineWidth">
+           <number>0</number>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="plainText">
+           <string/>
+          </property>
+          <property name="placeholderText">
+           <string/>
+          </property>
+         </widget>
+         <widget class="TerminalPane" name="terminalPane">
+          <property name="minimumSize">
+           <size>
+            <width>240</width>
+            <height>170</height>
+           </size>
+          </property>
+         </widget>
         </widget>
        </item>
       </layout>
@@ -559,7 +572,7 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
+  <customwidgets>
   <customwidget>
    <class>DoubleQProgressBar</class>
    <extends>QProgressBar</extends>
@@ -576,6 +589,11 @@
    <extends>QWidget</extends>
    <header>src/utils/recordbar.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TerminalPane</class>
+   <extends>QWidget</extends>
+   <header>src/widget/terminal_pane.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

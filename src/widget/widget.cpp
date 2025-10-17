@@ -3,6 +3,7 @@
 #include "widget.h"
 
 #include "ui_widget.h"
+#include "terminal_pane.h"
 #include <QDateTime>
 #include <QDialog>
 #include <QDir>
@@ -29,6 +30,15 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); // 设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1); // 设置分隔器中第二个元素初始高度占比为1
+    if (ui->statusTerminalSplitter)
+    {
+        ui->statusTerminalSplitter->setStretchFactor(0, 1);
+        ui->statusTerminalSplitter->setStretchFactor(1, 2);
+    }
+    if (ui->terminalPane)
+    {
+        connect(ui->terminalPane, &TerminalPane::interruptRequested, this, &Widget::onTerminalInterruptRequested);
+    }
     // QFont font(DEFAULT_FONT);
     // ui->state->setFont(font);                                                                     // 设置state区的字体
     // 注册 发送 快捷键
@@ -805,6 +815,43 @@ void Widget::recv_toolpushover(QString tool_result_)
     }
 
     on_send_clicked(); // 触发发送继续预测下一个词
+}
+
+void Widget::toolCommandStarted(const QString &command, const QString &workingDir)
+{
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->handleExternalStart(command, workingDir);
+    }
+}
+
+void Widget::toolCommandStdout(const QString &chunk)
+{
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->handleExternalStdout(chunk);
+    }
+}
+
+void Widget::toolCommandStderr(const QString &chunk)
+{
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->handleExternalStderr(chunk);
+    }
+}
+
+void Widget::toolCommandFinished(int exitCode, bool interrupted)
+{
+    if (ui->terminalPane)
+    {
+        ui->terminalPane->handleExternalFinished(exitCode, interrupted);
+    }
+}
+
+void Widget::onTerminalInterruptRequested()
+{
+    emit ui2tool_interruptCommand();
 }
 
 // 停止完毕的后处理

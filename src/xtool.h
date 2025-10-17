@@ -71,6 +71,9 @@ class xTool : public QObject
   public:
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
+    QProcess *activeCommandProcess_ = nullptr;
+    bool activeCommandInterrupted_ = false;
+
     bool createTempDirectory(const QString &path);      // 创建临时文件夹
     int embedding_server_dim = 1024;                    // 开启嵌入服务的嵌入维度
     int embedding_server_resultnumb = 3;                // 嵌入结果返回个数
@@ -84,6 +87,7 @@ class xTool : public QObject
     QString mcpToolParser(mcp::json toolsinfo);
     void excute_sequence(std::vector<std::string> build_in_tool_arg); // 执行行动序列
   public slots:
+    void cancelExecuteCommand();
     void recv_embedding_resultnumb(int resultnumb);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_drawover(QString result_, bool ok_); // 接收图像绘制完成信号
@@ -94,6 +98,10 @@ class xTool : public QObject
     // Update working directory root for engineer tools
     void recv_workdir(QString dir);
   signals:
+    void tool2ui_terminalCommandStarted(const QString &command, const QString &workingDir);
+    void tool2ui_terminalStdout(const QString &chunk);
+    void tool2ui_terminalStderr(const QString &chunk);
+    void tool2ui_terminalCommandFinished(int exitCode, bool interrupted);
     void tool2mcp_toollist();
     void tool2mcp_toolcall(QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);

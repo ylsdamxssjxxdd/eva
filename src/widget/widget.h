@@ -74,6 +74,8 @@ class Widget;
 }
 QT_END_NAMESPACE
 
+class TerminalPane;
+
 // Task dispatch for send flow
 enum class ConversationTask
 {
@@ -340,6 +342,7 @@ class Widget : public QWidget
     void ui2tool_language(int language_flag_); // 传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
+    void ui2tool_interruptCommand();           // 终止当前命令
 
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言
@@ -383,6 +386,10 @@ class Widget : public QWidget
     void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
     void recv_net_speeds(double promptPerSec, double genPerSec);                 // final speeds from xNet timings
     void recv_monitor_decode_ok();
+    void toolCommandStarted(const QString &command, const QString &workingDir);
+    void toolCommandStdout(const QString &chunk);
+    void toolCommandStderr(const QString &chunk);
+    void toolCommandFinished(int exitCode, bool interrupted);
 
     // 处理expend信号的槽
     void recv_speechdecode_over(QString result);
@@ -416,6 +423,7 @@ class Widget : public QWidget
     void date_ui_confirm_button_clicked();        // 约定选项卡确认按钮响应
     void settings_ui_cancel_button_clicked();
     void settings_ui_confirm_button_clicked();
+    void onTerminalInterruptRequested();
 
     void prompt_template_change(); // 提示词模板下拉框响应
     void complete_change();        // 补完模式响应
