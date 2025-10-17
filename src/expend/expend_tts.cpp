@@ -225,36 +225,35 @@ void Expend::onNetTurnDone()
 // 递归删除文件夹及其内容的函数
 bool Expend::removeDir(const QString &dirName)
 {
-    QDir dir(dirName);
-
-    if (!dir.exists())
-    {
-        return false;
-    }
-
-    // 删除目录中的所有文件和子目录
-    foreach (QFileInfo item, dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllEntries))
+    // Safety guard: only delete inside EVA_TEMP; ignore empty/unsafe paths
+    const QString trimmed = dirName.trimmed();
+    if (trimmed.isEmpty()) return false;
+    const QString abs = QDir(trimmed).absolutePath();
+    const QString tempRoot = QDir(applicationDirPath).filePath("EVA_TEMP");
+    const QString tempAbs = QDir(tempRoot).absolutePath();
+#ifdef _WIN32
+    auto startsWithCi = [](const QString &a, const QString &b) { return a.toLower().startsWith(b.toLower() + QDir::separator()); };
+    if (!(abs.toLower() == tempAbs.toLower() || startsWithCi(abs, tempAbs))) return false;
+#else
+    if (!(abs == tempAbs || abs.startsWith(tempAbs + QDir::separator()))) return false;
+#endif
+    QDir dir(abs);
+    if (!dir.exists()) return true;
+    // Delete entries recursively
+    const auto infos = dir.entryInfoList(QDir::NoDotAndDotDot | QDir::AllEntries);
+    for (const QFileInfo &item : infos)
     {
         if (item.isDir())
         {
-            // 如果是子目录，递归删除
-            if (!removeDir(item.absoluteFilePath()))
-            {
-                return false;
-            }
+            if (!removeDir(item.absoluteFilePath())) return false;
         }
         else
         {
-            // 如果是文件，删除文件
-            if (!QFile::remove(item.absoluteFilePath()))
-            {
-                return false;
-            }
+            if (!QFile::remove(item.absoluteFilePath())) return false;
         }
     }
-
-    // 删除目录自身
-    return dir.rmdir(dirName);
+    // Finally remove the directory itself
+    return dir.rmdir(abs);
 }
 
 // 收到重置信号
@@ -412,6 +411,7 @@ void Expend::startNextPlayIfIdle()
         speech_player->play();
     }
 }
+
 
 
 

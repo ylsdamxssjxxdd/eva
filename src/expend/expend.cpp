@@ -21,6 +21,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
 
+    // Ensure a dedicated temp dir for TTS outputs under EVA_TEMP to avoid touching working dir
+    outettsDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
+
     // Basic UI tweaks (non-critical if object names evolve)
     if (ui->sd_prompt_textEdit) ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);
     if (ui->sd_log) ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);
@@ -200,7 +203,8 @@ void Expend::closeEvent(QCloseEvent *event)
     settings.setValue("sd_adv_clip_g_path", sd_run_config_.clipGPath);
     settings.setValue("sd_adv_clip_vision_path", sd_run_config_.clipVisionPath);
     settings.setValue("sd_adv_t5xxl_path", sd_run_config_.t5xxlPath);
-    settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
+    settings.setValue("sd_adv_qwen2vl_path", sd_run_config_.qwen2vlPath);
+
     settings.setValue("sd_adv_qwen2vl_vision_path", sd_run_config_.qwen2vlVisionPath);
     settings.setValue("sd_adv_lora_dir", sd_run_config_.loraDirPath);
     settings.setValue("sd_adv_taesd_path", sd_run_config_.taesdPath);
