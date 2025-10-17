@@ -17,6 +17,7 @@
 
     - EVA_BACKEND后端结构：`EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/`（例如 `EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server.exe`）。也可以自己编译相应后端，按照这个结构摆放，机体运行时会自动识别。
 
+
 2. 下载模型
 
     - https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body
@@ -33,7 +34,9 @@
 
 2. 启动
 
-    - windows双击打开eva.exe，linux 运行eva.appimage（运行前赋予程序可执行权限 chmod 777 eva.appimage）
+    - windows双击打开eva.exe，linux 运行eva.appimage（运行前赋予程序可执行权限 ）
+
+    - liunx下需要给eva和后端可执行权限，进入eva的文件夹，终端运行 chmod -R a+x .
 
     - 运行时确保机体程序与后端在同一目录
 

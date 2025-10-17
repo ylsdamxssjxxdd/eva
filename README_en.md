@@ -30,7 +30,9 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
 
 3. Launch
 
-    - On Windows: Double-click eva.exe to open. On Linux: Run eva.appimage (grant executable permission before running: chmod 777 eva.appimage).
+    - On Windows: Double-click eva.exe to open. On Linux: Run eva.appimage.
+
+    - Under Liunx, EVA and backend executable permissions need to be granted. Enter the EVA folder and run 'chmod -R a+x .' .
 
     - Ensure the EVA program and the backend are in the same directory during runtime.
 
