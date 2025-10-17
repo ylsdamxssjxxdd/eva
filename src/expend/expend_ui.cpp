@@ -63,33 +63,17 @@ void Expend::init_expend()
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
     ui->sd_result_groupBox->setTitle(jtr("result"));
-    // Replace legacy QTextEdit result with media-capable widget
-    if (!sd_mediaResult) {
-        sd_mediaResult = new MediaResultWidget(this);
-        sd_mediaResult->setObjectName("sd_media_result");
-    }
-    if (ui->sd_result) {
-        ui->sd_result->hide();
-        // Add the new media widget to the same layout
-        if (auto lay = ui->sd_result_groupBox->layout()) {
-            lay->addWidget(sd_mediaResult);
-        }
-    }
+    // Use MediaResultWidget declared in .ui
+    sd_mediaResult = ui->sd_media_result;
     // 旧的修饰词/负面词行内输入移除；请在“高级设置…”中编辑
 
     ui->sd_prompt_textEdit->setPlaceholderText(jtr("sd_prompt_textEdit_placeholder"));
     if (ui->sd_draw_pushButton->text() != "stop") { ui->sd_draw_pushButton->setText(QStringLiteral("生成")); }
-    // Replace sd_img2img_lineEdit with clickable drop area
-    if ( !sd_imgDrop) { 
-        sd_imgDrop = new ImageDropWidget(this);
+    // Use ImageDropWidget declared in .ui
+    sd_imgDrop = ui->sd_img_drop;
+    if (sd_imgDrop) {
         sd_imgDrop->setMinimumHeight(150);
         sd_imgDrop->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
-    }
-    if (ui->sd_img2img_lineEdit) {
-        if (QLayout* lay = ui->sd_img2img_lineEdit->parentWidget() ? ui->sd_img2img_lineEdit->parentWidget()->layout() : nullptr) {
-            lay->addWidget(sd_imgDrop);
-        }
-        ui->sd_img2img_lineEdit->hide();
     }
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
 
