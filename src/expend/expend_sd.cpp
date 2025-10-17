@@ -155,13 +155,24 @@ void Expend::on_sd_open_params_button_clicked()
         if (!sd_preset_configs_.contains(presetNow))
             sd_preset_configs_[presetNow] = loadPresetConfig(presetNow);
         SDRunConfig cfgNow = sd_preset_configs_.value(presetNow, SDRunConfig{});
-        // Default sd1.5 prompts if empty
+        // Default sd1.5 prompts if missing, and persist immediately so that
+        // switching presets does not wipe them out.
         if (presetNow == "sd1.5-anything-3")
         {
             const QString defMod = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
             const QString defNeg = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
-            if (cfgNow.modifyPrompt.isEmpty()) cfgNow.modifyPrompt = defMod;
-            if (cfgNow.negativePrompt.isEmpty()) cfgNow.negativePrompt = defNeg;
+            bool applied = false;
+            if (cfgNow.modifyPrompt.isEmpty()) { cfgNow.modifyPrompt = defMod; applied = true; }
+            if (cfgNow.negativePrompt.isEmpty()) { cfgNow.negativePrompt = defNeg; applied = true; }
+            if (applied)
+            {
+                // Persist defaults once so they survive preset switches
+                sd_preset_configs_[presetNow] = cfgNow;
+                sd_preset_modify_[presetNow] = cfgNow.modifyPrompt;
+                sd_preset_negative_[presetNow] = cfgNow.negativePrompt;
+                createTempDirectory(applicationDirPath + "/EVA_TEMP");
+                savePresetConfig(presetNow, cfgNow);
+            }
         }
         sdParamsDialog_->setConfig(cfgNow);
         // Keep legacy per-preset prompt store in sync for compatibility
@@ -196,6 +207,23 @@ void Expend::on_sd_open_params_button_clicked()
             if (!sd_preset_configs_.contains(p)) sd_preset_configs_[p] = loadPresetConfig(p);
             // Update current run config and dialog fields
             sd_run_config_ = sd_preset_configs_.value(p);
+            // If user switches to sd1.5 and prompts are missing, inject defaults
+            if (p == "sd1.5-anything-3")
+            {
+                const QString defMod = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
+                const QString defNeg = QStringLiteral("EasyNegative,badhandv4,ng_deepnegative_v1_75t,worst quality, low quality, normal quality, lowres, monochrome, grayscale, bad anatomy,DeepNegative, skin spots, acnes, skin blemishes, fat, facing away, looking away, tilted head, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, bad feet, poorly drawn hands, poorly drawn face, mutation, deformed, extra fingers, extra limbs, extra arms, extra legs, malformed limbs,fused fingers,too many fingers,long neck,cross-eyed,mutated hands,polar lowres,bad body,bad proportions,gross proportions,missing arms,missing legs,extra digit, extra arms, extra leg, extra foot,teethcroppe,signature, watermark, username,blurry,cropped,jpeg artifacts,text,error,Lower body exposure");
+                bool applied = false;
+                if (sd_run_config_.modifyPrompt.isEmpty()) { sd_run_config_.modifyPrompt = defMod; applied = true; }
+                if (sd_run_config_.negativePrompt.isEmpty()) { sd_run_config_.negativePrompt = defNeg; applied = true; }
+                if (applied)
+                {
+                    sd_preset_configs_[p] = sd_run_config_;
+                    sd_preset_modify_[p] = sd_run_config_.modifyPrompt;
+                    sd_preset_negative_[p] = sd_run_config_.negativePrompt;
+                    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+                    savePresetConfig(p, sd_run_config_);
+                }
+            }
             sdParamsDialog_->setConfig(sd_run_config_);
         });
         // Unmute autosave after initial programmatic setup

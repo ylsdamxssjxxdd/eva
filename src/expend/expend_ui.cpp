@@ -62,9 +62,7 @@ void Expend::init_expend()
     ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
-    // 文生图（仅保留 Prompt/Result/Log；路径与参数在“高级设置…”中配置）
     ui->sd_result_groupBox->setTitle(jtr("result"));
-    ui->sd_log_groupBox->setTitle(jtr("log"));
     // Replace legacy QTextEdit result with media-capable widget
     if (!sd_mediaResult) {
         sd_mediaResult = new MediaResultWidget(this);
@@ -306,7 +304,8 @@ void Expend::readConfig()
     sd_run_config_.clipGPath = settings.value("sd_adv_clip_g_path", clip_g_modelpath).toString();
     sd_run_config_.clipVisionPath = settings.value("sd_adv_clip_vision_path", "").toString();
     sd_run_config_.t5xxlPath = settings.value("sd_adv_t5xxl_path", t5_modelpath).toString();
-    sd_run_config_.qwen2vlPath = settings.value("sd_adv_qwen2vl_path", "").toString();
+    sd_run_config_.qwen2vlPath = settings.value("sd_adv_qwen2vl_path", "").toString();
+
     sd_run_config_.qwen2vlVisionPath = settings.value("sd_adv_qwen2vl_vision_path", "").toString();
     sd_run_config_.modifyPrompt = settings.value("sd_adv_modify", "").toString();
     sd_run_config_.negativePrompt = settings.value("sd_adv_negative", "").toString();
