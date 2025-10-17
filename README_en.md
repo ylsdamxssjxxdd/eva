@@ -24,7 +24,7 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
       - `EVA_MODELS/embedding`: Embedding models (non-essential).
       - `EVA_MODELS/speech2text`: Whisper models (non-essential).
       - `EVA_MODELS/text2speech`: OuteTTS and WavTokenizer models (non-essential).
-      - `EVA_MODELS/text2image`: SD/Flux models (non-essential).
+      - `EVA_MODELS/text2image`: SD/Flux/Qwen-image/Qwen-image-edit/ models (non-essential).
 
     - You can also visit https://hf-mirror.com to search; EVA supports almost all open-source large language models.
 

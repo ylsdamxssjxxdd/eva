@@ -27,7 +27,7 @@
       - `EVA_MODELS/embedding`：嵌入模型（非必要）
       - `EVA_MODELS/speech2text`：Whisper模型（非必要）
       - `EVA_MODELS/text2speech`：OuteTTS 与 WavTokenizer模型（非必要）
-      - `EVA_MODELS/text2image`：SD/Flux 模型（非必要）
+      - `EVA_MODELS/text2image`：SD/Flux/Qwen-image/Qwen-image-edit/ 模型（非必要）
 
     - 也可以前往 https://hf-mirror.com 搜索，机体支持几乎所有开源大语言模型
 

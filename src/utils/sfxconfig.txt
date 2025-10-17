@@ -1,4 +1,0 @@
-Setup=eva.exe
-Path=.\eva_home
-silent=2
-Overwrite=1

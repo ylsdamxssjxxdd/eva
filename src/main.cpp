@@ -26,28 +26,27 @@
 static inline void createDesktopShortcut(QString appPath)
 {
 #ifdef Q_OS_LINUX
-    // prepare icon path and copy resource icon to user dir
-    QString iconDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/icons/";
+    // Prepare icon path and copy resource icon to user dir
+    const QString iconDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/icons/";
     QDir().mkpath(iconDir);
-    QString iconPath = iconDir + "eva.png";
+    const QString iconPath = iconDir + "eva.png";
     QFile::copy(":/logo/blue_logo.png", iconPath);
     QFile::setPermissions(iconPath, QFile::ReadOwner | QFile::WriteOwner);
 
-    // compose .desktop content
-    QString desktopContent = QString(
-                                 "[Desktop Entry]\n"
-                                 "Type=Application\n"
-                                 "Name=eva\n"
-                                 "Comment=a lite llm tool\n"
-                                 "Exec=\\" %
-                                 2\\"\\n"
-                                    "Icon=%3\n"
-                                    "Terminal=false\n"
-                                    "Categories=Utility;\n")
-                                 \.arg(QStringLiteral("eva"), appPath, iconPath);
+    // Compose .desktop content using Qt placeholders (%1, %2, %3)
+    const QString desktopContent = QStringLiteral(
+                                        "[Desktop Entry]\n"
+                                        "Type=Application\n"
+                                        "Name=%1\n"
+                                        "Comment=a lite llm tool\n"
+                                        "Exec=\"%2\"\n"
+                                        "Icon=%3\n"
+                                        "Terminal=false\n"
+                                        "Categories=Utility;\n")
+                                        .arg(QStringLiteral("eva"), appPath, iconPath);
 
-    // write to ~/.local/share/applications/eva.desktop
-    QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
+    // Write to ~/.local/share/applications/eva.desktop
+    const QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
     QDir().mkpath(applicationsDir);
     QFile applicationsFile(applicationsDir + "eva.desktop");
     if (applicationsFile.open(QIODevice::WriteOnly))
@@ -61,8 +60,8 @@ static inline void createDesktopShortcut(QString appPath)
         qWarning() << "Failed to write applications desktop file";
     }
 
-    // write to ~/Desktop/eva.desktop
-    QString desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/";
+    // Write to ~/Desktop/eva.desktop
+    const QString desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/";
     QFile desktopFile(desktopDir + "eva.desktop");
     if (desktopFile.open(QIODevice::WriteOnly))
     {
