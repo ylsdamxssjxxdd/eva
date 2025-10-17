@@ -4,7 +4,7 @@
 include_guard(GLOBAL)
 
 # ---- User-facing options ----
-option(BODY_PACK   "pack eva"                                   ON)
+option(BODY_PACK   "pack eva"                                   OFF)
 
 # MinGW static runtime option (mirrors the pattern in the reference CMake)
 # Default: Windows ON, others OFF. This aims to statically link libgcc/libstdc++/winpthread
