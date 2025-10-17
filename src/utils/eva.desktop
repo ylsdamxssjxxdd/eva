@@ -2,8 +2,8 @@
 Type=Application
 Name=eva
 Comment=a lite llm tool
-Exec=AppRun
-TryExec=AppRun
+Exec=eva
+TryExec=eva
 Icon=eva
 Terminal=false
-Categories=Utility;AI;Qt;
+Categories=Utility;
