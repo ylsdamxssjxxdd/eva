@@ -31,6 +31,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); // 设置分隔器中第一个元素初始高度占比为3
     ui->splitter->setStretchFactor(1, 1); // 设置分隔器中第二个元素初始高度占比为1
+    enableSplitterHover(ui->splitter);
     if (ui->statusTerminalSplitter)
     {
         ui->statusTerminalSplitter->setStretchFactor(0, 1);
@@ -38,6 +39,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         ui->statusTerminalSplitter->setHandleWidth(8);
         ui->statusTerminalSplitter->setCollapsible(0, false);
         ui->statusTerminalSplitter->setCollapsible(1, true);
+        enableSplitterHover(ui->statusTerminalSplitter);
         connect(ui->statusTerminalSplitter, &QSplitter::splitterMoved, this, [this](int, int)
                 {
             if (!ui->statusTerminalSplitter) return;
@@ -1273,7 +1275,25 @@ void Widget::on_set_clicked()
     device_snapshot_ = settings_ui->device_comboBox->currentText().trimmed().toLower();
     // Ensure device label reflects current auto->(effective) preview before showing the dialog
     refreshDeviceBackendUI();
+    applySettingsDialogSizing();
     settings_dialog->exec();
+}
+
+void Widget::enableSplitterHover(QSplitter *splitter)
+{
+    if (!splitter) return;
+    splitter->setAttribute(Qt::WA_Hover, true);
+    splitter->setMouseTracking(true);
+    const int handleCount = splitter->count();
+    for (int i = 0; i <= handleCount; ++i)
+    {
+        if (QSplitterHandle *handle = splitter->handle(i))
+        {
+            handle->setAttribute(Qt::WA_Hover, true);
+            handle->setMouseTracking(true);
+            handle->update();
+        }
+    }
 }
 
 // 从SQLite加载并还原历史会话

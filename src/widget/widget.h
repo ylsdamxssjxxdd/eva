@@ -46,6 +46,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QtGlobal>
+#include <QSplitter>
 #include <thread>
 #ifdef _WIN32
 #include <windows.h>
@@ -251,6 +252,8 @@ class Widget : public QWidget
     QString deviceLabelBaseText; // “推理设备”标签的原始文本，用于 auto 提示拼接
     void chooseLorapath();
     void chooseMmprojpath();
+    void applySettingsDialogSizing();
+    void enableSplitterHover(QSplitter *splitter);
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;

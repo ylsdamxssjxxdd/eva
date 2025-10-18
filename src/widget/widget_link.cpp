@@ -199,6 +199,10 @@ void Widget::change_api_dialog(bool enable)
     if (settings_ui && settings_ui->backend_box)
     {
         settings_ui->backend_box->setVisible(enable);
+        if (settings_dialog && settings_dialog->isVisible())
+        {
+            applySettingsDialogSizing();
+        }
     }
 }
 

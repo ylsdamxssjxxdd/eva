@@ -1,6 +1,8 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include <QtGlobal>
+#include <QLayout>
+#include <QSize>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -12,6 +14,10 @@ void Widget::set_SetDialog()
     // settings_dialog->setWindowFlags(settings_dialog->windowFlags() & ~Qt::WindowCloseButtonHint);// 隐藏关闭按钮
     settings_ui = new Ui::Settings_Dialog_Ui;
     settings_ui->setupUi(settings_dialog);
+    if (QLayout *layout = settings_dialog->layout())
+    {
+        layout->setSizeConstraint(QLayout::SetMinimumSize);
+    }
 
     // 推理设备下拉：根据当前目录中可用后端动态填充
     {
@@ -97,6 +103,19 @@ void Widget::set_SetDialog()
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
 
     settings_dialog->setWindowTitle(jtr("set"));
+}
+
+void Widget::applySettingsDialogSizing()
+{
+    if (!settings_dialog) return;
+    if (QLayout *layout = settings_dialog->layout())
+    {
+        layout->invalidate();
+        layout->activate();
+    }
+    const QSize hint = settings_dialog->minimumSizeHint();
+    settings_dialog->setMinimumSize(hint);
+    settings_dialog->resize(hint);
 }
 
 // 设置选项卡确认按钮响应
