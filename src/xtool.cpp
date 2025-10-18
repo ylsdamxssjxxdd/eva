@@ -4,6 +4,7 @@
 
 #include <QDirIterator>
 #include <QEventLoop>
+#include <QHash>
 #include <QRegularExpression>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
@@ -858,99 +859,249 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             return true; // 小文件尝试读取
         };
 
-        QStringList outLines;
+        if (!rootDir.exists())
+        {
+            const QString msg = QString("Work directory not found: %1").arg(root);
+            sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
+            sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+            return;
+        }
 
-        int matches = 0;
+        struct SnippetLine
+        {
+            int lineNumber = 0;
+            QString text;
+            bool isMatch = false;
+        };
 
-        const int kMaxMatches = 2000; // 控制输出规模
+        struct SearchHit
+        {
+            QVector<SnippetLine> lines;
+        };
+
+        struct FileSearchResult
+        {
+            QString path;
+            QVector<SearchHit> hits;
+        };
+
+        QVector<FileSearchResult> fileResults;
+        QHash<QString, int> fileIndexByPath;
+
+        const int kContextLines = 1;
+        const int kMaxMatches = 300;
+        const int kMaxOutputBytes = 220 * 1024;
+
+        int totalMatches = 0;
+        bool matchLimitHit = false;
+
+        auto sanitizeLine = [](QString text) -> QString
+        {
+            text.replace('\t', ' ');
+            text.replace('\r', ' ');
+            if (text.size() > 400) text = text.left(400) + "...";
+            return text;
+        };
+
+        auto highlightMatches = [](const QString &line, const QString &needle) -> QString
+        {
+            if (needle.isEmpty()) return line;
+            QString result;
+            const QString lowerLine = line.toLower();
+            const QString lowerNeedle = needle.toLower();
+            int searchPos = 0;
+            while (true)
+            {
+                const int idx = lowerLine.indexOf(lowerNeedle, searchPos);
+                if (idx < 0) break;
+                result += line.mid(searchPos, idx - searchPos);
+                result += "<<";
+                result += line.mid(idx, needle.size());
+                result += ">>";
+                searchPos = idx + needle.size();
+            }
+            result += line.mid(searchPos);
+            return result;
+        };
+
+        auto ensureFileResult = [&](const QString &relativePath) -> FileSearchResult &
+        {
+            auto it = fileIndexByPath.find(relativePath);
+            if (it != fileIndexByPath.end())
+            {
+                return fileResults[*it];
+            }
+            FileSearchResult result;
+            result.path = relativePath;
+            fileResults.append(result);
+            const int newIndex = fileResults.size() - 1;
+            fileIndexByPath.insert(relativePath, newIndex);
+            return fileResults[newIndex];
+        };
 
         QDirIterator it(rootDir.absolutePath(), QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
 
         while (it.hasNext())
-
         {
+            if (shouldAbort(invocation)) break;
+
+            const QString absolutePath = it.next();
+            const QFileInfo fi(absolutePath);
+
+            const QString relCheck = rootDir.relativeFilePath(fi.absoluteFilePath());
+            if (relCheck.startsWith("..")) continue;
+            if (!isLikelyText(absolutePath, fi.size())) continue;
+
+            QFile file(absolutePath);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+            QTextStream stream(&file);
+            stream.setCodec("UTF-8");
+
+            QStringList lines;
+            while (!stream.atEnd())
+            {
+                if (shouldAbort(invocation)) break;
+                lines.append(stream.readLine());
+            }
+            file.close();
 
             if (shouldAbort(invocation)) break;
 
-            const QString fpath = it.next();
+            const QString relativePath = rootDir.relativeFilePath(fi.absoluteFilePath());
 
-            const QFileInfo fi(fpath);
-
-            // 限制在根目录（防止符号链接逃逸）
-
-            const QString relCheck = rootDir.relativeFilePath(fi.absoluteFilePath());
-
-            if (relCheck.startsWith("..")) continue;
-
-            if (!isLikelyText(fpath, fi.size())) continue;
-
-            QFile f(fpath);
-
-            if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
-
-            QTextStream ts(&f);
-
-            ts.setCodec("UTF-8");
-
-            int ln = 0;
-
-            while (!ts.atEnd())
-
+            for (int i = 0; i < lines.size(); ++i)
             {
-
                 if (shouldAbort(invocation)) break;
 
-                QString l = ts.readLine();
+                const QString &line = lines.at(i);
+                if (!line.contains(query, Qt::CaseInsensitive)) continue;
 
-                ++ln;
+                SearchHit hit;
 
-                if (l.contains(query, Qt::CaseInsensitive))
-
+                const int start = qMax(0, i - kContextLines);
+                const int end = qMin(lines.size() - 1, i + kContextLines);
+                for (int ctx = start; ctx <= end; ++ctx)
                 {
+                    SnippetLine snippetLine;
+                    snippetLine.lineNumber = ctx + 1;
+                    snippetLine.isMatch = (ctx == i);
+                    QString sanitized = sanitizeLine(lines.at(ctx));
+                    snippetLine.text = snippetLine.isMatch ? highlightMatches(sanitized, query) : sanitized;
+                    hit.lines.append(snippetLine);
+                }
 
-                    QString content = l;
+                if (hit.lines.isEmpty()) continue;
 
-                    content.replace('	', ' ');
+                FileSearchResult &fileResult = ensureFileResult(relativePath);
+                fileResult.hits.append(hit);
+                ++totalMatches;
 
-                    // 避免超长行
-
-                    if (content.size() > 400) content = content.left(400) + "...";
-
-                    const QString rel = rootDir.relativeFilePath(fi.absoluteFilePath());
-
-                    outLines << (rel + ":" + QString::number(ln) + ":" + content);
-
-                    if (++matches >= kMaxMatches) break;
+                if (totalMatches >= kMaxMatches)
+                {
+                    matchLimitHit = true;
+                    break;
                 }
             }
 
-            f.close();
-
-            if (matches >= kMaxMatches) break;
+            if (matchLimitHit) break;
         }
 
         if (shouldAbort(invocation)) return;
 
-        QString result;
-
-        if (outLines.isEmpty())
-
-            result = QString("No matches.");
-
-        else
-
-            result = outLines.join(" ");
-
-        if (matches >= kMaxMatches)
-
+        if (totalMatches == 0)
         {
-
-            result += QString("... truncated; first %1 matches shown").arg(kMaxMatches);
+            const QString msg = QString("No matches.");
+            sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
+            sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+            return;
         }
 
-        sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + result, TOOL_SIGNAL);
+        QStringList outputLines;
+        int byteCount = 0;
+        bool outputLimitHit = false;
 
-        sendPushMessage(QString("search_content ") + jtr("return") + " " + result);
+        auto tryAppendLine = [&](const QString &line) -> bool
+        {
+            const QByteArray utf8 = line.toUtf8();
+            const int needed = utf8.size() + 1;
+            if (byteCount + needed > kMaxOutputBytes)
+            {
+                return false;
+            }
+            outputLines.append(line);
+            byteCount += needed;
+            return true;
+        };
+
+        auto formatLine = [](const SnippetLine &line) -> QString
+        {
+            const QString marker = line.isMatch ? QStringLiteral("|>") : QStringLiteral("| ");
+            const QString number = line.lineNumber > 0 ? QString::number(line.lineNumber).rightJustified(6, ' ') : QString(6, ' ');
+            return QString("%1 %2 | %3").arg(marker, number, line.text);
+        };
+
+        const QString summary =
+            QString("Found %1 match%2 across %3 file%4.")
+                .arg(totalMatches)
+                .arg(totalMatches == 1 ? "" : "es")
+                .arg(fileResults.size())
+                .arg(fileResults.size() == 1 ? "" : "s");
+
+        if (!tryAppendLine(summary)) outputLimitHit = true;
+        if (!outputLimitHit && !tryAppendLine(QString("Search root: %1").arg(root))) outputLimitHit = true;
+
+        for (const FileSearchResult &fileResult : fileResults)
+        {
+            if (outputLimitHit) break;
+            if (!tryAppendLine(QString())) { outputLimitHit = true; break; }
+            if (!tryAppendLine(fileResult.path)) { outputLimitHit = true; break; }
+            if (!tryAppendLine(QStringLiteral("|----"))) { outputLimitHit = true; break; }
+
+            for (int i = 0; i < fileResult.hits.size(); ++i)
+            {
+                const SearchHit &hit = fileResult.hits.at(i);
+                for (const SnippetLine &lineInfo : hit.lines)
+                {
+                    if (!tryAppendLine(formatLine(lineInfo)))
+                    {
+                        outputLimitHit = true;
+                        break;
+                    }
+                }
+                if (outputLimitHit) break;
+
+                if (i != fileResult.hits.size() - 1)
+                {
+                    if (!tryAppendLine(QStringLiteral("|----")))
+                    {
+                        outputLimitHit = true;
+                        break;
+                    }
+                }
+            }
+
+            if (outputLimitHit) break;
+
+            if (!tryAppendLine(QStringLiteral("|----")))
+            {
+                outputLimitHit = true;
+                break;
+            }
+        }
+
+        const bool truncated = matchLimitHit || outputLimitHit;
+        if (truncated)
+        {
+            outputLines.append(QString("[Results truncated. Refine your search to narrow matches.]"));
+        }
+
+        const QString result = outputLines.join("\n");
+        const QString prefix = QString("search_content ") + jtr("return") + "\n";
+
+        sendStateMessage("tool:" + prefix + result, TOOL_SIGNAL);
+
+        sendPushMessage(prefix + result);
     }
 
     else if (tools_name.contains("mcp_tools_list")) // 查询mcp可用工具
