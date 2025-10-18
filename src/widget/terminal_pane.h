@@ -44,6 +44,7 @@ class TerminalPane : public QWidget
 
     void appendChunk(const QString &text, Channel channel);
     void startManualCommand(const QString &command);
+    void sendInputToManualProcess(const QString &payload);
     void resetManualProcess(bool interrupted);
     void updateControls();
     void flushPendingChunks();

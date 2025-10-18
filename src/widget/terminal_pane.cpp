@@ -63,7 +63,6 @@ TerminalPane::TerminalPane(QWidget *parent)
 
     input_ = new QLineEdit(this);
     input_->setObjectName(QStringLiteral("terminalInput"));
-    input_->setPlaceholderText(tr("Enter command and press Enter"));
     input_->setFont(monoFont);
 
     interruptButton_ = new QPushButton(tr("Stop"), this);
@@ -203,14 +202,31 @@ void TerminalPane::handleExternalFinished(int exitCode, bool interrupted)
 
 void TerminalPane::handleReturnPressed()
 {
-    if (manualRunning_ || externalRunning_)
+    if (externalRunning_)
     {
         appendChunk(tr("A command is already running. Interrupt it before starting a new one.\n"), Channel::System);
         return;
     }
 
-    const QString command = input_->text().trimmed();
-    if (command.isEmpty()) return;
+    const QString rawText = input_->text();
+    if (manualRunning_)
+    {
+        input_->clear();
+        if (!manualProcess_)
+        {
+            appendChunk(tr("No active process is available to receive input.\n"), Channel::System);
+            return;
+        }
+        sendInputToManualProcess(rawText);
+        return;
+    }
+
+    const QString command = rawText.trimmed();
+    if (command.isEmpty())
+    {
+        input_->clear();
+        return;
+    }
     input_->clear();
     startManualCommand(command);
 }
@@ -277,6 +293,7 @@ void TerminalPane::startManualCommand(const QString &command)
     const QString promptDir = manualWorkingDir_.isEmpty() ? QString() : QDir::toNativeSeparators(manualWorkingDir_);
     appendChunk(makePrompt(command, promptDir), Channel::System);
     manualProcess_ = new QProcess(this);
+    manualProcess_->setInputChannelMode(QProcess::ManagedInputChannel);
     manualProcess_->setProcessEnvironment(QProcessEnvironment::systemEnvironment());
     manualProcess_->setProcessChannelMode(QProcess::SeparateChannels);
     if (!manualWorkingDir_.isEmpty())
@@ -308,6 +325,28 @@ void TerminalPane::startManualCommand(const QString &command)
     updateControls();
 }
 
+void TerminalPane::sendInputToManualProcess(const QString &payload)
+{
+    if (!manualProcess_) return;
+
+#ifdef Q_OS_WIN
+    QByteArray bytes = payload.toLocal8Bit();
+#else
+    QByteArray bytes = payload.toUtf8();
+#endif
+    bytes.append('\n');
+
+    if (manualProcess_->write(bytes) == -1)
+    {
+        appendChunk(tr("Failed to send input: %1\n").arg(manualProcess_->errorString()), Channel::System);
+        return;
+    }
+
+    QString echoed = payload;
+    echoed.append('\n');
+    appendChunk(echoed, Channel::System);
+}
+
 void TerminalPane::resetManualProcess(bool interrupted)
 {
     Q_UNUSED(interrupted);
@@ -323,9 +362,13 @@ void TerminalPane::resetManualProcess(bool interrupted)
 
 void TerminalPane::updateControls()
 {
-    const bool busy = manualRunning_ || externalRunning_;
-    input_->setEnabled(!busy);
-    interruptButton_->setEnabled(busy);
+    const bool allowInput = !externalRunning_;
+    input_->setEnabled(allowInput);
+    if (manualRunning_)
+        input_->setPlaceholderText(tr("Send input and press Enter (Ctrl+C to interrupt)"));
+    else
+        input_->setPlaceholderText(tr("Enter command and press Enter"));
+    interruptButton_->setEnabled(manualRunning_ || externalRunning_);
 }
 
 void TerminalPane::flushPendingChunks()
