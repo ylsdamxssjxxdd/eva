@@ -53,11 +53,11 @@
 #endif
 
 #include "../mcp_tools.h"
+#include "../utils/mediaresultwidget.h"
 #include "../utils/vectordb.h"
 #include "../xconfig.h"
-#include "sd_params_dialog.h"
 #include "./src/utils/toggleswitch.h"
-#include "../utils/mediaresultwidget.h"
+#include "sd_params_dialog.h"
 namespace Ui
 {
 class Expend;
@@ -80,8 +80,8 @@ class Expend : public QWidget
     void setWhisperModelpath(QString modelpath);            // 用于设置whisper模型路径
     // SD inline path setters removed; configuration handled by advanced dialog
     QJsonObject wordsObj;
-    ImageDropWidget* sd_imgDrop = nullptr; // img2img drop area
-    MediaResultWidget* sd_mediaResult = nullptr; // image/video result area
+    ImageDropWidget *sd_imgDrop = nullptr;       // img2img drop area
+    MediaResultWidget *sd_mediaResult = nullptr; // image/video result area
     int language_flag = 0;
     QString jtr(QString customstr); // 根据language.json(wordsObj)和language_flag中找到对应的文字
     bool is_first_show_modelproliferation = true;
@@ -232,13 +232,13 @@ class Expend : public QWidget
 
   public:
     // Legacy inline SD template panel removed; presets managed by advanced dialog only
-    QString sd_outputpath;                        // 最终的绘制结果保存路径
+    QString sd_outputpath; // 最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
     QString sd_process_output;
-    bool img2img = false;                         // 是否是图生图操作
+    bool img2img = false; // 是否是图生图操作
     // Legacy file scanning removed (was used by inline SD path panel)
-    bool is_readconfig = false;                   // 用于控制模板的应用
+    bool is_readconfig = false; // 用于控制模板的应用
     // Legacy custom template flags removed
     // 高级参数弹窗与运行配置
     SdParamsDialog *sdParamsDialog_ = nullptr; // 弹窗（延迟创建）
@@ -246,17 +246,18 @@ class Expend : public QWidget
     // Per-preset prompt storage (avoid cross-preset leakage)
     QMap<QString, QString> sd_preset_modify_;   // key: preset name -> modify
     QMap<QString, QString> sd_preset_negative_; // key: preset name -> negative
+    quint64 current_sd_invocation_id_ = 0;      // Track latest tool invocation for SD
   public slots:
     void sd_onProcessStarted();  // 进程开始响应
     void sd_onProcessFinished(); // 进程结束响应
 
-    void recv_draw(QString prompt_); // 接收到tool的开始绘制图像信号
+    void recv_draw(quint64 invocationId, QString prompt_); // 接收到tool的开始绘制图像信号
   signals:
-    void expend2tool_drawover(QString result_, bool ok_); // 绘制完成信号
+    void expend2tool_drawover(quint64 invocationId, QString result_, bool ok_); // 绘制完成信号
   private slots:
     // Inline SD path selection slots removed: use advanced dialog
-    void on_sd_draw_pushButton_clicked();                            // 用户点击文生图时响应
-    void on_sd_open_params_button_clicked();                          // 打开高级参数弹窗
+    void on_sd_draw_pushButton_clicked();    // 用户点击文生图时响应
+    void on_sd_open_params_button_clicked(); // 打开高级参数弹窗
 
     //-------------------------------------------------------------------------
     //----------------------------------文转声相关--------------------------------
@@ -289,7 +290,7 @@ class Expend : public QWidget
     void speechOver();
     void speechPlayOver();
     void recv_output(const QString result, bool is_while, QColor color); // 接收模型的输出
-    void onNetTurnDone();                                       // 一轮推理结束：冲刷缓存片段以便朗读
+    void onNetTurnDone();                                                // 一轮推理结束：冲刷缓存片段以便朗读
     void recv_resettts();                                                // 重置文字转语音
     void speech_process();                                               // 每半秒检查列表，列表中有文字就读然后删，直到读完
     void speech_play_process();                                          // 每半秒检查播放列表，列表中有文字就读然后删，直到读完
@@ -311,11 +312,12 @@ class Expend : public QWidget
     QMap<QString, SDRunConfig> sd_preset_configs_; // key: preset name -> config
     QString sanitizePresetKey(const QString &preset) const
     {
-        QString t = preset; return t.replace('.', '_').replace(' ', '_').replace('-', '_');
+        QString t = preset;
+        return t.replace('.', '_').replace(' ', '_').replace('-', '_');
     }
-    SDRunConfig loadPresetConfig(const QString &preset) const;  // read from QSettings
+    SDRunConfig loadPresetConfig(const QString &preset) const;                  // read from QSettings
     void savePresetConfig(const QString &preset, const SDRunConfig &cfg) const; // write to QSettings
-    void applyPresetToInlineUi(const QString &preset); // mirror essentials to inline fields
+    void applyPresetToInlineUi(const QString &preset);                          // mirror essentials to inline fields
 
     //-------------------------------------------------------------------------
     //----------------------------------模型信息相关--------------------------------
@@ -444,6 +446,3 @@ class Expend : public QWidget
     bool tts_in_think_ = false; // skip content inside <think>..</think>
 };
 #endif // EXPEND_H
-
-
-

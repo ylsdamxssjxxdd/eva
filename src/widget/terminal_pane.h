@@ -2,8 +2,8 @@
 #define TERMINAL_PANE_H
 
 #include <QProcess>
-#include <QWidget>
 #include <QVector>
+#include <QWidget>
 
 class QLineEdit;
 class QPlainTextEdit;

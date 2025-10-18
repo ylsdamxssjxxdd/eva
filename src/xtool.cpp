@@ -5,6 +5,7 @@
 #include <QDirIterator>
 #include <QEventLoop>
 #include <QRegularExpression>
+#include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
 
 namespace
@@ -27,11 +28,7 @@ QString clampToolMessage(const QString &message)
     const double headKb = headBytes.size() / 1024.0;
     const double tailKb = tailBytes.size() / 1024.0;
 
-    return head + "\n...\n" + tail
-           + QString("\n[tool output truncated: %1 KB total, showing first %2 KB and last %3 KB]")
-                 .arg(totalKb, 0, 'f', 1)
-                 .arg(headKb, 0, 'f', 1)
-                 .arg(tailKb, 0, 'f', 1);
+    return head + "\n...\n" + tail + QString("\n[tool output truncated: %1 KB total, showing first %2 KB and last %3 KB]").arg(totalKb, 0, 'f', 1).arg(headKb, 0, 'f', 1).arg(tailKb, 0, 'f', 1);
 }
 
 struct MatchRange
@@ -124,14 +121,63 @@ QString snippetPreview(const QString &text)
 }
 } // namespace
 
+struct xTool::ToolInvocation
+{
+    quint64 id = 0;
+    QString name;
+    mcp::json call;
+    mcp::json args;
+    std::atomic<bool> cancelled{false};
+    QString commandContent;
+    QString aggregatedOutput;
+    QString workingDirectory;
+};
+
+thread_local xTool::ToolInvocation *xTool::tlsCurrentInvocation_ = nullptr;
+
 void xTool::sendStateMessage(const QString &message, SIGNAL_STATE state)
 {
+    if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
     emit tool2ui_state(clampToolMessage(message), state);
 }
 
 void xTool::sendPushMessage(const QString &message)
 {
+    if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
     emit tool2ui_pushover(clampToolMessage(message));
+}
+
+xTool::ToolInvocationPtr xTool::activeInvocation() const
+{
+    std::lock_guard<std::mutex> lock(invocationMutex_);
+    return activeInvocation_;
+}
+
+void xTool::setActiveInvocation(const ToolInvocationPtr &invocation)
+{
+    std::lock_guard<std::mutex> lock(invocationMutex_);
+    activeInvocation_ = invocation;
+}
+
+void xTool::clearActiveInvocation(const ToolInvocationPtr &invocation)
+{
+    std::lock_guard<std::mutex> lock(invocationMutex_);
+    if (activeInvocation_ == invocation)
+    {
+        activeInvocation_.reset();
+    }
+}
+
+xTool::ToolInvocationPtr xTool::createInvocation(mcp::json tools_call)
+{
+    cancelActiveTool();
+    auto invocation = std::make_shared<ToolInvocation>();
+    invocation->id = nextInvocationId_.fetch_add(1, std::memory_order_relaxed);
+    invocation->call = std::move(tools_call);
+    invocation->name = QString::fromStdString(get_string_safely(invocation->call, "name"));
+    invocation->args = get_json_object_safely(invocation->call, "arguments");
+    setActiveInvocation(invocation);
+    return invocation;
 }
 
 xTool::xTool(QString applicationDirPath_)
@@ -173,23 +219,92 @@ void xTool::cancelExecuteCommand()
 {
     if (!activeCommandProcess_) return;
     activeCommandInterrupted_ = true;
+    if (activeCommandInvocation_) activeCommandInvocation_->cancelled.store(true, std::memory_order_release);
     if (activeCommandProcess_->state() != QProcess::NotRunning)
     {
         activeCommandProcess_->kill();
     }
 }
 
+void xTool::startWorkerInvocation(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    QtConcurrent::run([this, invocation]()
+                      {
+        ToolInvocation *previous = tlsCurrentInvocation_;
+        tlsCurrentInvocation_ = invocation.get();
+        struct Cleanup
+        {
+            xTool *tool;
+            ToolInvocation *previous;
+            ToolInvocationPtr invocation;
+            ~Cleanup()
+            {
+                xTool::tlsCurrentInvocation_ = previous;
+                if (!tool) return;
+                auto localTool = tool;
+                auto localInvocation = invocation;
+                QMetaObject::invokeMethod(localTool, [localTool, localInvocation]() { localTool->finishInvocation(localInvocation); }, Qt::QueuedConnection);
+            }
+        } cleanup{this, previous, invocation};
+        runToolWorker(invocation); });
+}
+
 void xTool::Exec(mcp::json tools_call)
 
 {
 
-    QString tools_name = QString::fromStdString(get_string_safely(tools_call, "name"));
+    auto invocation = createInvocation(std::move(tools_call));
+    if (!invocation) return;
 
-    mcp::json tools_args_ = get_json_object_safely(tools_call, "arguments");
+    QString tools_args = QString::fromStdString(invocation->args.dump());
+    qDebug() << "tools_name" << invocation->name << "tools_args" << tools_args;
+
+    if (invocation->name == "execute_command")
+    {
+        invocation->commandContent = QString::fromStdString(get_string_safely(invocation->args, "content"));
+        startExecuteCommand(invocation);
+        return;
+    }
+
+    if (invocation->name == "stablediffusion")
+    {
+        handleStableDiffusion(invocation);
+        return;
+    }
+
+    if (invocation->name.contains("mcp_tools_list"))
+    {
+        handleMcpToolList(invocation);
+        return;
+    }
+
+    if (invocation->name.contains("@"))
+    {
+        handleMcpToolCall(invocation);
+        return;
+    }
+
+    startWorkerInvocation(invocation);
+}
+
+void xTool::runToolWorker(const ToolInvocationPtr &invocation)
+
+{
+
+    if (!invocation) return;
+
+    mcp::json tools_call = invocation->call;
+
+    QString tools_name = invocation->name;
+
+    mcp::json tools_args_ = invocation->args;
 
     QString tools_args = QString::fromStdString(tools_args_.dump()); // arguments字段提取出来还是一个对象所以用dump
 
     qDebug() << "tools_name" << tools_name << "tools_args" << tools_args;
+
+    if (shouldAbort(invocation)) return;
 
     //----------------------计算器------------------
 
@@ -226,117 +341,7 @@ void xTool::Exec(mcp::json tools_call)
 
     else if (tools_name == "execute_command")
     {
-        const QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
-        sendStateMessage("tool:" + QString("execute_command(") + content + ")");
-
-        if (!workDirRoot.isEmpty()) { createTempDirectory(workDirRoot); }
-        const QString work = workDirRoot.isEmpty() ? QDir::cleanPath(applicationDirPath + "/EVA_WORK") : workDirRoot;
-
-        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-#ifdef __linux__
-        env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + env.value("PATH"));
-#endif
-
-#ifdef _WIN32
-        const QString program = QStringLiteral("cmd.exe");
-        const QStringList args{QStringLiteral("/c"), content};
-#else
-        const QString program = QStringLiteral("/bin/sh");
-        const QStringList args{QStringLiteral("-lc"), content};
-#endif
-
-        QProcess process;
-        process.setProcessEnvironment(env);
-        process.setWorkingDirectory(work);
-        process.setProcessChannelMode(QProcess::SeparateChannels);
-
-        QString aggregated;
-        activeCommandProcess_ = &process;
-        activeCommandInterrupted_ = false;
-
-        emit tool2ui_terminalCommandStarted(content, work);
-
-        QObject::connect(&process, &QProcess::readyReadStandardOutput, this, [this, &process, &aggregated]()
-                         {
-                             const QByteArray data = process.readAllStandardOutput();
-                             if (data.isEmpty()) return;
-#ifdef Q_OS_WIN
-                             const QString text = QString::fromLocal8Bit(data);
-#else
-                             const QString text = QString::fromUtf8(data);
-#endif
-                             aggregated += text;
-                             emit tool2ui_terminalStdout(text);
-                         });
-        QObject::connect(&process, &QProcess::readyReadStandardError, this, [this, &process, &aggregated]()
-                         {
-                             const QByteArray data = process.readAllStandardError();
-                             if (data.isEmpty()) return;
-#ifdef Q_OS_WIN
-                             const QString text = QString::fromLocal8Bit(data);
-#else
-                             const QString text = QString::fromUtf8(data);
-#endif
-                             aggregated += text;
-                             emit tool2ui_terminalStderr(text);
-                         });
-
-        process.start(program, args);
-        if (!process.waitForStarted())
-        {
-            const QString err = process.errorString();
-            emit tool2ui_terminalStderr(err + "\n");
-            emit tool2ui_terminalCommandFinished(-1, false);
-            sendStateMessage("tool:" + QString("execute_command ") + "\n" + err, WRONG_SIGNAL);
-            sendPushMessage(QString("execute_command ") + "\n" + err);
-            qWarning() << "execute_command start failed:" << err;
-            activeCommandProcess_ = nullptr;
-            activeCommandInterrupted_ = false;
-            return;
-        }
-
-        QEventLoop loop;
-        QObject::connect(&process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), &loop, &QEventLoop::quit);
-        loop.exec();
-
-        const auto drain = [&](QProcess::ProcessChannel channel)
-        {
-            QByteArray bytes = (channel == QProcess::StandardOutput) ? process.readAllStandardOutput() : process.readAllStandardError();
-            if (bytes.isEmpty()) return;
-#ifdef Q_OS_WIN
-            const QString text = QString::fromLocal8Bit(bytes);
-#else
-            const QString text = QString::fromUtf8(bytes);
-#endif
-            aggregated += text;
-            if (channel == QProcess::StandardOutput)
-                emit tool2ui_terminalStdout(text);
-            else
-                emit tool2ui_terminalStderr(text);
-        };
-        drain(QProcess::StandardOutput);
-        drain(QProcess::StandardError);
-
-        const int exitCode = process.exitCode();
-        const bool interrupted = activeCommandInterrupted_ || process.exitStatus() == QProcess::CrashExit;
-        activeCommandProcess_ = nullptr;
-        activeCommandInterrupted_ = false;
-        emit tool2ui_terminalCommandFinished(exitCode, interrupted);
-
-        QString finalOutput = aggregated;
-        if (finalOutput.isEmpty())
-        {
-            finalOutput = interrupted ? QStringLiteral("[command interrupted]") : QStringLiteral("[no output]");
-        }
-        else if (interrupted)
-        {
-            if (!finalOutput.endsWith('\n')) finalOutput.append('\n');
-            finalOutput += QStringLiteral("[command interrupted]");
-        }
-
-        sendStateMessage("tool:" + QString("execute_command ") + "\n" + finalOutput, TOOL_SIGNAL);
-        sendPushMessage(QString("execute_command ") + "\n" + finalOutput);
-        qDebug() << QString("execute_command ") + "\n" + finalOutput;
+        return;
     }
 
     else if (tools_name == "knowledge")
@@ -422,12 +427,7 @@ void xTool::Exec(mcp::json tools_call)
     else if (tools_name == "stablediffusion")
 
     {
-
-        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "prompt"));
-
-        // 告诉expend开始绘制
-
-        emit tool2expend_draw(build_in_tool_arg);
+        return;
     }
 
     //----------------------读取文件------------------
@@ -775,6 +775,8 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
+            if (shouldAbort(invocation)) break;
+
             const QString rel = rootDir.relativeFilePath(it.absoluteFilePath());
 
             if (it.isDir())
@@ -800,6 +802,8 @@ void xTool::Exec(mcp::json tools_call)
 
             outLines << QString("... %1 more").arg(items.size() - kMax);
         }
+
+        if (shouldAbort(invocation)) return;
 
         const QString result = outLines.join(" ");
 
@@ -866,6 +870,8 @@ void xTool::Exec(mcp::json tools_call)
 
         {
 
+            if (shouldAbort(invocation)) break;
+
             const QString fpath = it.next();
 
             const QFileInfo fi(fpath);
@@ -891,6 +897,8 @@ void xTool::Exec(mcp::json tools_call)
             while (!ts.atEnd())
 
             {
+
+                if (shouldAbort(invocation)) break;
 
                 QString l = ts.readLine();
 
@@ -921,6 +929,8 @@ void xTool::Exec(mcp::json tools_call)
             if (matches >= kMaxMatches) break;
         }
 
+        if (shouldAbort(invocation)) return;
+
         QString result;
 
         if (outLines.isEmpty())
@@ -946,15 +956,14 @@ void xTool::Exec(mcp::json tools_call)
     else if (tools_name.contains("mcp_tools_list")) // 查询mcp可用工具
 
     {
-
-        emit tool2mcp_toollist();
+        return;
     }
 
     else if (tools_name.contains("@")) // 如果工具名包含@则假设他是mcp工具
 
     {
 
-        emit tool2mcp_toolcall(tools_name, tools_args);
+        return;
     }
 
     //----------------------没有该工具------------------
@@ -965,6 +974,212 @@ void xTool::Exec(mcp::json tools_call)
 
         sendPushMessage(jtr("not load tool"));
     }
+}
+
+void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    const QString content = invocation->commandContent;
+    sendStateMessage("tool:" + QString("execute_command(") + content + ")");
+
+    const QString work = resolveWorkRoot();
+    ensureWorkdirExists(work);
+
+    auto process = new QProcess(this);
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+#ifdef __linux__
+    env.insert("PATH", "/usr/local/bin:/usr/bin:/bin:" + env.value("PATH"));
+#endif
+    process->setProcessEnvironment(env);
+    process->setWorkingDirectory(work);
+    process->setProcessChannelMode(QProcess::SeparateChannels);
+
+    activeCommandProcess_ = process;
+    activeCommandInvocation_ = invocation;
+    activeCommandInterrupted_ = false;
+    invocation->aggregatedOutput.clear();
+    invocation->workingDirectory = work;
+
+    emit tool2ui_terminalCommandStarted(content, work);
+
+    QObject::connect(process, &QProcess::readyReadStandardOutput, this, [this, process, invocation]()
+                     { handleCommandStdout(invocation, process, false); });
+    QObject::connect(process, &QProcess::readyReadStandardError, this, [this, process, invocation]()
+                     { handleCommandStdout(invocation, process, true); });
+    QObject::connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, process, invocation](int exitCode, QProcess::ExitStatus status)
+                     {
+        handleCommandFinished(invocation, process, exitCode, status);
+        process->deleteLater(); });
+    QObject::connect(process, &QProcess::errorOccurred, this, [this, process, invocation](QProcess::ProcessError error)
+                     {
+        if (error == QProcess::FailedToStart)
+        {
+            const QString err = process->errorString();
+            emit tool2ui_terminalStderr(err + "\n");
+            handleCommandFinished(invocation, process, -1, QProcess::CrashExit);
+            process->deleteLater();
+        } });
+
+#ifdef _WIN32
+    const QString program = QStringLiteral("cmd.exe");
+    const QStringList args{QStringLiteral("/c"), content};
+#else
+    const QString program = QStringLiteral("/bin/sh");
+    const QStringList args{QStringLiteral("-lc"), content};
+#endif
+
+    process->start(program, args);
+    if (process->state() == QProcess::NotRunning && process->error() == QProcess::FailedToStart)
+    {
+        const QString err = process->errorString();
+        emit tool2ui_terminalStderr(err + "\n");
+        handleCommandFinished(invocation, process, -1, QProcess::CrashExit);
+        process->deleteLater();
+    }
+}
+
+void xTool::handleCommandStdout(const ToolInvocationPtr &invocation, QProcess *process, bool isError)
+{
+    if (!invocation || !process) return;
+    const QByteArray data = isError ? process->readAllStandardError() : process->readAllStandardOutput();
+    if (data.isEmpty()) return;
+#ifdef Q_OS_WIN
+    const QString text = QString::fromLocal8Bit(data);
+#else
+    const QString text = QString::fromUtf8(data);
+#endif
+    invocation->aggregatedOutput += text;
+    if (isError)
+        emit tool2ui_terminalStderr(text);
+    else
+        emit tool2ui_terminalStdout(text);
+}
+
+void xTool::handleCommandFinished(const ToolInvocationPtr &invocation, QProcess *process, int exitCode, QProcess::ExitStatus status)
+{
+    if (!process) return;
+    if (process != activeCommandProcess_) return;
+
+    const bool interrupted = activeCommandInterrupted_ || status == QProcess::CrashExit || (invocation && invocation->cancelled.load(std::memory_order_acquire));
+
+    activeCommandProcess_ = nullptr;
+    activeCommandInvocation_.reset();
+    activeCommandInterrupted_ = false;
+
+    emit tool2ui_terminalCommandFinished(exitCode, interrupted);
+
+    if (invocation && !invocation->cancelled.load(std::memory_order_acquire))
+    {
+        QString finalOutput = invocation->aggregatedOutput;
+        if (finalOutput.isEmpty())
+        {
+            finalOutput = interrupted ? QStringLiteral("[command interrupted]") : QStringLiteral("[no output]");
+        }
+        else if (interrupted)
+        {
+            if (!finalOutput.endsWith('\n')) finalOutput.append('\n');
+            finalOutput += QStringLiteral("[command interrupted]");
+        }
+
+        sendStateMessage("tool:" + QString("execute_command ") + "\n" + finalOutput, TOOL_SIGNAL);
+        sendPushMessage(QString("execute_command ") + "\n" + finalOutput);
+        qDebug() << QString("execute_command ") + "\n" + finalOutput;
+    }
+
+    finishInvocation(invocation);
+}
+
+void xTool::finishInvocation(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    postFinishCleanup(invocation);
+    clearActiveInvocation(invocation);
+}
+
+bool xTool::shouldAbort(const ToolInvocationPtr &invocation) const
+{
+    return !invocation || invocation->cancelled.load(std::memory_order_acquire);
+}
+
+void xTool::postFinishCleanup(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    auto eraseMatching = [&](auto &map)
+    {
+        for (auto it = map.begin(); it != map.end();)
+        {
+            auto ptr = it->second.lock();
+            if (!ptr || ptr == invocation)
+                it = map.erase(it);
+            else
+                ++it;
+        }
+    };
+    eraseMatching(pendingDrawInvocations_);
+    eraseMatching(pendingMcpInvocations_);
+    eraseMatching(pendingMcpListInvocations_);
+    if (activeCommandInvocation_ == invocation) activeCommandInvocation_.reset();
+}
+
+void xTool::handleStableDiffusion(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    pendingDrawInvocations_[invocation->id] = invocation;
+    QString prompt = QString::fromStdString(get_string_safely(invocation->args, "prompt"));
+    emit tool2expend_draw(invocation->id, prompt);
+}
+
+void xTool::handleMcpToolList(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    pendingMcpListInvocations_[invocation->id] = invocation;
+    emit tool2mcp_toollist(invocation->id);
+}
+
+void xTool::handleMcpToolCall(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    pendingMcpInvocations_[invocation->id] = invocation;
+    QString toolArgs = QString::fromStdString(invocation->args.dump());
+    emit tool2mcp_toolcall(invocation->id, invocation->name, toolArgs);
+}
+
+QString xTool::resolveWorkRoot() const
+{
+    if (!workDirRoot.isEmpty()) return workDirRoot;
+    return QDir::cleanPath(applicationDirPath + "/EVA_WORK");
+}
+
+void xTool::ensureWorkdirExists(const QString &work) const
+{
+    if (work.isEmpty()) return;
+    QDir dir(work);
+    if (!dir.exists()) dir.mkpath(QStringLiteral("."));
+}
+
+void xTool::cancelActiveTool()
+{
+    ToolInvocationPtr invocation;
+    {
+        std::lock_guard<std::mutex> lock(invocationMutex_);
+        invocation = activeInvocation_;
+    }
+    if (invocation) invocation->cancelled.store(true, std::memory_order_release);
+    auto mark = [](auto &map)
+    {
+        for (auto &entry : map)
+        {
+            if (auto inv = entry.second.lock())
+            {
+                inv->cancelled.store(true, std::memory_order_release);
+            }
+        }
+    };
+    mark(pendingDrawInvocations_);
+    mark(pendingMcpInvocations_);
+    mark(pendingMcpListInvocations_);
+
+    cancelExecuteCommand();
 }
 
 // 创建临时文件夹EVA_TEMP
@@ -1273,28 +1488,35 @@ void xTool::recv_embedding_resultnumb(int resultnumb)
 
 // 接收图像绘制完成信号
 
-void xTool::recv_drawover(QString result_, bool ok_)
+void xTool::recv_drawover(quint64 invocationId, QString result_, bool ok_)
 
 {
 
-    // 绘制失败的情况
+    auto it = pendingDrawInvocations_.find(invocationId);
+    if (it == pendingDrawInvocations_.end()) return;
+    auto invocation = it->second.lock();
+    pendingDrawInvocations_.erase(it);
+    if (!invocation) return;
+
+    if (invocation->cancelled.load(std::memory_order_acquire))
+    {
+        finishInvocation(invocation);
+        return;
+    }
 
     if (!ok_)
 
     {
 
         sendPushMessage(result_);
-
+        finishInvocation(invocation);
         return;
     }
-
-    // 绘制成功的情况
-
-    // 添加绘制成功并显示图像指令
 
     sendStateMessage("tool:" + QString("stablediffusion ") + jtr("return") + "\n" + "<ylsdamxssjxxdd:showdraw>" + result_, TOOL_SIGNAL);
 
     sendPushMessage("<ylsdamxssjxxdd:showdraw>" + result_);
+    finishInvocation(invocation);
 }
 
 // 传递控制完成结果
@@ -1324,11 +1546,22 @@ QString xTool::jtr(QString customstr)
     return wordsObj[customstr].toArray()[language_flag].toString();
 }
 
-void xTool::recv_callTool_over(QString result)
+void xTool::recv_callTool_over(quint64 invocationId, QString result)
 
 {
+    auto it = pendingMcpInvocations_.find(invocationId);
+    if (it == pendingMcpInvocations_.end()) return;
+    auto invocation = it->second.lock();
+    pendingMcpInvocations_.erase(it);
+    if (!invocation) return;
 
-    if (result == "")
+    if (invocation->cancelled.load(std::memory_order_acquire))
+    {
+        finishInvocation(invocation);
+        return;
+    }
+
+    if (result.isEmpty())
 
     {
 
@@ -1343,19 +1576,34 @@ void xTool::recv_callTool_over(QString result)
 
         sendPushMessage(QString("mcp ") + jtr("return") + "\n" + result);
     }
+
+    finishInvocation(invocation);
 }
 
 // mcp列出工具完毕
 
-void xTool::recv_calllist_over()
+void xTool::recv_calllist_over(quint64 invocationId)
 
 {
+    auto it = pendingMcpListInvocations_.find(invocationId);
+    if (it == pendingMcpListInvocations_.end()) return;
+    auto invocation = it->second.lock();
+    pendingMcpListInvocations_.erase(it);
+    if (!invocation) return;
+
+    if (invocation->cancelled.load(std::memory_order_acquire))
+    {
+        finishInvocation(invocation);
+        return;
+    }
 
     QString result = mcpToolParser(MCP_TOOLS_INFO_ALL);
 
     sendStateMessage("tool:" + QString("mcp_tool_list ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
 
     sendPushMessage(QString("mcp_tool_list ") + jtr("return") + "\n" + result);
+
+    finishInvocation(invocation);
 }
 
 // 解析出所有mcp工具信息拼接为一段文本
@@ -1397,6 +1645,8 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
     for (const auto &action : build_in_tool_arg)
 
     {
+
+        if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
 
         // 1. 提取函数名
 
@@ -1557,6 +1807,8 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
 
             {
 
+                if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
+
                 double k = double(i) / steps;
 
                 moveCursor(int(sx + k * (ex - sx)), int(sy + k * (ey - sy)));
@@ -1597,6 +1849,8 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
         else if (func_name == "time_span" && args_list.size() == 1)
 
         {
+
+            if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
 
             std::cout << "time_span "
 

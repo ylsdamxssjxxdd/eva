@@ -3,9 +3,9 @@
 #include "singleinstance.h"
 
 #include <QCryptographicHash>
+#include <QFileInfo>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QFileInfo>
 #include <QString>
 
 SingleInstance::SingleInstance(const QString &key, QObject *parent)
@@ -78,8 +78,7 @@ void SingleInstance::onNewConnection()
         QObject::connect(c, &QLocalSocket::readyRead, this, [this, c]()
                          {
                              const QByteArray data = c->readAll();
-                             emit received(data);
-                         });
+                             emit received(data); });
         QObject::connect(c, &QLocalSocket::disconnected, c, &QObject::deleteLater);
         // In case client writes immediately and disconnects fast, also emit once now
         // so primary can react even if no data arrives.

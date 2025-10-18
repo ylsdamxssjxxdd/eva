@@ -1,9 +1,9 @@
 // 功能函数
 #include "../utils/depresolver.h"
 #include "../utils/processrunner.h"
+#include "terminal_pane.h"
 #include "ui_widget.h"
 #include "widget.h"
-#include "terminal_pane.h"
 #include <QByteArray>
 #include <QDialog>
 #include <QHBoxLayout>

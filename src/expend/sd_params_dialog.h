@@ -4,23 +4,23 @@
 
 #pragma once
 
-#include <QWidget>
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
+#include <QDoubleSpinBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QLineEdit>
-#include <QSpinBox>
-#include <QDoubleSpinBox>
-#include <QPushButton>
-#include <QPlainTextEdit>
 #include <QLabel>
-#include <QFileDialog>
+#include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QTimer>
+#include <QVBoxLayout>
+#include <QWidget>
 
 #include "../xconfig.h"
 
@@ -38,7 +38,11 @@ class SdParamsDialog : public QWidget
     void applyPreset(const QString &name);
 
     // Mute autosave emissions during programmatic updates
-    void setAutosaveMuted(bool on) { muteSignals_ = on; if (on) autosaveTimer_.stop(); }
+    void setAutosaveMuted(bool on)
+    {
+        muteSignals_ = on;
+        if (on) autosaveTimer_.stop();
+    }
 
   signals:
     // Emitted whenever any field changes (debounced); caller should persist
@@ -58,6 +62,7 @@ class SdParamsDialog : public QWidget
     // Optional per-preset prompt store injected by caller (Expend)
     QMap<QString, QString> presetModify_;
     QMap<QString, QString> presetNegative_;
+
   public:
     void setPresetPromptStore(const QMap<QString, QString> &modifyMap,
                               const QMap<QString, QString> &negativeMap)
@@ -65,6 +70,7 @@ class SdParamsDialog : public QWidget
         presetModify_ = modifyMap;
         presetNegative_ = negativeMap;
     }
+
   private:
     // UI helpers
     QLineEdit *addPathRow(QFormLayout *form, const QString &label, const QString &filter = QString(), bool directory = false);

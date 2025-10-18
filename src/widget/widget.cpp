@@ -2,16 +2,16 @@
 
 #include "widget.h"
 
-#include "ui_widget.h"
 #include "terminal_pane.h"
+#include "ui_widget.h"
 #include <QDateTime>
 #include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QSplitter>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QSplitter>
 #include <QVBoxLayout>
 #include <QtGlobal>
 
@@ -38,7 +38,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         ui->statusTerminalSplitter->setHandleWidth(8);
         ui->statusTerminalSplitter->setCollapsible(0, false);
         ui->statusTerminalSplitter->setCollapsible(1, true);
-        connect(ui->statusTerminalSplitter, &QSplitter::splitterMoved, this, [this](int, int) {
+        connect(ui->statusTerminalSplitter, &QSplitter::splitterMoved, this, [this](int, int)
+                {
             if (!ui->statusTerminalSplitter) return;
             const QList<int> sizes = ui->statusTerminalSplitter->sizes();
             if (sizes.size() < 2) return;
@@ -47,8 +48,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
             if (!terminalCollapsed_)
             {
                 terminalAutoExpandSize_ = qMax(240, terminalWidth);
-            }
-        });
+            } });
     }
     if (ui->terminalPane)
     {
@@ -604,6 +604,7 @@ void Widget::handleCompletion(ENDPOINT_DATA &data)
 void Widget::handleToolLoop(ENDPOINT_DATA &data)
 {
     Q_UNUSED(data);
+    toolInvocationActive_ = false;
     QJsonObject roleMessage;
     roleMessage.insert("role", QStringLiteral("tool"));
     roleMessage.insert("content", tool_result);
@@ -782,6 +783,7 @@ void Widget::recv_pushover()
                             updateKvBarUi();
                             lastReasoningTokens_ = 0;
                         }
+                        toolInvocationActive_ = true;
                         emit ui2tool_exec(tools_call);
                         // use tool; decoding remains paused
                     }
@@ -821,6 +823,7 @@ void Widget::normal_finish_pushover()
 // 处理tool推理完毕的槽
 void Widget::recv_toolpushover(QString tool_result_)
 {
+    toolInvocationActive_ = false;
     if (tool_result_.contains("<ylsdamxssjxxdd:showdraw>")) // 有图像要显示的情况
     {
         wait_to_show_images_filepath.append(tool_result_.split("<ylsdamxssjxxdd:showdraw>")[1]); // 文生图后待显示图像的图像路径
@@ -834,7 +837,6 @@ void Widget::recv_toolpushover(QString tool_result_)
 
     on_send_clicked(); // 触发发送继续预测下一个词
 }
-
 
 void Widget::collapseTerminalPane()
 {
@@ -1022,6 +1024,20 @@ void Widget::recv_setreset()
 // 用户点击重置按钮的处理,重置模型以及对话,并设置约定的参数
 void Widget::on_reset_clicked()
 {
+    if (toolInvocationActive_)
+    {
+        emit ui2tool_cancelActive();
+        toolInvocationActive_ = false;
+        tool_result.clear();
+        turnActive_ = false;
+        is_run = false;
+        decode_finish();
+        ui_state_normal();
+        reflash_state("ui:tool cancelled", SIGNAL_SIGNAL);
+        return;
+    }
+
+    emit ui2tool_cancelActive();
     wait_to_show_images_filepath.clear(); // 清空待显示图像
     emit ui2expend_resettts();            // 清空待读列表
     tool_result = "";                     // 清空工具结果

@@ -16,12 +16,12 @@ class xMcp : public QObject
 
   public slots:
     void addService(const QString mcp_json_str);
-    void callTool(QString tool_name, QString tool_args);
-    void callList();
+    void callTool(quint64 invocationId, QString tool_name, QString tool_args);
+    void callList(quint64 invocationId);
 
   signals:
-    void callList_over();
-    void callTool_over(QString result);
+    void callList_over(quint64 invocationId);
+    void callTool_over(quint64 invocationId, QString result);
     void addService_single_over(QString name, MCP_CONNECT_STATE state); // 添加某个mcp服务完成
     void addService_over(MCP_CONNECT_STATE state);                      // 添加全部mcp服务完成
     void toolResult(const QString &serviceName, const QString &toolName, const QVariantMap &result);

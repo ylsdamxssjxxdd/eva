@@ -1,15 +1,15 @@
 #include "expend.h"
-#include "ui_expend.h"
 #include "../xnet.h" // ensure xNet is known as QObject-derived for invokeMethod
+#include "ui_expend.h"
 
-#include <QThread>
-#include <QDir>
-#include <QTextCursor>
-#include <QScrollBar>
-#include <QProcessEnvironment>
 #include "../utils/evallogedit.h"
 #include "../utils/introanimedit.h"
 #include "../utils/neuronlogedit.h"
+#include <QDir>
+#include <QProcessEnvironment>
+#include <QScrollBar>
+#include <QTextCursor>
+#include <QThread>
 
 // Minimal, robust reimplementation of Expend core wiring.
 // This file was reconstructed to fix unresolved symbols and restore
@@ -55,10 +55,10 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished);
 
     // Shutdown housekeeping on app exit
-    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
+    connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
+            {
         shutdownEvalWorker();
-        stopEmbeddingServer(true);
-    });
+        stopEmbeddingServer(true); });
 
     // Speech playback
     speech_player = new QMediaPlayer;
@@ -81,9 +81,11 @@ Expend::~Expend()
     shutdownEvalWorker();
 
     // Best-effort terminate child processes
-    auto killProc = [](QProcess *p) {
+    auto killProc = [](QProcess *p)
+    {
         if (!p) return;
-        if (p->state() != QProcess::NotRunning) {
+        if (p->state() != QProcess::NotRunning)
+        {
             p->kill();
             p->waitForFinished(150);
         }
@@ -110,24 +112,30 @@ void Expend::stopEmbeddingServer(bool force)
 {
     if (!server_process) return;
 #ifdef _WIN32
-    auto winKillTree = [](qint64 pid, bool forceKill) {
+    auto winKillTree = [](qint64 pid, bool forceKill)
+    {
         if (pid <= 0) return;
-        QStringList args{ "/PID", QString::number(pid), "/T" };
+        QStringList args{"/PID", QString::number(pid), "/T"};
         if (forceKill) args << "/F";
         QProcess::execute("taskkill", args);
     };
 #endif
-    if (server_process->state() == QProcess::Running) {
-        if (force) {
+    if (server_process->state() == QProcess::Running)
+    {
+        if (force)
+        {
 #ifdef _WIN32
             winKillTree(server_process->processId(), true);
 #else
             QProcess::execute("kill", {"-KILL", QString::number(server_process->processId())});
 #endif
             server_process->waitForFinished(100);
-        } else {
+        }
+        else
+        {
             server_process->terminate();
-            if (!server_process->waitForFinished(1500)) {
+            if (!server_process->waitForFinished(1500))
+            {
                 server_process->kill();
                 server_process->waitForFinished(300);
             }
@@ -138,7 +146,8 @@ void Expend::stopEmbeddingServer(bool force)
 // Window state tweaks (optional)
 void Expend::changeEvent(QEvent *event)
 {
-    if (event->type() == QEvent::WindowStateChange) {
+    if (event->type() == QEvent::WindowStateChange)
+    {
         if (isMinimized()) setWindowFlags(Qt::Tool);
     }
     QWidget::changeEvent(event);
@@ -253,9 +262,11 @@ void Expend::shutdownEvalWorker()
     if (evalNet)
         QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
     evalRunning = false;
-    if (evalThread && evalThread->isRunning()) {
+    if (evalThread && evalThread->isRunning())
+    {
         evalThread->quit();
-        if (!evalThread->wait(2000)) {
+        if (!evalThread->wait(2000))
+        {
             evalThread->terminate();
             evalThread->wait(200);
         }

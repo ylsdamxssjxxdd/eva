@@ -68,7 +68,7 @@ void xMcp::addService(const QString mcp_json_str)
     }
 }
 
-void xMcp::callTool(QString tool_name, QString tool_args)
+void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 {
     QString result;
     // 拆分出服务名和工具名
@@ -86,7 +86,7 @@ void xMcp::callTool(QString tool_name, QString tool_args)
     else
     {
         std::cout << "No '@' found!" << std::endl;
-        callTool_over(result);
+        callTool_over(invocationId, result);
         return;
     }
 
@@ -100,17 +100,17 @@ void xMcp::callTool(QString tool_name, QString tool_args)
     {
         params = mcp::json::object(); // 可选：初始化为空对象
         result = "JSON parse fail: " + QString::fromStdString(e.what());
-        callTool_over(result);
+        callTool_over(invocationId, result);
         return;
     }
     auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params);
     result = QString::fromStdString(result2.dump());
-    callTool_over(result);
+    callTool_over(invocationId, result);
 }
 
 // 查询mcp可用工具
-void xMcp::callList()
+void xMcp::callList(quint64 invocationId)
 {
     MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
-    emit callList_over();
+    emit callList_over(invocationId);
 }

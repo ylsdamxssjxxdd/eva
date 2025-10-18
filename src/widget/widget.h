@@ -161,6 +161,7 @@ class Widget : public QWidget
     void preLoad();                                              // 装载前动作
     bool is_load = false;                                        // 模型装载标签
     bool is_run = false;                                         // 模型运行标签,方便设置界面的状态
+    bool toolInvocationActive_ = false;                          // 是否存在未完成的工具调用
     EVA_MODE ui_mode = LOCAL_MODE;                               // 机体的模式
     EVA_STATE ui_state = CHAT_STATE;                             // 机体的状态
     ConversationTask currentTask_ = ConversationTask::ChatReply; // current send task
@@ -343,6 +344,7 @@ class Widget : public QWidget
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
     void ui2tool_interruptCommand();           // 终止当前命令
+    void ui2tool_cancelActive();               // 中断所有工具执行
 
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言

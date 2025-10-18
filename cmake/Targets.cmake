@@ -51,7 +51,7 @@ if (UNIX)
 else()
     set_target_properties(${EVA_TARGET} PROPERTIES OUTPUT_NAME "${eva_OUTPUT_NAME}")
 endif()
-target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::TextToSpeech Qt5::Sql mcp QHotkey::QHotkey)
+target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::TextToSpeech Qt5::Sql Qt5::Concurrent mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils ${CMAKE_SOURCE_DIR})

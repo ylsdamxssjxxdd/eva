@@ -76,7 +76,8 @@ void SdParamsDialog::buildUi()
     grpPrompts_ = new QGroupBox("Prompts");
     auto *formP = new QFormLayout(grpPrompts_);
     modifyEdit_ = new QLineEdit;
-    negativeEdit_ = new QPlainTextEdit; negativeEdit_->setFixedHeight(60);
+    negativeEdit_ = new QPlainTextEdit;
+    negativeEdit_->setFixedHeight(60);
     formP->addRow("Modify", modifyEdit_);
     formP->addRow("Negative", negativeEdit_);
 
@@ -84,86 +85,147 @@ void SdParamsDialog::buildUi()
     auto *grpGen = new QGroupBox("Generation");
     auto *formGen = new QFormLayout(grpGen);
     wSpin_ = new QSpinBox;
-    wSpin_->setRange(64, 4096); wSpin_->setSingleStep(64);
+    wSpin_->setRange(64, 4096);
+    wSpin_->setSingleStep(64);
     hSpin_ = new QSpinBox;
-    hSpin_->setRange(64, 4096); hSpin_->setSingleStep(64);
+    hSpin_->setRange(64, 4096);
+    hSpin_->setSingleStep(64);
     samplerBox_ = new QComboBox;
     samplerBox_->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "ipndm", "ipndm_v", "lcm", "ddim_trailing", "tcd"});
     samplerBox_->setToolTip("Sampling method (e.g. euler/euler_a/dpm++2m/…)");
     schedulerBox_ = new QComboBox;
     schedulerBox_->addItems({"discrete", "karras", "exponential", "ays", "gits", "smoothstep", "sgm_uniform", "simple"});
     schedulerBox_->setToolTip("Sigma scheduler for denoising");
-    stepsSpin_ = new QSpinBox; stepsSpin_->setRange(1, 200);
-    cfgSpin_ = new QDoubleSpinBox; cfgSpin_->setRange(0.0, 50.0); cfgSpin_->setDecimals(2); cfgSpin_->setSingleStep(0.1);
-    clipSkipSpin_ = new QSpinBox; clipSkipSpin_->setRange(-1, 12);
-    batchSpin_ = new QSpinBox; batchSpin_->setRange(1, 16);
-    seedSpin_ = new QSpinBox; seedSpin_->setRange(-1, INT_MAX);
-    strengthSpin_ = new QDoubleSpinBox; strengthSpin_->setRange(0.0, 1.0); strengthSpin_->setSingleStep(0.01);
-    guidanceSpin_ = new QDoubleSpinBox; guidanceSpin_->setRange(0.0, 20.0); guidanceSpin_->setSingleStep(0.1);
-    rngBox_ = new QComboBox; rngBox_->addItems({"cuda", "std_default"});
+    stepsSpin_ = new QSpinBox;
+    stepsSpin_->setRange(1, 200);
+    cfgSpin_ = new QDoubleSpinBox;
+    cfgSpin_->setRange(0.0, 50.0);
+    cfgSpin_->setDecimals(2);
+    cfgSpin_->setSingleStep(0.1);
+    clipSkipSpin_ = new QSpinBox;
+    clipSkipSpin_->setRange(-1, 12);
+    batchSpin_ = new QSpinBox;
+    batchSpin_->setRange(1, 16);
+    seedSpin_ = new QSpinBox;
+    seedSpin_->setRange(-1, INT_MAX);
+    strengthSpin_ = new QDoubleSpinBox;
+    strengthSpin_->setRange(0.0, 1.0);
+    strengthSpin_->setSingleStep(0.01);
+    guidanceSpin_ = new QDoubleSpinBox;
+    guidanceSpin_->setRange(0.0, 20.0);
+    guidanceSpin_->setSingleStep(0.1);
+    rngBox_ = new QComboBox;
+    rngBox_->addItems({"cuda", "std_default"});
     // Video frames (0=image mode; >0=vid_gen)
-    videoFramesSpin_ = new QSpinBox; videoFramesSpin_->setRange(0, 1024); videoFramesSpin_->setValue(0);
+    videoFramesSpin_ = new QSpinBox;
+    videoFramesSpin_->setRange(0, 1024);
+    videoFramesSpin_->setValue(0);
 
-    formGen->addRow("Width", wSpin_); wSpin_->setToolTip("Image width (px), multiple of 64 recommended");
-    formGen->addRow("Height", hSpin_); hSpin_->setToolTip("Image height (px), multiple of 64 recommended");
+    formGen->addRow("Width", wSpin_);
+    wSpin_->setToolTip("Image width (px), multiple of 64 recommended");
+    formGen->addRow("Height", hSpin_);
+    hSpin_->setToolTip("Image height (px), multiple of 64 recommended");
     formGen->addRow("Sampler", samplerBox_);
     formGen->addRow("Scheduler", schedulerBox_);
-    formGen->addRow("Steps", stepsSpin_); stepsSpin_->setToolTip("Sampling steps");
-    formGen->addRow("CFG Scale", cfgSpin_); cfgSpin_->setToolTip("Prompt adherence: higher = closer to prompt");
-    formGen->addRow("Clip Skip", clipSkipSpin_); clipSkipSpin_->setToolTip("Ignore last CLIP layers (-1 = auto)");
-    formGen->addRow("Batch Count", batchSpin_); batchSpin_->setToolTip("Number of images to generate");
-    formGen->addRow("Seed", seedSpin_); seedSpin_->setToolTip("Random seed (-1 = random)");
-    formGen->addRow("Video Frames", videoFramesSpin_); videoFramesSpin_->setToolTip("0 = image; >0 = number of video frames");
-    formGen->addRow("Strength", strengthSpin_); strengthSpin_->setToolTip("Img2img strength (0..1)");
-    formGen->addRow("Guidance", guidanceSpin_); guidanceSpin_->setToolTip("Distilled guidance (for SD3/WAN)");
-    formGen->addRow("RNG", rngBox_); rngBox_->setToolTip("RNG backend (cuda/std_default)");
+    formGen->addRow("Steps", stepsSpin_);
+    stepsSpin_->setToolTip("Sampling steps");
+    formGen->addRow("CFG Scale", cfgSpin_);
+    cfgSpin_->setToolTip("Prompt adherence: higher = closer to prompt");
+    formGen->addRow("Clip Skip", clipSkipSpin_);
+    clipSkipSpin_->setToolTip("Ignore last CLIP layers (-1 = auto)");
+    formGen->addRow("Batch Count", batchSpin_);
+    batchSpin_->setToolTip("Number of images to generate");
+    formGen->addRow("Seed", seedSpin_);
+    seedSpin_->setToolTip("Random seed (-1 = random)");
+    formGen->addRow("Video Frames", videoFramesSpin_);
+    videoFramesSpin_->setToolTip("0 = image; >0 = number of video frames");
+    formGen->addRow("Strength", strengthSpin_);
+    strengthSpin_->setToolTip("Img2img strength (0..1)");
+    formGen->addRow("Guidance", guidanceSpin_);
+    guidanceSpin_->setToolTip("Distilled guidance (for SD3/WAN)");
+    formGen->addRow("RNG", rngBox_);
+    rngBox_->setToolTip("RNG backend (cuda/std_default)");
     // Flow
-    auto *flowRow = new QWidget; auto *flowLay = new QHBoxLayout(flowRow); flowLay->setContentsMargins(0,0,0,0);
+    auto *flowRow = new QWidget;
+    auto *flowLay = new QHBoxLayout(flowRow);
+    flowLay->setContentsMargins(0, 0, 0, 0);
     flowShiftEnable_ = new QCheckBox("enable");
-    flowShiftSpin_ = new QDoubleSpinBox; flowShiftSpin_->setRange(-1000, 1000); flowShiftSpin_->setSingleStep(0.5);
-    flowLay->addWidget(flowShiftEnable_); flowLay->addWidget(new QLabel("value")); flowLay->addWidget(flowShiftSpin_); flowLay->addStretch(1);
+    flowShiftSpin_ = new QDoubleSpinBox;
+    flowShiftSpin_->setRange(-1000, 1000);
+    flowShiftSpin_->setSingleStep(0.5);
+    flowLay->addWidget(flowShiftEnable_);
+    flowLay->addWidget(new QLabel("value"));
+    flowLay->addWidget(flowShiftSpin_);
+    flowLay->addStretch(1);
     formGen->addRow("Flow Shift", flowRow);
     // Backend group (right column)
     auto *grpBk = new QGroupBox("Backend/Memory");
     auto *bkLay = new QGridLayout(grpBk);
-    offloadCpuCb_ = new QCheckBox("--offload-to-cpu"); offloadCpuCb_->setToolTip("Keep weights in RAM and load to VRAM on demand");
-    clipCpuCb_ = new QCheckBox("--clip-on-cpu"); clipCpuCb_->setToolTip("Keep CLIP on CPU (save VRAM)");
-    vaeCpuCb_ = new QCheckBox("--vae-on-cpu"); vaeCpuCb_->setToolTip("Keep VAE on CPU (save VRAM)");
-    controlCpuCb_ = new QCheckBox("--control-net-cpu"); controlCpuCb_->setToolTip("Keep ControlNet on CPU (save VRAM)");
-    diffFaCb_ = new QCheckBox("--diffusion-fa"); diffFaCb_->setToolTip("Use flash-attention in diffusion (save VRAM)");
+    offloadCpuCb_ = new QCheckBox("--offload-to-cpu");
+    offloadCpuCb_->setToolTip("Keep weights in RAM and load to VRAM on demand");
+    clipCpuCb_ = new QCheckBox("--clip-on-cpu");
+    clipCpuCb_->setToolTip("Keep CLIP on CPU (save VRAM)");
+    vaeCpuCb_ = new QCheckBox("--vae-on-cpu");
+    vaeCpuCb_->setToolTip("Keep VAE on CPU (save VRAM)");
+    controlCpuCb_ = new QCheckBox("--control-net-cpu");
+    controlCpuCb_->setToolTip("Keep ControlNet on CPU (save VRAM)");
+    diffFaCb_ = new QCheckBox("--diffusion-fa");
+    diffFaCb_->setToolTip("Use flash-attention in diffusion (save VRAM)");
     bkLay->addWidget(offloadCpuCb_, 0, 0);
     bkLay->addWidget(clipCpuCb_, 0, 1);
     bkLay->addWidget(vaeCpuCb_, 1, 0);
     bkLay->addWidget(controlCpuCb_, 1, 1);
     bkLay->addWidget(diffFaCb_, 2, 0);
-        // VAE tiling row
-    vaeTilingCb_ = new QCheckBox("--vae-tiling"); vaeTilingCb_->setToolTip("Process VAE in tiles to reduce VRAM usage");
-    vaeTileX_ = new QSpinBox; vaeTileX_->setRange(1, 2048); vaeTileX_->setValue(32); vaeTileX_->setSuffix(" px");
-    vaeTileY_ = new QSpinBox; vaeTileY_->setRange(1, 2048); vaeTileY_->setValue(32); vaeTileY_->setSuffix(" px");
-    vaeTileOverlap_ = new QDoubleSpinBox; vaeTileOverlap_->setRange(0.0, 1.0); vaeTileOverlap_->setSingleStep(0.05); vaeTileOverlap_->setValue(0.5);
+    // VAE tiling row
+    vaeTilingCb_ = new QCheckBox("--vae-tiling");
+    vaeTilingCb_->setToolTip("Process VAE in tiles to reduce VRAM usage");
+    vaeTileX_ = new QSpinBox;
+    vaeTileX_->setRange(1, 2048);
+    vaeTileX_->setValue(32);
+    vaeTileX_->setSuffix(" px");
+    vaeTileY_ = new QSpinBox;
+    vaeTileY_->setRange(1, 2048);
+    vaeTileY_->setValue(32);
+    vaeTileY_->setSuffix(" px");
+    vaeTileOverlap_ = new QDoubleSpinBox;
+    vaeTileOverlap_->setRange(0.0, 1.0);
+    vaeTileOverlap_->setSingleStep(0.05);
+    vaeTileOverlap_->setValue(0.5);
     bkLay->addWidget(vaeTilingCb_, 3, 0, 1, 2);
     // Pack tile controls into an inline row to keep layout tidy
-    auto *tilingRow = new QWidget; auto *tilingLay = new QHBoxLayout(tilingRow);
-    tilingLay->setContentsMargins(0,0,0,0); tilingLay->setSpacing(6);
-    tilingLay->addWidget(new QLabel("tile")); tilingLay->addWidget(vaeTileX_); tilingLay->addWidget(new QLabel("x")); tilingLay->addWidget(vaeTileY_);
-    tilingLay->addSpacing(12); tilingLay->addWidget(new QLabel("overlap")); tilingLay->addWidget(vaeTileOverlap_); tilingLay->addStretch(1);
+    auto *tilingRow = new QWidget;
+    auto *tilingLay = new QHBoxLayout(tilingRow);
+    tilingLay->setContentsMargins(0, 0, 0, 0);
+    tilingLay->setSpacing(6);
+    tilingLay->addWidget(new QLabel("tile"));
+    tilingLay->addWidget(vaeTileX_);
+    tilingLay->addWidget(new QLabel("x"));
+    tilingLay->addWidget(vaeTileY_);
+    tilingLay->addSpacing(12);
+    tilingLay->addWidget(new QLabel("overlap"));
+    tilingLay->addWidget(vaeTileOverlap_);
+    tilingLay->addStretch(1);
     bkLay->addWidget(tilingRow, 4, 0, 1, 2);
     tilingRow->setEnabled(false);
     connect(vaeTilingCb_, &QCheckBox::toggled, tilingRow, &QWidget::setEnabled);
     // Two-column layout to reduce vertical length
     auto *cols = new QHBoxLayout;
-    cols->setContentsMargins(0,0,0,0);
+    cols->setContentsMargins(0, 0, 0, 0);
     cols->setSpacing(10);
-    auto *leftCol = new QVBoxLayout; leftCol->setContentsMargins(0,0,0,0); leftCol->setSpacing(8);
-    auto *rightCol = new QVBoxLayout; rightCol->setContentsMargins(0,0,0,0); rightCol->setSpacing(8);
+    auto *leftCol = new QVBoxLayout;
+    leftCol->setContentsMargins(0, 0, 0, 0);
+    leftCol->setSpacing(8);
+    auto *rightCol = new QVBoxLayout;
+    rightCol->setContentsMargins(0, 0, 0, 0);
+    rightCol->setSpacing(8);
     // Put prompts under model paths on the left side
-    leftCol->addWidget(grpModel, /*stretch*/1);
+    leftCol->addWidget(grpModel, /*stretch*/ 1);
     leftCol->addWidget(grpPrompts_);
     rightCol->addWidget(grpGen);
     rightCol->addWidget(grpBk);
     rightCol->addStretch(1);
-    cols->addLayout(leftCol, /*stretch*/1);
-    cols->addLayout(rightCol, /*stretch*/1);
+    cols->addLayout(leftCol, /*stretch*/ 1);
+    cols->addLayout(rightCol, /*stretch*/ 1);
     root->addLayout(cols);
 
     // No Apply/Cancel/Close buttons: changes are autosaved immediately.
@@ -174,22 +236,28 @@ void SdParamsDialog::buildUi()
 
 QLineEdit *SdParamsDialog::addPathRow(QFormLayout *form, const QString &label, const QString &filter, bool directory)
 {
-    auto *w = new QWidget; auto *lay = new QHBoxLayout(w);
-    lay->setContentsMargins(0,0,0,0);
-    auto *le = new QLineEdit; le->setMinimumWidth(420);
-    auto *btn = new QPushButton("..."); btn->setFixedWidth(28);
-    lay->addWidget(le); lay->addWidget(btn);
+    auto *w = new QWidget;
+    auto *lay = new QHBoxLayout(w);
+    lay->setContentsMargins(0, 0, 0, 0);
+    auto *le = new QLineEdit;
+    le->setMinimumWidth(420);
+    auto *btn = new QPushButton("...");
+    btn->setFixedWidth(28);
+    lay->addWidget(le);
+    lay->addWidget(btn);
     if (directory)
-        connect(btn, &QPushButton::clicked, this, [=]{ onBrowseDir(le); });
+        connect(btn, &QPushButton::clicked, this, [=]
+                { onBrowseDir(le); });
     else
-        connect(btn, &QPushButton::clicked, this, [=]{ onBrowse(le, filter); });
+        connect(btn, &QPushButton::clicked, this, [=]
+                { onBrowse(le, filter); });
     form->addRow(label, w);
     return le;
 }
 
 void SdParamsDialog::onBrowse(QLineEdit *le, const QString &filter)
 {
-    const QString path = QFileDialog::getOpenFileName(this, "Choose file", le->text(), filter.isEmpty()? "All (*)" : filter);
+    const QString path = QFileDialog::getOpenFileName(this, "Choose file", le->text(), filter.isEmpty() ? "All (*)" : filter);
     if (!path.isEmpty()) le->setText(path);
 }
 
@@ -284,7 +352,7 @@ SDRunConfig SdParamsDialog::config() const
     c.strength = strengthSpin_->value();
     c.guidance = guidanceSpin_->value();
     c.rng = rngBox_->currentText();
-    c.videoFrames = videoFramesSpin_? videoFramesSpin_->value() : 0;
+    c.videoFrames = videoFramesSpin_ ? videoFramesSpin_->value() : 0;
 
     c.flowShiftEnabled = flowShiftEnable_->isChecked();
     c.flowShift = flowShiftSpin_->value();
@@ -308,7 +376,8 @@ SDRunConfig SdParamsDialog::config() const
 void SdParamsDialog::applyPreset(const QString &name)
 {
     // Reflect preset in combobox selection first
-    if (presetBox_) {
+    if (presetBox_)
+    {
         int idx = presetBox_->findText(name);
         if (idx >= 0) presetBox_->setCurrentIndex(idx);
     }
@@ -317,9 +386,13 @@ void SdParamsDialog::applyPreset(const QString &name)
     {
         modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::Diffusion));
         samplerBox_->setCurrentText("euler");
-        wSpin_->setValue(768); hSpin_->setValue(768);
-        stepsSpin_->setValue(30); cfgSpin_->setValue(1.0);
-        clipSkipSpin_->setValue(-1); batchSpin_->setValue(1); seedSpin_->setValue(-1);
+        wSpin_->setValue(768);
+        hSpin_->setValue(768);
+        stepsSpin_->setValue(30);
+        cfgSpin_->setValue(1.0);
+        clipSkipSpin_->setValue(-1);
+        batchSpin_->setValue(1);
+        seedSpin_->setValue(-1);
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(false);
         offloadCpuCb_->setChecked(false);
@@ -331,9 +404,13 @@ void SdParamsDialog::applyPreset(const QString &name)
     {
         modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::Diffusion));
         samplerBox_->setCurrentText("euler");
-        wSpin_->setValue(1024); hSpin_->setValue(1024);
-        stepsSpin_->setValue(30); cfgSpin_->setValue(2.5);
-        clipSkipSpin_->setValue(-1); batchSpin_->setValue(1); seedSpin_->setValue(-1);
+        wSpin_->setValue(1024);
+        hSpin_->setValue(1024);
+        stepsSpin_->setValue(30);
+        cfgSpin_->setValue(2.5);
+        clipSkipSpin_->setValue(-1);
+        batchSpin_->setValue(1);
+        seedSpin_->setValue(-1);
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(true);
         offloadCpuCb_->setChecked(true);
@@ -345,9 +422,13 @@ void SdParamsDialog::applyPreset(const QString &name)
     {
         modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::LegacyM));
         samplerBox_->setCurrentText("euler_a");
-        wSpin_->setValue(512); hSpin_->setValue(512);
-        stepsSpin_->setValue(20); cfgSpin_->setValue(7.5);
-        clipSkipSpin_->setValue(1); batchSpin_->setValue(1); seedSpin_->setValue(-1);
+        wSpin_->setValue(512);
+        hSpin_->setValue(512);
+        stepsSpin_->setValue(20);
+        cfgSpin_->setValue(7.5);
+        clipSkipSpin_->setValue(1);
+        batchSpin_->setValue(1);
+        seedSpin_->setValue(-1);
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(false);
         offloadCpuCb_->setChecked(false);
@@ -364,9 +445,13 @@ void SdParamsDialog::applyPreset(const QString &name)
     {
         modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::Diffusion));
         samplerBox_->setCurrentText("euler");
-        wSpin_->setValue(480); hSpin_->setValue(832);
-        stepsSpin_->setValue(30); cfgSpin_->setValue(6.0);
-        clipSkipSpin_->setValue(-1); batchSpin_->setValue(1); seedSpin_->setValue(-1);
+        wSpin_->setValue(480);
+        hSpin_->setValue(832);
+        stepsSpin_->setValue(30);
+        cfgSpin_->setValue(6.0);
+        clipSkipSpin_->setValue(-1);
+        batchSpin_->setValue(1);
+        seedSpin_->setValue(-1);
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(true);
         offloadCpuCb_->setChecked(true);
@@ -423,11 +508,12 @@ void SdParamsDialog::hookAutosave()
 {
     autosaveTimer_.setSingleShot(true);
     autosaveTimer_.setInterval(250); // debounce interval
-    connect(&autosaveTimer_, &QTimer::timeout, this, [this]{
-        if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString());
-    });
+    connect(&autosaveTimer_, &QTimer::timeout, this, [this]
+            {
+        if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString()); });
 
-    auto arm = [this]{ if (!muteSignals_) { autosaveTimer_.start(); } };
+    auto arm = [this]
+    { if (!muteSignals_) { autosaveTimer_.start(); } };
 
     // Combo boxes
     connect(modelArgBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
@@ -451,6 +537,5 @@ void SdParamsDialog::hookAutosave()
 
 void SdParamsDialog::onAnyChanged()
 {
-    if (!muteSignals_) emit accepted(config(), presetBox_? presetBox_->currentText() : QString());
+    if (!muteSignals_) emit accepted(config(), presetBox_ ? presetBox_->currentText() : QString());
 }
-

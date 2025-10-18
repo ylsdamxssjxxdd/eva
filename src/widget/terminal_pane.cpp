@@ -12,9 +12,9 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QShortcut>
-#include <QTextDocument>
-#include <QTextCursor>
 #include <QTextCharFormat>
+#include <QTextCursor>
+#include <QTextDocument>
 #include <QTextOption>
 #include <QTimer>
 #include <QtGlobal>

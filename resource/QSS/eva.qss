@@ -12,6 +12,10 @@ QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleS
     background-color: #ffffff;
 }
 
+#Widget QSplitter::handle:hover {
+    background-color: rgba(74, 144, 226, 0.45); /* Blue glow for splitter hover */
+}
+
 QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QTimeEdit:disabled, QDateEdit:disabled, QDateTimeEdit:disabled {
     background-color: #e6f2ff;
     border-color: #b8d8f4;

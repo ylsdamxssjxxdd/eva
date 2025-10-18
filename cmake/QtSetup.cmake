@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt5 COMPONENTS Widgets Network Script Multimedia MultimediaWidgets TextToSpeech REQUIRED Sql REQUIRED)
+find_package(Qt5 COMPONENTS Widgets Network Script Multimedia MultimediaWidgets TextToSpeech Sql Concurrent REQUIRED)
 # Try to resolve Qt bin dir from Qt5_DIR
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE)
 

@@ -17,6 +17,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QPointer>
 #include <QProcess>
 #include <QTextCodec>
 #include <QThread>
@@ -26,12 +27,16 @@
 #include "thirdparty/tinyexpr/tinyexpr.h"
 #include "xconfig.h"
 
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <iostream>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #ifdef _WIN32
@@ -71,8 +76,6 @@ class xTool : public QObject
   public:
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
-    QProcess *activeCommandProcess_ = nullptr;
-    bool activeCommandInterrupted_ = false;
 
     bool createTempDirectory(const QString &path);      // 创建临时文件夹
     int embedding_server_dim = 1024;                    // 开启嵌入服务的嵌入维度
@@ -88,13 +91,14 @@ class xTool : public QObject
     void excute_sequence(std::vector<std::string> build_in_tool_arg); // 执行行动序列
   public slots:
     void cancelExecuteCommand();
+    void cancelActiveTool();
     void recv_embedding_resultnumb(int resultnumb);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
-    void recv_drawover(QString result_, bool ok_); // 接收图像绘制完成信号
-    void tool2ui_controller_over(QString result);  // 传递控制完成结果
+    void recv_drawover(quint64 invocationId, QString result_, bool ok_); // 接收图像绘制完成信号
+    void tool2ui_controller_over(QString result);                        // 传递控制完成结果
     void recv_language(int language_flag_);
-    void recv_callTool_over(QString result);
-    void recv_calllist_over();
+    void recv_callTool_over(quint64 invocationId, QString result);
+    void recv_calllist_over(quint64 invocationId);
     // Update working directory root for engineer tools
     void recv_workdir(QString dir);
   signals:
@@ -102,16 +106,48 @@ class xTool : public QObject
     void tool2ui_terminalStdout(const QString &chunk);
     void tool2ui_terminalStderr(const QString &chunk);
     void tool2ui_terminalCommandFinished(int exitCode, bool interrupted);
-    void tool2mcp_toollist();
-    void tool2mcp_toolcall(QString tool_name, QString tool_args);
+    void tool2mcp_toollist(quint64 invocationId);
+    void tool2mcp_toolcall(quint64 invocationId, QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 发送的状态信号
-    void tool2expend_draw(QString prompt_);
+    void tool2expend_draw(quint64 invocationId, QString prompt_);
     void tool2ui_controller(int num); // Notify drawing progress
 
   private:
     void sendStateMessage(const QString &message, SIGNAL_STATE state = USUAL_SIGNAL);
     void sendPushMessage(const QString &message);
+    struct ToolInvocation;
+    using ToolInvocationPtr = std::shared_ptr<ToolInvocation>;
+
+    ToolInvocationPtr createInvocation(mcp::json tools_call);
+    void startWorkerInvocation(const ToolInvocationPtr &invocation);
+    void runToolWorker(const ToolInvocationPtr &invocation);
+    void startExecuteCommand(const ToolInvocationPtr &invocation);
+    void handleCommandStdout(const ToolInvocationPtr &invocation, QProcess *process, bool isError);
+    void handleCommandFinished(const ToolInvocationPtr &invocation, QProcess *process, int exitCode, QProcess::ExitStatus status);
+    void finishInvocation(const ToolInvocationPtr &invocation);
+    bool shouldAbort(const ToolInvocationPtr &invocation) const;
+    void postFinishCleanup(const ToolInvocationPtr &invocation);
+    void handleStableDiffusion(const ToolInvocationPtr &invocation);
+    void handleMcpToolList(const ToolInvocationPtr &invocation);
+    void handleMcpToolCall(const ToolInvocationPtr &invocation);
+    QString resolveWorkRoot() const;
+    void ensureWorkdirExists(const QString &work) const;
+    ToolInvocationPtr activeInvocation() const;
+    void setActiveInvocation(const ToolInvocationPtr &invocation);
+    void clearActiveInvocation(const ToolInvocationPtr &invocation);
+
+    ToolInvocationPtr activeCommandInvocation_;
+    QProcess *activeCommandProcess_ = nullptr;
+    bool activeCommandInterrupted_ = false;
+
+    std::atomic<quint64> nextInvocationId_{1};
+    mutable std::mutex invocationMutex_;
+    ToolInvocationPtr activeInvocation_;
+    std::unordered_map<quint64, std::weak_ptr<ToolInvocation>> pendingDrawInvocations_;
+    std::unordered_map<quint64, std::weak_ptr<ToolInvocation>> pendingMcpInvocations_;
+    std::unordered_map<quint64, std::weak_ptr<ToolInvocation>> pendingMcpListInvocations_;
+    static thread_local ToolInvocation *tlsCurrentInvocation_;
 };
 
 // 鼠标键盘工具的函数

@@ -71,7 +71,8 @@ void Expend::start_tts(QString str)
         else
         {
             // 遍历所有可用音色
-            if (!sys_speech) sys_speech = new QTextToSpeech(this); foreach (const QVoice &voice, sys_speech->availableVoices())
+            if (!sys_speech) sys_speech = new QTextToSpeech(this);
+            foreach (const QVoice &voice, sys_speech->availableVoices())
             {
                 // qDebug() << "Name:" << speech.name();
                 // qDebug() << "Age:" << speech.age();
@@ -232,7 +233,8 @@ bool Expend::removeDir(const QString &dirName)
     const QString tempRoot = QDir(applicationDirPath).filePath("EVA_TEMP");
     const QString tempAbs = QDir(tempRoot).absolutePath();
 #ifdef _WIN32
-    auto startsWithCi = [](const QString &a, const QString &b) { return a.toLower().startsWith(b.toLower() + QDir::separator()); };
+    auto startsWithCi = [](const QString &a, const QString &b)
+    { return a.toLower().startsWith(b.toLower() + QDir::separator()); };
     if (!(abs.toLower() == tempAbs.toLower() || startsWithCi(abs, tempAbs))) return false;
 #else
     if (!(abs == tempAbs || abs.startsWith(tempAbs + QDir::separator()))) return false;
@@ -365,10 +367,30 @@ void Expend::readyRead_outetts_process_StandardError()
 }
 
 // 用户点击选择模型路径时响应
-void Expend::on_speech_outetts_modelpath_pushButton_clicked() { currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)"); ui->speech_outetts_modelpath_lineEdit->setText(currentpath); if (!currentpath.isEmpty()) { QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat); settings.setIniCodec("utf-8"); settings.setValue("outetts_modelpath", currentpath); } }
+void Expend::on_speech_outetts_modelpath_pushButton_clicked()
+{
+    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
+    ui->speech_outetts_modelpath_lineEdit->setText(currentpath);
+    if (!currentpath.isEmpty())
+    {
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
+        settings.setValue("outetts_modelpath", currentpath);
+    }
+}
 
 // 用户点击选择模型路径时响应
-void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked() { currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)"); ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath); if (!currentpath.isEmpty()) { QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat); settings.setIniCodec("utf-8"); settings.setValue("wavtokenizer_modelpath", currentpath); } }
+void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked()
+{
+    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
+    ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
+    if (!currentpath.isEmpty())
+    {
+        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+        settings.setIniCodec("utf-8");
+        settings.setValue("wavtokenizer_modelpath", currentpath);
+    }
+}
 
 // 用户点击转为音频按钮时响应
 void Expend::on_speech_manual_pushButton_clicked()
@@ -411,9 +433,3 @@ void Expend::startNextPlayIfIdle()
         speech_player->play();
     }
 }
-
-
-
-
-
-

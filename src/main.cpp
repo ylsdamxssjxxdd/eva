@@ -36,15 +36,15 @@ static inline void createDesktopShortcut(QString appPath)
 
     // Compose .desktop content using Qt placeholders (%1, %2, %3)
     const QString desktopContent = QStringLiteral(
-                                        "[Desktop Entry]\n"
-                                        "Type=Application\n"
-                                        "Name=%1\n"
-                                        "Comment=a lite llm tool\n"
-                                        "Exec=\"%2\"\n"
-                                        "Icon=%3\n"
-                                        "Terminal=false\n"
-                                        "Categories=Utility;\n")
-                                        .arg(QStringLiteral("eva"), appPath, iconPath);
+                                       "[Desktop Entry]\n"
+                                       "Type=Application\n"
+                                       "Name=%1\n"
+                                       "Comment=a lite llm tool\n"
+                                       "Exec=\"%2\"\n"
+                                       "Icon=%3\n"
+                                       "Terminal=false\n"
+                                       "Categories=Utility;\n")
+                                       .arg(QStringLiteral("eva"), appPath, iconPath);
 
     // Write to ~/.local/share/applications/eva.desktop
     const QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
@@ -238,8 +238,7 @@ int main(int argc, char *argv[])
     QObject::connect(&instanceGuard, &SingleInstance::received, &w, [&w](const QByteArray &)
                      {
                          // Show and activate the main window when a secondary instance pings us
-                         toggleWindowVisibility(&w, true);
-                     });
+                         toggleWindowVisibility(&w, true); });
 
     //-----------------加载皮肤-----------------------
     QFile file(":/QSS/eva.qss");
@@ -335,7 +334,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 传递llama日志
 
     //------------------连接net和窗口-------------------
-    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection);                  // 窗口输出区更新
+    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection); // 窗口输出区更新
     // Forward streaming output to Expend for TTS segmentation/playback
     QObject::connect(net, &xNet::net2ui_output, &expend, &Expend::recv_output, Qt::QueuedConnection);                // 文转声：接收模型流式输出
     QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
@@ -359,10 +358,11 @@ int main(int argc, char *argv[])
     QObject::connect(&tool, &xTool::tool2ui_terminalStdout, &w, &Widget::toolCommandStdout);
     QObject::connect(&tool, &xTool::tool2ui_terminalStderr, &w, &Widget::toolCommandStderr);
     QObject::connect(&tool, &xTool::tool2ui_terminalCommandFinished, &w, &Widget::toolCommandFinished);
-    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language);     // 传递使用的语言
-    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);                  // 开始推理
-    QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);       // 设置工程师工作目录
+    QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language); // 传递使用的语言
+    QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              // 开始推理
+    QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);   // 设置工程师工作目录
     QObject::connect(&w, &Widget::ui2tool_interruptCommand, &tool, &xTool::cancelExecuteCommand);
+    QObject::connect(&w, &Widget::ui2tool_cancelActive, &tool, &xTool::cancelActiveTool);
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 // 传递已嵌入文本段数据

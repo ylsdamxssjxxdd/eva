@@ -419,9 +419,9 @@ struct SD_PARAMS
 // model paths and backend toggles so we can cover Flux, Qwen-Image, SD1.x, etc.
 enum class SDModelArgKind
 {
-    Auto,       // decide between -m / --diffusion-model by inspecting template or file name
-    LegacyM,    // force "-m <model>"
-    Diffusion   // force "--diffusion-model <model>"
+    Auto,     // decide between -m / --diffusion-model by inspecting template or file name
+    LegacyM,  // force "-m <model>"
+    Diffusion // force "--diffusion-model <model>"
 };
 
 struct SDRunConfig
@@ -438,8 +438,8 @@ struct SDRunConfig
     QString t5xxlPath;
     QString qwen2vlPath;
     QString qwen2vlVisionPath;
-    QString loraDirPath;  // directory containing LoRA files
-    QString taesdPath;    // optional fast decoder
+    QString loraDirPath;      // directory containing LoRA files
+    QString taesdPath;        // optional fast decoder
     QString upscaleModelPath; // ESRGAN model
     QString controlNetPath;
     QString controlImagePath;
@@ -447,13 +447,13 @@ struct SDRunConfig
     // Generation parameters (superset of SD_PARAMS)
     int width = 512;
     int height = 512;
-    QString sampler = "euler"; // sampling method
+    QString sampler = "euler";      // sampling method
     QString scheduler = "discrete"; // sigma scheduler
     int steps = 20;
     double cfgScale = 7.5;
-    int clipSkip = -1;   // -1 = auto by model
+    int clipSkip = -1; // -1 = auto by model
     int batchCount = 1;
-    int seed = -1;       // -1 = random
+    int seed = -1;          // -1 = random
     double strength = 0.75; // for img2img
     double guidance = 3.5;  // distilled guidance (for models that support)
     QString rng = "cuda";   // std_default | cuda
@@ -478,8 +478,8 @@ struct SDRunConfig
     double vaeTileOverlap = 0.5; // fraction of tile size
 
     // Prompts: advanced dialog manages modifier and negative; positive is main UI
-    QString modifyPrompt;    // optional modifier prefix
-    QString negativePrompt;  // negative prompt
+    QString modifyPrompt;   // optional modifier prefix
+    QString negativePrompt; // negative prompt
 };
 
 // resampleWav removed

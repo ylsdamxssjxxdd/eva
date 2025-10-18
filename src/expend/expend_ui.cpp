@@ -2,13 +2,13 @@
 
 #include "cmakeconfig.h"
 #include "ui_expend.h"
-#include <src/utils/imagedropwidget.h>
-#include <QLabel>
-#include <QVBoxLayout>
-#include <QMimeData>
 #include <QFileDialog>
-#include <QPainter>
 #include <QFileInfo>
+#include <QLabel>
+#include <QMimeData>
+#include <QPainter>
+#include <QVBoxLayout>
+#include <src/utils/imagedropwidget.h>
 
 // Local lightweight image drop/click widget for img2img
 
@@ -71,14 +71,14 @@ void Expend::init_expend()
     if (ui->sd_draw_pushButton->text() != "stop") { ui->sd_draw_pushButton->setText(QStringLiteral("生成")); }
     // Use ImageDropWidget declared in .ui
     sd_imgDrop = ui->sd_img_drop;
-    if (sd_imgDrop) {
+    if (sd_imgDrop)
+    {
         sd_imgDrop->setMinimumHeight(150);
         sd_imgDrop->setPlaceholderText(jtr("sd_img2img_lineEdit_placeholder"));
     }
     ui->sd_log->setPlainText(jtr("sd_log_plainText"));
     ui->sd_open_params_button->setText(jtr("params set"));
     ui->sd_draw_pushButton->setText(jtr("generate"));
-
 
     // 声转文
     ui->whisper_modelpath_label->setText(jtr("whisper path"));
@@ -100,7 +100,7 @@ void Expend::init_expend()
     ui->speech_manual_plainTextEdit->setPlaceholderText(jtr("speech_manual_plainTextEdit placehold"));
     ui->speech_manual_pushButton->setText(jtr("convert to audio"));
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
-    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);    // Initialize Text-to-Speech source list: always provide outetts, plus system voices if available
+    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech); // Initialize Text-to-Speech source list: always provide outetts, plus system voices if available
     QStringList ttsSources;
     ttsSources << SPPECH_OUTETTS;
     // Lazily create system TTS and enumerate voices
@@ -120,10 +120,18 @@ void Expend::init_expend()
     {
         const bool haveOute = QFileInfo::exists(ui->speech_outetts_modelpath_lineEdit->text()) &&
                               QFileInfo::exists(ui->speech_wavtokenizer_modelpath_lineEdit->text());
-        if (haveOute) speech_params.speech_name = SPPECH_OUTETTS;
+        if (haveOute)
+            speech_params.speech_name = SPPECH_OUTETTS;
         else if (is_sys_speech_available)
         {
-            for (const QString &n : ttsSources) { if (n != SPPECH_OUTETTS) { speech_params.speech_name = n; break; } }
+            for (const QString &n : ttsSources)
+            {
+                if (n != SPPECH_OUTETTS)
+                {
+                    speech_params.speech_name = n;
+                    break;
+                }
+            }
         }
     }
     set_sys_speech(ttsSources);
@@ -279,11 +287,11 @@ void Expend::readConfig()
 
     QString sd_params_template = settings.value("sd_params_template", default_sd_params_template).toString(); // 参数模板
     QString sd_modelpath = settings.value("sd_modelpath", default_sd_modelpath).toString();                   // sd模型路径
-    QString vae_modelpath = settings.value("vae_modelpath", "").toString();                                  // vae模型路径
-    QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();                            // clip_l模型路径
-    QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();                            // clip_g模型路径
-    QString t5_modelpath = settings.value("t5_modelpath", "").toString();                                    // t5模型路径
-    QString lora_modelpath = settings.value("lora_modelpath", "").toString();                                // lora模型路径
+    QString vae_modelpath = settings.value("vae_modelpath", "").toString();                                   // vae模型路径
+    QString clip_l_modelpath = settings.value("clip_l_modelpath", "").toString();                             // clip_l模型路径
+    QString clip_g_modelpath = settings.value("clip_g_modelpath", "").toString();                             // clip_g模型路径
+    QString t5_modelpath = settings.value("t5_modelpath", "").toString();                                     // t5模型路径
+    QString lora_modelpath = settings.value("lora_modelpath", "").toString();                                 // lora模型路径
     // Advanced run-config (new popup)
     sd_run_config_.modelPath = settings.value("sd_adv_model_path", sd_modelpath).toString();
     sd_run_config_.vaePath = settings.value("sd_adv_vae_path", vae_modelpath).toString();
@@ -300,7 +308,7 @@ void Expend::readConfig()
     sd_run_config_.taesdPath = settings.value("sd_adv_taesd_path", "").toString();
     sd_run_config_.upscaleModelPath = settings.value("sd_adv_upscale_model", "").toString();
     // Build strict per-preset configuration map and pick the active one
-    const QStringList presetsAll = {"flux1-dev","qwen-image","sd1.5-anything-3","custom1","custom2"};
+    const QStringList presetsAll = {"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"};
     for (const QString &p : presetsAll)
         sd_preset_configs_[p] = loadPresetConfig(p);
     // Active preset is read below (sd_params_template); sync current run config after that
@@ -327,13 +335,14 @@ void Expend::readConfig()
     // 当前预设的运行配置
     sd_run_config_ = sd_preset_configs_.value(sd_params_template, SDRunConfig{});
     // Load per-preset prompts from config (avoid cross-preset leakage)
-    auto sanitize = [this](QString s){ return sanitizePresetKey(s); };
-    const QStringList presets = {"flux1-dev","qwen-image","sd1.5-anything-3","wan2.2","custom1","custom2"};
+    auto sanitize = [this](QString s)
+    { return sanitizePresetKey(s); };
+    const QStringList presets = {"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"};
     for (const QString &p : presets)
     {
         const QString key = sanitize(p);
-        sd_preset_modify_[p] = settings.value("sd_preset_"+key+"_modify", "").toString();
-        sd_preset_negative_[p] = settings.value("sd_preset_"+key+"_negative", "").toString();
+        sd_preset_modify_[p] = settings.value("sd_preset_" + key + "_modify", "").toString();
+        sd_preset_negative_[p] = settings.value("sd_preset_" + key + "_negative", "").toString();
     }
     // Ensure sd1.5 defaults if empty (compat only)
     if (sd_preset_modify_["sd1.5-anything-3"].isEmpty()) sd_preset_modify_["sd1.5-anything-3"] = QStringLiteral("masterpieces, best quality, beauty, detailed, Pixar, 8k");
@@ -443,6 +452,3 @@ void Expend::showReadme()
     cursor.insertImage(imageFormat);
     cursor.insertText("\n\n");
 }
-
-
-

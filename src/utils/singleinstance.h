@@ -49,4 +49,3 @@ class SingleInstance : public QObject
 };
 
 #endif // SINGLEINSTANCE_H
-

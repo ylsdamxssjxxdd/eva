@@ -5,19 +5,19 @@
 #ifndef MEDIARESULTWIDGET_H
 #define MEDIARESULTWIDGET_H
 
-#include <QScrollArea>
-#include <QPointer>
-#include <QVBoxLayout>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMediaPlayer>
-#include <QVideoWidget>
-#include <QToolButton>
-#include <QStyle>
-#include <QFileInfo>
+#include <QPointer>
+#include <QScrollArea>
 #include <QScrollBar>
+#include <QStyle>
 #include <QTimer>
+#include <QToolButton>
+#include <QVBoxLayout>
 #include <QVariant>
+#include <QVideoWidget>
 
 // Lightweight item widget for image display
 class ImageItem : public QWidget
@@ -32,7 +32,7 @@ class ImageItem : public QWidget
         // Title bar with close button
         auto *bar = new QWidget(this);
         auto *barLay = new QHBoxLayout(bar);
-        barLay->setContentsMargins(0,0,0,0);
+        barLay->setContentsMargins(0, 0, 0, 0);
         barLay->setSpacing(4);
         title_ = new QLabel(QFileInfo(path).fileName(), bar);
         title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -52,8 +52,10 @@ class ImageItem : public QWidget
         lay->addWidget(view_);
         QPixmap pm(path);
         view_->setPixmap(pm);
-        connect(closeBtn, &QToolButton::clicked, this, [this]{ this->deleteLater(); });
+        connect(closeBtn, &QToolButton::clicked, this, [this]
+                { this->deleteLater(); });
     }
+
   private:
     QString path_;
     QLabel *title_ = nullptr;
@@ -73,7 +75,7 @@ class VideoItem : public QWidget
         // Title bar with close button
         auto *bar = new QWidget(this);
         auto *barLay = new QHBoxLayout(bar);
-        barLay->setContentsMargins(0,0,0,0);
+        barLay->setContentsMargins(0, 0, 0, 0);
         barLay->setSpacing(4);
         title_ = new QLabel(QFileInfo(path).fileName(), bar);
         title_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -96,7 +98,7 @@ class VideoItem : public QWidget
         // Controls
         auto *ctrl = new QWidget(this);
         auto *hl = new QHBoxLayout(ctrl);
-        hl->setContentsMargins(0,0,0,0);
+        hl->setContentsMargins(0, 0, 0, 0);
         hl->setSpacing(4);
         auto *playBtn = new QToolButton(ctrl);
         playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
@@ -112,35 +114,48 @@ class VideoItem : public QWidget
         hl->addWidget(status_, 1);
         ctrl->setLayout(hl);
         // Wire controls
-        connect(playBtn, &QToolButton::clicked, this, [this]{ player_->play(); });
-        connect(pauseBtn, &QToolButton::clicked, this, [this]{ player_->pause(); });
-        connect(stopBtn, &QToolButton::clicked, this, [this]{ player_->stop(); });
-        connect(player_, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State s){
-            switch (s) { case QMediaPlayer::PlayingState: status_->setText("playing"); break; case QMediaPlayer::PausedState: status_->setText("paused"); break; default: status_->setText("stopped"); break; }
-        });
+        connect(playBtn, &QToolButton::clicked, this, [this]
+                { player_->play(); });
+        connect(pauseBtn, &QToolButton::clicked, this, [this]
+                { player_->pause(); });
+        connect(stopBtn, &QToolButton::clicked, this, [this]
+                { player_->stop(); });
+        connect(player_, &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State s)
+                {
+            switch (s) { case QMediaPlayer::PlayingState: status_->setText("playing"); break; case QMediaPlayer::PausedState: status_->setText("paused"); break; default: status_->setText("stopped"); break; } });
         // Adjust to native video resolution when available
-        auto tryAdjust = [this]() {
+        auto tryAdjust = [this]()
+        {
             QVariant v = player_->metaData("Resolution");
-            if (v.isValid()) {
+            if (v.isValid())
+            {
                 const QSize res = v.toSize();
-                if (res.isValid() && res.width() > 0 && res.height() > 0) {
+                if (res.isValid() && res.width() > 0 && res.height() > 0)
+                {
                     videoWidget_->setFixedSize(res);
                     this->updateGeometry();
                 }
             }
         };
-        connect(player_, &QMediaPlayer::mediaStatusChanged, this, [tryAdjust](QMediaPlayer::MediaStatus s){
-            if (s == QMediaPlayer::LoadedMedia || s == QMediaPlayer::BufferedMedia) tryAdjust();
-        });
-        connect(player_, &QMediaPlayer::videoAvailableChanged, this, [tryAdjust](bool ok){ if (ok) tryAdjust(); });
-        QTimer::singleShot(200, this, [tryAdjust]{ tryAdjust(); });
+        connect(player_, &QMediaPlayer::mediaStatusChanged, this, [tryAdjust](QMediaPlayer::MediaStatus s)
+                {
+            if (s == QMediaPlayer::LoadedMedia || s == QMediaPlayer::BufferedMedia) tryAdjust(); });
+        connect(player_, &QMediaPlayer::videoAvailableChanged, this, [tryAdjust](bool ok)
+                { if (ok) tryAdjust(); });
+        QTimer::singleShot(200, this, [tryAdjust]
+                           { tryAdjust(); });
         lay->addWidget(bar);
         lay->addWidget(videoWidget_);
         lay->addWidget(ctrl);
         setLayout(lay);
-        connect(closeBtn, &QToolButton::clicked, this, [this]{ if (player_) player_->stop(); this->deleteLater(); });
+        connect(closeBtn, &QToolButton::clicked, this, [this]
+                { if (player_) player_->stop(); this->deleteLater(); });
     }
-    ~VideoItem() override { if (player_) player_->stop(); }
+    ~VideoItem() override
+    {
+        if (player_) player_->stop();
+    }
+
   private:
     QString path_;
     QLabel *title_ = nullptr;
@@ -159,7 +174,7 @@ class MediaResultWidget : public QScrollArea
         setWidgetResizable(true);
         content_ = new QWidget(this);
         layout_ = new QVBoxLayout(content_);
-        layout_->setContentsMargins(0,0,0,0);
+        layout_->setContentsMargins(0, 0, 0, 0);
         layout_->setSpacing(8);
         content_->setLayout(layout_);
         setWidget(content_);
@@ -176,8 +191,10 @@ class MediaResultWidget : public QScrollArea
     }
     void ensureVisibleBottom()
     {
-        QTimer::singleShot(0, this, [this]{ verticalScrollBar()->setValue(verticalScrollBar()->maximum()); });
+        QTimer::singleShot(0, this, [this]
+                           { verticalScrollBar()->setValue(verticalScrollBar()->maximum()); });
     }
+
   private:
     QWidget *content_ = nullptr;
     QVBoxLayout *layout_ = nullptr;
