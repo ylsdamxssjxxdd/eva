@@ -530,6 +530,7 @@ class Widget : public QWidget
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
     void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)
     void fetchPropsContextLimit();  // fallback: GET /props and read default_generation_settings.n_ctx
+    QString buildWorkspaceSnapshot(const QString &root) const;
   private:
     Ui::Widget *ui;
     int terminalAutoExpandSize_ = 320;

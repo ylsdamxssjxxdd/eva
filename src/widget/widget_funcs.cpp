@@ -4,6 +4,8 @@
 #include "terminal_pane.h"
 #include "ui_widget.h"
 #include "widget.h"
+#include <QDir>
+#include <QFileInfo>
 #include <QByteArray>
 #include <QDialog>
 #include <QHBoxLayout>
@@ -14,6 +16,72 @@
 #include <QPushButton>
 #include <QTableWidget>
 #include <QVBoxLayout>
+#include <QStringList>
+#include <QtGlobal>
+#include <algorithm>
+
+namespace
+{
+QString canonicalOrAbsolutePath(const QDir &dir)
+{
+    const QString canonical = dir.canonicalPath();
+    if (!canonical.isEmpty()) return canonical;
+    return dir.absolutePath();
+}
+
+void appendWorkspaceListing(const QDir &dir, int depth, int maxDepth, int maxEntriesPerDir, QStringList &lines)
+{
+    QStringList entries = dir.entryList(QDir::Dirs | QDir::Files | QDir::NoDotAndDotDot,
+                                        QDir::Name | QDir::IgnoreCase | QDir::LocaleAware);
+    if (entries.isEmpty())
+    {
+        const QString indent(depth * 2 + 2, ' ');
+        lines << QString("%1- <empty>").arg(indent);
+        return;
+    }
+
+    const qsizetype total = entries.size();
+    const int displayed = std::min(maxEntriesPerDir, static_cast<int>(total));
+    for (int i = 0; i < displayed; ++i)
+    {
+        const QString &name = entries.at(i);
+        const QString indent(depth * 2 + 2, ' ');
+        const QString absolutePath = dir.absoluteFilePath(name);
+        QFileInfo info(absolutePath);
+        const bool isDir = info.isDir();
+        QString line = QString("%1- %2").arg(indent, name);
+        if (isDir) line.append('/');
+        lines << line;
+        if (isDir && depth + 1 < maxDepth)
+        {
+            appendWorkspaceListing(QDir(absolutePath), depth + 1, maxDepth, maxEntriesPerDir, lines);
+        }
+    }
+    if (total > displayed)
+    {
+        const QString indent(depth * 2 + 2, ' ');
+        lines << QString("%1- ... (%2 more entries)").arg(indent).arg(total - displayed);
+    }
+}
+} // namespace
+QString Widget::buildWorkspaceSnapshot(const QString &root) const
+{
+    QDir rootDir(root);
+    if (!rootDir.exists())
+    {
+        return QStringLiteral("Workspace directory not found.");
+    }
+
+    QStringList lines;
+    lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalOrAbsolutePath(rootDir)));
+
+    constexpr int kMaxDepth = 2;
+    constexpr int kMaxEntriesPerDir = 60;
+    appendWorkspaceListing(rootDir, 0, kMaxDepth, kMaxEntriesPerDir, lines);
+
+    return lines.join(QChar('\n'));
+}
+
 // 添加右击问题
 void Widget::create_right_menu()
 {
@@ -422,7 +490,8 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
     // Use selected engineer working directory (fallback to default)
     const QString dir = engineerWorkDir.isEmpty() ? (applicationDirPath + "/EVA_WORK") : engineerWorkDir;
-    engineer_system_info_.replace("{DIR}", dir);
+    engineer_system_info_.replace("{DIR}", QDir::toNativeSeparators(dir));
+    engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(dir));
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
