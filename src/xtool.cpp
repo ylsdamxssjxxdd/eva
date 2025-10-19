@@ -12,9 +12,9 @@
 
 namespace
 {
-constexpr int kMaxToolMessageBytes = 256 * 1024;
-constexpr int kToolMessageHeadBytes = 192 * 1024;
-constexpr int kToolMessageTailBytes = 48 * 1024;
+constexpr int kMaxToolMessageBytes = 30 * 1024;  // 工具输出允许的最大字节数，超出即触发截断流程
+constexpr int kToolMessageHeadBytes = 15 * 1024; // 截断时保留的消息头部字节数，约 75% 用于保留开头关键内容
+constexpr int kToolMessageTailBytes = 15 * 1024;  // 截断时保留的消息尾部字节数，保留尾端提示与收尾信息
 
 QString clampToolMessage(const QString &message)
 {
