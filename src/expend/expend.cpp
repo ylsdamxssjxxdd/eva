@@ -28,6 +28,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     if (ui->sd_prompt_textEdit) ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);
     if (ui->sd_log) ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);
     if (ui->modellog_card) ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);
+    if (ui->mcp_server_progressBar)
+    {
+        ui->mcp_server_progressBar->setRange(0, 0); // indeterminate
+        ui->mcp_server_progressBar->setVisible(false);
+    }
 
     // Track tab changes to (optionally) toggle heavy animations
     if (ui->tabWidget)

@@ -1,6 +1,54 @@
 // xmcp.cpp
 #include "xmcp.h"
 #include <QDebug>
+#include <unordered_map>
+
+namespace
+{
+bool syncSelectedMcpTools(const mcp::json &allTools)
+{
+    if (!allTools.is_array()) return false;
+
+    std::unordered_map<std::string, const mcp::json *> available;
+    available.reserve(allTools.size());
+    for (const auto &tool : allTools)
+    {
+        if (!tool.is_object()) continue;
+        const std::string service = get_string_safely(tool, "service");
+        const std::string name = get_string_safely(tool, "name");
+        if (service.empty() || name.empty()) continue;
+        const std::string key = service + "@" + name;
+        available.emplace(key, &tool);
+    }
+
+    bool changed = false;
+    auto it = MCP_TOOLS_INFO_LIST.begin();
+    while (it != MCP_TOOLS_INFO_LIST.end())
+    {
+        const std::string key = it->name.toStdString();
+        auto found = available.find(key);
+        if (found == available.end())
+        {
+            it = MCP_TOOLS_INFO_LIST.erase(it);
+            changed = true;
+            continue;
+        }
+
+        const mcp::json *tool = found->second;
+        const QString newDescription = QString::fromStdString(get_string_safely(*tool, "description"));
+        const QString newArguments = QString::fromStdString(tool->value("inputSchema", mcp::json::object()).dump());
+        if (it->description != newDescription || it->arguments != newArguments)
+        {
+            it->description = newDescription;
+            it->arguments = newArguments;
+            it->generateToolText();
+            changed = true;
+        }
+        ++it;
+    }
+    return changed;
+}
+} // namespace
 
 xMcp::xMcp(QObject *parent)
     : QObject(parent)
@@ -11,7 +59,6 @@ xMcp::xMcp(QObject *parent)
 void xMcp::addService(const QString mcp_json_str)
 {
     toolManager.clear();         // 清空工具
-    MCP_TOOLS_INFO_LIST.clear(); // 清空缓存的工具信息列表
     mcp::json config;
     if (mcp_json_str.isEmpty())
     {
@@ -56,6 +103,7 @@ void xMcp::addService(const QString mcp_json_str)
     }
     // 获取所有可用工具信息
     MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
     mcp::json servers = get_json_object_safely(config, "mcpServers");
     if (ok_num == static_cast<int>(servers.size())) { emit addService_over(MCP_CONNECT_LINK); }
     else if (ok_num == 0)
@@ -112,5 +160,28 @@ void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 void xMcp::callList(quint64 invocationId)
 {
     MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    emit toolsRefreshed();
     emit callList_over(invocationId);
+}
+
+void xMcp::refreshTools()
+{
+    MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    emit toolsRefreshed();
+    emit mcp_message(QStringLiteral("tools refreshed"));
+}
+
+void xMcp::disconnectAll()
+{
+    toolManager.clear();
+    MCP_TOOLS_INFO_ALL = mcp::json::array();
+    if (!MCP_TOOLS_INFO_LIST.empty())
+    {
+        MCP_TOOLS_INFO_LIST.clear();
+    }
+    emit toolsRefreshed();
+    emit addService_over(MCP_CONNECT_MISS);
+    emit mcp_message(QStringLiteral("all services disconnected"));
 }

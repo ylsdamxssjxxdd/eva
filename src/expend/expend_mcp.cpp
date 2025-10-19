@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QListWidgetItem>
 #include <QString>
+#include <QStringList>
 #include <QVBoxLayout>
 #include "ui_expend.h"
 
@@ -22,7 +23,26 @@ void Expend::on_mcp_server_reflash_pushButton_clicked()
     mcpServerStates.clear();
     QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText(); // 获取用户的mcp服务配置
     ui->mcp_server_log_plainTextEdit->appendPlainText("start add servers...");
+    if (ui->mcp_server_progressBar)
+    {
+        ui->mcp_server_progressBar->setRange(0, 0);
+        ui->mcp_server_progressBar->setVisible(true);
+    }
     emit expend2mcp_addService(mcp_json_str);
+}
+
+void Expend::on_mcp_server_refreshTools_pushButton_clicked()
+{
+    ui->mcp_server_log_plainTextEdit->appendPlainText("refresh tools info...");
+    emit expend2mcp_refreshTools();
+}
+
+void Expend::on_mcp_server_disconnect_pushButton_clicked()
+{
+    ui->mcp_server_log_plainTextEdit->appendPlainText("disconnect all services");
+    mcpServerStates.clear();
+    if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
+    emit expend2mcp_disconnectAll();
 }
 
 // 帮助
@@ -49,6 +69,7 @@ void Expend::recv_addService_over(MCP_CONNECT_STATE state)
     ui->mcp_server_statusLed->setState(state);
     ui->mcp_server_reflash_pushButton->setEnabled(true);
     ui->mcp_server_log_plainTextEdit->appendPlainText("add servers over");
+    if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
     populateMcpToolEntries();
 }
 
@@ -68,9 +89,28 @@ void Expend::recv_mcp_message(QString message)
     ui->mcp_server_log_plainTextEdit->appendPlainText(message);
 }
 
+void Expend::recv_mcp_tools_refreshed()
+{
+    populateMcpToolEntries();
+    if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
+    ui->mcp_server_log_plainTextEdit->appendPlainText("tools info updated");
+}
+
 void Expend::populateMcpToolEntries()
 {
     ui->mcp_server_state_listWidget->clear();
+
+    const QStringList previousSelection = mcpEnabledCache_;
+    auto buildSelectionList = []() -> QStringList
+    {
+        QStringList names;
+        names.reserve(static_cast<int>(MCP_TOOLS_INFO_LIST.size()));
+        for (const auto &info : MCP_TOOLS_INFO_LIST)
+        {
+            names << info.name;
+        }
+        return names;
+    };
 
     auto addToolSelection = [](const QString &toolKey, const QString &description, const QString &arguments)
     {
@@ -97,7 +137,7 @@ void Expend::populateMcpToolEntries()
         // 无可用工具时仍展示服务器连接状态
         for (auto it = mcpServerStates.cbegin(); it != mcpServerStates.cend(); ++it)
         {
-        QListWidgetItem *item = new QListWidgetItem();
+            QListWidgetItem *item = new QListWidgetItem();
             item->setSizeHint(QSize(360, 48));
 
             QWidget *itemWidget = new QWidget();
@@ -120,6 +160,19 @@ void Expend::populateMcpToolEntries()
         {
             QListWidgetItem *item = new QListWidgetItem(QStringLiteral("No MCP server connected."), ui->mcp_server_state_listWidget);
             item->setFlags(Qt::ItemIsEnabled);
+        }
+        const QStringList currentSelectionEmpty = buildSelectionList();
+        if (currentSelectionEmpty != previousSelection)
+        {
+            mcpEnabledCache_ = currentSelectionEmpty;
+            if (!currentSelectionEmpty.isEmpty() || !previousSelection.isEmpty())
+            {
+                emit expend2ui_mcpToolsChanged();
+            }
+        }
+        else
+        {
+            mcpEnabledCache_ = currentSelectionEmpty;
         }
         return;
     }
@@ -193,9 +246,10 @@ void Expend::populateMcpToolEntries()
 
         toggle->blockSignals(true);
         toggle->setChecked(isSelected);
+        static_cast<ToggleSwitch *>(toggle)->setHandlePosition(isSelected ? 1.0 : 0.0);
         toggle->blockSignals(false);
 
-        connect(toggle, &QAbstractButton::toggled, this, [this, toolKey, description, arguments, addToolSelection, removeToolSelection](bool checked)
+        connect(toggle, &QAbstractButton::toggled, this, [this, toolKey, description, arguments, addToolSelection, removeToolSelection, buildSelectionList](bool checked)
                 {
                     if (checked)
                     {
@@ -207,12 +261,22 @@ void Expend::populateMcpToolEntries()
                     }
                     emit expend2ui_mcpToolsChanged();
                     ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("tool %1 %2").arg(toolKey, checked ? QStringLiteral("enabled") : QStringLiteral("disabled")));
+                    mcpEnabledCache_ = buildSelectionList();
                 });
     }
 
-    if (autoSelectAll && !MCP_TOOLS_INFO_LIST.empty())
+    const QStringList currentSelection = buildSelectionList();
+    if (currentSelection != previousSelection)
     {
-        emit expend2ui_mcpToolsChanged();
+        mcpEnabledCache_ = currentSelection;
+        if (!currentSelection.isEmpty() || !previousSelection.isEmpty())
+        {
+            emit expend2ui_mcpToolsChanged();
+        }
+    }
+    else
+    {
+        mcpEnabledCache_ = currentSelection;
     }
 }
 

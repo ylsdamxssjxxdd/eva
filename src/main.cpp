@@ -381,6 +381,9 @@ int main(int argc, char *argv[])
     //------------------连接mcp管理器-------------------
     QObject::connect(&mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
     QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);
+    QObject::connect(&expend, &Expend::expend2mcp_refreshTools, &mcp, &xMcp::refreshTools);
+    QObject::connect(&expend, &Expend::expend2mcp_disconnectAll, &mcp, &xMcp::disconnectAll);
+    QObject::connect(&mcp, &xMcp::toolsRefreshed, &expend, &Expend::recv_mcp_tools_refreshed);
     QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // 添加某个mcp服务完成
     QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
     QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       // 查询mcp可用工具

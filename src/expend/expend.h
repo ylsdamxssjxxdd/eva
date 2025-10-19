@@ -38,9 +38,11 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QShortcut>
+#include <QProgressBar>
 #include <QTextCodec>
 #include <QTextStream>
 #include <QTextToSpeech>
+#include <QStringList>
 #include <QTimer>
 #include <QWidget>
 #include <algorithm>
@@ -434,6 +436,8 @@ class Expend : public QWidget
     McpToolManager toolManager; // mcp工具管理器
   signals:
     void expend2mcp_addService(QString mcp_json_str);
+    void expend2mcp_refreshTools();
+    void expend2mcp_disconnectAll();
 
   public slots:
     void recv_mcp_message(QString message);
@@ -441,10 +445,14 @@ class Expend : public QWidget
     void recv_addService_over(MCP_CONNECT_STATE state);
     void on_mcp_server_reflash_pushButton_clicked();
     void on_mcp_server_help_pushButton_clicked();
+    void on_mcp_server_refreshTools_pushButton_clicked();
+    void on_mcp_server_disconnect_pushButton_clicked();
+    void recv_mcp_tools_refreshed();
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state); // 添加mcp服务信息
   private:
     void populateMcpToolEntries();
     QMap<QString, MCP_CONNECT_STATE> mcpServerStates;
+    QStringList mcpEnabledCache_;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state
