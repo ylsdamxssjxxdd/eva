@@ -67,7 +67,7 @@ TerminalPane::TerminalPane(QWidget *parent)
 
     interruptButton_ = new QPushButton(tr("Stop"), this);
     interruptButton_->setObjectName(QStringLiteral("terminalInterrupt"));
-    interruptButton_->setToolTip(tr("Send Ctrl+C to stop the current command"));
+    interruptButton_->setToolTip(tr("Click STOP to stop the current command"));
     interruptButton_->setCursor(Qt::PointingHandCursor);
 
     auto *controls = new QHBoxLayout;
@@ -365,7 +365,7 @@ void TerminalPane::updateControls()
     const bool allowInput = !externalRunning_;
     input_->setEnabled(allowInput);
     if (manualRunning_)
-        input_->setPlaceholderText(tr("Send input and press Enter (Ctrl+C to interrupt)"));
+        input_->setPlaceholderText(tr("Send input and press Enter (click STOP to interrupt)"));
     else
         input_->setPlaceholderText(tr("Enter command and press Enter"));
     interruptButton_->setEnabled(manualRunning_ || externalRunning_);
