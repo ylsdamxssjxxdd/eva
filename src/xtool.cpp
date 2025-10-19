@@ -846,18 +846,24 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         auto isLikelyText = [](const QString &path, qint64 size) -> bool
         {
             static const QSet<QString> exts = {
-
-                "txt", "md", "markdown", "log", "ini", "cfg", "conf", "csv", "tsv", "json", "yaml", "yml", "toml", "xml", "html", "htm", "css", "js", "ts", "tsx", "jsx", "py", "ipynb", "c", "cc", "cpp", "h", "hpp", "hh", "java", "kt", "rs", "go", "rb", "php", "sh", "bash", "zsh", "ps1", "bat", "cmake", "mak", "make", "gradle", "properties", "sql"
-
+                "txt", "md", "markdown", "log", "ini", "cfg", "conf", "csv", "tsv", "json", "yaml", "yml", "toml", "xml", "html", "htm",
+                "css", "js", "ts", "tsx", "jsx", "py", "ipynb", "c", "cc", "cpp", "h", "hpp", "hh", "java", "kt", "rs", "go", "rb", "php",
+                "sh", "bash", "zsh", "ps1", "bat", "cmake", "mak", "make", "gradle", "properties", "sql", "mm", "m", "swift"
             };
 
-            const QString ext = QFileInfo(path).suffix().toLower();
+            static const QSet<QString> namesWithoutExt = {
+                ".gitignore", ".gitmodules", ".gitattributes", ".clang-format", ".clang-tidy", ".editorconfig", ".env", ".env.local",
+                ".env.example", "dockerfile", "makefile", "cmakelists.txt", "license", "license.txt", "readme", "readme.md"
+            };
 
-            if (exts.contains(ext)) return true;
+            if (size > (qint64)2 * 1024 * 1024) return false; // >2MB 视为非文本，直接跳过
 
-            if (size > (qint64)2 * 1024 * 1024) return false; // >2MB 非常规文本，跳过
+            const QFileInfo info(path);
+            const QString ext = info.suffix().toLower();
+            if (!ext.isEmpty()) return exts.contains(ext);
 
-            return true; // 小文件尝试读取
+            const QString name = info.fileName().toLower();
+            return namesWithoutExt.contains(name);
         };
 
         if (!rootDir.exists())
