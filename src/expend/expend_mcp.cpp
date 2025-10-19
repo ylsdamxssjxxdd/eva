@@ -56,13 +56,26 @@ void Expend::on_mcp_server_help_pushButton_clicked()
 {
     QString config = R"({
     "mcpServers": {
-        "sse_server": {
-            "url": "http://192.168.229.67:3001"
+        "QwenTextToSpeech": {
+            "type": "sse",
+            "description": "阿里云百炼官方语音合成 MCP 服务",
+            "isActive": true,
+            "name": "阿里云百炼_通义千问-语音合成",
+            "baseUrl": "https://dashscope.aliyuncs.com/api/v1/mcps/QwenTextToSpeech/sse",
+            "headers": {
+                "Authorization": "Bearer {api-key}"
+            }
         },
-        "stdio_server": {
+        "EverythingServer": {
+            "type": "stdio",
+            "description": "stdio demo",
+            "isActive": true,
+            "name": "MCP Stdio Demo",
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-everything"],
-            "env": {"MCP_DEBUG": "1"}
+            "env": {
+                "MCP_DEBUG": "1"
+            }
         }
     }
 })";

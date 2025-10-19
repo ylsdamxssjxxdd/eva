@@ -5,11 +5,15 @@
 #include "mcp_sse_client.h"
 #include "mcp_stdio_client.h"
 #include "xconfig.h"
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <memory>
+#include <utility>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <vector>
 struct ParsedURL
 {
     std::string protocol;
@@ -89,46 +93,66 @@ class ClientWrapper
 // SSE客户端包装器
 class SSEClientWrapper : public ClientWrapper
 {
-    mcp::sse_client client_;
+    std::unique_ptr<mcp::sse_client> client_;
+
+    static void apply_headers(mcp::sse_client &client, const mcp::json &headers)
+    {
+        if (!headers.is_object()) return;
+        for (auto it = headers.begin(); it != headers.end(); ++it)
+        {
+            const std::string headerKey = it.key();
+            if (headerKey.empty()) continue;
+            const mcp::json &headerValue = it.value();
+            if (headerValue.is_null()) continue;
+            std::string valueText = headerValue.is_string() ? headerValue.get<std::string>() : headerValue.dump();
+            client.set_header(headerKey, valueText);
+        }
+    }
 
   public:
-    SSEClientWrapper(const std::string &host, int port, int timeout, const mcp::json &capabilities)
-        : client_(host, port)
+    SSEClientWrapper(std::unique_ptr<mcp::sse_client> client,
+                     int timeout,
+                     const mcp::json &capabilities,
+                     const mcp::json &headers,
+                     const std::string &clientName)
+        : client_(std::move(client))
     {
-        // 设置客户端参数
-        client_.set_timeout(timeout);
-        client_.set_capabilities(capabilities);
-
-        // 执行初始化
-        if (!client_.initialize("ExampleClient", mcp::MCP_VERSION))
+        if (!client_)
         {
-            throw client_exception("SSE client initialization failed: " + host + ":" + std::to_string(port));
+            throw client_exception("Invalid SSE client instance");
         }
 
-        // 验证连接
-        if (!client_.ping())
+        client_->set_timeout(timeout);
+        client_->set_capabilities(capabilities);
+        apply_headers(*client_, headers);
+
+        if (!client_->initialize(clientName, mcp::MCP_VERSION))
         {
-            throw client_exception("SSE server ping failed: " + host + ":" + std::to_string(port));
+            throw client_exception("SSE client initialization failed");
+        }
+
+        if (!client_->ping())
+        {
+            throw client_exception("SSE server ping failed");
         }
     }
 
     mcp::json get_server_capabilities() override
     {
-        return client_.get_server_capabilities();
+        return client_->get_server_capabilities();
     }
 
     std::vector<mcp::tool> get_tools() override
     {
-        return client_.get_tools();
+        return client_->get_tools();
     }
 
     mcp::json call_tool(const std::string &toolName, const mcp::json &params = {}) override
     {
-        return client_.call_tool(toolName, params);
+        return client_->call_tool(toolName, params);
     }
 };
 
-// Stdio客户端包装器
 class StdioClientWrapper : public ClientWrapper
 {
     mcp::stdio_client client_;
@@ -146,16 +170,15 @@ class StdioClientWrapper : public ClientWrapper
   public:
     StdioClientWrapper(const std::string &command,
                        const std::vector<std::string> &args,
-                       const mcp::json &env)
+                       const mcp::json &env,
+                       const std::string &clientName)
         : client_(join_command(command, args), env)
     {
-        // 初始化客户端
-        if (!client_.initialize("StdioClient", mcp::MCP_VERSION))
+        if (!client_.initialize(clientName, mcp::MCP_VERSION))
         {
             throw client_exception("Stdio client initialization failed: " + command);
         }
 
-        // 验证连接
         if (!client_.ping())
         {
             throw client_exception("Stdio server ping failed: " + command);
@@ -178,34 +201,118 @@ class StdioClientWrapper : public ClientWrapper
     }
 };
 
-// 客户端工厂
 class ClientFactory
 {
+    static std::string to_lower_copy(std::string text)
+    {
+        std::transform(text.begin(), text.end(), text.begin(),
+                       [](unsigned char ch)
+                       { return static_cast<char>(std::tolower(ch)); });
+        return text;
+    }
+
+    static std::string normalize_endpoint(std::string endpoint)
+    {
+        if (endpoint.empty()) endpoint = "/sse";
+        if (endpoint.front() != '/') endpoint.insert(endpoint.begin(), '/');
+        return endpoint;
+    }
+
+    static std::string sanitize_base_url(std::string baseUrl, const std::string &endpoint)
+    {
+        if (baseUrl.empty()) return baseUrl;
+        while (baseUrl.size() > 1 && baseUrl.back() == '/') baseUrl.pop_back();
+        if (!endpoint.empty() && baseUrl.size() >= endpoint.size())
+        {
+            if (baseUrl.compare(baseUrl.size() - endpoint.size(), endpoint.size(), endpoint) == 0)
+            {
+                baseUrl.erase(baseUrl.size() - endpoint.size());
+            }
+        }
+        while (baseUrl.size() > 1 && baseUrl.back() == '/') baseUrl.pop_back();
+        return baseUrl;
+    }
+
+    static mcp::json resolve_capabilities(const mcp::json &config)
+    {
+        mcp::json capabilities = get_json_object_safely(config, "capabilities");
+        if (!capabilities.is_object()) capabilities = mcp::json::object();
+        if (!capabilities.contains("roots") || !capabilities["roots"].is_object())
+        {
+            capabilities["roots"] = mcp::json::object();
+        }
+        capabilities["roots"]["listChanged"] = true;
+        return capabilities;
+    }
+
   public:
     static std::unique_ptr<ClientWrapper> create(const mcp::json &config)
     {
-        // 优先连接url
-        std::string url = get_string_safely(config, "url");
-        if (url != "")
+        std::string type = to_lower_copy(get_string_safely(config, "type"));
+        if (type.empty())
         {
-            std::string url = config["url"];
-            auto parsed = parse_url(url);
-            int timeout = get_int_safely(config, "timeout", 10);
-            mcp::json capabilities = {{"roots", {{"listChanged", true}}}};
-            return std::make_unique<SSEClientWrapper>(parsed.host, parsed.port, timeout, capabilities);
-        }
-        else
-        {
-            std::string command = get_string_safely(config, "command");
-            std::vector<std::string> args = get_string_list_safely(config, "args"); // 取文本列表
-            if (command != "" && args.size() != 0)
+            if (config.contains("baseUrl") || config.contains("url"))
             {
-                mcp::json env = get_json_object_safely(config, "env");
-                return std::make_unique<StdioClientWrapper>(command, args, env);
+                type = "sse";
+            }
+            else if (config.contains("command"))
+            {
+                type = "stdio";
+            }
+        }
+
+        const int timeout = get_int_safely(config, "timeout", 10);
+        mcp::json capabilities = resolve_capabilities(config);
+        const std::string clientName = get_string_safely(config, "clientName",
+                                                         type == "stdio" ? "EvaMcpStdioClient" : "EvaMcpSseClient");
+
+        if (type == "sse")
+        {
+            std::string endpoint = normalize_endpoint(get_string_safely(config, "sseEndpoint", "/sse"));
+            const mcp::json headers = get_json_object_safely(config, "headers");
+            std::unique_ptr<mcp::sse_client> client;
+
+            std::string baseUrl = sanitize_base_url(get_string_safely(config, "baseUrl"), endpoint);
+            if (!baseUrl.empty())
+            {
+                client = std::make_unique<mcp::sse_client>(baseUrl, endpoint);
+            }
+            else
+            {
+                std::string url = get_string_safely(config, "url");
+                if (url.empty())
+                {
+                    throw client_exception("SSE client configuration requires baseUrl or url");
+                }
+                ParsedURL parsed = parse_url(url);
+                if (parsed.host.empty())
+                {
+                    throw client_exception("SSE client configuration has empty host");
+                }
+                if (!parsed.path.empty() && parsed.path != "/" && endpoint == "/sse")
+                {
+                    endpoint = parsed.path;
+                }
+                client = std::make_unique<mcp::sse_client>(parsed.host, parsed.port, endpoint);
             }
 
-            throw client_exception("unsupported client"); // 通过这个强制返回
+            return std::make_unique<SSEClientWrapper>(std::move(client), timeout, capabilities, headers, clientName);
         }
+
+        if (type == "stdio")
+        {
+            std::string command = get_string_safely(config, "command");
+            if (command.empty())
+            {
+                throw client_exception("Stdio client configuration requires command");
+            }
+            std::vector<std::string> args = get_string_list_safely(config, "args");
+            mcp::json env = get_json_object_safely(config, "env");
+
+            return std::make_unique<StdioClientWrapper>(command, args, env, clientName);
+        }
+
+        throw client_exception("Unsupported MCP client type: " + type);
     }
 };
 
