@@ -1587,8 +1587,8 @@
             "MCP server config"
         ],
         "mcp_available_servers": [
-            "MCP可用工具",
-            "MCP available tools"
+            "MCP可用服务",
+            "MCP available servers"
         ],
         "mcp_server": [
             "MCP服务器",

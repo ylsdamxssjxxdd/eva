@@ -32,6 +32,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     {
         ui->mcp_server_progressBar->setRange(0, 0); // indeterminate
         ui->mcp_server_progressBar->setVisible(false);
+        ui->mcp_server_progressBar->setStyleSheet(QStringLiteral("QProgressBar{background:transparent;border:0px;} QProgressBar::chunk{background:#FF7F24;}"));
     }
 
     // Track tab changes to (optionally) toggle heavy animations
