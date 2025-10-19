@@ -28,6 +28,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QNetworkAccessManager>
+#include <QMap>
 #include <QNetworkInterface>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -103,6 +104,7 @@ class Expend : public QWidget
 
   signals:
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
+    void expend2ui_mcpToolsChanged();
 
   public slots:
     void recv_language(int language_flag_);      // 传递语言标志
@@ -440,6 +442,9 @@ class Expend : public QWidget
     void on_mcp_server_reflash_pushButton_clicked();
     void on_mcp_server_help_pushButton_clicked();
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state); // 添加mcp服务信息
+  private:
+    void populateMcpToolEntries();
+    QMap<QString, MCP_CONNECT_STATE> mcpServerStates;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state

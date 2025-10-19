@@ -306,7 +306,15 @@ QString Widget::create_extra_prompt()
         // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked())
         {
-            available_tools_describe += Buildin_tools_mcp_tools_list.text + "\n\n";
+            QStringList mcpToolEntries;
+            for (const auto &info : MCP_TOOLS_INFO_LIST)
+            {
+                mcpToolEntries << info.text;
+            }
+            if (!mcpToolEntries.isEmpty())
+            {
+                available_tools_describe += mcpToolEntries.join("\n") + "\n\n";
+            }
         }
         if (date_ui->calculator_checkbox->isChecked())
         {
@@ -345,6 +353,17 @@ QString Widget::create_extra_prompt()
     }
     return extra_prompt_;
 }
+
+void Widget::recv_mcp_tools_changed()
+{
+    ui_extra_prompt = create_extra_prompt();
+    if (date_ui)
+    {
+        get_date();
+        auto_save_user();
+    }
+}
+
 QString Widget::truncateString(const QString &str, int maxLength)
 {
     if (str.size() <= maxLength)

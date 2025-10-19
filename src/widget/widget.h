@@ -397,6 +397,7 @@ class Widget : public QWidget
     void toolCommandStdout(const QString &chunk);
     void toolCommandStderr(const QString &chunk);
     void toolCommandFinished(int exitCode, bool interrupted);
+    void recv_mcp_tools_changed(); // MCP工具开关变更
 
     // 处理expend信号的槽
     void recv_speechdecode_over(QString result);

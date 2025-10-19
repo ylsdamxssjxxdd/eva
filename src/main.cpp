@@ -331,6 +331,7 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_whisper_modelpath, &w, &Widget::recv_whisper_modelpath);       // 传递模型路径
     QObject::connect(&expend, &Expend::expend2ui_state, &w, &Widget::reflash_state);                            // 窗口状态区更新
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); // 传递知识库的描述
+    QObject::connect(&expend, &Expend::expend2ui_mcpToolsChanged, &w, &Widget::recv_mcp_tools_changed);         // MCP工具开关更新
     QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 传递llama日志
 
     //------------------连接net和窗口-------------------
