@@ -3,6 +3,7 @@
 ###################################### 基础配置 ######################################
 cmake_minimum_required(VERSION 3.12)
 project(body)
+enable_testing()
 set(EVA_TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(version b6746)
@@ -24,3 +25,4 @@ include(cmake/EnvInfo.cmake)           # 生成环境信息 & cmakeconfig.h
 include(cmake/Targets.cmake)
 include(cmake/PostBuild.cmake)         # 打包与部署
 
+add_subdirectory(tests)
