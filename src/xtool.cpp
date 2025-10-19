@@ -5,6 +5,7 @@
 #include <QDirIterator>
 #include <QEventLoop>
 #include <QHash>
+#include <QPair>
 #include <QRegularExpression>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
@@ -867,28 +868,15 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             return;
         }
 
-        struct SnippetLine
-        {
-            int lineNumber = 0;
-            QString text;
-            bool isMatch = false;
-        };
-
-        struct SearchHit
-        {
-            QVector<SnippetLine> lines;
-        };
-
         struct FileSearchResult
         {
             QString path;
-            QVector<SearchHit> hits;
+            QVector<QPair<int, QString>> matches;
         };
 
         QVector<FileSearchResult> fileResults;
         QHash<QString, int> fileIndexByPath;
 
-        const int kContextLines = 1;
         const int kMaxMatches = 300;
         const int kMaxOutputBytes = 220 * 1024;
 
@@ -901,27 +889,6 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             text.replace('\r', ' ');
             if (text.size() > 400) text = text.left(400) + "...";
             return text;
-        };
-
-        auto highlightMatches = [](const QString &line, const QString &needle) -> QString
-        {
-            if (needle.isEmpty()) return line;
-            QString result;
-            const QString lowerLine = line.toLower();
-            const QString lowerNeedle = needle.toLower();
-            int searchPos = 0;
-            while (true)
-            {
-                const int idx = lowerLine.indexOf(lowerNeedle, searchPos);
-                if (idx < 0) break;
-                result += line.mid(searchPos, idx - searchPos);
-                result += "<<";
-                result += line.mid(idx, needle.size());
-                result += ">>";
-                searchPos = idx + needle.size();
-            }
-            result += line.mid(searchPos);
-            return result;
         };
 
         auto ensureFileResult = [&](const QString &relativePath) -> FileSearchResult &
@@ -977,24 +944,8 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 const QString &line = lines.at(i);
                 if (!line.contains(query, Qt::CaseInsensitive)) continue;
 
-                SearchHit hit;
-
-                const int start = qMax(0, i - kContextLines);
-                const int end = qMin(lines.size() - 1, i + kContextLines);
-                for (int ctx = start; ctx <= end; ++ctx)
-                {
-                    SnippetLine snippetLine;
-                    snippetLine.lineNumber = ctx + 1;
-                    snippetLine.isMatch = (ctx == i);
-                    QString sanitized = sanitizeLine(lines.at(ctx));
-                    snippetLine.text = snippetLine.isMatch ? highlightMatches(sanitized, query) : sanitized;
-                    hit.lines.append(snippetLine);
-                }
-
-                if (hit.lines.isEmpty()) continue;
-
                 FileSearchResult &fileResult = ensureFileResult(relativePath);
-                fileResult.hits.append(hit);
+                fileResult.matches.append(QPair<int, QString>(i + 1, sanitizeLine(line)));
                 ++totalMatches;
 
                 if (totalMatches >= kMaxMatches)
@@ -1034,59 +985,44 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             return true;
         };
 
-        auto formatLine = [](const SnippetLine &line) -> QString
+        const int fileCount = fileResults.size();
+
+        if (!outputLimitHit)
         {
-            const QString marker = line.isMatch ? QStringLiteral("|>") : QStringLiteral("| ");
-            const QString number = line.lineNumber > 0 ? QString::number(line.lineNumber).rightJustified(6, ' ') : QString(6, ' ');
-            return QString("%1 %2 | %3").arg(marker, number, line.text);
-        };
+            const QString summary =
+                QString("Found %1 match%2 across %3 file%4.")
+                    .arg(totalMatches)
+                    .arg(totalMatches == 1 ? "" : "es")
+                    .arg(fileCount)
+                    .arg(fileCount == 1 ? "" : "s");
+            if (!tryAppendLine(summary)) outputLimitHit = true;
+        }
 
-        const QString summary =
-            QString("Found %1 match%2 across %3 file%4.")
-                .arg(totalMatches)
-                .arg(totalMatches == 1 ? "" : "es")
-                .arg(fileResults.size())
-                .arg(fileResults.size() == 1 ? "" : "s");
-
-        if (!tryAppendLine(summary)) outputLimitHit = true;
-        if (!outputLimitHit && !tryAppendLine(QString("Search root: %1").arg(root))) outputLimitHit = true;
+        if (!outputLimitHit)
+        {
+            if (!tryAppendLine(QString("Search root: %1").arg(root))) outputLimitHit = true;
+        }
 
         for (const FileSearchResult &fileResult : fileResults)
         {
             if (outputLimitHit) break;
-            if (!tryAppendLine(QString())) { outputLimitHit = true; break; }
-            if (!tryAppendLine(fileResult.path)) { outputLimitHit = true; break; }
-            if (!tryAppendLine(QStringLiteral("|----"))) { outputLimitHit = true; break; }
+            if (fileResult.matches.isEmpty()) continue;
 
-            for (int i = 0; i < fileResult.hits.size(); ++i)
+            if (!outputLimitHit)
             {
-                const SearchHit &hit = fileResult.hits.at(i);
-                for (const SnippetLine &lineInfo : hit.lines)
-                {
-                    if (!tryAppendLine(formatLine(lineInfo)))
-                    {
-                        outputLimitHit = true;
-                        break;
-                    }
-                }
-                if (outputLimitHit) break;
-
-                if (i != fileResult.hits.size() - 1)
-                {
-                    if (!tryAppendLine(QStringLiteral("|----")))
-                    {
-                        outputLimitHit = true;
-                        break;
-                    }
-                }
+                if (!tryAppendLine(QString())) { outputLimitHit = true; break; }
             }
 
-            if (outputLimitHit) break;
-
-            if (!tryAppendLine(QStringLiteral("|----")))
+            if (!tryAppendLine(fileResult.path)) { outputLimitHit = true; break; }
+            for (const auto &match : fileResult.matches)
             {
-                outputLimitHit = true;
-                break;
+                const QString line =
+                    QString("%1: %2").arg(match.first).arg(match.second);
+                if (!tryAppendLine(line))
+                {
+                    outputLimitHit = true;
+                    break;
+                }
             }
         }
 
