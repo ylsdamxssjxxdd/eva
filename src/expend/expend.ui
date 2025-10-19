@@ -996,6 +996,12 @@ p, li { white-space: pre-wrap; }
       <layout class="QHBoxLayout" name="horizontalLayout_20">
        <item>
         <widget class="QGroupBox" name="mcp_server_config_groupBox">
+         <property name="maximumSize">
+          <size>
+           <width>500</width>
+           <height>16777215</height>
+          </size>
+         </property>
          <property name="title">
           <string>MCP服务配置</string>
          </property>
@@ -1235,9 +1241,16 @@ p, li { white-space: pre-wrap; }
           <property name="bottomMargin">
            <number>0</number>
           </property>
-          <item>
-           <widget class="QListWidget" name="mcp_server_state_listWidget"/>
-          </item>
+             <item>
+              <widget class="QTreeWidget" name="mcp_server_treeWidget">
+               <property name="columnCount">
+                <number>1</number>
+               </property>
+               <attribute name="headerVisible">
+                <bool>false</bool>
+               </attribute>
+              </widget>
+             </item>
          </layout>
         </widget>
        </item>

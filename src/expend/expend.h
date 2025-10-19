@@ -38,6 +38,10 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QShortcut>
+#include <QTreeWidget>
+#include <QSet>
+#include <QHash>
+#include <QVector>
 #include <QProgressBar>
 #include <QTextCodec>
 #include <QTextStream>
@@ -453,6 +457,8 @@ class Expend : public QWidget
     void populateMcpToolEntries();
     QMap<QString, MCP_CONNECT_STATE> mcpServerStates;
     QStringList mcpEnabledCache_;
+    QHash<QString, QSet<QString>> mcpServiceSelections_;
+    QSet<QString> mcpDisabledServices_;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state

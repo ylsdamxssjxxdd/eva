@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QListWidgetItem>
+#include <QPixmap>
 #include <QString>
 #include <QStringList>
 #include <QVBoxLayout>
+#include <QTreeWidgetItem>
+#include <QVector>
 #include "ui_expend.h"
 
 //-------------------------------------------------------------------------
@@ -18,7 +20,7 @@
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
     ui->mcp_server_reflash_pushButton->setEnabled(false);
-    ui->mcp_server_state_listWidget->clear(); // 清空展示的服务选项
+    if (ui->mcp_server_treeWidget) ui->mcp_server_treeWidget->clear(); // 清空展示的服务选项
     ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);
     mcpServerStates.clear();
     QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText(); // 获取用户的mcp服务配置
@@ -41,6 +43,10 @@ void Expend::on_mcp_server_disconnect_pushButton_clicked()
 {
     ui->mcp_server_log_plainTextEdit->appendPlainText("disconnect all services");
     mcpServerStates.clear();
+    if (ui->mcp_server_treeWidget) ui->mcp_server_treeWidget->clear();
+    mcpServiceSelections_.clear();
+    mcpDisabledServices_.clear();
+    mcpEnabledCache_.clear();
     if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
     emit expend2mcp_disconnectAll();
 }
@@ -98,17 +104,20 @@ void Expend::recv_mcp_tools_refreshed()
 
 void Expend::populateMcpToolEntries()
 {
-    ui->mcp_server_state_listWidget->clear();
+    if (!ui->mcp_server_treeWidget) return;
+
+    ui->mcp_server_treeWidget->clear();
+    ui->mcp_server_treeWidget->setColumnCount(1);
+    ui->mcp_server_treeWidget->setHeaderHidden(true);
+    ui->mcp_server_treeWidget->setIndentation(16);
 
     const QStringList previousSelection = mcpEnabledCache_;
     auto buildSelectionList = []() -> QStringList
     {
         QStringList names;
         names.reserve(static_cast<int>(MCP_TOOLS_INFO_LIST.size()));
-        for (const auto &info : MCP_TOOLS_INFO_LIST)
-        {
-            names << info.name;
-        }
+        for (const auto &info : MCP_TOOLS_INFO_LIST) { names << info.name; }
+        names.sort();
         return names;
     };
 
@@ -132,136 +141,262 @@ void Expend::populateMcpToolEntries()
                                   MCP_TOOLS_INFO_LIST.end());
     };
 
-    if (MCP_TOOLS_INFO_ALL.empty())
+    QHash<QString, QList<const mcp::json *>> serviceTools;
+    for (auto it = MCP_TOOLS_INFO_ALL.begin(); it != MCP_TOOLS_INFO_ALL.end(); ++it)
     {
-        // 无可用工具时仍展示服务器连接状态
-        for (auto it = mcpServerStates.cbegin(); it != mcpServerStates.cend(); ++it)
+        if (!it->is_object()) continue;
+        const QString serviceName = QString::fromStdString(get_string_safely(*it, "service"));
+        if (serviceName.isEmpty()) continue;
+        serviceTools[serviceName].append(&(*it));
+    }
+
+    QSet<QString> serviceNames = mcpServerStates.keys().toSet();
+    for (auto it = serviceTools.cbegin(); it != serviceTools.cend(); ++it) serviceNames.insert(it.key());
+
+    QStringList serviceNameList = serviceNames.values();
+    serviceNameList.sort(Qt::CaseInsensitive);
+
+    QHash<QString, QSet<QString>> currentSelectionMap;
+    for (const auto &info : MCP_TOOLS_INFO_LIST)
+    {
+        const QString service = info.name.section('@', 0, 0);
+        if (service.isEmpty()) continue;
+        currentSelectionMap[service].insert(info.name);
+    }
+
+    for (auto it = currentSelectionMap.begin(); it != currentSelectionMap.end(); ++it)
+    {
+        mcpServiceSelections_[it.key()] = it.value();
+    }
+
+    QStringList staleSelections;
+    for (auto it = mcpServiceSelections_.cbegin(); it != mcpServiceSelections_.cend(); ++it)
+    {
+        if (!serviceNames.contains(it.key())) staleSelections.append(it.key());
+    }
+    for (const QString &service : staleSelections)
+    {
+        mcpServiceSelections_.remove(service);
+    }
+    for (auto it = mcpDisabledServices_.begin(); it != mcpDisabledServices_.end();)
+    {
+        if (!serviceNames.contains(*it))
         {
-            QListWidgetItem *item = new QListWidgetItem();
-            item->setSizeHint(QSize(360, 48));
-
-            QWidget *itemWidget = new QWidget();
-            auto *layout = new QHBoxLayout(itemWidget);
-            layout->setContentsMargins(8, 6, 8, 6);
-            layout->setSpacing(6);
-
-            auto *statusLed = new StatusLed(itemWidget);
-            statusLed->setState(it.value());
-            layout->addWidget(statusLed);
-
-            auto *label = new QLabel(it.key(), itemWidget);
-            label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-            layout->addWidget(label, 1);
-
-            ui->mcp_server_state_listWidget->addItem(item);
-            ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
-        }
-        if (mcpServerStates.isEmpty())
-        {
-            QListWidgetItem *item = new QListWidgetItem(QStringLiteral("No MCP server connected."), ui->mcp_server_state_listWidget);
-            item->setFlags(Qt::ItemIsEnabled);
-        }
-        const QStringList currentSelectionEmpty = buildSelectionList();
-        if (currentSelectionEmpty != previousSelection)
-        {
-            mcpEnabledCache_ = currentSelectionEmpty;
-            if (!currentSelectionEmpty.isEmpty() || !previousSelection.isEmpty())
-            {
-                emit expend2ui_mcpToolsChanged();
-            }
+            it = mcpDisabledServices_.erase(it);
         }
         else
         {
-            mcpEnabledCache_ = currentSelectionEmpty;
+            ++it;
         }
-        return;
+    }
+
+    for (const QString &service : serviceNameList)
+    {
+        if (!mcpServiceSelections_.contains(service))
+        {
+            mcpServiceSelections_.insert(service, {});
+        }
     }
 
     const bool autoSelectAll = MCP_TOOLS_INFO_LIST.empty();
 
-    for (const auto &tool : MCP_TOOLS_INFO_ALL)
+    if (serviceNameList.isEmpty())
     {
-        if (!tool.is_object()) { continue; }
+        QTreeWidgetItem *item = new QTreeWidgetItem(ui->mcp_server_treeWidget);
+        item->setText(0, tr("No MCP server connected."));
+        item->setFlags(Qt::ItemIsEnabled);
+    }
 
-        const QString serviceName = QString::fromStdString(get_string_safely(tool, "service"));
-        const QString toolName = QString::fromStdString(get_string_safely(tool, "name"));
-        if (serviceName.isEmpty() || toolName.isEmpty())
+    for (const QString &serviceName : serviceNameList)
+    {
+        const bool serviceEnabled = !mcpDisabledServices_.contains(serviceName);
+        QSet<QString> &serviceSelection = mcpServiceSelections_[serviceName];
+        const QList<const mcp::json *> tools = serviceTools.value(serviceName);
+
+        if (serviceEnabled && serviceSelection.isEmpty() && autoSelectAll && !tools.isEmpty())
         {
-            continue;
+            for (const mcp::json *toolJson : tools)
+            {
+                const QString toolKey = serviceName + "@" + QString::fromStdString(get_string_safely(*toolJson, "name"));
+                const QString description = QString::fromStdString(get_string_safely(*toolJson, "description"));
+                mcp::json schema = sanitize_schema(toolJson->value("inputSchema", mcp::json::object()));
+                const QString arguments = QString::fromStdString(schema.dump());
+                serviceSelection.insert(toolKey);
+                addToolSelection(toolKey, description, arguments);
+            }
         }
 
-        const QString description = QString::fromStdString(get_string_safely(tool, "description"));
-        mcp::json schema = sanitize_schema(tool.value("inputSchema", mcp::json::object()));
-        const QString arguments = QString::fromStdString(schema.dump());
-        const QString toolKey = serviceName + "@" + toolName;
+        QTreeWidgetItem *serviceItem = new QTreeWidgetItem(ui->mcp_server_treeWidget);
+        serviceItem->setFirstColumnSpanned(true);
+        serviceItem->setExpanded(true);
 
-        QListWidgetItem *item = new QListWidgetItem();
-        item->setData(Qt::UserRole, toolKey);
-        item->setData(Qt::UserRole + 1, description);
-        item->setData(Qt::UserRole + 2, arguments);
-        item->setData(Qt::UserRole + 3, serviceName);
-        item->setSizeHint(QSize(420, 76));
+        QWidget *serviceWidget = new QWidget();
+        auto *serviceLayout = new QHBoxLayout(serviceWidget);
+        serviceLayout->setContentsMargins(8, 4, 8, 4);
+        serviceLayout->setSpacing(8);
 
-        QWidget *itemWidget = new QWidget();
-        auto *outerLayout = new QHBoxLayout(itemWidget);
-        outerLayout->setContentsMargins(8, 8, 8, 8);
-        outerLayout->setSpacing(10);
-
-        auto *statusLed = new StatusLed(itemWidget);
+        auto *statusLed = new StatusLed(serviceWidget);
         statusLed->setState(mcpServerStates.value(serviceName, MCP_CONNECT_MISS));
-        outerLayout->addWidget(statusLed);
+        serviceLayout->addWidget(statusLed);
 
-        auto *textLayout = new QVBoxLayout();
-        textLayout->setContentsMargins(0, 0, 0, 0);
-        textLayout->setSpacing(2);
+        auto *label = new QLabel(serviceName, serviceWidget);
+        label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        label->setStyleSheet(QStringLiteral("font-weight: 600;"));
+        serviceLayout->addWidget(label, 1);
 
-        auto *titleLabel = new QLabel(serviceName + QStringLiteral(" · ") + toolName, itemWidget);
-        titleLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        titleLabel->setStyleSheet(QStringLiteral("font-weight: 600;"));
-        textLayout->addWidget(titleLabel);
+        auto *serviceToggle = new ToggleSwitch(serviceWidget);
+        serviceToggle->setFixedSize(48, 24);
+        serviceToggle->blockSignals(true);
+        serviceToggle->setChecked(serviceEnabled);
+        serviceToggle->setHandlePosition(serviceEnabled ? 1.0 : 0.0);
+        serviceToggle->blockSignals(false);
+        serviceLayout->addWidget(serviceToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
 
-        auto *descLabel = new QLabel(description.isEmpty() ? QStringLiteral("No description provided.") : description.trimmed(), itemWidget);
-        descLabel->setWordWrap(true);
-        descLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        descLabel->setStyleSheet(QStringLiteral("color: #555555;"));
-        textLayout->addWidget(descLabel);
+        ui->mcp_server_treeWidget->setItemWidget(serviceItem, 0, serviceWidget);
 
-        outerLayout->addLayout(textLayout, 1);
+        QVector<ToggleSwitch *> childToggles;
+        QVector<QString> childToolKeys;
+        QVector<QString> childDescriptions;
+        QVector<QString> childArguments;
 
-        auto *toggle = new ToggleSwitch(itemWidget);
-        toggle->setFixedSize(48, 24);
-        outerLayout->addWidget(toggle, 0, Qt::AlignRight | Qt::AlignVCenter);
-
-        ui->mcp_server_state_listWidget->addItem(item);
-        ui->mcp_server_state_listWidget->setItemWidget(item, itemWidget);
-
-        bool isSelected = std::any_of(MCP_TOOLS_INFO_LIST.begin(), MCP_TOOLS_INFO_LIST.end(),
-                                      [&toolKey](const TOOLS_INFO &info)
-                                      { return info.name == toolKey; });
-        if (autoSelectAll)
+        if (tools.isEmpty())
         {
-            addToolSelection(toolKey, description, arguments);
-            isSelected = true;
+            QTreeWidgetItem *emptyItem = new QTreeWidgetItem(serviceItem);
+            emptyItem->setFirstColumnSpanned(true);
+            QWidget *wrap = new QWidget();
+            auto *layout = new QHBoxLayout(wrap);
+            layout->setContentsMargins(24, 2, 8, 2);
+            auto *emptyLabel = new QLabel(tr("No tools available."), wrap);
+            emptyLabel->setEnabled(false);
+            emptyLabel->setStyleSheet(QStringLiteral("color:#888888;"));
+            layout->addWidget(emptyLabel);
+            ui->mcp_server_treeWidget->setItemWidget(emptyItem, 0, wrap);
+        }
+        else
+        {
+            for (const mcp::json *toolJson : tools)
+            {
+                const QString toolName = QString::fromStdString(get_string_safely(*toolJson, "name"));
+                const QString description = QString::fromStdString(get_string_safely(*toolJson, "description"));
+                mcp::json schema = sanitize_schema(toolJson->value("inputSchema", mcp::json::object()));
+                const QString arguments = QString::fromStdString(schema.dump());
+                const QString toolKey = serviceName + "@" + toolName;
+
+                QTreeWidgetItem *toolItem = new QTreeWidgetItem(serviceItem);
+                toolItem->setFirstColumnSpanned(true);
+
+                QWidget *toolWidget = new QWidget();
+                toolWidget->setFixedHeight(36);
+                auto *toolLayout = new QHBoxLayout(toolWidget);
+                toolLayout->setContentsMargins(32, 2, 8, 2);
+                toolLayout->setSpacing(6);
+
+                auto *iconLabel = new QLabel(toolWidget);
+                iconLabel->setFixedSize(22, 22);
+                QPixmap toolPixmap(QStringLiteral(":/logo/Tools.ico"));
+                if (!toolPixmap.isNull())
+                {
+                    iconLabel->setPixmap(toolPixmap.scaled(18, 18, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                }
+                iconLabel->setAlignment(Qt::AlignCenter);
+                toolLayout->addWidget(iconLabel);
+
+                auto *toolLabel = new QLabel(toolName + QStringLiteral(" — ") + description, toolWidget);
+                toolLabel->setWordWrap(false);
+                toolLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+                toolLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+                toolLabel->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+                toolLabel->setToolTip(toolName + QStringLiteral("\n") + description);
+                toolLayout->addWidget(toolLabel, 1);
+
+                auto *toolToggle = new ToggleSwitch(toolWidget);
+                toolToggle->setFixedSize(44, 22);
+
+                const bool toolSelected = serviceSelection.contains(toolKey) && serviceEnabled;
+                toolToggle->blockSignals(true);
+                toolToggle->setChecked(toolSelected);
+                toolToggle->setHandlePosition(toolSelected ? 1.0 : 0.0);
+                toolToggle->setEnabled(serviceEnabled);
+                toolToggle->blockSignals(false);
+
+                toolLayout->addWidget(toolToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
+                ui->mcp_server_treeWidget->setItemWidget(toolItem, 0, toolWidget);
+
+                childToggles.append(toolToggle);
+                childToolKeys.append(toolKey);
+                childDescriptions.append(description);
+                childArguments.append(arguments);
+
+                connect(toolToggle, &QAbstractButton::toggled, this,
+                        [this, serviceName, toolKey, description, arguments, addToolSelection, removeToolSelection, buildSelectionList](bool checked)
+                        {
+                            QSet<QString> &selection = mcpServiceSelections_[serviceName];
+                            if (checked)
+                            {
+                                selection.insert(toolKey);
+                                addToolSelection(toolKey, description, arguments);
+                            }
+                            else
+                            {
+                                selection.remove(toolKey);
+                                removeToolSelection(toolKey);
+                            }
+                            mcpEnabledCache_ = buildSelectionList();
+                            emit expend2ui_mcpToolsChanged();
+                            ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("tool %1 %2")
+                                                                                    .arg(toolKey, checked ? QStringLiteral("enabled") : QStringLiteral("disabled")));
+                        });
+            }
         }
 
-        toggle->blockSignals(true);
-        toggle->setChecked(isSelected);
-        static_cast<ToggleSwitch *>(toggle)->setHandlePosition(isSelected ? 1.0 : 0.0);
-        toggle->blockSignals(false);
-
-        connect(toggle, &QAbstractButton::toggled, this, [this, toolKey, description, arguments, addToolSelection, removeToolSelection, buildSelectionList](bool checked)
+        connect(serviceToggle, &QAbstractButton::toggled, this,
+                [this, serviceName, childToggles, childToolKeys, childDescriptions, childArguments, addToolSelection, removeToolSelection, buildSelectionList](bool enabled)
                 {
-                    if (checked)
+                    if (enabled)
                     {
-                        addToolSelection(toolKey, description, arguments);
+                        mcpDisabledServices_.remove(serviceName);
                     }
                     else
                     {
-                        removeToolSelection(toolKey);
+                        mcpDisabledServices_.insert(serviceName);
                     }
-                    emit expend2ui_mcpToolsChanged();
-                    ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("tool %1 %2").arg(toolKey, checked ? QStringLiteral("enabled") : QStringLiteral("disabled")));
+
+                    QSet<QString> &selection = mcpServiceSelections_[serviceName];
+
+                    for (int i = 0; i < childToggles.size(); ++i)
+                    {
+                        ToggleSwitch *toggle = childToggles[i];
+                        const QString &toolKey = childToolKeys[i];
+                        toggle->blockSignals(true);
+                        if (enabled)
+                        {
+                            const bool shouldEnable = selection.contains(toolKey);
+                            toggle->setEnabled(true);
+                            toggle->setChecked(shouldEnable);
+                            toggle->setHandlePosition(shouldEnable ? 1.0 : 0.0);
+                            if (shouldEnable)
+                            {
+                                addToolSelection(toolKey, childDescriptions[i], childArguments[i]);
+                            }
+                            else
+                            {
+                                removeToolSelection(toolKey);
+                            }
+                        }
+                        else
+                        {
+                            toggle->setChecked(false);
+                            toggle->setHandlePosition(0.0);
+                            toggle->setEnabled(false);
+                            removeToolSelection(toolKey);
+                        }
+                        toggle->blockSignals(false);
+                    }
+
                     mcpEnabledCache_ = buildSelectionList();
+                    emit expend2ui_mcpToolsChanged();
+                    ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("service %1 %2")
+                                                                           .arg(serviceName, enabled ? QStringLiteral("enabled") : QStringLiteral("disabled")));
                 });
     }
 
