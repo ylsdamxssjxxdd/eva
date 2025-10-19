@@ -606,6 +606,33 @@ inline mcp::json get_json_object_safely(const mcp::json &json_, const std::strin
     }
 }
 
+inline mcp::json sanitize_schema(mcp::json schema)
+{
+    if (schema.is_object())
+    {
+        schema.erase("$schema");
+        schema.erase("additionalProperties");
+        for (auto it = schema.begin(); it != schema.end(); ++it)
+        {
+            if (it.value().is_object() || it.value().is_array())
+            {
+                it.value() = sanitize_schema(it.value());
+            }
+        }
+    }
+    else if (schema.is_array())
+    {
+        for (auto &elem : schema)
+        {
+            if (elem.is_object() || elem.is_array())
+            {
+                elem = sanitize_schema(elem);
+            }
+        }
+    }
+    return schema;
+}
+
 // 安全获取字符串（支持默认值）
 inline std::string get_string_safely(const mcp::json &json_, const std::string &key, const std::string &default_val = "")
 {

@@ -191,7 +191,7 @@ void Expend::populateMcpToolEntries()
         }
 
         const QString description = QString::fromStdString(get_string_safely(tool, "description"));
-        const mcp::json schema = tool.value("inputSchema", mcp::json::object());
+        mcp::json schema = sanitize_schema(tool.value("inputSchema", mcp::json::object()));
         const QString arguments = QString::fromStdString(schema.dump());
         const QString toolKey = serviceName + "@" + toolName;
 

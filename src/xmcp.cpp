@@ -36,7 +36,8 @@ bool syncSelectedMcpTools(const mcp::json &allTools)
 
         const mcp::json *tool = found->second;
         const QString newDescription = QString::fromStdString(get_string_safely(*tool, "description"));
-        const QString newArguments = QString::fromStdString(tool->value("inputSchema", mcp::json::object()).dump());
+        mcp::json schema = sanitize_schema(tool->value("inputSchema", mcp::json::object()));
+        const QString newArguments = QString::fromStdString(schema.dump());
         if (it->description != newDescription || it->arguments != newArguments)
         {
             it->description = newDescription;
@@ -47,6 +48,21 @@ bool syncSelectedMcpTools(const mcp::json &allTools)
         ++it;
     }
     return changed;
+}
+
+mcp::json sanitizeToolsInfo(mcp::json tools)
+{
+    if (!tools.is_array()) return tools;
+    for (auto &tool : tools)
+    {
+        if (!tool.is_object()) continue;
+        auto schemaIt = tool.find("inputSchema");
+        if (schemaIt != tool.end())
+        {
+            *schemaIt = sanitize_schema(*schemaIt);
+        }
+    }
+    return tools;
 }
 } // namespace
 
@@ -102,7 +118,7 @@ void xMcp::addService(const QString mcp_json_str)
         }
     }
     // 获取所有可用工具信息
-    MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
     mcp::json servers = get_json_object_safely(config, "mcpServers");
     if (ok_num == static_cast<int>(servers.size())) { emit addService_over(MCP_CONNECT_LINK); }
@@ -159,7 +175,7 @@ void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 // 查询mcp可用工具
 void xMcp::callList(quint64 invocationId)
 {
-    MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
     emit toolsRefreshed();
     emit callList_over(invocationId);
@@ -167,7 +183,7 @@ void xMcp::callList(quint64 invocationId)
 
 void xMcp::refreshTools()
 {
-    MCP_TOOLS_INFO_ALL = toolManager.getAllToolsInfo();
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
     emit toolsRefreshed();
     emit mcp_message(QStringLiteral("tools refreshed"));
