@@ -9,12 +9,35 @@
 void Widget::wait_play(const QString &labelKey)
 {
     // 在状态区新增一行固定提示，并在该行播放动画（避免干扰其他日志）
-    decodeLabelKey_ = labelKey.isEmpty() ? QStringLiteral("input decode") : labelKey;
-    reflash_state(QString("ui:") + jtr(decodeLabelKey_), USUAL_SIGNAL);
+    if (!ui || !ui->state) return;
+
+    const QString key = labelKey.isEmpty() ? QStringLiteral("input decode") : labelKey;
+    const QString baseText = QStringLiteral("ui:") + jtr(key);
+
+    decodeLabelKey_ = key;
+    decodeBaseText_ = baseText;
+    reflash_state(baseText, USUAL_SIGNAL);
     decodeLineNumber_ = ui->state->document()->blockCount() - 1;
     decode_action = 0;
     decodeTimer_.restart();
-    decode_pTimer->start(120); // 动画帧间隔
+    if (decode_pTimer) decode_pTimer->start(120); // 动画帧间隔
+}
+
+void Widget::startWaitOnStateLine(const QString &labelKey, const QString &lineText)
+{
+    if (!ui || !ui->state || lineText.isEmpty()) return;
+
+    const QString key = labelKey.isEmpty() ? QStringLiteral("input decode") : labelKey;
+    decodeLabelKey_ = key;
+    decodeBaseText_ = lineText;
+    decodeLineNumber_ = ui->state->document()->blockCount() - 1;
+    decode_action = 0;
+    decodeTimer_.restart();
+
+    if (!decode_pTimer) return;
+    if (decode_pTimer->isActive()) decode_pTimer->stop();
+    decode_move();
+    decode_pTimer->start(120);
 }
 
 void Widget::decode_move()
@@ -43,7 +66,7 @@ void Widget::decode_move()
     const QVector<QString> &frames = useUnicode ? uniFrames : asciiFrames;
     const QString &spin = frames.at(decode_action % frames.size());
 
-    const QString base = QString("ui:") + jtr(decodeLabelKey_);
+    const QString base = decodeBaseText_.isEmpty() ? QStringLiteral("ui:") + jtr(decodeLabelKey_) : decodeBaseText_;
     // 仅显示转轮与用时（移除省略点）
     const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(spin);
 
@@ -52,8 +75,9 @@ void Widget::decode_move()
     if (!block.isValid()) return;
     QTextCursor cursor(block);
     cursor.select(QTextCursor::LineUnderCursor);
+    const QTextCharFormat format = cursor.charFormat();
     cursor.removeSelectedText();
-    cursor.insertText(line);
+    cursor.insertText(line, format);
 
     decode_action++;
 }
@@ -87,7 +111,7 @@ void Widget::decode_finish()
         }
     }
 
-    const QString base = QString("ui:") + jtr(decodeLabelKey_);
+    const QString base = decodeBaseText_.isEmpty() ? QStringLiteral("ui:") + jtr(decodeLabelKey_) : decodeBaseText_;
     const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(doneMark);
 
     // 将对应行整行替换为完成文本
@@ -95,12 +119,14 @@ void Widget::decode_finish()
     if (!block.isValid()) return;
     QTextCursor cursor(block);
     cursor.select(QTextCursor::LineUnderCursor);
+    const QTextCharFormat format = cursor.charFormat();
     cursor.removeSelectedText();
-    cursor.insertText(line);
+    cursor.insertText(line, format);
 
     // 重置内部计数，避免下次复用旧行号
     decode_action = 0;
     decodeLineNumber_ = -1;
+    decodeBaseText_.clear();
 }
 
 // 在解码动画失败（装载失败）时，将动画行替换为失败标志
@@ -123,16 +149,18 @@ void Widget::decode_fail()
         }
     }
 
-    const QString base = QString("ui:") + jtr(decodeLabelKey_);
+    const QString base = decodeBaseText_.isEmpty() ? QStringLiteral("ui:") + jtr(decodeLabelKey_) : decodeBaseText_;
     const QString line = QString("%1 %2 s %3").arg(base).arg(QString::number(secs, 'f', 1)).arg(failMark);
 
     QTextBlock block = ui->state->document()->findBlockByLineNumber(decodeLineNumber_);
     if (!block.isValid()) return;
     QTextCursor cursor(block);
     cursor.select(QTextCursor::LineUnderCursor);
+    const QTextCharFormat format = cursor.charFormat();
     cursor.removeSelectedText();
-    cursor.insertText(line);
+    cursor.insertText(line, format);
 
     decode_action = 0;
     decodeLineNumber_ = -1;
+    decodeBaseText_.clear();
 }

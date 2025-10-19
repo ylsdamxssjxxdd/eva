@@ -249,9 +249,10 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
     {
         const bool isReturn = state_string.contains(jtr("return")) || state_string.contains("return");
         const bool looksStart = state_string.contains('(') && !isReturn;
-        if (looksStart && (!decode_pTimer || !decode_pTimer->isActive()))
+        if (looksStart)
         {
-            wait_play("tool executing");
+            if (decode_pTimer && decode_pTimer->isActive()) decode_finish();
+            startWaitOnStateLine(QStringLiteral("tool executing"), state_string);
         }
         else if (isReturn && decode_pTimer && decode_pTimer->isActive() && decodeLabelKey_ == QStringLiteral("tool executing"))
         {

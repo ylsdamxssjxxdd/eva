@@ -299,12 +299,14 @@ class Widget : public QWidget
     void decode_move();         // 下一帧
     // 使用已有的“解码动画”作为通用转轮；labelKey 用于显示基础文案（默认：input decode）
     void wait_play(const QString &labelKey = "input decode");
+    void startWaitOnStateLine(const QString &labelKey, const QString &lineText);
     void decode_finish(); // 动画结束后将动画行替换为完成标志
     void decode_fail();   // 动画失败时将动画行替换为失败标志
     // 优雅等待动画：记录起始行与用时
     int decodeLineNumber_ = -1;               // 动画所在行（固定行）
     QElapsedTimer decodeTimer_;               // 动画计时器（秒）
     QString decodeLabelKey_ = "input decode"; // 当前动画的基础文案 key（jtr 查表）
+    QString decodeBaseText_;                  // 动画行写回时使用的基础文本
 
     // 系统信息相关
     QString model_memusage = "0", ctx_memusage = "0";
