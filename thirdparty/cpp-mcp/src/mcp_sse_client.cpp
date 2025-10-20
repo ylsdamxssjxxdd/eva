@@ -385,6 +385,7 @@ bool sse_client::parse_sse_data(const char* data, size_t length) {
         }
         
         if (data_lines.empty()) {
+            LOG_INFO("SSE event '", event_type, "' has empty payload");
             return true;
         }
         
@@ -394,6 +395,7 @@ bool sse_client::parse_sse_data(const char* data, size_t length) {
             if (i > 0) data_content += '\n';
             data_content += data_lines[i];
         }
+        LOG_INFO("SSE event '", event_type, "' payload: ", data_content);
         
         if (event_type == "heartbeat") {
             return true;
@@ -401,10 +403,12 @@ bool sse_client::parse_sse_data(const char* data, size_t length) {
             std::lock_guard<std::mutex> lock(mutex_);
             msg_endpoint_ = data_content;
             endpoint_cv_.notify_all();
+            LOG_INFO("SSE message endpoint updated: ", msg_endpoint_);
             return true;
         } else if (event_type == "message") {
             try {
                 json response = json::parse(data_content);
+                LOG_INFO("SSE message JSON: ", response.dump());
                 
                 if (response.contains("jsonrpc") && response.contains("id") && !response["id"].is_null()) {
                     json id = response["id"];
@@ -589,6 +593,7 @@ json sse_client::send_jsonrpc(const request& req) {
         
         if (status == std::future_status::ready) {
             json response = response_future.get();
+            LOG_INFO("JSON-RPC SSE response ready: ", response.dump());
             
             if (response.contains("isError") && response["isError"].is_boolean() && response["isError"].get<bool>()) {
                 if (response.contains("error") && response["error"].is_object()) {
@@ -602,6 +607,7 @@ json sse_client::send_jsonrpc(const request& req) {
             
             return response;
         } else {
+            LOG_ERROR("JSON-RPC SSE response did not arrive within ", timeout_seconds_, " seconds");
             {
                 std::lock_guard<std::mutex> response_lock(response_mutex_);
                 pending_requests_.erase(req.id);
