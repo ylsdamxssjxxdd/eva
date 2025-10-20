@@ -493,6 +493,21 @@ class McpToolManager
             result = "Failed to add server '" + name + "': " + e.what();
             std::cout << result << std::endl;
         }
+        catch (const mcp::mcp_exception &e)
+        {
+            result = "Failed to add server '" + name + "': " + std::string(e.what());
+            std::cout << result << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            result = "Failed to add server '" + name + "': unexpected error - " + std::string(e.what());
+            std::cout << result << std::endl;
+        }
+        catch (...)
+        {
+            result = "Failed to add server '" + name + "': unknown error";
+            std::cout << result << std::endl;
+        }
         return result;
     }
 
