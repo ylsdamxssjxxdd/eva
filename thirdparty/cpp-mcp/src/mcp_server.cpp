@@ -10,14 +10,40 @@
 
 namespace mcp {
 
-server::server(const std::string& host, int port, const std::string& name, const std::string& version, const std::string& sse_endpoint, const std::string& msg_endpoint)
-    : host_(host), port_(port), name_(name), version_(version), sse_endpoint_(sse_endpoint), msg_endpoint_(msg_endpoint) {
-    http_server_ = std::make_unique<httplib::Server>();
+
+server::server(const server::configuration& conf)
+    : host_(conf.host)
+    , port_(conf.port)
+    , name_(conf.name)
+    , version_(conf.version)
+    , sse_endpoint_(conf.sse_endpoint)
+    , msg_endpoint_(conf.msg_endpoint)
+    , thread_pool_(conf.threadpool_size)
+{
+    #ifdef MCP_SSL
+    if (conf.ssl.server_cert_path && conf.ssl.server_private_key_path) {
+        if (!std::filesystem::exists(*conf.ssl.server_cert_path)) {
+            LOG_ERROR("SSL certificate file '", *conf.ssl.server_cert_path, "' not found");
+        }
+
+        if (!std::filesystem::exists(*conf.ssl.server_private_key_path)) {
+            LOG_ERROR("SSL key file '", *conf.ssl.server_private_key_path, "' not found");
+        }
+
+        http_server_ = std::make_unique<httplib::SSLServer>(conf.ssl.server_cert_path->c_str(),
+            conf.ssl.server_private_key_path->c_str());
+    } else {
+        http_server_ = std::make_unique<httplib::Server>();
+    }
+    #else
+     http_server_ = std::make_unique<httplib::Server>();
+    #endif
 }
 
 server::~server() {
     stop();
 }
+
 
 bool server::start(bool blocking) {
     if (running_) {
@@ -48,18 +74,26 @@ bool server::start(bool blocking) {
     
     // Start resource check thread (only start in non-blocking mode)
     if (!blocking) {
+        maintenance_thread_run_ = true;
         maintenance_thread_ = std::make_unique<std::thread>([this]() {
-            while (running_) {
+            while (true) {
                 // Check inactive sessions every 60 seconds
-                std::this_thread::sleep_for(std::chrono::seconds(60));
-                if (running_) {
-                    try {
-                        check_inactive_sessions();
-                    } catch (const std::exception& e) {
-                        LOG_ERROR("Exception in maintenance thread: ", e.what());
-                    } catch (...) {
-                        LOG_ERROR("Unknown exception in maintenance thread");
-                    }
+                std::unique_lock<std::mutex> lock(maintenance_mutex_);
+                auto should_exit = maintenance_cond_.wait_for(lock, std::chrono::seconds(60), [this] {
+                    return !maintenance_thread_run_;
+                });
+                if (should_exit) {
+                    LOG_INFO("Maintenance thread exiting");
+                    return;
+                }
+                lock.unlock();
+
+                try {
+                    check_inactive_sessions();
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Exception in maintenance thread: ", e.what());
+                } catch (...) {
+                    LOG_ERROR("Unknown exception in maintenance thread");
                 }
             }
         });
@@ -97,9 +131,16 @@ void server::stop() {
     
     LOG_INFO("Stopping MCP server on ", host_, ":", port_);
     running_ = false;
-    
+
     // Close maintenance thread
     if (maintenance_thread_ && maintenance_thread_->joinable()) {
+        {
+            std::unique_lock<std::mutex> lock(maintenance_mutex_);
+            maintenance_thread_run_ = false;
+        }
+
+        maintenance_cond_.notify_one();
+
         try {
             maintenance_thread_->join();
         } catch (...) {
@@ -655,11 +696,8 @@ json server::process_request(const request& req, const std::string& session_id) 
         
         if (handler) {
             // Call handler
-            LOG_INFO("Calling method handler: ", req.method);
-            auto future = thread_pool_.enqueue([handler, params = req.params, session_id]() -> json {
-                return handler(params, session_id);
-            });
-            json result = future.get();
+            LOG_INFO("Calling method handler: ", req.method);            
+            json result = handler(req.params, session_id);
             
             // Create success response
             LOG_INFO("Method call successful: ", req.method);

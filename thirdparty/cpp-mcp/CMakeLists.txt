@@ -30,7 +30,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Find required packages
 find_package(Threads REQUIRED)
 
-option(MCP_SSL "Enable SSL support" ON)
+option(MCP_SSL "Enable SSL support" OFF)
 
 if(MCP_SSL)
     find_package(OpenSSL 3.0.0 COMPONENTS Crypto SSL REQUIRED)

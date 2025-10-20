@@ -9,304 +9,38 @@
 #include "mcp_sse_client.h"
 #include "base64.hpp"
 
-#include <algorithm>
-#include <cctype>
-#include <stdexcept>
-
-namespace {
-
-struct parsed_url_components {
-    std::string scheme;
-    std::string host;
-    int port = -1;
-    std::string path;
-};
-
-std::string trim_copy(const std::string& value) {
-    const auto first = value.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos) {
-        return std::string();
-    }
-    const auto last = value.find_last_not_of(" \t\r\n");
-    return value.substr(first, last - first + 1);
-}
-
-parsed_url_components parse_url_components(const std::string& url) {
-    parsed_url_components result;
-    std::string trimmed = trim_copy(url);
-
-    if (trimmed.empty()) {
-        return result;
-    }
-
-    size_t scheme_pos = trimmed.find("://");
-    size_t authority_start = 0;
-
-    if (scheme_pos != std::string::npos) {
-        result.scheme = trimmed.substr(0, scheme_pos);
-        std::transform(result.scheme.begin(), result.scheme.end(), result.scheme.begin(),
-                       [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-        authority_start = scheme_pos + 3;
-    }
-
-    size_t path_pos = trimmed.find('/', authority_start);
-    const std::string authority =
-        path_pos == std::string::npos ? trimmed.substr(authority_start)
-                                      : trimmed.substr(authority_start, path_pos - authority_start);
-
-    if (path_pos != std::string::npos) {
-        result.path = trimmed.substr(path_pos);
-    } else {
-        result.path = "/";
-    }
-
-    auto sanitize_path = [](std::string path) {
-        if (path.empty()) {
-            return std::string("/");
-        }
-        size_t query_pos = path.find('?');
-        if (query_pos != std::string::npos) {
-            path.erase(query_pos);
-        }
-        size_t fragment_pos = path.find('#');
-        if (fragment_pos != std::string::npos) {
-            path.erase(fragment_pos);
-        }
-        if (path.empty()) {
-            return std::string("/");
-        }
-        return path;
-    };
-    result.path = sanitize_path(result.path);
-
-    if (!authority.empty()) {
-        if (authority.front() == '[') {
-            const size_t closing = authority.find(']');
-            if (closing != std::string::npos) {
-                result.host = authority.substr(1, closing - 1);
-                if (closing + 1 < authority.size() && authority[closing + 1] == ':') {
-                    const std::string port_str = authority.substr(closing + 2);
-                    try {
-                        result.port = std::stoi(port_str);
-                    } catch (...) {
-                    }
-                }
-            } else {
-                result.host = authority;
-            }
-        } else {
-            const size_t colon_pos = authority.rfind(':');
-            if (colon_pos != std::string::npos) {
-                result.host = authority.substr(0, colon_pos);
-                const std::string port_str = authority.substr(colon_pos + 1);
-                if (!port_str.empty()) {
-                    try {
-                        result.port = std::stoi(port_str);
-                    } catch (...) {
-                        result.port = -1;
-                    }
-                }
-            } else {
-                result.host = authority;
-            }
-        }
-    }
-
-    if (result.port <= 0) {
-        if (result.scheme == "https") {
-            result.port = 443;
-        } else if (result.scheme == "http") {
-            result.port = 80;
-        }
-    }
-
-    return result;
-}
-
-std::string normalize_base_path(const std::string& path) {
-    std::string value = trim_copy(path);
-    if (value.empty()) {
-        return "/";
-    }
-    if (value.front() != '/') {
-        value.insert(value.begin(), '/');
-    }
-    while (value.size() > 1 && value.back() == '/') {
-        value.pop_back();
-    }
-    return value.empty() ? std::string("/") : value;
-}
-
-bool is_absolute_url(const std::string& value) {
-    const auto trimmed = trim_copy(value);
-    const auto scheme_pos = trimmed.find("://");
-    return scheme_pos != std::string::npos && scheme_pos > 0;
-}
-
-} // namespace
-
 namespace mcp {
 
-sse_client::sse_client(const std::string& host, int port, const std::string& sse_endpoint)
-    : host_(host), port_(port), sse_endpoint_(sse_endpoint) {
-    init_client(host, port);
-}
-
-sse_client::sse_client(const std::string& base_url, const std::string& sse_endpoint)
-    : base_url_(base_url), sse_endpoint_(sse_endpoint) {
-    init_client(base_url);
+sse_client::sse_client(const std::string& scheme_host_port, const std::string& sse_endpoint, bool validate_certificates,
+    const std::string& ca_cert_path)
+    : scheme_host_port_(scheme_host_port), sse_endpoint_(sse_endpoint) {
+    init_client(scheme_host_port, validate_certificates, ca_cert_path);
 }
 
 sse_client::~sse_client() {
     close_sse_connection();
 }
 
-void sse_client::init_client(const std::string& host, int port) {
-    if (host.find("://") != std::string::npos) {
-        configure_from_url(host);
-        if (port > 0) {
-            port_ = port;
-            apply_timeouts();
-        }
-        return;
+
+void sse_client::init_client(const std::string& scheme_host_port, bool validate_certificates, const std::string& ca_cert_path) {
+    http_client_ = std::make_unique<httplib::Client>(scheme_host_port.c_str());
+    sse_client_ = std::make_unique<httplib::Client>(scheme_host_port.c_str());
+
+    http_client_->set_connection_timeout(timeout_seconds_, 0);
+    http_client_->set_read_timeout(timeout_seconds_, 0);
+    http_client_->set_write_timeout(timeout_seconds_, 0);
+    
+    sse_client_->set_connection_timeout(timeout_seconds_ * 2, 0);
+    sse_client_->set_write_timeout(timeout_seconds_, 0);
+
+    #ifdef MCP_SSL
+    http_client_->enable_server_certificate_verification(validate_certificates);
+    sse_client_->enable_server_certificate_verification(validate_certificates);
+    if (!ca_cert_path.empty()) {
+        http_client_->set_ca_cert_path(ca_cert_path.c_str());
+        sse_client_->set_ca_cert_path(ca_cert_path.c_str());
     }
-    configure_from_components("", host, port, "/");
-}
-
-void sse_client::init_client(const std::string& base_url) {
-    configure_from_url(base_url);
-}
-
-void sse_client::configure_from_components(const std::string& scheme,
-                                           const std::string& host,
-                                           int port,
-                                           const std::string& base_path) {
-    if (host.empty()) {
-        throw std::invalid_argument("MCP SSE client host cannot be empty");
-    }
-
-    host_ = host;
-    scheme_ = scheme;
-    if (scheme_.empty()) {
-        scheme_ = (port == 443) ? "https" : "http";
-    }
-    std::transform(scheme_.begin(), scheme_.end(), scheme_.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-
-    use_ssl_ = (scheme_ == "https");
-
-    if (port <= 0) {
-        port_ = use_ssl_ ? 443 : 80;
-    } else {
-        port_ = port;
-    }
-
-    base_path_ = normalize_base_path(base_path);
-
-    http_client_ = make_http_client();
-    sse_client_ = make_http_client();
-
-    if (http_client_) {
-        http_client_->set_follow_location(true);
-    }
-    if (sse_client_) {
-        sse_client_->set_follow_location(true);
-    }
-
-    apply_timeouts();
-    apply_default_headers();
-}
-
-void sse_client::configure_from_url(const std::string& url) {
-    parsed_url_components parsed = parse_url_components(url);
-    std::string scheme = parsed.scheme.empty() ? "http" : parsed.scheme;
-    if (parsed.host.empty()) {
-        throw std::invalid_argument("MCP SSE client URL is missing host");
-    }
-    configure_from_components(scheme, parsed.host, parsed.port, parsed.path);
-}
-
-std::unique_ptr<httplib::Client> sse_client::make_http_client() const {
-    auto build_scheme_host = [&](const std::string& scheme) {
-        std::string host_component = host_;
-        if (host_component.find(':') != std::string::npos && host_component.front() != '[') {
-            host_component = "[" + host_component + "]";
-        }
-        std::string result = scheme + "://" + host_component;
-        if (port_ > 0) {
-            result += ":" + std::to_string(port_);
-        }
-        return result;
-    };
-
-    if (use_ssl_) {
-#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-        auto client = std::make_unique<httplib::Client>(build_scheme_host(scheme_));
-        client->enable_server_certificate_verification(true);
-        return client;
-#else
-        throw std::runtime_error("HTTPS support requires CPPHTTPLIB_OPENSSL_SUPPORT");
-#endif
-    }
-
-    if (!scheme_.empty() && scheme_ != "http") {
-        return std::make_unique<httplib::Client>(build_scheme_host(scheme_));
-    }
-
-    return std::make_unique<httplib::Client>(host_.c_str(), port_);
-}
-
-void sse_client::apply_timeouts() {
-    if (http_client_) {
-        http_client_->set_connection_timeout(timeout_seconds_, 0);
-        http_client_->set_read_timeout(timeout_seconds_, 0);
-        http_client_->set_write_timeout(timeout_seconds_, 0);
-    }
-
-    if (sse_client_) {
-        sse_client_->set_connection_timeout(timeout_seconds_ * 2, 0);
-        sse_client_->set_read_timeout(0, 0);
-        sse_client_->set_write_timeout(timeout_seconds_, 0);
-    }
-}
-
-void sse_client::apply_default_headers() {
-    httplib::Headers headers;
-    for (const auto& [key, value] : default_headers_) {
-        headers.emplace(key, value);
-    }
-
-    if (http_client_) {
-        http_client_->set_default_headers(headers);
-    }
-    if (sse_client_) {
-        sse_client_->set_default_headers(headers);
-    }
-}
-
-std::string sse_client::resolve_endpoint_path(const std::string& raw) const {
-    std::string trimmed = trim_copy(raw);
-    if (trimmed.empty()) {
-        return base_path_;
-    }
-
-    if (is_absolute_url(trimmed)) {
-        parsed_url_components parsed = parse_url_components(trimmed);
-        return parsed.path.empty() ? std::string("/") : parsed.path;
-    }
-
-    if (trimmed.front() == '/') {
-        if (base_path_ != "/" && trimmed.compare(0, base_path_.size(), base_path_) != 0) {
-            return base_path_ + trimmed;
-        }
-        return trimmed;
-    }
-
-    if (base_path_.empty() || base_path_ == "/") {
-        return "/" + trimmed;
-    }
-
-    return base_path_ + "/" + trimmed;
+    #endif
 }
 
 bool sse_client::initialize(const std::string& client_name, const std::string& client_version) {
@@ -384,35 +118,38 @@ bool sse_client::ping() {
 }
 
 void sse_client::set_auth_token(const std::string& token) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    auth_token_ = token;
-    if (auth_token_.empty()) {
-        default_headers_.erase("Authorization");
-    } else {
-        const std::string bearer_prefix = "Bearer ";
-        if (auth_token_.rfind(bearer_prefix, 0) == 0) {
-            default_headers_["Authorization"] = auth_token_;
-        } else {
-            default_headers_["Authorization"] = bearer_prefix + auth_token_;
-        }
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auth_token_ = token;
     }
-    apply_default_headers();
+    set_header("Authorization", "Bearer " + auth_token_);
 }
 
 void sse_client::set_header(const std::string& key, const std::string& value) {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (value.empty()) {
-        default_headers_.erase(key);
-    } else {
-        default_headers_[key] = value;
+    default_headers_[key] = value;
+    
+    if (http_client_) {
+        http_client_->set_default_headers({{key, value}});
     }
-    apply_default_headers();
+    if (sse_client_) {
+        sse_client_->set_default_headers({{key, value}});
+    }
 }
 
 void sse_client::set_timeout(int timeout_seconds) {
     std::lock_guard<std::mutex> lock(mutex_);
     timeout_seconds_ = timeout_seconds;
-    apply_timeouts();
+    
+    if (http_client_) {
+        http_client_->set_connection_timeout(timeout_seconds_, 0);
+        http_client_->set_write_timeout(timeout_seconds_, 0);
+    }
+    
+    if (sse_client_) {
+        sse_client_->set_connection_timeout(timeout_seconds_ * 2, 0);
+        sse_client_->set_write_timeout(timeout_seconds_, 0);
+    }
 }
 
 void sse_client::set_capabilities(const json& capabilities) {
@@ -513,29 +250,20 @@ void sse_client::open_sse_connection() {
         endpoint_cv_.notify_all();
     }
     
-    const std::string resolved_sse_path = resolve_endpoint_path(sse_endpoint_);
-
-    std::string connection_info;
-    if (!base_url_.empty()) {
-        connection_info = "Base URL: " + base_url_ + ", SSE Endpoint: " + sse_endpoint_ +
-                          ", Resolved Path: " + resolved_sse_path;
-    } else {
-        connection_info = "Host: " + host_ + ", Port: " + std::to_string(port_) +
-                          ", SSE Endpoint: " + sse_endpoint_ + ", Resolved Path: " + resolved_sse_path;
-    }
+    std::string connection_info = "Base URL: " + scheme_host_port_ + ", SSE Endpoint: " + sse_endpoint_;    
     LOG_INFO("Attempting to establish SSE connection: ", connection_info);
     
-    sse_thread_ = std::make_unique<std::thread>([this, resolved_sse_path]() {
+    sse_thread_ = std::make_unique<std::thread>([this]() {
         int retry_count = 0;
         const int max_retries = 5;
         const int retry_delay_base = 1000;
         
         while (sse_running_) {
             try {
-                LOG_INFO("SSE thread: Attempting to connect to ", resolved_sse_path);
+                LOG_INFO("SSE thread: Attempting to connect to ", sse_endpoint_);
                 
                 std::string buffer;
-                auto res = sse_client_->Get(resolved_sse_path.c_str(), 
+                auto res = sse_client_->Get(sse_endpoint_, 
                     [&,this](const char *data, size_t data_length) {
                         buffer.append(data, data_length);
                         
@@ -640,7 +368,7 @@ bool sse_client::parse_sse_data(const char* data, size_t length) {
             return true;
         } else if (event_type == "endpoint") {
             std::lock_guard<std::mutex> lock(mutex_);
-            msg_endpoint_ = resolve_endpoint_path(data_content);
+            msg_endpoint_ = data_content;
             endpoint_cv_.notify_all();
             return true;
         } else if (event_type == "message") {

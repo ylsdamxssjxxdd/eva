@@ -26,6 +26,14 @@ cmake -B build -DMCP_BUILD_TESTS=ON
 cmake --build build --config Release
 ```
 
+Build with SSL support:
+```
+git submodule update --init --recursive # Get GoogleTest
+
+cmake -B build -DMCP_SSL=ON
+cmake --build build --config Release
+```
+
 ## Adopters
 
 Here are some open-source projects that are using this repository.  
@@ -70,7 +78,7 @@ Implements MCP server functionality.
 Example MCP server implementation with custom tools:
 - Time tool: Get the current time
 - Calculator tool: Perform mathematical operations
-- Echo tool: Process and analyze text
+- Echo tool: Echo input with optional transformations (to uppercase, reverse)
 - Greeting tool: Returns `Hello, `+ input name + `!`, defaults to `Hello, World!`
 
 ### HTTP Client Example (`examples/client_example.cpp`)
@@ -88,13 +96,37 @@ Demonstrates how to use the stdio client to communicate with a local server:
 - Access filesystem resources
 - Call server tools
 
+### Agent Example (`examples/agent_example.cpp`)
+
+| Option | Description |
+| :- | :- |
+| `--base-url` | LLM base URL (e.g. `https://openrouter.ai`) |
+| `--endpoint` | LLM endpoint (default to `/v1/chat/completions/`) |
+| `--api-key` | LLM API key |
+| `--model` | Model name (e.g. `gpt-3.5-turbo`) |
+| `--system-prompt` | System prompt |
+| `--max-tokens` | Maximum number of tokens to generate (default to 2048) |
+| `--temperature` | Temperature (default to 0.0) |
+| `--max-steps` | Maximum steps calling tools without user input (default to 3) |
+
+Example usage:
+```
+./build/examples/agent_example --base-url <base_url> --endpoint <endpoint> --api-key <api_key> --model <model_name>
+```
+
+**Note**: Remember to compile with `-DMCP_SSL=ON` when connecting to an https base URL.
+
 ## How to Use
 
 ### Setting up an HTTP Server
 
 ```cpp
 // Create and configure the server
-mcp::server server("localhost", 8080); // Host and port
+mcp::server::configuration srv_conf;
+srv_conf.host = "localhost";
+srv_conf.port = 8888;
+
+mcp::server server(srv_conf);
 server.set_server_info("MCP Example Server", "0.1.0"); // Name and version
 
 // Register tools
@@ -132,7 +164,7 @@ server.start(true);  // Blocking mode
 
 ```cpp
 // Connect to the server
-mcp::sse_client client("localhost", 8080);
+mcp::sse_client client("http://localhost:8080");
 
 // Initialize the connection
 client.initialize("My Client", "1.0.0");
@@ -153,9 +185,7 @@ The SSE client uses HTTP and Server-Sent Events (SSE) to communicate with MCP se
 #include "mcp_sse_client.h"
 
 // Create a client, specifying the server address and port
-mcp::sse_client client("localhost", 8080);
-// Or use a base URL
-// mcp::sse_client client("http://localhost:8080");
+mcp::sse_client client("http://localhost:8080");
 
 // Set an authentication token (if needed)
 client.set_auth_token("your_auth_token");
@@ -206,6 +236,47 @@ json result = client.call_tool("tool_name", {
 });
 ```
 
+
+## Using TLS clients and servers
+
+### Creating test certificates on Linux
+1. Generate Certificate Authority (CA) private key
+    ```bash
+    openssl genrsa -out ca.key.pem 2048
+    ```
+1. Generate CA certificate
+    ```bash
+    openssl req -x509 -new -nodes -key ca.key.pem -sha256 -days 1 -out ca.cert.pem -subj "/CN=Test CA"
+    ```
+1. Generate server private key
+    ```bash
+    openssl genrsa -out server.key.pem 2048
+    ```
+1. Generate Certificate Signing Request (CSR)
+    ```
+    openssl req -new -key server.key.pem -out server.csr.pem -subj "/O=TestServer/OU=Dev/CN=localhost"
+    ```
+1. Generate server certificate signed by CA
+    ```
+    openssl x509 -req -in server.csr.pem -CA ca.cert.pem -CAkey ca.key.pem -CAcreateserial -out server.cert.pem -days 1 -sha256
+    ```
+### Setting up an HTTPs server
+
+```cpp
+mcp::server::configuration srv_conf;
+srv_conf.host = "localhost";
+srv_conf.port = 8888;
+srv_conf.ssl.server_cert_path = "./server.cert.pem";
+srv_conf.ssl.server_private_key_path = "./server.key.pem";
+```
+
+### Setting up an SSE client with TLS
+
+```cpp
+ mcp::sse_client client("https://localhost:8888");
+ ```
+
 ## License
 
-This framework is provided under the MIT license. For details, please see the LICENSE file. 
+This framework is provided under the MIT license. For details, please see the LICENSE file.
+
