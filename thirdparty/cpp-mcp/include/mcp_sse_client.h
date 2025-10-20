@@ -179,6 +179,16 @@ private:
     // Initialize HTTP client
     void init_client(const std::string& host, int port);
     void init_client(const std::string& base_url);
+
+    void configure_from_components(const std::string& scheme,
+                                   const std::string& host,
+                                   int port,
+                                   const std::string& base_path);
+    void configure_from_url(const std::string& url);
+    std::unique_ptr<httplib::Client> make_http_client() const;
+    void apply_timeouts();
+    void apply_default_headers();
+    std::string resolve_endpoint_path(const std::string& raw) const;
     
     // Open SSE connection
     void open_sse_connection();
@@ -198,6 +208,9 @@ private:
     
     // Use base URL
     std::string base_url_;
+    std::string scheme_ = "http";
+    std::string base_path_ = "/";
+    bool use_ssl_ = false;
     
     // SSE endpoint
     std::string sse_endpoint_ = "/sse";
