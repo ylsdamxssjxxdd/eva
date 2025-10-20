@@ -345,6 +345,36 @@ class ClientFactory
             const mcp::json headers = get_json_object_safely(config, "headers");
             std::unique_ptr<mcp::sse_client> client;
 
+            bool skipTlsVerify = get_bool_safely(config, "skipTlsVerify", false);
+            skipTlsVerify = get_bool_safely(config, "insecure", skipTlsVerify);
+            bool validateCertificatesOpt = get_bool_safely(config, "validateCertificates", true);
+            validateCertificatesOpt = get_bool_safely(config, "tlsVerify", validateCertificatesOpt);
+            const bool shouldValidateCertificates = skipTlsVerify ? false : validateCertificatesOpt;
+
+            std::string caPath;
+            const std::vector<std::string> caKeys = {
+                "caCertPath", "caBundle", "caCertFile", "caCert", "caPath",
+                "tlsCaCert", "tlsCaPath", "tlsCaFile", "caDirectory", "certBundle"
+            };
+            for (const std::string &key : caKeys)
+            {
+                const std::string candidate = get_string_safely(config, key);
+                if (!candidate.empty())
+                {
+                    caPath = candidate;
+                    break;
+                }
+            }
+
+            auto make_client = [&](const std::string &scheme_host_port_value,
+                                   const std::string &endpoint_value) {
+                return std::make_unique<mcp::sse_client>(
+                    scheme_host_port_value,
+                    endpoint_value,
+                    shouldValidateCertificates,
+                    caPath);
+            };
+
             std::string baseUrl = get_string_safely(config, "baseUrl");
             if (!baseUrl.empty())
             {
@@ -389,7 +419,7 @@ class ClientFactory
                 }
 
                 endpoint = normalize_endpoint(endpoint);
-                client = std::make_unique<mcp::sse_client>(scheme_host_port, endpoint);
+                client = make_client(scheme_host_port, endpoint);
             }
             else
             {
@@ -420,7 +450,7 @@ class ClientFactory
                     endpoint = trim_trailing_slashes_keep_root(parsed.path);
                 }
                 endpoint = normalize_endpoint(endpoint);
-                client = std::make_unique<mcp::sse_client>(scheme_host_port, endpoint);
+                client = make_client(scheme_host_port, endpoint);
             }
 
             return std::make_unique<SSEClientWrapper>(std::move(client), timeout, capabilities, headers, clientName);

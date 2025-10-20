@@ -129,11 +129,16 @@ void sse_client::set_header(const std::string& key, const std::string& value) {
     std::lock_guard<std::mutex> lock(mutex_);
     default_headers_[key] = value;
     
+    httplib::Headers headers;
+    for (const auto& [header_key, header_value] : default_headers_) {
+        headers.emplace(header_key, header_value);
+    }
+    
     if (http_client_) {
-        http_client_->set_default_headers({{key, value}});
+        http_client_->set_default_headers(headers);
     }
     if (sse_client_) {
-        sse_client_->set_default_headers({{key, value}});
+        sse_client_->set_default_headers(headers);
     }
 }
 
@@ -261,9 +266,26 @@ void sse_client::open_sse_connection() {
         while (sse_running_) {
             try {
                 LOG_INFO("SSE thread: Attempting to connect to ", sse_endpoint_);
-                
+
+                httplib::Headers sse_headers;
+                {
+                    std::lock_guard<std::mutex> header_lock(mutex_);
+                    for (const auto& [header_key, header_value] : default_headers_) {
+                        sse_headers.emplace(header_key, header_value);
+                    }
+                }
+
+                auto ensure_header = [&sse_headers](const std::string& header_key, const std::string& header_value) {
+                    if (sse_headers.find(header_key) == sse_headers.end()) {
+                        sse_headers.emplace(header_key, header_value);
+                    }
+                };
+                ensure_header("Accept", "text/event-stream");
+                ensure_header("Cache-Control", "no-cache");
+                ensure_header("Connection", "keep-alive");
+
                 std::string buffer;
-                auto res = sse_client_->Get(sse_endpoint_, 
+                auto res = sse_client_->Get(sse_endpoint_, sse_headers, 
                     [&,this](const char *data, size_t data_length) {
                         buffer.append(data, data_length);
                         
@@ -293,6 +315,10 @@ void sse_client::open_sse_connection() {
                 if (!res || res->status / 100 != 2) {
                     std::string error_msg = "SSE connection failed: ";
                     error_msg += httplib::to_string(res.error());
+                    error_msg += " (code=" + std::to_string(static_cast<int>(res.error())) + ")";
+                    if (res && res->status) {
+                        error_msg += ", http_status=" + std::to_string(res->status);
+                    }
                     throw std::runtime_error(error_msg);
                 }
                 
@@ -339,15 +365,20 @@ bool sse_client::parse_sse_data(const char* data, size_t length) {
         std::vector<std::string> data_lines;
         
         while (std::getline(stream, line)) {
+            LOG_INFO("SSE raw line: ", line);
             // Trim trailing CR if present
             if (!line.empty() && line.back() == '\r') {
                 line.pop_back();
             }
             
-            if (line.substr(0, 7) == "event: ") {
-                event_type = line.substr(7);
-            } else if (line.substr(0, 6) == "data: ") {
-                data_lines.push_back(line.substr(6));
+            if (line.rfind("event:", 0) == 0) {
+                std::string value = line.substr(6);
+                value.erase(0, value.find_first_not_of(" \t"));
+                event_type = value;
+            } else if (line.rfind("data:", 0) == 0) {
+                std::string value = line.substr(5);
+                value.erase(0, value.find_first_not_of(" \t"));
+                data_lines.push_back(value);
             } else if (line.empty()) {
                 break; // End of event
             }
@@ -475,6 +506,8 @@ json sse_client::send_jsonrpc(const request& req) {
     for (const auto& [key, value] : default_headers_) {
         headers.emplace(key, value);
     }
+
+    LOG_INFO("JSON-RPC POST ", msg_endpoint_, " payload: ", req_body);
     
     if (req.is_notification()) {
         auto result = http_client_->Post(msg_endpoint_, headers, req_body, "application/json");
@@ -498,6 +531,13 @@ json sse_client::send_jsonrpc(const request& req) {
     }
     
     auto result = http_client_->Post(msg_endpoint_, headers, req_body, "application/json");
+
+    if (result) {
+        LOG_INFO("JSON-RPC HTTP status: ", result->status);
+        if (!result->body.empty()) {
+            LOG_INFO("JSON-RPC HTTP body: ", result->body);
+        }
+    }
     
     if (!result) {
         auto err = result.error();

@@ -12,9 +12,11 @@
 
 int main() {
     // Create a client
-    // mcp::sse_client client("https://localhost:8888", "/sse", true, "/etc/ssl/certs/ca-certificates.crt");
-    // mcp::sse_client client("https://localhost:8888", "/sse", true, "./ca.cert.pem");
-    mcp::sse_client client("http://localhost:8888");
+    mcp::sse_client client("https://dashscope.aliyuncs.com", "/api/v1/mcps/WebSearch/sse");
+    client.set_header("Authorization", "Bearer sk-012c3da9fdfb410abdd0eb366ed38800");
+    client.set_header("Accept", "text/event-stream");
+    client.set_header("Cache-Control", "no-cache");
+    client.set_header("Connection", "keep-alive");
 
     // Set capabilites
     mcp::json capabilities = {
@@ -23,7 +25,7 @@ int main() {
     client.set_capabilities(capabilities);
     
     // Set timeout
-    client.set_timeout(10);
+    client.set_timeout(60);
     
     try {
         // Initialize the connection
