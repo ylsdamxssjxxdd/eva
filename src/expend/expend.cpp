@@ -43,6 +43,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     server_process = new QProcess(this);
     connect(server_process, &QProcess::started, this, &Expend::server_onProcessStarted);
     connect(server_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::server_onProcessFinished);
+    connect(server_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_server_process_StandardOutput, Qt::QueuedConnection);
+    connect(server_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_server_process_StandardError, Qt::QueuedConnection);
 
     quantize_process = new QProcess(this);
     connect(quantize_process, &QProcess::started, this, &Expend::quantize_onProcessStarted);
@@ -78,7 +80,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // Ensure temp dir exists and load persisted config
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    initializeEmbeddingStore();
     readConfig();
+    restoreEmbeddingsFromStore();
 }
 
 Expend::~Expend()
@@ -147,6 +151,8 @@ void Expend::stopEmbeddingServer(bool force)
             }
         }
     }
+
+    embedding_server_active = false;
 }
 
 // Window state tweaks (optional)

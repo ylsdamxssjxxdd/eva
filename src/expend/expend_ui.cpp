@@ -4,9 +4,11 @@
 #include "ui_expend.h"
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QHeaderView>
 #include <QLabel>
 #include <QMimeData>
 #include <QPainter>
+#include <QPlainTextEdit>
 #include <QVBoxLayout>
 #include <src/utils/imagedropwidget.h>
 
@@ -44,6 +46,8 @@ void Expend::init_expend()
     ui->model_quantize_execute->setText(jtr("execute quantize"));
     ui->quantize_log_groupBox->setTitle("llama-quantize " + jtr("execute log"));
     // 知识库
+    if (ui->embedding_txt_wait && ui->embedding_txt_wait->columnCount() == 0) ui->embedding_txt_wait->setColumnCount(1);
+    if (ui->embedding_txt_over && ui->embedding_txt_over->columnCount() == 0) ui->embedding_txt_over->setColumnCount(1);
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});   // 设置列名
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")}); // 设置列名
     ui->embedding_model_label->setText(jtr("embd model"));
@@ -63,6 +67,25 @@ void Expend::init_expend()
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
     ui->sd_result_groupBox->setTitle(jtr("result"));
+    if (ui->embedding_test_log)
+    {
+        ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);
+        ui->embedding_test_log->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    }
+    if (ui->embedding_txt_wait)
+    {
+        if (ui->embedding_txt_wait->horizontalHeader())
+            ui->embedding_txt_wait->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+        ui->embedding_txt_wait->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(ui->embedding_txt_wait, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_wait_menu, Qt::UniqueConnection);
+    }
+    if (ui->embedding_txt_over)
+    {
+        if (ui->embedding_txt_over->horizontalHeader())
+            ui->embedding_txt_over->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+        ui->embedding_txt_over->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(ui->embedding_txt_over, &QTableWidget::customContextMenuRequested, this, &Expend::show_embedding_txt_over_menu, Qt::UniqueConnection);
+    }
     // Use MediaResultWidget declared in .ui
     sd_mediaResult = ui->sd_media_result;
     // 旧的修饰词/负面词行内输入移除；请在“高级设置…”中编辑

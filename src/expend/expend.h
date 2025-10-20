@@ -169,6 +169,7 @@ class Expend : public QWidget
     Embedding_Params embedding_params;
     int embedding_resultnumb = 3;       // 嵌入结果返回个数
     bool embedding_server_need = false; // 下一次打开是否需要自启动嵌入服务
+    bool embedding_server_active = false; // 当前嵌入服务是否运行
     bool embedding_embed_need = false;  // 下一次打开是否需要自动构建知识库
     bool keep_embedding_server = false; // 确保嵌入服务不会因为刚启动就停止
     QString embedding_server_api = "http://" + QString(DEFAULT_EMBEDDING_IP) + ":" + DEFAULT_EMBEDDING_PORT + DEFAULT_EMBEDDING_API;
@@ -213,6 +214,12 @@ class Expend : public QWidget
     void on_embedding_model_lineedit_textChanged();               // 嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();        // 知识库描述改变响应
     void on_embedding_resultnumb_spinBox_valueChanged(int value); // 嵌入结果返回个数改变响应
+
+  private:
+    QString embedding_store_path_;
+    void rebuildEmbeddedTableView();
+    void restoreEmbeddingsFromStore();
+    void initializeEmbeddingStore();
 
     //-------------------------------------------------------------------------
     //----------------------------------模型量化相关--------------------------------

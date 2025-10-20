@@ -4,7 +4,75 @@
 #include "../utils/docparser.h" // parse txt/md/docx
 #include "../utils/pathutil.h"
 #include "ui_expend.h"
+#include <QDir>
 #include <QSet>
+#include <QDebug>
+
+void Expend::initializeEmbeddingStore()
+{
+    embedding_store_path_ = QDir(applicationDirPath).filePath("EVA_TEMP/embedding.sqlite");
+    if (embedding_store_path_.isEmpty()) return;
+
+    if (!vectorDb.open(embedding_store_path_))
+    {
+        qWarning() << "Failed to open embedding store:" << embedding_store_path_;
+        Embedding_DB.clear();
+        return;
+    }
+
+    Embedding_DB = vectorDb.loadAll();
+    std::sort(Embedding_DB.begin(), Embedding_DB.end(), [](const Embedding_vector &a, const Embedding_vector &b)
+              { return a.index < b.index; });
+}
+
+void Expend::rebuildEmbeddedTableView()
+{
+    if (!ui || !ui->embedding_txt_over) return;
+
+    ui->embedding_txt_over->blockSignals(true);
+    ui->embedding_txt_over->clear();
+    ui->embedding_txt_over->setColumnCount(1);
+    ui->embedding_txt_over->setRowCount(Embedding_DB.size());
+    ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});
+
+    for (int i = 0; i < Embedding_DB.size(); ++i)
+    {
+        QTableWidgetItem *item = new QTableWidgetItem(Embedding_DB.at(i).chunk);
+        item->setFlags((item->flags() & ~Qt::ItemIsEditable) | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        item->setBackground(LCL_ORANGE);
+        ui->embedding_txt_over->setItem(i, 0, item);
+    }
+    ui->embedding_txt_over->resizeRowsToContents();
+    ui->embedding_txt_over->blockSignals(false);
+}
+
+void Expend::restoreEmbeddingsFromStore()
+{
+    if (!vectorDb.currentModelId().isEmpty())
+    {
+        embedding_params.modelpath = vectorDb.currentModelId();
+        if (ui && ui->embedding_model_lineedit)
+        {
+            const bool prevKeep = keep_embedding_server;
+            keep_embedding_server = true;
+            ui->embedding_model_lineedit->setText(embedding_params.modelpath);
+            keep_embedding_server = prevKeep;
+        }
+    }
+
+    if (vectorDb.currentDim() > 0)
+    {
+        embedding_server_dim = vectorDb.currentDim();
+        if (ui && ui->embedding_dim_spinBox) ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+    }
+
+    rebuildEmbeddedTableView();
+
+    if (!Embedding_DB.isEmpty())
+    {
+        emit expend2tool_embeddingdb(Embedding_DB);
+    }
+}
 
 //-------------------------------------------------------------------------
 //----------------------------------知识库相关--------------------------------
@@ -13,11 +81,23 @@
 // 用户点击选择嵌入模型路径时响应
 void Expend::on_embedding_txt_modelpath_button_clicked()
 {
+    if (embedding_server_active)
+    {
+        stopEmbeddingServer(true);
+        embedding_server_active = false;
+        ui->embedding_txt_modelpath_button->setText("...");
+        return;
+    }
+
     // 停止已有嵌入服务，避免重复启动导致残留
     stopEmbeddingServer(true);
     // 选择模型
     currentpath = customOpenfile(currentpath, jtr("select embedding model"), "(*.bin *.gguf)");
-    if (currentpath.isEmpty()) { return; }
+    if (currentpath.isEmpty())
+    {
+        ui->embedding_txt_modelpath_button->setText("...");
+        return;
+    }
     embedding_params.modelpath = currentpath;
     // 若为新模型，立即清空持久化库，避免混用；维度稍后由服务日志刷新
     if (embedding_params.modelpath != vectorDb.currentModelId())
@@ -28,6 +108,7 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
     // 清空内存与 UI 视图
     Embedding_DB.clear();
     ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+    ui->embedding_txt_over->setColumnCount(1);
     ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
 
@@ -43,6 +124,8 @@ void Expend::embedding_server_start()
     if (program.isEmpty() || !QFileInfo::exists(program))
     {
         ui->embedding_test_log->appendPlainText("[error] llama-server not found under current device folder");
+        ui->embedding_txt_modelpath_button->setText("...");
+        embedding_server_active = false;
         return;
     }
 
@@ -96,6 +179,7 @@ void Expend::readyRead_server_process_StandardError()
         keep_embedding_server = false;
 
         ui->embedding_txt_modelpath_button->setText(jtr("abort server"));
+        embedding_server_active = true;
 
         qDebug() << "嵌入服务启动成功" << embedding_server_api;
         log_output += jtr("embedding") + jtr("service startup completed") + "\n";
@@ -135,6 +219,7 @@ void Expend::server_onProcessFinished()
     ui->embedding_txt_modelpath_button->setText("...");
     qDebug() << "嵌入服务终止";
     embedding_server_pid = -1;
+    embedding_server_active = false;
 }
 
 // 用户点击上传路径时响应
@@ -269,13 +354,13 @@ void Expend::preprocessFiles(const QStringList &paths)
 
     // Show in pending table
     ui->embedding_txt_wait->clear();
+    ui->embedding_txt_wait->setColumnCount(1);
     ui->embedding_txt_wait->setRowCount(allParagraphs.size());
     for (int i = 0; i < allParagraphs.size(); ++i)
     {
         QTableWidgetItem *newItem = new QTableWidgetItem(allParagraphs.at(i));
         ui->embedding_txt_wait->setItem(i, 0, newItem);
     }
-    ui->embedding_txt_wait->setColumnWidth(0, qMax(ui->embedding_txt_wait->width(), 400));
     ui->embedding_txt_wait->resizeRowsToContents();
     ui->embedding_txt_wait->setHorizontalHeaderLabels(QStringList{jtr("embedless text segment")});
 
@@ -352,6 +437,7 @@ void Expend::embedding_txt_over_onDelete()
 
     // 刷新 UI 表格
     ui->embedding_txt_over->clear();
+    ui->embedding_txt_over->setColumnCount(1);
     ui->embedding_txt_over->setRowCount(0);
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")});
     for (int i = 0; i < Embedding_DB.size(); ++i)
@@ -362,7 +448,6 @@ void Expend::embedding_txt_over_onDelete()
         newItem->setBackground(LCL_ORANGE);
         ui->embedding_txt_over->setItem(i, 0, newItem);
     }
-    ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400));
     ui->embedding_txt_over->resizeRowsToContents();
 
     // 通知工具层刷新内存向量数据库
@@ -373,12 +458,17 @@ void Expend::embedding_txt_over_onDelete()
 void Expend::embedding_txt_wait_onAdd()
 {
     // 获取选中的行
-    int row = ui->embedding_txt_wait->currentRow() + 1;
-    ui->embedding_txt_wait->insertRow(row); // 在选中的行的下一行添加一行
+    const int currentRow = ui->embedding_txt_wait->currentRow();
+    const int insertRow = currentRow >= 0 ? currentRow + 1 : ui->embedding_txt_wait->rowCount();
+    ui->embedding_txt_wait->insertRow(insertRow); // 在选中的行的下一行添加一行
 
     // 根据需要设置新行的内容
     QTableWidgetItem *newItem = new QTableWidgetItem(jtr("please input the text that needs to be embedded"));
-    ui->embedding_txt_wait->setItem(row, 0, newItem); // 假设我们只设置第一列
+    newItem->setFlags((newItem->flags() | Qt::ItemIsEditable) | Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    ui->embedding_txt_wait->setItem(insertRow, 0, newItem); // 假设我们只设置第一列
+    ui->embedding_txt_wait->setCurrentItem(newItem);
+    QTimer::singleShot(0, this, [this, newItem]()
+                       { ui->embedding_txt_wait->editItem(newItem); });
 }
 // 删除表格
 void Expend::embedding_txt_wait_onDelete()
@@ -561,6 +651,7 @@ void Expend::embedding_processing()
     ui->embedding_txt_modelpath_button->setEnabled(0); // 选择模型按钮
 
     ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+    ui->embedding_txt_over->setColumnCount(1);
     ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
     ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
     show_chunk_index = 0;                                                                        // 待显示的嵌入文本段的序号
@@ -627,8 +718,7 @@ void Expend::embedding_processing()
             newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable); // 单元格不可编辑
             newItem->setBackground(QColor(255, 165, 0, 60));           // 设置单元格背景颜色,橘黄色
             ui->embedding_txt_over->setItem(remain_index.front(), 0, newItem);
-            ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400)); // 列宽保持控件宽度
-            ui->embedding_txt_over->resizeRowsToContents();                                        // 自动调整行高
+                ui->embedding_txt_over->resizeRowsToContents();                                        // 自动调整行高
             ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);       // 滚动到新添加的行
             show_chunk_index++;
             remain_index.removeFirst();
@@ -698,7 +788,6 @@ void Expend::embedding_processing()
                 newItem->setFlags(newItem->flags() & ~Qt::ItemIsEditable); //单元格不可编辑
                 newItem->setBackground(LCL_ORANGE);                        // 设置单元格背景颜色,橘黄色
                 ui->embedding_txt_over->setItem(show_chunk_index, 0, newItem);
-                ui->embedding_txt_over->setColumnWidth(0, qMax(ui->embedding_txt_over->width(), 400)); // 列宽保持控件宽度
                 ui->embedding_txt_over->resizeRowsToContents();                                        // 自动调整行高
                 ui->embedding_txt_over->scrollToItem(newItem, QAbstractItemView::PositionAtTop);       // 滚动到新添加的行
                 // 持久化当前段落向量
@@ -761,6 +850,7 @@ void Expend::on_embedding_model_lineedit_textChanged()
             vectorDb.clearAll(); // 清空持久化向量库
         }
         ui->embedding_txt_over->clear();                                                             // 清空已嵌入文本段表格内容
+        ui->embedding_txt_over->setColumnCount(1);
         ui->embedding_txt_over->setRowCount(0);                                                      // 设置已嵌入文本段表格为0行
         ui->embedding_txt_over->setHorizontalHeaderLabels(QStringList{jtr("embeded text segment")}); // 设置列名
     }
