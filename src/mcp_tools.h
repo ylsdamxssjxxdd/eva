@@ -96,11 +96,29 @@ inline std::string trim_trailing_slashes_keep_root(std::string path)
 
 inline bool path_ends_with_segment(const std::string &path, const std::string &segment)
 {
-    if (segment.empty() || segment == "/") return false;
-    if (path.size() < segment.size()) return false;
-    if (path.compare(path.size() - segment.size(), segment.size(), segment) != 0) return false;
-    if (path.size() == segment.size()) return true;
-    return path[path.size() - segment.size() - 1] == '/';
+    if (path.empty() || segment.empty()) return false;
+
+    std::string normalized_segment = segment;
+    while (!normalized_segment.empty() && normalized_segment.front() == '/')
+    {
+        normalized_segment.erase(normalized_segment.begin());
+    }
+    while (!normalized_segment.empty() && normalized_segment.back() == '/')
+    {
+        normalized_segment.pop_back();
+    }
+    if (normalized_segment.empty()) return false;
+
+    std::string normalized_path = trim_trailing_slashes_keep_root(path);
+    if (normalized_path.size() < normalized_segment.size()) return false;
+    if (normalized_path.compare(normalized_path.size() - normalized_segment.size(),
+                                normalized_segment.size(),
+                                normalized_segment) != 0)
+    {
+        return false;
+    }
+    if (normalized_path.size() == normalized_segment.size()) return true;
+    return normalized_path[normalized_path.size() - normalized_segment.size() - 1] == '/';
 }
 
 inline std::string combine_paths(const std::string &base_path, const std::string &endpoint)
