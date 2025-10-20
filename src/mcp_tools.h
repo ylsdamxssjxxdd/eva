@@ -293,7 +293,19 @@ class ClientFactory
                 {
                     endpoint = parsed.path;
                 }
-                client = std::make_unique<mcp::sse_client>(parsed.host, parsed.port, endpoint);
+                std::string scheme = parsed.protocol.empty() ? "http" : parsed.protocol;
+                if (scheme != "http" && scheme != "https")
+                {
+                    throw client_exception("Unsupported URL scheme for SSE client: " + scheme);
+                }
+                const bool is_default_port = (scheme == "http" && parsed.port == 80) ||
+                                             (scheme == "https" && parsed.port == 443);
+                std::string scheme_host_port = scheme + "://" + parsed.host;
+                if (!is_default_port && parsed.port > 0)
+                {
+                    scheme_host_port += ":" + std::to_string(parsed.port);
+                }
+                client = std::make_unique<mcp::sse_client>(scheme_host_port, endpoint);
             }
 
             return std::make_unique<SSEClientWrapper>(std::move(client), timeout, capabilities, headers, clientName);
