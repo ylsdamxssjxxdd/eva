@@ -48,16 +48,7 @@ static TOOLS_INFO Buildin_tools_answer(
     // 工具描述
     R"(The final response to the user.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "content": {
-            "type": "string",
-            "description": "The final response to the user"
-            }
-        },
-        "required": ["content"]
-})");
+    R"({"type":"object","properties":{"content":{"type":"string","description":"The final response to the user"}},"required":["content"]})");
 
 // 内置的计算器工具
 static TOOLS_INFO Buildin_tools_calculator(
@@ -65,16 +56,7 @@ static TOOLS_INFO Buildin_tools_calculator(
     // 工具描述
     R"(Enter a expression to return the calculation result via using tinyexpr.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "expression": {
-            "type": "string",
-            "description": "math expression"
-            }
-        },
-        "required": ["expression"]
-})");
+    R"({"type":"object","properties":{"expression":{"type":"string","description":"math expression"}},"required":["expression"]})");
 
 // 内置的鼠标键盘工具
 // 屏幕的左上角坐标为(0,0)
@@ -87,16 +69,22 @@ static TOOLS_INFO Buildin_tools_calculator(
 static TOOLS_INFO Buildin_tools_controller(
     "controller",
     "Pass in a sequence of actions to control the mouse and keyboard. {screen_info}", // 传入一串行动序列来控制鼠标键盘
-    "{"
-    "\"type\":\"object\","
-    "\"properties\":{"
-    "\"sequence\":{"
-    "\"type\":\"list\","
-    "\"description\":\"Action Sequence List. List elements can be the following functions:\nMouse left button down: left_down(x, y)\nMouse left button up: left_up()\nMouse right button down: right_down(x, y)\nMouse right button up: right_up()\nMove mouse to end point: move(x, y, t)\nPress keyboard key: keyboard(key)\nSequence interval: time_span(t)\nParameters:\nx is the horizontal coordinate.\ny is the vertical coordinate.\nt is the duration in seconds.\nkey is a key on the keyboard, which can be a combination key, e.g., \"Ctrl+S\".\nPassing Parameter Examples:\n[\"left_down(100,200)\", \"time_span(0.1)\", \"left_up()\", \"time_span(0.5)\", \"left_down(100,200)\",\"time_span(0.1)\", \"left_up()\"] - Double left mouse click.\n[\"left_down(100,200)\", \"time_span(0.1)\", \"move(200,400,0.5)\", \"time_span(0.1)\", \"left_up()\"] - Left mouse button drag. After the tool is executed, it will return the current screenshot\""
-    "}"
-    "},"
-    "\"required\":[\"sequence\"]\n"
-    "}");
+    R"SCHEMA({"type":"object","properties":{"sequence":{"type":"list","description":"Action Sequence List. List elements can be the following functions:
+Mouse left button down: left_down(x, y)
+Mouse left button up: left_up()
+Mouse right button down: right_down(x, y)
+Mouse right button up: right_up()
+Move mouse to end point: move(x, y, t)
+Press keyboard key: keyboard(key)
+Sequence interval: time_span(t)
+Parameters:
+x is the horizontal coordinate.
+y is the vertical coordinate.
+t is the duration in seconds.
+key is a key on the keyboard, which can be a combination key, e.g., "Ctrl+S".
+Passing Parameter Examples:
+["left_down(100,200)", "time_span(0.1)", "left_up()", "time_span(0.5)", "left_down(100,200)", "time_span(0.1)", "left_up()"] - Double left mouse click.
+["left_down(100,200)", "time_span(0.1)", "move(200,400,0.5)", "time_span(0.1)", "left_up()"] - Left mouse button drag. After the tool is executed, it will return the current screenshot"}},"required":["sequence"]})SCHEMA");
 
 // 内置的列出MCP工具
 static TOOLS_INFO Buildin_tools_mcp_tools_list(
@@ -104,10 +92,7 @@ static TOOLS_INFO Buildin_tools_mcp_tools_list(
     // 工具描述
     R"(List all available tools in the current MCP service, which may include tools that you can use.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {}
-})");
+    R"({"type":"object","properties":{}})");
 
 // 内置的知识库工具
 static TOOLS_INFO Buildin_tools_knowledge(
@@ -115,16 +100,7 @@ static TOOLS_INFO Buildin_tools_knowledge(
     // 工具描述
     R"(Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question. knowledge database describe: {embeddingdb describe})",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "content": {
-            "type": "string",
-            "description": "Keywords to be queried"
-            }
-        },
-        "required": ["content"]
-})");
+    R"({"type":"object","properties":{"content":{"type":"string","description":"Keywords to be queried"}},"required":["content"]})");
 
 // 内置的文生图工具
 static TOOLS_INFO Buildin_tools_stablediffusion(
@@ -132,16 +108,7 @@ static TOOLS_INFO Buildin_tools_stablediffusion(
     // 工具描述
     R"(Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "prompt": {
-            "type": "string",
-            "description": "Describe the image you want to draw with a paragraph of English text"
-            }
-        },
-        "required": ["prompt"]
-})");
+    R"({"type":"object","properties":{"prompt":{"type":"string","description":"Describe the image you want to draw with a paragraph of English text"}},"required":["prompt"]})");
 
 // 内置的工程师-命令行工具
 static TOOLS_INFO Buildin_tools_execute_command(
@@ -149,16 +116,7 @@ static TOOLS_INFO Buildin_tools_execute_command(
     // 工具描述
     R"(Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "content": {
-            "type": "string",
-            "description": "CLI commands"
-            }
-        },
-        "required": ["content"]
-})");
+    R"({"type":"object","properties":{"content":{"type":"string","description":"CLI commands"}},"required":["content"]})");
 
 // 内置的工程师-列出目录文件工具
 static TOOLS_INFO Buildin_tools_list_files(
@@ -166,16 +124,7 @@ static TOOLS_INFO Buildin_tools_list_files(
     // 工具描述
     R"(List all immediate subfolders and files under a given directory. Paths are resolved relative to the engineer working directory. Output is compact, one entry per line.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "path": {
-            "type": "string",
-            "description": "Directory path to list (relative to the engineer working directory)."
-            }
-        },
-        "required": ["path"]
-})");
+    R"({"type":"object","properties":{"path":{"type":"string","description":"Directory path to list (relative to the engineer working directory)."}},"required":["path"]})");
 
 // 内置的工程师-搜索文件内容工具
 static TOOLS_INFO Buildin_tools_search_content(
@@ -183,16 +132,7 @@ static TOOLS_INFO Buildin_tools_search_content(
     // 工具描述
     R"(Search all text files under the engineer working directory for a query string (case-insensitive). Returns lines in the form <path>:<line>:<content>.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "query": {
-            "type": "string",
-            "description": "The text to search for."
-            }
-        },
-        "required": ["query"]
-})");
+    R"({"type":"object","properties":{"query":{"type":"string","description":"The text to search for."}},"required":["query"]})");
 
 // 内置的工程师-读文件工具
 static TOOLS_INFO Buildin_tools_read_file(
@@ -200,26 +140,7 @@ static TOOLS_INFO Buildin_tools_read_file(
     // 工具描述
     R"(Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file. You can specify start and end line numbers to read only a portion of the file. Maximum 200 lines can be read at once.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "path": {
-            "type": "string",
-            "description": "The file path which you want to read"
-            },
-            "start_line": {
-            "type": "integer",
-            "description": "The starting line number (1-based index). Optional, default is 1",
-            "minimum": 1
-            },
-            "end_line": {
-            "type": "integer",
-            "description": "The ending line number (1-based index). Optional, maximum 200 lines from start_line",
-            "minimum": 1
-            }
-        },
-        "required": ["path"]
-})");
+    R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to read"},"start_line":{"type":"integer","description":"The starting line number (1-based index). Optional, default is 1","minimum":1},"end_line":{"type":"integer","description":"The ending line number (1-based index). Optional, maximum 200 lines from start_line","minimum":1}},"required":["path"]})");
 
 // 内置的工程师-写文件工具
 static TOOLS_INFO Buildin_tools_write_file(
@@ -227,20 +148,7 @@ static TOOLS_INFO Buildin_tools_write_file(
     // 工具描述
     R"(Request to write content to a file at the specified path. If the file exists, it will be overwritten by the provided content. If the file does not exist, it will be created. This tool will automatically create any directory required for writing files.)",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "path": {
-            "type": "string",
-            "description": "The file path which you want to write"
-            },
-            "content": {
-            "type": "string",
-            "description": "The file content"
-            }
-        },
-        "required": ["path", "content"]
-})");
+    R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to write"},"content":{"type":"string","description":"The file content"}},"required":["path","content"]})");
 
 // ──────────────────────────────────────────────────────────────
 // 内置的工程师-编辑文件工具
@@ -255,26 +163,4 @@ number of occurrences you expect.
 For a file of unknown size, initially limit the reading to the first 200 lines, and then continue reading from there based on the situation.
 )",
     // JSON-Schema，用于验证调用参数
-    R"({
-        "type": "object",
-        "properties": {
-            "path": {
-            "type": "string",
-            "description": "The file path which you want to edit."
-            },
-            "old_string": {
-            "type": "string",
-            "description": "The exact literal text to be replaced (include surrounding context for uniqueness)."
-            },
-            "new_string": {
-            "type": "string",
-            "description": "The exact literal text that will replace old_string."
-            },
-            "expected_replacements": {
-            "type": "number",
-            "description": "Number of expected occurrences to replace. Defaults to 1 if omitted.",
-            "minimum": 1
-            }
-        },
-        "required": ["path", "old_string", "new_string"]
-})");
+    R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to edit."},"old_string":{"type":"string","description":"The exact literal text to be replaced (include surrounding context for uniqueness)."},"new_string":{"type":"string","description":"The exact literal text that will replace old_string."},"expected_replacements":{"type":"number","description":"Number of expected occurrences to replace. Defaults to 1 if omitted.","minimum":1}},"required":["path","old_string","new_string"]})");
