@@ -70,7 +70,74 @@ inline ParsedURL parse_url(const std::string &url)
         result.path = "/";
     }
 
+    size_t query_pos = result.path.find_first_of("?#");
+    if (query_pos != std::string::npos)
+    {
+        result.path = result.path.substr(0, query_pos);
+    }
+    if (result.path.empty())
+    {
+        result.path = "/";
+    }
+
     return result;
+}
+
+inline std::string trim_trailing_slashes_keep_root(std::string path)
+{
+    if (path.empty()) return "/";
+    while (path.size() > 1 && path.back() == '/')
+    {
+        path.pop_back();
+    }
+    if (path.empty()) return "/";
+    return path;
+}
+
+inline bool path_ends_with_segment(const std::string &path, const std::string &segment)
+{
+    if (segment.empty() || segment == "/") return false;
+    if (path.size() < segment.size()) return false;
+    if (path.compare(path.size() - segment.size(), segment.size(), segment) != 0) return false;
+    if (path.size() == segment.size()) return true;
+    return path[path.size() - segment.size() - 1] == '/';
+}
+
+inline std::string combine_paths(const std::string &base_path, const std::string &endpoint)
+{
+    if (endpoint.empty())
+    {
+        return trim_trailing_slashes_keep_root(base_path.empty() ? std::string("/") : base_path);
+    }
+
+    if (base_path.empty() || base_path == "/")
+    {
+        if (!endpoint.empty() && endpoint.front() == '/')
+        {
+            return trim_trailing_slashes_keep_root(endpoint);
+        }
+        std::string result = "/" + endpoint;
+        return trim_trailing_slashes_keep_root(result);
+    }
+
+    std::string result = base_path;
+    if (result.front() != '/')
+    {
+        result.insert(result.begin(), '/');
+    }
+    result = trim_trailing_slashes_keep_root(result);
+
+    if (!endpoint.empty() && endpoint.front() == '/')
+    {
+        result += endpoint;
+    }
+    else
+    {
+        result.push_back('/');
+        result += endpoint;
+    }
+
+    return trim_trailing_slashes_keep_root(result);
 }
 
 // 客户端异常类型
@@ -218,21 +285,6 @@ class ClientFactory
         return endpoint;
     }
 
-    static std::string sanitize_base_url(std::string baseUrl, const std::string &endpoint)
-    {
-        if (baseUrl.empty()) return baseUrl;
-        while (baseUrl.size() > 1 && baseUrl.back() == '/') baseUrl.pop_back();
-        if (!endpoint.empty() && baseUrl.size() >= endpoint.size())
-        {
-            if (baseUrl.compare(baseUrl.size() - endpoint.size(), endpoint.size(), endpoint) == 0)
-            {
-                baseUrl.erase(baseUrl.size() - endpoint.size());
-            }
-        }
-        while (baseUrl.size() > 1 && baseUrl.back() == '/') baseUrl.pop_back();
-        return baseUrl;
-    }
-
     static mcp::json resolve_capabilities(const mcp::json &config)
     {
         mcp::json capabilities = get_json_object_safely(config, "capabilities");
@@ -268,30 +320,20 @@ class ClientFactory
 
         if (type == "sse")
         {
-            std::string endpoint = normalize_endpoint(get_string_safely(config, "sseEndpoint", "/sse"));
+            const std::string endpoint_raw = get_string_safely(config, "sseEndpoint", "/sse");
+            std::string endpoint = normalize_endpoint(endpoint_raw);
+            const bool endpoint_explicit = config.contains("sseEndpoint");
+            const bool endpoint_is_relative = endpoint_explicit && !endpoint_raw.empty() && endpoint_raw.front() != '/';
             const mcp::json headers = get_json_object_safely(config, "headers");
             std::unique_ptr<mcp::sse_client> client;
 
-            std::string baseUrl = sanitize_base_url(get_string_safely(config, "baseUrl"), endpoint);
+            std::string baseUrl = get_string_safely(config, "baseUrl");
             if (!baseUrl.empty())
             {
-                client = std::make_unique<mcp::sse_client>(baseUrl, endpoint);
-            }
-            else
-            {
-                std::string url = get_string_safely(config, "url");
-                if (url.empty())
-                {
-                    throw client_exception("SSE client configuration requires baseUrl or url");
-                }
-                ParsedURL parsed = parse_url(url);
+                ParsedURL parsed = parse_url(baseUrl);
                 if (parsed.host.empty())
                 {
                     throw client_exception("SSE client configuration has empty host");
-                }
-                if (!parsed.path.empty() && parsed.path != "/" && endpoint == "/sse")
-                {
-                    endpoint = parsed.path;
                 }
                 std::string scheme = parsed.protocol.empty() ? "http" : parsed.protocol;
                 if (scheme != "http" && scheme != "https")
@@ -305,6 +347,61 @@ class ClientFactory
                 {
                     scheme_host_port += ":" + std::to_string(parsed.port);
                 }
+
+                std::string base_path = parsed.path.empty() ? "/" : parsed.path;
+                base_path = trim_trailing_slashes_keep_root(base_path);
+
+                if (!endpoint_explicit)
+                {
+                    if (!base_path.empty() && base_path != "/")
+                    {
+                        if (path_ends_with_segment(base_path, endpoint))
+                        {
+                            endpoint = base_path;
+                        }
+                        else
+                        {
+                            endpoint = combine_paths(base_path, endpoint);
+                        }
+                    }
+                }
+                else if (endpoint_is_relative && !base_path.empty() && base_path != "/")
+                {
+                    endpoint = combine_paths(base_path, endpoint);
+                }
+
+                endpoint = normalize_endpoint(endpoint);
+                client = std::make_unique<mcp::sse_client>(scheme_host_port, endpoint);
+            }
+            else
+            {
+                std::string url = get_string_safely(config, "url");
+                if (url.empty())
+                {
+                    throw client_exception("SSE client configuration requires baseUrl or url");
+                }
+                ParsedURL parsed = parse_url(url);
+                if (parsed.host.empty())
+                {
+                    throw client_exception("SSE client configuration has empty host");
+                }
+                std::string scheme = parsed.protocol.empty() ? "http" : parsed.protocol;
+                if (scheme != "http" && scheme != "https")
+                {
+                    throw client_exception("Unsupported URL scheme for SSE client: " + scheme);
+                }
+                const bool is_default_port = (scheme == "http" && parsed.port == 80) ||
+                                             (scheme == "https" && parsed.port == 443);
+                std::string scheme_host_port = scheme + "://" + parsed.host;
+                if (!is_default_port && parsed.port > 0)
+                {
+                    scheme_host_port += ":" + std::to_string(parsed.port);
+                }
+                if (!parsed.path.empty() && parsed.path != "/" && !endpoint_explicit && endpoint == "/sse")
+                {
+                    endpoint = trim_trailing_slashes_keep_root(parsed.path);
+                }
+                endpoint = normalize_endpoint(endpoint);
                 client = std::make_unique<mcp::sse_client>(scheme_host_port, endpoint);
             }
 
