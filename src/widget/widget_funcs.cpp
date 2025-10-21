@@ -351,12 +351,13 @@ QString Widget::create_extra_prompt()
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info(); // 构建工程师信息
         }
-        if (!skill_usage_block.isEmpty())
-        {
-            available_tools_describe = skill_usage_block + "\n\n" + available_tools_describe;
-        }
+
         extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
         extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
+        if (!skill_usage_block.isEmpty())
+        {
+            extra_prompt_ = extra_prompt_ + skill_usage_block;// 技能描述放到最后
+        }
     }
     else
     {
@@ -523,14 +524,6 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{DIR}", QDir::toNativeSeparators(dir));
     engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(dir));
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
-    if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
-    {
-        const QString appendix = skillManager->composeEngineerAppendix(engineerWorkDir, true);
-        if (!appendix.isEmpty())
-        {
-            engineer_info_.append("\n").append(appendix);
-        }
-    }
     return engineer_info_;
 }
 // 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止

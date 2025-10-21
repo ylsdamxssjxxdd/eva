@@ -397,69 +397,24 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir, bool en
     segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory (%1). Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.")
                      .arg(QDir::toNativeSeparators(engineerWorkDir));
 
+    segments << QString();
+    segments << QStringLiteral("[Mounted Skills]");
     for (const auto &rec : enabledSkills)
     {
         segments << QString();
-        segments << QStringLiteral("Skill `%1` metadata:").arg(rec.id);
-        if (!rec.description.isEmpty())
-        {
-            segments << QStringLiteral("Description: %1").arg(rec.description);
-        }
+        segments << QStringLiteral("- %1").arg(rec.id);
+        segments << QStringLiteral("  SKILL.md: %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
         if (!rec.frontmatterBody.isEmpty())
         {
-            segments << QStringLiteral("---");
-            segments << rec.frontmatterBody;
-            segments << QStringLiteral("---");
-        }
-        else
-        {
-            segments << QStringLiteral("(metadata missing)");
-        }
-        segments << QStringLiteral("Skill root: %1").arg(QDir::toNativeSeparators(rec.skillRootPath));
-        segments << QStringLiteral("Load instructions with `read_file` -> %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
-    }
-    return segments.join(QStringLiteral("\n"));
-}
-
-QString SkillManager::composeEngineerAppendix(const QString &engineerWorkDir, bool engineerActive) const
-{
-    if (!engineerActive) return {};
-    QStringList lines;
-    QVector<SkillRecord> enabledSkills;
-    for (const auto &rec : skills_)
-    {
-        if (rec.enabled) enabledSkills.push_back(rec);
-    }
-    if (enabledSkills.isEmpty()) return {};
-
-    lines << QStringLiteral("[Mounted Skill Directories]");
-    for (const auto &rec : enabledSkills)
-    {
-        const QString rel = relativeToWorkdir(engineerWorkDir, rec.skillRootPath);
-        const QString skillRoot = QDir::toNativeSeparators(rec.skillRootPath);
-        const QString relDisplay = rel.isEmpty() ? QStringLiteral("(outside workdir)") : rel;
-        lines << QStringLiteral("- %1 -> %2 (relative: %3)").arg(rec.id, skillRoot, relDisplay);
-        lines << QStringLiteral("  SKILL.md -> %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
-        if (!rec.description.isEmpty())
-        {
-            lines << QStringLiteral("  Description: %1").arg(rec.description);
-        }
-        if (!rec.frontmatterBody.isEmpty())
-        {
-            lines << QStringLiteral("  Metadata:");
+            segments << QStringLiteral("  Frontmatter:");
             const QStringList metaLines = rec.frontmatterBody.split(QChar('\n'));
             for (const QString &metaLine : metaLines)
             {
-                lines << QStringLiteral("    %1").arg(metaLine.trimmed());
+                segments << QStringLiteral("    %1").arg(metaLine.trimmed());
             }
         }
     }
-    const QString scriptsFs = QDir(enabledSkills.first().skillRootPath).filePath("scripts");
-    const QString scriptsDisplay = QDir::toNativeSeparators(scriptsFs);
-    const QString examplePath = sanitizePathForCommand(QDir(scriptsFs).filePath("your_script.py"));
-    lines << QStringLiteral("Scripts reside under %1. Run them from the workdir, for example: `python %2`.")
-                 .arg(scriptsDisplay, examplePath);
-    return lines.join(QStringLiteral("\n"));
+    return segments.join(QStringLiteral("\n"));
 }
 
 bool SkillManager::loadSkillFromDirectory(const QString &skillDir, SkillRecord &record, QString *error) const

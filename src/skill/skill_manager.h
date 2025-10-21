@@ -46,7 +46,6 @@ public:
     const QVector<SkillRecord> &skills() const { return skills_; }
 
     QString composePromptBlock(const QString &engineerWorkDir, bool engineerActive) const;
-    QString composeEngineerAppendix(const QString &engineerWorkDir, bool engineerActive) const;
     void installBundledSkills();
 
 signals:
