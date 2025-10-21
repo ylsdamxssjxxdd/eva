@@ -46,6 +46,5 @@ private:
     QString metadataTooltip(const SkillManager::SkillRecord &rec) const;
 
     QVBoxLayout *cardsLayout_ = nullptr;
-    QLabel *emptyHintLabel_ = nullptr;
     QHash<QString, CardWidgets> cards_;
 };

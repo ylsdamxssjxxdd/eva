@@ -14,6 +14,8 @@
 #include <QHBoxLayout>
 #include <QSet>
 #include <QStringList>
+#include <QScrollArea>
+#include <QSizePolicy>
 
 #include "../utils/toggleswitch.h"
 
@@ -35,18 +37,18 @@ SkillDropArea::SkillDropArea(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     setStyleSheet(QStringLiteral(
         "#skillCard {"
-        "  border: 1px solid rgba(76, 177, 255, 0.65);"
-        "  background-color: rgba(33, 150, 243, 0.30);"
-        "  border-radius: 12px;"
+        "  border: 1px solid rgba(76, 177, 255, 0.55);"
+        "  background-color: rgba(23, 78, 143, 0.32);"
+        "  border-radius: 8px;"
         "}"
         "#skillCard:hover {"
-        "  border: 1px solid rgba(129, 212, 250, 0.95);"
-        "  background-color: rgba(41, 121, 255, 0.42);"
+        "  border: 1px solid rgba(129, 212, 250, 0.85);"
+        "  background-color: rgba(41, 121, 255, 0.36);"
         "}"
         "#skillTitle {"
         "  font-weight: 600;"
         "  color: #E3F2FD;"
-        "  letter-spacing: 0.4px;"
+        "  letter-spacing: 0.2px;"
         "}"
         "#skillEmptyHint {"
         "  color: rgba(227, 242, 253, 0.7);"
@@ -55,24 +57,27 @@ SkillDropArea::SkillDropArea(QWidget *parent)
 
     auto *rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
-    rootLayout->setSpacing(10);
+    rootLayout->setSpacing(6);
 
-    emptyHintLabel_ = new QLabel(tr("暂无技能。拖拽技能压缩包到此区域完成挂载。"), this);
-    emptyHintLabel_->setAlignment(Qt::AlignCenter);
-    emptyHintLabel_->setObjectName(QStringLiteral("skillEmptyHint"));
-    emptyHintLabel_->setStyleSheet(QStringLiteral("color: rgba(227,242,253,0.7); font-style: italic;"));
-    rootLayout->addWidget(emptyHintLabel_);
+    auto *scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    scrollArea->setMaximumHeight(320);
+    rootLayout->addWidget(scrollArea);
 
-    QWidget *cardsContainer = new QWidget(this);
+    QWidget *cardsContainer = new QWidget(scrollArea);
     cardsLayout_ = new QVBoxLayout(cardsContainer);
-    cardsLayout_->setContentsMargins(0, 0, 0, 0);
-    cardsLayout_->setSpacing(12);
+    cardsLayout_->setContentsMargins(4, 4, 4, 4);
+    cardsLayout_->setSpacing(8);
     cardsLayout_->setAlignment(Qt::AlignTop);
-    rootLayout->addWidget(cardsContainer);
-    rootLayout->addStretch();
+    scrollArea->setWidget(cardsContainer);
 
     ensureEmptyHint();
 }
+
 
 void SkillDropArea::setSkills(const QVector<SkillManager::SkillRecord> &skills)
 {
@@ -183,8 +188,14 @@ void SkillDropArea::contextMenuEvent(QContextMenuEvent *event)
 
 void SkillDropArea::ensureEmptyHint()
 {
-    const bool empty = cards_.isEmpty();
-    if (emptyHintLabel_) emptyHintLabel_->setVisible(empty);
+    if (cards_.isEmpty())
+    {
+        setToolTip(tr("暂无技能。拖拽技能压缩包到此区域完成挂载。"));
+    }
+    else
+    {
+        setToolTip(QString());
+    }
 }
 
 void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
@@ -202,8 +213,8 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
         {
             QSignalBlocker blocker(card.toggle);
             card.toggle->setChecked(rec.enabled);
+            card.toggle->setHandlePosition(rec.enabled ? 1.0 : 0.0);
         }
-        card.toggle->setHandlePosition(rec.enabled ? 1.0 : 0.0);
         return;
     }
 
@@ -213,11 +224,14 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
     card.frame->setProperty("skillId", rec.id);
 
     auto *cardLayout = new QHBoxLayout(card.frame);
-    cardLayout->setContentsMargins(18, 14, 18, 14);
-    cardLayout->setSpacing(14);
+    cardLayout->setContentsMargins(12, 8, 12, 8);
+    cardLayout->setSpacing(8);
 
     card.title = new QLabel(rec.id, card.frame);
     card.title->setObjectName(QStringLiteral("skillTitle"));
+    card.title->setWordWrap(false);
+    card.title->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+    card.title->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     cardLayout->addWidget(card.title, 1, Qt::AlignVCenter);
 
     card.toggle = new ToggleSwitch(card.frame);

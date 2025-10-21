@@ -728,7 +728,11 @@ void Widget::apply_language(int language_flag_)
     if (date_ui->skills_box)
     {
         date_ui->skills_box->setTitle(jtr("skills mount"));
-        if (date_ui->skills_hint_label) date_ui->skills_hint_label->setText(jtr("skills hint"));
+        if (date_ui->skills_hint_label)
+        {
+            date_ui->skills_hint_label->clear();
+            date_ui->skills_hint_label->setVisible(false);
+        }
     }
     date_ui->switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
     date_ui->confirm_button->setText(jtr("ok"));
