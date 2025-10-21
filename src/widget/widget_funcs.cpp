@@ -298,11 +298,17 @@ QString Widget::create_extra_prompt()
 {
     QString extra_prompt_;            // 额外指令
     QString available_tools_describe; // 工具名和描述
+    QString skill_usage_block;
     QString engineer_info;            // 软件工程师信息
     extra_prompt_ = EXTRA_PROMPT_FORMAT;
     extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool)
     {
+        if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+        {
+            const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true);
+            if (!skillBlock.isEmpty()) skill_usage_block = skillBlock;
+        }
         available_tools_describe += Buildin_tools_answer.text + "\n\n";
         // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked())
@@ -344,6 +350,10 @@ QString Widget::create_extra_prompt()
             available_tools_describe += Buildin_tools_search_content.text + "\n\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info(); // 构建工程师信息
+        }
+        if (!skill_usage_block.isEmpty())
+        {
+            available_tools_describe = skill_usage_block + "\n\n" + available_tools_describe;
         }
         extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
         extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
@@ -513,6 +523,14 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{DIR}", QDir::toNativeSeparators(dir));
     engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(dir));
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
+    if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+    {
+        const QString appendix = skillManager->composeEngineerAppendix(engineerWorkDir, true);
+        if (!appendix.isEmpty())
+        {
+            engineer_info_.append("\n").append(appendix);
+        }
+    }
     return engineer_info_;
 }
 // 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
@@ -707,6 +725,11 @@ void Widget::apply_language(int language_flag_)
     date_ui->MCPtools_checkbox->setToolTip(jtr("MCPtools_checkbox_tooltip"));
     date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
     date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
+    if (date_ui->skills_box)
+    {
+        date_ui->skills_box->setTitle(jtr("skills mount"));
+        if (date_ui->skills_hint_label) date_ui->skills_hint_label->setText(jtr("skills hint"));
+    }
     date_ui->switch_lan_button->setToolTip(jtr("switch_lan_button_tooltip"));
     date_ui->confirm_button->setText(jtr("ok"));
     date_ui->cancel_button->setText(jtr("cancel"));
@@ -864,6 +887,14 @@ void Widget::auto_save_user()
         settings.setValue("api_endpoint", apis.api_endpoint);
         settings.setValue("api_key", apis.api_key);
         settings.setValue("api_model", apis.api_model);
+    }
+    if (skillManager)
+    {
+        settings.setValue("skills_enabled", skillManager->enabledSkillIds());
+    }
+    else
+    {
+        settings.remove("skills_enabled");
     }
     settings.sync(); // flush to disk immediately
     // reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);

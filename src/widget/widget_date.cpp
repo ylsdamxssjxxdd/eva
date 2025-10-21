@@ -60,7 +60,15 @@ void Widget::set_DateDialog()
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, [=](int)
             { autosave(); });
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int)
-            { autosave(); });
+            {
+        updateSkillVisibility(date_ui->engineer_checkbox->isChecked());
+        autosave(); });
+    if (date_ui->skills_list)
+    {
+        connect(date_ui->skills_list, &SkillDropArea::skillDropRequested, this, &Widget::onSkillDropRequested);
+        connect(date_ui->skills_list, &SkillDropArea::skillToggleRequested, this, &Widget::onSkillToggleRequested);
+        connect(date_ui->skills_list, &SkillDropArea::skillRemoveRequested, this, &Widget::onSkillRemoveRequested);
+    }
     // 工程师工作目录（默认隐藏，仅在勾选“软件工程师”后显示）
     if (date_ui->date_engineer_workdir_label)
     {
@@ -82,6 +90,8 @@ void Widget::set_DateDialog()
                 auto_save_user();
             } });
     }
+    updateSkillVisibility(date_ui->engineer_checkbox->isChecked());
+    refreshSkillsUI();
 }
 
 // 约定选项卡确认按钮响应

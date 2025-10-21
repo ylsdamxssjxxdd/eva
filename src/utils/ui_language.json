@@ -829,6 +829,18 @@
             "文生图",
             "txt2img"
         ],
+        "skills mount": [
+            "挂载技能",
+            "skills"
+        ],
+        "skills hint": [
+            "拖拽技能压缩包到此区域完成挂载。勾选或取消勾选以启用或禁用技能，右键可卸载技能。",
+            "Drag skill .zip packages here to mount. Toggle the checkbox to enable or disable a skill, right-click to remove it."
+        ],
+        "skills placeholder": [
+            "拖放技能.zip文件到此处",
+            "Drop skill .zip files here"
+        ],
         "extra calling": [
             "额外指令",
             "extra"

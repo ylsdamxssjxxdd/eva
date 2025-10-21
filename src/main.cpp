@@ -489,6 +489,10 @@ int main(int argc, char *argv[])
         }
         const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
+        if (settings.contains("skills_enabled"))
+        {
+            w.restoreSkillSelection(settings.value("skills_enabled").toStringList());
+        }
         if (w.date_ui->date_engineer_workdir_LineEdit)
         {
             w.date_ui->date_engineer_workdir_label->setVisible(engineerOn);

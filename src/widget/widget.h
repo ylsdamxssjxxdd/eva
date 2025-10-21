@@ -64,9 +64,11 @@
 #include "../utils/doubleqprogressbar.h"
 #include "../utils/history_store.h" // per-session history persistence
 #include "../utils/recordbar.h"
+#include "../skill/skill_manager.h"
 #include "../xbackend.h" // local llama.cpp server manager
 #include "../xconfig.h"  // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
+#include "skill_drop_area.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -141,6 +143,7 @@ class Widget : public QWidget
     void auto_save_user();  // 每次约定和设置后都保存配置到本地
     void get_set();         // 获取设置中的纸面值
     void get_date();        // 获取约定中的纸面值
+    void restoreSkillSelection(const QStringList &skills);
     // Set engineer working directory and propagate to xTool
     void setEngineerWorkDir(const QString &dir);
     // Set workdir without emitting signals (for early restore during startup)
@@ -458,6 +461,10 @@ class Widget : public QWidget
     void onShortcutActivated_CTRL_ENTER();        // 用户按下CTRL+ENTER键响应
     void recv_qimagepath(QString cut_imagepath_); // 接收传来的图像
     void monitorAudioLevel();                     // 每隔100毫秒刷新一次监视录音
+    void onSkillsChanged();
+    void onSkillDropRequested(const QStringList &paths);
+    void onSkillToggleRequested(const QString &skillId, bool enabled);
+    void onSkillRemoveRequested(const QString &skillId);
   private:
     // Refresh UI hints related to device/backend selection:
     // - When current selection is auto, append the actually resolved backend
@@ -518,6 +525,13 @@ class Widget : public QWidget
     void recordAppendText(int index, const QString &text);
     void recordClear();
     void gotoRecord(int index);
+
+    void refreshSkillsUI();
+    void rebuildSkillPrompts();
+    void updateSkillVisibility(bool engineerEnabled);
+
+    SkillManager *skillManager = nullptr;
+    bool skillsUiRefreshGuard_ = false;
     void replaceOutputRangeColored(int from, int to, const QString &text, QColor color);
     ENDPOINT_DATA prepareEndpointData();
     void beginSessionIfNeeded();

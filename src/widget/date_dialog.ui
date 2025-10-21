@@ -215,12 +215,12 @@
            </font>
           </property>
          </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+  </item>
    <item>
     <widget class="QGroupBox" name="tool_box">
      <property name="font">
@@ -421,6 +421,53 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="skills_box">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>技能挂载</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_skills">
+      <property name="spacing">
+       <number>4</number>
+      </property>
+      <property name="leftMargin">
+       <number>3</number>
+      </property>
+      <property name="topMargin">
+       <number>3</number>
+      </property>
+      <property name="rightMargin">
+       <number>3</number>
+      </property>
+      <property name="bottomMargin">
+       <number>3</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="skills_hint_label">
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>拖拽技能压缩包到此区域完成挂载。勾选或取消勾选以启用或禁用技能，右键可卸载技能。</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="SkillDropArea" name="skills_list">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>160</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
      <item>
       <widget class="QPushButton" name="switch_lan_button">
@@ -498,6 +545,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SkillDropArea</class>
+   <extends>QListWidget</extends>
+   <header>src/widget/skill_drop_area.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

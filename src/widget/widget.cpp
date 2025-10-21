@@ -27,6 +27,14 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     }
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
+    skillManager = new SkillManager(this);
+    skillManager->setApplicationDir(applicationDirPath);
+    skillManager->loadFromDisk();
+    connect(skillManager, &SkillManager::skillsChanged, this, &Widget::onSkillsChanged);
+    connect(skillManager, &SkillManager::skillImported, this, [this](const QString &id)
+            { reflash_state(QString::fromUtf8("ui:skill imported -> ") + id, SUCCESS_SIGNAL); });
+    connect(skillManager, &SkillManager::skillOperationFailed, this, [this](const QString &msg)
+            { reflash_state("ui:" + msg, WRONG_SIGNAL); });
     // Default engineer workdir under application directory
     engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); // 设置分隔器中第一个元素初始高度占比为3
@@ -1149,6 +1157,8 @@ void Widget::on_date_clicked()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         date_ui->date_engineer_workdir_browse->setVisible(vis);
+        updateSkillVisibility(vis);
+        if (vis) refreshSkillsUI();
     }
 
     date_ui->switch_lan_button->setText(ui_extra_lan);
@@ -1177,6 +1187,8 @@ void Widget::set_date()
 
     // 同步其余“约定”参数到内存
     get_date(); // 获取约定中的纸面值
+    updateSkillVisibility(ui_engineer_ischecked);
+    if (ui_engineer_ischecked) refreshSkillsUI();
 
     // 约定变化后统一重置对话上下文（本地/远端一致）并持久化
     auto_save_user(); // persist date settings
@@ -1203,6 +1215,8 @@ void Widget::cancel_date()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         date_ui->date_engineer_workdir_browse->setVisible(vis);
+        updateSkillVisibility(vis);
+        if (vis) refreshSkillsUI();
     }
     date_ui->switch_lan_button->setText(ui_extra_lan);
     // 复原语言
@@ -1495,6 +1509,95 @@ void Widget::gotoRecord(int index)
     }
 
     ui->output->setFocus();
+}
+
+void Widget::refreshSkillsUI()
+{
+    if (!date_ui || !date_ui->skills_list || !skillManager) return;
+    date_ui->skills_list->setSkills(skillManager->skills());
+}
+
+void Widget::rebuildSkillPrompts()
+{
+    ui_extra_prompt = create_extra_prompt();
+    if (date_ui) get_date();
+}
+
+void Widget::updateSkillVisibility(bool engineerEnabled)
+{
+    if (!date_ui) return;
+    if (date_ui->skills_box) date_ui->skills_box->setVisible(engineerEnabled);
+    if (engineerEnabled)
+    {
+        refreshSkillsUI();
+    }
+    rebuildSkillPrompts();
+}
+
+void Widget::onSkillsChanged()
+{
+    refreshSkillsUI();
+    rebuildSkillPrompts();
+    if (date_ui) auto_save_user();
+}
+
+void Widget::onSkillDropRequested(const QStringList &paths)
+{
+    if (!skillManager) return;
+    for (const QString &path : paths)
+    {
+        SkillManager::ImportResult result = skillManager->importSkillArchive(path);
+        if (result.ok)
+        {
+            reflash_state(QString::fromUtf8("ui:skill imported -> ") + result.skillId, SUCCESS_SIGNAL);
+        }
+        else
+        {
+            reflash_state(QString::fromUtf8("ui:") + result.message, WRONG_SIGNAL);
+        }
+    }
+    auto_save_user();
+}
+
+void Widget::onSkillToggleRequested(const QString &skillId, bool enabled)
+{
+    if (!skillManager || skillId.isEmpty()) return;
+    skillManager->setSkillEnabled(skillId, enabled);
+}
+
+void Widget::onSkillRemoveRequested(const QString &skillId)
+{
+    if (!skillManager || skillId.isEmpty()) return;
+    QString error;
+    if (!skillManager->removeSkill(skillId, &error))
+    {
+        const QString msg = error.isEmpty() ? QStringLiteral("failed to remove skill -> ") + skillId : error;
+        reflash_state(QString::fromUtf8("ui:") + msg, WRONG_SIGNAL);
+    }
+    else
+    {
+        reflash_state(QString::fromUtf8("ui:skill removed -> ") + skillId, SIGNAL_SIGNAL);
+    }
+    auto_save_user();
+}
+
+void Widget::restoreSkillSelection(const QStringList &skills)
+{
+    if (!skillManager) return;
+    QSet<QString> enabled;
+    for (const QString &id : skills)
+    {
+        enabled.insert(id.trimmed());
+    }
+    skillManager->restoreEnabledSet(enabled);
+    if (date_ui && date_ui->engineer_checkbox)
+    {
+        updateSkillVisibility(date_ui->engineer_checkbox->isChecked());
+    }
+    else
+    {
+        rebuildSkillPrompts();
+    }
 }
 
 void Widget::replaceOutputRangeColored(int from, int to, const QString &text, QColor color)
