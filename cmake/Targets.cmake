@@ -42,8 +42,10 @@ add_executable(
     src/utils/evallogedit.cpp src/utils/evallogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
+    src/utils/zip_extractor.cpp src/utils/zip_extractor.h
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
+    thirdparty/miniz/miniz.c thirdparty/miniz/miniz_zip.c thirdparty/miniz/miniz_tinfl.c thirdparty/miniz/miniz_tdef.c
 )
 ## Executable name
 # Linux: keep binary name as plain "eva" for runtime/AppDir consistency
@@ -56,7 +58,7 @@ endif()
 target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::TextToSpeech Qt5::Sql Qt5::Concurrent mcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
-target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils ${CMAKE_SOURCE_DIR})
+target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/thirdparty/miniz)
 
 # Apply MinGW-specific compile/link options collected in ProjectOptions.cmake
 if (MINGW)

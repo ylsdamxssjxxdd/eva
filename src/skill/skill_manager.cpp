@@ -5,11 +5,13 @@
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
-#include <QProcess>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QTextStream>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QtGlobal>
+
+#include "src/utils/zip_extractor.h"
 
 namespace
 {
@@ -65,11 +67,148 @@ QString stripQuotes(const QString &value)
     }
     return value.trimmed();
 }
+
+bool loadSkillRecord(const QString &skillDir, SkillManager::SkillRecord &record, QString *error)
+{
+    QFileInfo info(skillDir);
+    if (!info.exists() || !info.isDir())
+    {
+        if (error) *error = QObject::tr("Skill directory missing: %1").arg(skillDir);
+        return false;
+    }
+
+    const QString skillFile = QDir(skillDir).filePath(QString::fromUtf8(kSkillFileName));
+    if (!QFileInfo::exists(skillFile))
+    {
+        if (error) *error = QObject::tr("SKILL.md missing in %1").arg(skillDir);
+        return false;
+    }
+
+    QString loadErr;
+    const QString content = readTextFile(skillFile, &loadErr);
+    if (content.isEmpty() && !loadErr.isEmpty())
+    {
+        if (error) *error = loadErr;
+        return false;
+    }
+
+    QString frontmatterBody;
+    const QString frontmatter = SkillManager::normalizeFrontmatter(content, &frontmatterBody);
+    if (frontmatter.isEmpty())
+    {
+        if (error) *error = QObject::tr("Invalid SKILL.md frontmatter in %1").arg(skillFile);
+        return false;
+    }
+
+    const QString name = stripQuotes(SkillManager::extractYamlScalar(frontmatterBody, QStringLiteral("name")));
+    const QString description = stripQuotes(SkillManager::extractYamlScalar(frontmatterBody, QStringLiteral("description")));
+    const QString license = stripQuotes(SkillManager::extractYamlScalar(frontmatterBody, QStringLiteral("license")));
+
+    record.id = name.trimmed();
+    record.description = description.trimmed();
+    record.license = license.trimmed();
+    record.frontmatterBody = frontmatterBody;
+    record.skillRootPath = QDir::cleanPath(skillDir);
+    record.skillFilePath = QDir::cleanPath(skillFile);
+    return true;
+}
+
+SkillManager::ImportResult performImportJob(const QString &zipPath, const QString &skillsRoot)
+{
+    SkillManager::ImportResult result;
+    if (zipPath.isEmpty())
+    {
+        result.message = QObject::tr("No archive selected.");
+        return result;
+    }
+    if (skillsRoot.isEmpty())
+    {
+        result.message = QObject::tr("Skills directory is not configured.");
+        return result;
+    }
+
+    QFileInfo info(zipPath);
+    if (!info.exists() || !info.isFile())
+    {
+        result.message = QObject::tr("Archive not found: %1").arg(zipPath);
+        return result;
+    }
+
+    QDir root(skillsRoot);
+    if (!root.exists() && !root.mkpath(QStringLiteral(".")))
+    {
+        result.message = QObject::tr("Failed to create EVA_SKILLS directory.");
+        return result;
+    }
+
+    QTemporaryDir tempDir;
+    if (!tempDir.isValid())
+    {
+        result.message = QObject::tr("Failed to create temporary directory for extraction.");
+        return result;
+    }
+
+    QString extractionError;
+    if (!zip::extractArchive(info.absoluteFilePath(), tempDir.path(), &extractionError))
+    {
+        result.message = extractionError.isEmpty() ? QObject::tr("Archive extraction failed.") : extractionError;
+        return result;
+    }
+
+    QString skillFilePath;
+    {
+        QDirIterator finder(tempDir.path(), QStringList() << QString::fromUtf8(kSkillFileName),
+                            QDir::Files, QDirIterator::Subdirectories);
+        if (!finder.hasNext())
+        {
+            result.message = QObject::tr("SKILL.md not found in archive.");
+            return result;
+        }
+        skillFilePath = finder.next();
+    }
+
+    const QString skillDir = QFileInfo(skillFilePath).absolutePath();
+    SkillManager::SkillRecord imported;
+    QString loadError;
+    if (!loadSkillRecord(skillDir, imported, &loadError))
+    {
+        result.message = loadError;
+        return result;
+    }
+
+    if (imported.id.isEmpty())
+    {
+        result.message = QObject::tr("Skill name is missing in SKILL.md frontmatter.");
+        return result;
+    }
+
+    const QString targetDir = QDir(root).filePath(imported.id);
+    QString removeError;
+    if (QFileInfo::exists(targetDir) && !SkillManager::removeDirectory(targetDir, &removeError))
+    {
+        result.message = removeError;
+        return result;
+    }
+
+    QString copyError;
+    if (!SkillManager::copyDirectory(skillDir, targetDir, &copyError))
+    {
+        result.message = copyError;
+        return result;
+    }
+
+    result.ok = true;
+    result.skillId = imported.id;
+    result.message = QObject::tr("Skill %1 imported.").arg(imported.id);
+    return result;
+}
 } // namespace
 
 SkillManager::SkillManager(QObject *parent)
     : QObject(parent)
 {
+    importWatcher_.setParent(this);
+    connect(&importWatcher_, &QFutureWatcher<ImportResult>::finished, this, &SkillManager::handleImportFinished);
 }
 
 void SkillManager::setApplicationDir(const QString &appDir)
@@ -116,88 +255,15 @@ bool SkillManager::loadFromDisk()
 SkillManager::ImportResult SkillManager::importSkillArchive(const QString &zipPath)
 {
     ImportResult result;
-    result.skillId = QString();
-    if (zipPath.isEmpty())
-    {
-        result.message = tr("No archive selected.");
-        return result;
-    }
-    QFileInfo info(zipPath);
-    if (!info.exists() || !info.isFile())
-    {
-        result.message = tr("Archive not found: %1").arg(zipPath);
-        return result;
-    }
     if (!ensureSkillsRoot())
     {
         result.message = tr("Failed to create EVA_SKILLS directory.");
+        finalizeImport(result);
         return result;
     }
 
-    QTemporaryDir tempDir;
-    if (!tempDir.isValid())
-    {
-        result.message = tr("Failed to create temporary directory for extraction.");
-        return result;
-    }
-
-    QString extractionError;
-    if (!extractArchive(info.absoluteFilePath(), tempDir.path(), &extractionError))
-    {
-        result.message = extractionError.isEmpty() ? tr("Archive extraction failed.") : extractionError;
-        return result;
-    }
-
-    // Find SKILL.md
-    QString skillFilePath;
-    {
-        QDirIterator finder(tempDir.path(), QStringList() << QString::fromUtf8(kSkillFileName),
-                            QDir::Files, QDirIterator::Subdirectories);
-        if (!finder.hasNext())
-        {
-            result.message = tr("SKILL.md not found in archive.");
-            return result;
-        }
-        skillFilePath = finder.next();
-    }
-
-    const QString skillDir = QFileInfo(skillFilePath).absolutePath();
-    QString loadError;
-    SkillRecord imported;
-    if (!loadSkillFromDirectory(skillDir, imported, &loadError))
-    {
-        result.message = loadError;
-        return result;
-    }
-
-    if (imported.id.isEmpty())
-    {
-        result.message = tr("Skill name is missing in SKILL.md frontmatter.");
-        return result;
-    }
-
-    const QString targetDir = QDir(skillsRoot_).filePath(imported.id);
-    QString removeError;
-    if (QFileInfo::exists(targetDir) && !removeDirectory(targetDir, &removeError))
-    {
-        result.message = removeError;
-        return result;
-    }
-
-    QString copyError;
-    if (!copyDirectory(skillDir, targetDir, &copyError))
-    {
-        result.message = copyError;
-        return result;
-    }
-
-    // Reload from disk to ensure consistent view
-    loadFromDisk();
-    setSkillEnabled(imported.id, true);
-    result.ok = true;
-    result.skillId = imported.id;
-    result.message = tr("Skill %1 imported.").arg(imported.id);
-    emit skillImported(imported.id);
+    result = performImportJob(zipPath, skillsRoot_);
+    finalizeImport(result);
     return result;
 }
 
@@ -289,7 +355,20 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir, bool en
     {
         segments << QString();
         segments << QStringLiteral("Skill `%1` metadata:").arg(rec.id);
-        segments << rec.frontmatterBlock;
+        if (!rec.description.isEmpty())
+        {
+            segments << QStringLiteral("Description: %1").arg(rec.description);
+        }
+        if (!rec.frontmatterBody.isEmpty())
+        {
+            segments << QStringLiteral("---");
+            segments << rec.frontmatterBody;
+            segments << QStringLiteral("---");
+        }
+        else
+        {
+            segments << QStringLiteral("(metadata missing)");
+        }
         segments << QStringLiteral("Skill root: %1").arg(QDir::toNativeSeparators(rec.skillRootPath));
         segments << QStringLiteral("Load instructions with `read_file` -> %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
     }
@@ -315,6 +394,19 @@ QString SkillManager::composeEngineerAppendix(const QString &engineerWorkDir, bo
         const QString relDisplay = rel.isEmpty() ? QStringLiteral("(outside workdir)") : rel;
         lines << QStringLiteral("- %1 -> %2 (relative: %3)").arg(rec.id, skillRoot, relDisplay);
         lines << QStringLiteral("  SKILL.md -> %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
+        if (!rec.description.isEmpty())
+        {
+            lines << QStringLiteral("  Description: %1").arg(rec.description);
+        }
+        if (!rec.frontmatterBody.isEmpty())
+        {
+            lines << QStringLiteral("  Metadata:");
+            const QStringList metaLines = rec.frontmatterBody.split(QChar('\n'));
+            for (const QString &metaLine : metaLines)
+            {
+                lines << QStringLiteral("    %1").arg(metaLine.trimmed());
+            }
+        }
     }
     const QString scriptsFs = QDir(enabledSkills.first().skillRootPath).filePath("scripts");
     const QString scriptsDisplay = QDir::toNativeSeparators(scriptsFs);
@@ -326,48 +418,7 @@ QString SkillManager::composeEngineerAppendix(const QString &engineerWorkDir, bo
 
 bool SkillManager::loadSkillFromDirectory(const QString &skillDir, SkillRecord &record, QString *error) const
 {
-    QFileInfo info(skillDir);
-    if (!info.exists() || !info.isDir())
-    {
-        if (error) *error = tr("Skill directory missing: %1").arg(skillDir);
-        return false;
-    }
-
-    const QString skillFile = QDir(skillDir).filePath(QString::fromUtf8(kSkillFileName));
-    if (!QFileInfo::exists(skillFile))
-    {
-        if (error) *error = tr("SKILL.md missing in %1").arg(skillDir);
-        return false;
-    }
-
-    QString loadErr;
-    const QString content = readTextFile(skillFile, &loadErr);
-    if (content.isEmpty() && !loadErr.isEmpty())
-    {
-        if (error) *error = loadErr;
-        return false;
-    }
-
-    QString frontmatterBody;
-    const QString frontmatter = normalizeFrontmatter(content, &frontmatterBody);
-    if (frontmatter.isEmpty())
-    {
-        if (error) *error = tr("Invalid SKILL.md frontmatter in %1").arg(skillFile);
-        return false;
-    }
-
-    const QString name = stripQuotes(extractYamlScalar(frontmatterBody, QStringLiteral("name")));
-    const QString description = stripQuotes(extractYamlScalar(frontmatterBody, QStringLiteral("description")));
-    const QString license = stripQuotes(extractYamlScalar(frontmatterBody, QStringLiteral("license")));
-
-    record.id = name.trimmed();
-    record.description = description.trimmed();
-    record.license = license.trimmed();
-    record.frontmatterBlock = frontmatter;
-    record.skillRootPath = QDir::cleanPath(skillDir);
-    record.skillFilePath = QDir::cleanPath(skillFile);
-    // enabled flag preserved by caller after restore
-    return true;
+    return loadSkillRecord(skillDir, record, error);
 }
 
 QString SkillManager::normalizeFrontmatter(const QString &rawContent, QString *frontmatterBody)
@@ -476,92 +527,6 @@ bool SkillManager::removeDirectory(const QString &path, QString *error)
     return false;
 }
 
-bool SkillManager::extractArchive(const QString &zipPath, const QString &destination, QString *error) const
-{
-    QDir dest(destination);
-    dest.removeRecursively();
-    if (!dest.mkpath(QStringLiteral(".")))
-    {
-        if (error) *error = tr("Failed to prepare extraction directory: %1").arg(destination);
-        return false;
-    }
-
-#ifdef Q_OS_WIN
-    auto runPowerShell = [](const QString &script, QString *stdErrOut) -> bool {
-        QProcess ps;
-        QStringList args{
-            QStringLiteral("-NoProfile"),
-            QStringLiteral("-NonInteractive"),
-            QStringLiteral("-Command"),
-            script};
-        ps.start(QStringLiteral("powershell"), args);
-        if (!ps.waitForStarted())
-        {
-            if (stdErrOut) *stdErrOut = QObject::tr("Failed to start PowerShell process.");
-            return false;
-        }
-        ps.waitForFinished(-1);
-        if (stdErrOut) *stdErrOut = QString::fromLocal8Bit(ps.readAllStandardError()).trimmed();
-        return ps.exitStatus() == QProcess::NormalExit && ps.exitCode() == 0;
-    };
-
-    const QString escapedZip = QString(zipPath).replace("'", "''");
-    const QString escapedDest = QString(destination).replace("'", "''");
-
-    QString stderrPrimary;
-    const QString expandArchiveScript = QStringLiteral(
-        "try { Expand-Archive -LiteralPath '%1' -DestinationPath '%2' -Force } catch { Write-Error $_; exit 1 }")
-                                            .arg(escapedZip, escapedDest);
-    if (runPowerShell(expandArchiveScript, &stderrPrimary)) return true;
-
-    QString stderrFallback;
-    const QString fallbackScript = QStringLiteral(
-        "$ErrorActionPreference='Stop';"
-        "Add-Type -AssemblyName System.IO.Compression.FileSystem;"
-        "$zip=[System.IO.Path]::GetFullPath('%1');"
-        "$dest=[System.IO.Path]::GetFullPath('%2');"
-        "if (!(Test-Path $dest)) { New-Item -ItemType Directory -Force -Path $dest | Out-Null }"
-        "[System.IO.Compression.ZipFile]::ExtractToDirectory($zip,$dest);")
-                                       .arg(escapedZip, escapedDest);
-
-    if (runPowerShell(fallbackScript, &stderrFallback)) return true;
-
-    if (error)
-    {
-        QString combined = stderrPrimary;
-        if (!stderrFallback.isEmpty())
-        {
-            if (!combined.isEmpty()) combined.append('\n');
-            combined.append(stderrFallback);
-        }
-        if (combined.isEmpty()) combined = tr("Archive extraction failed.");
-        *error = combined;
-    }
-    return false;
-#else
-    QProcess process;
-    QStringList args{
-        QStringLiteral("-o"),
-        zipPath,
-        QStringLiteral("-d"),
-        destination};
-    process.start(QStringLiteral("unzip"), args);
-    if (!process.waitForStarted())
-    {
-        if (error) *error = tr("Failed to start archive extraction process.");
-        return false;
-    }
-    process.waitForFinished(-1);
-    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
-    {
-        const QString stderrData = QString::fromLocal8Bit(process.readAllStandardError());
-        if (error) *error = stderrData.isEmpty() ? tr("Archive extraction failed.") : stderrData.trimmed();
-        return false;
-    }
-    return true;
-#endif
-}
-
 QString SkillManager::relativeToWorkdir(const QString &engineerWorkDir, const QString &path) const
 {
     if (engineerWorkDir.isEmpty()) return {};
@@ -575,4 +540,54 @@ void SkillManager::sortSkills()
 {
     std::sort(skills_.begin(), skills_.end(), [](const SkillRecord &a, const SkillRecord &b)
               { return QString::localeAwareCompare(a.id, b.id) < 0; });
+}
+void SkillManager::importSkillArchiveAsync(const QString &zipPath)
+{
+    if (zipPath.isEmpty())
+    {
+        ImportResult result;
+        result.message = tr("No archive selected.");
+        finalizeImport(result);
+        return;
+    }
+    pendingImports_.append(zipPath);
+    if (!importWatcher_.isRunning()) processNextQueuedImport();
+}
+
+void SkillManager::processNextQueuedImport()
+{
+    if (importWatcher_.isRunning() || pendingImports_.isEmpty()) return;
+
+    if (!ensureSkillsRoot())
+    {
+        ImportResult result;
+        result.message = tr("Failed to create EVA_SKILLS directory.");
+        finalizeImport(result);
+        pendingImports_.clear();
+        return;
+    }
+
+    const QString nextPath = pendingImports_.takeFirst();
+    auto future = QtConcurrent::run([skillsRoot = skillsRoot_, nextPath]() -> ImportResult
+                                    { return performImportJob(nextPath, skillsRoot); });
+    importWatcher_.setFuture(future);
+}
+
+void SkillManager::handleImportFinished()
+{
+    const ImportResult result = importWatcher_.result();
+    finalizeImport(result);
+    if (!pendingImports_.isEmpty()) processNextQueuedImport();
+}
+
+void SkillManager::finalizeImport(const ImportResult &result)
+{
+    if (!result.ok)
+    {
+        if (!result.message.isEmpty()) emit skillOperationFailed(result.message);
+        return;
+    }
+    loadFromDisk();
+    setSkillEnabled(result.skillId, true);
+    emit skillImported(result.skillId);
 }

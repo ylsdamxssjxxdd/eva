@@ -13,6 +13,7 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QSet>
+#include <QStringList>
 
 #include "../utils/toggleswitch.h"
 
@@ -193,6 +194,10 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
     {
         CardWidgets &card = it.value();
         card.title->setText(rec.id);
+        const QString tooltip = metadataTooltip(rec);
+        card.frame->setToolTip(tooltip);
+        card.title->setToolTip(tooltip);
+        card.toggle->setToolTip(tooltip);
         if (card.toggle->isChecked() != rec.enabled)
         {
             QSignalBlocker blocker(card.toggle);
@@ -217,6 +222,11 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
     card.toggle = new ToggleSwitch(card.frame);
     card.toggle->setChecked(rec.enabled);
     cardLayout->addWidget(card.toggle, 0, Qt::AlignVCenter);
+
+    const QString tooltip = metadataTooltip(rec);
+    card.frame->setToolTip(tooltip);
+    card.title->setToolTip(tooltip);
+    card.toggle->setToolTip(tooltip);
 
     connect(card.toggle, &QAbstractButton::toggled, this, [this, skillId = rec.id](bool checked)
             { emit skillToggleRequested(skillId, checked); });
@@ -260,4 +270,18 @@ QString SkillDropArea::skillIdFromWidget(QWidget *child) const
         current = current->parentWidget();
     }
     return {};
+}
+
+QString SkillDropArea::metadataTooltip(const SkillManager::SkillRecord &rec) const
+{
+    QStringList parts;
+    parts << tr("Skill: %1").arg(rec.id);
+    if (!rec.description.isEmpty()) parts << tr("Description: %1").arg(rec.description);
+    if (!rec.license.isEmpty()) parts << tr("License: %1").arg(rec.license);
+    if (!rec.frontmatterBody.isEmpty())
+    {
+        parts << tr("Metadata:");
+        parts << rec.frontmatterBody.trimmed();
+    }
+    return parts.join(QStringLiteral("\n"));
 }

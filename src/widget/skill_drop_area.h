@@ -43,6 +43,7 @@ private:
     void removeObsoleteCards(const QSet<QString> &remaining);
     void emitToggleForCard(const QString &skillId, ToggleSwitch *toggle);
     QString skillIdFromWidget(QWidget *child) const;
+    QString metadataTooltip(const SkillManager::SkillRecord &rec) const;
 
     QVBoxLayout *cardsLayout_ = nullptr;
     QLabel *emptyHintLabel_ = nullptr;

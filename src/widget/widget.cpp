@@ -1546,17 +1546,10 @@ void Widget::onSkillDropRequested(const QStringList &paths)
     if (!skillManager) return;
     for (const QString &path : paths)
     {
-        SkillManager::ImportResult result = skillManager->importSkillArchive(path);
-        if (result.ok)
-        {
-            reflash_state(QString::fromUtf8("ui:skill imported -> ") + result.skillId, SUCCESS_SIGNAL);
-        }
-        else
-        {
-            reflash_state(QString::fromUtf8("ui:") + result.message, WRONG_SIGNAL);
-        }
+        const QString displayName = QFileInfo(path).fileName();
+        reflash_state(QString::fromUtf8("ui:skill import queued -> ") + displayName, SIGNAL_SIGNAL);
+        skillManager->importSkillArchiveAsync(path);
     }
-    auto_save_user();
 }
 
 void Widget::onSkillToggleRequested(const QString &skillId, bool enabled)
