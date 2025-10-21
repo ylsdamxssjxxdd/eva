@@ -229,6 +229,13 @@ bool SkillManager::ensureSkillsRoot()
 bool SkillManager::loadFromDisk()
 {
     if (!ensureSkillsRoot()) return false;
+    // Preserve enabled flags across disk reloads
+    QSet<QString> previouslyEnabled;
+    previouslyEnabled.reserve(skills_.size());
+    for (const auto &rec : skills_)
+    {
+        if (rec.enabled) previouslyEnabled.insert(rec.id);
+    }
     QVector<SkillRecord> loaded;
     QString error;
 
@@ -248,6 +255,10 @@ bool SkillManager::loadFromDisk()
     }
 
     skills_ = loaded;
+    for (auto &rec : skills_)
+    {
+        rec.enabled = previouslyEnabled.contains(rec.id);
+    }
     sortSkills();
     emit skillsChanged();
     return true;
@@ -392,7 +403,7 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir, bool en
     if (enabledSkills.isEmpty()) return {};
 
     segments << QStringLiteral("[Skill Usage Protocol]");
-    segments << QStringLiteral("Follow the Anthropic Agent Skills specification. Treat each mounted skill as an extension to be activated deliberately.");
+    segments << QStringLiteral("Follow the Agent Skills specification. Treat each mounted skill as an extension to be activated deliberately.");
     segments << QStringLiteral("Use the YAML frontmatter below to understand when a skill applies. Before relying on a skill, call the `read_file` tool to load its `SKILL.md` for full instructions.");
     segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory (%1). Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.")
                      .arg(QDir::toNativeSeparators(engineerWorkDir));
