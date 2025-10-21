@@ -5,8 +5,11 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QCheckBox>
 #include <QLocale> // C-locale parsing for numeric strings
 #include <QProcessEnvironment>
+#include <QSignalBlocker>
+#include <QStringList>
 #include <QStandardPaths>
 #include <QStyleFactory>
 #include <QtGlobal> // qRound/qBound
@@ -460,11 +463,23 @@ int main(int argc, char *argv[])
         }
         w.custom1_date_system = settings.value("custom1_date_system", "").toString();
         w.custom2_date_system = settings.value("custom2_date_system", "").toString();
-        w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
-        w.date_ui->calculator_checkbox->setChecked(settings.value("calculator_checkbox", 0).toBool());
-        w.date_ui->knowledge_checkbox->setChecked(settings.value("knowledge_checkbox", 0).toBool());
-        w.date_ui->controller_checkbox->setChecked(settings.value("controller_checkbox", 0).toBool());
-        w.date_ui->stablediffusion_checkbox->setChecked(settings.value("stablediffusion_checkbox", 0).toBool());
+        {
+            const QSignalBlocker blocker(w.date_ui->chattemplate_comboBox);
+            w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
+        }
+        const QStringList enabledTools = settings.value("enabled_tools").toStringList();
+        auto restoreToolCheckbox = [&](QCheckBox *box, const QString &id, const QString &legacyKey) -> bool {
+            if (!box) return false;
+            const bool fallback = settings.value(legacyKey, false).toBool();
+            const bool shouldCheck = enabledTools.isEmpty() ? fallback : enabledTools.contains(id);
+            const QSignalBlocker blocker(box);
+            box->setChecked(shouldCheck);
+            return shouldCheck;
+        };
+        const bool calculatorOn = restoreToolCheckbox(w.date_ui->calculator_checkbox, QStringLiteral("calculator"), QStringLiteral("calculator_checkbox"));
+        const bool knowledgeOn = restoreToolCheckbox(w.date_ui->knowledge_checkbox, QStringLiteral("knowledge"), QStringLiteral("knowledge_checkbox"));
+        const bool controllerOn = restoreToolCheckbox(w.date_ui->controller_checkbox, QStringLiteral("controller"), QStringLiteral("controller_checkbox"));
+        const bool stablediffusionOn = restoreToolCheckbox(w.date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"), QStringLiteral("stablediffusion_checkbox"));
         // Restore engineer work dir before toggling engineer checkbox (avoid double emits)
         {
             const QString saved = settings.value("engineer_work_dir", QDir(w.applicationDirPath).filePath("EVA_WORK")).toString();
@@ -472,8 +487,16 @@ int main(int argc, char *argv[])
             if (!QDir(norm).exists()) { norm = QDir(w.applicationDirPath).filePath("EVA_WORK"); }
             w.setEngineerWorkDirSilently(norm);
         }
-        w.date_ui->engineer_checkbox->setChecked(settings.value("engineer_checkbox", 0).toBool());
-        w.date_ui->MCPtools_checkbox->setChecked(settings.value("MCPtools_checkbox", 0).toBool());
+        const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
+        const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
+        if (w.date_ui->date_engineer_workdir_LineEdit)
+        {
+            w.date_ui->date_engineer_workdir_label->setVisible(engineerOn);
+            w.date_ui->date_engineer_workdir_LineEdit->setVisible(engineerOn);
+            w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
+        }
+        w.is_load_tool = calculatorOn || knowledgeOn || controllerOn || stablediffusionOn || engineerOn || mcpOn;
+        w.ui_extra_prompt = w.is_load_tool ? w.create_extra_prompt() : QString();
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
         // 推理设备：先根据目录填充选项，再应用用户偏好
         const QString savedDevice = settings.value("device_backend", "auto").toString();

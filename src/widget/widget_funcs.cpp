@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QByteArray>
+#include <QCheckBox>
 #include <QDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -835,7 +836,18 @@ void Widget::auto_save_user()
     settings.setValue("port", ui_port);                     // 服务端口
     settings.setValue("device_backend", ui_device_backend); // 推理设备（auto/cpu/cuda/vulkan/opencl）
     // 保存约定参数
-    settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText());              // 对话模板
+    settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText()); // 对话模板
+    QStringList enabledTools;
+    auto appendTool = [&](QCheckBox *box, const QString &id) {
+        if (box && box->isChecked()) enabledTools << id;
+    };
+    appendTool(date_ui->calculator_checkbox, QStringLiteral("calculator"));
+    appendTool(date_ui->knowledge_checkbox, QStringLiteral("knowledge"));
+    appendTool(date_ui->controller_checkbox, QStringLiteral("controller"));
+    appendTool(date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"));
+    appendTool(date_ui->engineer_checkbox, QStringLiteral("engineer"));
+    appendTool(date_ui->MCPtools_checkbox, QStringLiteral("mcp"));
+    settings.setValue("enabled_tools", enabledTools);
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge工具
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller工具
