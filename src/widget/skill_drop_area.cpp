@@ -203,6 +203,7 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
             QSignalBlocker blocker(card.toggle);
             card.toggle->setChecked(rec.enabled);
         }
+        card.toggle->setHandlePosition(rec.enabled ? 1.0 : 0.0);
         return;
     }
 
@@ -221,6 +222,7 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
 
     card.toggle = new ToggleSwitch(card.frame);
     card.toggle->setChecked(rec.enabled);
+    card.toggle->setHandlePosition(rec.enabled ? 1.0 : 0.0);
     cardLayout->addWidget(card.toggle, 0, Qt::AlignVCenter);
 
     const QString tooltip = metadataTooltip(rec);
