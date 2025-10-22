@@ -3,6 +3,7 @@
 #include "ui_expend.h"
 
 #include "../utils/evallogedit.h"
+#include "../utils/flowprogressbar.h"
 #include "../utils/introanimedit.h"
 #include "../utils/neuronlogedit.h"
 #include <QDir>
@@ -274,6 +275,11 @@ void Expend::shutdownEvalWorker()
     if (evalNet)
         QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
     evalRunning = false;
+    if (ui && ui->eval_progressBar)
+    {
+        if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(false);
+    }
+    updateEvalButtonState();
     if (evalThread && evalThread->isRunning())
     {
         evalThread->quit();

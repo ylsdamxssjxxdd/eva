@@ -184,8 +184,7 @@ void Expend::init_expend()
     if (ui->eval_summary_logic_label) ui->eval_summary_logic_label->setText(jtr("logic"));
     if (ui->eval_summary_tool_label) ui->eval_summary_tool_label->setText(jtr("tool call"));
     if (ui->eval_summary_sync_label) ui->eval_summary_sync_label->setText(jtr("sync rate"));
-    if (ui->eval_start_pushButton) ui->eval_start_pushButton->setText(jtr("evaluate"));
-    if (ui->eval_stop_pushButton) ui->eval_stop_pushButton->setText(jtr("stop evaluate"));
+    updateEvalButtonState();
     if (ui->eval_result_groupBox) ui->eval_result_groupBox->setTitle(jtr("steps and results"));
     if (ui->eval_log_groupBox) ui->eval_log_groupBox->setTitle(jtr("evaluation log"));
     if (ui->eval_progressBar) ui->eval_progressBar->setFormat(jtr("progress steps"));

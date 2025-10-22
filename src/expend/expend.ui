@@ -755,19 +755,6 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QPushButton" name="eval_stop_pushButton">
-              <property name="minimumSize">
-               <size>
-                <width>80</width>
-                <height>28</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>停止</string>
-              </property>
-             </widget>
-            </item>
            </layout>
           </item>
          </layout>

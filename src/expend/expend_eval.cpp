@@ -3,6 +3,7 @@
 
 #include "../prompt.h"
 #include "../utils/devicemanager.h"
+#include "../utils/flowprogressbar.h"
 #include "../xnet.h"
 #include "../xtool.h"
 
@@ -193,6 +194,14 @@ void Expend::evalSetElapsed(int row, double seconds)
         it->setText(QString());
 }
 
+void Expend::updateEvalButtonState()
+{
+    if (!ui || !ui->eval_start_pushButton) return;
+    const bool running = evalRunning;
+    ui->eval_start_pushButton->setText(running ? jtr("stop evaluate") : jtr("evaluate"));
+    ui->eval_start_pushButton->setEnabled(true);
+}
+
 void Expend::evalLog(const QString &line)
 {
     if (!ui || !ui->eval_log_plainTextEdit) return;
@@ -228,21 +237,29 @@ QJsonArray Expend::makeMsgs(const QString &sys, const QString &user)
 }
 
 void Expend::on_eval_start_pushButton_clicked()
-{ // Animate progress bar while evaluating
+{
+    // Toggle evaluation: click again while running to abort the current task.
+    if (evalRunning)
+    {
+        if (ui && ui->eval_progressBar)
+        {
+            if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(false);
+        }
+        if (evalNet)
+        {
+            QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
+        }
+        evalRunning = false;
+        evalLog(QStringLiteral("eval: ") + jtr("stopped"));
+        updateEvalButtonState();
+        return;
+    }
+
     if (ui && ui->eval_progressBar)
     {
         if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(true);
     }
-    if (evalRunning)
-    {
-        evalLog(QStringLiteral("eval: ") + jtr("already running"));
-        return;
-    }
-    // Disable the start button while an evaluation is running to prevent re-entry
-    if (ui && ui->eval_start_pushButton)
-        ui->eval_start_pushButton->setEnabled(false);
     ensureEvalNet();
-    // Best-effort: fill endpoint for LOCAL_MODE if missing
     if (eval_apis.api_endpoint.trimmed().isEmpty())
     {
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
@@ -250,10 +267,8 @@ void Expend::on_eval_start_pushButton_clicked()
         const QString port = settings.value("port", DEFAULT_SERVER_PORT).toString();
         eval_apis.api_endpoint = QString("http://127.0.0.1:%1").arg(port);
     }
-    // Plan fine-grained steps for progress (latency + gen + qa + logic + tools)
-    // Initialize tool test cases once per run
     toolCases_.clear();
-    // Double the items: two natural tasks per tool (no explicit tool names in tasks)
+    // Construct evaluation tasks for each tool (two natural prompts per tool).
     toolCases_.push_back({QStringLiteral("calculator"), jtr("tc_desc_calculator"), jtr("tc_tag_calculator")});
     toolCases_.push_back({QStringLiteral("calculator"), jtr("tc_desc_calculator_2"), jtr("tc_tag_calculator_2")});
     toolCases_.push_back({QStringLiteral("stablediffusion"), jtr("tc_desc_sd"), jtr("tc_tag_sd")});
@@ -271,6 +286,7 @@ void Expend::on_eval_start_pushButton_clicked()
     evalResetUi();
     updateEvalInfoUi();
     evalRunning = true;
+    updateEvalButtonState();
     evalStep = 0;
     stepsDone = 0;
     stepTimer.invalidate();
@@ -283,7 +299,6 @@ void Expend::on_eval_start_pushButton_clicked()
     m_toolScore = -1.0;
     m_syncRate = -1.0;
     updateEvalSummary(true);
-    // reset per-run indices
     genRunIndex_ = 0;
     genTokPerSecSum_ = 0.0;
     qaIndex_ = 0;
@@ -308,25 +323,6 @@ QChar Expend::parseMCAnswer(const QString &ans)
         if (s.contains(c, Qt::CaseInsensitive)) return c.toUpper();
     }
     return QChar();
-}
-
-void Expend::on_eval_stop_pushButton_clicked()
-{ // Stop progress animation on user abort
-    if (ui && ui->eval_progressBar)
-    {
-        if (auto fp = qobject_cast<FlowProgressBar *>(ui->eval_progressBar)) fp->setFlowing(false);
-    }
-    if (!evalRunning) return;
-    // Abort active eval request if any
-    if (evalNet)
-    {
-        QMetaObject::invokeMethod(evalNet, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true));
-    }
-    evalRunning = false;
-    evalLog(QStringLiteral("eval: ") + jtr("stopped"));
-    // Re-enable the start button so user can run a new evaluation
-    if (ui && ui->eval_start_pushButton)
-        ui->eval_start_pushButton->setEnabled(true);
 }
 
 void Expend::evalNext()
@@ -567,9 +563,7 @@ void Expend::evalFinish()
     evalLog(jtr("evaluation finished") + QStringLiteral(" ") + jtr("sync rate") + QStringLiteral(" = ") + QString::number(m_syncRate, 'f', 1));
     evalRunning = false;
     updateScoreBars();
-    // Evaluation finished (either success or error path reaching here): allow starting again
-    if (ui && ui->eval_start_pushButton)
-        ui->eval_start_pushButton->setEnabled(true);
+    updateEvalButtonState();
 }
 
 // ---------------- evalNet signal handlers ----------------
@@ -994,12 +988,6 @@ void Expend::updateScoreBars()
         if (tps <= 0) return 0.0;
         return tps;
     };
-    const double s1 = (m_firstTokenMs >= 0 ? scoreTTFB(m_firstTokenMs) : -1);
-    const double s2 = (m_genTokPerSec >= 0 ? scoreGen(m_genTokPerSec) : (m_genCharsPerSec > 0 ? scoreGen(m_genCharsPerSec / 4.0) : -1));
-    const double s3 = (m_qaScore >= 0 ? m_qaScore : -1);
-    const double s4 = (m_logicScore >= 0 ? m_logicScore : -1);
-    const double s5 = (m_toolScore >= 0 ? m_toolScore : -1);
-    const double s6 = (m_syncRate >= 0 ? m_syncRate : -1);
     updateEvalSummary();
 }
 

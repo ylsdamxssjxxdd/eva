@@ -134,7 +134,6 @@ class Expend : public QWidget
     void updateModelInfoAnim();                 // 根据可见性/选项卡启停动画（模型信息/软件介绍）
     // Eval: user actions
     void on_eval_start_pushButton_clicked();
-    void on_eval_stop_pushButton_clicked();
 
   private:
     Ui::Expend *ui;
@@ -410,6 +409,7 @@ class Expend : public QWidget
     void ensureEvalNet();
     void updateEvalInfoUi();
     void evalResetUi();
+    void updateEvalButtonState();
     void evalLog(const QString &line);
     void evalSetTable(int row, const QString &name, const QString &val, const QString &desc = QString());
     void evalSetStatus(int row, const QString &status);
