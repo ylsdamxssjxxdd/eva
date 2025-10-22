@@ -18,6 +18,7 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QStringList>
+#include <QSet>
 #include <QtGlobal>
 #include <algorithm>
 
@@ -63,6 +64,63 @@ void appendWorkspaceListing(const QDir &dir, int depth, int maxDepth, int maxEnt
         const QString indent(depth * 2 + 2, ' ');
         lines << QString("%1- ... (%2 more entries)").arg(indent).arg(total - displayed);
     }
+}
+
+QStringList collectLooseJsonObjects(const QString &text)
+{
+    // Collect balanced JSON objects to tolerate missing <tool_call> wrappers.
+    QStringList objects;
+    bool inString = false;
+    bool escaped = false;
+    int depth = 0;
+    int start = -1;
+
+    for (int i = 0; i < text.size(); ++i)
+    {
+        const QChar ch = text.at(i);
+        if (inString)
+        {
+            if (escaped)
+            {
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\')
+            {
+                escaped = true;
+                continue;
+            }
+            if (ch == '"')
+            {
+                inString = false;
+            }
+            continue;
+        }
+
+        if (ch == '"')
+        {
+            inString = true;
+            continue;
+        }
+
+        if (ch == '{')
+        {
+            if (depth == 0) start = i;
+            ++depth;
+        }
+        else if (ch == '}')
+        {
+            if (depth == 0) continue;
+            --depth;
+            if (depth == 0 && start != -1)
+            {
+                objects << text.mid(start, i - start + 1);
+                start = -1;
+            }
+        }
+    }
+
+    return objects;
 }
 } // namespace
 QString Widget::buildWorkspaceSnapshot(const QString &root) const
@@ -227,66 +285,105 @@ mcp::json Widget::XMLparser(QString text)
     QString payload = text;
     payload.remove(thinkBlock);
 
-    QStringList candidates;
+    QStringList tagCandidates;
+    QSet<QString> deduped;
     QRegularExpressionMatchIterator it = toolBlock.globalMatch(payload);
     while (it.hasNext())
     {
-        candidates.append(it.next().captured(1));
+        const QString captured = it.next().captured(1);
+        const QString normalized = captured.trimmed();
+        if (normalized.isEmpty()) continue;
+        if (deduped.contains(normalized)) continue;
+        deduped.insert(normalized);
+        tagCandidates.append(captured);
     }
 
     mcp::json result; // empty by default
-    for (int i = candidates.size() - 1; i >= 0; --i)
+    auto parseCandidateList = [&](const QStringList &list, const QString &sourceLabel) -> bool
     {
-        QString content = candidates.at(i).trimmed();
-        if (content.isEmpty())
+        for (int idx = list.size() - 1; idx >= 0; --idx)
         {
-            continue;
-        }
-
-        content.remove(leadingFence);
-        content.remove(trailingFence);
-        content = content.trimmed();
-        if (content.startsWith(QStringLiteral("json"), Qt::CaseInsensitive))
-        {
-            const int newlineIndex = content.indexOf('\n');
-            if (newlineIndex > -1)
+            QString content = list.at(idx).trimmed();
+            if (content.isEmpty())
             {
-                content = content.mid(newlineIndex + 1).trimmed();
+                continue;
             }
-            else
+
+            content.remove(leadingFence);
+            content.remove(trailingFence);
+            content = content.trimmed();
+            if (content.startsWith(QStringLiteral("json"), Qt::CaseInsensitive))
             {
-                content.clear();
+                const int newlineIndex = content.indexOf('\n');
+                if (newlineIndex > -1)
+                {
+                    content = content.mid(newlineIndex + 1).trimmed();
+                }
+                else
+                {
+                    content.clear();
+                }
+            }
+            if (content.isEmpty())
+            {
+                continue;
+            }
+
+            QString candidateJson = content;
+            const int firstBrace = candidateJson.indexOf('{');
+            const int lastBrace = candidateJson.lastIndexOf('}');
+            if (firstBrace == -1 || lastBrace <= firstBrace)
+            {
+                qWarning() << "tool_call candidate missing braces in" << sourceLabel << "slot" << idx;
+                continue;
+            }
+            candidateJson = candidateJson.mid(firstBrace, lastBrace - firstBrace + 1).trimmed();
+            if (candidateJson.isEmpty())
+            {
+                continue;
+            }
+
+            const QByteArray jsonBytes = candidateJson.toUtf8();
+            try
+            {
+                result = mcp::json::parse(jsonBytes.constData(), jsonBytes.constData() + jsonBytes.size());
+                qDebug() << "parsed tool_call from" << sourceLabel << "slot" << idx;
+                return true;
+            }
+            catch (const std::exception &e)
+            {
+                qCritical() << "tool JSON parse error from" << sourceLabel << "slot" << idx << ":" << e.what();
             }
         }
-        if (content.isEmpty())
-        {
-            continue;
-        }
+        return false;
+    };
 
-        QString candidateJson = content;
-        const int firstBrace = candidateJson.indexOf('{');
-        const int lastBrace = candidateJson.lastIndexOf('}');
-        if (firstBrace == -1 || lastBrace <= firstBrace)
-        {
-            qWarning() << "tool_call candidate missing braces at slot" << i;
-            continue;
-        }
-        candidateJson = candidateJson.mid(firstBrace, lastBrace - firstBrace + 1).trimmed();
-        if (candidateJson.isEmpty())
-        {
-            continue;
-        }
+    if (parseCandidateList(tagCandidates, QStringLiteral("tagged")))
+    {
+        return result;
+    }
 
-        const QByteArray jsonBytes = candidateJson.toUtf8();
-        try
+    QStringList fallbackCandidates;
+    const QStringList looseObjects = collectLooseJsonObjects(payload);
+    for (const QString &obj : looseObjects)
+    {
+        const QString normalized = obj.trimmed();
+        if (normalized.isEmpty()) continue;
+        if (!normalized.contains(QStringLiteral("\"name\"")) || !normalized.contains(QStringLiteral("\"arguments\"")))
         {
-            result = mcp::json::parse(jsonBytes.constData(), jsonBytes.constData() + jsonBytes.size());
-            qDebug() << "parsed tool_call from slot" << i;
+            continue;
+        }
+        if (deduped.contains(normalized)) continue;
+        deduped.insert(normalized);
+        fallbackCandidates.append(obj);
+    }
+
+    if (!fallbackCandidates.isEmpty())
+    {
+        qWarning() << "tool_call tags missing or invalid, attempting loose JSON fallback";
+        if (parseCandidateList(fallbackCandidates, QStringLiteral("fallback")))
+        {
             return result;
-        }
-        catch (const std::exception &e)
-        {
-            qCritical() << "tool JSON parse error at slot" << i << ":" << e.what();
         }
     }
 
@@ -1244,3 +1341,4 @@ void Widget::openHistoryManager()
     QObject::connect(closeBtn, &QPushButton::clicked, &dlg, &QDialog::reject);
     dlg.exec();
 }
+
