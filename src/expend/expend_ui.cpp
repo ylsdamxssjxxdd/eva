@@ -7,6 +7,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QMimeData>
+#include <QFrame>
 #include <QPainter>
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
@@ -177,6 +178,12 @@ void Expend::init_expend()
     if (ui->eval_device_label) ui->eval_device_label->setText(jtr("device"));
     if (ui->eval_nctx_label) ui->eval_nctx_label->setText(jtr("context length"));
     if (ui->eval_threads_label) ui->eval_threads_label->setText(jtr("threads"));
+    if (ui->eval_summary_ttfb_label) ui->eval_summary_ttfb_label->setText(jtr("first token"));
+    if (ui->eval_summary_gen_label) ui->eval_summary_gen_label->setText(jtr("gen speed"));
+    if (ui->eval_summary_qa_label) ui->eval_summary_qa_label->setText(jtr("common qa"));
+    if (ui->eval_summary_logic_label) ui->eval_summary_logic_label->setText(jtr("logic"));
+    if (ui->eval_summary_tool_label) ui->eval_summary_tool_label->setText(jtr("tool call"));
+    if (ui->eval_summary_sync_label) ui->eval_summary_sync_label->setText(jtr("sync rate"));
     if (ui->eval_start_pushButton) ui->eval_start_pushButton->setText(jtr("evaluate"));
     if (ui->eval_stop_pushButton) ui->eval_stop_pushButton->setText(jtr("stop evaluate"));
     if (ui->eval_result_groupBox) ui->eval_result_groupBox->setTitle(jtr("steps and results"));
@@ -188,12 +195,30 @@ void Expend::init_expend()
         headers << jtr("metric/step") << jtr("state") << jtr("elapsed(s)") << jtr("value");
         ui->eval_table->setHorizontalHeaderLabels(headers);
     }
-    if (ui->eval_bar_chart) ui->eval_bar_chart->setLabels({jtr("first token"),
-                                                           jtr("gen speed"),
-                                                           jtr("common qa"),
-                                                           jtr("logic"),
-                                                           jtr("tool call"),
-                                                           jtr("sync rate")});
+    auto applySummaryFlag = [](QWidget *w, const char *prop)
+    {
+        if (!w) return;
+        w->setProperty(prop, true);
+        if (auto style = w->style())
+        {
+            style->unpolish(w);
+            style->polish(w);
+        }
+        w->update();
+    };
+    auto primeSummaryCard = [&](QFrame *card, QLabel *label, QLabel *value)
+    {
+        applySummaryFlag(card, "summaryRole");
+        applySummaryFlag(label, "summaryLabel");
+        applySummaryFlag(value, "summaryValue");
+    };
+    primeSummaryCard(ui->eval_summary_card_ttfb, ui->eval_summary_ttfb_label, ui->eval_summary_ttfb_value);
+    primeSummaryCard(ui->eval_summary_card_gen, ui->eval_summary_gen_label, ui->eval_summary_gen_value);
+    primeSummaryCard(ui->eval_summary_card_qa, ui->eval_summary_qa_label, ui->eval_summary_qa_value);
+    primeSummaryCard(ui->eval_summary_card_logic, ui->eval_summary_logic_label, ui->eval_summary_logic_value);
+    primeSummaryCard(ui->eval_summary_card_tool, ui->eval_summary_tool_label, ui->eval_summary_tool_value);
+    primeSummaryCard(ui->eval_summary_card_sync, ui->eval_summary_sync_label, ui->eval_summary_sync_value);
+    updateEvalSummary(true);
 }
 
 // 用户切换选项卡时响应

@@ -7,8 +7,11 @@
 #include "../xtool.h"
 
 #include "ui_expend.h"
+#include <QAbstractItemView>
 #include <QFileInfo>
 #include <QHeaderView>
+#include <QStyle>
+#include <QVariant>
 
 // Simple helper: strip think markers from a chunk
 static inline QString stripThink(const QString &s)
@@ -92,6 +95,12 @@ void Expend::evalResetUi()
     // Make the table auto-fit the available area
     ui->eval_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->eval_table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->eval_table->verticalHeader()->setVisible(false);
+    ui->eval_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->eval_table->setSelectionMode(QAbstractItemView::NoSelection);
+    ui->eval_table->setFocusPolicy(Qt::NoFocus);
+    ui->eval_table->setAlternatingRowColors(true);
+    ui->eval_table->setShowGrid(false);
     ui->eval_table->setWordWrap(false);
     // Init rows with default status (5 steps)
     evalSetTable(0, jtr("first token"), QStringLiteral("-"));
@@ -132,8 +141,7 @@ void Expend::evalResetUi()
             "                               stop:1 #1e62b0);\n"
             "}\n"));
     }
-    // Reset chart if present
-    if (ui->eval_bar_chart) ui->eval_bar_chart->setScores(-1, -1, -1, -1, -1, -1);
+    updateEvalSummary(true);
 }
 
 void Expend::evalSetTable(int row, const QString &name, const QString &val, const QString &desc)
@@ -274,6 +282,7 @@ void Expend::on_eval_start_pushButton_clicked()
     m_logicScore = -1.0;
     m_toolScore = -1.0;
     m_syncRate = -1.0;
+    updateEvalSummary(true);
     // reset per-run indices
     genRunIndex_ = 0;
     genTokPerSecSum_ = 0.0;
@@ -991,7 +1000,95 @@ void Expend::updateScoreBars()
     const double s4 = (m_logicScore >= 0 ? m_logicScore : -1);
     const double s5 = (m_toolScore >= 0 ? m_toolScore : -1);
     const double s6 = (m_syncRate >= 0 ? m_syncRate : -1);
-    if (ui->eval_bar_chart) ui->eval_bar_chart->setScores(s1, s2, s3, s4, s5, s6);
+    updateEvalSummary();
+}
+
+void Expend::updateEvalSummary(bool resetOnly)
+{
+    if (!ui) return;
+    auto polish = [](QLabel *label, const QString &text, const char *state)
+    {
+        if (!label) return;
+        label->setText(text);
+        if (state)
+            label->setProperty("state", QString::fromLatin1(state));
+        else
+            label->setProperty("state", QVariant());
+        if (auto style = label->style())
+        {
+            style->unpolish(label);
+            style->polish(label);
+        }
+        label->update();
+    };
+
+    if (resetOnly)
+    {
+        polish(ui->eval_summary_ttfb_value, QStringLiteral("-"), nullptr);
+        polish(ui->eval_summary_gen_value, QStringLiteral("-"), nullptr);
+        polish(ui->eval_summary_qa_value, QStringLiteral("-"), nullptr);
+        polish(ui->eval_summary_logic_value, QStringLiteral("-"), nullptr);
+        polish(ui->eval_summary_tool_value, QStringLiteral("-"), nullptr);
+        polish(ui->eval_summary_sync_value, QStringLiteral("-"), nullptr);
+        return;
+    }
+
+    auto fmtMs = [](double ms) -> QString
+    {
+        if (ms < 0) return QStringLiteral("-");
+        if (ms < 1000.0)
+            return QString::number(ms, 'f', ms < 100.0 ? 1 : 0) + QStringLiteral(" ms");
+        return QString::number(ms / 1000.0, 'f', 2) + QStringLiteral(" s");
+    };
+    auto fmtSpeed = [&](double tokPerSec, double charPerSec) -> QString
+    {
+        if (tokPerSec > 0.0)
+        {
+            const int precision = tokPerSec >= 100.0 ? 0 : 1;
+            return QString::number(tokPerSec, 'f', precision) + QStringLiteral(" tok/s");
+        }
+        if (charPerSec > 0.0)
+        {
+            const int precision = charPerSec >= 400.0 ? 0 : 1;
+            return QString::number(charPerSec, 'f', precision) + QStringLiteral(" char/s");
+        }
+        return QStringLiteral("-");
+    };
+    auto fmtPercentage = [](double val) -> QString
+    {
+        if (val < 0) return QStringLiteral("-");
+        return QString::number(val, 'f', 0) + QStringLiteral("%");
+    };
+    auto classifyTtfb = [](double ms) -> const char *
+    {
+        if (ms < 0) return nullptr;
+        if (ms <= 500.0) return "good";
+        if (ms <= 2000.0) return "warn";
+        return "bad";
+    };
+    auto classifySpeed = [](double tokPerSec) -> const char *
+    {
+        if (tokPerSec < 0) return nullptr;
+        if (tokPerSec >= 100.0) return "good";
+        if (tokPerSec >= 60.0) return "warn";
+        return "bad";
+    };
+    auto classifyPercent = [](double val, double good, double warn) -> const char *
+    {
+        if (val < 0) return nullptr;
+        if (val >= good) return "good";
+        if (val >= warn) return "warn";
+        return "bad";
+    };
+
+    const double effectiveGenSpeed = (m_genTokPerSec > 0.0 ? m_genTokPerSec : (m_genCharsPerSec > 0.0 ? (m_genCharsPerSec / 4.0) : -1.0));
+
+    polish(ui->eval_summary_ttfb_value, fmtMs(m_firstTokenMs), classifyTtfb(m_firstTokenMs));
+    polish(ui->eval_summary_gen_value, fmtSpeed(m_genTokPerSec, m_genCharsPerSec), classifySpeed(effectiveGenSpeed));
+    polish(ui->eval_summary_qa_value, fmtPercentage(m_qaScore), classifyPercent(m_qaScore, 80.0, 60.0));
+    polish(ui->eval_summary_logic_value, fmtPercentage(m_logicScore), classifyPercent(m_logicScore, 80.0, 60.0));
+    polish(ui->eval_summary_tool_value, fmtPercentage(m_toolScore), classifyPercent(m_toolScore, 90.0, 50.0));
+    polish(ui->eval_summary_sync_value, fmtPercentage(m_syncRate), classifyPercent(m_syncRate, 85.0, 65.0));
 }
 
 void Expend::setValueColor(int row, const QString &nameKey, double val, const QString &metric)

@@ -418,6 +418,7 @@ class Expend : public QWidget
     void evalInitTable();
     void evalUpdateProgress();
     void updateScoreBars();
+    void updateEvalSummary(bool resetOnly = false);
     void setValueColor(int row, const QString &nameKey, double scoreOrValue, const QString &metric);
     // Sub-tests
     void runLatencyTest();
