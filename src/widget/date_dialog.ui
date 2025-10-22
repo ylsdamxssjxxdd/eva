@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <property name="spacing">
-    <number>3</number>
+    <number>6</number>
    </property>
    <property name="leftMargin">
     <number>3</number>
@@ -215,12 +215,12 @@
            </font>
           </property>
          </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </widget>
-  </item>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item>
     <widget class="QGroupBox" name="tool_box">
      <property name="font">
@@ -446,11 +446,11 @@
       </property>
       <item>
        <widget class="QLabel" name="skills_hint_label">
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
         <property name="text">
          <string>拖拽技能压缩包到此区域完成挂载。勾选或取消勾选以启用或禁用技能，右键可卸载技能。</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

@@ -96,13 +96,18 @@ QTimeEdit:focus,
 QDateEdit:focus,
 QDateTimeEdit:focus {
     border: 2px solid #f29c52;
-    background-color: #ffeccd;
+    background-color: #fffef9;
 }
 
 QTextEdit:focus,
 QPlainTextEdit:focus {
     border: 2px solid #3f52c0;
     background-color: #f1edff;
+}
+
+ImageInputBox QTextEdit:focus {
+    border: 2px solid #f29c52;
+    background-color: #ffffff;
 }
 
 QLineEdit:disabled,
@@ -521,4 +526,16 @@ QTreeWidget::item:selected {
     border: 2px solid #3f52c0;
     background-color: #dce3ff;
     color: #211a3d;
+}
+
+IntroAnimEdit {
+    color: #d2e6ff;
+}
+
+NeuronLogEdit {
+    color: #b4ffc8;
+}
+
+EvalLogEdit {
+    color: #ffc878;
 }

@@ -15,19 +15,19 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_14">
    <property name="spacing">
-    <number>16</number>
+    <number>6</number>
    </property>
    <property name="leftMargin">
-    <number>0</number>
+    <number>3</number>
    </property>
    <property name="topMargin">
-    <number>0</number>
+    <number>3</number>
    </property>
    <property name="rightMargin">
-    <number>0</number>
+    <number>3</number>
    </property>
    <property name="bottomMargin">
-    <number>0</number>
+    <number>3</number>
    </property>
    <item>
     <widget class="QTabWidget" name="tabWidget">
@@ -38,7 +38,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>7</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -805,19 +805,19 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">
-        <number>0</number>
+        <number>6</number>
        </property>
        <property name="leftMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <item>
         <widget class="QFrame" name="model_quantize_frame1">
@@ -1320,6 +1320,18 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
        <string>MCP服务器</string>
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_20">
+       <property name="leftMargin">
+        <number>3</number>
+       </property>
+       <property name="topMargin">
+        <number>3</number>
+       </property>
+       <property name="rightMargin">
+        <number>3</number>
+       </property>
+       <property name="bottomMargin">
+        <number>3</number>
+       </property>
        <item>
         <widget class="QGroupBox" name="mcp_server_config_groupBox">
          <property name="maximumSize">
@@ -1593,19 +1605,19 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_6">
        <property name="spacing">
-        <number>0</number>
+        <number>6</number>
        </property>
        <property name="leftMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <item>
         <widget class="QFrame" name="frame">
@@ -2430,16 +2442,16 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_18">
        <property name="leftMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <item>
         <widget class="QFrame" name="sd_settings">
@@ -2669,16 +2681,19 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <property name="spacing">
-        <number>0</number>
+        <number>6</number>
+       </property>
+       <property name="leftMargin">
+        <number>3</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <item>
         <widget class="QFrame" name="frame_15">
@@ -2992,19 +3007,19 @@ p, li { white-space: pre-wrap; }
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_15">
        <property name="spacing">
-        <number>0</number>
+        <number>6</number>
        </property>
        <property name="leftMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="topMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <property name="bottomMargin">
-        <number>0</number>
+        <number>3</number>
        </property>
        <item>
         <widget class="QFrame" name="speech_choise_frame">

@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_4">
    <property name="spacing">
-    <number>3</number>
+    <number>6</number>
    </property>
    <property name="leftMargin">
     <number>3</number>
@@ -701,7 +701,7 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>20</height>
+            <height>22</height>
            </size>
           </property>
           <property name="text">
