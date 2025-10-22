@@ -15,7 +15,6 @@ Example:
 <tool_call>
 {"name":"answer","arguments":{"content":"The task has been completed. Is there anything else I can help you with?"}}
 </tool_call>
-Always emit syntactically valid JSON. Escape every newline as \\n, every tab as \\t, every backslash as \\\\ and every double quote within strings as \". Never include literal control characters. When large binary or mixed-content payloads are required, base64-encode them and describe the encoding in the arguments. If you cannot construct valid JSON, do not guess—respond with an explicit error via the answer tool.
 
 {engineer_info}
 )";
