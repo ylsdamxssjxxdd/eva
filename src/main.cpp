@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
         customFont.setWeight(defaultFont.weight());
         customFont.setStyleStrategy(QFont::PreferAntialias); // keep the existing anti-aliasing strategy for pixel clarity
         QApplication::setFont(customFont);
-        qDebug() << "Loaded font:" << customFont.family();
+        // qDebug() << "Loaded font:" << customFont.family();
     }
 
     // 设置创建EVA_TEMP文件夹所在的目录

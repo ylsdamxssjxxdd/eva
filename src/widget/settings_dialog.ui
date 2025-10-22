@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>246</width>
-    <height>477</height>
+    <height>479</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -716,6 +716,13 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="global_pushButton">
+       <property name="text">
+        <string>全局</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">

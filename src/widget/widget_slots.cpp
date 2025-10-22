@@ -255,11 +255,22 @@ void Widget::recv_params(MODEL_PARAMS p)
     ui_n_ctx_train = p.n_ctx_train;
     settings_ui->nctx_slider->setMaximum(p.n_ctx_train); // 没有拓展4倍,因为批解码时还是会失败
     ui_maxngl = p.max_ngl;                               // gpu负载层数是n_layer+1
-    settings_ui->ngl_slider->setMaximum(ui_maxngl);
-    if (ui_SETTINGS.ngl == 999)
+    if (settings_ui && settings_ui->ngl_slider)
+    {
+        settings_ui->ngl_slider->setMaximum(ui_maxngl);
+    }
+    const bool shouldAdoptMax = (ui_SETTINGS.ngl == 999 && ui_maxngl > 0);
+    const bool shouldClamp = (ui_maxngl > 0 && ui_SETTINGS.ngl > ui_maxngl);
+    if (shouldAdoptMax || shouldClamp)
     {
         ui_SETTINGS.ngl = ui_maxngl;
-    } // 及时修正999值
+    }
+    if (settings_ui && settings_ui->ngl_slider)
+    {
+        const int sliderValue = qBound(settings_ui->ngl_slider->minimum(), ui_SETTINGS.ngl, settings_ui->ngl_slider->maximum());
+        if (sliderValue != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(sliderValue);
+        settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(sliderValue));
+    } // 确保 UI 展示真实层数
 }
 
 // 接收缓存量
@@ -957,6 +968,7 @@ void Widget::onServerOutput(const QString &line)
         if (ok && layers > 0)
         {
             const int maxngl = layers + 1; // llama.cpp convention
+            const bool shouldAdoptMax = (maxngl > 0 && (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl));
             if (ui_maxngl != maxngl)
             {
                 ui_maxngl = maxngl;
@@ -964,12 +976,26 @@ void Widget::onServerOutput(const QString &line)
                 {
                     const int curMax = settings_ui->ngl_slider->maximum();
                     if (curMax != maxngl) settings_ui->ngl_slider->setMaximum(maxngl);
-                    // 不强制覆盖 ui_SETTINGS.ngl；仅更新显示，保持 999 与 maxngl 的等价关系由确认时判断
-                    int curVal = settings_ui->ngl_slider->value();
-                    if (curVal > maxngl) curVal = maxngl; // slider 可能会被系统自动夹紧
-                    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
-                    // reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
                 }
+            }
+            if (shouldAdoptMax)
+            {
+                ui_SETTINGS.ngl = maxngl;
+            }
+            if (settings_ui && settings_ui->ngl_slider)
+            {
+                int curVal = settings_ui->ngl_slider->value();
+                if (shouldAdoptMax)
+                {
+                    curVal = ui_SETTINGS.ngl;
+                }
+                else if (maxngl > 0 && curVal > maxngl)
+                {
+                    curVal = maxngl;
+                }
+                if (curVal != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(curVal);
+                settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
+                // reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
             }
         }
     }

@@ -325,6 +325,8 @@ void Widget::on_load_clicked()
     vbox->setSpacing(6);
     QPushButton *localBtn = new QPushButton(jtr("local mode"), &modeDlg);
     QPushButton *linkBtn = new QPushButton(jtr("link mode"), &modeDlg);
+    localBtn->setMinimumHeight(50);
+    linkBtn->setMinimumHeight(50);
     // Make them expand horizontally but stack vertically
     localBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     linkBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
