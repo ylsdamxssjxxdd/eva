@@ -11,7 +11,7 @@ if (EXISTS "${_EVA_BUNDLED_SKILLS_DIR}")
     add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${_EVA_BUNDLED_SKILLS_DIR}"
-                "$<TARGET_FILE_DIR:${EVA_TARGET}>/bundled_skills"
+                "$<TARGET_FILE_DIR:${EVA_TARGET}>/EVA_SKILLS"
         COMMENT "Copy bundled engineer skills into runtime directory")
 endif()
 

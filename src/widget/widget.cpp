@@ -1536,7 +1536,6 @@ void Widget::updateSkillVisibility(bool engineerEnabled)
     if (date_ui->skills_box) date_ui->skills_box->setVisible(engineerEnabled);
     if (engineerEnabled)
     {
-        if (skillManager) skillManager->installBundledSkills();
         refreshSkillsUI();
     }
     rebuildSkillPrompts();

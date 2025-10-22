@@ -215,7 +215,6 @@ void SkillManager::setApplicationDir(const QString &appDir)
 {
     applicationDir_ = QDir::cleanPath(appDir);
     skillsRoot_ = QDir(applicationDir_).filePath(QStringLiteral("EVA_SKILLS"));
-    bundledSkillsRoot_ = QDir(applicationDir_).filePath(QStringLiteral("bundled_skills"));
 }
 
 bool SkillManager::ensureSkillsRoot()
@@ -277,51 +276,6 @@ SkillManager::ImportResult SkillManager::importSkillArchive(const QString &zipPa
     result = performImportJob(zipPath, skillsRoot_);
     finalizeImport(result);
     return result;
-}
-
-void SkillManager::installBundledSkills()
-{
-    if (!ensureSkillsRoot()) return;
-    if (bundledSkillsRoot_.isEmpty()) return;
-
-    QDir bundleDir(bundledSkillsRoot_);
-    if (!bundleDir.exists()) return;
-
-    const QStringList bundleEntries = bundleDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-    if (bundleEntries.isEmpty()) return;
-
-    const QStringList previouslyEnabledList = enabledSkillIds();
-    QSet<QString> previouslyEnabled;
-    for (const QString &id : previouslyEnabledList) previouslyEnabled.insert(id);
-
-    bool copied = false;
-    QString copyError;
-    for (const QString &entry : bundleEntries)
-    {
-        const QString srcPath = bundleDir.filePath(entry);
-        const QString skillFile = QDir(srcPath).filePath(QString::fromUtf8(kSkillFileName));
-        if (!QFileInfo::exists(skillFile)) continue;
-
-        const QString dstPath = QDir(skillsRoot_).filePath(entry);
-        if (QFileInfo::exists(dstPath)) continue;
-
-        copyError.clear();
-        if (!copyDirectory(srcPath, dstPath, &copyError))
-        {
-            const QString message = copyError.isEmpty()
-                                        ? tr("Failed to install bundled skill %1.").arg(entry)
-                                        : tr("Failed to install bundled skill %1: %2").arg(entry, copyError);
-            emit skillOperationFailed(message);
-            continue;
-        }
-        copied = true;
-    }
-
-    if (copied)
-    {
-        loadFromDisk();
-        if (!previouslyEnabled.isEmpty()) restoreEnabledSet(previouslyEnabled);
-    }
 }
 
 bool SkillManager::removeSkill(const QString &skillId, QString *error)

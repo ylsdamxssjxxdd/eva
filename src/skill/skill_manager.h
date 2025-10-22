@@ -46,7 +46,6 @@ public:
     const QVector<SkillRecord> &skills() const { return skills_; }
 
     QString composePromptBlock(const QString &engineerWorkDir, bool engineerActive) const;
-    void installBundledSkills();
 
 signals:
     void skillsChanged();
@@ -56,7 +55,6 @@ signals:
 public:
     QString applicationDir_;
     QString skillsRoot_;
-    QString bundledSkillsRoot_;
     QVector<SkillRecord> skills_;
     QFutureWatcher<ImportResult> importWatcher_;
     QStringList pendingImports_;
