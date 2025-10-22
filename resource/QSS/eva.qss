@@ -132,12 +132,22 @@ QToolButton {
     background-color: #f4f1ff;
     border: 2px solid #6a70c9;
     border-radius: 0;
+    padding: 4px 4px;
+    border-top-color: #7a81d8;
+    border-left-color: #7a81d8;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
+    border-bottom-color: #4a58c8;
+    border-right-color: #4a58c8;
 }
 
 QPushButton:hover,
 QToolButton:hover {
     background-color: #ffffff;
-    border-color: #8896ef;
+    border-top-color: #8f9bed;
+    border-left-color: #8f9bed;
+    border-right-color: #5968e4;
+    border-bottom-color: #5968e4;
 }
 
 QPushButton:pressed,
@@ -145,27 +155,45 @@ QToolButton:pressed,
 QPushButton:checked,
 QToolButton:checked {
     background-color: #dcd6ff;
-    border-color: #3f52c0;
+    border-top-color: #3f52c0;
+    border-left-color: #3f52c0;
+    border-right-color: #3f52c0;
+    border-bottom-color: #3f52c0;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     color: #1f1a3e;
 }
 
 QPushButton:disabled,
 QToolButton:disabled {
     color: #9d97bd;
-    border-color: #c5c0dd;
+    border-top-color: #c5c0dd;
+    border-left-color: #c5c0dd;
+    border-right-color: #b2b6de;
+    border-bottom-color: #b2b6de;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     background-color: #f2effb;
 }
 
 QPushButton#primaryButton,
 QToolButton#primaryButton {
     background-color: #ffeccd;
-    border-color: #f29c52;
+    border-top-color: #f7ad6c;
+    border-left-color: #f7ad6c;
+    border-right-color: #e8943f;
+    border-bottom-color: #e8943f;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
 }
 
 QPushButton#primaryButton:hover,
 QToolButton#primaryButton:hover {
     background-color: #fff6e0;
-    border-color: #f7ad6c;
+    border-top-color: #fbc27f;
+    border-left-color: #fbc27f;
+    border-right-color: #eb9f50;
+    border-bottom-color: #eb9f50;
 }
 
 QPushButton#primaryButton:pressed,
@@ -173,7 +201,12 @@ QToolButton#primaryButton:pressed,
 QPushButton#primaryButton:checked,
 QToolButton#primaryButton:checked {
     background-color: #ffd49a;
-    border-color: #e1832c;
+    border-top-color: #e1832c;
+    border-left-color: #e1832c;
+    border-right-color: #d87223;
+    border-bottom-color: #d87223;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     color: #532106;
 }
 
@@ -322,7 +355,7 @@ QSlider::handle:horizontal {
     border: 2px solid #f29c52;
     width: 16px;
     height: 16px;
-    margin: -4px 6px;
+    margin: -4px -2px;
 }
 
 QSlider::handle:vertical {
@@ -330,7 +363,7 @@ QSlider::handle:vertical {
     border: 2px solid #f29c52;
     width: 16px;
     height: 16px;
-    margin: 6px -4px;
+    margin: -2px -4px;
 }
 
 QCheckBox,
