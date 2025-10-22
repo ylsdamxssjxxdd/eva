@@ -815,6 +815,7 @@ void Widget::apply_language(int language_flag_)
     date_ui->MCPtools_checkbox->setToolTip(jtr("MCPtools_checkbox_tooltip"));
     date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
     date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
+    date_ui->date_engineer_workdir_label->setText(jtr("work dir"));
     if (date_ui->skills_box)
     {
         date_ui->skills_box->setTitle(jtr("skills mount"));

@@ -4,7 +4,7 @@ QWidget {
     background-color: #f6f3ff;
     color: #2d2850;
     font-family: "Segoe UI", "Microsoft YaHei";
-    font-size: 11px;
+    font-size: 13px;
 }
 
 QFrame {
@@ -132,65 +132,59 @@ QTextBrowser {
 QPushButton,
 QToolButton {
     color: #2d2850;
-    background-color: #fdfbff;
+    background-color: #f4f1ff;
     border: 2px solid #6a70c9;
-    border-bottom: 3px solid #3f52c0;
     border-radius: 0;
-    padding: 4px 12px;
-    min-height: 24px;
 }
 
 QPushButton:hover,
 QToolButton:hover {
     background-color: #ffffff;
-    border: 2px solid #8896ef;
-    border-bottom: 3px solid #3f52c0;
+    border-color: #8896ef;
 }
 
 QPushButton:pressed,
-QToolButton:pressed {
-    background-color: #e7e1ff;
-    border-top: 3px solid #3f52c0;
-    border-left: 3px solid #3f52c0;
-    border-right: 2px solid #1f2e85;
-    border-bottom: 2px solid #1f2e85;
-    padding-top: 5px;
-    padding-bottom: 3px;
+QToolButton:pressed,
+QPushButton:checked,
+QToolButton:checked {
+    background-color: #dcd6ff;
+    border-color: #3f52c0;
+    color: #1f1a3e;
 }
 
 QPushButton:disabled,
 QToolButton:disabled {
     color: #9d97bd;
-    border: 2px solid #c5c0dd;
-    border-bottom: 3px solid #a7a1c6;
+    border-color: #c5c0dd;
     background-color: #f2effb;
 }
 
-QPushButton#primaryButton {
+QPushButton#primaryButton,
+QToolButton#primaryButton {
     background-color: #ffeccd;
-    border: 2px solid #f29c52;
-    border-bottom: 3px solid #e1832c;
+    border-color: #f29c52;
 }
 
-QPushButton#primaryButton:hover {
-    background-color: #fff4dd;
-    border: 2px solid #f7ad6c;
-    border-bottom: 3px solid #e1832c;
+QPushButton#primaryButton:hover,
+QToolButton#primaryButton:hover {
+    background-color: #fff6e0;
+    border-color: #f7ad6c;
 }
 
-QPushButton#primaryButton:pressed {
-    background-color: #ffd9a3;
-    border-top: 3px solid #e1832c;
-    border-left: 3px solid #e1832c;
-    border-right: 2px solid #a35212;
-    border-bottom: 2px solid #a35212;
+QPushButton#primaryButton:pressed,
+QToolButton#primaryButton:pressed,
+QPushButton#primaryButton:checked,
+QToolButton#primaryButton:checked {
+    background-color: #ffd49a;
+    border-color: #e1832c;
+    color: #532106;
 }
 
 QComboBox {
     background-color: #ffffff;
     border: 2px solid #6a70c9;
     border-radius: 0;
-    padding: 4px 28px 4px 6px;
+    padding: 2px 14px 2px 3px;
     selection-background-color: #ffe0b2;
 }
 
