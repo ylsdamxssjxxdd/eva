@@ -62,6 +62,7 @@ class xNet : public QObject
     // Final per-turn speeds from llama.cpp server timings (tokens/second)
     // prompt_per_second = 上文处理速度; predicted_per_second = 文字生成速度
     void net2ui_speeds(double prompt_per_second, double predicted_per_second);
+    void net2ui_turn_counters(int cacheTokens, int promptTokens, int predictedTokens);
 
   private:
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead
@@ -94,6 +95,8 @@ class xNet : public QObject
     double predictedPerSec_ = -1.0;
     // Tool-call handling: do not abort immediately on DEFAULT_OBSERVATION_STOPWORD
     bool sawToolStopword_ = false; // seen </tool_call> this turn; allow coasting to receive usage/timings
+    int cacheTokens_ = -1;
+    bool totalsEmitted_ = false;
 
     // Keep track of connections to safely disconnect on abort
     QMetaObject::Connection connReadyRead_;

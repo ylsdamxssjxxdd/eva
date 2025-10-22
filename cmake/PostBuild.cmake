@@ -6,14 +6,6 @@
 #  - EVA_TARGET (main executable target)
 #  - Qt5_BIN_DIR (computed in cmake/QtSetup.cmake)
 
-set(_EVA_BUNDLED_SKILLS_DIR "${CMAKE_SOURCE_DIR}/resource/bundled_skills")
-if (EXISTS "${_EVA_BUNDLED_SKILLS_DIR}")
-    add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${_EVA_BUNDLED_SKILLS_DIR}"
-                "$<TARGET_FILE_DIR:${EVA_TARGET}>/EVA_SKILLS"
-        COMMENT "Copy bundled engineer skills into runtime directory")
-endif()
 
 if (WIN32)
     # Always ensure Qt SQLite plugin is available for dev runs (BODY_PACK off as well)

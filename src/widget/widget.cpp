@@ -675,7 +675,16 @@ void Widget::on_send_clicked()
     // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
+    // Fresh turn: clear prompt/output trackers before new network call
+    kvTokensTurn_ = 0;
+    kvPromptTokensTurn_ = 0;
     kvStreamedTurn_ = 0;
+    // if (ui_mode == LINK_MODE)
+    // {
+    //     reflash_state(QStringLiteral("link:turn begin used_before=%1 total_used=%2")
+    //                       .arg(kvUsedBeforeTurn_)
+    //                       .arg(kvUsed_));
+    // }
 
     emit ui2net_stop(0);
     ENDPOINT_DATA data = prepareEndpointData();
@@ -819,8 +828,19 @@ void Widget::normal_finish_pushover()
     {
         kvUsed_ = qMax(0, kvUsed_ - lastReasoningTokens_);
         kvStreamedTurn_ = qMax(0, kvStreamedTurn_ - lastReasoningTokens_);
+        kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
         updateKvBarUi();
         lastReasoningTokens_ = 0;
+    }
+    if (ui_mode == LINK_MODE)
+    {
+        kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
+        // reflash_state(QStringLiteral("link:turn complete prompt=%1 stream=%2 turn=%3 used=%4 used_before=%5")
+        //                   .arg(kvPromptTokensTurn_)
+        //                   .arg(kvStreamedTurn_)
+        //                   .arg(kvTokensTurn_)
+        //                   .arg(kvUsed_)
+        //                   .arg(kvUsedBeforeTurn_));
     }
     decode_finish();
     if (!wait_to_show_images_filepath.isEmpty())
@@ -1068,8 +1088,9 @@ void Widget::on_reset_clicked()
     }
 
     // reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
-    kvTokensAccum_ = 0;
-    kvTokensTurn_ = 0; // reset conversation kv tokens
+    // Reset all per-turn token counters now that the session is cleared
+    kvTokensTurn_ = 0;
+    kvPromptTokensTurn_ = 0;
     // reset KV/speed tracking and progress bar
     kvUsed_ = 0;
     kvUsedBeforeTurn_ = 0;

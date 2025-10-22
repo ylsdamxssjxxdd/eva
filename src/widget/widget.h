@@ -182,14 +182,14 @@ class Widget : public QWidget
     SETTINGS ui_SETTINGS;                     // ui的设置
     int kvTokensLast_ = 0;                    // last known used tokens for kv cache (accumulate within one conversation)
     int ui_n_ctx_train = 2048;                // 模型最大上下文长度
-    int kvTokensAccum_ = 0;                   // accumulated used tokens across the conversation
-    int kvTokensTurn_ = 0;                    // this-turn processed tokens (prompt_n + generated)
+    int kvTokensTurn_ = 0;                    // tokens consumed during the active turn (prompt + generated output)
+    int kvPromptTokensTurn_ = 0;              // provider-reported prompt/input tokens for the active turn
     int server_nctx_ = 0;                     // captured from llama_server logs for verification
                                               // KV tracking
     int slotCtxMax_ = 0;                      // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
-    int kvUsed_ = 0;                          // current server-side n_past approximation
-    int kvUsedBeforeTurn_ = 0;                // n_past at the beginning of current turn
-    int kvStreamedTurn_ = 0;                  // approximate streamed tokens in this turn (from xNet)
+    int kvUsed_ = 0;                          // total KV residency after the current turn (cache + prompt + output)
+    int kvUsedBeforeTurn_ = 0;                // KV tokens present before generation starts (cache + prompt baseline)
+    int kvStreamedTurn_ = 0;                  // live count of generated tokens streamed during the turn
     bool turnActive_ = false;                 // a request is in-flight
     bool turnThinkHeaderPrinted_ = false;     // printed think header this turn
     bool turnAssistantHeaderPrinted_ = false; // printed assistant header this turn
@@ -392,6 +392,7 @@ class Widget : public QWidget
     void recv_kv(float percent, int ctx_size);                                   // 接收缓存量
     void recv_kv_from_net(int usedTokens);                                       // update kv from llama.cpp server timings
     void recv_prompt_baseline(int tokens);                                       // set prompt baseline tokens in LINK mode
+    void recv_turn_counters(int cacheTokens, int promptTokens, int predictedTokens); // final totals from timings
     void onSlotAssigned(int slotId);                                             // server slot id notification
     void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
     void recv_net_speeds(double promptPerSec, double genPerSec);                 // final speeds from xNet timings

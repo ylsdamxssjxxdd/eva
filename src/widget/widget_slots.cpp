@@ -733,29 +733,89 @@ void Widget::updateKvBarUi()
 void Widget::recv_prompt_baseline(int tokens)
 {
     if (tokens < 0) return;
-    // LINK: accumulate across conversation. on_send_clicked() pre-set kvUsedBeforeTurn_ = kvUsed_
-    // Add this turn's prompt/input tokens to the existing baseline, not replace it.
-    kvUsedBeforeTurn_ = qMax(0, kvUsedBeforeTurn_ + tokens);
-    kvUsed_ = kvUsedBeforeTurn_ + qMax(0, kvStreamedTurn_);
+    const int promptTokens = qMax(0, tokens);
+    const int previousPrompt = kvPromptTokensTurn_;
+    const int previousBaseline = kvUsedBeforeTurn_;
+    // Always treat provider usage as the absolute prompt baseline for this turn.
+    kvPromptTokensTurn_ = promptTokens;
+    kvUsedBeforeTurn_ = promptTokens;
+    if (!turnActive_) turnActive_ = true;
+    kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
+    kvUsed_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
     sawPromptPast_ = true;
+    if (ui_mode == LINK_MODE)
+    {
+        const int deltaPrompt = kvPromptTokensTurn_ - previousPrompt;
+        const int deltaContext = kvUsedBeforeTurn_ - previousBaseline;
+        const QString tag = (deltaPrompt == 0) ? QStringLiteral("link:prompt usage (repeat)")
+                                               : QStringLiteral("link:prompt usage");
+        reflash_state(QStringLiteral("%1 prompt=%2 delta_prompt=%3 delta_ctx=%4 stream=%5 turn=%6 used=%7 used_before=%8")
+                          .arg(tag)
+                          .arg(kvPromptTokensTurn_)
+                          .arg(deltaPrompt)
+                          .arg(deltaContext)
+                          .arg(kvStreamedTurn_)
+                          .arg(kvTokensTurn_)
+                          .arg(kvUsed_)
+                          .arg(kvUsedBeforeTurn_));
+    }
+    updateKvBarUi();
+}
+
+void Widget::recv_turn_counters(int cacheTokens, int promptTokens, int predictedTokens)
+{
+    const int cache = qMax(0, cacheTokens);
+    const int prompt = qMax(0, promptTokens);
+    const int generated = qMax(0, predictedTokens);
+    const int total = cache + prompt + generated;
+    if (total <= 0) return;
+    kvPromptTokensTurn_ = prompt;
+    kvStreamedTurn_ = generated;
+    kvTokensTurn_ = prompt + generated;
+    kvUsedBeforeTurn_ = cache + prompt;
+    kvUsed_ = total;
+    if (!turnActive_) turnActive_ = true;
+    sawPromptPast_ = true;
+    // if (ui_mode == LINK_MODE)
+    // {
+    //     reflash_state(QStringLiteral("link:timings cache=%1 prompt=%2 generated=%3 total=%4")
+    //                       .arg(cache)
+    //                       .arg(prompt)
+    //                       .arg(generated)
+    //                       .arg(total));
+    // }
     updateKvBarUi();
 }
 
 void Widget::recv_kv_from_net(int usedTokens)
 {
+    const int previousStream = kvStreamedTurn_;
+    const int newStream = qMax(0, usedTokens);
     // Approximate KV usage accumulation during streaming tokens from xNet.
     if (ui_mode == LINK_MODE)
     {
         // In LINK mode, we may not have server logs; accept updates regardless of turnActive_
         if (!turnActive_) turnActive_ = true;
-        kvStreamedTurn_ = qMax(0, usedTokens);
+        kvStreamedTurn_ = newStream;
+        const int delta = kvStreamedTurn_ - previousStream;
+        kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
         kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+        // if (delta != 0)
+        // {
+        //     reflash_state(QStringLiteral("link:stream update stream=%1 delta=%2 prompt=%3 turn=%4 used=%5")
+        //                       .arg(kvStreamedTurn_)
+        //                       .arg(delta)
+        //                       .arg(kvPromptTokensTurn_)
+        //                       .arg(kvTokensTurn_)
+        //                       .arg(kvUsed_));
+        // }
         updateKvBarUi();
         return;
     }
     // LOCAL mode
     if (!turnActive_) return;
-    kvStreamedTurn_ = qMax(0, usedTokens);
+    kvStreamedTurn_ = newStream;
+    kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
     // apply only after server reported prompt baseline (prompt done)
     if (!sawPromptPast_) return;
     kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
@@ -810,6 +870,8 @@ void Widget::onServerOutput(const QString &line)
     {
         turnActive_ = true;
         kvUsedBeforeTurn_ = kvUsed_;
+        kvTokensTurn_ = 0;
+        kvPromptTokensTurn_ = 0;
         kvStreamedTurn_ = 0;
         sawFinalPast_ = false;
     }

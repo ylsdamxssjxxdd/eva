@@ -52,6 +52,8 @@ void xNet::resetState()
     promptPerSec_ = -1.0;
     predictedPerSec_ = -1.0;
     timingsReceived_ = false;
+    cacheTokens_ = -1;
+    totalsEmitted_ = false;
 }
 
 void xNet::abortActiveReply()
@@ -191,6 +193,7 @@ void xNet::run()
             for (QByteArray ln : lines)
             {
                 ln = ln.trimmed();
+                // qDebug() << "net: sse line" << ln;
                 if (!ln.startsWith("data:")) continue;
                 QByteArray part = ln.mid(5).trimmed();
                 if (part.isEmpty()) continue;
@@ -377,10 +380,23 @@ void xNet::run()
                         promptMs_ = tobj.value("prompt_ms").toDouble(promptMs_);
                         predictedTokens_ = tobj.value("predicted_n").toInt(predictedTokens_);
                         predictedMs_ = tobj.value("predicted_ms").toDouble(predictedMs_);
+                        cacheTokens_ = tobj.value("cache_n").toInt(cacheTokens_);
                         timingsReceived_ = true;
                         // optional direct speeds (tokens/sec) if provided by server
                         if (tobj.contains("prompt_per_second")) promptPerSec_ = tobj.value("prompt_per_second").toDouble(promptPerSec_);
                         if (tobj.contains("predicted_per_second")) predictedPerSec_ = tobj.value("predicted_per_second").toDouble(predictedPerSec_);
+                        // Emit final cache/prompt/predicted totals once all fields are known
+                        if (!totalsEmitted_)
+                        {
+                            const int cache = cacheTokens_;
+                            const int prompt = promptTokens_;
+                            const int gen = predictedTokens_;
+                            if (cache >= 0 && prompt >= 0 && gen >= 0)
+                            {
+                                totalsEmitted_ = true;
+                                emit net2ui_turn_counters(cache, prompt, gen);
+                            }
+                        }
                     }
                 };
 

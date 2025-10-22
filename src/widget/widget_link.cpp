@@ -78,8 +78,9 @@ void Widget::set_api()
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
     // Reset LINK-mode memory/state since endpoint/key/model changed
-    kvTokensAccum_ = 0;
+    // Reset KV counters when switching to LINK mode to avoid leaking local state
     kvTokensTurn_ = 0;
+    kvPromptTokensTurn_ = 0;
     kvUsed_ = 0;
     kvUsedBeforeTurn_ = 0;
     kvStreamedTurn_ = 0;
