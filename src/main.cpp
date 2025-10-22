@@ -100,7 +100,17 @@ int main(int argc, char *argv[])
     if (!loadedFonts.empty())
     {
         QFont customFont(loadedFonts.at(0));
-        customFont.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
+        const QFont defaultFont = QApplication::font(); // preserve platform-default sizing when swapping the typeface
+        if (defaultFont.pointSize() > 0)
+        {
+            customFont.setPointSize(defaultFont.pointSize());
+        }
+        else if (defaultFont.pixelSize() > 0)
+        {
+            customFont.setPixelSize(defaultFont.pixelSize());
+        }
+        customFont.setWeight(defaultFont.weight());
+        customFont.setStyleStrategy(QFont::PreferAntialias); // keep the existing anti-aliasing strategy for pixel clarity
         QApplication::setFont(customFont);
         qDebug() << "Loaded font:" << customFont.family();
     }
@@ -646,3 +656,4 @@ int main(int argc, char *argv[])
     qDebug() << "Widget uses font:" << info.family();
     return a.exec(); // 进入事件循环
 }
+

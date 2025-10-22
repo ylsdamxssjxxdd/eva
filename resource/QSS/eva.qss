@@ -3,7 +3,7 @@
 QWidget {
     background-color: #f6f3ff;
     color: #2d2850;
-    font-size: 13px;
+    font-size: 12px;
 }
 QFrame {
     background-color: transparent;

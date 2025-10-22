@@ -75,7 +75,6 @@
            </property>
            <property name="font">
             <font>
-             <family>Arial</family>
              <pointsize>12</pointsize>
             </font>
            </property>
@@ -103,7 +102,6 @@
            </property>
            <property name="font">
             <font>
-             <family>Arial</family>
              <pointsize>12</pointsize>
             </font>
            </property>
@@ -131,7 +129,6 @@
            </property>
            <property name="font">
             <font>
-             <family>Arial</family>
              <pointsize>12</pointsize>
             </font>
            </property>
@@ -189,7 +186,6 @@
          </property>
          <property name="font">
           <font>
-           <family>黑体</family>
            <pointsize>12</pointsize>
           </font>
          </property>
@@ -254,7 +250,6 @@
            </property>
            <property name="font">
             <font>
-             <family>Arial</family>
              <pointsize>12</pointsize>
             </font>
            </property>
@@ -318,7 +313,6 @@
            <widget class="DoubleQProgressBar" name="kv_bar">
             <property name="font">
              <font>
-              <family>微软雅黑</family>
               <pointsize>9</pointsize>
              </font>
             </property>
@@ -365,7 +359,6 @@
            <widget class="DoubleQProgressBar" name="cpu_bar">
             <property name="font">
              <font>
-              <family>微软雅黑</family>
               <pointsize>9</pointsize>
              </font>
             </property>
@@ -397,7 +390,6 @@
            <widget class="DoubleQProgressBar" name="mem_bar">
             <property name="font">
              <font>
-              <family>微软雅黑</family>
               <pointsize>9</pointsize>
              </font>
             </property>
@@ -441,7 +433,6 @@
            <widget class="DoubleQProgressBar" name="vcore_bar">
             <property name="font">
              <font>
-              <family>微软雅黑</family>
               <pointsize>9</pointsize>
              </font>
             </property>
@@ -485,7 +476,6 @@
            <widget class="DoubleQProgressBar" name="vram_bar">
             <property name="font">
              <font>
-              <family>微软雅黑</family>
               <pointsize>9</pointsize>
              </font>
             </property>
@@ -535,7 +525,6 @@
           </property>
           <property name="font">
            <font>
-            <family>����</family>
             <pointsize>10</pointsize>
             <stylestrategy>PreferDefault</stylestrategy>
            </font>
