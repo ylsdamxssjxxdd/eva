@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw
 
 
 # Creates "validation" images with rectangles for the bounding box information that
-# Claude creates when determining where to add text annotations in PDFs. See forms.md.
+# EVA creates when determining where to add text annotations in PDFs. See forms.md.
 
 
 def create_validation_image(page_number, fields_json_path, input_path, output_path):

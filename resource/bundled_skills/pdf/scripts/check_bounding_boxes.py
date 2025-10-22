@@ -3,7 +3,7 @@ import json
 import sys
 
 
-# Script to check that the `fields.json` file that Claude creates when analyzing PDFs
+# Script to check that the `fields.json` file that EVA creates when analyzing PDFs
 # does not have overlapping bounding boxes. See forms.md.
 
 
@@ -14,7 +14,7 @@ class RectAndField:
     field: dict
 
 
-# Returns a list of messages that are printed to stdout for Claude to read.
+# Returns a list of messages that are printed to stdout for EVA to read.
 def get_bounding_box_messages(fields_json_stream) -> list[str]:
     messages = []
     fields = json.load(fields_json_stream)
