@@ -1060,6 +1060,13 @@ void Widget::on_reset_clicked()
         return;
     }
 
+    if (date_ui)
+    {
+        // Rebuild system prompt so workspace snapshot reflects current workspace state.
+        ui_extra_prompt = create_extra_prompt();
+        get_date();
+    }
+
     // reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
     kvTokensAccum_ = 0;
     kvTokensTurn_ = 0; // reset conversation kv tokens
