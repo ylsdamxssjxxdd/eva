@@ -1,5 +1,4 @@
 // NeuronLogEdit - QPlainTextEdit with animated 3D neuron background
-// Reference: drawing logic adapted from CsvTableWidget (src/utils/csvtablewidget.h)
 // Qt 5.15, C++17
 
 #ifndef NEURONLOGEDIT_H

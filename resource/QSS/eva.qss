@@ -3,10 +3,8 @@
 QWidget {
     background-color: #f6f3ff;
     color: #2d2850;
-    font-family: "Segoe UI", "Microsoft YaHei";
     font-size: 13px;
 }
-
 QFrame {
     background-color: transparent;
 }
@@ -53,7 +51,6 @@ QStatusBar {
 }
 
 QGroupBox {
-    border: 2px solid #6a70c9;
     margin-top: 12px;
     padding: 8px;
     background-color: #fdfbff;
@@ -102,7 +99,7 @@ QDateTimeEdit:focus {
 QTextEdit:focus,
 QPlainTextEdit:focus {
     border: 2px solid #3f52c0;
-    background-color: #f1edff;
+    background-color: #ffffff;
 }
 
 ImageInputBox QTextEdit:focus {
@@ -242,7 +239,6 @@ QTreeView::branch {
 
 QTableView {
     background-color: #ffffff;
-    border: 2px solid #6a70c9;
     gridline-color: #b8afd8;
     selection-background-color: #ffe5c7;
     selection-color: #211a3d;
@@ -282,89 +278,6 @@ QTableCornerButton::section {
     border: 2px solid #6a70c9;
 }
 
-QScrollBar:horizontal {
-    height: 16px;
-    background-color: #f0eaff;
-    border: 2px solid #6a70c9;
-    margin: 0;
-}
-
-QScrollBar:vertical {
-    width: 16px;
-    background-color: #f0eaff;
-    border: 2px solid #6a70c9;
-    margin: 0;
-}
-
-QScrollBar::handle:horizontal,
-QScrollBar::handle:vertical {
-    background-color: #dbe6ff;
-    border: 2px solid #6a70c9;
-    min-width: 22px;
-    min-height: 22px;
-}
-
-QScrollBar::handle:horizontal:hover,
-QScrollBar::handle:vertical:hover {
-    background-color: #c7d4ff;
-    border: 2px solid #3f52c0;
-}
-
-QScrollBar::add-line,
-QScrollBar::sub-line {
-    background-color: #fdfbff;
-    border: 2px solid #6a70c9;
-    subcontrol-origin: margin;
-}
-
-QScrollBar::add-line:horizontal {
-    width: 16px;
-    subcontrol-position: right;
-}
-
-QScrollBar::sub-line:horizontal {
-    width: 16px;
-    subcontrol-position: left;
-}
-
-QScrollBar::add-line:vertical {
-    height: 16px;
-    subcontrol-position: bottom;
-}
-
-QScrollBar::sub-line:vertical {
-    height: 16px;
-    subcontrol-position: top;
-}
-
-QScrollBar::up-arrow {
-    width: 10px;
-    height: 10px;
-    image: url(":/QSS/QSS_IMG/go-up-symbolic.symbolic.png");
-}
-
-QScrollBar::down-arrow {
-    width: 10px;
-    height: 10px;
-    image: url(":/QSS/QSS_IMG/go-down-symbolic.symbolic.png");
-}
-
-QScrollBar::left-arrow {
-    width: 10px;
-    height: 10px;
-    image: url(":/QSS/QSS_IMG/go-previous-symbolic.symbolic.png");
-}
-
-QScrollBar::right-arrow {
-    width: 10px;
-    height: 10px;
-    image: url(":/QSS/QSS_IMG/go-next-symbolic.symbolic.png");
-}
-
-QScrollBar::add-page,
-QScrollBar::sub-page {
-    background-color: transparent;
-}
 
 QSplitter {
     background-color: #f6f3ff;
@@ -372,7 +285,6 @@ QSplitter {
 
 QSplitter::handle {
     background-color: #eae4ff;
-    border: 2px solid #6a70c9;
 }
 
 QSplitter::handle:hover {
@@ -410,7 +322,7 @@ QSlider::handle:horizontal {
     border: 2px solid #f29c52;
     width: 16px;
     height: 16px;
-    margin: -4px 0;
+    margin: -4px 6px;
 }
 
 QSlider::handle:vertical {
@@ -418,7 +330,7 @@ QSlider::handle:vertical {
     border: 2px solid #f29c52;
     width: 16px;
     height: 16px;
-    margin: 0 -4px;
+    margin: 6px -4px;
 }
 
 QCheckBox,

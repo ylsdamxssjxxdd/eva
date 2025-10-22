@@ -94,26 +94,17 @@ int main(int argc, char *argv[])
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); // 适配非整数倍缩放
     QApplication a(argc, argv);                                                                              // 事件实例
     a.setQuitOnLastWindowClosed(false);                                                                      // 即使关闭所有窗口也不退出程序，为了保持系统托盘正常
-    // 加载资源文件中的字体, 统一使用宋体
-    int fontId = QFontDatabase::addApplicationFont(":/simsun.ttc");
-    if (fontId == -1)
-    { // 如果没有说明是在window下
-        QFont font("SimSun");
-        font.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
-        QApplication::setFont(font);
-        // qDebug() << "Loaded font:" << "windows SimSun";
-    }
-    else
+    // 加载资源文件中的字体
+    int fontId = QFontDatabase::addApplicationFont(":/zpix.ttf");
+    QStringList loadedFonts = QFontDatabase::applicationFontFamilies(fontId);
+    if (!loadedFonts.empty())
     {
-        QStringList loadedFonts = QFontDatabase::applicationFontFamilies(fontId);
-        if (!loadedFonts.empty())
-        {
-            QFont customFont(loadedFonts.at(0));
-            customFont.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
-            QApplication::setFont(customFont);
-            // qDebug() << "Loaded font:" << customFont.family();
-        }
+        QFont customFont(loadedFonts.at(0));
+        customFont.setStyleStrategy(QFont::PreferAntialias); // 应用反锯齿
+        QApplication::setFont(customFont);
+        qDebug() << "Loaded font:" << customFont.family();
     }
+
     // 设置创建EVA_TEMP文件夹所在的目录
 #if BODY_LINUX_PACK
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -651,5 +642,7 @@ int main(int argc, char *argv[])
         }
     }
     w.show();        // 展示窗口
+    QFontInfo info(w.font());              // this widget's resolved font
+    qDebug() << "Widget uses font:" << info.family();
     return a.exec(); // 进入事件循环
 }

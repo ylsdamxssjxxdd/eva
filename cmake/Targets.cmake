@@ -4,11 +4,7 @@
 include_guard(GLOBAL)
 
 # Resources
-if (WIN32)
-    set(resource_FILES resource/res_core.qrc)
-else()
-    set(resource_FILES resource/res_core.qrc resource/font.qrc)
-endif()
+set(resource_FILES resource/res_core.qrc resource/font.qrc)
 list(APPEND resource_FILES resource/res_docs.qrc)
 set(logo_FILES resource/logo/ico.rc)
 
@@ -33,7 +29,6 @@ add_executable(
     src/utils/singleinstance.cpp src/utils/singleinstance.h
     src/widget/widget.h src/widget/terminal_pane.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
-    src/utils/csvtablewidget.h
     src/utils/gpuchecker.h src/utils/cpuchecker.h src/utils/doubleqprogressbar.h 
     src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
     thirdparty/tinyexpr/tinyexpr.c thirdparty/tinyexpr/tinyexpr.h
