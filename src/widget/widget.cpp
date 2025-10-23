@@ -1376,7 +1376,7 @@ void Widget::restoreSessionById(const QString &sessionId)
     {
         if (r == QLatin1String("system")) return RecordRole::System;
         if (r == QLatin1String("user")) return RecordRole::User;
-        if (r == QLatin1String("assistant")) return RecordRole::Assistant;
+        if (r == QLatin1String("assistant") || r == QLatin1String("model")) return RecordRole::Assistant;
         if (r == QLatin1String("think")) return RecordRole::Think;
         if (r == QLatin1String("tool")) return RecordRole::Tool;
         return RecordRole::User;
@@ -1662,7 +1662,7 @@ void Widget::onRecordDoubleClicked(int index)
     if (index < 0 || index >= recordEntries_.size()) return;
     if (ui->recordBar) ui->recordBar->setSelectedIndex(index);
     auto &e = recordEntries_[index];
-    const auto roleName = [](RecordRole r) -> QString
+    const auto canonicalRoleName = [](RecordRole r) -> QString
     {
         switch (r)
         {
@@ -1674,10 +1674,33 @@ void Widget::onRecordDoubleClicked(int index)
         }
         return QStringLiteral("user");
     };
-    const QString roleKey = roleName(e.role);
+    const auto legacyRoleName = [](RecordRole r) -> QString
+    {
+        if (r == RecordRole::Assistant) return QStringLiteral("model");
+        return QString();
+    };
+    const auto displayRoleName = [this, &canonicalRoleName](RecordRole r) -> QString
+    {
+        switch (r)
+        {
+        case RecordRole::System: return jtr("role_system");
+        case RecordRole::User: return jtr("role_user");
+        case RecordRole::Assistant: return jtr("role_model");
+        case RecordRole::Think: return jtr("role_think");
+        case RecordRole::Tool: return jtr("role_tool");
+        }
+        return canonicalRoleName(r);
+    };
+    const QString roleDisplay = displayRoleName(e.role);
+    const QString roleCanonical = canonicalRoleName(e.role);
+    const QString roleLegacy = legacyRoleName(e.role);
+    QStringList headerCandidates;
+    if (!roleDisplay.isEmpty()) headerCandidates << roleDisplay;
+    if (!roleCanonical.isEmpty() && !headerCandidates.contains(roleCanonical)) headerCandidates << roleCanonical;
+    if (!roleLegacy.isEmpty() && !headerCandidates.contains(roleLegacy)) headerCandidates << roleLegacy;
 
     QDialog dlg(this);
-    dlg.setWindowTitle(QStringLiteral("%1 %2").arg(jtr("edit history record"), roleKey));
+    dlg.setWindowTitle(QStringLiteral("%1 %2").arg(jtr("edit history record"), roleDisplay));
     dlg.setModal(true);
     QVBoxLayout *lay = new QVBoxLayout(&dlg);
     QTextEdit *ed = new QTextEdit(&dlg);
@@ -1700,24 +1723,29 @@ void Widget::onRecordDoubleClicked(int index)
     // Skip leading blank line inserted before header (if any)
     while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
 
-    const QString header = roleName(e.role);
-    // If header is present right after contentFrom, skip "header\n"
-    if (contentFrom + header.size() + 1 <= docEnd)
+    auto consumeHeaderIfPresent = [&](int &pos, const QStringList &candidates)
     {
-        bool headerMatch = true;
-        for (int i = 0; i < header.size() && contentFrom + i < docEnd; ++i)
+        const auto attempt = [&](const QString &candidate) -> bool
         {
-            if (doc->characterAt(contentFrom + i) != header.at(i))
+            if (candidate.isEmpty()) return false;
+            const int len = candidate.size();
+            if (pos + len + 1 > docEnd) return false;
+            for (int i = 0; i < len; ++i)
             {
-                headerMatch = false;
-                break;
+                if (doc->characterAt(pos + i) != candidate.at(i)) return false;
             }
-        }
-        if (headerMatch && (contentFrom + header.size() < docEnd) && doc->characterAt(contentFrom + header.size()) == QChar('\n'))
+            if (doc->characterAt(pos + len) != QChar('\n')) return false;
+            pos += len + 1;
+            return true;
+        };
+        for (const QString &candidate : candidates)
         {
-            contentFrom += header.size() + 1;
+            if (attempt(candidate)) return true;
         }
-    }
+        return false;
+    };
+
+    consumeHeaderIfPresent(contentFrom, headerCandidates);
 
     const int oldContentTo = qBound(contentFrom, e.docTo, docEnd);
     // Replace only the content region, keep coloring by role
@@ -1746,27 +1774,30 @@ void Widget::onRecordDoubleClicked(int index)
         // Skip any leading blank lines before header
         while (s < docEnd2 && doc->characterAt(s) == QChar('\n')) ++s;
 
-        const QString header = roleName(e.role);
-
-        bool headerOk = false;
-        if (s + header.size() + 1 <= docEnd2)
+        const auto hasHeader = [&](int startPos, const QStringList &candidates) -> bool
         {
-            headerOk = true;
-            for (int i = 0; i < header.size(); ++i)
+            for (const QString &candidate : candidates)
             {
-                if (doc->characterAt(s + i) != header.at(i))
+                if (candidate.isEmpty()) continue;
+                const int len = candidate.size();
+                if (startPos + len + 1 > docEnd2) continue;
+                bool headerMatch = true;
+                for (int i = 0; i < len; ++i)
                 {
-                    headerOk = false;
-                    break;
+                    if (doc->characterAt(startPos + i) != candidate.at(i))
+                    {
+                        headerMatch = false;
+                        break;
+                    }
                 }
+                if (!headerMatch) continue;
+                if (doc->characterAt(startPos + len) != QChar('\n')) continue;
+                return true;
             }
-            if (!(headerOk && doc->characterAt(s + header.size()) == QChar('\n')))
-            {
-                headerOk = false;
-            }
-        }
+            return false;
+        };
 
-        if (!headerOk)
+        if (!hasHeader(s, headerCandidates))
         {
             // Insert header + newline at position s with role color
             QTextCursor ic(doc);
@@ -1774,10 +1805,10 @@ void Widget::onRecordDoubleClicked(int index)
             QTextCharFormat headerFmt;
             headerFmt.setForeground(QBrush(chipColorForRole(e.role)));
             ic.mergeCharFormat(headerFmt);
-            ic.insertText(header + QString(DEFAULT_SPLITER));
+            ic.insertText(roleDisplay + QString(DEFAULT_SPLITER));
 
             // Adjust current and subsequent record ranges by the inserted length
-            const int ins = header.size() + 1;
+            const int ins = roleDisplay.size() + 1;
             e.docTo += ins;
             for (int i = index + 1; i < recordEntries_.size(); ++i)
             {

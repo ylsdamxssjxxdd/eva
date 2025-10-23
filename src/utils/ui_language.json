@@ -633,6 +633,26 @@
             "模型",
             "model "
         ],
+        "role_system": [
+            "系统",
+            "system"
+        ],
+        "role_user": [
+            "用户",
+            "user"
+        ],
+        "role_think": [
+            "思考",
+            "think"
+        ],
+        "role_tool": [
+            "工具",
+            "tool"
+        ],
+        "role_model": [
+            "模型",
+            "model"
+        ],
         "old model and ctx offloaded": [
             "旧的模型和上下文已卸载",
             "old model and ctx offloaded "

@@ -111,17 +111,45 @@ void Widget::appendRoleHeader(const QString &role)
         output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
     }
     QColor c = chipColorForRole(RecordRole::System);
-    const QString r = role.trimmed().toLower();
-    if (r == QStringLiteral("tool"))
+    const QString trimmed = role.trimmed();
+    const QString canonical = trimmed.toLower();
+    QString label = trimmed;
+    const QString labelSystem = jtr("role_system");
+    const QString labelUser = jtr("role_user");
+    const QString labelThink = jtr("role_think");
+    const QString labelTool = jtr("role_tool");
+    const QString labelModel = jtr("role_model");
+    if (canonical == QStringLiteral("tool") || trimmed == labelTool)
+    {
         c = chipColorForRole(RecordRole::Tool);
-    else if (r == QStringLiteral("think"))
+        label = labelTool;
+    }
+    else if (canonical == QStringLiteral("think") || trimmed == labelThink)
+    {
         c = chipColorForRole(RecordRole::Think);
-    else if (r == QStringLiteral("assistant"))
+        label = labelThink;
+    }
+    else if (canonical == QStringLiteral("assistant") || canonical == QStringLiteral("model") || trimmed == labelModel)
+    {
         c = chipColorForRole(RecordRole::Assistant);
-    else if (r == QStringLiteral("user"))
+        label = labelModel;
+    }
+    else if (canonical == QStringLiteral("user") || trimmed == labelUser)
+    {
         c = chipColorForRole(RecordRole::User);
+        label = labelUser;
+    }
+    else if (canonical == QStringLiteral("system") || trimmed == labelSystem)
+    {
+        c = chipColorForRole(RecordRole::System);
+        label = labelSystem;
+    }
+    else
+    {
+        label = trimmed;
+    }
     // Insert role label and a newline
-    output_scroll(r, c);
+    output_scroll(label, c);
     output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
 }
 
