@@ -1,0 +1,56 @@
+/* EVA Zeroth Unit palette override */
+
+QWidget {
+    background-color: #f2f6ff;
+    color: #1a2a3f;
+}
+
+QFrame,
+QGroupBox {
+    background-color: #ffffff;
+}
+
+QPushButton {
+    background-color: #dcecff;
+    color: #0e2740;
+}
+
+QPushButton:hover {
+    background-color: #62b0ff;
+    color: #0e2740;
+}
+
+QPushButton:pressed {
+    background-color: #468ec6;
+    color: #ffffff;
+}
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit,
+QSpinBox,
+QDoubleSpinBox,
+QComboBox,
+QDateTimeEdit,
+QTimeEdit,
+QDateEdit {
+    background-color: #ffffff;
+    color: #1a2a3f;
+    selection-background-color: #62b0ff;
+    selection-color: #0e2740;
+}
+
+QMenu {
+    background-color: #ffffff;
+    color: #1a2a3f;
+}
+
+QMenu::item:selected {
+    background-color: #62b0ff;
+    color: #0e2740;
+}
+
+QToolTip {
+    background-color: #dcecff;
+    color: #0e2740;
+}

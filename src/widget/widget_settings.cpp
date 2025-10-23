@@ -3,16 +3,15 @@
 #include <QtGlobal>
 #include <QComboBox>
 #include <QFontComboBox>
+#include <QHash>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
-#include <QColor>
+#include <QFile>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSize>
-#include <QVector>
 #include <QVBoxLayout>
-#include <QEasingCurve>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -197,8 +196,8 @@ void Widget::setupGlobalSettingsPanel()
 
     globalSettingsPanel_->setMaximumWidth(QWIDGETSIZE_MAX);
     globalPanelExpandedWidth_ = qMax(globalSettingsPanel_->sizeHint().width(), 260);
-    globalSettingsPanel_->setMaximumWidth(0);
     globalSettingsPanel_->setMinimumWidth(0);
+    globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
     globalSettingsPanel_->hide();
     globalPanelOpen_ = false;
 
@@ -238,47 +237,24 @@ void Widget::toggleGlobalSettingsPanel()
 {
     if (!globalSettingsPanel_) return;
 
-    if (!globalPanelAnimation_)
+    globalPanelOpen_ = !globalPanelOpen_;
+    if (globalPanelOpen_)
     {
-        globalPanelAnimation_ = new QPropertyAnimation(globalSettingsPanel_, "maximumWidth", this);
-        globalPanelAnimation_->setDuration(220);
-        globalPanelAnimation_->setEasingCurve(QEasingCurve::OutCubic);
-        connect(globalPanelAnimation_, &QPropertyAnimation::finished, this, [this]()
-                {
-                    if (!globalSettingsPanel_) return;
-                    if (globalPanelOpen_)
-                    {
-                        globalSettingsPanel_->setMinimumWidth(globalPanelExpandedWidth_);
-                        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
-                        globalSettingsPanel_->show();
-                    }
-                    else
-                    {
-                        globalSettingsPanel_->setMinimumWidth(0);
-                        globalSettingsPanel_->setMaximumWidth(0);
-                        globalSettingsPanel_->hide();
-                    }
-                    if (settings_ui && settings_ui->global_pushButton)
-                    {
-                        settings_ui->global_pushButton->setChecked(globalPanelOpen_);
-                    }
-                    applySettingsDialogSizing();
-                });
+        globalSettingsPanel_->setMinimumWidth(globalPanelExpandedWidth_);
+        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
+        globalSettingsPanel_->show();
     }
-
-    const bool expanding = !globalPanelOpen_;
-    globalPanelOpen_ = expanding;
-
-    globalPanelAnimation_->stop();
-    globalSettingsPanel_->setMinimumWidth(0);
-    globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
-    if (expanding) globalSettingsPanel_->show();
-    int start = globalSettingsPanel_->width();
-    if (start <= 0) start = expanding ? 0 : globalPanelExpandedWidth_;
-    const int end = expanding ? globalPanelExpandedWidth_ : 0;
-    globalPanelAnimation_->setStartValue(start);
-    globalPanelAnimation_->setEndValue(end);
-    globalPanelAnimation_->start();
+    else
+    {
+        globalSettingsPanel_->hide();
+        globalSettingsPanel_->setMinimumWidth(0);
+        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
+    }
+    if (settings_ui && settings_ui->global_pushButton)
+    {
+        settings_ui->global_pushButton->setChecked(globalPanelOpen_);
+    }
+    applySettingsDialogSizing();
 }
 
 void Widget::handleGlobalFontFamilyChanged(const QFont &font)
@@ -318,101 +294,20 @@ void Widget::applyGlobalFont(const QString &family, int sizePt, bool persist)
     if (persist) auto_save_user();
 }
 
-namespace
-{
-struct ThemeDefinition
-{
-    QString id;
-    QColor window;
-    QColor panel;
-    QColor border;
-    QColor button;
-    QColor highlight;
-    QColor highlightText;
-    QColor text;
-};
-
-const QVector<ThemeDefinition> &themeDefinitions()
-{
-    static const QVector<ThemeDefinition> defs = {
-        {"unit00",
-         QColor("#f2f6ff"),
-         QColor("#ffffff"),
-         QColor("#468ec6"),
-         QColor("#dcecff"),
-         QColor("#62b0ff"),
-         QColor("#0e2740"),
-         QColor("#1a2a3f")},
-        {"unit02",
-         QColor("#2b0d11"),
-         QColor("#331417"),
-         QColor("#d44b36"),
-         QColor("#4a1e21"),
-         QColor("#ff7043"),
-         QColor("#fff2ec"),
-         QColor("#ffe3d9")},
-        {"unit03",
-         QColor("#10131c"),
-         QColor("#181d29"),
-         QColor("#5e65d8"),
-         QColor("#242b3c"),
-         QColor("#9a79ff"),
-         QColor("#161622"),
-         QColor("#e9edff")}};
-    return defs;
-}
-} // namespace
-
 QString Widget::buildThemeOverlay(const QString &themeId) const
 {
     if (themeId.isEmpty() || themeId == QStringLiteral("unit01")) return QString();
+    static const QHash<QString, QString> themePaths = {
+        {QStringLiteral("unit00"), QStringLiteral(":/QSS/theme_unit00.qss")},
+        {QStringLiteral("unit02"), QStringLiteral(":/QSS/theme_unit02.qss")},
+        {QStringLiteral("unit03"), QStringLiteral(":/QSS/theme_unit03.qss")} };
+    const QString path = themePaths.value(themeId);
+    if (path.isEmpty()) return QString();
 
-    const ThemeDefinition *def = nullptr;
-    for (const ThemeDefinition &candidate : themeDefinitions())
-    {
-        if (candidate.id == themeId)
-        {
-            def = &candidate;
-            break;
-        }
-    }
-    if (!def) return QString();
-
-    const auto hex = [](const QColor &c) { return c.name(QColor::HexRgb); };
-    const QString window = hex(def->window);
-    const QString panel = hex(def->panel);
-    const QString border = hex(def->border);
-    const QString button = hex(def->button);
-    const QString highlight = hex(def->highlight);
-    const QString highlightText = hex(def->highlightText);
-    const QString text = hex(def->text);
-
-    QString overlay = QStringLiteral(
-        "QWidget { background-color: %1; color: %2; }\n"
-        "QFrame, QGroupBox { background-color: %3; border: 2px solid %4; }\n"
-        "QGroupBox::title { background-color: %5; color: %6; border: 2px solid %4; padding: 0 8px; }\n"
-        "QLabel, QCheckBox, QRadioButton { color: %2; }\n"
-        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateTimeEdit, QTimeEdit, QDateEdit {"
-        " background-color: %3; color: %2; border: 2px solid %4; selection-background-color: %5; selection-color: %6; }\n"
-        "QPushButton { background-color: %7; color: %6; border: 2px solid %4; padding: 4px 10px; }\n"
-        "QPushButton:hover { background-color: %5; color: %6; }\n"
-        "QPushButton:pressed { background-color: %4; color: %6; }\n"
-        "QScrollArea, QListWidget, QListView, QTreeWidget, QTreeView, QTableWidget { background-color: %3; color: %2; }\n"
-        "QScrollBar:vertical { background: %3; width: 12px; }\n"
-        "QScrollBar::handle:vertical { background: %5; border: 2px solid %4; border-radius: 5px; }\n"
-        "QScrollBar:horizontal { background: %3; height: 12px; }\n"
-        "QScrollBar::handle:horizontal { background: %5; border: 2px solid %4; border-radius: 5px; }\n"
-        "QSlider::groove:horizontal { background-color: %3; height: 6px; border-radius: 3px; }\n"
-        "QSlider::handle:horizontal { background-color: %5; border: 2px solid %4; width: 16px; margin: -5px 0; border-radius: 8px; }\n"
-        "QSlider::groove:vertical { background-color: %3; width: 6px; border-radius: 3px; }\n"
-        "QSlider::handle:vertical { background-color: %5; border: 2px solid %4; height: 16px; margin: 0 -5px; border-radius: 8px; }\n"
-        "QMenu { background-color: %3; border: 1px solid %4; }\n"
-        "QMenu::item:selected { background-color: %5; color: %6; }\n"
-        "QToolTip { background-color: %7; color: %6; border: 1px solid %4; }\n"
-        "QStatusBar { background-color: %3; border-top: 1px solid %4; }\n")
-                            .arg(window, text, panel, border, highlight, highlightText, button);
-
-    return overlay;
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return QString();
+    const QByteArray data = file.readAll();
+    return QString::fromUtf8(data);
 }
 
 QString Widget::buildFontOverrideCss() const

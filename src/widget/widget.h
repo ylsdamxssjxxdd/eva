@@ -27,7 +27,6 @@
 #include <QNetworkInterface>
 #include <QNetworkReply>
 #include <QNetworkRequest>
-#include <QPropertyAnimation>
 #include <QProcess>
 #include <QProgressBar>
 #include <QProgressDialog>
@@ -587,7 +586,6 @@ class Widget : public QWidget
     QFontComboBox *globalFontCombo_ = nullptr;
     QSpinBox *globalFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;
-    QPropertyAnimation *globalPanelAnimation_ = nullptr;
     int globalPanelExpandedWidth_ = 260;
 
   };

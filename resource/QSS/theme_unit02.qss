@@ -1,0 +1,56 @@
+/* EVA Second Unit palette override */
+
+QWidget {
+    background-color: #2b0d11;
+    color: #ffe3d9;
+}
+
+QFrame,
+QGroupBox {
+    background-color: #331417;
+}
+
+QPushButton {
+    background-color: #4a1e21;
+    color: #ffe3d9;
+}
+
+QPushButton:hover {
+    background-color: #ff7043;
+    color: #331417;
+}
+
+QPushButton:pressed {
+    background-color: #d44b36;
+    color: #ffe3d9;
+}
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit,
+QSpinBox,
+QDoubleSpinBox,
+QComboBox,
+QDateTimeEdit,
+QTimeEdit,
+QDateEdit {
+    background-color: #4a1e21;
+    color: #ffe3d9;
+    selection-background-color: #ff7043;
+    selection-color: #331417;
+}
+
+QMenu {
+    background-color: #331417;
+    color: #ffe3d9;
+}
+
+QMenu::item:selected {
+    background-color: #ff7043;
+    color: #331417;
+}
+
+QToolTip {
+    background-color: #ff7043;
+    color: #331417;
+}

@@ -11,6 +11,9 @@
         <file>QSS/QSS_IMG/go-up-symbolic.symbolic.png</file>
         <file>QSS/QSS_IMG/object-select-symbolic.symbolic.png</file>
         <file>QSS/eva.qss</file>
+        <file>QSS/theme_unit00.qss</file>
+        <file>QSS/theme_unit02.qss</file>
+        <file>QSS/theme_unit03.qss</file>
         <file>logo/ui_demo.png</file>
         <file>logo/pause.png</file>
         <file>logo/c-eval.png</file>
