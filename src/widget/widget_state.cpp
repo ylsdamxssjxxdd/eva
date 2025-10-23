@@ -1,6 +1,48 @@
 #include "ui_widget.h"
 #include "widget.h"
 
+#include <QStyle>
+#include <QVariant>
+
+void Widget::applyInputVisualState(const QByteArray &state)
+{
+    if (!ui || !ui->input || !ui->input->textEdit) return;
+
+    const auto applyState = [](QWidget *target, const QByteArray &value)
+    {
+        if (!target) return;
+        const bool reset = value.isEmpty();
+        const QVariant current = target->property("evaState");
+        if (reset)
+        {
+            if (!current.isValid())
+            {
+                // Property already cleared; still refresh to ensure style picks up defaults.
+            }
+            target->setProperty("evaState", QVariant());
+        }
+        else
+        {
+            const QString desired = QString::fromUtf8(value);
+            if (current.isValid() && current.toString() == desired)
+            {
+                // No change; still force polish to pick up potential style updates.
+            }
+            target->setProperty("evaState", desired);
+        }
+
+        if (QStyle *style = target->style())
+        {
+            style->unpolish(target);
+            style->polish(target);
+        }
+        target->update();
+    };
+
+    applyState(ui->input, state);
+    applyState(ui->input->textEdit, state);
+}
+
 //-------------------------------------------------------------------------
 //----------------------------------界面状态--------------------------------
 //-------------------------------------------------------------------------
@@ -16,6 +58,7 @@ void Widget::ui_state_init()
     ui->reset->setEnabled(0); // 重置按钮
     ui->send->setEnabled(0);  // 发送按钮
     ui->output->setReadOnly(1);
+    applyInputVisualState(QByteArray());
 }
 
 // 装载中界面状态
@@ -52,7 +95,7 @@ void Widget::ui_state_normal()
         ui->input->textEdit->setReadOnly(0);
         ui->send->setEnabled(0);
         ui->input->textEdit->setPlaceholderText(jtr("chat or right click to choose question"));
-        ui->input->textEdit->setStyleSheet("background-color: white;");
+        applyInputVisualState(QByteArray());
         return;
     }
 
@@ -77,7 +120,7 @@ void Widget::ui_state_normal()
         ui->send->setVisible(1);
 
         ui->input->textEdit->setPlaceholderText(jtr("chat or right click to choose question"));
-        ui->input->textEdit->setStyleSheet("background-color: white;");
+        applyInputVisualState(QByteArray());
         ui->input->textEdit->setReadOnly(0);
         ui->input->textEdit->setFocus(); // 设置输入区为焦点
         ui->send->setText(jtr("send"));
@@ -100,7 +143,7 @@ void Widget::ui_state_normal()
 
         ui->input->textEdit->clear();
         ui->input->textEdit->setPlaceholderText(jtr("Please modify any text above"));
-        ui->input->textEdit->setStyleSheet("background-color: rgba(255, 165, 0, 127);"); // 设置背景为橘黄色
+        applyInputVisualState(QByteArray("complete"));
         ui->input->textEdit->setReadOnly(1);
         ui->send->setText(jtr("complete"));
 
@@ -143,7 +186,7 @@ void Widget::ui_state_recoding()
         ui->send->setEnabled(0);
         ui->input->textEdit->setFocus();
         ui->input->textEdit->clear();
-        ui->input->textEdit->setStyleSheet("background-color: rgba(144, 238, 144, 127);"); // 透明绿色
+        applyInputVisualState(QByteArray("recording"));
         ui->input->textEdit->setReadOnly(1);
         ui->input->textEdit->setFocus(); // 设置输入区为焦点
         ui->input->textEdit->setPlaceholderText(jtr("recoding") + "... " + jtr("push f2 to stop"));

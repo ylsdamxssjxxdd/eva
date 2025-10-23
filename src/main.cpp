@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
                          toggleWindowVisibility(&w, true); });
 
     //-----------------加载皮肤-----------------------
-    QFile file(":/QSS/eva.qss");
+    QFile file(":/QSS/theme_unit01.qss");
     file.open(QFile::ReadOnly);
     QString stylesheet = file.readAll();
     a.setStyleSheet(stylesheet);

@@ -9,10 +9,15 @@
 #include <QGridLayout>
 #include <QIcon>
 #include <QLabel>
+#include <QFrame>
 #include <QMimeData>
 #include <QPixmap>
+#include <QPainter>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QStyle>
+#include <QString>
+#include <QVariant>
 #include <QTextDocument>
 #include <QTextEdit>
 #include <QTimer>
@@ -33,6 +38,7 @@ class ImageInputBox : public QWidget
     explicit ImageInputBox(QWidget *parent = nullptr)
         : QWidget(parent)
     {
+        setAttribute(Qt::WA_StyledBackground, true);
         setupUI();
         // 禁止子部件处理拖放
         scrollArea->setAcceptDrops(false);
@@ -160,7 +166,8 @@ class ImageInputBox : public QWidget
 
         previewLabel->setPixmap(pixmap);
         previewLabel->setFixedSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-        previewLabel->setStyleSheet("border: 1px solid #ccc; background: white;");
+        previewLabel->setObjectName(QStringLiteral("imageInputPreview"));
+        previewLabel->setAttribute(Qt::WA_StyledBackground, true);
 
         QPushButton *closeBtn = new QPushButton("×", previewLabel);
         closeBtn->setStyleSheet(
@@ -214,6 +221,31 @@ class ImageInputBox : public QWidget
 
   private:
     const int THUMBNAIL_SIZE = 30;
+    void updateDragHighlight(bool active)
+    {
+        const QByteArray value = active ? QByteArray("true") : QByteArray();
+        auto applyState = [&](QWidget *target)
+        {
+            if (!target) return;
+            if (value.isEmpty())
+            {
+                target->setProperty("dragActive", QVariant());
+            }
+            else
+            {
+                target->setProperty("dragActive", QString::fromUtf8(value));
+            }
+            if (QStyle *style = target->style())
+            {
+                style->unpolish(target);
+                style->polish(target);
+            }
+            target->update();
+        };
+
+        applyState(this);
+        applyState(textEdit);
+    }
     void setupUI()
     {
         mainLayout = new QVBoxLayout(this);
@@ -222,37 +254,18 @@ class ImageInputBox : public QWidget
 
         // 缩略图滚动区域
         scrollArea = new QScrollArea;
+        scrollArea->setObjectName(QStringLiteral("imageInputPreviewScroll"));
         scrollArea->setWidgetResizable(true);
         scrollArea->setMinimumHeight(THUMBNAIL_SIZE + 20);
         scrollArea->setMaximumHeight(THUMBNAIL_SIZE + 20);
-        scrollArea->setStyleSheet(
-            "QScrollArea {"
-            "    border: 1px solid #3498db;" // 现代蓝色边框
-            "    border-radius: 4px;"
-            "    background: #f8fafc;"
-            "}"
-            "QScrollBar:horizontal {"
-            "    height: 8px;"
-            "    background: transparent;"
-            "    margin: 0 2px;"
-            "}"
-            "QScrollBar::handle:horizontal {"
-            "    background: #a0c4e4;" // 浅蓝色滚动条
-            "    border-radius: 4px;"
-            "    min-width: 30px;"
-            "}"
-            "QScrollBar::handle:horizontal:hover {"
-            "    background: #7fb2e0;" // 悬停时稍深的蓝色
-            "}"
-            "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {"
-            "    background: none;"
-            "}");
+        scrollArea->setFrameShape(QFrame::NoFrame);
+        scrollArea->setFrameShadow(QFrame::Plain);
+        scrollArea->viewport()->setAttribute(Qt::WA_StyledBackground, true);
 
         // 缩略图容器
         thumbnailContainer = new QWidget;
-        thumbnailContainer->setStyleSheet(
-            "background: #f8fafc;" // 非常浅的蓝色背景
-            "border: none;");
+        thumbnailContainer->setObjectName(QStringLiteral("imageInputPreviewContainer"));
+        thumbnailContainer->setAttribute(Qt::WA_StyledBackground, true);
 
         thumbnailLayout = new QGridLayout(thumbnailContainer);
         thumbnailLayout->setSpacing(12);                   // 增加间距
@@ -320,7 +333,7 @@ class ImageInputBox : public QWidget
         if (hasSupportedUrls(event->mimeData()))
         {
             event->acceptProposedAction();
-            setStyleSheet("background: #f0f0f0;");
+            updateDragHighlight(true);
         }
     }
     void dragMoveEvent(QDragMoveEvent *event) override
@@ -341,13 +354,17 @@ class ImageInputBox : public QWidget
                 }
             }
             event->acceptProposedAction();
-            setStyleSheet(""); // 恢复样式
+            updateDragHighlight(false);
+        }
+        else
+        {
+            updateDragHighlight(false);
         }
     }
     void dragLeaveEvent(QDragLeaveEvent *event) override
     {
         Q_UNUSED(event);
-        setStyleSheet(""); // 恢复样式
+        updateDragHighlight(false);
     }
 
     bool eventFilter(QObject *watched, QEvent *event) override

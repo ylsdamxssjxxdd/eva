@@ -6,6 +6,7 @@
 #include <QAudioInput>
 #include <QAudioRecorder>
 #include <QBuffer>
+#include <QByteArray>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -473,6 +474,7 @@ class Widget : public QWidget
     void onSkillToggleRequested(const QString &skillId, bool enabled);
     void onSkillRemoveRequested(const QString &skillId);
   private:
+    void applyInputVisualState(const QByteArray &state);
     // Refresh UI hints related to device/backend selection:
     // - When current selection is auto, append the actually resolved backend
     //   to the device label text, e.g. "device (cuda)".

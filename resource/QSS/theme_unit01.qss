@@ -71,6 +71,7 @@ QLabel {
 }
 
 QLineEdit,
+QAbstractSpinBox,
 QTextEdit,
 QPlainTextEdit,
 QSpinBox,
@@ -87,6 +88,7 @@ QDateTimeEdit {
 }
 
 QLineEdit:focus,
+QAbstractSpinBox:focus,
 QSpinBox:focus,
 QDoubleSpinBox:focus,
 QTimeEdit:focus,
@@ -102,12 +104,78 @@ QPlainTextEdit:focus {
     background-color: #ffffff;
 }
 
+ImageInputBox {
+    border: 2px solid #6a70c9;
+    background-color: #fdfbff;
+    padding: 6px;
+}
+
+ImageInputBox[evaState="complete"] {
+    border-color: #f29c52;
+    background-color: #fff4dd;
+}
+
+ImageInputBox[evaState="recording"] {
+    border-color: #3f52c0;
+    background-color: #e4f4ff;
+}
+
+ImageInputBox[dragActive="true"] {
+    border-color: #f29c52;
+    background-color: #fff4dd;
+}
+
+ImageInputBox QScrollArea {
+    border: 1px dashed #bdb6e4;
+    background-color: transparent;
+}
+
+ImageInputBox QScrollArea QWidget {
+    background-color: transparent;
+}
+
+ImageInputBox QLabel#imageInputPreview {
+    border: 1px solid #c3b8e8;
+    background-color: #ffffff;
+    border-radius: 2px;
+}
+
+ImageInputBox QTextEdit {
+    background-color: #ffffff;
+    color: #2d2850;
+    border: 2px solid #6a70c9;
+    border-radius: 0;
+    padding: 6px;
+    selection-background-color: #ffe0b2;
+    selection-color: #211a3d;
+}
+
+ImageInputBox QTextEdit:disabled {
+    border-color: #bdb6e4;
+    background-color: #f0eaff;
+    color: #9d97bd;
+}
+
+ImageInputBox QTextEdit[evaState="complete"] {
+    border-color: #f29c52;
+    background-color: #fff9ed;
+}
+
+ImageInputBox QTextEdit[evaState="recording"] {
+    border-color: #3f52c0;
+    background-color: #f0f8ff;
+}
+
+ImageInputBox QTextEdit[dragActive="true"] {
+    border-color: #f29c52;
+}
+
 ImageInputBox QTextEdit:focus {
     border: 2px solid #f29c52;
-    background-color: #ffffff;
 }
 
 QLineEdit:disabled,
+QAbstractSpinBox:disabled,
 QTextEdit:disabled,
 QPlainTextEdit:disabled,
 QSpinBox:disabled,
