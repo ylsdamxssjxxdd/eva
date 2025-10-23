@@ -560,6 +560,7 @@ void Widget::onServerReady(const QString &endpoint)
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
 
+    flushPendingStream();
     ui->output->clear();
     ui_messagesArray = QJsonArray();
     {
@@ -736,6 +737,7 @@ void Widget::initTextComponentsMemoryPolicy()
 // Replace output document to drop undo stack and cached resources (images)
 void Widget::resetOutputDocument()
 {
+    flushPendingStream();
     // Preserve existing visual settings (font, tab stops) before swapping the doc.
     const QFont prevFont = ui->output->font();
     const qreal prevTabStop = ui->output->tabStopDistance();

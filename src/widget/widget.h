@@ -48,6 +48,7 @@
 #include <QTextEdit>
 #include <QThread>
 #include <QTimer>
+#include <QVector>
 #include <QWidget>
 #include <QtGlobal>
 #include <QSplitter>
@@ -347,6 +348,16 @@ class Widget : public QWidget
     QString current_api;                 // 当前负载端点
     int currentSlotId_ = -1;             // llama-server slot id for this conversation
     HistoryStore *history_ = nullptr;    // persistent history writer
+    struct PendingStreamUpdate
+    {
+        QString text;
+        QColor color;
+    };
+    QVector<PendingStreamUpdate> streamPending_;
+    QTimer *streamFlushTimer_ = nullptr;
+    int streamPendingChars_ = 0;
+    static constexpr int kStreamFlushIntervalMs = 16;
+    static constexpr int kStreamMaxBufferChars = 2048;
 
     // 发给net的信号
   signals:
@@ -535,6 +546,9 @@ class Widget : public QWidget
 
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);
+    void enqueueStreamChunk(const QString &chunk, const QColor &color);
+    void flushPendingStream();
+    void processStreamChunk(const QString &chunk, const QColor &color);
 
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
     void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)

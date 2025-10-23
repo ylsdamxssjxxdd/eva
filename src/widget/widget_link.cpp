@@ -92,6 +92,7 @@ void Widget::set_api()
     slotCtxMax_ = 0;
     updateKvBarUi();
     fetchRemoteContextLimit();
+    flushPendingStream();
     ui->output->clear();
     // Reset record bar to avoid residual nodes when switching to LINK mode
     recordClear();

@@ -406,6 +406,7 @@ void Widget::recv_freeover_loadlater()
 void Widget::preLoad()
 {
     is_load = false; // 重置is_load标签
+    flushPendingStream();
     if (ui_state == CHAT_STATE)
     {
         ui->output->clear(); // 清空输出区
@@ -683,6 +684,7 @@ void Widget::on_send_clicked()
     turnThinkHeaderPrinted_ = false;
     turnAssistantHeaderPrinted_ = false;
     turnThinkActive_ = false;
+    flushPendingStream();
     sawPromptPast_ = false;
     sawFinalPast_ = false;
     // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
@@ -732,6 +734,7 @@ void Widget::on_send_clicked()
 }
 void Widget::recv_pushover()
 {
+    flushPendingStream();
     // Separate all reasoning (<think>...</think>) blocks from final content; capture both roles
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
@@ -956,6 +959,7 @@ void Widget::onTerminalInterruptRequested()
 // 停止完毕的后处理
 void Widget::recv_stopover()
 {
+    flushPendingStream();
     if (ui_state == COMPLETE_STATE)
     {
         ui->reset->click();
@@ -1368,6 +1372,7 @@ void Widget::restoreSessionById(const QString &sessionId)
         reflash_state(jtr("history db error"), WRONG_SIGNAL);
     }
 
+    flushPendingStream();
     ui->output->clear();
     ui_messagesArray = QJsonArray();
 

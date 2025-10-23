@@ -11,94 +11,145 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
     if (is_while)
     {
-        // Robust segmented rendering: handle multiple <think>...</think> in a single chunk
-        const QString begin = QString(DEFAULT_THINK_BEGIN);
-        const QString tend = QString(DEFAULT_THINK_END);
-
-        int pos = 0;
-        const int n = result.size();
-        while (pos < n)
-        {
-            if (turnThinkActive_)
-            {
-                // Inside think: find closing tag
-                int endIdx = result.indexOf(tend, pos);
-                const int until = (endIdx == -1) ? n : endIdx;
-                QString thinkPart = result.mid(pos, until - pos);
-                thinkPart.replace(begin, QString());
-                thinkPart.replace(tend, QString());
-                if (!turnThinkHeaderPrinted_)
-                {
-                    if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
-                    appendRoleHeader(QStringLiteral("think"));
-                    turnThinkHeaderPrinted_ = true;
-                }
-                if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor());
-                if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
-                if (endIdx == -1)
-                {
-                    // Still open, consume all
-                    break;
-                }
-                // Close think and continue after </think>
-                turnThinkActive_ = false;
-                pos = endIdx + tend.size();
-                // Ensure assistant header after leaving think
-                if (!turnAssistantHeaderPrinted_)
-                {
-                    if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
-                    appendRoleHeader(QStringLiteral("assistant"));
-                    turnAssistantHeaderPrinted_ = true;
-                }
-                continue;
-            }
-            else
-            {
-                // Outside think: find next <think>
-                int beginIdx = result.indexOf(begin, pos);
-                const int until = (beginIdx == -1) ? n : beginIdx;
-                QString asstPart = result.mid(pos, until - pos);
-                asstPart.replace(begin, QString());
-                asstPart.replace(tend, QString());
-                if (!asstPart.isEmpty())
-                {
-                    if (!turnAssistantHeaderPrinted_)
-                    {
-                        if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
-                        appendRoleHeader(QStringLiteral("assistant"));
-                        turnAssistantHeaderPrinted_ = true;
-                    }
-                    output_scroll(asstPart, themeTextPrimary());
-                    if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
-                }
-                if (beginIdx == -1)
-                {
-                    // No think begins; done
-                    break;
-                }
-                // Enter think after printing assistant prefix
-                if (!turnThinkHeaderPrinted_)
-                {
-                    if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
-                    appendRoleHeader(QStringLiteral("think"));
-                    turnThinkHeaderPrinted_ = true;
-                }
-                turnThinkActive_ = true;
-                pos = beginIdx + begin.size();
-                continue;
-            }
-        }
-
-        // Keep accumulating raw stream (with markers) for final separation
-        temp_assistant_history += result;
+        enqueueStreamChunk(result, color);
         return;
     }
+
+    flushPendingStream();
 
     // Non-stream: sanitize and print with provided color
     QString out = result;
     out.replace(QString(DEFAULT_THINK_BEGIN), QString());
     out.replace(QString(DEFAULT_THINK_END), QString());
     output_scroll(out, color);
+}
+
+void Widget::processStreamChunk(const QString &chunk, const QColor &color)
+{
+    if (chunk.isEmpty()) return;
+    Q_UNUSED(color);
+
+    const QString begin = QString(DEFAULT_THINK_BEGIN);
+    const QString tend = QString(DEFAULT_THINK_END);
+
+    int pos = 0;
+    const int n = chunk.size();
+    while (pos < n)
+    {
+        if (turnThinkActive_)
+        {
+            int endIdx = chunk.indexOf(tend, pos);
+            const int until = (endIdx == -1) ? n : endIdx;
+            QString thinkPart = chunk.mid(pos, until - pos);
+            thinkPart.replace(begin, QString());
+            thinkPart.replace(tend, QString());
+            if (!turnThinkHeaderPrinted_)
+            {
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
+                appendRoleHeader(QStringLiteral("think"));
+                turnThinkHeaderPrinted_ = true;
+            }
+            if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor());
+            if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
+            if (endIdx == -1)
+            {
+                break;
+            }
+            turnThinkActive_ = false;
+            pos = endIdx + tend.size();
+            if (!turnAssistantHeaderPrinted_)
+            {
+                if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
+                appendRoleHeader(QStringLiteral("assistant"));
+                turnAssistantHeaderPrinted_ = true;
+            }
+            continue;
+        }
+        else
+        {
+            int beginIdx = chunk.indexOf(begin, pos);
+            const int until = (beginIdx == -1) ? n : beginIdx;
+            QString asstPart = chunk.mid(pos, until - pos);
+            asstPart.replace(begin, QString());
+            asstPart.replace(tend, QString());
+            if (!asstPart.isEmpty())
+            {
+                if (!turnAssistantHeaderPrinted_)
+                {
+                    if (currentAssistantIndex_ < 0) currentAssistantIndex_ = recordCreate(RecordRole::Assistant);
+                    appendRoleHeader(QStringLiteral("assistant"));
+                    turnAssistantHeaderPrinted_ = true;
+                }
+                output_scroll(asstPart, themeTextPrimary());
+                if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
+            }
+            if (beginIdx == -1)
+            {
+                break;
+            }
+            if (!turnThinkHeaderPrinted_)
+            {
+                if (currentThinkIndex_ < 0) currentThinkIndex_ = recordCreate(RecordRole::Think);
+                appendRoleHeader(QStringLiteral("think"));
+                turnThinkHeaderPrinted_ = true;
+            }
+            turnThinkActive_ = true;
+            pos = beginIdx + begin.size();
+            continue;
+        }
+    }
+
+    temp_assistant_history += chunk;
+}
+
+void Widget::enqueueStreamChunk(const QString &chunk, const QColor &color)
+{
+    if (chunk.isEmpty())
+    {
+        return;
+    }
+
+    streamPendingChars_ += chunk.size();
+    streamPending_.append({chunk, color});
+
+    if (!streamFlushTimer_)
+    {
+        streamFlushTimer_ = new QTimer(this);
+        streamFlushTimer_->setSingleShot(true);
+        connect(streamFlushTimer_, &QTimer::timeout, this, &Widget::flushPendingStream);
+    }
+
+    if (streamPendingChars_ >= kStreamMaxBufferChars)
+    {
+        flushPendingStream();
+        return;
+    }
+
+    if (!streamFlushTimer_->isActive())
+    {
+        streamFlushTimer_->start(kStreamFlushIntervalMs);
+    }
+}
+
+void Widget::flushPendingStream()
+{
+    if (streamFlushTimer_ && streamFlushTimer_->isActive())
+    {
+        streamFlushTimer_->stop();
+    }
+    if (streamPending_.isEmpty())
+    {
+        return;
+    }
+
+    QVector<PendingStreamUpdate> pending;
+    pending.swap(streamPending_);
+    streamPendingChars_ = 0;
+
+    for (const PendingStreamUpdate &update : pending)
+    {
+        processStreamChunk(update.text, update.color);
+    }
 }
 
 // Print a role header above content; color by role
