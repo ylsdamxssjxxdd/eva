@@ -20,6 +20,7 @@
 #include <QStringList>
 #include <QSet>
 #include <QProcessEnvironment>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QtGlobal>
 #include <algorithm>
 
@@ -643,14 +644,38 @@ QString Widget::checkNode()
     const QString workingDir = applicationDirPath;
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     auto versionLine = [&](const QString &program, const QStringList &args) -> QString {
+        auto pickFirstLine = [](const ProcessResult &r) -> QString {
+            QString text = r.stdOut.isEmpty() ? r.stdErr : r.stdOut;
+            text = text.trimmed();
+            if (text.isEmpty()) return QString();
+            const int nl = text.indexOf('\n');
+            if (nl != -1) text = text.left(nl);
+            return text.trimmed();
+        };
+
         ProcessResult result = ProcessRunner::run(program, args, workingDir, env, 3000);
-        if (result.exitCode != 0) return QString();
-        QString text = result.stdOut.isEmpty() ? result.stdErr : result.stdOut;
-        text = text.trimmed();
-        if (text.isEmpty()) return QString();
-        const int nl = text.indexOf('\n');
-        if (nl != -1) text = text.left(nl);
-        return text.trimmed();
+        QString text = (result.exitCode == 0) ? pickFirstLine(result) : QString();
+#ifdef Q_OS_WIN
+        if (text.isEmpty())
+        {
+            QString cmdLine = program;
+            for (const QString &arg : args)
+            {
+                if (arg.isEmpty()) continue;
+                if (arg.contains(' '))
+                {
+                    cmdLine += QStringLiteral(" \"") + arg + QStringLiteral("\"");
+                }
+                else
+                {
+                    cmdLine += QStringLiteral(" ") + arg;
+                }
+            }
+            ProcessResult shellResult = ProcessRunner::runShellCommand(cmdLine.trimmed(), workingDir, env, 3000);
+            text = pickFirstLine(shellResult);
+        }
+#endif
+        return text;
     };
 
     QStringList lines;
@@ -678,6 +703,72 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(dir));
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
+}
+void Widget::triggerEngineerEnvRefresh(bool updatePrompt)
+{
+    if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return;
+    if (engineerEnvWatcher_.isRunning())
+    {
+        engineerEnvRefreshQueued_ = true;
+        engineerEnvPendingPromptUpdate_ = engineerEnvPendingPromptUpdate_ || updatePrompt;
+        return;
+    }
+    engineerEnvApplyPromptOnCompletion_ = updatePrompt;
+    engineerEnvRefreshQueued_ = false;
+    engineerEnvPendingPromptUpdate_ = false;
+    auto future = QtConcurrent::run([this]() -> EngineerEnvSnapshot {
+        EngineerEnvSnapshot snapshot;
+        snapshot.python = checkPython();
+        snapshot.compile = checkCompile();
+        snapshot.node = checkNode();
+        return snapshot;
+    });
+    engineerEnvWatcher_.setFuture(future);
+}
+void Widget::onEngineerEnvProbeFinished()
+{
+    if (!engineerEnvWatcher_.isFinished()) return;
+    const EngineerEnvSnapshot snapshot = engineerEnvWatcher_.result();
+    const bool updatePrompt = engineerEnvApplyPromptOnCompletion_;
+    engineerEnvApplyPromptOnCompletion_ = false;
+    applyEngineerEnvSnapshot(snapshot, updatePrompt);
+    if (engineerEnvRefreshQueued_)
+    {
+        const bool queuedPrompt = engineerEnvPendingPromptUpdate_;
+        engineerEnvPendingPromptUpdate_ = false;
+        engineerEnvRefreshQueued_ = false;
+        triggerEngineerEnvRefresh(queuedPrompt);
+    }
+}
+void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt)
+{
+    python_env = snapshot.python;
+    compile_env = snapshot.compile;
+    node_env = snapshot.node;
+    if (updatePrompt && !date_ui) updatePrompt = false;
+    if (updatePrompt && (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()))
+    {
+        updatePrompt = false;
+    }
+    if (!updatePrompt) return;
+
+    ui_extra_prompt = create_extra_prompt();
+    get_date();
+
+    if (!ui_messagesArray.isEmpty())
+    {
+        QJsonObject system = ui_messagesArray.first().toObject();
+        system.insert(QStringLiteral("content"), ui_DATES.date_prompt);
+        ui_messagesArray.replace(0, system);
+    }
+    if (history_ && !history_->sessionId().isEmpty())
+    {
+        history_->rewriteAllMessages(ui_messagesArray);
+    }
+    if (lastSystemRecordIndex_ >= 0)
+    {
+        updateRecordEntryContent(lastSystemRecordIndex_, ui_DATES.date_prompt);
+    }
 }
 // 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()

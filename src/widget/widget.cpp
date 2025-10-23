@@ -36,6 +36,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
             { reflash_state(QString::fromUtf8("ui:skill imported -> ") + id, SUCCESS_SIGNAL); });
     connect(skillManager, &SkillManager::skillOperationFailed, this, [this](const QString &msg)
             { reflash_state("ui:" + msg, WRONG_SIGNAL); });
+    engineerEnvWatcher_.setParent(this);
+    connect(&engineerEnvWatcher_, &QFutureWatcher<EngineerEnvSnapshot>::finished, this, &Widget::onEngineerEnvProbeFinished);
     // Default engineer workdir under application directory
     engineerWorkDir = QDir::cleanPath(QDir(applicationDirPath).filePath("EVA_WORK"));
     ui->splitter->setStretchFactor(0, 3); // 设置分隔器中第一个元素初始高度占比为3
@@ -1097,10 +1099,8 @@ void Widget::on_reset_clicked()
         return;
     }
 
-    // Refresh environment summaries so engineer tool always receives latest state.
-    python_env = checkPython();
-    compile_env = checkCompile();
-    node_env = checkNode();
+    // Refresh environment summaries asynchronously so engineer tool always receives latest state.
+    triggerEngineerEnvRefresh(true);
 
     if (date_ui)
     {
@@ -1142,6 +1142,7 @@ void Widget::on_reset_clicked()
         appendRoleHeader(QStringLiteral("system"));
         reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
         recordAppendText(__idx, ui_DATES.date_prompt);
+        lastSystemRecordIndex_ = __idx;
         if (!ui_messagesArray.isEmpty())
         {
             int mi = ui_messagesArray.size() - 1;
@@ -1530,7 +1531,97 @@ void Widget::recordClear()
     recordEntries_.clear();
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
+    lastSystemRecordIndex_ = -1;
     if (ui->recordBar) ui->recordBar->clearNodes();
+}
+
+void Widget::updateRecordEntryContent(int index, const QString &newText)
+{
+    if (index < 0 || index >= recordEntries_.size()) return;
+    RecordEntry &entry = recordEntries_[index];
+    QTextDocument *doc = ui->output->document();
+    if (!doc) return;
+    const int docEnd = outputDocEnd();
+    int contentFrom = qBound(0, entry.docFrom, docEnd);
+    while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
+
+    const auto canonicalRoleName = [](RecordRole r) -> QString
+    {
+        switch (r)
+        {
+        case RecordRole::System: return QStringLiteral("system");
+        case RecordRole::User: return QStringLiteral("user");
+        case RecordRole::Assistant: return QStringLiteral("assistant");
+        case RecordRole::Think: return QStringLiteral("think");
+        case RecordRole::Tool: return QStringLiteral("tool");
+        }
+        return QString();
+    };
+    const auto legacyRoleName = [](RecordRole r) -> QString
+    {
+        if (r == RecordRole::Assistant) return QStringLiteral("model");
+        return QString();
+    };
+    const auto displayRoleName = [this](RecordRole r) -> QString
+    {
+        switch (r)
+        {
+        case RecordRole::System: return jtr("role_system");
+        case RecordRole::User: return jtr("role_user");
+        case RecordRole::Assistant: return jtr("role_model");
+        case RecordRole::Think: return jtr("role_think");
+        case RecordRole::Tool: return jtr("role_tool");
+        }
+        return QString();
+    };
+
+    QStringList headerCandidates;
+    const QString display = displayRoleName(entry.role);
+    const QString canonical = canonicalRoleName(entry.role);
+    const QString legacy = legacyRoleName(entry.role);
+    if (!display.isEmpty()) headerCandidates << display;
+    if (!canonical.isEmpty() && !headerCandidates.contains(canonical)) headerCandidates << canonical;
+    if (!legacy.isEmpty() && !headerCandidates.contains(legacy)) headerCandidates << legacy;
+
+    auto consumeHeaderIfPresent = [&](int &pos)
+    {
+        const auto attempt = [&](const QString &candidate) -> bool
+        {
+            if (candidate.isEmpty()) return false;
+            const int len = candidate.size();
+            if (pos + len + 1 > docEnd) return false;
+            for (int i = 0; i < len; ++i)
+            {
+                if (doc->characterAt(pos + i) != candidate.at(i)) return false;
+            }
+            if (doc->characterAt(pos + len) != QChar('\n')) return false;
+            pos += len + 1;
+            return true;
+        };
+        for (const QString &candidate : headerCandidates)
+        {
+            if (attempt(candidate)) return true;
+        }
+        return false;
+    };
+
+    consumeHeaderIfPresent(contentFrom);
+
+    const int oldContentTo = qBound(contentFrom, entry.docTo, docEnd);
+    replaceOutputRangeColored(contentFrom, oldContentTo, newText, textColorForRole(entry.role));
+    const int newEnd = contentFrom + newText.size();
+    const int delta = newEnd - oldContentTo;
+    entry.text = newText;
+    entry.docTo = newEnd;
+    for (int i = index + 1; i < recordEntries_.size(); ++i)
+    {
+        recordEntries_[i].docFrom += delta;
+        recordEntries_[i].docTo += delta;
+    }
+
+    QString tip = newText;
+    if (tip.size() > 600) tip = tip.left(600) + "...";
+    if (ui->recordBar) ui->recordBar->updateNode(index, tip);
 }
 
 void Widget::gotoRecord(int index)

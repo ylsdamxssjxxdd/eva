@@ -35,6 +35,7 @@
 #include <QRadioButton>
 #include <QResource>
 #include <QScrollBar>
+#include <QFutureWatcher>
 #include <QSettings>
 #include <QShortcut>
 #include <QSlider>
@@ -154,6 +155,7 @@ class Widget : public QWidget
     void setEngineerWorkDir(const QString &dir);
     // Set workdir without emitting signals (for early restore during startup)
     void setEngineerWorkDirSilently(const QString &dir);
+    void triggerEngineerEnvRefresh(bool updatePrompt = true);
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
@@ -290,9 +292,21 @@ class Widget : public QWidget
     QString checkPython();  // 获取环境中的python版本以及库信息
     QString checkCompile(); // 获取环境中的编译器版本
     QString checkNode();    // 获取环境中的Node.js版本信息
+    struct EngineerEnvSnapshot
+    {
+        QString python;
+        QString compile;
+        QString node;
+    };
+    void onEngineerEnvProbeFinished();
+    void applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt);
     QString python_env = "";
     QString compile_env = "";
     QString node_env = "";
+    QFutureWatcher<EngineerEnvSnapshot> engineerEnvWatcher_;
+    bool engineerEnvRefreshQueued_ = false;
+    bool engineerEnvPendingPromptUpdate_ = false;
+    bool engineerEnvApplyPromptOnCompletion_ = false;
     QString truncateString(const QString &str, int maxLength);
 
     // 工具相关
@@ -522,6 +536,7 @@ class Widget : public QWidget
     QVector<RecordEntry> recordEntries_;
     int currentThinkIndex_ = -1;     // index of streaming think in current turn
     int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
+    int lastSystemRecordIndex_ = -1; // system record index for current session (for env refresh)
     // Record helpers
     int outputDocEnd() const;
     QColor chipColorForRole(RecordRole r) const;
@@ -530,6 +545,7 @@ class Widget : public QWidget
     void recordAppendText(int index, const QString &text);
     void recordClear();
     void gotoRecord(int index);
+    void updateRecordEntryContent(int index, const QString &newText);
 
     void refreshSkillsUI();
     void rebuildSkillPrompts();
