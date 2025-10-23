@@ -1,8 +1,18 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include <QtGlobal>
+#include <QComboBox>
+#include <QFontComboBox>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QLayout>
+#include <QColor>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QSize>
+#include <QVector>
+#include <QVBoxLayout>
+#include <QEasingCurve>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -18,6 +28,8 @@ void Widget::set_SetDialog()
     {
         layout->setSizeConstraint(QLayout::SetMinimumSize);
     }
+
+    setupGlobalSettingsPanel();
 
     // 推理设备下拉：根据当前目录中可用后端动态填充
     {
@@ -103,6 +115,391 @@ void Widget::set_SetDialog()
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
 
     settings_dialog->setWindowTitle(jtr("set"));
+}
+
+void Widget::setupGlobalSettingsPanel()
+{
+    if (!settings_ui || globalSettingsPanel_ || !settings_dialog) return;
+
+    QVBoxLayout *rootLayout = settings_ui->verticalLayout_4;
+    if (!rootLayout) return;
+
+    QWidget *host = new QWidget(settings_dialog);
+    host->setObjectName(QStringLiteral("globalSettingsContainer"));
+    QHBoxLayout *splitLayout = new QHBoxLayout(host);
+    splitLayout->setContentsMargins(0, 0, 0, 0);
+    splitLayout->setSpacing(6);
+
+    if (settings_ui->sample_box)
+    {
+        rootLayout->removeWidget(settings_ui->sample_box);
+        splitLayout->addWidget(settings_ui->sample_box, 1);
+    }
+
+    globalSettingsPanel_ = new QFrame(settings_dialog);
+    globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
+    globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
+    globalSettingsPanel_->setFrameShadow(QFrame::Raised);
+    globalSettingsPanel_->setMinimumWidth(0);
+    globalSettingsPanel_->setMaximumWidth(0);
+    globalSettingsPanel_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+
+    QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
+    panelLayout->setContentsMargins(12, 16, 12, 16);
+    panelLayout->setSpacing(12);
+
+    auto createLabel = [&](const QString &text, int weight = 600) -> QLabel *
+    {
+        QLabel *label = new QLabel(text, globalSettingsPanel_);
+        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        label->setStyleSheet(QStringLiteral("font-weight:%1;").arg(weight));
+        return label;
+    };
+
+    panelLayout->addWidget(createLabel(tr("全局设置")));
+    panelLayout->addSpacing(4);
+
+    panelLayout->addWidget(createLabel(tr("界面字体"), 500));
+    globalFontCombo_ = new QFontComboBox(globalSettingsPanel_);
+    globalFontCombo_->setEditable(false);
+    globalFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    panelLayout->addWidget(globalFontCombo_);
+
+    panelLayout->addWidget(createLabel(tr("字号"), 500));
+    globalFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
+    globalFontSizeSpin_->setRange(8, 48);
+    globalFontSizeSpin_->setAccelerated(true);
+    panelLayout->addWidget(globalFontSizeSpin_);
+
+    panelLayout->addWidget(createLabel(tr("机体配色"), 500));
+    globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
+    globalThemeCombo_->addItem(tr("初号机"), QStringLiteral("unit01"));
+    globalThemeCombo_->addItem(tr("零号机"), QStringLiteral("unit00"));
+    globalThemeCombo_->addItem(tr("二号机"), QStringLiteral("unit02"));
+    globalThemeCombo_->addItem(tr("三号机"), QStringLiteral("unit03"));
+    panelLayout->addWidget(globalThemeCombo_);
+    panelLayout->addStretch(1);
+
+    splitLayout->addWidget(globalSettingsPanel_, 0);
+    splitLayout->setStretch(0, 1);
+    splitLayout->setStretch(1, 0);
+
+    rootLayout->insertWidget(0, host);
+    globalPanelHost_ = host;
+
+    settings_ui->global_pushButton->setCheckable(true);
+    settings_ui->global_pushButton->setChecked(false);
+
+    connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::toggleGlobalSettingsPanel);
+    connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
+    connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
+    connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
+
+    globalSettingsPanel_->setMaximumWidth(QWIDGETSIZE_MAX);
+    globalPanelExpandedWidth_ = qMax(globalSettingsPanel_->sizeHint().width(), 260);
+    globalSettingsPanel_->setMaximumWidth(0);
+    globalSettingsPanel_->setMinimumWidth(0);
+    globalSettingsPanel_->hide();
+    globalPanelOpen_ = false;
+
+    syncGlobalSettingsPanelControls();
+}
+
+void Widget::syncGlobalSettingsPanelControls()
+{
+    if (!globalSettingsPanel_) return;
+    if (globalFontCombo_)
+    {
+        QSignalBlocker blocker(globalFontCombo_);
+        QFont font = QApplication::font();
+        if (!globalUiSettings_.fontFamily.trimmed().isEmpty())
+        {
+            font.setFamily(globalUiSettings_.fontFamily);
+        }
+        globalFontCombo_->setCurrentFont(font);
+    }
+    if (globalFontSizeSpin_)
+    {
+        QSignalBlocker blocker(globalFontSizeSpin_);
+        int size = globalUiSettings_.fontSizePt > 0 ? globalUiSettings_.fontSizePt : QApplication::font().pointSize();
+        if (size <= 0) size = 12;
+        globalFontSizeSpin_->setValue(size);
+    }
+    if (globalThemeCombo_)
+    {
+        QSignalBlocker blocker(globalThemeCombo_);
+        int idx = globalThemeCombo_->findData(globalUiSettings_.themeId);
+        if (idx < 0) idx = 0;
+        globalThemeCombo_->setCurrentIndex(idx);
+    }
+}
+
+void Widget::toggleGlobalSettingsPanel()
+{
+    if (!globalSettingsPanel_) return;
+
+    if (!globalPanelAnimation_)
+    {
+        globalPanelAnimation_ = new QPropertyAnimation(globalSettingsPanel_, "maximumWidth", this);
+        globalPanelAnimation_->setDuration(220);
+        globalPanelAnimation_->setEasingCurve(QEasingCurve::OutCubic);
+        connect(globalPanelAnimation_, &QPropertyAnimation::finished, this, [this]()
+                {
+                    if (!globalSettingsPanel_) return;
+                    if (globalPanelOpen_)
+                    {
+                        globalSettingsPanel_->setMinimumWidth(globalPanelExpandedWidth_);
+                        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
+                        globalSettingsPanel_->show();
+                    }
+                    else
+                    {
+                        globalSettingsPanel_->setMinimumWidth(0);
+                        globalSettingsPanel_->setMaximumWidth(0);
+                        globalSettingsPanel_->hide();
+                    }
+                    if (settings_ui && settings_ui->global_pushButton)
+                    {
+                        settings_ui->global_pushButton->setChecked(globalPanelOpen_);
+                    }
+                    applySettingsDialogSizing();
+                });
+    }
+
+    const bool expanding = !globalPanelOpen_;
+    globalPanelOpen_ = expanding;
+
+    globalPanelAnimation_->stop();
+    globalSettingsPanel_->setMinimumWidth(0);
+    globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
+    if (expanding) globalSettingsPanel_->show();
+    int start = globalSettingsPanel_->width();
+    if (start <= 0) start = expanding ? 0 : globalPanelExpandedWidth_;
+    const int end = expanding ? globalPanelExpandedWidth_ : 0;
+    globalPanelAnimation_->setStartValue(start);
+    globalPanelAnimation_->setEndValue(end);
+    globalPanelAnimation_->start();
+}
+
+void Widget::handleGlobalFontFamilyChanged(const QFont &font)
+{
+    const int size = globalFontSizeSpin_ ? globalFontSizeSpin_->value() : globalUiSettings_.fontSizePt;
+    applyGlobalFont(font.family(), size, true);
+}
+
+void Widget::handleGlobalFontSizeChanged(int value)
+{
+    const QString family = globalFontCombo_ ? globalFontCombo_->currentFont().family() : globalUiSettings_.fontFamily;
+    applyGlobalFont(family, value, true);
+}
+
+void Widget::handleGlobalThemeChanged(int index)
+{
+    if (!globalThemeCombo_) return;
+    const QString themeId = globalThemeCombo_->itemData(index).toString();
+    applyGlobalTheme(themeId, true);
+}
+
+void Widget::applyGlobalFont(const QString &family, int sizePt, bool persist)
+{
+    const QString trimmed = family.trimmed();
+    if (!trimmed.isEmpty()) globalUiSettings_.fontFamily = trimmed;
+    if (sizePt > 0)
+    {
+        globalUiSettings_.fontSizePt = qBound(8, sizePt, 72);
+    }
+    else if (globalUiSettings_.fontSizePt <= 0)
+    {
+        globalUiSettings_.fontSizePt = 12;
+    }
+
+    refreshApplicationStyles();
+    syncGlobalSettingsPanelControls();
+    if (persist) auto_save_user();
+}
+
+namespace
+{
+struct ThemeDefinition
+{
+    QString id;
+    QColor window;
+    QColor panel;
+    QColor border;
+    QColor button;
+    QColor highlight;
+    QColor highlightText;
+    QColor text;
+};
+
+const QVector<ThemeDefinition> &themeDefinitions()
+{
+    static const QVector<ThemeDefinition> defs = {
+        {"unit00",
+         QColor("#f2f6ff"),
+         QColor("#ffffff"),
+         QColor("#468ec6"),
+         QColor("#dcecff"),
+         QColor("#62b0ff"),
+         QColor("#0e2740"),
+         QColor("#1a2a3f")},
+        {"unit02",
+         QColor("#2b0d11"),
+         QColor("#331417"),
+         QColor("#d44b36"),
+         QColor("#4a1e21"),
+         QColor("#ff7043"),
+         QColor("#fff2ec"),
+         QColor("#ffe3d9")},
+        {"unit03",
+         QColor("#10131c"),
+         QColor("#181d29"),
+         QColor("#5e65d8"),
+         QColor("#242b3c"),
+         QColor("#9a79ff"),
+         QColor("#161622"),
+         QColor("#e9edff")}};
+    return defs;
+}
+} // namespace
+
+QString Widget::buildThemeOverlay(const QString &themeId) const
+{
+    if (themeId.isEmpty() || themeId == QStringLiteral("unit01")) return QString();
+
+    const ThemeDefinition *def = nullptr;
+    for (const ThemeDefinition &candidate : themeDefinitions())
+    {
+        if (candidate.id == themeId)
+        {
+            def = &candidate;
+            break;
+        }
+    }
+    if (!def) return QString();
+
+    const auto hex = [](const QColor &c) { return c.name(QColor::HexRgb); };
+    const QString window = hex(def->window);
+    const QString panel = hex(def->panel);
+    const QString border = hex(def->border);
+    const QString button = hex(def->button);
+    const QString highlight = hex(def->highlight);
+    const QString highlightText = hex(def->highlightText);
+    const QString text = hex(def->text);
+
+    QString overlay = QStringLiteral(
+        "QWidget { background-color: %1; color: %2; }\n"
+        "QFrame, QGroupBox { background-color: %3; border: 2px solid %4; }\n"
+        "QGroupBox::title { background-color: %5; color: %6; border: 2px solid %4; padding: 0 8px; }\n"
+        "QLabel, QCheckBox, QRadioButton { color: %2; }\n"
+        "QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateTimeEdit, QTimeEdit, QDateEdit {"
+        " background-color: %3; color: %2; border: 2px solid %4; selection-background-color: %5; selection-color: %6; }\n"
+        "QPushButton { background-color: %7; color: %6; border: 2px solid %4; padding: 4px 10px; }\n"
+        "QPushButton:hover { background-color: %5; color: %6; }\n"
+        "QPushButton:pressed { background-color: %4; color: %6; }\n"
+        "QScrollArea, QListWidget, QListView, QTreeWidget, QTreeView, QTableWidget { background-color: %3; color: %2; }\n"
+        "QScrollBar:vertical { background: %3; width: 12px; }\n"
+        "QScrollBar::handle:vertical { background: %5; border: 2px solid %4; border-radius: 5px; }\n"
+        "QScrollBar:horizontal { background: %3; height: 12px; }\n"
+        "QScrollBar::handle:horizontal { background: %5; border: 2px solid %4; border-radius: 5px; }\n"
+        "QSlider::groove:horizontal { background-color: %3; height: 6px; border-radius: 3px; }\n"
+        "QSlider::handle:horizontal { background-color: %5; border: 2px solid %4; width: 16px; margin: -5px 0; border-radius: 8px; }\n"
+        "QSlider::groove:vertical { background-color: %3; width: 6px; border-radius: 3px; }\n"
+        "QSlider::handle:vertical { background-color: %5; border: 2px solid %4; height: 16px; margin: 0 -5px; border-radius: 8px; }\n"
+        "QMenu { background-color: %3; border: 1px solid %4; }\n"
+        "QMenu::item:selected { background-color: %5; color: %6; }\n"
+        "QToolTip { background-color: %7; color: %6; border: 1px solid %4; }\n"
+        "QStatusBar { background-color: %3; border-top: 1px solid %4; }\n")
+                            .arg(window, text, panel, border, highlight, highlightText, button);
+
+    return overlay;
+}
+
+QString Widget::buildFontOverrideCss() const
+{
+    const QString family = globalUiSettings_.fontFamily.trimmed();
+    const int sizePt = globalUiSettings_.fontSizePt > 0 ? globalUiSettings_.fontSizePt : QApplication::font().pointSize();
+    if (family.isEmpty() && sizePt <= 0) return QString();
+
+    const QString effectiveFamily = family.isEmpty() ? QApplication::font().family() : family;
+    QString escapedFamily = effectiveFamily;
+    escapedFamily.replace('"', "\\\"");
+    const int effectiveSize = sizePt > 0 ? sizePt : 12;
+
+    return QStringLiteral(
+               "QWidget, QToolTip, QMenu, QComboBox, QComboBox QAbstractItemView,\n"
+               "QComboBox QListView, QListView, QTreeView, QTableView, QTextEdit,\n"
+               "QPlainTextEdit, QLineEdit, QLabel, QPushButton, QRadioButton,\n"
+               "QCheckBox, QTabWidget, QTabBar::tab {\n"
+               "  font-family: \"%1\";\n"
+               "  font-size: %2pt;\n"
+               "}\n")
+        .arg(escapedFamily, QString::number(effectiveSize));
+}
+
+void Widget::refreshApplicationStyles()
+{
+    QFont target = QApplication::font();
+    if (!globalUiSettings_.fontFamily.trimmed().isEmpty())
+    {
+        target.setFamily(globalUiSettings_.fontFamily);
+    }
+    if (globalUiSettings_.fontSizePt > 0)
+    {
+        target.setPointSize(globalUiSettings_.fontSizePt);
+    }
+    else if (target.pointSize() <= 0)
+    {
+        target.setPointSize(12);
+    }
+    QApplication::setFont(target);
+
+    QString composed = baseStylesheet_;
+    const QString overlay = buildThemeOverlay(globalUiSettings_.themeId);
+    if (!overlay.isEmpty())
+    {
+        if (!composed.isEmpty()) composed.append('\n');
+        composed.append(overlay);
+    }
+    const QString fontCss = buildFontOverrideCss();
+    if (!fontCss.isEmpty())
+    {
+        if (!composed.isEmpty()) composed.append('\n');
+        composed.append(fontCss);
+    }
+    if (qApp) qApp->setStyleSheet(composed);
+}
+
+void Widget::applyGlobalTheme(const QString &themeId, bool persist)
+{
+    QString effective = themeId;
+    if (effective.isEmpty()) effective = QStringLiteral("unit01");
+    if (effective != QStringLiteral("unit01") && effective != QStringLiteral("unit00") &&
+        effective != QStringLiteral("unit02") && effective != QStringLiteral("unit03"))
+    {
+        effective = QStringLiteral("unit01");
+    }
+
+    globalUiSettings_.themeId = effective;
+    refreshApplicationStyles();
+    syncGlobalSettingsPanelControls();
+    if (persist) auto_save_user();
+}
+
+void Widget::setBaseStylesheet(const QString &style)
+{
+    baseStylesheet_ = style;
+    refreshApplicationStyles();
+}
+
+void Widget::loadGlobalUiSettings(const QSettings &settings)
+{
+    const QString family = settings.value("global_font_family", globalUiSettings_.fontFamily).toString();
+    const int sizePt = settings.value("global_font_size", globalUiSettings_.fontSizePt).toInt();
+    const QString themeId = settings.value("global_theme", globalUiSettings_.themeId).toString();
+
+    applyGlobalFont(family, sizePt > 0 ? sizePt : globalUiSettings_.fontSizePt, false);
+    applyGlobalTheme(themeId, false);
 }
 
 void Widget::applySettingsDialogSizing()

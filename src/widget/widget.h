@@ -12,6 +12,7 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QGroupBox>
+#include <QFrame>
 #include <QGuiApplication>
 #include <QHostInfo>
 #include <QIODevice>
@@ -26,6 +27,7 @@
 #include <QNetworkInterface>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPropertyAnimation>
 #include <QProcess>
 #include <QProgressBar>
 #include <QProgressDialog>
@@ -35,6 +37,7 @@
 #include <QSettings>
 #include <QShortcut>
 #include <QSlider>
+#include <QSpinBox>
 #include <QSystemTrayIcon>
 #include <QTcpSocket>
 #include <QTextBlock>
@@ -47,6 +50,7 @@
 #include <QWidget>
 #include <QtGlobal>
 #include <QSplitter>
+#include <QFontComboBox>
 #include <thread>
 #ifdef _WIN32
 #include <windows.h>
@@ -148,6 +152,8 @@ class Widget : public QWidget
     void setEngineerWorkDir(const QString &dir);
     // Set workdir without emitting signals (for early restore during startup)
     void setEngineerWorkDirSilently(const QString &dir);
+    void setBaseStylesheet(const QString &style);
+    void loadGlobalUiSettings(const QSettings &settings);
 
     void ui_state_init();           // 初始界面状态
     void ui_state_loading();        // 装载中界面状态
@@ -549,10 +555,41 @@ class Widget : public QWidget
     void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)
     void fetchPropsContextLimit();  // fallback: GET /props and read default_generation_settings.n_ctx
     QString buildWorkspaceSnapshot(const QString &root) const;
+    // Global UI styling helpers
+    void setupGlobalSettingsPanel();
+    void syncGlobalSettingsPanelControls();
+    void toggleGlobalSettingsPanel();
+    void handleGlobalFontFamilyChanged(const QFont &font);
+    void handleGlobalFontSizeChanged(int value);
+    void handleGlobalThemeChanged(int index);
+    void applyGlobalFont(const QString &family, int sizePt, bool persist);
+    void applyGlobalTheme(const QString &themeId, bool persist);
+    QString buildThemeOverlay(const QString &themeId) const;
+    QString buildFontOverrideCss() const;
+    void refreshApplicationStyles();
+
   private:
     Ui::Widget *ui;
     int terminalAutoExpandSize_ = 320;
     bool terminalCollapsed_ = true;
-};
+
+    struct GlobalUiSettings
+    {
+        QString fontFamily;
+        int fontSizePt = 12;
+        QString themeId = QStringLiteral("unit01");
+    };
+    GlobalUiSettings globalUiSettings_;
+    QString baseStylesheet_;
+    bool globalPanelOpen_ = false;
+    QWidget *globalPanelHost_ = nullptr;
+    QFrame *globalSettingsPanel_ = nullptr;
+    QFontComboBox *globalFontCombo_ = nullptr;
+    QSpinBox *globalFontSizeSpin_ = nullptr;
+    QComboBox *globalThemeCombo_ = nullptr;
+    QPropertyAnimation *globalPanelAnimation_ = nullptr;
+    int globalPanelExpandedWidth_ = 260;
+
+  };
 
 #endif // WIDGET_H

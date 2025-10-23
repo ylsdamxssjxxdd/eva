@@ -108,6 +108,13 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //-------------默认展示内容-------------
     right_menu = nullptr;     // 初始设置输入区右击菜单为空
     ui_font.setPointSize(10); // 将设置控件的字体大小设置为10
+    {
+        const QFont appFont = QApplication::font();
+        globalUiSettings_.fontFamily = appFont.family();
+        const int pt = appFont.pointSize();
+        globalUiSettings_.fontSizePt = pt > 0 ? pt : globalUiSettings_.fontSizePt;
+        globalUiSettings_.themeId = QStringLiteral("unit01");
+    }
     EVA_icon = QIcon(":/logo/dark_logo.png");
     QApplication::setWindowIcon(EVA_icon);                                         // 设置应用程序图标
     ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                       // 设置设置图标

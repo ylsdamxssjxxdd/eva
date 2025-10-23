@@ -922,6 +922,9 @@ void Widget::auto_save_user()
     settings.setValue("ui_state", ui_state);       // 机体状态
     settings.setValue("shell", shell);             // shell路径
     settings.setValue("python", pythonExecutable); // python版本
+    settings.setValue("global_font_family", globalUiSettings_.fontFamily);
+    settings.setValue("global_font_size", globalUiSettings_.fontSizePt);
+    settings.setValue("global_theme", globalUiSettings_.themeId);
     // 保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath); // 模型路径
     // Persist core sampling params as strings only to avoid float drift on reload

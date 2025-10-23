@@ -248,8 +248,8 @@ int main(int argc, char *argv[])
     QFile file(":/QSS/eva.qss");
     file.open(QFile::ReadOnly);
     QString stylesheet = file.readAll();
-    w.setStyleSheet(stylesheet);
-    expend.setStyleSheet(stylesheet);
+    a.setStyleSheet(stylesheet);
+    w.setBaseStylesheet(stylesheet);
 
     //------------------注册信号传递变量-------------------
     qRegisterMetaType<EVA_CHATS_TEMPLATE>("EVA_CHATS_TEMPLATE");
@@ -404,6 +404,7 @@ int main(int argc, char *argv[])
                               //  读取配置文件中的值
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
+        w.loadGlobalUiSettings(settings);
         w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
         w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
         QString modelpath = settings.value("modelpath", applicationDirPath + DEFAULT_LLM_MODEL_PATH).toString();                    // 模型路径
