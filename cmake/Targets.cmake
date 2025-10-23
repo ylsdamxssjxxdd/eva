@@ -36,6 +36,7 @@ add_executable(
     src/utils/neuronlogedit.cpp src/utils/neuronlogedit.h
     src/utils/evallogedit.cpp src/utils/evallogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
+    src/utils/textspacing.cpp src/utils/textspacing.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
     src/utils/zip_extractor.cpp src/utils/zip_extractor.h
     src/skill/skill_manager.cpp src/skill/skill_manager.h

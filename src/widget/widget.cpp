@@ -14,6 +14,7 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QtGlobal>
+#include "../utils/textspacing.h"
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
@@ -128,6 +129,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->state->installEventFilter(this);                          // 安装事件过滤器
     ui->state->setLineWrapMode(QPlainTextEdit::NoWrap);           // 禁用自动换行
     ui->state->setFocus();
+    TextSpacing::apply(ui->state, 1.25);
+    TextSpacing::apply(ui->output, 1.25);
+    if (ui->input && ui->input->textEdit) TextSpacing::apply(ui->input->textEdit, 1.25);
     // Setup decode timer for wait animation
     decode_pTimer = new QTimer(this);
     connect(decode_pTimer, &QTimer::timeout, this, &Widget::decode_handleTimeout);

@@ -2,6 +2,7 @@
 
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
+#include "../utils/textspacing.h"
 #include "ui_expend.h"
 
 //-------------------------------------------------------------------------

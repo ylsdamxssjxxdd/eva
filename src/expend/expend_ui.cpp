@@ -12,6 +12,7 @@
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
 #include <src/utils/imagedropwidget.h>
+#include <src/utils/textspacing.h>
 
 // Local lightweight image drop/click widget for img2img
 
@@ -32,6 +33,11 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              // 声转文
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                  // 文转声
     ui->tabWidget->setTabText(window_map[MODELEVAL_WINDOW], jtr("model evaluate"));         // 模型评估
+    auto setSpacing = [](auto *edit, qreal factor)
+    {
+        if (!edit) return;
+        TextSpacing::apply(edit, factor);
+    };
     // 软件介绍
     showReadme();
     // 模型量化
@@ -46,6 +52,7 @@ void Expend::init_expend()
     ui->model_quantize_type_label->setText(jtr("select quantize type"));
     ui->model_quantize_execute->setText(jtr("execute quantize"));
     ui->quantize_log_groupBox->setTitle("llama-quantize " + jtr("execute log"));
+    setSpacing(ui->model_quantize_log, 1.15);
     // 知识库
     if (ui->embedding_txt_wait && ui->embedding_txt_wait->columnCount() == 0) ui->embedding_txt_wait->setColumnCount(1);
     if (ui->embedding_txt_over && ui->embedding_txt_over->columnCount() == 0) ui->embedding_txt_over->setColumnCount(1);
@@ -67,11 +74,14 @@ void Expend::init_expend()
     ui->embedding_result_groupBox->setTitle(jtr("retrieval result"));
     ui->embedding_log_groupBox->setTitle(jtr("log"));
     ui->embedding_resultnumb_label->setText(jtr("resultnumb"));
+    setSpacing(ui->embedding_test_result, 1.2);
+    setSpacing(ui->embedding_test_textEdit, 1.2);
     ui->sd_result_groupBox->setTitle(jtr("result"));
     if (ui->embedding_test_log)
     {
         ui->embedding_test_log->setLineWrapMode(QPlainTextEdit::NoWrap);
         ui->embedding_test_log->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        setSpacing(ui->embedding_test_log, 1.2);
     }
     if (ui->embedding_txt_wait)
     {
@@ -169,6 +179,8 @@ void Expend::init_expend()
     ui->mcp_server_config_groupBox->setTitle(jtr("mcp_server_config"));
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
+    setSpacing(ui->mcp_server_config_textEdit, 1.2);
+    setSpacing(ui->mcp_server_log_plainTextEdit, 1.15);
 
     // 模型评估（双语）
     if (ui->eval_info_groupBox) ui->eval_info_groupBox->setTitle(jtr("current info"));
@@ -218,6 +230,10 @@ void Expend::init_expend()
     primeSummaryCard(ui->eval_summary_card_tool, ui->eval_summary_tool_label, ui->eval_summary_tool_value);
     primeSummaryCard(ui->eval_summary_card_sync, ui->eval_summary_sync_label, ui->eval_summary_sync_value);
     updateEvalSummary(true);
+    setSpacing(ui->eval_log_plainTextEdit, 1.15);
+    setSpacing(ui->whisper_log, 1.15);
+    setSpacing(ui->speech_log, 1.15);
+    setSpacing(ui->speech_manual_plainTextEdit, 1.2);
 }
 
 // 用户切换选项卡时响应
@@ -498,4 +514,5 @@ void Expend::showReadme()
 
     cursor.insertImage(imageFormat);
     cursor.insertText("\n\n");
+    TextSpacing::apply(ui->info_card, 1.35);
 }

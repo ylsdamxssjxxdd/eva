@@ -6,6 +6,7 @@
 #include "../utils/flowprogressbar.h"
 #include "../utils/introanimedit.h"
 #include "../utils/neuronlogedit.h"
+#include "../utils/textspacing.h"
 #include <QDir>
 #include <QProcessEnvironment>
 #include <QScrollBar>
@@ -25,10 +26,24 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     // Ensure a dedicated temp dir for TTS outputs under EVA_TEMP to avoid touching working dir
     outettsDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
 
+    auto applySpacing = [](auto *edit, qreal factor)
+    {
+        if (!edit) return;
+        TextSpacing::apply(edit, factor);
+    };
     // Basic UI tweaks (non-critical if object names evolve)
     if (ui->sd_prompt_textEdit) ui->sd_prompt_textEdit->setContextMenuPolicy(Qt::NoContextMenu);
-    if (ui->sd_log) ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);
-    if (ui->modellog_card) ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);
+    applySpacing(ui->sd_prompt_textEdit, 1.25);
+    if (ui->sd_log)
+    {
+        ui->sd_log->setLineWrapMode(QPlainTextEdit::NoWrap);
+        applySpacing(ui->sd_log, 1.15);
+    }
+    if (ui->modellog_card)
+    {
+        ui->modellog_card->setLineWrapMode(QPlainTextEdit::NoWrap);
+        applySpacing(ui->modellog_card, 1.15);
+    }
     if (ui->mcp_server_progressBar)
     {
         ui->mcp_server_progressBar->setRange(0, 0); // indeterminate
