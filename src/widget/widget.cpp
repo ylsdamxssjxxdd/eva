@@ -1662,8 +1662,22 @@ void Widget::onRecordDoubleClicked(int index)
     if (index < 0 || index >= recordEntries_.size()) return;
     if (ui->recordBar) ui->recordBar->setSelectedIndex(index);
     auto &e = recordEntries_[index];
+    const auto roleName = [](RecordRole r) -> QString
+    {
+        switch (r)
+        {
+        case RecordRole::System: return QStringLiteral("system");
+        case RecordRole::User: return QStringLiteral("user");
+        case RecordRole::Assistant: return QStringLiteral("assistant");
+        case RecordRole::Think: return QStringLiteral("think");
+        case RecordRole::Tool: return QStringLiteral("tool");
+        }
+        return QStringLiteral("user");
+    };
+    const QString roleKey = roleName(e.role);
+
     QDialog dlg(this);
-    dlg.setWindowTitle(jtr("edit"));
+    dlg.setWindowTitle(QStringLiteral("%1 %2").arg(jtr("edit history record"), roleKey));
     dlg.setModal(true);
     QVBoxLayout *lay = new QVBoxLayout(&dlg);
     QTextEdit *ed = new QTextEdit(&dlg);
@@ -1685,19 +1699,6 @@ void Widget::onRecordDoubleClicked(int index)
 
     // Skip leading blank line inserted before header (if any)
     while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
-
-    auto roleName = [](RecordRole r) -> QString
-    {
-        switch (r)
-        {
-        case RecordRole::System: return QStringLiteral("system");
-        case RecordRole::User: return QStringLiteral("user");
-        case RecordRole::Assistant: return QStringLiteral("assistant");
-        case RecordRole::Think: return QStringLiteral("think");
-        case RecordRole::Tool: return QStringLiteral("tool");
-        }
-        return QStringLiteral("user");
-    };
 
     const QString header = roleName(e.role);
     // If header is present right after contentFrom, skip "header\n"
@@ -1745,18 +1746,6 @@ void Widget::onRecordDoubleClicked(int index)
         // Skip any leading blank lines before header
         while (s < docEnd2 && doc->characterAt(s) == QChar('\n')) ++s;
 
-        const auto roleName = [](RecordRole r) -> QString
-        {
-            switch (r)
-            {
-            case RecordRole::System: return QStringLiteral("system");
-            case RecordRole::User: return QStringLiteral("user");
-            case RecordRole::Assistant: return QStringLiteral("assistant");
-            case RecordRole::Think: return QStringLiteral("think");
-            case RecordRole::Tool: return QStringLiteral("tool");
-            }
-            return QStringLiteral("user");
-        };
         const QString header = roleName(e.role);
 
         bool headerOk = false;

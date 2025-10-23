@@ -802,22 +802,22 @@ void Widget::recv_prompt_baseline(int tokens)
     kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
     kvUsed_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
     sawPromptPast_ = true;
-    if (ui_mode == LINK_MODE)
-    {
-        const int deltaPrompt = kvPromptTokensTurn_ - previousPrompt;
-        const int deltaContext = kvUsedBeforeTurn_ - previousBaseline;
-        const QString tag = (deltaPrompt == 0) ? QStringLiteral("link:prompt usage (repeat)")
-                                               : QStringLiteral("link:prompt usage");
-        reflash_state(QStringLiteral("%1 prompt=%2 delta_prompt=%3 delta_ctx=%4 stream=%5 turn=%6 used=%7 used_before=%8")
-                          .arg(tag)
-                          .arg(kvPromptTokensTurn_)
-                          .arg(deltaPrompt)
-                          .arg(deltaContext)
-                          .arg(kvStreamedTurn_)
-                          .arg(kvTokensTurn_)
-                          .arg(kvUsed_)
-                          .arg(kvUsedBeforeTurn_));
-    }
+    // if (ui_mode == LINK_MODE)
+    // {
+    //     const int deltaPrompt = kvPromptTokensTurn_ - previousPrompt;
+    //     const int deltaContext = kvUsedBeforeTurn_ - previousBaseline;
+    //     const QString tag = (deltaPrompt == 0) ? QStringLiteral("link:prompt usage (repeat)")
+    //                                            : QStringLiteral("link:prompt usage");
+    //     reflash_state(QStringLiteral("%1 prompt=%2 delta_prompt=%3 delta_ctx=%4 stream=%5 turn=%6 used=%7 used_before=%8")
+    //                       .arg(tag)
+    //                       .arg(kvPromptTokensTurn_)
+    //                       .arg(deltaPrompt)
+    //                       .arg(deltaContext)
+    //                       .arg(kvStreamedTurn_)
+    //                       .arg(kvTokensTurn_)
+    //                       .arg(kvUsed_)
+    //                       .arg(kvUsedBeforeTurn_));
+    // }
     updateKvBarUi();
 }
 
