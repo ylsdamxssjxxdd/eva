@@ -12,6 +12,12 @@ QGroupBox {
     border: none;
 }
 
+QMainWindow::separator {
+    width: 4px;
+    height: 4px;
+    background-color: #62b0ff;
+}
+
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
@@ -49,7 +55,7 @@ QCheckBox::indicator:checked {
 
 QRadioButton::indicator:checked {
     background-color: #62b0ff;
-    border: 6px double #0e2740;
+    border: 2px solid #62b0ff;
 }
 
 QLineEdit,
@@ -325,6 +331,12 @@ QMenu {
     color: #1a2a3f;
     border: 1px solid #62b0ff;
     padding: 4px;
+}
+
+QMenu::separator {
+    height: 2px;
+    margin: 4px 2px;
+    background-color: #62b0ff;
 }
 
 QMenu::item:selected {

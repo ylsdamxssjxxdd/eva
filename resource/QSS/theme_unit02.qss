@@ -12,6 +12,12 @@ QGroupBox {
     border: none;
 }
 
+QMainWindow::separator {
+    width: 4px;
+    height: 4px;
+    background-color: #d44b36;
+}
+
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
@@ -49,7 +55,7 @@ QCheckBox::indicator:checked {
 
 QRadioButton::indicator:checked {
     background-color: #ff7043;
-    border: 6px double #2b0d11;
+    border: 2px solid #ff7043;
 }
 
 QLineEdit,
@@ -155,6 +161,14 @@ QTableView::item:selected {
     border: 1px solid #d44b36;
     background-color: #ff7043;
     color: #2b0d11;
+}
+
+QListWidget::item:hover,
+QTreeWidget::item:hover,
+QTableWidget::item:hover,
+QTableView::item:hover {
+    background-color: #552127;
+    color: #ffe3d9;
 }
 
 QHeaderView::section {
@@ -326,6 +340,12 @@ QMenu {
     color: #ffe3d9;
     border: 1px solid #d44b36;
     padding: 4px;
+}
+
+QMenu::separator {
+    height: 2px;
+    margin: 4px 2px;
+    background-color: #d44b36;
 }
 
 QMenu::item:selected {
