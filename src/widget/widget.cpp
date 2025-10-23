@@ -1097,6 +1097,11 @@ void Widget::on_reset_clicked()
         return;
     }
 
+    // Refresh environment summaries so engineer tool always receives latest state.
+    python_env = checkPython();
+    compile_env = checkCompile();
+    node_env = checkNode();
+
     if (date_ui)
     {
         // Rebuild system prompt so workspace snapshot reflects current workspace state.

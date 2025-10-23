@@ -107,7 +107,7 @@
 
 3. 软件工程师
 
-    - 类似 Cline 的自动化工具执行链（execute_command/read_file/write_file/edit_file/list_files/search_content/MCP…）。
+    - 类似 Cline 的自动化工具执行链（execute_command/read_file/write_file/replace_in_file/edit_in_file/list_files/search_content/MCP…）。
 
     - 例如：帮我构建一个cmake qt的初始项目
 

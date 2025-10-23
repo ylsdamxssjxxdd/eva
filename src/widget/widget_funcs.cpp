@@ -19,6 +19,7 @@
 #include <QVBoxLayout>
 #include <QStringList>
 #include <QSet>
+#include <QProcessEnvironment>
 #include <QtGlobal>
 #include <algorithm>
 
@@ -442,7 +443,8 @@ QString Widget::create_extra_prompt()
             available_tools_describe += Buildin_tools_execute_command.text + "\n\n";
             available_tools_describe += Buildin_tools_read_file.text + "\n\n";
             available_tools_describe += Buildin_tools_write_file.text + "\n\n";
-            available_tools_describe += Buildin_tools_edit_file.text + "\n\n";
+            available_tools_describe += Buildin_tools_replace_in_file.text + "\n\n";
+            available_tools_describe += Buildin_tools_edit_in_file.text + "\n\n";
             available_tools_describe += Buildin_tools_list_files.text + "\n\n";
             available_tools_describe += Buildin_tools_search_content.text + "\n\n";
             // 这里添加更多工程师的工具
@@ -488,25 +490,53 @@ QString Widget::truncateString(const QString &str, int maxLength)
     stream.seek(startIndex);
     return QString(stream.readAll());
 }
-// 获取环境中的python版本以及库信息
 QString Widget::checkPython()
 {
-    // Prefer project-local venv; fallback to system python3 (Windows-aware)
-    const QString projDir = applicationDirPath; // base of app
+    const QString projDir = applicationDirPath;
+    QStringList lines;
+
     ExecSpec spec = DependencyResolver::discoverPython3(projDir);
     if (spec.program.isEmpty())
     {
-        return QStringLiteral("Python interpreter not found in PATH or project venv.\n");
+        lines << QStringLiteral("Python: not found");
     }
-    const QString ver = DependencyResolver::pythonVersion(spec);
-    QString path = spec.absolutePath.isEmpty() ? spec.program : spec.absolutePath;
-    QString out = ver + " " + path + "\n";
-    // Append core tool locations
-    const QString git = DependencyResolver::findGit();
-    const QString cm = DependencyResolver::findCMake();
-    out += QStringLiteral("git: %1\n").arg(git.isEmpty() ? QStringLiteral("not found") : git);
-    out += QStringLiteral("cmake: %1\n").arg(cm.isEmpty() ? QStringLiteral("not found") : cm);
-    return out;
+    else
+    {
+        QString version = DependencyResolver::pythonVersion(spec);
+        if (version.isEmpty()) version = QStringLiteral("Python 3");
+        QString sourceHint;
+        if (spec.program.compare(QStringLiteral("py"), Qt::CaseInsensitive) == 0)
+        {
+            sourceHint = QStringLiteral(" via py -3");
+        }
+        else if (spec.absolutePath.contains(QStringLiteral(".venv"), Qt::CaseInsensitive) ||
+                 spec.absolutePath.contains(QStringLiteral("/venv/"), Qt::CaseInsensitive) ||
+                 spec.absolutePath.contains(QStringLiteral("\\venv\\"), Qt::CaseInsensitive))
+        {
+            sourceHint = QStringLiteral(" from project venv");
+        }
+        lines << QStringLiteral("Python: %1%2").arg(version, sourceHint);
+    }
+
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    auto versionLine = [&](const QString &program, const QStringList &args) -> QString {
+        ProcessResult result = ProcessRunner::run(program, args, projDir, env, 3000);
+        if (result.exitCode != 0) return QString();
+        QString text = result.stdOut.isEmpty() ? result.stdErr : result.stdOut;
+        text = text.trimmed();
+        if (text.isEmpty()) return QString();
+        const int nl = text.indexOf('\n');
+        if (nl != -1) text = text.left(nl);
+        return text.trimmed();
+    };
+
+    const QString gitLine = versionLine(QStringLiteral("git"), {QStringLiteral("--version")});
+    lines << (gitLine.isEmpty() ? QStringLiteral("git: not found") : QStringLiteral("git: %1").arg(gitLine));
+
+    const QString cmakeLine = versionLine(QStringLiteral("cmake"), {QStringLiteral("--version")});
+    lines << (cmakeLine.isEmpty() ? QStringLiteral("cmake: not found") : QStringLiteral("cmake: %1").arg(cmakeLine));
+
+    return lines.join('\n') + QStringLiteral("\n");
 }
 QString Widget::checkCompile()
 {
@@ -521,13 +551,13 @@ QString Widget::checkCompile()
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
-        if (!output.isEmpty())
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (!lines.isEmpty())
         {
-            compilerInfo += "MinGW version: ";
-            QStringList lines = output.split('\n');
             QString versionLine = lines.first();
             QRegExp regExp("\\s*\\(.*\\)"); // 使用正则表达式去除括号中的内容 匹配括号及其中的内容
             versionLine = versionLine.replace(regExp, "");
+            compilerInfo += "MinGW version: ";
             compilerInfo += versionLine.trimmed(); // 去除前后的空格
             compilerInfo += "\n";
         }
@@ -542,11 +572,14 @@ QString Widget::checkCompile()
         output += process.readAllStandardError();
         if (!output.isEmpty())
         {
-            compilerInfo += "MSVC version: ";
             QString outputStr = QString::fromLocal8Bit(output);
-            QStringList lines = outputStr.split('\n');
-            compilerInfo += lines.first();
-            compilerInfo += "\n";
+            QStringList lines = outputStr.split('\n', Qt::SkipEmptyParts);
+            if (!lines.isEmpty())
+            {
+                compilerInfo += "MSVC version: ";
+                compilerInfo += lines.first().trimmed();
+                compilerInfo += "\n";
+            }
         }
     }
     // 检查 Clang
@@ -556,11 +589,11 @@ QString Widget::checkCompile()
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
-        if (!output.isEmpty())
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (!lines.isEmpty())
         {
             compilerInfo += "Clang version: ";
-            QStringList lines = output.split('\n');
-            compilerInfo += lines.first();
+            compilerInfo += lines.first().trimmed();
             compilerInfo += "\n";
         }
     }
@@ -574,11 +607,11 @@ QString Widget::checkCompile()
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
-        if (!output.isEmpty())
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (!lines.isEmpty())
         {
             compilerInfo += "GCC version: ";
-            QStringList lines = output.split('\n');
-            compilerInfo += lines.first();
+            compilerInfo += lines.first().trimmed();
             compilerInfo += "\n";
         }
     }
@@ -589,11 +622,11 @@ QString Widget::checkCompile()
         process.start(shell, shellArgs);
         process.waitForFinished();
         QString output = process.readAllStandardOutput();
-        if (!output.isEmpty())
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        if (!lines.isEmpty())
         {
             compilerInfo += "Clang version: ";
-            QStringList lines = output.split('\n');
-            compilerInfo += lines.first();
+            compilerInfo += lines.first().trimmed();
             compilerInfo += "\n";
         }
     }
@@ -604,6 +637,28 @@ QString Widget::checkCompile()
         compilerInfo = "No compiler detected.\n";
     }
     return compilerInfo;
+}
+QString Widget::checkNode()
+{
+    const QString workingDir = applicationDirPath;
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    auto versionLine = [&](const QString &program, const QStringList &args) -> QString {
+        ProcessResult result = ProcessRunner::run(program, args, workingDir, env, 3000);
+        if (result.exitCode != 0) return QString();
+        QString text = result.stdOut.isEmpty() ? result.stdErr : result.stdOut;
+        text = text.trimmed();
+        if (text.isEmpty()) return QString();
+        const int nl = text.indexOf('\n');
+        if (nl != -1) text = text.left(nl);
+        return text.trimmed();
+    };
+
+    QStringList lines;
+    const QString nodeLine = versionLine(QStringLiteral("node"), {QStringLiteral("--version")});
+    lines << (nodeLine.isEmpty() ? QStringLiteral("node: not found") : QStringLiteral("node: %1").arg(nodeLine));
+    const QString npmLine = versionLine(QStringLiteral("npm"), {QStringLiteral("--version")});
+    lines << (npmLine.isEmpty() ? QStringLiteral("npm: not found") : QStringLiteral("npm: %1").arg(npmLine));
+    return lines.join('\n') + QStringLiteral("\n");
 }
 QString Widget::create_engineer_info()
 {
@@ -616,6 +671,7 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{SHELL}", shell);
     engineer_system_info_.replace("{COMPILE_ENV}", compile_env);
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
+    engineer_system_info_.replace("{NODE_ENV}", node_env);
     // Use selected engineer working directory (fallback to default)
     const QString dir = engineerWorkDir.isEmpty() ? (applicationDirPath + "/EVA_WORK") : engineerWorkDir;
     engineer_system_info_.replace("{DIR}", QDir::toNativeSeparators(dir));

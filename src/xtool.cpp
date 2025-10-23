@@ -424,7 +424,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         sendStateMessage("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         sendPushMessage(QString("write_file ") + jtr("return") + "\n" + result);
     }
-    else if (tools_name == "edit_file")
+    else if (tools_name == "replace_in_file")
     {
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
         QString oldStrRaw = QString::fromStdString(get_string_safely(tools_args_, "old_string"));
@@ -445,7 +445,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (oldStrRaw.isEmpty())
         {
-            sendPushMessage("edit_file " + jtr("return") + " old_string is empty.");
+            sendPushMessage("replace_in_file " + jtr("return") + " old_string is empty.");
             return;
         }
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
@@ -455,7 +455,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         QFile inFile(filepath);
         if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
         {
-            sendPushMessage("edit_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
+            sendPushMessage("replace_in_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
             return;
         }
         QString originalContent = QString::fromUtf8(inFile.readAll());
@@ -474,7 +474,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (matches.isEmpty())
         {
-            QString message = "edit_file " + jtr("return") + " old_string NOT found.";
+            QString message = "replace_in_file " + jtr("return") + " old_string NOT found.";
             const QString preview = snippetPreview(normalizedOld);
             if (!preview.isEmpty())
             {
@@ -486,7 +486,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (expectedProvided && matches.size() != expectedRepl)
         {
-            sendPushMessage("edit_file " + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
+            sendPushMessage("replace_in_file " + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
             return;
         }
         const bool autoExpanded = !expectedProvided && matches.size() > expectedRepl;
@@ -504,13 +504,13 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         QDir dir;
         if (!dir.mkpath(fi.absolutePath()))
         {
-            sendPushMessage("edit_file " + jtr("return") + "Failed to create directory.");
+            sendPushMessage("replace_in_file " + jtr("return") + "Failed to create directory.");
             return;
         }
         QFile outFile(filepath);
         if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
         {
-            sendPushMessage("edit_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
+            sendPushMessage("replace_in_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
             return;
         }
         QTextStream ts(&outFile);
@@ -522,9 +522,251 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         if (usedFlexibleMatch) notes << "whitespace-insensitive search";
         if (autoExpanded && applied > 1) notes << QString("auto-applied to %1 identical matches").arg(applied);
         if (!notes.isEmpty()) result += QString(" [%1]").arg(notes.join("; "));
-        sendStateMessage("tool:edit_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
-        sendPushMessage("edit_file " + jtr("return") + "\n" + result);
+        sendStateMessage("tool:replace_in_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage("replace_in_file " + jtr("return") + "\n" + result);
     }
+
+
+
+    else if (tools_name == "edit_in_file")
+    {
+        const auto sendError = [&](const QString &msg) {
+            sendPushMessage("edit_in_file " + jtr("return") + " " + msg);
+        };
+        if (!tools_args_.contains("edits") || !tools_args_["edits"].is_array())
+        {
+            sendError("edits must be an array.");
+            return;
+        }
+        QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
+        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
+        filepath = QDir::fromNativeSeparators(filepath);
+        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
+        filepath = QDir(root).filePath(filepath);
+        QFile inFile(filepath);
+        if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            sendError("Could not open file for reading: " + inFile.errorString());
+            return;
+        }
+        QString originalContent = QString::fromUtf8(inFile.readAll());
+        inFile.close();
+        const bool hadCRLF = originalContent.contains("\r\n");
+        const bool hadCR = !hadCRLF && originalContent.contains('\r');
+        QString normalizedContent = normalizeNewlines(originalContent);
+        const bool hadTrailingNewline = normalizedContent.endsWith('\n');
+        QStringList lines = normalizedContent.split('\n', Qt::KeepEmptyParts);
+        if (hadTrailingNewline && !lines.isEmpty() && lines.last().isEmpty()) lines.removeLast();
+        struct EditOperation
+        {
+            QString action;
+            int startLine = 0;
+            int endLine = 0;
+            QStringList newLines;
+            int anchorLine = 0;
+            int ordinal = 0;
+        };
+        QVector<EditOperation> operations;
+        const mcp::json &editsJson = tools_args_["edits"];
+        operations.reserve(static_cast<int>(editsJson.size()));
+        int ordinal = 0;
+        for (const auto &editVal : editsJson)
+        {
+            ++ordinal;
+            if (!editVal.is_object())
+            {
+                sendError(QString("edit #%1 is not an object.").arg(ordinal));
+                return;
+            }
+            const mcp::json &editObj = editVal;
+            QString action = QString::fromStdString(get_string_safely(editObj, "action")).trimmed();
+            if (action.isEmpty())
+            {
+                sendError(QString("edit #%1 is missing action.").arg(ordinal));
+                return;
+            }
+            action = action.toLower();
+            if (action != "replace" && action != "insert_before" && action != "insert_after" && action != "delete")
+            {
+                sendError(QString("edit #%1 has unsupported action '%2'.").arg(ordinal).arg(action));
+                return;
+            }
+            int startLine = get_int_safely(editObj, "start_line", -1);
+            if (startLine <= 0)
+            {
+                sendError(QString("edit #%1 has invalid start_line %2.").arg(ordinal).arg(startLine));
+                return;
+            }
+            int endLine = startLine;
+            const bool endProvided = editObj.contains("end_line");
+            if (action == "replace" || action == "delete")
+            {
+                if (!endProvided)
+                {
+                    sendError(QString("edit #%1 requires end_line.").arg(ordinal));
+                    return;
+                }
+                try
+                {
+                    endLine = editObj.at("end_line").get<int>();
+                }
+                catch (...)
+                {
+                    sendError(QString("edit #%1 has invalid end_line.").arg(ordinal));
+                    return;
+                }
+                if (endLine < startLine)
+                {
+                    sendError(QString("edit #%1 has end_line < start_line.").arg(ordinal));
+                    return;
+                }
+            }
+            QStringList newLines;
+            if (action == "replace" || action == "insert_before" || action == "insert_after")
+            {
+                if (!editObj.contains("new_content"))
+                {
+                    sendError(QString("edit #%1 requires new_content.").arg(ordinal));
+                    return;
+                }
+                QString newContent = QString::fromStdString(get_string_safely(editObj, "new_content"));
+                QString normalizedNew = normalizeNewlines(newContent);
+                if (!normalizedNew.isEmpty())
+                {
+                    newLines = normalizedNew.split('\n', Qt::KeepEmptyParts);
+                    if (normalizedNew.endsWith('\n') && !newLines.isEmpty()) newLines.removeLast();
+                }
+            }
+            EditOperation op;
+            op.action = action;
+            op.startLine = startLine;
+            op.endLine = (action == "replace" || action == "delete") ? endLine : startLine;
+            op.newLines = newLines;
+            op.ordinal = ordinal;
+            if (action == "replace" || action == "delete")
+            {
+                op.anchorLine = op.endLine;
+            }
+            else if (action == "insert_after")
+            {
+                op.anchorLine = startLine + 1;
+            }
+            else
+            {
+                op.anchorLine = startLine;
+            }
+            operations.append(op);
+        }
+        if (operations.isEmpty())
+        {
+            sendPushMessage("edit_in_file " + jtr("return") + " no edits supplied.");
+            return;
+        }
+        std::sort(operations.begin(), operations.end(), [](const EditOperation &a, const EditOperation &b) {
+            if (a.anchorLine != b.anchorLine) return a.anchorLine > b.anchorLine;
+            return a.ordinal > b.ordinal;
+        });
+        QHash<QString, int> actionCount;
+        for (const EditOperation &op : operations)
+        {
+            const int currentLineCount = lines.size();
+            if (op.action == "replace")
+            {
+                const int startIdx = op.startLine - 1;
+                const int endIdx = op.endLine - 1;
+                if (startIdx < 0 || endIdx >= currentLineCount)
+                {
+                    sendError(QString("edit #%1 references line out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    return;
+                }
+                for (int i = endIdx; i >= startIdx; --i) lines.removeAt(i);
+                for (int i = 0; i < op.newLines.size(); ++i) lines.insert(startIdx + i, op.newLines.at(i));
+            }
+            else if (op.action == "delete")
+            {
+                const int startIdx = op.startLine - 1;
+                const int endIdx = op.endLine - 1;
+                if (startIdx < 0 || endIdx >= currentLineCount)
+                {
+                    sendError(QString("edit #%1 references line out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    return;
+                }
+                for (int i = endIdx; i >= startIdx; --i) lines.removeAt(i);
+            }
+            else if (op.action == "insert_before")
+            {
+                const int insertIdx = op.startLine - 1;
+                if (insertIdx < 0 || insertIdx > currentLineCount)
+                {
+                    sendError(QString("edit #%1 insert_before target is out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    return;
+                }
+                for (int i = 0; i < op.newLines.size(); ++i) lines.insert(insertIdx + i, op.newLines.at(i));
+            }
+            else if (op.action == "insert_after")
+            {
+                const int anchorIdx = op.startLine - 1;
+                if (anchorIdx < 0 || anchorIdx >= currentLineCount)
+                {
+                    sendError(QString("edit #%1 insert_after target is out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    return;
+                }
+                int insertIdx = anchorIdx + 1;
+                for (int i = 0; i < op.newLines.size(); ++i) lines.insert(insertIdx + i, op.newLines.at(i));
+            }
+            actionCount[op.action] += 1;
+        }
+        bool ensureNewline = hadTrailingNewline;
+        if (tools_args_.contains("ensure_newline_at_eof"))
+        {
+            try
+            {
+                ensureNewline = tools_args_.at("ensure_newline_at_eof").get<bool>();
+            }
+            catch (...)
+            {
+                sendError("ensure_newline_at_eof must be a boolean.");
+                return;
+            }
+        }
+        QString normalizedResult = lines.join("\n");
+        if (ensureNewline && !normalizedResult.endsWith("\n")) normalizedResult.append("\n");
+        else if (!ensureNewline && normalizedResult.endsWith("\n") && !normalizedResult.isEmpty()) normalizedResult.chop(1);
+        QString finalContent = restoreNewlines(normalizedResult, hadCRLF, hadCR);
+        QFileInfo fi(filepath);
+        QDir dir;
+        if (!dir.mkpath(fi.absolutePath()))
+        {
+            sendError("Failed to create directory.");
+            return;
+        }
+        QFile outFile(filepath);
+        if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        {
+            sendError("Could not open file for writing: " + outFile.errorString());
+            return;
+        }
+        QTextStream ts(&outFile);
+        ts.setCodec("UTF-8");
+        ts << finalContent;
+        outFile.close();
+        QStringList parts;
+        const QString actions[] = {"replace", "insert_before", "insert_after", "delete"};
+        for (const QString &act : actions)
+        {
+            const int count = actionCount.value(act, 0);
+            if (count > 0) parts << QString("%1:%2").arg(act).arg(count);
+        }
+        QString result = QString("applied %1 edit(s)").arg(operations.size());
+        if (!parts.isEmpty()) result += " [" + parts.join(", ") + "]";
+        if (ensureNewline != hadTrailingNewline)
+        {
+            result += ensureNewline ? " [newline ensured]" : " [newline removed]";
+        }
+        sendStateMessage("tool:edit_in_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage("edit_in_file " + jtr("return") + "\n" + result);
+    }
+
     //----------------------列出目录（工程师）------------------
     else if (tools_name == "list_files")
     {

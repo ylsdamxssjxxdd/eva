@@ -36,6 +36,7 @@ Date: {DATE}
 Default Shell: {SHELL}
 Compile env: {COMPILE_ENV}
 Python env: {PYTHON_ENV}
+Node.js env: {NODE_ENV}
 Current working directory: {DIR}
 Workspace snapshot (depth <= 2):
 {WORKSPACE_TREE}
@@ -153,8 +154,8 @@ static TOOLS_INFO Buildin_tools_write_file(
 // ──────────────────────────────────────────────────────────────
 // 内置的工程师-编辑文件工具
 // ──────────────────────────────────────────────────────────────
-static TOOLS_INFO Buildin_tools_edit_file(
-    "edit_file",
+static TOOLS_INFO Buildin_tools_replace_in_file(
+    "replace_in_file",
     // 工具描述
     R"(Request to replace text inside an existing file.  
 By default, exactly one occurrence of old_string will be replaced.  
@@ -164,3 +165,13 @@ For a file of unknown size, initially limit the reading to the first 200 lines, 
 )",
     // JSON-Schema，用于验证调用参数
     R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to edit."},"old_string":{"type":"string","description":"The exact literal text to be replaced (include surrounding context for uniqueness)."},"new_string":{"type":"string","description":"The exact literal text that will replace old_string."},"expected_replacements":{"type":"number","description":"Number of expected occurrences to replace. Defaults to 1 if omitted.","minimum":1}},"required":["path","old_string","new_string"]})");
+
+// Engineer tool - structured edit helper
+static TOOLS_INFO Buildin_tools_edit_in_file(
+    "edit_in_file",
+    // 工具说明
+    R"(Apply structured line-based edits to an existing text file.  
+Each edit is applied from bottom to top to keep line numbers stable.  
+Provide concise context to avoid unintended changes.)",
+    // JSON-Schema参数校验及使用说明
+    R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to edit."},"edits":{"type":"array","description":"Ordered list of edit operations.","items":{"type":"object","properties":{"action":{"type":"string","enum":["replace","insert_before","insert_after","delete"],"description":"Type of edit to apply."},"start_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit begins."},"end_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit ends (inclusive). Required for replace and delete."},"new_content":{"type":"string","description":"Replacement or insertion content. Use actual line breaks inside the string for multi-line updates."}},"required":["action","start_line"],"additionalProperties":false}},"ensure_newline_at_eof":{"type":"boolean","description":"Ensure the file ends with a trailing newline when true."}},"required":["path","edits"]})");

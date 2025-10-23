@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QDir>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSignalSpy>
@@ -308,13 +309,39 @@ void XToolFileToolsTest::readWriteEditListSearch()
     QVERIFY2(readMsg.contains(QStringLiteral("Beta")), "read_file missing expected content");
     QVERIFY2(readMsg.contains(QStringLiteral("Gamma")), "read_file missing expected content");
 
-    // edit_file
-    tool->Exec(makeToolCall("edit_file", mcp::json::object({
-                                                 {"path", "notes/test.txt"},
-                                                 {"old_string", "Beta"},
-                                                 {"new_string", "Delta"}})));
-    const QString editMsg = nextPush("edit_file");
-    QVERIFY2(editMsg.contains(QStringLiteral("replaced 1 occurrence")), "edit_file did not report replacement");
+    // replace_in_file
+    tool->Exec(makeToolCall("replace_in_file", mcp::json::object({
+                                                      {"path", "notes/test.txt"},
+                                                      {"old_string", "Beta"},
+                                                      {"new_string", "Delta"}})));
+    const QString replaceMsg = nextPush("replace_in_file");
+    QVERIFY2(replaceMsg.contains(QStringLiteral("replaced 1 occurrence")), "replace_in_file did not report replacement");
+
+    // edit_in_file
+    tool->Exec(makeToolCall("edit_in_file", mcp::json::object({
+                                                     {"path", "notes/test.txt"},
+                                                     {"edits", mcp::json::array({
+                                                                   mcp::json::object({
+                                                                       {"action", "insert_after"},
+                                                                       {"start_line", 2},
+                                                                       {"new_content", "BetaPrime"}
+                                                                   }),
+                                                                   mcp::json::object({
+                                                                       {"action", "replace"},
+                                                                       {"start_line", 1},
+                                                                       {"end_line", 1},
+                                                                       {"new_content", "AlphaPrime"}
+                                                                   })})},
+                                                     {"ensure_newline_at_eof", true}})));
+    const QString structuredMsg = nextPush("edit_in_file");
+    QVERIFY2(structuredMsg.contains(QStringLiteral("applied 2 edit")), "edit_in_file did not confirm edits");
+    QVERIFY2(structuredMsg.contains(QStringLiteral("replace:1")), "edit_in_file summary missing replace count");
+    QVERIFY2(structuredMsg.contains(QStringLiteral("insert_after:1")), "edit_in_file summary missing insert count");
+
+    QFile resultFile(QDir(workRoot).filePath(QStringLiteral("notes/test.txt")));
+    QVERIFY2(resultFile.open(QIODevice::ReadOnly | QIODevice::Text), "Failed to open edited file for verification");
+    const QString finalText = QString::fromUtf8(resultFile.readAll());
+    QCOMPARE(finalText, QStringLiteral("AlphaPrime\nDelta\nBetaPrime\nGamma\n"));
 
     // list_files
     tool->Exec(makeToolCall("list_files", mcp::json::object({{"path", "notes"}})));

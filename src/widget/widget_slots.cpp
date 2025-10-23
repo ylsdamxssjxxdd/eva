@@ -139,6 +139,7 @@ void Widget::tool_change()
         {
             python_env = checkPython();
             compile_env = checkCompile();
+            node_env = checkNode();
             // If a work dir was chosen previously, reuse it silently
             const QString fallback = QDir(applicationDirPath).filePath("EVA_WORK");
             const QString current = engineerWorkDir.isEmpty() ? fallback : engineerWorkDir;

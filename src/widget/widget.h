@@ -289,8 +289,10 @@ class Widget : public QWidget
     void change_api_dialog(bool enable);
     QString checkPython();  // 获取环境中的python版本以及库信息
     QString checkCompile(); // 获取环境中的编译器版本
+    QString checkNode();    // 获取环境中的Node.js版本信息
     QString python_env = "";
     QString compile_env = "";
+    QString node_env = "";
     QString truncateString(const QString &str, int maxLength);
 
     // 工具相关
