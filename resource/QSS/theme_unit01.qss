@@ -62,7 +62,7 @@ QGroupBox::title {
     padding: 0 6px;
     color: #211a3d;
     background-color: #eae4ff;
-    border: 2px solid #6a70c9;
+    border: none;
     margin-left: 6px;
 }
 

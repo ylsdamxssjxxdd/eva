@@ -188,28 +188,47 @@ QToolButton {
     border-width: 2px;
     border-color: #62b0ff;
     border-radius: 0;
-    padding: 4px 8px;
+    padding: 4px 4px;
+    border-top-color: #8ecbff;
+    border-left-color: #8ecbff;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
+    border-bottom-color: #3f7bd6;
+    border-right-color: #3f7bd6;
 }
 
 QPushButton:hover,
 QToolButton:hover {
     background-color: #f0f7ff;
-    border-color: #468ec6;
+    border-top-color: #a4d9ff;
+    border-left-color: #a4d9ff;
+    border-right-color: #4f92e0;
+    border-bottom-color: #4f92e0;
 }
 
 QPushButton:pressed,
 QToolButton:pressed,
 QPushButton:checked,
 QToolButton:checked {
-    background-color: #62b0ff;
-    color: #ffffff;
-    border-color: #468ec6;
+    background-color: #bcd8ff;
+    border-top-color: #3f7bd6;
+    border-left-color: #3f7bd6;
+    border-right-color: #3f7bd6;
+    border-bottom-color: #3f7bd6;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    color: #0a1f33;
 }
 
 QPushButton:disabled,
 QToolButton:disabled {
     color: #7d90a6;
-    border-color: #aac6e0;
+    border-top-color: #aac6e0;
+    border-left-color: #aac6e0;
+    border-right-color: #7fa6cf;
+    border-bottom-color: #7fa6cf;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     background-color: #e4edf8;
 }
 
@@ -217,21 +236,34 @@ QPushButton#primaryButton,
 QToolButton#primaryButton {
     background-color: #62b0ff;
     color: #0e2740;
-    border-color: #468ec6;
+    border-top-color: #8ecbff;
+    border-left-color: #8ecbff;
+    border-right-color: #3f7bd6;
+    border-bottom-color: #3f7bd6;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
 }
 
 QPushButton#primaryButton:hover,
 QToolButton#primaryButton:hover {
     background-color: #7bc3ff;
-    border-color: #62b0ff;
+    border-top-color: #a4d9ff;
+    border-left-color: #a4d9ff;
+    border-right-color: #4f92e0;
+    border-bottom-color: #4f92e0;
 }
 
 QPushButton#primaryButton:pressed,
 QToolButton#primaryButton:pressed,
 QPushButton#primaryButton:checked,
 QToolButton#primaryButton:checked {
-    background-color: #468ec6;
-    border-color: #0e2740;
+    background-color: #3f7bd6;
+    border-top-color: #3f7bd6;
+    border-left-color: #3f7bd6;
+    border-right-color: #3f7bd6;
+    border-bottom-color: #3f7bd6;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     color: #ffffff;
 }
 

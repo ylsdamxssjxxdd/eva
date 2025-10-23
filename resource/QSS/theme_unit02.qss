@@ -196,14 +196,23 @@ QToolButton {
     border-width: 2px;
     border-color: #d44b36;
     border-radius: 0;
-    padding: 4px 8px;
+    padding: 4px 4px;
+    border-top-color: #ff8a58;
+    border-left-color: #ff8a58;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
+    border-bottom-color: #7b2017;
+    border-right-color: #7b2017;
 }
 
 QPushButton:hover,
 QToolButton:hover {
     background-color: #ff7043;
     color: #2b0d11;
-    border-color: #ff7043;
+    border-top-color: #ff9a73;
+    border-left-color: #ff9a73;
+    border-right-color: #a53a28;
+    border-bottom-color: #a53a28;
 }
 
 QPushButton:pressed,
@@ -212,13 +221,23 @@ QPushButton:checked,
 QToolButton:checked {
     background-color: #d44b36;
     color: #ffe3d9;
-    border-color: #d44b36;
+    border-top-color: #a53a28;
+    border-left-color: #a53a28;
+    border-right-color: #a53a28;
+    border-bottom-color: #a53a28;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
 }
 
 QPushButton:disabled,
 QToolButton:disabled {
     color: #8f6056;
-    border-color: #552427;
+    border-top-color: #70352c;
+    border-left-color: #70352c;
+    border-right-color: #2a1012;
+    border-bottom-color: #2a1012;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     background-color: #3b1519;
 }
 
@@ -226,13 +245,21 @@ QPushButton#primaryButton,
 QToolButton#primaryButton {
     background-color: #ff7043;
     color: #2b0d11;
-    border-color: #ff7043;
+    border-top-color: #ff9a73;
+    border-left-color: #ff9a73;
+    border-right-color: #a53a28;
+    border-bottom-color: #a53a28;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
 }
 
 QPushButton#primaryButton:hover,
 QToolButton#primaryButton:hover {
     background-color: #ff8a58;
-    border-color: #ff8a58;
+    border-top-color: #ffb184;
+    border-left-color: #ffb184;
+    border-right-color: #bd4a32;
+    border-bottom-color: #bd4a32;
 }
 
 QPushButton#primaryButton:pressed,
@@ -240,7 +267,12 @@ QToolButton#primaryButton:pressed,
 QPushButton#primaryButton:checked,
 QToolButton#primaryButton:checked {
     background-color: #d44b36;
-    border-color: #d44b36;
+    border-top-color: #a53a28;
+    border-left-color: #a53a28;
+    border-right-color: #a53a28;
+    border-bottom-color: #a53a28;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
     color: #ffe3d9;
 }
 
