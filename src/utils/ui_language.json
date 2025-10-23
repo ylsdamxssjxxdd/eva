@@ -701,6 +701,10 @@
             "api模型",
             "api model"
         ],
+        "local endpoint ready": [
+            "网页或api已就绪",
+            "local endpoint ready "
+        ],
         "api endpoint tool tip": [
             "例如 http://192.168.1.1:8080",
             "example http://192.168.1.1:8080"

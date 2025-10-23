@@ -77,21 +77,26 @@ void IntroAnimEdit::drawBackground(QPainter &p)
     // Subtle hex grid
     drawHexGrid(p, 34, QColor(80, 180, 255, 32));
 
-    // Kabbalah Tree of Life as focal element
-    const QSizeF baseTreeSize(520.0, 700.0);
-    const qreal scaleW = baseTreeSize.width() > 0.0 ? (r.width() / baseTreeSize.width()) : 1.0;
-    const qreal scaleH = baseTreeSize.height() > 0.0 ? (r.height() / baseTreeSize.height()) : 1.0;
-    const qreal scale = qMin<qreal>(1.0, qMin(scaleW, scaleH));
-    const QSizeF treeSize(baseTreeSize.width() * scale, baseTreeSize.height() * scale);
-
+    // Kabbalah Tree of Life keeps its canonical size regardless of window changes
+    const QSizeF treeSize(640.0, 860.0);
     QPointF center = r.center();
-    center.setY(center.y() - r.height() * 0.02); // keep tree slightly above true center
+    const qreal upwardBias = qMin<qreal>(r.height() * 0.02, 32.0);
+    center.setY(center.y() - upwardBias); // keep tree slightly above true center
 
-    QRectF treeRect(center.x() - treeSize.width() * 0.5, center.y() - treeSize.height() * 0.5, treeSize.width(), treeSize.height());
-    if (treeRect.left() < r.left()) treeRect.moveLeft(r.left());
-    if (treeRect.right() > r.right()) treeRect.moveRight(r.right());
-    if (treeRect.top() < r.top()) treeRect.moveTop(r.top());
-    if (treeRect.bottom() > r.bottom()) treeRect.moveBottom(r.bottom());
+    const qreal minLeft = r.right() - treeSize.width();
+    const qreal maxLeft = qMax(minLeft, static_cast<qreal>(r.left()));
+    qreal left = center.x() - treeSize.width() * 0.5;
+    if (left < r.left()) left = r.left();
+    if (left > maxLeft) left = maxLeft;
+
+    const qreal minTopMargin = qBound<qreal>(32.0, r.height() * 0.07, 140.0);
+    qreal top = center.y() - treeSize.height() * 0.5;
+    if (top < r.top() + minTopMargin) top = r.top() + minTopMargin;
+    const qreal maxTopInside = r.bottom() - treeSize.height();
+    if (top > maxTopInside && maxTopInside >= r.top() + minTopMargin)
+        top = qMin(top, maxTopInside);
+
+    QRectF treeRect(left, top, treeSize.width(), treeSize.height());
 
     drawKabbalahTree(p, treeRect.toRect());
 }

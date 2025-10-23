@@ -635,7 +635,7 @@ void Widget::onServerReady(const QString &endpoint)
                 lanHint = QStringLiteral(" / http://%1:%2").arg(lanIp, activeServerPort_);
             }
         }
-        reflash_state(QStringLiteral("ui:local endpoint ready -> %1%2").arg(url, lanHint), SUCCESS_SIGNAL);
+        reflash_state("ui:" + jtr("local endpoint ready") + QStringLiteral(" -> %1%2").arg(url, lanHint), SUCCESS_SIGNAL);
     }
     // 直接解锁界面（不再补帧播放复杂装载动画）
     unlockLoad();
