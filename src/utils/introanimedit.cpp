@@ -78,8 +78,22 @@ void IntroAnimEdit::drawBackground(QPainter &p)
     drawHexGrid(p, 34, QColor(80, 180, 255, 32));
 
     // Kabbalah Tree of Life as focal element
-    QRect area = r.adjusted(r.width() * 0.18, r.height() * 0.06, -r.width() * 0.18, -r.height() * 0.10);
-    drawKabbalahTree(p, area);
+    const QSizeF baseTreeSize(520.0, 700.0);
+    const qreal scaleW = baseTreeSize.width() > 0.0 ? (r.width() / baseTreeSize.width()) : 1.0;
+    const qreal scaleH = baseTreeSize.height() > 0.0 ? (r.height() / baseTreeSize.height()) : 1.0;
+    const qreal scale = qMin<qreal>(1.0, qMin(scaleW, scaleH));
+    const QSizeF treeSize(baseTreeSize.width() * scale, baseTreeSize.height() * scale);
+
+    QPointF center = r.center();
+    center.setY(center.y() - r.height() * 0.02); // keep tree slightly above true center
+
+    QRectF treeRect(center.x() - treeSize.width() * 0.5, center.y() - treeSize.height() * 0.5, treeSize.width(), treeSize.height());
+    if (treeRect.left() < r.left()) treeRect.moveLeft(r.left());
+    if (treeRect.right() > r.right()) treeRect.moveRight(r.right());
+    if (treeRect.top() < r.top()) treeRect.moveTop(r.top());
+    if (treeRect.bottom() > r.bottom()) treeRect.moveBottom(r.bottom());
+
+    drawKabbalahTree(p, treeRect.toRect());
 }
 
 void IntroAnimEdit::drawHexGrid(QPainter &p, qreal hexSize, const QColor &color)

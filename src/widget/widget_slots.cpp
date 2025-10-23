@@ -1,6 +1,7 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include <QHostAddress>
+#include <QSignalBlocker>
 #include <QTcpServer>
 
 //-------------------------------------------------------------------------
@@ -445,42 +446,68 @@ void Widget::ensureLocalServer()
         return ok;
     };
 
-    QString bindHost = "0.0.0.0"; // default: expose to LAN
-    QString chosenPort = ui_port.trimmed();
+    const QString originalUserPort = ui_port.trimmed();
+    ui_port = originalUserPort;
 
-    if (chosenPort.isEmpty())
+    QString bindHost = QStringLiteral("0.0.0.0"); // default: expose to LAN
+    QString chosenPort = originalUserPort;
+    bool appliedFallbackPort = false;
+
+    if (originalUserPort.isEmpty())
     {
         // If user cleared the port, bind only to localhost with a random port
-        bindHost = "127.0.0.1";
+        bindHost = QStringLiteral("127.0.0.1");
         chosenPort = pickFreePort();
-        // keep ui_port empty to indicate no exposure
+        ui_port.clear(); // keep setting blank so future loads stay random
         if (settings_ui && settings_ui->port_lineEdit)
         {
             settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
         }
-        reflash_state("ui:port cleared -> bind 127.0.0.1", SIGNAL_SIGNAL);
+        reflash_state(QStringLiteral("ui:port cleared -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
     }
     else
     {
         bool ok = false;
-        const quint16 portNum = chosenPort.toUShort(&ok);
+        const quint16 portNum = originalUserPort.toUShort(&ok);
         if (!ok || portNum == 0)
         {
-            // Invalid user value -> treat as cleared: bind localhost with a random port; do not change UI field
-            bindHost = "127.0.0.1";
+            // Invalid user value -> treat as cleared: bind localhost with a random port
+            bindHost = QStringLiteral("127.0.0.1");
             chosenPort = pickFreePort();
-            reflash_state("ui:invalid port -> bind 127.0.0.1 (random)", SIGNAL_SIGNAL);
+            appliedFallbackPort = true;
+            reflash_state(QStringLiteral("ui:invalid port -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
         }
         else if (!isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4)))
         {
-            // User-specified port is busy -> temporarily use a free random port for this run only; keep UI unchanged
+            // User-specified port is busy -> pick a free random port and surface it to UI/settings
             const QString newPort = pickFreePort();
-            if (newPort != chosenPort)
+            if (!newPort.isEmpty() && newPort != chosenPort)
             {
-                reflash_state("ui:port in use, temp use " + newPort, SIGNAL_SIGNAL);
                 chosenPort = newPort;
+                appliedFallbackPort = true;
+                reflash_state(QStringLiteral("ui:port %1 busy -> switched %2").arg(originalUserPort, chosenPort), SIGNAL_SIGNAL);
+            }
+            else
+            {
+                reflash_state(QStringLiteral("ui:port %1 busy -> no free port found").arg(originalUserPort), WRONG_SIGNAL);
             }
         }
+    }
+
+    if (appliedFallbackPort)
+    {
+        ui_port = chosenPort;
+        if (settings_ui && settings_ui->port_lineEdit)
+        {
+            QSignalBlocker blocker(settings_ui->port_lineEdit);
+            settings_ui->port_lineEdit->setText(chosenPort);
+        }
+        auto_save_user();
+    }
+    else if (!originalUserPort.isEmpty())
+    {
+        // Persist trimmed user value when no fallback occurred
+        ui_port = originalUserPort;
     }
 
     // 同步配置到本地后端管理器
@@ -490,6 +517,8 @@ void Widget::ensureLocalServer()
     serverManager->setModelPath(ui_SETTINGS.modelpath);
     serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
     serverManager->setLoraPath(ui_SETTINGS.lorapath);
+    activeServerHost_ = bindHost;
+    activeServerPort_ = chosenPort;
 
     // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
     lastServerRestart_ = serverManager->needsRestart();
@@ -589,6 +618,25 @@ void Widget::onServerReady(const QString &endpoint)
         }
     }
     decode_finish();
+    if (!activeServerPort_.isEmpty())
+    {
+        QString displayHost = activeServerHost_;
+        if (displayHost.isEmpty() || displayHost == QStringLiteral("0.0.0.0"))
+        {
+            displayHost = QStringLiteral("127.0.0.1");
+        }
+        const QString url = QStringLiteral("http://%1:%2").arg(displayHost, activeServerPort_);
+        QString lanHint;
+        if (activeServerHost_ == QStringLiteral("0.0.0.0"))
+        {
+            const QString lanIp = getFirstNonLoopbackIPv4Address();
+            if (!lanIp.isEmpty())
+            {
+                lanHint = QStringLiteral(" / http://%1:%2").arg(lanIp, activeServerPort_);
+            }
+        }
+        reflash_state(QStringLiteral("ui:local endpoint ready -> %1%2").arg(url, lanHint), SUCCESS_SIGNAL);
+    }
     // 直接解锁界面（不再补帧播放复杂装载动画）
     unlockLoad();
     // 刚装载完成：若已设置监视帧率，则启动监视

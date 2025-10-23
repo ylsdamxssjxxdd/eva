@@ -1384,10 +1384,7 @@ void Widget::restoreSessionById(const QString &sessionId)
     auto roleToColor = [&](const QString &r) -> QColor
     {
         if (r == QLatin1String("think")) return themeThinkColor();
-        if (r == QLatin1String("tool")) return chipColorForRole(RecordRole::Tool);
-        if (r == QLatin1String("assistant")) return chipColorForRole(RecordRole::Assistant);
-        if (r == QLatin1String("system")) return chipColorForRole(RecordRole::System);
-        if (r == QLatin1String("user")) return chipColorForRole(RecordRole::User);
+        if (r == QLatin1String("tool")) return themeStateColor(TOOL_SIGNAL);
         return themeTextPrimary();
     };
 
