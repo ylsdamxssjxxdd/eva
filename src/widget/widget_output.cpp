@@ -33,7 +33,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
                     appendRoleHeader(QStringLiteral("think"));
                     turnThinkHeaderPrinted_ = true;
                 }
-                if (!thinkPart.isEmpty()) output_scroll(thinkPart, THINK_GRAY);
+                if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor());
                 if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
                 if (endIdx == -1)
                 {
@@ -68,7 +68,7 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
                         appendRoleHeader(QStringLiteral("assistant"));
                         turnAssistantHeaderPrinted_ = true;
                     }
-                    output_scroll(asstPart, NORMAL_BLACK);
+                    output_scroll(asstPart, themeTextPrimary());
                     if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
                 }
                 if (beginIdx == -1)
@@ -108,19 +108,21 @@ void Widget::appendRoleHeader(const QString &role)
     const bool emptyDoc = ui->output->document() && ui->output->document()->isEmpty();
     if (!emptyDoc)
     {
-        output_scroll(QString(DEFAULT_SPLITER), NORMAL_BLACK);
+        output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
     }
-    QColor c = SYSTEM_BLUE;
+    QColor c = chipColorForRole(RecordRole::System);
     const QString r = role.trimmed().toLower();
     if (r == QStringLiteral("tool"))
-        c = TOOL_BLUE;
+        c = chipColorForRole(RecordRole::Tool);
     else if (r == QStringLiteral("think"))
-        c = THINK_GRAY;
+        c = chipColorForRole(RecordRole::Think);
     else if (r == QStringLiteral("assistant"))
-        c = LCL_ORANGE;
+        c = chipColorForRole(RecordRole::Assistant);
+    else if (r == QStringLiteral("user"))
+        c = chipColorForRole(RecordRole::User);
     // Insert role label and a newline
     output_scroll(r, c);
-    output_scroll(QString(DEFAULT_SPLITER), NORMAL_BLACK);
+    output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
 }
 
 // 输出区滚动条事件响应
@@ -163,88 +165,53 @@ void Widget::output_scroll(QString output, QColor color)
 // 刷新状态区
 void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
 {
-    QTextCharFormat format; // 设置状态文本颜色
-    // 过滤回车和换行
+    QTextCharFormat format;
     if (state != MATRIX_SIGNAL)
     {
         state_string.replace("\n", "\\n");
         state_string.replace("\r", "\\r");
     }
 
-    if (state == USUAL_SIGNAL || state == MATRIX_SIGNAL) // 普通黑色
+    const auto resetFormat = [this]()
     {
-        format.clearForeground();
-        format.setForeground(NORMAL_BLACK);
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-    }
-    else if (state == SUCCESS_SIGNAL) // 绿色
-    {
-        format.setForeground(QColor(0, 200, 0));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
-    }
-    else if (state == WRONG_SIGNAL) // 红色
-    {
-        format.setForeground(QColor(200, 0, 0));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
-    }
-    else if (state == SIGNAL_SIGNAL) // 蓝色
-    {
-        format.setForeground(QColor(0, 0, 200));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
-    }
-    else if (state == EVA_SIGNAL) // EVA 样式
+        QTextCharFormat base;
+        base.setForeground(themeStateColor(USUAL_SIGNAL));
+        base.setFontItalic(false);
+        base.setFontWeight(QFont::Normal);
+        ui->state->setCurrentCharFormat(base);
+    };
+
+    if (state == EVA_SIGNAL)
     {
         QFont font = format.font();
         font.setPixelSize(14);
         format.setFont(font);
         format.setFontItalic(true);
-        format.setForeground(NORMAL_BLACK);
+        format.setForeground(themeStateColor(EVA_SIGNAL));
         ui->state->setCurrentCharFormat(format);
         ui->state->appendPlainText(jtr("cubes"));
 
         format.setFontItalic(false);
         format.setFontWeight(QFont::Black);
+        format.setForeground(themeStateColor(EVA_SIGNAL));
         ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText("          " + state_string);
+        ui->state->appendPlainText(QStringLiteral("          ") + state_string);
 
         format.setFontItalic(true);
         format.setFontWeight(QFont::Normal);
+        format.setForeground(themeStateColor(EVA_SIGNAL));
         ui->state->setCurrentCharFormat(format);
         ui->state->appendPlainText(jtr("cubes"));
 
-        format.setFontWeight(QFont::Normal);
-        format.setFontItalic(false);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
-    }
-    else if (state == TOOL_SIGNAL) // 工具蓝色
-    {
-        format.setForeground(TOOL_BLUE);
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
-    }
-    else if (state == SYNC_SIGNAL) // 同步橙色
-    {
-        format.setForeground(LCL_ORANGE);
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(state_string);
-        format.clearForeground();
-        ui->state->setCurrentCharFormat(format);
+        resetFormat();
+        return;
     }
 
-    // 轻量级的工具忙碌动画：根据 tool: 文本启停
+    format.setForeground(themeStateColor(state));
+    ui->state->setCurrentCharFormat(format);
+    ui->state->appendPlainText(state_string);
+    resetFormat();
+
     if (state_string.startsWith("tool:"))
     {
         const bool isReturn = state_string.contains(jtr("return")) || state_string.contains("return");

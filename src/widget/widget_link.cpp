@@ -98,7 +98,7 @@ void Widget::set_api()
     // Create record BEFORE printing header/content so docFrom anchors at header area
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
-    reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+    reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
     {
         recordAppendText(__idx, ui_DATES.date_prompt);
         if (!ui_messagesArray.isEmpty())

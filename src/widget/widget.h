@@ -506,27 +506,8 @@ class Widget : public QWidget
     int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
     // Record helpers
     int outputDocEnd() const;
-    QColor chipColorForRole(RecordRole r) const
-    {
-        switch (r)
-        {
-        case RecordRole::Tool: return TOOL_BLUE;
-        case RecordRole::Think: return THINK_GRAY;
-        case RecordRole::Assistant: return LCL_ORANGE;
-        case RecordRole::System: return SYSTEM_BLUE;
-        case RecordRole::User:
-        default: return SYSTEM_BLUE;
-        }
-    }
-    QColor textColorForRole(RecordRole r) const
-    {
-        switch (r)
-        {
-        case RecordRole::Think: return THINK_GRAY;
-        case RecordRole::Tool: return TOOL_BLUE;
-        default: return NORMAL_BLACK;
-        }
-    }
+    QColor chipColorForRole(RecordRole r) const;
+    QColor textColorForRole(RecordRole r) const;
     int recordCreate(RecordRole role);
     void recordAppendText(int index, const QString &text);
     void recordClear();
@@ -566,6 +547,10 @@ class Widget : public QWidget
     QString buildThemeOverlay(const QString &themeId) const;
     QString buildFontOverrideCss() const;
     void refreshApplicationStyles();
+    void updateThemeVisuals();
+    QColor themeStateColor(SIGNAL_STATE state) const;
+    QColor themeTextPrimary() const { return themeVisuals_.textPrimary; }
+    QColor themeThinkColor() const { return themeVisuals_.textSecondary; }
 
   private:
     Ui::Widget *ui;
@@ -587,7 +572,22 @@ class Widget : public QWidget
     QSpinBox *globalFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;
     int globalPanelExpandedWidth_ = 260;
-
+    struct ThemeVisuals
+    {
+        QString id = QStringLiteral("unit01");
+        bool darkBase = false;
+        QColor textPrimary = NORMAL_BLACK;
+        QColor textSecondary = THINK_GRAY;
+        QColor stateSignal = SYSTEM_BLUE;
+        QColor stateSuccess = QColor(0, 200, 0);
+        QColor stateWrong = QColor(200, 0, 0);
+        QColor stateEva = NORMAL_BLACK;
+        QColor stateTool = TOOL_BLUE;
+        QColor stateSync = LCL_ORANGE;
+        QColor systemRole = SYSTEM_BLUE;
+        QColor assistantRole = LCL_ORANGE;
+    };
+    ThemeVisuals themeVisuals_;
   };
 
 #endif // WIDGET_H

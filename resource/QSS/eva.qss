@@ -351,19 +351,27 @@ QSlider::groove:vertical {
 }
 
 QSlider::handle:horizontal {
-    background-color: #ffeccd;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #fff8e6,
+                                stop:0.4 #ffd99b,
+                                stop:0.6 #ffc87a,
+                                stop:1 #ffb25a);
     border: 2px solid #f29c52;
-    width: 16px;
-    height: 16px;
-    margin: -4px -2px;
+    width: 14px;
+    height: 14px;
+    margin: -5px -0px;
 }
 
 QSlider::handle:vertical {
-    background-color: #ffeccd;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #fff8e6,
+                                stop:0.4 #ffd99b,
+                                stop:0.6 #ffc87a,
+                                stop:1 #ffb25a);
     border: 2px solid #f29c52;
-    width: 16px;
-    height: 16px;
-    margin: -2px -4px;
+    width: 14px;
+    height: 14px;
+    margin: 0px -5px;
 }
 
 QCheckBox,

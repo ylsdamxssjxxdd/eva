@@ -1113,6 +1113,6 @@ void Widget::unlockLoad()
     // Record a system header and show system prompt as pre-decode content
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
-    reflash_output(bot_predecode_content, 0, NORMAL_BLACK);
+    reflash_output(bot_predecode_content, 0, themeTextPrimary());
     recordAppendText(__idx, bot_predecode_content);
 }

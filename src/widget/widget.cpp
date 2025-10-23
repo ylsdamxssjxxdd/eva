@@ -1,4 +1,4 @@
-﻿// 主函数和主要槽函数
+// 主函数和主要槽函数
 
 #include "widget.h"
 
@@ -604,7 +604,7 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
     // Create record BEFORE printing header/content so docFrom anchors at header line
     int __idx = recordCreate(RecordRole::User);
     appendRoleHeader(QStringLiteral("user"));
-    reflash_output(in.text, 0, NORMAL_BLACK);
+    reflash_output(in.text, 0, themeTextPrimary());
     // After content is printed, update record's text and docTo, and link msgIndex
     recordAppendText(__idx, in.text);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
@@ -649,7 +649,7 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     // Create record BEFORE printing header/content so docFrom anchors at header area
     int __idx = recordCreate(RecordRole::Tool);
     appendRoleHeader(QStringLiteral("tool"));
-    reflash_output(tool_result, 0, TOOL_BLUE);
+    reflash_output(tool_result, 0, themeStateColor(TOOL_SIGNAL));
     recordAppendText(__idx, tool_result);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
 
@@ -1131,7 +1131,7 @@ void Widget::on_reset_clicked()
         // Create record BEFORE header so gotoRecord can place role name at top
         int __idx = recordCreate(RecordRole::System);
         appendRoleHeader(QStringLiteral("system"));
-        reflash_output(ui_DATES.date_prompt, 0, NORMAL_BLACK);
+        reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
         recordAppendText(__idx, ui_DATES.date_prompt);
         if (!ui_messagesArray.isEmpty())
         {
@@ -1383,9 +1383,11 @@ void Widget::restoreSessionById(const QString &sessionId)
     };
     auto roleToColor = [&](const QString &r) -> QColor
     {
-        if (r == QLatin1String("think")) return THINK_GRAY;
-        if (r == QLatin1String("tool")) return TOOL_BLUE;
-        return NORMAL_BLACK;
+        if (r == QLatin1String("think")) return themeThinkColor();
+        if (r == QLatin1String("tool")) return chipColorForRole(RecordRole::Tool);
+        if (r == QLatin1String("assistant")) return chipColorForRole(RecordRole::Assistant);
+        if (r == QLatin1String("system")) return chipColorForRole(RecordRole::System);
+        return themeTextPrimary();
     };
 
     for (const auto &v : msgs)
