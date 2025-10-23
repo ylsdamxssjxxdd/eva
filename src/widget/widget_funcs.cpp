@@ -879,6 +879,7 @@ void Widget::apply_language(int language_flag_)
     // Language refresh rewrites many labels including device_label.
     // Re-apply device/backend UI hint so that auto(effective) suffix stays visible after first boot.
     refreshDeviceBackendUI();
+    updateGlobalSettingsTranslations();
 }
 // 创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path)

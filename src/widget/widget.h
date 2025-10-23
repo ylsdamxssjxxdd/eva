@@ -551,6 +551,7 @@ class Widget : public QWidget
     QString buildFontOverrideCss() const;
     void refreshApplicationStyles();
     void updateThemeVisuals();
+    void updateGlobalSettingsTranslations();
     QColor themeStateColor(SIGNAL_STATE state) const;
     QColor themeTextPrimary() const { return themeVisuals_.textPrimary; }
     QColor themeThinkColor() const { return themeVisuals_.textSecondary; }
@@ -570,6 +571,10 @@ class Widget : public QWidget
     QString baseStylesheet_;
     QDialog *globalDialog_ = nullptr;
     QFrame *globalSettingsPanel_ = nullptr;
+    QLabel *globalPanelTitleLabel_ = nullptr;
+    QLabel *globalFontLabel_ = nullptr;
+    QLabel *globalFontSizeLabel_ = nullptr;
+    QLabel *globalThemeLabel_ = nullptr;
     QFontComboBox *globalFontCombo_ = nullptr;
     QSpinBox *globalFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;

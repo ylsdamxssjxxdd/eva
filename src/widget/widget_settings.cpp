@@ -117,74 +117,121 @@ void Widget::set_SetDialog()
 
 void Widget::setupGlobalSettingsPanel()
 {
-    if (globalDialog_) return;
     if (!settings_ui || !settings_dialog) return;
 
-    QVBoxLayout *rootLayout = settings_ui->verticalLayout_4;
-    if (!rootLayout) return;
-
-    globalDialog_ = new QDialog(this);
-    globalDialog_->setWindowTitle(tr("全局设置"));
-    globalDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
-    globalDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-    globalDialog_->setModal(true);
-
-    QVBoxLayout *dialogLayout = new QVBoxLayout(globalDialog_);
-    dialogLayout->setContentsMargins(12, 12, 12, 12);
-    dialogLayout->setSpacing(8);
-
-    globalSettingsPanel_ = new QFrame(globalDialog_);
-    globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
-    globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
-    globalSettingsPanel_->setFrameShadow(QFrame::Raised);
-    globalSettingsPanel_->setMinimumWidth(0);
-    globalSettingsPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-
-    QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
-    panelLayout->setContentsMargins(12, 16, 12, 16);
-    panelLayout->setSpacing(12);
-
-    auto createLabel = [&](const QString &text, int weight = 600) -> QLabel *
+    const bool needCreate = (globalDialog_ == nullptr);
+    if (needCreate)
     {
-        QLabel *label = new QLabel(text, globalSettingsPanel_);
-        label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        label->setStyleSheet(QStringLiteral("font-weight:%1;").arg(weight));
-        return label;
-    };
+        if (!settings_ui->verticalLayout_4) return;
 
-    panelLayout->addWidget(createLabel(tr("全局设置")));
-    panelLayout->addSpacing(4);
+        globalDialog_ = new QDialog(this);
+        globalDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
+        globalDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+        globalDialog_->setModal(true);
 
-    panelLayout->addWidget(createLabel(tr("界面字体"), 500));
-    globalFontCombo_ = new QFontComboBox(globalSettingsPanel_);
-    globalFontCombo_->setEditable(false);
-    globalFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    panelLayout->addWidget(globalFontCombo_);
+        QVBoxLayout *dialogLayout = new QVBoxLayout(globalDialog_);
+        dialogLayout->setContentsMargins(12, 12, 12, 12);
+        dialogLayout->setSpacing(8);
 
-    panelLayout->addWidget(createLabel(tr("字号"), 500));
-    globalFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
-    globalFontSizeSpin_->setRange(8, 48);
-    globalFontSizeSpin_->setAccelerated(true);
-    panelLayout->addWidget(globalFontSizeSpin_);
+        globalSettingsPanel_ = new QFrame(globalDialog_);
+        globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
+        globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
+        globalSettingsPanel_->setFrameShadow(QFrame::Raised);
+        globalSettingsPanel_->setMinimumWidth(0);
+        globalSettingsPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    panelLayout->addWidget(createLabel(tr("机体配色"), 500));
-    globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
-    globalThemeCombo_->addItem(tr("初号机"), QStringLiteral("unit01"));
-    globalThemeCombo_->addItem(tr("零号机"), QStringLiteral("unit00"));
-    globalThemeCombo_->addItem(tr("二号机"), QStringLiteral("unit02"));
-    globalThemeCombo_->addItem(tr("三号机"), QStringLiteral("unit03"));
-    panelLayout->addWidget(globalThemeCombo_);
-    panelLayout->addStretch(1);
+        QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
+        panelLayout->setContentsMargins(12, 16, 12, 16);
+        panelLayout->setSpacing(12);
 
-    dialogLayout->addWidget(globalSettingsPanel_);
-    globalDialog_->setLayout(dialogLayout);
+        auto installLabel = [&](QLabel *&target, int weight)
+        {
+            target = new QLabel(globalSettingsPanel_);
+            target->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            target->setStyleSheet(QStringLiteral("font-weight:%1;").arg(weight));
+            panelLayout->addWidget(target);
+        };
 
-    connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::showGlobalSettingsDialog);
-    connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
+        installLabel(globalPanelTitleLabel_, 600);
+        panelLayout->addSpacing(4);
+
+        installLabel(globalFontLabel_, 500);
+        globalFontCombo_ = new QFontComboBox(globalSettingsPanel_);
+        globalFontCombo_->setEditable(false);
+        globalFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        panelLayout->addWidget(globalFontCombo_);
+
+        installLabel(globalFontSizeLabel_, 500);
+        globalFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
+        globalFontSizeSpin_->setRange(8, 48);
+        globalFontSizeSpin_->setAccelerated(true);
+        panelLayout->addWidget(globalFontSizeSpin_);
+
+        installLabel(globalThemeLabel_, 500);
+        globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
+        struct ThemeMeta
+        {
+            const char *id;
+        };
+        const ThemeMeta themes[] = {
+            {"unit01"},
+            {"unit00"},
+            {"unit02"},
+            {"unit03"}};
+        for (const ThemeMeta &meta : themes)
+        {
+            globalThemeCombo_->addItem(QString(), QString::fromLatin1(meta.id));
+        }
+        panelLayout->addWidget(globalThemeCombo_);
+        panelLayout->addStretch(1);
+
+        dialogLayout->addWidget(globalSettingsPanel_);
+        globalDialog_->setLayout(dialogLayout);
+
+        connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::showGlobalSettingsDialog);
+        connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
     connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
     connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
+    }
 
+    updateGlobalSettingsTranslations();
     syncGlobalSettingsPanelControls();
+}
+
+void Widget::updateGlobalSettingsTranslations()
+{
+    if (settings_ui && settings_ui->global_pushButton)
+    {
+        settings_ui->global_pushButton->setText(jtr("global settings button"));
+        settings_ui->global_pushButton->setToolTip(jtr("open global settings"));
+    }
+    if (globalDialog_) globalDialog_->setWindowTitle(jtr("global settings title"));
+    if (globalPanelTitleLabel_) globalPanelTitleLabel_->setText(jtr("global settings title"));
+    if (globalFontLabel_) globalFontLabel_->setText(jtr("interface font"));
+    if (globalFontSizeLabel_) globalFontSizeLabel_->setText(jtr("font size"));
+    if (globalThemeLabel_) globalThemeLabel_->setText(jtr("eva palette"));
+    if (globalThemeCombo_)
+    {
+        struct ThemeTranslation
+        {
+            const char *id;
+            const char *key;
+        };
+        const ThemeTranslation translations[] = {
+            {"unit01", "eva theme unit01"},
+            {"unit00", "eva theme unit00"},
+            {"unit02", "eva theme unit02"},
+            {"unit03", "eva theme unit03"}};
+        QSignalBlocker blocker(globalThemeCombo_);
+        for (const ThemeTranslation &translation : translations)
+        {
+            const int idx = globalThemeCombo_->findData(QString::fromLatin1(translation.id));
+            if (idx >= 0)
+            {
+                globalThemeCombo_->setItemText(idx, jtr(translation.key));
+            }
+        }
+    }
 }
 
 void Widget::syncGlobalSettingsPanelControls()
