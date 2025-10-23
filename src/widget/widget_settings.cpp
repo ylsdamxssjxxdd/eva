@@ -117,30 +117,28 @@ void Widget::set_SetDialog()
 
 void Widget::setupGlobalSettingsPanel()
 {
-    if (!settings_ui || globalSettingsPanel_ || !settings_dialog) return;
+    if (globalDialog_) return;
+    if (!settings_ui || !settings_dialog) return;
 
     QVBoxLayout *rootLayout = settings_ui->verticalLayout_4;
     if (!rootLayout) return;
 
-    QWidget *host = new QWidget(settings_dialog);
-    host->setObjectName(QStringLiteral("globalSettingsContainer"));
-    QHBoxLayout *splitLayout = new QHBoxLayout(host);
-    splitLayout->setContentsMargins(0, 0, 0, 0);
-    splitLayout->setSpacing(6);
+    globalDialog_ = new QDialog(this);
+    globalDialog_->setWindowTitle(tr("全局设置"));
+    globalDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
+    globalDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    globalDialog_->setModal(true);
 
-    if (settings_ui->sample_box)
-    {
-        rootLayout->removeWidget(settings_ui->sample_box);
-        splitLayout->addWidget(settings_ui->sample_box, 1);
-    }
+    QVBoxLayout *dialogLayout = new QVBoxLayout(globalDialog_);
+    dialogLayout->setContentsMargins(12, 12, 12, 12);
+    dialogLayout->setSpacing(8);
 
-    globalSettingsPanel_ = new QFrame(settings_dialog);
+    globalSettingsPanel_ = new QFrame(globalDialog_);
     globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
     globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
     globalSettingsPanel_->setFrameShadow(QFrame::Raised);
     globalSettingsPanel_->setMinimumWidth(0);
-    globalSettingsPanel_->setMaximumWidth(0);
-    globalSettingsPanel_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    globalSettingsPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
     panelLayout->setContentsMargins(12, 16, 12, 16);
@@ -178,27 +176,13 @@ void Widget::setupGlobalSettingsPanel()
     panelLayout->addWidget(globalThemeCombo_);
     panelLayout->addStretch(1);
 
-    splitLayout->addWidget(globalSettingsPanel_, 0);
-    splitLayout->setStretch(0, 1);
-    splitLayout->setStretch(1, 0);
+    dialogLayout->addWidget(globalSettingsPanel_);
+    globalDialog_->setLayout(dialogLayout);
 
-    rootLayout->insertWidget(0, host);
-    globalPanelHost_ = host;
-
-    settings_ui->global_pushButton->setCheckable(true);
-    settings_ui->global_pushButton->setChecked(false);
-
-    connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::toggleGlobalSettingsPanel);
+    connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::showGlobalSettingsDialog);
     connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
     connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
     connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
-
-    globalSettingsPanel_->setMaximumWidth(QWIDGETSIZE_MAX);
-    globalPanelExpandedWidth_ = qMax(globalSettingsPanel_->sizeHint().width(), 260);
-    globalSettingsPanel_->setMinimumWidth(0);
-    globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
-    globalSettingsPanel_->hide();
-    globalPanelOpen_ = false;
 
     syncGlobalSettingsPanelControls();
 }
@@ -232,28 +216,21 @@ void Widget::syncGlobalSettingsPanelControls()
     }
 }
 
-void Widget::toggleGlobalSettingsPanel()
+void Widget::showGlobalSettingsDialog()
 {
-    if (!globalSettingsPanel_) return;
-
-    globalPanelOpen_ = !globalPanelOpen_;
-    if (globalPanelOpen_)
+    setupGlobalSettingsPanel();
+    if (!globalDialog_) return;
+    syncGlobalSettingsPanelControls();
+    if (settings_dialog)
     {
-        globalSettingsPanel_->setMinimumWidth(globalPanelExpandedWidth_);
-        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
-        globalSettingsPanel_->show();
+        const QRect parentGeom = settings_dialog->frameGeometry();
+        const QSize hint = globalDialog_->sizeHint();
+        QPoint topLeft = parentGeom.center() - QPoint(hint.width() / 2, hint.height() / 2);
+        globalDialog_->move(topLeft);
     }
-    else
-    {
-        globalSettingsPanel_->hide();
-        globalSettingsPanel_->setMinimumWidth(0);
-        globalSettingsPanel_->setMaximumWidth(globalPanelExpandedWidth_);
-    }
-    if (settings_ui && settings_ui->global_pushButton)
-    {
-        settings_ui->global_pushButton->setChecked(globalPanelOpen_);
-    }
-    applySettingsDialogSizing();
+    globalDialog_->show();
+    globalDialog_->raise();
+    globalDialog_->activateWindow();
 }
 
 void Widget::handleGlobalFontFamilyChanged(const QFont &font)
@@ -452,7 +429,7 @@ QColor Widget::chipColorForRole(RecordRole r) const
     case RecordRole::Tool: return themeVisuals_.stateTool;
     case RecordRole::Think: return themeVisuals_.textSecondary;
     case RecordRole::Assistant: return themeVisuals_.assistantRole;
-    case RecordRole::User: return themeVisuals_.textPrimary;
+    case RecordRole::User:
     case RecordRole::System:
     default: return themeVisuals_.systemRole;
     }

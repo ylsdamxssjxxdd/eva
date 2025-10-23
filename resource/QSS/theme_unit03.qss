@@ -8,7 +8,7 @@ QWidget {
 QFrame,
 QGroupBox {
     background-color: #181d29;
-    border: 2px solid #5e65d8;
+    border: none;
 }
 
 QGroupBox::title {
@@ -17,13 +17,14 @@ QGroupBox::title {
     padding: 0 6px;
     color: #e9edff;
     background-color: #242b3c;
-    border: 2px solid #5e65d8;
+    border: none;
 }
 
 QLabel,
 QCheckBox,
 QRadioButton {
     color: #e9edff;
+    border: none;
 }
 
 QCheckBox::indicator,
@@ -41,7 +42,7 @@ QRadioButton::indicator:hover {
 
 QCheckBox::indicator:checked {
     background-color: #9a79ff;
-    border: 2px solid #181d29;
+    
     image: url(":/QSS/QSS_IMG/object-select-symbolic.symbolic.png");
 }
 
@@ -62,7 +63,7 @@ QTimeEdit,
 QDateEdit {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
     selection-background-color: #9a79ff;
     selection-color: #181d29;
 }
@@ -71,7 +72,7 @@ QLineEdit:focus,
 QTextEdit:focus,
 QPlainTextEdit:focus,
 QComboBox:focus {
-    border: 2px solid #9a79ff;
+    
     background-color: #2c3544;
 }
 
@@ -81,13 +82,13 @@ QComboBox QAbstractItemView {
     color: #e9edff;
     selection-background-color: #9a79ff;
     selection-color: #181d29;
-    border: 1px solid #5e65d8;
+    
 }
 
 QPushButton {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
     padding: 4px 10px;
 }
 
@@ -108,7 +109,7 @@ QTableWidget,
 QTableView {
     background-color: #181d29;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
 }
 
 QListWidget::item:selected,
@@ -131,12 +132,12 @@ QListWidget::item {
 QHeaderView::section {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
     padding: 4px 6px;
 }
 
 QTabWidget::pane {
-    border: 2px solid #5e65d8;
+    
     background-color: #181d29;
     top: -2px;
 }
@@ -144,7 +145,7 @@ QTabWidget::pane {
 QTabBar::tab {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
     border-bottom: 2px solid #9a79ff;
     padding: 4px 12px;
     margin-right: 2px;
@@ -165,7 +166,7 @@ QScrollBar:vertical {
 
 QScrollBar::handle:vertical {
     background: #9a79ff;
-    border: 2px solid #5e65d8;
+    
     border-radius: 5px;
 }
 
@@ -175,21 +176,21 @@ QScrollBar:horizontal {
 
 QScrollBar::handle:horizontal {
     background: #9a79ff;
-    border: 2px solid #5e65d8;
+    
     border-radius: 5px;
 }
 
 QSlider::groove:horizontal {
     height: 10px;
     background: #242b3c;
-    border: 2px solid #5e65d8;
+    
     border-radius: 0;
 }
 
 QSlider::groove:vertical {
     width: 10px;
     background: #242b3c;
-    border: 2px solid #5e65d8;
+    
     border-radius: 0;
 }
 
@@ -199,7 +200,7 @@ QSlider::handle:horizontal {
                                 stop:0.4 #a98cff,
                                 stop:0.6 #8f70ff,
                                 stop:1 #7757ff);
-    border: 2px solid #181d29;
+    
     width: 14px;
     height: 14px;
     margin: -5px 0;
@@ -211,7 +212,7 @@ QSlider::handle:vertical {
                                 stop:0.4 #a98cff,
                                 stop:0.6 #8f70ff,
                                 stop:1 #7757ff);
-    border: 2px solid #181d29;
+    
     width: 14px;
     height: 14px;
     margin: 0 -5px;
@@ -220,37 +221,37 @@ QSlider::handle:vertical {
 QTextEdit#output {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
 }
 
 QPlainTextEdit#state {
     background-color: #242b3c;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
 }
 
 IntroAnimEdit {
     background-color: #000000;
     color: #d2e6ff;
-    border: 1px solid #000000;
+    
 }
 
 NeuronLogEdit {
     background-color: #000000;
     color: #b4ffc8;
-    border: 1px solid #000000;
+    
 }
 
 EvalLogEdit {
     background-color: #000000;
     color: #ffc878;
-    border: 1px solid #000000;
+    
 }
 
 QMenu {
     background-color: #181d29;
     color: #e9edff;
-    border: 2px solid #5e65d8;
+    
 }
 
 QMenu::item:selected {
@@ -261,5 +262,7 @@ QMenu::item:selected {
 QToolTip {
     background-color: #5e65d8;
     color: #181d29;
-    border: 2px solid #9a79ff;
+    
 }
+
+

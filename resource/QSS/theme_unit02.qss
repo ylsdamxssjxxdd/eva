@@ -8,7 +8,7 @@ QWidget {
 QFrame,
 QGroupBox {
     background-color: #331417;
-    border: 2px solid #d44b36;
+    border: none;
 }
 
 QGroupBox::title {
@@ -17,13 +17,14 @@ QGroupBox::title {
     padding: 0 6px;
     color: #ffe3d9;
     background-color: #4a1e21;
-    border: 2px solid #d44b36;
+    border: none;
 }
 
 QLabel,
 QCheckBox,
 QRadioButton {
     color: #ffe3d9;
+    border: none;
 }
 
 QCheckBox::indicator,
@@ -41,13 +42,13 @@ QRadioButton::indicator:hover {
 
 QCheckBox::indicator:checked {
     background-color: #ff7043;
-    border: 2px solid #331417;
+    
     image: url(":/QSS/QSS_IMG/object-select-symbolic.symbolic.png");
 }
 
 QRadioButton::indicator:checked {
     background-color: #ff7043;
-    border: 6px double #331417;
+
 }
 
 QLineEdit,
@@ -62,7 +63,7 @@ QTimeEdit,
 QDateEdit {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
     selection-background-color: #ff7043;
     selection-color: #331417;
 }
@@ -81,13 +82,13 @@ QComboBox QAbstractItemView {
     color: #ffe3d9;
     selection-background-color: #ff7043;
     selection-color: #331417;
-    border: 1px solid #d44b36;
+    
 }
 
 QPushButton {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
     padding: 4px 10px;
 }
 
@@ -108,7 +109,7 @@ QTableWidget,
 QTableView {
     background-color: #331417;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
 }
 
 QListWidget::item:selected,
@@ -131,12 +132,12 @@ QListWidget::item {
 QHeaderView::section {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
     padding: 4px 6px;
 }
 
 QTabWidget::pane {
-    border: 2px solid #d44b36;
+    
     background-color: #331417;
     top: -2px;
 }
@@ -144,7 +145,7 @@ QTabWidget::pane {
 QTabBar::tab {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
     border-bottom: 2px solid #ff7043;
     padding: 4px 12px;
     margin-right: 2px;
@@ -165,7 +166,7 @@ QScrollBar:vertical {
 
 QScrollBar::handle:vertical {
     background: #ff7043;
-    border: 2px solid #d44b36;
+    
     border-radius: 5px;
 }
 
@@ -175,21 +176,21 @@ QScrollBar:horizontal {
 
 QScrollBar::handle:horizontal {
     background: #ff7043;
-    border: 2px solid #d44b36;
+    
     border-radius: 5px;
 }
 
 QSlider::groove:horizontal {
     height: 10px;
     background: #63262a;
-    border: 2px solid #d44b36;
+    
     border-radius: 0;
 }
 
 QSlider::groove:vertical {
     width: 10px;
     background: #63262a;
-    border: 2px solid #d44b36;
+    
     border-radius: 0;
 }
 
@@ -199,7 +200,7 @@ QSlider::handle:horizontal {
                                 stop:0.4 #ff8a58,
                                 stop:0.6 #ff743b,
                                 stop:1 #f25a26);
-    border: 2px solid #331417;
+    
     width: 14px;
     height: 14px;
     margin: -5px 0;
@@ -211,7 +212,7 @@ QSlider::handle:vertical {
                                 stop:0.4 #ff8a58,
                                 stop:0.6 #ff743b,
                                 stop:1 #f25a26);
-    border: 2px solid #331417;
+    
     width: 14px;
     height: 14px;
     margin: 0 -5px;
@@ -220,13 +221,13 @@ QSlider::handle:vertical {
 QTextEdit#output {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
 }
 
 QPlainTextEdit#state {
     background-color: #4a1e21;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
 }
 
 IntroAnimEdit {
@@ -250,7 +251,7 @@ EvalLogEdit {
 QMenu {
     background-color: #331417;
     color: #ffe3d9;
-    border: 2px solid #d44b36;
+    
 }
 
 QMenu::item:selected {
@@ -261,5 +262,9 @@ QMenu::item:selected {
 QToolTip {
     background-color: #ff7043;
     color: #331417;
-    border: 2px solid #d44b36;
+    
 }
+
+
+
+

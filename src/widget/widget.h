@@ -8,6 +8,7 @@
 #include <QBuffer>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
 #include <QDialogButtonBox>
 #include <QElapsedTimer>
 #include <QFileDialog>
@@ -538,7 +539,7 @@ class Widget : public QWidget
     // Global UI styling helpers
     void setupGlobalSettingsPanel();
     void syncGlobalSettingsPanelControls();
-    void toggleGlobalSettingsPanel();
+    void showGlobalSettingsDialog();
     void handleGlobalFontFamilyChanged(const QFont &font);
     void handleGlobalFontSizeChanged(int value);
     void handleGlobalThemeChanged(int index);
@@ -565,13 +566,11 @@ class Widget : public QWidget
     };
     GlobalUiSettings globalUiSettings_;
     QString baseStylesheet_;
-    bool globalPanelOpen_ = false;
-    QWidget *globalPanelHost_ = nullptr;
+    QDialog *globalDialog_ = nullptr;
     QFrame *globalSettingsPanel_ = nullptr;
     QFontComboBox *globalFontCombo_ = nullptr;
     QSpinBox *globalFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;
-    int globalPanelExpandedWidth_ = 260;
     struct ThemeVisuals
     {
         QString id = QStringLiteral("unit01");

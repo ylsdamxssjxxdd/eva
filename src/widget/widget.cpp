@@ -1387,6 +1387,7 @@ void Widget::restoreSessionById(const QString &sessionId)
         if (r == QLatin1String("tool")) return chipColorForRole(RecordRole::Tool);
         if (r == QLatin1String("assistant")) return chipColorForRole(RecordRole::Assistant);
         if (r == QLatin1String("system")) return chipColorForRole(RecordRole::System);
+        if (r == QLatin1String("user")) return chipColorForRole(RecordRole::User);
         return themeTextPrimary();
     };
 
