@@ -1171,8 +1171,8 @@
             "The port number after service startup, with the IP address being 'local'. "
         ],
         "load_button_tooltip": [
-            "选择灵魂装入机体",
-            "Select the soul to enter eva "
+            "选择驾驶员进入机体",
+            "Select the Children to enter EVA "
         ],
         "save_config_mess": [
             "已保存ui配置，如遇异常启动前请删除EVA_TEMP文件夹",

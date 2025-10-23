@@ -136,6 +136,15 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
 
 </details>
 
+<details>
+<summary> Arbitrary Skills </summary>
+
+Skills are pluggable capability bundles introduced into EVA under the covenant framework. The commander can inject scenario-specific workflows, templates, and scripted instructions for the pilot without changing the main program. Refer to the sample skills in the EVA_SIKLLS directory.
+
+- **Requirements**: After mounting the Software Engineer tool, compress the skill folder into a zip file and drag it into the skills area to import. Each skill must provide `SKILL.md`; its YAML frontmatter describes `name`, `description`, `license`, and other metadata, while the body explains operating steps, input/output formats, and caveats. EVA depends on these fields during parsing and will reject the import if any are missing.
+
+</details>
+
 ### Enhanced Features
 
 <details>
