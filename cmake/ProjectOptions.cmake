@@ -32,6 +32,8 @@ if (UNIX AND NOT APPLE)
     if (EVA_LINUX_STATIC)
         add_compile_definitions(EVA_LINUX_STATIC_BUILD)
     endif()
+    set(EVA_FCITX_PLUGIN_PATH "" CACHE FILEPATH "Path to libfcitxplatforminputcontextplugin.a for Linux static builds")
+    set(EVA_FCITX_PLUGIN_LIBS "" CACHE STRING "Extra libraries required by fcitx platform plugin when linked statically")
 endif()
 
 # ---- Global toggles that affect subprojects ----
