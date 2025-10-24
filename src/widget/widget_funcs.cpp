@@ -771,6 +771,11 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     {
         updateRecordEntryContent(lastSystemRecordIndex_, ui_DATES.date_prompt);
     }
+    if (engineerRestoreOutputAfterEngineerRefresh_)
+    {
+        engineerRestoreOutputAfterEngineerRefresh_ = false;
+        ensureOutputAtBottom();
+    }
 }
 // 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
 void Widget::addStopwords()

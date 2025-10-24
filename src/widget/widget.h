@@ -180,6 +180,8 @@ class Widget : public QWidget
     EVA_MODE ui_mode = LOCAL_MODE;                               // 机体的模式
     EVA_STATE ui_state = CHAT_STATE;                             // 机体的状态
     ConversationTask currentTask_ = ConversationTask::ChatReply; // current send task
+    bool engineerRefreshAfterResetScheduled_ = false;            // 延迟刷新是否已排队
+    bool engineerRestoreOutputAfterEngineerRefresh_ = false;     // 刷新后是否需要恢复滚动
 
     QString history_lorapath = "";
     QString history_mmprojpath = "";

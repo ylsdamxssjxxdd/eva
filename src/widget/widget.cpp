@@ -1099,8 +1099,7 @@ void Widget::on_reset_clicked()
         return;
     }
 
-    // Refresh environment summaries asynchronously so engineer tool always receives latest state.
-    triggerEngineerEnvRefresh(true);
+    const bool engineerActive = date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked();
 
     if (date_ui)
     {
@@ -1150,6 +1149,25 @@ void Widget::on_reset_clicked()
         }
     }
     ensureOutputAtBottom();
+
+    if (engineerActive)
+    {
+        engineerRestoreOutputAfterEngineerRefresh_ = true;
+        if (!engineerRefreshAfterResetScheduled_)
+        {
+            engineerRefreshAfterResetScheduled_ = true;
+            QTimer::singleShot(120, this, [this]()
+                               {
+                                   engineerRefreshAfterResetScheduled_ = false;
+                                   if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked())
+                                   {
+                                       engineerRestoreOutputAfterEngineerRefresh_ = false;
+                                       return;
+                                   }
+                                   triggerEngineerEnvRefresh(true);
+                               });
+        }
+    }
 
     // Do not record reset into history; clear current session only
     if (history_) history_->clearCurrent();
