@@ -13,8 +13,6 @@ elseif(UNIX)
     set(sfx_NAME "")
 endif()
 
-set(MCP_SSL ON CACHE BOOL "Enable SSL support for MCP clients" FORCE)
-
 ###
 # ------------------------------ Prebuilt Backends Copy ------------------------------
 # Instead of building llama.cpp / whisper.cpp / stable-diffusion.cpp here,
