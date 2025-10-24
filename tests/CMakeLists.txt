@@ -28,6 +28,11 @@ target_link_libraries(xtool_tests PRIVATE
     mcp
 )
 
+if (UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    target_link_libraries(xtool_tests PRIVATE X11::X11 X11::Xtst)
+endif()
+
 target_compile_features(xtool_tests PRIVATE cxx_std_17)
 
 if (MINGW)
