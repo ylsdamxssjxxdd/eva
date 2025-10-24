@@ -77,10 +77,18 @@ elseif(UNIX)
             COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/eva.png ${CMAKE_BINARY_DIR}/AppDir/usr/share/icons/hicolor/64x64/apps/eva.png
         )
         # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
-        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
-            COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
-            COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage"
-        )
+        if (EVA_LINUX_STATIC)
+            # Static Qt builds already bundle the required plugins, skip linuxdeploy-plugin-qt.
+            add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+                COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
+                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage"
+            )
+        else()
+            add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+                COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
+                COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
+                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage"
+            )
+        endif()
     endif()
 endif()
