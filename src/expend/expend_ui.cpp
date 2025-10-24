@@ -137,6 +137,7 @@ void Expend::init_expend()
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech); // Initialize Text-to-Speech source list: always provide outetts, plus system voices if available
     QStringList ttsSources;
     ttsSources << SPPECH_OUTETTS;
+#if defined(EVA_ENABLE_QT_TTS)
     // Lazily create system TTS and enumerate voices
     if (!sys_speech) sys_speech = new QTextToSpeech(this);
     is_sys_speech_available = false;
@@ -168,6 +169,11 @@ void Expend::init_expend()
             }
         }
     }
+#else
+    is_sys_speech_available = false;
+    // Force the dropdown to OuteTTS when Qt speech is unavailable
+    speech_params.speech_name = SPPECH_OUTETTS;
+#endif
     set_sys_speech(ttsSources);
     // React to toggles/selection changes
     connect(ui->speech_enable_radioButton, &QRadioButton::toggled, this, &Expend::speech_enable_change);

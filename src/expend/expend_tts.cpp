@@ -70,6 +70,7 @@ void Expend::start_tts(QString str)
         }
         else
         {
+#if defined(EVA_ENABLE_QT_TTS)
             // 遍历所有可用音色
             if (!sys_speech) sys_speech = new QTextToSpeech(this);
             foreach (const QVoice &voice, sys_speech->availableVoices())
@@ -93,6 +94,10 @@ void Expend::start_tts(QString str)
 
             // 开始文本到语音转换
             sys_speech->say(str);
+#else
+            ui->speech_log->appendPlainText("[info] Qt TextToSpeech support is disabled in this build.");
+            speechOver();
+#endif
         }
     }
 }
@@ -264,10 +269,12 @@ void Expend::recv_resettts()
     temp_speech_txt = "";          // 清空待读列表
     wait_speech_txt_list.clear();  // 清空待读列表
     wait_speech_play_list.clear(); // 清空待读列表
+#if defined(EVA_ENABLE_QT_TTS)
     if (is_sys_speech_available)
     {
         sys_speech->stop(); // 停止朗读
     }
+#endif
 
     outetts_process->kill(); // 终止继续生成
     speech_player->stop();

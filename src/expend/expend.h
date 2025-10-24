@@ -45,7 +45,9 @@
 #include <QProgressBar>
 #include <QTextCodec>
 #include <QTextStream>
+#if defined(EVA_ENABLE_QT_TTS)
 #include <QTextToSpeech>
+#endif
 #include <QStringList>
 #include <QTimer>
 #include <QWidget>
@@ -283,7 +285,9 @@ class Expend : public QWidget
     QStringList avaliable_speech_list;                      // 可用声源列表
     void set_sys_speech(QStringList avaliable_speech_list); // 设置系统可用声源
     Speech_Params speech_params;
+#if defined(EVA_ENABLE_QT_TTS)
     QTextToSpeech *sys_speech = nullptr;
+#endif
     QMediaPlayer *speech_player;
     bool is_sys_speech_available = false; // 语音朗读是否可用
     bool is_speech = false;               // 是否系统声源正在朗读

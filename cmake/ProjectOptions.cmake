@@ -42,6 +42,21 @@ if (UNIX AND NOT APPLE)
     set(EVA_TTS_FLITE_PLUGIN_LIBS "" CACHE STRING "Extra libraries required by the flite text-to-speech plugin")
 endif()
 
+set(_EVA_ENABLE_QT_TTS_DEFAULT ON)
+if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
+    set(_EVA_ENABLE_QT_TTS_DEFAULT OFF)
+endif()
+option(EVA_ENABLE_QT_TTS "Enable Qt TextToSpeech support" ${_EVA_ENABLE_QT_TTS_DEFAULT})
+if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC AND EVA_ENABLE_QT_TTS)
+    message(STATUS "EVA_LINUX_STATIC detected: forcing EVA_ENABLE_QT_TTS=OFF to drop Qt TextToSpeech dependency.")
+    set(EVA_ENABLE_QT_TTS OFF CACHE BOOL "Enable Qt TextToSpeech support" FORCE)
+endif()
+if (EVA_ENABLE_QT_TTS)
+    add_compile_definitions(EVA_ENABLE_QT_TTS)
+else()
+    add_compile_definitions(EVA_DISABLE_QT_TTS)
+endif()
+
 # ---- Global toggles that affect subprojects ----
 option(MCP_SSL                   "Enable SSL support" OFF)
 
