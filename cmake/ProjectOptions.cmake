@@ -26,6 +26,14 @@ if (WIN32 AND MINGW)
     option(BODY_COPY_MINGW_RUNTIME "Copy MinGW runtime DLLs after build (libgcc/libstdc++/winpthread)" ${DEFAULT_BODY_COPY_MINGW_RUNTIME})
 endif()
 
+# Linux static Qt option
+if (UNIX AND NOT APPLE)
+    option(EVA_LINUX_STATIC "Link against a static Qt build on Linux (skips AppImage packaging)" OFF)
+    if (EVA_LINUX_STATIC)
+        add_compile_definitions(EVA_LINUX_STATIC_BUILD)
+    endif()
+endif()
+
 # ---- Global toggles that affect subprojects ----
 option(MCP_SSL                   "Enable SSL support" ON)
 

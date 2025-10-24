@@ -1,4 +1,5 @@
 #include "cmakeconfig.h"
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QDir>
 #include <QDirIterator>
@@ -13,9 +14,15 @@
 #include <QStandardPaths>
 #include <QStyleFactory>
 #include <QtGlobal> // qRound/qBound
+#include <QGuiApplication>
+#include <QtPlugin>
 #include <climits>
 #include <functional>
 #include <locale>
+
+#if defined(Q_OS_LINUX) && defined(EVA_LINUX_STATIC_BUILD)
+Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
+#endif
 
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
@@ -88,6 +95,12 @@ int main(int argc, char *argv[])
     QString ldLibraryPath = appDirPath + "/usr/lib";
     std::string currentPath = ldLibraryPath.toLocal8Bit().constData();
     setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1); // 指定找动态库的默认路径 LD_LIBRARY_PATH
+#endif
+
+#if defined(Q_OS_LINUX) && defined(EVA_LINUX_STATIC_BUILD)
+    qputenv("QT_IM_MODULE", QByteArray("fcitx"));
+    qputenv("XMODIFIERS", QByteArray("@im=fcitx"));
+    qputenv("GTK_IM_MODULE", QByteArray("fcitx"));
 #endif
 
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       // 自适应缩放

@@ -56,6 +56,14 @@ target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE ${CMAKE_BINARY_DIR}/src/utils ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/thirdparty/miniz)
 
+if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
+    if (TARGET Qt5::QFcitxPlatformInputContextPlugin)
+        target_link_libraries(${EVA_TARGET} PRIVATE Qt5::QFcitxPlatformInputContextPlugin)
+    else()
+        message(WARNING "Static build requested but Qt5::QFcitxPlatformInputContextPlugin target not available. Fcitx IM may be missing.")
+    endif()
+endif()
+
 # Apply MinGW-specific compile/link options collected in ProjectOptions.cmake
 if (MINGW)
     if (DEFINED EVA_COMPILE_OPTIONS)
