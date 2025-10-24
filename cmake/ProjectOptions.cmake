@@ -34,6 +34,8 @@ if (UNIX AND NOT APPLE)
     endif()
     set(EVA_FCITX_PLUGIN_PATH "" CACHE FILEPATH "Path to libfcitxplatforminputcontextplugin.a for Linux static builds")
     set(EVA_FCITX_PLUGIN_LIBS "" CACHE STRING "Extra libraries required by fcitx platform plugin when linked statically")
+    set(EVA_TTS_FLITE_PLUGIN_PATH "" CACHE FILEPATH "Path to the static QTextToSpeech flite plugin library")
+    set(EVA_TTS_FLITE_PLUGIN_LIBS "" CACHE STRING "Extra libraries required by the flite text-to-speech plugin")
 endif()
 
 # ---- Global toggles that affect subprojects ----
