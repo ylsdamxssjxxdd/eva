@@ -737,6 +737,7 @@ void Widget::initTextComponentsMemoryPolicy()
 void Widget::resetOutputDocument()
 {
     flushPendingStream();
+    is_stop_output_scroll = false;
     // Preserve existing visual settings (font, tab stops) before swapping the doc.
     const QFont prevFont = ui->output->font();
     const qreal prevTabStop = ui->output->tabStopDistance();

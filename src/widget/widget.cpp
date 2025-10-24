@@ -1149,6 +1149,7 @@ void Widget::on_reset_clicked()
             recordEntries_[__idx].msgIndex = mi;
         }
     }
+    ensureOutputAtBottom();
 
     // Do not record reset into history; clear current session only
     if (history_) history_->clearCurrent();

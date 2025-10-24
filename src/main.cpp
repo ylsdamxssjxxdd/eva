@@ -503,7 +503,15 @@ int main(int argc, char *argv[])
             w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
         }
         w.is_load_tool = calculatorOn || knowledgeOn || controllerOn || stablediffusionOn || engineerOn || mcpOn;
-        w.ui_extra_prompt = w.is_load_tool ? w.create_extra_prompt() : QString();
+        if (engineerOn)
+        {
+            const Widget::EngineerEnvSnapshot snapshot = w.collectEngineerEnvSnapshot();
+            w.applyEngineerEnvSnapshot(snapshot, true);
+        }
+        else
+        {
+            w.ui_extra_prompt = w.is_load_tool ? w.create_extra_prompt() : QString();
+        }
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
         // 推理设备：先根据目录填充选项，再应用用户偏好

@@ -704,6 +704,14 @@ QString Widget::create_engineer_info()
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
+Widget::EngineerEnvSnapshot Widget::collectEngineerEnvSnapshot()
+{
+    EngineerEnvSnapshot snapshot;
+    snapshot.python = checkPython();
+    snapshot.compile = checkCompile();
+    snapshot.node = checkNode();
+    return snapshot;
+}
 void Widget::triggerEngineerEnvRefresh(bool updatePrompt)
 {
     if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return;
@@ -716,13 +724,7 @@ void Widget::triggerEngineerEnvRefresh(bool updatePrompt)
     engineerEnvApplyPromptOnCompletion_ = updatePrompt;
     engineerEnvRefreshQueued_ = false;
     engineerEnvPendingPromptUpdate_ = false;
-    auto future = QtConcurrent::run([this]() -> EngineerEnvSnapshot {
-        EngineerEnvSnapshot snapshot;
-        snapshot.python = checkPython();
-        snapshot.compile = checkCompile();
-        snapshot.node = checkNode();
-        return snapshot;
-    });
+    auto future = QtConcurrent::run([this]() -> EngineerEnvSnapshot { return collectEngineerEnvSnapshot(); });
     engineerEnvWatcher_.setFuture(future);
 }
 void Widget::onEngineerEnvProbeFinished()

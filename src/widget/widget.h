@@ -127,6 +127,7 @@ class Widget : public QWidget
     // ui相关
     QString ui_output, ui_state_info;
     void output_scroll(QString output, QColor color = QColor(0, 0, 0)); // 向output末尾添加文本并滚动
+    void ensureOutputAtBottom();                                        // Force output view to stay at the bottom
     bool is_stop_output_scroll = false;                                 // 输出区滚动标签
     QMenu *right_menu;                                                  // 输入区右击菜单
     QScrollBar *output_scrollBar;                                       // 输出区滑动条
@@ -298,6 +299,7 @@ class Widget : public QWidget
         QString compile;
         QString node;
     };
+    EngineerEnvSnapshot collectEngineerEnvSnapshot();
     void onEngineerEnvProbeFinished();
     void applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt);
     QString python_env = "";

@@ -1,6 +1,8 @@
 #include "ui_widget.h"
 #include "widget.h"
 
+#include <QTimer>
+
 //-------------------------------------------------------------------------
 //------------------------------输出--------------------------------
 //-------------------------------------------------------------------------
@@ -239,6 +241,27 @@ void Widget::output_scroll(QString output, QColor color)
     {
         ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); // 设置滚动条到最底端
     }
+}
+
+void Widget::ensureOutputAtBottom()
+{
+    if (!ui || !ui->output) return;
+    QScrollBar *scrollBar = ui->output->verticalScrollBar();
+    if (!scrollBar) return;
+
+    const auto applyBottom = [this]()
+    {
+        if (!ui || !ui->output) return;
+        if (QScrollBar *sb = ui->output->verticalScrollBar())
+        {
+            is_stop_output_scroll = false;
+            sb->setValue(sb->maximum());
+        }
+    };
+
+    is_stop_output_scroll = false;
+    applyBottom();
+    QTimer::singleShot(0, this, applyBottom);
 }
 
 // 刷新状态区
