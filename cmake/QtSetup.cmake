@@ -29,7 +29,7 @@ if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
                             "Provide EVA_FCITX_PLUGIN_PATH to a static libfcitxplatforminputcontextplugin.a.")
         endif()
     endif()
-    if (NOT TARGET Qt5::QTextToSpeechEngineFlitePlugin)
+    if (NOT EVA_LINUX_STATIC_SKIP_FLITE AND NOT TARGET Qt5::QTextToSpeechEngineFlitePlugin)
         if (EVA_TTS_FLITE_PLUGIN_PATH AND EXISTS "${EVA_TTS_FLITE_PLUGIN_PATH}")
             add_library(Qt5::QTextToSpeechEngineFlitePlugin STATIC IMPORTED)
             set_target_properties(Qt5::QTextToSpeechEngineFlitePlugin PROPERTIES
@@ -45,6 +45,8 @@ if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
             message(WARNING "EVA_LINUX_STATIC enabled but Qt5::QTextToSpeechEngineFlitePlugin target not provided. "
                             "Set EVA_TTS_FLITE_PLUGIN_PATH when using a static Qt build with flite.")
         endif()
+    elseif(EVA_LINUX_STATIC_SKIP_FLITE)
+        message(STATUS "EVA_LINUX_STATIC_SKIP_FLITE=ON: skipping import of QTextToSpeechEngineFlitePlugin")
     endif()
 endif()
 

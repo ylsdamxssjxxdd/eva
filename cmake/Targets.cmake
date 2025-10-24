@@ -39,6 +39,7 @@ add_executable(
     src/utils/textspacing.cpp src/utils/textspacing.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
     src/utils/zip_extractor.cpp src/utils/zip_extractor.h
+    src/utils/static_plugin_stubs.cpp
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
     thirdparty/miniz/miniz.c thirdparty/miniz/miniz_zip.c thirdparty/miniz/miniz_tinfl.c thirdparty/miniz/miniz_tdef.c
@@ -67,13 +68,15 @@ if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
     else()
         message(WARNING "Static build requested but Qt5::QFcitxPlatformInputContextPlugin target not available. Fcitx IM may be missing.")
     endif()
-    if (TARGET Qt5::QTextToSpeechEngineFlitePlugin)
+    if (NOT EVA_LINUX_STATIC_SKIP_FLITE AND TARGET Qt5::QTextToSpeechEngineFlitePlugin)
         target_link_libraries(${EVA_TARGET} PRIVATE Qt5::QTextToSpeechEngineFlitePlugin)
-    elseif (EVA_TTS_FLITE_PLUGIN_PATH)
+    elseif (NOT EVA_LINUX_STATIC_SKIP_FLITE AND EVA_TTS_FLITE_PLUGIN_PATH)
         target_link_libraries(${EVA_TARGET} PRIVATE "${EVA_TTS_FLITE_PLUGIN_PATH}")
         if (EVA_TTS_FLITE_PLUGIN_LIBS)
             target_link_libraries(${EVA_TARGET} PRIVATE ${EVA_TTS_FLITE_PLUGIN_LIBS})
         endif()
+    elseif(EVA_LINUX_STATIC_SKIP_FLITE)
+        message(STATUS "EVA_LINUX_STATIC_SKIP_FLITE=ON: not linking Flite text-to-speech plugin")
     else()
         message(WARNING "Static TextToSpeech build detected but Flite plugin target is unavailable; voice features may fail.")
     endif()
