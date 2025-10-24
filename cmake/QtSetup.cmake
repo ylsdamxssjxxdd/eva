@@ -10,6 +10,7 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt5 COMPONENTS Widgets Network Script Multimedia MultimediaWidgets TextToSpeech Sql Concurrent REQUIRED)
 # Try to resolve Qt bin dir from Qt5_DIR
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE)
+set(EVA_LINUX_STATIC_FLITE_FORCE_STUB OFF)
 
 if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
     if (NOT TARGET Qt5::QFcitxPlatformInputContextPlugin)
@@ -29,24 +30,26 @@ if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
                             "Provide EVA_FCITX_PLUGIN_PATH to a static libfcitxplatforminputcontextplugin.a.")
         endif()
     endif()
-    if (NOT EVA_LINUX_STATIC_SKIP_FLITE AND NOT TARGET Qt5::QTextToSpeechEngineFlitePlugin)
-        if (EVA_TTS_FLITE_PLUGIN_PATH AND EXISTS "${EVA_TTS_FLITE_PLUGIN_PATH}")
-            add_library(Qt5::QTextToSpeechEngineFlitePlugin STATIC IMPORTED)
-            set_target_properties(Qt5::QTextToSpeechEngineFlitePlugin PROPERTIES
-                IMPORTED_GLOBAL TRUE
-                IMPORTED_LOCATION "${EVA_TTS_FLITE_PLUGIN_PATH}")
-            if (EVA_TTS_FLITE_PLUGIN_LIBS)
-                set(_flite_plugin_libs ${EVA_TTS_FLITE_PLUGIN_LIBS})
-                set_target_properties(Qt5::QTextToSpeechEngineFlitePlugin PROPERTIES
-                    INTERFACE_LINK_LIBRARIES "${_flite_plugin_libs}")
-            endif()
-            message(STATUS "Using external flite TTS plugin at ${EVA_TTS_FLITE_PLUGIN_PATH}")
-        else()
-            message(WARNING "EVA_LINUX_STATIC enabled but Qt5::QTextToSpeechEngineFlitePlugin target not provided. "
-                            "Set EVA_TTS_FLITE_PLUGIN_PATH when using a static Qt build with flite.")
-        endif()
-    elseif(EVA_LINUX_STATIC_SKIP_FLITE)
+    if (EVA_LINUX_STATIC_SKIP_FLITE)
         message(STATUS "EVA_LINUX_STATIC_SKIP_FLITE=ON: skipping import of QTextToSpeechEngineFlitePlugin")
+    elseif (TARGET Qt5::QTextToSpeechEngineFlitePlugin)
+        # Plugin available from the Qt toolchain.
+    elseif (EVA_TTS_FLITE_PLUGIN_PATH AND EXISTS "${EVA_TTS_FLITE_PLUGIN_PATH}")
+        add_library(Qt5::QTextToSpeechEngineFlitePlugin STATIC IMPORTED)
+        set_target_properties(Qt5::QTextToSpeechEngineFlitePlugin PROPERTIES
+            IMPORTED_GLOBAL TRUE
+            IMPORTED_LOCATION "${EVA_TTS_FLITE_PLUGIN_PATH}")
+        if (EVA_TTS_FLITE_PLUGIN_LIBS)
+            set(_flite_plugin_libs ${EVA_TTS_FLITE_PLUGIN_LIBS})
+            set_target_properties(Qt5::QTextToSpeechEngineFlitePlugin PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${_flite_plugin_libs}")
+        endif()
+        message(STATUS "Using external flite TTS plugin at ${EVA_TTS_FLITE_PLUGIN_PATH}")
+    else()
+        message(WARNING "Static Qt TextToSpeech build detected but flite plugin binaries are missing. "
+                        "Falling back to a stub so the build can finish; voice output via flite will be disabled.")
+        add_compile_definitions(EVA_SKIP_FLITE_PLUGIN)
+        set(EVA_LINUX_STATIC_FLITE_FORCE_STUB ON)
     endif()
 endif()
 
