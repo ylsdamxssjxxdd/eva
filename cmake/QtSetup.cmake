@@ -14,10 +14,20 @@ endif()
 find_package(Qt5 COMPONENTS ${_EVA_QT_COMPONENTS} REQUIRED)
 # Try to resolve Qt bin dir from Qt5_DIR
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE)
+get_filename_component(Qt5_LIB_DIR "${Qt5_DIR}/../.." ABSOLUTE)
 set(EVA_LINUX_STATIC_FLITE_FORCE_STUB OFF)
 
 if (UNIX AND NOT APPLE AND EVA_LINUX_STATIC)
     if (NOT TARGET Qt5::QFcitxPlatformInputContextPlugin)
+        if (NOT EVA_FCITX_PLUGIN_PATH)
+            set(_qt_fcitx_candidate "${Qt5_LIB_DIR}/libfcitxplatforminputcontextplugin.a")
+            if (EXISTS "${_qt_fcitx_candidate}")
+                # Auto-populate the fcitx plugin path when the user did not provide one.
+                set(EVA_FCITX_PLUGIN_PATH "${_qt_fcitx_candidate}"
+                    CACHE FILEPATH "Path to libfcitxplatforminputcontextplugin.a for Linux static builds" FORCE)
+                message(STATUS "Auto-detected fcitx platform plugin at ${EVA_FCITX_PLUGIN_PATH}")
+            endif()
+        endif()
         if (EVA_FCITX_PLUGIN_PATH AND EXISTS "${EVA_FCITX_PLUGIN_PATH}")
             add_library(Qt5::QFcitxPlatformInputContextPlugin STATIC IMPORTED)
             set_target_properties(Qt5::QFcitxPlatformInputContextPlugin PROPERTIES
