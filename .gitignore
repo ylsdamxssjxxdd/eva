@@ -1,4 +1,5 @@
 build/
+build-static/
 .vscode/
 CMakeLists.txt.user
 src-old/
