@@ -634,6 +634,10 @@ int main(int argc, char *argv[])
         w.ui_SETTINGS.hid_flash_attn = settings.value("hid_flash_attn", DEFAULT_FLASH_ATTN).toBool();
         w.ui_SETTINGS.hid_parallel = settings.value("hid_parallel", DEFAULT_PARALLEL).toInt();
 
+        // Sync persisted max output length back to UI before propagating values
+        w.settings_ui->npredict_spin->setValue(qBound(1, w.ui_SETTINGS.hid_npredict, 99999));
+        w.npredict_change();
+
         // ui显示值传给ui内部值
         w.get_date(); // 获取约定中的纸面值
         w.get_set();  // 获取设置中的纸面值

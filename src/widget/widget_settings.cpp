@@ -71,6 +71,12 @@ void Widget::set_SetDialog()
     settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
                                             .arg(QString::number(settings_ui->topp_slider->value() / 100.0, 'f', 2)));
     connect(settings_ui->topp_slider, &QSlider::valueChanged, this, &Widget::topp_change);
+    // 最大输出长度
+    settings_ui->npredict_spin->setRange(1, 99999);
+    settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
+    settings_ui->npredict_spin->setAccelerated(true);
+    npredict_change();
+    connect(settings_ui->npredict_spin, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::npredict_change);
     // 加速支持
     settings_ui->ngl_slider->setRange(0, 99);
     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
@@ -707,3 +713,5 @@ void Widget::set_set()
         on_reset_clicked();
     }
 }
+
+

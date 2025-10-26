@@ -454,10 +454,6 @@ class Widget : public QWidget
     void switch_lan_change();                                                 // 切换行动纲领的语言
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_); // 更新gpu内存使用率
     void recv_cpu_status(double cpuload, double memload);                     // 传递cpu信息
-
-    // 自用的槽
-  private slots:
-
     void onRecordClicked(int index);
     void onRecordDoubleClicked(int index);
     void monitorTime();      // 监视时间到
@@ -489,6 +485,7 @@ class Widget : public QWidget
     void repeat_change();                         // repeat滑块响应
     void topk_change();                           // top_k 滑块响应
     void topp_change();                           // top_p 滑块响应
+    void npredict_change();                       // 最大输出长度响应
     void parallel_change();                       // 并发数量滑块响应
     void nthread_change();                        // nthread
     void decode_handleTimeout();                  // 编码动画时间控制

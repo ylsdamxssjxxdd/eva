@@ -4,6 +4,7 @@
 #include "terminal_pane.h"
 #include "ui_widget.h"
 #include "widget.h"
+#include <QtGlobal>
 #include <QDir>
 #include <QFileInfo>
 #include <QByteArray>
@@ -225,6 +226,7 @@ void Widget::get_set()
     ui_SETTINGS.lorapath = settings_ui->lora_LineEdit->text();
     ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
+    ui_SETTINGS.hid_npredict = qBound(1, settings_ui->npredict_spin->value(), 99999);
     ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
     if (settings_ui->chat_btn->isChecked())
     {
@@ -992,6 +994,7 @@ void Widget::apply_language(int language_flag_)
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(ui_SETTINGS.top_k));
     settings_ui->topk_slider->setToolTip(jtr("top_k_label_tooltip"));
     settings_ui->topk_label->setToolTip(jtr("top_k_label_tooltip"));
+    npredict_change();
     settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(ui_SETTINGS.hid_parallel));
     settings_ui->parallel_slider->setToolTip(jtr("parallel_label_tooltip"));
     settings_ui->parallel_label->setToolTip(jtr("parallel_label_tooltip"));

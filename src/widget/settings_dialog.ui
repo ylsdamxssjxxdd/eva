@@ -191,9 +191,9 @@
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_topp">
-        <item>
-         <widget class="QLabel" name="topp_label">
+      <layout class="QHBoxLayout" name="horizontalLayout_topp">
+       <item>
+        <widget class="QLabel" name="topp_label">
           <property name="minimumSize">
            <size>
             <width>120</width>
@@ -230,6 +230,54 @@
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+      </layout>
+     </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_npredict">
+        <item>
+         <widget class="QLabel" name="npredict_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>120</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string extracomment="npredict label">npredict</string>
+          </property>
+          <property name="toolTip">
+           <string extracomment="npredict tooltip">npredict</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="npredict_spin">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>99999</number>
+          </property>
+          <property name="accelerated">
+           <bool>true</bool>
+          </property>
+          <property name="toolTip">
+           <string>npredict</string>
           </property>
          </widget>
         </item>

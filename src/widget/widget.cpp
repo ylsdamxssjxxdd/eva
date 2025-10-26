@@ -1349,6 +1349,8 @@ void Widget::on_set_clicked()
         settings_ui->topp_label->setText("TOP_P " + QString::number(val));
         settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1").arg(QString::number(val, 'f', 2)));
     }
+    settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
+    npredict_change();
     settings_ui->lora_LineEdit->setText(ui_SETTINGS.lorapath);
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
     settings_ui->nthread_slider->setValue(ui_SETTINGS.nthread);

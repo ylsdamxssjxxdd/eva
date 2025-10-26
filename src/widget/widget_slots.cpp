@@ -45,6 +45,15 @@ void Widget::topp_change()
 }
 
 // 并发数量滑块响应
+void Widget::npredict_change()
+{
+    const int value = settings_ui->npredict_spin->value();
+    const QString text = jtr("npredict") + " " + QString::number(value);
+    settings_ui->npredict_label->setText(text);
+    settings_ui->npredict_label->setToolTip(text);
+    settings_ui->npredict_spin->setToolTip(text);
+}
+
 void Widget::parallel_change()
 {
     settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(settings_ui->parallel_slider->value()));
@@ -1166,3 +1175,5 @@ void Widget::unlockLoad()
     reflash_output(bot_predecode_content, 0, themeTextPrimary());
     recordAppendText(__idx, bot_predecode_content);
 }
+
+
