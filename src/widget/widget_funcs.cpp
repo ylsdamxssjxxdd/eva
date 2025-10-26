@@ -1097,7 +1097,6 @@ void Widget::auto_save_user()
     settings.setValue("monitor_frame", ui_monitor_frame);    // 监视帧率
     // 保存隐藏设置
     settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); // 最大输出长度
-    settings.setValue("hid_special", ui_SETTINGS.hid_special);
     settings.setValue("hid_top_p_str", QString::number(ui_SETTINGS.hid_top_p, 'f', 6));
     // Clean legacy percent keys and numeric keys to keep only string keys
     settings.remove("hid_top_p_percent");

@@ -45,9 +45,7 @@
 #define DEFAULT_TOP_K 40
 
 // 推理
-#define DEFAULT_NTHREAD 1    // 默认线程数为1，但是后面会变的
-#define DEFAULT_SPECIAL true // 默认显示特殊token
-
+#define DEFAULT_NTHREAD 1    // 默认线程数为1
 #define DEFAULT_NCTX 4096        // 默认上下文长度
 #define DEFAULT_BATCH 2048       // 默认虚拟批处理大小
 #define DEFAULT_UBATCH 512       // 默认物理批处理大小
@@ -197,7 +195,6 @@ struct SETTINGS
 
     // 隐藏的设置
     int hid_npredict = DEFAULT_NPREDICT;
-    bool hid_special = DEFAULT_SPECIAL; // enable special token output
     double hid_top_p = DEFAULT_TOP_P;
     int hid_batch = DEFAULT_BATCH;
     int32_t hid_n_ubatch = DEFAULT_UBATCH;    // physical batch size for prompt processing (must be >=32 to use BLAS)

@@ -592,7 +592,6 @@ void Widget::settings_ui_confirm_button_clicked()
         if (A.hid_top_p != B.hid_top_p) return false;
         if (A.hid_npredict != B.hid_npredict) return false;
         if (A.hid_n_ubatch != B.hid_n_ubatch) return false;
-        if (A.hid_special != B.hid_special) return false;
         if (A.complete_mode != B.complete_mode) return false;
         return true;
     };

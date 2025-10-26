@@ -607,7 +607,6 @@ int main(int argc, char *argv[])
 
         // 初次启动强制赋予隐藏的设定值
         w.ui_SETTINGS.hid_npredict = settings.value("hid_npredict", DEFAULT_NPREDICT).toInt();
-        w.ui_SETTINGS.hid_special = settings.value("hid_special", DEFAULT_SPECIAL).toBool();
         // Keep hidden top_p in sync using string-first read (will be overwritten by get_set later)
         {
             // Same precedence as above: string > numeric > percent
