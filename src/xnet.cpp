@@ -137,6 +137,7 @@ void xNet::run()
     const QUrl url(isChat ? (apis.api_endpoint + apis.api_chat_endpoint)
                           : (apis.api_endpoint + apis.api_completion_endpoint));
     const QByteArray body = isChat ? createChatBody() : createCompleteBody();
+    logRequestPayload(isChat ? "chat" : "complete", body);
     QNetworkRequest request = buildRequest(url);
 
     // Fire asynchronous request
@@ -675,6 +676,27 @@ QByteArray xNet::createCompleteBody()
     return doc.toJson();
 }
 // 传递端点参数
+
+void xNet::logRequestPayload(const char *modeTag, const QByteArray &body)
+{
+    // Pretty print outgoing payloads to help diagnose bad parameters
+    if (!modeTag) modeTag = "request";
+
+    QJsonParseError parseErr{};
+    const QJsonDocument doc = QJsonDocument::fromJson(body, &parseErr);
+
+    QByteArray pretty = body;
+    if (parseErr.error == QJsonParseError::NoError && !doc.isNull())
+    {
+        pretty = doc.toJson(QJsonDocument::Indented);
+    }
+
+    const QString prefix = QStringLiteral("net:%1 payload -> ").arg(QString::fromLatin1(modeTag));
+    const QString combined = prefix + QString::fromUtf8(pretty);
+
+    qDebug().noquote() << combined;
+    emit net2ui_state(combined, SIGNAL_SIGNAL);
+}
 void xNet::recv_data(ENDPOINT_DATA data)
 {
     endpoint_data = data;

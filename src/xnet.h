@@ -110,6 +110,7 @@ class xNet : public QObject
     void abortActiveReply();
     QNetworkRequest buildRequest(const QUrl &url) const;
     void ensureNetObjects();
+    void logRequestPayload(const char *modeTag, const QByteArray &body);
 };
 
 #endif // XNET_H
