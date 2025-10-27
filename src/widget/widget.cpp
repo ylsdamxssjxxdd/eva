@@ -1986,6 +1986,48 @@ void Widget::onRecordDoubleClicked(int index)
         }
     }
 
+    // Maintain a leading separator so each record header stays visually separated after edits
+    if (index > 0)
+    {
+        QTextDocument *doc2 = ui->output->document();
+        if (doc2)
+        {
+            RecordEntry &cur = recordEntries_[index];
+            const int docTail = outputDocEnd();
+            if (docTail > 0)
+            {
+                const auto safeCharAt = [&](int pos) -> QChar
+                {
+                    if (pos < 0 || pos >= docTail) return QChar();
+                    return doc2->characterAt(pos);
+                };
+                int startPos = cur.docFrom;
+                if (startPos < 0) startPos = 0;
+                if (startPos >= docTail) startPos = docTail - 1;
+                const QChar atStart = safeCharAt(startPos);
+                const QChar beforeStart = safeCharAt(startPos - 1);
+                if (beforeStart == QChar('\n') && atStart != QChar('\n') && startPos > 0)
+                {
+                    cur.docFrom = startPos - 1;
+                }
+                else if (atStart != QChar('\n'))
+                {
+                    QTextCursor separatorCursor(doc2);
+                    separatorCursor.setPosition(startPos);
+                    separatorCursor.insertText(QString(DEFAULT_SPLITER));
+                    const int insLen = QString(DEFAULT_SPLITER).size();
+                    cur.docFrom = startPos;
+                    cur.docTo += insLen;
+                    for (int i = index + 1; i < recordEntries_.size(); ++i)
+                    {
+                        recordEntries_[i].docFrom += insLen;
+                        recordEntries_[i].docTo += insLen;
+                    }
+                }
+            }
+        }
+    }
+
     // Update in-memory message content and persist to history
     if (e.msgIndex >= 0 && e.msgIndex < ui_messagesArray.size())
     {
