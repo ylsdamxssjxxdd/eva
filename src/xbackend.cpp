@@ -74,7 +74,7 @@ QStringList LocalServerManager::buildArgs() const
     args << "--parallel" << QString::number(settings_.hid_parallel);
     args << "--jinja"; // enable toolcalling prompt templating
     args << "--reasoning-format"
-         << "deepseek"; // surface <think> as reasoning_content
+         << "auto"; // surface <think> as reasoning_content
     args << "--verbose-prompt";
 
     if (!lora_.isEmpty())

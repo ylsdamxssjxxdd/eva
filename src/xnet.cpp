@@ -695,7 +695,7 @@ void xNet::logRequestPayload(const char *modeTag, const QByteArray &body)
     const QString combined = prefix + QString::fromUtf8(pretty);
 
     qDebug().noquote() << combined;
-    emit net2ui_state(combined, SIGNAL_SIGNAL);
+    // emit net2ui_state(combined, SIGNAL_SIGNAL);
 }
 void xNet::recv_data(ENDPOINT_DATA data)
 {
