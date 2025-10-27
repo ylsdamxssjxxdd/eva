@@ -104,9 +104,21 @@ QJsonArray buildOaiChatMessages(const QJsonArray &uiMessages,
             const QString s = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
             if (role == asstRole)
             {
-                QString reasoning, content;
-                splitThink(s, reasoning, content);
+                QString reasoningExisting = m.value("reasoning_content").toString();
+                if (reasoningExisting.isEmpty()) reasoningExisting = m.value("thinking").toString();
+                QString reasoningInline, content = s;
+                splitThink(s, reasoningInline, content);
                 m.insert("content", content);
+                if (reasoningExisting.isEmpty()) reasoningExisting = reasoningInline;
+                if (!reasoningExisting.isEmpty())
+                {
+                    m.insert("reasoning_content", reasoningExisting);
+                }
+                else
+                {
+                    m.remove("reasoning_content");
+                }
+                m.remove("thinking");
             }
             else
             {

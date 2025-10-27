@@ -756,27 +756,27 @@ void Widget::recv_pushover()
         searchPos = s; // continue scanning from removal point
     }
     const QString reasoningText = reasonings.join("");
-    // Append think and assistant messages to UI array/history
-    if (!reasoningText.isEmpty())
-    {
-        QJsonObject thinkMsg;
-        thinkMsg.insert("role", QStringLiteral("think"));
-        thinkMsg.insert("content", reasoningText);
-        ui_messagesArray.append(thinkMsg);
-        if (history_ && ui_state == CHAT_STATE) history_->appendMessage(thinkMsg);
-        if (currentThinkIndex_ >= 0) { recordEntries_[currentThinkIndex_].msgIndex = ui_messagesArray.size() - 1; }
-    }
+    // Persist assistant message (with optional reasoning) into UI/history
     QJsonObject roleMessage;
     roleMessage.insert("role", DEFAULT_MODEL_NAME);
     roleMessage.insert("content", finalText);
+    if (!reasoningText.isEmpty())
+    {
+        roleMessage.insert("reasoning_content", reasoningText);
+    }
     ui_messagesArray.append(roleMessage);
     if (history_ && ui_state == CHAT_STATE)
     {
         history_->appendMessage(roleMessage);
     }
+    const int asstMsgIndex = ui_messagesArray.size() - 1;
+    if (!reasoningText.isEmpty() && currentThinkIndex_ >= 0)
+    {
+        recordEntries_[currentThinkIndex_].msgIndex = asstMsgIndex;
+    }
     if (currentAssistantIndex_ >= 0)
     {
-        recordEntries_[currentAssistantIndex_].msgIndex = ui_messagesArray.size() - 1;
+        recordEntries_[currentAssistantIndex_].msgIndex = asstMsgIndex;
     }
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
@@ -1425,6 +1425,9 @@ void Widget::restoreSessionById(const QString &sessionId)
         QJsonObject m = v.toObject();
         const QString role = m.value("role").toString();
         const QJsonValue contentVal = m.value("content");
+        const RecordRole recRole = roleToRecord(role);
+        QString reasoningText = m.value("reasoning_content").toString();
+        if (reasoningText.isEmpty()) reasoningText = m.value("thinking").toString();
 
         // Build displayable text from content (string or multimodal array)
         QString displayText;
@@ -1442,14 +1445,42 @@ void Widget::restoreSessionById(const QString &sessionId)
         }
         else
         {
-            QString s = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
-            s.replace(QString(DEFAULT_THINK_BEGIN), QString());
-            s.replace(QString(DEFAULT_THINK_END), QString());
-            displayText = s;
+            QString textWithTags = contentVal.isString() ? contentVal.toString() : contentVal.toVariant().toString();
+            QString finalText = textWithTags;
+            const QString tBegin = QString(DEFAULT_THINK_BEGIN);
+            const QString tEnd = QString(DEFAULT_THINK_END);
+            if (reasoningText.isEmpty())
+            {
+                QStringList extracted;
+                int searchPos = 0;
+                while (true)
+                {
+                    int startIdx = finalText.indexOf(tBegin, searchPos);
+                    if (startIdx == -1) break;
+                    int endIdx = finalText.indexOf(tEnd, startIdx + tBegin.size());
+                    if (endIdx == -1) break;
+                    const int rStart = startIdx + tBegin.size();
+                    extracted << finalText.mid(rStart, endIdx - rStart);
+                    finalText.remove(startIdx, (endIdx + tEnd.size()) - startIdx);
+                    searchPos = startIdx;
+                }
+                if (!extracted.isEmpty()) reasoningText = extracted.join(QString());
+            }
+            finalText.replace(tBegin, QString());
+            finalText.replace(tEnd, QString());
+            displayText = finalText;
         }
 
-        // Create record entry and print role header + content
-        const int recIdx = recordCreate(roleToRecord(role));
+        int thinkIdx = -1;
+        if (recRole == RecordRole::Assistant && !reasoningText.isEmpty())
+        {
+            thinkIdx = recordCreate(RecordRole::Think);
+            appendRoleHeader(QStringLiteral("think"));
+            reflash_output(reasoningText, 0, themeThinkColor());
+            recordAppendText(thinkIdx, reasoningText);
+        }
+
+        const int recIdx = recordCreate(recRole);
         appendRoleHeader(role);
         reflash_output(displayText, 0, roleToColor(role));
         recordAppendText(recIdx, displayText);
@@ -1457,8 +1488,23 @@ void Widget::restoreSessionById(const QString &sessionId)
         // Append sanitized message back to UI memory (remove local-only metadata)
         QJsonObject uiMsg = m;
         uiMsg.remove("local_images");
+        uiMsg.remove("thinking");
+        if (!contentVal.isArray()) uiMsg.insert("content", displayText);
+        if (recRole == RecordRole::Assistant)
+        {
+            if (!reasoningText.isEmpty())
+            {
+                uiMsg.insert("reasoning_content", reasoningText);
+            }
+            else
+            {
+                uiMsg.remove("reasoning_content");
+            }
+        }
         ui_messagesArray.append(uiMsg);
-        recordEntries_[recIdx].msgIndex = ui_messagesArray.size() - 1;
+        const int msgIndex = ui_messagesArray.size() - 1;
+        recordEntries_[recIdx].msgIndex = msgIndex;
+        if (thinkIdx >= 0) recordEntries_[thinkIdx].msgIndex = msgIndex;
 
         // Restore any local images recorded in history
         QStringList localPaths;
@@ -1944,7 +1990,22 @@ void Widget::onRecordDoubleClicked(int index)
     if (e.msgIndex >= 0 && e.msgIndex < ui_messagesArray.size())
     {
         QJsonObject m = ui_messagesArray[e.msgIndex].toObject();
-        m.insert("content", newText);
+        if (e.role == RecordRole::Think)
+        {
+            if (newText.isEmpty())
+            {
+                m.remove("reasoning_content");
+            }
+            else
+            {
+                m.insert("reasoning_content", newText);
+            }
+            m.remove("thinking");
+        }
+        else
+        {
+            m.insert("content", newText);
+        }
         ui_messagesArray[e.msgIndex] = m;
         if (history_ && !history_->sessionId().isEmpty()) { history_->rewriteAllMessages(ui_messagesArray); }
     }
