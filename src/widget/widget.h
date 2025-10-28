@@ -16,6 +16,7 @@
 #include <QGroupBox>
 #include <QFrame>
 #include <QGuiApplication>
+#include <QHostAddress>
 #include <QHostInfo>
 #include <QIODevice>
 #include <QJsonArray>
@@ -249,6 +250,9 @@ class Widget : public QWidget
     QString activeServerPort_;                // 当前本地后端的实际端口
     QString lastPortConflictPreferred_;       // 最近一次端口冲突时的用户端口
     QString lastPortConflictFallback_;        // 最近一次端口冲突使用的临时端口
+    QString forcedPortOverride_;              // 若非空则下一次 ensureLocalServer 强制使用此端口
+    bool portFallbackInFlight_ = false;       // 标记当前是否在端口降级流程中
+    bool portConflictDetected_ = false;       // 最近一次 llama-server 输出中检测到端口占用
 
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
@@ -274,6 +278,9 @@ class Widget : public QWidget
     void chooseMmprojpath();
     void applySettingsDialogSizing();
     void enableSplitterHover(QSplitter *splitter);
+    QString pickFreeTcpPort(const QHostAddress &addr = QHostAddress::AnyIPv4) const;
+    void announcePortBusy(const QString &requestedPort, const QString &alternativePort);
+    void initiatePortFallback();
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;

@@ -439,55 +439,9 @@ void Widget::ensureLocalServer()
             gpu_wait_load = true;
         }
     }
-    // Determine bind host and a usable port before starting server.
-    auto pickFreePort = []() -> QString
-    {
-        QTcpServer s;
-        // Ask OS for any free IPv4 port
-        if (s.listen(QHostAddress::AnyIPv4, 0))
-        {
-            const quint16 p = s.serverPort();
-            s.close();
-            return QString::number(p);
-        }
-        return QString(DEFAULT_SERVER_PORT);
-    };
-    auto isPortFree = [](quint16 port, const QHostAddress &addr) -> bool
-    {
-        QTcpServer s;
-        const bool ok = s.listen(addr, port);
-        if (ok) s.close();
-        return ok;
-    };
-
-    const auto warnPortBusy = [this](const QString &requestedPort, const QString &alternativePort)
-    {
-        if (alternativePort.isEmpty())
-        {
-            reflash_state(jtr("ui port busy none").arg(requestedPort), WRONG_SIGNAL);
-            return;
-        }
-        const QString stateLine = jtr("ui port busy switched").arg(requestedPort, alternativePort);
-        reflash_state(stateLine, WRONG_SIGNAL);
-        const QString dialogTitle = jtr("port conflict title");
-        const QString dialogText = jtr("port conflict body").arg(requestedPort, alternativePort);
-        if (settings_ui && settings_ui->port_lineEdit)
-        {
-            settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(alternativePort));
-            settings_ui->port_lineEdit->setToolTip(dialogText);
-        }
-        const bool sameConflict = (lastPortConflictPreferred_ == requestedPort && lastPortConflictFallback_ == alternativePort);
-        lastPortConflictPreferred_ = requestedPort;
-        lastPortConflictFallback_ = alternativePort;
-        if (!sameConflict)
-        {
-            QTimer::singleShot(0, this, [this, dialogTitle, dialogText]()
-                               { QMessageBox::warning(this, dialogTitle, dialogText); });
-        }
-    };
-
     const QString originalUserPort = ui_port.trimmed();
     ui_port = originalUserPort;
+    portConflictDetected_ = false;
     enum class PortFallbackReason
     {
         None,
@@ -500,12 +454,24 @@ void Widget::ensureLocalServer()
     QString chosenPort = originalUserPort;
     bool appliedFallbackPort = false;
 
-    if (originalUserPort.isEmpty())
+    if (!portFallbackInFlight_)
     {
-        // If user cleared the port, bind only to localhost with a random port
+        forcedPortOverride_.clear();
+    }
+    if (!forcedPortOverride_.isEmpty())
+    {
+        chosenPort = forcedPortOverride_;
+        appliedFallbackPort = true;
+        fallbackReason = PortFallbackReason::Busy;
+    }
+
+    if (chosenPort.isEmpty())
+    {
         bindHost = QStringLiteral("127.0.0.1");
-        chosenPort = pickFreePort();
-        ui_port.clear(); // keep setting blank so future loads stay random
+        QString fallback = pickFreeTcpPort();
+        if (!fallback.isEmpty()) chosenPort = fallback;
+        if (chosenPort.isEmpty()) chosenPort = QString(DEFAULT_SERVER_PORT);
+        ui_port.clear();
         lastPortConflictPreferred_.clear();
         lastPortConflictFallback_.clear();
         if (settings_ui && settings_ui->port_lineEdit)
@@ -514,44 +480,26 @@ void Widget::ensureLocalServer()
             settings_ui->port_lineEdit->setToolTip(QString());
         }
         reflash_state(QStringLiteral("ui:port cleared -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
+        appliedFallbackPort = true;
     }
     else
     {
         bool ok = false;
-        const quint16 portNum = originalUserPort.toUShort(&ok);
+        const quint16 portNum = chosenPort.toUShort(&ok);
         if (!ok || portNum == 0)
         {
-            // Invalid user value -> treat as cleared: bind localhost with a random port
             bindHost = QStringLiteral("127.0.0.1");
-            chosenPort = pickFreePort();
+            QString fallback = pickFreeTcpPort();
+            if (!fallback.isEmpty()) chosenPort = fallback;
             appliedFallbackPort = true;
             fallbackReason = PortFallbackReason::Invalid;
             lastPortConflictPreferred_.clear();
             lastPortConflictFallback_.clear();
             reflash_state(QStringLiteral("ui:invalid port -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
-        }
-        else if (!isPortFree(portNum, QHostAddress(QHostAddress::AnyIPv4)))
-        {
-            // User-specified port is busy -> pick a free random port and surface it to UI/settings
-            QString newPort = chosenPort;
-            if (!activeServerPort_.isEmpty() && activeServerPort_ != originalUserPort)
+            if (settings_ui && settings_ui->port_lineEdit)
             {
-                newPort = activeServerPort_;
-            }
-            else
-            {
-                newPort = pickFreePort();
-            }
-            if (!newPort.isEmpty() && newPort != chosenPort)
-            {
-                chosenPort = newPort;
-                appliedFallbackPort = true;
-                fallbackReason = PortFallbackReason::Busy;
-                warnPortBusy(originalUserPort, chosenPort);
-            }
-            else
-            {
-                warnPortBusy(originalUserPort, QString());
+                settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(chosenPort));
+                settings_ui->port_lineEdit->setToolTip(jtr("invalid port fallback body").arg(chosenPort));
             }
         }
     }
@@ -564,18 +512,15 @@ void Widget::ensureLocalServer()
             QSignalBlocker blocker(settings_ui->port_lineEdit);
             settings_ui->port_lineEdit->setText(originalUserPort);
         }
-        if (fallbackReason == PortFallbackReason::Invalid)
+        if (fallbackReason == PortFallbackReason::Invalid && settings_ui && settings_ui->port_lineEdit)
         {
-            if (settings_ui && settings_ui->port_lineEdit)
-            {
-                settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(chosenPort));
-                settings_ui->port_lineEdit->setToolTip(jtr("invalid port fallback body").arg(chosenPort));
-            }
+            settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(chosenPort));
+            settings_ui->port_lineEdit->setToolTip(jtr("invalid port fallback body").arg(chosenPort));
         }
+        portFallbackInFlight_ = false;
     }
     else if (!originalUserPort.isEmpty())
     {
-        // Persist trimmed user value when no fallback occurred
         ui_port = originalUserPort;
         if (settings_ui && settings_ui->port_lineEdit)
         {
@@ -585,6 +530,9 @@ void Widget::ensureLocalServer()
         lastPortConflictPreferred_.clear();
         lastPortConflictFallback_.clear();
     }
+
+    forcedPortOverride_.clear();
+    portFallbackInFlight_ = false;
 
     // 同步配置到本地后端管理器
     serverManager->setSettings(ui_SETTINGS);
@@ -622,7 +570,85 @@ void Widget::ensureLocalServer()
     emit ui2expend_mode(ui_mode);
 }
 
-// When local server is ready, switch UI to xNet over local endpoint
+QString Widget::pickFreeTcpPort(const QHostAddress &addr) const
+{
+    QTcpServer server;
+    if (server.listen(addr, 0))
+    {
+        const quint16 port = server.serverPort();
+        server.close();
+        return QString::number(port);
+    }
+    return QString();
+}
+
+void Widget::announcePortBusy(const QString &requestedPort, const QString &alternativePort)
+{
+    if (alternativePort.isEmpty())
+    {
+        reflash_state(jtr("ui port busy none").arg(requestedPort), WRONG_SIGNAL);
+        return;
+    }
+
+    const bool repeated = (lastPortConflictPreferred_ == requestedPort && lastPortConflictFallback_ == alternativePort);
+    lastPortConflictPreferred_ = requestedPort;
+    lastPortConflictFallback_ = alternativePort;
+
+    const QString stateLine = jtr("ui port busy switched").arg(requestedPort, alternativePort);
+    reflash_state(stateLine, WRONG_SIGNAL);
+
+    const QString dialogTitle = jtr("port conflict title");
+    const QString dialogText = jtr("port conflict body").arg(requestedPort, alternativePort);
+
+    if (settings_ui && settings_ui->port_lineEdit)
+    {
+        settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(alternativePort));
+        settings_ui->port_lineEdit->setToolTip(dialogText);
+    }
+
+    if (!repeated)
+    {
+        QTimer::singleShot(0, this, [this, dialogTitle, dialogText]()
+                           { QMessageBox::warning(this, dialogTitle, dialogText); });
+    }
+}
+
+void Widget::initiatePortFallback()
+{
+    if (portFallbackInFlight_) return;
+
+    const QString preferred = ui_port.trimmed();
+    if (preferred.isEmpty()) return;
+
+    QString fallback = pickFreeTcpPort();
+    if (fallback.isEmpty() || fallback == preferred)
+    {
+        reflash_state(jtr("ui port busy none").arg(preferred), WRONG_SIGNAL);
+        return;
+    }
+
+    portConflictDetected_ = false;
+    portFallbackInFlight_ = true;
+    forcedPortOverride_ = fallback;
+
+    announcePortBusy(preferred, fallback);
+
+    if (settings_ui && settings_ui->port_lineEdit)
+    {
+        settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(fallback));
+        settings_ui->port_lineEdit->setToolTip(jtr("port conflict body").arg(preferred, fallback));
+    }
+
+    if (serverManager)
+    {
+        ignoreNextServerStopped_ = true;
+        serverManager->stopAsync();
+    }
+
+    QTimer::singleShot(150, this, [this]()
+                       { ensureLocalServer(); });
+}
+
 void Widget::onServerReady(const QString &endpoint)
 {
     // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
@@ -983,6 +1009,27 @@ void Widget::onServerOutput(const QString &line)
     // Detect fatal/failed patterns in llama.cpp server logs and unlock UI promptly
     {
         const QString l = line.toLower();
+        if (!portFallbackInFlight_ && !ui_port.isEmpty() && activeServerPort_ == ui_port)
+        {
+            static const QStringList conflictKeys = {
+                QStringLiteral("address already in use"),
+                QStringLiteral("eaddrinuse"),
+                QStringLiteral("failed to bind"),
+                QStringLiteral("could not bind"),
+                QStringLiteral("bind error"),
+                QStringLiteral("listen(): address in use"),
+                QStringLiteral("bind(): address")
+            };
+            for (const QString &key : conflictKeys)
+            {
+                if (l.contains(key))
+                {
+                    portConflictDetected_ = true;
+                    initiatePortFallback();
+                    return;
+                }
+            }
+        }
         static const QStringList badKeys = {
             QStringLiteral(" failed"), QStringLiteral("fatal"), QStringLiteral("segmentation fault"),
             QStringLiteral("assertion failed"), QStringLiteral("error:")};
@@ -1193,6 +1240,12 @@ void Widget::onServerOutput(const QString &line)
 void Widget::onServerStartFailed(const QString &reason)
 {
     Q_UNUSED(reason);
+    if (!portFallbackInFlight_ && portConflictDetected_ && !ui_port.isEmpty() && activeServerPort_ == ui_port)
+    {
+        initiatePortFallback();
+        return;
+    }
+    portConflictDetected_ = false;
     // 停止任何进行中的动画/计时
     if (decode_pTimer) decode_pTimer->stop();
     // 用失败标志收尾“装载中”转轮行
