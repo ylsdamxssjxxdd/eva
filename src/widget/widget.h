@@ -247,6 +247,8 @@ class Widget : public QWidget
     bool ignoreNextServerStopped_ = false;    // 忽略一次 serverStopped（用于计划内重启时旧进程的退出）
     QString activeServerHost_;                // 当前本地后端的实际绑定地址
     QString activeServerPort_;                // 当前本地后端的实际端口
+    QString lastPortConflictPreferred_;       // 最近一次端口冲突时的用户端口
+    QString lastPortConflictFallback_;        // 最近一次端口冲突使用的临时端口
 
     SETTINGS settings_snapshot_;
     QString port_snapshot_;

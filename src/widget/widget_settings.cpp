@@ -110,7 +110,21 @@ void Widget::set_SetDialog()
     settings_ui->port_lineEdit->setText(ui_port);
     QIntValidator *validator = new QIntValidator(0, 65535); // 限制端口输入
     settings_ui->port_lineEdit->setValidator(validator);
-    settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
+    if (ui_port.isEmpty())
+    {
+        settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
+        settings_ui->port_lineEdit->setToolTip(QString());
+    }
+    else if (!lastPortConflictFallback_.isEmpty() && lastPortConflictPreferred_ == ui_port && lastPortConflictFallback_ != ui_port)
+    {
+        settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(lastPortConflictFallback_));
+        settings_ui->port_lineEdit->setToolTip(jtr("port conflict body").arg(lastPortConflictPreferred_, lastPortConflictFallback_));
+    }
+    else
+    {
+        settings_ui->port_lineEdit->setPlaceholderText(QString());
+        settings_ui->port_lineEdit->setToolTip(QString());
+    }
     // web_btn 已从 UI 移除
     // 监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字

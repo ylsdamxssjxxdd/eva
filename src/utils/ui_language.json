@@ -1190,6 +1190,30 @@
             "服务启动后的端口号，ip地址为本机",
             "The port number after service startup, with the IP address being 'local'. "
         ],
+        "ui port busy switched": [
+            "ui:端口 %1 正被占用，已切换至 %2",
+            "ui:port %1 busy -> switched %2"
+        ],
+        "ui port busy none": [
+            "ui:端口 %1 正被占用，未找到备用端口",
+            "ui:port %1 busy -> no free port found"
+        ],
+        "port conflict title": [
+            "端口冲突",
+            "Port conflict"
+        ],
+        "port conflict body": [
+            "配置的本地后端端口 %1 已被占用，EVA 已切换至 %2。\n请更新所有依赖该端口的工具或客户端。",
+            "The configured local backend port %1 is already in use.\nEVA switched to %2. Update any tools or clients depending on the previous port."
+        ],
+        "port fallback placeholder": [
+            "当前使用临时端口 %1",
+            "Temporary port %1 is active"
+        ],
+        "invalid port fallback body": [
+            "输入的端口无效，EVA 已临时改用 %1。",
+            "The provided port value is invalid. EVA temporarily switched to %1."
+        ],
         "load_button_tooltip": [
             "选择驾驶员进入机体",
             "Select the Children to enter EVA "
