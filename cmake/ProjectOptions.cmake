@@ -87,7 +87,7 @@ else()
 endif()
 
 # ---- Global toggles that affect subprojects ----
-option(MCP_SSL                   "Enable SSL support" OFF)
+option(MCP_SSL                   "Enable SSL support" ON)
 
 add_compile_definitions(_WIN32_WINNT=0x0601)
 
