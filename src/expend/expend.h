@@ -288,49 +288,48 @@ class Expend : public QWidget
     //-------------------------------------------------------------------------
 
   public:
-    QString outettsDir;                                     // outetts生成的音频存放目录
-    QString outetts_last_output_file;                       // 最近一次 outetts 指定的输出文件
-    QStringList avaliable_speech_list;                      // 可用声源列表
-    void set_sys_speech(QStringList avaliable_speech_list); // 设置系统可用声源
+    QString ttsOutputDir;                                   // Directory collecting synthesized audio
+    QString ttsLastOutputFile;                              // Most recent synthesized wav path
+    QStringList avaliable_speech_list;                      // Available speech sources
+    void set_sys_speech(QStringList avaliable_speech_list); // Populate system TTS sources
     Speech_Params speech_params;
 #if defined(EVA_ENABLE_QT_TTS)
     QTextToSpeech *sys_speech = nullptr;
 #endif
     QMediaPlayer *speech_player;
-    bool is_sys_speech_available = false; // 语音朗读是否可用
-    bool is_speech = false;               // 是否系统声源正在朗读
-    bool is_speech_play = false;          // 是否音频正在播放
-    QTimer speechTimer;                   // 朗读定时器,每秒检查列表，列表中有文字就读然后删，直到读完
-    QTimer speechPlayTimer;               // 用来控制播放outetts产生的音频，和wait_speech_play_list搭配使用
-    QStringList wait_speech_txt_list;     // 等待的文本列表, 重置停止时清空, 每读一段删除一段, 遇到叹号/分号/顿号/逗号/句号/回车/冒号/进行分段
-    QStringList wait_speech_play_list;    // 等待播放的音频列表，存储的是路径
+    bool is_sys_speech_available = false; // Whether platform voices are available
+    bool is_speech = false;               // Whether synthesis is running
+    bool is_speech_play = false;          // Whether playback is running
+    QTimer speechTimer;                   // Poll queued synthesis requests
+    QTimer speechPlayTimer;               // Manage playback queue for synthesized audio
+    QStringList wait_speech_txt_list;     // Text awaiting synthesis
+    QStringList wait_speech_play_list;    // Wav files awaiting playback
     QString temp_speech_txt;
-    void outettsProcess(QString str); // 使用outetts进行文转声
-    QProcess *outetts_process;        // 用来启动llama-tts
+    void runTtsProcess(const QString &text); // Invoke tts.cpp CLI for synthesis
+    QProcess *tts_process;                  // Child process for tts.cpp
 
   signals:
     void expend2ui_speechover();
   public slots:
-    void speech_player_over(QMediaPlayer::MediaStatus status); // 音频播放完响应
-    void start_tts(QString str);                               // 开始文字转语音
+    void speech_player_over(QMediaPlayer::MediaStatus status); // Handle playback completion
+    void start_tts(QString str);                               // Start text-to-speech
     void speechOver();
     void speechPlayOver();
-    void recv_output(const QString result, bool is_while, QColor color); // 接收模型的输出
-    void onNetTurnDone();                                                // 一轮推理结束：冲刷缓存片段以便朗读
-    void recv_resettts();                                                // 重置文字转语音
-    void speech_process();                                               // 每半秒检查列表，列表中有文字就读然后删，直到读完
-    void speech_play_process();                                          // 每半秒检查播放列表，列表中有文字就读然后删，直到读完
-    void readyRead_outetts_process_StandardOutput();
-    void readyRead_outetts_process_StandardError();
-    void outetts_onProcessStarted();  // 进程开始响应
-    void outetts_onProcessFinished(); // 进程结束响应
-    void startNextTTSIfIdle();        // 若空闲则立即开始下一段生成
-    void startNextPlayIfIdle();       // 若空闲则立即开始下一段播放
+    void recv_output(const QString result, bool is_while, QColor color); // Receive model output for TTS
+    void onNetTurnDone();                                                // Trigger synthesis after each turn
+    void recv_resettts();                                                // Reset text-to-speech pipeline
+    void speech_process();                                               // Process pending synthesis requests
+    void speech_play_process();                                          // Process pending playback tasks
+    void readyRead_tts_process_StandardOutput();
+    void readyRead_tts_process_StandardError();
+    void tts_onProcessStarted();  // Invoked when tts.cpp starts
+    void tts_onProcessFinished(); // Invoked when tts.cpp exits
+    void startNextTTSIfIdle();        // Kick off next synthesis segment when idle
+    void startNextPlayIfIdle();       // Kick off next playback segment when idle
   private slots:
-    void speech_enable_change(); // 用户点击启用声音选项响应
-    void speech_source_change(); // 用户切换音源响应
-    void on_speech_outetts_modelpath_pushButton_clicked();
-    void on_speech_wavtokenizer_modelpath_pushButton_clicked();
+    void speech_enable_change(); // Toggle speech synthesis availability
+    void speech_source_change(); // Handle speech source selection
+    void on_speech_ttscpp_modelpath_pushButton_clicked();
     void on_speech_manual_pushButton_clicked();
 
   private:

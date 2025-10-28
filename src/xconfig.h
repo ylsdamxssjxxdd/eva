@@ -73,8 +73,7 @@
 #define DEFAULT_LLM_MODEL_PATH "/EVA_MODELS/大语言模型/Qwen3-8B-Q3_K_M.gguf"
 #define DEFAULT_SD_MODEL_PATH "/EVA_MODELS/文生图模型/sd1.5-anything-3/sd1.5-anything-3-q8_0.gguf"
 #define DEFAULT_WHISPER_MODEL_PATH "/EVA_MODELS/声转文模型/whisper-base-q5_1.bin"
-#define DEFAULT_OUTETTS_MODEL_PATH "/EVA_MODELS/文转声模型/OuteTTS-0.2-500M-Q8_0.gguf"
-#define DEFAULT_WAVTOKENIZER_MODEL_PATH "/EVA_MODELS/文转声模型/WavTokenizer-Large-75-F16.gguf"
+#define DEFAULT_TTSCPP_MODEL_PATH "/EVA_MODELS/text2speech/Kokoro_espeak_F16.gguf"
 
 // 不同操作系统相关
 #ifdef _WIN32
@@ -161,7 +160,7 @@ enum MODEL_TYPE
     MODEL_TYPE_LLM,     // 大语言模型
     MODEL_TYPE_WHISPER, // WHISPER模型
     MODEL_TYPE_SD,      // SD模型
-    MODEL_TYPE_OUTETTS, // OUTETTS模型
+    MODEL_TYPE_TTSCPP, // tts.cpp model
 };
 
 // 模型量化级别枚举
@@ -176,7 +175,7 @@ enum MODEL_QUANTIZE
 // 模型转换脚本
 #define CONVERT_HF_TO_GGUF_SCRIPT "convert_hf_to_gguf.py"
 
-const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM, "llm"}, {MODEL_TYPE_WHISPER, "whisper"}, {MODEL_TYPE_SD, "sd"}, {MODEL_TYPE_OUTETTS, "outetts"}};
+const QMap<MODEL_TYPE, QString> modeltype_map = {{MODEL_TYPE_LLM, "llm"}, {MODEL_TYPE_WHISPER, "whisper"}, {MODEL_TYPE_SD, "sd"}, {MODEL_TYPE_TTSCPP, "tts"}};
 const QMap<MODEL_QUANTIZE, QString> modelquantize_map = {{MODEL_QUANTIZE_F32, "f32"}, {MODEL_QUANTIZE_F16, "f16"}, {MODEL_QUANTIZE_BF16, "bf16"}, {MODEL_QUANTIZE_Q8_0, "q8_0"}};
 
 // 设置参数
@@ -388,7 +387,7 @@ struct Speech_Params
     QString speech_name = "";
 };
 
-#define SPPECH_OUTETTS "outetts"
+#define SPPECH_TTSCPP "tts.cpp"
 
 // 文生图参数
 #define DEFAULT_SD_NOISE "0.75" // 噪声系数

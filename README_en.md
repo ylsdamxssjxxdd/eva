@@ -23,7 +23,7 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
       - `EVA_MODELS/multimodal`: Multimodal models (non-essential).
       - `EVA_MODELS/embedding`: Embedding models (non-essential).
       - `EVA_MODELS/speech2text`: Whisper models (non-essential).
-      - `EVA_MODELS/text2speech`: OuteTTS and WavTokenizer models (non-essential).
+      - `EVA_MODELS/text2speech`: tts.cpp models (non-essential).
       - `EVA_MODELS/text2image`: SD/Flux/Qwen-image/Qwen-image-edit/ models (non-essential).
 
     - You can also visit https://hf-mirror.com to search; EVA supports almost all open-source large language models.
@@ -168,9 +168,9 @@ Skills are pluggable capability bundles introduced into EVA under the covenant f
 <details>
 <summary> Voice </summary>
 
-- Introduction: Convert the text output by the model to voice and play it automatically using Windows' voice function, or configure the OuteTTS model for text-to-speech.
+- Introduction: Convert the text output by the model to voice and play it automatically using Windows' voice function, or configure a tts.cpp model for text-to-speech.
 
-- Activation method: Right-click the status area to open "Proliferation - Text-to-Speech", select system voice or OuteTTS+WavTokenizer and start.
+- Activation method: Right-click the status area to open "Proliferation - Text-to-Speech", select a system voice or load a tts.cpp model and start.
 
 </details>
 

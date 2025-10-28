@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
                 return best;
             };
             const QString modelsRoot = QDir(applicationDirPath).filePath("EVA_MODELS");
-            QString llmModel, embModel, whisperModel, outettsModel, wavTokenizerModel, sdModel;
+            QString llmModel, embModel, whisperModel, ttsModel, sdModel;
             if (QDir(modelsRoot).exists())
             {
                 // LLM: EVA_MODELS/llm -> smallest .gguf
@@ -204,17 +204,19 @@ int main(int argc, char *argv[])
                 const QString sttRoot = QDir(modelsRoot).filePath("speech2text");
                 whisperModel = findSmallest(sttRoot, {"*.bin", "*.gguf"}, [](const QFileInfo &fi)
                                             { return fi.fileName().toLower().contains("whisper"); });
-                // TTS: OuteTTS + WavTokenizer; look under speech2text first, then text2speech
-                auto findOute = [&](const QString &root)
-                { return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
-                                      { return fi.fileName().toLower().contains("outetts"); }); };
-                auto findWavTok = [&](const QString &root)
-                { return findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
-                                      { return fi.fileName().toLower().contains("wavtokenizer"); }); };
-                outettsModel = findOute(QDir(modelsRoot).filePath("text2speech"));
-                if (outettsModel.isEmpty()) outettsModel = findOute(sttRoot);
-                wavTokenizerModel = findWavTok(QDir(modelsRoot).filePath("text2speech"));
-                if (wavTokenizerModel.isEmpty()) wavTokenizerModel = findWavTok(sttRoot);
+                // TTS: prefer tts.cpp-compatible models (kokoro / tts keyword) under text2speech; fallback to smallest gguf
+                auto findTts = [&](const QString &root)
+                {
+                    QString picked = findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
+                                                   {
+                                                       const QString name = fi.fileName().toLower();
+                                                       return name.contains("kokoro") || name.contains("tts");
+                                                   });
+                    if (picked.isEmpty()) picked = findSmallest(root, {"*.gguf"});
+                    return picked;
+                };
+                ttsModel = findTts(QDir(modelsRoot).filePath("text2speech"));
+                if (ttsModel.isEmpty()) ttsModel = findTts(sttRoot);
                 // SD: Prefer fixed path EVA_MODELS/text2image/sd1.5-anything-3-q8_0.gguf; fallback: smallest .gguf under text2image
                 const QString sdFixed = QDir(modelsRoot).filePath("text2image/sd1.5-anything-3-q8_0.gguf");
                 if (QFile::exists(sdFixed)) sdModel = QFileInfo(sdFixed).absoluteFilePath();
@@ -226,8 +228,7 @@ int main(int argc, char *argv[])
             if (!llmModel.isEmpty()) s.setValue("modelpath", llmModel);
             if (!embModel.isEmpty()) s.setValue("embedding_modelpath", embModel);
             if (!whisperModel.isEmpty()) s.setValue("whisper_modelpath", whisperModel);
-            if (!outettsModel.isEmpty()) s.setValue("outetts_modelpath", outettsModel);
-            if (!wavTokenizerModel.isEmpty()) s.setValue("wavtokenizer_modelpath", wavTokenizerModel);
+            if (!ttsModel.isEmpty()) s.setValue("ttscpp_modelpath", ttsModel);
             if (!sdModel.isEmpty())
             {
                 s.setValue("sd_modelpath", sdModel);

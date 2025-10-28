@@ -126,17 +126,15 @@ void Expend::init_expend()
     // 文转声
     ui->speech_available_label->setText(jtr("Available sound"));
     ui->speech_enable_radioButton->setText(jtr("enable"));
-    ui->speech_outetts_modelpath_label->setText("OuteTTS " + jtr("model"));
-    ui->speech_wavtokenizer_modelpath_label->setText("WavTokenizer " + jtr("model"));
+    ui->speech_ttscpp_modelpath_label->setText("tts.cpp " + jtr("model"));
     ui->speech_log_groupBox->setTitle(jtr("log"));
-    ui->speech_outetts_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
-    ui->speech_wavtokenizer_modelpath_lineEdit->setPlaceholderText(jtr("speech_outetts_modelpath_lineEdit placehold"));
+    ui->speech_ttscpp_modelpath_lineEdit->setPlaceholderText(jtr("speech_ttscpp_modelpath_lineEdit placehold"));
     ui->speech_manual_plainTextEdit->setPlaceholderText(jtr("speech_manual_plainTextEdit placehold"));
     ui->speech_manual_pushButton->setText(jtr("convert to audio"));
     ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
-    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech); // Initialize Text-to-Speech source list: always provide outetts, plus system voices if available
+    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech); // Initialize Text-to-Speech source list: always provide tts.cpp, plus system voices if available
     QStringList ttsSources;
-    ttsSources << SPPECH_OUTETTS;
+    ttsSources << SPPECH_TTSCPP;
 #if defined(EVA_ENABLE_QT_TTS)
     // Lazily create system TTS and enumerate voices
     if (!sys_speech) sys_speech = new QTextToSpeech(this);
@@ -153,15 +151,14 @@ void Expend::init_expend()
     // Pick a sensible default on first boot
     if (speech_params.speech_name.trimmed().isEmpty())
     {
-        const bool haveOute = QFileInfo::exists(ui->speech_outetts_modelpath_lineEdit->text()) &&
-                              QFileInfo::exists(ui->speech_wavtokenizer_modelpath_lineEdit->text());
-        if (haveOute)
-            speech_params.speech_name = SPPECH_OUTETTS;
+        const bool haveLocalTts = QFileInfo::exists(ui->speech_ttscpp_modelpath_lineEdit->text());
+        if (haveLocalTts)
+            speech_params.speech_name = SPPECH_TTSCPP;
         else if (is_sys_speech_available)
         {
             for (const QString &n : ttsSources)
             {
-                if (n != SPPECH_OUTETTS)
+                if (n != SPPECH_TTSCPP)
                 {
                     speech_params.speech_name = n;
                     break;
@@ -172,7 +169,7 @@ void Expend::init_expend()
 #else
     is_sys_speech_available = false;
     // Force the dropdown to OuteTTS when Qt speech is unavailable
-    speech_params.speech_name = SPPECH_OUTETTS;
+    speech_params.speech_name = SPPECH_TTSCPP;
 #endif
     set_sys_speech(ttsSources);
     // React to toggles/selection changes
@@ -342,13 +339,9 @@ void Expend::readConfig()
     QFile default_whisper_modelpath_file(default_whisper_modelpath);
     if (!default_whisper_modelpath_file.exists()) { default_whisper_modelpath = ""; } // 不存在则默认为空
 
-    QString default_outetts_modelpath = applicationDirPath + DEFAULT_OUTETTS_MODEL_PATH;
-    QFile default_outetts_modelpath_file(default_outetts_modelpath);
-    if (!default_outetts_modelpath_file.exists()) { default_outetts_modelpath = ""; } // 不存在则默认为空
-
-    QString default_WavTokenizer_modelpath = applicationDirPath + DEFAULT_WAVTOKENIZER_MODEL_PATH;
-    QFile default_WavTokenizer_modelpath_file(default_WavTokenizer_modelpath);
-    if (!default_WavTokenizer_modelpath_file.exists()) { default_WavTokenizer_modelpath = ""; } // 不存在则默认为空
+    QString default_ttscpp_modelpath = applicationDirPath + DEFAULT_TTSCPP_MODEL_PATH;
+    QFile default_ttscpp_modelpath_file(default_ttscpp_modelpath);
+    if (!default_ttscpp_modelpath_file.exists()) { default_ttscpp_modelpath = ""; } // 不存在则默认为空
 
     // 读取配置文件中的值
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
@@ -386,12 +379,14 @@ void Expend::readConfig()
 
     QString whisper_modelpath = settings.value("whisper_modelpath", default_whisper_modelpath).toString(); // whisper模型路径
 
-    speech_params.enable_speech = settings.value("speech_enable", "").toBool();                                           // 是否启用语音朗读
-    speech_params.speech_name = settings.value("speech_name", "").toString();                                             // 朗读者
-    QString outetts_modelpath = settings.value("outetts_modelpath", default_outetts_modelpath).toString();                // outetts模型路径
-    QString wavtokenizer_modelpath = settings.value("wavtokenizer_modelpath", default_WavTokenizer_modelpath).toString(); // wavtokenizer模型路径
-    ui->speech_outetts_modelpath_lineEdit->setText(outetts_modelpath);
-    ui->speech_wavtokenizer_modelpath_lineEdit->setText(wavtokenizer_modelpath);
+    speech_params.enable_speech = settings.value("speech_enable", "").toBool();                           // 是否启用语音朗读
+    speech_params.speech_name = settings.value("speech_name", "").toString();                             // 朗读者
+    QString ttscpp_modelpath = settings.value("ttscpp_modelpath").toString();                             // tts.cpp模型路径
+    if (ttscpp_modelpath.isEmpty())
+        ttscpp_modelpath = settings.value("outetts_modelpath", default_ttscpp_modelpath).toString();
+    if (ttscpp_modelpath.isEmpty())
+        ttscpp_modelpath = default_ttscpp_modelpath;
+    ui->speech_ttscpp_modelpath_lineEdit->setText(ttscpp_modelpath);
 
     ui->mcp_server_config_textEdit->setText(settings.value("Mcpconfig", "").toString()); // mcp配置
 
@@ -522,3 +517,5 @@ void Expend::showReadme()
     cursor.insertText("\n\n");
     TextSpacing::apply(ui->info_card, 1.35);
 }
+
+

@@ -25,7 +25,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     applicationDirPath = applicationDirPath_;
 
     // Ensure a dedicated temp dir for TTS outputs under EVA_TEMP to avoid touching working dir
-    outettsDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
+    ttsOutputDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
 
     auto applySpacing = [](auto *edit, qreal factor)
     {
@@ -75,9 +75,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     connect(sd_process, &QProcess::started, this, &Expend::sd_onProcessStarted);
     connect(sd_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::sd_onProcessFinished);
 
-    outetts_process = new QProcess(this);
-    connect(outetts_process, &QProcess::started, this, &Expend::outetts_onProcessStarted);
-    connect(outetts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::outetts_onProcessFinished);
+    tts_process = new QProcess(this);
+    connect(tts_process, &QProcess::started, this, &Expend::tts_onProcessStarted);
+    connect(tts_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &Expend::tts_onProcessFinished);
+    connect(tts_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_tts_process_StandardOutput, Qt::QueuedConnection);
+    connect(tts_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_tts_process_StandardError, Qt::QueuedConnection);
 
     // Shutdown housekeeping on app exit
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
@@ -119,6 +121,7 @@ Expend::~Expend()
     killProc(sd_process);
     killProc(whisper_process);
     killProc(quantize_process);
+    killProc(tts_process);
 
     delete ui;
 }
@@ -365,3 +368,4 @@ void Expend::shutdownEvalWorker()
         }
     }
 }
+

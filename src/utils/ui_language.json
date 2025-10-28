@@ -469,13 +469,13 @@
             "批大小",
             "batch size"
         ],
-        "speech_outetts_modelpath_lineEdit placehold": [
-            "选择outetts声源时必填",
-            "Required when selecting outetts sound source"
+        "speech_ttscpp_modelpath_lineEdit placehold": [
+            "选择tts.cpp声源时必填",
+            "Required when selecting the tts.cpp voice source"
         ],
         "speech_manual_plainTextEdit placehold": [
-            "选择outetts声源后，可以在这里输入文本，点击转为音频，完毕后保存为EVA_TEMP/outetts中最新的wav文件",
-            "After selecting the outetts sound source, you can enter text here, click to convert to audio, and save it as the latest wav file in EVA_TEMP/outetts"
+            "选择tts.cpp声源后，可以在这里输入文本，点击转为音频，完毕后保存为EVA_TEMP/tts中最新的wav文件",
+            "After selecting the tts.cpp voice source, you can enter text here, click to convert to audio, and save it as the latest wav file in EVA_TEMP/tts"
         ],
         "convert to audio": [
             "转为音频",

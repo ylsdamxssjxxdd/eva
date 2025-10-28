@@ -2,9 +2,11 @@
 #include "expend.h"
 
 #include "ui_expend.h"
-// Bring in backend path resolver and path helpers to run llama-tts robustly
+// Bring in backend path resolver and path helpers to run tts.cpp robustly
 #include "../utils/devicemanager.h"
 #include "../utils/pathutil.h"
+#include <QDateTime>
+#include <QFileInfo>
 
 //-------------------------------------------------------------------------
 //----------------------------------文转声相关--------------------------------
@@ -25,15 +27,15 @@ void Expend::speech_enable_change()
 void Expend::speech_source_change()
 {
     speech_params.speech_name = ui->speech_source_comboBox->currentText();
-    // Persist selection
+    // Persist selection so reload keeps the same voice
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     settings.setValue("speech_name", speech_params.speech_name);
 
-    const bool isOute = (speech_params.speech_name == SPPECH_OUTETTS);
-    ui->speech_outetts_modelpath_frame->setEnabled(isOute);
-    ui->speech_wavtokenizer_modelpath_frame->setEnabled(isOute);
+    const bool useLocalTts = (speech_params.speech_name == SPPECH_TTSCPP);
+    ui->speech_ttscpp_modelpath_frame->setEnabled(useLocalTts);
 }
+
 
 // 添加可用声源
 void Expend::set_sys_speech(QStringList avaliable_speech_list)
@@ -51,48 +53,41 @@ void Expend::set_sys_speech(QStringList avaliable_speech_list)
 // 开始文字转语音
 void Expend::start_tts(QString str)
 {
-    // 如果禁用了朗读则直接退出
-    //  qDebug()<<speech_params.is_speech<<speech_params.speech_name;
     if (!speech_params.enable_speech)
     {
         speechOver();
         return;
     }
 
-    if (speech_params.speech_name != "")
+    if (!speech_params.speech_name.isEmpty())
     {
-        if (speech_params.speech_name == SPPECH_OUTETTS) // 使用模型声源
+        if (speech_params.speech_name == SPPECH_TTSCPP)
         {
-            if (ui->speech_outetts_modelpath_lineEdit->text() != "" && ui->speech_wavtokenizer_modelpath_lineEdit->text() != "")
+            const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
+            if (!modelPath.isEmpty())
             {
-                outettsProcess(str);
+                runTtsProcess(str);
+            }
+            else
+            {
+                ui->speech_log->appendPlainText("[warn] tts.cpp model path is empty; skip synthesis.");
+                speechOver();
             }
         }
         else
         {
 #if defined(EVA_ENABLE_QT_TTS)
-            // 遍历所有可用音色
             if (!sys_speech) sys_speech = new QTextToSpeech(this);
             foreach (const QVoice &voice, sys_speech->availableVoices())
             {
-                // qDebug() << "Name:" << speech.name();
-                // qDebug() << "Age:" << speech.age();
-                // qDebug() << "Gender:" << speech.gender();
-                // 使用用户选择的音色
                 if (voice.name() == speech_params.speech_name)
                 {
                     sys_speech->setVoice(voice);
                     break;
                 }
             }
-
-            // 设置语速，范围从-1到1
             sys_speech->setRate(0.3);
-
-            // 设置音量，范围从0到1
             sys_speech->setVolume(1.0);
-
-            // 开始文本到语音转换
             sys_speech->say(str);
 #else
             ui->speech_log->appendPlainText("[info] Qt TextToSpeech support is disabled in this build.");
@@ -101,6 +96,7 @@ void Expend::start_tts(QString str)
         }
     }
 }
+
 
 void Expend::speechOver()
 {
@@ -276,19 +272,26 @@ void Expend::recv_resettts()
     }
 #endif
 
-    outetts_process->kill(); // 终止继续生成
+    tts_process->kill(); // 终止继续生成
     speech_player->stop();
-    removeDir(outettsDir); // 清空产生的音频
+    removeDir(ttsOutputDir); // 清空产生的音频
 }
 
-// 使用outetts进行文转声
-void Expend::outettsProcess(QString str)
+// Run tts.cpp CLI to synthesize speech
+void Expend::runTtsProcess(const QString &text)
 {
-    // 解析 llama-tts 路径（按设备后端）
-    const QString program = DeviceManager::programPath(QStringLiteral("llama-tts"));
+    const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
+    if (!QFileInfo::exists(modelPath))
+    {
+        ui->speech_log->appendPlainText("[error] tts.cpp model path not found");
+        speechOver();
+        return;
+    }
+
+    const QString program = DeviceManager::programPath(QStringLiteral("tts-cli"));
     if (program.isEmpty() || !QFileInfo::exists(program))
     {
-        ui->speech_log->appendPlainText("[error] llama-tts not found under current device folder");
+        ui->speech_log->appendPlainText("[error] tts-cli not found under current device folder");
         ui->speech_log->appendPlainText(QString("[hint] search root=%1, arch=%2, os=%3, device=%4")
                                             .arg(DeviceManager::backendsRootDir())
                                             .arg(DeviceManager::currentArchId())
@@ -298,19 +301,16 @@ void Expend::outettsProcess(QString str)
         return;
     }
 
-    // 目标输出文件（唯一名）
-    createTempDirectory(outettsDir);
-    outetts_last_output_file = QDir(outettsDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
+    createTempDirectory(ttsOutputDir);
+    const QString produced = QDir(ttsOutputDir).filePath("TTS.cpp.wav");
+    if (QFile::exists(produced)) QFile::remove(produced);
 
-    // 组装参数
+    ttsLastOutputFile = QDir(ttsOutputDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
+
     QStringList arguments;
-    arguments << "-m" << ensureToolFriendlyFilePath(ui->speech_outetts_modelpath_lineEdit->text());
-    arguments << "-mv" << ensureToolFriendlyFilePath(ui->speech_wavtokenizer_modelpath_lineEdit->text());
-    arguments << "-ngl" << QString::number(99);
-    arguments << "-o" << ensureToolFriendlyFilePath(outetts_last_output_file);
-    arguments << "-p" << str;
+    arguments << QStringLiteral("--model-path") << ensureToolFriendlyFilePath(modelPath);
+    arguments << QStringLiteral("-p") << text;
 
-    // 设置运行环境与工作目录，确保依赖 DLL/so 可见
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString toolDir = QFileInfo(program).absolutePath();
 #ifdef _WIN32
@@ -320,93 +320,102 @@ void Expend::outettsProcess(QString str)
 #else
     env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
 #endif
-    outetts_process->setProcessEnvironment(env);
-    outetts_process->setWorkingDirectory(toolDir);
+    tts_process->setProcessEnvironment(env);
+    tts_process->setWorkingDirectory(ttsOutputDir);
 
-    // 开始运行程序
-    outetts_process->start(program, arguments);
+    tts_process->start(program, arguments);
 }
 
+
 // 进程开始响应
-void Expend::outetts_onProcessStarted() {}
+void Expend::tts_onProcessStarted() {}
 
 // 进程结束响应
-void Expend::outetts_onProcessFinished()
+void Expend::tts_onProcessFinished()
 {
-    // 优先采用显式 -o 指定的输出路径
-    if (!outetts_last_output_file.isEmpty() && QFileInfo::exists(outetts_last_output_file))
+    QString playbackPath;
+    const QString produced = QDir(ttsOutputDir).filePath("TTS.cpp.wav");
+    if (QFileInfo::exists(produced))
     {
-        wait_speech_play_list << outetts_last_output_file;
-    }
-    else
-    {
-        // 兼容旧行为：若工具写在工作目录 output.wav，尝试搬运
-        const QString fallback = QDir(outettsDir).filePath("output.wav");
-        if (QFileInfo::exists(fallback))
+        if (ttsLastOutputFile.isEmpty())
         {
-            const QString dst = QDir(outettsDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
-            if (QFile::rename(fallback, dst)) { wait_speech_play_list << dst; }
-            else
-            {
-                ui->speech_log->appendPlainText("[warn] failed to move fallback output.wav");
-            }
+            ttsLastOutputFile = QDir(ttsOutputDir).filePath(QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz") + ".wav");
+        }
+        QFile::remove(ttsLastOutputFile);
+        if (QFile::rename(produced, ttsLastOutputFile))
+        {
+            playbackPath = ttsLastOutputFile;
+        }
+        else if (QFile::copy(produced, ttsLastOutputFile))
+        {
+            QFile::remove(produced);
+            playbackPath = ttsLastOutputFile;
         }
         else
         {
-            ui->speech_log->appendPlainText("[error] TTS finished but no output file produced");
+            playbackPath = produced;
         }
     }
 
-    // 推进生成管线
+    if (!playbackPath.isEmpty() && QFileInfo::exists(playbackPath))
+    {
+        wait_speech_play_list << playbackPath;
+    }
+    else
+    {
+        ui->speech_log->appendPlainText("[error] tts.cpp finished but no output file produced");
+    }
+
     speechOver();
 }
 
-void Expend::readyRead_outetts_process_StandardOutput()
+
+void Expend::readyRead_tts_process_StandardOutput()
 {
-    QString outetts_output = outetts_process->readAllStandardOutput();
-    ui->speech_log->appendPlainText(outetts_output);
+    QString output = tts_process->readAllStandardOutput();
+    ui->speech_log->appendPlainText(output);
 }
 
-void Expend::readyRead_outetts_process_StandardError()
+
+void Expend::readyRead_tts_process_StandardError()
 {
-    QString outetts_output = outetts_process->readAllStandardError();
-    ui->speech_log->appendPlainText(outetts_output);
+    QString output = tts_process->readAllStandardError();
+    ui->speech_log->appendPlainText(output);
 }
+
 
 // 用户点击选择模型路径时响应
-void Expend::on_speech_outetts_modelpath_pushButton_clicked()
+void Expend::on_speech_ttscpp_modelpath_pushButton_clicked()
 {
-    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
-    ui->speech_outetts_modelpath_lineEdit->setText(currentpath);
+    currentpath = customOpenfile(currentpath, "choose tts.cpp model", "(*.gguf)");
+    ui->speech_ttscpp_modelpath_lineEdit->setText(currentpath);
     if (!currentpath.isEmpty())
     {
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
-        settings.setValue("outetts_modelpath", currentpath);
+        settings.setValue("ttscpp_modelpath", currentpath);
+        settings.remove("outetts_modelpath");
+        settings.remove("wavtokenizer_modelpath");
     }
 }
 
+
 // 用户点击选择模型路径时响应
-void Expend::on_speech_wavtokenizer_modelpath_pushButton_clicked()
-{
-    currentpath = customOpenfile(currentpath, "choose outetts model", "(*.bin *.gguf)");
-    ui->speech_wavtokenizer_modelpath_lineEdit->setText(currentpath);
-    if (!currentpath.isEmpty())
-    {
-        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-        settings.setIniCodec("utf-8");
-        settings.setValue("wavtokenizer_modelpath", currentpath);
-    }
-}
+
 
 // 用户点击转为音频按钮时响应
 void Expend::on_speech_manual_pushButton_clicked()
 {
-    if (ui->speech_outetts_modelpath_lineEdit->text() != "" && ui->speech_wavtokenizer_modelpath_lineEdit->text() != "")
+    if (!ui->speech_ttscpp_modelpath_lineEdit->text().trimmed().isEmpty())
     {
-        outettsProcess(ui->speech_manual_plainTextEdit->toPlainText());
+        runTtsProcess(ui->speech_manual_plainTextEdit->toPlainText());
+    }
+    else
+    {
+        ui->speech_log->appendPlainText("[warn] tts.cpp model path is empty; cannot synthesize.");
     }
 }
+
 
 // 音频播放完响应
 void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
@@ -440,3 +449,6 @@ void Expend::startNextPlayIfIdle()
         speech_player->play();
     }
 }
+
+
+

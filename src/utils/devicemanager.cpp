@@ -478,6 +478,7 @@ QString DeviceManager::projectForProgram(const QString &name)
     if (name == QLatin1String("whisper-cli")) return QStringLiteral("whisper.cpp");
     if (name == QLatin1String("llama-quantize")) return QStringLiteral("llama.cpp");
     if (name == QLatin1String("llama-tts")) return QStringLiteral("llama-tts");
+    if (name == QLatin1String("tts-cli")) return QStringLiteral("tts.cpp");
     // default to using the name itself as folder (best-effort)
     return name;
 }

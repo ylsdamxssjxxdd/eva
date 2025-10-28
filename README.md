@@ -27,7 +27,7 @@
       - `EVA_MODELS/multimodal`：多模态模型（非必要）
       - `EVA_MODELS/embedding`：嵌入模型（非必要）
       - `EVA_MODELS/speech2text`：Whisper模型（非必要）
-      - `EVA_MODELS/text2speech`：OuteTTS 与 WavTokenizer模型（非必要）
+      - `EVA_MODELS/text2speech`：tts.cpp 模型（非必要）
       - `EVA_MODELS/text2image`：SD/Flux/Qwen-image/Qwen-image-edit/ 模型（非必要）
 
     - 也可以前往 https://hf-mirror.com 搜索，机体支持几乎所有开源大语言模型
@@ -180,9 +180,9 @@
 
 <summary> 语音 </summary>
 
-- 介绍：借助windows系统的语音功能将模型输出的文本转为语音并自动播放，或者可以自己配置outetts模型进行文转声
+- 介绍：借助windows系统的语音功能将模型输出的文本转为语音并自动播放，或者可以自己配置tts.cpp模型进行文转声
 
-- 激活方法：右击状态区打开“增殖-文转声”，选择系统语音或 OuteTTS+WavTokenizer 并启动。
+ - 激活方法：右击状态区打开“增殖-文转声”，选择系统语音或加载 tts.cpp 模型并启动。
 
 </details>
 
