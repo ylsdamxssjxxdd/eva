@@ -254,3 +254,12 @@
     - 程序首次启动会在同级目录创建 `EVA_TEMP/`，用于保存配置、历史与中间产物。
 
 </details>
+
+## 致谢
+
+- [llama.cpp](https://github.com/ggerganov/llama.cpp)
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
+- [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
+- [TTS.cpp](https://github.com/mmwillet/TTS.cpp)
+- [cpp-mcp](https://github.com/hkr04/cpp-mcp)
+- [Qt 5.15](https://www.qt.io/)

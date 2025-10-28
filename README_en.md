@@ -58,6 +58,7 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
 </details>
 
 <details>
+
 <summary> Two States </summary>
 
 1. Conversation State
@@ -241,3 +242,13 @@ Skills are pluggable capability bundles introduced into EVA under the covenant f
    - The program will create `EVA_TEMP/` in the same directory on first startup to save configurations, history, and intermediate products.
 
 </details>
+
+
+## Acknowledgements
+
+- [llama.cpp](https://github.com/ggerganov/llama.cpp)
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
+- [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
+- [TTS.cpp](https://github.com/mmwillet/TTS.cpp)
+- [cpp-mcp](https://github.com/hkr04/cpp-mcp)
+- [Qt 5.15](https://www.qt.io/)
