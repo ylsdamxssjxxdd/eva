@@ -1,8 +1,10 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include <QElapsedTimer>
 #include <QHostAddress>
 #include <QSignalBlocker>
 #include <QTcpServer>
+#include "../utils/startuplogger.h"
 
 //-------------------------------------------------------------------------
 //-------------------------------响应槽相关---------------------------------
@@ -407,6 +409,9 @@ void Widget::recv_whisper_modelpath(QString modelpath)
 void Widget::ensureLocalServer()
 {
     if (!serverManager) return;
+    StartupLogger::log(QStringLiteral("ensureLocalServer 开始执行"));
+    QElapsedTimer ensureTimer;
+    ensureTimer.start();
     // 首次装载前：根据当前可用显存粗略评估是否可全量 offload（ngl=999）
     if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
     {
@@ -542,6 +547,7 @@ void Widget::ensureLocalServer()
 
     // 确保后端进程状态符合当前设置
     serverManager->ensureRunning();
+    StartupLogger::log(QStringLiteral("ensureLocalServer 调用 ensureRunning 完成（%1 ms）").arg(ensureTimer.elapsed()));
 
     // 立即将端点切换到本地（避免还连向旧端点）
     apis.api_endpoint = serverManager->endpointBase();
