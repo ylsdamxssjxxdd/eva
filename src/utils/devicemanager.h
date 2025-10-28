@@ -57,7 +57,6 @@ class DeviceManager
     // programPath() call). Falls back to effectiveBackend() if unknown.
     static QString lastResolvedDeviceFor(const QString &programName);
 
-  private:
     static QStringList preferredOrder();
     // Map a known executable name to its canonical project folder
     // For example: "llama-server" -> "llama.cpp"

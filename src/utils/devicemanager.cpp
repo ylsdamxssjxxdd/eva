@@ -192,10 +192,31 @@ static QStringList deviceSearchOrder()
 
     if (choice == QLatin1String("auto"))
     {
-        addIf(QStringLiteral("cuda"), supportsCuda());
-        addIf(QStringLiteral("vulkan"), supportsVulkan());
-        addIf(QStringLiteral("opencl"), supportsOpenCL());
-        add(QStringLiteral("cpu")); // always present logically
+        const QStringList preferred = DeviceManager::preferredOrder();
+        for (const QString &backend : preferred)
+        {
+            if (backend == QLatin1String("cpu"))
+            {
+                add(QStringLiteral("cpu"));
+            }
+            else if (backend == QLatin1String("cuda"))
+            {
+                addIf(QStringLiteral("cuda"), supportsCuda());
+            }
+            else if (backend == QLatin1String("vulkan"))
+            {
+                addIf(QStringLiteral("vulkan"), supportsVulkan());
+            }
+            else if (backend == QLatin1String("opencl"))
+            {
+                addIf(QStringLiteral("opencl"), supportsOpenCL());
+            }
+            else
+            {
+                add(backend);
+            }
+        }
+        add(QStringLiteral("cpu")); // make sure cpu fallback is included
     }
     else
     {
@@ -223,8 +244,41 @@ static QStringList deviceSearchOrder()
 }
 QStringList DeviceManager::preferredOrder()
 {
+    const QString arch = currentArchId();
+    if (arch.startsWith(QLatin1String("arm")))
+    {
+        return {QStringLiteral("cpu"), QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl")};
+    }
     // Best-effort preference. Do not query hardware here; we only reflect what was shipped.
     return {QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl"), QStringLiteral("cpu")};
+}
+
+static QString firstPreferredAvailable(const QStringList &available)
+{
+    const QStringList preferred = DeviceManager::preferredOrder();
+    for (const QString &backend : preferred)
+    {
+        if (!available.contains(backend)) continue;
+        if (backend == QLatin1String("cuda"))
+        {
+            if (supportsCuda()) return QStringLiteral("cuda");
+            continue;
+        }
+        if (backend == QLatin1String("vulkan"))
+        {
+            if (supportsVulkan()) return QStringLiteral("vulkan");
+            continue;
+        }
+        if (backend == QLatin1String("opencl"))
+        {
+            if (supportsOpenCL()) return QStringLiteral("opencl");
+            continue;
+        }
+        if (backend == QLatin1String("cpu")) return QStringLiteral("cpu");
+        // Unknown backend types: honor availability order as-is.
+        return backend;
+    }
+    return available.isEmpty() ? QStringLiteral("cpu") : available.first();
 }
 
 QStringList DeviceManager::availableBackends()
@@ -282,25 +336,16 @@ QString DeviceManager::effectiveBackend()
     { return avail.contains(b); };
     const QString choice = userChoice();
 
-    auto firstSupportedAvail = [&]() -> QString
-    {
-        if (supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
-        if (supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
-        if (supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
-        if (isAvail("cpu")) return QStringLiteral("cpu");
-        return avail.isEmpty() ? QStringLiteral("cpu") : avail.first();
-    };
-
     if (choice == QLatin1String("auto"))
     {
-        return firstSupportedAvail();
+        return firstPreferredAvailable(avail);
     }
     // Explicit choice: honor if available and supported; else degrade
     if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
     if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
     if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
-    return firstSupportedAvail();
+    return firstPreferredAvailable(avail);
 }
 
 // UI helper: compute effective backend for a given preferred value without
@@ -313,24 +358,15 @@ QString DeviceManager::effectiveBackendFor(const QString &preferred)
     { return avail.contains(b); };
     const QString choice = preferred.trimmed().toLower();
 
-    auto firstSupportedAvail = [&]() -> QString
-    {
-        if (supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
-        if (supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
-        if (supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
-        if (isAvail("cpu")) return QStringLiteral("cpu");
-        return avail.isEmpty() ? QStringLiteral("cpu") : avail.first();
-    };
-
     if (choice == QLatin1String("auto"))
     {
-        return firstSupportedAvail();
+        return firstPreferredAvailable(avail);
     }
     if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
     if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
     if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
-    return firstSupportedAvail();
+    return firstPreferredAvailable(avail);
 }
 
 static QString findProgramRecursive(const QString &dir, const QString &exe)
