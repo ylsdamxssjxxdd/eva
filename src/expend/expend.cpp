@@ -8,6 +8,7 @@
 #include "../utils/neuronlogedit.h"
 #include "../utils/textspacing.h"
 #include <QDir>
+#include <QFile>
 #include <QProcessEnvironment>
 #include <QScrollBar>
 #include <QTextCursor>
@@ -96,9 +97,8 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 
     // Ensure temp dir exists and load persisted config
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
-    initializeEmbeddingStore();
     readConfig();
-    restoreEmbeddingsFromStore();
+    scheduleEmbeddingWarmup();
 }
 
 Expend::~Expend()
@@ -121,6 +121,62 @@ Expend::~Expend()
     killProc(quantize_process);
 
     delete ui;
+}
+
+void Expend::scheduleEmbeddingWarmup()
+{
+    if (embeddingWarmupScheduled_) return;
+    embeddingWarmupScheduled_ = true;
+    QTimer::singleShot(900, this, &Expend::warmupEmbeddingStore);
+}
+
+void Expend::warmupEmbeddingStore()
+{
+    if (embeddingStoreReady_) return;
+    initializeEmbeddingStore();
+    restoreEmbeddingsFromStore();
+    embeddingStoreReady_ = true;
+    tryAutoStartEmbeddingServer();
+}
+
+void Expend::ensureEmbeddingStoreLoaded()
+{
+    if (embeddingStoreReady_)
+        return;
+    if (!embeddingWarmupScheduled_)
+    {
+        embeddingWarmupScheduled_ = true;
+    }
+    warmupEmbeddingStore();
+}
+
+void Expend::configureEmbeddingAutoStart(const QString &modelPath, bool shouldStart)
+{
+    pendingEmbeddingModelPath_ = modelPath;
+    embedding_server_need = shouldStart;
+    tryAutoStartEmbeddingServer();
+}
+
+void Expend::tryAutoStartEmbeddingServer()
+{
+    QString resolvedPath = pendingEmbeddingModelPath_;
+    if (resolvedPath.isEmpty() && embeddingStoreReady_)
+    {
+        resolvedPath = vectorDb.currentModelId();
+    }
+    if (resolvedPath.isEmpty()) return;
+
+    QFile modelFile(resolvedPath);
+    if (!modelFile.exists()) return;
+
+    const bool hasPersistedEmbeddings = embeddingStoreReady_ && !Embedding_DB.isEmpty();
+    if (!embedding_server_need && !hasPersistedEmbeddings) return;
+
+    embedding_embed_need = false;
+    embedding_params.modelpath = resolvedPath;
+    embedding_server_start();
+    embedding_server_need = false;
+    pendingEmbeddingModelPath_.clear();
 }
 
 // Forward minimal logs to the Model Info log view
@@ -182,8 +238,12 @@ void Expend::changeEvent(QEvent *event)
 }
 
 // Animation toggles are safe no-ops if custom widgets are absent
-void Expend::onTabCurrentChanged(int)
+void Expend::onTabCurrentChanged(int index)
 {
+    if (ui && ui->tabWidget && window_map.contains(KNOWLEDGE_WINDOW) && index == window_map[KNOWLEDGE_WINDOW])
+    {
+        ensureEmbeddingStoreLoaded();
+    }
     updateModelInfoAnim();
 }
 

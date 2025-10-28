@@ -683,17 +683,7 @@ int main(int argc, char *argv[])
         // 自动启动嵌入服务：
         // - 若已有持久化向量(Expend::Embedding_DB非空)，为支持查询自动启动服务（仅用于查询向量），不触发重嵌入
         // - 或者用户显式开启了 embedding_server_need（兼容旧配置），同样仅启动服务，不自动重嵌
-        {
-            QString autoModel = embedding_modelpath;
-            if (autoModel.isEmpty()) { autoModel = expend.vectorDb.currentModelId(); }
-            QFile embedding_modelpath_file(autoModel);
-            if (embedding_modelpath_file.exists() && (!expend.Embedding_DB.isEmpty() || embedding_server_need))
-            {
-                expend.embedding_embed_need = false; // 不进行自动重嵌，只启动服务供查询使用
-                expend.embedding_params.modelpath = autoModel;
-                expend.embedding_server_start();
-            }
-        }
+        expend.configureEmbeddingAutoStart(embedding_modelpath, embedding_server_need);
     }
     w.show();        // 展示窗口
     StartupLogger::log(QStringLiteral("主窗口显示完成"));

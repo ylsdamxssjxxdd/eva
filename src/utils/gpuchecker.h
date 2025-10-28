@@ -212,15 +212,36 @@ class gpuChecker : public QObject
     Q_OBJECT
 
   public:
-    gpuChecker()
+    gpuChecker() = default;
+
+    ~gpuChecker()
     {
-        const QString gpuVendor = getGpuVendor();
-        // qDebug()<<"Detected GPU Vendor:"<<gpuVendor;
-        if (gpuVendor == "NVIDIA")
+        delete gpuInfoProvider;
+    }
+
+    void checkGpu()
+    {
+        ensureProvider();
+        if (gpuInfoProvider)
+        {
+            gpuInfoProvider->getGpuInfo();
+        }
+        else
+        {
+            emit gpu_status(0, 0, 0, 0);
+        }
+    }
+
+  private:
+    void ensureProvider()
+    {
+        if (gpuInfoProvider) return;
+        const QString vendor = getGpuVendor();
+        if (vendor == QLatin1String("NVIDIA"))
         {
             gpuInfoProvider = new NvidiaGpuInfoProvider();
         }
-        else if (gpuVendor == "AMD")
+        else if (vendor == QLatin1String("AMD"))
         {
             gpuInfoProvider = new AmdGpuInfoProvider();
         }
@@ -234,40 +255,26 @@ class gpuChecker : public QObject
         }
     }
 
-    ~gpuChecker()
-    {
-        if (gpuInfoProvider)
-        {
-            delete gpuInfoProvider;
-        }
-    }
-
-    void checkGpu()
-    {
-        // qDebug() << "Checking GPU status...";
-        if (gpuInfoProvider)
-        {
-            gpuInfoProvider->getGpuInfo();
-        }
-        else
-        {
-            emit gpu_status(0, 0, 0, 0);
-        }
-    }
-
-  private:
     QString getGpuVendor()
+    {
+        if (!vendorResolved_)
+        {
+            vendorCache_ = detectGpuVendor();
+            vendorResolved_ = true;
+        }
+        return vendorCache_;
+    }
+
+    QString detectGpuVendor()
     {
         QString output;
 #ifdef _WIN32
-        // 优先使用 PowerShell CIM，兼容新系统；失败再回退 wmic
         if (!runProcessReadAll("powershell", {"-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"}, output))
         {
             runProcessReadAll("wmic", {"path", "win32_videocontroller", "get", "caption"}, output);
         }
         if (output.trimmed().isEmpty())
         {
-            // 再尝试 nvidia-smi / rocm-smi 来粗略判断
             QString tmp;
             if (runProcessReadAll("nvidia-smi", {"-L"}, tmp))
                 output = tmp;
@@ -277,16 +284,19 @@ class gpuChecker : public QObject
 #elif __linux__
         if (!runProcessReadAll("bash", {"-lc", "lspci -nn | grep -i 'VGA'"}, output)) output.clear();
 #endif
-        if (output.contains("NVIDIA", Qt::CaseInsensitive)) return "NVIDIA";
-        if (output.contains("AMD", Qt::CaseInsensitive) || output.contains("Radeon", Qt::CaseInsensitive)) return "AMD";
-        if (output.contains("Intel", Qt::CaseInsensitive)) return "Intel";
-        return "Unknown";
+        if (output.contains("NVIDIA", Qt::CaseInsensitive)) return QStringLiteral("NVIDIA");
+        if (output.contains("AMD", Qt::CaseInsensitive) || output.contains("Radeon", Qt::CaseInsensitive)) return QStringLiteral("AMD");
+        if (output.contains("Intel", Qt::CaseInsensitive)) return QStringLiteral("Intel");
+        return QStringLiteral("Unknown");
     }
 
     GpuInfoProvider *gpuInfoProvider = nullptr;
+    QString vendorCache_;
+    bool vendorResolved_ = false;
 
   signals:
     void gpu_status(float vmem, float vram, float vcore, float vfree);
 };
 
 #endif // GPUCHECKER_H
+

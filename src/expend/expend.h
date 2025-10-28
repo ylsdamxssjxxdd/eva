@@ -105,6 +105,8 @@ class Expend : public QWidget
     bool copyRecursively(const QString &srcFilePath, const QString &tgtFilePath); // 复制一个目录里的文件夹所有东西到另一个文件夹
     QString customOpenfile(QString dirpath, QString describe, QString format);
     void readConfig(); // 读取配置文件并应用
+    void ensureEmbeddingStoreLoaded();
+    void configureEmbeddingAutoStart(const QString &modelPath, bool shouldStart);
     QString currentpath;
     QString convertmodeldir;
     void showReadme();                      // 展示readme内容
@@ -221,6 +223,12 @@ class Expend : public QWidget
     void rebuildEmbeddedTableView();
     void restoreEmbeddingsFromStore();
     void initializeEmbeddingStore();
+    void scheduleEmbeddingWarmup();
+    void warmupEmbeddingStore();
+    void tryAutoStartEmbeddingServer();
+    bool embeddingStoreReady_ = false;
+    bool embeddingWarmupScheduled_ = false;
+    QString pendingEmbeddingModelPath_;
 
     //-------------------------------------------------------------------------
     //----------------------------------模型量化相关--------------------------------

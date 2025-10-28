@@ -150,12 +150,29 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     max_thread = std::thread::hardware_concurrency();
     settings_ui->nthread_slider->setRange(1, max_thread); // 设置线程数滑块的范围
     QTimer *cpucheck_timer = new QTimer(this);
+    cpucheck_timer->setInterval(500);
     connect(cpucheck_timer, &QTimer::timeout, this, &Widget::updateCpuStatus);
-    cpucheck_timer->start(500); // 多少ms更新一次
+    QTimer::singleShot(1200, this, [this, cpucheck_timer]()
+                       {
+                           if (!this->isVisible() && !cpucheck_timer->isActive())
+                           {
+                               // 仍执行一次刷新，避免延迟导致状态面板为空
+                               updateCpuStatus();
+                           }
+                           if (!cpucheck_timer->isActive()) cpucheck_timer->start();
+                       });
     //-------------获取gpu内存信息-------------
     QTimer *gpucheck_timer = new QTimer(this);
+    gpucheck_timer->setInterval(500);
     connect(gpucheck_timer, &QTimer::timeout, this, &Widget::updateGpuStatus);
-    gpucheck_timer->start(500); // 多少ms更新一次
+    QTimer::singleShot(1500, this, [this, gpucheck_timer]()
+                       {
+                           if (!this->isVisible() && !gpucheck_timer->isActive())
+                           {
+                               updateGpuStatus();
+                           }
+                           if (!gpucheck_timer->isActive()) gpucheck_timer->start();
+                       });
 
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();
