@@ -17,15 +17,10 @@ static QHash<QString, QString> g_lastResolvedDevice;  // program -> device that 
 
 QString DeviceManager::backendsRootDir()
 {
-#ifdef BODY_LINUX_PACK
     const QStringList roots = candidateBackendRoots();
     if (!roots.isEmpty()) return roots.first();
-    // Fall back to next-to-exe path even if not existing
-    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
-#else
-    // Default: expect EVA_BACKEND next to the executable
-    return QCoreApplication::applicationDirPath() + "/EVA_BACKEND";
-#endif
+    // Fall back to a predictable location even if it does not exist yet
+    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("EVA_BACKEND"));
 }
 
 QStringList DeviceManager::candidateBackendRoots()
@@ -36,7 +31,7 @@ QStringList DeviceManager::candidateBackendRoots()
     const QString envRoot = QString::fromLocal8Bit(qgetenv("EVA_BACKEND_ROOT"));
     if (!envRoot.isEmpty()) probes << envRoot;
 
-#ifdef BODY_LINUX_PACK
+#if defined(Q_OS_LINUX)
     // 1) AppImage internal mount (packaged)
     const QString appDir = QString::fromLocal8Bit(qgetenv("APPDIR"));
     if (!appDir.isEmpty())
@@ -45,13 +40,10 @@ QStringList DeviceManager::candidateBackendRoots()
         probes << QDir(appDir).filePath("EVA_BACKEND");
     }
 
-    // 2) Next to the running executable (inside mount in AppImage case)
+    // 2) If exe under /usr/bin, try resolving root of mount
     const QString exeDir = QCoreApplication::applicationDirPath();
-    probes << QDir(exeDir).filePath("EVA_BACKEND");
-
-    // 3) If exe under /usr/bin, try resolving root of mount
     QDir maybeUsrBin(exeDir);
-    if (maybeUsrBin.path().endsWith("/usr/bin"))
+    if (maybeUsrBin.path().endsWith(QStringLiteral("/usr/bin")))
     {
         maybeUsrBin.cdUp(); // usr
         maybeUsrBin.cdUp(); // APPDIR
@@ -59,23 +51,28 @@ QStringList DeviceManager::candidateBackendRoots()
         probes << maybeUsrBin.filePath("EVA_BACKEND");
     }
 
-    // 4) External folder next to the .AppImage file
+    // 3) External folder next to the .AppImage file (portable layout)
     const QString appImage = QString::fromLocal8Bit(qgetenv("APPIMAGE"));
     if (!appImage.isEmpty())
     {
-        const QString outer = QFileInfo(appImage).absoluteDir().filePath("EVA_BACKEND");
-        probes << outer;
+        const QFileInfo appImageInfo(appImage);
+        if (appImageInfo.exists())
+        {
+            probes << appImageInfo.absoluteDir().filePath("EVA_BACKEND");
+            const QString canonical = appImageInfo.canonicalFilePath();
+            if (!canonical.isEmpty())
+            {
+                probes << QFileInfo(canonical).absoluteDir().filePath("EVA_BACKEND");
+            }
+        }
     }
-
-    // 5) CWD fallback for developers launching from a folder
-    probes << QDir::currentPath() + "/EVA_BACKEND";
-
-#else
-    // Non-linux builds: next to the executable and CWD
-    const QString exeDir = QCoreApplication::applicationDirPath();
-    probes << QDir(exeDir).filePath("EVA_BACKEND");
-    probes << QDir::currentPath() + "/EVA_BACKEND";
 #endif
+
+    // Always probe next to the running executable
+    probes << QDir(QCoreApplication::applicationDirPath()).filePath("EVA_BACKEND");
+
+    // CWD fallback for developers launching from arbitrary folders
+    probes << QDir::currentPath() + "/EVA_BACKEND";
 
     // De-duplicate while preserving order
     QStringList seen;
