@@ -908,6 +908,7 @@ void Widget::onServerReady(const QString &endpoint)
     updateProxyBackend(backendListenHost_, activeBackendPort_);
     if (proxyServer_) proxyServer_->setBackendAvailable(true);
 
+    scheduleLazyUnload();
     updateLazyCountdownLabel();
 
     if (pendingSendAfterWake_)
