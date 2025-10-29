@@ -62,7 +62,10 @@ QStringList LocalServerManager::buildArgs() const
     args << "--host"
          << host_;
     args << "--port" << port_;
-    args << "-c" << QString::number(settings_.nctx);
+    const int slotCtx = (settings_.nctx > 0) ? settings_.nctx : DEFAULT_NCTX;
+    const int parallel = (settings_.hid_parallel > 0) ? settings_.hid_parallel : 1;
+    const int totalCtx = slotCtx * parallel;
+    args << "-c" << QString::number(totalCtx);
     // 仅在 GPU 型后端下传递 -ngl；CPU 后端无此选项意义
     const QString __resolvedDev = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
     if (__resolvedDev != QLatin1String("cpu"))

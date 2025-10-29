@@ -1426,9 +1426,17 @@ void Widget::onServerOutput(const QString &line)
         if (ok && v > 0)
         {
             server_nctx_ = v;
-            if (server_nctx_ != ui_SETTINGS.nctx)
+            const int slotCtx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+            const int parallel = ui_SETTINGS.hid_parallel > 0 ? ui_SETTINGS.hid_parallel : 1;
+            const int expectedTotal = slotCtx * parallel;
+            if (server_nctx_ != expectedTotal)
             {
-                reflash_state("ui:server n_ctx=" + QString::number(server_nctx_) + ", ui n_ctx=" + QString::number(ui_SETTINGS.nctx), SIGNAL_SIGNAL);
+                reflash_state(QStringLiteral("ui:server n_ctx=%1, expected=%2 (slot=%3, parallel=%4)")
+                                  .arg(server_nctx_)
+                                  .arg(expectedTotal)
+                                  .arg(slotCtx)
+                                  .arg(parallel),
+                              SIGNAL_SIGNAL);
             }
         }
     }
