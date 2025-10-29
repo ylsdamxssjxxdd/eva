@@ -407,25 +407,29 @@ void Widget::recv_whisper_modelpath(QString modelpath)
 }
 
 // Ensure local llama.cpp server is running with current settings
-void Widget::ensureLocalServer()
+void Widget::ensureLocalServer(bool lazyWake)
 {
     if (!serverManager) return;
-    StartupLogger::log(QStringLiteral("ensureLocalServer 开始执行"));
+
+    StartupLogger::log(QStringLiteral("ensureLocalServer start (lazy=%1)").arg(lazyWake));
     QElapsedTimer ensureTimer;
     ensureTimer.start();
-    // 首次装载前：根据当前可用显存粗略评估是否可全量 offload（ngl=999）
+
+    cancelLazyUnload(QStringLiteral("ensureLocalServer entry"));
+    if (lazyWake) lazyWakeInFlight_ = true;
+
     if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
     {
-        firstAutoNglEvaluated_ = true; // 只评估一次
+        firstAutoNglEvaluated_ = true;
         QFileInfo fileInfo(ui_SETTINGS.modelpath);
         QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);
         const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
         if (modelsize_MB > 0 && vfree > 0)
         {
-            const double limit = 0.95 * vfree; // 95% 当前可用显存
+            const double limit = 0.95 * vfree;
             if (modelsize_MB <= limit)
             {
-                ui_SETTINGS.ngl = 999; // 先尝试全量 offload；装载后再按 n_layer+1 修正显示
+                ui_SETTINGS.ngl = 999;
                 if (settings_ui && settings_ui->ngl_slider)
                 {
                     settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
@@ -435,10 +439,10 @@ void Widget::ensureLocalServer()
         }
         else if (modelsize_MB > 0 && vfree <= 0)
         {
-            // 无法拿到可用显存数据：延后到下一次 GPU 刷新回调中处理
             gpu_wait_load = true;
         }
     }
+
     const QString originalUserPort = ui_port.trimmed();
     ui_port = originalUserPort;
     portConflictDetected_ = false;
@@ -450,7 +454,7 @@ void Widget::ensureLocalServer()
     };
     PortFallbackReason fallbackReason = PortFallbackReason::None;
 
-    QString bindHost = QStringLiteral("0.0.0.0"); // default: expose to LAN
+    QString frontendHost = QStringLiteral("0.0.0.0");
     QString chosenPort = originalUserPort;
     bool appliedFallbackPort = false;
 
@@ -467,7 +471,7 @@ void Widget::ensureLocalServer()
 
     if (chosenPort.isEmpty())
     {
-        bindHost = QStringLiteral("127.0.0.1");
+        frontendHost = QStringLiteral("127.0.0.1");
         QString fallback = pickFreeTcpPort();
         if (!fallback.isEmpty()) chosenPort = fallback;
         if (chosenPort.isEmpty()) chosenPort = QString(DEFAULT_SERVER_PORT);
@@ -488,7 +492,7 @@ void Widget::ensureLocalServer()
         const quint16 portNum = chosenPort.toUShort(&ok);
         if (!ok || portNum == 0)
         {
-            bindHost = QStringLiteral("127.0.0.1");
+            frontendHost = QStringLiteral("127.0.0.1");
             QString fallback = pickFreeTcpPort();
             if (!fallback.isEmpty()) chosenPort = fallback;
             appliedFallbackPort = true;
@@ -534,42 +538,86 @@ void Widget::ensureLocalServer()
     forcedPortOverride_.clear();
     portFallbackInFlight_ = false;
 
-    // 同步配置到本地后端管理器
+    QString proxyError;
+    if (!ensureProxyListening(frontendHost, chosenPort, &proxyError))
+    {
+        if (!proxyError.isEmpty())
+        {
+            reflash_state(QStringLiteral("ui:proxy %1").arg(proxyError), WRONG_SIGNAL);
+        }
+        if (!portFallbackInFlight_)
+        {
+            portConflictDetected_ = true;
+            initiatePortFallback();
+        }
+        lazyWakeInFlight_ = false;
+        return;
+    }
+
+    activeServerHost_ = frontendHost;
+    activeServerPort_ = chosenPort;
+
+    QString backendPort = activeBackendPort_;
+    const bool backendRunning = serverManager->isRunning();
+    if (backendPort.isEmpty() || backendPort == chosenPort || !backendRunning)
+    {
+        QString candidate;
+        for (int attempt = 0; attempt < 5; ++attempt)
+        {
+            candidate = pickFreeTcpPort(QHostAddress::LocalHost);
+            if (!candidate.isEmpty() && candidate != chosenPort)
+                break;
+        }
+        if (candidate.isEmpty() || candidate == chosenPort)
+        {
+            bool ok = false;
+            const quint16 frontNum = chosenPort.toUShort(&ok);
+            quint16 alt = ok ? quint16((frontNum + 1) % 65535) : 0;
+            if (alt == 0 || alt == frontNum) alt = 9000;
+            candidate = QString::number(alt);
+        }
+        backendPort = candidate;
+    }
+    activeBackendPort_ = backendPort;
+    updateProxyBackend(backendListenHost_, activeBackendPort_);
+
     serverManager->setSettings(ui_SETTINGS);
-    serverManager->setHost(bindHost);
-    serverManager->setPort(chosenPort);
+    serverManager->setHost(backendListenHost_);
+    serverManager->setPort(activeBackendPort_);
     serverManager->setModelPath(ui_SETTINGS.modelpath);
     serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
     serverManager->setLoraPath(ui_SETTINGS.lorapath);
-    activeServerHost_ = bindHost;
-    activeServerPort_ = chosenPort;
 
-    // 判断是否需要重启，若需要则切到装载中并中止当前网络请求
     lastServerRestart_ = serverManager->needsRestart();
-    const bool hadOld = serverManager->isRunning();
-    // Fresh start or planned restart -> next "all slots are idle" is just baseline; suppress one speed line
+    const bool hadOld = backendRunning;
     ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
     if (lastServerRestart_)
     {
-        // 标记为未装载并进入装载中状态；这会禁用发送等控件
-        preLoad();
-        emit ui2net_stop(true); // 停止可能仍在进行的 SSE 回复
+        backendOnline_ = false;
+        if (proxyServer_) proxyServer_->setBackendAvailable(false);
+        if (!lazyWake)
+        {
+            preLoad();
+            emit ui2net_stop(true);
+        }
     }
 
-    // 确保后端进程状态符合当前设置
     serverManager->ensureRunning();
-    StartupLogger::log(QStringLiteral("ensureLocalServer 调用 ensureRunning 完成（%1 ms）").arg(ensureTimer.elapsed()));
+    StartupLogger::log(QStringLiteral("ensureLocalServer ensureRunning done (%1 ms)").arg(ensureTimer.elapsed()));
 
-    // 立即将端点切换到本地（避免还连向旧端点）
+    backendOnline_ = serverManager->isRunning() && !lastServerRestart_;
+    if (proxyServer_) proxyServer_->setBackendAvailable(backendOnline_);
+    if (!lazyWake && backendOnline_) markBackendActivity();
+
+    if (!lastServerRestart_ && backendRunning) lazyWakeInFlight_ = false;
+
     apis.api_endpoint = serverManager->endpointBase();
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
-    // Broadcast to Expend (evaluation tab)
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
 }
-
 QString Widget::pickFreeTcpPort(const QHostAddress &addr) const
 {
     QTcpServer server;
@@ -639,6 +687,7 @@ void Widget::initiatePortFallback()
         settings_ui->port_lineEdit->setToolTip(jtr("port conflict body").arg(preferred, fallback));
     }
 
+    if (proxyServer_) proxyServer_->stop();
     if (serverManager)
     {
         ignoreNextServerStopped_ = true;
@@ -648,9 +697,120 @@ void Widget::initiatePortFallback()
     QTimer::singleShot(150, this, [this]()
                        { ensureLocalServer(); });
 }
+bool Widget::ensureProxyListening(const QString &host, const QString &port, QString *errorMessage)
+{
+    if (!proxyServer_) return true;
+    bool ok = false;
+    const quint16 value = port.toUShort(&ok);
+    if (!ok || value == 0)
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("invalid proxy port -> %1").arg(port);
+        return false;
+    }
+    if (proxyServer_->isListening() && proxyServer_->listenHost() == host && proxyServer_->listenPort() == value)
+    {
+        return true;
+    }
+    if (!proxyServer_->start(host, value, errorMessage))
+    {
+        return false;
+    }
+    return true;
+}
+
+void Widget::updateProxyBackend(const QString &backendHost, const QString &backendPort)
+{
+    if (!proxyServer_) return;
+    bool ok = false;
+    const quint16 value = backendPort.toUShort(&ok);
+    proxyServer_->setBackendEndpoint(backendHost, ok ? value : 0);
+    proxyServer_->setBackendAvailable(ok && backendOnline_);
+}
+
+void Widget::onProxyWakeRequested()
+{
+    if (!lazyUnloadEnabled()) return;
+    if (lazyWakeInFlight_) return;
+    if (backendOnline_ && serverManager && serverManager->isRunning()) return;
+    reflash_state(QStringLiteral("ui:proxy wake request"), SIGNAL_SIGNAL);
+    ensureLocalServer(true);
+}
+
+void Widget::onProxyExternalActivity()
+{
+    markBackendActivity();
+    cancelLazyUnload(QStringLiteral("proxy activity"));
+}
+
+void Widget::markBackendActivity()
+{
+    if (!lazyUnloadEnabled()) return;
+    if (!idleSince_.isValid())
+    {
+        idleSince_.start();
+    }
+    else
+    {
+        idleSince_.restart();
+    }
+}
+
+void Widget::scheduleLazyUnload()
+{
+    if (!lazyUnloadEnabled()) return;
+    if (!serverManager || !serverManager->isRunning()) return;
+    if (turnActive_ || toolInvocationActive_) return;
+    if (!lazyUnloadTimer_) return;
+    lazyUnloaded_ = false;
+    if (!idleSince_.isValid()) idleSince_.start();
+    lazyUnloadTimer_->start(lazyUnloadMs_);
+}
+
+void Widget::cancelLazyUnload(const QString &reason)
+{
+    Q_UNUSED(reason);
+    if (!lazyUnloadTimer_) return;
+    if (lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
+    lazyUnloaded_ = false;
+}
+
+void Widget::performLazyUnload()
+{
+    if (!lazyUnloadEnabled()) return;
+    if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
+    if (turnActive_ || toolInvocationActive_)
+    {
+        scheduleLazyUnload();
+        return;
+    }
+    lazyUnloaded_ = true;
+    lazyWakeInFlight_ = false;
+    backendOnline_ = false;
+    if (proxyServer_) proxyServer_->setBackendAvailable(false);
+    reflash_state(QStringLiteral("ui:lazy unload -> stop llama-server"), SIGNAL_SIGNAL);
+    if (serverManager && serverManager->isRunning())
+    {
+        serverManager->stopAsync();
+    }
+    idleSince_ = QElapsedTimer();
+}
+
+bool Widget::lazyUnloadEnabled() const
+{
+    return proxyServer_ && lazyUnloadTimer_ && lazyUnloadMs_ > 0 && ui_mode == LOCAL_MODE;
+}
+
 
 void Widget::onServerReady(const QString &endpoint)
 {
+    backendOnline_ = true;
+    lazyUnloaded_ = false;
+    lazyWakeInFlight_ = false;
+    cancelLazyUnload(QStringLiteral("backend ready"));
+    markBackendActivity();
+    updateProxyBackend(backendListenHost_, activeBackendPort_);
+    if (proxyServer_) proxyServer_->setBackendAvailable(true);
+
     // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
     apis.api_endpoint = endpoint;
     apis.api_key = "";
@@ -1014,6 +1174,22 @@ void Widget::recv_reasoning_tokens(int tokens)
 // Parse llama-server output lines to capture n_ctx value for verification
 void Widget::onServerOutput(const QString &line)
 {
+    const QString trimmedLine = line.trimmed();
+    if (lazyUnloadEnabled())
+    {
+        const QString lowerLine = trimmedLine.toLower();
+        if (lowerLine.contains(QStringLiteral("new prompt")) || lowerLine.contains(QStringLiteral("launch_slot_")) || lowerLine.contains(QStringLiteral("processing request")) || lowerLine.contains(QStringLiteral("accepting connection")))
+        {
+            markBackendActivity();
+            cancelLazyUnload(QStringLiteral("log activity"));
+        }
+        else if (lowerLine.contains(QStringLiteral("all slots are idle")) || lowerLine.contains(QStringLiteral("no pending work")) || lowerLine.contains(QStringLiteral("all clients are idle")))
+        {
+            markBackendActivity();
+            scheduleLazyUnload();
+        }
+    }
+
 
     // Detect fatal/failed patterns in llama.cpp server logs and unlock UI promptly
     {
@@ -1063,6 +1239,8 @@ void Widget::onServerOutput(const QString &line)
     // 0) Track turn lifecycle heuristics
     if (line.contains("new prompt") || line.contains("launch_slot_"))
     {
+        markBackendActivity();
+        cancelLazyUnload(QStringLiteral("turn begin"));
         turnActive_ = true;
         kvUsedBeforeTurn_ = kvUsed_;
         kvTokensTurn_ = 0;
@@ -1228,6 +1406,8 @@ void Widget::onServerOutput(const QString &line)
             kvStreamedTurn_ = 0;
             sawPromptPast_ = true;
             updateKvBarUi();
+            markBackendActivity();
+            cancelLazyUnload(QStringLiteral("prompt done"));
         }
     }
     QRegularExpressionMatch mStop = reStop.match(line);
@@ -1240,6 +1420,8 @@ void Widget::onServerOutput(const QString &line)
             kvUsed_ = qMax(0, past);
             sawFinalPast_ = true;
             updateKvBarUi();
+            markBackendActivity();
+            scheduleLazyUnload();
         }
     }
     // qDebug()<< "Server log:" << line;
@@ -1248,6 +1430,11 @@ void Widget::onServerOutput(const QString &line)
 // 后端启动失败：停止装载动画并解锁按钮，便于用户更换模型或后端
 void Widget::onServerStartFailed(const QString &reason)
 {
+    backendOnline_ = false;
+    lazyWakeInFlight_ = false;
+    if (proxyServer_) proxyServer_->setBackendAvailable(false);
+    cancelLazyUnload(QStringLiteral("backend start failed"));
+
     Q_UNUSED(reason);
     if (!portFallbackInFlight_ && portConflictDetected_ && !ui_port.isEmpty() && activeServerPort_ == ui_port)
     {

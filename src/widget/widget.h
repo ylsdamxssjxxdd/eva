@@ -73,6 +73,7 @@
 #include "../utils/history_store.h" // per-session history persistence
 #include "../utils/recordbar.h"
 #include "../skill/skill_manager.h"
+#include "../net/localproxy.h"
 #include "../xbackend.h" // local llama.cpp server manager
 #include "../xconfig.h"  // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
@@ -241,6 +242,7 @@ class Widget : public QWidget
 
     // 服务相关（服务模式已移除；本地使用 LocalServerManager 自动启动 llama-server）
     LocalServerManager *serverManager = nullptr; // new: manages local llama.cpp server
+    LocalProxyServer *proxyServer_ = nullptr;    // keeps frontend port alive and wakes backend
     QString ui_port = "8080";
     QString ipAddress = "";
     QString getFirstNonLoopbackIPv4Address(); // 获取本机第一个ip地址
@@ -248,11 +250,19 @@ class Widget : public QWidget
     bool ignoreNextServerStopped_ = false;    // 忽略一次 serverStopped（用于计划内重启时旧进程的退出）
     QString activeServerHost_;                // 当前本地后端的实际绑定地址
     QString activeServerPort_;                // 当前本地后端的实际端口
+    QString activeBackendPort_;
+    QString backendListenHost_ = QStringLiteral("127.0.0.1");
     QString lastPortConflictPreferred_;       // 最近一次端口冲突时的用户端口
     QString lastPortConflictFallback_;        // 最近一次端口冲突使用的临时端口
     QString forcedPortOverride_;              // 若非空则下一次 ensureLocalServer 强制使用此端口
     bool portFallbackInFlight_ = false;       // 标记当前是否在端口降级流程中
     bool portConflictDetected_ = false;       // 最近一次 llama-server 输出中检测到端口占用
+    bool backendOnline_ = false;
+    bool lazyWakeInFlight_ = false;
+    bool lazyUnloaded_ = false;
+    QTimer *lazyUnloadTimer_ = nullptr;
+    QElapsedTimer idleSince_;
+    int lazyUnloadMs_ = 600000;
 
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
@@ -282,6 +292,15 @@ class Widget : public QWidget
     QString pickFreeTcpPort(const QHostAddress &addr = QHostAddress::AnyIPv4) const;
     void announcePortBusy(const QString &requestedPort, const QString &alternativePort);
     void initiatePortFallback();
+    bool ensureProxyListening(const QString &host, const QString &port, QString *errorMessage);
+    void updateProxyBackend(const QString &backendHost, const QString &backendPort);
+    void onProxyWakeRequested();
+    void onProxyExternalActivity();
+    void markBackendActivity();
+    void scheduleLazyUnload();
+    void cancelLazyUnload(const QString &reason = QString());
+    void performLazyUnload();
+    bool lazyUnloadEnabled() const;
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;
@@ -422,7 +441,7 @@ class Widget : public QWidget
     // 处理模型信号的槽
   public slots:
     // Ensure local server exists for LOCAL_MODE and wire API endpoint
-    void ensureLocalServer();
+    void ensureLocalServer(bool lazyWake = false);
     void onServerReady(const QString &endpoint);
     void onServerOutput(const QString &line);                                    // parse llama_server logs for n_ctx
     void onServerStartFailed(const QString &reason);                             // 后端启动失败：立即停止动画并解锁

@@ -210,6 +210,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     QTimer::singleShot(0, this, &Widget::initializeAudioSubsystem);
     //----------------本地后端管理（llama-server）------------------
     serverManager = new LocalServerManager(this, applicationDirPath);
+    proxyServer_ = new LocalProxyServer(this);
+    connect(proxyServer_, &LocalProxyServer::wakeRequested, this, &Widget::onProxyWakeRequested);
+    connect(proxyServer_, &LocalProxyServer::externalActivity, this, &Widget::onProxyExternalActivity);
+    connect(proxyServer_, &LocalProxyServer::proxyError, this, [this](const QString &msg)
+            { reflash_state("ui:proxy " + msg, WRONG_SIGNAL); });
     // 转发 server 输出到模型日志（增殖窗口）而不是主输出区
     connect(serverManager, &LocalServerManager::serverOutput, this, [this](const QString &s)
             { emit ui2expend_llamalog(s); });
@@ -223,6 +228,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画
         if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; return; }
         // 其它情况：后端确实已停止 -> 重置 UI，并停止任何进行中的动画
+
+        backendOnline_ = false;
+        lazyWakeInFlight_ = false;
+        if (proxyServer_) proxyServer_->setBackendAvailable(false);
+        cancelLazyUnload(QStringLiteral("server stopped"));
 
         ui->state->clear();
         reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
@@ -255,6 +265,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     // 监视相关
     connect(&monitor_timer, SIGNAL(timeout()), this, SLOT(monitorTime())); // 新开一个线程
 
+    lazyUnloadTimer_ = new QTimer(this);
+    lazyUnloadTimer_->setSingleShot(true);
+    connect(lazyUnloadTimer_, &QTimer::timeout, this, &Widget::performLazyUnload);
+
+
     EVA_title = jtr("eva");
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
@@ -275,6 +290,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 Widget::~Widget()
 {
     if (serverManager) serverManager->stop();
+    if (proxyServer_) proxyServer_->stop();
     delete history_;
     delete ui;
     delete cutscreen_dialog;
@@ -651,6 +667,9 @@ void Widget::collectUserInputs(InputPack &pack)
 // Handle normal chat reply turn
 void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
 {
+    markBackendActivity();
+    cancelLazyUnload(QStringLiteral("handle chat reply"));
+
     // user message assembly
     if (in.images.isEmpty())
     {
@@ -765,6 +784,9 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
 // Handle completion mode turn
 void Widget::handleCompletion(ENDPOINT_DATA &data)
 {
+    markBackendActivity();
+    cancelLazyUnload(QStringLiteral("handle completion"));
+
     data.input_prompt = ui->output->toPlainText();
     data.n_predict = ui_SETTINGS.hid_npredict;
     emit ui2net_data(data);
@@ -774,6 +796,9 @@ void Widget::handleCompletion(ENDPOINT_DATA &data)
 // Handle tool loop: append tool message and schedule a continue tick
 void Widget::handleToolLoop(ENDPOINT_DATA &data)
 {
+    markBackendActivity();
+    cancelLazyUnload(QStringLiteral("handle tool loop"));
+
     Q_UNUSED(data);
     toolInvocationActive_ = false;
     QJsonObject roleMessage;
@@ -837,6 +862,8 @@ void Widget::on_send_clicked()
     // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
     turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
+    cancelLazyUnload(QStringLiteral("user send"));
+    markBackendActivity();
     // Fresh turn: clear prompt/output trackers before new network call
     kvTokensTurn_ = 0;
     kvPromptTokensTurn_ = 0;
@@ -977,6 +1004,8 @@ void Widget::recv_pushover()
             normal_finish_pushover();
         }
     }
+    markBackendActivity();
+    scheduleLazyUnload();
 }
 
 // 正常情况处理推理完毕
