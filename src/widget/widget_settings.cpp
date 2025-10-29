@@ -139,81 +139,10 @@ void Widget::setupGlobalSettingsPanel()
 {
     if (!settings_ui || !settings_dialog) return;
 
-    const bool needCreate = (globalDialog_ == nullptr);
-    if (needCreate)
+    if (settings_ui->global_pushButton)
     {
-        if (!settings_ui->verticalLayout_4) return;
-
-        globalDialog_ = new QDialog(this);
-        globalDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
-        globalDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
-        globalDialog_->setModal(true);
-
-        QVBoxLayout *dialogLayout = new QVBoxLayout(globalDialog_);
-        dialogLayout->setContentsMargins(12, 12, 12, 12);
-        dialogLayout->setSpacing(8);
-
-        globalSettingsPanel_ = new QFrame(globalDialog_);
-        globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
-        globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
-        globalSettingsPanel_->setFrameShadow(QFrame::Raised);
-        globalSettingsPanel_->setMinimumWidth(0);
-        globalSettingsPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-
-        QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
-        panelLayout->setContentsMargins(12, 16, 12, 16);
-        panelLayout->setSpacing(12);
-
-        auto installLabel = [&](QLabel *&target, int weight)
-        {
-            target = new QLabel(globalSettingsPanel_);
-            target->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-            target->setStyleSheet(QStringLiteral("font-weight:%1;").arg(weight));
-            panelLayout->addWidget(target);
-        };
-
-        installLabel(globalPanelTitleLabel_, 600);
-        panelLayout->addSpacing(4);
-
-        installLabel(globalFontLabel_, 500);
-        globalFontCombo_ = new QFontComboBox(globalSettingsPanel_);
-        globalFontCombo_->setEditable(false);
-        globalFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-        panelLayout->addWidget(globalFontCombo_);
-
-        installLabel(globalFontSizeLabel_, 500);
-        globalFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
-        globalFontSizeSpin_->setRange(8, 48);
-        globalFontSizeSpin_->setAccelerated(true);
-        panelLayout->addWidget(globalFontSizeSpin_);
-
-        installLabel(globalThemeLabel_, 500);
-        globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
-        struct ThemeMeta
-        {
-            const char *id;
-        };
-        const ThemeMeta themes[] = {
-            {"unit01"},
-            {"unit00"},
-            {"unit02"},
-            {"unit03"}};
-        for (const ThemeMeta &meta : themes)
-        {
-            globalThemeCombo_->addItem(QString(), QString::fromLatin1(meta.id));
-        }
-        panelLayout->addWidget(globalThemeCombo_);
-        panelLayout->addStretch(1);
-
-        dialogLayout->addWidget(globalSettingsPanel_);
-        globalDialog_->setLayout(dialogLayout);
-
-        connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::showGlobalSettingsDialog);
-        connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
-    connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
-    connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
+        connect(settings_ui->global_pushButton, &QPushButton::clicked, this, &Widget::showGlobalSettingsDialog, Qt::UniqueConnection);
     }
-
     updateGlobalSettingsTranslations();
     syncGlobalSettingsPanelControls();
 }
@@ -285,8 +214,8 @@ void Widget::syncGlobalSettingsPanelControls()
 
 void Widget::showGlobalSettingsDialog()
 {
-    setupGlobalSettingsPanel();
-    if (!globalDialog_) return;
+    if (!ensureGlobalSettingsDialog()) return;
+    updateGlobalSettingsTranslations();
     syncGlobalSettingsPanelControls();
     if (settings_dialog)
     {

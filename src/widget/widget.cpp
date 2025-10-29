@@ -9,16 +9,31 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QElapsedTimer>
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QSplitter>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QtGlobal>
 #include "../utils/textspacing.h"
+#include "../utils/startuplogger.h"
 
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
 {
+    QElapsedTimer ctorTimer;
+    ctorTimer.start();
+    QElapsedTimer sectionTimer;
+    sectionTimer.start();
+    const auto logStep = [&](const QString &label)
+    {
+        const qint64 section = sectionTimer.elapsed();
+        const qint64 total = ctorTimer.elapsed();
+        StartupLogger::log(QStringLiteral("[widget] %1 (%2 ms, total %3 ms)").arg(label).arg(section).arg(total));
+        sectionTimer.restart();
+    };
+
     //---------------初始化ui--------------
     ui->setupUi(this);
     if (ui->recordBar)
@@ -30,12 +45,13 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     applicationDirPath = applicationDirPath_;
     skillManager = new SkillManager(this);
     skillManager->setApplicationDir(applicationDirPath);
-    skillManager->loadFromDisk();
     connect(skillManager, &SkillManager::skillsChanged, this, &Widget::onSkillsChanged);
     connect(skillManager, &SkillManager::skillImported, this, [this](const QString &id)
             { reflash_state(QString::fromUtf8("ui:skill imported -> ") + id, SUCCESS_SIGNAL); });
     connect(skillManager, &SkillManager::skillOperationFailed, this, [this](const QString &msg)
             { reflash_state("ui:" + msg, WRONG_SIGNAL); });
+    QTimer::singleShot(0, this, &Widget::loadSkillsAsync);
+    logStep(QStringLiteral("技能管理器初始化并安排异步加载"));
     engineerEnvWatcher_.setParent(this);
     connect(&engineerEnvWatcher_, &QFutureWatcher<EngineerEnvSnapshot>::finished, this, &Widget::onEngineerEnvProbeFinished);
     // Default engineer workdir under application directory
@@ -75,6 +91,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     // 注册 发送 快捷键
     shortcutCtrlEnter = new QHotkey(QKeySequence("CTRL+Return"), true, this);
     connect(shortcutCtrlEnter, &QHotkey::activated, this, &Widget::onShortcutActivated_CTRL_ENTER);
+    logStep(QStringLiteral("基础 UI 组件初始化完成"));
     //--------------初始化语言--------------
     QLocale locale = QLocale::system();             // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
@@ -127,6 +144,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     setApiDialog();   // 设置api选项
     set_DateDialog(); // 设置约定选项
     set_SetDialog();  // 设置设置选项
+    logStep(QStringLiteral("设置对话框初始化完成"));
     lastServerRestart_ = false;
     ui_state_init();                                              // 初始界面状态
     ui->input->textEdit->setContextMenuPolicy(Qt::NoContextMenu); // 取消右键菜单
@@ -189,13 +207,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                           // 录音定时器
     connect(audio_timer, &QTimer::timeout, this, &Widget::monitorAudioLevel); // 每隔100毫秒刷新一次输入区                                                      // win7就不用检查声音输入了
-    if (checkAudio())                                                         // 如果支持音频输入则注册f2快捷键
-    {
-        // QShortcut *shortcutF2 = new QShortcut(QKeySequence(Qt::Key_F2), this);
-        // connect(shortcutF2, &QShortcut::activated, this, &Widget::onShortcutActivated_F2);
-        shortcutF2 = new QHotkey(QKeySequence("F2"), true, this);
-        connect(shortcutF2, &QHotkey::activated, this, &Widget::onShortcutActivated_F2);
-    }
+    QTimer::singleShot(0, this, &Widget::initializeAudioSubsystem);
     //----------------本地后端管理（llama-server）------------------
     serverManager = new LocalServerManager(this, applicationDirPath);
     // 转发 server 输出到模型日志（增殖窗口）而不是主输出区
@@ -247,13 +259,16 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
     trayIcon->show();
+    logStep(QStringLiteral("托盘与语言资源初始化完成"));
     // Initialize persistent history store under EVA_TEMP/history
     history_ = new HistoryStore(QDir(applicationDirPath).filePath("EVA_TEMP/history"));
+    logStep(QStringLiteral("历史记录存储初始化完成"));
 
     // 进程退出前，确保停止本地 llama-server，避免残留进程
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
             {
         if (serverManager) serverManager->stop(); });
+    StartupLogger::log(QStringLiteral("[widget] 构造函数收尾, 总耗时 %1 ms").arg(ctorTimer.elapsed()));
     qDebug() << "widget init over";
 }
 
@@ -265,6 +280,119 @@ Widget::~Widget()
     delete cutscreen_dialog;
     delete date_ui;
     delete settings_ui;
+}
+
+void Widget::loadSkillsAsync()
+{
+    if (!skillManager) return;
+    QElapsedTimer timer;
+    timer.start();
+    const bool ok = skillManager->loadFromDisk();
+    StartupLogger::log(QStringLiteral("[widget] 技能目录扫描完成 (%1 ms, %2)")
+                           .arg(timer.elapsed())
+                           .arg(ok ? QStringLiteral("成功") : QStringLiteral("失败")));
+}
+
+void Widget::initializeAudioSubsystem()
+{
+    QElapsedTimer timer;
+    timer.start();
+    const bool audioReady = checkAudio();
+    StartupLogger::log(QStringLiteral("[widget] 音频子系统探测%1 (%2 ms)")
+                           .arg(audioReady ? QStringLiteral("成功") : QStringLiteral("跳过"))
+                           .arg(timer.elapsed()));
+    if (!audioReady)
+    {
+        return;
+    }
+    if (!shortcutF2)
+    {
+        shortcutF2 = new QHotkey(QKeySequence("F2"), true, this);
+        connect(shortcutF2, &QHotkey::activated, this, &Widget::onShortcutActivated_F2);
+    }
+}
+
+bool Widget::ensureGlobalSettingsDialog()
+{
+    if (globalDialog_) return true;
+    if (!settings_ui || !settings_dialog || !settings_ui->verticalLayout_4) return false;
+
+    QElapsedTimer timer;
+    timer.start();
+
+    globalDialog_ = new QDialog(this);
+    globalDialog_->setAttribute(Qt::WA_DeleteOnClose, false);
+    globalDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    globalDialog_->setModal(true);
+
+    QVBoxLayout *dialogLayout = new QVBoxLayout(globalDialog_);
+    dialogLayout->setContentsMargins(12, 12, 12, 12);
+    dialogLayout->setSpacing(8);
+
+    globalSettingsPanel_ = new QFrame(globalDialog_);
+    globalSettingsPanel_->setObjectName(QStringLiteral("globalSettingsPanel"));
+    globalSettingsPanel_->setFrameShape(QFrame::StyledPanel);
+    globalSettingsPanel_->setFrameShadow(QFrame::Raised);
+    globalSettingsPanel_->setMinimumWidth(0);
+    globalSettingsPanel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+
+    QVBoxLayout *panelLayout = new QVBoxLayout(globalSettingsPanel_);
+    panelLayout->setContentsMargins(12, 16, 12, 16);
+    panelLayout->setSpacing(12);
+
+    auto installLabel = [&](QLabel *&target, int weight)
+    {
+        target = new QLabel(globalSettingsPanel_);
+        target->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        target->setStyleSheet(QStringLiteral("font-weight:%1;").arg(weight));
+        panelLayout->addWidget(target);
+    };
+
+    installLabel(globalPanelTitleLabel_, 600);
+    panelLayout->addSpacing(4);
+
+    installLabel(globalFontLabel_, 500);
+    globalFontCombo_ = new QFontComboBox(globalSettingsPanel_);
+    globalFontCombo_->setEditable(false);
+    globalFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    panelLayout->addWidget(globalFontCombo_);
+
+    installLabel(globalFontSizeLabel_, 500);
+    globalFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
+    globalFontSizeSpin_->setRange(8, 48);
+    globalFontSizeSpin_->setAccelerated(true);
+    panelLayout->addWidget(globalFontSizeSpin_);
+
+    installLabel(globalThemeLabel_, 500);
+    globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
+    struct ThemeMeta
+    {
+        const char *id;
+    };
+    const ThemeMeta themes[] = {
+        {"unit01"},
+        {"unit00"},
+        {"unit02"},
+        {"unit03"}};
+    for (const ThemeMeta &meta : themes)
+    {
+        globalThemeCombo_->addItem(QString(), QString::fromLatin1(meta.id));
+    }
+    panelLayout->addWidget(globalThemeCombo_);
+    panelLayout->addStretch(1);
+
+    dialogLayout->addWidget(globalSettingsPanel_);
+    globalDialog_->setLayout(dialogLayout);
+
+    connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
+    connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
+    connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
+
+    updateGlobalSettingsTranslations();
+    syncGlobalSettingsPanelControls();
+
+    StartupLogger::log(QStringLiteral("[widget] 全局设置面板构建完成 (%1 ms)").arg(timer.elapsed()));
+    return true;
 }
 // 窗口状态变化处理
 void Widget::changeEvent(QEvent *event)

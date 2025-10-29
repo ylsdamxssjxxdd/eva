@@ -526,6 +526,9 @@ class Widget : public QWidget
     void resetStateDocument();             // replace QTextDocument of state
     void collapseTerminalPane();
     void ensureTerminalPaneVisible();
+    void loadSkillsAsync();
+    void initializeAudioSubsystem();
+    bool ensureGlobalSettingsDialog();
     // Send-task helpers
     // Record bar: capture key nodes and map to output document positions
     enum class RecordRole
