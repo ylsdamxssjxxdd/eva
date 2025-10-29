@@ -226,7 +226,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]()
             {
         // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画
-        if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; return; }
+        if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; suppressStateClearOnStop_ = false; return; }
         // 其它情况：后端确实已停止 -> 重置 UI，并停止任何进行中的动画
 
         backendOnline_ = false;
@@ -235,7 +235,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         cancelLazyUnload(QStringLiteral("server stopped"));
         pendingSendAfterWake_ = false;
 
-        ui->state->clear();
+        const bool skipStateClear = suppressStateClearOnStop_;
+        suppressStateClearOnStop_ = false;
+        if (!skipStateClear && ui && ui->state) ui->state->clear();
         reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
         if (decode_pTimer) decode_pTimer->stop();
         lastServerRestart_ = false;

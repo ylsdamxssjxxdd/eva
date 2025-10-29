@@ -248,6 +248,7 @@ class Widget : public QWidget
     QString getFirstNonLoopbackIPv4Address(); // 获取本机第一个ip地址
     bool lastServerRestart_ = false;          // 标记最近一次 ensureLocalServer 是否触发了重启
     bool ignoreNextServerStopped_ = false;    // 忽略一次 serverStopped（用于计划内重启时旧进程的退出）
+    bool suppressStateClearOnStop_ = false;   // Skip clearing state log when shutdown is an automatic lazy unload
     QString activeServerHost_;                // 当前本地后端的实际绑定地址
     QString activeServerPort_;                // 当前本地后端的实际端口
     QString activeBackendPort_;

@@ -828,8 +828,10 @@ void Widget::performLazyUnloadInternal(bool forced)
     backendOnline_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     reflash_state(QStringLiteral("ui:lazy unload -> stop llama-server"), SIGNAL_SIGNAL);
+    suppressStateClearOnStop_ = false;
     if (serverManager && serverManager->isRunning())
     {
+        suppressStateClearOnStop_ = !forced;
         serverManager->stopAsync();
     }
     idleSince_ = QElapsedTimer();
@@ -1309,11 +1311,22 @@ void Widget::onServerOutput(const QString &line)
     if (lazyUnloadEnabled())
     {
         markBackendActivity();
-        cancelLazyUnload(QStringLiteral("log activity"));
+        const bool busy = turnActive_ || toolInvocationActive_;
+        if (busy)
+        {
+            cancelLazyUnload(QStringLiteral("log activity"));
+        }
         const QString lowerLine = trimmedLine.toLower();
         if (lowerLine.contains(QStringLiteral("all slots are idle")) || lowerLine.contains(QStringLiteral("no pending work")) || lowerLine.contains(QStringLiteral("all clients are idle")))
         {
             scheduleLazyUnload();
+        }
+        else if (!busy && backendOnline_)
+        {
+            if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
+            {
+                scheduleLazyUnload();
+            }
         }
     }
 
