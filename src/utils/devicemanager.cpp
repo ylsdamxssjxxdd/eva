@@ -245,7 +245,8 @@ static QStringList deviceSearchOrder()
 QStringList DeviceManager::preferredOrder()
 {
     const QString arch = currentArchId();
-    if (arch.startsWith(QLatin1String("arm")))
+    const bool cpuFirst = arch.startsWith(QLatin1String("arm")) || isWindows7Or8Family();
+    if (cpuFirst)
     {
         return {QStringLiteral("cpu"), QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl")};
     }
