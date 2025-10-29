@@ -295,6 +295,7 @@ class Widget : public QWidget
     void announcePortBusy(const QString &requestedPort, const QString &alternativePort);
     void initiatePortFallback();
     bool ensureProxyListening(const QString &host, const QString &port, QString *errorMessage);
+    QString formatLocalEndpoint(const QString &host, const QString &port) const;
     void updateProxyBackend(const QString &backendHost, const QString &backendPort);
     void onProxyWakeRequested();
     void onProxyExternalActivity();

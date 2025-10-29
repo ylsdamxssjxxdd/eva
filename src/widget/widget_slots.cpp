@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QSignalBlocker>
 #include <QTcpServer>
+#include <QUrl>
 #include "../utils/startuplogger.h"
 
 //-------------------------------------------------------------------------
@@ -611,7 +612,7 @@ void Widget::ensureLocalServer(bool lazyWake)
 
     if (!lastServerRestart_ && backendRunning) lazyWakeInFlight_ = false;
 
-    apis.api_endpoint = serverManager->endpointBase();
+    apis.api_endpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
@@ -717,6 +718,21 @@ bool Widget::ensureProxyListening(const QString &host, const QString &port, QStr
         return false;
     }
     return true;
+}
+
+QString Widget::formatLocalEndpoint(const QString &host, const QString &port) const
+{
+    QString displayHost = host.trimmed();
+    if (displayHost.isEmpty() || displayHost == QStringLiteral("0.0.0.0"))
+    {
+        displayHost = QStringLiteral("127.0.0.1");
+    }
+    QString displayPort = port.trimmed();
+    if (displayPort.isEmpty())
+    {
+        displayPort = QString(DEFAULT_SERVER_PORT);
+    }
+    return QStringLiteral("http://%1:%2").arg(displayHost, displayPort);
 }
 
 void Widget::updateProxyBackend(const QString &backendHost, const QString &backendPort)
@@ -920,7 +936,14 @@ void Widget::onServerReady(const QString &endpoint)
     }
 
     // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
-    apis.api_endpoint = endpoint;
+    const QUrl backendUrl = QUrl::fromUserInput(endpoint);
+    if (backendUrl.isValid() && backendUrl.port() > 0)
+    {
+        activeBackendPort_ = QString::number(backendUrl.port());
+        updateProxyBackend(backendListenHost_, activeBackendPort_);
+    }
+    const QString frontendEndpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
+    apis.api_endpoint = frontendEndpoint;
     apis.api_key = "";
     apis.api_model = "default";
     emit ui2net_apis(apis);
@@ -944,7 +967,7 @@ void Widget::onServerReady(const QString &endpoint)
             SessionMeta meta;
             meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
             meta.title = "";
-            meta.endpoint = endpoint;
+            meta.endpoint = frontendEndpoint;
             meta.model = ui_SETTINGS.modelpath;
             meta.system = ui_DATES.date_prompt;
             meta.n_ctx = ui_SETTINGS.nctx;

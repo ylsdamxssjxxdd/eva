@@ -627,7 +627,7 @@ void Widget::beginSessionIfNeeded()
     meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
     meta.title = "";
     meta.endpoint = (ui_mode == LINK_MODE) ? (apis.api_endpoint + ((ui_state == CHAT_STATE) ? apis.api_chat_endpoint : apis.api_completion_endpoint))
-                                           : (serverManager ? serverManager->endpointBase() : "");
+                                           : formatLocalEndpoint(activeServerHost_, activeServerPort_);
     meta.model = (ui_mode == LINK_MODE) ? apis.api_model : ui_SETTINGS.modelpath;
     meta.system = ui_DATES.date_prompt;
     meta.n_ctx = ui_SETTINGS.nctx;
@@ -1751,8 +1751,13 @@ void Widget::restoreSessionById(const QString &sessionId)
     }
     else
     {
-        const QString ep = serverManager ? serverManager->endpointBase() : QString();
-        if (!ep.isEmpty() && meta.endpoint == ep) resumeSlot = meta.slot_id;
+        const QString currentEp = formatLocalEndpoint(activeServerHost_, activeServerPort_);
+        const QString legacyEp = serverManager ? serverManager->endpointBase() : QString();
+        if ((!currentEp.isEmpty() && meta.endpoint == currentEp) ||
+            (!legacyEp.isEmpty() && meta.endpoint == legacyEp))
+        {
+            resumeSlot = meta.slot_id;
+        }
     }
     currentSlotId_ = (resumeSlot >= 0) ? resumeSlot : -1;
 }
