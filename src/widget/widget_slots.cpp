@@ -829,7 +829,7 @@ void Widget::performLazyUnloadInternal(bool forced)
     lazyWakeInFlight_ = false;
     backendOnline_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
-    reflash_state(QStringLiteral("ui:lazy unload -> stop llama-server"), SIGNAL_SIGNAL);
+    reflash_state("ui:" + jtr("auto eject stop backend"), SIGNAL_SIGNAL);
     suppressStateClearOnStop_ = !forced;
     if (serverManager && serverManager->isRunning())
     {

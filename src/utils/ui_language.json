@@ -1880,6 +1880,9 @@
         "minute short": [ "分钟", "min" ],
         "pop trigger": [ "立即弹出触发", "Immediate pop triggered" ],
         "pop wake hint": [ "正在唤醒本地后端", "Waking the local backend" ],
+        "auto eject stop backend": [ "自动弹出 -> 正在停止后端", "Auto eject -> stopping backend" ],
+        "auto eject sleeping": [ "自动弹出完成 -> 后端休眠", "Auto eject complete -> backend sleeping" ],
+        "eva halted": [ "机体停止", "Unit stopped" ],
         "tc_tag_controller": [ "鼠键: 双击(100,200)", "Controller: double-click(100,200)" ]
     }
 }

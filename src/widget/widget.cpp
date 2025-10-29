@@ -234,20 +234,18 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         if (proxyServer_) proxyServer_->setBackendAvailable(false);
         const bool wasLazyUnloaded = lazyUnloaded_;
         const bool lazyStop = lazyUnloadPreserveState_ || wasLazyUnloaded;
-        const bool skipStateClear = suppressStateClearOnStop_ || lazyStop;
         cancelLazyUnload(QStringLiteral("server stopped"));
         pendingSendAfterWake_ = false;
 
         suppressStateClearOnStop_ = false;
         lazyUnloadPreserveState_ = false;
-        if (!skipStateClear && ui && ui->state) ui->state->clear();
         if (lazyStop)
         {
-            reflash_state(QStringLiteral("ui:lazy unload complete -> backend sleeping"), SIGNAL_SIGNAL);
+            reflash_state("ui:" + jtr("auto eject sleeping"), SIGNAL_SIGNAL);
         }
         else
         {
-            reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
+            reflash_state("ui:" + jtr("eva halted"), SIGNAL_SIGNAL);
         }
         if (decode_pTimer) decode_pTimer->stop();
         lastServerRestart_ = false;
