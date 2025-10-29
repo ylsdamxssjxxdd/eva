@@ -832,15 +832,15 @@ void Widget::updateLazyCountdownLabel()
     QString text;
     if (lazyUnloadMs_ <= 0)
     {
-        text = QStringLiteral("未启用");
+        text = QStringLiteral("disabled");
     }
     else if (!backendOnline_ || lazyUnloaded_)
     {
-        text = QStringLiteral("已卸载");
+        text = QStringLiteral("unloaded");
     }
     else if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
     {
-        text = QStringLiteral("待命");
+        text = QStringLiteral("standing by");
     }
     else
     {
@@ -865,7 +865,8 @@ void Widget::updateLazyCountdownLabel()
         }
     }
 
-    settings_ui->lazy_countdown_value_label->setText(text);
+    const QString display = QStringLiteral("Countdown: %1").arg(text);
+    settings_ui->lazy_countdown_value_label->setText(display);
 
     if (lazyCountdownTimer_)
     {

@@ -128,8 +128,8 @@ void Widget::set_SetDialog()
     if (settings_ui->lazy_timeout_spin)
     {
         settings_ui->lazy_timeout_spin->setRange(0, 1440);
-        settings_ui->lazy_timeout_spin->setSuffix(QStringLiteral(" 分钟"));
-        settings_ui->lazy_timeout_spin->setToolTip(QStringLiteral("0 表示禁用惰性卸载"));
+        settings_ui->lazy_timeout_spin->setSuffix(QStringLiteral(" min"));
+        settings_ui->lazy_timeout_spin->setToolTip(QStringLiteral("0 disables idle unload"));
         settings_ui->lazy_timeout_spin->setValue(qBound(0, int(lazyUnloadMs_ / 60000), 1440));
         connect(settings_ui->lazy_timeout_spin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int value)
                 {
@@ -142,16 +142,19 @@ void Widget::set_SetDialog()
             }
             if (value <= 0)
             {
-                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("未启用(待应用)"));
+                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("Countdown: disabled (pending)"));
             }
             else
             {
-                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("%1 分钟(待应用)").arg(value));
+                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("Countdown: %1 min (pending)").arg(value));
             } });
     }
-    if (settings_ui->lazy_unload_button)
+    if (settings_ui->lazy_countdown_value_label)
     {
-        connect(settings_ui->lazy_unload_button, &QPushButton::clicked, this, &Widget::onLazyUnloadNowClicked, Qt::UniqueConnection);
+        settings_ui->lazy_countdown_value_label->setToolTip(QStringLiteral("Right-click to unload now"));
+        settings_ui->lazy_countdown_value_label->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(settings_ui->lazy_countdown_value_label, &QLabel::customContextMenuRequested, this, [this](const QPoint &)
+                { onLazyUnloadNowClicked(); });
     }
     updateLazyCountdownLabel();
     // web_btn 已从 UI 移除
