@@ -257,6 +257,7 @@ class Widget : public QWidget
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
     QString ui_device_backend = "auto"; // 用户选择的推理设备（auto/cpu/cuda/vulkan/opencl）
+    QString runtimeDeviceBackend_;      // Last successfully resolved backend (used for auto label hints)
     QString device_snapshot_;           // 打开设置时记录的设备，确定是否需要重启后端
 
     // 语音相关

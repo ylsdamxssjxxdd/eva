@@ -683,9 +683,22 @@ void Widget::refreshDeviceBackendUI()
     settings_ui->ngl_slider->setEnabled(!cpuLike);
     // Keep base label text in sync with current language
     deviceLabelBaseText = jtr("device");
+    QString runtime = runtimeDeviceBackend_;
+    if (runtime.isEmpty())
+    {
+        runtime = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    }
+    if (runtime.isEmpty())
+    {
+        runtime = eff;
+    }
+    if (runtime.isEmpty())
+    {
+        runtime = QStringLiteral("unknown");
+    }
     if (sel == QLatin1String("auto"))
     {
-        settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(eff));
+        settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(runtime));
     }
     else
     {

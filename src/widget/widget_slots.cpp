@@ -691,36 +691,45 @@ void Widget::onServerReady(const QString &endpoint)
     is_load = true;
     // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
-    // 收尾动画：将“装载中”转轮替换为完成标志
-    // Sync settings device combobox with actually resolved backend if user chose an explicit device.
-    // Example: user selected vulkan but runtime fell back to cpu -> fix combobox to cpu (auto remains untouched).
+    // Track the backend that actually came up and align UI hints/fallback logic.
+    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    const QString previousRuntime = runtimeDeviceBackend_;
+    if (!resolvedBackend.isEmpty())
     {
-        const QString userSel = DeviceManager::userChoice();
-        if (!userSel.isEmpty() && userSel != QLatin1String("auto"))
+        runtimeDeviceBackend_ = resolvedBackend;
+    }
+    const bool runtimeChanged = (!resolvedBackend.isEmpty() && resolvedBackend != previousRuntime);
+    // Sync settings device combobox with actually resolved backend if user chose an explicit device.
+    const QString userSel = DeviceManager::userChoice();
+    if (!userSel.isEmpty() && userSel != QLatin1String("auto"))
+    {
+        if (!resolvedBackend.isEmpty() && resolvedBackend != userSel)
         {
-            const QString resolved = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
-            if (!resolved.isEmpty() && resolved != userSel)
+            if (settings_ui && settings_ui->device_comboBox)
             {
-                if (settings_ui && settings_ui->device_comboBox)
+                int idx = settings_ui->device_comboBox->findText(resolvedBackend);
+                if (idx < 0)
                 {
-                    int idx = settings_ui->device_comboBox->findText(resolved);
-                    if (idx < 0)
-                    {
-                        settings_ui->device_comboBox->addItem(resolved);
-                        idx = settings_ui->device_comboBox->findText(resolved);
-                    }
-                    if (idx >= 0)
-                    {
-                        settings_ui->device_comboBox->setCurrentIndex(idx);
-                    }
+                    settings_ui->device_comboBox->addItem(resolvedBackend);
+                    idx = settings_ui->device_comboBox->findText(resolvedBackend);
                 }
-                ui_device_backend = resolved;
-                DeviceManager::setUserChoice(resolved);
-                auto_save_user(); // persist corrected device selection
-                reflash_state(QStringLiteral("ui:device fallback -> ") + resolved, SIGNAL_SIGNAL);
+                if (idx >= 0)
+                {
+                    settings_ui->device_comboBox->setCurrentIndex(idx);
+                }
             }
+            ui_device_backend = resolvedBackend;
+            DeviceManager::setUserChoice(resolvedBackend);
+            auto_save_user(); // persist corrected device selection
+            reflash_state(QStringLiteral("ui:device fallback -> ") + resolvedBackend, SIGNAL_SIGNAL);
         }
     }
+    else if (userSel == QLatin1String("auto") && runtimeChanged)
+    {
+        reflash_state(QStringLiteral("ui:device resolved -> %1").arg(resolvedBackend), SIGNAL_SIGNAL);
+    }
+    refreshDeviceBackendUI();
+    // Complete load animation and finalize spinner state.
     decode_finish();
     if (!activeServerPort_.isEmpty())
     {
@@ -1246,6 +1255,23 @@ void Widget::onServerStartFailed(const QString &reason)
         return;
     }
     portConflictDetected_ = false;
+    const QString selectedBackend = DeviceManager::userChoice();
+    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    const QString attemptedBackend = resolvedBackend.isEmpty() ? selectedBackend : resolvedBackend;
+    if (!attemptedBackend.isEmpty())
+    {
+        QString statusLine;
+        if (!selectedBackend.isEmpty() && selectedBackend != attemptedBackend)
+        {
+            statusLine = QStringLiteral("ui:backend start failure (%1 -> %2)").arg(selectedBackend, attemptedBackend);
+        }
+        else
+        {
+            statusLine = QStringLiteral("ui:backend start failure -> %1").arg(attemptedBackend);
+        }
+        reflash_state(statusLine, WRONG_SIGNAL);
+    }
+    refreshDeviceBackendUI();
     // 停止任何进行中的动画/计时
     if (decode_pTimer) decode_pTimer->stop();
     // 用失败标志收尾“装载中”转轮行
