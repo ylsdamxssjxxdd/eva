@@ -225,6 +225,22 @@ void Widget::get_set()
     ui_SETTINGS.ngl = settings_ui->ngl_slider->value();   // 获取ngl滑块的值
     ui_SETTINGS.lorapath = settings_ui->lora_LineEdit->text();
     ui_SETTINGS.mmprojpath = settings_ui->mmproj_LineEdit->text();
+    const int newLazyMinutes = settings_ui->lazy_timeout_spin ? settings_ui->lazy_timeout_spin->value() : qMax(0, int(lazyUnloadMs_ / 60000));
+    lazyUnloadMs_ = qMax(0, newLazyMinutes) * 60000;
+    if (lazyUnloadMs_ <= 0)
+    {
+        lazyUnloaded_ = false;
+        if (lazyUnloadTimer_) lazyUnloadTimer_->stop();
+        if (lazyCountdownTimer_) lazyCountdownTimer_->stop();
+    }
+    else if (lazyUnloadTimer_)
+    {
+        if (backendOnline_ && !turnActive_ && !toolInvocationActive_)
+        {
+            lazyUnloadTimer_->start(lazyUnloadMs_);
+        }
+    }
+    updateLazyCountdownLabel();
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
     ui_SETTINGS.hid_npredict = qBound(1, settings_ui->npredict_spin->value(), 99999);
     ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
@@ -1112,8 +1128,8 @@ void Widget::auto_save_user()
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
     settings.setValue("port", ui_port);                     // 服务端口
-    settings.setValue("device_backend", ui_device_backend); // 推理设备（auto/cpu/cuda/vulkan/opencl）
-    // 保存约定参数
+    settings.setValue("device_backend", ui_device_backend); // 推理设备auto/cpu/cuda/vulkan/opencl
+    settings.setValue("lazy_unload_minutes", lazyUnloadMs_ / 60000); // 惰性卸载(分钟)
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText()); // 对话模板
     QStringList enabledTools;
     auto appendTool = [&](QCheckBox *box, const QString &id) {

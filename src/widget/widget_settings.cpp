@@ -125,6 +125,35 @@ void Widget::set_SetDialog()
         settings_ui->port_lineEdit->setPlaceholderText(QString());
         settings_ui->port_lineEdit->setToolTip(QString());
     }
+    if (settings_ui->lazy_timeout_spin)
+    {
+        settings_ui->lazy_timeout_spin->setRange(0, 1440);
+        settings_ui->lazy_timeout_spin->setSuffix(QStringLiteral(" 分钟"));
+        settings_ui->lazy_timeout_spin->setToolTip(QStringLiteral("0 表示禁用惰性卸载"));
+        settings_ui->lazy_timeout_spin->setValue(qBound(0, int(lazyUnloadMs_ / 60000), 1440));
+        connect(settings_ui->lazy_timeout_spin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int value)
+                {
+            if (!settings_ui || !settings_ui->lazy_countdown_value_label) return;
+            const int currentMinutes = lazyUnloadMs_ > 0 ? int((lazyUnloadMs_ + 59999) / 60000) : 0;
+            if (value == currentMinutes)
+            {
+                updateLazyCountdownLabel();
+                return;
+            }
+            if (value <= 0)
+            {
+                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("未启用(待应用)"));
+            }
+            else
+            {
+                settings_ui->lazy_countdown_value_label->setText(QStringLiteral("%1 分钟(待应用)").arg(value));
+            } });
+    }
+    if (settings_ui->lazy_unload_button)
+    {
+        connect(settings_ui->lazy_unload_button, &QPushButton::clicked, this, &Widget::onLazyUnloadNowClicked, Qt::UniqueConnection);
+    }
+    updateLazyCountdownLabel();
     // web_btn 已从 UI 移除
     // 监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
@@ -599,6 +628,7 @@ void Widget::settings_ui_cancel_button_clicked()
 {
     // Cancel should not mutate any in-memory settings or persist to disk.
     // Simply close the dialog and discard any slider edits.
+    updateLazyCountdownLabel();
     settings_dialog->close();
 }
 

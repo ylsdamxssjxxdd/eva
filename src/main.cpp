@@ -611,6 +611,11 @@ int main(int argc, char *argv[])
         w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
         w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
         w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
+        const int lazyMinutes = settings.value("lazy_unload_minutes", 10).toInt();
+        w.lazyUnloadMs_ = qMax(0, lazyMinutes) * 60000;
+        if (w.settings_ui && w.settings_ui->lazy_timeout_spin)
+            w.settings_ui->lazy_timeout_spin->setValue(qBound(0, lazyMinutes, 1440));
+        w.updateLazyCountdownLabel();
         bool embedding_server_need = settings.value("embedding_server_need", 0).toBool(); // 是否需要自动启动嵌入相关流程
         QString embedding_modelpath = settings.value("embedding_modelpath", "").toString();
         QFile checkFile(settings.value("lorapath", "").toString());

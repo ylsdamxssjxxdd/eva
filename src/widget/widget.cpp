@@ -233,6 +233,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         lazyWakeInFlight_ = false;
         if (proxyServer_) proxyServer_->setBackendAvailable(false);
         cancelLazyUnload(QStringLiteral("server stopped"));
+        pendingSendAfterWake_ = false;
 
         ui->state->clear();
         reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
@@ -268,6 +269,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     lazyUnloadTimer_ = new QTimer(this);
     lazyUnloadTimer_->setSingleShot(true);
     connect(lazyUnloadTimer_, &QTimer::timeout, this, &Widget::performLazyUnload);
+    lazyCountdownTimer_ = new QTimer(this);
+    lazyCountdownTimer_->setInterval(1000);
+    lazyCountdownTimer_->setSingleShot(false);
+    connect(lazyCountdownTimer_, &QTimer::timeout, this, &Widget::updateLazyCountdownLabel);
+    updateLazyCountdownLabel();
 
 
     EVA_title = jtr("eva");
@@ -852,6 +858,26 @@ void Widget::logCurrentTask(ConversationTask task)
 
 void Widget::on_send_clicked()
 {
+    if (ui_mode == LOCAL_MODE)
+    {
+        const bool serverRunning = serverManager && serverManager->isRunning();
+        const bool backendReady = serverRunning && backendOnline_ && !lazyUnloaded_ && !lazyWakeInFlight_;
+        if (!backendReady)
+        {
+            if (!pendingSendAfterWake_)
+            {
+                pendingSendAfterWake_ = true;
+                reflash_state(QStringLiteral("ui: 正在唤醒本地后端"), SIGNAL_SIGNAL);
+            }
+            if (serverManager && !lazyWakeInFlight_)
+            {
+                ensureLocalServer(true);
+            }
+            return;
+        }
+    }
+    pendingSendAfterWake_ = false;
+
     // Reset headers and kv tracker
     turnThinkHeaderPrinted_ = false;
     turnAssistantHeaderPrinted_ = false;

@@ -261,8 +261,10 @@ class Widget : public QWidget
     bool lazyWakeInFlight_ = false;
     bool lazyUnloaded_ = false;
     QTimer *lazyUnloadTimer_ = nullptr;
+    QTimer *lazyCountdownTimer_ = nullptr;
     QElapsedTimer idleSince_;
     int lazyUnloadMs_ = 600000;
+    bool pendingSendAfterWake_ = false;
 
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
@@ -300,6 +302,8 @@ class Widget : public QWidget
     void scheduleLazyUnload();
     void cancelLazyUnload(const QString &reason = QString());
     void performLazyUnload();
+    void performLazyUnloadInternal(bool forced);
+    void updateLazyCountdownLabel();
     bool lazyUnloadEnabled() const;
 
     // 约定选项相关
@@ -445,6 +449,7 @@ class Widget : public QWidget
     void onServerReady(const QString &endpoint);
     void onServerOutput(const QString &line);                                    // parse llama_server logs for n_ctx
     void onServerStartFailed(const QString &reason);                             // 后端启动失败：立即停止动画并解锁
+    void onLazyUnloadNowClicked();
     void recv_chat_format(EVA_CHATS_TEMPLATE chats);                             // 传递格式化后的对话内容
     void recv_freeover_loadlater();                                              // 模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容

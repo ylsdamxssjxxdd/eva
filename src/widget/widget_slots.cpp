@@ -617,6 +617,7 @@ void Widget::ensureLocalServer(bool lazyWake)
     emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
+    updateLazyCountdownLabel();
 }
 QString Widget::pickFreeTcpPort(const QHostAddress &addr) const
 {
@@ -746,13 +747,10 @@ void Widget::markBackendActivity()
 {
     if (!lazyUnloadEnabled()) return;
     if (!idleSince_.isValid())
-    {
         idleSince_.start();
-    }
     else
-    {
         idleSince_.restart();
-    }
+    updateLazyCountdownLabel();
 }
 
 void Widget::scheduleLazyUnload()
@@ -762,8 +760,12 @@ void Widget::scheduleLazyUnload()
     if (turnActive_ || toolInvocationActive_) return;
     if (!lazyUnloadTimer_) return;
     lazyUnloaded_ = false;
-    if (!idleSince_.isValid()) idleSince_.start();
+    if (!idleSince_.isValid())
+        idleSince_.start();
+    else
+        idleSince_.restart();
     lazyUnloadTimer_->start(lazyUnloadMs_);
+    updateLazyCountdownLabel();
 }
 
 void Widget::cancelLazyUnload(const QString &reason)
@@ -771,17 +773,39 @@ void Widget::cancelLazyUnload(const QString &reason)
     Q_UNUSED(reason);
     if (!lazyUnloadTimer_) return;
     if (lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
+    if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
     lazyUnloaded_ = false;
+    idleSince_ = QElapsedTimer();
+    updateLazyCountdownLabel();
 }
 
 void Widget::performLazyUnload()
 {
-    if (!lazyUnloadEnabled()) return;
+    performLazyUnloadInternal(false);
+}
+
+void Widget::performLazyUnloadInternal(bool forced)
+{
+    if (!forced && !lazyUnloadEnabled()) return;
+    pendingSendAfterWake_ = false;
     if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
-    if (turnActive_ || toolInvocationActive_)
+    if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
+    if (!forced && (turnActive_ || toolInvocationActive_))
     {
         scheduleLazyUnload();
+        updateLazyCountdownLabel();
         return;
+    }
+    if (forced && turnActive_)
+    {
+        emit ui2net_stop(true);
+        turnActive_ = false;
+        is_run = false;
+    }
+    if (forced && toolInvocationActive_)
+    {
+        emit ui2tool_cancelActive();
+        toolInvocationActive_ = false;
     }
     lazyUnloaded_ = true;
     lazyWakeInFlight_ = false;
@@ -793,11 +817,84 @@ void Widget::performLazyUnload()
         serverManager->stopAsync();
     }
     idleSince_ = QElapsedTimer();
+    updateLazyCountdownLabel();
 }
 
 bool Widget::lazyUnloadEnabled() const
 {
     return proxyServer_ && lazyUnloadTimer_ && lazyUnloadMs_ > 0 && ui_mode == LOCAL_MODE;
+}
+
+void Widget::updateLazyCountdownLabel()
+{
+    if (!settings_ui || !settings_ui->lazy_countdown_value_label) return;
+
+    QString text;
+    if (lazyUnloadMs_ <= 0)
+    {
+        text = QStringLiteral("未启用");
+    }
+    else if (!backendOnline_ || lazyUnloaded_)
+    {
+        text = QStringLiteral("已卸载");
+    }
+    else if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
+    {
+        text = QStringLiteral("待命");
+    }
+    else
+    {
+        int remaining = lazyUnloadTimer_->remainingTime();
+        if (remaining < 0) remaining = 0;
+        const int totalSeconds = (remaining + 999) / 1000;
+        const int hours = totalSeconds / 3600;
+        const int minutes = (totalSeconds % 3600) / 60;
+        const int seconds = totalSeconds % 60;
+        if (hours > 0)
+        {
+            text = QStringLiteral("%1:%2:%3")
+                       .arg(hours, 2, 10, QLatin1Char('0'))
+                       .arg(minutes, 2, 10, QLatin1Char('0'))
+                       .arg(seconds, 2, 10, QLatin1Char('0'));
+        }
+        else
+        {
+            text = QStringLiteral("%1:%2")
+                       .arg(minutes, 2, 10, QLatin1Char('0'))
+                       .arg(seconds, 2, 10, QLatin1Char('0'));
+        }
+    }
+
+    settings_ui->lazy_countdown_value_label->setText(text);
+
+    if (lazyCountdownTimer_)
+    {
+        if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive() && lazyUnloadMs_ > 0 && backendOnline_)
+        {
+            if (!lazyCountdownTimer_->isActive()) lazyCountdownTimer_->start();
+        }
+        else
+        {
+            lazyCountdownTimer_->stop();
+        }
+    }
+}
+
+void Widget::onLazyUnloadNowClicked()
+{
+    if (ui_mode != LOCAL_MODE)
+    {
+        reflash_state(QStringLiteral("ui:惰性卸载仅在本地模式启用"), WRONG_SIGNAL);
+        return;
+    }
+    if (!serverManager || !serverManager->isRunning())
+    {
+        reflash_state(QStringLiteral("ui:本地后端已停止"), SIGNAL_SIGNAL);
+        cancelLazyUnload(QStringLiteral("manual unload"));
+        return;
+    }
+    reflash_state(QStringLiteral("ui:立即卸载触发"), SIGNAL_SIGNAL);
+    performLazyUnloadInternal(true);
 }
 
 
@@ -810,6 +907,14 @@ void Widget::onServerReady(const QString &endpoint)
     markBackendActivity();
     updateProxyBackend(backendListenHost_, activeBackendPort_);
     if (proxyServer_) proxyServer_->setBackendAvailable(true);
+
+    updateLazyCountdownLabel();
+
+    if (pendingSendAfterWake_)
+    {
+        pendingSendAfterWake_ = false;
+        QTimer::singleShot(0, this, [this]() { on_send_clicked(); });
+    }
 
     // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
     apis.api_endpoint = endpoint;
@@ -1177,15 +1282,11 @@ void Widget::onServerOutput(const QString &line)
     const QString trimmedLine = line.trimmed();
     if (lazyUnloadEnabled())
     {
+        markBackendActivity();
+        cancelLazyUnload(QStringLiteral("log activity"));
         const QString lowerLine = trimmedLine.toLower();
-        if (lowerLine.contains(QStringLiteral("new prompt")) || lowerLine.contains(QStringLiteral("launch_slot_")) || lowerLine.contains(QStringLiteral("processing request")) || lowerLine.contains(QStringLiteral("accepting connection")))
+        if (lowerLine.contains(QStringLiteral("all slots are idle")) || lowerLine.contains(QStringLiteral("no pending work")) || lowerLine.contains(QStringLiteral("all clients are idle")))
         {
-            markBackendActivity();
-            cancelLazyUnload(QStringLiteral("log activity"));
-        }
-        else if (lowerLine.contains(QStringLiteral("all slots are idle")) || lowerLine.contains(QStringLiteral("no pending work")) || lowerLine.contains(QStringLiteral("all clients are idle")))
-        {
-            markBackendActivity();
             scheduleLazyUnload();
         }
     }
@@ -1434,6 +1535,7 @@ void Widget::onServerStartFailed(const QString &reason)
     lazyWakeInFlight_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     cancelLazyUnload(QStringLiteral("backend start failed"));
+    pendingSendAfterWake_ = false;
 
     Q_UNUSED(reason);
     if (!portFallbackInFlight_ && portConflictDetected_ && !ui_port.isEmpty() && activeServerPort_ == ui_port)
