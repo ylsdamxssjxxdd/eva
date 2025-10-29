@@ -232,13 +232,23 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         backendOnline_ = false;
         lazyWakeInFlight_ = false;
         if (proxyServer_) proxyServer_->setBackendAvailable(false);
+        const bool wasLazyUnloaded = lazyUnloaded_;
+        const bool lazyStop = lazyUnloadPreserveState_ || wasLazyUnloaded;
+        const bool skipStateClear = suppressStateClearOnStop_ || lazyStop;
         cancelLazyUnload(QStringLiteral("server stopped"));
         pendingSendAfterWake_ = false;
 
-        const bool skipStateClear = suppressStateClearOnStop_;
         suppressStateClearOnStop_ = false;
+        lazyUnloadPreserveState_ = false;
         if (!skipStateClear && ui && ui->state) ui->state->clear();
-        reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
+        if (lazyStop)
+        {
+            reflash_state(QStringLiteral("ui:lazy unload complete -> backend sleeping"), SIGNAL_SIGNAL);
+        }
+        else
+        {
+            reflash_state("ui: local server stopped", SIGNAL_SIGNAL);
+        }
         if (decode_pTimer) decode_pTimer->stop();
         lastServerRestart_ = false;
         is_load = false;
@@ -1041,6 +1051,7 @@ void Widget::normal_finish_pushover()
 {
     turnThinkActive_ = false;
     // Reset per-turn header flags
+    turnActive_ = false;
     is_run = false;
     ui_state_normal(); // 待机界面状态
     // LINK mode: final correction of memory by excluding this turn's reasoning tokens
@@ -2266,3 +2277,4 @@ int Widget::outputDocEnd() const
     c.movePosition(QTextCursor::End);
     return c.position();
 }
+

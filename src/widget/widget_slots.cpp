@@ -802,6 +802,7 @@ void Widget::performLazyUnload()
 
 void Widget::performLazyUnloadInternal(bool forced)
 {
+    lazyUnloadPreserveState_ = false;
     if (!forced && !lazyUnloadEnabled()) return;
     pendingSendAfterWake_ = false;
     if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
@@ -824,15 +825,19 @@ void Widget::performLazyUnloadInternal(bool forced)
         toolInvocationActive_ = false;
     }
     lazyUnloaded_ = true;
+    if (!forced) lazyUnloadPreserveState_ = true;
     lazyWakeInFlight_ = false;
     backendOnline_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     reflash_state(QStringLiteral("ui:lazy unload -> stop llama-server"), SIGNAL_SIGNAL);
-    suppressStateClearOnStop_ = false;
+    suppressStateClearOnStop_ = !forced;
     if (serverManager && serverManager->isRunning())
     {
-        suppressStateClearOnStop_ = !forced;
         serverManager->stopAsync();
+    }
+    else if (forced)
+    {
+        suppressStateClearOnStop_ = false;
     }
     idleSince_ = QElapsedTimer();
     updateLazyCountdownLabel();
