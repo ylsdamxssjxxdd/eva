@@ -829,18 +829,19 @@ void Widget::updateLazyCountdownLabel()
 {
     if (!settings_ui || !settings_ui->lazy_countdown_value_label) return;
 
+    const QString prefix = jtr("pop countdown prefix");
     QString text;
     if (lazyUnloadMs_ <= 0)
     {
-        text = QStringLiteral("disabled");
+        text = jtr("pop countdown disabled");
     }
     else if (!backendOnline_ || lazyUnloaded_)
     {
-        text = QStringLiteral("unloaded");
+        text = jtr("pop countdown popped");
     }
     else if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
     {
-        text = QStringLiteral("standing by");
+        text = jtr("pop countdown standby");
     }
     else
     {
@@ -865,7 +866,7 @@ void Widget::updateLazyCountdownLabel()
         }
     }
 
-    const QString display = QStringLiteral("Countdown: %1").arg(text);
+    const QString display = QStringLiteral("%1%2").arg(prefix, text);
     settings_ui->lazy_countdown_value_label->setText(display);
 
     if (lazyCountdownTimer_)
@@ -894,7 +895,7 @@ void Widget::onLazyUnloadNowClicked()
         cancelLazyUnload(QStringLiteral("manual unload"));
         return;
     }
-    reflash_state(QStringLiteral("ui:立即卸载触发"), SIGNAL_SIGNAL);
+    reflash_state("ui:" + jtr("pop trigger"), SIGNAL_SIGNAL);
     performLazyUnloadInternal(true);
 }
 

@@ -1869,6 +1869,17 @@
         "tc_tag_mcp_2": [ "MCP: 工具清单", "MCP: tools list" ],
         "tc_desc_controller_2": [ "模拟按下组合键 Ctrl+S。", "Simulate pressing the Ctrl+S shortcut." ],
         "tc_tag_controller_2": [ "鼠键: Ctrl+S", "Controller: Ctrl+S" ],
+        "pop timeout label": [ "弹出倒计时", "Pop countdown" ],
+        "pop countdown prefix": [ "", "" ],
+        "pop countdown disabled": [ "未启用", "disabled" ],
+        "pop countdown popped": [ "已弹出", "popped" ],
+        "pop countdown standby": [ "待命", "standing by" ],
+        "pop countdown pending": [ "(待应用)", "(pending)" ],
+        "pop countdown tooltip": [ "右键立即弹出", "Right-click to pop now" ],
+        "pop disable tooltip": [ "输入0可禁用弹出倒计时", "Enter 0 to disable the pop countdown" ],
+        "minute short": [ "分钟", "min" ],
+        "pop trigger": [ "立即弹出触发", "Immediate pop triggered" ],
+        "pop wake hint": [ "正在唤醒本地后端", "Waking the local backend" ],
         "tc_tag_controller": [ "鼠键: 双击(100,200)", "Controller: double-click(100,200)" ]
     }
 }

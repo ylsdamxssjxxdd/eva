@@ -867,7 +867,7 @@ void Widget::on_send_clicked()
             if (!pendingSendAfterWake_)
             {
                 pendingSendAfterWake_ = true;
-                reflash_state(QStringLiteral("ui: 正在唤醒本地后端"), SIGNAL_SIGNAL);
+                reflash_state("ui:" + jtr("pop wake hint"), SIGNAL_SIGNAL);
             }
             if (serverManager && !lazyWakeInFlight_)
             {
