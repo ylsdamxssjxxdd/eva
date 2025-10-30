@@ -417,7 +417,11 @@ void Widget::ensureLocalServer(bool lazyWake)
     ensureTimer.start();
 
     cancelLazyUnload(QStringLiteral("ensureLocalServer entry"));
-    if (lazyWake) lazyWakeInFlight_ = true;
+    if (lazyWake)
+    {
+        lazyWakeInFlight_ = true;
+        applyWakeUiLock(true);
+    }
 
     if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
     {
@@ -552,6 +556,7 @@ void Widget::ensureLocalServer(bool lazyWake)
             initiatePortFallback();
         }
         lazyWakeInFlight_ = false;
+        applyWakeUiLock(false);
         return;
     }
 
@@ -610,7 +615,11 @@ void Widget::ensureLocalServer(bool lazyWake)
     if (proxyServer_) proxyServer_->setBackendAvailable(backendOnline_);
     if (!lazyWake && backendOnline_) markBackendActivity();
 
-    if (!lastServerRestart_ && backendRunning) lazyWakeInFlight_ = false;
+    if (!lastServerRestart_ && backendRunning)
+    {
+        lazyWakeInFlight_ = false;
+        applyWakeUiLock(false);
+    }
 
     apis.api_endpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
     apis.api_key = "";
@@ -824,9 +833,17 @@ void Widget::performLazyUnloadInternal(bool forced)
         emit ui2tool_cancelActive();
         toolInvocationActive_ = false;
     }
+    const bool hasUi = ui && ui->output;
+    const bool hasDocument = hasUi && ui->output->document();
+    const bool hasRenderedContent = hasDocument && !ui->output->document()->isEmpty();
+    const bool hasConversationHistory = !ui_messagesArray.isEmpty();
+    const bool preserveAfterWake = (ui_state == CHAT_STATE) && (hasConversationHistory || hasRenderedContent);
     lazyUnloaded_ = true;
-    if (!forced) lazyUnloadPreserveState_ = true;
+    if (preserveAfterWake)
+        lazyUnloadPreserveState_ = true;
+    preserveConversationOnNextReady_ = preserveAfterWake; // Resume chat log after lazy wake
     lazyWakeInFlight_ = false;
+    applyWakeUiLock(false);
     backendOnline_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     reflash_state("ui:" + jtr("auto eject stop backend"), SIGNAL_SIGNAL);
@@ -928,6 +945,7 @@ void Widget::onServerReady(const QString &endpoint)
     backendOnline_ = true;
     lazyUnloaded_ = false;
     lazyWakeInFlight_ = false;
+    applyWakeUiLock(false);
     cancelLazyUnload(QStringLiteral("backend ready"));
     markBackendActivity();
     updateProxyBackend(backendListenHost_, activeBackendPort_);
@@ -961,31 +979,38 @@ void Widget::onServerReady(const QString &endpoint)
     load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
     ui_mode = LOCAL_MODE;
 
+    const bool preserveConversation = preserveConversationOnNextReady_;
+    preserveConversationOnNextReady_ = false;
+    skipUnlockLoadIntro_ = preserveConversation;
+
     flushPendingStream();
-    ui->output->clear();
-    ui_messagesArray = QJsonArray();
+    if (!preserveConversation)
     {
-        QJsonObject systemMessage;
-        systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-        systemMessage.insert("content", ui_DATES.date_prompt);
-        ui_messagesArray.append(systemMessage);
-        if (history_ && ui_state == CHAT_STATE)
+        ui->output->clear();
+        ui_messagesArray = QJsonArray();
         {
-            SessionMeta meta;
-            meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-            meta.title = "";
-            meta.endpoint = frontendEndpoint;
-            meta.model = ui_SETTINGS.modelpath;
-            meta.system = ui_DATES.date_prompt;
-            meta.n_ctx = ui_SETTINGS.nctx;
-            meta.slot_id = -1;
-            meta.startedAt = QDateTime::currentDateTime();
-            history_->begin(meta);
-            history_->appendMessage(systemMessage);
-            currentSlotId_ = -1;
+            QJsonObject systemMessage;
+            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
+            systemMessage.insert("content", ui_DATES.date_prompt);
+            ui_messagesArray.append(systemMessage);
+            if (history_ && ui_state == CHAT_STATE)
+            {
+                SessionMeta meta;
+                meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
+                meta.title = "";
+                meta.endpoint = frontendEndpoint;
+                meta.model = ui_SETTINGS.modelpath;
+                meta.system = ui_DATES.date_prompt;
+                meta.n_ctx = ui_SETTINGS.nctx;
+                meta.slot_id = -1;
+                meta.startedAt = QDateTime::currentDateTime();
+                history_->begin(meta);
+                history_->appendMessage(systemMessage);
+                currentSlotId_ = -1;
+            }
         }
+        bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
     }
-    bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
     is_load = true;
     // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
@@ -1585,6 +1610,7 @@ void Widget::onServerStartFailed(const QString &reason)
 {
     backendOnline_ = false;
     lazyWakeInFlight_ = false;
+    applyWakeUiLock(false);
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     cancelLazyUnload(QStringLiteral("backend start failed"));
     pendingSendAfterWake_ = false;
@@ -1658,6 +1684,11 @@ void Widget::unlockLoad()
     ui->cpu_bar->setToolTip(jtr("nthread/maxthread") + "  " + QString::number(ui_SETTINGS.nthread) + "/" + QString::number(max_thread));
     auto_save_user();
     ui_state_normal();
+    if (skipUnlockLoadIntro_)
+    {
+        skipUnlockLoadIntro_ = false; // Already showing prior chat, do not inject system prompt
+        return;
+    }
     // Record a system header and show system prompt as pre-decode content
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));

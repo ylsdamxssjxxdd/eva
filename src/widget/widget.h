@@ -169,6 +169,7 @@ class Widget : public QWidget
     void ui_state_normal();         // 待机界面状态
     void ui_state_recoding();       // 录音界面状态
     void unlockButtonsAfterError(); // 异常后解锁：强制开放“约定/设置/装载”
+    void applyWakeUiLock(bool locked); // 锁定或解锁唤醒期间的主要控件
 
     // 模型控制相关
     EVA_CHATS_TEMPLATE bot_chat;       // 经过模型自带模板格式化后的内容
@@ -250,6 +251,9 @@ class Widget : public QWidget
     bool ignoreNextServerStopped_ = false;    // 忽略一次 serverStopped（用于计划内重启时旧进程的退出）
     bool suppressStateClearOnStop_ = false;   // Skip clearing state log when shutdown is an automatic lazy unload
     bool lazyUnloadPreserveState_ = false;    // Remember to keep existing state lines after auto lazy unload stops
+    bool preserveConversationOnNextReady_ = false; // Resume chat log after lazy auto eject wakes backend
+    bool skipUnlockLoadIntro_ = false;            // Skip system prompt injection when resuming existing chat
+    bool wakeUiLocked_ = false;                  // Temporarily disable main controls while backend wakes up
     QString activeServerHost_;                // 当前本地后端的实际绑定地址
     QString activeServerPort_;                // 当前本地后端的实际端口
     QString activeBackendPort_;

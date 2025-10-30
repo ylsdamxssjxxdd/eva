@@ -231,6 +231,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
         backendOnline_ = false;
         lazyWakeInFlight_ = false;
+        applyWakeUiLock(false);
         if (proxyServer_) proxyServer_->setBackendAvailable(false);
         const bool wasLazyUnloaded = lazyUnloaded_;
         const bool lazyStop = lazyUnloadPreserveState_ || wasLazyUnloaded;
@@ -585,6 +586,8 @@ void Widget::recv_freeover_loadlater()
 void Widget::preLoad()
 {
     is_load = false; // 重置is_load标签
+    preserveConversationOnNextReady_ = false; // Fresh load starts a new chat
+    skipUnlockLoadIntro_ = false;            // Ensure unlockLoad prints system prompt
     flushPendingStream();
     if (ui_state == CHAT_STATE)
     {

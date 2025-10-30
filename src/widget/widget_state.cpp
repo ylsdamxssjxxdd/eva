@@ -88,6 +88,28 @@ void Widget::ui_state_pushing()
 // 待机界面状态
 void Widget::ui_state_normal()
 {
+    if (wakeUiLocked_)
+    {
+        if (decode_pTimer) decode_pTimer->stop();
+        if (!ui) return;
+        const auto disable = [](QWidget *w)
+        {
+            if (w) w->setEnabled(false);
+        };
+        disable(ui->load);
+        disable(ui->date);
+        disable(ui->set);
+        disable(ui->send);
+        disable(ui->reset);
+        ui->input->setVisible(1);
+        ui->send->setVisible(1);
+        if (ui->input && ui->input->textEdit)
+        {
+            ui->input->textEdit->setReadOnly(0);
+            applyInputVisualState(QByteArray());
+        }
+        return;
+    }
     if (is_run) // 如果是模型正在运行的状态的话
     {
         ui->reset->setEnabled(1);
@@ -195,4 +217,11 @@ void Widget::ui_state_recoding()
     {
         ui->input->textEdit->setPlaceholderText(jtr("recoding") + "... " + QString::number(float(audio_time) / 1000.0, 'f', 2) + "s " + jtr("push f2 to stop"));
     }
+}
+
+void Widget::applyWakeUiLock(bool locked)
+{
+    if (wakeUiLocked_ == locked) return;
+    wakeUiLocked_ = locked;
+    ui_state_normal();
 }
