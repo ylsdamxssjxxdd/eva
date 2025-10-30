@@ -106,10 +106,12 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
     getWords(":/src/utils/ui_language.json");
     // 记忆进度条：文本“记忆:xx%”，使用第二进度（黄色）表示
-    ui->kv_bar->setShowText(QString::fromUtf8("记忆:"));
     ui->kv_bar->setMaximum(100);
     ui->kv_bar->setValue(0);
     ui->kv_bar->setSecondValue(0);
+    ui->kv_bar->setShowText(jtr("kv bar label"));
+    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(0).arg(0));
+    updateKvBarUi();
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;

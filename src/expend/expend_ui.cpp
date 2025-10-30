@@ -181,6 +181,10 @@ void Expend::init_expend()
     ui->mcp_server_state_groupBox->setTitle(jtr("mcp_available_servers"));
     ui->mcp_server_config_groupBox->setTitle(jtr("mcp_server_config"));
     ui->mcp_server_reflash_pushButton->setText(jtr("link"));
+    if (ui->mcp_server_refreshTools_pushButton)
+        ui->mcp_server_refreshTools_pushButton->setText(jtr("mcp refresh tools"));
+    if (ui->mcp_server_disconnect_pushButton)
+        ui->mcp_server_disconnect_pushButton->setText(jtr("mcp disconnect services"));
     ui->mcp_server_config_textEdit->setPlaceholderText(jtr("mcp_server_config_textEdit placehold"));
     setSpacing(ui->mcp_server_config_textEdit, 1.2);
     setSpacing(ui->mcp_server_log_plainTextEdit, 1.15);

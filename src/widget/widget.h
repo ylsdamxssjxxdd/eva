@@ -311,6 +311,7 @@ class Widget : public QWidget
     void performLazyUnload();
     void performLazyUnloadInternal(bool forced);
     void updateLazyCountdownLabel();
+    void setLazyCountdownLabelDisplay(const QString &status);
     bool lazyUnloadEnabled() const;
 
     // 约定选项相关

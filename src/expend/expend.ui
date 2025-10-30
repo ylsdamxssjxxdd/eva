@@ -37,7 +37,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -1380,13 +1380,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_reflash_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1421,18 +1421,18 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_refreshTools_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="text">
-                <string>刷新</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -1440,13 +1440,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_help_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1459,18 +1459,18 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_disconnect_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>50</width>
+                 <width>60</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="text">
-                <string>断开</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -3383,4 +3383,3 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections/>
 </ui>
-

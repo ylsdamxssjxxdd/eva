@@ -1046,9 +1046,18 @@ void Widget::apply_language(int language_flag_)
     settings_ui->frame_label->setText(jtr("frame"));
     settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
     settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));
+    if (settings_ui->lazy_timeout_label)
+        settings_ui->lazy_timeout_label->setToolTip(jtr("pop countdown tooltip"));
+    if (settings_ui->lazy_timeout_spin)
+    {
+        settings_ui->lazy_timeout_spin->setSuffix(QStringLiteral(" ") + jtr("minute short"));
+        settings_ui->lazy_timeout_spin->setToolTip(jtr("pop disable tooltip"));
+    }
+    updateLazyCountdownLabel();
     settings_ui->confirm->setText(jtr("ok"));
     settings_ui->cancel->setText(jtr("cancel"));
     settings_dialog->setWindowTitle(jtr("set"));
+    updateKvBarUi();
     // Language refresh rewrites many labels including device_label.
     // Re-apply device/backend UI hint so that auto(effective) suffix stays visible after first boot.
     refreshDeviceBackendUI();

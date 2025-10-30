@@ -127,7 +127,10 @@ void Widget::set_SetDialog()
     }
     if (settings_ui->lazy_timeout_label)
     {
-        settings_ui->lazy_timeout_label->setText(jtr("pop timeout label"));
+        settings_ui->lazy_timeout_label->setToolTip(jtr("pop countdown tooltip"));
+        settings_ui->lazy_timeout_label->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(settings_ui->lazy_timeout_label, &QLabel::customContextMenuRequested, this, [this](const QPoint &)
+                { onLazyUnloadNowClicked(); }, Qt::UniqueConnection);
     }
     if (settings_ui->lazy_timeout_spin)
     {
@@ -137,39 +140,31 @@ void Widget::set_SetDialog()
         settings_ui->lazy_timeout_spin->setValue(qBound(0, int(lazyUnloadMs_ / 60000), 1440));
         connect(settings_ui->lazy_timeout_spin, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](int value)
                 {
-            if (!settings_ui || !settings_ui->lazy_countdown_value_label) return;
+            if (!settings_ui || !settings_ui->lazy_timeout_label) return;
             const int currentMinutes = lazyUnloadMs_ > 0 ? int((lazyUnloadMs_ + 59999) / 60000) : 0;
             if (value == currentMinutes)
             {
                 updateLazyCountdownLabel();
                 return;
             }
-            const QString prefix = jtr("pop countdown prefix");
             const QString pending = jtr("pop countdown pending");
+            QString status;
             if (value <= 0)
             {
-                const QString text = QStringLiteral("%1%2 %3")
-                                         .arg(prefix,
-                                              jtr("pop countdown disabled"),
-                                              pending);
-                settings_ui->lazy_countdown_value_label->setText(text);
+                status = jtr("pop countdown disabled");
             }
             else
             {
-                const QString text = QStringLiteral("%1%2 %3 %4")
-                                         .arg(prefix)
-                                         .arg(QString::number(value))
-                                         .arg(jtr("minute short"))
-                                         .arg(pending);
-                settings_ui->lazy_countdown_value_label->setText(text);
-            } });
-    }
-    if (settings_ui->lazy_countdown_value_label)
-    {
-        settings_ui->lazy_countdown_value_label->setToolTip(jtr("pop countdown tooltip"));
-        settings_ui->lazy_countdown_value_label->setContextMenuPolicy(Qt::CustomContextMenu);
-        connect(settings_ui->lazy_countdown_value_label, &QLabel::customContextMenuRequested, this, [this](const QPoint &)
-                { onLazyUnloadNowClicked(); });
+                status = QStringLiteral("%1 %2").arg(QString::number(value), jtr("minute short"));
+            }
+            QString statusDisplay = status;
+            if (!pending.isEmpty())
+            {
+                if (!statusDisplay.isEmpty()) statusDisplay += QStringLiteral(" ");
+                statusDisplay += pending;
+            }
+            setLazyCountdownLabelDisplay(statusDisplay);
+        });
     }
     updateLazyCountdownLabel();
     // web_btn 已从 UI 移除

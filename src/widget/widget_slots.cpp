@@ -865,23 +865,40 @@ bool Widget::lazyUnloadEnabled() const
     return proxyServer_ && lazyUnloadTimer_ && lazyUnloadMs_ > 0 && ui_mode == LOCAL_MODE;
 }
 
+void Widget::setLazyCountdownLabelDisplay(const QString &status)
+{
+    if (!settings_ui || !settings_ui->lazy_timeout_label) return;
+
+    QString display = jtr("pop timeout label");
+    const QString trimmed = status.trimmed();
+    if (!trimmed.isEmpty())
+    {
+        if (!display.isEmpty()) display += QStringLiteral(" ");
+        display += trimmed;
+    }
+    else if (display.isEmpty())
+    {
+        display = trimmed;
+    }
+    settings_ui->lazy_timeout_label->setText(display);
+}
+
 void Widget::updateLazyCountdownLabel()
 {
-    if (!settings_ui || !settings_ui->lazy_countdown_value_label) return;
+    if (!settings_ui || !settings_ui->lazy_timeout_label) return;
 
-    const QString prefix = jtr("pop countdown prefix");
-    QString text;
+    QString status;
     if (lazyUnloadMs_ <= 0)
     {
-        text = jtr("pop countdown disabled");
+        status = jtr("pop countdown disabled");
     }
     else if (!backendOnline_ || lazyUnloaded_)
     {
-        text = jtr("pop countdown popped");
+        status = jtr("pop countdown popped");
     }
     else if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
     {
-        text = jtr("pop countdown standby");
+        status = jtr("pop countdown standby");
     }
     else
     {
@@ -893,21 +910,21 @@ void Widget::updateLazyCountdownLabel()
         const int seconds = totalSeconds % 60;
         if (hours > 0)
         {
-            text = QStringLiteral("%1:%2:%3")
+            status = QStringLiteral("%1:%2:%3")
                        .arg(hours, 2, 10, QLatin1Char('0'))
                        .arg(minutes, 2, 10, QLatin1Char('0'))
                        .arg(seconds, 2, 10, QLatin1Char('0'));
         }
         else
         {
-            text = QStringLiteral("%1:%2")
+            status = QStringLiteral("%1:%2")
                        .arg(minutes, 2, 10, QLatin1Char('0'))
                        .arg(seconds, 2, 10, QLatin1Char('0'));
         }
     }
 
-    const QString display = QStringLiteral("%1%2").arg(prefix, text);
-    settings_ui->lazy_countdown_value_label->setText(display);
+    setLazyCountdownLabelDisplay(status);
+    settings_ui->lazy_timeout_label->setToolTip(jtr("pop countdown tooltip"));
 
     if (lazyCountdownTimer_)
     {
@@ -1220,9 +1237,9 @@ void Widget::updateKvBarUi()
     if (ui->kv_bar->maximum() != 100 || ui->kv_bar->minimum() != 0) ui->kv_bar->setRange(0, 100);
     ui->kv_bar->setValue(0);
     ui->kv_bar->setSecondValue(percent);
-    ui->kv_bar->setShowText(QString::fromUtf8("记忆:"));
+    ui->kv_bar->setShowText(jtr("kv bar label"));
     ui->kv_bar->setCenterText("");
-    ui->kv_bar->setToolTip(QString::fromUtf8("上下文缓存量 %1 / %2 token").arg(used).arg(cap));
+    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(cap));
 }
 // Update kv from llama.cpp server timings/stream (usedTokens = prompt_n + streamed chunks)
 
