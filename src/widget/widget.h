@@ -56,6 +56,7 @@
 #include <QSplitter>
 #include <QFontComboBox>
 #include <thread>
+#include <optional>
 #ifdef _WIN32
 #include <windows.h>
 #elif __linux__
@@ -332,6 +333,28 @@ class Widget : public QWidget
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择
+    struct DateDialogState
+    {
+        QString ui_template;
+        QString ui_extra_lan;
+        QString ui_extra_prompt;
+        QString ui_date_prompt;
+        EVA_DATES ui_dates;
+        bool ui_calculator_ischecked = false;
+        bool ui_knowledge_ischecked = false;
+        bool ui_stablediffusion_ischecked = false;
+        bool ui_controller_ischecked = false;
+        bool ui_MCPtools_ischecked = false;
+        bool ui_engineer_ischecked = false;
+        bool is_load_tool = false;
+        QString engineerWorkDir;
+        int language_flag = 0;
+        QStringList enabledSkills;
+    };
+    void captureDateDialogSnapshot();
+    void restoreDateDialogSnapshot();
+    void onDateDialogRejected();
+    std::optional<DateDialogState> dateDialogSnapshot_;
     void change_api_dialog(bool enable);
     QString checkPython();  // 获取环境中的python版本以及库信息
     QString checkCompile(); // 获取环境中的编译器版本

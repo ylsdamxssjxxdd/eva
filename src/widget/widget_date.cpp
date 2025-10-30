@@ -29,6 +29,7 @@ void Widget::set_DateDialog()
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
+    connect(date_dialog, &QDialog::rejected, this, &Widget::onDateDialogRejected);
 
     if (language_flag == 0)
     {
@@ -92,13 +93,14 @@ void Widget::set_DateDialog()
 // 约定选项卡确认按钮响应
 void Widget::date_ui_confirm_button_clicked()
 {
-    date_dialog->close();
     set_date();
 }
 
 // 约定选项卡取消按钮响应
 void Widget::date_ui_cancel_button_clicked()
 {
-    date_dialog->close();
-    cancel_date();
+    if (date_dialog)
+    {
+        date_dialog->reject();
+    }
 }
