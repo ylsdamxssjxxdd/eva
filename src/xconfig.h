@@ -38,7 +38,7 @@
 
 // 采样
 #define DEFAULT_NPREDICT 16384
-#define DEFAULT_TEMP 0.7
+#define DEFAULT_TEMP 0.4
 #define DEFAULT_REPEAT 1.2
 #define DEFAULT_TOP_P 0.95 // 默认top_p值为0.95
 // 采样：top_k（<=0 表示使用词表大小；常用范围 0~100）
