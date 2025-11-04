@@ -270,7 +270,7 @@ class Widget : public QWidget
     QTimer *lazyUnloadTimer_ = nullptr;
     QTimer *lazyCountdownTimer_ = nullptr;
     QElapsedTimer idleSince_;
-    int lazyUnloadMs_ = 600000;
+    int lazyUnloadMs_ = 300000;
     bool pendingSendAfterWake_ = false;
 
     SETTINGS settings_snapshot_;
