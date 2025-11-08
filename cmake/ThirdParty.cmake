@@ -34,6 +34,4 @@ endif()
 
 
 # ------------------------------ MCP ------------------------------
-add_subdirectory(thirdparty/cpp-mcp)
-include_directories(thirdparty/cpp-mcp/include)
-include_directories(thirdparty/cpp-mcp/common)
+add_subdirectory(thirdparty/qt-mcp)

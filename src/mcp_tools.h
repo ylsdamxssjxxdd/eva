@@ -1,560 +1,260 @@
 #ifndef MCP_TOOLS_H
 #define MCP_TOOLS_H
 
-#include "mcp_message.h"
-#include "mcp_sse_client.h"
-#include "mcp_stdio_client.h"
+#include "mcp_json.h"
 #include "xconfig.h"
+
+#include "qmcp/errors.h"
+#include "qmcp/sseclient.h"
+#include "qmcp/stdioclient.h"
+
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QUrl>
+
 #include <algorithm>
 #include <cctype>
-#include <iostream>
 #include <memory>
-#include <utility>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
-struct ParsedURL
-{
-    std::string protocol;
-    std::string host;
-    int port;
-    std::string path;
-};
 
-inline ParsedURL parse_url(const std::string &url)
-{
-    ParsedURL result;
-    size_t protocol_end = url.find("://");
-    bool has_protocol = (protocol_end != std::string::npos);
-    size_t host_start = 0;
-
-    if (has_protocol)
-    {
-        result.protocol = url.substr(0, protocol_end);
-        host_start = protocol_end + 3;
-    }
-
-    size_t port_pos = url.find(':', host_start);
-    size_t path_pos = url.find('/', host_start);
-
-    // 处理端口和主机名
-    if (port_pos != std::string::npos && (path_pos == std::string::npos || port_pos < path_pos))
-    {
-        result.host = url.substr(host_start, port_pos - host_start);
-        size_t port_end = (path_pos != std::string::npos) ? path_pos : url.length();
-        try
-        {
-            result.port = std::stoi(url.substr(port_pos + 1, port_end - port_pos - 1));
-        }
-        catch (...)
-        {
-            // 无效端口处理，保留默认端口
-            result.port = has_protocol ? (result.protocol == "https" ? 443 : 80) : 80;
-        }
-    }
-    else
-    {
-        result.host = url.substr(host_start, path_pos - host_start);
-        // 设置默认端口
-        result.port = has_protocol ? (result.protocol == "https" ? 443 : 80) : 80;
-    }
-
-    // 处理路径
-    if (path_pos != std::string::npos)
-    {
-        result.path = url.substr(path_pos);
-    }
-    else
-    {
-        result.path = "/";
-    }
-
-    size_t query_pos = result.path.find_first_of("?#");
-    if (query_pos != std::string::npos)
-    {
-        result.path = result.path.substr(0, query_pos);
-    }
-    if (result.path.empty())
-    {
-        result.path = "/";
-    }
-
-    return result;
-}
-
-inline std::string trim_trailing_slashes_keep_root(std::string path)
-{
-    if (path.empty()) return "/";
-    while (path.size() > 1 && path.back() == '/')
-    {
-        path.pop_back();
-    }
-    if (path.empty()) return "/";
-    return path;
-}
-
-inline bool path_ends_with_segment(const std::string &path, const std::string &segment)
-{
-    if (path.empty() || segment.empty()) return false;
-
-    std::string normalized_segment = segment;
-    while (!normalized_segment.empty() && normalized_segment.front() == '/')
-    {
-        normalized_segment.erase(normalized_segment.begin());
-    }
-    while (!normalized_segment.empty() && normalized_segment.back() == '/')
-    {
-        normalized_segment.pop_back();
-    }
-    if (normalized_segment.empty()) return false;
-
-    std::string normalized_path = trim_trailing_slashes_keep_root(path);
-    if (normalized_path.size() < normalized_segment.size()) return false;
-    if (normalized_path.compare(normalized_path.size() - normalized_segment.size(),
-                                normalized_segment.size(),
-                                normalized_segment) != 0)
-    {
-        return false;
-    }
-    if (normalized_path.size() == normalized_segment.size()) return true;
-    return normalized_path[normalized_path.size() - normalized_segment.size() - 1] == '/';
-}
-
-inline std::string combine_paths(const std::string &base_path, const std::string &endpoint)
-{
-    if (endpoint.empty())
-    {
-        return trim_trailing_slashes_keep_root(base_path.empty() ? std::string("/") : base_path);
-    }
-
-    if (base_path.empty() || base_path == "/")
-    {
-        if (!endpoint.empty() && endpoint.front() == '/')
-        {
-            return trim_trailing_slashes_keep_root(endpoint);
-        }
-        std::string result = "/" + endpoint;
-        return trim_trailing_slashes_keep_root(result);
-    }
-
-    std::string result = base_path;
-    if (result.front() != '/')
-    {
-        result.insert(result.begin(), '/');
-    }
-    result = trim_trailing_slashes_keep_root(result);
-
-    if (!endpoint.empty() && endpoint.front() == '/')
-    {
-        result += endpoint;
-    }
-    else
-    {
-        result.push_back('/');
-        result += endpoint;
-    }
-
-    return trim_trailing_slashes_keep_root(result);
-}
-
-// 客户端异常类型
 class client_exception : public std::runtime_error
 {
   public:
-    using std::runtime_error::runtime_error;
-};
-
-// 客户端包装器基类
-class ClientWrapper
-{
-  public:
-    virtual ~ClientWrapper() = default;
-    virtual mcp::json get_server_capabilities() = 0;
-    virtual std::vector<mcp::tool> get_tools() = 0;
-    virtual mcp::json call_tool(const std::string &toolName, const mcp::json &params = {}) = 0;
-};
-
-// SSE客户端包装器
-class SSEClientWrapper : public ClientWrapper
-{
-    std::unique_ptr<mcp::sse_client> client_;
-
-    static void apply_headers(mcp::sse_client &client, const mcp::json &headers)
+    explicit client_exception(const std::string &message)
+        : std::runtime_error(message)
     {
-        if (!headers.is_object()) return;
-        for (auto it = headers.begin(); it != headers.end(); ++it)
-        {
-            const std::string headerKey = it.key();
-            if (headerKey.empty()) continue;
-            const mcp::json &headerValue = it.value();
-            if (headerValue.is_null()) continue;
-            std::string valueText = headerValue.is_string() ? headerValue.get<std::string>() : headerValue.dump();
-            client.set_header(headerKey, valueText);
-        }
-    }
-
-  public:
-    SSEClientWrapper(std::unique_ptr<mcp::sse_client> client,
-                     int timeout,
-                     const mcp::json &capabilities,
-                     const mcp::json &headers,
-                     const std::string &clientName)
-        : client_(std::move(client))
-    {
-        if (!client_)
-        {
-            throw client_exception("Invalid SSE client instance");
-        }
-
-        client_->set_timeout(timeout);
-        client_->set_capabilities(capabilities);
-        apply_headers(*client_, headers);
-
-        if (!client_->initialize(clientName, mcp::MCP_VERSION))
-        {
-            throw client_exception("SSE client initialization failed");
-        }
-
-        if (!client_->ping())
-        {
-            throw client_exception("SSE server ping failed");
-        }
-    }
-
-    mcp::json get_server_capabilities() override
-    {
-        return client_->get_server_capabilities();
-    }
-
-    std::vector<mcp::tool> get_tools() override
-    {
-        return client_->get_tools();
-    }
-
-    mcp::json call_tool(const std::string &toolName, const mcp::json &params = {}) override
-    {
-        return client_->call_tool(toolName, params);
     }
 };
 
-class StdioClientWrapper : public ClientWrapper
+namespace mcp_internal
 {
-    mcp::stdio_client client_;
 
-    static std::string join_command(const std::string &base, const std::vector<std::string> &args)
-    {
-        std::string full_cmd = base;
-        for (const auto &arg : args)
-        {
-            full_cmd += " " + arg;
-        }
-        return full_cmd;
-    }
-
-  public:
-    StdioClientWrapper(const std::string &command,
-                       const std::vector<std::string> &args,
-                       const mcp::json &env,
-                       const std::string &clientName)
-        : client_(join_command(command, args), env)
-    {
-        if (!client_.initialize(clientName, mcp::MCP_VERSION))
-        {
-            throw client_exception("Stdio client initialization failed: " + command);
-        }
-
-        if (!client_.ping())
-        {
-            throw client_exception("Stdio server ping failed: " + command);
-        }
-    }
-
-    mcp::json get_server_capabilities() override
-    {
-        return client_.get_server_capabilities();
-    }
-
-    std::vector<mcp::tool> get_tools() override
-    {
-        return client_.get_tools();
-    }
-
-    mcp::json call_tool(const std::string &toolName, const mcp::json &params = {}) override
-    {
-        return client_.call_tool(toolName, params);
-    }
-};
-
-class ClientFactory
+inline std::string to_lower_copy(std::string text)
 {
-    static std::string to_lower_copy(std::string text)
-    {
-        std::transform(text.begin(), text.end(), text.begin(),
-                       [](unsigned char ch)
-                       { return static_cast<char>(std::tolower(ch)); });
-        return text;
-    }
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    return text;
+}
 
-    static std::string normalize_endpoint(std::string endpoint)
+inline QJsonValue to_qjson_value(const mcp::json &value)
+{
+    if (value.is_null()) return QJsonValue();
+    if (value.is_boolean()) return QJsonValue(value.get<bool>());
+    if (value.is_number_integer()) return QJsonValue(static_cast<double>(value.get<long long>()));
+    if (value.is_number_unsigned()) return QJsonValue(static_cast<double>(value.get<unsigned long long>()));
+    if (value.is_number_float()) return QJsonValue(value.get<double>());
+    if (value.is_string()) return QJsonValue(QString::fromStdString(value.get<std::string>()));
+    if (value.is_array())
     {
-        if (endpoint.empty()) endpoint = "/sse";
-        if (endpoint.front() != '/') endpoint.insert(endpoint.begin(), '/');
+        QJsonArray arr;
+        for (const auto &entry : value)
+        {
+            arr.append(to_qjson_value(entry));
+        }
+        return arr;
+    }
+    if (value.is_object())
+    {
+        QJsonObject obj;
+        for (const auto &entry : value.items())
+        {
+            obj.insert(QString::fromStdString(entry.key()), to_qjson_value(entry.value()));
+        }
+        return obj;
+    }
+    return QJsonValue();
+}
+
+inline QJsonObject to_qjson_object(const mcp::json &value)
+{
+    const QJsonValue converted = to_qjson_value(value);
+    return converted.isObject() ? converted.toObject() : QJsonObject{};
+}
+
+inline QJsonArray to_qjson_array(const mcp::json &value)
+{
+    const QJsonValue converted = to_qjson_value(value);
+    return converted.isArray() ? converted.toArray() : QJsonArray{};
+}
+
+inline mcp::json to_mcp_json(const QJsonValue &value)
+{
+    if (value.isNull() || value.isUndefined()) return mcp::json();
+    if (value.isBool()) return value.toBool();
+    if (value.isDouble()) return value.toDouble();
+    if (value.isString()) return value.toString().toStdString();
+    if (value.isArray())
+    {
+        mcp::json array = mcp::json::array();
+        for (const QJsonValue &entry : value.toArray())
+        {
+            array.push_back(to_mcp_json(entry));
+        }
+        return array;
+    }
+    if (value.isObject())
+    {
+        mcp::json object = mcp::json::object();
+        const QJsonObject obj = value.toObject();
+        for (auto it = obj.constBegin(); it != obj.constEnd(); ++it)
+        {
+            object[it.key().toStdString()] = to_mcp_json(it.value());
+        }
+        return object;
+    }
+    return mcp::json();
+}
+
+inline QUrl resolve_endpoint(const QString &baseValue, const QString &endpointValue, bool endpointExplicit)
+{
+    QUrl endpoint(endpointValue);
+    if (endpoint.isValid() && !endpoint.isRelative())
+    {
         return endpoint;
     }
 
-    static mcp::json resolve_capabilities(const mcp::json &config)
+    QUrl base(baseValue);
+    if (!base.isValid() || base.scheme().isEmpty())
     {
-        mcp::json capabilities = get_json_object_safely(config, "capabilities");
-        if (!capabilities.is_object()) capabilities = mcp::json::object();
-        if (!capabilities.contains("roots") || !capabilities["roots"].is_object())
-        {
-            capabilities["roots"] = mcp::json::object();
-        }
-        capabilities["roots"]["listChanged"] = true;
-        return capabilities;
+        throw client_exception("SSE client configuration has invalid baseUrl");
     }
 
-  public:
-    static std::unique_ptr<ClientWrapper> create(const mcp::json &config)
+    QString normalizedEndpoint = endpointValue;
+    if (normalizedEndpoint.isEmpty())
     {
-        std::string type = to_lower_copy(get_string_safely(config, "type"));
-        if (type.empty())
-        {
-            if (config.contains("baseUrl") || config.contains("url"))
-            {
-                type = "sse";
-            }
-            else if (config.contains("command"))
-            {
-                type = "stdio";
-            }
-        }
-
-        const int timeout = get_int_safely(config, "timeout", 10);
-        mcp::json capabilities = resolve_capabilities(config);
-        const std::string clientName = get_string_safely(config, "clientName",
-                                                         type == "stdio" ? "EvaMcpStdioClient" : "EvaMcpSseClient");
-
-        if (type == "sse")
-        {
-            const std::string endpoint_raw = get_string_safely(config, "sseEndpoint", "/sse");
-            std::string endpoint = normalize_endpoint(endpoint_raw);
-            const bool endpoint_explicit = config.contains("sseEndpoint");
-            const bool endpoint_is_relative = endpoint_explicit && !endpoint_raw.empty() && endpoint_raw.front() != '/';
-            const mcp::json headers = get_json_object_safely(config, "headers");
-            std::unique_ptr<mcp::sse_client> client;
-
-            bool skipTlsVerify = get_bool_safely(config, "skipTlsVerify", false);
-            skipTlsVerify = get_bool_safely(config, "insecure", skipTlsVerify);
-            bool validateCertificatesOpt = get_bool_safely(config, "validateCertificates", true);
-            validateCertificatesOpt = get_bool_safely(config, "tlsVerify", validateCertificatesOpt);
-            const bool shouldValidateCertificates = skipTlsVerify ? false : validateCertificatesOpt;
-
-            std::string caPath;
-            const std::vector<std::string> caKeys = {
-                "caCertPath", "caBundle", "caCertFile", "caCert", "caPath",
-                "tlsCaCert", "tlsCaPath", "tlsCaFile", "caDirectory", "certBundle"
-            };
-            for (const std::string &key : caKeys)
-            {
-                const std::string candidate = get_string_safely(config, key);
-                if (!candidate.empty())
-                {
-                    caPath = candidate;
-                    break;
-                }
-            }
-
-            auto make_client = [&](const std::string &scheme_host_port_value,
-                                   const std::string &endpoint_value) {
-                return std::make_unique<mcp::sse_client>(
-                    scheme_host_port_value,
-                    endpoint_value,
-                    shouldValidateCertificates,
-                    caPath);
-            };
-
-            std::string baseUrl = get_string_safely(config, "baseUrl");
-            if (!baseUrl.empty())
-            {
-                ParsedURL parsed = parse_url(baseUrl);
-                if (parsed.host.empty())
-                {
-                    throw client_exception("SSE client configuration has empty host");
-                }
-                std::string scheme = parsed.protocol.empty() ? "http" : parsed.protocol;
-                if (scheme != "http" && scheme != "https")
-                {
-                    throw client_exception("Unsupported URL scheme for SSE client: " + scheme);
-                }
-                const bool is_default_port = (scheme == "http" && parsed.port == 80) ||
-                                             (scheme == "https" && parsed.port == 443);
-                std::string scheme_host_port = scheme + "://" + parsed.host;
-                if (!is_default_port && parsed.port > 0)
-                {
-                    scheme_host_port += ":" + std::to_string(parsed.port);
-                }
-
-                std::string base_path = parsed.path.empty() ? "/" : parsed.path;
-                base_path = trim_trailing_slashes_keep_root(base_path);
-
-                if (!endpoint_explicit)
-                {
-                    if (!base_path.empty() && base_path != "/")
-                    {
-                        if (path_ends_with_segment(base_path, endpoint))
-                        {
-                            endpoint = base_path;
-                        }
-                        else
-                        {
-                            endpoint = combine_paths(base_path, endpoint);
-                        }
-                    }
-                }
-                else if (endpoint_is_relative && !base_path.empty() && base_path != "/")
-                {
-                    endpoint = combine_paths(base_path, endpoint);
-                }
-
-                endpoint = normalize_endpoint(endpoint);
-                client = make_client(scheme_host_port, endpoint);
-            }
-            else
-            {
-                std::string url = get_string_safely(config, "url");
-                if (url.empty())
-                {
-                    throw client_exception("SSE client configuration requires baseUrl or url");
-                }
-                ParsedURL parsed = parse_url(url);
-                if (parsed.host.empty())
-                {
-                    throw client_exception("SSE client configuration has empty host");
-                }
-                std::string scheme = parsed.protocol.empty() ? "http" : parsed.protocol;
-                if (scheme != "http" && scheme != "https")
-                {
-                    throw client_exception("Unsupported URL scheme for SSE client: " + scheme);
-                }
-                const bool is_default_port = (scheme == "http" && parsed.port == 80) ||
-                                             (scheme == "https" && parsed.port == 443);
-                std::string scheme_host_port = scheme + "://" + parsed.host;
-                if (!is_default_port && parsed.port > 0)
-                {
-                    scheme_host_port += ":" + std::to_string(parsed.port);
-                }
-                if (!parsed.path.empty() && parsed.path != "/" && !endpoint_explicit && endpoint == "/sse")
-                {
-                    endpoint = trim_trailing_slashes_keep_root(parsed.path);
-                }
-                endpoint = normalize_endpoint(endpoint);
-                client = make_client(scheme_host_port, endpoint);
-            }
-
-            return std::make_unique<SSEClientWrapper>(std::move(client), timeout, capabilities, headers, clientName);
-        }
-
-        if (type == "stdio")
-        {
-            std::string command = get_string_safely(config, "command");
-            if (command.empty())
-            {
-                throw client_exception("Stdio client configuration requires command");
-            }
-            std::vector<std::string> args = get_string_list_safely(config, "args");
-            mcp::json env = get_json_object_safely(config, "env");
-
-            return std::make_unique<StdioClientWrapper>(command, args, env, clientName);
-        }
-
-        throw client_exception("Unsupported MCP client type: " + type);
+        normalizedEndpoint = QStringLiteral("/sse");
     }
-};
+
+    const QString basePath = base.path();
+    const bool hasBasePath = !basePath.isEmpty() && basePath != QStringLiteral("/");
+
+    if (!endpointExplicit && hasBasePath)
+    {
+        if (basePath.endsWith(normalizedEndpoint))
+        {
+            normalizedEndpoint = basePath;
+        }
+        else
+        {
+            QString path = basePath;
+            if (!path.endsWith('/')) path.append('/');
+            QString relative = normalizedEndpoint;
+            if (relative.startsWith('/')) relative.remove(0, 1);
+            normalizedEndpoint = path + relative;
+        }
+    }
+    else if (endpointExplicit && hasBasePath && !normalizedEndpoint.startsWith('/'))
+    {
+        QString path = basePath;
+        if (!path.endsWith('/')) path.append('/');
+        normalizedEndpoint = path + normalizedEndpoint;
+    }
+
+    if (normalizedEndpoint.isEmpty())
+    {
+        return base;
+    }
+    QUrl relative(normalizedEndpoint);
+    return base.resolved(relative);
+}
+
+} // namespace mcp_internal
 
 class McpToolManager
 {
   public:
-    // 添加服务到管理器
     std::string addServer(const std::string &name, const mcp::json &config)
     {
-        std::string result = "";
+        if (!config.is_object())
+        {
+            return "Server config must be a JSON object.";
+        }
+
         try
         {
-            auto client = ClientFactory::create(config);
-            auto tools = client->get_tools();
-            clients_.emplace(name, std::move(client));
-            tools_cache_[name] = tools;
+            qmcp::ServerConfig serverConfig = buildServerConfig(name, config);
+            std::unique_ptr<qmcp::McpClient> client = createClient(serverConfig);
+            const std::string clientName = get_string_safely(config, "clientName",
+                                                             serverConfig.transport == qmcp::TransportType::Stdio ? "EvaQtMcpStdioClient"
+                                                                                                                   : "EvaQtMcpSseClient");
+            const std::string clientVersion = get_string_safely(config, "clientVersion", "1.0.0");
+
+            if (!client->initialize(QString::fromStdString(clientName), QString::fromStdString(clientVersion)))
+            {
+                const std::string transport = serverConfig.transport == qmcp::TransportType::Stdio ? "stdio" : "sse";
+                return "Failed to initialize " + transport + " server '" + name + "'";
+            }
+
+            const QJsonArray tools = client->listTools();
+            ClientEntry entry;
+            entry.client = std::move(client);
+            entry.tools.reserve(static_cast<size_t>(tools.size()));
+            for (const QJsonValue &tool : tools)
+            {
+                entry.tools.push_back(mcp_internal::to_mcp_json(tool));
+            }
+
+            clients_[name] = std::move(entry);
+            return {};
         }
-        catch (const client_exception &e)
+        catch (const client_exception &ex)
         {
-            // throw client_exception("Failed to add server '" + name + "': " + e.what());
-            result = "Failed to add server '" + name + "': " + e.what();
-            std::cout << result << std::endl;
+            return ex.what();
         }
-        catch (const mcp::mcp_exception &e)
+        catch (const qmcp::McpError &ex)
         {
-            result = "Failed to add server '" + name + "': " + std::string(e.what());
-            std::cout << result << std::endl;
+            return ex.what();
         }
-        catch (const std::exception &e)
+        catch (const std::exception &ex)
         {
-            result = "Failed to add server '" + name + "': unexpected error - " + std::string(e.what());
-            std::cout << result << std::endl;
+            return ex.what();
         }
-        catch (...)
-        {
-            result = "Failed to add server '" + name + "': unknown error";
-            std::cout << result << std::endl;
-        }
-        return result;
     }
 
-    // 调用工具
-    mcp::json callTool(const std::string &serviceName,
-                       const std::string &toolName,
-                       const mcp::json &params = {})
+    mcp::json callTool(const std::string &serviceName, const std::string &toolName, const mcp::json &params = {})
     {
-        if (clients_.empty()) { return mcp::json{{"error", "No clients available."}}; }
-        // 查找客户端
-        auto client_it = clients_.find(serviceName);
-        if (client_it == clients_.end())
+        if (clients_.empty()) return mcp::json{{"error", "No clients available."}};
+        auto clientIt = clients_.find(serviceName);
+        if (clientIt == clients_.end())
         {
             return mcp::json{{"error", "Service '" + serviceName + "' not registered."}};
         }
 
-        // 检查工具是否存在
-        auto &tools = tools_cache_[serviceName];
-        auto tool_it = std::find_if(tools.begin(), tools.end(),
-                                    [&toolName](const mcp::tool &t)
-                                    { return t.name == toolName; });
+        auto &tools = clientIt->second.tools;
+        auto toolIt = std::find_if(tools.begin(), tools.end(), [&](const mcp::json &tool) {
+            return tool.is_object() && tool.value("name", "") == toolName;
+        });
 
-        if (tool_it == tools.end())
+        if (toolIt == tools.end())
         {
             return mcp::json{{"error", "Tool '" + toolName + "' not found in service '" + serviceName + "'."}};
         }
 
-        // 调用工具并捕获可能的异常
         try
         {
-            return client_it->second->call_tool(toolName, params);
+            const QJsonValue paramValue = mcp_internal::to_qjson_value(params);
+            const QJsonObject arguments = paramValue.isObject() ? paramValue.toObject() : QJsonObject{};
+            QJsonObject result = clientIt->second.client->callTool(QString::fromStdString(toolName), arguments);
+            return mcp_internal::to_mcp_json(result);
         }
-        catch (const std::exception &e)
+        catch (const qmcp::McpError &ex)
         {
-            return mcp::json{{"error", std::string("Tool call failed: ") + e.what()}};
+            return mcp::json{{"error", ex.what()}};
         }
-        catch (...)
+        catch (const std::exception &ex)
         {
-            return mcp::json{{"error", "Unknown error occurred during tool call."}};
+            return mcp::json{{"error", ex.what()}};
         }
     }
 
-    // 获取所有服务名称
     std::vector<std::string> getServiceNames() const
     {
         std::vector<std::string> names;
-        if (clients_.empty()) { return names; }
+        names.reserve(clients_.size());
         for (const auto &pair : clients_)
         {
             names.push_back(pair.first);
@@ -562,52 +262,109 @@ class McpToolManager
         return names;
     }
 
-    // 获取服务的工具列表
-    const std::vector<mcp::tool> &getTools(const std::string &serviceName) const
+    const std::vector<mcp::json> &getTools(const std::string &serviceName) const
     {
-        auto it = tools_cache_.find(serviceName);
-        // if (it == tools_cache_.end()) {
-        //     throw client_exception("Service '" + serviceName + "' not found.");
-        // }
-        return it->second;
+        static const std::vector<mcp::json> kEmpty;
+        auto it = clients_.find(serviceName);
+        return it == clients_.end() ? kEmpty : it->second.tools;
     }
 
-    // 获取所有工具的信息，包括服务、名称、描述、输入模式
     mcp::json getAllToolsInfo() const
     {
         mcp::json result = mcp::json::array();
-        for (const auto &service_entry : tools_cache_)
+        for (const auto &service : clients_)
         {
-            const std::string &service_name = service_entry.first;
-            for (const mcp::tool &tool : service_entry.second)
+            for (const mcp::json &tool : service.second.tools)
             {
-                // 使用工具的to_json方法获取基本信息
-                mcp::json tool_info = tool.to_json();
-                // 添加服务名称以便区分不同服务的工具
-                tool_info["service"] = service_name;
-                result.push_back(tool_info);
+                mcp::json toolInfo = tool;
+                toolInfo["service"] = service.first;
+                result.push_back(toolInfo);
             }
         }
         return result;
     }
 
-    // 清空所有已添加的服务
     void clear() noexcept
     {
         clients_.clear();
-        tools_cache_.clear();
     }
 
-    // 获取已添加服务的个数
-    size_t getServiceCount() const noexcept
-    {
-        if (clients_.empty()) { return 0; }
-        return clients_.size();
-    }
+    size_t getServiceCount() const noexcept { return clients_.size(); }
 
   private:
-    std::unordered_map<std::string, std::unique_ptr<ClientWrapper>> clients_;
-    std::unordered_map<std::string, std::vector<mcp::tool>> tools_cache_;
+    struct ClientEntry
+    {
+        std::unique_ptr<qmcp::McpClient> client;
+        std::vector<mcp::json> tools;
+    };
+
+    static qmcp::ServerConfig buildServerConfig(const std::string &name, const mcp::json &config)
+    {
+        qmcp::ServerConfig serverConfig;
+        serverConfig.key = QString::fromStdString(name);
+        serverConfig.name = QString::fromStdString(get_string_safely(config, "name", name));
+        serverConfig.description = QString::fromStdString(get_string_safely(config, "description"));
+        serverConfig.isActive = get_bool_safely(config, "isActive", true);
+
+        const std::string type = mcp_internal::to_lower_copy(get_string_safely(config, "type", "sse"));
+        if (type == "stdio")
+        {
+            serverConfig.transport = qmcp::TransportType::Stdio;
+            const std::string command = get_string_safely(config, "command");
+            if (command.empty())
+            {
+                throw client_exception("Stdio client configuration requires command");
+            }
+            serverConfig.command = QString::fromStdString(command);
+            const std::vector<std::string> args = get_string_list_safely(config, "args");
+            for (const std::string &arg : args)
+            {
+                serverConfig.args.append(QString::fromStdString(arg));
+            }
+        }
+        else
+        {
+            serverConfig.transport = qmcp::TransportType::Sse;
+            const std::string baseUrl = get_string_safely(config, "baseUrl", get_string_safely(config, "url"));
+            const std::string endpoint = get_string_safely(config, "sseEndpoint", "/sse");
+            if (baseUrl.empty() && endpoint.empty())
+            {
+                throw client_exception("SSE client configuration requires baseUrl or sseEndpoint");
+            }
+            if (baseUrl.empty())
+            {
+                QUrl endpointUrl(QString::fromStdString(endpoint));
+                if (!endpointUrl.isValid() || endpointUrl.scheme().isEmpty())
+                {
+                    throw client_exception("SSE endpoint must be absolute when baseUrl is missing");
+                }
+                serverConfig.baseUrl = endpointUrl;
+            }
+            else
+            {
+                const bool endpointExplicit = config.contains("sseEndpoint");
+                serverConfig.baseUrl = mcp_internal::resolve_endpoint(QString::fromStdString(baseUrl),
+                                                                      QString::fromStdString(endpoint),
+                                                                      endpointExplicit);
+            }
+        }
+
+        serverConfig.env = mcp_internal::to_qjson_object(get_json_object_safely(config, "env"));
+        serverConfig.headers = mcp_internal::to_qjson_object(get_json_object_safely(config, "headers"));
+
+        return serverConfig;
+    }
+
+    static std::unique_ptr<qmcp::McpClient> createClient(const qmcp::ServerConfig &config)
+    {
+        if (config.transport == qmcp::TransportType::Stdio)
+        {
+            return std::make_unique<qmcp::StdioClient>(config);
+        }
+        return std::make_unique<qmcp::SseClient>(config);
+    }
+
+    std::unordered_map<std::string, ClientEntry> clients_;
 };
 
-#endif
+#endif // MCP_TOOLS_H

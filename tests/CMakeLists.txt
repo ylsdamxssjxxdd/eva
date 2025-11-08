@@ -14,8 +14,7 @@ target_include_directories(xtool_tests PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}/src/utils
-    ${CMAKE_SOURCE_DIR}/thirdparty/cpp-mcp/include
-    ${CMAKE_SOURCE_DIR}/thirdparty/cpp-mcp/common
+    ${CMAKE_SOURCE_DIR}/thirdparty/nlohmann
 )
 
 target_link_libraries(xtool_tests PRIVATE
@@ -25,7 +24,7 @@ target_link_libraries(xtool_tests PRIVATE
     Qt5::Test
     Qt5::Concurrent
     Qt5::Network
-    mcp
+    qtmcp
 )
 
 if (UNIX AND NOT APPLE)

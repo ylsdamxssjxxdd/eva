@@ -1,7 +1,7 @@
 #ifndef XCONFIG_H
 #define XCONFIG_H
 
-#include "mcp_message.h"
+#include "mcp_json.h"
 #include <QColor>
 #include <QCoreApplication>
 #include <QDebug>

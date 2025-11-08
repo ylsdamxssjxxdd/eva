@@ -1,6 +1,6 @@
 # Qt MCP Client (Qt 5)
 
-This module reimplements the core pieces of [`cpp-mcp`](../cpp-mcp) with Qt 5 primitives so that Qt applications can talk to MCP servers via SSE or stdio transports. The library stays close to the JSON-RPC flows used by the reference repo: `initialize → initialized → tools/list → tools/call`.
+This module reimplements the core pieces of [`cpp-mcp`](https://github.com/hkr04/cpp-mcp) with Qt 5 primitives so that Qt applications can talk to MCP servers via SSE or stdio transports. The library stays close to the JSON-RPC flows used by the reference repo: `initialize → initialized → tools/list → tools/call`.
 
 ## Features
 - Shared `ServerConfig` loader that understands the MCP config JSON used by Claude Desktop / MCP CLI.
