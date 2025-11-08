@@ -4,6 +4,7 @@
 #include "../utils/statusindicator.h"
 #include <algorithm>
 #include <limits>
+#include <QAbstractItemView>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,6 +13,7 @@
 #include <QSizePolicy>
 #include <QString>
 #include <QStringList>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QTreeWidgetItem>
@@ -127,8 +129,47 @@ void Expend::populateMcpToolEntries()
     ui->mcp_server_treeWidget->clear();
     ui->mcp_server_treeWidget->setColumnCount(1);
     ui->mcp_server_treeWidget->setHeaderHidden(true);
-    ui->mcp_server_treeWidget->setIndentation(16);
+    ui->mcp_server_treeWidget->setIndentation(14);
     ui->mcp_server_treeWidget->setUniformRowHeights(false);
+    ui->mcp_server_treeWidget->setRootIsDecorated(false);
+    ui->mcp_server_treeWidget->setItemsExpandable(true);
+    ui->mcp_server_treeWidget->setAnimated(true);
+    ui->mcp_server_treeWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->mcp_server_treeWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->mcp_server_treeWidget->setFocusPolicy(Qt::NoFocus);
+    ui->mcp_server_treeWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    ui->mcp_server_treeWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    if (!mcpTreeSignalsInitialized_)
+    {
+        mcpTreeSignalsInitialized_ = true;
+        connect(ui->mcp_server_treeWidget, &QTreeWidget::itemExpanded, this,
+                [this](QTreeWidgetItem *item) { updateMcpServiceExpander(item, true); });
+        connect(ui->mcp_server_treeWidget, &QTreeWidget::itemCollapsed, this,
+                [this](QTreeWidgetItem *item) { updateMcpServiceExpander(item, false); });
+    }
+
+    mcpServiceExpandButtons_.clear();
+
+    const int viewportWidth = std::max(220, ui->mcp_server_treeWidget->viewport()->width());
+    auto calcTextHeight = [](const QFontMetrics &metrics, const QString &text, int width, int lineHeight, int maxLines) -> int
+    {
+        if (width <= 0) return lineHeight;
+        const int maxHeight = (maxLines > 0) ? (lineHeight * maxLines) : (std::numeric_limits<int>::max() / 4);
+        const QRect rect = metrics.boundingRect(QRect(0, 0, width, maxHeight), Qt::TextWordWrap, text);
+        const int bounded = std::max(lineHeight, rect.height());
+        return (maxLines > 0) ? std::min(bounded, maxHeight) : bounded;
+    };
+
+    auto connectStateLabel = [this](MCP_CONNECT_STATE state) -> QString
+    {
+        switch (state)
+        {
+            case MCP_CONNECT_LINK: return tr("已连接");
+            case MCP_CONNECT_WIP: return tr("等待连接");
+            case MCP_CONNECT_MISS: default: return tr("未连接");
+        }
+    };
 
     const QStringList previousSelection = mcpEnabledCache_;
     auto buildSelectionList = []() -> QStringList
@@ -250,22 +291,27 @@ void Expend::populateMcpToolEntries()
         serviceItem->setExpanded(true);
 
         QWidget *serviceWidget = new QWidget();
+        serviceWidget->setObjectName(QStringLiteral("mcpServiceRow"));
+        serviceWidget->setAttribute(Qt::WA_StyledBackground, true);
+        serviceWidget->setStyleSheet(QStringLiteral("#mcpServiceRow { background-color: rgba(30, 38, 70, 0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; }"));
         serviceWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         auto *serviceLayout = new QHBoxLayout(serviceWidget);
-        serviceLayout->setContentsMargins(8, 6, 8, 6);
-        serviceLayout->setSpacing(10);
+        serviceLayout->setContentsMargins(12, 10, 12, 10);
+        serviceLayout->setSpacing(12);
+
+        auto *expanderButton = new QToolButton(serviceWidget);
+        expanderButton->setAutoRaise(true);
+        expanderButton->setCursor(Qt::PointingHandCursor);
+        expanderButton->setToolTip(tr("展开/收起工具"));
+        expanderButton->setIconSize(QSize(14, 14));
+        expanderButton->setFixedSize(26, 26);
+        expanderButton->setFocusPolicy(Qt::NoFocus);
+        expanderButton->setStyleSheet(QStringLiteral("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: rgba(255,255,255,0.08); border-radius: 13px; }"));
+        serviceLayout->addWidget(expanderButton);
 
         auto *statusLed = new StatusLed(serviceWidget);
         statusLed->setState(mcpServerStates.value(serviceName, MCP_CONNECT_MISS));
         serviceLayout->addWidget(statusLed);
-
-        auto *label = new QLabel(serviceName, serviceWidget);
-        label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-        label->setStyleSheet(QStringLiteral("font-weight: 600;"));
-        label->setWordWrap(true);
-        label->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
-        label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        serviceLayout->addWidget(label, 1);
 
         auto *serviceToggle = new ToggleSwitch(serviceWidget);
         serviceToggle->setFixedSize(48, 24);
@@ -273,22 +319,71 @@ void Expend::populateMcpToolEntries()
         serviceToggle->setChecked(serviceEnabled);
         serviceToggle->setHandlePosition(serviceEnabled ? 1.0 : 0.0);
         serviceToggle->blockSignals(false);
+
+        QWidget *textArea = new QWidget(serviceWidget);
+        textArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        auto *textLayout = new QVBoxLayout(textArea);
+        textLayout->setContentsMargins(0, 0, 0, 0);
+        textLayout->setSpacing(4);
+
+        auto *nameLabel = new QLabel(serviceName, serviceWidget);
+        nameLabel->setObjectName(QStringLiteral("mcpServiceName"));
+        nameLabel->setWordWrap(true);
+        nameLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        nameLabel->setStyleSheet(QStringLiteral("font-weight: 600;"));
+        nameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        nameLabel->setToolTip(serviceName);
+
+        auto *metaLabel = new QLabel(serviceWidget);
+        metaLabel->setObjectName(QStringLiteral("mcpServiceMeta"));
+        metaLabel->setWordWrap(true);
+        metaLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        metaLabel->setStyleSheet(QStringLiteral("color: #93a2cd; font-size: 12px;"));
+
+        QStringList metaPieces;
+        metaPieces << tr("%1 个工具").arg(tools.size());
+        metaPieces << connectStateLabel(mcpServerStates.value(serviceName, MCP_CONNECT_MISS));
+        if (!serviceEnabled) metaPieces << tr("服务已禁用");
+        metaLabel->setText(metaPieces.join(QStringLiteral(" · ")));
+
+        const int reservedWidth = expanderButton->sizeHint().width() + statusLed->sizeHint().width()
+                                  + serviceToggle->sizeHint().width() + serviceLayout->contentsMargins().left()
+                                  + serviceLayout->contentsMargins().right() + serviceLayout->spacing() * 3;
+        const int textWidth = std::max(200, viewportWidth - reservedWidth);
+        const QFontMetrics nameMetrics(nameLabel->font());
+        const int nameLineHeight = nameMetrics.lineSpacing();
+        const int nameHeight = calcTextHeight(nameMetrics, serviceName, textWidth, nameLineHeight, 3);
+        nameLabel->setMinimumHeight(nameHeight);
+        nameLabel->setMaximumHeight(nameHeight);
+
+        const QFontMetrics metaMetrics(metaLabel->font());
+        const int metaLineHeight = metaMetrics.lineSpacing();
+        const int metaHeight = calcTextHeight(metaMetrics, metaLabel->text(), textWidth, metaLineHeight, 2);
+        metaLabel->setMinimumHeight(metaHeight);
+        metaLabel->setMaximumHeight(metaHeight);
+
+        textLayout->addWidget(nameLabel);
+        textLayout->addWidget(metaLabel);
+        serviceLayout->addWidget(textArea, 1);
         serviceLayout->addWidget(serviceToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
 
-        const int viewportWidth = std::max(220, ui->mcp_server_treeWidget->viewport()->width());
-        const int reservedWidth = statusLed->sizeHint().width() + serviceToggle->sizeHint().width()
-                                  + serviceLayout->contentsMargins().left() + serviceLayout->contentsMargins().right()
-                                  + serviceLayout->spacing() * 2;
-        const int labelWidth = std::max(160, viewportWidth - reservedWidth);
-        const QFontMetrics serviceMetrics(label->font());
-        const QRect textRect = serviceMetrics.boundingRect(QRect(0, 0, labelWidth, std::numeric_limits<int>::max()),
-                                                           Qt::TextWordWrap, serviceName);
-        const int labelHeight = std::max(serviceMetrics.lineSpacing(), textRect.height());
-        label->setMinimumHeight(labelHeight);
-        serviceWidget->setMinimumHeight(labelHeight + 12);
-        serviceItem->setSizeHint(0, QSize(0, serviceWidget->minimumHeight()));
+        const int serviceRowHeight = std::max(64, serviceLayout->contentsMargins().top()
+                                                       + serviceLayout->contentsMargins().bottom()
+                                                       + nameHeight + metaHeight + textLayout->spacing());
+        serviceWidget->setMinimumHeight(serviceRowHeight);
+        serviceWidget->setMaximumHeight(serviceRowHeight);
+        serviceItem->setSizeHint(0, QSize(0, serviceRowHeight));
 
         ui->mcp_server_treeWidget->setItemWidget(serviceItem, 0, serviceWidget);
+
+        mcpServiceExpandButtons_.insert(serviceItem, expanderButton);
+        updateMcpServiceExpander(serviceItem, serviceItem->isExpanded());
+        connect(expanderButton, &QToolButton::clicked, this,
+                [serviceItem]()
+                {
+                    if (!serviceItem) return;
+                    serviceItem->setExpanded(!serviceItem->isExpanded());
+                });
 
         QVector<ToggleSwitch *> childToggles;
         QVector<QString> childToolKeys;
@@ -322,10 +417,13 @@ void Expend::populateMcpToolEntries()
                 toolItem->setFirstColumnSpanned(true);
 
                 QWidget *toolWidget = new QWidget();
+                toolWidget->setObjectName(QStringLiteral("mcpToolRow"));
+                toolWidget->setAttribute(Qt::WA_StyledBackground, true);
+                toolWidget->setStyleSheet(QStringLiteral("#mcpToolRow { background-color: rgba(7, 10, 26, 0.65); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; }"));
                 toolWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
                 auto *toolLayout = new QHBoxLayout(toolWidget);
-                toolLayout->setContentsMargins(32, 6, 8, 6);
-                toolLayout->setSpacing(12);
+                toolLayout->setContentsMargins(56, 10, 12, 10);
+                toolLayout->setSpacing(14);
 
                 auto *iconLabel = new QLabel(toolWidget);
                 iconLabel->setFixedSize(22, 22);
@@ -337,6 +435,14 @@ void Expend::populateMcpToolEntries()
                 iconLabel->setAlignment(Qt::AlignCenter);
                 toolLayout->addWidget(iconLabel);
 
+                auto *toolToggle = new ToggleSwitch(toolWidget);
+                toolToggle->setFixedSize(44, 22);
+
+                const int layoutSpacing = toolLayout->spacing();
+                const int layoutMargins = toolLayout->contentsMargins().left() + toolLayout->contentsMargins().right();
+                const int textWidth = std::max(140, viewportWidth - (layoutMargins + iconLabel->sizeHint().width()
+                                                                     + toolToggle->sizeHint().width() + layoutSpacing * 2));
+
                 auto *textContainer = new QWidget(toolWidget);
                 textContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
                 auto *textLayout = new QVBoxLayout(textContainer);
@@ -344,20 +450,25 @@ void Expend::populateMcpToolEntries()
                 textLayout->setSpacing(2);
 
                 auto *toolNameLabel = new QLabel(toolName, textContainer);
-                toolNameLabel->setWordWrap(false);
+                toolNameLabel->setWordWrap(true);
                 toolNameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-                toolNameLabel->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+                toolNameLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
                 toolNameLabel->setStyleSheet(QStringLiteral("font-weight: 600;"));
+                toolNameLabel->setToolTip(toolName);
                 const int toolNameLineHeight = toolNameLabel->fontMetrics().lineSpacing();
-                toolNameLabel->setMinimumHeight(toolNameLineHeight);
-                toolNameLabel->setMaximumHeight(toolNameLineHeight);
+                const int maxToolNameLines = 2;
+                const int toolNameHeight = calcTextHeight(toolNameLabel->fontMetrics(), toolName, textWidth,
+                                                          toolNameLineHeight, maxToolNameLines);
+                toolNameLabel->setMinimumHeight(toolNameHeight);
+                toolNameLabel->setMaximumHeight(toolNameHeight);
                 toolNameLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
                 auto *toolDescLabel = new QLabel(description, textContainer);
                 toolDescLabel->setWordWrap(true);
                 toolDescLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
                 toolDescLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-                toolDescLabel->setStyleSheet(QStringLiteral("color:#666666;"));
+                toolDescLabel->setStyleSheet(QStringLiteral("color:#99a4bf;"));
+                toolDescLabel->setToolTip(description);
                 const int toolDescLineHeight = toolDescLabel->fontMetrics().lineSpacing();
                 const int maxDescLines = 2;
                 const int descHeight = toolDescLineHeight * maxDescLines;
@@ -370,11 +481,10 @@ void Expend::populateMcpToolEntries()
                 textContainer->setToolTip(toolName + QStringLiteral("\n") + description);
                 toolLayout->addWidget(textContainer, 1);
 
-                auto *toolToggle = new ToggleSwitch(toolWidget);
-                toolToggle->setFixedSize(44, 22);
                 toolLayout->addWidget(toolToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
 
-                const int toolRowHeight = toolNameLineHeight + descHeight + 14;
+                const int toolRowHeight = toolNameHeight + descHeight + toolLayout->contentsMargins().top()
+                                          + toolLayout->contentsMargins().bottom() + textLayout->spacing();
                 toolWidget->setMinimumHeight(toolRowHeight);
                 toolWidget->setMaximumHeight(toolRowHeight);
                 toolItem->setSizeHint(0, QSize(0, toolRowHeight));
@@ -478,6 +588,17 @@ void Expend::populateMcpToolEntries()
     else
     {
         mcpEnabledCache_ = currentSelection;
+    }
+}
+
+void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
+{
+    if (!item) return;
+    auto it = mcpServiceExpandButtons_.find(item);
+    if (it == mcpServiceExpandButtons_.end()) return;
+    if (QToolButton *button = it.value())
+    {
+        button->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
     }
 }
 

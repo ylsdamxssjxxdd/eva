@@ -39,6 +39,7 @@
 #include <QSettings>
 #include <QShortcut>
 #include <QTreeWidget>
+#include <QToolButton>
 #include <QSet>
 #include <QHash>
 #include <QVector>
@@ -474,10 +475,13 @@ class Expend : public QWidget
     void add_mcp_server_iteration(QString name, MCP_CONNECT_STATE state); // 添加mcp服务信息
   private:
     void populateMcpToolEntries();
+    void updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded);
     QMap<QString, MCP_CONNECT_STATE> mcpServerStates;
     QStringList mcpEnabledCache_;
     QHash<QString, QSet<QString>> mcpServiceSelections_;
     QSet<QString> mcpDisabledServices_;
+    QHash<QTreeWidgetItem *, QToolButton *> mcpServiceExpandButtons_;
+    bool mcpTreeSignalsInitialized_ = false;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state
