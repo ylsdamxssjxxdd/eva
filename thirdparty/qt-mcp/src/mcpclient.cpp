@@ -3,6 +3,8 @@
 #include <QDir>
 #include <QUrl>
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 namespace qmcp {
 
@@ -84,8 +86,57 @@ void McpClient::notifyRootsChanged() {
 }
 
 void McpClient::handleServerNotification(const QString& method, const QJsonObject& params) {
-    Q_UNUSED(params);
-    qInfo() << "Unhandled server notification from" << m_config.name << ":" << method;
+    const QString serverKey = serverIdentifier();
+    emit serverNotificationReceived(serverKey, method, params);
+
+    auto stringifyJsonValue = [](const QJsonValue& value) -> QString {
+        if (value.isString()) return value.toString();
+        if (value.isDouble()) return QString::number(value.toDouble());
+        if (value.isBool()) return value.toBool() ? QStringLiteral("true") : QStringLiteral("false");
+        if (value.isNull() || value.isUndefined()) return {};
+        QJsonDocument doc;
+        if (value.isArray()) {
+            doc = QJsonDocument(value.toArray());
+        } else if (value.isObject()) {
+            doc = QJsonDocument(value.toObject());
+        }
+        return doc.isNull() ? QString() : QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
+    };
+
+    if (method == QLatin1String("notifications/message")) {
+        const QString level = params.value(QStringLiteral("level")).toString(QStringLiteral("info"));
+        QString message = params.value(QStringLiteral("message")).toString();
+        if (message.isEmpty()) {
+            message = stringifyJsonValue(params.value(QStringLiteral("data")));
+        }
+        if (message.isEmpty()) {
+            message = stringifyJsonValue(params.value(QStringLiteral("text")));
+        }
+        emit serverMessageReceived(serverKey, level, message);
+        if (!message.isEmpty()) {
+            qInfo().noquote() << QStringLiteral("[MCP %1] %2: %3").arg(serverKey, level, message);
+        }
+        return;
+    }
+
+    if (method == QLatin1String("notifications/progress")) {
+        emit serverMessageReceived(
+            serverKey,
+            params.value(QStringLiteral("level")).toString(QStringLiteral("info")),
+            QStringLiteral("progress %1/%2 %3")
+                .arg(params.value(QStringLiteral("progress")).toVariant().toString(),
+                     params.value(QStringLiteral("total")).toVariant().toString(),
+                     params.value(QStringLiteral("message")).toString()));
+        return;
+    }
+
+    qInfo() << "Unhandled server notification from" << serverKey << ":" << method;
+}
+
+QString McpClient::serverIdentifier() const {
+    if (!m_config.key.isEmpty()) return m_config.key;
+    if (!m_config.name.isEmpty()) return m_config.name;
+    return QStringLiteral("mcp");
 }
 
 } // namespace qmcp

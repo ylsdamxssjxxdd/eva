@@ -70,6 +70,16 @@ xMcp::xMcp(QObject *parent)
     : QObject(parent)
 {
     qDebug() << "mcp init over";
+    toolManager.setNotificationHandler([this](const QString &service, const QString &level, const QString &message)
+                                       {
+                                           QString prefix = service;
+                                           if (!level.isEmpty())
+                                           {
+                                               prefix += QStringLiteral(" [%1]").arg(level.toUpper());
+                                           }
+                                           const QString payload = message.isEmpty() ? tr("server notification received") : message;
+                                           emit mcp_message(prefix + ": " + payload);
+                                       });
 }
 
 void xMcp::addService(const QString mcp_json_str)

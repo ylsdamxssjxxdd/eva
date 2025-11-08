@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QString>
 
 namespace qmcp {
 
@@ -52,6 +53,10 @@ public:
     void setClientCapabilities(const QJsonObject& caps) { m_clientCapabilities = caps; }
     void setClientRoots(const QJsonArray& roots) { m_clientRoots = roots; }
 
+signals:
+    void serverNotificationReceived(const QString& serverKey, const QString& method, const QJsonObject& params);
+    void serverMessageReceived(const QString& serverKey, const QString& level, const QString& message);
+
 protected:
     QJsonObject buildInitializeParams(const QString& clientName, const QString& clientVersion) const {
         QJsonObject params;
@@ -74,6 +79,7 @@ protected:
     void setServerCapabilities(const QJsonObject& caps) { m_serverCapabilities = caps; }
     virtual void handleServerNotification(const QString& method, const QJsonObject& params);
     static QJsonObject defaultRootObject();
+    QString serverIdentifier() const;
 
 private:
     ServerConfig m_config;

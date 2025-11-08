@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QObject>
 #include <QUrl>
 
 #include <algorithm>
@@ -167,6 +168,10 @@ inline QUrl resolve_endpoint(const QString &baseValue, const QString &endpointVa
 class McpToolManager
 {
   public:
+    using NotificationHandler = std::function<void(const QString &, const QString &, const QString &)>;
+
+    void setNotificationHandler(NotificationHandler handler) { notificationHandler_ = std::move(handler); }
+
     std::string addServer(const std::string &name, const mcp::json &config)
     {
         if (!config.is_object())
@@ -190,6 +195,21 @@ class McpToolManager
             }
 
             const QJsonArray tools = client->listTools();
+
+            if (notificationHandler_)
+            {
+                QObject::connect(client.get(),
+                                 &qmcp::McpClient::serverMessageReceived,
+                                 client.get(),
+                                 [this](const QString &serviceKey, const QString &level, const QString &message)
+                                 {
+                                     if (notificationHandler_)
+                                     {
+                                         notificationHandler_(serviceKey, level, message);
+                                     }
+                                 });
+            }
+
             ClientEntry entry;
             entry.client = std::move(client);
             entry.tools.reserve(static_cast<size_t>(tools.size()));
@@ -365,6 +385,7 @@ class McpToolManager
     }
 
     std::unordered_map<std::string, ClientEntry> clients_;
+    NotificationHandler notificationHandler_;
 };
 
 #endif // MCP_TOOLS_H

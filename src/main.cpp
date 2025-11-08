@@ -8,6 +8,7 @@
 #include <QFont>
 #include <QCheckBox>
 #include <QLocale> // C-locale parsing for numeric strings
+#include <QProcess>
 #include <QProcessEnvironment>
 #include <QSignalBlocker>
 #include <QStringList>
@@ -298,6 +299,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<APIS>("APIS");
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
     qRegisterMetaType<MCP_CONNECT_STATE>("MCP_CONNECT_STATE");
+    qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
     //------------------开启多线程 ------------------------
     QThread *gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
@@ -328,6 +330,7 @@ int main(int argc, char *argv[])
     QThread *mcp_thread = new QThread;
     mcp.moveToThread(mcp_thread);
     mcp_thread->start();
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, &mcp, &xMcp::disconnectAll, Qt::QueuedConnection);
 
     // 统一的应用退出收尾：优雅停止各工作线程，避免退出阶段跨线程清理产生告警/卡顿
     QObject::connect(&a, &QCoreApplication::aboutToQuit, [gpuer_thread]()
