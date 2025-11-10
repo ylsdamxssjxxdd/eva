@@ -1,6 +1,7 @@
 #include "qmcp/config.h"
 #include "qmcp/errors.h"
 #include "qmcp/sseclient.h"
+#include "qmcp/streamablehttpclient.h"
 #include "qmcp/stdioclient.h"
 
 #include <QCommandLineParser>
@@ -40,6 +41,9 @@ QString jsonToCompact(const QJsonValue& value) {
 std::unique_ptr<McpClient> makeClient(const ServerConfig& config) {
     if (config.transport == TransportType::Stdio) {
         return std::make_unique<StdioClient>(config);
+    }
+    if (config.transport == TransportType::StreamableHttp) {
+        return std::make_unique<StreamableHttpClient>(config);
     }
     return std::make_unique<SseClient>(config);
 }

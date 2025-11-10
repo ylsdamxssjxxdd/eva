@@ -6,6 +6,7 @@
 
 #include "qmcp/errors.h"
 #include "qmcp/sseclient.h"
+#include "qmcp/streamablehttpclient.h"
 #include "qmcp/stdioclient.h"
 
 #include <QJsonArray>
@@ -183,14 +184,34 @@ class McpToolManager
         {
             qmcp::ServerConfig serverConfig = buildServerConfig(name, config);
             std::unique_ptr<qmcp::McpClient> client = createClient(serverConfig);
-            const std::string clientName = get_string_safely(config, "clientName",
-                                                             serverConfig.transport == qmcp::TransportType::Stdio ? "EvaQtMcpStdioClient"
-                                                                                                                   : "EvaQtMcpSseClient");
+            std::string defaultClientName = "EvaQtMcpSseClient";
+            if (serverConfig.transport == qmcp::TransportType::Stdio)
+            {
+                defaultClientName = "EvaQtMcpStdioClient";
+            }
+            else if (serverConfig.transport == qmcp::TransportType::StreamableHttp)
+            {
+                defaultClientName = "EvaQtMcpStreamableHttpClient";
+            }
+            const std::string clientName = get_string_safely(config, "clientName", defaultClientName);
             const std::string clientVersion = get_string_safely(config, "clientVersion", "1.0.0");
 
             if (!client->initialize(QString::fromStdString(clientName), QString::fromStdString(clientVersion)))
             {
-                const std::string transport = serverConfig.transport == qmcp::TransportType::Stdio ? "stdio" : "sse";
+                std::string transport;
+                switch (serverConfig.transport)
+                {
+                case qmcp::TransportType::Stdio:
+                    transport = "stdio";
+                    break;
+                case qmcp::TransportType::StreamableHttp:
+                    transport = "streamableHttp";
+                    break;
+                case qmcp::TransportType::Sse:
+                default:
+                    transport = "sse";
+                    break;
+                }
                 return "Failed to initialize " + transport + " server '" + name + "'";
             }
 
@@ -342,6 +363,20 @@ class McpToolManager
                 serverConfig.args.append(QString::fromStdString(arg));
             }
         }
+        else if (type == "streamablehttp" || type == "http")
+        {
+            serverConfig.transport = qmcp::TransportType::StreamableHttp;
+            const std::string baseUrl = get_string_safely(config, "baseUrl", get_string_safely(config, "url"));
+            if (baseUrl.empty())
+            {
+                throw client_exception("Streamable HTTP client configuration requires baseUrl");
+            }
+            serverConfig.baseUrl = QUrl(QString::fromStdString(baseUrl));
+            if (!serverConfig.baseUrl.isValid() || serverConfig.baseUrl.scheme().isEmpty())
+            {
+                throw client_exception("Streamable HTTP baseUrl must be an absolute URL");
+            }
+        }
         else
         {
             serverConfig.transport = qmcp::TransportType::Sse;
@@ -380,6 +415,10 @@ class McpToolManager
         if (config.transport == qmcp::TransportType::Stdio)
         {
             return std::make_unique<qmcp::StdioClient>(config);
+        }
+        if (config.transport == qmcp::TransportType::StreamableHttp)
+        {
+            return std::make_unique<qmcp::StreamableHttpClient>(config);
         }
         return std::make_unique<qmcp::SseClient>(config);
     }

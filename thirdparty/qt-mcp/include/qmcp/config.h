@@ -10,6 +10,7 @@ namespace qmcp {
 
 enum class TransportType {
     Sse,
+    StreamableHttp,
     Stdio
 };
 

@@ -16,6 +16,10 @@ TransportType parseTransport(const QString& typeValue) {
     if (typeValue.compare(QStringLiteral("stdio"), Qt::CaseInsensitive) == 0) {
         return TransportType::Stdio;
     }
+    if (typeValue.compare(QStringLiteral("streamablehttp"), Qt::CaseInsensitive) == 0
+        || typeValue.compare(QStringLiteral("http"), Qt::CaseInsensitive) == 0) {
+        return TransportType::StreamableHttp;
+    }
     return TransportType::Sse;
 }
 
@@ -34,12 +38,14 @@ ServerConfig parseServer(const QString& key, const QJsonObject& object, const QS
     config.isActive = object.value(QStringLiteral("isActive")).toBool(true);
     config.transport = parseTransport(object.value(QStringLiteral("type")).toString(QStringLiteral("sse")));
 
-    if (config.transport == TransportType::Sse) {
+    if (config.transport == TransportType::Sse || config.transport == TransportType::StreamableHttp) {
         const QString baseUrl = object.value(QStringLiteral("baseUrl")).toString();
         config.baseUrl = QUrl(baseUrl);
         if (!config.baseUrl.isValid() || config.baseUrl.scheme().isEmpty()) {
-            throw std::runtime_error(
-                describeError(QStringLiteral("SSE server is missing a valid baseUrl"), sourcePath, key).toStdString());
+            throw std::runtime_error(describeError(QStringLiteral("HTTP server is missing a valid baseUrl"),
+                                                   sourcePath,
+                                                   key)
+                                         .toStdString());
         }
     } else {
         config.command = object.value(QStringLiteral("command")).toString();
@@ -162,7 +168,15 @@ QList<QByteArray> splitDocuments(const QByteArray& raw) {
 namespace qmcp {
 
 QString transportToString(TransportType type) {
-    return type == TransportType::Stdio ? QStringLiteral("stdio") : QStringLiteral("sse");
+    switch (type) {
+    case TransportType::Stdio:
+        return QStringLiteral("stdio");
+    case TransportType::StreamableHttp:
+        return QStringLiteral("streamableHttp");
+    case TransportType::Sse:
+    default:
+        return QStringLiteral("sse");
+    }
 }
 
 QList<ServerConfig> ServerConfigLoader::loadFromFile(const QString& path) {

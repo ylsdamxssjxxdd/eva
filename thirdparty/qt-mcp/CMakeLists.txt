@@ -15,9 +15,11 @@ add_library(qtmcp
     src/config.cpp
     src/mcpclient.cpp
     src/sseclient.cpp
+    src/streamablehttpclient.cpp
     src/stdioclient.cpp
     include/qmcp/mcpclient.h
     include/qmcp/sseclient.h
+    include/qmcp/streamablehttpclient.h
     include/qmcp/stdioclient.h
 )
 
