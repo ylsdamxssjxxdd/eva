@@ -127,7 +127,7 @@ inline QUrl resolve_endpoint(const QString &baseValue, const QString &endpointVa
     QString normalizedEndpoint = endpointValue;
     if (normalizedEndpoint.isEmpty())
     {
-        normalizedEndpoint = QStringLiteral("/sse");
+        return base;
     }
 
     const QString basePath = base.path();
@@ -346,7 +346,7 @@ class McpToolManager
         {
             serverConfig.transport = qmcp::TransportType::Sse;
             const std::string baseUrl = get_string_safely(config, "baseUrl", get_string_safely(config, "url"));
-            const std::string endpoint = get_string_safely(config, "sseEndpoint", "/sse");
+            const std::string endpoint = get_string_safely(config, "sseEndpoint", "");
             if (baseUrl.empty() && endpoint.empty())
             {
                 throw client_exception("SSE client configuration requires baseUrl or sseEndpoint");
