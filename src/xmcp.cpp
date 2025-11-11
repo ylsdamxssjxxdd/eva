@@ -1,7 +1,9 @@
 // xmcp.cpp
 #include "xmcp.h"
+#include <QDateTime>
 #include <QDebug>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace
 {
@@ -47,6 +49,27 @@ bool syncSelectedMcpTools(const mcp::json &allTools)
         }
         ++it;
     }
+    std::unordered_set<std::string> existingKeys;
+    existingKeys.reserve(MCP_TOOLS_INFO_LIST.size());
+    for (const auto &entry : MCP_TOOLS_INFO_LIST)
+    {
+        existingKeys.insert(entry.name.toStdString());
+    }
+    for (const auto &pair : available)
+    {
+        if (existingKeys.find(pair.first) != existingKeys.end()) continue;
+        const mcp::json *tool = pair.second;
+        if (!tool || !tool->is_object()) continue;
+        const QString service = QString::fromStdString(get_string_safely(*tool, "service"));
+        const QString toolName = QString::fromStdString(get_string_safely(*tool, "name"));
+        if (service.isEmpty() || toolName.isEmpty()) continue;
+        const QString description = QString::fromStdString(get_string_safely(*tool, "description"));
+        mcp::json schema = sanitize_schema(tool->value("inputSchema", mcp::json::object()));
+        const QString arguments = QString::fromStdString(schema.dump());
+        MCP_TOOLS_INFO_LIST.emplace_back(service + "@" + toolName, description, arguments);
+        existingKeys.insert(pair.first);
+        changed = true;
+    }
     return changed;
 }
 
@@ -71,19 +94,26 @@ xMcp::xMcp(QObject *parent)
 {
     qDebug() << "mcp init over";
     toolManager.setNotificationHandler([this](const QString &service, const QString &level, const QString &message)
-                                       {
-                                           QString prefix = service;
-                                           if (!level.isEmpty())
-                                           {
-                                               prefix += QStringLiteral(" [%1]").arg(level.toUpper());
-                                           }
-                                           const QString payload = message.isEmpty() ? tr("server notification received") : message;
-                                           emit mcp_message(prefix + ": " + payload);
-                                       });
+                                        {
+                                            QString prefix = service;
+                                            if (!level.isEmpty())
+                                            {
+                                                prefix += QStringLiteral(" [%1]").arg(level.toUpper());
+                                            }
+                                            const QString payload = message.isEmpty() ? tr("server notification received") : message;
+                                            emit mcp_message(prefix + ": " + payload);
+                                        });
+    idleTimer_.start();
+    autoRefreshTimer_ = new QTimer(this);
+    autoRefreshTimer_->setInterval(200);
+    QObject::connect(autoRefreshTimer_, &QTimer::timeout, this, &xMcp::maybeAutoRefreshTools);
+    autoRefreshTimer_->start();
 }
 
 void xMcp::addService(const QString mcp_json_str)
 {
+    markActivity();
+    lastRefreshEpochMs_ = 0;
     toolManager.clear();         // 清空工具
     mcp::json config;
     if (mcp_json_str.isEmpty())
@@ -130,6 +160,7 @@ void xMcp::addService(const QString mcp_json_str)
     // 获取所有可用工具信息
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     mcp::json servers = get_json_object_safely(config, "mcpServers");
     if (ok_num == static_cast<int>(servers.size())) { emit addService_over(MCP_CONNECT_LINK); }
     else if (ok_num == 0)
@@ -144,6 +175,7 @@ void xMcp::addService(const QString mcp_json_str)
 
 void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 {
+    markActivity();
     QString result;
     // 拆分出服务名和工具名
     std::string llm_tool_name = tool_name.toStdString(); // 大模型输出的要调用的工具名
@@ -185,22 +217,32 @@ void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 // 查询mcp可用工具
 void xMcp::callList(quint64 invocationId)
 {
+    markActivity();
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     emit toolsRefreshed();
     emit callList_over(invocationId);
 }
 
 void xMcp::refreshTools()
 {
+    markActivity();
+    const bool updated = toolManager.refreshAllTools();
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     emit toolsRefreshed();
-    emit mcp_message(QStringLiteral("tools refreshed"));
+    if (updated)
+    {
+        emit mcp_message(QStringLiteral("tools refreshed"));
+    }
 }
 
 void xMcp::disconnectAll()
 {
+    markActivity();
+    lastRefreshEpochMs_ = 0;
     toolManager.clear();
     MCP_TOOLS_INFO_ALL = mcp::json::array();
     if (!MCP_TOOLS_INFO_LIST.empty())
@@ -210,4 +252,29 @@ void xMcp::disconnectAll()
     emit toolsRefreshed();
     emit addService_over(MCP_CONNECT_MISS);
     emit mcp_message(QStringLiteral("all services disconnected"));
+}
+
+void xMcp::markActivity()
+{
+    if (!idleTimer_.isValid())
+    {
+        idleTimer_.start();
+        return;
+    }
+    idleTimer_.restart();
+}
+
+void xMcp::maybeAutoRefreshTools()
+{
+    if (toolManager.getServiceCount() == 0) return;
+    if (!idleTimer_.isValid())
+    {
+        idleTimer_.start();
+        return;
+    }
+    if (idleTimer_.elapsed() < kIdleThresholdMs) return;
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (lastRefreshEpochMs_ != 0 && (now - lastRefreshEpochMs_) < kRefreshCooldownMs) return;
+    qInfo() << "mcp auto refresh tools executed";
+    refreshTools();
 }

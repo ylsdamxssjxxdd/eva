@@ -9,6 +9,7 @@
 #include "qmcp/streamablehttpclient.h"
 #include "qmcp/stdioclient.h"
 
+#include <QDebug>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -308,6 +309,38 @@ class McpToolManager
         static const std::vector<mcp::json> kEmpty;
         auto it = clients_.find(serviceName);
         return it == clients_.end() ? kEmpty : it->second.tools;
+    }
+
+    bool refreshAllTools()
+    {
+        bool changed = false;
+        for (auto &service : clients_)
+        {
+            try
+            {
+                const QJsonArray tools = service.second.client->listTools();
+                std::vector<mcp::json> updated;
+                updated.reserve(static_cast<size_t>(tools.size()));
+                for (const QJsonValue &tool : tools)
+                {
+                    updated.push_back(mcp_internal::to_mcp_json(tool));
+                }
+                if (updated != service.second.tools)
+                {
+                    service.second.tools = std::move(updated);
+                    changed = true;
+                }
+            }
+            catch (const qmcp::McpError &ex)
+            {
+                qWarning() << "Failed to refresh tools for" << QString::fromStdString(service.first) << ":" << ex.what();
+            }
+            catch (const std::exception &ex)
+            {
+                qWarning() << "Failed to refresh tools for" << QString::fromStdString(service.first) << ":" << ex.what();
+            }
+        }
+        return changed;
     }
 
     mcp::json getAllToolsInfo() const

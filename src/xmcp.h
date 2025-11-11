@@ -4,7 +4,9 @@
 
 #include "mcp_tools.h"
 #include "xconfig.h"
+#include <QElapsedTimer>
 #include <QObject>
+#include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -31,7 +33,14 @@ class xMcp : public QObject
     void toolsRefreshed();
 
   private:
+    void markActivity();
+    void maybeAutoRefreshTools();
     McpToolManager toolManager;
+    QTimer *autoRefreshTimer_ = nullptr;
+    QElapsedTimer idleTimer_;
+    qint64 lastRefreshEpochMs_ = 0;
+    static constexpr int kIdleThresholdMs = 3000;
+    static constexpr int kRefreshCooldownMs = 6000;
 };
 
 #endif // XMCP_H
