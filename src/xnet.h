@@ -72,6 +72,7 @@ class xNet : public QObject
     // Request lifecycle
     bool running_ = false;
     bool aborted_ = false;
+    bool firstByteSeen_ = false; // guard for single TTFB start per request
     int tokens_ = 0;
     QByteArray sseBuffer_;
     QElapsedTimer t_all_;            // total duration

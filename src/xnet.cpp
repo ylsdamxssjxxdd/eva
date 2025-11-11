@@ -40,6 +40,8 @@ void xNet::resetState()
     thinkFlag = false;
     current_content.clear();
     sseBuffer_.clear();
+    firstByteSeen_ = false;
+    t_first_.invalidate();
     aborted_ = false;
     reasoningTokensTurn_ = 0;
     extThinkActive_ = false;
@@ -152,15 +154,14 @@ void xNet::run()
 
     // Timers
     t_all_.start();
-    bool ttfbStarted = false;
-    connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [&, isChat]()
-                             {
+    connReadyRead_ = connect(reply_, &QNetworkReply::readyRead, this, [this, isChat]()
+                              {
         if (aborted_ || !reply_) return; // guard against late events after abort
         // Refresh inactivity guard on any activity
         if (timeoutTimer_) timeoutTimer_->start(120000);
-        if (!ttfbStarted)
+        if (!firstByteSeen_)
         {
-            ttfbStarted = true;
+            firstByteSeen_ = true;
             t_first_.start();
         }
 
