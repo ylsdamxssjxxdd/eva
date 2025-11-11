@@ -76,7 +76,8 @@ private:
     QString m_sessionId;
     bool m_initialized = false;
     bool m_streamUnsupported = false;
+    bool m_streamRetryAfterSession = false;
+    bool m_streamLastAttemptHadSession = false;
 };
 
 } // namespace qmcp
-

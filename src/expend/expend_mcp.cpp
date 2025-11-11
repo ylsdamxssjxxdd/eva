@@ -5,9 +5,12 @@
 #include <algorithm>
 #include <limits>
 #include <QAbstractItemView>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPlainTextEdit>
 #include <QPixmap>
 #include <QRect>
 #include <QSizePolicy>
@@ -20,17 +23,13 @@
 #include <QVector>
 #include "ui_expend.h"
 
-//-------------------------------------------------------------------------
-//----------------------------------MCP服务器相关--------------------------------
-//-------------------------------------------------------------------------
-
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
     ui->mcp_server_reflash_pushButton->setEnabled(false);
-    if (ui->mcp_server_treeWidget) ui->mcp_server_treeWidget->clear(); // 清空展示的服务选项
+    if (ui->mcp_server_treeWidget) ui->mcp_server_treeWidget->clear();
     ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);
     mcpServerStates.clear();
-    QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText(); // 获取用户的mcp服务配置
+    QString mcp_json_str = ui->mcp_server_config_textEdit->toPlainText();
     ui->mcp_server_log_plainTextEdit->appendPlainText("start add servers...");
     if (ui->mcp_server_progressBar)
     {
@@ -61,22 +60,51 @@ void Expend::on_mcp_server_disconnect_pushButton_clicked()
 // 帮助
 void Expend::on_mcp_server_help_pushButton_clicked()
 {
-    QString config = R"({
+    static const QString dialogText = R"(必填结构
+{
+    "mcpServers": {
+        "<唯一标识>": {
+            "type": "sse|streamableHttp|stdio",
+            "description": "服务说明",
+            "isActive": true,
+            "...其它字段..."
+        }
+    }
+}
+
+示例一：streamableHttp
+{
+    "mcpServers": {
+        "TestStreamable": {
+            "type": "streamableHttp",
+            "name": "内网 streamable 服务",
+            "baseUrl": "http://192.168.0.10/mcp/server/XXXX/mcp",
+            "headers": {
+                "Authorization": "Bearer sk-***"
+            }
+        }
+    }
+}
+
+示例二：sse
+{
     "mcpServers": {
         "QwenTextToSpeech": {
             "type": "sse",
-            "description": "阿里云百炼官方语音合成 MCP 服务",
-            "isActive": true,
-            "name": "阿里云百炼_通义千问-语音合成",
+            "name": "DashScope 语音",
             "baseUrl": "https://dashscope.aliyuncs.com/api/v1/mcps/QwenTextToSpeech/sse",
             "headers": {
                 "Authorization": "Bearer {api-key}"
             }
-        },
+        }
+    }
+}
+
+示例三：stdio
+{
+    "mcpServers": {
         "EverythingServer": {
             "type": "stdio",
-            "description": "stdio demo",
-            "isActive": true,
             "name": "MCP Stdio Demo",
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-everything"],
@@ -86,7 +114,30 @@ void Expend::on_mcp_server_help_pushButton_clicked()
         }
     }
 })";
-    ui->mcp_server_config_textEdit->setText(config); // 直接将示例填入
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(jtr("MCP examples"));
+    dialog.setModal(true);
+
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    QLabel *label = new QLabel(jtr("MCP Examples tips"));
+    label->setWordWrap(true);
+    layout->addWidget(label);
+
+    QPlainTextEdit *viewer = new QPlainTextEdit(&dialog);
+    viewer->setPlainText(dialogText);
+    viewer->setReadOnly(true);
+    QFont mono = viewer->font();
+    mono.setFamily(QStringLiteral("Consolas"));
+    viewer->setFont(mono);
+    layout->addWidget(viewer);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    layout->addWidget(buttons);
+
+    dialog.resize(560, 520);
+    dialog.exec();
 }
 
 // 响应mcp添加服务完毕时事件
@@ -667,3 +718,5 @@ void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
 //         });
 //     }
 // }
+
+

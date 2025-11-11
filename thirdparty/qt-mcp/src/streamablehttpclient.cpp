@@ -185,9 +185,17 @@ bool StreamableHttpClient::ensureStreamStarted() {
         return false;
     }
 
+    if (m_streamRetryAfterSession && m_sessionId.isEmpty()) {
+        qCInfo(lcStreamableHttpClient) << "Deferring stream start until session id is available";
+        return false;
+    }
+
     if (m_streamReply) {
         return true;
     }
+
+    m_streamLastAttemptHadSession = !m_sessionId.isEmpty();
+    m_streamRetryAfterSession = false;
 
     QNetworkRequest request(m_url);
     request.setRawHeader("Accept", "text/event-stream");
@@ -270,6 +278,10 @@ QJsonValue StreamableHttpClient::sendRequest(const QString& method, const QJsonO
         m_sessionId = QString::fromUtf8(sessionIdHeader);
     } else if (!sessionIdLower.isEmpty()) {
         m_sessionId = QString::fromUtf8(sessionIdLower);
+    }
+
+    if (m_streamRetryAfterSession && !m_sessionId.isEmpty()) {
+        ensureStreamStarted();
     }
 
     if (netError != QNetworkReply::NoError && status == 0) {
@@ -476,8 +488,14 @@ void StreamableHttpClient::handleStreamFinished() {
     const int status = m_streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     qCInfo(lcStreamableHttpClient) << "Stream finished with status" << status;
     if (status == 405) {
-        qCInfo(lcStreamableHttpClient) << "Server does not expose GET stream endpoint, disabling stream listener";
-        m_streamUnsupported = true;
+        if (!m_streamLastAttemptHadSession) {
+            qCInfo(lcStreamableHttpClient)
+                << "Server requires session id before exposing GET stream endpoint, will retry after initialization";
+            m_streamRetryAfterSession = true;
+        } else {
+            qCInfo(lcStreamableHttpClient) << "Server does not expose GET stream endpoint, disabling stream listener";
+            m_streamUnsupported = true;
+        }
     }
     m_streamReply->deleteLater();
     m_streamReply = nullptr;
@@ -488,9 +506,16 @@ void StreamableHttpClient::handleStreamError(QNetworkReply::NetworkError code) {
     if (code == QNetworkReply::OperationCanceledError) {
         return;
     }
-    if (code == QNetworkReply::ContentOperationNotPermittedError) {
-        qCInfo(lcStreamableHttpClient) << "Server rejected stream GET request; continuing without SSE";
-        m_streamUnsupported = true;
+    const int status = m_streamReply ? m_streamReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() : 0;
+    if (code == QNetworkReply::ContentOperationNotPermittedError && status == 405) {
+        if (!m_streamLastAttemptHadSession) {
+            qCInfo(lcStreamableHttpClient)
+                << "Stream request rejected before session id, waiting for initialization to retry";
+            m_streamRetryAfterSession = true;
+        } else {
+            qCInfo(lcStreamableHttpClient) << "Server rejected stream even with session id, disabling listener";
+            m_streamUnsupported = true;
+        }
         return;
     }
     qCWarning(lcStreamableHttpClient) << "Stream error" << code

@@ -1698,6 +1698,14 @@
             "请输入mcp配置文本后点击连接。（不清楚配置文本格式，可以点击help按钮获取示例）",
             "Please enter the MCP configuration text and click on the link. (Not sure about configuring text format, you can click the help button to obtain examples)"
         ],
+        "MCP Examples": [
+            "MCP 配置模板与示例",
+            "MCP Examples"
+        ],
+        "MCP Examples tips": [
+            "请参考下列 JSON 模板编写配置：",
+            "Refer to the following JSON template configuration: "
+        ],
         "mcp refresh tools": [
             "刷新",
             "Refresh"
