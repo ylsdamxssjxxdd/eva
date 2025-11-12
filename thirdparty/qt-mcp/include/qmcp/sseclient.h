@@ -58,7 +58,7 @@ private:
     bool waitForEndpoint(int timeoutMs);
     void applyHeaders(QNetworkRequest& request) const;
     void processEvent(const QByteArray& rawEvent);
-    QJsonValue sendRequest(const QString& method, const QJsonObject& params, int timeoutMs = 15000);
+    QJsonValue sendRequest(const QString& method, const QJsonObject& params, int timeoutMs = 600000);
     void sendNotification(const QString& method, const QJsonObject& params = {});
     bool handleServerRequest(const QJsonObject& request);
     void sendResponseMessage(const QJsonObject& payload, int timeoutMs = 5000);

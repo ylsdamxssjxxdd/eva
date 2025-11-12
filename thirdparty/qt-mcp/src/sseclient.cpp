@@ -82,7 +82,7 @@ bool SseClient::initialize(const QString& clientName, const QString& clientVersi
         return false;
     }
 
-    if (!waitForEndpoint(15000)) {
+    if (!waitForEndpoint(60000)) {
         qCWarning(lcSseClient) << "Timeout waiting for message endpoint from" << config().name;
         return false;
     }

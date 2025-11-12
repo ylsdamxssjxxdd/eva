@@ -56,7 +56,7 @@ private:
     bool ensureStreamStarted();
     void applyHeaders(QNetworkRequest& request) const;
     void appendSessionHeaders(QNetworkRequest& request) const;
-    QJsonValue sendRequest(const QString& method, const QJsonObject& params, int timeoutMs = 15000);
+    QJsonValue sendRequest(const QString& method, const QJsonObject& params, int timeoutMs = 60000);
     void sendNotification(const QString& method, const QJsonObject& params = {});
     bool handleServerRequest(const QJsonObject& request);
     void sendResponseMessage(const QJsonObject& payload, int timeoutMs = 5000);
