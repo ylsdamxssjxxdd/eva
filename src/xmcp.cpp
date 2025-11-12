@@ -2,6 +2,7 @@
 #include "xmcp.h"
 #include <QDateTime>
 #include <QDebug>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -105,7 +106,8 @@ xMcp::xMcp(QObject *parent)
                                         });
     idleTimer_.start();
     autoRefreshTimer_ = new QTimer(this);
-    autoRefreshTimer_->setInterval(2000);
+    const int pollInterval = std::max(1000, kAutoRefreshIntervalMs / 5);
+    autoRefreshTimer_->setInterval(pollInterval);
     QObject::connect(autoRefreshTimer_, &QTimer::timeout, this, &xMcp::maybeAutoRefreshTools);
     autoRefreshTimer_->start();
 }
@@ -274,7 +276,7 @@ void xMcp::maybeAutoRefreshTools()
     }
     if (idleTimer_.elapsed() < kIdleThresholdMs) return;
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (lastRefreshEpochMs_ != 0 && (now - lastRefreshEpochMs_) < kRefreshCooldownMs) return;
+    if (lastRefreshEpochMs_ != 0 && (now - lastRefreshEpochMs_) < kAutoRefreshIntervalMs) return;
     qInfo() << "mcp auto refresh tools executed";
     refreshTools();
 }
