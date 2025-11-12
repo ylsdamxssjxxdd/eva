@@ -667,7 +667,7 @@ class Widget : public QWidget
     struct GlobalUiSettings
     {
         QString fontFamily;
-        int fontSizePt = 12;
+        int fontSizePt = 11;
         QString themeId = QStringLiteral("unit01");
     };
     GlobalUiSettings globalUiSettings_;

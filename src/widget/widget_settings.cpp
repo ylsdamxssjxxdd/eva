@@ -242,7 +242,7 @@ void Widget::syncGlobalSettingsPanelControls()
     {
         QSignalBlocker blocker(globalFontSizeSpin_);
         int size = globalUiSettings_.fontSizePt > 0 ? globalUiSettings_.fontSizePt : QApplication::font().pointSize();
-        if (size <= 0) size = 12;
+        if (size <= 0) size = 11;
         globalFontSizeSpin_->setValue(size);
     }
     if (globalThemeCombo_)
@@ -300,7 +300,7 @@ void Widget::applyGlobalFont(const QString &family, int sizePt, bool persist)
     }
     else if (globalUiSettings_.fontSizePt <= 0)
     {
-        globalUiSettings_.fontSizePt = 12;
+        globalUiSettings_.fontSizePt = 11;
     }
 
     refreshApplicationStyles();
@@ -333,7 +333,7 @@ QString Widget::buildFontOverrideCss() const
     const QString effectiveFamily = family.isEmpty() ? QApplication::font().family() : family;
     QString escapedFamily = effectiveFamily;
     escapedFamily.replace('"', "\\\"");
-    const int effectiveSize = sizePt > 0 ? sizePt : 12;
+    const int effectiveSize = sizePt > 0 ? sizePt : 11;
 
     return QStringLiteral(
                "QWidget, QToolTip, QMenu, QComboBox, QComboBox QAbstractItemView,\n"
@@ -359,7 +359,7 @@ void Widget::refreshApplicationStyles()
     }
     else if (target.pointSize() <= 0)
     {
-        target.setPointSize(12);
+        target.setPointSize(11);
     }
     QApplication::setFont(target);
 
