@@ -40,7 +40,7 @@ class xMcp : public QObject
     QElapsedTimer idleTimer_;
     qint64 lastRefreshEpochMs_ = 0;
     static constexpr int kIdleThresholdMs = 3000;
-    static constexpr int kRefreshCooldownMs = 6000;
+    static constexpr int kRefreshCooldownMs = 10000; // 10 seconds 重新刷新间隔
 };
 
 #endif // XMCP_H

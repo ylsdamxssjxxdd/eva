@@ -105,7 +105,7 @@ xMcp::xMcp(QObject *parent)
                                         });
     idleTimer_.start();
     autoRefreshTimer_ = new QTimer(this);
-    autoRefreshTimer_->setInterval(200);
+    autoRefreshTimer_->setInterval(2000);
     QObject::connect(autoRefreshTimer_, &QTimer::timeout, this, &xMcp::maybeAutoRefreshTools);
     autoRefreshTimer_->start();
 }

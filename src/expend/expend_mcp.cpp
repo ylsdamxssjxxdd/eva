@@ -461,7 +461,7 @@ void Expend::populateMcpToolEntries()
                 const QString toolName = QString::fromStdString(get_string_safely(*toolJson, "name"));
                 const QString description = QString::fromStdString(get_string_safely(*toolJson, "description"));
                 mcp::json schema = sanitize_schema(toolJson->value("inputSchema", mcp::json::object()));
-                const QString arguments = QString::fromStdString(schema.dump());
+                const QString arguments = QString::fromStdString(schema.dump(2));
                 const QString toolKey = serviceName + "@" + toolName;
 
                 QTreeWidgetItem *toolItem = new QTreeWidgetItem(serviceItem);
@@ -472,11 +472,28 @@ void Expend::populateMcpToolEntries()
                 toolWidget->setAttribute(Qt::WA_StyledBackground, true);
                 toolWidget->setStyleSheet(QStringLiteral("#mcpToolRow { background-color: rgba(7, 10, 26, 0.65); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; }"));
                 toolWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-                auto *toolLayout = new QHBoxLayout(toolWidget);
-                toolLayout->setContentsMargins(56, 10, 12, 10);
-                toolLayout->setSpacing(14);
+                auto *toolLayout = new QVBoxLayout(toolWidget);
+                toolLayout->setContentsMargins(46, 10, 12, 10);
+                toolLayout->setSpacing(8);
 
-                auto *iconLabel = new QLabel(toolWidget);
+                QWidget *headerRow = new QWidget(toolWidget);
+                auto *headerLayout = new QHBoxLayout(headerRow);
+                headerLayout->setContentsMargins(0, 0, 0, 0);
+                headerLayout->setSpacing(12);
+
+                auto *toolExpander = new QToolButton(headerRow);
+                toolExpander->setAutoRaise(true);
+                toolExpander->setCursor(Qt::PointingHandCursor);
+                toolExpander->setArrowType(Qt::RightArrow);
+                toolExpander->setCheckable(true);
+                toolExpander->setIconSize(QSize(12, 12));
+                toolExpander->setFixedSize(24, 24);
+                toolExpander->setFocusPolicy(Qt::NoFocus);
+                toolExpander->setToolTip(tr("查看参数需求"));
+                toolExpander->setStyleSheet(QStringLiteral("QToolButton { border: none; background-color: transparent; } QToolButton:hover { background-color: rgba(255,255,255,0.08); border-radius: 12px; }"));
+                headerLayout->addWidget(toolExpander);
+
+                auto *iconLabel = new QLabel(headerRow);
                 iconLabel->setFixedSize(22, 22);
                 QPixmap toolPixmap(QStringLiteral(":/logo/Tools.ico"));
                 if (!toolPixmap.isNull())
@@ -484,17 +501,17 @@ void Expend::populateMcpToolEntries()
                     iconLabel->setPixmap(toolPixmap.scaled(18, 18, Qt::KeepAspectRatio, Qt::SmoothTransformation));
                 }
                 iconLabel->setAlignment(Qt::AlignCenter);
-                toolLayout->addWidget(iconLabel);
+                headerLayout->addWidget(iconLabel);
 
-                auto *toolToggle = new ToggleSwitch(toolWidget);
+                auto *toolToggle = new ToggleSwitch(headerRow);
                 toolToggle->setFixedSize(44, 22);
 
-                const int layoutSpacing = toolLayout->spacing();
                 const int layoutMargins = toolLayout->contentsMargins().left() + toolLayout->contentsMargins().right();
                 const int textWidth = std::max(140, viewportWidth - (layoutMargins + iconLabel->sizeHint().width()
-                                                                     + toolToggle->sizeHint().width() + layoutSpacing * 2));
+                                                                     + toolToggle->sizeHint().width() + toolExpander->sizeHint().width()
+                                                                     + headerLayout->spacing() * 3));
 
-                auto *textContainer = new QWidget(toolWidget);
+                auto *textContainer = new QWidget(headerRow);
                 textContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
                 auto *textLayout = new QVBoxLayout(textContainer);
                 textLayout->setContentsMargins(0, 0, 0, 0);
@@ -522,7 +539,8 @@ void Expend::populateMcpToolEntries()
                 toolDescLabel->setToolTip(description);
                 const int toolDescLineHeight = toolDescLabel->fontMetrics().lineSpacing();
                 const int maxDescLines = 2;
-                const int descHeight = toolDescLineHeight * maxDescLines;
+                const int descHeight = calcTextHeight(toolDescLabel->fontMetrics(), description, textWidth,
+                                                      toolDescLineHeight, maxDescLines);
                 toolDescLabel->setMinimumHeight(descHeight);
                 toolDescLabel->setMaximumHeight(descHeight);
                 toolDescLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -530,15 +548,41 @@ void Expend::populateMcpToolEntries()
                 textLayout->addWidget(toolNameLabel);
                 textLayout->addWidget(toolDescLabel);
                 textContainer->setToolTip(toolName + QStringLiteral("\n") + description);
-                toolLayout->addWidget(textContainer, 1);
+                headerLayout->addWidget(textContainer, 1);
 
-                toolLayout->addWidget(toolToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
+                headerLayout->addWidget(toolToggle, 0, Qt::AlignRight | Qt::AlignVCenter);
+                toolLayout->addWidget(headerRow);
 
-                const int toolRowHeight = toolNameHeight + descHeight + toolLayout->contentsMargins().top()
-                                          + toolLayout->contentsMargins().bottom() + textLayout->spacing();
-                toolWidget->setMinimumHeight(toolRowHeight);
-                toolWidget->setMaximumHeight(toolRowHeight);
-                toolItem->setSizeHint(0, QSize(0, toolRowHeight));
+                QWidget *paramContainer = new QWidget(toolWidget);
+                paramContainer->setVisible(false);
+                auto *paramLayout = new QVBoxLayout(paramContainer);
+                paramLayout->setContentsMargins(28, 0, 4, 0);
+                paramLayout->setSpacing(6);
+
+                auto *paramLabel = new QLabel(tr("参数需求"), paramContainer);
+                paramLabel->setStyleSheet(QStringLiteral("color:#93a2cd; font-size:12px;"));
+                paramLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+                paramLayout->addWidget(paramLabel, 0, Qt::AlignLeft);
+
+                auto *paramViewer = new QPlainTextEdit(paramContainer);
+                paramViewer->setReadOnly(true);
+                paramViewer->setLineWrapMode(QPlainTextEdit::WidgetWidth);
+                QFont monoFont = paramViewer->font();
+                monoFont.setFamily(QStringLiteral("Consolas"));
+                paramViewer->setFont(monoFont);
+                paramViewer->setMinimumHeight(90);
+                paramViewer->setMaximumHeight(200);
+                paramViewer->setStyleSheet(QStringLiteral("QPlainTextEdit { background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; }"));
+                paramViewer->setPlainText(arguments.isEmpty() ? tr("该工具未声明 inputSchema。") : arguments);
+                paramLayout->addWidget(paramViewer);
+
+                toolLayout->addWidget(paramContainer);
+
+                const int headerHeight = toolNameHeight + descHeight + toolLayout->contentsMargins().top()
+                                         + toolLayout->contentsMargins().bottom() + textLayout->spacing();
+                toolWidget->setMinimumHeight(headerHeight);
+                toolWidget->setMaximumHeight(QWIDGETSIZE_MAX);
+                toolItem->setSizeHint(0, QSize(0, headerHeight));
 
                 const bool toolSelected = serviceSelection.contains(toolKey) && serviceEnabled;
                 toolToggle->blockSignals(true);
@@ -548,6 +592,21 @@ void Expend::populateMcpToolEntries()
                 toolToggle->blockSignals(false);
 
                 ui->mcp_server_treeWidget->setItemWidget(toolItem, 0, toolWidget);
+
+                auto updateToolRowHeight = [this, toolItem, toolWidget]()
+                {
+                    if (!ui->mcp_server_treeWidget || !toolItem) return;
+                    toolItem->setSizeHint(0, QSize(0, toolWidget->sizeHint().height()));
+                    ui->mcp_server_treeWidget->doItemsLayout();
+                };
+
+                connect(toolExpander, &QToolButton::toggled, this,
+                        [paramContainer, toolExpander, updateToolRowHeight](bool expanded)
+                        {
+                            paramContainer->setVisible(expanded);
+                            toolExpander->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
+                            updateToolRowHeight();
+                        });
 
                 childToggles.append(toolToggle);
                 childToolKeys.append(toolKey);

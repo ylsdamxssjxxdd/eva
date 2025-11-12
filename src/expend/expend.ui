@@ -37,7 +37,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>8</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -860,13 +860,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
            <widget class="QLabel" name="model_quantize_label">
             <property name="minimumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
@@ -962,13 +962,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
            <widget class="QLabel" name="model_quantize_label_2">
             <property name="minimumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
@@ -1064,13 +1064,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
            <widget class="QLabel" name="model_quantize_label_3">
             <property name="minimumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>100</width>
+              <width>150</width>
               <height>30</height>
              </size>
             </property>
@@ -1380,13 +1380,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_reflash_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1421,13 +1421,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_refreshTools_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1440,13 +1440,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_help_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1459,13 +1459,13 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               <widget class="QPushButton" name="mcp_server_disconnect_pushButton">
                <property name="minimumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>30</height>
                 </size>
                </property>
@@ -1654,13 +1654,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_dim_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1704,13 +1704,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_resultnumb_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1751,13 +1751,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_model_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>30</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>30</height>
              </size>
             </property>
@@ -1862,13 +1862,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_split_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1909,13 +1909,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_overlap_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1953,13 +1953,13 @@ p, li { white-space: pre-wrap; }
            <widget class="QLabel" name="embedding_source_doc_label">
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>80</width>
+              <width>90</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2488,13 +2488,13 @@ p, li { white-space: pre-wrap; }
              <widget class="QPushButton" name="sd_open_params_button">
               <property name="minimumSize">
                <size>
-                <width>80</width>
+                <width>120</width>
                 <height>30</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>80</width>
+                <width>120</width>
                 <height>30</height>
                </size>
               </property>
@@ -2520,13 +2520,13 @@ p, li { white-space: pre-wrap; }
              <widget class="QPushButton" name="sd_draw_pushButton">
               <property name="minimumSize">
                <size>
-                <width>80</width>
+                <width>120</width>
                 <height>30</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>80</width>
+                <width>120</width>
                 <height>30</height>
                </size>
               </property>
