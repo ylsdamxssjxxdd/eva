@@ -261,5 +261,4 @@
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
 - [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
 - [TTS.cpp](https://github.com/mmwillet/TTS.cpp)
-- [qt-mcp](thirdparty/qt-mcp)（Qt 5 MCP 客户端）
 - [Qt 5.15](https://www.qt.io/)
