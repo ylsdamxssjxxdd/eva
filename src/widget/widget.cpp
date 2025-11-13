@@ -45,6 +45,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         connect(ui->recordBar, &RecordBar::nodeClicked, this, &Widget::onRecordClicked);
         connect(ui->recordBar, &RecordBar::nodeDoubleClicked, this, &Widget::onRecordDoubleClicked);
     }
+    loadOutputFontFromResource();
+    refreshOutputFont();
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
     skillManager = new SkillManager(this);
@@ -407,6 +409,19 @@ bool Widget::ensureGlobalSettingsDialog()
     globalFontSizeSpin_->setAccelerated(true);
     panelLayout->addWidget(globalFontSizeSpin_);
 
+    panelLayout->addSpacing(8);
+    installLabel(globalOutputFontLabel_, 500);
+    globalOutputFontCombo_ = new QFontComboBox(globalSettingsPanel_);
+    globalOutputFontCombo_->setEditable(false);
+    globalOutputFontCombo_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    panelLayout->addWidget(globalOutputFontCombo_);
+
+    installLabel(globalOutputFontSizeLabel_, 500);
+    globalOutputFontSizeSpin_ = new QSpinBox(globalSettingsPanel_);
+    globalOutputFontSizeSpin_->setRange(8, 48);
+    globalOutputFontSizeSpin_->setAccelerated(true);
+    panelLayout->addWidget(globalOutputFontSizeSpin_);
+
     installLabel(globalThemeLabel_, 500);
     globalThemeCombo_ = new QComboBox(globalSettingsPanel_);
     struct ThemeMeta
@@ -430,6 +445,8 @@ bool Widget::ensureGlobalSettingsDialog()
 
     connect(globalFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleGlobalFontFamilyChanged);
     connect(globalFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleGlobalFontSizeChanged);
+    connect(globalOutputFontCombo_, &QFontComboBox::currentFontChanged, this, &Widget::handleOutputFontFamilyChanged);
+    connect(globalOutputFontSizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::handleOutputFontSizeChanged);
     connect(globalThemeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &Widget::handleGlobalThemeChanged);
 
     updateGlobalSettingsTranslations();

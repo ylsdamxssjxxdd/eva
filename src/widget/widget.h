@@ -657,14 +657,23 @@ class Widget : public QWidget
     void showGlobalSettingsDialog();
     void handleGlobalFontFamilyChanged(const QFont &font);
     void handleGlobalFontSizeChanged(int value);
+    void handleOutputFontFamilyChanged(const QFont &font);
+    void handleOutputFontSizeChanged(int value);
     void handleGlobalThemeChanged(int index);
     void applyGlobalFont(const QString &family, int sizePt, bool persist);
+    void applyOutputFont(const QString &family, int sizePt, bool persist);
     void applyGlobalTheme(const QString &themeId, bool persist);
     QString buildThemeOverlay(const QString &themeId) const;
     QString buildFontOverrideCss() const;
+    QString buildOutputFontCss() const;
     void refreshApplicationStyles();
+    void refreshOutputFont();
+    QString resolvedOutputFontFamily() const;
+    int resolvedOutputFontSize() const;
+    QFont currentOutputFont() const;
     void updateThemeVisuals();
     void updateGlobalSettingsTranslations();
+    void loadOutputFontFromResource();
     QColor themeStateColor(SIGNAL_STATE state) const;
     QColor themeTextPrimary() const { return themeVisuals_.textPrimary; }
     QColor themeThinkColor() const { return themeVisuals_.textSecondary; }
@@ -678,6 +687,8 @@ class Widget : public QWidget
     {
         QString fontFamily;
         int fontSizePt = 12;
+        QString outputFontFamily;
+        int outputFontSizePt = 13;
         QString themeId = QStringLiteral("unit01");
     };
     GlobalUiSettings globalUiSettings_;
@@ -687,10 +698,17 @@ class Widget : public QWidget
     QLabel *globalPanelTitleLabel_ = nullptr;
     QLabel *globalFontLabel_ = nullptr;
     QLabel *globalFontSizeLabel_ = nullptr;
+    QLabel *globalOutputFontLabel_ = nullptr;
+    QLabel *globalOutputFontSizeLabel_ = nullptr;
     QLabel *globalThemeLabel_ = nullptr;
     QFontComboBox *globalFontCombo_ = nullptr;
     QSpinBox *globalFontSizeSpin_ = nullptr;
+    QFontComboBox *globalOutputFontCombo_ = nullptr;
+    QSpinBox *globalOutputFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;
+    QString outputFontFallbackFamily_;
+    int outputFontFallbackSizePt_ = 13;
+    bool outputFontResourceLoaded_ = false;
     struct ThemeVisuals
     {
         QString id = QStringLiteral("unit01");

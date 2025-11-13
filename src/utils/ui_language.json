@@ -361,6 +361,14 @@
             "字号",
             "Font size"
         ],
+        "output font": [
+            "输出区字体",
+            "Output font"
+        ],
+        "output font size": [
+            "输出区字号",
+            "Output font size"
+        ],
         "eva palette": [
             "机体配色",
             "EVA palette"

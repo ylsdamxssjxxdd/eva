@@ -1205,19 +1205,19 @@ void Widget::resetOutputDocument()
 {
     flushPendingStream();
     is_stop_output_scroll = false;
-    // Preserve existing visual settings (font, tab stops) before swapping the doc.
-    const QFont prevFont = ui->output->font();
+    // Preserve tab stops before swapping the doc so layout stays consistent.
     const qreal prevTabStop = ui->output->tabStopDistance();
 
     // Create a fresh document and hand ownership to the widget.
     // Qt will destroy the previous document for us; avoid manual delete.
     QTextDocument *doc = new QTextDocument(ui->output);
     doc->setUndoRedoEnabled(false);
-    doc->setDefaultFont(prevFont); // keep the same font after reset
+    const QFont font = currentOutputFont();
+    doc->setDefaultFont(font); // keep the configured output font after reset
     ui->output->setDocument(doc);
 
     // Reapply widget-level settings that the new document doesn't carry.
-    ui->output->setFont(prevFont);
+    ui->output->setFont(font);
     ui->output->setTabStopDistance(prevTabStop);
 }
 

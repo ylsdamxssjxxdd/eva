@@ -7,11 +7,14 @@
 #include <QLabel>
 #include <QLayout>
 #include <QFile>
+#include <QFontDatabase>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSize>
+#include <QTextDocument>
 #include <QVBoxLayout>
 #include <QVector>
+#include <QStringList>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -254,6 +257,8 @@ void Widget::updateGlobalSettingsTranslations()
     if (globalPanelTitleLabel_) globalPanelTitleLabel_->setText(jtr("global settings title"));
     if (globalFontLabel_) globalFontLabel_->setText(jtr("interface font"));
     if (globalFontSizeLabel_) globalFontSizeLabel_->setText(jtr("font size"));
+    if (globalOutputFontLabel_) globalOutputFontLabel_->setText(jtr("output font"));
+    if (globalOutputFontSizeLabel_) globalOutputFontSizeLabel_->setText(jtr("output font size"));
     if (globalThemeLabel_) globalThemeLabel_->setText(jtr("eva palette"));
     if (globalThemeCombo_)
     {
@@ -306,6 +311,18 @@ void Widget::syncGlobalSettingsPanelControls()
         if (idx < 0) idx = 0;
         globalThemeCombo_->setCurrentIndex(idx);
     }
+    if (globalOutputFontCombo_)
+    {
+        QSignalBlocker blocker(globalOutputFontCombo_);
+        globalOutputFontCombo_->setCurrentFont(currentOutputFont());
+    }
+    if (globalOutputFontSizeSpin_)
+    {
+        QSignalBlocker blocker(globalOutputFontSizeSpin_);
+        int size = resolvedOutputFontSize();
+        if (size <= 0) size = 11;
+        globalOutputFontSizeSpin_->setValue(size);
+    }
 }
 
 void Widget::showGlobalSettingsDialog()
@@ -337,6 +354,18 @@ void Widget::handleGlobalFontSizeChanged(int value)
     applyGlobalFont(family, value, true);
 }
 
+void Widget::handleOutputFontFamilyChanged(const QFont &font)
+{
+    const int size = globalOutputFontSizeSpin_ ? globalOutputFontSizeSpin_->value() : resolvedOutputFontSize();
+    applyOutputFont(font.family(), size, true);
+}
+
+void Widget::handleOutputFontSizeChanged(int value)
+{
+    const QString family = globalOutputFontCombo_ ? globalOutputFontCombo_->currentFont().family() : resolvedOutputFontFamily();
+    applyOutputFont(family, value, true);
+}
+
 void Widget::handleGlobalThemeChanged(int index)
 {
     if (!globalThemeCombo_) return;
@@ -355,6 +384,32 @@ void Widget::applyGlobalFont(const QString &family, int sizePt, bool persist)
     else if (globalUiSettings_.fontSizePt <= 0)
     {
         globalUiSettings_.fontSizePt = 11;
+    }
+
+    refreshApplicationStyles();
+    syncGlobalSettingsPanelControls();
+    if (persist) auto_save_user();
+}
+
+void Widget::applyOutputFont(const QString &family, int sizePt, bool persist)
+{
+    const QString trimmed = family.trimmed();
+    if (!trimmed.isEmpty())
+    {
+        globalUiSettings_.outputFontFamily = trimmed;
+    }
+    else
+    {
+        globalUiSettings_.outputFontFamily.clear();
+    }
+
+    if (sizePt > 0)
+    {
+        globalUiSettings_.outputFontSizePt = qBound(8, sizePt, 72);
+    }
+    else if (globalUiSettings_.outputFontSizePt <= 0)
+    {
+        globalUiSettings_.outputFontSizePt = outputFontFallbackSizePt_ > 0 ? outputFontFallbackSizePt_ : 11;
     }
 
     refreshApplicationStyles();
@@ -400,6 +455,22 @@ QString Widget::buildFontOverrideCss() const
         .arg(escapedFamily, QString::number(effectiveSize));
 }
 
+QString Widget::buildOutputFontCss() const
+{
+    const QString family = resolvedOutputFontFamily();
+    const int sizePt = resolvedOutputFontSize();
+    if (family.isEmpty() || sizePt <= 0) return QString();
+
+    QString escapedFamily = family;
+    escapedFamily.replace('"', "\\\"");
+    return QStringLiteral(
+               "QTextEdit#output {\n"
+               "  font-family: \"%1\";\n"
+               "  font-size: %2pt;\n"
+               "}\n")
+        .arg(escapedFamily, QString::number(sizePt));
+}
+
 void Widget::refreshApplicationStyles()
 {
     QFont target = QApplication::font();
@@ -430,7 +501,14 @@ void Widget::refreshApplicationStyles()
         if (!composed.isEmpty()) composed.append('\n');
         composed.append(fontCss);
     }
+    const QString outputCss = buildOutputFontCss();
+    if (!outputCss.isEmpty())
+    {
+        if (!composed.isEmpty()) composed.append('\n');
+        composed.append(outputCss);
+    }
     if (qApp) qApp->setStyleSheet(composed);
+    refreshOutputFont();
     updateThemeVisuals();
 }
 
@@ -498,6 +576,97 @@ void Widget::updateThemeVisuals()
     themeVisuals_ = v;
 }
 
+void Widget::refreshOutputFont()
+{
+    if (!ui || !ui->output) return;
+    const QFont font = currentOutputFont();
+    if (QTextDocument *doc = ui->output->document())
+    {
+        doc->setDefaultFont(font);
+    }
+    ui->output->setFont(font);
+}
+
+QString Widget::resolvedOutputFontFamily() const
+{
+    if (!globalUiSettings_.outputFontFamily.trimmed().isEmpty())
+    {
+        return globalUiSettings_.outputFontFamily.trimmed();
+    }
+    if (!outputFontFallbackFamily_.trimmed().isEmpty())
+    {
+        return outputFontFallbackFamily_;
+    }
+    return QApplication::font().family();
+}
+
+int Widget::resolvedOutputFontSize() const
+{
+    if (globalUiSettings_.outputFontSizePt > 0)
+    {
+        return globalUiSettings_.outputFontSizePt;
+    }
+    if (outputFontFallbackSizePt_ > 0)
+    {
+        return outputFontFallbackSizePt_;
+    }
+    const int appSize = QApplication::font().pointSize();
+    return appSize > 0 ? appSize : 13;
+}
+
+QFont Widget::currentOutputFont() const
+{
+    QFont font = ui && ui->output ? ui->output->font() : QApplication::font();
+    font.setFamily(resolvedOutputFontFamily());
+    const int size = resolvedOutputFontSize();
+    if (size > 0)
+    {
+        font.setPointSize(size);
+    }
+    else if (font.pointSize() <= 0)
+    {
+        font.setPointSize(13);
+    }
+    return font;
+}
+
+void Widget::loadOutputFontFromResource()
+{
+    if (!ui || !ui->output) return;
+    if (!outputFontResourceLoaded_)
+    {
+        const int fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/simsun.ttc"));
+        if (fontId >= 0)
+        {
+            const QStringList families = QFontDatabase::applicationFontFamilies(fontId);
+            if (!families.isEmpty())
+            {
+                outputFontFallbackFamily_ = families.first();
+                outputFontResourceLoaded_ = true;
+            }
+        }
+    }
+    if (outputFontFallbackFamily_.isEmpty())
+    {
+        outputFontFallbackFamily_ = ui->output->font().family();
+    }
+    if (outputFontFallbackSizePt_ <= 0)
+    {
+        int sz = ui->output->font().pointSize();
+        if (sz <= 0) sz = QApplication::font().pointSize();
+        if (sz <= 0) sz = 13;
+        outputFontFallbackSizePt_ = sz;
+    }
+    if (globalUiSettings_.outputFontFamily.isEmpty())
+    {
+        globalUiSettings_.outputFontFamily = outputFontFallbackFamily_;
+    }
+    if (globalUiSettings_.outputFontSizePt <= 0)
+    {
+        globalUiSettings_.outputFontSizePt = outputFontFallbackSizePt_;
+    }
+}
+
 QColor Widget::themeStateColor(SIGNAL_STATE state) const
 {
     switch (state)
@@ -563,9 +732,12 @@ void Widget::loadGlobalUiSettings(const QSettings &settings)
 {
     const QString family = settings.value("global_font_family", globalUiSettings_.fontFamily).toString();
     const int sizePt = settings.value("global_font_size", globalUiSettings_.fontSizePt).toInt();
+    const QString outputFamily = settings.value("output_font_family", globalUiSettings_.outputFontFamily).toString();
+    const int outputSize = settings.value("output_font_size", globalUiSettings_.outputFontSizePt).toInt();
     const QString themeId = settings.value("global_theme", globalUiSettings_.themeId).toString();
 
     applyGlobalFont(family, sizePt > 0 ? sizePt : globalUiSettings_.fontSizePt, false);
+    applyOutputFont(outputFamily, outputSize > 0 ? outputSize : globalUiSettings_.outputFontSizePt, false);
     applyGlobalTheme(themeId, false);
 }
 

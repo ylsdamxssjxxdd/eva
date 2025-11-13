@@ -1159,6 +1159,8 @@ void Widget::auto_save_user()
     settings.setValue("python", pythonExecutable); // python版本
     settings.setValue("global_font_family", globalUiSettings_.fontFamily);
     settings.setValue("global_font_size", globalUiSettings_.fontSizePt);
+    settings.setValue("output_font_family", globalUiSettings_.outputFontFamily);
+    settings.setValue("output_font_size", globalUiSettings_.outputFontSizePt);
     settings.setValue("global_theme", globalUiSettings_.themeId);
     // 保存设置参数
     settings.setValue("modelpath", ui_SETTINGS.modelpath); // 模型路径

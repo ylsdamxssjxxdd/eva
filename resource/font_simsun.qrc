@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>simsun.ttc</file>
+    </qresource>
+</RCC>

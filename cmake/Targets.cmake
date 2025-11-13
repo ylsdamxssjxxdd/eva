@@ -4,7 +4,10 @@
 include_guard(GLOBAL)
 
 # Resources
-set(resource_FILES resource/res_core.qrc resource/font.qrc)
+set(resource_FILES
+    resource/res_core.qrc
+    resource/font_base.qrc
+    resource/font_simsun.qrc)
 list(APPEND resource_FILES resource/res_docs.qrc)
 set(logo_FILES resource/logo/ico.rc)
 
