@@ -7,14 +7,17 @@ You are provided with function signatures within <tools> </tools> XML tags:
 <tools>
 {available_tools_describe}
 </tools>
-For each function call, return a json object with function name and arguments within <tool_call> </tool_call> XML tags:
-<tool_call>
-{"name":"<function-name>","arguments":<args-json-object>}
-</tool_call>
-Example:
+You must follow the instructions below for every function call:
+1. Return the call inside a <tool_call>…</tool_call> block.
+2. Inside the block, output valid JSON with exactly two keys: "name" (string) and "arguments" (object). Example:
 <tool_call>
 {"name":"answer","arguments":{"content":"The task has been completed. Is there anything else I can help you with?"}}
 </tool_call>
+3. Keep the JSON valid:
+   - Wrap all keys and string values in double quotes.
+   - Escape inner quotes as \".
+   - Represent line breaks as \n.
+   - Do not add trailing commas.
 
 {engineer_info}
 )";
@@ -123,9 +126,9 @@ static TOOLS_INFO Buildin_tools_execute_command(
 static TOOLS_INFO Buildin_tools_list_files(
     "list_files",
     // 工具描述
-    R"(List all immediate subfolders and files under a given directory. Paths are resolved relative to the engineer working directory. Output is compact, one entry per line.)",
+    R"(List all immediate subfolders and files under a directory. If no path is provided, default to the engineer working directory. Paths are resolved relative to the engineer working directory and output stays compact, one entry per line.)",
     // JSON-Schema，用于验证调用参数
-    R"({"type":"object","properties":{"path":{"type":"string","description":"Directory path to list (relative to the engineer working directory)."}},"required":["path"]})");
+    R"({"type":"object","properties":{"path":{"type":"string","description":"Optional directory to list (relative to the engineer working directory). Leave blank to use the current working directory."}}})");
 
 // 内置的工程师-搜索文件内容工具
 static TOOLS_INFO Buildin_tools_search_content(
