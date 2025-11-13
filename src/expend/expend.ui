@@ -37,7 +37,7 @@
       </font>
      </property>
      <property name="currentIndex">
-      <number>8</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -248,6 +248,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_ttfb_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>First Token</string>
                   </property>
@@ -292,6 +297,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_gen_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>Generation</string>
                   </property>
@@ -336,6 +346,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_qa_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>Common QA</string>
                   </property>
@@ -380,6 +395,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_logic_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>Logic</string>
                   </property>
@@ -424,6 +444,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_tool_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>Tool Calls</string>
                   </property>
@@ -468,6 +493,11 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                 </property>
                 <item>
                  <widget class="QLabel" name="eval_summary_sync_label">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
                   <property name="text">
                    <string>Sync Rate</string>
                   </property>
