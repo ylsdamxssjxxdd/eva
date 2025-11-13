@@ -343,7 +343,13 @@ void XToolFileToolsTest::readWriteEditListSearch()
     const QString finalText = QString::fromUtf8(resultFile.readAll());
     QCOMPARE(finalText, QStringLiteral("AlphaPrime\nDelta\nBetaPrime\nGamma\n"));
 
-    // list_files
+    // list_files (default path should point at work root)
+    tool->Exec(makeToolCall("list_files", mcp::json::object()));
+    const QString listDefaultMsg = nextPush("list_files default");
+    QVERIFY2(listDefaultMsg.contains(QStringLiteral("notes/")),
+             "list_files default listing should include newly created directory");
+
+    // list_files (explicit directory)
     tool->Exec(makeToolCall("list_files", mcp::json::object({{"path", "notes"}})));
     const QString listMsg = nextPush("list_files");
     QVERIFY2(listMsg.contains(QStringLiteral("notes/test.txt")), "list_files missing expected entry");

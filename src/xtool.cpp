@@ -771,11 +771,11 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     else if (tools_name == "list_files")
     {
         QString reqPath = QString::fromStdString(get_string_safely(tools_args_, "path"));
-        sendStateMessage("tool:" + QString("list_files(") + reqPath + ")");
+        const QString effectivePath = reqPath.trimmed().isEmpty() ? QStringLiteral(".") : reqPath.trimmed();
+        sendStateMessage("tool:" + QString("list_files(") + effectivePath + ")");
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
         QDir rootDir(root);
-        if (reqPath.trimmed().isEmpty()) reqPath = ".";
-        QString abs = QDir::fromNativeSeparators(rootDir.filePath(reqPath));
+        QString abs = QDir::fromNativeSeparators(rootDir.filePath(effectivePath));
         QFileInfo dirInfo(abs);
         // 安全校验：限制在工程师根目录内
         const QString relCheck = rootDir.relativeFilePath(dirInfo.absoluteFilePath());
