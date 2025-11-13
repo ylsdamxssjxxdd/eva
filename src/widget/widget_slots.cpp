@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include "toolcall_test_dialog.h"
 #include <QElapsedTimer>
 #include <QHostAddress>
 #include <QMessageBox>
@@ -246,6 +247,19 @@ void Widget::onShortcutActivated_F2()
         stop_recordAudio(); // 停止录音
     }
 }
+
+// 用户按下F3键响应
+void Widget::onShortcutActivated_F3()
+{
+    ToolCallTestDialog *dialog = ensureToolCallTestDialog();
+    if (!dialog) return;
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+    dialog->focusInput();
+}
+
+
 
 // 用户按下CTRL+ENTER键响应
 void Widget::onShortcutActivated_CTRL_ENTER()
@@ -1248,8 +1262,6 @@ void Widget::recv_prompt_baseline(int tokens)
 {
     if (tokens < 0) return;
     const int promptTokens = qMax(0, tokens);
-    const int previousPrompt = kvPromptTokensTurn_;
-    const int previousBaseline = kvUsedBeforeTurn_;
     // Always treat provider usage as the absolute prompt baseline for this turn.
     kvPromptTokensTurn_ = promptTokens;
     kvUsedBeforeTurn_ = promptTokens;
@@ -1303,7 +1315,6 @@ void Widget::recv_turn_counters(int cacheTokens, int promptTokens, int predicted
 
 void Widget::recv_kv_from_net(int usedTokens)
 {
-    const int previousStream = kvStreamedTurn_;
     const int newStream = qMax(0, usedTokens);
     // Approximate KV usage accumulation during streaming tokens from xNet.
     if (ui_mode == LINK_MODE)
@@ -1311,7 +1322,6 @@ void Widget::recv_kv_from_net(int usedTokens)
         // In LINK mode, we may not have server logs; accept updates regardless of turnActive_
         if (!turnActive_) turnActive_ = true;
         kvStreamedTurn_ = newStream;
-        const int delta = kvStreamedTurn_ - previousStream;
         kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
         kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
         // if (delta != 0)

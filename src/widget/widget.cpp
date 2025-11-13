@@ -3,6 +3,7 @@
 #include "widget.h"
 
 #include "terminal_pane.h"
+#include "toolcall_test_dialog.h"
 #include "ui_widget.h"
 #include <QDateTime>
 #include <QDialog>
@@ -13,6 +14,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QSet>
+#include <QStringList>
 #include <QSignalBlocker>
 #include <QSplitter>
 #include <QTimer>
@@ -210,6 +212,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     // connect(shortcutF1, &QShortcut::activated, this, &Widget::onShortcutActivated_F1);
     shortcutF1 = new QHotkey(QKeySequence("F1"), true, this);
     connect(shortcutF1, &QHotkey::activated, this, &Widget::onShortcutActivated_F1);
+    shortcutF3 = new QHotkey(QKeySequence("F3"), true, this);
+    connect(shortcutF3, &QHotkey::activated, this, &Widget::onShortcutActivated_F3);
 
     //-------------音频相关-------------
     audio_timer = new QTimer(this);                                           // 录音定时器
@@ -432,8 +436,138 @@ bool Widget::ensureGlobalSettingsDialog()
     syncGlobalSettingsPanelControls();
 
     StartupLogger::log(QStringLiteral("[widget] 全局设置面板构建完成 (%1 ms)").arg(timer.elapsed()));
+
     return true;
 }
+
+ToolCallTestDialog *Widget::ensureToolCallTestDialog()
+{
+    if (!toolCallTestDialog_)
+    {
+        toolCallTestDialog_ = new ToolCallTestDialog(this);
+        connect(toolCallTestDialog_, &ToolCallTestDialog::testRequested, this, &Widget::handleToolCallTestRequest);
+        toolCallTestDialog_->setTranslator([this](const QString &key, const QString &fallback) -> QString {
+            const QString translated = jtr(key);
+            return translated.isEmpty() ? fallback : translated;
+        });
+    }
+    return toolCallTestDialog_;
+}
+
+void Widget::handleToolCallTestRequest(const QString &inputText)
+{
+    ToolCallTestDialog *dialog = ensureToolCallTestDialog();
+    if (!dialog) return;
+
+    const auto toolcallTr = [&](const QString &key, const QString &fallback) -> QString {
+        const QString text = jtr(key);
+        return text.isEmpty() ? fallback : text;
+    };
+
+    QStringList logLines;
+    logLines << toolcallTr(QStringLiteral("toolcall log length"), QStringLiteral("Original input length: %1 chars")).arg(inputText.size());
+
+    const QString trimmed = inputText.trimmed();
+    if (trimmed.isEmpty())
+    {
+        dialog->displayReport(logLines, QString(),
+                              toolcallTr(QStringLiteral("toolcall log no content"), QStringLiteral("No parseable content.")), false);
+        return;
+    }
+
+    mcp::json parsed = XMLparser(trimmed, &logLines);
+    const bool success = !parsed.empty();
+
+    QString jsonDump;
+    QString summary;
+    if (success)
+    {
+        jsonDump = QString::fromStdString(parsed.dump(2));
+        summary = formatToolCallSummary(parsed);
+    }
+    else
+    {
+        summary = toolcallTr(QStringLiteral("toolcall log invalid format"),
+                             QStringLiteral("No valid tool call found; check <tool_call> tags and JSON structure."));
+    }
+
+    dialog->displayReport(logLines, jsonDump, summary, success);
+}
+
+QString Widget::formatToolCallSummary(const mcp::json &payload) const
+{
+    if (payload.empty())
+    {
+        return QString();
+    }
+
+    const auto toolcallTr = [&](const QString &key, const QString &fallback) -> QString {
+        const QString textValue = const_cast<Widget *>(this)->jtr(key);
+        return textValue.isEmpty() ? fallback : textValue;
+    };
+
+    QStringList lines;
+    if (payload.contains("tool_call_id"))
+    {
+        const mcp::json &idNode = payload.at("tool_call_id");
+        const QString idValue = idNode.is_string() ? QString::fromStdString(idNode.get<std::string>())
+                                                   : QString::fromStdString(idNode.dump());
+        lines << toolcallTr(QStringLiteral("toolcall summary id"), QStringLiteral("tool_call_id: %1")).arg(idValue);
+    }
+
+    QString toolName;
+    if (payload.contains("name"))
+    {
+        const mcp::json &nameNode = payload.at("name");
+        toolName = nameNode.is_string() ? QString::fromStdString(nameNode.get<std::string>())
+                                        : QString::fromStdString(nameNode.dump());
+    }
+    else
+    {
+        toolName = toolcallTr(QStringLiteral("toolcall summary missing placeholder"), QStringLiteral("<missing>"));
+    }
+    lines << toolcallTr(QStringLiteral("toolcall summary name"), QStringLiteral("Tool name: %1")).arg(toolName);
+
+    if (payload.contains("arguments"))
+    {
+        const mcp::json &args = payload.at("arguments");
+        if (args.is_null())
+        {
+            lines << toolcallTr(QStringLiteral("toolcall summary args null"), QStringLiteral("arguments: null"));
+        }
+        else if (args.is_object())
+        {
+            QStringList argLines;
+            for (auto it = args.cbegin(); it != args.cend(); ++it)
+            {
+                const QString key = QString::fromStdString(it.key());
+                const QString value = QString::fromStdString(it.value().dump());
+                argLines << toolcallTr(QStringLiteral("toolcall summary arg kv"), QStringLiteral("%1 = %2")).arg(key, value);
+            }
+            if (argLines.isEmpty())
+            {
+                lines << toolcallTr(QStringLiteral("toolcall summary args empty object"), QStringLiteral("arguments: <empty object>"));
+            }
+            else
+            {
+                lines << toolcallTr(QStringLiteral("toolcall summary args detail"), QStringLiteral("Arguments:"));
+                lines << argLines;
+            }
+        }
+        else
+        {
+            lines << toolcallTr(QStringLiteral("toolcall summary args generic"), QStringLiteral("arguments: %1"))
+                         .arg(QString::fromStdString(args.dump()));
+        }
+    }
+    else
+    {
+        lines << toolcallTr(QStringLiteral("toolcall summary args missing"), QStringLiteral("arguments: <missing>"));
+    }
+
+    return lines.join(QStringLiteral("\n"));
+}
+
 // 窗口状态变化处理
 void Widget::changeEvent(QEvent *event)
 {

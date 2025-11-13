@@ -16,6 +16,7 @@ add_executable(
     src/main.cpp src/widget/widget.cpp src/widget/widget_funcs.cpp
     src/widget/widget_link.cpp src/widget/widget_api.cpp src/widget/widget_state.cpp src/widget/widget_date.cpp src/widget/widget_settings.cpp 
     src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_anim.cpp src/widget/terminal_pane.cpp
+    src/widget/toolcall_test_dialog.cpp src/widget/toolcall_test_dialog.h
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp

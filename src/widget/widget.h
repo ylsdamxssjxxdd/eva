@@ -88,6 +88,7 @@ class Widget;
 QT_END_NAMESPACE
 
 class TerminalPane;
+class ToolCallTestDialog;
 
 // Task dispatch for send flow
 enum class ConversationTask
@@ -115,7 +116,10 @@ class Widget : public QWidget
     QString engineerWorkDir;
     bool eventFilter(QObject *obj, QEvent *event) override; // 事件过滤器函数
     // QShortcut *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
-    QHotkey *shortcutF1, *shortcutF2, *shortcutCtrlEnter;
+    QHotkey *shortcutF1 = nullptr;
+    QHotkey *shortcutF2 = nullptr;
+    QHotkey *shortcutF3 = nullptr;
+    QHotkey *shortcutCtrlEnter = nullptr;
     bool checkAudio();                            // 检测音频支持
     void changeEvent(QEvent *event) override;     // 处理窗口状态变化
     void closeEvent(QCloseEvent *event) override; // 关闭事件
@@ -241,6 +245,7 @@ class Widget : public QWidget
 
     // 视觉相关
     CutScreenDialog *cutscreen_dialog;
+    ToolCallTestDialog *toolCallTestDialog_ = nullptr;
 
     // 服务相关（服务模式已移除；本地使用 LocalServerManager 自动启动 llama-server）
     LocalServerManager *serverManager = nullptr; // new: manages local llama.cpp server
@@ -380,7 +385,7 @@ class Widget : public QWidget
     // 工具相关
     void addStopwords();               // 添加额外停止标志
     bool is_load_tool = false;         // 是否挂载了工具
-    mcp::json XMLparser(QString text); // 手搓输出解析器，提取XMLparser
+    mcp::json XMLparser(const QString &text, QStringList *debugLog = nullptr); // 手搓输出解析器，提取XMLparser
     QString tool_result;
     QStringList wait_to_show_images_filepath; // 文生图后待显示图像的图像路径
     QString screen_info;
@@ -561,6 +566,7 @@ class Widget : public QWidget
     void on_set_clicked();                        // 用户点击设置按钮响应
     void onShortcutActivated_F1();                // 用户按下F1键响应
     void onShortcutActivated_F2();                // 用户按下F2键响应
+    void onShortcutActivated_F3();                // 用户按下F3键响应
     void onShortcutActivated_CTRL_ENTER();        // 用户按下CTRL+ENTER键响应
     void recv_qimagepath(QString cut_imagepath_); // 接收传来的图像
     void monitorAudioLevel();                     // 每隔100毫秒刷新一次监视录音
@@ -584,6 +590,9 @@ class Widget : public QWidget
     void loadSkillsAsync();
     void initializeAudioSubsystem();
     bool ensureGlobalSettingsDialog();
+    ToolCallTestDialog *ensureToolCallTestDialog();
+    void handleToolCallTestRequest(const QString &inputText);
+    QString formatToolCallSummary(const mcp::json &payload) const;
     // Send-task helpers
     // Record bar: capture key nodes and map to output document positions
     enum class RecordRole

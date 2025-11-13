@@ -4,6 +4,7 @@
 #include "terminal_pane.h"
 #include "ui_widget.h"
 #include "widget.h"
+#include "toolcall_test_dialog.h"
 #include <QtGlobal>
 #include <QDir>
 #include <QFileInfo>
@@ -293,7 +294,7 @@ void Widget::get_date()
     addStopwords();
 }
 // 手搓输出解析器，提取可能的xml，目前只支持一个参数
-mcp::json Widget::XMLparser(QString text)
+mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
 {
     static const QRegularExpression thinkBlock(QStringLiteral("<think>.*?</think>"),
                                                QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
@@ -302,8 +303,23 @@ mcp::json Widget::XMLparser(QString text)
     static const QRegularExpression leadingFence(QStringLiteral("^```[a-zA-Z0-9_+\\-]*\\s*"));
     static const QRegularExpression trailingFence(QStringLiteral("\\s*```\\s*$"));
 
+    const auto logStep = [&](const QString &line)
+    {
+        if (debugLog) debugLog->append(line);
+    };
+    const auto logText = [&](const QString &key, const QString &fallback) -> QString {
+        const QString textValue = jtr(key);
+        return textValue.isEmpty() ? fallback : textValue;
+    };
+
     QString payload = text;
+    logStep(logText(QStringLiteral("toolcall xml log input length"), QStringLiteral("Input length: %1 chars")).arg(payload.size()));
     payload.remove(thinkBlock);
+    if (payload.size() != text.size())
+    {
+        logStep(logText(QStringLiteral("toolcall xml log think stripped"), QStringLiteral("Removed <think> block, remaining length: %1"))
+                    .arg(payload.size()));
+    }
 
     QStringList tagCandidates;
     QSet<QString> deduped;
@@ -317,15 +333,27 @@ mcp::json Widget::XMLparser(QString text)
         deduped.insert(normalized);
         tagCandidates.append(captured);
     }
+    logStep(logText(QStringLiteral("toolcall xml log tag count"), QStringLiteral("Found <tool_call> candidates: %1")).arg(tagCandidates.size()));
 
     mcp::json result; // empty by default
     auto parseCandidateList = [&](const QStringList &list, const QString &sourceLabel) -> bool
     {
+        if (list.isEmpty())
+        {
+            logStep(logText(QStringLiteral("toolcall xml log list empty"), QStringLiteral("%1 candidates empty, skip.")).arg(sourceLabel));
+            return false;
+        }
+        logStep(logText(QStringLiteral("toolcall xml log list try"), QStringLiteral("Trying %1 candidates: %2"))
+                    .arg(sourceLabel)
+                    .arg(list.size()));
         for (int idx = list.size() - 1; idx >= 0; --idx)
         {
             QString content = list.at(idx).trimmed();
             if (content.isEmpty())
             {
+                logStep(logText(QStringLiteral("toolcall xml log slot empty"), QStringLiteral("%1 candidate #%2 empty"))
+                            .arg(sourceLabel)
+                            .arg(idx + 1));
                 continue;
             }
 
@@ -368,11 +396,18 @@ mcp::json Widget::XMLparser(QString text)
             {
                 result = mcp::json::parse(jsonBytes.constData(), jsonBytes.constData() + jsonBytes.size());
                 qDebug() << "parsed tool_call from" << sourceLabel << "slot" << idx;
+                logStep(logText(QStringLiteral("toolcall xml log parse success"), QStringLiteral("Parsed %1 candidate #%2"))
+                            .arg(sourceLabel)
+                            .arg(idx + 1));
                 return true;
             }
             catch (const std::exception &e)
             {
                 qCritical() << "tool JSON parse error from" << sourceLabel << "slot" << idx << ":" << e.what();
+                logStep(logText(QStringLiteral("toolcall xml log parse error"), QStringLiteral("%1 candidate #%2 parse error: %3"))
+                            .arg(sourceLabel)
+                            .arg(idx + 1)
+                            .arg(QString::fromUtf8(e.what())));
             }
         }
         return false;
@@ -385,6 +420,7 @@ mcp::json Widget::XMLparser(QString text)
 
     QStringList fallbackCandidates;
     const QStringList looseObjects = collectLooseJsonObjects(payload);
+    logStep(logText(QStringLiteral("toolcall xml log loose count"), QStringLiteral("Loose JSON fragments: %1")).arg(looseObjects.size()));
     for (const QString &obj : looseObjects)
     {
         const QString normalized = obj.trimmed();
@@ -401,6 +437,9 @@ mcp::json Widget::XMLparser(QString text)
     if (!fallbackCandidates.isEmpty())
     {
         qWarning() << "tool_call tags missing or invalid, attempting loose JSON fallback";
+        logStep(logText(QStringLiteral("toolcall xml log fallback attempt"),
+                        QStringLiteral("Missing <tool_call> tags, trying loose candidates: %1"))
+                    .arg(fallbackCandidates.size()));
         if (parseCandidateList(fallbackCandidates, QStringLiteral("fallback")))
         {
             return result;
@@ -408,6 +447,7 @@ mcp::json Widget::XMLparser(QString text)
     }
 
     qDebug() << "no valid tool_call found";
+    logStep(logText(QStringLiteral("toolcall xml log none found"), QStringLiteral("No usable tool-call snippet found.")));
     return result;
 }
 // 构建额外指令
@@ -1062,6 +1102,7 @@ void Widget::apply_language(int language_flag_)
     // Re-apply device/backend UI hint so that auto(effective) suffix stays visible after first boot.
     refreshDeviceBackendUI();
     updateGlobalSettingsTranslations();
+    if (toolCallTestDialog_) toolCallTestDialog_->refreshTranslations();
 }
 // 创建临时文件夹EVA_TEMP
 bool Widget::createTempDirectory(const QString &path)
