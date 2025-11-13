@@ -13,6 +13,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSet>
+#include <QString>
 #include <QObject>
 #include <QUrl>
 
@@ -311,11 +313,15 @@ class McpToolManager
         return it == clients_.end() ? kEmpty : it->second.tools;
     }
 
-    bool refreshAllTools()
+    bool refreshAllTools(const QSet<QString> *allowedServices = nullptr)
     {
         bool changed = false;
         for (auto &service : clients_)
         {
+            if (allowedServices && !allowedServices->contains(QString::fromStdString(service.first)))
+            {
+                continue;
+            }
             try
             {
                 const QJsonArray tools = service.second.client->listTools();

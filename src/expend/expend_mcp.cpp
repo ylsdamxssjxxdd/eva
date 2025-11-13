@@ -60,7 +60,7 @@ void Expend::on_mcp_server_disconnect_pushButton_clicked()
     mcpDisabledServices_.clear();
     mcpEnabledCache_.clear();
     if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
-    updateMcpAutoRefreshGate(false);
+    notifyMcpEnabledServicesChanged();
     emit expend2mcp_disconnectAll();
 }
 
@@ -690,7 +690,7 @@ void Expend::populateMcpToolEntries()
                     emit expend2ui_mcpToolsChanged();
                     ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("service %1 %2")
                                                                            .arg(serviceName, enabled ? QStringLiteral("enabled") : QStringLiteral("disabled")));
-                    updateMcpAutoRefreshGate(hasEnabledMcpService());
+                    notifyMcpEnabledServicesChanged();
                 });
     }
 
@@ -708,7 +708,7 @@ void Expend::populateMcpToolEntries()
         mcpEnabledCache_ = currentSelection;
     }
 
-    updateMcpAutoRefreshGate(hasEnabledMcpService());
+    notifyMcpEnabledServicesChanged();
 }
 
 void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
@@ -722,24 +722,25 @@ void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
     }
 }
 
-bool Expend::hasEnabledMcpService() const
+QStringList Expend::collectEnabledMcpServices() const
 {
-    if (mcpServiceSelections_.isEmpty()) return false;
+    QStringList services;
+    services.reserve(mcpServiceSelections_.size());
     for (auto it = mcpServiceSelections_.cbegin(); it != mcpServiceSelections_.cend(); ++it)
     {
-        if (!mcpDisabledServices_.contains(it.key()))
-        {
-            return true;
-        }
+        if (mcpDisabledServices_.contains(it.key())) continue;
+        services << it.key();
     }
-    return false;
+    services.sort();
+    return services;
 }
 
-void Expend::updateMcpAutoRefreshGate(bool enabled)
+void Expend::notifyMcpEnabledServicesChanged()
 {
-    if (mcpAutoRefreshGate_ == enabled) return;
-    mcpAutoRefreshGate_ = enabled;
-    emit expend2mcp_setAutoRefreshEnabled(enabled);
+    const QStringList enabled = collectEnabledMcpServices();
+    if (enabled == mcpEnabledServicesSnapshot_) return;
+    mcpEnabledServicesSnapshot_ = enabled;
+    emit expend2mcp_updateEnabledServices(enabled);
 }
 
 void Expend::setupMcpConfigPersistence()

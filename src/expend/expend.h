@@ -119,7 +119,7 @@ class Expend : public QWidget
   signals:
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
     void expend2ui_mcpToolsChanged();
-    void expend2mcp_setAutoRefreshEnabled(bool enabled);
+    void expend2mcp_updateEnabledServices(QStringList enabledServices);
 
   public slots:
     void recv_language(int language_flag_);      // 传递语言标志
@@ -481,8 +481,8 @@ class Expend : public QWidget
   private:
     void populateMcpToolEntries();
     void updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded);
-    bool hasEnabledMcpService() const;
-    void updateMcpAutoRefreshGate(bool enabled);
+    QStringList collectEnabledMcpServices() const;
+    void notifyMcpEnabledServicesChanged();
     void setupMcpConfigPersistence();
     void flushMcpConfigToDisk();
     void persistMcpConfigImmediately();
@@ -496,7 +496,7 @@ class Expend : public QWidget
     bool mcpTreeSignalsInitialized_ = false;
     QTimer *mcpConfigSaveTimer_ = nullptr;
     bool mcpConfigDirty_ = false;
-    bool mcpAutoRefreshGate_ = false;
+    QStringList mcpEnabledServicesSnapshot_;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state

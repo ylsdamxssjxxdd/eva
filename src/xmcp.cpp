@@ -8,7 +8,7 @@
 
 namespace
 {
-bool syncSelectedMcpTools(const mcp::json &allTools)
+bool syncSelectedMcpTools(const mcp::json &allTools, const QSet<QString> *enabledFilter)
 {
     if (!allTools.is_array()) return false;
 
@@ -17,10 +17,11 @@ bool syncSelectedMcpTools(const mcp::json &allTools)
     for (const auto &tool : allTools)
     {
         if (!tool.is_object()) continue;
-        const std::string service = get_string_safely(tool, "service");
-        const std::string name = get_string_safely(tool, "name");
-        if (service.empty() || name.empty()) continue;
-        const std::string key = service + "@" + name;
+        const QString serviceName = QString::fromStdString(get_string_safely(tool, "service"));
+        const QString toolName = QString::fromStdString(get_string_safely(tool, "name"));
+        if (serviceName.isEmpty() || toolName.isEmpty()) continue;
+        if (enabledFilter && !enabledFilter->contains(serviceName)) continue;
+        const std::string key = (serviceName + "@" + toolName).toStdString();
         available.emplace(key, &tool);
     }
 
@@ -62,6 +63,7 @@ bool syncSelectedMcpTools(const mcp::json &allTools)
         const mcp::json *tool = pair.second;
         if (!tool || !tool->is_object()) continue;
         const QString service = QString::fromStdString(get_string_safely(*tool, "service"));
+        if (enabledFilter && !enabledFilter->contains(service)) continue;
         const QString toolName = QString::fromStdString(get_string_safely(*tool, "name"));
         if (service.isEmpty() || toolName.isEmpty()) continue;
         const QString description = QString::fromStdString(get_string_safely(*tool, "description"));
@@ -161,7 +163,8 @@ void xMcp::addService(const QString mcp_json_str)
     }
     // 获取所有可用工具信息
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
-    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     mcp::json servers = get_json_object_safely(config, "mcpServers");
     if (ok_num == static_cast<int>(servers.size())) { emit addService_over(MCP_CONNECT_LINK); }
@@ -221,7 +224,8 @@ void xMcp::callList(quint64 invocationId)
 {
     markActivity();
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
-    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     emit toolsRefreshed();
     emit callList_over(invocationId);
@@ -230,9 +234,15 @@ void xMcp::callList(quint64 invocationId)
 void xMcp::refreshTools()
 {
     markActivity();
-    const bool updated = toolManager.refreshAllTools();
+    if (serviceFilterActive_ && enabledServices_.isEmpty())
+    {
+        emit mcp_message(QStringLiteral("no enabled MCP services; refresh skipped"));
+        return;
+    }
+    const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
+    const bool updated = toolManager.refreshAllTools(filter);
     MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
-    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL);
+    syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     emit toolsRefreshed();
     if (updated)
@@ -256,13 +266,31 @@ void xMcp::disconnectAll()
     emit mcp_message(QStringLiteral("all services disconnected"));
 }
 
-void xMcp::setAutoRefreshEnabled(bool enabled)
+void xMcp::setEnabledServices(const QStringList &services)
 {
-    if (autoRefreshAllowed_ == enabled) return;
-    autoRefreshAllowed_ = enabled;
-    if (!autoRefreshAllowed_)
+    serviceFilterActive_ = true;
+    QSet<QString> normalized;
+    normalized.reserve(services.size());
+    for (const QString &service : services)
     {
-        idleTimer_.restart();
+        if (service.isEmpty()) continue;
+        normalized.insert(service);
+    }
+    const bool allow = !normalized.isEmpty();
+    enabledServices_ = std::move(normalized);
+    if (autoRefreshAllowed_ != allow)
+    {
+        autoRefreshAllowed_ = allow;
+        if (!allow)
+        {
+            idleTimer_.restart();
+        }
+    }
+
+    const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
+    if (syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter))
+    {
+        emit toolsRefreshed();
     }
 }
 
