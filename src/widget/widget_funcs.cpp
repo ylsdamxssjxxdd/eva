@@ -1058,6 +1058,9 @@ void Widget::apply_language(int language_flag_)
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(ui_SETTINGS.top_k));
     settings_ui->topk_slider->setToolTip(jtr("top_k_label_tooltip"));
     settings_ui->topk_label->setToolTip(jtr("top_k_label_tooltip"));
+    if (settings_ui->reasoning_label)
+        settings_ui->reasoning_label->setText(jtr("reasoning effort"));
+    rebuildReasoningCombo();
     npredict_change();
     settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(ui_SETTINGS.hid_parallel));
     settings_ui->parallel_slider->setToolTip(jtr("parallel_label_tooltip"));

@@ -296,6 +296,7 @@ class Widget : public QWidget
 
     // 设置按钮相关
     void set_SetDialog(); // 设置设置选项
+    void rebuildReasoningCombo();
     Ui::Settings_Dialog_Ui *settings_ui;
     QDialog *settings_dialog;
     QString deviceLabelBaseText; // “推理设备”标签的原始文本，用于 auto 提示拼接

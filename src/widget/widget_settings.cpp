@@ -79,39 +79,18 @@ void Widget::set_SetDialog()
     settings_ui->topp_slider->setVisible(false);
     settings_ui->topp_slider->setEnabled(false);
     // 推理/思考等级
+    rebuildReasoningCombo();
+    auto reasoningUpdater = [this]()
+    {
+        if (!settings_ui || !settings_ui->reasoning_label) return;
+        settings_ui->reasoning_label->setText(jtr("reasoning effort"));
+    };
+    reasoningUpdater();
     if (settings_ui->reasoning_comboBox)
     {
-        struct ReasoningOption
-        {
-            const char *code;
-            const char *labelKey;
-        };
-        const QVector<ReasoningOption> options = {
-            {"off", "reasoning option off"},
-            {"minimal", "reasoning option minimal"},
-            {"low", "reasoning option low"},
-            {"medium", "reasoning option medium"},
-            {"high", "reasoning option high"},
-            {"auto", "reasoning option auto"}};
-        settings_ui->reasoning_comboBox->clear();
-        for (const auto &opt : options)
-        {
-            settings_ui->reasoning_comboBox->addItem(jtr(opt.labelKey), QString::fromUtf8(opt.code));
-        }
-        const QString normalized = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
-        int idx = settings_ui->reasoning_comboBox->findData(normalized);
-        if (idx < 0) idx = 0;
-        settings_ui->reasoning_comboBox->setCurrentIndex(idx);
-        settings_ui->reasoning_comboBox->setToolTip(jtr("reasoning effort note"));
-        auto reasoningUpdater = [this]()
-        {
-            if (!settings_ui || !settings_ui->reasoning_label) return;
-            settings_ui->reasoning_label->setText(jtr("reasoning effort"));
-        };
-        reasoningUpdater();
         connect(settings_ui->reasoning_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                 [reasoningUpdater](int) mutable
-                { reasoningUpdater(); });
+                { reasoningUpdater(); }, Qt::UniqueConnection);
     }
     // 最大输出长度
     settings_ui->npredict_spin->setRange(1, 99999);
@@ -217,6 +196,39 @@ void Widget::set_SetDialog()
     connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
 
     settings_dialog->setWindowTitle(jtr("set"));
+}
+
+void Widget::rebuildReasoningCombo()
+{
+    if (!settings_ui || !settings_ui->reasoning_comboBox) return;
+    struct ReasoningOption
+    {
+        const char *code;
+        const char *labelKey;
+    };
+    static const QVector<ReasoningOption> options = {
+        {"off", "reasoning option off"},
+        {"minimal", "reasoning option minimal"},
+        {"low", "reasoning option low"},
+        {"medium", "reasoning option medium"},
+        {"high", "reasoning option high"},
+        {"auto", "reasoning option auto"}};
+
+    const QString currentData = settings_ui->reasoning_comboBox->currentData().toString();
+    QString target = currentData.isEmpty() ? ui_SETTINGS.reasoning_effort : currentData;
+    target = sanitizeReasoningEffort(target);
+
+    QSignalBlocker blocker(settings_ui->reasoning_comboBox);
+    settings_ui->reasoning_comboBox->clear();
+    for (const auto &opt : options)
+    {
+        settings_ui->reasoning_comboBox->addItem(jtr(opt.labelKey), QString::fromUtf8(opt.code));
+    }
+    int idx = settings_ui->reasoning_comboBox->findData(target);
+    if (idx < 0) idx = settings_ui->reasoning_comboBox->findData(QStringLiteral("auto"));
+    if (idx < 0) idx = 0;
+    settings_ui->reasoning_comboBox->setCurrentIndex(qBound(0, idx, settings_ui->reasoning_comboBox->count() - 1));
+    settings_ui->reasoning_comboBox->setToolTip(jtr("reasoning effort note"));
 }
 
 void Widget::setupGlobalSettingsPanel()
