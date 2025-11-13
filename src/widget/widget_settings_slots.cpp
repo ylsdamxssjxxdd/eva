@@ -1,0 +1,203 @@
+#include "widget.h"
+#include "ui_widget.h"
+
+void Widget::temp_change()
+{
+    settings_ui->temp_label->setText(jtr("temperature") + " " + QString::number(settings_ui->temp_slider->value() / 100.0));
+}
+
+void Widget::ngl_change()
+{
+    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(settings_ui->ngl_slider->value()));
+}
+
+void Widget::nctx_change()
+{
+    settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value()));
+}
+
+void Widget::repeat_change()
+{
+    settings_ui->repeat_label->setText(jtr("repeat") + " " + QString::number(settings_ui->repeat_slider->value() / 100.0));
+}
+
+void Widget::topk_change()
+{
+    settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
+}
+
+void Widget::topp_change()
+{
+    const double val = settings_ui->topp_slider->value() / 100.0;
+    settings_ui->topp_label->setText("TOP_P " + QString::number(val));
+    settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
+                                            .arg(QString::number(val, 'f', 2)));
+}
+
+void Widget::npredict_change()
+{
+    const int value = settings_ui->npredict_spin->value();
+    const QString text = jtr("npredict") + " " + QString::number(value);
+    settings_ui->npredict_label->setText(text);
+    settings_ui->npredict_label->setToolTip(text);
+    settings_ui->npredict_spin->setToolTip(text);
+}
+
+void Widget::parallel_change()
+{
+    settings_ui->parallel_label->setText(jtr("parallel") + " " + QString::number(settings_ui->parallel_slider->value()));
+}
+
+void Widget::nthread_change()
+{
+    settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
+}
+
+void Widget::complete_change()
+{
+    // 选中则禁止约定输入
+    if (settings_ui->complete_btn->isChecked())
+    {
+        settings_ui->sample_box->setEnabled(1);
+
+        settings_ui->nthread_slider->setEnabled(1);
+        settings_ui->nctx_slider->setEnabled(1);
+        // 端口设置始终可用（服务状态已移除，本地后端自动启动）
+        settings_ui->port_lineEdit->setEnabled(1);
+    }
+}
+
+void Widget::chat_change()
+{
+    if (settings_ui->chat_btn->isChecked())
+    {
+        settings_ui->sample_box->setEnabled(1);
+
+        settings_ui->nctx_slider->setEnabled(1);
+        settings_ui->nthread_slider->setEnabled(1);
+        settings_ui->port_lineEdit->setEnabled(1);
+    }
+}
+
+void Widget::web_change()
+{
+    // 服务状态已移除
+}
+
+void Widget::prompt_template_change()
+{
+    if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set1"))
+    {
+        date_ui->date_prompt_TextEdit->setEnabled(1);
+
+        date_ui->date_prompt_TextEdit->setPlainText(custom1_date_system);
+    }
+    else if (date_ui->chattemplate_comboBox->currentText() == jtr("custom set2"))
+    {
+        date_ui->date_prompt_TextEdit->setEnabled(1);
+
+        date_ui->date_prompt_TextEdit->setPlainText(custom2_date_system);
+    }
+    else
+    {
+        date_ui->date_prompt_TextEdit->setPlainText(date_map[date_ui->chattemplate_comboBox->currentText()].date_prompt);
+        date_ui->date_prompt_TextEdit->setEnabled(0);
+    }
+}
+
+void Widget::chooseLorapath()
+{
+    // 用户选择模型位置
+    currentpath = customOpenfile(currentpath, jtr("choose lora model"), "(*.bin *.gguf)");
+
+    settings_ui->lora_LineEdit->setText(currentpath);
+}
+
+void Widget::chooseMmprojpath()
+{
+    // 用户选择模型位置
+    currentpath = customOpenfile(currentpath, jtr("choose mmproj model"), "(*.bin *.gguf)");
+
+    settings_ui->mmproj_LineEdit->setText(currentpath);
+}
+
+void Widget::tool_change()
+{
+    QObject *senderObj = sender(); // gets the object that sent the signal
+
+    // 如果是软件工程师则查询python环境
+    if (QCheckBox *checkbox = qobject_cast<QCheckBox *>(senderObj))
+    {
+        if (checkbox == date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+        {
+            triggerEngineerEnvRefresh(true);
+            // If a work dir was chosen previously, reuse it silently
+            const QString fallback = QDir(applicationDirPath).filePath("EVA_WORK");
+            const QString current = engineerWorkDir.isEmpty() ? fallback : engineerWorkDir;
+            if (engineerWorkDir.isEmpty())
+            {
+                // Prompt only when not set before (or path missing)
+                QString picked = QFileDialog::getExistingDirectory(this, jtr("choose work dir"), current,
+                                                                   QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+                if (!picked.isEmpty())
+                {
+                    setEngineerWorkDir(picked);
+                    // Persist immediately to avoid losing selection on crash
+                    auto_save_user();
+                }
+                else // user canceled and not set previously -> stick to default silently
+                {
+                    setEngineerWorkDir(current);
+                    auto_save_user();
+                }
+            }
+            else
+            {
+                // Already determined -> just propagate to tool to ensure it's in sync
+                emit ui2tool_workdir(engineerWorkDir);
+            }
+
+            // 显示“工程师工作目录”行（在约定对话框）并更新显示
+            if (date_ui->date_engineer_workdir_LineEdit)
+            {
+                date_ui->date_engineer_workdir_label->setVisible(true);
+                date_ui->date_engineer_workdir_LineEdit->setVisible(true);
+                date_ui->date_engineer_workdir_browse->setVisible(true);
+                date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+            }
+        }
+    }
+
+    // 取消工程师挂载时隐藏该行
+    if (QCheckBox *checkbox2 = qobject_cast<QCheckBox *>(senderObj))
+    {
+        if (checkbox2 == date_ui->engineer_checkbox && !date_ui->engineer_checkbox->isChecked())
+        {
+            if (date_ui->date_engineer_workdir_LineEdit)
+            {
+                date_ui->date_engineer_workdir_label->setVisible(false);
+                date_ui->date_engineer_workdir_LineEdit->setVisible(false);
+                date_ui->date_engineer_workdir_browse->setVisible(false);
+            }
+        }
+    }
+
+    // 判断是否挂载了工具
+    if (date_ui->calculator_checkbox->isChecked() || date_ui->engineer_checkbox->isChecked() || date_ui->MCPtools_checkbox->isChecked() || date_ui->knowledge_checkbox->isChecked() || date_ui->controller_checkbox->isChecked() || date_ui->stablediffusion_checkbox->isChecked())
+    {
+        if (is_load_tool == false)
+        {
+            reflash_state("ui:" + jtr("enable output parser"), SIGNAL_SIGNAL);
+        }
+        is_load_tool = true;
+    }
+    else
+    {
+        if (is_load_tool == true)
+        {
+            reflash_state("ui:" + jtr("disable output parser"), SIGNAL_SIGNAL);
+        }
+        is_load_tool = false;
+    }
+    ui_extra_prompt = create_extra_prompt();
+}

@@ -16,9 +16,30 @@ add_executable(
     ${EVA_TARGET}
     ${BODY_PACK_EXE}
     ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
-    src/main.cpp src/widget/widget.cpp src/widget/widget_funcs.cpp
-    src/widget/widget_link.cpp src/widget/widget_api.cpp src/widget/widget_state.cpp src/widget/widget_date.cpp src/widget/widget_settings.cpp 
-    src/widget/widget_slots.cpp src/widget/widget_output.cpp src/widget/widget_anim.cpp src/widget/terminal_pane.cpp
+    src/main.cpp
+    src/widget/widget.cpp
+    src/widget/widget_session.cpp
+    src/widget/widget_toolflow.cpp
+    src/widget/widget_records.cpp
+    src/widget/widget_skills.cpp
+    src/widget/widget_engineer.cpp
+    src/widget/widget_media.cpp
+    src/widget/widget_locale.cpp
+    src/widget/widget_history.cpp
+    src/widget/widget_settings_slots.cpp
+    src/widget/widget_shortcuts.cpp
+    src/widget/widget_backend.cpp
+    src/widget/widget_documents.cpp
+    src/widget/widget_funcs.cpp
+    src/widget/widget_link.cpp
+    src/widget/widget_api.cpp
+    src/widget/widget_state.cpp
+    src/widget/widget_date.cpp
+    src/widget/widget_settings.cpp 
+    src/widget/widget_slots.cpp
+    src/widget/widget_output.cpp
+    src/widget/widget_anim.cpp
+    src/widget/terminal_pane.cpp
     src/widget/toolcall_test_dialog.cpp src/widget/toolcall_test_dialog.h
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_eval.cpp 
