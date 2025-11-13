@@ -4,6 +4,23 @@
 #include <QSslError>
 #endif
 
+namespace
+{
+void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort)
+{
+    const QString normalized = sanitizeReasoningEffort(effort);
+    if (!isReasoningEffortActive(normalized)) return;
+    QString finalEffort = normalized;
+    if (finalEffort == QStringLiteral("auto"))
+    {
+        finalEffort = QStringLiteral("medium");
+    }
+    QJsonObject reasoning;
+    reasoning.insert(QStringLiteral("effort"), finalEffort);
+    json.insert(QStringLiteral("reasoning"), reasoning);
+}
+} // namespace
+
 xNet::xNet()
 {
     // Defer creation of network objects until we are in worker thread
@@ -306,11 +323,8 @@ void xNet::run()
                     {
                         // try: top-level { content, stop }
                         QString content;
-                        bool stop = false;
                         if (obj.contains("content"))
                             content = obj.value("content").toString();
-                        if (obj.contains("stop"))
-                            stop = obj.value("stop").toBool();
 
                         // fallback: nested { completion, tokens }
                         if (content.isEmpty() && obj.contains("completion"))
@@ -323,9 +337,7 @@ void xNet::run()
                                 if (first.contains("text") && first.value("text").isString()) {
                                     content = first.value("text").toString();
                                 }
-                                if (first.contains("finish_reason") && first.value("finish_reason").isString()) {
-                                    stop = (first.value("finish_reason").toString() == "stop");
-                                }
+                                // finish_reason may still be useful for future ABIs, ignore for now
                             }
                         }
 
@@ -607,6 +619,7 @@ QByteArray xNet::createChatBody()
     json.insert("messages", compatMsgs);
     // Reuse llama.cpp server slot KV cache if available
     if (__isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort);
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
@@ -671,6 +684,7 @@ QByteArray xNet::createCompleteBody()
         json.insert("n_predict", cappedPredict2);
     }
     if (__isLocal2 && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort);
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);

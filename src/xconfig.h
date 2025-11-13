@@ -16,6 +16,7 @@
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QThread>
+#include <QStringList>
 #include <QWidget>
 #include <array>
 #include <iostream>
@@ -191,6 +192,7 @@ struct SETTINGS
     QString lorapath = "";
     QString mmprojpath = "";
     bool complete_mode = false;
+    QString reasoning_effort = QStringLiteral("auto");
 
     // 隐藏的设置
     int hid_npredict = DEFAULT_NPREDICT;
@@ -236,6 +238,7 @@ struct ENDPOINT_DATA
     int top_k;                // 采样 top_k
     double top_p;             // 采样 top_p，0~1
     int n_predict;            // 最大生成 Token
+    QString reasoning_effort; // 推理强度（off/minimal/low/medium/high/auto）
     QStringList stopwords;    // 停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
 };
@@ -704,6 +707,20 @@ inline std::vector<mcp::json> get_json_array_safely(const mcp::json &json_, cons
     {
         return {};
     }
+}
+
+inline QString sanitizeReasoningEffort(const QString &value)
+{
+    static const QStringList allowed = {QStringLiteral("off"), QStringLiteral("minimal"), QStringLiteral("low"),
+                                        QStringLiteral("medium"), QStringLiteral("high"), QStringLiteral("auto")};
+    const QString normalized = value.trimmed().toLower();
+    return allowed.contains(normalized) ? normalized : QStringLiteral("auto");
+}
+
+inline bool isReasoningEffortActive(const QString &value)
+{
+    const QString normalized = sanitizeReasoningEffort(value);
+    return !normalized.isEmpty() && normalized != QStringLiteral("off");
 }
 
 // 颜色

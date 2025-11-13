@@ -244,6 +244,14 @@ void Widget::get_set()
     updateLazyCountdownLabel();
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
     ui_SETTINGS.hid_npredict = qBound(1, settings_ui->npredict_spin->value(), 99999);
+    if (settings_ui->reasoning_comboBox)
+    {
+        ui_SETTINGS.reasoning_effort = sanitizeReasoningEffort(settings_ui->reasoning_comboBox->currentData().toString());
+    }
+    else
+    {
+        ui_SETTINGS.reasoning_effort = QStringLiteral("auto");
+    }
     ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
     if (settings_ui->chat_btn->isChecked())
     {
@@ -1177,6 +1185,7 @@ void Widget::auto_save_user()
     settings.setValue("hid_use_mlock", ui_SETTINGS.hid_use_mlock);
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
+    settings.setValue("reasoning_effort", ui_SETTINGS.reasoning_effort);
     settings.setValue("port", ui_port);                     // 服务端口
     settings.setValue("device_backend", ui_device_backend); // 推理设备auto/cpu/cuda/vulkan/opencl
     settings.setValue("lazy_unload_minutes", lazyUnloadMs_ / 60000); // 惰性卸载(分钟)

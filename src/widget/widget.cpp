@@ -768,6 +768,7 @@ ENDPOINT_DATA Widget::prepareEndpointData()
     d.top_k = ui_SETTINGS.top_k;
     d.top_p = ui_SETTINGS.hid_top_p;
     d.n_predict = ui_SETTINGS.hid_npredict;
+    d.reasoning_effort = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
     d.messagesArray = ui_messagesArray;
     d.id_slot = currentSlotId_;
     return d;
@@ -1840,6 +1841,13 @@ void Widget::on_set_clicked()
         const double val = settings_ui->topp_slider->value() / 100.0;
         settings_ui->topp_label->setText("TOP_P " + QString::number(val));
         settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1").arg(QString::number(val, 'f', 2)));
+    }
+    if (settings_ui->reasoning_comboBox)
+    {
+        const QString normalized = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
+        int idx = settings_ui->reasoning_comboBox->findData(normalized);
+        if (idx < 0) idx = 0;
+        settings_ui->reasoning_comboBox->setCurrentIndex(idx);
     }
     settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
     npredict_change();

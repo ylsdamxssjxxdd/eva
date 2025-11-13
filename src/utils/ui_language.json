@@ -297,6 +297,38 @@
             "采样参数",
             "sample set"
         ],
+        "reasoning effort": [
+            "思考等级",
+            "Reasoning effort"
+        ],
+        "reasoning effort note": [
+            "仅 o1、DeepSeek-R1、Qwen-QwQ、Doubao reasoning、Gemini 等推理模型会读取该设置，其他模型会自动忽略。",
+            "Only reasoning-capable models (o1, DeepSeek R1, Qwen QwQ, Doubao reasoning, Gemini, etc.) honor this setting; other models ignore it."
+        ],
+        "reasoning option off": [
+            "关闭",
+            "Off"
+        ],
+        "reasoning option minimal": [
+            "极简",
+            "Minimal"
+        ],
+        "reasoning option low": [
+            "低",
+            "Low"
+        ],
+        "reasoning option medium": [
+            "中",
+            "Medium"
+        ],
+        "reasoning option high": [
+            "高",
+            "High"
+        ],
+        "reasoning option auto": [
+            "自动",
+            "Auto (dynamic)"
+        ],
         "decode set": [
             "解码参数",
             "decode set"

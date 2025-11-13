@@ -148,7 +148,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
-         <widget class="QLabel" name="topk_label">
+        <widget class="QLabel" name="topk_label">
           <property name="minimumSize">
            <size>
             <width>120</width>
@@ -160,6 +160,9 @@
             <width>120</width>
             <height>24</height>
            </size>
+          </property>
+          <property name="visible">
+           <bool>false</bool>
           </property>
           <property name="text">
            <string>TOP_K</string>
@@ -180,6 +183,9 @@
             <height>24</height>
            </size>
           </property>
+          <property name="visible">
+           <bool>false</bool>
+          </property>
           <property name="pageStep">
            <number>1</number>
           </property>
@@ -191,9 +197,9 @@
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_topp">
+      <layout class="QHBoxLayout" name="horizontalLayout_topp">
         <item>
-         <widget class="QLabel" name="topp_label">
+        <widget class="QLabel" name="topp_label">
           <property name="minimumSize">
            <size>
             <width>120</width>
@@ -205,6 +211,9 @@
             <width>120</width>
             <height>24</height>
            </size>
+          </property>
+          <property name="visible">
+           <bool>false</bool>
           </property>
           <property name="text">
            <string>TOP_P</string>
@@ -225,11 +234,53 @@
             <height>24</height>
            </size>
           </property>
+          <property name="visible">
+           <bool>false</bool>
+          </property>
           <property name="pageStep">
            <number>1</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="reasoningLayout">
+        <item>
+         <widget class="QLabel" name="reasoning_label">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>24</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>24</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>思考等级</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="reasoning_comboBox">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>24</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>24</height>
+           </size>
           </property>
          </widget>
         </item>

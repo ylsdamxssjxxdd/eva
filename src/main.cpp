@@ -87,6 +87,8 @@ static inline void createDesktopShortcut(QString appPath)
     {
         qWarning() << "Failed to write desktop shortcut";
     }
+#else
+    Q_UNUSED(appPath);
 #endif
 }
 
@@ -592,6 +594,7 @@ int main(int argc, char *argv[])
         }
         w.settings_ui->topk_slider->setValue(settings.value("top_k", DEFAULT_TOP_K).toInt());
         // 采样：top_p（作为隐藏参数持久化；此处提供显式滑块以便 LINK 模式也可调整）
+        double topp = DEFAULT_TOP_P;
         {
             // Prefer string value; then numeric; then legacy percent
             bool ok = false;
@@ -600,7 +603,6 @@ int main(int argc, char *argv[])
             const bool str_valid = ok && (strv > 0.0 && strv <= 1.0);
             const double num = settings.value("hid_top_p", DEFAULT_TOP_P).toDouble();
             const bool num_valid = (num > 0.0 && num <= 1.0);
-            double topp;
             if (str_valid)
                 topp = strv;
             else if (num_valid)
@@ -610,7 +612,18 @@ int main(int argc, char *argv[])
                 const int perc = settings.value("hid_top_p_percent", int(DEFAULT_TOP_P * 100)).toInt();
                 topp = qBound(0, perc, 100) / 100.0;
             }
-            w.settings_ui->topp_slider->setValue(qBound(0, qRound(topp * 100.0), 100));
+        }
+        w.settings_ui->topp_slider->setValue(qBound(0, qRound(topp * 100.0), 100));
+
+        {
+            const QString reasoning = sanitizeReasoningEffort(settings.value("reasoning_effort", QStringLiteral("auto")).toString());
+            w.ui_SETTINGS.reasoning_effort = reasoning;
+            if (w.settings_ui->reasoning_comboBox)
+            {
+                int idx = w.settings_ui->reasoning_comboBox->findData(reasoning);
+                if (idx < 0) idx = 0;
+                w.settings_ui->reasoning_comboBox->setCurrentIndex(idx);
+            }
         }
         w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
         w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());

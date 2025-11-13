@@ -217,6 +217,7 @@ ENDPOINT_DATA Expend::makeBaseData(double temp, int npredict)
     d.top_k = eval_settings.top_k;
     d.top_p = eval_settings.hid_top_p;
     d.n_predict = npredict;
+    d.reasoning_effort = sanitizeReasoningEffort(eval_settings.reasoning_effort);
     d.stopwords = QStringList();
     d.id_slot = -1;
     return d;

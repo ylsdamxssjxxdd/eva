@@ -11,6 +11,7 @@
 #include <QSpinBox>
 #include <QSize>
 #include <QVBoxLayout>
+#include <QVector>
 
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
@@ -63,6 +64,9 @@ void Widget::set_SetDialog()
     settings_ui->topk_slider->setValue(ui_SETTINGS.top_k);
     settings_ui->topk_label->setText(jtr("top_k") + " " + QString::number(settings_ui->topk_slider->value()));
     connect(settings_ui->topk_slider, &QSlider::valueChanged, this, &Widget::topk_change);
+    settings_ui->topk_label->setVisible(false);
+    settings_ui->topk_slider->setVisible(false);
+    settings_ui->topk_slider->setEnabled(false);
     // TOP_P 控制（采样）
     settings_ui->topp_slider->setRange(0, 100);
     settings_ui->topp_slider->setValue(qRound(ui_SETTINGS.hid_top_p * 100.0));
@@ -71,6 +75,44 @@ void Widget::set_SetDialog()
     settings_ui->topp_label->setToolTip(QString::fromUtf8("核采样阈值（top_p），范围 0.00–1.00；当前：%1")
                                             .arg(QString::number(settings_ui->topp_slider->value() / 100.0, 'f', 2)));
     connect(settings_ui->topp_slider, &QSlider::valueChanged, this, &Widget::topp_change);
+    settings_ui->topp_label->setVisible(false);
+    settings_ui->topp_slider->setVisible(false);
+    settings_ui->topp_slider->setEnabled(false);
+    // 推理/思考等级
+    if (settings_ui->reasoning_comboBox)
+    {
+        struct ReasoningOption
+        {
+            const char *code;
+            const char *labelKey;
+        };
+        const QVector<ReasoningOption> options = {
+            {"off", "reasoning option off"},
+            {"minimal", "reasoning option minimal"},
+            {"low", "reasoning option low"},
+            {"medium", "reasoning option medium"},
+            {"high", "reasoning option high"},
+            {"auto", "reasoning option auto"}};
+        settings_ui->reasoning_comboBox->clear();
+        for (const auto &opt : options)
+        {
+            settings_ui->reasoning_comboBox->addItem(jtr(opt.labelKey), QString::fromUtf8(opt.code));
+        }
+        const QString normalized = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
+        int idx = settings_ui->reasoning_comboBox->findData(normalized);
+        if (idx < 0) idx = 0;
+        settings_ui->reasoning_comboBox->setCurrentIndex(idx);
+        settings_ui->reasoning_comboBox->setToolTip(jtr("reasoning effort note"));
+        auto reasoningUpdater = [this]()
+        {
+            if (!settings_ui || !settings_ui->reasoning_label) return;
+            settings_ui->reasoning_label->setText(jtr("reasoning effort"));
+        };
+        reasoningUpdater();
+        connect(settings_ui->reasoning_comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                [reasoningUpdater](int) mutable
+                { reasoningUpdater(); });
+    }
     // 最大输出长度
     settings_ui->npredict_spin->setRange(1, 99999);
     settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
@@ -578,6 +620,7 @@ void Widget::settings_ui_confirm_button_clicked()
         if (A.hid_npredict != B.hid_npredict) return false;
         if (A.hid_n_ubatch != B.hid_n_ubatch) return false;
         if (A.complete_mode != B.complete_mode) return false;
+        if (A.reasoning_effort != B.reasoning_effort) return false;
         return true;
     };
 
