@@ -256,6 +256,16 @@ void xMcp::disconnectAll()
     emit mcp_message(QStringLiteral("all services disconnected"));
 }
 
+void xMcp::setAutoRefreshEnabled(bool enabled)
+{
+    if (autoRefreshAllowed_ == enabled) return;
+    autoRefreshAllowed_ = enabled;
+    if (!autoRefreshAllowed_)
+    {
+        idleTimer_.restart();
+    }
+}
+
 void xMcp::markActivity()
 {
     if (!idleTimer_.isValid())
@@ -268,6 +278,7 @@ void xMcp::markActivity()
 
 void xMcp::maybeAutoRefreshTools()
 {
+    if (!autoRefreshAllowed_) return;
     if (toolManager.getServiceCount() == 0) return;
     if (!idleTimer_.isValid())
     {

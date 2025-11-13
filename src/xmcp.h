@@ -22,6 +22,7 @@ class xMcp : public QObject
     void callList(quint64 invocationId);
     void refreshTools();
     void disconnectAll();
+    void setAutoRefreshEnabled(bool enabled);
 
   signals:
     void callList_over(quint64 invocationId);
@@ -39,6 +40,7 @@ class xMcp : public QObject
     QTimer *autoRefreshTimer_ = nullptr;
     QElapsedTimer idleTimer_;
     qint64 lastRefreshEpochMs_ = 0;
+    bool autoRefreshAllowed_ = false;
     static constexpr int kIdleThresholdMs = 3000;
     static constexpr int kAutoRefreshIntervalMs = 10000; // 10 seconds auto refresh cadence
 };

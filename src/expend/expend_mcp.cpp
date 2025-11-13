@@ -60,6 +60,7 @@ void Expend::on_mcp_server_disconnect_pushButton_clicked()
     mcpDisabledServices_.clear();
     mcpEnabledCache_.clear();
     if (ui->mcp_server_progressBar) ui->mcp_server_progressBar->setVisible(false);
+    updateMcpAutoRefreshGate(false);
     emit expend2mcp_disconnectAll();
 }
 
@@ -689,6 +690,7 @@ void Expend::populateMcpToolEntries()
                     emit expend2ui_mcpToolsChanged();
                     ui->mcp_server_log_plainTextEdit->appendPlainText(QStringLiteral("service %1 %2")
                                                                            .arg(serviceName, enabled ? QStringLiteral("enabled") : QStringLiteral("disabled")));
+                    updateMcpAutoRefreshGate(hasEnabledMcpService());
                 });
     }
 
@@ -705,6 +707,8 @@ void Expend::populateMcpToolEntries()
     {
         mcpEnabledCache_ = currentSelection;
     }
+
+    updateMcpAutoRefreshGate(hasEnabledMcpService());
 }
 
 void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
@@ -716,6 +720,26 @@ void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
     {
         button->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
     }
+}
+
+bool Expend::hasEnabledMcpService() const
+{
+    if (mcpServiceSelections_.isEmpty()) return false;
+    for (auto it = mcpServiceSelections_.cbegin(); it != mcpServiceSelections_.cend(); ++it)
+    {
+        if (!mcpDisabledServices_.contains(it.key()))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Expend::updateMcpAutoRefreshGate(bool enabled)
+{
+    if (mcpAutoRefreshGate_ == enabled) return;
+    mcpAutoRefreshGate_ = enabled;
+    emit expend2mcp_setAutoRefreshEnabled(enabled);
 }
 
 void Expend::setupMcpConfigPersistence()
