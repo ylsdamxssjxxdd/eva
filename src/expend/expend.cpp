@@ -100,6 +100,7 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     // Ensure temp dir exists and load persisted config
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     readConfig();
+    setupMcpConfigPersistence();
     scheduleEmbeddingWarmup();
 }
 
@@ -123,6 +124,7 @@ Expend::~Expend()
     killProc(quantize_process);
     killProc(tts_process);
 
+    flushMcpConfigToDisk();
     delete ui;
 }
 

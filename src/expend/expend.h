@@ -19,6 +19,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -37,6 +38,8 @@
 #include <QProcess>
 #include <QScrollBar>
 #include <QSettings>
+#include <QSaveFile>
+#include <QSignalBlocker>
 #include <QShortcut>
 #include <QTreeWidget>
 #include <QToolButton>
@@ -451,6 +454,7 @@ class Expend : public QWidget
     void onEvalState(const QString &line, SIGNAL_STATE st);
     void onEvalSpeeds(double prompt_per_s, double gen_per_s);
     void onEvalPushover();
+    void onMcpConfigEditorTextChanged();
 
     //-------------------------------------------------------------------------
     //--------------------------------mcp服务器相关-----------------------------
@@ -476,12 +480,19 @@ class Expend : public QWidget
   private:
     void populateMcpToolEntries();
     void updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded);
+    void setupMcpConfigPersistence();
+    void flushMcpConfigToDisk();
+    void persistMcpConfigImmediately();
+    bool loadMcpConfigFromDisk(QString *buffer) const;
+    QString mcpConfigFilePath() const;
     QMap<QString, MCP_CONNECT_STATE> mcpServerStates;
     QStringList mcpEnabledCache_;
     QHash<QString, QSet<QString>> mcpServiceSelections_;
     QSet<QString> mcpDisabledServices_;
     QHash<QTreeWidgetItem *, QToolButton *> mcpServiceExpandButtons_;
     bool mcpTreeSignalsInitialized_ = false;
+    QTimer *mcpConfigSaveTimer_ = nullptr;
+    bool mcpConfigDirty_ = false;
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state

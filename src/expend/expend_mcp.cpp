@@ -7,15 +7,20 @@
 #include <QAbstractItemView>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDir>
+#include <QFileInfo>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QPixmap>
 #include <QRect>
+#include <QSaveFile>
 #include <QSizePolicy>
 #include <QString>
 #include <QStringList>
+#include <QTextStream>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -25,6 +30,7 @@
 
 void Expend::on_mcp_server_reflash_pushButton_clicked()
 {
+    flushMcpConfigToDisk();
     ui->mcp_server_reflash_pushButton->setEnabled(false);
     if (ui->mcp_server_treeWidget) ui->mcp_server_treeWidget->clear();
     ui->mcp_server_statusLed->setState(MCP_CONNECT_MISS);
@@ -710,6 +716,114 @@ void Expend::updateMcpServiceExpander(QTreeWidgetItem *item, bool expanded)
     {
         button->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
     }
+}
+
+void Expend::setupMcpConfigPersistence()
+{
+    if (!ui->mcp_server_config_textEdit) return;
+
+    if (!mcpConfigSaveTimer_)
+    {
+        mcpConfigSaveTimer_ = new QTimer(this);
+        mcpConfigSaveTimer_->setSingleShot(true);
+        connect(mcpConfigSaveTimer_, &QTimer::timeout, this, &Expend::flushMcpConfigToDisk);
+    }
+
+    QString diskContent;
+    if (loadMcpConfigFromDisk(&diskContent))
+    {
+        QSignalBlocker blocker(ui->mcp_server_config_textEdit);
+        ui->mcp_server_config_textEdit->setPlainText(diskContent);
+        mcpConfigDirty_ = false;
+    }
+    else
+    {
+        persistMcpConfigImmediately();
+    }
+
+    connect(ui->mcp_server_config_textEdit, &QTextEdit::textChanged, this, &Expend::onMcpConfigEditorTextChanged);
+}
+
+void Expend::onMcpConfigEditorTextChanged()
+{
+    if (!ui->mcp_server_config_textEdit) return;
+    mcpConfigDirty_ = true;
+    if (!mcpConfigSaveTimer_)
+    {
+        mcpConfigSaveTimer_ = new QTimer(this);
+        mcpConfigSaveTimer_->setSingleShot(true);
+        connect(mcpConfigSaveTimer_, &QTimer::timeout, this, &Expend::flushMcpConfigToDisk);
+    }
+    mcpConfigSaveTimer_->start(1200);
+}
+
+void Expend::flushMcpConfigToDisk()
+{
+    if (!ui->mcp_server_config_textEdit) return;
+    if (!mcpConfigDirty_) return;
+
+    if (mcpConfigSaveTimer_) mcpConfigSaveTimer_->stop();
+
+    auto logFailure = [this](const QString &line)
+    {
+        if (ui->mcp_server_log_plainTextEdit) ui->mcp_server_log_plainTextEdit->appendPlainText(line);
+    };
+
+    const QString payload = ui->mcp_server_config_textEdit->toPlainText();
+    const QString path = mcpConfigFilePath();
+    QFileInfo info(path);
+    QDir dir = info.dir();
+    if (!dir.exists() && !dir.mkpath(QStringLiteral(".")))
+    {
+        logFailure(QStringLiteral("failed to prepare %1").arg(dir.absolutePath()));
+        return;
+    }
+
+    QSaveFile save(path);
+    if (!save.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        logFailure(QStringLiteral("failed to open %1").arg(path));
+        return;
+    }
+
+    QTextStream out(&save);
+    out.setCodec("UTF-8");
+    out << payload;
+    if (!save.commit())
+    {
+        logFailure(QStringLiteral("failed to commit %1").arg(path));
+        return;
+    }
+
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    settings.setValue("Mcpconfig", payload);
+
+    mcpConfigDirty_ = false;
+}
+
+void Expend::persistMcpConfigImmediately()
+{
+    if (!ui->mcp_server_config_textEdit) return;
+    mcpConfigDirty_ = true;
+    flushMcpConfigToDisk();
+}
+
+bool Expend::loadMcpConfigFromDisk(QString *buffer) const
+{
+    if (!buffer) return false;
+    QFile file(mcpConfigFilePath());
+    if (!file.exists()) return false;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+    QTextStream in(&file);
+    in.setCodec("UTF-8");
+    *buffer = in.readAll();
+    return true;
+}
+
+QString Expend::mcpConfigFilePath() const
+{
+    return QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP/mcp_servers.json"));
 }
 
 // //添加mcp可用工具选项
