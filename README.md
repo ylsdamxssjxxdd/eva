@@ -255,6 +255,14 @@
 
 </details>
 
+## 测试
+
+- 在构建目录启用测试：`cmake -B build -S . -DEVA_ENABLE_FUNCTIONAL_TESTS=ON`
+- 运行单元测试：`cmake --build build --target xtool_tests xtool_harness_tests && ctest -L unit`
+- 运行功能测试（需要可执行文件与场景配置）：`ctest -L functional`
+- 场景文件位于 `tests/functional/scenarios`，每个 JSON 描述 command/timeout/期望输出，可指向本地或链接模式脚本。
+
+
 ## 致谢
 
 - [llama.cpp](https://github.com/ggerganov/llama.cpp)
@@ -262,3 +270,6 @@
 - [stable-diffusion.cpp](https://github.com/leejet/stable-diffusion.cpp)
 - [TTS.cpp](https://github.com/mmwillet/TTS.cpp)
 - [Qt 5.15](https://www.qt.io/)
+
+
+

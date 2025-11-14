@@ -1,0 +1,11 @@
+{
+    "name": "smoke_echo",
+    "command": [
+        "cmake",
+        "-E",
+        "echo",
+        "functional smoke"
+    ],
+    "timeout_ms": 2000,
+    "expect_stdout_contains": "functional smoke"
+}

@@ -1,78 +1,17 @@
 #include <QApplication>
 #include <QDir>
 #include <QFile>
-#include <QJsonArray>
-#include <QJsonObject>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
-#include <QUuid>
 #include <memory>
 
+#include "../common/TestHarness.h"
 #include "xtool.h"
 
-namespace
-{
-mcp::json makeToolCall(const std::string &name, const mcp::json &arguments)
-{
-    mcp::json call = mcp::json::object();
-    call["name"] = name;
-    call["arguments"] = arguments;
-    return call;
-}
-
-void installTestTranslations(xTool &tool)
-{
-    QJsonObject words;
-    const struct
-    {
-        const char *key;
-        const char *value;
-    } entries[] = {
-        {"return", "return"},
-        {"not load tool", "not load tool"},
-        {"Please tell user to embed knowledge into the knowledge base first", "Please tell user to embed knowledge into the knowledge base first"},
-        {"qureying", "qureying"},
-        {"qurey&timeuse", "qurey&timeuse"},
-        {"Request error", "Request error"},
-        {"The query text segment has been embedded", "The query text segment has been embedded"},
-        {"dimension", "dimension"},
-        {"word vector", "word vector"},
-        {"The three text segments with the highest similarity", "The three text segments with the highest similarity"},
-        {"Number text segment similarity", "Number text segment similarity"},
-        {"content", "content"},
-        {"Based on this information, reply to the user's previous questions", "Based on this information, reply to the user's previous questions"}};
-
-    auto appendTranslation = [&](const QString &key, const QString &value) {
-        QJsonArray arr;
-        arr.append(value);
-        words.insert(key, arr);
-    };
-
-    for (const auto &entry : entries)
-    {
-        appendTranslation(QString::fromUtf8(entry.key), QString::fromUtf8(entry.value));
-    }
-
-    tool.wordsObj = words;
-    tool.language_flag = 0;
-}
-
-std::unique_ptr<xTool> createTestTool(const QString &applicationDir, const QString &workDir)
-{
-    auto tool = std::make_unique<xTool>(applicationDir);
-    tool->workDirRoot = workDir;
-    installTestTranslations(*tool);
-    return tool;
-}
-
-QString makeUniqueWorkRoot(QTemporaryDir &root)
-{
-    const QString unique = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    return root.filePath(QStringLiteral("work-%1").arg(unique));
-}
-
-} // namespace
+using eva::test::createTestTool;
+using eva::test::makeToolCall;
+using eva::test::makeUniqueWorkRoot;
 
 class XToolCalculatorTest : public QObject
 {
