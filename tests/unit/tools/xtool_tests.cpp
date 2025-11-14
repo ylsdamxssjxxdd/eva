@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QByteArray>
 #include <QDir>
 #include <QFile>
 #include <QSignalSpy>
@@ -300,6 +301,123 @@ void XToolFileToolsTest::readWriteEditListSearch()
     QVERIFY2(searchMsg.contains(QStringLiteral("Delta")), "search_content missing highlighted text");
 }
 
+class XToolFileGuardsTest : public QObject
+{
+    Q_OBJECT
+
+  private slots:
+    void replaceInFileEnforcesExpectedCount();
+    void replaceInFileShowsSnippetWhenMissing();
+};
+
+void XToolFileGuardsTest::replaceInFileEnforcesExpectedCount()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for replace_in_file guard test");
+
+    const QString workRoot = makeUniqueWorkRoot(tempDir);
+    QVERIFY2(QDir().mkpath(workRoot), "Failed to create work root for guard test");
+    QDir rootDir(workRoot);
+    QVERIFY2(rootDir.mkpath(QStringLiteral("notes")), "Failed to create notes directory for guard test");
+
+    QFile file(rootDir.filePath(QStringLiteral("notes/sample.txt")));
+    QVERIFY2(file.open(QIODevice::WriteOnly | QIODevice::Text), "Failed to prime sample file for guard test");
+    file.write("Alpha\nBeta\nGamma\n");
+    file.close();
+
+    auto tool = createTestTool(tempDir.path(), workRoot);
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+
+    tool->Exec(makeToolCall("replace_in_file",
+                            mcp::json::object({{"path", "notes/sample.txt"},
+                                               {"old_string", "Beta"},
+                                               {"new_string", "BetaPrime"},
+                                               {"expected_replacements", 2}})));
+
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "replace_in_file guard test did not emit push message");
+    const QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("Expected 2 replacement(s) but found 1.")),
+             "replace_in_file guard did not report expected replacement mismatch");
+
+    QFile verify(rootDir.filePath(QStringLiteral("notes/sample.txt")));
+    QVERIFY2(verify.open(QIODevice::ReadOnly | QIODevice::Text), "Failed to reopen file after guard execution");
+    const QString persisted = QString::fromUtf8(verify.readAll());
+    QCOMPARE(persisted, QStringLiteral("Alpha\nBeta\nGamma\n"));
+}
+
+void XToolFileGuardsTest::replaceInFileShowsSnippetWhenMissing()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for snippet guard test");
+
+    const QString workRoot = makeUniqueWorkRoot(tempDir);
+    QVERIFY2(QDir().mkpath(workRoot), "Failed to create work root for snippet guard test");
+    QDir rootDir(workRoot);
+    QVERIFY2(rootDir.mkpath(QStringLiteral("notes")), "Failed to create notes directory for snippet guard test");
+
+    QFile file(rootDir.filePath(QStringLiteral("notes/sample.txt")));
+    QVERIFY2(file.open(QIODevice::WriteOnly | QIODevice::Text), "Failed to prime sample file for snippet guard test");
+    file.write("Alpha\nBeta\nGamma\n");
+    file.close();
+
+    auto tool = createTestTool(tempDir.path(), workRoot);
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+
+    tool->Exec(makeToolCall("replace_in_file",
+                            mcp::json::object({{"path", "notes/sample.txt"},
+                                               {"old_string", "BetaPrime block"},
+                                               {"new_string", "BetaPrime"}})));
+
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "replace_in_file missing-match test did not emit push message");
+    const QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("old_string NOT found.")),
+             "replace_in_file missing-match flow did not report the failure");
+    QVERIFY2(message.contains(QStringLiteral("Snippet: BetaPrime block")),
+             "replace_in_file missing-match flow should include snippet preview");
+    QVERIFY2(message.contains(QStringLiteral("Hint: provide more surrounding context")),
+             "replace_in_file missing-match flow should include hint text");
+}
+
+class XToolSearchContentTest : public QObject
+{
+    Q_OBJECT
+
+  private slots:
+    void searchContentHandlesEmptyQueryAndNoMatches();
+};
+
+void XToolSearchContentTest::searchContentHandlesEmptyQueryAndNoMatches()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for search_content guard test");
+
+    const QString workRoot = makeUniqueWorkRoot(tempDir);
+    QVERIFY2(QDir().mkpath(workRoot), "Failed to create work root for search_content guard test");
+    QDir rootDir(workRoot);
+    QVERIFY2(rootDir.mkpath(QStringLiteral("notes")), "Failed to create notes directory for search_content guard test");
+
+    QFile file(rootDir.filePath(QStringLiteral("notes/log.txt")));
+    QVERIFY2(file.open(QIODevice::WriteOnly | QIODevice::Text), "Failed to prime log file for search_content");
+    file.write("Alpha bravo charlie");
+    file.close();
+
+    auto tool = createTestTool(tempDir.path(), workRoot);
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+
+    tool->Exec(makeToolCall("search_content", mcp::json::object({{"query", "   "}})));
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "search_content empty-query test produced no message");
+    QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("Empty query.")),
+             "search_content empty-query flow should report validation error");
+
+    pushSpy.clear();
+    tool->Exec(makeToolCall("search_content", mcp::json::object({{"query", "delta"}})));
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "search_content no-match test produced no message");
+    message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("No matches.")),
+             "search_content no-match flow should mention the empty result");
+}
+
 class XToolMcpListTest : public QObject
 {
     Q_OBJECT
@@ -335,6 +453,90 @@ void XToolMcpListTest::mcpToolListRoundtrip()
              "mcp_tools_list push message missing identifier");
 }
 
+class XToolWorkdirTest : public QObject
+{
+    Q_OBJECT
+
+  private slots:
+    void recvWorkdirUpdatesRoot();
+    void createTempDirectoryHandlesExistingPaths();
+};
+
+void XToolWorkdirTest::recvWorkdirUpdatesRoot()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for workdir test");
+
+    auto tool = createTestTool(tempDir.path(), makeUniqueWorkRoot(tempDir));
+    QSignalSpy stateSpy(tool.get(), &xTool::tool2ui_state);
+
+    const QString newRoot = tempDir.filePath(QStringLiteral("custom_root"));
+    tool->recv_workdir(newRoot);
+    QCOMPARE(tool->workDirRoot, QDir::cleanPath(newRoot));
+
+    const bool stateOk = stateSpy.count() > 0 || stateSpy.wait(1000);
+    QVERIFY2(stateOk, "recv_workdir did not emit a state notification");
+
+    const QString message = stateSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QDir::cleanPath(newRoot)), "State notification missing updated path");
+}
+
+void XToolWorkdirTest::createTempDirectoryHandlesExistingPaths()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for temp dir test");
+
+    auto tool = createTestTool(tempDir.path(), makeUniqueWorkRoot(tempDir));
+    const QString tempPath = tempDir.filePath(QStringLiteral("EVA_TEMP/work-subdir"));
+    QVERIFY2(tool->createTempDirectory(tempPath), "Expected createTempDirectory to create new path");
+    QVERIFY2(QDir(tempPath).exists(), "Expected new temporary directory to exist on disk");
+    QVERIFY2(!tool->createTempDirectory(tempPath), "Existing directories should not be recreated");
+}
+
+class XToolClampTest : public QObject
+{
+    Q_OBJECT
+
+  private slots:
+    void readFileOutputIsClamped();
+};
+
+void XToolClampTest::readFileOutputIsClamped()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for clamp test");
+
+    const QString workRoot = makeUniqueWorkRoot(tempDir);
+    QVERIFY2(QDir().mkpath(workRoot), "Failed to create work root for clamp test");
+    QDir workDir(workRoot);
+    QVERIFY2(workDir.mkpath(QStringLiteral("notes")), "Failed to create notes directory");
+
+    QFile bigFile(workDir.filePath(QStringLiteral("notes/big.txt")));
+    QVERIFY2(bigFile.open(QIODevice::WriteOnly | QIODevice::Text), "Failed to open big.txt for writing");
+    QByteArray payload("HEAD-");
+    payload += QByteArray(60000, 'B');
+    payload += "-TAIL";
+    QVERIFY2(bigFile.write(payload) == payload.size(), "Failed to write payload for clamp test");
+    bigFile.close();
+
+    auto tool = createTestTool(tempDir.path(), workRoot);
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+
+    tool->Exec(makeToolCall("read_file", mcp::json::object({{"path", "notes/big.txt"}})));
+
+    if (!(pushSpy.count() > 0 || pushSpy.wait(2000)))
+    {
+        QFAIL("Expected push message for clamp test");
+        return;
+    }
+
+    const QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("[tool output truncated")), "Expected clamp indicator missing");
+    QVERIFY2(message.contains(QStringLiteral("...")), "Expected ellipsis marker in clamped output");
+    QVERIFY2(message.contains(QStringLiteral("HEAD-")), "Clamped output should keep leading context");
+    QVERIFY2(message.contains(QStringLiteral("-TAIL")), "Clamped output should keep trailing context");
+}
+
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
@@ -365,7 +567,23 @@ int main(int argc, char **argv)
         status |= QTest::qExec(&tc, argc, argv);
     }
     {
+        XToolFileGuardsTest tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        XToolSearchContentTest tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
         XToolMcpListTest tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        XToolWorkdirTest tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        XToolClampTest tc;
         status |= QTest::qExec(&tc, argc, argv);
     }
 

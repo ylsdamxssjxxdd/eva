@@ -44,6 +44,25 @@ TEST_CASE("prompt builder prepends system prompt when missing")
     CHECK(out.at(1).toObject().value("role").toString() == kUserRole);
 }
 
+TEST_CASE("system prompt remains untouched when already first")
+{
+    QJsonArray history;
+    QJsonObject system;
+    system.insert("role", kSystemRole);
+    system.insert("content", QStringLiteral("legacy-sys"));
+    history.append(system);
+
+    QJsonObject user;
+    user.insert("role", kUserRole);
+    user.insert("content", QStringLiteral("hi"));
+    history.append(user);
+
+    const auto out = runBuilder(history, QStringLiteral("ignored"));
+    REQUIRE(out.size() == 2);
+    CHECK(out.at(0).toObject().value("content").toString() == QStringLiteral("legacy-sys"));
+    CHECK(out.at(1).toObject().value("role").toString() == kUserRole);
+}
+
 TEST_CASE("assistant reasoning is split away from content")
 {
     QJsonArray history;
@@ -74,6 +93,22 @@ TEST_CASE("existing reasoning_content is preserved")
     const auto processed = out.at(1).toObject();
     CHECK(processed.value("content").toString() == QStringLiteral("final"));
     CHECK(processed.value("reasoning_content").toString() == QStringLiteral("keep-me"));
+}
+
+TEST_CASE("thinking field becomes reasoning fallback when inline tags absent")
+{
+    QJsonArray history;
+    QJsonObject asst;
+    asst.insert("role", kAssistantRole);
+    asst.insert("content", QStringLiteral("final only"));
+    asst.insert("thinking", QStringLiteral("pre-plan"));
+    history.append(asst);
+
+    const auto out = runBuilder(history, QStringLiteral("sys"));
+    REQUIRE(out.size() == 2);
+    const auto processed = out.at(1).toObject();
+    CHECK(processed.value("content").toString() == QStringLiteral("final only"));
+    CHECK(processed.value("reasoning_content").toString() == QStringLiteral("pre-plan"));
 }
 
 TEST_CASE("multimodal payload keeps supported parts and converts audio_url")
@@ -119,6 +154,51 @@ TEST_CASE("multimodal payload keeps supported parts and converts audio_url")
     const QJsonObject ia = audioPart.value("input_audio").toObject();
     CHECK(ia.value("format").toString() == QStringLiteral("wav"));
     CHECK(ia.value("data").toString() == QStringLiteral("QUFB"));
+}
+
+TEST_CASE("string entries in multimodal payload are normalized and unsupported parts drop")
+{
+    QJsonArray contentArray;
+    contentArray.append(QStringLiteral("loose text"));
+
+    QJsonObject audio;
+    audio.insert("type", QStringLiteral("audio_url"));
+    QJsonObject audioUrl;
+    audioUrl.insert("url", QStringLiteral("data:audio/ogg;base64,AAAA"));
+    audio.insert("audio_url", audioUrl);
+    contentArray.append(audio);
+
+    QJsonObject unsupported;
+    unsupported.insert("type", QStringLiteral("matrix"));
+    unsupported.insert("data", QStringLiteral("skip"));
+    contentArray.append(unsupported);
+
+    QJsonObject explicitText;
+    explicitText.insert("type", QStringLiteral("text"));
+    explicitText.insert("text", QStringLiteral("kept"));
+    contentArray.append(explicitText);
+
+    QJsonObject user;
+    user.insert("role", kUserRole);
+    user.insert("content", contentArray);
+
+    QJsonArray history;
+    history.append(user);
+
+    const auto out = runBuilder(history, QStringLiteral("sys"));
+    REQUIRE(out.size() == 2);
+    const QJsonArray processedContent = out.at(1).toObject().value("content").toArray();
+    REQUIRE(processedContent.size() == 3);
+
+    CHECK(processedContent.at(0).toObject().value("text").toString() == QStringLiteral("loose text"));
+
+    const QJsonObject audioPart = processedContent.at(1).toObject();
+    CHECK(audioPart.value("type").toString() == QStringLiteral("input_audio"));
+    const QJsonObject ia = audioPart.value("input_audio").toObject();
+    CHECK(ia.value("format").toString() == QStringLiteral("mp3")); // ogg falls back to mp3 container
+    CHECK(ia.value("data").toString() == QStringLiteral("AAAA"));
+
+    CHECK(processedContent.at(2).toObject().value("text").toString() == QStringLiteral("kept"));
 }
 
 TEST_CASE("tool role is preserved while unknown roles are dropped")

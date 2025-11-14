@@ -98,3 +98,56 @@ TEST_CASE("VectorDB enforces dimension reset on mismatch and pads vectors")
     }
     cleanupConnection();
 }
+
+TEST_CASE("VectorDB persists metadata and rows across reopen")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = makeDbPath(dir);
+
+    {
+        VectorDB db;
+        REQUIRE(db.open(path));
+        db.setCurrentModel(QStringLiteral("persisted-model"), 2);
+        REQUIRE(db.upsertChunk(7, QStringLiteral("segment"), makeVec({9.0, 8.0})));
+    }
+    cleanupConnection();
+
+    {
+        VectorDB db;
+        REQUIRE(db.open(path));
+        CHECK(db.currentModelId() == QStringLiteral("persisted-model"));
+        CHECK(db.currentDim() == 2);
+        const auto rows = db.loadAll();
+        REQUIRE(rows.size() == 1);
+        CHECK(rows.at(0).index == 7);
+        CHECK(rows.at(0).chunk == QStringLiteral("segment"));
+        CHECK(rows.at(0).value.size() == 2);
+        CHECK(rows.at(0).value[0] == doctest::Approx(9.0));
+    }
+    cleanupConnection();
+}
+
+TEST_CASE("VectorDB clearAll removes embeddings and upsert overwrites chunks")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+
+    {
+        VectorDB db;
+        REQUIRE(db.open(makeDbPath(dir)));
+        db.setCurrentModel(QStringLiteral("modelA"), 2);
+
+        REQUIRE(db.upsertChunk(1, QStringLiteral("dup"), makeVec({1.0, 2.0})));
+        REQUIRE(db.upsertChunk(5, QStringLiteral("dup"), makeVec({5.0, 6.0})));
+
+        auto rows = db.loadAll();
+        REQUIRE(rows.size() == 1);
+        CHECK(rows.at(0).index == 5); // idx updated on overwrite
+        CHECK(rows.at(0).value.at(0) == doctest::Approx(5.0));
+
+        REQUIRE(db.clearAll());
+        CHECK(db.loadAll().isEmpty());
+    }
+    cleanupConnection();
+}
