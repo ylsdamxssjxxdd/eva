@@ -5,6 +5,25 @@ include_guard(GLOBAL)
 
 # ---- User-facing options ----
 option(BODY_PACK   "pack eva"                                   OFF)
+option(EVA_ENABLE_COVERAGE "Enable gcov/llvm-cov instrumentation for coverage reports" OFF)
+
+if(EVA_ENABLE_COVERAGE)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(STATUS "EVA: coverage instrumentation is enabled (compiler: ${CMAKE_CXX_COMPILER_ID}).")
+        foreach(_lang C CXX)
+            set(CMAKE_${_lang}_FLAGS "${CMAKE_${_lang}_FLAGS} --coverage -O0 -g")
+            set(CMAKE_${_lang}_FLAGS_RELEASE "${CMAKE_${_lang}_FLAGS_RELEASE} --coverage -O0 -g")
+            set(CMAKE_${_lang}_FLAGS_RELWITHDEBINFO "${CMAKE_${_lang}_FLAGS_RELWITHDEBINFO} --coverage -O0 -g")
+            set(CMAKE_${_lang}_FLAGS_DEBUG "${CMAKE_${_lang}_FLAGS_DEBUG} --coverage -O0 -g")
+        endforeach()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+        add_compile_definitions(EVA_COVERAGE_BUILD)
+    else()
+        message(WARNING "EVA_ENABLE_COVERAGE currently supports GCC/Clang toolchains only. Option ignored.")
+        set(EVA_ENABLE_COVERAGE OFF CACHE BOOL "Enable gcov/llvm-cov instrumentation for coverage reports" FORCE)
+    endif()
+endif()
 
 # ---- Dependency hint helpers ----
 if(DEFINED ENV{OPENSSL_PREFIX} AND NOT "$ENV{OPENSSL_PREFIX}" STREQUAL "")

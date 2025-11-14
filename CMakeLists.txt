@@ -26,3 +26,20 @@ include(cmake/Targets.cmake)
 include(cmake/PostBuild.cmake)         # 打包与部署
 
 add_subdirectory(tests)
+
+if (EVA_ENABLE_COVERAGE)
+    find_program(GCOVR_EXECUTABLE gcovr)
+    if (GCOVR_EXECUTABLE)
+        add_custom_target(coverage
+                          COMMAND ${GCOVR_EXECUTABLE}
+                                  --root ${CMAKE_SOURCE_DIR}
+                                  --object-directory ${CMAKE_BINARY_DIR}
+                                  --print-summary
+                                  --html-details coverage.html
+                                  --xml coverage.xml
+                          WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                          COMMENT "Generating gcovr coverage report (HTML + XML)")
+    else()
+        message(WARNING "gcovr executable not found; 'coverage' target will not be available.")
+    endif()
+endif()
