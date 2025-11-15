@@ -1,5 +1,6 @@
 add_subdirectory(common)
 add_subdirectory(docs)
+add_subdirectory(net)
 add_subdirectory(prompt)
 add_subdirectory(storage)
 add_subdirectory(tools)
