@@ -45,7 +45,7 @@ add_executable(
     src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp
     src/expend/sd_params_dialog.cpp src/expend/sd_params_dialog.h
-    src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/prompt_builder.cpp
+    src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp
     src/utils/history_store.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h
     src/utils/docparser.cpp src/utils/docparser.h

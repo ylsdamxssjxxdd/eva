@@ -1,3 +1,4 @@
+add_subdirectory(backend)
 add_subdirectory(common)
 add_subdirectory(docs)
 add_subdirectory(net)

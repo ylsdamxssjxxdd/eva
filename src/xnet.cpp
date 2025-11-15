@@ -225,208 +225,9 @@ void xNet::run()
                 continue; // end-of-stream marker
             }
 
-            // Some servers prepend junk before JSON; locate first '{' or '['
-            int jposObj = payloadAgg.indexOf('{');
-            int jposArr = payloadAgg.indexOf('[');
-            int jpos = -1;
-            if (jposObj >= 0 && jposArr >= 0) jpos = qMin(jposObj, jposArr);
-            else jpos = qMax(jposObj, jposArr);
-            if (jpos > 0) payloadAgg.remove(0, jpos);
-
-            QJsonParseError perr{};
-            const QJsonDocument doc = QJsonDocument::fromJson(payloadAgg, &perr);
-            if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
-            {
-                // noisy providers may send partials; keep silent in UI
-                qDebug() << "net: json parse fail" << perr.errorString();
-                continue;
-            }
-
-            auto processObj = [&](const QJsonObject &obj) {
-                    // capture server-assigned slot id for KV reuse
-                    if (obj.contains("slot_id"))
-                    {
-                        const int sid = obj.value("slot_id").toInt(-1);
-                        if (sid >= 0) emit net2ui_slot_id(sid);
-                    }
-                    // OpenAI chat format
-                    if (isChat)
-                    {
-                        const QJsonArray choices = obj.value("choices").toArray();
-                        if (!choices.isEmpty())
-                        {
-                            const QJsonObject firstChoice = choices.at(0).toObject();
-                            const QString finish = firstChoice.value("finish_reason").toString();
-                            const QJsonObject delta = firstChoice.value("delta").toObject();
-                            // 1) xAI/OpenAI reasoning fields (no <think> markers)
-                            QString reasoning = delta.value("reasoning_content").toString();
-                            if (reasoning.isEmpty() && delta.contains("reasoning"))
-                            {
-                                // Some providers stream as string under `reasoning`
-                                const QJsonValue rv = delta.value("reasoning");
-                                if (rv.isString()) reasoning = rv.toString();
-                            }
-
-                            if (!reasoning.isEmpty())
-                            {
-                                // Open synthetic think block at first reasoning token
-                                if (!extThinkActive_)
-                                {
-                                    extThinkActive_ = true;
-                                    thinkFlag = true; // mark inside think for token counters
-                                    // Emit a begin marker so UI opens a Think section
-                                    emit net2ui_output(QString(DEFAULT_THINK_BEGIN), true);
-                                }
-                                // Count reasoning token and update KV indicator
-                                tokens_++;
-                                reasoningTokensTurn_++;
-                                emit net2ui_kv_tokens(tokens_);
-                                // Stream reasoning in gray
-                                emit net2ui_output(reasoning, true, THINK_GRAY);
-                            }
-
-                            // 2) Normal assistant content
-                            current_content = delta.value("content").toString();
-
-                            // If reasoning section is open and normal content arrives, close think.
-                            if (extThinkActive_ && !current_content.isEmpty())
-                            {
-                                current_content = QString(DEFAULT_THINK_END) + current_content;
-                                extThinkActive_ = false;
-                                thinkFlag = false;
-                            }
-
-                            if (!current_content.isEmpty())
-                            {
-                                tokens_++;
-                                // notify UI to update approximate KV usage during streaming (LINK mode fallback)
-                                emit net2ui_kv_tokens(tokens_);
-                                // if this chunk is part of <think>, count it approximately
-                                const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
-                                if (isReasoningChunk) reasoningTokensTurn_++;
-                                // Detect tool-call end; do not abort here, just mark seen to allow tail meta
-                                if (!thinkFlag && !sawToolStopword_ && current_content.contains(DEFAULT_OBSERVATION_STOPWORD))
-                                {
-                                    sawToolStopword_ = true;
-                                }
-                                // 不再在状态区流式输出内容；仅把内容流式发往输出区
-                                if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
-                                if (thinkFlag)
-                                    emit net2ui_output(current_content, true, THINK_GRAY);
-                                else
-                                    emit net2ui_output(current_content, true);
-                                if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
-                            }
-                        }
-                    }
-                    else // completion format (llama.cpp server style)
-                    {
-                        // try: top-level { content, stop }
-                        QString content;
-                        if (obj.contains("content"))
-                            content = obj.value("content").toString();
-
-                        // fallback: nested { completion, tokens }
-                        if (content.isEmpty() && obj.contains("completion"))
-                            content = obj.value("completion").toString();
-                        // OAI /v1/completions streaming: choices[0].text
-                        if (content.isEmpty() && obj.contains("choices") && obj.value("choices").isArray()) {
-                            QJsonArray chs = obj.value("choices").toArray();
-                            if (!chs.isEmpty()) {
-                                QJsonObject first = chs.at(0).toObject();
-                                if (first.contains("text") && first.value("text").isString()) {
-                                    content = first.value("text").toString();
-                                }
-                                // finish_reason may still be useful for future ABIs, ignore for now
-                            }
-                        }
-
-                        if (!content.isEmpty())
-                        {
-                            tokens_++;
-                            // notify UI of streamed token for fallback memory/speed in LINK mode
-                            emit net2ui_kv_tokens(tokens_);
-                            // completion style may also contain <think>
-                            const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
-                            if (isReasoningChunk) reasoningTokensTurn_++;
-                            // 不再在状态区流式输出内容；仅把内容流式发往输出区
-                            emit net2ui_output(content, true);
-                        }
-                    }
-
-                    // Parse optional timings from llama.cpp server and cache for final reporting
-                                        // Parse OpenAI-style usage if provided (for LINK mode prompt baseline)
-                    // Parse OpenAI-style usage if provided (LINK mode baseline should be prompt tokens only)
-                    if (obj.contains("usage") && obj.value("usage").isObject())
-                    {
-                        const QJsonObject u = obj.value("usage").toObject();
-                        int promptTokens = -1;
-                        // Prefer explicit prompt/input tokens for baseline
-                        if (u.contains("prompt_tokens")) promptTokens = u.value("prompt_tokens").toInt(-1);
-                        if (promptTokens < 0 && u.contains("input_tokens")) promptTokens = u.value("input_tokens").toInt(-1);
-                        // Fallback: derive prompt tokens from total - streamed (approx) when provider only exposes totals
-                        if (promptTokens < 0 && u.contains("total_tokens"))
-                        {
-                            int totalTokens = -1;
-                            const QJsonValue tv = u.value("total_tokens");
-                            if (tv.isDouble() || tv.isString()) totalTokens = tv.toInt(-1);
-                            if (tv.isObject())
-                            {
-                                const QJsonObject tt = tv.toObject();
-                                int inTok = tt.value("input").toInt(-1);
-                                int outTok = tt.value("output").toInt(-1);
-                                if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
-                                else if (inTok >= 0) totalTokens = inTok; // rare partial info
-                            }
-                            if (totalTokens >= 0 && tokens_ >= 0)
-                            {
-                                int derived = totalTokens - tokens_;
-                                if (derived >= 0) promptTokens = derived;
-                            }
-                        }
-                        if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
-                    }
-                    if (obj.contains("timings") && obj.value("timings").isObject())
-                    {
-                        const QJsonObject tobj = obj.value("timings").toObject();
-                        // Values follow llama.cpp tools/server result_timings
-                        promptTokens_ = tobj.value("prompt_n").toInt(promptTokens_);
-                        promptMs_ = tobj.value("prompt_ms").toDouble(promptMs_);
-                        predictedTokens_ = tobj.value("predicted_n").toInt(predictedTokens_);
-                        predictedMs_ = tobj.value("predicted_ms").toDouble(predictedMs_);
-                        cacheTokens_ = tobj.value("cache_n").toInt(cacheTokens_);
-                        timingsReceived_ = true;
-                        // optional direct speeds (tokens/sec) if provided by server
-                        if (tobj.contains("prompt_per_second")) promptPerSec_ = tobj.value("prompt_per_second").toDouble(promptPerSec_);
-                        if (tobj.contains("predicted_per_second")) predictedPerSec_ = tobj.value("predicted_per_second").toDouble(predictedPerSec_);
-                        // Emit final cache/prompt/predicted totals once all fields are known
-                        if (!totalsEmitted_)
-                        {
-                            const int cache = cacheTokens_;
-                            const int prompt = promptTokens_;
-                            const int gen = predictedTokens_;
-                            if (cache >= 0 && prompt >= 0 && gen >= 0)
-                            {
-                                totalsEmitted_ = true;
-                                emit net2ui_turn_counters(cache, prompt, gen);
-                            }
-                        }
-                    }
-                };
-
-                if (doc.isObject())
-                {
-                    processObj(doc.object());
-                }
-                else if (doc.isArray())
-                {
-                    const QJsonArray arr = doc.array();
-                    for (const auto &v : arr)
-                    {
-                        if (v.isObject()) processObj(v.toObject());
-                    }
-                }
-            } });
+            processSsePayload(isChat, payloadAgg);
+        }
+    });
 
     // Handle finish: stop timeout and finalize
 
@@ -711,6 +512,215 @@ void xNet::logRequestPayload(const char *modeTag, const QByteArray &body)
 
     qDebug().noquote() << combined;
     // emit net2ui_state(combined, SIGNAL_SIGNAL);
+}
+
+void xNet::processSsePayload(bool isChat, const QByteArray &payload)
+{
+    QByteArray data = payload;
+    // Some servers prepend junk before JSON; locate first '{' or '['
+    int jposObj = data.indexOf('{');
+    int jposArr = data.indexOf('[');
+    int jpos = -1;
+    if (jposObj >= 0 && jposArr >= 0) jpos = qMin(jposObj, jposArr);
+    else jpos = qMax(jposObj, jposArr);
+    if (jpos > 0) data.remove(0, jpos);
+
+    QJsonParseError perr{};
+    const QJsonDocument doc = QJsonDocument::fromJson(data, &perr);
+    if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
+    {
+        // noisy providers may send partials; keep silent in UI
+        qDebug() << "net: json parse fail" << perr.errorString();
+        return;
+    }
+
+    auto processObj = [&](const QJsonObject &obj)
+    {
+        // capture server-assigned slot id for KV reuse
+        if (obj.contains("slot_id"))
+        {
+            const int sid = obj.value("slot_id").toInt(-1);
+            if (sid >= 0) emit net2ui_slot_id(sid);
+        }
+        // OpenAI chat format
+        if (isChat)
+        {
+            const QJsonArray choices = obj.value("choices").toArray();
+            if (!choices.isEmpty())
+            {
+                const QJsonObject firstChoice = choices.at(0).toObject();
+                const QString finish = firstChoice.value("finish_reason").toString();
+                Q_UNUSED(finish);
+                const QJsonObject delta = firstChoice.value("delta").toObject();
+                // 1) xAI/OpenAI reasoning fields (no <think> markers)
+                QString reasoning = delta.value("reasoning_content").toString();
+                if (reasoning.isEmpty() && delta.contains("reasoning"))
+                {
+                    // Some providers stream as string under `reasoning`
+                    const QJsonValue rv = delta.value("reasoning");
+                    if (rv.isString()) reasoning = rv.toString();
+                }
+
+                if (!reasoning.isEmpty())
+                {
+                    // Open synthetic think block at first reasoning token
+                    if (!extThinkActive_)
+                    {
+                        extThinkActive_ = true;
+                        thinkFlag = true; // mark inside think for token counters
+                        // Emit a begin marker so UI opens a Think section
+                        emit net2ui_output(QString(DEFAULT_THINK_BEGIN), true);
+                    }
+                    // Count reasoning token and update KV indicator
+                    tokens_++;
+                    reasoningTokensTurn_++;
+                    emit net2ui_kv_tokens(tokens_);
+                    // Stream reasoning in gray
+                    emit net2ui_output(reasoning, true, THINK_GRAY);
+                }
+
+                // 2) Normal assistant content
+                current_content = delta.value("content").toString();
+
+                // If reasoning section is open and normal content arrives, close think.
+                if (extThinkActive_ && !current_content.isEmpty())
+                {
+                    current_content = QString(DEFAULT_THINK_END) + current_content;
+                    extThinkActive_ = false;
+                    thinkFlag = false;
+                }
+
+                if (!current_content.isEmpty())
+                {
+                    tokens_++;
+                    // notify UI to update approximate KV usage during streaming (LINK mode fallback)
+                    emit net2ui_kv_tokens(tokens_);
+                    // if this chunk is part of <think>, count it approximately
+                    const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
+                    if (isReasoningChunk) reasoningTokensTurn_++;
+                    // Detect tool-call end; do not abort here, just mark seen to allow tail meta
+                    if (!thinkFlag && !sawToolStopword_ && current_content.contains(DEFAULT_OBSERVATION_STOPWORD))
+                    {
+                        sawToolStopword_ = true;
+                    }
+                    // 不再在状态区流式输出内容；仅把内容流式发往输出区
+                    if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
+                    if (thinkFlag)
+                        emit net2ui_output(current_content, true, THINK_GRAY);
+                    else
+                        emit net2ui_output(current_content, true);
+                    if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
+                }
+            }
+        }
+        else // completion format (llama.cpp server style)
+        {
+            // try: top-level { content, stop }
+            QString content;
+            if (obj.contains("content"))
+                content = obj.value("content").toString();
+
+            // fallback: nested { completion, tokens }
+            if (content.isEmpty() && obj.contains("completion"))
+                content = obj.value("completion").toString();
+            // OAI /v1/completions streaming: choices[0].text
+            if (content.isEmpty() && obj.contains("choices") && obj.value("choices").isArray())
+            {
+                QJsonArray chs = obj.value("choices").toArray();
+                if (!chs.isEmpty())
+                {
+                    QJsonObject first = chs.at(0).toObject();
+                    if (first.contains("text") && first.value("text").isString())
+                    {
+                        content = first.value("text").toString();
+                    }
+                    // finish_reason may still be useful for future ABIs, ignore for now
+                }
+            }
+
+            if (!content.isEmpty())
+            {
+                tokens_++;
+                // notify UI of streamed token for fallback memory/speed in LINK mode
+                emit net2ui_kv_tokens(tokens_);
+                // completion style may also contain <think>
+                const bool isReasoningChunk = thinkFlag || content.contains(DEFAULT_THINK_BEGIN);
+                if (isReasoningChunk) reasoningTokensTurn_++;
+                // 不再在状态区流式输出内容；仅把内容流式发往输出区
+                emit net2ui_output(content, true);
+            }
+        }
+
+        // Parse OpenAI-style usage if provided (LINK mode baseline should be prompt tokens only)
+        if (obj.contains("usage") && obj.value("usage").isObject())
+        {
+            const QJsonObject u = obj.value("usage").toObject();
+            int promptTokens = -1;
+            // Prefer explicit prompt/input tokens for baseline
+            if (u.contains("prompt_tokens")) promptTokens = u.value("prompt_tokens").toInt(-1);
+            if (promptTokens < 0 && u.contains("input_tokens")) promptTokens = u.value("input_tokens").toInt(-1);
+            // Fallback: derive prompt tokens from total - streamed (approx) when provider only exposes totals
+            if (promptTokens < 0 && u.contains("total_tokens"))
+            {
+                int totalTokens = -1;
+                const QJsonValue tv = u.value("total_tokens");
+                if (tv.isDouble() || tv.isString()) totalTokens = tv.toInt(-1);
+                if (tv.isObject())
+                {
+                    const QJsonObject tt = tv.toObject();
+                    int inTok = tt.value("input").toInt(-1);
+                    int outTok = tt.value("output").toInt(-1);
+                    if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
+                    else if (inTok >= 0) totalTokens = inTok; // rare partial info
+                }
+                if (totalTokens >= 0 && tokens_ >= 0)
+                {
+                    int derived = totalTokens - tokens_;
+                    if (derived >= 0) promptTokens = derived;
+                }
+            }
+            if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
+        }
+        if (obj.contains("timings") && obj.value("timings").isObject())
+        {
+            const QJsonObject tobj = obj.value("timings").toObject();
+            // Values follow llama.cpp tools/server result_timings
+            promptTokens_ = tobj.value("prompt_n").toInt(promptTokens_);
+            promptMs_ = tobj.value("prompt_ms").toDouble(promptMs_);
+            predictedTokens_ = tobj.value("predicted_n").toInt(predictedTokens_);
+            predictedMs_ = tobj.value("predicted_ms").toDouble(predictedMs_);
+            cacheTokens_ = tobj.value("cache_n").toInt(cacheTokens_);
+            timingsReceived_ = true;
+            // optional direct speeds (tokens/sec) if provided by server
+            if (tobj.contains("prompt_per_second")) promptPerSec_ = tobj.value("prompt_per_second").toDouble(promptPerSec_);
+            if (tobj.contains("predicted_per_second")) predictedPerSec_ = tobj.value("predicted_per_second").toDouble(predictedPerSec_);
+            // Emit final cache/prompt/predicted totals once all fields are known
+            if (!totalsEmitted_)
+            {
+                const int cache = cacheTokens_;
+                const int prompt = promptTokens_;
+                const int gen = predictedTokens_;
+                if (cache >= 0 && prompt >= 0 && gen >= 0)
+                {
+                    totalsEmitted_ = true;
+                    emit net2ui_turn_counters(cache, prompt, gen);
+                }
+            }
+        }
+    };
+
+    if (doc.isObject())
+    {
+        processObj(doc.object());
+    }
+    else if (doc.isArray())
+    {
+        const QJsonArray arr = doc.array();
+        for (const auto &v : arr)
+        {
+            if (v.isObject()) processObj(v.toObject());
+        }
+    }
 }
 void xNet::recv_data(ENDPOINT_DATA data)
 {

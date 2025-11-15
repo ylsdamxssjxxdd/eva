@@ -1,6 +1,6 @@
 #include "xbackend.h"
 #include "utils/devicemanager.h"
-#include "utils/pathutil.h"
+#include "xbackend_args.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
@@ -54,54 +54,15 @@ QString LocalServerManager::programPath() const
 
 QStringList LocalServerManager::buildArgs() const
 {
-    QStringList args;
-    if (!modelpath_.isEmpty())
-    {
-        args << "-m" << ensureToolFriendlyFilePath(modelpath_);
-    }
-    args << "--host"
-         << host_;
-    args << "--port" << port_;
-    const int slotCtx = (settings_.nctx > 0) ? settings_.nctx : DEFAULT_NCTX;
-    const int parallel = (settings_.hid_parallel > 0) ? settings_.hid_parallel : 1;
-    const int totalCtx = slotCtx * parallel;
-    args << "-c" << QString::number(totalCtx);
-    // 仅在 GPU 型后端下传递 -ngl；CPU 后端无此选项意义
-    const QString __resolvedDev = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
-    if (__resolvedDev != QLatin1String("cpu"))
-    {
-        args << "-ngl" << QString::number(settings_.ngl);
-    }
-    args << "--threads" << QString::number(settings_.nthread);
-    args << "-b" << QString::number(settings_.hid_batch);
-    args << "--parallel" << QString::number(settings_.hid_parallel);
-    args << "--jinja"; // enable toolcalling prompt templating
-    args << "--reasoning-format"
-         << "auto"; // surface <think> as reasoning_content
-    args << "--verbose-prompt";
-
-    if (!lora_.isEmpty())
-    {
-        args << "--no-mmap"; // lora with mmap can be fragile across platforms
-        args << "--lora" << ensureToolFriendlyFilePath(lora_);
-    }
-    else
-    {
-        if (!settings_.hid_use_mmap) args << "--no-mmap";
-    }
-    if (!mmproj_.isEmpty())
-    {
-        args << "--mmproj" << ensureToolFriendlyFilePath(mmproj_);
-    }
-    if (!settings_.hid_flash_attn)
-    {
-        args << "-fa" << "off";
-    }
-    if (settings_.hid_use_mlock)
-    {
-        args << "--mlock";
-    }
-    return args;
+    LocalServerArgsInput input;
+    input.settings = settings_;
+    input.host = host_;
+    input.port = port_;
+    input.modelPath = modelpath_;
+    input.mmprojPath = mmproj_;
+    input.loraPath = lora_;
+    input.resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    return buildLocalServerArgs(input);
 }
 
 void LocalServerManager::hookProcessSignals()

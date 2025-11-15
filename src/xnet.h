@@ -112,6 +112,9 @@ class xNet : public QObject
     QNetworkRequest buildRequest(const QUrl &url) const;
     void ensureNetObjects();
     void logRequestPayload(const char *modeTag, const QByteArray &body);
+
+  protected:
+    void processSsePayload(bool isChat, const QByteArray &payload);
 };
 
 #endif // XNET_H
