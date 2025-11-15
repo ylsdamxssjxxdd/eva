@@ -30,15 +30,23 @@ add_subdirectory(tests)
 if (EVA_ENABLE_COVERAGE)
     find_program(GCOVR_EXECUTABLE gcovr)
     if (GCOVR_EXECUTABLE)
+        set(EVA_COVERAGE_DIR ${CMAKE_BINARY_DIR}/reports/coverage)
+        set(EVA_COVERAGE_HTML ${EVA_COVERAGE_DIR}/index.html)
+        set(EVA_COVERAGE_XML ${EVA_COVERAGE_DIR}/coverage.xml)
         add_custom_target(coverage
+                          COMMAND ${CMAKE_COMMAND} -E make_directory ${EVA_COVERAGE_DIR}
                           COMMAND ${GCOVR_EXECUTABLE}
                                   --root ${CMAKE_SOURCE_DIR}
                                   --object-directory ${CMAKE_BINARY_DIR}
                                   --print-summary
-                                  --html-details coverage.html
-                                  --xml coverage.xml
+                                  --html-details ${EVA_COVERAGE_HTML}
+                                  --xml ${EVA_COVERAGE_XML}
+                                  --filter ${CMAKE_SOURCE_DIR}/src
+                                  --filter ${CMAKE_SOURCE_DIR}/tests
+                                  --exclude ".*/CMakeFiles/.+_autogen/.*"
+                                  --exclude ".*/qrc_.*"
                           WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                          COMMENT "Generating gcovr coverage report (HTML + XML)")
+                          COMMENT "Generating gcovr coverage report (reports/coverage/index.html + coverage.xml)")
     else()
         message(WARNING "gcovr executable not found; 'coverage' target will not be available.")
     endif()
