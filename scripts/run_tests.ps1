@@ -24,7 +24,10 @@ param(
     [switch]$Coverage = $true,
 
     # Extra arguments passed to ctest (array)
-    [string[]]$CTestArgs = @()
+    [string[]]$CTestArgs = @(),
+
+    # Multi-config generator build configuration (e.g. Debug/Release). If omitted we auto-select Release for VS/Xcode style generators.
+    [string]$Config
 )
 
 Set-StrictMode -Version Latest
@@ -33,6 +36,50 @@ $ErrorActionPreference = 'Stop'
 function Write-Info($msg){ Write-Host "[INFO] $msg" -ForegroundColor Cyan }
 function Write-Warn($msg){ Write-Warning $msg }
 function Write-Err ($msg){ Write-Host "[ERROR] $msg" -ForegroundColor Red }
+
+function Sync-CMakeBuildConfig {
+    param(
+        [string]$CachePath,
+        [bool]$ConfigProvided,
+        [ref]$IsMultiConfig,
+        [ref]$ShouldPassConfig,
+        [ref]$ConfigValue
+    )
+
+    if (-not (Test-Path $CachePath)) { return }
+
+    $multi = $false
+    $generator = $null
+    $configTypes = $null
+    foreach ($line in Get-Content $CachePath) {
+        if ($line -match '^CMAKE_GENERATOR:INTERNAL=(.+)$') {
+            $generator = $matches[1]
+        }
+        elseif ($line -match '^CMAKE_CONFIGURATION_TYPES:STRING=(.+)$') {
+            $configTypes = $matches[1]
+            $multi = $true
+        }
+    }
+
+    $IsMultiConfig.Value = $multi
+
+    $currentConfig = $ConfigValue.Value
+    if ($null -ne $currentConfig) {
+        $currentConfig = $currentConfig.Trim()
+        if ($currentConfig.Length -eq 0) {
+            $currentConfig = $null
+        }
+    }
+
+    if ($multi -and -not $ConfigProvided -and -not $currentConfig) {
+        # Default to Release config for multi-config generators
+        $currentConfig = 'Release'
+        Write-Info "Multi-configuration generator detected ($generator). Using configuration '$currentConfig'."
+    }
+
+    $ConfigValue.Value = $currentConfig
+    $ShouldPassConfig.Value = [bool]$currentConfig
+}
 
 $scriptDir = Split-Path -Parent $PSCommandPath
 $repoRoot  = Split-Path -Parent $scriptDir
@@ -45,12 +92,51 @@ try {
 
     $buildDir = Join-Path $repoRoot 'build'
     $binDir   = Join-Path $buildDir 'bin'
+    $configProvided = $PSBoundParameters.ContainsKey('Config') -and -not [string]::IsNullOrWhiteSpace($Config)
+    if ($configProvided) {
+        $Config = $Config.Trim()
+        if ($Config.Length -eq 0) {
+            $Config = $null
+            $configProvided = $false
+        }
+    }
+    $isMultiConfig = $false
+    $shouldPassConfig = $false
 
     # Configure/build when requested or when build/bin is missing
     $needsBuild = $Build -or -not (Test-Path $binDir)
     if ($needsBuild) {
         Write-Info "Configuring CMake (Functional=$Functional, Coverage=$Coverage)..."
         $cmakeArgs = @('-S','.','-B','build','-DEVA_ENABLE_UNIT_TESTS=ON')
+
+        $selectedGenerator = $null
+        if (-not [string]::IsNullOrWhiteSpace($env:CMAKE_GENERATOR)) {
+            Write-Info "Honoring existing CMAKE_GENERATOR=$($env:CMAKE_GENERATOR)"
+        }
+        elseif ($IsWindows -and $Coverage) {
+            $gxx    = Get-Command g++ -ErrorAction SilentlyContinue
+            $mingw  = Get-Command mingw32-make -ErrorAction SilentlyContinue
+            if ($gxx -and $mingw) {
+                $selectedGenerator = 'MinGW Makefiles'
+                Write-Info "Coverage requested on Windows: selecting generator '$selectedGenerator'"
+            }
+            else {
+                Write-Warn "Coverage requested but MinGW toolchain not found; falling back to default generator (coverage will be skipped)."
+                $Coverage = $false
+            }
+        }
+        elseif ($IsWindows) {
+            $gxx   = Get-Command g++ -ErrorAction SilentlyContinue
+            $mingw = Get-Command mingw32-make -ErrorAction SilentlyContinue
+            if ($gxx -and $mingw) {
+                $selectedGenerator = 'MinGW Makefiles'
+                Write-Info "Selecting generator '$selectedGenerator' for MinGW toolchain."
+            }
+        }
+        if ($selectedGenerator) {
+            $cmakeArgs = @('-G', $selectedGenerator) + $cmakeArgs
+        }
+
         if ($Functional) { $cmakeArgs += '-DEVA_ENABLE_FUNCTIONAL_TESTS=ON' }
         if ($Coverage)   { $cmakeArgs += '-DEVA_ENABLE_COVERAGE=ON' }
 
@@ -58,12 +144,18 @@ try {
         if ($isVerbose) { Write-Info "cmake $($cmakeArgs -join ' ')" }
         & cmake @cmakeArgs | Write-Host
 
+        $cachePath = Join-Path $buildDir 'CMakeCache.txt'
+        Sync-CMakeBuildConfig -CachePath $cachePath -ConfigProvided:$configProvided -IsMultiConfig ([ref]$isMultiConfig) -ShouldPassConfig ([ref]$shouldPassConfig) -ConfigValue ([ref]$Config)
+
         Write-Info "Building (jobs=$Jobs)..."
         $buildArgs = @('--build','build','-j',"$Jobs")
+        if ($shouldPassConfig) { $buildArgs += @('--config', $Config) }
         if ($isVerbose) { Write-Info "cmake $($buildArgs -join ' ')" }
         & cmake @buildArgs | Write-Host
     } else {
         Write-Info "Using existing build at $buildDir"
+        $cachePath = Join-Path $buildDir 'CMakeCache.txt'
+        Sync-CMakeBuildConfig -CachePath $cachePath -ConfigProvided:$configProvided -IsMultiConfig ([ref]$isMultiConfig) -ShouldPassConfig ([ref]$shouldPassConfig) -ConfigValue ([ref]$Config)
     }
 
     # Try ctest first
@@ -72,6 +164,7 @@ try {
         $args = @('--test-dir', 'build', '--output-on-failure', '-j', "$Jobs")
         if ($Label -and $Label -ne 'all') { $args += @('-L', $Label) }
         if ($Regex)                       { $args += @('-R', $Regex) }
+        if ($shouldPassConfig)             { $args += @('-C', $Config) }
         if ($CTestArgs.Count -gt 0)       { $args += $CTestArgs }
 
         Write-Info "Running tests via ctest..."
@@ -86,12 +179,26 @@ try {
         # Fallback: discover and run test executables directly
         Write-Warn "ctest not found; falling back to direct execution."
 
-        if (-not (Test-Path $binDir)) {
+        $candidateDirs = New-Object System.Collections.Generic.List[string]
+        if ($shouldPassConfig) {
+            $configBin = Join-Path $binDir $Config
+            if (Test-Path $configBin) { $candidateDirs.Add($configBin) }
+        }
+        if (Test-Path $binDir) { $candidateDirs.Add($binDir) }
+        $uniqueDirs = $candidateDirs | Select-Object -Unique
+
+        if ($uniqueDirs.Count -eq 0) {
             throw "Test binaries not found: $binDir"
         }
 
         $patterns = @('*tests.exe','*tests')  # Windows + POSIX
-        $allTests = Get-ChildItem -Path $binDir -File -Recurse -Include $patterns | Sort-Object Name
+        $allTests = @()
+        foreach ($dir in $uniqueDirs) {
+            if (Test-Path $dir) {
+                $allTests += Get-ChildItem -Path $dir -File -Recurse -Include $patterns
+            }
+        }
+        $allTests = $allTests | Sort-Object Name
         if ($allTests.Count -eq 0) { throw "No test executables found in $binDir" }
 
         # Label filtering approximation for fallback mode
@@ -132,7 +239,9 @@ try {
     if ($Coverage) {
         Write-Info "Generating coverage report (requires gcovr)..."
         try {
-            & cmake --build build --target coverage | Write-Host
+            $coverageArgs = @('--build','build','--target','coverage')
+            if ($shouldPassConfig) { $coverageArgs += @('--config', $Config) }
+            & cmake @coverageArgs | Write-Host
         } catch {
             Write-Warn "Coverage target failed or gcovr missing. Skip."
         }
