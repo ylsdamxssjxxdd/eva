@@ -4,37 +4,75 @@
 #include <QDateTime>
 #include <QDebug>
 #include <algorithm>
+#include <QtGlobal>
+#include <utility>
 
 using eva::mcp::sanitizeToolsInfo;
 using eva::mcp::syncSelectedMcpTools;
 
-xMcp::xMcp(QObject *parent)
+namespace
+{
+class DefaultMcpToolController : public IMcpToolController
+{
+  public:
+    void setNotificationHandler(McpToolManager::NotificationHandler handler) override { manager_.setNotificationHandler(std::move(handler)); }
+    void clear() override { manager_.clear(); }
+    std::string addServer(const std::string &name, const mcp::json &config) override { return manager_.addServer(name, config); }
+    mcp::json getAllToolsInfo() const override { return manager_.getAllToolsInfo(); }
+    mcp::json callTool(const std::string &serviceName, const std::string &toolName, const mcp::json &params) override
+    {
+        return manager_.callTool(serviceName, toolName, params);
+    }
+    bool refreshAllTools(const QSet<QString> *serviceFilter) override { return manager_.refreshAllTools(serviceFilter); }
+    size_t getServiceCount() const override { return manager_.getServiceCount(); }
+
+  private:
+    McpToolManager manager_;
+};
+
+xMcpOptions normalizeOptions(xMcpOptions opts)
+{
+    if (opts.idleThresholdMs <= 0) opts.idleThresholdMs = 3000;
+    if (opts.autoRefreshIntervalMs <= 0) opts.autoRefreshIntervalMs = 10000;
+    return opts;
+}
+} // namespace
+
+xMcp::xMcp(QObject *parent, std::unique_ptr<IMcpToolController> controller, xMcpOptions options)
     : QObject(parent)
 {
+    options = normalizeOptions(options);
+    controller_ = controller ? std::move(controller) : std::make_unique<DefaultMcpToolController>();
+    idleThresholdMs_ = options.idleThresholdMs;
+    autoRefreshIntervalMs_ = options.autoRefreshIntervalMs;
+    timerRequested_ = options.enableAutoRefreshTimer;
     qDebug() << "mcp init over";
-    toolManager.setNotificationHandler([this](const QString &service, const QString &level, const QString &message)
-                                        {
-                                            QString prefix = service;
-                                            if (!level.isEmpty())
-                                            {
-                                                prefix += QStringLiteral(" [%1]").arg(level.toUpper());
-                                            }
-                                            const QString payload = message.isEmpty() ? tr("server notification received") : message;
-                                            emit mcp_message(prefix + ": " + payload);
-                                        });
+    controller_->setNotificationHandler([this](const QString &service, const QString &level, const QString &message)
+                                         {
+                                             QString prefix = service;
+                                             if (!level.isEmpty())
+                                             {
+                                                 prefix += QStringLiteral(" [%1]").arg(level.toUpper());
+                                             }
+                                             const QString payload = message.isEmpty() ? tr("server notification received") : message;
+                                             emit mcp_message(prefix + ": " + payload);
+                                         });
     idleTimer_.start();
     autoRefreshTimer_ = new QTimer(this);
-    const int pollInterval = std::max(1000, kAutoRefreshIntervalMs / 5);
-    autoRefreshTimer_->setInterval(pollInterval);
+    const int pollInterval = std::max(100, autoRefreshIntervalMs_ / 5);
+    autoRefreshTimer_->setInterval(qMax(100, pollInterval));
     QObject::connect(autoRefreshTimer_, &QTimer::timeout, this, &xMcp::maybeAutoRefreshTools);
-    autoRefreshTimer_->start();
+    if (timerRequested_)
+    {
+        autoRefreshTimer_->start();
+    }
 }
 
 void xMcp::addService(const QString mcp_json_str)
 {
     markActivity();
     lastRefreshEpochMs_ = 0;
-    toolManager.clear();         // 清空工具
+    controller_->clear();        // 清空工具
     mcp::json config;
     if (mcp_json_str.isEmpty())
     {
@@ -57,7 +95,7 @@ void xMcp::addService(const QString mcp_json_str)
     {
         try
         {
-            std::string res = toolManager.addServer(name, serverConfig);
+            std::string res = controller_->addServer(name, serverConfig);
             if (res == "")
             {
                 emit addService_single_over(QString::fromStdString(name), MCP_CONNECT_LINK);
@@ -78,7 +116,7 @@ void xMcp::addService(const QString mcp_json_str)
         }
     }
     // 获取所有可用工具信息
-    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(controller_->getAllToolsInfo());
     const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
@@ -130,7 +168,7 @@ void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
         callTool_over(invocationId, result);
         return;
     }
-    auto result2 = toolManager.callTool(mcp_server_name, mcp_tool_name, params);
+    auto result2 = controller_->callTool(mcp_server_name, mcp_tool_name, params);
     result = QString::fromStdString(result2.dump());
     callTool_over(invocationId, result);
 }
@@ -139,7 +177,7 @@ void xMcp::callTool(quint64 invocationId, QString tool_name, QString tool_args)
 void xMcp::callList(quint64 invocationId)
 {
     markActivity();
-    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(controller_->getAllToolsInfo());
     const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
@@ -156,8 +194,8 @@ void xMcp::refreshTools()
         return;
     }
     const QSet<QString> *filter = serviceFilterActive_ ? &enabledServices_ : nullptr;
-    const bool updated = toolManager.refreshAllTools(filter);
-    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(toolManager.getAllToolsInfo());
+    const bool updated = controller_->refreshAllTools(filter);
+    MCP_TOOLS_INFO_ALL = sanitizeToolsInfo(controller_->getAllToolsInfo());
     syncSelectedMcpTools(MCP_TOOLS_INFO_ALL, filter);
     lastRefreshEpochMs_ = QDateTime::currentMSecsSinceEpoch();
     emit toolsRefreshed();
@@ -171,7 +209,7 @@ void xMcp::disconnectAll()
 {
     markActivity();
     lastRefreshEpochMs_ = 0;
-    toolManager.clear();
+    controller_->clear();
     MCP_TOOLS_INFO_ALL = mcp::json::array();
     if (!MCP_TOOLS_INFO_LIST.empty())
     {
@@ -223,15 +261,15 @@ void xMcp::markActivity()
 void xMcp::maybeAutoRefreshTools()
 {
     if (!autoRefreshAllowed_) return;
-    if (toolManager.getServiceCount() == 0) return;
+    if (controller_->getServiceCount() == 0) return;
     if (!idleTimer_.isValid())
     {
         idleTimer_.start();
         return;
     }
-    if (idleTimer_.elapsed() < kIdleThresholdMs) return;
+    if (idleTimer_.elapsed() < idleThresholdMs_) return;
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (lastRefreshEpochMs_ != 0 && (now - lastRefreshEpochMs_) < kAutoRefreshIntervalMs) return;
+    if (lastRefreshEpochMs_ != 0 && (now - lastRefreshEpochMs_) < autoRefreshIntervalMs_) return;
     qInfo() << "mcp auto refresh tools executed";
     refreshTools();
 }
