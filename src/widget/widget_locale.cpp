@@ -3,35 +3,41 @@
 #include "toolcall_test_dialog.h"
 #include "../utils/simpleini.h"
 #include <QDebug>
-#include <QFile>
 #include <QDir>
+#include <QMap>
 
 namespace
 {
-QHash<int, QString> loadLanguageEntries(const QString &path)
+QHash<int, QString> loadLanguageEntries(const QString &path, QMap<int, QString> *idToKey = nullptr)
 {
     QHash<int, QString> table;
     const auto map = simpleini::parseFile(path);
     for (auto it = map.constBegin(); it != map.constEnd(); ++it)
     {
+        QString rawKey = it.key().trimmed();
+        QString keyName;
+        const int pipePos = rawKey.indexOf(QLatin1Char('|'));
+        if (pipePos >= 0)
+        {
+            keyName = rawKey.mid(pipePos + 1).trimmed();
+            rawKey = rawKey.left(pipePos);
+        }
         bool ok = false;
-        const int id = it.key().toInt(&ok);
+        const int id = rawKey.trimmed().toInt(&ok);
         if (!ok) continue;
+        if (idToKey && !keyName.isEmpty())
+            idToKey->insert(id, keyName);
         table.insert(id, it.value());
     }
     return table;
 }
-} // namespace
 
-namespace
-{
 bool loadLanguagePack(const QString &root, QJsonObject &out)
 {
     QDir dir(root);
-    const QString keyFile = dir.filePath(QStringLiteral("key_index.ini"));
-    const auto keyIndex = simpleini::parseFile(keyFile);
-    if (keyIndex.isEmpty()) return false;
+    if (!dir.exists()) return false;
     QStringList discovered = dir.entryList(QStringList() << QStringLiteral("lang_*.ini"), QDir::Files, QDir::Name);
+    if (discovered.isEmpty()) return false;
     QStringList languageFiles;
     auto takeIfPresent = [&](const QString &name)
     {
@@ -46,32 +52,46 @@ bool loadLanguagePack(const QString &root, QJsonObject &out)
     languageFiles << discovered;
     if (languageFiles.isEmpty())
     {
-        languageFiles.clear();
         languageFiles << QStringLiteral("lang_zh.ini") << QStringLiteral("lang_en.ini");
     }
-    QList<QHash<int, QString>> languageTables;
-    for (const QString &file : languageFiles)
+    QVector<QHash<int, QString>> languageTables;
+    QMap<int, QString> idToKey;
+    const int englishIndex = languageFiles.indexOf(QStringLiteral("lang_en.ini"));
+    for (int idx = 0; idx < languageFiles.size(); ++idx)
     {
-        languageTables.push_back(loadLanguageEntries(dir.filePath(file)));
+        const QString filePath = dir.filePath(languageFiles.at(idx));
+        if (idx == englishIndex)
+        {
+            languageTables.push_back(loadLanguageEntries(filePath, &idToKey));
+        }
+        else
+        {
+            languageTables.push_back(loadLanguageEntries(filePath, nullptr));
+        }
     }
-    int englishIndex = languageFiles.indexOf(QStringLiteral("lang_en.ini"));
-    if (englishIndex < 0 && !languageTables.isEmpty()) englishIndex = 0;
-    QJsonObject jsonObj;
-    for (auto it = keyIndex.constBegin(); it != keyIndex.constEnd(); ++it)
+    if (idToKey.isEmpty())
     {
-        bool ok = false;
-        const int id = it.value().toInt(&ok);
-        if (!ok) continue;
+        qWarning() << "language pack missing key metadata" << root;
+        return false;
+    }
+    QJsonObject jsonObj;
+    for (auto it = idToKey.constBegin(); it != idToKey.constEnd(); ++it)
+    {
+        const int id = it.key();
+        const QString keyName = it.value();
         QJsonArray translations;
         for (int idx = 0; idx < languageTables.size(); ++idx)
         {
             QString resolved = languageTables[idx].value(id);
             if (resolved.isEmpty() && englishIndex >= 0 && englishIndex < languageTables.size())
-                resolved = languageTables[englishIndex].value(id);
-            if (resolved.isEmpty()) resolved = it.key();
+            {
+                const QString fallback = languageTables[englishIndex].value(id);
+                resolved = fallback.isEmpty() ? keyName : fallback;
+            }
+            if (resolved.isEmpty()) resolved = keyName;
             translations.append(resolved);
         }
-        jsonObj.insert(it.key(), translations);
+        jsonObj.insert(keyName, translations);
     }
     out = jsonObj;
     return true;
@@ -81,7 +101,7 @@ bool loadLanguagePack(const QString &root, QJsonObject &out)
 void Widget::getWords(const QString &languageRoot)
 {
     if (loadLanguagePack(languageRoot, wordsObj)) return;
-    if (!languageRoot.startsWith(":/"))
+    if (!languageRoot.startsWith(QStringLiteral(":/")))
     {
         if (loadLanguagePack(QStringLiteral(":/language"), wordsObj)) return;
     }

@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>language/key_index.ini</file>
         <file>language/lang_zh.ini</file>
         <file>language/lang_en.ini</file>
         <file>language/prompt.ini</file>
