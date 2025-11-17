@@ -73,8 +73,8 @@ QString Widget::buildWorkspaceSnapshot(const QString &root) const
 
 QString Widget::create_engineer_info()
 {
-    QString engineer_info_ = ENGINEER_INFO;
-    QString engineer_system_info_ = ENGINEER_SYSTEM_INFO;
+    QString engineer_info_ = promptx::engineerInfo();
+    QString engineer_system_info_ = promptx::engineerSystemInfo();
     QDate currentDate = QDate::currentDate(); // 今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
     engineer_system_info_.replace("{OS}", USEROS);

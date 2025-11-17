@@ -507,10 +507,10 @@ void Expend::runToolcallTest()
     }
     // Prepare one tool case
     const ToolCase &tc = toolCases_[toolIndex_];
-    QString toolsDesc = Buildin_tools_answer.text + QString("\n\n") + Buildin_tools_calculator.text + QString("\n\n") + Buildin_tools_stablediffusion.text + QString("\n\n") + Buildin_tools_knowledge.text + QString("\n\n") + Buildin_tools_execute_command.text + QString("\n\n") + Buildin_tools_controller.text + QString("\n\n") + Buildin_tools_mcp_tools_list.text;
+    QString toolsDesc = promptx::toolAnswer().text + QString("\n\n") + promptx::toolCalculator().text + QString("\n\n") + promptx::toolStableDiffusion().text + QString("\n\n") + promptx::toolKnowledge().text + QString("\n\n") + promptx::toolExecuteCommand().text + QString("\n\n") + promptx::toolController().text + QString("\n\n") + promptx::toolMcpList().text;
     // Print tool case header and task before model output
     evalLog(QStringLiteral("[") + jtr("tool call") + QStringLiteral("] ") + QString("(%1/%2) ").arg(toolIndex_ + 1).arg(toolCases_.size()) + tc.desc + QStringLiteral("\n") + jtr("task") + QStringLiteral("\n") + tc.user);
-    QString sys = EXTRA_PROMPT_FORMAT;
+        QString sys = promptx::extraPromptTemplate();
     sys.replace("{available_tools_describe}", toolsDesc);
     sys.replace("{engineer_info}", QString());
     const QString task = tc.user + QStringLiteral(" Strictly output exactly one <tool_call> JSON and stop.");

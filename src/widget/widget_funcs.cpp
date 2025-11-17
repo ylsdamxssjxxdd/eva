@@ -408,7 +408,7 @@ QString Widget::create_extra_prompt()
     QString available_tools_describe; // 工具名和描述
     QString skill_usage_block;
     QString engineer_info;            // 软件工程师信息
-    extra_prompt_ = EXTRA_PROMPT_FORMAT;
+    extra_prompt_ = promptx::extraPromptTemplate();
     extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool)
     {
@@ -417,7 +417,7 @@ QString Widget::create_extra_prompt()
             const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true);
             if (!skillBlock.isEmpty()) skill_usage_block = skillBlock;
         }
-        available_tools_describe += Buildin_tools_answer.text + "\n\n";
+        available_tools_describe += promptx::toolAnswer().text + "\n\n";
         // qDebug()<< MCP_TOOLS_INFO_LIST.size();
         if (date_ui->MCPtools_checkbox->isChecked())
         {
@@ -433,30 +433,34 @@ QString Widget::create_extra_prompt()
         }
         if (date_ui->calculator_checkbox->isChecked())
         {
-            available_tools_describe += Buildin_tools_calculator.text + "\n\n";
+            available_tools_describe += promptx::toolCalculator().text + "\n\n";
         }
         if (date_ui->knowledge_checkbox->isChecked())
         {
-            available_tools_describe += Buildin_tools_knowledge.text.replace("{embeddingdb describe}", embeddingdb_describe) + "\n\n";
+            QString knowledgeText = promptx::toolKnowledge().text;
+            knowledgeText.replace("{embeddingdb describe}", embeddingdb_describe);
+            available_tools_describe += knowledgeText + "\n\n";
         }
         if (date_ui->stablediffusion_checkbox->isChecked())
         {
-            available_tools_describe += Buildin_tools_stablediffusion.text + "\n\n";
+            available_tools_describe += promptx::toolStableDiffusion().text + "\n\n";
         }
         if (date_ui->controller_checkbox->isChecked())
         {
             screen_info = create_screen_info(); // 构建屏幕信息
-            available_tools_describe += Buildin_tools_controller.text.replace("{screen_info}", screen_info) + "\n\n";
+            QString controllerText = promptx::toolController().text;
+            controllerText.replace("{screen_info}", screen_info);
+            available_tools_describe += controllerText + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
         {
-            available_tools_describe += Buildin_tools_execute_command.text + "\n\n";
-            available_tools_describe += Buildin_tools_read_file.text + "\n\n";
-            available_tools_describe += Buildin_tools_write_file.text + "\n\n";
-            available_tools_describe += Buildin_tools_replace_in_file.text + "\n\n";
-            available_tools_describe += Buildin_tools_edit_in_file.text + "\n\n";
-            available_tools_describe += Buildin_tools_list_files.text + "\n\n";
-            available_tools_describe += Buildin_tools_search_content.text + "\n\n";
+            available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
+            available_tools_describe += promptx::toolReadFile().text + "\n\n";
+            available_tools_describe += promptx::toolWriteFile().text + "\n\n";
+            available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
+            available_tools_describe += promptx::toolEditInFile().text + "\n\n";
+            available_tools_describe += promptx::toolListFiles().text + "\n\n";
+            available_tools_describe += promptx::toolSearchContent().text + "\n\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info(); // 构建工程师信息
         }

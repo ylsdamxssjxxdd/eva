@@ -1,24 +1,92 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include "toolcall_test_dialog.h"
+#include "../utils/simpleini.h"
+#include <QDebug>
 #include <QFile>
-#include <QTextStream>
+#include <QDir>
 
-void Widget::getWords(QString json_file_path)
+namespace
 {
-    QFile jfile(json_file_path);
-    if (!jfile.open(QIODevice::ReadOnly | QIODevice::Text))
+QHash<int, QString> loadLanguageEntries(const QString &path)
+{
+    QHash<int, QString> table;
+    const auto map = simpleini::parseFile(path);
+    for (auto it = map.constBegin(); it != map.constEnd(); ++it)
     {
-        qDebug() << "Cannot open file for reading.";
-        return;
+        bool ok = false;
+        const int id = it.key().toInt(&ok);
+        if (!ok) continue;
+        table.insert(id, it.value());
     }
-    QTextStream in(&jfile);
-    in.setCodec("UTF-8"); // 确保使用UTF-8编码读取文件
-    QString data = in.readAll();
-    jfile.close();
-    QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
-    QJsonObject jsonObj = doc.object();
-    wordsObj = jsonObj["words"].toObject();
+    return table;
+}
+} // namespace
+
+namespace
+{
+bool loadLanguagePack(const QString &root, QJsonObject &out)
+{
+    QDir dir(root);
+    const QString keyFile = dir.filePath(QStringLiteral("key_index.ini"));
+    const auto keyIndex = simpleini::parseFile(keyFile);
+    if (keyIndex.isEmpty()) return false;
+    QStringList discovered = dir.entryList(QStringList() << QStringLiteral("lang_*.ini"), QDir::Files, QDir::Name);
+    QStringList languageFiles;
+    auto takeIfPresent = [&](const QString &name)
+    {
+        const int idx = discovered.indexOf(name);
+        if (idx >= 0)
+        {
+            languageFiles << discovered.takeAt(idx);
+        }
+    };
+    takeIfPresent(QStringLiteral("lang_zh.ini"));
+    takeIfPresent(QStringLiteral("lang_en.ini"));
+    languageFiles << discovered;
+    if (languageFiles.isEmpty())
+    {
+        languageFiles.clear();
+        languageFiles << QStringLiteral("lang_zh.ini") << QStringLiteral("lang_en.ini");
+    }
+    QList<QHash<int, QString>> languageTables;
+    for (const QString &file : languageFiles)
+    {
+        languageTables.push_back(loadLanguageEntries(dir.filePath(file)));
+    }
+    int englishIndex = languageFiles.indexOf(QStringLiteral("lang_en.ini"));
+    if (englishIndex < 0 && !languageTables.isEmpty()) englishIndex = 0;
+    QJsonObject jsonObj;
+    for (auto it = keyIndex.constBegin(); it != keyIndex.constEnd(); ++it)
+    {
+        bool ok = false;
+        const int id = it.value().toInt(&ok);
+        if (!ok) continue;
+        QJsonArray translations;
+        for (int idx = 0; idx < languageTables.size(); ++idx)
+        {
+            QString resolved = languageTables[idx].value(id);
+            if (resolved.isEmpty() && englishIndex >= 0 && englishIndex < languageTables.size())
+                resolved = languageTables[englishIndex].value(id);
+            if (resolved.isEmpty()) resolved = it.key();
+            translations.append(resolved);
+        }
+        jsonObj.insert(it.key(), translations);
+    }
+    out = jsonObj;
+    return true;
+}
+} // namespace
+
+void Widget::getWords(const QString &languageRoot)
+{
+    if (loadLanguagePack(languageRoot, wordsObj)) return;
+    if (!languageRoot.startsWith(":/"))
+    {
+        if (loadLanguagePack(QStringLiteral(":/language"), wordsObj)) return;
+    }
+    qWarning() << "Failed to load language files from" << languageRoot;
+    wordsObj = QJsonObject();
 }
 
 void Widget::switch_lan_change()

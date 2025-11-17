@@ -110,7 +110,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         language_flag = 1; // 英文
     }
 
-    getWords(":/src/utils/ui_language.json");
+    getWords(QStringLiteral(":/language"));
     // 记忆进度条：文本“记忆:xx%”，使用第二进度（黄色）表示
     ui->kv_bar->setMaximum(100);
     ui->kv_bar->setValue(0);

@@ -45,7 +45,7 @@ add_executable(
     src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp
     src/expend/sd_params_dialog.cpp src/expend/sd_params_dialog.h
-    src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp
+    src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp src/prompt.cpp
     src/utils/history_store.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h
     src/utils/docparser.cpp src/utils/docparser.h
@@ -65,6 +65,7 @@ add_executable(
     src/utils/textspacing.cpp src/utils/textspacing.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
     src/utils/zip_extractor.cpp src/utils/zip_extractor.h
+    src/utils/simpleini.cpp src/utils/simpleini.h
     src/utils/static_plugin_stubs.cpp
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h

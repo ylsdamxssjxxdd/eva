@@ -127,7 +127,7 @@ class Widget : public QWidget
     bool isShuttingDown_ = false; // 防重入：仅执行一次关机流程
   public:
     QJsonObject wordsObj;                  // 中文英文
-    void getWords(QString json_file_path); // 中文英文
+    void getWords(const QString &languageRoot); // 中文英文
     int language_flag = 0;                 // 0是中文1是英文
     QString jtr(QString customstr);        // 根据language.json(wordsObj)和language_flag中找到对应的文字
 

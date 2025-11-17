@@ -34,6 +34,7 @@ Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
 #include "utils/singleinstance.h" // single-instance guard (per app path)
 #include "widget/widget.h"
 #include "xmcp.h"
+#include "prompt.h"
 #include "xnet.h"
 #include "xtool.h"
 
@@ -135,6 +136,7 @@ int main(int argc, char *argv[])
         QApplication::setFont(customFont);
         // qDebug() << "Loaded font:" << customFont.family();
     }
+    promptx::loadPromptLibrary();
     StartupLogger::log(QStringLiteral("字体资源加载完成"));
 
     // 设置创建EVA_TEMP文件夹所在的目录
