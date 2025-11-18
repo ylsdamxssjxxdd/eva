@@ -14,6 +14,68 @@ if (EXISTS "${_EVA_BUNDLED_SKILLS_DIR}")
         COMMENT "Copy bundled engineer skills into runtime directory")
 endif()
 
+if (UNIX)
+    # Resolve linker scripts/symlinks to real shared objects so we can grab the SONAME later.
+    function(_eva_resolve_library_real_path _out_var _requested_path)
+        if (NOT EXISTS "${_requested_path}")
+            set(${_out_var} "" PARENT_SCOPE)
+            return()
+        endif()
+
+        set(_resolved "")
+        # GNU ld scripts start with INPUT/GROUP, try to parse the actual targets.
+        file(STRINGS "${_requested_path}" _ld_lines LIMIT_COUNT 8)
+        foreach(_ld_line IN LISTS _ld_lines)
+            string(STRIP "${_ld_line}" _ld_line_stripped)
+            if (_ld_line_stripped MATCHES "^(INPUT|GROUP)\\s*\\(([^\\)]+)\\)")
+                set(_payload "${CMAKE_MATCH_2}")
+                string(REGEX REPLACE "[ \t]+" ";" _entries "${_payload}")
+                foreach(_entry IN LISTS _entries)
+                    string(STRIP "${_entry}" _candidate)
+                    string(REGEX REPLACE "^[\"']" "" _candidate "${_candidate}")
+                    string(REGEX REPLACE "[\"']$" "" _candidate "${_candidate}")
+                    if (IS_ABSOLUTE "${_candidate}" AND EXISTS "${_candidate}")
+                        set(_resolved "${_candidate}")
+                        break()
+                    endif()
+                endforeach()
+                if (_resolved)
+                    break()
+                endif()
+            endif()
+        endforeach()
+
+        if (NOT _resolved)
+            get_filename_component(_realpath "${_requested_path}" REALPATH)
+            if (EXISTS "${_realpath}")
+                set(_resolved "${_realpath}")
+            endif()
+        endif()
+
+        set(${_out_var} "${_resolved}" PARENT_SCOPE)
+    endfunction()
+
+    # Extract SONAME via objdump so we can recreate versioned links inside AppDir/usr/lib.
+    function(_eva_extract_soname _out_var _lib_path)
+        set(_soname "")
+        if (CMAKE_OBJDUMP AND EXISTS "${CMAKE_OBJDUMP}" AND EXISTS "${_lib_path}")
+            execute_process(
+                COMMAND "${CMAKE_OBJDUMP}" -p "${_lib_path}"
+                OUTPUT_VARIABLE _objdump_text
+                RESULT_VARIABLE _objdump_rc
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_QUIET)
+            if (_objdump_rc EQUAL 0)
+                string(REGEX MATCH "SONAME[ \t]+([^ \t\r\n]+)" _match "${_objdump_text}")
+                if (_match)
+                    set(_soname "${CMAKE_MATCH_1}")
+                endif()
+            endif()
+        endif()
+        set(${_out_var} "${_soname}" PARENT_SCOPE)
+    endfunction()
+endif()
+
 if (WIN32)
     # Always ensure Qt SQLite plugin is available for dev runs (BODY_PACK off as well)
     get_filename_component(Qt5_PLUGINS_DIR "${Qt5_BIN_DIR}/../plugins" ABSOLUTE)
@@ -128,13 +190,45 @@ elseif(UNIX)
             message(STATUS "EVA AppImage bundling libs (auto+extra): ${_EVA_APPIMAGE_LIB_SOURCE_PATHS}")
             foreach(_extra_lib IN LISTS _EVA_APPIMAGE_LIB_SOURCE_PATHS)
                 if (EXISTS "${_extra_lib}")
-                    get_filename_component(_extra_lib_name "${_extra_lib}" NAME)
-                    set(_extra_lib_dest "${_EVA_APPDIR_LIB}/${_extra_lib_name}")
+                    get_filename_component(_requested_lib_name "${_extra_lib}" NAME)
+                    set(_resolved_lib "${_extra_lib}")
+                    if (UNIX)
+                        _eva_resolve_library_real_path(_resolved_lib "${_extra_lib}")
+                    endif()
+                    if (NOT _resolved_lib)
+                        message(WARNING "AppImage library source '${_extra_lib}' cannot be resolved and will be skipped.")
+                        continue()
+                    endif()
+                    get_filename_component(_resolved_lib_name "${_resolved_lib}" NAME)
+                    set(_resolved_lib_dest "${_EVA_APPDIR_LIB}/${_resolved_lib_name}")
                     list(APPEND _EVA_APPIMAGE_LIB_COPY_COMMANDS
                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                                "${_extra_lib}"
-                                "${_extra_lib_dest}")
-                    list(APPEND _EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS "${_extra_lib_dest}")
+                                "${_resolved_lib}"
+                                "${_resolved_lib_dest}")
+                    list(APPEND _EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS "${_resolved_lib_dest}")
+                    if (UNIX)
+                        _eva_extract_soname(_resolved_soname "${_resolved_lib}")
+                        if (_resolved_soname)
+                            set(_soname_dest "${_EVA_APPDIR_LIB}/${_resolved_soname}")
+                            if (NOT _soname_dest STREQUAL _resolved_lib_dest)
+                                list(APPEND _EVA_APPIMAGE_LIB_COPY_COMMANDS
+                                    COMMAND ${CMAKE_COMMAND} -E remove -f "${_soname_dest}"
+                                    COMMAND ${CMAKE_COMMAND} -E create_symlink
+                                            "${_resolved_lib_name}"
+                                            "${_soname_dest}")
+                            endif()
+                        endif()
+                        if (_requested_lib_name
+                            AND NOT _requested_lib_name STREQUAL _resolved_lib_name
+                            AND (NOT _resolved_soname OR NOT _requested_lib_name STREQUAL _resolved_soname))
+                            set(_requested_dest "${_EVA_APPDIR_LIB}/${_requested_lib_name}")
+                            list(APPEND _EVA_APPIMAGE_LIB_COPY_COMMANDS
+                                COMMAND ${CMAKE_COMMAND} -E remove -f "${_requested_dest}"
+                                COMMAND ${CMAKE_COMMAND} -E create_symlink
+                                        "${_resolved_lib_name}"
+                                        "${_requested_dest}")
+                        endif()
+                    endif()
                 else()
                     message(WARNING "AppImage library source '${_extra_lib}' does not exist and will be skipped.")
                 endif()

@@ -1,1 +1,1 @@
-cmake -DEVA_LINUX_STATIC=ON -DBODY_PACK=ON -DMCP_SSL=ON  -S . -B build-static && cmake --build build-static --config release -j4
+cmake -DEVA_LINUX_STATIC=ON -DBODY_PACK=ON -DMCP_SSL=ON  -S . -B build-static && cmake --build build-static --config release -j8
