@@ -88,6 +88,12 @@ if (UNIX AND NOT APPLE)
     endif()
     set(EVA_TTS_FLITE_PLUGIN_PATH "" CACHE FILEPATH "Path to the static QTextToSpeech flite plugin library")
     set(EVA_TTS_FLITE_PLUGIN_LIBS "" CACHE STRING "Extra libraries required by the flite text-to-speech plugin")
+    option(EVA_APPIMAGE_BUNDLE_COMMON_LIBS "Auto-detect and bundle common desktop runtime libraries into the AppImage" ON)
+    set(EVA_APPIMAGE_COMMON_LIB_NAMES
+        "X11;X11-xcb;Xau;Xdmcp;xcb;SM;ICE;EGL;GL;GLX;GLdispatch;wayland-client;wayland-egl;asound;pulse;pulse-mainloop-glib;uuid;z;bsd;gmp;gpg-error;Xtst;Xext;Xrender;Xi;Xcursor;Xfixes;xkbcommon-x11;xcb-image;xcb-shm;xcb-icccm;xcb-keysyms;xcb-randr;xcb-render;xcb-render-util;xcb-shape;xcb-sync;xcb-xfixes;xcb-xinerama;xcb-xinput;xcb-glx;gstapp-1.0;gstpbutils-1.0;gstaudio-1.0;gstvideo-1.0;gstbase-1.0;gstreamer-1.0;gobject-2.0;glib-2.0;gio-2.0;gmodule-2.0;gthread-2.0;mysqlclient;odbc;pq;tiff;webp;webpdemux;webpmux"
+        CACHE STRING "Semicolon-separated library names that will be auto-detected and bundled into the AppImage")
+    set(EVA_APPIMAGE_EXTRA_LIBS "" CACHE STRING "Semicolon-separated absolute library paths to bundle into the AppImage (Linux only)")
+    set(EVA_APPIMAGE_EXTRA_BINS "" CACHE STRING "Semicolon-separated extra executables to place in the AppImage bin directory (Linux only)")
 endif()
 
 set(_EVA_ENABLE_QT_TTS_DEFAULT ON)

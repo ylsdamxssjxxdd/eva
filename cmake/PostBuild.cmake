@@ -71,24 +71,111 @@ if (WIN32)
 
 elseif(UNIX)
     if (BODY_PACK)
-        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${EVA_TARGET}>" "${CMAKE_BINARY_DIR}/AppDir/usr/bin/eva"
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop ${CMAKE_BINARY_DIR}/AppDir/usr/share/applications/eva.desktop
-            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/eva.png ${CMAKE_BINARY_DIR}/AppDir/usr/share/icons/hicolor/64x64/apps/eva.png
-        )
-        # 执行打包 使用linuxdeploy linuxdeploy-plugin-qt appimagetool打包  生成的.appimage文件在构建目录下
-        if (EVA_LINUX_STATIC)
-            # Static Qt builds already bundle the required plugins, skip linuxdeploy-plugin-qt.
-            add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-                COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
-                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage"
-            )
-        else()
-            add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
-                COMMAND "${Qt5_BIN_DIR}/linuxdeploy" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
-                COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${CMAKE_BINARY_DIR}/AppDir"
-                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${CMAKE_BINARY_DIR}/AppDir" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage"
-            )
+        set(_EVA_APPDIR "${CMAKE_BINARY_DIR}/AppDir")
+        set(_EVA_APPDIR_BIN "${_EVA_APPDIR}/usr/bin")
+        set(_EVA_APPDIR_LIB "${_EVA_APPDIR}/usr/lib")
+        set(_EVA_APPDIR_SHARE "${_EVA_APPDIR}/usr/share")
+        set(_EVA_APPDIR_APPS "${_EVA_APPDIR_SHARE}/applications")
+        set(_EVA_APPDIR_ICONS "${_EVA_APPDIR_SHARE}/icons/hicolor/64x64/apps")
+
+        # Collect extra copy commands for optional executables
+        set(_EVA_APPIMAGE_BIN_COPY_COMMANDS "")
+        set(_EVA_APPIMAGE_EXTRA_BIN_DESTINATIONS "")
+        if (EVA_APPIMAGE_EXTRA_BINS)
+            foreach(_extra_bin IN LISTS EVA_APPIMAGE_EXTRA_BINS)
+                if (EXISTS "${_extra_bin}")
+                    get_filename_component(_extra_bin_name "${_extra_bin}" NAME)
+                    set(_extra_bin_dest "${_EVA_APPDIR_BIN}/${_extra_bin_name}")
+                    list(APPEND _EVA_APPIMAGE_BIN_COPY_COMMANDS
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                "${_extra_bin}"
+                                "${_extra_bin_dest}")
+                    list(APPEND _EVA_APPIMAGE_EXTRA_BIN_DESTINATIONS "${_extra_bin_dest}")
+                else()
+                    message(WARNING "EVA_APPIMAGE_EXTRA_BINS entry '${_extra_bin}' does not exist and will be skipped.")
+                endif()
+            endforeach()
         endif()
+
+        # Collect extra copy commands for shared libraries (auto + manual)
+        set(_EVA_APPIMAGE_LIB_COPY_COMMANDS "")
+        set(_EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS "")
+        set(_EVA_APPIMAGE_LIB_SOURCE_PATHS "")
+        if (EVA_APPIMAGE_BUNDLE_COMMON_LIBS AND EVA_APPIMAGE_COMMON_LIB_NAMES)
+            set(_EVA_APPIMAGE_AUTO_LIBS "")
+            foreach(_auto_lib_name IN LISTS EVA_APPIMAGE_COMMON_LIB_NAMES)
+                string(REGEX REPLACE "[^A-Za-z0-9_]" "_" _auto_lib_var "${_auto_lib_name}")
+                find_library(EVA_APPIMAGE_LIB_${_auto_lib_var} NAMES "${_auto_lib_name}")
+                if (EVA_APPIMAGE_LIB_${_auto_lib_var})
+                    list(APPEND _EVA_APPIMAGE_AUTO_LIBS "${EVA_APPIMAGE_LIB_${_auto_lib_var}}")
+                    message(STATUS "AppImage: found ${_auto_lib_name} at ${EVA_APPIMAGE_LIB_${_auto_lib_var}}")
+                else()
+                    message(STATUS "AppImage: missing ${_auto_lib_name}, skip auto bundle")
+                endif()
+            endforeach()
+            if (_EVA_APPIMAGE_AUTO_LIBS)
+                list(APPEND _EVA_APPIMAGE_LIB_SOURCE_PATHS ${_EVA_APPIMAGE_AUTO_LIBS})
+                message(STATUS "EVA AppImage auto bundling libs: ${_EVA_APPIMAGE_AUTO_LIBS}")
+            else()
+                message(STATUS "EVA AppImage auto bundling libs: none found for current toolchain.")
+            endif()
+        endif()
+        if (EVA_APPIMAGE_EXTRA_LIBS)
+            list(APPEND _EVA_APPIMAGE_LIB_SOURCE_PATHS ${EVA_APPIMAGE_EXTRA_LIBS})
+        endif()
+        if (_EVA_APPIMAGE_LIB_SOURCE_PATHS)
+            list(REMOVE_DUPLICATES _EVA_APPIMAGE_LIB_SOURCE_PATHS)
+            message(STATUS "EVA AppImage bundling libs (auto+extra): ${_EVA_APPIMAGE_LIB_SOURCE_PATHS}")
+            foreach(_extra_lib IN LISTS _EVA_APPIMAGE_LIB_SOURCE_PATHS)
+                if (EXISTS "${_extra_lib}")
+                    get_filename_component(_extra_lib_name "${_extra_lib}" NAME)
+                    set(_extra_lib_dest "${_EVA_APPDIR_LIB}/${_extra_lib_name}")
+                    list(APPEND _EVA_APPIMAGE_LIB_COPY_COMMANDS
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                "${_extra_lib}"
+                                "${_extra_lib_dest}")
+                    list(APPEND _EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS "${_extra_lib_dest}")
+                else()
+                    message(WARNING "AppImage library source '${_extra_lib}' does not exist and will be skipped.")
+                endif()
+            endforeach()
+        endif()
+
+        # Compose linuxdeploy arguments (allow bundling of extra shared libs/executables)
+        set(_EVA_LINUXDEPLOY_ARGS "--appdir" "${_EVA_APPDIR}" "--executable" "${_EVA_APPDIR_BIN}/eva")
+        if (_EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS)
+            foreach(_extra_lib_dest IN LISTS _EVA_APPIMAGE_EXTRA_LIB_DESTINATIONS)
+                list(APPEND _EVA_LINUXDEPLOY_ARGS "--library" "${_extra_lib_dest}")
+            endforeach()
+        endif()
+        if (_EVA_APPIMAGE_EXTRA_BIN_DESTINATIONS)
+            foreach(_extra_bin_dest IN LISTS _EVA_APPIMAGE_EXTRA_BIN_DESTINATIONS)
+                list(APPEND _EVA_LINUXDEPLOY_ARGS "--executable" "${_extra_bin_dest}")
+            endforeach()
+        endif()
+
+        set(_EVA_LINUXDEPLOY_COMMANDS
+            COMMAND "${Qt5_BIN_DIR}/linuxdeploy" ${_EVA_LINUXDEPLOY_ARGS})
+        if (EVA_LINUX_STATIC)
+            list(APPEND _EVA_LINUXDEPLOY_COMMANDS
+                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${_EVA_APPDIR}" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage")
+        else()
+            list(APPEND _EVA_LINUXDEPLOY_COMMANDS
+                COMMAND env QMAKE="${Qt5_BIN_DIR}/qmake" "${Qt5_BIN_DIR}/linuxdeploy-plugin-qt" "--appdir" "${_EVA_APPDIR}"
+                COMMAND "${Qt5_BIN_DIR}/appimagetool" "${_EVA_APPDIR}" "--runtime-file" "${Qt5_BIN_DIR}/runtime-appimage" "${eva_OUTPUT_NAME}.appimage")
+        endif()
+
+        add_custom_command(TARGET ${EVA_TARGET} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${_EVA_APPDIR_BIN}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${_EVA_APPDIR_LIB}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${_EVA_APPDIR_APPS}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${_EVA_APPDIR_ICONS}"
+            COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${EVA_TARGET}>" "${_EVA_APPDIR_BIN}/eva"
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/eva.desktop "${_EVA_APPDIR_APPS}/eva.desktop"
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/resource/logo/eva.png "${_EVA_APPDIR_ICONS}/eva.png"
+            ${_EVA_APPIMAGE_BIN_COPY_COMMANDS}
+            ${_EVA_APPIMAGE_LIB_COPY_COMMANDS}
+            ${_EVA_LINUXDEPLOY_COMMANDS}
+        )
     endif()
 endif()

@@ -149,7 +149,7 @@ void Widget::recv_toolpushover(QString tool_result_)
     else
     {
         tool_result = tool_result_;
-        tool_result = truncateString(tool_result, MAX_INPUT); // 超出最大输入的部分截断
+        tool_result = truncateString(tool_result, DEFAULT_MAX_INPUT); // 超出最大输入的部分截断
     }
 
     on_send_clicked(); // 触发发送继续预测下一个词
