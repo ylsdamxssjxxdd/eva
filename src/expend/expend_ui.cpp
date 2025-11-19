@@ -10,6 +10,8 @@
 #include <QFrame>
 #include <QPainter>
 #include <QPlainTextEdit>
+#include <QStringList>
+#include <QTextStream>
 #include <QVBoxLayout>
 #include <QDebug>
 #include <src/utils/imagedropwidget.h>
@@ -36,6 +38,49 @@ QString windowName(EXPEND_WINDOW w)
     case PREV_WINDOW: return QStringLiteral("prev");
     default: return QStringLiteral("unknown");
     }
+}
+
+QString sanitizeReadme(QString content)
+{
+    if (content.isEmpty()) return content;
+
+    content.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+
+    const QStringList lines = content.split(QChar('\n'));
+    QStringList kept;
+    kept.reserve(lines.size());
+    bool skipDetails = false;
+
+    for (const QString &line : lines)
+    {
+        const QString trimmed = line.trimmed();
+        const QString lower = trimmed.toLower();
+
+        if (lower.startsWith(QStringLiteral("<details")))
+        {
+            skipDetails = true;
+            continue;
+        }
+
+        if (skipDetails)
+        {
+            if (lower.startsWith(QStringLiteral("</details>"))) skipDetails = false;
+            continue;
+        }
+
+        if (lower.startsWith(QStringLiteral("<summary")) || lower.startsWith(QStringLiteral("</summary>")))
+            continue;
+
+        if (trimmed.startsWith(QStringLiteral("![")))
+            continue;
+
+        if (lower.contains(QStringLiteral("<img")) || lower.contains(QStringLiteral("<picture")) || lower.contains(QStringLiteral("<figure")))
+            continue;
+
+        kept << line;
+    }
+
+    return kept.join(QStringLiteral("\n")).trimmed();
 }
 } // namespace
 
@@ -518,21 +563,23 @@ void Expend::readConfig()
 
 void Expend::showReadme()
 {
+    if (!ui || !ui->info_card) return;
+
     QString readme_content;
     QFile file;
-    QString imagefile = ":/logo/ui_demo.png"; // 图片路径固定
+    const QString imagefile = QStringLiteral(":/logo/ui_demo.png"); // 图路径固定
 
-    // 根据语言标志选择不同的 README 文件
+    // 根据语言标志选择不同 README 文件
     if (language_flag == 0)
     {
-        file.setFileName(":/README.md");
+        file.setFileName(QStringLiteral(":/README.md"));
     }
     else if (language_flag == 1)
     {
-        file.setFileName(":/README_en.md");
+        file.setFileName(QStringLiteral(":/README_en.md"));
     }
 
-    // 打开文件并读取内容
+    // 读取文件内容
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         QTextStream in(&file);
@@ -541,52 +588,51 @@ void Expend::showReadme()
         file.close();
     }
 
-    // Strip images from README: HTML <img>, Markdown images, and common containers
-    // 1) Remove any HTML <img ...> tags (case-insensitive)
-    readme_content.remove(QRegularExpression("<img\\b[^>]*>", QRegularExpression::CaseInsensitiveOption));
-    // 2) Replace Markdown inline images ![alt](url) with just the alt text
-    readme_content = readme_content.replace(QRegularExpression("!\\[([^\\]]*)\\]\\(([^\\)]*)\\)"), "\\1");
-    // 3) Replace Markdown reference-style images ![alt][id] with alt text
-    readme_content = readme_content.replace(QRegularExpression("!\\[([^\\]]*)\\]\\s*\\[[^\\]]*\\]"), "\\1");
-    // 4) Remove HTML picture/figure blocks that often wrap images
-    readme_content.remove(QRegularExpression("<picture\\b[\\s\\S]*?</picture>", QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption));
-    readme_content.remove(QRegularExpression("<figure\\b[\\s\\S]*?</figure>", QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption));
+    QStringList textBlocks;
+    const QString compileInfo = QStringLiteral("%1: %2\n%3: %4\n%5: %6\n%7: %8\n%9: %10")
+                                    .arg(jtr("EVA_ENVIRONMENT"), QString(EVA_ENVIRONMENT))
+                                    .arg(jtr("EVA_PRODUCT_TIME"), QString(EVA_PRODUCT_TIME))
+                                    .arg(jtr("QT_VERSION_"), QString(QT_VERSION_))
+                                    .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
+                                    .arg(jtr("EVA_VERSION"), QString(EVA_VERSION));
+    if (!compileInfo.trimmed().isEmpty()) textBlocks << compileInfo.trimmed();
 
-    // 删除 <summary> 和 </summary> 标签
-    readme_content.remove(QRegularExpression("<summary>|</summary>"));
+    QString cleanReadme = sanitizeReadme(readme_content);
+    if (cleanReadme.isEmpty()) cleanReadme = jtr("readme not available, please check docs directory");
+    textBlocks << cleanReadme;
 
-    // 删除 <details> 和 </details> 标签
-    readme_content.remove("<details>");
-    readme_content.remove("</details>");
+    const QString finalText = textBlocks.join(QStringLiteral("\n\n"));
 
-    // 添加编译信息
-    QString compileInfo = QString("%1: %2\n\n %3: %4\n\n %5: %6\n\n %7: %8\n\n %9: %10\n\n")
-                              .arg(jtr("EVA_ENVIRONMENT"), QString(EVA_ENVIRONMENT))
-                              .arg(jtr("EVA_PRODUCT_TIME"), QString(EVA_PRODUCT_TIME))
-                              .arg(jtr("QT_VERSION_"), QString(QT_VERSION_))
-                              .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
-                              .arg(jtr("EVA_VERSION"), QString(EVA_VERSION));
-    readme_content.prepend(compileInfo); // 将编译信息放在文件内容前
-
-    // 设置 Markdown 内容
-    ui->info_card->setMarkdown(readme_content);
+    ui->info_card->clear();
 
     // 加载并缩放图片
     QImage image(imagefile);
-    int originalWidth = image.width() / devicePixelRatioF() / 1.5;
-    int originalHeight = image.height() / devicePixelRatioF() / 1.5;
+    const bool hasImage = !image.isNull();
+    const qreal scale = hasImage ? devicePixelRatioF() * 1.5 : 1.0;
+    const int originalWidth = hasImage ? static_cast<int>(image.width() / scale) : 0;
+    const int originalHeight = hasImage ? static_cast<int>(image.height() / scale) : 0;
 
-    // 插入图片到 QTextEdit
+    // 将图片与 README 文本插入 QTextEdit
     QTextCursor cursor(ui->info_card->textCursor());
     cursor.movePosition(QTextCursor::Start);
-    QTextImageFormat imageFormat;
-    imageFormat.setWidth(originalWidth);
-    imageFormat.setHeight(originalHeight);
-    imageFormat.setName(imagefile);
+    if (hasImage)
+    {
+        QTextImageFormat imageFormat;
+        imageFormat.setWidth(originalWidth);
+        imageFormat.setHeight(originalHeight);
+        imageFormat.setName(imagefile);
+        cursor.insertImage(imageFormat);
+    }
 
-    cursor.insertImage(imageFormat);
-    cursor.insertText("\n\n");
+    if (!finalText.isEmpty())
+    {
+        if (hasImage) cursor.insertText(QStringLiteral("\n\n"));
+        cursor.insertText(finalText);
+    }
+
     TextSpacing::apply(ui->info_card, 1.35);
 }
+
+
 
 
