@@ -20,6 +20,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QtGlobal>
+#include <exception>
 #include "../utils/textspacing.h"
 #include "../utils/startuplogger.h"
 
@@ -110,7 +111,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         language_flag = 1; // 英文
     }
 
+    StartupLogger::log(QStringLiteral("[widget] 语言资源读取开始"));
     getWords(QStringLiteral(":/language"));
+    StartupLogger::log(QStringLiteral("[widget] 语言资源读取完成"));
     // 记忆进度条：文本“记忆:xx%”，使用第二进度（黄色）表示
     ui->kv_bar->setMaximum(100);
     ui->kv_bar->setValue(0);
@@ -152,9 +155,31 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL); // 初始提示
 
     //-------------初始化各种控件-------------
+    // Dialog initialization is the most OS-sensitive block; log each step for Win7 diagnostics.
+    StartupLogger::log(QStringLiteral("[widget] setApiDialog begin"));
     setApiDialog();   // 设置api选项
+    StartupLogger::log(QStringLiteral("[widget] setApiDialog done"));
+
+    StartupLogger::log(QStringLiteral("[widget] set_DateDialog begin"));
     set_DateDialog(); // 设置约定选项
-    set_SetDialog();  // 设置设置选项
+    StartupLogger::log(QStringLiteral("[widget] set_DateDialog done"));
+
+    StartupLogger::log(QStringLiteral("[widget] set_SetDialog begin"));
+    try
+    {
+        set_SetDialog(); // 设置设置选项
+        StartupLogger::log(QStringLiteral("[widget] set_SetDialog done"));
+    }
+    catch (const std::exception &ex)
+    {
+        StartupLogger::log(QStringLiteral("[widget] set_SetDialog failed: %1").arg(QString::fromLocal8Bit(ex.what())));
+        qWarning() << "set_SetDialog threw" << ex.what();
+    }
+    catch (...)
+    {
+        StartupLogger::log(QStringLiteral("[widget] set_SetDialog failed: unknown exception"));
+        qWarning() << "set_SetDialog threw unknown exception";
+    }
     logStep(QStringLiteral("设置对话框初始化完成"));
     lastServerRestart_ = false;
     ui_state_init();                                              // 初始界面状态

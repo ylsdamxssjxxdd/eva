@@ -11,10 +11,33 @@
 #include <QPainter>
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
+#include <QDebug>
 #include <src/utils/imagedropwidget.h>
 #include <src/utils/textspacing.h>
 
 // Local lightweight image drop/click widget for img2img
+
+namespace
+{
+QString windowName(EXPEND_WINDOW w)
+{
+    switch (w)
+    {
+    case INTRODUCTION_WINDOW: return QStringLiteral("intro");
+    case MODELINFO_WINDOW: return QStringLiteral("model_info");
+    case MODELEVAL_WINDOW: return QStringLiteral("model_eval");
+    case QUANTIZE_WINDOW: return QStringLiteral("quantize");
+    case MCP_WINDOW: return QStringLiteral("mcp");
+    case KNOWLEDGE_WINDOW: return QStringLiteral("knowledge");
+    case TXT2IMG_WINDOW: return QStringLiteral("txt2img");
+    case WHISPER_WINDOW: return QStringLiteral("whisper");
+    case TTS_WINDOW: return QStringLiteral("tts");
+    case NO_WINDOW: return QStringLiteral("none");
+    case PREV_WINDOW: return QStringLiteral("prev");
+    default: return QStringLiteral("unknown");
+    }
+}
+} // namespace
 
 //-------------------------------------------------------------------------
 //----------------------------------界面相关--------------------------------
@@ -276,6 +299,7 @@ void Expend::on_tabWidget_tabBarClicked(int index)
 // 通知显示增殖窗口
 void Expend::recv_expend_show(EXPEND_WINDOW window)
 {
+    qInfo() << "[expend] recv_expend_show request" << windowName(window);
     if (window == NO_WINDOW)
     {
         this->close();
@@ -295,10 +319,53 @@ void Expend::recv_expend_show(EXPEND_WINDOW window)
         {
             ui->modellog_card->setPlainText(jtr("lode model first"));
         }
+        if (ui && ui->tabWidget)
+        {
+            recordTabVisit(ui->tabWidget->currentIndex());
+        }
+        qInfo() << "[expend] first show -> init_expend done, tab count"
+                << (ui && ui->tabWidget ? ui->tabWidget->count() : -1);
     }
 
-    // 打开指定页数窗口
-    ui->tabWidget->setCurrentIndex(window_map[window]);
+    if (!ui || !ui->tabWidget || ui->tabWidget->count() <= 0)
+    {
+        qWarning() << "[expend] tab widget unavailable during show";
+        return;
+    }
+
+    // Show the requested page (with fallbacks)
+    const int introIndex = window_map.value(INTRODUCTION_WINDOW, 0);
+    const int tabCount = ui->tabWidget->count();
+    const int fallbackIndex = (introIndex >= 0 && introIndex < tabCount) ? introIndex : 0;
+    auto resolveIndex = [&](int idx) -> int
+    {
+        if (idx < 0 || idx >= tabCount) return fallbackIndex;
+        return idx;
+    };
+    int targetIndex = fallbackIndex;
+    if (window == PREV_WINDOW)
+    {
+        if (lastTabInitialized_)
+        {
+            targetIndex = resolveIndex(lastTabIndex_);
+        }
+        else
+        {
+            qInfo() << "[expend] PREV_WINDOW requested but no history, using fallback"
+                    << fallbackIndex;
+        }
+    }
+    else
+    {
+        const int mappedIndex = window_map.value(window, fallbackIndex);
+        targetIndex = resolveIndex(mappedIndex);
+    }
+    qInfo() << "[expend] navigating to tab" << targetIndex << "from request"
+            << windowName(window) << ", fallback" << fallbackIndex << ", tabCount"
+            << tabCount << ", lastTab"
+            << (lastTabInitialized_ ? QString::number(lastTabIndex_) : QStringLiteral("n/a"));
+    ui->tabWidget->setCurrentIndex(targetIndex);
+    recordTabVisit(targetIndex);
     this->setWindowState(Qt::WindowActive); // 激活窗口并恢复正常状态
     this->setWindowFlags(Qt::Window);
     this->show();

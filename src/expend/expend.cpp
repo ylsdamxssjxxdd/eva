@@ -23,6 +23,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
 {
     ui->setupUi(this);
     applicationDirPath = applicationDirPath_;
+    if (ui->tabWidget)
+    {
+        lastTabIndex_ = ui->tabWidget->currentIndex();
+        lastTabInitialized_ = (lastTabIndex_ >= 0);
+    }
 
     // Ensure a dedicated temp dir for TTS outputs under EVA_TEMP to avoid touching working dir
     ttsOutputDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
@@ -245,6 +250,7 @@ void Expend::changeEvent(QEvent *event)
 // Animation toggles are safe no-ops if custom widgets are absent
 void Expend::onTabCurrentChanged(int index)
 {
+    recordTabVisit(index);
     if (ui && ui->tabWidget && window_map.contains(KNOWLEDGE_WINDOW) && index == window_map[KNOWLEDGE_WINDOW])
     {
         ensureEmbeddingStoreLoaded();
@@ -267,6 +273,15 @@ void Expend::updateModelInfoAnim()
     if (auto neu = qobject_cast<NeuronLogEdit *>(ui->modellog_card)) neu->setActive(runModel);
     if (auto intro = qobject_cast<IntroAnimEdit *>(ui->info_card)) intro->setActive(runIntro);
     if (auto evalLog = qobject_cast<EvalLogEdit *>(ui->eval_log_plainTextEdit)) evalLog->setActive(runEval);
+}
+
+// Remember the latest visible tab so PREV_WINDOW has a safe target
+void Expend::recordTabVisit(int index)
+{
+    if (!ui || !ui->tabWidget) return;
+    if (index < 0 || index >= ui->tabWidget->count()) return;
+    lastTabIndex_ = index;
+    lastTabInitialized_ = true;
 }
 
 // Language-aware text resolver

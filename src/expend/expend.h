@@ -141,11 +141,14 @@ class Expend : public QWidget
     void on_tabWidget_tabBarClicked(int index); // 用户切换选项卡时响应
     void onTabCurrentChanged(int index);        // 选项卡变更（包含编程切换）
     void updateModelInfoAnim();                 // 根据可见性/选项卡启停动画（模型信息/软件介绍）
+    void recordTabVisit(int index);             // 记录最近打开的增殖选项卡
     // Eval: user actions
     void on_eval_start_pushButton_clicked();
 
   private:
     Ui::Expend *ui;
+    int lastTabIndex_ = 0;         // 最近一次有效的增殖选项卡索引
+    bool lastTabInitialized_ = false; // 是否已经记录过有效索引
     //-------------------------------------------------------------------------
     //----------------------------------声转文相关--------------------------------
     //-------------------------------------------------------------------------

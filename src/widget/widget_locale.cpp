@@ -4,6 +4,7 @@
 #include "../utils/simpleini.h"
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
 #include <QMap>
 
 namespace
@@ -34,34 +35,26 @@ QHash<int, QString> loadLanguageEntries(const QString &path, QMap<int, QString> 
 
 bool loadLanguagePack(const QString &root, QJsonObject &out)
 {
-    QDir dir(root);
-    if (!dir.exists()) return false;
-    QStringList discovered = dir.entryList(QStringList() << QStringLiteral("lang_*.ini"), QDir::Files, QDir::Name);
-    if (discovered.isEmpty()) return false;
-    QStringList languageFiles;
-    auto takeIfPresent = [&](const QString &name)
-    {
-        const int idx = discovered.indexOf(name);
-        if (idx >= 0)
-        {
-            languageFiles << discovered.takeAt(idx);
-        }
-    };
-    takeIfPresent(QStringLiteral("lang_zh.ini"));
-    takeIfPresent(QStringLiteral("lang_en.ini"));
-    languageFiles << discovered;
-    if (languageFiles.isEmpty())
-    {
-        languageFiles << QStringLiteral("lang_zh.ini") << QStringLiteral("lang_en.ini");
-    }
+    // Resource-only loader: avoid probing local disk on Win7.
+    const QString base = root.endsWith(QLatin1Char('/')) ? root.left(root.size() - 1) : root;
+    const QStringList languageFiles{QStringLiteral("lang_zh.ini"), QStringLiteral("lang_en.ini")};
+
     QVector<QHash<int, QString>> languageTables;
     QMap<int, QString> idToKey;
-    const int englishIndex = languageFiles.indexOf(QStringLiteral("lang_en.ini"));
+    int englishIndex = -1;
+
     for (int idx = 0; idx < languageFiles.size(); ++idx)
     {
-        const QString filePath = dir.filePath(languageFiles.at(idx));
-        if (idx == englishIndex)
+        const QString filePath = base + QStringLiteral("/") + languageFiles.at(idx);
+        QFileInfo fi(filePath);
+        if (!fi.exists())
         {
+            qWarning() << "language file missing in resources:" << filePath;
+            continue;
+        }
+        if (languageFiles.at(idx).contains(QStringLiteral("lang_en")))
+        {
+            englishIndex = languageTables.size();
             languageTables.push_back(loadLanguageEntries(filePath, &idToKey));
         }
         else
@@ -69,11 +62,15 @@ bool loadLanguagePack(const QString &root, QJsonObject &out)
             languageTables.push_back(loadLanguageEntries(filePath, nullptr));
         }
     }
-    if (idToKey.isEmpty())
+
+    if (languageTables.isEmpty() || idToKey.isEmpty())
     {
-        qWarning() << "language pack missing key metadata" << root;
+        qWarning() << "language pack incomplete in resources" << root;
         return false;
     }
+
+    if (englishIndex < 0) englishIndex = languageTables.size() - 1; // best-effort fallback
+
     QJsonObject jsonObj;
     for (auto it = idToKey.constBegin(); it != idToKey.constEnd(); ++it)
     {
@@ -100,12 +97,16 @@ bool loadLanguagePack(const QString &root, QJsonObject &out)
 
 void Widget::getWords(const QString &languageRoot)
 {
-    if (loadLanguagePack(languageRoot, wordsObj)) return;
-    if (!languageRoot.startsWith(QStringLiteral(":/")))
+    // Win7: stay within resource qrc, avoid any filesystem path probing.
+    try
     {
-        if (loadLanguagePack(QStringLiteral(":/language"), wordsObj)) return;
+        if (loadLanguagePack(languageRoot, wordsObj)) return;
     }
-    qWarning() << "Failed to load language files from" << languageRoot;
+    catch (...)
+    {
+        qWarning() << "language load threw, falling back to empty";
+    }
+    qWarning() << "Failed to load language files from resources" << languageRoot;
     wordsObj = QJsonObject();
 }
 
