@@ -47,6 +47,9 @@ class BackendManagerDialog : public QDialog
     void selectItemByPath(const QString &path);
     QString selectedExecutablePath() const;
     QString currentRoleId() const;
+    QString currentExecutablePathForRole(const QString &roleId) const;
+    void applyHighlight(QTreeWidgetItem *item, bool highlight);
+    void highlightExecutablePath(const QString &path);
 
     void handleSelectionChanged();
     void handleDoubleClick(QTreeWidgetItem *item, int column);

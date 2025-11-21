@@ -4,6 +4,8 @@
 #include "../xconfig.h"
 
 #include <QAbstractItemView>
+#include <QBrush>
+#include <QColor>
 #include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
@@ -44,7 +46,8 @@ void BackendManagerDialog::buildUi()
     QVBoxLayout *layout = new QVBoxLayout(this);
     infoLabel_ = new QLabel(this);
     infoLabel_->setWordWrap(true);
-    layout->addWidget(infoLabel_);
+    infoLabel_->setVisible(false);
+    infoLabel_->setVisible(false);
 
     roleCombo_ = new QComboBox(this);
     layout->addWidget(roleCombo_);
@@ -172,6 +175,7 @@ void BackendManagerDialog::rebuildTree()
     else
         entries = DeviceManager::enumerateExecutables();
 
+    const QString resolvedExecutable = QFileInfo(currentExecutablePathForRole(roleId)).absoluteFilePath();
     if (entries.isEmpty())
     {
         QTreeWidgetItem *placeholder = new QTreeWidgetItem(tree_);
@@ -190,45 +194,45 @@ void BackendManagerDialog::rebuildTree()
             const QString project = entry.project.isEmpty() ? trKey(QStringLiteral("backend manager project unknown"), QStringLiteral("Unknown")) : entry.project;
             const QString deviceInfo = QStringLiteral("%1/%2/%3").arg(entry.arch, entry.os, entry.device);
             const QString rowLabel = trKey(QStringLiteral("backend manager project format"), QStringLiteral("%1 [%2]")).arg(project, deviceInfo);
-            item->setText(0, rowLabel);
+            const QString osLabel = entry.os.isEmpty() ? trKey(QStringLiteral("backend manager project unknown"), QStringLiteral("Unknown")) : entry.os;
+            const QString deviceName = entry.device.isEmpty() ? trKey(QStringLiteral("backend manager project unknown"), QStringLiteral("Unknown")) : entry.device;
+            const QString deviceLabel = QStringLiteral("%1 / %2").arg(osLabel, deviceName);
+            item->setText(0, deviceLabel);
             item->setText(1, entry.absolutePath);
+            item->setToolTip(0, rowLabel);
+            item->setToolTip(1, entry.absolutePath);
             item->setData(0, Qt::UserRole, entry.absolutePath);
         }
     }
-    selectItemByPath(DeviceManager::programOverride(roleId));
+    highlightExecutablePath(resolvedExecutable);
+    selectItemByPath(resolvedExecutable);
 }
 
 void BackendManagerDialog::updateCurrentOverrideLabel()
 {
     if (!currentOverrideLabel_) return;
-    const QString role = currentRoleId();
-    if (role.isEmpty())
+    QString role = currentRoleId();
+    if (role.isEmpty()) role = QStringLiteral("llama-server-main");
+    const QString execPath = currentExecutablePathForRole(role);
+    QString displayName = trKey(QStringLiteral("backend manager project unknown"), QStringLiteral("Unknown"));
+    if (!execPath.isEmpty() && tree_)
     {
-        currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current auto"), QStringLiteral("Current selection: auto")));
-        return;
+        const QString normalized = QFileInfo(execPath).absoluteFilePath();
+        const int count = tree_->topLevelItemCount();
+        for (int i = 0; i < count; ++i)
+        {
+            QTreeWidgetItem *item = tree_->topLevelItem(i);
+            const QString itemPath = QFileInfo(item->data(0, Qt::UserRole).toString()).absoluteFilePath();
+            if (itemPath == normalized)
+            {
+                displayName = item->text(0);
+                break;
+            }
+        }
     }
-    QString path;
-    if (overridesProvider_)
-    {
-        const QMap<QString, QString> overrides = overridesProvider_();
-        path = overrides.value(role);
-    }
-    if (path.isEmpty())
-    {
-        path = DeviceManager::programOverride(role);
-    }
-    if (path.isEmpty())
-    {
-        path = DeviceManager::programPath(role);
-    }
-    if (path.isEmpty())
-    {
-        currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current auto"), QStringLiteral("Current selection: auto")));
-    }
-    else
-    {
-        currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current path"), QStringLiteral("Current selection: %1")).arg(path));
-    }
+    currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current device"), QStringLiteral("Current device: %1")).arg(displayName));
+    highlightExecutablePath(QFileInfo(execPath).absoluteFilePath());
+    selectItemByPath(execPath);
 }
 
 void BackendManagerDialog::selectItemByPath(const QString &path)
@@ -258,6 +262,7 @@ void BackendManagerDialog::selectItemByPath(const QString &path)
             customItem->setText(1, normalized);
             customItem->setData(0, Qt::UserRole, normalized);
             tree_->setCurrentItem(customItem);
+            applyHighlight(customItem, true);
         }
     }
     tree_->blockSignals(false);
@@ -360,18 +365,16 @@ void BackendManagerDialog::handleDelete()
     overrideClearer_(role);
     emit overridesChanged();
     updateCurrentOverrideLabel();
-    selectItemByPath(QString());
+    selectItemByPath(currentExecutablePathForRole(role));
     updateButtons();
 }
 
 void BackendManagerDialog::refreshTranslations()
 {
     setWindowTitle(trKey(QStringLiteral("backend manager title"), QStringLiteral("Backend Manager")));
-    if (infoLabel_) infoLabel_->setText(trKey(QStringLiteral("backend manager hint"),
-                                              QStringLiteral("List available executables under EVA_BACKEND and pin a custom binary per role.")));
     if (tree_) tree_->setHeaderLabels(
-            QStringList() << trKey(QStringLiteral("backend manager column project"), QStringLiteral("Project"))
-                          << trKey(QStringLiteral("backend manager column executable"), QStringLiteral("Executable")));
+            QStringList() << trKey(QStringLiteral("backend manager column project"), QStringLiteral("Inference Device"))
+                          << trKey(QStringLiteral("backend manager column executable"), QStringLiteral("Executable Path")));
     if (useButton_) useButton_->setText(trKey(QStringLiteral("backend manager button use"), QStringLiteral("Use Selected")));
     if (addButton_) addButton_->setText(trKey(QStringLiteral("backend manager button add"), QStringLiteral("Add...")));
     if (deleteButton_) deleteButton_->setText(trKey(QStringLiteral("backend manager button delete"), QStringLiteral("Delete")));
@@ -393,6 +396,7 @@ void BackendManagerDialog::applyOverride(const QString &path)
     if (overrideSetter_) overrideSetter_(role, fi.absoluteFilePath());
     emit overridesChanged();
     updateCurrentOverrideLabel();
+    highlightExecutablePath(QFileInfo(fi.absoluteFilePath()).absoluteFilePath());
     selectItemByPath(fi.absoluteFilePath());
     updateButtons();
 }
@@ -405,4 +409,49 @@ QString BackendManagerDialog::trKey(const QString &key, const QString &fallback)
         if (!resolved.isEmpty()) return resolved;
     }
     return fallback.isEmpty() ? key : fallback;
+}
+
+QString BackendManagerDialog::currentExecutablePathForRole(const QString &roleId) const
+{
+    QString role = roleId;
+    if (role.isEmpty()) role = QStringLiteral("llama-server-main");
+    QString path;
+    if (overridesProvider_)
+    {
+        const QMap<QString, QString> overrides = overridesProvider_();
+        path = overrides.value(role);
+    }
+    if (path.isEmpty())
+    {
+        path = DeviceManager::programOverride(role);
+    }
+    if (path.isEmpty())
+    {
+        path = DeviceManager::programPath(role);
+    }
+    return path;
+}
+
+void BackendManagerDialog::applyHighlight(QTreeWidgetItem *item, bool highlight)
+{
+    if (!item) return;
+    const QColor color(255, 191, 128);
+    const int columns = tree_ ? tree_->columnCount() : item->columnCount();
+    for (int col = 0; col < columns; ++col)
+    {
+        item->setBackground(col, highlight ? QBrush(color) : QBrush());
+    }
+}
+
+void BackendManagerDialog::highlightExecutablePath(const QString &path)
+{
+    if (!tree_) return;
+    const QString normalized = QFileInfo(path).absoluteFilePath();
+    const int count = tree_->topLevelItemCount();
+    for (int i = 0; i < count; ++i)
+    {
+        QTreeWidgetItem *item = tree_->topLevelItem(i);
+        const QString itemPath = QFileInfo(item->data(0, Qt::UserRole).toString()).absoluteFilePath();
+        applyHighlight(item, !normalized.isEmpty() && itemPath == normalized);
+    }
 }
