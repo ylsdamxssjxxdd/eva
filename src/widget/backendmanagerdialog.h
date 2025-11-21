@@ -53,7 +53,6 @@ class BackendManagerDialog : public QDialog
     void handleUseSelected();
     void handleAdd();
     void handleDelete();
-    void handleReset();
     QString trKey(const QString &key, const QString &fallback = QString()) const;
 
     QLabel *infoLabel_ = nullptr;
@@ -63,8 +62,6 @@ class BackendManagerDialog : public QDialog
     QPushButton *useButton_ = nullptr;
     QPushButton *addButton_ = nullptr;
     QPushButton *deleteButton_ = nullptr;
-    QPushButton *resetButton_ = nullptr;
-    QPushButton *closeButton_ = nullptr;
 
     QVector<RoleInfo> roles_;
     std::function<QString(const QString &)> translator_;

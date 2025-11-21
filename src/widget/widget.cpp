@@ -892,7 +892,7 @@ QMap<QString, QString> Widget::currentOverrideMapForUi() const
 {
     if (settings_dialog && settings_dialog->isVisible())
     {
-        if (!pendingBackendOverrides_.isEmpty()) return pendingBackendOverrides_;
+        if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty()) return pendingBackendOverrides_;
         return backendOverrideSnapshot_;
     }
     return DeviceManager::programOverrides();
@@ -901,7 +901,8 @@ QMap<QString, QString> Widget::currentOverrideMapForUi() const
 void Widget::ensurePendingOverridesInitialized()
 {
     if (!(settings_dialog && settings_dialog->isVisible())) return;
-    if (pendingBackendOverrides_.isEmpty() && !backendOverrideSnapshot_.isEmpty())
+    if (backendOverrideDirty_) return;
+    if (pendingBackendOverrides_.isEmpty())
     {
         pendingBackendOverrides_ = backendOverrideSnapshot_;
     }

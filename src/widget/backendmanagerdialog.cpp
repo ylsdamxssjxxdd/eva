@@ -67,15 +67,10 @@ void BackendManagerDialog::buildUi()
     useButton_ = new QPushButton(this);
     addButton_ = new QPushButton(this);
     deleteButton_ = new QPushButton(this);
-    resetButton_ = new QPushButton(this);
     buttonLayout->addWidget(useButton_);
     buttonLayout->addWidget(addButton_);
     buttonLayout->addWidget(deleteButton_);
-    buttonLayout->addWidget(resetButton_);
     layout->addLayout(buttonLayout);
-
-    closeButton_ = new QPushButton(this);
-    layout->addWidget(closeButton_, 0, Qt::AlignRight);
 
     connect(roleCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int)
             {
@@ -88,8 +83,6 @@ void BackendManagerDialog::buildUi()
     connect(useButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleUseSelected);
     connect(addButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleAdd);
     connect(deleteButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleDelete);
-    connect(resetButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleReset);
-    connect(closeButton_, &QPushButton::clicked, this, &BackendManagerDialog::close);
 }
 
 void BackendManagerDialog::refresh()
@@ -214,7 +207,20 @@ void BackendManagerDialog::updateCurrentOverrideLabel()
         currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current auto"), QStringLiteral("Current selection: auto")));
         return;
     }
-    const QString path = DeviceManager::programOverride(role);
+    QString path;
+    if (overridesProvider_)
+    {
+        const QMap<QString, QString> overrides = overridesProvider_();
+        path = overrides.value(role);
+    }
+    if (path.isEmpty())
+    {
+        path = DeviceManager::programOverride(role);
+    }
+    if (path.isEmpty())
+    {
+        path = DeviceManager::programPath(role);
+    }
     if (path.isEmpty())
     {
         currentOverrideLabel_->setText(trKey(QStringLiteral("backend manager current auto"), QStringLiteral("Current selection: auto")));
@@ -279,7 +285,6 @@ void BackendManagerDialog::updateButtons()
         overridePath = overrides.value(role);
     }
     const bool hasOverride = !overridePath.isEmpty();
-    if (resetButton_) resetButton_->setEnabled(hasOverride);
     if (addButton_) addButton_->setEnabled(true);
     bool canDelete = false;
     if (deleteButton_)
@@ -359,17 +364,6 @@ void BackendManagerDialog::handleDelete()
     updateButtons();
 }
 
-void BackendManagerDialog::handleReset()
-{
-    const QString role = currentRoleId();
-    if (role.isEmpty()) return;
-    if (overrideClearer_) overrideClearer_(role);
-    emit overridesChanged();
-    updateCurrentOverrideLabel();
-    selectItemByPath(QString());
-    updateButtons();
-}
-
 void BackendManagerDialog::refreshTranslations()
 {
     setWindowTitle(trKey(QStringLiteral("backend manager title"), QStringLiteral("Backend Manager")));
@@ -381,8 +375,6 @@ void BackendManagerDialog::refreshTranslations()
     if (useButton_) useButton_->setText(trKey(QStringLiteral("backend manager button use"), QStringLiteral("Use Selected")));
     if (addButton_) addButton_->setText(trKey(QStringLiteral("backend manager button add"), QStringLiteral("Add...")));
     if (deleteButton_) deleteButton_->setText(trKey(QStringLiteral("backend manager button delete"), QStringLiteral("Delete")));
-    if (resetButton_) resetButton_->setText(trKey(QStringLiteral("backend manager button reset"), QStringLiteral("Reset to Auto")));
-    if (closeButton_) closeButton_->setText(trKey(QStringLiteral("backend manager button close"), QStringLiteral("Close")));
     updateCurrentOverrideLabel();
 }
 
