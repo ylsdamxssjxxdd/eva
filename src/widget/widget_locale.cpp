@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include "toolcall_test_dialog.h"
+#include "backendmanagerdialog.h"
 #include "../utils/simpleini.h"
 #include <QDebug>
 #include <QDir>
@@ -260,6 +261,7 @@ void Widget::apply_language(int language_flag_)
     refreshDeviceBackendUI();
     updateGlobalSettingsTranslations();
     if (toolCallTestDialog_) toolCallTestDialog_->refreshTranslations();
+    if (backendManagerDialog_) backendManagerDialog_->refreshTranslations();
 }
 
 QString Widget::jtr(QString customstr)

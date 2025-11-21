@@ -853,6 +853,14 @@ void Widget::auto_save_user()
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
     settings.setValue("engineer_work_dir", engineerWorkDir);                                       // 工程师工作目录
     settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
+    settings.beginGroup("backend_overrides");
+    settings.remove("");
+    const QMap<QString, QString> overrides = DeviceManager::programOverrides();
+    for (auto it = overrides.cbegin(); it != overrides.cend(); ++it)
+    {
+        settings.setValue(it.key(), it.value());
+    }
+    settings.endGroup();
     // 保存自定义的约定模板
     settings.setValue("custom1_date_system", custom1_date_system);
     // 保存 api 参数：仅在链接模式下更新，避免切到本地模式后把远端配置覆盖掉

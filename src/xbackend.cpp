@@ -49,7 +49,7 @@ QString LocalServerManager::programPath() const
 {
     Q_UNUSED(appDirPath_);
     // Resolve per selected backend (auto/cpu/cuda/vulkan/opencl)
-    return DeviceManager::programPath(QStringLiteral("llama-server"));
+    return DeviceManager::programPath(QStringLiteral("llama-server-main"));
 }
 
 QStringList LocalServerManager::buildArgs() const
@@ -61,7 +61,7 @@ QStringList LocalServerManager::buildArgs() const
     input.modelPath = modelpath_;
     input.mmprojPath = mmproj_;
     input.loraPath = lora_;
-    input.resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    input.resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
     return buildLocalServerArgs(input);
 }
 

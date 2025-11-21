@@ -120,7 +120,7 @@ void Expend::on_embedding_txt_modelpath_button_clicked()
 void Expend::embedding_server_start()
 {
     // Resolve llama.cpp server from current backend
-    QString program = DeviceManager::programPath(QStringLiteral("llama-server"));
+    QString program = DeviceManager::programPath(QStringLiteral("llama-server-embed"));
     if (program.isEmpty() || !QFileInfo::exists(program))
     {
         ui->embedding_test_log->appendPlainText("[error] llama-server not found under current device folder");

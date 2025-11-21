@@ -4,6 +4,8 @@
 
 #include <QString>
 #include <QStringList>
+#include <QVector>
+#include <QMap>
 
 #include "../xconfig.h" // for SFX_NAME and BODY_LINUX_PACK
 
@@ -14,12 +16,38 @@
 class DeviceManager
 {
   public:
+    struct BackendRole
+    {
+        QString id;     // role id (e.g., "llama-server-main")
+        QString binary; // canonical executable name without suffix
+        QString label;  // human-readable label
+    };
+
+    struct BackendExecutableInfo
+    {
+        QString root;         // EVA_BACKEND root folder
+        QString arch;         // architecture folder
+        QString os;           // operating system folder
+        QString device;       // device folder (cpu/cuda/…)
+        QString project;      // first-level project folder
+        QString programName;  // executable base name (without suffix)
+        QString absolutePath; // absolute path to the executable
+    };
+
     // Return available backends by scanning filesystem
     static QStringList availableBackends(); // e.g. ["cpu", "cuda"]
 
     // Persist current user selection in-process ("auto" to pick best-available)
     static void setUserChoice(const QString &backend); // lower-cased
     static QString userChoice();
+    static bool hasCustomOverride();
+    static QMap<QString, QString> programOverrides();
+    static QString programOverride(const QString &roleId);
+    static void setProgramOverride(const QString &roleId, const QString &path);
+    static void clearProgramOverride(const QString &roleId);
+    static void clearProgramOverrides();
+    static QVector<BackendRole> managedRoles();
+    static QVector<BackendExecutableInfo> enumerateExecutables(const QString &binaryFilter = QString());
 
     // Effective backend after applying "auto" and fallbacks
     static QString effectiveBackend();

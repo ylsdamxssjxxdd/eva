@@ -50,6 +50,19 @@ void Widget::set_SetDialog()
         connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
                 { this->refreshDeviceBackendUI(); });
         refreshDeviceBackendUI();
+        syncBackendOverrideState();
+        if (settings_ui->device_label)
+        {
+            settings_ui->device_label->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(settings_ui->device_label, &QLabel::customContextMenuRequested, this, [this](const QPoint &)
+                    { openBackendManagerDialog(QStringLiteral("llama-server-main")); }, Qt::UniqueConnection);
+        }
+        if (settings_ui->device_comboBox)
+        {
+            settings_ui->device_comboBox->setContextMenuPolicy(Qt::CustomContextMenu);
+            connect(settings_ui->device_comboBox, &QComboBox::customContextMenuRequested, this, [this](const QPoint &)
+                    { openBackendManagerDialog(QStringLiteral("llama-server-main")); }, Qt::UniqueConnection);
+        }
     }
 
     // 温度控制
@@ -826,6 +839,7 @@ void Widget::settings_ui_confirm_button_clicked()
         if (A.hid_flash_attn != B.hid_flash_attn) return false;
         // 设备切换也需要重启后端
         if (ui_device_backend != device_snapshot_) return false;
+        if (backendOverrideDirty_) return false;
         return true;
     };
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
@@ -834,9 +848,15 @@ void Widget::settings_ui_confirm_button_clicked()
     auto_save_user(); // persist settings to eva_config.ini
     // 监视帧率无需重启后端；实时应用
     updateMonitorTimer();
+    auto finalizeOverrides = [&]()
+    {
+        backendOverrideSnapshot_ = DeviceManager::programOverrides();
+        backendOverrideDirty_ = false;
+    };
     if (sameSettings)
     {
         // 未发生任何变化：不重启、不重置
+        finalizeOverrides();
         return;
     }
     if (sameServer)
@@ -846,6 +866,7 @@ void Widget::settings_ui_confirm_button_clicked()
         {
             on_reset_clicked();
         }
+        finalizeOverrides();
         return;
     }
     // 有影响后端的变化：必要时重启后端并在未重启的情况下重置
@@ -861,6 +882,7 @@ void Widget::settings_ui_confirm_button_clicked()
     {
         on_reset_clicked();
     }
+    finalizeOverrides();
 }
 
 // 设置选项卡取消按钮响应
@@ -869,6 +891,7 @@ void Widget::settings_ui_cancel_button_clicked()
     // Cancel should not mutate any in-memory settings or persist to disk.
     // Simply close the dialog and discard any slider edits.
     updateLazyCountdownLabel();
+    applyBackendOverrideSnapshot(backendOverrideSnapshot_);
     settings_dialog->close();
 }
 
@@ -876,7 +899,22 @@ void Widget::settings_ui_cancel_button_clicked()
 void Widget::refreshDeviceBackendUI()
 {
     if (!settings_ui) return;
-    const QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    if (DeviceManager::hasCustomOverride())
+    {
+        int customIdx = settings_ui->device_comboBox->findText(QStringLiteral("custom"));
+        if (customIdx < 0)
+        {
+            settings_ui->device_comboBox->addItem(QStringLiteral("custom"));
+            customIdx = settings_ui->device_comboBox->findText(QStringLiteral("custom"));
+        }
+        if (customIdx >= 0 && sel != QStringLiteral("custom"))
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            settings_ui->device_comboBox->setCurrentIndex(customIdx);
+            sel = QStringLiteral("custom");
+        }
+    }
     const QString eff = DeviceManager::effectiveBackendFor(sel);
     const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("opencl"));
     settings_ui->ngl_slider->setEnabled(!cpuLike);
@@ -885,7 +923,7 @@ void Widget::refreshDeviceBackendUI()
     QString runtime = runtimeDeviceBackend_;
     if (runtime.isEmpty())
     {
-        runtime = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+        runtime = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
     }
     if (runtime.isEmpty())
     {
@@ -895,14 +933,16 @@ void Widget::refreshDeviceBackendUI()
     {
         runtime = QStringLiteral("unknown");
     }
-    if (sel == QLatin1String("auto"))
+    QString labelText = deviceLabelBaseText;
+    if (DeviceManager::hasCustomOverride())
     {
-        settings_ui->device_label->setText(deviceLabelBaseText + QString(" (%1)").arg(runtime));
+        labelText += QStringLiteral(" (custom)");
     }
-    else
+    else if (sel == QLatin1String("auto"))
     {
-        settings_ui->device_label->setText(deviceLabelBaseText);
+        labelText += QStringLiteral(" (%1)").arg(runtime);
     }
+    settings_ui->device_label->setText(labelText);
 }
 
 // 设置用户设置内容
@@ -937,6 +977,7 @@ void Widget::set_set()
     {
         on_reset_clicked();
     }
+    backendOverrideDirty_ = false;
 }
 
 

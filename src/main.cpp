@@ -554,11 +554,21 @@ int main(int argc, char *argv[])
         }
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
-        // 推理设备：先根据目录填充选项，再应用用户偏好
+        // 推理设备：先根据目录填充选项，再应用用户偏好。恢复自定义后端覆盖路径。
+        DeviceManager::clearProgramOverrides();
+        settings.beginGroup("backend_overrides");
+        const QStringList overrideKeys = settings.childKeys();
+        for (const QString &key : overrideKeys)
+        {
+            const QString overridePath = settings.value(key).toString();
+            if (!overridePath.isEmpty()) DeviceManager::setProgramOverride(key, overridePath);
+        }
+        settings.endGroup();
         const QString savedDevice = settings.value("device_backend", "auto").toString();
         DeviceManager::setUserChoice(savedDevice);
         int devIdx = w.settings_ui->device_comboBox->findText(DeviceManager::userChoice());
         if (devIdx >= 0) w.settings_ui->device_comboBox->setCurrentIndex(devIdx);
+        w.syncBackendOverrideState();
 
         // Use string-first read to eliminate drift; fallback to numeric
         {

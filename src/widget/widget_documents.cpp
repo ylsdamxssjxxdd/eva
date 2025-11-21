@@ -459,7 +459,7 @@ void Widget::onServerStartFailed(const QString &reason)
     }
     portConflictDetected_ = false;
     const QString selectedBackend = DeviceManager::userChoice();
-    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
     const QString attemptedBackend = resolvedBackend.isEmpty() ? selectedBackend : resolvedBackend;
     if (!attemptedBackend.isEmpty())
     {

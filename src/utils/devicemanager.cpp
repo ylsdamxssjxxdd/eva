@@ -9,12 +9,73 @@
 #include <QLibrary>
 #include <QOperatingSystemVersion>
 #include <QProcessEnvironment>
+#include <QSet>
 #include <QSysInfo>
 
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 static QStringList g_lastProbed;                      // debug: last probed paths
 static QHash<QString, QString> g_lastResolvedDevice;  // program -> device that was actually resolved
+static QHash<QString, QString> g_programOverrides;    // role id -> absolute override path
 
+namespace
+{
+struct ProgramDescriptor
+{
+    QString roleId;
+    QString binaryName;
+    QString label;
+};
+
+static QString normalizeRoleId(const QString &raw)
+{
+    QString id = raw.trimmed();
+    if (id.isEmpty()) return QStringLiteral("llama-server-main");
+    QString lower = id.toLower();
+    if (lower == QLatin1String("llama-server"))
+    {
+        lower = QStringLiteral("llama-server-main");
+    }
+    return lower;
+}
+
+static const QVector<ProgramDescriptor> &programDescriptors()
+{
+    static const QVector<ProgramDescriptor> roles = {
+        {QStringLiteral("llama-server-main"), QStringLiteral("llama-server"), QStringLiteral("LLM server (chat)")},
+        {QStringLiteral("llama-server-embed"), QStringLiteral("llama-server"), QStringLiteral("Embedding server")},
+        {QStringLiteral("whisper-cli"), QStringLiteral("whisper-cli"), QStringLiteral("Whisper CLI")},
+        {QStringLiteral("tts-cli"), QStringLiteral("tts-cli"), QStringLiteral("TTS CLI")},
+        {QStringLiteral("sd"), QStringLiteral("sd"), QStringLiteral("Stable Diffusion")}    };
+    return roles;
+}
+
+static ProgramDescriptor descriptorFor(const QString &name)
+{
+    const QString normalized = normalizeRoleId(name);
+    for (const ProgramDescriptor &desc : programDescriptors())
+    {
+        if (desc.roleId == normalized) return desc;
+    }
+    return ProgramDescriptor{normalized, normalized, normalized};
+}
+
+static QString canonicalFilePath(const QString &path)
+{
+    QFileInfo fi(path);
+    const QString canonical = fi.canonicalFilePath();
+    if (!canonical.isEmpty()) return canonical;
+    return fi.absoluteFilePath();
+}
+
+static QString projectSegment(const QString &deviceDir, const QString &filePath)
+{
+    const QString rel = QDir(deviceDir).relativeFilePath(filePath);
+    const QString normalized = QDir::fromNativeSeparators(rel);
+    const QStringList parts = normalized.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+    if (!parts.isEmpty()) return parts.first();
+    return QString();
+}
+} // namespace
 QString DeviceManager::backendsRootDir()
 {
     const QStringList roots = candidateBackendRoots();
@@ -90,6 +151,145 @@ QStringList DeviceManager::candidateBackendRoots()
 QStringList DeviceManager::probedBackendRoots()
 {
     return g_lastProbed;
+}
+
+bool DeviceManager::hasCustomOverride()
+{
+    return !g_programOverrides.isEmpty();
+}
+
+QMap<QString, QString> DeviceManager::programOverrides()
+{
+    QMap<QString, QString> out;
+    for (auto it = g_programOverrides.constBegin(); it != g_programOverrides.constEnd(); ++it)
+    {
+        out.insert(it.key(), it.value());
+    }
+    return out;
+}
+
+QString DeviceManager::programOverride(const QString &roleId)
+{
+    const QString key = descriptorFor(roleId).roleId;
+    return g_programOverrides.value(key);
+}
+
+void DeviceManager::setProgramOverride(const QString &roleId, const QString &path)
+{
+    const QString key = descriptorFor(roleId).roleId;
+    if (key.isEmpty())
+    {
+        return;
+    }
+    const QString trimmed = path.trimmed();
+    if (trimmed.isEmpty())
+    {
+        g_programOverrides.remove(key);
+        return;
+    }
+    QFileInfo fi(trimmed);
+    QString stored = fi.absoluteFilePath();
+    g_programOverrides.insert(key, stored);
+}
+
+void DeviceManager::clearProgramOverride(const QString &roleId)
+{
+    const QString key = descriptorFor(roleId).roleId;
+    if (key.isEmpty()) return;
+    g_programOverrides.remove(key);
+}
+
+void DeviceManager::clearProgramOverrides()
+{
+    g_programOverrides.clear();
+}
+
+QVector<DeviceManager::BackendRole> DeviceManager::managedRoles()
+{
+    QVector<BackendRole> roles;
+    roles.reserve(programDescriptors().size());
+    for (const ProgramDescriptor &desc : programDescriptors())
+    {
+        BackendRole role;
+        role.id = desc.roleId;
+        role.binary = desc.binaryName;
+        role.label = desc.label;
+        roles.append(role);
+    }
+    return roles;
+}
+
+QVector<DeviceManager::BackendExecutableInfo> DeviceManager::enumerateExecutables(const QString &binaryFilter)
+{
+    QVector<BackendExecutableInfo> result;
+    const QStringList roots = candidateBackendRoots();
+    if (roots.isEmpty()) return result;
+
+    QStringList binaries;
+    const QString filter = binaryFilter.trimmed();
+    if (filter.isEmpty())
+    {
+        const QVector<BackendRole> roles = managedRoles();
+        for (const BackendRole &role : roles)
+        {
+            if (!role.binary.isEmpty() && !binaries.contains(role.binary))
+            {
+                binaries << role.binary;
+            }
+        }
+    }
+    else
+    {
+        const ProgramDescriptor desc = descriptorFor(filter);
+        if (!desc.binaryName.isEmpty()) binaries << desc.binaryName;
+    }
+    binaries.removeDuplicates();
+    if (binaries.isEmpty()) return result;
+
+    QSet<QString> seen;
+    for (const QString &root : roots)
+    {
+        QDir rootDir(root);
+        const QFileInfoList archDirs = rootDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        for (const QFileInfo &archInfo : archDirs)
+        {
+            const QString archName = archInfo.fileName();
+            QDir archDir(archInfo.absoluteFilePath());
+            const QFileInfoList osDirs = archDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+            for (const QFileInfo &osInfo : osDirs)
+            {
+                const QString osName = osInfo.fileName();
+                QDir osDir(osInfo.absoluteFilePath());
+                const QFileInfoList deviceDirs = osDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+                for (const QFileInfo &deviceInfo : deviceDirs)
+                {
+                    const QString deviceName = deviceInfo.fileName();
+                    const QString devicePath = deviceInfo.absoluteFilePath();
+                    for (const QString &binary : binaries)
+                    {
+                        const QString pattern = binary + QStringLiteral(SFX_NAME);
+                        QDirIterator it(devicePath, QStringList{pattern}, QDir::Files, QDirIterator::Subdirectories);
+                        while (it.hasNext())
+                        {
+                            const QString abs = canonicalFilePath(it.next());
+                            if (abs.isEmpty() || seen.contains(abs)) continue;
+                            seen.insert(abs);
+                            BackendExecutableInfo info;
+                            info.root = root;
+                            info.arch = archName;
+                            info.os = osName;
+                            info.device = deviceName;
+                            info.programName = binary;
+                            info.absolutePath = abs;
+                            info.project = projectSegment(devicePath, abs);
+                            result.append(info);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
 }
 
 // --- Runtime capability probes (very lightweight; best-effort) ---
@@ -185,12 +385,13 @@ static QStringList deviceSearchOrder()
 {
     QStringList order;
     const QString choice = DeviceManager::userChoice();
+    const bool autoMode = (choice == QLatin1String("auto") || choice == QLatin1String("custom"));
     auto add = [&](const QString &b)
     { if (!order.contains(b)) order << b; };
     auto addIf = [&](const QString &b, bool ok)
     { if (ok) add(b); };
 
-    if (choice == QLatin1String("auto"))
+    if (autoMode)
     {
         const QStringList preferred = DeviceManager::preferredOrder();
         for (const QString &backend : preferred)
@@ -315,7 +516,7 @@ QStringList DeviceManager::availableBackends()
 void DeviceManager::setUserChoice(const QString &backend)
 {
     const QString b = backend.trimmed().toLower();
-    if (b == QLatin1String("auto") || b == QLatin1String("cpu") || b == QLatin1String("cuda") || b == QLatin1String("vulkan") || b == QLatin1String("opencl"))
+    if (b == QLatin1String("auto") || b == QLatin1String("custom") || b == QLatin1String("cpu") || b == QLatin1String("cuda") || b == QLatin1String("vulkan") || b == QLatin1String("opencl"))
     {
         g_userChoice = b;
     }
@@ -336,8 +537,9 @@ QString DeviceManager::effectiveBackend()
     auto isAvail = [&](const QString &b)
     { return avail.contains(b); };
     const QString choice = userChoice();
+    const bool autoMode = (choice == QLatin1String("auto") || choice == QLatin1String("custom"));
 
-    if (choice == QLatin1String("auto"))
+    if (autoMode)
     {
         return firstPreferredAvailable(avail);
     }
@@ -358,8 +560,9 @@ QString DeviceManager::effectiveBackendFor(const QString &preferred)
     auto isAvail = [&](const QString &b)
     { return avail.contains(b); };
     const QString choice = preferred.trimmed().toLower();
+    const bool autoMode = (choice == QLatin1String("auto") || choice == QLatin1String("custom"));
 
-    if (choice == QLatin1String("auto"))
+    if (autoMode)
     {
         return firstPreferredAvailable(avail);
     }
@@ -386,14 +589,22 @@ QString DeviceManager::programPath(const QString &name)
     // Central doctrine layout:
     // EVA_BACKEND/<arch>/<os>/<device>/<project>/<exe>
     // example: EVA_BACKEND/x86_64/win/cuda/llama.cpp/llama-server(.exe)
+    const ProgramDescriptor desc = descriptorFor(name);
+    const QString roleId = desc.roleId;
+    const QString overridePath = g_programOverrides.value(roleId);
+    if (!overridePath.isEmpty() && QFileInfo::exists(overridePath))
+    {
+        g_lastResolvedDevice.insert(roleId, QStringLiteral("custom"));
+        return overridePath;
+    }
     const QStringList roots = candidateBackendRoots();
     const QString arch = currentArchId();
     const QStringList osOrder = osSearchOrder();
     const QStringList devices = deviceSearchOrder();
-    const QString project = projectForProgram(name);
-    const QString exe = name + QStringLiteral(SFX_NAME);
+    const QString project = projectForProgram(desc.binaryName);
+    const QString exe = desc.binaryName + QStringLiteral(SFX_NAME);
 
-    g_lastResolvedDevice.remove(name);
+    g_lastResolvedDevice.remove(roleId);
 
     for (const QString &root : roots)
     {
@@ -417,13 +628,13 @@ QString DeviceManager::programPath(const QString &name)
                 const QString direct = QDir(projDirNew).filePath(exe);
                 if (QFileInfo::exists(direct))
                 {
-                    g_lastResolvedDevice.insert(name, device);
+                    g_lastResolvedDevice.insert(roleId, device);
                     return direct;
                 }
                 const QString rec = findProgramRecursive(projDirNew, exe);
                 if (!rec.isEmpty())
                 {
-                    g_lastResolvedDevice.insert(name, device);
+                    g_lastResolvedDevice.insert(roleId, device);
                     return rec;
                 }
             }
@@ -433,7 +644,7 @@ QString DeviceManager::programPath(const QString &name)
                 const QString rec = findProgramRecursive(devDirNew, exe);
                 if (!rec.isEmpty())
                 {
-                    g_lastResolvedDevice.insert(name, device);
+                    g_lastResolvedDevice.insert(roleId, device);
                     return rec;
                 }
             }
@@ -474,18 +685,21 @@ QString DeviceManager::currentOsId()
 }
 QString DeviceManager::projectForProgram(const QString &name)
 {
+    const QString key = name.trimmed().toLower();
     // Minimal mapping for known third-party projects; extend as new tools are added
-    if (name == QLatin1String("llama-server")) return QStringLiteral("llama.cpp");
-    if (name == QLatin1String("whisper-cli")) return QStringLiteral("whisper.cpp");
-    if (name == QLatin1String("llama-quantize")) return QStringLiteral("llama.cpp");
-    if (name == QLatin1String("llama-tts")) return QStringLiteral("llama-tts");
-    if (name == QLatin1String("tts-cli")) return QStringLiteral("tts.cpp");
+    if (key == QLatin1String("llama-server") || key == QLatin1String("llama-server-main") || key == QLatin1String("llama-server-embed"))
+        return QStringLiteral("llama.cpp");
+    if (key == QLatin1String("whisper-cli")) return QStringLiteral("whisper.cpp");
+    if (key == QLatin1String("llama-quantize")) return QStringLiteral("llama.cpp");
+    if (key == QLatin1String("llama-tts")) return QStringLiteral("llama-tts");
+    if (key == QLatin1String("tts-cli")) return QStringLiteral("tts.cpp");
     // default to using the name itself as folder (best-effort)
-    return name;
+    return key;
 }
 QString DeviceManager::lastResolvedDeviceFor(const QString &programName)
 {
-    const QString d = g_lastResolvedDevice.value(programName);
+    const QString roleId = descriptorFor(programName).roleId;
+    const QString d = g_lastResolvedDevice.value(roleId);
     if (!d.isEmpty()) return d;
     return effectiveBackend();
 }

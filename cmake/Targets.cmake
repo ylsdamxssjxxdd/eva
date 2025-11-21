@@ -39,6 +39,7 @@ add_executable(
     src/widget/widget_slots.cpp
     src/widget/widget_output.cpp
     src/widget/widget_anim.cpp
+    src/widget/backendmanagerdialog.cpp src/widget/backendmanagerdialog.h
     src/widget/terminal_pane.cpp
     src/widget/toolcall_test_dialog.cpp src/widget/toolcall_test_dialog.h
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 

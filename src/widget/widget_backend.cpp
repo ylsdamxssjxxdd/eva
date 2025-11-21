@@ -708,7 +708,7 @@ void Widget::onServerReady(const QString &endpoint)
     // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
     lastServerRestart_ = false; // 一次重启流程结束
     // Track the backend that actually came up and align UI hints/fallback logic.
-    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server"));
+    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
     const QString previousRuntime = runtimeDeviceBackend_;
     if (!resolvedBackend.isEmpty())
     {

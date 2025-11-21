@@ -1,3 +1,0 @@
-*** Begin Patch
-*** Update File: src/prompt.h
-*** End Patch

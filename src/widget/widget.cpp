@@ -4,6 +4,7 @@
 
 #include "terminal_pane.h"
 #include "toolcall_test_dialog.h"
+#include "backendmanagerdialog.h"
 #include "ui_widget.h"
 #include <QDateTime>
 #include <QDialog>
@@ -697,4 +698,115 @@ void Widget::enableSplitterHover(QSplitter *splitter)
             handle->update();
         }
     }
+}
+
+BackendManagerDialog *Widget::ensureBackendManagerDialog()
+{
+    QWidget *host = (settings_dialog && settings_dialog->isVisible()) ? static_cast<QWidget *>(settings_dialog) : static_cast<QWidget *>(this);
+    if (!backendManagerDialog_)
+    {
+        auto translator = [this](const QString &key) -> QString
+        {
+            return this->jtr(key);
+        };
+        backendManagerDialog_ = new BackendManagerDialog(translator, host);
+        backendManagerDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
+        connect(backendManagerDialog_, &BackendManagerDialog::overridesChanged, this, &Widget::onBackendOverridesChanged);
+    }
+    else if (backendManagerDialog_->parentWidget() != host)
+    {
+        backendManagerDialog_->setParent(host);
+    }
+    const bool modalToSettings = (host == settings_dialog && settings_dialog);
+    backendManagerDialog_->setModal(modalToSettings);
+    backendManagerDialog_->setWindowModality(modalToSettings ? Qt::WindowModal : Qt::NonModal);
+    backendManagerDialog_->refresh();
+    return backendManagerDialog_;
+}
+
+void Widget::openBackendManagerDialog(const QString &roleId)
+{
+    BackendManagerDialog *dlg = ensureBackendManagerDialog();
+    if (!roleId.isEmpty())
+    {
+        dlg->focusRole(roleId);
+    }
+    QTimer::singleShot(0, dlg, [dlg]()
+                       {
+                           dlg->show();
+                           dlg->raise();
+                           dlg->activateWindow();
+                       });
+}
+
+void Widget::onBackendOverridesChanged()
+{
+    backendOverrideDirty_ = true;
+    syncBackendOverrideState();
+    refreshDeviceBackendUI();
+    reflash_state(QStringLiteral("ui:backend override updated"), SIGNAL_SIGNAL);
+}
+
+void Widget::syncBackendOverrideState()
+{
+    if (!settings_ui || !settings_ui->device_comboBox) return;
+    const QString customText = QStringLiteral("custom");
+    const bool hasOverrides = DeviceManager::hasCustomOverride();
+    int customIndex = settings_ui->device_comboBox->findText(customText);
+    if (hasOverrides && customIndex < 0)
+    {
+        settings_ui->device_comboBox->addItem(customText);
+        customIndex = settings_ui->device_comboBox->findText(customText);
+    }
+    const QString currentText = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    if (hasOverrides)
+    {
+        if (customIndex < 0) return;
+        if (currentText != customText && currentText != QString())
+        {
+            lastDeviceBeforeCustom_ = currentText;
+        }
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            settings_ui->device_comboBox->setCurrentIndex(customIndex);
+        }
+        ui_device_backend = customText;
+        DeviceManager::setUserChoice(customText);
+    }
+    else
+    {
+        if (currentText == customText)
+        {
+            QString restore = lastDeviceBeforeCustom_;
+            if (restore.isEmpty())
+            {
+                restore = QStringLiteral("auto");
+            }
+            int idx = settings_ui->device_comboBox->findText(restore);
+            if (idx < 0)
+            {
+                idx = settings_ui->device_comboBox->findText(QStringLiteral("auto"));
+            }
+            if (idx >= 0)
+            {
+                QSignalBlocker blocker(settings_ui->device_comboBox);
+                settings_ui->device_comboBox->setCurrentIndex(idx);
+            }
+            ui_device_backend = settings_ui->device_comboBox->currentText().trimmed().toLower();
+            DeviceManager::setUserChoice(ui_device_backend);
+        }
+    }
+    refreshDeviceBackendUI();
+}
+
+void Widget::applyBackendOverrideSnapshot(const QMap<QString, QString> &snapshot)
+{
+    DeviceManager::clearProgramOverrides();
+    for (auto it = snapshot.constBegin(); it != snapshot.constEnd(); ++it)
+    {
+        DeviceManager::setProgramOverride(it.key(), it.value());
+    }
+    backendOverrideDirty_ = false;
+    syncBackendOverrideState();
+    refreshDeviceBackendUI();
 }
