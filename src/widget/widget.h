@@ -305,6 +305,7 @@ class Widget : public QWidget
     void openBackendManagerDialog(const QString &roleId = QString());
     void onBackendOverridesChanged();
     void syncBackendOverrideState();
+    void onDeviceComboTextChanged(const QString &text);
     BackendManagerDialog *ensureBackendManagerDialog();
     QMap<QString, QString> currentOverrideMapForUi() const;
     void ensurePendingOverridesInitialized();

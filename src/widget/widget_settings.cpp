@@ -47,8 +47,7 @@ void Widget::set_SetDialog()
         if (idx >= 0) settings_ui->device_comboBox->setCurrentIndex(idx);
 
         // 监听选择变化并初始化一次
-        connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
-                { this->refreshDeviceBackendUI(); });
+        connect(settings_ui->device_comboBox, &QComboBox::currentTextChanged, this, &Widget::onDeviceComboTextChanged);
         refreshDeviceBackendUI();
         syncBackendOverrideState();
         if (settings_ui->device_label)
@@ -922,8 +921,9 @@ void Widget::refreshDeviceBackendUI()
     if (!settings_ui) return;
     QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
     const QMap<QString, QString> overrides = currentOverrideMapForUi();
-    const bool hasOverrides = !overrides.isEmpty();
-    if (hasOverrides)
+    const QString inferenceRole = QStringLiteral("llama-server-main");
+    const bool hasInferenceOverride = overrides.contains(inferenceRole);
+    if (hasInferenceOverride)
     {
         int customIdx = settings_ui->device_comboBox->findText(QStringLiteral("custom"));
         if (customIdx < 0)
@@ -957,7 +957,7 @@ void Widget::refreshDeviceBackendUI()
         runtime = QStringLiteral("unknown");
     }
     QString labelText = deviceLabelBaseText;
-    if (hasOverrides)
+    if (hasInferenceOverride)
     {
         labelText += QStringLiteral(" (custom)");
     }

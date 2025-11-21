@@ -52,6 +52,7 @@ class BackendManagerDialog : public QDialog
     void handleDoubleClick(QTreeWidgetItem *item, int column);
     void handleUseSelected();
     void handleAdd();
+    void handleDelete();
     void handleReset();
     QString trKey(const QString &key, const QString &fallback = QString()) const;
 
@@ -61,6 +62,7 @@ class BackendManagerDialog : public QDialog
     QTreeWidget *tree_ = nullptr;
     QPushButton *useButton_ = nullptr;
     QPushButton *addButton_ = nullptr;
+    QPushButton *deleteButton_ = nullptr;
     QPushButton *resetButton_ = nullptr;
     QPushButton *closeButton_ = nullptr;
 

@@ -66,9 +66,11 @@ void BackendManagerDialog::buildUi()
     buttonLayout->addStretch();
     useButton_ = new QPushButton(this);
     addButton_ = new QPushButton(this);
+    deleteButton_ = new QPushButton(this);
     resetButton_ = new QPushButton(this);
     buttonLayout->addWidget(useButton_);
     buttonLayout->addWidget(addButton_);
+    buttonLayout->addWidget(deleteButton_);
     buttonLayout->addWidget(resetButton_);
     layout->addLayout(buttonLayout);
 
@@ -85,6 +87,7 @@ void BackendManagerDialog::buildUi()
     connect(tree_, &QTreeWidget::itemDoubleClicked, this, &BackendManagerDialog::handleDoubleClick);
     connect(useButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleUseSelected);
     connect(addButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleAdd);
+    connect(deleteButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleDelete);
     connect(resetButton_, &QPushButton::clicked, this, &BackendManagerDialog::handleReset);
     connect(closeButton_, &QPushButton::clicked, this, &BackendManagerDialog::close);
 }
@@ -269,13 +272,30 @@ void BackendManagerDialog::updateButtons()
     const bool hasSelection = !selectedExecutablePath().isEmpty();
     if (useButton_) useButton_->setEnabled(hasSelection);
     const QString role = currentRoleId();
-    bool hasOverride = false;
+    QString overridePath;
     if (overridesProvider_)
     {
-        hasOverride = overridesProvider_().contains(role);
+        const QMap<QString, QString> overrides = overridesProvider_();
+        overridePath = overrides.value(role);
     }
+    const bool hasOverride = !overridePath.isEmpty();
     if (resetButton_) resetButton_->setEnabled(hasOverride);
     if (addButton_) addButton_->setEnabled(true);
+    bool canDelete = false;
+    if (deleteButton_)
+    {
+        if (hasOverride && !overridePath.isEmpty())
+        {
+            const QString selected = selectedExecutablePath();
+            if (!selected.isEmpty())
+            {
+                const QFileInfo sel(selected);
+                const QFileInfo overrideInfo(overridePath);
+                canDelete = sel.absoluteFilePath() == overrideInfo.absoluteFilePath();
+            }
+        }
+        deleteButton_->setEnabled(canDelete);
+    }
 }
 
 void BackendManagerDialog::handleSelectionChanged()
@@ -319,6 +339,26 @@ void BackendManagerDialog::handleAdd()
     applyOverride(picked);
 }
 
+void BackendManagerDialog::handleDelete()
+{
+    const QString role = currentRoleId();
+    if (role.isEmpty()) return;
+    if (!overrideClearer_) return;
+    QString overridePath;
+    if (overridesProvider_) overridePath = overridesProvider_().value(role);
+    if (overridePath.isEmpty()) return;
+    const QString selected = selectedExecutablePath();
+    if (selected.isEmpty()) return;
+    const QFileInfo selInfo(selected);
+    const QFileInfo overrideInfo(overridePath);
+    if (selInfo.absoluteFilePath() != overrideInfo.absoluteFilePath()) return;
+    overrideClearer_(role);
+    emit overridesChanged();
+    updateCurrentOverrideLabel();
+    selectItemByPath(QString());
+    updateButtons();
+}
+
 void BackendManagerDialog::handleReset()
 {
     const QString role = currentRoleId();
@@ -340,6 +380,7 @@ void BackendManagerDialog::refreshTranslations()
                           << trKey(QStringLiteral("backend manager column executable"), QStringLiteral("Executable")));
     if (useButton_) useButton_->setText(trKey(QStringLiteral("backend manager button use"), QStringLiteral("Use Selected")));
     if (addButton_) addButton_->setText(trKey(QStringLiteral("backend manager button add"), QStringLiteral("Add...")));
+    if (deleteButton_) deleteButton_->setText(trKey(QStringLiteral("backend manager button delete"), QStringLiteral("Delete")));
     if (resetButton_) resetButton_->setText(trKey(QStringLiteral("backend manager button reset"), QStringLiteral("Reset to Auto")));
     if (closeButton_) closeButton_->setText(trKey(QStringLiteral("backend manager button close"), QStringLiteral("Close")));
     updateCurrentOverrideLabel();

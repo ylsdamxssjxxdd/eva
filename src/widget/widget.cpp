@@ -768,15 +768,16 @@ void Widget::syncBackendOverrideState()
     if (!settings_ui || !settings_ui->device_comboBox) return;
     const QString customText = QStringLiteral("custom");
     const QMap<QString, QString> overrides = currentOverrideMapForUi();
-    const bool hasOverrides = !overrides.isEmpty();
+    const QString inferenceRole = QStringLiteral("llama-server-main");
+    const bool hasInferenceOverride = overrides.contains(inferenceRole);
     int customIndex = settings_ui->device_comboBox->findText(customText);
-    if (hasOverrides && customIndex < 0)
+    if (hasInferenceOverride && customIndex < 0)
     {
         settings_ui->device_comboBox->addItem(customText);
         customIndex = settings_ui->device_comboBox->findText(customText);
     }
     const QString currentText = settings_ui->device_comboBox->currentText().trimmed().toLower();
-    if (hasOverrides)
+    if (hasInferenceOverride)
     {
         if (customIndex < 0) return;
         if (currentText != customText && currentText != QString())
@@ -812,6 +813,77 @@ void Widget::syncBackendOverrideState()
             ui_device_backend = settings_ui->device_comboBox->currentText().trimmed().toLower();
             DeviceManager::setUserChoice(ui_device_backend);
         }
+        if (customIndex >= 0 && settings_ui->device_comboBox->currentText().trimmed().toLower() != customText)
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            settings_ui->device_comboBox->removeItem(customIndex);
+        }
+    }
+    refreshDeviceBackendUI();
+}
+
+void Widget::onDeviceComboTextChanged(const QString &text)
+{
+    Q_UNUSED(text);
+    if (!settings_ui || !settings_ui->device_comboBox) return;
+    const QString customText = QStringLiteral("custom");
+    const QString inferenceRole = QStringLiteral("llama-server-main");
+    const QString nextChoice = settings_ui->device_comboBox->currentText().trimmed().toLower();
+    const bool dialogVisible = settings_dialog && settings_dialog->isVisible();
+    const QMap<QString, QString> overrides = currentOverrideMapForUi();
+    const bool hasInferenceOverride = overrides.contains(inferenceRole);
+
+    if (nextChoice == customText)
+    {
+        if (!hasInferenceOverride)
+        {
+            QString restore = lastDeviceBeforeCustom_;
+            if (restore.isEmpty()) restore = QStringLiteral("auto");
+            int idx = settings_ui->device_comboBox->findText(restore);
+            if (idx < 0) idx = settings_ui->device_comboBox->findText(QStringLiteral("auto"));
+            if (idx >= 0)
+            {
+                QSignalBlocker blocker(settings_ui->device_comboBox);
+                settings_ui->device_comboBox->setCurrentIndex(idx);
+            }
+            refreshDeviceBackendUI();
+            return;
+        }
+        ui_device_backend = customText;
+        DeviceManager::setUserChoice(customText);
+        refreshDeviceBackendUI();
+        return;
+    }
+
+    if (!nextChoice.isEmpty())
+    {
+        lastDeviceBeforeCustom_ = nextChoice;
+    }
+    ui_device_backend = nextChoice;
+    DeviceManager::setUserChoice(ui_device_backend);
+
+    if (hasInferenceOverride)
+    {
+        if (dialogVisible)
+        {
+            ensurePendingOverridesInitialized();
+            bool removed = pendingBackendOverrides_.remove(inferenceRole) > 0;
+            if (!removed && pendingBackendOverrides_.isEmpty() && backendOverrideSnapshot_.contains(inferenceRole))
+            {
+                pendingBackendOverrides_ = backendOverrideSnapshot_;
+                removed = pendingBackendOverrides_.remove(inferenceRole) > 0;
+            }
+            if (removed)
+            {
+                backendOverrideDirty_ = true;
+            }
+        }
+        else
+        {
+            DeviceManager::clearProgramOverride(inferenceRole);
+            backendOverrideSnapshot_ = DeviceManager::programOverrides();
+        }
+        syncBackendOverrideState();
     }
     refreshDeviceBackendUI();
 }
