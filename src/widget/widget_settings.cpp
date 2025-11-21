@@ -207,8 +207,9 @@ void Widget::set_SetDialog()
     // 监视帧率设置
     settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
 
-    connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
-    connect(settings_ui->cancel, &QPushButton::clicked, this, &Widget::settings_ui_cancel_button_clicked);
+        connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
+        connect(settings_ui->cancel, &QPushButton::clicked, settings_dialog, &QDialog::reject);
+        connect(settings_dialog, &QDialog::rejected, this, &Widget::settings_ui_cancel_button_clicked, Qt::UniqueConnection);
 
     settings_dialog->setWindowTitle(jtr("set"));
 }
@@ -843,7 +844,7 @@ void Widget::settings_ui_confirm_button_clicked()
     };
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
-    settings_dialog->close();
+    settings_dialog->accept();
     // 监视帧率无需重启后端；实时应用
     updateMonitorTimer();
     auto finalizeOverrides = [&]()
@@ -912,7 +913,37 @@ void Widget::settings_ui_cancel_button_clicked()
     updateLazyCountdownLabel();
     pendingBackendOverrides_ = backendOverrideSnapshot_;
     backendOverrideDirty_ = false;
-    settings_dialog->close();
+    QString restoredDevice = device_snapshot_;
+    if (restoredDevice.isEmpty())
+    {
+        restoredDevice = DeviceManager::userChoice();
+    }
+    if (restoredDevice.isEmpty())
+    {
+        restoredDevice = ui_device_backend;
+    }
+    if (!restoredDevice.isEmpty())
+    {
+        ui_device_backend = restoredDevice;
+        lastDeviceBeforeCustom_ = ui_device_backend;
+        DeviceManager::setUserChoice(ui_device_backend);
+        if (settings_ui && settings_ui->device_comboBox)
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            int idx = settings_ui->device_comboBox->findText(restoredDevice, Qt::MatchFixedString);
+            if (idx < 0 && restoredDevice == QStringLiteral("custom"))
+            {
+                settings_ui->device_comboBox->addItem(QStringLiteral("custom"));
+                idx = settings_ui->device_comboBox->findText(QStringLiteral("custom"));
+            }
+            if (idx >= 0)
+            {
+                settings_ui->device_comboBox->setCurrentIndex(idx);
+            }
+        }
+    }
+    syncBackendOverrideState();
+    refreshDeviceBackendUI();
 }
 
 // Centralized device/backend UI refresh implementation (see header for rules)
