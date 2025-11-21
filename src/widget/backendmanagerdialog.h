@@ -17,7 +17,11 @@ class BackendManagerDialog : public QDialog
     Q_OBJECT
 
   public:
-    explicit BackendManagerDialog(std::function<QString(const QString &)> translator, QWidget *parent = nullptr);
+    explicit BackendManagerDialog(std::function<QString(const QString &)> translator,
+                                  std::function<QMap<QString, QString>()> overridesProvider,
+                                  std::function<void(const QString &, const QString &)> overrideSetter,
+                                  std::function<void(const QString &)> overrideClearer,
+                                  QWidget *parent = nullptr);
     void refresh();
     void focusRole(const QString &roleId);
     void refreshTranslations();
@@ -62,6 +66,9 @@ class BackendManagerDialog : public QDialog
 
     QVector<RoleInfo> roles_;
     std::function<QString(const QString &)> translator_;
+    std::function<QMap<QString, QString>()> overridesProvider_;
+    std::function<void(const QString &, const QString &)> overrideSetter_;
+    std::function<void(const QString &)> overrideClearer_;
 };
 
 #endif // EVA_BACKEND_MANAGER_DIALOG_H

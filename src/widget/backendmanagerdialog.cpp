@@ -17,8 +17,13 @@
 #include <QVBoxLayout>
 #include <utility>
 
-BackendManagerDialog::BackendManagerDialog(std::function<QString(const QString &)> translator, QWidget *parent)
-    : QDialog(parent), translator_(std::move(translator))
+BackendManagerDialog::BackendManagerDialog(std::function<QString(const QString &)> translator,
+                                           std::function<QMap<QString, QString>()> overridesProvider,
+                                           std::function<void(const QString &, const QString &)> overrideSetter,
+                                           std::function<void(const QString &)> overrideClearer,
+                                           QWidget *parent)
+    : QDialog(parent), translator_(std::move(translator)), overridesProvider_(std::move(overridesProvider)),
+      overrideSetter_(std::move(overrideSetter)), overrideClearer_(std::move(overrideClearer))
 {
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     setModal(false);
@@ -264,7 +269,11 @@ void BackendManagerDialog::updateButtons()
     const bool hasSelection = !selectedExecutablePath().isEmpty();
     if (useButton_) useButton_->setEnabled(hasSelection);
     const QString role = currentRoleId();
-    const bool hasOverride = !DeviceManager::programOverride(role).isEmpty();
+    bool hasOverride = false;
+    if (overridesProvider_)
+    {
+        hasOverride = overridesProvider_().contains(role);
+    }
     if (resetButton_) resetButton_->setEnabled(hasOverride);
     if (addButton_) addButton_->setEnabled(true);
 }
@@ -291,7 +300,8 @@ void BackendManagerDialog::handleAdd()
 {
     const QString role = currentRoleId();
     QString startDir;
-    const QString current = DeviceManager::programOverride(role);
+    QString current;
+    if (overridesProvider_) current = overridesProvider_().value(role);
     if (!current.isEmpty())
     {
         startDir = QFileInfo(current).absolutePath();
@@ -313,7 +323,7 @@ void BackendManagerDialog::handleReset()
 {
     const QString role = currentRoleId();
     if (role.isEmpty()) return;
-    DeviceManager::clearProgramOverride(role);
+    if (overrideClearer_) overrideClearer_(role);
     emit overridesChanged();
     updateCurrentOverrideLabel();
     selectItemByPath(QString());
@@ -347,7 +357,7 @@ void BackendManagerDialog::applyOverride(const QString &path)
                              trKey(QStringLiteral("backend manager invalid body"), QStringLiteral("The selected executable does not exist.")));
         return;
     }
-    DeviceManager::setProgramOverride(role, fi.absoluteFilePath());
+    if (overrideSetter_) overrideSetter_(role, fi.absoluteFilePath());
     emit overridesChanged();
     updateCurrentOverrideLabel();
     selectItemByPath(fi.absoluteFilePath());

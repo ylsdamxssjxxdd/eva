@@ -401,6 +401,7 @@ void Widget::on_set_clicked()
     port_snapshot_ = ui_port;
     device_snapshot_ = settings_ui->device_comboBox->currentText().trimmed().toLower();
     backendOverrideSnapshot_ = DeviceManager::programOverrides();
+    pendingBackendOverrides_ = backendOverrideSnapshot_;
     backendOverrideDirty_ = false;
     // Ensure device label reflects current auto->(effective) preview before showing the dialog
     refreshDeviceBackendUI();

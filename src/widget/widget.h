@@ -251,6 +251,7 @@ class Widget : public QWidget
     QString lastDeviceBeforeCustom_;
     bool backendOverrideDirty_ = false;
     QMap<QString, QString> backendOverrideSnapshot_;
+    QMap<QString, QString> pendingBackendOverrides_;
 
     // 服务相关（服务模式已移除；本地使用 LocalServerManager 自动启动 llama-server）
     LocalServerManager *serverManager = nullptr; // new: manages local llama.cpp server
@@ -305,7 +306,9 @@ class Widget : public QWidget
     void onBackendOverridesChanged();
     void syncBackendOverrideState();
     BackendManagerDialog *ensureBackendManagerDialog();
-    void applyBackendOverrideSnapshot(const QMap<QString, QString> &snapshot);
+    QMap<QString, QString> currentOverrideMapForUi() const;
+    void ensurePendingOverridesInitialized();
+    void commitPendingBackendOverrides();
     void rebuildReasoningCombo();
     Ui::Settings_Dialog_Ui *settings_ui;
     QDialog *settings_dialog;

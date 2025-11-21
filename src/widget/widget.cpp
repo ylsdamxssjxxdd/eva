@@ -709,7 +709,23 @@ BackendManagerDialog *Widget::ensureBackendManagerDialog()
         {
             return this->jtr(key);
         };
-        backendManagerDialog_ = new BackendManagerDialog(translator, host);
+        auto provider = [this]() -> QMap<QString, QString>
+        {
+            return this->currentOverrideMapForUi();
+        };
+        auto setter = [this](const QString &roleId, const QString &path)
+        {
+            ensurePendingOverridesInitialized();
+            pendingBackendOverrides_.insert(roleId, path);
+            backendOverrideDirty_ = true;
+        };
+        auto clearer = [this](const QString &roleId)
+        {
+            ensurePendingOverridesInitialized();
+            pendingBackendOverrides_.remove(roleId);
+            backendOverrideDirty_ = true;
+        };
+        backendManagerDialog_ = new BackendManagerDialog(translator, provider, setter, clearer, host);
         backendManagerDialog_->setWindowFlag(Qt::WindowStaysOnTopHint, true);
         connect(backendManagerDialog_, &BackendManagerDialog::overridesChanged, this, &Widget::onBackendOverridesChanged);
     }
@@ -751,7 +767,8 @@ void Widget::syncBackendOverrideState()
 {
     if (!settings_ui || !settings_ui->device_comboBox) return;
     const QString customText = QStringLiteral("custom");
-    const bool hasOverrides = DeviceManager::hasCustomOverride();
+    const QMap<QString, QString> overrides = currentOverrideMapForUi();
+    const bool hasOverrides = !overrides.isEmpty();
     int customIndex = settings_ui->device_comboBox->findText(customText);
     if (hasOverrides && customIndex < 0)
     {
@@ -799,14 +816,33 @@ void Widget::syncBackendOverrideState()
     refreshDeviceBackendUI();
 }
 
-void Widget::applyBackendOverrideSnapshot(const QMap<QString, QString> &snapshot)
+QMap<QString, QString> Widget::currentOverrideMapForUi() const
+{
+    if (settings_dialog && settings_dialog->isVisible())
+    {
+        if (!pendingBackendOverrides_.isEmpty()) return pendingBackendOverrides_;
+        return backendOverrideSnapshot_;
+    }
+    return DeviceManager::programOverrides();
+}
+
+void Widget::ensurePendingOverridesInitialized()
+{
+    if (!(settings_dialog && settings_dialog->isVisible())) return;
+    if (pendingBackendOverrides_.isEmpty() && !backendOverrideSnapshot_.isEmpty())
+    {
+        pendingBackendOverrides_ = backendOverrideSnapshot_;
+    }
+}
+
+void Widget::commitPendingBackendOverrides()
 {
     DeviceManager::clearProgramOverrides();
-    for (auto it = snapshot.constBegin(); it != snapshot.constEnd(); ++it)
+    for (auto it = pendingBackendOverrides_.constBegin(); it != pendingBackendOverrides_.constEnd(); ++it)
     {
         DeviceManager::setProgramOverride(it.key(), it.value());
     }
+    backendOverrideSnapshot_ = pendingBackendOverrides_;
+    pendingBackendOverrides_.clear();
     backendOverrideDirty_ = false;
-    syncBackendOverrideState();
-    refreshDeviceBackendUI();
 }

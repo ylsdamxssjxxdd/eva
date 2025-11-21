@@ -821,7 +821,7 @@ void Widget::settings_ui_confirm_button_clicked()
         return true;
     };
 
-    const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
+    const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_) && !backendOverrideDirty_;
 
     // 仅比较会触发后端重启的设置项
     auto eq_server = [&](const SETTINGS &A, const SETTINGS &B)
@@ -845,18 +845,32 @@ void Widget::settings_ui_confirm_button_clicked()
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
     settings_dialog->close();
-    auto_save_user(); // persist settings to eva_config.ini
     // 监视帧率无需重启后端；实时应用
     updateMonitorTimer();
     auto finalizeOverrides = [&]()
     {
-        backendOverrideSnapshot_ = DeviceManager::programOverrides();
+        if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
+        {
+            commitPendingBackendOverrides();
+        }
+        else
+        {
+            backendOverrideSnapshot_ = DeviceManager::programOverrides();
+        }
+        pendingBackendOverrides_.clear();
         backendOverrideDirty_ = false;
+        syncBackendOverrideState();
+        refreshDeviceBackendUI();
+    };
+    auto finalizeAndPersist = [&]()
+    {
+        finalizeOverrides();
+        auto_save_user();
     };
     if (sameSettings)
     {
         // 未发生任何变化：不重启、不重置
-        finalizeOverrides();
+        finalizeAndPersist();
         return;
     }
     if (sameServer)
@@ -866,8 +880,14 @@ void Widget::settings_ui_confirm_button_clicked()
         {
             on_reset_clicked();
         }
-        finalizeOverrides();
+        finalizeAndPersist();
         return;
+    }
+    // 将待定后端覆写立即写入 DeviceManager，确保即将重启的后端使用最新路径
+    if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
+    {
+        commitPendingBackendOverrides();
+        backendOverrideSnapshot_ = DeviceManager::programOverrides();
     }
     // 有影响后端的变化：必要时重启后端并在未重启的情况下重置
     if (ui_mode == LOCAL_MODE)
@@ -882,7 +902,7 @@ void Widget::settings_ui_confirm_button_clicked()
     {
         on_reset_clicked();
     }
-    finalizeOverrides();
+    finalizeAndPersist();
 }
 
 // 设置选项卡取消按钮响应
@@ -891,7 +911,8 @@ void Widget::settings_ui_cancel_button_clicked()
     // Cancel should not mutate any in-memory settings or persist to disk.
     // Simply close the dialog and discard any slider edits.
     updateLazyCountdownLabel();
-    applyBackendOverrideSnapshot(backendOverrideSnapshot_);
+    pendingBackendOverrides_ = backendOverrideSnapshot_;
+    backendOverrideDirty_ = false;
     settings_dialog->close();
 }
 
@@ -900,7 +921,9 @@ void Widget::refreshDeviceBackendUI()
 {
     if (!settings_ui) return;
     QString sel = settings_ui->device_comboBox->currentText().trimmed().toLower();
-    if (DeviceManager::hasCustomOverride())
+    const QMap<QString, QString> overrides = currentOverrideMapForUi();
+    const bool hasOverrides = !overrides.isEmpty();
+    if (hasOverrides)
     {
         int customIdx = settings_ui->device_comboBox->findText(QStringLiteral("custom"));
         if (customIdx < 0)
@@ -934,7 +957,7 @@ void Widget::refreshDeviceBackendUI()
         runtime = QStringLiteral("unknown");
     }
     QString labelText = deviceLabelBaseText;
-    if (DeviceManager::hasCustomOverride())
+    if (hasOverrides)
     {
         labelText += QStringLiteral(" (custom)");
     }
