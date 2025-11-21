@@ -39,49 +39,6 @@ QString windowName(EXPEND_WINDOW w)
     default: return QStringLiteral("unknown");
     }
 }
-
-QString sanitizeReadme(QString content)
-{
-    if (content.isEmpty()) return content;
-
-    content.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
-
-    const QStringList lines = content.split(QChar('\n'));
-    QStringList kept;
-    kept.reserve(lines.size());
-    bool skipDetails = false;
-
-    for (const QString &line : lines)
-    {
-        const QString trimmed = line.trimmed();
-        const QString lower = trimmed.toLower();
-
-        if (lower.startsWith(QStringLiteral("<details")))
-        {
-            skipDetails = true;
-            continue;
-        }
-
-        if (skipDetails)
-        {
-            if (lower.startsWith(QStringLiteral("</details>"))) skipDetails = false;
-            continue;
-        }
-
-        if (lower.startsWith(QStringLiteral("<summary")) || lower.startsWith(QStringLiteral("</summary>")))
-            continue;
-
-        if (trimmed.startsWith(QStringLiteral("![")))
-            continue;
-
-        if (lower.contains(QStringLiteral("<img")) || lower.contains(QStringLiteral("<picture")) || lower.contains(QStringLiteral("<figure")))
-            continue;
-
-        kept << line;
-    }
-
-    return kept.join(QStringLiteral("\n")).trimmed();
-}
 } // namespace
 
 //-------------------------------------------------------------------------
@@ -565,28 +522,21 @@ void Expend::showReadme()
 {
     if (!ui || !ui->info_card) return;
 
-    QString readme_content;
-    QFile file;
-    const QString imagefile = QStringLiteral(":/logo/ui_demo.png"); // 图路径固定
+    const QString resourcePath = (language_flag == 1) ? QStringLiteral(":/README_en.md") : QStringLiteral(":/README.md");
+    QFile file(resourcePath);
+    QString readmeText;
 
-    // 根据语言标志选择不同 README 文件
-    if (language_flag == 0)
-    {
-        file.setFileName(QStringLiteral(":/README.md"));
-    }
-    else if (language_flag == 1)
-    {
-        file.setFileName(QStringLiteral(":/README_en.md"));
-    }
-
-    // 读取文件内容
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        QTextStream in(&file);
-        in.setCodec("UTF-8");
-        readme_content = in.readAll();
+        QTextStream stream(&file);
+        stream.setCodec("UTF-8");
+        readmeText = stream.readAll();
         file.close();
     }
+
+    if (readmeText.isEmpty()) readmeText = jtr("readme not available, please check docs directory");
+
+    readmeText.replace(QStringLiteral("\\r\\n"), QStringLiteral("\\n"));
 
     QStringList textBlocks;
     const QString compileInfo = QStringLiteral("%1: %2\n%3: %4\n%5: %6\n%7: %8\n%9: %10")
@@ -596,42 +546,12 @@ void Expend::showReadme()
                                     .arg(jtr("COMPILE_VERSION"), QString(COMPILE_VERSION))
                                     .arg(jtr("EVA_VERSION"), QString(EVA_VERSION));
     if (!compileInfo.trimmed().isEmpty()) textBlocks << compileInfo.trimmed();
+    textBlocks << readmeText;
 
-    QString cleanReadme = sanitizeReadme(readme_content);
-    if (cleanReadme.isEmpty()) cleanReadme = jtr("readme not available, please check docs directory");
-    textBlocks << cleanReadme;
-
-    const QString finalText = textBlocks.join(QStringLiteral("\n\n"));
-
-    ui->info_card->clear();
-
-    // 加载并缩放图片
-    QImage image(imagefile);
-    const bool hasImage = !image.isNull();
-    const qreal scale = hasImage ? devicePixelRatioF() * 1.5 : 1.0;
-    const int originalWidth = hasImage ? static_cast<int>(image.width() / scale) : 0;
-    const int originalHeight = hasImage ? static_cast<int>(image.height() / scale) : 0;
-
-    // 将图片与 README 文本插入 QTextEdit
-    QTextCursor cursor(ui->info_card->textCursor());
-    cursor.movePosition(QTextCursor::Start);
-    if (hasImage)
-    {
-        QTextImageFormat imageFormat;
-        imageFormat.setWidth(originalWidth);
-        imageFormat.setHeight(originalHeight);
-        imageFormat.setName(imagefile);
-        cursor.insertImage(imageFormat);
-    }
-
-    if (!finalText.isEmpty())
-    {
-        if (hasImage) cursor.insertText(QStringLiteral("\n\n"));
-        cursor.insertText(finalText);
-    }
-
+    ui->info_card->setPlainText(textBlocks.join(QStringLiteral("\\n\\n")));
     TextSpacing::apply(ui->info_card, 1.35);
 }
+
 
 
 
