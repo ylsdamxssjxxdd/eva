@@ -262,6 +262,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]()
             {
+        if (!ignoreNextServerStopped_ && triggerWin7CpuFallback(QStringLiteral("process exit")))
+        {
+            return;
+        }
         // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画
         if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; suppressStateClearOnStop_ = false; return; }
         // 其它情况：后端确实已停止 -> 重置 UI，并停止任何进行中的动画

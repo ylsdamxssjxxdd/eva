@@ -111,3 +111,19 @@ TEST_CASE("buildLocalServerArgs handles lora, mmproj, and cpu devices")
     REQUIRE(ctxIdx >= 0);
     CHECK(args.at(ctxIdx + 1) == QString::number(DEFAULT_NCTX));
 }
+
+TEST_CASE("buildLocalServerArgs adds no-repack for Win7 q4_0 models")
+{
+    QTemporaryDir tempDir;
+    REQUIRE(tempDir.isValid());
+    const QString modelPath = touchFile(tempDir, QStringLiteral("MODEL-Q4_0.GGUF"));
+    REQUIRE_FALSE(modelPath.isEmpty());
+
+    LocalServerArgsInput input;
+    input.settings = SETTINGS{};
+    input.modelPath = modelPath;
+    input.win7Backend = true;
+
+    const QStringList args = buildLocalServerArgs(input);
+    CHECK(args.contains(QStringLiteral("--no-repack")));
+}

@@ -62,6 +62,7 @@ QStringList LocalServerManager::buildArgs() const
     input.mmprojPath = mmproj_;
     input.loraPath = lora_;
     input.resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
+    input.win7Backend = (DeviceManager::currentOsId() == QStringLiteral("win7"));
     return buildLocalServerArgs(input);
 }
 

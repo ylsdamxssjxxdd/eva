@@ -440,6 +440,10 @@ void Widget::onServerStartFailed(const QString &reason)
     // 解锁界面，允许用户立即调整设置或重新装载
     is_run = false;
     unlockButtonsAfterError();
+    if (triggerWin7CpuFallback(QStringLiteral("start failure")))
+    {
+        return;
+    }
     // 明确允许打开“设置/约定”以便更换后端/设备/提示词
     if (ui && ui->set) ui->set->setEnabled(true);
     if (ui && ui->date) ui->date->setEnabled(true);

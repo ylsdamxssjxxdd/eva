@@ -400,6 +400,10 @@ static QStringList deviceSearchOrder()
             {
                 add(QStringLiteral("cpu"));
             }
+            else if (backend == QLatin1String("cpu-noavx"))
+            {
+                add(QStringLiteral("cpu-noavx"));
+            }
             else if (backend == QLatin1String("cuda"))
             {
                 addIf(QStringLiteral("cuda"), supportsCuda());
@@ -418,6 +422,7 @@ static QStringList deviceSearchOrder()
             }
         }
         add(QStringLiteral("cpu")); // make sure cpu fallback is included
+        add(QStringLiteral("cpu-noavx"));
     }
     else
     {
@@ -429,6 +434,8 @@ static QStringList deviceSearchOrder()
             addIf(QStringLiteral("opencl"), supportsOpenCL());
         else if (choice == QLatin1String("cpu"))
             add(QStringLiteral("cpu"));
+        else if (choice == QLatin1String("cpu-noavx"))
+            add(QStringLiteral("cpu-noavx"));
         else
         {
             addIf(QStringLiteral("cuda"), supportsCuda());
@@ -440,19 +447,29 @@ static QStringList deviceSearchOrder()
         addIf(QStringLiteral("vulkan"), supportsVulkan());
         addIf(QStringLiteral("opencl"), supportsOpenCL());
         add(QStringLiteral("cpu"));
+        add(QStringLiteral("cpu-noavx"));
     }
     return order;
 }
 QStringList DeviceManager::preferredOrder()
 {
     const QString arch = currentArchId();
-    const bool cpuFirst = arch.startsWith(QLatin1String("arm")) || isWindows7Or8Family();
+    const bool win7Family = isWindows7Or8Family();
+    const bool cpuFirst = arch.startsWith(QLatin1String("arm")) || win7Family;
+    QStringList order;
     if (cpuFirst)
     {
-        return {QStringLiteral("cpu"), QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl")};
+        order << QStringLiteral("cpu");
+        if (win7Family) order << QStringLiteral("cpu-noavx");
+        order << QStringLiteral("cuda") << QStringLiteral("vulkan") << QStringLiteral("opencl");
+        return order;
     }
-    // Best-effort preference. Do not query hardware here; we only reflect what was shipped.
-    return {QStringLiteral("cuda"), QStringLiteral("vulkan"), QStringLiteral("opencl"), QStringLiteral("cpu")};
+    order << QStringLiteral("cuda") << QStringLiteral("vulkan") << QStringLiteral("opencl") << QStringLiteral("cpu");
+    if (win7Family && !order.contains(QStringLiteral("cpu-noavx")))
+    {
+        order << QStringLiteral("cpu-noavx");
+    }
+    return order;
 }
 
 static QString firstPreferredAvailable(const QStringList &available)
@@ -477,6 +494,7 @@ static QString firstPreferredAvailable(const QStringList &available)
             continue;
         }
         if (backend == QLatin1String("cpu")) return QStringLiteral("cpu");
+        if (backend == QLatin1String("cpu-noavx")) return QStringLiteral("cpu-noavx");
         // Unknown backend types: honor availability order as-is.
         return backend;
     }
@@ -516,7 +534,7 @@ QStringList DeviceManager::availableBackends()
 void DeviceManager::setUserChoice(const QString &backend)
 {
     const QString b = backend.trimmed().toLower();
-    if (b == QLatin1String("auto") || b == QLatin1String("custom") || b == QLatin1String("cpu") || b == QLatin1String("cuda") || b == QLatin1String("vulkan") || b == QLatin1String("opencl"))
+    if (b == QLatin1String("auto") || b == QLatin1String("custom") || b == QLatin1String("cpu") || b == QLatin1String("cpu-noavx") || b == QLatin1String("cuda") || b == QLatin1String("vulkan") || b == QLatin1String("opencl"))
     {
         g_userChoice = b;
     }
@@ -548,6 +566,7 @@ QString DeviceManager::effectiveBackend()
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
     if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
     if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
+    if (choice == QLatin1String("cpu-noavx") && isAvail("cpu-noavx")) return QStringLiteral("cpu-noavx");
     return firstPreferredAvailable(avail);
 }
 
@@ -570,6 +589,7 @@ QString DeviceManager::effectiveBackendFor(const QString &preferred)
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
     if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");
     if (choice == QLatin1String("cpu") && isAvail("cpu")) return QStringLiteral("cpu");
+    if (choice == QLatin1String("cpu-noavx") && isAvail("cpu-noavx")) return QStringLiteral("cpu-noavx");
     return firstPreferredAvailable(avail);
 }
 

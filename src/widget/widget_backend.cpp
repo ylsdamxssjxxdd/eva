@@ -4,6 +4,7 @@
 #include <QTcpServer>
 #include <QElapsedTimer>
 #include <QMessageBox>
+#include <QSignalBlocker>
 
 void Widget::recv_params(MODEL_PARAMS p)
 {
@@ -270,6 +271,16 @@ void Widget::ensureLocalServer(bool lazyWake)
     serverManager->setLoraPath(ui_SETTINGS.lorapath);
 
     lastServerRestart_ = serverManager->needsRestart();
+    if (lastServerRestart_)
+    {
+        win7CpuFallbackArmed_ = shouldArmWin7CpuFallback();
+        win7CpuFallbackTriggered_ = false;
+    }
+    else
+    {
+        win7CpuFallbackArmed_ = false;
+        win7CpuFallbackTriggered_ = false;
+    }
     const bool hadOld = backendRunning;
     ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
     if (lastServerRestart_)
@@ -635,6 +646,8 @@ void Widget::onLazyUnloadNowClicked()
 
 void Widget::onServerReady(const QString &endpoint)
 {
+    win7CpuFallbackArmed_ = false;
+    win7CpuFallbackTriggered_ = false;
     backendOnline_ = true;
     lazyUnloaded_ = false;
     lazyWakeInFlight_ = false;
@@ -775,4 +788,51 @@ void Widget::onServerReady(const QString &endpoint)
 void Widget::recv_embeddingdb_describe(QString describe)
 {
     embeddingdb_describe = describe;
+}
+
+bool Widget::shouldArmWin7CpuFallback() const
+{
+    if (DeviceManager::currentOsId() != QStringLiteral("win7")) return false;
+    const QStringList available = DeviceManager::availableBackends();
+    if (!available.contains(QStringLiteral("cpu-noavx"))) return false;
+    const QString choice = DeviceManager::userChoice();
+    if (choice == QStringLiteral("cpu-noavx") || choice == QStringLiteral("custom")) return false;
+    if (choice == QStringLiteral("cpu")) return true;
+    if (choice == QStringLiteral("auto")) return DeviceManager::effectiveBackend() == QStringLiteral("cpu");
+    return false;
+}
+
+bool Widget::triggerWin7CpuFallback(const QString &reasonTag)
+{
+    if (!win7CpuFallbackArmed_ || win7CpuFallbackTriggered_) return false;
+    if (DeviceManager::currentOsId() != QStringLiteral("win7")) return false;
+    const QStringList available = DeviceManager::availableBackends();
+    if (!available.contains(QStringLiteral("cpu-noavx"))) return false;
+
+    win7CpuFallbackArmed_ = false;
+    win7CpuFallbackTriggered_ = true;
+
+    const QString fallbackDevice = QStringLiteral("cpu-noavx");
+    DeviceManager::setUserChoice(fallbackDevice);
+    ui_device_backend = fallbackDevice;
+    lastDeviceBeforeCustom_ = fallbackDevice;
+    if (settings_ui && settings_ui->device_comboBox)
+    {
+        int idx = settings_ui->device_comboBox->findText(fallbackDevice);
+        if (idx < 0)
+        {
+            settings_ui->device_comboBox->addItem(fallbackDevice);
+            idx = settings_ui->device_comboBox->findText(fallbackDevice);
+        }
+        if (idx >= 0)
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            settings_ui->device_comboBox->setCurrentIndex(idx);
+        }
+    }
+    refreshDeviceBackendUI();
+    reflash_state(QStringLiteral("ui:Win7 cpu backend failed (%1) -> retrying cpu-noavx").arg(reasonTag), WRONG_SIGNAL);
+    QTimer::singleShot(0, this, [this]()
+                       { ensureLocalServer(); });
+    return true;
 }

@@ -287,6 +287,8 @@ class Widget : public QWidget
     QElapsedTimer idleSince_;
     int lazyUnloadMs_ = 300000;
     bool pendingSendAfterWake_ = false;
+    bool win7CpuFallbackArmed_ = false;
+    bool win7CpuFallbackTriggered_ = false;
 
     SETTINGS settings_snapshot_;
     QString port_snapshot_;
@@ -338,6 +340,8 @@ class Widget : public QWidget
     void updateLazyCountdownLabel();
     void setLazyCountdownLabelDisplay(const QString &status);
     bool lazyUnloadEnabled() const;
+    bool shouldArmWin7CpuFallback() const;
+    bool triggerWin7CpuFallback(const QString &reasonTag);
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;

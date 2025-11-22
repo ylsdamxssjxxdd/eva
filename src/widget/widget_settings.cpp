@@ -977,7 +977,7 @@ void Widget::refreshDeviceBackendUI()
         }
     }
     const QString eff = DeviceManager::effectiveBackendFor(sel);
-    const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("opencl"));
+    const bool cpuLike = (eff == QLatin1String("cpu") || eff == QLatin1String("cpu-noavx") || eff == QLatin1String("opencl"));
     settings_ui->ngl_slider->setEnabled(!cpuLike);
     // Keep base label text in sync with current language
     deviceLabelBaseText = jtr("device");

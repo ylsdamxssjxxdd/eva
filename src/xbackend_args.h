@@ -15,6 +15,7 @@ struct LocalServerArgsInput
     QString mmprojPath;
     QString loraPath;
     QString resolvedDevice;
+    bool win7Backend = false;
 };
 
 QStringList buildLocalServerArgs(const LocalServerArgsInput &input);

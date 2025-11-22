@@ -73,5 +73,12 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
         args << QStringLiteral("--no-mmap");
     }
 
+    const QString normalizedModel = input.modelPath.toLower();
+    const bool modelIsQ40 = normalizedModel.contains(QStringLiteral("q4_0"));
+    if (input.win7Backend && modelIsQ40)
+    {
+        args << QStringLiteral("--no-repack");
+    }
+
     return args;
 }
