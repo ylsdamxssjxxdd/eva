@@ -3,46 +3,56 @@
 
 #include <QByteArray>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTextStream>
 
+#include "thirdparty/miniz/miniz.h"
 #include "utils/docparser.h"
 
 namespace
 {
 QString writeDocxFixture(QTemporaryDir &dir)
 {
-    static const QByteArray kDocxBase64 =
-        QByteArrayLiteral(
-            "UEsDBBQAAAAAAEpXbludxYoquQEAALkBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbDw/eG1sIHZlcnNp"
-            "b249IjEuMCIgZW5jb2Rpbmc9IlVURi04IiBzdGFuZGFsb25lPSJ5ZXMiPz4KPFR5cGVzIHhtbG5zPSJod"
-            "HRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvcGFja2FnZS8yMDA2L2NvbnRlbnQtdHlwZXMiPg"
-            "ogIDxEZWZhdWx0IEV4dGVuc2lvbj0icmVscyIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGV"
-            "ueG1sZm9ybWF0cy1wYWNrYWdlLnJlbGF0aW9uc2hpcHMreG1sIi8+CiAgPERlZmF1bHQgRXh0ZW5zaW9u"
-            "PSJ4bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi94bWwiLz4KICA8T3ZlcnJpZGUgUGFydE5hbWU9I"
-            "i93b3JkL2RvY3VtZW50LnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybW"
-            "F0cy1vZmZpY2Vkb2N1bWVudC53b3JkcHJvY2Vzc2luZ21sLmRvY3VtZW50Lm1haW4reG1sIi8+CjwvVHl"
-            "wZXM+ClBLAwQUAAAAAABKV25bLRBNbi0BAAAtAQAACwAAAF9yZWxzLy5yZWxzPD94bWwgdmVyc2lvbj0i"
-            "MS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/Pgo8UmVsYXRpb25zaGlwcyB4bWxucz"
-            "0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3BhY2thZ2UvMjAwNi9yZWxhdGlvbnNoaXB"
-            "zIj4KICA8UmVsYXRpb25zaGlwIElkPSJSMSIgVHlwZT0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1h"
-            "dHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcy9vZmZpY2VEb2N1bWVudCIgVGFyZ"
-            "2V0PSJ3b3JkL2RvY3VtZW50LnhtbCIvPgo8L1JlbGF0aW9uc2hpcHM+ClBLAwQUAAAAAABKV25bvk2Eh1"
-            "YBAABWAQAAEQAAAHdvcmQvZG9jdW1lbnQueG1sPD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVR"
-            "GLTgiIHN0YW5kYWxvbmU9InllcyI/Pgo8dzpkb2N1bWVudCB4bWxuczp3PSJodHRwOi8vc2NoZW1hcy5v"
-            "cGVueG1sZm9ybWF0cy5vcmcvd29yZHByb2Nlc3NpbmdtbC8yMDA2L21haW4iPgogIDx3OmJvZHk+CiAgI"
-            "Dx3OnA+PHc6cj48dzp0PkVWQSBMaW5lIE9uZTwvdzp0PjwvdzpyPjwvdzpwPgogICAgPHc6cD48dzpyPj"
-            "x3OnQgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+U2Vjb25kIExpbmUgPC93OnQ+PC93OnI+PHc6cj48dzpicj8"
-            "+PC93OnI+PHc6cj48dzp0PlRhaWw8L3c6dD48L3c6cj48L3c6cD4KICA8L3c6Ym9keT4KPC93OmRvY3Vt"
-            "ZW50PgpQSwECFAAUAAAAAABKV25bncWKKrkBAAC5AQAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfV"
-            "HlwZXNdLnhtbFBLAQIUABQAAAAAAEpXblstEE1uLQEAAC0BAAALAAAAAAAAAAAAAACAAeoBAABfcmVscy"
-            "8ucmVsc1BLAQIUABQAAAAAAEpXblu+TYSHVgEAAFgBAAARAAAAAAAAAAAAAACAAUADAAB3b3JkL2RvY3V"
-            "tZW50LnhtbFBLAUYAAAAAAwADALkAAADFBQAAAAA=");
-
     const QString path = dir.filePath(QStringLiteral("fixture.docx"));
-    QFile f(path);
-    REQUIRE(f.open(QIODevice::WriteOnly));
-    f.write(QByteArray::fromBase64(kDocxBase64));
+    mz_zip_archive archive;
+    memset(&archive, 0, sizeof(archive));
+    const QByteArray encoded = QFile::encodeName(path);
+    REQUIRE(mz_zip_writer_init_file(&archive, encoded.constData(), 0) != 0);
+
+    const QByteArray contentTypes = QByteArrayLiteral(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
+        "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
+        "<Override PartName=\"/word/document.xml\" "
+        "ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
+        "</Types>");
+    REQUIRE(mz_zip_writer_add_mem(&archive, "[Content_Types].xml", contentTypes.constData(), contentTypes.size(),
+                                  MZ_DEFAULT_COMPRESSION) != 0);
+
+    const QByteArray rels = QByteArrayLiteral(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+        "<Relationship Id=\"R1\" "
+        "Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" "
+        "Target=\"word/document.xml\"/>"
+        "</Relationships>");
+    REQUIRE(mz_zip_writer_add_mem(&archive, "_rels/.rels", rels.constData(), rels.size(), MZ_DEFAULT_COMPRESSION) != 0);
+
+    const QByteArray docXml = QByteArrayLiteral(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">"
+        "<w:body>"
+        "<w:p><w:r><w:t>EVA Line One</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Second Line </w:t></w:r><w:r><w:br/></w:r></w:p>"
+        "<w:p><w:r><w:t>Tail</w:t></w:r></w:p>"
+        "</w:body>"
+        "</w:document>");
+    REQUIRE(mz_zip_writer_add_mem(&archive, "word/document.xml", docXml.constData(), docXml.size(),
+                                  MZ_DEFAULT_COMPRESSION) != 0);
+
+    REQUIRE(mz_zip_writer_finalize_archive(&archive) != 0);
+    mz_zip_writer_end(&archive);
     return path;
 }
 } // namespace
@@ -106,19 +116,14 @@ TEST_CASE("markdownToText strips common markdown constructs")
     CHECK(plain.contains(QStringLiteral("quote")));
 }
 
-#ifdef _WIN32
-TEST_CASE("readDocxText extracts paragraph text via powershell reader")
+TEST_CASE("readDocxText extracts paragraph text from docx")
 {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     const QString docxPath = writeDocxFixture(dir);
 
     const QString text = DocParser::readDocxText(docxPath);
-    if (text.isEmpty())
-    {
-        INFO("Docx extraction unavailable in this runtime, skipping detailed assertions");
-        return;
-    }
+    REQUIRE_MESSAGE(!text.isEmpty(), "Docx extraction unavailable in this runtime");
     CHECK(text.contains(QStringLiteral("EVA Line One")));
     CHECK(text.contains(QStringLiteral("Second Line")));
     CHECK(text.contains(QStringLiteral("Tail")));
@@ -131,4 +136,15 @@ TEST_CASE("readDocxText returns empty when file missing")
     const QString missing = dir.filePath(QStringLiteral("nope.docx"));
     CHECK(DocParser::readDocxText(missing).isEmpty());
 }
-#endif
+
+TEST_CASE("readWpsText extracts plain text from legacy WPS docs")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/测试/测试.wps");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readWpsText(fi.absoluteFilePath()).trimmed();
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text == QStringLiteral("6666666666搜索"));
+}

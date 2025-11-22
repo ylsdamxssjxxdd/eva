@@ -3,6 +3,11 @@ find_package(Qt5 COMPONENTS Core REQUIRED)
 add_executable(docparser_tests
     docparser_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/docparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/zip_extractor.cpp
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_zip.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tinfl.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tdef.c
 )
 
 target_link_libraries(docparser_tests PRIVATE
@@ -10,9 +15,12 @@ target_link_libraries(docparser_tests PRIVATE
     eva_doctest
 )
 target_include_directories(docparser_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz
 )
 target_compile_features(docparser_tests PRIVATE cxx_std_17)
+target_compile_definitions(docparser_tests PRIVATE EVA_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 if (MINGW)
     if (DEFINED EVA_COMPILE_OPTIONS)
