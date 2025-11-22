@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include "../utils/textparse.h"
 #include <QDateTime>
 #include <QUrl>
 
@@ -16,9 +17,7 @@ void Widget::set_api()
 
     // 获取设置值
     // Sanitize endpoint/key/model: strip all whitespace to avoid mistakes
-    auto sanitize = [](const QString &s)
-    { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
-    QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
+    QString clean_endpoint = TextParse::removeAllWhitespace(api_endpoint_LineEdit->text());
     // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
     {
         QUrl u = QUrl::fromUserInput(clean_endpoint);
@@ -35,8 +34,8 @@ void Widget::set_api()
         }
         clean_endpoint = u.toString(QUrl::RemoveFragment);
     }
-    const QString clean_key = sanitize(api_key_LineEdit->text());
-    const QString clean_model = sanitize(api_model_LineEdit->text());
+    const QString clean_key = TextParse::removeAllWhitespace(api_key_LineEdit->text());
+    const QString clean_model = TextParse::removeAllWhitespace(api_model_LineEdit->text());
     // Reflect cleaned values in UI
     api_endpoint_LineEdit->setText(clean_endpoint);
     api_key_LineEdit->setText(clean_key);
@@ -140,9 +139,7 @@ void Widget::tool_testhandleTimeout()
     // Ensure latest LINK apis before pushing (users may edit endpoint/key/model after linking)
     if (ui_mode == LINK_MODE)
     {
-        auto sanitize = [](const QString &s)
-        { QString out = s; out.replace(QRegularExpression("\\s+"), ""); return out; };
-        QString clean_endpoint = sanitize(api_endpoint_LineEdit->text());
+        QString clean_endpoint = TextParse::removeAllWhitespace(api_endpoint_LineEdit->text());
         // Normalize scheme for remote hosts
         {
             QUrl u = QUrl::fromUserInput(clean_endpoint);
@@ -155,8 +152,8 @@ void Widget::tool_testhandleTimeout()
                 u.setScheme("https");
             clean_endpoint = u.toString(QUrl::RemoveFragment);
         }
-        const QString clean_key = sanitize(api_key_LineEdit->text());
-        const QString clean_model = sanitize(api_model_LineEdit->text());
+        const QString clean_key = TextParse::removeAllWhitespace(api_key_LineEdit->text());
+        const QString clean_model = TextParse::removeAllWhitespace(api_model_LineEdit->text());
         if (clean_endpoint != apis.api_endpoint || clean_key != apis.api_key || clean_model != apis.api_model)
         {
             apis.api_endpoint = clean_endpoint;

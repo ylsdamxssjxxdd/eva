@@ -13,7 +13,6 @@
 #include <QFileInfo>
 #include <QElapsedTimer>
 #include <QMessageBox>
-#include <QRegularExpression>
 #include <QSet>
 #include <QStringList>
 #include <QSignalBlocker>

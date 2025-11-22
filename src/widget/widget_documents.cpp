@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include <QTextDocument>
+#include "../utils/textparse.h"
 
 void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
 {
@@ -256,165 +257,118 @@ void Widget::onServerOutput(const QString &line)
         sawFinalPast_ = false;
     }
 
-    // 1) capture n_ctx for verification
-    // 0) capture n_ctx_train from print_info and clamp UI nctx slider max accordingly
-    static QRegularExpression reCtxTrain("print_info\\s*:\\s*n_ctx_train\\s*=\\s*(\\d+)");
-    for (auto it = reCtxTrain.globalMatch(line); it.hasNext();)
+    int trainCtx = 0;
+    if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_ctx_train"), trainCtx) && trainCtx > 0)
     {
-        const QRegularExpressionMatch m = it.next();
-        bool ok = false;
-        const int train = m.captured(1).toInt(&ok);
-        if (ok && train > 0)
+        if (ui_n_ctx_train != trainCtx)
         {
-            if (ui_n_ctx_train != train)
+            ui_n_ctx_train = trainCtx;
+            if (settings_ui && settings_ui->nctx_slider)
             {
-                ui_n_ctx_train = train;
-                if (settings_ui && settings_ui->nctx_slider)
-                {
-                    const int curMax = settings_ui->nctx_slider->maximum();
-                    if (curMax != train) settings_ui->nctx_slider->setMaximum(train);
-                    // 仅更新最大值，不强制改动当前值；避免用户未修改的情况下导致“看似变化”
-                }
+                const int curMax = settings_ui->nctx_slider->maximum();
+                if (curMax != trainCtx) settings_ui->nctx_slider->setMaximum(trainCtx);
             }
         }
     }
 
-    static QRegularExpression reCtx("llama_context\\s*:\\s*n_ctx\\s*=\\s*(\\d+)");
-    for (auto it = reCtx.globalMatch(line); it.hasNext();)
+    int ctxValue = 0;
+    if (line.contains(QStringLiteral("llama_context")) && TextParse::extractIntAfterKeyword(line, QStringLiteral("n_ctx"), ctxValue) && ctxValue > 0)
     {
-        const QRegularExpressionMatch m = it.next();
-        bool ok = false;
-        const int v = m.captured(1).toInt(&ok);
-        if (ok && v > 0)
+        server_nctx_ = ctxValue;
+        const int slotCtx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+        const int parallel = ui_SETTINGS.hid_parallel > 0 ? ui_SETTINGS.hid_parallel : 1;
+        const int expectedTotal = slotCtx * parallel;
+        if (server_nctx_ != expectedTotal)
         {
-            server_nctx_ = v;
-            const int slotCtx = ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX;
-            const int parallel = ui_SETTINGS.hid_parallel > 0 ? ui_SETTINGS.hid_parallel : 1;
-            const int expectedTotal = slotCtx * parallel;
-            if (server_nctx_ != expectedTotal)
-            {
-                reflash_state(QStringLiteral("ui:server n_ctx=%1, expected=%2 (slot=%3, parallel=%4)")
-                                  .arg(server_nctx_)
-                                  .arg(expectedTotal)
-                                  .arg(slotCtx)
-                                  .arg(parallel),
-                              SIGNAL_SIGNAL);
-            }
+            reflash_state(QStringLiteral("ui:server n_ctx=%1, expected=%2 (slot=%3, parallel=%4)")
+                              .arg(server_nctx_)
+                              .arg(expectedTotal)
+                              .arg(slotCtx)
+                              .arg(parallel),
+                          SIGNAL_SIGNAL);
         }
     }
 
-    // 1.2) capture per-slot capacity n_ctx_slot
-    static QRegularExpression reCtxSlot("n_ctx_slot\\s*=\\s*(\\d+)");
-    for (auto it = reCtxSlot.globalMatch(line); it.hasNext();)
+    int slotCtx = 0;
+    if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_ctx_slot"), slotCtx) && slotCtx > 0)
     {
-        const QRegularExpressionMatch m = it.next();
-        bool ok = false;
-        const int v = m.captured(1).toInt(&ok);
-        if (ok && v > 0)
-        {
-            slotCtxMax_ = v;
-            updateKvBarUi();
-            // Notify Expend (evaluation tab) to refresh displayed n_ctx in LINK mode
-            SETTINGS snap = ui_SETTINGS;
-            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
-            emit ui2expend_settings(snap);
-        }
+        slotCtxMax_ = slotCtx;
+        updateKvBarUi();
+        SETTINGS snap = ui_SETTINGS;
+        if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+        emit ui2expend_settings(snap);
     }
 
-    // 1.3) kv cache rm [hit, end) -> use left number to correct current memory right away
-    static QRegularExpression reKvRm("kv cache rm\\s*\\[\\s*(\\d+)");
-    QRegularExpressionMatch mRm = reKvRm.match(line);
-    if (mRm.hasMatch())
+    int kvHit = 0;
+    if (TextParse::extractIntBetweenMarkers(line, QStringLiteral("kv cache rm"), QStringLiteral("]"), kvHit))
     {
-        bool ok = false;
-        int hit = mRm.captured(1).toInt(&ok);
-        if (ok)
-        {
-            kvUsed_ = qMax(0, hit);
-            updateKvBarUi();
-        }
+        kvUsed_ = qMax(0, kvHit);
+        updateKvBarUi();
     }
 
-    // 1.5) capture n_layer and clamp GPU offload slider max to n_layer + 1
-    static QRegularExpression reLayer("print_info\\s*:\\s*n_layer\\s*=\\s*(\\d+)");
-    for (auto it = reLayer.globalMatch(line); it.hasNext();)
+    int layers = 0;
+    if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_layer"), layers) && layers > 0)
     {
-        const QRegularExpressionMatch m = it.next();
-        bool ok = false;
-        const int layers = m.captured(1).toInt(&ok);
-        if (ok && layers > 0)
+        const int maxngl = layers + 1;
+        const bool shouldAdoptMax = (maxngl > 0 && (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl));
+        if (ui_maxngl != maxngl)
         {
-            const int maxngl = layers + 1; // llama.cpp convention
-            const bool shouldAdoptMax = (maxngl > 0 && (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl));
-            if (ui_maxngl != maxngl)
-            {
-                ui_maxngl = maxngl;
-                if (settings_ui && settings_ui->ngl_slider)
-                {
-                    const int curMax = settings_ui->ngl_slider->maximum();
-                    if (curMax != maxngl) settings_ui->ngl_slider->setMaximum(maxngl);
-                }
-            }
-            if (shouldAdoptMax)
-            {
-                ui_SETTINGS.ngl = maxngl;
-            }
+            ui_maxngl = maxngl;
             if (settings_ui && settings_ui->ngl_slider)
             {
-                int curVal = settings_ui->ngl_slider->value();
-                if (shouldAdoptMax)
-                {
-                    curVal = ui_SETTINGS.ngl;
-                }
-                else if (maxngl > 0 && curVal > maxngl)
-                {
-                    curVal = maxngl;
-                }
-                if (curVal != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(curVal);
-                settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
-                // reflash_state("ui:max ngl = " + QString::number(maxngl), SIGNAL_SIGNAL);
+                const int curMax = settings_ui->ngl_slider->maximum();
+                if (curMax != maxngl) settings_ui->ngl_slider->setMaximum(maxngl);
+            }
+        }
+        if (shouldAdoptMax)
+        {
+            ui_SETTINGS.ngl = maxngl;
+        }
+        if (settings_ui && settings_ui->ngl_slider)
+        {
+            int curVal = settings_ui->ngl_slider->value();
+            if (shouldAdoptMax)
+            {
+                curVal = ui_SETTINGS.ngl;
+            }
+            else if (maxngl > 0 && curVal > maxngl)
+            {
+                curVal = maxngl;
+            }
+            if (curVal != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(curVal);
+            settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
+        }
+    }
+
+    const QString chatFmt = TextParse::textAfterKeyword(line, QStringLiteral("Chat format:"));
+    if (!chatFmt.isEmpty())
+    {
+        // Reserved for future UI log.
+    }
+
+    if (line.contains(QStringLiteral("total time")))
+    {
+        int totalTokens = 0;
+        if (TextParse::extractLastIntBeforeSuffix(line, QStringLiteral("tokens"), totalTokens))
+        {
+            kvStreamedTurn_ = totalTokens;
+            if (ui_mode == LINK_MODE)
+            {
+                kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+                updateKvBarUi();
+            }
+            else if (sawPromptPast_ && !sawFinalPast_)
+            {
+                kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+                updateKvBarUi();
             }
         }
     }
 
-    // 2) Chat format
-    static QRegularExpression reFmt("Chat\\s+format\\s*:\\s*(.+)");
-    QRegularExpressionMatch mFmt = reFmt.match(line);
-    if (mFmt.hasMatch())
+    if (line.contains(QStringLiteral("prompt done")))
     {
-        const QString fmt = mFmt.captured(1).trimmed();
-        // reflash_state("srv: Chat format: " + fmt, USUAL_SIGNAL);
-    }
-    // 3) total tokens (for KV correction)
-    static QRegularExpression reTotal("total\\s+time\\s*=\\s*([0-9.]+)\\s*ms\\s*/\\s*(\\d+)\\s*tokens");
-    QRegularExpressionMatch m3 = reTotal.match(line);
-    if (m3.hasMatch())
-    {
-        const int totalTokens = m3.captured(2).toInt();
-        // Use total tokens to correct current slot KV usage for this turn
-        // 本地模式：提示完成后（sawPromptPast_）才基于基线增量更新；避免回跳到上一轮
-        kvStreamedTurn_ = totalTokens;
-        if (ui_mode == LINK_MODE)
-        {
-            kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
-            updateKvBarUi();
-        }
-        else if (sawPromptPast_ && !sawFinalPast_)
-        {
-            kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
-            updateKvBarUi();
-        }
-    }
-
-    // 4) prompt done /stop processing -> correct kvUsed_ from n_past immediately
-    static QRegularExpression rePromptDone("prompt\\s+done,\\s*n_past\\s*=\\s*(\\d+)");
-    static QRegularExpression reStop("stop\\s+processing.*n_past\\s*=\\s*(\\d+)");
-    QRegularExpressionMatch mPD = rePromptDone.match(line);
-    if (mPD.hasMatch())
-    {
-        bool ok = false;
-        int past = mPD.captured(1).toInt(&ok);
-        if (ok)
+        int past = 0;
+        if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_past"), past))
         {
             kvUsed_ = qMax(0, past);
             kvUsedBeforeTurn_ = qMax(0, past);
@@ -425,12 +379,10 @@ void Widget::onServerOutput(const QString &line)
             cancelLazyUnload(QStringLiteral("prompt done"));
         }
     }
-    QRegularExpressionMatch mStop = reStop.match(line);
-    if (mStop.hasMatch())
+    if (line.contains(QStringLiteral("stop processing")))
     {
-        bool ok = false;
-        int past = mStop.captured(1).toInt(&ok);
-        if (ok)
+        int past = 0;
+        if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_past"), past))
         {
             kvUsed_ = qMax(0, past);
             sawFinalPast_ = true;

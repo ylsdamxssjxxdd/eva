@@ -1,6 +1,7 @@
 // 功能函数
 #include "../utils/depresolver.h"
 #include "../utils/processrunner.h"
+#include "../utils/textparse.h"
 #include "terminal_pane.h"
 #include "ui_widget.h"
 #include "widget.h"
@@ -25,68 +26,6 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtGlobal>
 #include <algorithm>
-
-namespace
-{
-QStringList collectLooseJsonObjects(const QString &text)
-{
-    // Collect balanced JSON objects to tolerate missing <tool_call> wrappers.
-    QStringList objects;
-    bool inString = false;
-    bool escaped = false;
-    int depth = 0;
-    int start = -1;
-
-    for (int i = 0; i < text.size(); ++i)
-    {
-        const QChar ch = text.at(i);
-        if (inString)
-        {
-            if (escaped)
-            {
-                escaped = false;
-                continue;
-            }
-            if (ch == '\\')
-            {
-                escaped = true;
-                continue;
-            }
-            if (ch == '"')
-            {
-                inString = false;
-            }
-            continue;
-        }
-
-        if (ch == '"')
-        {
-            inString = true;
-            continue;
-        }
-
-        if (ch == '{')
-        {
-            if (depth == 0) start = i;
-            ++depth;
-        }
-        else if (ch == '}')
-        {
-            if (depth == 0) continue;
-            --depth;
-            if (depth == 0 && start != -1)
-            {
-                objects << text.mid(start, i - start + 1);
-                start = -1;
-            }
-        }
-    }
-
-    return objects;
-}
-} // namespace
-
-
 
 // 添加右击问题
 void Widget::create_right_menu()
@@ -247,13 +186,6 @@ void Widget::get_date()
 // 手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
 {
-    static const QRegularExpression thinkBlock(QStringLiteral("<think>.*?</think>"),
-                                               QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
-    static const QRegularExpression toolBlock(QStringLiteral("<tool_call>(.*?)</tool_call>"),
-                                              QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
-    static const QRegularExpression leadingFence(QStringLiteral("^```[a-zA-Z0-9_+\\-]*\\s*"));
-    static const QRegularExpression trailingFence(QStringLiteral("\\s*```\\s*$"));
-
     const auto logStep = [&](const QString &line)
     {
         if (debugLog) debugLog->append(line);
@@ -265,8 +197,9 @@ mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
 
     QString payload = text;
     logStep(logText(QStringLiteral("toolcall xml log input length"), QStringLiteral("Input length: %1 chars")).arg(payload.size()));
-    payload.remove(thinkBlock);
-    if (payload.size() != text.size())
+    const int beforeStrip = payload.size();
+    TextParse::stripTagBlocksCaseInsensitive(payload, QStringLiteral("think"));
+    if (payload.size() != beforeStrip)
     {
         logStep(logText(QStringLiteral("toolcall xml log think stripped"), QStringLiteral("Removed <think> block, remaining length: %1"))
                     .arg(payload.size()));
@@ -274,10 +207,9 @@ mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
 
     QStringList tagCandidates;
     QSet<QString> deduped;
-    QRegularExpressionMatchIterator it = toolBlock.globalMatch(payload);
-    while (it.hasNext())
+    const QStringList rawTags = TextParse::collectTagBlocks(payload, QStringLiteral("tool_call"));
+    for (const QString &captured : rawTags)
     {
-        const QString captured = it.next().captured(1);
         const QString normalized = captured.trimmed();
         if (normalized.isEmpty()) continue;
         if (deduped.contains(normalized)) continue;
@@ -308,9 +240,7 @@ mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
                 continue;
             }
 
-            content.remove(leadingFence);
-            content.remove(trailingFence);
-            content = content.trimmed();
+            content = TextParse::stripCodeFenceMarkers(content);
             if (content.startsWith(QStringLiteral("json"), Qt::CaseInsensitive))
             {
                 const int newlineIndex = content.indexOf('\n');
@@ -370,7 +300,7 @@ mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
     }
 
     QStringList fallbackCandidates;
-    const QStringList looseObjects = collectLooseJsonObjects(payload);
+    const QStringList looseObjects = TextParse::collectLooseJsonObjects(payload);
     logStep(logText(QStringLiteral("toolcall xml log loose count"), QStringLiteral("Loose JSON fragments: %1")).arg(looseObjects.size()));
     for (const QString &obj : looseObjects)
     {
