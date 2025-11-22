@@ -110,6 +110,10 @@ class Widget : public QWidget
     Q_OBJECT
 
   public:
+    static constexpr int kMinFontPt = 8;
+    static constexpr int kMaxFontPt = 72;
+    static constexpr int kDefaultUiFontPt = 11;
+    static constexpr int kDefaultOutputFontPt = 12;
     Widget(QWidget *parent = nullptr, QString applicationDirPath_ = "./");
     ~Widget();
     QString applicationDirPath;
@@ -700,9 +704,9 @@ class Widget : public QWidget
     struct GlobalUiSettings
     {
         QString fontFamily;
-        int fontSizePt = 12;
+        int fontSizePt = kDefaultUiFontPt;
         QString outputFontFamily;
-        int outputFontSizePt = 13;
+        int outputFontSizePt = kDefaultOutputFontPt;
         QString themeId = QStringLiteral("unit01");
     };
     GlobalUiSettings globalUiSettings_;
@@ -721,7 +725,7 @@ class Widget : public QWidget
     QSpinBox *globalOutputFontSizeSpin_ = nullptr;
     QComboBox *globalThemeCombo_ = nullptr;
     QString outputFontFallbackFamily_;
-    int outputFontFallbackSizePt_ = 13;
+    int outputFontFallbackSizePt_ = kDefaultOutputFontPt;
     bool outputFontResourceLoaded_ = false;
     struct ThemeVisuals
     {

@@ -16,6 +16,19 @@
 #include <QVector>
 #include <QStringList>
 
+namespace
+{
+int clampFontPointSize(int candidate, int fallback = Widget::kDefaultUiFontPt)
+{
+    const int safeFallback = fallback > 0 ? fallback : Widget::kDefaultUiFontPt;
+    if (candidate <= 0)
+    {
+        return safeFallback;
+    }
+    return qBound(Widget::kMinFontPt, candidate, Widget::kMaxFontPt);
+}
+} // namespace
+
 //-------------------------------------------------------------------------
 //--------------------------------设置选项相关------------------------------
 //-------------------------------------------------------------------------
@@ -313,9 +326,8 @@ void Widget::syncGlobalSettingsPanelControls()
     if (globalFontSizeSpin_)
     {
         QSignalBlocker blocker(globalFontSizeSpin_);
-        int size = globalUiSettings_.fontSizePt > 0 ? globalUiSettings_.fontSizePt : QApplication::font().pointSize();
-        if (size <= 0) size = 11;
-        globalFontSizeSpin_->setValue(size);
+        const int uiSize = clampFontPointSize(globalUiSettings_.fontSizePt, Widget::kDefaultUiFontPt);
+        globalFontSizeSpin_->setValue(uiSize);
     }
     if (globalThemeCombo_)
     {
@@ -332,9 +344,9 @@ void Widget::syncGlobalSettingsPanelControls()
     if (globalOutputFontSizeSpin_)
     {
         QSignalBlocker blocker(globalOutputFontSizeSpin_);
-        int size = resolvedOutputFontSize();
-        if (size <= 0) size = 11;
-        globalOutputFontSizeSpin_->setValue(size);
+        const int fallback = outputFontFallbackSizePt_ > 0 ? outputFontFallbackSizePt_ : Widget::kDefaultOutputFontPt;
+        const int outputSize = clampFontPointSize(globalUiSettings_.outputFontSizePt, fallback);
+        globalOutputFontSizeSpin_->setValue(outputSize);
     }
 }
 
@@ -392,11 +404,11 @@ void Widget::applyGlobalFont(const QString &family, int sizePt, bool persist)
     if (!trimmed.isEmpty()) globalUiSettings_.fontFamily = trimmed;
     if (sizePt > 0)
     {
-        globalUiSettings_.fontSizePt = qBound(8, sizePt, 72);
+        globalUiSettings_.fontSizePt = clampFontPointSize(sizePt, Widget::kDefaultUiFontPt);
     }
     else if (globalUiSettings_.fontSizePt <= 0)
     {
-        globalUiSettings_.fontSizePt = 11;
+        globalUiSettings_.fontSizePt = Widget::kDefaultUiFontPt;
     }
 
     refreshApplicationStyles();
@@ -418,11 +430,12 @@ void Widget::applyOutputFont(const QString &family, int sizePt, bool persist)
 
     if (sizePt > 0)
     {
-        globalUiSettings_.outputFontSizePt = qBound(8, sizePt, 72);
+        const int fallback = outputFontFallbackSizePt_ > 0 ? outputFontFallbackSizePt_ : Widget::kDefaultOutputFontPt;
+        globalUiSettings_.outputFontSizePt = clampFontPointSize(sizePt, fallback);
     }
     else if (globalUiSettings_.outputFontSizePt <= 0)
     {
-        globalUiSettings_.outputFontSizePt = outputFontFallbackSizePt_ > 0 ? outputFontFallbackSizePt_ : 11;
+        globalUiSettings_.outputFontSizePt = outputFontFallbackSizePt_ > 0 ? outputFontFallbackSizePt_ : Widget::kDefaultOutputFontPt;
     }
 
     refreshApplicationStyles();
@@ -449,13 +462,16 @@ QString Widget::buildThemeOverlay(const QString &themeId) const
 QString Widget::buildFontOverrideCss() const
 {
     const QString family = globalUiSettings_.fontFamily.trimmed();
-    const int sizePt = globalUiSettings_.fontSizePt > 0 ? globalUiSettings_.fontSizePt : QApplication::font().pointSize();
-    if (family.isEmpty() && sizePt <= 0) return QString();
+    const bool hasCustomFamily = !family.isEmpty();
+    const bool hasCustomSize = globalUiSettings_.fontSizePt > 0;
+    if (!hasCustomFamily && !hasCustomSize) return QString();
 
-    const QString effectiveFamily = family.isEmpty() ? QApplication::font().family() : family;
+    const QString effectiveFamily = hasCustomFamily ? family : QApplication::font().family();
     QString escapedFamily = effectiveFamily;
     escapedFamily.replace('"', "\\\"");
-    const int effectiveSize = sizePt > 0 ? sizePt : 11;
+    const int effectiveSize = hasCustomSize
+                                  ? clampFontPointSize(globalUiSettings_.fontSizePt, Widget::kDefaultUiFontPt)
+                                  : clampFontPointSize(QApplication::font().pointSize(), Widget::kDefaultUiFontPt);
 
     return QStringLiteral(
                "QWidget, QToolTip, QMenu, QComboBox, QComboBox QAbstractItemView,\n"
@@ -491,14 +507,8 @@ void Widget::refreshApplicationStyles()
     {
         target.setFamily(globalUiSettings_.fontFamily);
     }
-    if (globalUiSettings_.fontSizePt > 0)
-    {
-        target.setPointSize(globalUiSettings_.fontSizePt);
-    }
-    else if (target.pointSize() <= 0)
-    {
-        target.setPointSize(11);
-    }
+    const int uiPointSize = clampFontPointSize(globalUiSettings_.fontSizePt, Widget::kDefaultUiFontPt);
+    target.setPointSize(uiPointSize);
     QApplication::setFont(target);
 
     QString composed = baseStylesheet_;
@@ -623,8 +633,7 @@ int Widget::resolvedOutputFontSize() const
     {
         return outputFontFallbackSizePt_;
     }
-    const int appSize = QApplication::font().pointSize();
-    return appSize > 0 ? appSize : 13;
+    return Widget::kDefaultOutputFontPt;
 }
 
 QFont Widget::currentOutputFont() const
@@ -638,7 +647,7 @@ QFont Widget::currentOutputFont() const
     }
     else if (font.pointSize() <= 0)
     {
-        font.setPointSize(13);
+        font.setPointSize(Widget::kDefaultOutputFontPt);
     }
     return font;
 }
@@ -665,10 +674,8 @@ void Widget::loadOutputFontFromResource()
     }
     if (outputFontFallbackSizePt_ <= 0)
     {
-        int sz = ui->output->font().pointSize();
-        if (sz <= 0) sz = QApplication::font().pointSize();
-        if (sz <= 0) sz = 13;
-        outputFontFallbackSizePt_ = sz;
+        // Force a predictable default for the output pane regardless of template font sizes.
+        outputFontFallbackSizePt_ = Widget::kDefaultOutputFontPt;
     }
     if (globalUiSettings_.outputFontFamily.isEmpty())
     {

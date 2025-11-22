@@ -442,6 +442,18 @@ QSlider::handle:vertical {
     margin: 0px -5px;
 }
 
+QSlider::groove:horizontal:disabled,
+QSlider::groove:vertical:disabled {
+    background-color: #f0eaff;
+    border-color: #bdb6e4;
+}
+
+QSlider::handle:horizontal:disabled,
+QSlider::handle:vertical:disabled {
+    background: #f8f4ff;
+    border: 2px solid #c5c0dd;
+}
+
 QCheckBox,
 QRadioButton {
     spacing: 6px;

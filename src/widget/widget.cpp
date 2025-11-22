@@ -143,8 +143,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         globalUiSettings_.fontFamily = appFont.family();
         if (globalUiSettings_.fontSizePt <= 0)
         {
-            const int pt = appFont.pointSize();
-            globalUiSettings_.fontSizePt = pt > 0 ? pt : 11;
+            globalUiSettings_.fontSizePt = Widget::kDefaultUiFontPt;
         }
         globalUiSettings_.themeId = QStringLiteral("unit01");
     }

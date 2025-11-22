@@ -350,6 +350,19 @@ QSlider::handle:vertical {
     margin: 0 -5px;
 }
 
+QSlider::groove:horizontal:disabled,
+QSlider::groove:vertical:disabled {
+    background: #3b1519;
+    border-color: #552427;
+}
+
+QSlider::handle:horizontal:disabled,
+QSlider::handle:vertical:disabled {
+    background: #4e1f23;
+    border: 2px solid #70352c;
+    color: #8f6056;
+}
+
 QScrollArea {
     border: 2px solid #d44b36;
     background-color: #331417;
