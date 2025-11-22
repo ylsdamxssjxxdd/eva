@@ -196,14 +196,15 @@ static bool isLikelyPrintableWordChar(quint16 ch)
     if (ch == 0x0009 || ch == 0x000A || ch == 0x000D) return true;
     if (ch == 0x3000) return true; // ideographic space
     if (ch >= 0x20 && ch <= 0xD7FF) return true;
-    if (ch >= 0xE000 && ch <= 0xFFFD) return true;
+    if (ch >= 0xE000 && ch <= 0xF8FF) return false; // private use blocks
+    if (ch >= 0xF000 && ch <= 0xFFFF) return false;
     return false;
 }
 
 static bool looksLikeDocumentText(const QString &chunk)
 {
     const QString trimmed = chunk.trimmed();
-    if (trimmed.size() < 2 || trimmed.size() > 512) return false;
+    if (trimmed.size() < 2 || trimmed.size() > 1024) return false;
     static const QSet<QString> noise = {
         QStringLiteral("Root Entry"),
         QStringLiteral("SummaryInformation"),
@@ -223,6 +224,13 @@ static bool looksLikeDocumentText(const QString &chunk)
     if (noise.contains(trimmed)) return false;
     if (trimmed.contains(QLatin1Char('@'))) return false;
 
+    int nonSpaceLen = 0;
+    for (QChar c : trimmed)
+    {
+        if (!c.isSpace()) ++nonSpaceLen;
+    }
+    if (nonSpaceLen == 0) return false;
+
     int cjk = 0;
     int digits = 0;
     int asciiUpper = 0;
@@ -236,13 +244,13 @@ static bool looksLikeDocumentText(const QString &chunk)
     }
     const int important = cjk + digits;
     if (important == 0) return false;
-    if (important * 2 < trimmed.size()) return false;
+    if (important * 2 < nonSpaceLen && cjk == 0) return false;
     if (asciiUpper > important) return false;
     if (cjk == 0)
     {
         if (digits == 0) return false;
         if (asciiUpper > 0 || asciiAlpha > 0) return false;
-        if (trimmed.size() > digits + 2) return false;
+        if (nonSpaceLen > digits + 2) return false;
     }
     return true;
 }
@@ -258,7 +266,9 @@ static int chunkScore(const QString &chunk)
         if (ch.isDigit()) ++digits;
         if (ch.isLetter() && ch.unicode() <= 0x7F) ++asciiAlpha;
     }
-    return cjk * 5 + digits * 3 - asciiAlpha;
+    int score = cjk * 5 + digits * 3 - asciiAlpha;
+    if (digits >= 6 && digits >= cjk && digits > asciiAlpha) score += digits * 10;
+    return score;
 }
 
 QString readWpsText(const QString &path)

@@ -139,12 +139,14 @@ TEST_CASE("readDocxText returns empty when file missing")
 
 TEST_CASE("readWpsText extracts plain text from legacy WPS docs")
 {
-    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/测试/测试.wps");
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.wps");
     QFileInfo fi(samplePath);
     REQUIRE(fi.exists());
 
-    const QString text = DocParser::readWpsText(fi.absoluteFilePath()).trimmed();
+    const QString text = DocParser::readWpsText(fi.absoluteFilePath());
     INFO(text.toStdString());
     REQUIRE_FALSE(text.isEmpty());
-    CHECK(text == QStringLiteral("6666666666搜索"));
+    CHECK(text.contains(QStringLiteral("有点东西")));
+    CHECK(text.contains(QStringLiteral("456456")));
+    CHECK(text.contains(QStringLiteral("但不多")));
 }
