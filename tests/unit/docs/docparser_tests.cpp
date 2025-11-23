@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QStringList>
 #include <QTextStream>
 
 #include "thirdparty/miniz/miniz.h"
@@ -55,6 +56,14 @@ QString writeDocxFixture(QTemporaryDir &dir)
     mz_zip_writer_end(&archive);
     return path;
 }
+
+const QStringList kReadmeAnchors = {
+    QString::fromUtf8(u8"测试wps格式文件读取\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n6"),
+    QString::fromUtf8(u8"# 机体"),
+    QString::fromUtf8(u8"## 快速开始"),
+    QString::fromUtf8(u8"EVA_BACKEND/<架构>/<系统>/<设备>/<项目>/"),
+    QStringLiteral("cmake --build build --config Release -j 8")
+};
 } // namespace
 
 TEST_CASE("readPlainTextFile returns content for utf8 files")
@@ -146,8 +155,23 @@ TEST_CASE("readWpsText extracts plain text from legacy WPS docs")
     const QString text = DocParser::readWpsText(fi.absoluteFilePath());
     INFO(text.toStdString());
     REQUIRE_FALSE(text.isEmpty());
-    CHECK(text.contains(QStringLiteral("有点东西")));
-    CHECK(text.contains(QStringLiteral("1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n6")));
-    CHECK(text.contains(QStringLiteral("456456")));
-    CHECK(text.contains(QStringLiteral("但不多")));
+    for (const QString &anchor : kReadmeAnchors)
+    {
+        CHECK(text.contains(anchor));
+    }
+}
+
+TEST_CASE("readWpsText extracts plain text from legacy DOC docs")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.doc");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readWpsText(fi.absoluteFilePath());
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    for (const QString &anchor : kReadmeAnchors)
+    {
+        CHECK(text.contains(anchor));
+    }
 }

@@ -225,7 +225,8 @@ void Expend::server_onProcessFinished()
 // 用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    QStringList paths = QFileDialog::getOpenFileNames(this, jtr("choose files to embed"), currentpath, QStringLiteral("Text/Docs (*.txt *.md *.markdown *.docx *.wps);;All Files (*.*)"));
+    QStringList paths = QFileDialog::getOpenFileNames(this, jtr("choose files to embed"), currentpath,
+                                                      QStringLiteral("Text/Docs (*.txt *.md *.markdown *.doc *.docx *.wps);;All Files (*.*)"));
     if (paths.isEmpty()) return;
     upload_paths = paths;
     txtpath = paths.first();
@@ -341,12 +342,15 @@ void Expend::preprocessFiles(const QStringList &paths)
                 continue;
             }
         }
-        else if (ext == "wps")
+        else if (ext == "wps" || ext == "doc")
         {
             plain = DocParser::readWpsText(p);
             if (plain.isEmpty())
             {
-                ui->embedding_test_log->appendPlainText(jtr("wps parse failed") + ": " + p);
+                if (ext == "doc")
+                    ui->embedding_test_log->appendPlainText(jtr("doc parse failed") + ": " + p);
+                else
+                    ui->embedding_test_log->appendPlainText(jtr("wps parse failed") + ": " + p);
                 continue;
             }
         }
