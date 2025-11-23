@@ -262,10 +262,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     connect(serverManager, &LocalServerManager::serverReady, this, &Widget::onServerReady);
     connect(serverManager, &LocalServerManager::serverStopped, this, [this]()
             {
-        if (!ignoreNextServerStopped_ && triggerWin7CpuFallback(QStringLiteral("process exit")))
-        {
-            return;
-        }
+        const bool fallbackEligible = !ignoreNextServerStopped_;
         // 计划内重启时旧进程的退出：完全忽略，不重置 UI、不停止转轮动画
         if (ignoreNextServerStopped_ || lastServerRestart_) { ignoreNextServerStopped_ = false; suppressStateClearOnStop_ = false; return; }
         // 其它情况：后端确实已停止 -> 重置 UI，并停止任何进行中的动画
@@ -296,7 +293,11 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
         is_run = false;
-        unlockButtonsAfterError(); });
+        unlockButtonsAfterError();
+        if (fallbackEligible && triggerWin7CpuFallback(QStringLiteral("process exit")))
+        {
+            return;
+        } });
 
     // 应用语言语种，注意不能影响行动纲领（主要流程）
     apply_language(language_flag);

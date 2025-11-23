@@ -1249,13 +1249,12 @@ static QString formatMarkdownList(const QString &text)
 
 static bool isPptTextRecordType(quint16 type)
 {
-    if (type >= 0x0FA0 && type <= 0x0FA9) return true;
     switch (type)
     {
-    case 0x0FBA:
-    case 0x0FBB:
-    case 0x0FBC:
-    case 0x0D45:
+    case 0x0FA0: // TextCharsAtom
+    case 0x0FA8: // TextBytesAtom
+    case 0x0FBA: // CString
+    case 0x0D45: // SlideNameAtom
         return true;
     default:
         break;
@@ -1298,6 +1297,29 @@ static bool looksLatinTextPayload(const QByteArray &payload)
     return printable * 2 >= payload.size();
 }
 
+static QString decodePptBytes(const QByteArray &payload)
+{
+    static const char *codecOrder[] = {"UTF-8", "GB18030", "GBK", "GB2312", "Big5", "Shift-JIS", "Windows-1252"};
+    QString best;
+    int bestPenalty = std::numeric_limits<int>::max();
+    for (const char *name : codecOrder)
+    {
+        QTextCodec *codec = QTextCodec::codecForName(name);
+        if (!codec) continue;
+        const QString decoded = codec->toUnicode(payload);
+        if (decoded.isEmpty()) continue;
+        const int penalty = decoded.count(QChar(0xFFFD));
+        if (penalty < bestPenalty || (penalty == bestPenalty && best.isEmpty()))
+        {
+            best = decoded;
+            bestPenalty = penalty;
+            if (penalty == 0) break;
+        }
+    }
+    if (best.isEmpty()) best = QString::fromLatin1(payload);
+    return best;
+}
+
 static QString decodePptTextRecord(quint16 type, const QByteArray &payload)
 {
     if (!isPptTextRecordType(type) || payload.isEmpty()) return {};
@@ -1305,7 +1327,7 @@ static QString decodePptTextRecord(quint16 type, const QByteArray &payload)
     if (looksUtf16TextPayload(payload))
         decoded = QString::fromUtf16(reinterpret_cast<const ushort *>(payload.constData()), payload.size() / 2);
     else if (looksLatinTextPayload(payload))
-        decoded = QString::fromLatin1(payload);
+        decoded = decodePptBytes(payload);
     else
         return {};
 
@@ -1353,6 +1375,7 @@ static void collectPptTextRecords(const QByteArray &stream, int offset, int leng
                 {
                     const QString trimmed = line.trimmed();
                     if (trimmed.isEmpty()) continue;
+                    if (trimmed.contains(QChar(0xFFFD))) continue;
                     if (!looksLikeDocumentText(trimmed)) continue;
                     if (seen.contains(trimmed)) continue;
                     seen.insert(trimmed);
