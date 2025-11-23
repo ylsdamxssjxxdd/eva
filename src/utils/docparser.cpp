@@ -16,8 +16,16 @@
 #include <QXmlStreamReader>
 #include <QtEndian>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <initializer_list>
 #include <limits>
+#include <memory>
+
+extern "C"
+{
+#include "xls.h"
+}
 
 namespace
 {
@@ -957,23 +965,27 @@ static bool looksLikeDocumentText(const QString &chunk)
     int digits = 0;
     int asciiUpper = 0;
     int asciiAlpha = 0;
+    int asciiLower = 0;
     for (QChar ch : trimmed)
     {
         if (ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FFF) ++cjk;
         if (ch.isDigit()) ++digits;
         if (ch.isUpper() && ch.unicode() <= 0x7F) ++asciiUpper;
         if (ch.isLetter() && ch.unicode() <= 0x7F) ++asciiAlpha;
+        if (ch.isLower() && ch.unicode() <= 0x7F) ++asciiLower;
     }
     const int important = cjk + digits;
-    if (important == 0) return false;
-    if (important * 2 < nonSpaceLen && cjk == 0) return false;
-    if (asciiUpper > important) return false;
-    if (cjk == 0)
+    if (important == 0)
     {
-        if (digits == 0) return false;
-        if (asciiUpper > 0 || asciiAlpha > 0) return false;
-        if (nonSpaceLen > digits + 2) return false;
+        if (asciiAlpha < 4) return false;
+        if (asciiUpper > asciiAlpha / 2 + 2) return false;
+        const bool hasWordBreak = trimmed.contains(QLatin1Char(' ')) || trimmed.contains(QLatin1Char('\t')) ||
+                                  trimmed.contains(QLatin1Char('-')) || trimmed.contains(QLatin1Char('_'));
+        if (asciiLower == 0 && !hasWordBreak && asciiAlpha < 6) return false;
+        return true;
     }
+    if (important * 2 < nonSpaceLen && cjk == 0) return false;
+    if (asciiUpper > important * 2 + 4) return false;
     return true;
 }
 
@@ -982,15 +994,54 @@ static int chunkScore(const QString &chunk)
     int cjk = 0;
     int digits = 0;
     int asciiAlpha = 0;
+    int asciiUpper = 0;
     for (QChar ch : chunk)
     {
         if (ch.unicode() >= 0x4E00 && ch.unicode() <= 0x9FFF) ++cjk;
         if (ch.isDigit()) ++digits;
         if (ch.isLetter() && ch.unicode() <= 0x7F) ++asciiAlpha;
+        if (ch.isUpper() && ch.unicode() <= 0x7F) ++asciiUpper;
     }
-    int score = cjk * 5 + digits * 3 - asciiAlpha;
+    int score = cjk * 5 + digits * 3;
+    if (asciiAlpha >= 4)
+    {
+        const int bonus = std::max(1, (asciiAlpha - asciiUpper) / 3);
+        score += bonus;
+    }
     if (digits >= 6 && digits >= cjk && digits > asciiAlpha) score += digits * 10;
+    if (score == 0 && asciiAlpha >= 4) score = asciiAlpha / 2;
     return score;
+}
+
+static QString combineCandidateChunks(QStringList chunks)
+{
+    QSet<QString> seen;
+    QStringList filtered;
+    for (const QString &chunk : std::as_const(chunks))
+    {
+        const QString trimmed = chunk.trimmed();
+        if (!looksLikeDocumentText(trimmed)) continue;
+        if (seen.contains(trimmed)) continue;
+        seen.insert(trimmed);
+        filtered << trimmed;
+    }
+    if (filtered.size() > 1)
+    {
+        QVector<int> scores;
+        scores.reserve(filtered.size());
+        for (const QString &chunk : std::as_const(filtered))
+        {
+            const int s = chunkScore(chunk);
+            scores << s;
+        }
+        QStringList prioritized;
+        for (int i = 0; i < filtered.size(); ++i)
+        {
+            if (scores.at(i) > 0) prioritized << filtered.at(i);
+        }
+        if (!prioritized.isEmpty()) filtered = prioritized;
+    }
+    return filtered.join(QStringLiteral("\n"));
 }
 
 static QString extractUtf16Text(const QByteArray &data)
@@ -1060,36 +1111,110 @@ static QString extractUtf16Text(const QByteArray &data)
     }
     flushAscii();
 
-    QSet<QString> seen;
-    QStringList filtered;
-    for (const QString &chunk : chunks)
-    {
-        const QString trimmed = chunk.trimmed();
-        if (!looksLikeDocumentText(trimmed)) continue;
-        if (seen.contains(trimmed)) continue;
-        seen.insert(trimmed);
-        filtered << trimmed;
-    }
-    if (filtered.size() > 1)
-    {
-        QVector<int> scores;
-        scores.reserve(filtered.size());
-        int bestScore = std::numeric_limits<int>::min();
-        for (const QString &chunk : std::as_const(filtered))
+    return combineCandidateChunks(chunks);
+}
+
+static QString extractEncodedText(const QByteArray &data, QTextCodec *codec)
+{
+    if (!codec || data.isEmpty()) return {};
+
+    QStringList rawChunks;
+    QByteArray current;
+    const auto flushChunk = [&]() {
+        if (current.size() < 4)
         {
-            const int s = chunkScore(chunk);
-            scores << s;
-            bestScore = std::max(bestScore, s);
+            current.clear();
+            return;
         }
-        const int cutoff = bestScore > 0 ? bestScore - 4 : bestScore;
-        QStringList prioritized;
-        for (int i = 0; i < filtered.size(); ++i)
+        QString decoded = codec->toUnicode(current);
+        if (!decoded.isEmpty()) rawChunks << decoded;
+        current.clear();
+    };
+
+    for (int i = 0; i < data.size(); ++i)
+    {
+        const uchar ch = static_cast<uchar>(data.at(i));
+        if (ch == '\r' || ch == '\n')
         {
-            if (scores.at(i) >= cutoff && scores.at(i) > 0) prioritized << filtered.at(i);
+            current.append('\n');
         }
-        if (!prioritized.isEmpty()) filtered = prioritized;
+        else if (ch == '\t')
+        {
+            current.append('\t');
+        }
+        else if (ch >= 0x20 || ch >= 0xA1)
+        {
+            current.append(char(ch));
+        }
+        else
+        {
+            flushChunk();
+        }
     }
-    return filtered.join(QStringLiteral("\n"));
+    flushChunk();
+
+    return combineCandidateChunks(rawChunks);
+}
+
+static quint16 detectBiffCodePage(const QByteArray &stream)
+{
+    int offset = 0;
+    while (offset + 4 <= stream.size())
+    {
+        const uchar *ptr = reinterpret_cast<const uchar *>(stream.constData() + offset);
+        const quint16 id = qFromLittleEndian<quint16>(ptr);
+        const quint16 size = qFromLittleEndian<quint16>(ptr + 2);
+        offset += 4;
+        if (offset + size > stream.size()) break;
+        if (id == 0x0042 && size >= 2)
+            return qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(stream.constData() + offset));
+        offset += size;
+    }
+    return 0;
+}
+
+static QTextCodec *codecForCodePage(quint16 codePage)
+{
+    switch (codePage)
+    {
+    case 932: return QTextCodec::codecForName("Shift-JIS");
+    case 936: return QTextCodec::codecForName("GB18030");
+    case 949: return QTextCodec::codecForName("CP949");
+    case 950: return QTextCodec::codecForName("Big5");
+    case 1200: return QTextCodec::codecForName("UTF-16LE");
+    case 1250: return QTextCodec::codecForName("Windows-1250");
+    case 1251: return QTextCodec::codecForName("Windows-1251");
+    case 1252: return QTextCodec::codecForName("Windows-1252");
+    case 1253: return QTextCodec::codecForName("Windows-1253");
+    case 1254: return QTextCodec::codecForName("Windows-1254");
+    case 1255: return QTextCodec::codecForName("Windows-1255");
+    case 1256: return QTextCodec::codecForName("Windows-1256");
+    case 1257: return QTextCodec::codecForName("Windows-1257");
+    case 1258: return QTextCodec::codecForName("Windows-1258");
+    case 65001: return QTextCodec::codecForName("UTF-8");
+    default:
+        break;
+    }
+    return nullptr;
+}
+
+static QString decodeWithCodePage(const QByteArray &data, quint16 codePage)
+{
+    QTextCodec *codec = codecForCodePage(codePage);
+    if (!codec) return {};
+    return extractEncodedText(data, codec);
+}
+
+static QString decodeWithCodecNames(const QByteArray &data, std::initializer_list<const char *> names)
+{
+    for (const char *name : names)
+    {
+        QTextCodec *codec = QTextCodec::codecForName(name);
+        if (!codec) continue;
+        const QString text = extractEncodedText(data, codec);
+        if (!text.isEmpty()) return text;
+    }
+    return {};
 }
 
 static QString readWpsHeuristic(const QString &path)
@@ -1136,17 +1261,136 @@ static QString formatMarkdownList(const QString &text)
     return formatted.join(QStringLiteral("\n"));
 }
 
+struct XlsWorkbookCloser
+{
+    void operator()(xls::xlsWorkBook *wb) const
+    {
+        if (wb) xls::xls_close_WB(wb);
+    }
+};
+
+struct XlsWorksheetCloser
+{
+    void operator()(xls::xlsWorkSheet *ws) const
+    {
+        if (ws) xls::xls_close_WS(ws);
+    }
+};
+
+static QString xlsCellToString(const xls::xlsCell *cell)
+{
+    if (!cell) return {};
+    if (cell->str) return QString::fromUtf8(cell->str);
+
+    switch (cell->id)
+    {
+    case XLS_RECORD_BOOLERR:
+        return cell->d != 0.0 ? QStringLiteral("TRUE") : QStringLiteral("FALSE");
+    case XLS_RECORD_NUMBER:
+    case XLS_RECORD_RK:
+    case XLS_RECORD_FORMULA:
+    case XLS_RECORD_FORMULA_ALT:
+        if (std::isfinite(cell->d))
+            return QString::number(cell->d, 'g', 15);
+        break;
+    default:
+        break;
+    }
+    if (cell->l != 0) return QString::number(cell->l);
+    return {};
+}
+
+static QString readEtViaLibxls(const QString &path)
+{
+    const QByteArray encoded = QFile::encodeName(path);
+    xls::xls_error_t err = xls::LIBXLS_OK;
+    std::unique_ptr<xls::xlsWorkBook, XlsWorkbookCloser> wb(xls::xls_open_file(encoded.constData(), "UTF-8", &err));
+    if (!wb) return {};
+
+    QStringList sections;
+    int sheetIndex = 1;
+    for (xls::DWORD i = 0; i < wb->sheets.count; ++i)
+    {
+        std::unique_ptr<xls::xlsWorkSheet, XlsWorksheetCloser> ws(xls::xls_getWorkSheet(wb.get(), static_cast<int>(i)));
+        if (!ws) continue;
+        if (xls::xls_parseWorkSheet(ws.get()) != xls::LIBXLS_OK) continue;
+
+        const int lastRow = ws->rows.lastrow;
+        const int lastCol = ws->rows.lastcol;
+        if (lastRow < 0 || lastCol < 0) continue;
+
+        QList<QStringList> rows;
+        rows.reserve(lastRow + 1);
+        int maxColumns = 0;
+        for (int rowIndex = 0; rowIndex <= lastRow; ++rowIndex)
+        {
+            xls::xlsRow *row = xls::xls_row(ws.get(), static_cast<xls::WORD>(rowIndex));
+            if (!row) continue;
+
+            QStringList rowCells;
+            rowCells.reserve(lastCol + 1);
+            bool hasContent = false;
+            for (int colIndex = 0; colIndex <= lastCol; ++colIndex)
+            {
+                xls::xlsCell *cell = xls::xls_cell(ws.get(), static_cast<xls::WORD>(rowIndex), static_cast<xls::WORD>(colIndex));
+                const QString value = xlsCellToString(cell);
+                if (!value.trimmed().isEmpty()) hasContent = true;
+                rowCells << value;
+            }
+            while (!rowCells.isEmpty() && rowCells.last().trimmed().isEmpty()) rowCells.removeLast();
+            if (!hasContent || rowCells.isEmpty()) continue;
+            maxColumns = std::max(maxColumns, rowCells.size());
+            rows.append(rowCells);
+        }
+
+        if (rows.isEmpty() || maxColumns == 0) continue;
+        for (QStringList &row : rows)
+        {
+            while (row.size() < maxColumns) row << QString();
+        }
+        const QString table = makeMarkdownTable(rows);
+        if (table.isEmpty()) continue;
+        sections << QStringLiteral("## Sheet %1\n\n%2").arg(sheetIndex++).arg(table);
+    }
+    return sections.join(QStringLiteral("\n\n"));
+}
+
 QString readEtText(const QString &path)
 {
-    QString text = readCompoundUtf16Stream(path, {QStringLiteral("Workbook")});
+    const QString viaLibxls = readEtViaLibxls(path);
+    if (!viaLibxls.isEmpty()) return viaLibxls;
+
+    CompoundFileReader reader;
+    QByteArray workbook;
+    if (reader.load(path))
+        workbook = reader.streamByName(QStringLiteral("Workbook"));
+    QString text;
+    if (!workbook.isEmpty())
+    {
+        const quint16 codePage = detectBiffCodePage(workbook);
+        if (codePage != 0 && codePage != 1200)
+            text = decodeWithCodePage(workbook, codePage);
+        if (text.isEmpty())
+            text = extractUtf16Text(workbook);
+    }
     if (text.isEmpty()) text = readWpsHeuristic(path);
-    if (text.isEmpty()) return {};
-    return QStringLiteral("## ET Workbook\n\n%1").arg(text);
+    return text;
 }
 
 QString readDpsText(const QString &path)
 {
-    QString text = readCompoundUtf16Stream(path, {QStringLiteral("PowerPoint Document")});
+    CompoundFileReader reader;
+    QString text;
+    if (reader.load(path))
+    {
+        const QByteArray stream = reader.streamByName(QStringLiteral("PowerPoint Document"));
+        if (!stream.isEmpty())
+        {
+            text = extractUtf16Text(stream);
+            if (text.isEmpty())
+                text = decodeWithCodecNames(stream, {"GB18030", "Big5", "Shift-JIS", "Windows-1252"});
+        }
+    }
     if (text.isEmpty()) text = readWpsHeuristic(path);
     if (text.isEmpty()) return {};
     const QString list = formatMarkdownList(text);
@@ -1377,5 +1621,19 @@ QString readPptxText(const QString &path)
     }
     return slides.join(QStringLiteral("\n\n"));
 }
+
+namespace detail
+{
+QString extractEncodedTextForTest(const QByteArray &data, const QByteArray &codecName)
+{
+    QTextCodec *codec = QTextCodec::codecForName(codecName);
+    return extractEncodedText(data, codec);
+}
+
+quint16 detectBiffCodePageForTest(const QByteArray &stream)
+{
+    return detectBiffCodePage(stream);
+}
+} // namespace detail
 
 } // namespace DocParser

@@ -13,11 +13,13 @@ add_executable(docparser_tests
 target_link_libraries(docparser_tests PRIVATE
     Qt5::Core
     eva_doctest
+    libxls
 )
 target_include_directories(docparser_tests PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/thirdparty/miniz
+    ${CMAKE_SOURCE_DIR}/thirdparty/libxls/include
 )
 target_compile_features(docparser_tests PRIVATE cxx_std_17)
 target_compile_definitions(docparser_tests PRIVATE EVA_SOURCE_DIR="${CMAKE_SOURCE_DIR}")

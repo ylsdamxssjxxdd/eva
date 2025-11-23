@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QByteArray>
 #include <QString>
 
 namespace DocParser
@@ -30,4 +31,10 @@ QString readEtText(const QString &path);
 
 // Extract text from legacy WPS PowerPoint (.dps) documents.
 QString readDpsText(const QString &path);
+
+namespace detail
+{
+QString extractEncodedTextForTest(const QByteArray &data, const QByteArray &codecName);
+quint16 detectBiffCodePageForTest(const QByteArray &stream);
+} // namespace detail
 } // namespace DocParser

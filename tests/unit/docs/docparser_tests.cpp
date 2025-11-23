@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QTemporaryDir>
+#include <QTextCodec>
+#include <QDataStream>
 #include <QStringList>
 #include <QTextStream>
 
@@ -207,15 +209,19 @@ TEST_CASE("readPptxText extracts paragraphs from slides")
 TEST_CASE("readEtText extracts text from wps spreadsheets")
 {
     const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.et");
+    const QString xlsxPath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.xlsx");
     QFileInfo fi(samplePath);
+    QFileInfo xlsxFi(xlsxPath);
     REQUIRE(fi.exists());
+    REQUIRE(xlsxFi.exists());
 
-    const QString text = DocParser::readEtText(fi.absoluteFilePath());
-    INFO(text.toStdString());
-    REQUIRE_FALSE(text.isEmpty());
-    CHECK(text.contains(QStringLiteral("## ET Workbook")));
-    CHECK(text.contains(QString::fromUtf8(u8"qt creator")));
-    CHECK(text.contains(QString::fromUtf8(u8"qml->python->qml")));
+    const QString etText = DocParser::readEtText(fi.absoluteFilePath());
+    const QString xlsxText = DocParser::readXlsxText(xlsxFi.absoluteFilePath());
+    INFO(etText.toStdString());
+    INFO(xlsxText.toStdString());
+    REQUIRE_FALSE(etText.isEmpty());
+    REQUIRE_FALSE(xlsxText.isEmpty());
+    CHECK(etText == xlsxText);
 }
 
 TEST_CASE("readDpsText extracts text from wps presentations")
@@ -229,4 +235,28 @@ TEST_CASE("readDpsText extracts text from wps presentations")
     REQUIRE_FALSE(text.isEmpty());
     CHECK(text.contains(QStringLiteral("## DPS Slides")));
     CHECK(text.contains(QString::fromUtf8(u8"EVA")));
+}
+
+TEST_CASE("extractEncodedText handles gb18030 chunks")
+{
+    QTextCodec *codec = QTextCodec::codecForName("GB18030");
+    REQUIRE(codec != nullptr);
+    const QByteArray encoded = codec->fromUnicode(QString::fromUtf8(u8"知识库条目A1"));
+    QByteArray buffer;
+    buffer.append('\x00');
+    buffer.append(encoded.left(4));
+    buffer.append(char(0x01));
+    buffer.append(encoded.mid(4));
+    buffer.append('\x00');
+    const QString text = DocParser::detail::extractEncodedTextForTest(buffer, QByteArray("GB18030"));
+    CHECK(text.contains(QString::fromUtf8(u8"知识库条目A1")));
+}
+
+TEST_CASE("detectBiffCodePage reads workbook stream")
+{
+    QByteArray stream;
+    QDataStream out(&stream, QIODevice::WriteOnly);
+    out.setByteOrder(QDataStream::LittleEndian);
+    out << quint16(0x0042) << quint16(2) << quint16(936);
+    CHECK(DocParser::detail::detectBiffCodePageForTest(stream) == 936);
 }
