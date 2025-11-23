@@ -10,12 +10,501 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QStringList>
+#include <QTextCodec>
 #include <QTextStream>
+#include <QVector>
 #include <QXmlStreamReader>
 #include <QtEndian>
+#include <algorithm>
 #include <cstring>
 #include <limits>
-#include <algorithm>
+
+namespace
+{
+constexpr quint32 OleFreeSector = 0xFFFFFFFFu;
+constexpr quint32 OleEndOfChain = 0xFFFFFFFEu;
+constexpr quint32 OleFatSector = 0xFFFFFFFDu;
+constexpr quint32 OleDifSector = 0xFFFFFFFCu;
+
+struct OleDirectoryEntry
+{
+    QString name;
+    quint8 type = 0;
+    quint32 startSector = OleEndOfChain;
+    quint64 size = 0;
+};
+
+class CompoundFileReader
+{
+public:
+    bool load(const QString &path);
+    QByteArray streamByName(const QString &name) const;
+
+private:
+    int sectorSize() const { return 1 << m_sectorShift; }
+    int miniSectorSize() const { return 1 << m_miniSectorShift; }
+    QByteArray sectorData(quint32 sector) const;
+    int sectorOffset(quint32 sector) const;
+    bool appendDifatSector(quint32 sector, QVector<quint32> &difat);
+    bool buildFat(const QVector<quint32> &difat);
+    bool buildMiniFat(quint32 startSector, quint32 sectorCount);
+    bool buildDirectory();
+    bool buildMiniStream();
+    QByteArray readStream(quint32 startSector, quint64 size, bool useMini) const;
+    quint32 nextSector(quint32 current) const;
+
+    QByteArray m_data;
+    QVector<quint32> m_fat;
+    QVector<quint32> m_miniFat;
+    QVector<OleDirectoryEntry> m_entries;
+    QByteArray m_miniStream;
+    quint16 m_sectorShift = 0;
+    quint16 m_miniSectorShift = 0;
+    quint16 m_majorVersion = 3;
+    quint32 m_miniStreamCutoff = 4096;
+    quint32 m_firstDirSector = OleEndOfChain;
+    quint32 m_firstMiniFatSector = OleEndOfChain;
+    quint32 m_numMiniFatSectors = 0;
+    bool m_valid = false;
+};
+
+struct TextPiece
+{
+    quint32 cpStart = 0;
+    quint32 cpEnd = 0;
+    quint32 fileOffset = 0;
+    bool unicode = true;
+};
+
+struct FibInfo
+{
+    quint32 fcMin = 0;
+    quint32 fcMac = 0;
+    quint32 fcClx = 0;
+    quint32 lcbClx = 0;
+    bool useTable1 = false;
+    bool complex = false;
+};
+
+bool CompoundFileReader::load(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    m_data = file.readAll();
+    if (m_data.size() < 512) return false;
+
+    const uchar *header = reinterpret_cast<const uchar *>(m_data.constData());
+    const quint64 signature = qFromLittleEndian<quint64>(header);
+    if (signature != 0xE11AB1A1E011CFD0ULL) return false;
+
+    m_majorVersion = qFromLittleEndian<quint16>(header + 0x1A);
+    const quint16 byteOrder = qFromLittleEndian<quint16>(header + 0x1C);
+    if (byteOrder != 0xFFFE) return false;
+
+    m_sectorShift = qFromLittleEndian<quint16>(header + 0x1E);
+    m_miniSectorShift = qFromLittleEndian<quint16>(header + 0x20);
+    if (m_sectorShift < 9 || m_sectorShift > 16) return false;
+    if (m_miniSectorShift > m_sectorShift) return false;
+
+    m_miniStreamCutoff = qFromLittleEndian<quint32>(header + 0x38);
+    m_firstDirSector = qFromLittleEndian<quint32>(header + 0x30);
+    m_firstMiniFatSector = qFromLittleEndian<quint32>(header + 0x3C);
+    m_numMiniFatSectors = qFromLittleEndian<quint32>(header + 0x40);
+    quint32 firstDifatSector = qFromLittleEndian<quint32>(header + 0x44);
+    quint32 numDifatSectors = qFromLittleEndian<quint32>(header + 0x48);
+
+    QVector<quint32> difat;
+    difat.reserve(128);
+    const uchar *difatHead = header + 0x4C;
+    for (int i = 0; i < 109; ++i)
+    {
+        const quint32 entry = qFromLittleEndian<quint32>(difatHead + i * 4);
+        if (entry != OleFreeSector) difat.append(entry);
+    }
+    quint32 difatSector = firstDifatSector;
+    while (numDifatSectors > 0 && difatSector != OleEndOfChain)
+    {
+        if (!appendDifatSector(difatSector, difat)) return false;
+        const QByteArray block = sectorData(difatSector);
+        if (block.size() != sectorSize()) return false;
+        difatSector = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(block.constData()) + sectorSize() - 4);
+        --numDifatSectors;
+    }
+
+    if (!buildFat(difat)) return false;
+    if (!buildMiniFat(m_firstMiniFatSector, m_numMiniFatSectors)) return false;
+    if (!buildDirectory()) return false;
+    if (!buildMiniStream()) return false;
+    m_valid = true;
+    return true;
+}
+
+QByteArray CompoundFileReader::streamByName(const QString &name) const
+{
+    if (!m_valid) return {};
+    for (const auto &entry : m_entries)
+    {
+        if (entry.type != 2) continue;
+        if (entry.name.compare(name, Qt::CaseInsensitive) != 0) continue;
+        const bool useMini = entry.size < m_miniStreamCutoff && !m_miniStream.isEmpty();
+        return readStream(entry.startSector, entry.size, useMini);
+    }
+    return {};
+}
+
+QByteArray CompoundFileReader::sectorData(quint32 sector) const
+{
+    const int off = sectorOffset(sector);
+    if (off < 0) return {};
+    return QByteArray(m_data.constData() + off, sectorSize());
+}
+
+int CompoundFileReader::sectorOffset(quint32 sector) const
+{
+    if (sector == OleEndOfChain) return -1;
+    const qint64 offset = 512 + static_cast<qint64>(sector) * sectorSize();
+    if (offset < 0 || offset + sectorSize() > m_data.size()) return -1;
+    return static_cast<int>(offset);
+}
+
+bool CompoundFileReader::appendDifatSector(quint32 sector, QVector<quint32> &difat)
+{
+    QByteArray data = sectorData(sector);
+    if (data.size() != sectorSize()) return false;
+    const int intsPerSector = sectorSize() / 4;
+    const uchar *ptr = reinterpret_cast<const uchar *>(data.constData());
+    for (int i = 0; i < intsPerSector - 1; ++i)
+    {
+        quint32 value = qFromLittleEndian<quint32>(ptr + i * 4);
+        if (value != OleFreeSector) difat.append(value);
+    }
+    return true;
+}
+
+bool CompoundFileReader::buildFat(const QVector<quint32> &difat)
+{
+    if (difat.isEmpty()) return false;
+    m_fat.clear();
+    const int intsPerSector = sectorSize() / 4;
+    for (quint32 sector : difat)
+    {
+        QByteArray data = sectorData(sector);
+        if (data.size() != sectorSize()) return false;
+        const uchar *ptr = reinterpret_cast<const uchar *>(data.constData());
+        for (int i = 0; i < intsPerSector; ++i)
+        {
+            m_fat.append(qFromLittleEndian<quint32>(ptr + i * 4));
+        }
+    }
+    return !m_fat.isEmpty();
+}
+
+bool CompoundFileReader::buildMiniFat(quint32 startSector, quint32 sectorCount)
+{
+    m_miniFat.clear();
+    if (startSector == OleEndOfChain || sectorCount == 0) return true;
+    quint32 sector = startSector;
+    const int intsPerSector = sectorSize() / 4;
+    for (quint32 i = 0; i < sectorCount && sector != OleEndOfChain; ++i)
+    {
+        QByteArray data = sectorData(sector);
+        if (data.size() != sectorSize()) return false;
+        const uchar *ptr = reinterpret_cast<const uchar *>(data.constData());
+        for (int j = 0; j < intsPerSector; ++j)
+        {
+            m_miniFat.append(qFromLittleEndian<quint32>(ptr + j * 4));
+        }
+        sector = nextSector(sector);
+    }
+    return true;
+}
+
+bool CompoundFileReader::buildDirectory()
+{
+    QByteArray dirStream = readStream(m_firstDirSector, 0, false);
+    if (dirStream.isEmpty()) return false;
+    m_entries.clear();
+    const int entrySize = 128;
+    const int count = dirStream.size() / entrySize;
+    m_entries.reserve(count);
+    for (int i = 0; i < count; ++i)
+    {
+        const char *base = dirStream.constData() + i * entrySize;
+        const quint16 nameLen = qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(base + 64));
+        if (nameLen < 2) continue;
+        const int charCount = qBound(0, static_cast<int>(nameLen / 2) - 1, 32);
+        QString name = QString::fromUtf16(reinterpret_cast<const ushort *>(base), charCount);
+        OleDirectoryEntry entry;
+        entry.name = name;
+        entry.type = static_cast<quint8>(base[66]);
+        entry.startSector = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(base + 116));
+        if (m_majorVersion >= 4)
+            entry.size = qFromLittleEndian<quint64>(reinterpret_cast<const uchar *>(base + 120));
+        else
+            entry.size = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(base + 120));
+        m_entries.append(entry);
+    }
+    return !m_entries.isEmpty();
+}
+
+bool CompoundFileReader::buildMiniStream()
+{
+    const auto rootIt = std::find_if(m_entries.begin(), m_entries.end(), [](const OleDirectoryEntry &entry) {
+        return entry.type == 5;
+    });
+    if (rootIt == m_entries.end()) return false;
+    m_miniStream = readStream(rootIt->startSector, rootIt->size, false);
+    return true;
+}
+
+quint32 CompoundFileReader::nextSector(quint32 current) const
+{
+    if (current >= static_cast<quint32>(m_fat.size())) return OleEndOfChain;
+    return m_fat.at(static_cast<int>(current));
+}
+
+QByteArray CompoundFileReader::readStream(quint32 startSector, quint64 size, bool useMini) const
+{
+    QByteArray buffer;
+    if (size == 0 && !useMini)
+    {
+        quint32 sector = startSector;
+        const int sz = sectorSize();
+        while (sector != OleEndOfChain)
+        {
+            const int offset = sectorOffset(sector);
+            if (offset < 0) break;
+            buffer.append(m_data.constData() + offset, sz);
+            sector = nextSector(sector);
+        }
+        return buffer;
+    }
+
+    if (useMini)
+    {
+        quint32 sector = startSector;
+        quint64 remaining = size;
+        const int miniSz = miniSectorSize();
+        while (sector != OleEndOfChain && remaining > 0)
+        {
+            const qint64 offset = static_cast<qint64>(sector) * miniSz;
+            if (offset < 0 || offset + miniSz > m_miniStream.size()) break;
+            const int chunk = static_cast<int>(qMin<quint64>(remaining, miniSz));
+            buffer.append(m_miniStream.constData() + offset, chunk);
+            remaining -= chunk;
+            if (sector >= static_cast<quint32>(m_miniFat.size())) break;
+            sector = m_miniFat.at(static_cast<int>(sector));
+        }
+        buffer.truncate(static_cast<int>(size));
+        return buffer;
+    }
+
+    quint32 sector = startSector;
+    quint64 remaining = size;
+    const int sectorSz = sectorSize();
+    while (sector != OleEndOfChain && remaining > 0)
+    {
+        const int offset = sectorOffset(sector);
+        if (offset < 0) break;
+        const int chunk = static_cast<int>(qMin<quint64>(remaining, sectorSz));
+        buffer.append(m_data.constData() + offset, chunk);
+        remaining -= chunk;
+        sector = nextSector(sector);
+    }
+    buffer.truncate(static_cast<int>(size));
+    return buffer;
+}
+
+static bool parseFib(const QByteArray &wordStream, FibInfo &info)
+{
+    if (wordStream.size() < 256) return false;
+    const uchar *ptr = reinterpret_cast<const uchar *>(wordStream.constData());
+    const quint16 ident = qFromLittleEndian<quint16>(ptr);
+    if (ident != 0xA5EC) return false;
+    const quint16 flags = qFromLittleEndian<quint16>(ptr + 0x0A);
+    info.useTable1 = (flags & 0x0200) != 0;
+    info.complex = (flags & 0x0004) != 0;
+    info.fcMin = qFromLittleEndian<quint32>(ptr + 0x18);
+    info.fcMac = qFromLittleEndian<quint32>(ptr + 0x1C);
+
+    int pos = 32;
+    if (wordStream.size() < pos + 2) return false;
+    const quint16 csw = qFromLittleEndian<quint16>(ptr + pos);
+    pos += 2 + csw * 2;
+    if (wordStream.size() < pos + 2) return false;
+    const quint16 cslw = qFromLittleEndian<quint16>(ptr + pos);
+    pos += 2 + cslw * 4;
+    if (wordStream.size() < pos + 2) return false;
+    const quint16 cbRgFcLcb = qFromLittleEndian<quint16>(ptr + pos);
+    pos += 2;
+    if (wordStream.size() < pos + cbRgFcLcb * 8) return false;
+
+    const int idx = 33;
+    if (cbRgFcLcb > idx)
+    {
+        const int offset = pos + idx * 8;
+        info.fcClx = qFromLittleEndian<quint32>(ptr + offset);
+        info.lcbClx = qFromLittleEndian<quint32>(ptr + offset + 4);
+    }
+    return true;
+}
+
+static QVector<TextPiece> parseTextPieces(const QByteArray &tableStream, quint32 fcClx, quint32 lcbClx)
+{
+    QVector<TextPiece> pieces;
+    if (fcClx == 0 || lcbClx == 0) return pieces;
+    if (fcClx + lcbClx > static_cast<quint32>(tableStream.size())) return pieces;
+    const uchar *clx = reinterpret_cast<const uchar *>(tableStream.constData() + fcClx);
+    int pos = 0;
+    while (pos < static_cast<int>(lcbClx))
+    {
+        const quint8 clxt = clx[pos++];
+        if (clxt == 0x01)
+        {
+            if (pos + 4 > static_cast<int>(lcbClx)) break;
+            const quint32 lcb = qFromLittleEndian<quint32>(clx + pos);
+            pos += 4;
+            if (lcb == 0 || pos + static_cast<int>(lcb) > static_cast<int>(lcbClx)) break;
+            const uchar *plc = clx + pos;
+            pos += static_cast<int>(lcb);
+            const int pieceCount = (static_cast<int>(lcb) - 4) / (8 + 4);
+            if (pieceCount <= 0) break;
+            QVector<quint32> cps(pieceCount + 1);
+            for (int i = 0; i < cps.size(); ++i)
+            {
+                cps[i] = qFromLittleEndian<quint32>(plc + i * 4);
+            }
+            const uchar *pcd = plc + (pieceCount + 1) * 4;
+            for (int i = 0; i < pieceCount; ++i)
+            {
+                const quint32 fc = qFromLittleEndian<quint32>(pcd + i * 8 + 2);
+                const bool unicode = (fc & 0x40000000u) == 0;
+                quint32 fileOffset = unicode ? fc : (fc & 0x3FFFFFFFu) / 2;
+                TextPiece piece;
+                piece.cpStart = cps[i];
+                piece.cpEnd = cps[i + 1];
+                piece.fileOffset = fileOffset;
+                piece.unicode = unicode;
+                pieces.append(piece);
+            }
+            break;
+        }
+        else if (clxt == 0x02)
+        {
+            if (pos + 2 > static_cast<int>(lcbClx)) break;
+            const quint16 cb = qFromLittleEndian<quint16>(clx + pos);
+            pos += 2 + cb;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return pieces;
+}
+
+static QString decodePieces(const QByteArray &wordStream, const QVector<TextPiece> &pieces)
+{
+    QString out;
+    if (pieces.isEmpty()) return out;
+    QTextCodec *codec = QTextCodec::codecForName("Windows-1252");
+    for (const TextPiece &piece : pieces)
+    {
+        if (piece.cpEnd <= piece.cpStart) continue;
+        const quint32 charCount = piece.cpEnd - piece.cpStart;
+        const quint32 byteCount = piece.unicode ? charCount * 2 : charCount;
+        if (piece.fileOffset + byteCount > static_cast<quint32>(wordStream.size())) continue;
+        if (piece.unicode)
+        {
+            const ushort *src = reinterpret_cast<const ushort *>(wordStream.constData() + piece.fileOffset);
+            out.append(QString::fromUtf16(src, static_cast<int>(charCount)));
+        }
+        else
+        {
+            const QByteArray bytes(wordStream.constData() + piece.fileOffset, static_cast<int>(byteCount));
+            out.append(codec ? codec->toUnicode(bytes) : QString::fromLatin1(bytes));
+        }
+    }
+    return out;
+}
+
+static QString decodeSimpleRange(const QByteArray &wordStream, quint32 fcMin, quint32 fcMac)
+{
+    if (fcMac <= fcMin || fcMin >= static_cast<quint32>(wordStream.size())) return {};
+    quint32 limit = qMin(fcMac, static_cast<quint32>(wordStream.size()));
+    quint32 span = limit - fcMin;
+    if (span < 4) return {};
+    if (span % 2 != 0) --span;
+    const ushort *src = reinterpret_cast<const ushort *>(wordStream.constData() + fcMin);
+    return QString::fromUtf16(src, static_cast<int>(span / 2));
+}
+
+static QString normalizeWordText(const QString &raw)
+{
+    if (raw.isEmpty()) return {};
+    QString cleaned;
+    cleaned.reserve(raw.size());
+    for (QChar ch : raw)
+    {
+        const ushort code = ch.unicode();
+        if (code == 0x0000) continue;
+        if (code == 0x0001 || code == 0x0002)
+        {
+            cleaned += QLatin1Char('\n');
+            continue;
+        }
+        if (code == 0x0007 || code == 0x000B || code == 0x000C || code == 0x001E || code == 0x001F)
+        {
+            cleaned += QLatin1Char('\n');
+            continue;
+        }
+        if (code == 0x000D)
+        {
+            cleaned += QLatin1Char('\n');
+            continue;
+        }
+        cleaned += ch;
+    }
+
+    QStringList lines;
+    QString current;
+    auto flushLine = [&]() {
+        const QString trimmed = current.trimmed();
+        if (!trimmed.isEmpty()) lines << trimmed;
+        current.clear();
+    };
+    for (QChar ch : std::as_const(cleaned))
+    {
+        if (ch == QLatin1Char('\n'))
+            flushLine();
+        else if (!ch.isNull())
+            current += ch;
+    }
+    flushLine();
+    return lines.join(QStringLiteral("\n"));
+}
+
+static QString readWpsViaWordBinary(const QString &path)
+{
+    CompoundFileReader reader;
+    if (!reader.load(path)) return {};
+    const QByteArray wordStream = reader.streamByName(QStringLiteral("WordDocument"));
+    if (wordStream.isEmpty()) return {};
+    FibInfo fib;
+    if (!parseFib(wordStream, fib)) return {};
+    QByteArray tableStream = reader.streamByName(fib.useTable1 ? QStringLiteral("1Table") : QStringLiteral("0Table"));
+    QVector<TextPiece> pieces;
+    if (!tableStream.isEmpty() && fib.fcClx && fib.lcbClx)
+        pieces = parseTextPieces(tableStream, fib.fcClx, fib.lcbClx);
+    QString raw;
+    if (!pieces.isEmpty())
+        raw = decodePieces(wordStream, pieces);
+    if (raw.isEmpty())
+        raw = decodeSimpleRange(wordStream, fib.fcMin, fib.fcMac);
+    return normalizeWordText(raw);
+}
+
+} // namespace
 
 namespace DocParser
 {
@@ -271,7 +760,7 @@ static int chunkScore(const QString &chunk)
     return score;
 }
 
-QString readWpsText(const QString &path)
+static QString readWpsHeuristic(const QString &path)
 {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) return {};
@@ -320,7 +809,6 @@ QString readWpsText(const QString &path)
     }
     if (reading && current.size() >= 3) flushChunk();
 
-    // Second pass: attempt to catch ASCII sequences embedded in UTF-16 with zero high-byte
     QString asciiAccumulator;
     const auto flushAscii = [&]() {
         if (asciiAccumulator.size() >= 3)
@@ -372,6 +860,13 @@ QString readWpsText(const QString &path)
         if (!prioritized.isEmpty()) filtered = prioritized;
     }
     return filtered.join(QStringLiteral("\n"));
+}
+
+QString readWpsText(const QString &path)
+{
+    const QString parsed = readWpsViaWordBinary(path);
+    if (!parsed.isEmpty()) return parsed;
+    return readWpsHeuristic(path);
 }
 
 } // namespace DocParser

@@ -40,7 +40,11 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
 
     - Click the Load button and select a gguf model to load into memory.
 
-5. Send!
+5. Accelerate!
+
+    - If you have a graphics card, click the settings button to select the inference device (Vulkan/CUDA) for the model and adjust the gpu offload to the maximum
+
+6. Send!
 
     - Enter chat content in the input area and click Send.
     

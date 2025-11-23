@@ -147,6 +147,7 @@ TEST_CASE("readWpsText extracts plain text from legacy WPS docs")
     INFO(text.toStdString());
     REQUIRE_FALSE(text.isEmpty());
     CHECK(text.contains(QStringLiteral("有点东西")));
+    CHECK(text.contains(QStringLiteral("1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n1\n1\n3\n3\n4\n6")));
     CHECK(text.contains(QStringLiteral("456456")));
     CHECK(text.contains(QStringLiteral("但不多")));
 }
