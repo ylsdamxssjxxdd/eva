@@ -176,7 +176,7 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
         // 累计输出的文本（仅普通助理内容）
         temp_speech_txt += chunk;
         // 句末标点切分：中文句号/问号/叹号，以及英文 .!?（排除小数点），以及顿号、逗号、分号、冒号
-        static const QRegularExpression re(QString::fromUtf8("([。！？]|(?<!\\d)[.!?](?=\\s|$)|[；;：:,，、])"));
+        QRegularExpression re(QString::fromUtf8("([。！？]|(?<!\\d)[.!?](?=\\s|$)|[；;：:,，、])"));
 
         // 逐段切出已成句的部分，剩余作为缓存
         while (true)

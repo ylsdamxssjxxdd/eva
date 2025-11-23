@@ -21,6 +21,111 @@
 
 namespace
 {
+static QString escapeMarkdownCell(QString text)
+{
+    text.replace(QStringLiteral("|"), QStringLiteral("\\|"));
+    text.replace(QStringLiteral("\r"), QString());
+    text.replace(QStringLiteral("\n"), QStringLiteral("<br>"));
+    return text.trimmed();
+}
+
+static QString makeMarkdownTable(const QList<QStringList> &rows)
+{
+    if (rows.isEmpty()) return {};
+    const int columnCount = rows.first().size();
+    auto formatRow = [&](const QStringList &row) {
+        QStringList cells;
+        cells.reserve(columnCount);
+        for (int i = 0; i < columnCount; ++i)
+        {
+            if (i < row.size())
+                cells << escapeMarkdownCell(row.at(i));
+            else
+                cells << QString();
+        }
+        return QStringLiteral("| ") + cells.join(QStringLiteral(" | ")) + QStringLiteral(" |");
+    };
+    QStringList lines;
+    lines << formatRow(rows.first());
+    QStringList divider;
+    for (int i = 0; i < columnCount; ++i) divider << QStringLiteral("---");
+    lines << QStringLiteral("| ") + divider.join(QStringLiteral(" | ")) + QStringLiteral(" |");
+    for (int r = 1; r < rows.size(); ++r) lines << formatRow(rows.at(r));
+    return lines.join(QStringLiteral("\n"));
+}
+
+class ZipArchiveReader
+{
+public:
+    ZipArchiveReader() { memset(&m_archive, 0, sizeof(m_archive)); }
+    ~ZipArchiveReader() { close(); }
+
+    bool open(const QString &path)
+    {
+        close();
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) return false;
+        m_data = file.readAll();
+        if (m_data.isEmpty()) return false;
+        if (!mz_zip_reader_init_mem(&m_archive, m_data.constData(), m_data.size(), 0))
+        {
+            close();
+            return false;
+        }
+        m_open = true;
+        return true;
+    }
+
+    void close()
+    {
+        if (m_open)
+        {
+            mz_zip_reader_end(&m_archive);
+            m_open = false;
+        }
+        m_data.clear();
+    }
+
+    QByteArray fileData(const QString &name) const
+    {
+        if (!m_open) return {};
+        const QByteArray encoded = name.toUtf8();
+        const int index = mz_zip_reader_locate_file(const_cast<mz_zip_archive *>(&m_archive), encoded.constData(), nullptr, 0);
+        if (index < 0) return {};
+        size_t outSize = 0;
+        void *ptr = mz_zip_reader_extract_to_heap(const_cast<mz_zip_archive *>(&m_archive), index, &outSize, 0);
+        if (!ptr || outSize == 0)
+        {
+            if (ptr) mz_free(ptr);
+            return {};
+        }
+        QByteArray data(static_cast<const char *>(ptr), static_cast<int>(outSize));
+        mz_free(ptr);
+        return data;
+    }
+
+    QStringList filesWithPrefix(const QString &prefix) const
+    {
+        QStringList names;
+        if (!m_open) return names;
+        const int count = static_cast<int>(mz_zip_reader_get_num_files(&m_archive));
+        for (int i = 0; i < count; ++i)
+        {
+            mz_zip_archive_file_stat st;
+            if (!mz_zip_reader_file_stat(const_cast<mz_zip_archive *>(&m_archive), i, &st)) continue;
+            const QString name = QString::fromUtf8(st.m_filename);
+            if (name.startsWith(prefix)) names << name;
+        }
+        std::sort(names.begin(), names.end());
+        return names;
+    }
+
+private:
+    QByteArray m_data;
+    mutable mz_zip_archive m_archive;
+    bool m_open = false;
+};
+
 constexpr quint32 OleFreeSector = 0xFFFFFFFFu;
 constexpr quint32 OleEndOfChain = 0xFFFFFFFEu;
 constexpr quint32 OleFatSector = 0xFFFFFFFDu;
@@ -523,7 +628,7 @@ QString markdownToText(const QString &md)
 {
     QString s = md;
     // remove fenced code blocks
-    s.remove(QRegularExpression("```[\s\S]*?```"));
+    s.remove(QRegularExpression(QStringLiteral("```[\\s\\S]*?```")));
     // inline code
     s.replace(QRegularExpression("`([^`]*)`"), "\\1");
     // images ![alt](...)
@@ -531,12 +636,12 @@ QString markdownToText(const QString &md)
     // links [text](url) -> text
     s.replace(QRegularExpression("\\[([^\\]]*)\\]\\([^\\)]*\\)"), "\\1");
     // headings leading #'s
-    s.replace(QRegularExpression("^\n?\n?\s*#+\\s*", QRegularExpression::MultilineOption), "");
+    s.replace(QRegularExpression(QStringLiteral("^\\n?\\n?\\s*#+\\s*"), QRegularExpression::MultilineOption), "");
     // blockquotes
     s.replace(QRegularExpression("^>\\s*", QRegularExpression::MultilineOption), "");
     // tables: strip pipes/separators
     s.replace(QRegularExpression("^\\|.*\\|$", QRegularExpression::MultilineOption), "");
-    s.replace(QRegularExpression("^\\s*\|?\\s*:-*:?\\s*(\\|\\s*:-*:?\\s*)*$", QRegularExpression::MultilineOption), "");
+    s.replace(QRegularExpression(QStringLiteral("^\\s*\\|?\\s*:-*:?\\s*(\\|\\s*:-*:?\\s*)*$"), QRegularExpression::MultilineOption), "");
     // HTML tags
     s.replace(QRegularExpression("<[^>]+>"), "");
     // emphasis **bold**, *italic*
@@ -546,53 +651,181 @@ QString markdownToText(const QString &md)
 }
 
 // Extract human-readable text from DOCX document.xml
-static QString parseDocxDocumentXml(const QString &xml)
+static QString readDocxParagraphProperties(QXmlStreamReader &xr)
 {
-    QString out;
-    QXmlStreamReader xr(xml);
-    QString currentParagraph;
+    QString style;
     while (!xr.atEnd())
     {
-        auto t = xr.readNext();
-        if (t == QXmlStreamReader::StartElement)
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement && xr.name() == QLatin1String("pStyle"))
+        {
+            QString value = xr.attributes().value(QStringLiteral("w:val")).toString();
+            if (value.isEmpty()) value = xr.attributes().value(QStringLiteral("val")).toString();
+            style = value;
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("pPr"))
+        {
+            break;
+        }
+    }
+    return style;
+}
+
+static QString readDocxParagraph(QXmlStreamReader &xr, QString *styleOut)
+{
+    QString text;
+    QString style;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
         {
             const QStringRef name = xr.name();
-            if (name == QLatin1String("t"))
+            if (name == QLatin1String("pPr"))
             {
-                // text run inside paragraph
-                currentParagraph += xr.readElementText(QXmlStreamReader::IncludeChildElements);
+                style = readDocxParagraphProperties(xr);
+            }
+            else if (name == QLatin1String("t"))
+            {
+                text += xr.readElementText(QXmlStreamReader::IncludeChildElements);
             }
             else if (name == QLatin1String("br") || name == QLatin1String("cr"))
             {
-                // explicit line break in a run
-                currentParagraph += QLatin1Char('\n');
+                text += QLatin1Char('\n');
             }
             else if (name == QLatin1String("tab"))
             {
-                currentParagraph += QLatin1Char(' ');
+                text += QLatin1Char(' ');
             }
         }
-        else if (t == QXmlStreamReader::EndElement)
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("p"))
         {
-            const QStringRef name = xr.name();
-            if (name == QLatin1String("p"))
+            break;
+        }
+    }
+    if (styleOut) *styleOut = style;
+    return text.trimmed();
+}
+
+static QString readDocxTable(QXmlStreamReader &xr);
+
+static QString readDocxTableCell(QXmlStreamReader &xr)
+{
+    QStringList fragments;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("p"))
             {
-                // paragraph end
-                if (!currentParagraph.trimmed().isEmpty())
-                {
-                    out += currentParagraph;
-                    out += QLatin1Char('\n');
-                }
-                currentParagraph.clear();
+                QString style;
+                const QString paragraph = readDocxParagraph(xr, &style);
+                if (!paragraph.isEmpty()) fragments << paragraph;
+            }
+            else if (xr.name() == QLatin1String("tbl"))
+            {
+                const QString nested = readDocxTable(xr);
+                if (!nested.isEmpty()) fragments << nested;
+            }
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("tc"))
+        {
+            break;
+        }
+    }
+    return fragments.join(QStringLiteral("\n")).trimmed();
+}
+
+static QStringList readDocxTableRow(QXmlStreamReader &xr)
+{
+    QStringList cells;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement && xr.name() == QLatin1String("tc"))
+        {
+            cells << readDocxTableCell(xr);
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("tr"))
+        {
+            break;
+        }
+    }
+    return cells;
+}
+
+static QString readDocxTable(QXmlStreamReader &xr)
+{
+    QList<QStringList> rows;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement && xr.name() == QLatin1String("tr"))
+        {
+            const QStringList row = readDocxTableRow(xr);
+            if (!row.isEmpty()) rows.append(row);
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("tbl"))
+        {
+            break;
+        }
+    }
+    if (rows.isEmpty()) return {};
+    // ensure header width equals max column count
+    int maxColumns = 0;
+    for (const QStringList &row : std::as_const(rows))
+        maxColumns = std::max(maxColumns, row.size());
+    if (maxColumns == 0) return {};
+    if (rows.first().size() < maxColumns)
+    {
+        QStringList padded = rows.first();
+        padded.reserve(maxColumns);
+        while (padded.size() < maxColumns) padded << QString();
+        rows.first() = padded;
+    }
+    return makeMarkdownTable(rows);
+}
+
+static QString formatDocxParagraphMarkdown(const QString &text, const QString &style)
+{
+    if (text.isEmpty()) return {};
+    if (!style.isEmpty() && style.startsWith(QLatin1String("Heading"), Qt::CaseInsensitive))
+    {
+        bool ok = false;
+        const int level = qBound(1, style.midRef(7).toInt(&ok), 6);
+        if (ok)
+        {
+            return QString(level, QLatin1Char('#')) + QLatin1Char(' ') + text;
+        }
+    }
+    return text;
+}
+
+static QString parseDocxDocumentXml(const QString &xml)
+{
+    QStringList blocks;
+    QXmlStreamReader xr(xml);
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("p"))
+            {
+                QString style;
+                const QString text = readDocxParagraph(xr, &style);
+                const QString block = formatDocxParagraphMarkdown(text, style);
+                if (!block.isEmpty()) blocks << block;
+            }
+            else if (xr.name() == QLatin1String("tbl"))
+            {
+                const QString table = readDocxTable(xr);
+                if (!table.isEmpty()) blocks << table;
             }
         }
     }
-    if (!currentParagraph.trimmed().isEmpty())
-    {
-        out += currentParagraph;
-        out += QLatin1Char('\n');
-    }
-    return out;
+    return blocks.join(QStringLiteral("\n\n"));
 }
 
 static QString readDocxViaZipArchive(const QString &path)
@@ -686,7 +919,7 @@ static bool isLikelyPrintableWordChar(quint16 ch)
     if (ch == 0x3000) return true; // ideographic space
     if (ch >= 0x20 && ch <= 0xD7FF) return true;
     if (ch >= 0xE000 && ch <= 0xF8FF) return false; // private use blocks
-    if (ch >= 0xF000 && ch <= 0xFFFF) return false;
+    if (ch >= 0xF000) return false;
     return false;
 }
 
@@ -867,6 +1100,230 @@ QString readWpsText(const QString &path)
     const QString parsed = readWpsViaWordBinary(path);
     if (!parsed.isEmpty()) return parsed;
     return readWpsHeuristic(path);
+}
+
+static QString readInlineStringElement(QXmlStreamReader &xr)
+{
+    QString text;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement && xr.name() == QLatin1String("t"))
+        {
+            text += xr.readElementText(QXmlStreamReader::IncludeChildElements);
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("is"))
+        {
+            break;
+        }
+    }
+    return text;
+}
+
+static QString readSharedStringEntry(QXmlStreamReader &xr)
+{
+    QString text;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("t"))
+                text += xr.readElementText(QXmlStreamReader::IncludeChildElements);
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("si"))
+        {
+            break;
+        }
+    }
+    return text;
+}
+
+static QVector<QString> parseSharedStringsXml(const QByteArray &xml)
+{
+    QVector<QString> strings;
+    if (xml.isEmpty()) return strings;
+    QXmlStreamReader xr(xml);
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement && xr.name() == QLatin1String("si"))
+        {
+            strings.append(readSharedStringEntry(xr));
+        }
+    }
+    return strings;
+}
+
+static int extractTrailingNumber(const QString &name)
+{
+    int i = name.size() - 1;
+    while (i >= 0 && !name.at(i).isDigit()) --i;
+    if (i < 0) return 0;
+    const int end = i;
+    while (i >= 0 && name.at(i).isDigit()) --i;
+    return name.mid(i + 1, end - i).toInt();
+}
+
+static void sortFilesByNumericSuffix(QStringList &names)
+{
+    std::sort(names.begin(), names.end(), [](const QString &a, const QString &b) {
+        const int na = extractTrailingNumber(a);
+        const int nb = extractTrailingNumber(b);
+        if (na == nb) return a < b;
+        return na < nb;
+    });
+}
+
+static QString readXlsxCell(QXmlStreamReader &xr, const QVector<QString> &sharedStrings)
+{
+    const QXmlStreamAttributes attrs = xr.attributes();
+    const QString type = attrs.value(QStringLiteral("t")).toString();
+    QString result;
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("v"))
+            {
+                QString value = xr.readElementText(QXmlStreamReader::IncludeChildElements);
+                if (type == QLatin1String("s"))
+                {
+                    bool ok = false;
+                    const int idx = value.toInt(&ok);
+                    if (ok && idx >= 0 && idx < sharedStrings.size())
+                        result = sharedStrings.at(idx);
+                    else
+                        result = value;
+                }
+                else
+                {
+                    result = value;
+                }
+            }
+            else if (xr.name() == QLatin1String("is"))
+            {
+                result = readInlineStringElement(xr);
+            }
+            else if (xr.name() == QLatin1String("t") && type == QLatin1String("inlineStr"))
+            {
+                result = xr.readElementText(QXmlStreamReader::IncludeChildElements);
+            }
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("c"))
+        {
+            break;
+        }
+    }
+    return result.trimmed();
+}
+
+static QList<QStringList> collectWorksheetRows(const QByteArray &xml, const QVector<QString> &sharedStrings)
+{
+    QList<QStringList> rows;
+    QStringList currentRow;
+    bool inRow = false;
+    QXmlStreamReader xr(xml);
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("row"))
+            {
+                currentRow.clear();
+                inRow = true;
+            }
+            else if (xr.name() == QLatin1String("c") && inRow)
+            {
+                currentRow << readXlsxCell(xr, sharedStrings);
+            }
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("row"))
+        {
+            inRow = false;
+            if (!currentRow.isEmpty()) rows.append(currentRow);
+        }
+    }
+    return rows;
+}
+
+QString readXlsxText(const QString &path)
+{
+    ZipArchiveReader zip;
+    if (!zip.open(path)) return {};
+    const QVector<QString> sharedStrings = parseSharedStringsXml(zip.fileData(QStringLiteral("xl/sharedStrings.xml")));
+    QStringList sheetFiles = zip.filesWithPrefix(QStringLiteral("xl/worksheets/sheet"));
+    if (sheetFiles.isEmpty()) return {};
+    sortFilesByNumericSuffix(sheetFiles);
+
+    QStringList sheets;
+    int sheetIndex = 1;
+    for (const QString &sheet : sheetFiles)
+    {
+        const QByteArray xml = zip.fileData(sheet);
+        if (xml.isEmpty()) continue;
+        const QList<QStringList> rows = collectWorksheetRows(xml, sharedStrings);
+        if (rows.isEmpty()) continue;
+        QString table = makeMarkdownTable(rows);
+        if (table.isEmpty()) continue;
+        sheets << QStringLiteral("## Sheet %1\n\n%2").arg(sheetIndex++).arg(table);
+    }
+    return sheets.join(QStringLiteral("\n\n"));
+}
+
+static QString parsePptSlideXml(const QByteArray &xml)
+{
+    QStringList paragraphs;
+    QString current;
+    QXmlStreamReader xr(xml);
+    while (!xr.atEnd())
+    {
+        auto token = xr.readNext();
+        if (token == QXmlStreamReader::StartElement)
+        {
+            if (xr.name() == QLatin1String("p"))
+            {
+                current.clear();
+            }
+            else if (xr.name() == QLatin1String("t"))
+            {
+                current += xr.readElementText(QXmlStreamReader::IncludeChildElements);
+            }
+            else if (xr.name() == QLatin1String("br"))
+            {
+                current += QLatin1Char('\n');
+            }
+        }
+        else if (token == QXmlStreamReader::EndElement && xr.name() == QLatin1String("p"))
+        {
+            const QString trimmed = current.trimmed();
+            if (!trimmed.isEmpty()) paragraphs << QStringLiteral("- ") + trimmed;
+        }
+    }
+    return paragraphs.join(QStringLiteral("\n"));
+}
+
+QString readPptxText(const QString &path)
+{
+    ZipArchiveReader zip;
+    if (!zip.open(path)) return {};
+    QStringList slideFiles = zip.filesWithPrefix(QStringLiteral("ppt/slides/slide"));
+    if (slideFiles.isEmpty()) return {};
+    sortFilesByNumericSuffix(slideFiles);
+
+    QStringList slides;
+    int slideIndex = 1;
+    for (const QString &slide : slideFiles)
+    {
+        const QByteArray xml = zip.fileData(slide);
+        if (xml.isEmpty()) continue;
+        const QString slideText = parsePptSlideXml(xml);
+        if (slideText.trimmed().isEmpty()) continue;
+        slides << QStringLiteral("## Slide %1\n\n%2").arg(slideIndex++).arg(slideText);
+    }
+    return slides.join(QStringLiteral("\n\n"));
 }
 
 } // namespace DocParser

@@ -1,5 +1,5 @@
 // docparser.h - Helpers to read various document formats into plain text
-// Supports: .txt (UTF-8), .md (strip basic markdown), .docx (zip extractor + XML parsing), .wps (heuristic UTF-16 scan)
+// Supports: .txt (UTF-8), .md (strip basic markdown), .docx/.pptx/.xlsx (zip extractor + XML parsing), .doc/.wps (Compound Binary scan)
 
 #pragma once
 
@@ -18,4 +18,10 @@ QString readDocxText(const QString &path);
 
 // Extract basic text out of legacy WPS/Word binary documents by scanning UTF-16 spans.
 QString readWpsText(const QString &path);
+
+// Extract sheet text (cells joined by tab/line breaks) from an .xlsx file.
+QString readXlsxText(const QString &path);
+
+// Extract slide text from a .pptx deck; returns paragraphs grouped by slide.
+QString readPptxText(const QString &path);
 } // namespace DocParser

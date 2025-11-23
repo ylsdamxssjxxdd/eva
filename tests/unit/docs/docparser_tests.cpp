@@ -175,3 +175,31 @@ TEST_CASE("readWpsText extracts plain text from legacy DOC docs")
         CHECK(text.contains(anchor));
     }
 }
+
+TEST_CASE("readXlsxText extracts text from worksheets")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.xlsx");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readXlsxText(fi.absoluteFilePath());
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("## Sheet")));
+    CHECK(text.contains(QStringLiteral("| --- |")));
+    CHECK(text.contains(QString::fromUtf8(u8"| qt creator")));
+}
+
+TEST_CASE("readPptxText extracts paragraphs from slides")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/resource/软件介绍.pptx");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readPptxText(fi.absoluteFilePath());
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("## Slide")));
+    CHECK(text.contains(QString::fromUtf8(u8"- 机体全面介绍")));
+    CHECK(text.contains(QString::fromUtf8(u8"- 四、服务模式")));
+}

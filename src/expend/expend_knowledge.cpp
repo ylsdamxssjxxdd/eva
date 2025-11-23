@@ -225,8 +225,10 @@ void Expend::server_onProcessFinished()
 // 用户点击上传路径时响应
 void Expend::on_embedding_txt_upload_clicked()
 {
-    QStringList paths = QFileDialog::getOpenFileNames(this, jtr("choose files to embed"), currentpath,
-                                                      QStringLiteral("Text/Docs (*.txt *.md *.markdown *.doc *.docx *.wps);;All Files (*.*)"));
+    QStringList paths = QFileDialog::getOpenFileNames(
+        this, jtr("choose files to embed"), currentpath,
+        QStringLiteral("Text/Docs (*.txt *.md *.markdown *.html *.htm *.py *.c *.cpp *.cc *.h *.hpp *.json *.js *.ts *.css *.ini *.cfg *.log "
+                       "*.doc *.docx *.pptx *.xlsx *.wps);;All Files (*.*)"));
     if (paths.isEmpty()) return;
     upload_paths = paths;
     txtpath = paths.first();
@@ -351,6 +353,24 @@ void Expend::preprocessFiles(const QStringList &paths)
                     ui->embedding_test_log->appendPlainText(jtr("doc parse failed") + ": " + p);
                 else
                     ui->embedding_test_log->appendPlainText(jtr("wps parse failed") + ": " + p);
+                continue;
+            }
+        }
+        else if (ext == "xlsx")
+        {
+            plain = DocParser::readXlsxText(p);
+            if (plain.isEmpty())
+            {
+                ui->embedding_test_log->appendPlainText(jtr("xlsx parse failed") + ": " + p);
+                continue;
+            }
+        }
+        else if (ext == "pptx")
+        {
+            plain = DocParser::readPptxText(p);
+            if (plain.isEmpty())
+            {
+                ui->embedding_test_log->appendPlainText(jtr("pptx parse failed") + ": " + p);
                 continue;
             }
         }
