@@ -203,3 +203,30 @@ TEST_CASE("readPptxText extracts paragraphs from slides")
     CHECK(text.contains(QString::fromUtf8(u8"- 机体全面介绍")));
     CHECK(text.contains(QString::fromUtf8(u8"- 四、服务模式")));
 }
+
+TEST_CASE("readEtText extracts text from wps spreadsheets")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.et");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readEtText(fi.absoluteFilePath());
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("## ET Workbook")));
+    CHECK(text.contains(QString::fromUtf8(u8"qt creator")));
+    CHECK(text.contains(QString::fromUtf8(u8"qml->python->qml")));
+}
+
+TEST_CASE("readDpsText extracts text from wps presentations")
+{
+    const QString samplePath = QStringLiteral(EVA_SOURCE_DIR "/tests/测试.dps");
+    QFileInfo fi(samplePath);
+    REQUIRE(fi.exists());
+
+    const QString text = DocParser::readDpsText(fi.absoluteFilePath());
+    INFO(text.toStdString());
+    REQUIRE_FALSE(text.isEmpty());
+    CHECK(text.contains(QStringLiteral("## DPS Slides")));
+    CHECK(text.contains(QString::fromUtf8(u8"EVA")));
+}

@@ -24,4 +24,10 @@ QString readXlsxText(const QString &path);
 
 // Extract slide text from a .pptx deck; returns paragraphs grouped by slide.
 QString readPptxText(const QString &path);
+
+// Extract text from legacy WPS Excel (.et) documents.
+QString readEtText(const QString &path);
+
+// Extract text from legacy WPS PowerPoint (.dps) documents.
+QString readDpsText(const QString &path);
 } // namespace DocParser

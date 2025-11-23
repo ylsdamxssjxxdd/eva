@@ -993,11 +993,8 @@ static int chunkScore(const QString &chunk)
     return score;
 }
 
-static QString readWpsHeuristic(const QString &path)
+static QString extractUtf16Text(const QByteArray &data)
 {
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) return {};
-    const QByteArray data = f.readAll();
     if (data.isEmpty()) return {};
 
     QStringList chunks;
@@ -1095,11 +1092,66 @@ static QString readWpsHeuristic(const QString &path)
     return filtered.join(QStringLiteral("\n"));
 }
 
+static QString readWpsHeuristic(const QString &path)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) return {};
+    const QByteArray data = f.readAll();
+    return extractUtf16Text(data);
+}
+
 QString readWpsText(const QString &path)
 {
     const QString parsed = readWpsViaWordBinary(path);
     if (!parsed.isEmpty()) return parsed;
     return readWpsHeuristic(path);
+}
+
+static QString readCompoundUtf16Stream(const QString &path, const QStringList &streamNames)
+{
+    CompoundFileReader reader;
+    if (!reader.load(path)) return {};
+    for (const QString &name : streamNames)
+    {
+        const QByteArray data = reader.streamByName(name);
+        if (data.isEmpty()) continue;
+        const QString text = extractUtf16Text(data);
+        if (!text.isEmpty()) return text;
+    }
+    return {};
+}
+
+static QString formatMarkdownList(const QString &text)
+{
+    const QStringList lines = text.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    if (lines.isEmpty()) return {};
+    QStringList formatted;
+    formatted.reserve(lines.size());
+    for (const QString &line : lines)
+    {
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty()) continue;
+        formatted << QStringLiteral("- %1").arg(trimmed);
+    }
+    return formatted.join(QStringLiteral("\n"));
+}
+
+QString readEtText(const QString &path)
+{
+    QString text = readCompoundUtf16Stream(path, {QStringLiteral("Workbook")});
+    if (text.isEmpty()) text = readWpsHeuristic(path);
+    if (text.isEmpty()) return {};
+    return QStringLiteral("## ET Workbook\n\n%1").arg(text);
+}
+
+QString readDpsText(const QString &path)
+{
+    QString text = readCompoundUtf16Stream(path, {QStringLiteral("PowerPoint Document")});
+    if (text.isEmpty()) text = readWpsHeuristic(path);
+    if (text.isEmpty()) return {};
+    const QString list = formatMarkdownList(text);
+    if (list.isEmpty()) return text;
+    return QStringLiteral("## DPS Slides\n\n%1").arg(list);
 }
 
 static QString readInlineStringElement(QXmlStreamReader &xr)

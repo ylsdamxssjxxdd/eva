@@ -228,7 +228,7 @@ void Expend::on_embedding_txt_upload_clicked()
     QStringList paths = QFileDialog::getOpenFileNames(
         this, jtr("choose files to embed"), currentpath,
         QStringLiteral("Text/Docs (*.txt *.md *.markdown *.html *.htm *.py *.c *.cpp *.cc *.h *.hpp *.json *.js *.ts *.css *.ini *.cfg *.log "
-                       "*.doc *.docx *.pptx *.xlsx *.wps);;All Files (*.*)"));
+                       "*.doc *.docx *.pptx *.dps *.xlsx *.et *.wps);;All Files (*.*)"));
     if (paths.isEmpty()) return;
     upload_paths = paths;
     txtpath = paths.first();
@@ -371,6 +371,24 @@ void Expend::preprocessFiles(const QStringList &paths)
             if (plain.isEmpty())
             {
                 ui->embedding_test_log->appendPlainText(jtr("pptx parse failed") + ": " + p);
+                continue;
+            }
+        }
+        else if (ext == "et")
+        {
+            plain = DocParser::readEtText(p);
+            if (plain.isEmpty())
+            {
+                ui->embedding_test_log->appendPlainText(jtr("et parse failed") + ": " + p);
+                continue;
+            }
+        }
+        else if (ext == "dps")
+        {
+            plain = DocParser::readDpsText(p);
+            if (plain.isEmpty())
+            {
+                ui->embedding_test_log->appendPlainText(jtr("dps parse failed") + ": " + p);
                 continue;
             }
         }
