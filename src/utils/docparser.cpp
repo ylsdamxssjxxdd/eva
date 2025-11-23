@@ -1232,20 +1232,6 @@ QString readWpsText(const QString &path)
     return readWpsHeuristic(path);
 }
 
-static QString readCompoundUtf16Stream(const QString &path, const QStringList &streamNames)
-{
-    CompoundFileReader reader;
-    if (!reader.load(path)) return {};
-    for (const QString &name : streamNames)
-    {
-        const QByteArray data = reader.streamByName(name);
-        if (data.isEmpty()) continue;
-        const QString text = extractUtf16Text(data);
-        if (!text.isEmpty()) return text;
-    }
-    return {};
-}
-
 static QString formatMarkdownList(const QString &text)
 {
     const QStringList lines = text.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
@@ -1259,6 +1245,137 @@ static QString formatMarkdownList(const QString &text)
         formatted << QStringLiteral("- %1").arg(trimmed);
     }
     return formatted.join(QStringLiteral("\n"));
+}
+
+static bool isPptTextRecordType(quint16 type)
+{
+    if (type >= 0x0FA0 && type <= 0x0FA9) return true;
+    switch (type)
+    {
+    case 0x0FBA:
+    case 0x0FBB:
+    case 0x0FBC:
+    case 0x0D45:
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+static bool looksUtf16TextPayload(const QByteArray &payload)
+{
+    if (payload.size() < 4 || (payload.size() & 1)) return false;
+    const int charCount = payload.size() / 2;
+    if (charCount == 0) return false;
+    int printable = 0;
+    for (int i = 0; i + 1 < payload.size(); i += 2)
+    {
+        const quint16 value = qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(payload.constData() + i));
+        if (value == 0x0000) continue;
+        if (value == 0x000A || value == 0x000D || value == 0x0009)
+        {
+            ++printable;
+            continue;
+        }
+        if (isLikelyPrintableWordChar(value)) ++printable;
+    }
+    return printable * 2 >= charCount;
+}
+
+static bool looksLatinTextPayload(const QByteArray &payload)
+{
+    if (payload.size() < 3) return false;
+    int printable = 0;
+    for (char ch : payload)
+    {
+        const uchar value = static_cast<uchar>(ch);
+        if (value >= 32 && value <= 126)
+            ++printable;
+        else if (value == '\r' || value == '\n' || value == '\t')
+            ++printable;
+    }
+    return printable * 2 >= payload.size();
+}
+
+static QString decodePptTextRecord(quint16 type, const QByteArray &payload)
+{
+    if (!isPptTextRecordType(type) || payload.isEmpty()) return {};
+    QString decoded;
+    if (looksUtf16TextPayload(payload))
+        decoded = QString::fromUtf16(reinterpret_cast<const ushort *>(payload.constData()), payload.size() / 2);
+    else if (looksLatinTextPayload(payload))
+        decoded = QString::fromLatin1(payload);
+    else
+        return {};
+
+    QString cleaned;
+    cleaned.reserve(decoded.size());
+    for (QChar ch : std::as_const(decoded))
+    {
+        const ushort code = ch.unicode();
+        if (code == 0) continue;
+        if (code == 0x000D || code == 0x000B)
+            cleaned.append(QChar('\n'));
+        else if (code == 0x0009)
+            cleaned.append(QChar(' '));
+        else if (code >= 0x20)
+            cleaned.append(ch);
+    }
+    return cleaned.trimmed();
+}
+
+static void collectPptTextRecords(const QByteArray &stream, int offset, int length, QStringList &out, QSet<QString> &seen)
+{
+    const int limit = qMin(offset + length, stream.size());
+    int pos = offset;
+    while (pos + 8 <= limit)
+    {
+        const quint16 verInst = qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(stream.constData() + pos));
+        const quint16 recType = qFromLittleEndian<quint16>(reinterpret_cast<const uchar *>(stream.constData() + pos + 2));
+        const quint32 recLen = qFromLittleEndian<quint32>(reinterpret_cast<const uchar *>(stream.constData() + pos + 4));
+        const int bodyStart = pos + 8;
+        const int bodyEnd = bodyStart + static_cast<int>(recLen);
+        if (bodyEnd > limit || bodyEnd > stream.size()) break;
+        const quint16 recVer = verInst & 0x000F;
+        if (recVer == 0x000F && recLen > 0)
+        {
+            collectPptTextRecords(stream, bodyStart, static_cast<int>(recLen), out, seen);
+        }
+        else if (recLen > 0)
+        {
+            const QByteArray payload = stream.mid(bodyStart, static_cast<int>(recLen));
+            const QString decoded = decodePptTextRecord(recType, payload);
+            if (!decoded.isEmpty())
+            {
+                const QStringList lines = decoded.split(QRegularExpression(QStringLiteral("[\\n]+")), Qt::SkipEmptyParts);
+                for (const QString &line : lines)
+                {
+                    const QString trimmed = line.trimmed();
+                    if (trimmed.isEmpty()) continue;
+                    if (!looksLikeDocumentText(trimmed)) continue;
+                    if (seen.contains(trimmed)) continue;
+                    seen.insert(trimmed);
+                    out << trimmed;
+                }
+            }
+        }
+        pos = bodyEnd;
+    }
+}
+
+static QString readDpsViaPptBinary(const QString &path)
+{
+    CompoundFileReader reader;
+    if (!reader.load(path)) return {};
+    const QByteArray stream = reader.streamByName(QStringLiteral("PowerPoint Document"));
+    if (stream.isEmpty()) return {};
+
+    QStringList collected;
+    QSet<QString> seen;
+    collectPptTextRecords(stream, 0, stream.size(), collected, seen);
+    if (collected.isEmpty()) return {};
+    return collected.join(QStringLiteral("\n"));
 }
 
 struct XlsWorkbookCloser
@@ -1379,19 +1496,22 @@ QString readEtText(const QString &path)
 
 QString readDpsText(const QString &path)
 {
-    CompoundFileReader reader;
-    QString text;
-    if (reader.load(path))
+    QString text = readDpsViaPptBinary(path);
+    if (text.isEmpty())
     {
-        const QByteArray stream = reader.streamByName(QStringLiteral("PowerPoint Document"));
-        if (!stream.isEmpty())
+        CompoundFileReader reader;
+        if (reader.load(path))
         {
-            text = extractUtf16Text(stream);
-            if (text.isEmpty())
-                text = decodeWithCodecNames(stream, {"GB18030", "Big5", "Shift-JIS", "Windows-1252"});
+            const QByteArray stream = reader.streamByName(QStringLiteral("PowerPoint Document"));
+            if (!stream.isEmpty())
+            {
+                text = extractUtf16Text(stream);
+                if (text.isEmpty())
+                    text = decodeWithCodecNames(stream, {"GB18030", "Big5", "Shift-JIS", "Windows-1252"});
+            }
         }
+        if (text.isEmpty()) text = readWpsHeuristic(path);
     }
-    if (text.isEmpty()) text = readWpsHeuristic(path);
     if (text.isEmpty()) return {};
     const QString list = formatMarkdownList(text);
     if (list.isEmpty()) return text;
