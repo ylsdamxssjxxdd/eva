@@ -335,7 +335,7 @@ QByteArray xNet::createChatBody()
     json.insert("stream", true);
     json.insert("include_usage", true);
     const int cappedPredict = qBound(1, endpoint_data.n_predict, 99999);
-    json.insert("max_tokens", cappedPredict);
+    json.insert("n_predict", cappedPredict);
     {
         double t = qBound(0.0, 2.0 * double(endpoint_data.temp), 2.0);
         json.insert("temperature", t); // OpenAI range [0,2]
@@ -364,7 +364,6 @@ QByteArray xNet::createChatBody()
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
-        json.insert("n_predict", cappedPredict);
     }
 
     // Normalize UI messages into OpenAI-compatible messages
@@ -455,7 +454,7 @@ QByteArray xNet::createCompleteBody()
     json.insert("model", apis.api_model);
     json.insert("prompt", endpoint_data.input_prompt);
     const int cappedPredict2 = qBound(1, endpoint_data.n_predict, 99999);
-    json.insert("max_tokens", cappedPredict2);
+    json.insert("n_predict", cappedPredict2);
     json.insert("stream", true);
     json.insert("include_usage", true);
     {
@@ -482,7 +481,6 @@ QByteArray xNet::createCompleteBody()
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
-        json.insert("n_predict", cappedPredict2);
     }
     if (__isLocal2 && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
     maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort);
