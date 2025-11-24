@@ -129,8 +129,8 @@ class ImageInputBox : public QWidget
         itemWidget->setObjectName(QStringLiteral("imageInputPreviewItem"));
         itemWidget->setMinimumWidth(THUMBNAIL_TEXT_WIDTH);
         QVBoxLayout *itemLayout = new QVBoxLayout(itemWidget);
-        itemLayout->setContentsMargins(4, 4, 4, 4);
-        itemLayout->setSpacing(6);
+        itemLayout->setContentsMargins(2, 2, 2, 2);
+        itemLayout->setSpacing(2);
 
         QLabel *previewLabel = new QLabel(itemWidget);
         previewLabel->setAlignment(Qt::AlignCenter);
@@ -141,9 +141,10 @@ class ImageInputBox : public QWidget
         QLabel *captionLabel = new QLabel(itemWidget);
         captionLabel->setAlignment(Qt::AlignCenter);
         QFont captionFont = captionLabel->font();
-        captionFont.setPointSizeF(qMax(8.0, captionFont.pointSizeF() - 1));
+        captionFont.setPointSizeF(8.0);
         captionLabel->setFont(captionFont);
         captionLabel->setWordWrap(false);
+        captionLabel->setStyleSheet(QStringLiteral("font-size:8pt; margin:0px; padding:0px;"));
         captionLabel->setObjectName(QStringLiteral("imageInputPreviewCaption"));
         captionLabel->setFixedWidth(THUMBNAIL_TEXT_WIDTH);
         captionLabel->setText(elidedAttachmentName(path));
@@ -197,6 +198,10 @@ class ImageInputBox : public QWidget
             previewLabel->setToolTip(tr("Document: %1").arg(path));
         }
 
+        if (!pixmap.isNull())
+        {
+            pixmap = pixmap.scaled(THUMBNAIL_SIZE, THUMBNAIL_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
         previewLabel->setPixmap(pixmap);
 
         QToolButton *closeBtn = new QToolButton(previewLabel);
@@ -205,6 +210,8 @@ class ImageInputBox : public QWidget
         closeBtn->setCursor(Qt::PointingHandCursor);
         closeBtn->setAutoRaise(true);
         closeBtn->setFixedSize(12, 12);
+        closeBtn->setStyleSheet("QToolButton { border: 1px solid rgba(220,0,0,180); border-radius: 2px; background: rgba(255,255,255,180); }"
+                                "QToolButton:hover { background: rgba(255,200,200,200); border-color: rgb(255,0,0); }");
         closeBtn->move(previewLabel->width() - closeBtn->width(), 0);
         closeBtn->show();
         connect(closeBtn, &QToolButton::clicked, [this, path, itemWidget]()
@@ -259,8 +266,8 @@ class ImageInputBox : public QWidget
         QString path;
         AttachmentKind kind;
     };
-    const int THUMBNAIL_SIZE = 44;
-    const int THUMBNAIL_TEXT_WIDTH = THUMBNAIL_SIZE + 34;
+    const int THUMBNAIL_SIZE = 40;
+    const int THUMBNAIL_TEXT_WIDTH = THUMBNAIL_SIZE + 28;
     QVector<AttachmentEntry> attachments_;
     QHash<QString, QPixmap> docIconCache_;
     void updateDragHighlight(bool active)
@@ -504,7 +511,7 @@ class ImageInputBox : public QWidget
         scrollArea = new QScrollArea;
         scrollArea->setObjectName(QStringLiteral("imageInputPreviewScroll"));
         scrollArea->setWidgetResizable(true);
-        const int previewHeight = THUMBNAIL_SIZE + 28;
+        const int previewHeight = THUMBNAIL_SIZE + 20;
         scrollArea->setMinimumHeight(previewHeight);
         scrollArea->setMaximumHeight(previewHeight);
         scrollArea->setFrameShape(QFrame::NoFrame);
