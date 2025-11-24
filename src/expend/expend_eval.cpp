@@ -525,6 +525,7 @@ void Expend::runToolcallTest()
     evalReasoning_.clear();
     evalAnswer_.clear();
     evalThinkMode_ = false;
+    evalStreamSeen_ = false;
     if (toolIndex_ == 0) stepTimer.restart();
     evalTimer.restart();
     QMetaObject::invokeMethod(evalNet, "recv_apis", Qt::QueuedConnection, Q_ARG(APIS, eval_apis));
@@ -574,6 +575,8 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
 {
     Q_UNUSED(streaming);
     if (!evalRunning) return;
+    if (!text.isEmpty()) evalStreamSeen_ = true;
+    const bool rawHasContent = !text.trimmed().isEmpty();
 
     // Capture raw stream and split into reasoning/output segments for debugging
     // We keep a lightweight state machine here to accumulate content inside/outside <think>
@@ -631,9 +634,9 @@ void Expend::onEvalOutput(const QString &text, bool streaming, QColor)
 
     const QString chunk = stripThink(text);
     // Count only chunks with actual content (exclude pure <think>/</think> markers and whitespace)
-    if (evalStep == 1 && !chunk.trimmed().isEmpty())
-        ++m_genStreamChunks;
-    if (!evalFirstToken && !chunk.trimmed().isEmpty())
+        if (evalStep == 1 && !chunk.trimmed().isEmpty())
+            ++m_genStreamChunks;
+    if (!evalFirstToken && rawHasContent)
     {
         evalFirstToken = true;
         const double ms = evalTimer.isValid() ? (evalTimer.nsecsElapsed() / 1e6) : -1.0;
@@ -730,6 +733,13 @@ void Expend::onEvalPushover()
     switch (evalStep)
     {
     case 0:
+        if (m_firstTokenMs < 0 && evalStreamSeen_)
+        {
+            m_firstTokenMs = 0.0;
+            evalFirstToken = true;
+            evalSetTable(0, jtr("first token"), QString::number(100.0, 'f', 0));
+            updateScoreBars();
+        }
         // Nothing else; rely on server-reported speeds if any
         // Log model's actual answer
         evalLog(QStringLiteral("[") + jtr("first token") + QStringLiteral("] ") + jtr("model answer") + QStringLiteral(":\n") + evalAccum);

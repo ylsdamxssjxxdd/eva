@@ -381,6 +381,7 @@ class Expend : public QWidget
     QString evalReasoning_;      // aggregated content inside <think>..</think>
     QString evalAnswer_;         // aggregated content outside <think>..</think>
     bool evalThinkMode_ = false; // whether the current stream cursor is inside <think>
+    bool evalStreamSeen_ = false; // any bytes streamed this turn
     // Metrics
     double m_firstTokenMs = -1.0;
     double m_promptTokPerSec = -1.0;
