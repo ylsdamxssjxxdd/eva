@@ -894,15 +894,64 @@ static std::string convertLinesWithTables(const std::vector<std::string> &lines)
     return join(blocks, "\n\n");
 }
 
+static bool hasFieldInstructionPrefix(const std::string &text, const char *keyword)
+{
+    const size_t len = std::char_traits<char>::length(keyword);
+    if (text.size() <= len) return false;
+    if (text.compare(0, len, keyword) != 0) return false;
+    const unsigned char next = static_cast<unsigned char>(text[len]);
+    return std::isspace(next) || next == '\\' || next == '"';
+}
+
+static bool looksLikeFieldInstruction(const std::string &text)
+{
+    static const std::array<const char *, 4> keywords = {"HYPERLINK", "INCLUDEPICTURE", "MERGEFIELD", "PAGEREF"};
+    for (const char *keyword : keywords)
+    {
+        if (hasFieldInstructionPrefix(text, keyword)) return true;
+    }
+    return false;
+}
+
 static std::string normalizeWordText(const std::string &raw)
 {
     if (raw.empty()) return {};
     std::string cleaned;
     cleaned.reserve(raw.size());
+    std::vector<bool> fieldInstructionStack;
+    int pendingInstructionFields = 0;
+    const auto inFieldInstruction = [&]() {
+        return pendingInstructionFields > 0;
+    };
     for (size_t i = 0; i < raw.size(); ++i)
     {
         unsigned char byte = static_cast<unsigned char>(raw[i]);
         if (byte == 0x00) continue;
+        if (byte == 0x13) // field begin
+        {
+            fieldInstructionStack.push_back(false);
+            ++pendingInstructionFields;
+            continue;
+        }
+        if (byte == 0x14) // field separator
+        {
+            if (!fieldInstructionStack.empty() && !fieldInstructionStack.back())
+            {
+                fieldInstructionStack.back() = true;
+                if (pendingInstructionFields > 0) --pendingInstructionFields;
+            }
+            continue;
+        }
+        if (byte == 0x15) // field end
+        {
+            if (!fieldInstructionStack.empty())
+            {
+                if (!fieldInstructionStack.back() && pendingInstructionFields > 0) --pendingInstructionFields;
+                fieldInstructionStack.pop_back();
+            }
+            continue;
+        }
+        if (inFieldInstruction()) continue;
         if (byte == 0x07)
         {
             size_t runLength = 0;
@@ -1021,6 +1070,7 @@ static std::string combineCandidateChunks(const std::vector<std::string> &chunks
     {
         const std::string trimmedChunk = trim(chunk);
         if (trimmedChunk.empty() || !looksLikeDocumentText(trimmedChunk)) continue;
+        if (looksLikeFieldInstruction(trimmedChunk)) continue;
         if (seen.insert(trimmedChunk).second) filtered.push_back(trimmedChunk);
     }
     if (filtered.size() > 1)

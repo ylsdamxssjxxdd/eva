@@ -1,12 +1,13 @@
 #include "expend.h"
 
 #include "../utils/devicemanager.h"
-#include "../utils/docparser.h" // parse txt/md/docx
 #include "../utils/pathutil.h"
+#include <doc2md/document_converter.h>
 #include "ui_expend.h"
+#include <QByteArray>
+#include <QDebug>
 #include <QDir>
 #include <QSet>
-#include <QDebug>
 
 void Expend::initializeEmbeddingStore()
 {
@@ -330,77 +331,34 @@ void Expend::preprocessFiles(const QStringList &paths)
         }
     };
 
-    // Parse each file to plain text
+    auto parseFile = [&](const QString &filePath) -> QString
+    {
+        const QByteArray encoded = QFile::encodeName(filePath);
+        if (encoded.isEmpty())
+        {
+            ui->embedding_test_log->appendPlainText(jtr("invalid file path") + ": " + filePath);
+            return {};
+        }
+        const std::string pathStr(encoded.constData(), static_cast<size_t>(encoded.size()));
+        const doc2md::ConversionResult result = doc2md::convertFile(pathStr);
+        for (const std::string &warn : result.warnings)
+        {
+            ui->embedding_test_log->appendPlainText(QStringLiteral("[doc2md] %1").arg(QString::fromStdString(warn)));
+        }
+        if (!result.success || result.markdown.empty())
+        {
+            ui->embedding_test_log->appendPlainText(jtr("doc parse failed") + ": " + filePath);
+            return {};
+        }
+        return QString::fromUtf8(result.markdown.data(), static_cast<int>(result.markdown.size()));
+    };
+
+    // Parse each file to markdown text via doc2md
     for (const QString &p : paths)
     {
-        QString plain;
-        const QString ext = QFileInfo(p).suffix().toLower();
-        if (ext == "docx")
-        {
-            plain = DocParser::readDocxText(p);
-            if (plain.isEmpty())
-            {
-                ui->embedding_test_log->appendPlainText(jtr("docx parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "wps" || ext == "doc")
-        {
-            plain = DocParser::readWpsText(p);
-            if (plain.isEmpty())
-            {
-                if (ext == "doc")
-                    ui->embedding_test_log->appendPlainText(jtr("doc parse failed") + ": " + p);
-                else
-                    ui->embedding_test_log->appendPlainText(jtr("wps parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "xlsx")
-        {
-            plain = DocParser::readXlsxText(p);
-            if (plain.isEmpty())
-            {
-                ui->embedding_test_log->appendPlainText(jtr("xlsx parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "pptx")
-        {
-            plain = DocParser::readPptxText(p);
-            if (plain.isEmpty())
-            {
-                ui->embedding_test_log->appendPlainText(jtr("pptx parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "et")
-        {
-            plain = DocParser::readEtText(p);
-            if (plain.isEmpty())
-            {
-                ui->embedding_test_log->appendPlainText(jtr("et parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "dps")
-        {
-            plain = DocParser::readDpsText(p);
-            if (plain.isEmpty())
-            {
-                ui->embedding_test_log->appendPlainText(jtr("dps parse failed") + ": " + p);
-                continue;
-            }
-        }
-        else if (ext == "md" || ext == "markdown")
-        {
-            plain = DocParser::markdownToText(DocParser::readPlainTextFile(p));
-        }
-        else
-        {
-            plain = DocParser::readPlainTextFile(p);
-        }
-        splitContent(plain);
+        const QString parsed = parseFile(p);
+        if (parsed.isEmpty()) continue;
+        splitContent(parsed);
     }
 
     // Show in pending table

@@ -29,19 +29,15 @@ target_compile_features(processrunner_tests PRIVATE cxx_std_17)
 add_executable(zip_extractor_tests
     zip_extractor_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/zip_extractor.cpp
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz.c
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_zip.c
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tinfl.c
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tdef.c
 )
 target_link_libraries(zip_extractor_tests PRIVATE
     Qt5::Core
     eva_doctest
+    miniz
 )
 target_include_directories(zip_extractor_tests PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz
 )
 target_compile_features(zip_extractor_tests PRIVATE cxx_std_17)
 

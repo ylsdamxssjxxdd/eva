@@ -49,7 +49,6 @@ add_executable(
     src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp src/prompt.cpp
     src/utils/history_store.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h
-    src/utils/docparser.cpp src/utils/docparser.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
     src/utils/pathutil.cpp src/utils/pathutil.h src/utils/processrunner.cpp src/utils/processrunner.h src/utils/depresolver.cpp src/utils/depresolver.h
     src/utils/startuplogger.cpp src/utils/startuplogger.h
@@ -72,7 +71,6 @@ add_executable(
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
     src/net/localproxy.h
-    thirdparty/miniz/miniz.c thirdparty/miniz/miniz_zip.c thirdparty/miniz/miniz_tinfl.c thirdparty/miniz/miniz_tdef.c
 )
 ## Executable name
 # Linux: keep binary name as plain "eva" for runtime/AppDir consistency
@@ -82,14 +80,12 @@ if (UNIX)
 else()
     set_target_properties(${EVA_TARGET} PROPERTIES OUTPUT_NAME "${eva_OUTPUT_NAME}")
 endif()
-target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} libxls Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::Sql Qt5::Concurrent qtmcp QHotkey::QHotkey)
+target_link_libraries(${EVA_TARGET} PRIVATE ${extra_LIBS} doc2md_lib miniz Qt5::Widgets Qt5::Network Qt5::Multimedia Qt5::MultimediaWidgets Qt5::Sql Qt5::Concurrent qtmcp QHotkey::QHotkey)
 target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 ## include build dir for generated config header
 target_include_directories(${EVA_TARGET} PRIVATE
     ${CMAKE_BINARY_DIR}/src/utils
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/thirdparty/miniz
-    ${CMAKE_SOURCE_DIR}/thirdparty/libxls/include
     ${CMAKE_SOURCE_DIR}/thirdparty/nlohmann)
 
 if (EVA_ENABLE_QT_TTS)

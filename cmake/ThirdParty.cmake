@@ -5,7 +5,33 @@ include_guard(GLOBAL)
 
 # Always keep these as in-tree: small, stable libraries we link directly
 add_subdirectory(thirdparty/QHotkey)
-add_subdirectory(thirdparty/libxls)
+
+add_library(miniz STATIC
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_zip.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tinfl.c
+    ${CMAKE_SOURCE_DIR}/thirdparty/miniz/miniz_tdef.c)
+target_include_directories(miniz PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/miniz)
+
+add_subdirectory(thirdparty/doc2md/thirdparty/libxls)
+
+add_library(tinyxml2 STATIC ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/thirdparty/tinyxml2/tinyxml2.cpp)
+target_include_directories(tinyxml2 PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/thirdparty/tinyxml2)
+
+add_library(doc2md_lib STATIC
+    ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/src/doc2md/document_converter.cpp
+    ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/src/doc2md/detail_parsers.cpp)
+target_include_directories(doc2md_lib
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/include
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/src
+        ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/thirdparty/libxls/include
+        ${CMAKE_SOURCE_DIR}/thirdparty/doc2md/thirdparty/tinyxml2
+        ${CMAKE_SOURCE_DIR}/thirdparty/miniz)
+target_compile_features(doc2md_lib PRIVATE cxx_std_11)
+target_link_libraries(doc2md_lib PUBLIC miniz tinyxml2 libxls)
+
 # libsamplerate/libsndfile no longer required; whisper-cli handles resampling
 
 if (WIN32)
