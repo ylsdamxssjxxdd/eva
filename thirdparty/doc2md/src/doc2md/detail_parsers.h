@@ -20,8 +20,8 @@ std::string readOdpText(const std::string &path);
 std::string readXlsxText(const std::string &path);
 std::string readOdsText(const std::string &path);
 std::string readWpsText(const std::string &path);
+std::string readPdfText(const std::string &path);
 std::string readEtText(const std::string &path);
 std::string readDpsText(const std::string &path);
 } // namespace detail
 } // namespace doc2md
-

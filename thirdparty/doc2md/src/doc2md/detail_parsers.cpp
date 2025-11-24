@@ -1738,6 +1738,756 @@ std::string readDocxText(const std::string &path)
     return parseDocxDocumentXml(xml);
 }
 
+static void skipPdfWhitespace(const std::string &data, size_t &pos)
+{
+    while (pos < data.size())
+    {
+        const unsigned char ch = static_cast<unsigned char>(data[pos]);
+        if (ch == '%')
+        {
+            while (pos < data.size() && data[pos] != '\n' && data[pos] != '\r') ++pos;
+        }
+        else if (std::isspace(ch))
+        {
+            ++pos;
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+static int pdfHexDigit(char ch)
+{
+    if (ch >= '0' && ch <= '9') return ch - '0';
+    if (ch >= 'a' && ch <= 'f') return 10 + (ch - 'a');
+    if (ch >= 'A' && ch <= 'F') return 10 + (ch - 'A');
+    return -1;
+}
+
+static std::string parsePdfLiteralString(const std::string &data, size_t &pos)
+{
+    std::string out;
+    if (pos >= data.size() || data[pos] != '(') return out;
+    ++pos;
+    int depth = 1;
+    while (pos < data.size() && depth > 0)
+    {
+        char ch = data[pos++];
+        if (ch == '\\')
+        {
+            if (pos >= data.size()) break;
+            char next = data[pos++];
+            switch (next)
+            {
+            case 'n':
+                out.push_back('\n');
+                break;
+            case 'r':
+                out.push_back('\r');
+                break;
+            case 't':
+                out.push_back('\t');
+                break;
+            case 'b':
+                out.push_back('\b');
+                break;
+            case 'f':
+                out.push_back('\f');
+                break;
+            case '(':
+            case ')':
+            case '\\':
+                out.push_back(next);
+                break;
+            case '\r':
+                if (pos < data.size() && data[pos] == '\n') ++pos;
+                break;
+            case '\n':
+                break;
+            default:
+                if (next >= '0' && next <= '7')
+                {
+                    int value = next - '0';
+                    for (int i = 0; i < 2 && pos < data.size(); ++i)
+                    {
+                        char digit = data[pos];
+                        if (digit < '0' || digit > '7') break;
+                        value = value * 8 + (digit - '0');
+                        ++pos;
+                    }
+                    out.push_back(static_cast<char>(value & 0xFF));
+                }
+                else
+                {
+                    out.push_back(next);
+                }
+                break;
+            }
+        }
+        else if (ch == '(')
+        {
+            ++depth;
+            out.push_back(ch);
+        }
+        else if (ch == ')')
+        {
+            --depth;
+            if (depth > 0) out.push_back(')');
+        }
+        else
+        {
+            out.push_back(ch);
+        }
+    }
+    return out;
+}
+
+static std::string parsePdfHexString(const std::string &data, size_t &pos)
+{
+    std::string out;
+    if (pos >= data.size() || data[pos] != '<' || (pos + 1 < data.size() && data[pos + 1] == '<')) return out;
+    ++pos;
+    std::string buffer;
+    while (pos < data.size())
+    {
+        char ch = data[pos++];
+        if (ch == '>') break;
+        if (std::isspace(static_cast<unsigned char>(ch))) continue;
+        buffer.push_back(ch);
+    }
+    if (buffer.empty()) return {};
+    if (buffer.size() % 2 != 0) buffer.push_back('0');
+    for (size_t i = 0; i + 1 < buffer.size(); i += 2)
+    {
+        const int hi = pdfHexDigit(buffer[i]);
+        const int lo = pdfHexDigit(buffer[i + 1]);
+        if (hi < 0 || lo < 0) continue;
+        out.push_back(static_cast<char>((hi << 4) | lo));
+    }
+    return out;
+}
+
+static std::vector<std::string> parsePdfArrayStrings(const std::string &data, size_t &pos)
+{
+    std::vector<std::string> values;
+    if (pos >= data.size() || data[pos] != '[') return values;
+    ++pos;
+    while (pos < data.size())
+    {
+        skipPdfWhitespace(data, pos);
+        if (pos >= data.size()) break;
+        char ch = data[pos];
+        if (ch == ']')
+        {
+            ++pos;
+            break;
+        }
+        if (ch == '(')
+        {
+            values.push_back(parsePdfLiteralString(data, pos));
+        }
+        else if (ch == '<' && (pos + 1 >= data.size() || data[pos + 1] != '<'))
+        {
+            values.push_back(parsePdfHexString(data, pos));
+        }
+        else
+        {
+            ++pos;
+        }
+    }
+    return values;
+}
+
+struct PdfFontMap
+{
+    std::unordered_map<std::string, std::string> glyphMap;
+    size_t maxGlyphLength = 1;
+};
+
+static std::string hexStringToBytes(std::string hex)
+{
+    if (hex.empty()) return {};
+    if (hex.size() % 2 != 0) hex.insert(hex.begin(), '0');
+    std::string bytes;
+    bytes.reserve(hex.size() / 2);
+    for (size_t i = 0; i + 1 < hex.size(); i += 2)
+    {
+        const int hi = pdfHexDigit(hex[i]);
+        const int lo = pdfHexDigit(hex[i + 1]);
+        if (hi < 0 || lo < 0) return {};
+        bytes.push_back(static_cast<char>((hi << 4) | lo));
+    }
+    return bytes;
+}
+
+static uint32_t hexStringToUInt(const std::string &hex)
+{
+    uint32_t value = 0;
+    for (char ch : hex)
+    {
+        const int digit = pdfHexDigit(ch);
+        if (digit < 0) return 0;
+        value = (value << 4) | static_cast<uint32_t>(digit);
+    }
+    return value;
+}
+
+static std::string unicodeFromHex(const std::string &hex)
+{
+    if (hex.empty()) return {};
+    const std::string bytes = hexStringToBytes(hex);
+    if (bytes.empty() || (bytes.size() % 2) != 0) return {};
+    std::u16string u16;
+    for (size_t i = 0; i + 1 < bytes.size(); i += 2)
+    {
+        const char16_t value = static_cast<char16_t>((static_cast<unsigned char>(bytes[i]) << 8) |
+                                                     static_cast<unsigned char>(bytes[i + 1]));
+        u16.push_back(value);
+    }
+    return utf16ToUtf8(u16);
+}
+
+static std::string encodeCodeToBytes(uint32_t value, size_t byteLength)
+{
+    std::string bytes(byteLength, '\0');
+    for (size_t i = 0; i < byteLength; ++i)
+    {
+        bytes[byteLength - 1 - i] = static_cast<char>(value & 0xFFu);
+        value >>= 8;
+    }
+    return bytes;
+}
+
+static std::string codePointToUtf8(uint32_t codePoint)
+{
+    std::string out;
+    appendUtf8CodePoint(out, codePoint);
+    return out;
+}
+
+static bool extractNextHexToken(const std::string &line, size_t &pos, std::string &token)
+{
+    const size_t start = line.find('<', pos);
+    if (start == std::string::npos) return false;
+    const size_t end = line.find('>', start);
+    if (end == std::string::npos) return false;
+    token = line.substr(start + 1, end - start - 1);
+    pos = end + 1;
+    return true;
+}
+
+static PdfFontMap parseToUnicodeCMap(const std::string &cmap)
+{
+    PdfFontMap map;
+    std::istringstream stream(cmap);
+    std::string line;
+    int mode = 0;
+    int remaining = 0;
+    while (std::getline(stream, line))
+    {
+        const std::string trimmedLine = trim(line);
+        if (trimmedLine.empty()) continue;
+        if (trimmedLine.find("beginbfchar") != std::string::npos)
+        {
+            remaining = 0;
+            std::istringstream ss(trimmedLine);
+            ss >> remaining;
+            mode = 1;
+            continue;
+        }
+        if (trimmedLine.find("beginbfrange") != std::string::npos)
+        {
+            remaining = 0;
+            std::istringstream ss(trimmedLine);
+            ss >> remaining;
+            mode = 2;
+            continue;
+        }
+        if (trimmedLine.find("endbfchar") != std::string::npos || trimmedLine.find("endbfrange") != std::string::npos)
+        {
+            mode = 0;
+            continue;
+        }
+        if (mode == 1 && remaining > 0)
+        {
+            size_t pos = 0;
+            std::string srcHex;
+            std::string dstHex;
+            if (!extractNextHexToken(trimmedLine, pos, srcHex)) continue;
+            if (!extractNextHexToken(trimmedLine, pos, dstHex)) continue;
+            const std::string key = hexStringToBytes(srcHex);
+            const std::string value = unicodeFromHex(dstHex);
+            if (!key.empty() && !value.empty())
+            {
+                map.maxGlyphLength = std::max(map.maxGlyphLength, key.size());
+                map.glyphMap[key] = value;
+            }
+            --remaining;
+            continue;
+        }
+        if (mode == 2 && remaining > 0)
+        {
+            size_t pos = 0;
+            std::string startHex;
+            std::string endHex;
+            if (!extractNextHexToken(trimmedLine, pos, startHex)) continue;
+            if (!extractNextHexToken(trimmedLine, pos, endHex)) continue;
+            const size_t codeBytes = startHex.size() / 2;
+            const uint32_t startCode = hexStringToUInt(startHex);
+            const uint32_t endCode = hexStringToUInt(endHex);
+            if (trimmedLine.find('[', pos) != std::string::npos)
+            {
+                size_t arrayPos = trimmedLine.find('[', pos);
+                ++arrayPos;
+                std::vector<std::string> destinations;
+                while (arrayPos < trimmedLine.size() && trimmedLine[arrayPos] != ']')
+                {
+                    std::string destHex;
+                    if (extractNextHexToken(trimmedLine, arrayPos, destHex))
+                        destinations.push_back(destHex);
+                    else
+                        ++arrayPos;
+                }
+                uint32_t glyphCode = startCode;
+                for (size_t i = 0; i < destinations.size() && glyphCode <= endCode; ++i, ++glyphCode)
+                {
+                    const std::string key = encodeCodeToBytes(glyphCode, codeBytes);
+                    const std::string value = unicodeFromHex(destinations[i]);
+                    if (!key.empty() && !value.empty())
+                    {
+                        map.maxGlyphLength = std::max(map.maxGlyphLength, key.size());
+                        map.glyphMap[key] = value;
+                    }
+                }
+            }
+            else
+            {
+                std::string destHex;
+                if (!extractNextHexToken(trimmedLine, pos, destHex)) continue;
+                uint32_t destValue = hexStringToUInt(destHex);
+                for (uint32_t glyph = startCode; glyph <= endCode; ++glyph, ++destValue)
+                {
+                    const std::string key = encodeCodeToBytes(glyph, codeBytes);
+                    const std::string value = codePointToUtf8(destValue);
+                    if (!key.empty())
+                    {
+                        map.maxGlyphLength = std::max(map.maxGlyphLength, key.size());
+                        map.glyphMap[key] = value;
+                    }
+                }
+            }
+            --remaining;
+        }
+    }
+    return map;
+}
+
+static std::unordered_map<std::string, int> extractFontResourceTargets(const std::string &pdf)
+{
+    std::unordered_map<std::string, int> fonts;
+    size_t pos = 0;
+    while ((pos = pdf.find('/', pos)) != std::string::npos)
+    {
+        size_t nameStart = pos + 1;
+        size_t nameEnd = nameStart;
+        while (nameEnd < pdf.size() &&
+               (std::isalnum(static_cast<unsigned char>(pdf[nameEnd])) || pdf[nameEnd] == '_' || pdf[nameEnd] == '-'))
+            ++nameEnd;
+        if (nameEnd == nameStart)
+        {
+            pos = nameEnd;
+            continue;
+        }
+        const std::string name = pdf.substr(nameStart, nameEnd - nameStart);
+        size_t cursor = nameEnd;
+        while (cursor < pdf.size() && std::isspace(static_cast<unsigned char>(pdf[cursor]))) ++cursor;
+        const size_t numStart = cursor;
+        while (cursor < pdf.size() && std::isdigit(static_cast<unsigned char>(pdf[cursor]))) ++cursor;
+        if (numStart == cursor)
+        {
+            pos = cursor;
+            continue;
+        }
+        int objectNumber = -1;
+        try
+        {
+            objectNumber = std::stoi(pdf.substr(numStart, cursor - numStart));
+        }
+        catch (...)
+        {
+            pos = cursor;
+            continue;
+        }
+        while (cursor < pdf.size() && std::isspace(static_cast<unsigned char>(pdf[cursor]))) ++cursor;
+        if (cursor >= pdf.size() || pdf[cursor] != '0')
+        {
+            pos = cursor;
+            continue;
+        }
+        ++cursor;
+        while (cursor < pdf.size() && std::isspace(static_cast<unsigned char>(pdf[cursor]))) ++cursor;
+        if (cursor >= pdf.size() || pdf[cursor] != 'R')
+        {
+            pos = cursor;
+            continue;
+        }
+        fonts[name] = objectNumber;
+        pos = cursor + 1;
+    }
+    return fonts;
+}
+
+static std::string pdfObjectContent(const std::string &data, int objectNumber)
+{
+    if (objectNumber < 0) return {};
+    const std::string marker = std::to_string(objectNumber) + " 0 obj";
+    size_t pos = data.find(marker);
+    if (pos == std::string::npos) return {};
+    pos += marker.size();
+    const size_t end = data.find("endobj", pos);
+    if (end == std::string::npos) return {};
+    return data.substr(pos, end - pos);
+}
+
+static int extractToUnicodeObject(const std::string &pdf, int fontObjectNumber)
+{
+    const std::string body = pdfObjectContent(pdf, fontObjectNumber);
+    if (body.empty()) return -1;
+    const size_t marker = body.find("/ToUnicode");
+    if (marker == std::string::npos) return -1;
+    size_t pos = marker + 10;
+    while (pos < body.size() && std::isspace(static_cast<unsigned char>(body[pos]))) ++pos;
+    const size_t numStart = pos;
+    while (pos < body.size() && std::isdigit(static_cast<unsigned char>(body[pos]))) ++pos;
+    if (numStart == pos) return -1;
+    try
+    {
+        return std::stoi(body.substr(numStart, pos - numStart));
+    }
+    catch (...)
+    {
+        return -1;
+    }
+}
+
+static std::unordered_map<std::string, PdfFontMap>
+buildPdfFontMaps(const std::string &pdf,
+                 const std::unordered_map<int, std::string> &streamByObject,
+                 std::unordered_set<int> &toUnicodeObjects)
+{
+    std::unordered_map<std::string, PdfFontMap> fontMaps;
+    const std::unordered_map<std::string, int> fontTargets = extractFontResourceTargets(pdf);
+    for (const auto &entry : fontTargets)
+    {
+        const int fontObject = entry.second;
+        const int toUnicodeObject = extractToUnicodeObject(pdf, fontObject);
+        if (toUnicodeObject < 0) continue;
+        const auto streamIt = streamByObject.find(toUnicodeObject);
+        if (streamIt == streamByObject.end()) continue;
+        fontMaps[entry.first] = parseToUnicodeCMap(streamIt->second);
+        toUnicodeObjects.insert(toUnicodeObject);
+    }
+    return fontMaps;
+}
+
+static std::string decodePdfGlyphs(const PdfFontMap *font, const std::string &raw)
+{
+    if (!font || font->glyphMap.empty()) return raw;
+    std::string out;
+    size_t index = 0;
+    while (index < raw.size())
+    {
+        const size_t remaining = raw.size() - index;
+        size_t maxLen = std::min(remaining, font->maxGlyphLength);
+        bool matched = false;
+        while (maxLen > 0)
+        {
+            const std::string key = raw.substr(index, maxLen);
+            const auto it = font->glyphMap.find(key);
+            if (it != font->glyphMap.end())
+            {
+                out += it->second;
+                index += maxLen;
+                matched = true;
+                break;
+            }
+            --maxLen;
+        }
+        if (!matched)
+        {
+            out.push_back(raw[index]);
+            ++index;
+        }
+    }
+    return out;
+}
+
+static int pdfObjectNumberBefore(const std::string &data, size_t streamPos)
+{
+    size_t searchPos = streamPos;
+    while (true)
+    {
+        const size_t objPos = data.rfind("obj", searchPos);
+        if (objPos == std::string::npos) return -1;
+        if (objPos == 0) return -1;
+        size_t cursor = objPos;
+        while (cursor > 0 && std::isspace(static_cast<unsigned char>(data[cursor - 1]))) --cursor;
+        size_t genEnd = cursor;
+        size_t genStart = genEnd;
+        while (genStart > 0 && std::isdigit(static_cast<unsigned char>(data[genStart - 1]))) --genStart;
+        if (genStart == genEnd)
+        {
+            searchPos = objPos - 1;
+            continue;
+        }
+        cursor = genStart;
+        while (cursor > 0 && std::isspace(static_cast<unsigned char>(data[cursor - 1]))) --cursor;
+        size_t idEnd = cursor;
+        size_t idStart = idEnd;
+        while (idStart > 0 && std::isdigit(static_cast<unsigned char>(data[idStart - 1]))) --idStart;
+        if (idStart == idEnd)
+        {
+            searchPos = objPos - 1;
+            continue;
+        }
+        try
+        {
+            return std::stoi(data.substr(idStart, idEnd - idStart));
+        }
+        catch (...)
+        {
+            searchPos = objPos - 1;
+            continue;
+        }
+    }
+}
+
+static void appendPdfLine(std::vector<std::string> &lines, std::string &current)
+{
+    const std::string trimmed = trim(current);
+    if (!trimmed.empty()) lines.push_back(trimmed);
+    current.clear();
+}
+
+static std::string parsePdfTextStream(const std::string &data, const std::unordered_map<std::string, PdfFontMap> &fonts)
+{
+    bool inText = false;
+    std::string current;
+    std::vector<std::string> lines;
+    size_t pos = 0;
+    std::string pendingFontName;
+    const PdfFontMap *activeFont = nullptr;
+    auto appendText = [&](const std::string &text) {
+        const std::string decoded = decodePdfGlyphs(activeFont, text);
+        if (decoded.empty()) return;
+        current += decoded;
+    };
+
+    while (pos < data.size())
+    {
+        skipPdfWhitespace(data, pos);
+        if (pos >= data.size()) break;
+        char ch = data[pos];
+        if (ch == '%')
+        {
+            while (pos < data.size() && data[pos] != '\n' && data[pos] != '\r') ++pos;
+            continue;
+        }
+        if (ch == '(' && inText)
+        {
+            appendText(parsePdfLiteralString(data, pos));
+            continue;
+        }
+        if (ch == '[' && inText)
+        {
+            const std::vector<std::string> arrayStrings = parsePdfArrayStrings(data, pos);
+            for (const std::string &value : arrayStrings) appendText(value);
+            continue;
+        }
+        if (ch == '<' && inText && (pos + 1 >= data.size() || data[pos + 1] != '<'))
+        {
+            appendText(parsePdfHexString(data, pos));
+            continue;
+        }
+        if (ch == '\'' && inText)
+        {
+            ++pos;
+            appendPdfLine(lines, current);
+            continue;
+        }
+        if (ch == '"' && inText)
+        {
+            ++pos;
+            appendPdfLine(lines, current);
+            continue;
+        }
+        if (ch == 'T' && inText && pos + 1 < data.size() && data[pos + 1] == '*')
+        {
+            pos += 2;
+            appendPdfLine(lines, current);
+            continue;
+        }
+        if (ch == '/' && inText)
+        {
+            size_t nameStart = pos + 1;
+            size_t nameEnd = nameStart;
+            while (nameEnd < data.size() &&
+                   (std::isalnum(static_cast<unsigned char>(data[nameEnd])) || data[nameEnd] == '_' || data[nameEnd] == '-'))
+                ++nameEnd;
+            pendingFontName = data.substr(nameStart, nameEnd - nameStart);
+            pos = nameEnd;
+            continue;
+        }
+        if (std::isalpha(static_cast<unsigned char>(ch)))
+        {
+            const size_t start = pos;
+            while (pos < data.size() && std::isalpha(static_cast<unsigned char>(data[pos]))) ++pos;
+            const std::string token = data.substr(start, pos - start);
+            if (token == "BT")
+            {
+                current.clear();
+                inText = true;
+            }
+            else if (token == "ET")
+            {
+                appendPdfLine(lines, current);
+                inText = false;
+            }
+            else if (token == "Tf")
+            {
+                const auto fontIt = fonts.find(pendingFontName);
+                activeFont = (fontIt != fonts.end()) ? &fontIt->second : nullptr;
+            }
+            continue;
+        }
+        if ((ch == '+' || ch == '-' || ch == '.' || (ch >= '0' && ch <= '9')))
+        {
+            while (pos < data.size() &&
+                   (std::isdigit(static_cast<unsigned char>(data[pos])) || data[pos] == '+' || data[pos] == '-' ||
+                    data[pos] == '.' || data[pos] == 'E' || data[pos] == 'e'))
+                ++pos;
+            continue;
+        }
+        ++pos;
+    }
+    appendPdfLine(lines, current);
+    return join(lines, "\n\n");
+}
+
+static std::string decompressPdfStreamIfNeeded(const std::string &dict, const std::string &data)
+{
+    if (dict.find("/Filter") == std::string::npos || dict.find("/FlateDecode") == std::string::npos)
+        return data;
+    size_t outSize = 0;
+    void *buffer = tinfl_decompress_mem_to_heap(data.data(), data.size(), &outSize, TINFL_FLAG_PARSE_ZLIB_HEADER);
+    if (!buffer || outSize == 0)
+    {
+        if (buffer) mz_free(buffer);
+        return {};
+    }
+    std::string result(static_cast<const char *>(buffer), outSize);
+    mz_free(buffer);
+    return result;
+}
+
+struct PdfStreamInfo
+{
+    int objectNumber = -1;
+    std::string dict;
+    std::string decoded;
+};
+
+static size_t pdfStreamDeclaredLength(const std::string &dict)
+{
+    const std::string key = "/Length";
+    size_t pos = dict.find(key);
+    if (pos == std::string::npos) return 0;
+    pos += key.size();
+    while (pos < dict.size() && std::isspace(static_cast<unsigned char>(dict[pos]))) ++pos;
+    const size_t start = pos;
+    while (pos < dict.size() && std::isdigit(static_cast<unsigned char>(dict[pos]))) ++pos;
+    if (start == pos) return 0;
+    try
+    {
+        return static_cast<size_t>(std::stoull(dict.substr(start, pos - start)));
+    }
+    catch (...)
+    {
+        return 0;
+    }
+}
+
+std::string readPdfText(const std::string &path)
+{
+    const std::string fileData = readBinaryFile(path);
+    if (fileData.empty()) return {};
+    std::vector<PdfStreamInfo> streams;
+    std::unordered_map<int, std::string> streamByObject;
+    size_t searchPos = 0;
+    while (true)
+    {
+        const size_t streamPos = fileData.find("stream", searchPos);
+        if (streamPos == std::string::npos) break;
+        size_t dictStart = fileData.rfind("<<", streamPos);
+        size_t dictEnd = fileData.find(">>", dictStart);
+        if (dictStart == std::string::npos || dictEnd == std::string::npos || dictEnd > streamPos)
+        {
+            searchPos = streamPos + 6;
+            continue;
+        }
+        const std::string dict = fileData.substr(dictStart, dictEnd - dictStart + 2);
+        if (dict.find("/Subtype /Image") != std::string::npos)
+        {
+            searchPos = streamPos + 6;
+            continue;
+        }
+        size_t dataStart = streamPos + 6;
+        if (dataStart < fileData.size() && fileData[dataStart] == '\r') ++dataStart;
+        if (dataStart < fileData.size() && fileData[dataStart] == '\n') ++dataStart;
+        const size_t declaredLength = pdfStreamDeclaredLength(dict);
+        size_t dataEnd = dataStart;
+        size_t endStreamPos = std::string::npos;
+        if (declaredLength > 0 && dataStart + declaredLength <= fileData.size())
+        {
+            dataEnd = dataStart + declaredLength;
+            endStreamPos = fileData.find("endstream", dataEnd);
+        }
+        else
+        {
+            endStreamPos = fileData.find("endstream", dataStart);
+            dataEnd = endStreamPos;
+        }
+        if (dataEnd == std::string::npos || endStreamPos == std::string::npos) break;
+        const std::string rawStream = fileData.substr(dataStart, dataEnd - dataStart);
+        const std::string decoded = decompressPdfStreamIfNeeded(dict, rawStream);
+        PdfStreamInfo info;
+        info.objectNumber = pdfObjectNumberBefore(fileData, streamPos);
+        info.dict = dict;
+        info.decoded = decoded.empty() ? rawStream : decoded;
+        streams.push_back(info);
+        if (info.objectNumber >= 0) streamByObject[info.objectNumber] = info.decoded;
+        searchPos = endStreamPos + 9;
+    }
+    if (streams.empty()) return {};
+
+    std::unordered_set<int> toUnicodeObjects;
+    const std::unordered_map<std::string, PdfFontMap> fontMaps =
+        buildPdfFontMaps(fileData, streamByObject, toUnicodeObjects);
+
+    std::vector<std::string> blocks;
+    for (const auto &info : streams)
+    {
+        if (info.dict.find("/Subtype /Image") != std::string::npos) continue;
+        if (info.objectNumber >= 0 && toUnicodeObjects.count(info.objectNumber)) continue;
+        const std::string text = parsePdfTextStream(info.decoded, fontMaps);
+        const std::string trimmed = trim(text);
+        if (!trimmed.empty()) blocks.push_back(trimmed);
+    }
+    return join(blocks, "\n\n");
+}
+
 static std::string readZipEntry(const std::string &path, const std::string &entry)
 {
     ZipArchive archive;

@@ -97,6 +97,7 @@ int main()
         {".doc", {"| 1 | 1 | 3 | 3 | 4 |", "EVA_MODELS/llm"}},
         {".docx", {"[English](README_en.md)", "https://pan.baidu.com/s/18NOUMjaJIZsV_Z0toOzGBg?pwd=body"}},
         {".wps", {"EVA_MODELS/speech2text", "Agent"}},
+        {".pdf", {"测试", "EVA_MODELS/llm"}},
         {".pptx", {"https://hf-mirror.com/", "llama-server.exe"}},
         {".dps", {"https://hf-mirror.com/", "___PPT10"}},
         {".xlsx", {"## Sheet 1", "QML_IMPORT_NAME = \"io.qt.textproperties\""}},

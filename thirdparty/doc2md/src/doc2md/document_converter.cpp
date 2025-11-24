@@ -34,6 +34,8 @@ ConversionResult convertFile(const std::string &path, const ConversionOptions &o
         result.markdown = detail::readOdsText(path);
     else if (extension == ".doc" || extension == ".wps")
         result.markdown = detail::readWpsText(path);
+    else if (extension == ".pdf")
+        result.markdown = detail::readPdfText(path);
     else if (extension == ".et")
         result.markdown = detail::readEtText(path);
     else if (extension == ".dps")
@@ -63,4 +65,3 @@ ConversionResult convertFile(const std::string &path, const ConversionOptions &o
 }
 
 } // namespace doc2md
-
