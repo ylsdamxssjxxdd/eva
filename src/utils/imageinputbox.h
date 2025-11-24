@@ -7,7 +7,9 @@
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFileIconProvider>
 #include <QFont>
+#include <QFontMetrics>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHash>
@@ -20,6 +22,7 @@
 #include <QScrollArea>
 #include <QSet>
 #include <QStyle>
+#include <QToolButton>
 #include <QString>
 #include <QTextDocument>
 #include <QTextEdit>
@@ -122,8 +125,32 @@ class ImageInputBox : public QWidget
         if (kind == AttachmentKind::Unknown) return;
         if (containsAttachment(path)) return;
 
-        QLabel *previewLabel = new QLabel;
+        QWidget *itemWidget = new QWidget;
+        itemWidget->setObjectName(QStringLiteral("imageInputPreviewItem"));
+        itemWidget->setMinimumWidth(THUMBNAIL_TEXT_WIDTH);
+        QVBoxLayout *itemLayout = new QVBoxLayout(itemWidget);
+        itemLayout->setContentsMargins(4, 4, 4, 4);
+        itemLayout->setSpacing(6);
+
+        QLabel *previewLabel = new QLabel(itemWidget);
+        previewLabel->setAlignment(Qt::AlignCenter);
+        previewLabel->setFixedSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        previewLabel->setObjectName(QStringLiteral("imageInputPreview"));
+        previewLabel->setAttribute(Qt::WA_StyledBackground, true);
+
+        QLabel *captionLabel = new QLabel(itemWidget);
+        captionLabel->setAlignment(Qt::AlignCenter);
+        QFont captionFont = captionLabel->font();
+        captionFont.setPointSizeF(qMax(8.0, captionFont.pointSizeF() - 1));
+        captionLabel->setFont(captionFont);
+        captionLabel->setWordWrap(false);
+        captionLabel->setObjectName(QStringLiteral("imageInputPreviewCaption"));
+        captionLabel->setFixedWidth(THUMBNAIL_TEXT_WIDTH);
+        captionLabel->setText(elidedAttachmentName(path));
+        captionLabel->setToolTip(path);
+
         QPixmap pixmap;
+        QIcon systemIcon;
 
         if (kind == AttachmentKind::Audio)
         {
@@ -157,39 +184,41 @@ class ImageInputBox : public QWidget
         }
         else
         {
-            const QString suffix = QFileInfo(path).suffix();
-            pixmap = documentBadgeForSuffix(suffix);
+            systemIcon = systemIconForPath(path);
+            if (!systemIcon.isNull())
+            {
+                pixmap = systemIcon.pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+            }
+            else
+            {
+                const QString suffix = QFileInfo(path).suffix();
+                pixmap = documentBadgeForSuffix(suffix);
+            }
             previewLabel->setToolTip(tr("Document: %1").arg(path));
         }
 
         previewLabel->setPixmap(pixmap);
-        previewLabel->setFixedSize(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-        previewLabel->setObjectName(QStringLiteral("imageInputPreview"));
-        previewLabel->setAttribute(Qt::WA_StyledBackground, true);
 
-        QPushButton *closeBtn = new QPushButton("×", previewLabel);
-        closeBtn->setStyleSheet(
-            "QPushButton {"
-            "  background: rgba(255, 0, 0, 150);"
-            "  color: white;"
-            "  border: none;"
-            "  border-radius: 2px;"
-            "  min-width: 4px;"
-            "  max-width: 4px;"
-            "  min-height: 4px;"
-            "  max-height: 4px;"
-            "}"
-            "QPushButton:hover { background: rgba(255, 0, 0, 200); }");
-        closeBtn->move(THUMBNAIL_SIZE - 15, 2);
-        connect(closeBtn, &QPushButton::clicked, [this, path, previewLabel]()
+        QToolButton *closeBtn = new QToolButton(previewLabel);
+        closeBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarCloseButton));
+        closeBtn->setIconSize(QSize(8, 8));
+        closeBtn->setCursor(Qt::PointingHandCursor);
+        closeBtn->setAutoRaise(true);
+        closeBtn->setFixedSize(12, 12);
+        closeBtn->move(previewLabel->width() - closeBtn->width(), 0);
+        closeBtn->show();
+        connect(closeBtn, &QToolButton::clicked, [this, path, itemWidget]()
                 {
             removeAttachment(path);
-            thumbnailLayout->removeWidget(previewLabel);
-            previewLabel->deleteLater();
+            thumbnailLayout->removeWidget(itemWidget);
+            itemWidget->deleteLater();
             updateLayout();
             adjustHeight(); });
 
-        thumbnailLayout->addWidget(previewLabel);
+        itemLayout->addWidget(previewLabel, 0, Qt::AlignHCenter);
+        itemLayout->addWidget(captionLabel, 0, Qt::AlignHCenter);
+
+        thumbnailLayout->addWidget(itemWidget);
         attachments_.append({path, kind});
         adjustHeight();
         updateLayout();
@@ -230,7 +259,8 @@ class ImageInputBox : public QWidget
         QString path;
         AttachmentKind kind;
     };
-    const int THUMBNAIL_SIZE = 30;
+    const int THUMBNAIL_SIZE = 44;
+    const int THUMBNAIL_TEXT_WIDTH = THUMBNAIL_SIZE + 34;
     QVector<AttachmentEntry> attachments_;
     QHash<QString, QPixmap> docIconCache_;
     void updateDragHighlight(bool active)
@@ -356,6 +386,23 @@ class ImageInputBox : public QWidget
         docIconCache_.insert(lower, badge);
         return badge;
     }
+    QString attachmentDisplayName(const QString &path) const
+    {
+        QFileInfo info(path);
+        if (!info.fileName().isEmpty()) return info.fileName();
+        return path;
+    }
+    QString elidedAttachmentName(const QString &path) const
+    {
+        const QString name = attachmentDisplayName(path);
+        QFontMetrics fm(font());
+        return fm.elidedText(name, Qt::ElideMiddle, THUMBNAIL_TEXT_WIDTH);
+    }
+    QIcon systemIconForPath(const QString &path) const
+    {
+        static QFileIconProvider provider;
+        return provider.icon(QFileInfo(path));
+    }
     QPixmap buildDocBadge(const QString &label, const QColor &bg) const
     {
         QPixmap pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
@@ -457,8 +504,9 @@ class ImageInputBox : public QWidget
         scrollArea = new QScrollArea;
         scrollArea->setObjectName(QStringLiteral("imageInputPreviewScroll"));
         scrollArea->setWidgetResizable(true);
-        scrollArea->setMinimumHeight(THUMBNAIL_SIZE + 20);
-        scrollArea->setMaximumHeight(THUMBNAIL_SIZE + 20);
+        const int previewHeight = THUMBNAIL_SIZE + 28;
+        scrollArea->setMinimumHeight(previewHeight);
+        scrollArea->setMaximumHeight(previewHeight);
         scrollArea->setFrameShape(QFrame::NoFrame);
         scrollArea->setFrameShadow(QFrame::Plain);
         scrollArea->viewport()->setAttribute(Qt::WA_StyledBackground, true);
@@ -492,7 +540,7 @@ class ImageInputBox : public QWidget
 
         // 计算可用列数
         int availableWidth = thumbnailContainer->width() - thumbnailLayout->contentsMargins().left() - thumbnailLayout->contentsMargins().right();
-        int itemWidth = THUMBNAIL_SIZE + thumbnailLayout->horizontalSpacing();
+        int itemWidth = THUMBNAIL_TEXT_WIDTH + thumbnailLayout->horizontalSpacing();
         int columns = qMax(1, availableWidth / itemWidth);
 
         // 重新排列所有缩略图
@@ -523,7 +571,7 @@ class ImageInputBox : public QWidget
 
         // 更新容器高度
         int rows = qCeil(static_cast<qreal>(widgets.size()) / columns);
-        int rowHeight = THUMBNAIL_SIZE + thumbnailLayout->verticalSpacing();
+        int rowHeight = THUMBNAIL_SIZE + 35 + thumbnailLayout->verticalSpacing();
         int totalHeight = rows * rowHeight + thumbnailLayout->contentsMargins().top() + thumbnailLayout->contentsMargins().bottom();
         thumbnailContainer->setMinimumHeight(totalHeight);
 
@@ -597,17 +645,16 @@ class ImageInputBox : public QWidget
         doc->setTextWidth(textEdit->viewport()->width());
         QSizeF docSize = doc->size();
 
-        int thumbnail_height = 0;
-        if (!attachments_.isEmpty()) { thumbnail_height += THUMBNAIL_SIZE * 2; }
         // 计算新的高度，考虑边框和内边距
-        int newHeight = static_cast<int>(docSize.height()) + textEdit->frameWidth() * 2 + textEdit->contentsMargins().top() + textEdit->contentsMargins().bottom() + thumbnail_height;
+        int baseHeight = static_cast<int>(docSize.height()) + textEdit->frameWidth() * 2 + textEdit->contentsMargins().top() + textEdit->contentsMargins().bottom();
 
         // 限制高度在最小和最大值之间
-        newHeight = qBound(m_minHeight, newHeight, m_maxHeight);
+        baseHeight = qBound(m_minHeight, baseHeight, m_maxHeight);
 
         // 设置新的固定高度
-        textEdit->setFixedHeight(newHeight);
-        setFixedHeight(newHeight + thumbnail_height);
+        textEdit->setFixedHeight(baseHeight);
+        int extra = (scrollArea->isVisible() ? scrollArea->minimumHeight() : 0);
+        setFixedHeight(baseHeight + extra);
     }
 };
 
