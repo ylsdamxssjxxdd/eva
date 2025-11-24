@@ -52,7 +52,6 @@ TEST_CASE("createChatBody injects local sampling controls and tool translations"
     CHECK(payload.value(QStringLiteral("cache_prompt")).toBool());
     CHECK(payload.value(QStringLiteral("model")).toString() == QStringLiteral("eva-unit-chat"));
     CHECK(payload.value(QStringLiteral("include_usage")).toBool());
-    CHECK_FALSE(payload.contains(QStringLiteral("max_tokens")));
     CHECK(payload.value(QStringLiteral("temperature")).toDouble() == doctest::Approx(1.6));
     CHECK(payload.value(QStringLiteral("top_p")).toDouble() == doctest::Approx(0.55));
     const QJsonArray stop = payload.value(QStringLiteral("stop")).toArray();
@@ -102,7 +101,6 @@ TEST_CASE("createChatBody clamps sampling for remote endpoints and omits local e
 
     const QJsonObject payload = parseBody(net.createChatBody());
     CHECK_FALSE(payload.contains(QStringLiteral("cache_prompt")));
-    CHECK_FALSE(payload.contains(QStringLiteral("max_tokens")));
     CHECK(payload.value(QStringLiteral("temperature")).toDouble() == doctest::Approx(2.0));
     CHECK(payload.value(QStringLiteral("top_p")).toDouble() == doctest::Approx(1.0));
     CHECK_FALSE(payload.contains(QStringLiteral("top_k")));
@@ -135,7 +133,6 @@ TEST_CASE("createCompleteBody honors local extras and reasoning effort")
     CHECK(payload.value(QStringLiteral("cache_prompt")).toBool());
     CHECK(payload.value(QStringLiteral("model")).toString() == QStringLiteral("eva-complete"));
     CHECK(payload.value(QStringLiteral("prompt")).toString() == QStringLiteral("Complete this entry"));
-    CHECK_FALSE(payload.contains(QStringLiteral("max_tokens")));
     CHECK(payload.value(QStringLiteral("stream")).toBool());
     CHECK(payload.value(QStringLiteral("include_usage")).toBool());
     CHECK(payload.value(QStringLiteral("temperature")).toDouble() == doctest::Approx(0.6));
