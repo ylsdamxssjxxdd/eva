@@ -353,8 +353,17 @@ QByteArray xNet::createChatBody()
         streamOptions.insert(QStringLiteral("include_usage"), true);
         json.insert(QStringLiteral("stream_options"), streamOptions);
     }
-    const int cappedPredict = qBound(1, endpoint_data.n_predict, 99999);
-    json.insert("n_predict", cappedPredict);
+    const int requestedPredict = endpoint_data.n_predict;
+    const bool hasManualPredict = (requestedPredict > 0);
+    if (hasManualPredict)
+    {
+        const int cappedPredict = qBound(1, requestedPredict, 99999);
+        json.insert("n_predict", cappedPredict);
+        if (!__isLocal)
+        {
+            json.insert("max_completion_tokens", cappedPredict);
+        }
+    }
     {
         double t = qBound(0.0, 2.0 * double(endpoint_data.temp), 2.0);
         json.insert("temperature", t); // OpenAI range [0,2]
@@ -475,8 +484,17 @@ QByteArray xNet::createCompleteBody()
     } // 缓存上文
     json.insert("model", apis.api_model);
     json.insert("prompt", endpoint_data.input_prompt);
-    const int cappedPredict2 = qBound(1, endpoint_data.n_predict, 99999);
-    json.insert("n_predict", cappedPredict2);
+    const int requestedPredict2 = endpoint_data.n_predict;
+    const bool hasManualPredict2 = (requestedPredict2 > 0);
+    if (hasManualPredict2)
+    {
+        const int cappedPredict2 = qBound(1, requestedPredict2, 99999);
+        json.insert("n_predict", cappedPredict2);
+        if (!__isLocal2)
+        {
+            json.insert("max_completion_tokens", cappedPredict2);
+        }
+    }
     json.insert("stream", true);
     if (__isLocal2)
     {

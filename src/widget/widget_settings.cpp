@@ -121,10 +121,8 @@ void Widget::set_SetDialog()
                 { reasoningUpdater(); }, Qt::UniqueConnection);
     }
     // 最大输出长度
-    settings_ui->npredict_spin->setRange(1, 99999);
-    settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
     settings_ui->npredict_spin->setAccelerated(true);
-    npredict_change();
+    enforcePredictLimit(true);
     connect(settings_ui->npredict_spin, QOverload<int>::of(&QSpinBox::valueChanged), this, &Widget::npredict_change);
     // 加速支持
     settings_ui->ngl_slider->setRange(0, 99);
@@ -1039,6 +1037,56 @@ void Widget::set_set()
         on_reset_clicked();
     }
     backendOverrideDirty_ = false;
+}
+
+int Widget::predictTokenCap() const
+{
+    int ctxLimit = 0;
+    if (slotCtxMax_ > 0)
+    {
+        ctxLimit = slotCtxMax_;
+    }
+    else if (settings_ui && settings_ui->nctx_slider)
+    {
+        ctxLimit = settings_ui->nctx_slider->value();
+    }
+    else if (ui_SETTINGS.nctx > 0)
+    {
+        ctxLimit = ui_SETTINGS.nctx;
+    }
+    else
+    {
+        ctxLimit = DEFAULT_NCTX;
+    }
+    if (ctxLimit <= 0) ctxLimit = DEFAULT_NCTX;
+    return ctxLimit;
+}
+
+void Widget::enforcePredictLimit(bool syncSpin, bool clampSettings)
+{
+    const int limit = qMax(1, predictTokenCap());
+    if (clampSettings)
+    {
+        if (ui_SETTINGS.hid_npredict < -1)
+            ui_SETTINGS.hid_npredict = -1;
+        else if (ui_SETTINGS.hid_npredict > limit)
+            ui_SETTINGS.hid_npredict = limit;
+    }
+    if (settings_ui && settings_ui->npredict_spin)
+    {
+        const QSignalBlocker blocker(settings_ui->npredict_spin);
+        settings_ui->npredict_spin->setRange(-1, limit);
+        if (syncSpin)
+        {
+            const int target = clampSettings ? qBound(-1, ui_SETTINGS.hid_npredict, limit)
+                                              : qBound(-1, settings_ui->npredict_spin->value(), limit);
+            settings_ui->npredict_spin->setValue(target);
+        }
+    }
+    if (settings_ui && settings_ui->npredict_spin)
+    {
+        npredict_change();
+    }
 }
 
 

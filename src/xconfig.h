@@ -38,7 +38,7 @@
 #define DEFAULT_SPLITER "\n" // 分隔符
 
 // 采样
-#define DEFAULT_NPREDICT 16384
+#define DEFAULT_NPREDICT -1
 #define DEFAULT_TEMP 0.4
 #define DEFAULT_REPEAT 1.2
 #define DEFAULT_TOP_P 0.95 // 默认top_p值为0.95

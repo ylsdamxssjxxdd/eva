@@ -293,6 +293,7 @@ void Widget::onServerOutput(const QString &line)
     if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_ctx_slot"), slotCtx) && slotCtx > 0)
     {
         slotCtxMax_ = slotCtx;
+        enforcePredictLimit();
         updateKvBarUi();
         SETTINGS snap = ui_SETTINGS;
         if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;

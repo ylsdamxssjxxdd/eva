@@ -604,7 +604,7 @@ class Widget : public QWidget
     void onSkillDropRequested(const QStringList &paths);
     void onSkillToggleRequested(const QString &skillId, bool enabled);
     void onSkillRemoveRequested(const QString &skillId);
-  private:
+  public:
     void applyInputVisualState(const QByteArray &state);
     // Refresh UI hints related to device/backend selection:
     // - When current selection is auto, append the actually resolved backend
@@ -709,6 +709,8 @@ class Widget : public QWidget
     QColor themeStateColor(SIGNAL_STATE state) const;
     QColor themeTextPrimary() const { return themeVisuals_.textPrimary; }
     QColor themeThinkColor() const { return themeVisuals_.textSecondary; }
+    int predictTokenCap() const;
+    void enforcePredictLimit(bool syncSpin = true, bool clampSettings = true);
 
   private:
     Ui::Widget *ui;

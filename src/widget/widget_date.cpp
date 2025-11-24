@@ -390,7 +390,10 @@ void Widget::on_set_clicked()
         if (idx < 0) idx = 0;
         settings_ui->reasoning_comboBox->setCurrentIndex(idx);
     }
-    settings_ui->npredict_spin->setValue(qBound(1, ui_SETTINGS.hid_npredict, 99999));
+    {
+        const int cap = qMax(1, predictTokenCap());
+        settings_ui->npredict_spin->setValue(qBound(-1, ui_SETTINGS.hid_npredict, cap));
+    }
     npredict_change();
     settings_ui->lora_LineEdit->setText(ui_SETTINGS.lorapath);
     settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);

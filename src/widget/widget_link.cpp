@@ -86,6 +86,7 @@ void Widget::set_api()
     sawFinalPast_ = false;
     currentSlotId_ = -1;
     slotCtxMax_ = 0;
+    enforcePredictLimit();
     updateKvBarUi();
     fetchRemoteContextLimit();
     flushPendingStream();
@@ -290,6 +291,7 @@ void Widget::fetchRemoteContextLimit()
         if (maxCtx > 0)
         {
             slotCtxMax_ = maxCtx;
+            enforcePredictLimit();
             updateKvBarUi();
             // Notify Expend (evaluation tab) to refresh displayed n_ctx
             SETTINGS snap = ui_SETTINGS;
@@ -346,6 +348,7 @@ void Widget::fetchPropsContextLimit()
         if (nctx > 0)
         {
             slotCtxMax_ = nctx;
+            enforcePredictLimit();
             updateKvBarUi();
             reflash_state(QString("net:ctx via /props = %1").arg(nctx), SIGNAL_SIGNAL);
             // Notify Expend to refresh displayed n_ctx

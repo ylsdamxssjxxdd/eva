@@ -295,7 +295,9 @@ void Widget::recv_setreset()
 
     reflash_state("· " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp), USUAL_SIGNAL);
     reflash_state("· " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat), USUAL_SIGNAL);
-    reflash_state("· " + jtr("npredict") + " " + QString::number(ui_SETTINGS.hid_npredict), USUAL_SIGNAL);
+    const QString npredictText = (ui_SETTINGS.hid_npredict <= 0) ? QStringLiteral("auto")
+                                                                 : QString::number(ui_SETTINGS.hid_npredict);
+    reflash_state("· " + jtr("npredict") + " " + npredictText, USUAL_SIGNAL);
     reflash_state("· gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl), USUAL_SIGNAL);
     reflash_state("· cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread), USUAL_SIGNAL);
     reflash_state("· " + jtr("ctx") + jtr("length") + " " + QString::number(ui_SETTINGS.nctx), USUAL_SIGNAL);

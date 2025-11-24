@@ -14,6 +14,7 @@ void Widget::ngl_change()
 void Widget::nctx_change()
 {
     settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value()));
+    enforcePredictLimit(true, false);
 }
 
 void Widget::repeat_change()
@@ -36,7 +37,10 @@ void Widget::topp_change()
 
 void Widget::npredict_change()
 {
+    if (!settings_ui || !settings_ui->npredict_spin || !settings_ui->npredict_label) return;
     const int value = settings_ui->npredict_spin->value();
+    const int cap = predictTokenCap();
+    Q_UNUSED(cap);
     const QString text = jtr("npredict") + " " + QString::number(value);
     settings_ui->npredict_label->setText(text);
     settings_ui->npredict_label->setToolTip(text);

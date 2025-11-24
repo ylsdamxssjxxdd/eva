@@ -125,7 +125,11 @@ void Widget::get_set()
     }
     updateLazyCountdownLabel();
     ui_SETTINGS.complete_mode = settings_ui->complete_btn->isChecked();
-    ui_SETTINGS.hid_npredict = qBound(1, settings_ui->npredict_spin->value(), 99999);
+    const int npredictValue = settings_ui->npredict_spin->value();
+    if (npredictValue < 0)
+        ui_SETTINGS.hid_npredict = -1;
+    else
+        ui_SETTINGS.hid_npredict = qMin(npredictValue, predictTokenCap());
     if (settings_ui->reasoning_comboBox)
     {
         ui_SETTINGS.reasoning_effort = sanitizeReasoningEffort(settings_ui->reasoning_comboBox->currentData().toString());
