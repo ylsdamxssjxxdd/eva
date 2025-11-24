@@ -21,16 +21,12 @@ void Widget::set_api()
     // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
     {
         QUrl u = QUrl::fromUserInput(clean_endpoint);
-        QString host = u.host().toLower();
+        const QString host = u.host();
         QString scheme = u.scheme().toLower();
-        const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
+        const bool isLocal = isLoopbackHost(host);
         if (scheme.isEmpty())
         {
             u.setScheme(isLocal ? "http" : "https");
-        }
-        else if (scheme == "http" && !isLocal)
-        {
-            u.setScheme("https");
         }
         clean_endpoint = u.toString(QUrl::RemoveFragment);
     }
@@ -43,6 +39,7 @@ void Widget::set_api()
     apis.api_endpoint = clean_endpoint;
     apis.api_key = clean_key;
     apis.api_model = clean_model;
+    apis.is_local_backend = false;
 
     // 切换为链接模式
     ui_mode = LINK_MODE; // 按照链接模式的行为来
@@ -143,13 +140,11 @@ void Widget::tool_testhandleTimeout()
         // Normalize scheme for remote hosts
         {
             QUrl u = QUrl::fromUserInput(clean_endpoint);
-            QString host = u.host().toLower();
+            const QString host = u.host();
             QString scheme = u.scheme().toLower();
-            const bool isLocal = host.isEmpty() || host == "localhost" || host == "127.0.0.1" || host.startsWith("192.") || host.startsWith("10.") || host.startsWith("172.");
+            const bool isLocal = isLoopbackHost(host);
             if (scheme.isEmpty())
                 u.setScheme(isLocal ? "http" : "https");
-            else if (scheme == "http" && !isLocal)
-                u.setScheme("https");
             clean_endpoint = u.toString(QUrl::RemoveFragment);
         }
         const QString clean_key = TextParse::removeAllWhitespace(api_key_LineEdit->text());
@@ -159,6 +154,7 @@ void Widget::tool_testhandleTimeout()
             apis.api_endpoint = clean_endpoint;
             apis.api_key = clean_key;
             apis.api_model = clean_model;
+            apis.is_local_backend = false;
             emit ui2net_apis(apis);
         }
     }
@@ -212,6 +208,7 @@ void Widget::fetchRemoteContextLimit()
     // Build URL: base endpoint + /v1/models
     QUrl base = QUrl::fromUserInput(apis.api_endpoint);
     if (!base.isValid()) return;
+    const bool isLocalEndpoint = (ui_mode == LOCAL_MODE);
     QUrl url(base);
     QString path = url.path();
     if (!path.endsWith('/')) path += '/';
@@ -225,14 +222,14 @@ void Widget::fetchRemoteContextLimit()
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp, isLocalEndpoint]()
             {
         rp->deleteLater();
         nam->deleteLater();
         if (rp->error() != QNetworkReply::NoError)
         {
             // leave slotCtxMax_ unchanged on error
-            fetchPropsContextLimit();
+            if (isLocalEndpoint) fetchPropsContextLimit();
             return;
         }
         const QByteArray body = rp->readAll();
@@ -240,13 +237,13 @@ void Widget::fetchRemoteContextLimit()
         QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
         if (perr.error != QJsonParseError::NoError)
         {
-            fetchPropsContextLimit();
+            if (isLocalEndpoint) fetchPropsContextLimit();
             return;
         }
         int maxCtx = -1;
         auto tryPick = [&](const QJsonObject &o) {
             // Try common fields from various providers
-            const char *keys[] = {"context_length","max_input_tokens","max_context_length","max_input_length","prompt_token_limit","input_token_limit"};
+            const char *keys[] = {"max_model_len","context_length","max_input_tokens","max_context_length","max_input_length","prompt_token_limit","input_token_limit"};
             for (auto k : keys) {
                 if (o.contains(k)) { int v = o.value(k).toInt(-1); if (v > 0) return v; }
             }
@@ -302,14 +299,14 @@ void Widget::fetchRemoteContextLimit()
         else
         {
             // Fallback: try llama.cpp tools/server props API
-            fetchPropsContextLimit();
+            if (isLocalEndpoint) fetchPropsContextLimit();
         } });
 }
 
 // Fallback: GET /props from llama.cpp tools/server to obtain global n_ctx
 void Widget::fetchPropsContextLimit()
 {
-    if (ui_mode != LINK_MODE) return;
+    if (ui_mode != LOCAL_MODE) return;
     QUrl base = QUrl::fromUserInput(apis.api_endpoint);
     if (!base.isValid()) return;
     QUrl url(base);

@@ -224,6 +224,7 @@ struct APIS
     QString api_chat_endpoint = CHAT_ENDPOINT;
     QString api_completion_endpoint = COMPLETION_ENDPOINT;
     bool is_cache = true;
+    bool is_local_backend = false;
 };
 
 // 端点接收参数
@@ -721,6 +722,20 @@ inline bool isReasoningEffortActive(const QString &value)
 {
     const QString normalized = sanitizeReasoningEffort(value);
     return !normalized.isEmpty() && normalized != QStringLiteral("off");
+}
+
+inline bool isLoopbackHost(const QString &host)
+{
+    const QString trimmed = host.trimmed().toLower();
+    if (trimmed.isEmpty()) return true;
+    if (trimmed == QStringLiteral("localhost") || trimmed == QStringLiteral("::1") ||
+        trimmed == QStringLiteral("0:0:0:0:0:0:0:1"))
+        return true;
+    if (trimmed.startsWith(QStringLiteral("127.")))
+        return true;
+    if (trimmed == QStringLiteral("0.0.0.0"))
+        return true;
+    return false;
 }
 
 // 颜色

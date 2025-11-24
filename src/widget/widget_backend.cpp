@@ -310,6 +310,7 @@ void Widget::ensureLocalServer(bool lazyWake)
     apis.api_endpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
     apis.api_key = "";
     apis.api_model = "default";
+    apis.is_local_backend = true;
     emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
@@ -677,6 +678,7 @@ void Widget::onServerReady(const QString &endpoint)
     apis.api_endpoint = frontendEndpoint;
     apis.api_key = "";
     apis.api_model = "default";
+    apis.is_local_backend = true;
     emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);

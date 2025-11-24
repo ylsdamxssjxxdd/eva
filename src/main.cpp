@@ -458,6 +458,7 @@ int main(int argc, char *argv[])
         w.apis.api_endpoint = w.api_endpoint_LineEdit->text();
         w.apis.api_key = w.api_key_LineEdit->text();
         w.apis.api_model = w.api_model_LineEdit->text();
+        w.apis.is_local_backend = (w.ui_mode == LOCAL_MODE);
 
         // Migrate numeric keys -> string keys, then remove numeric/percent keys to keep only strings
         {

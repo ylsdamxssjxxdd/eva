@@ -6,7 +6,7 @@
 
 namespace
 {
-void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort)
+void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort, bool useLegacySchema)
 {
     const QString normalized = sanitizeReasoningEffort(effort);
     if (!isReasoningEffortActive(normalized)) return;
@@ -15,9 +15,17 @@ void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort)
     {
         finalEffort = QStringLiteral("medium");
     }
-    QJsonObject reasoning;
-    reasoning.insert(QStringLiteral("effort"), finalEffort);
-    json.insert(QStringLiteral("reasoning"), reasoning);
+    if (useLegacySchema)
+    {
+        QJsonObject reasoning;
+        reasoning.insert(QStringLiteral("effort"), finalEffort);
+        json.insert(QStringLiteral("reasoning"), reasoning);
+    }
+    else
+    {
+        json.insert(QStringLiteral("reasoning_effort"), finalEffort);
+        json.insert(QStringLiteral("include_reasoning"), true);
+    }
 }
 } // namespace
 
@@ -129,7 +137,8 @@ QNetworkRequest xNet::buildRequest(const QUrl &url) const
 #else
     req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 #endif
-    req.setAttribute(QNetworkRequest::Http2AllowedAttribute, true);
+    const bool allowHttp2 = (url.scheme().compare(QStringLiteral("https"), Qt::CaseInsensitive) == 0);
+    req.setAttribute(QNetworkRequest::Http2AllowedAttribute, allowHttp2);
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     req.setTransferTimeout(0); // disable per-transfer timeout for SSE; rely on our inactivity guard
 #endif
@@ -327,13 +336,23 @@ void xNet::ensureNetObjects()
 QByteArray xNet::createChatBody()
 { // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
-    if (apis.is_cache)
+    const bool __isLocal = apis.is_local_backend;
+    if (__isLocal && apis.is_cache)
     {
         json.insert("cache_prompt", apis.is_cache);
     }
     json.insert("model", apis.api_model);
     json.insert("stream", true);
-    json.insert("include_usage", true);
+    if (__isLocal)
+    {
+        json.insert("include_usage", true);
+    }
+    else
+    {
+        QJsonObject streamOptions;
+        streamOptions.insert(QStringLiteral("include_usage"), true);
+        json.insert(QStringLiteral("stream_options"), streamOptions);
+    }
     const int cappedPredict = qBound(1, endpoint_data.n_predict, 99999);
     json.insert("n_predict", cappedPredict);
     {
@@ -357,13 +376,15 @@ QByteArray xNet::createChatBody()
     json.insert("stop", stopkeys);
 
     // Heuristic: treat localhost/LAN as local llama.cpp endpoint
-    QUrl __ep = QUrl::fromUserInput(apis.api_endpoint);
-    QString __host = __ep.host().toLower();
-    const bool __isLocal = __host.isEmpty() || __host == "localhost" || __host == "127.0.0.1" || __host.startsWith("192.") || __host.startsWith("10.") || __host.startsWith("172.");
     if (__isLocal)
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
+    }
+    else
+    {
+        json.insert("top_k", endpoint_data.top_k);
+        json.insert("repetition_penalty", endpoint_data.repeat);
     }
 
     // Normalize UI messages into OpenAI-compatible messages
@@ -419,7 +440,7 @@ QByteArray xNet::createChatBody()
     json.insert("messages", compatMsgs);
     // Reuse llama.cpp server slot KV cache if available
     if (__isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
-    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort);
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, __isLocal);
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
@@ -447,7 +468,8 @@ QByteArray xNet::createCompleteBody()
 {
     // 创建 JSON 数据
     QJsonObject json;
-    if (apis.is_cache)
+    const bool __isLocal2 = apis.is_local_backend;
+    if (__isLocal2 && apis.is_cache)
     {
         json.insert("cache_prompt", apis.is_cache);
     } // 缓存上文
@@ -456,7 +478,16 @@ QByteArray xNet::createCompleteBody()
     const int cappedPredict2 = qBound(1, endpoint_data.n_predict, 99999);
     json.insert("n_predict", cappedPredict2);
     json.insert("stream", true);
-    json.insert("include_usage", true);
+    if (__isLocal2)
+    {
+        json.insert("include_usage", true);
+    }
+    else
+    {
+        QJsonObject streamOptions;
+        streamOptions.insert(QStringLiteral("include_usage"), true);
+        json.insert(QStringLiteral("stream_options"), streamOptions);
+    }
     {
         double t = qBound(0.0, 2.0 * double(endpoint_data.temp), 2.0);
         json.insert("temperature", t); // OpenAI range [0,2]
@@ -474,16 +505,18 @@ QByteArray xNet::createCompleteBody()
         stopkeys2.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys2);
-    QUrl __ep2 = QUrl::fromUserInput(apis.api_endpoint);
-    QString __host2 = __ep2.host().toLower();
-    const bool __isLocal2 = __host2.isEmpty() || __host2 == "localhost" || __host2 == "127.0.0.1" || __host2.startsWith("192.") || __host2.startsWith("10.") || __host2.startsWith("172.");
     if (__isLocal2)
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
     }
+    else
+    {
+        json.insert("top_k", endpoint_data.top_k);
+        json.insert("repetition_penalty", endpoint_data.repeat);
+    }
     if (__isLocal2 && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
-    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort);
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, __isLocal2);
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);

@@ -267,6 +267,7 @@ void Expend::on_eval_start_pushButton_clicked()
         settings.setIniCodec("utf-8");
         const QString port = settings.value("port", DEFAULT_SERVER_PORT).toString();
         eval_apis.api_endpoint = QString("http://127.0.0.1:%1").arg(port);
+        eval_apis.is_local_backend = true;
     }
     toolCases_.clear();
     // Construct evaluation tasks for each tool (two natural prompts per tool).
