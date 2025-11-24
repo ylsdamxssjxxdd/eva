@@ -98,11 +98,18 @@ enum class ConversationTask
     Completion,
     ToolLoop
 };
+struct DocumentAttachment
+{
+    QString path;
+    QString displayName;
+    QString markdown;
+};
 struct InputPack
 {
     QString text;
     QStringList images;
     QStringList wavs;
+    QVector<DocumentAttachment> documents;
 };
 
 class Widget : public QWidget
@@ -658,6 +665,9 @@ class Widget : public QWidget
     ENDPOINT_DATA prepareEndpointData();
     void beginSessionIfNeeded();
     void collectUserInputs(InputPack &pack);
+    bool buildDocumentAttachment(const QString &path, DocumentAttachment &attachment);
+    QString formatDocumentPayload(const DocumentAttachment &doc) const;
+    QString describeDocumentList(const QVector<DocumentAttachment> &docs) const;
     void handleChatReply(ENDPOINT_DATA &data, const InputPack &in);
     void handleCompletion(ENDPOINT_DATA &data);
     void handleToolLoop(ENDPOINT_DATA &data);

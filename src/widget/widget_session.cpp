@@ -1,6 +1,11 @@
 #include "widget.h"
 #include "ui_widget.h"
 
+#include <doc2md/document_converter.h>
+#include <QFile>
+#include <QFileInfo>
+#include <string>
+
 void Widget::on_load_clicked()
 {
     // reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
@@ -147,6 +152,62 @@ void Widget::beginSessionIfNeeded()
     history_->appendMessage(systemMessage);
 }
 
+bool Widget::buildDocumentAttachment(const QString &path, DocumentAttachment &attachment)
+{
+    const QFileInfo info(path);
+    const QString absolutePath = info.exists() ? info.absoluteFilePath() : path;
+    const QByteArray encoded = QFile::encodeName(absolutePath);
+    if (encoded.isEmpty())
+    {
+        reflash_state(QStringLiteral("ui:invalid document path -> ") + absolutePath, WRONG_SIGNAL);
+        return false;
+    }
+    const std::string pathStr(encoded.constData(), static_cast<size_t>(encoded.size()));
+    const doc2md::ConversionResult result = doc2md::convertFile(pathStr);
+    for (const std::string &warn : result.warnings)
+    {
+        reflash_state(QStringLiteral("[doc2md] %1").arg(QString::fromStdString(warn)), USUAL_SIGNAL);
+    }
+    if (!result.success)
+    {
+        reflash_state(QStringLiteral("ui:doc parse failed -> ") + absolutePath, WRONG_SIGNAL);
+        return false;
+    }
+    attachment.path = absolutePath;
+    attachment.displayName = info.fileName().isEmpty() ? absolutePath : info.fileName();
+    attachment.markdown = QString::fromUtf8(result.markdown.data(), static_cast<int>(result.markdown.size()));
+    return true;
+}
+
+QString Widget::formatDocumentPayload(const DocumentAttachment &doc) const
+{
+    QString name = doc.displayName;
+    if (name.isEmpty())
+    {
+        const QFileInfo info(doc.path);
+        name = info.fileName().isEmpty() ? doc.path : info.fileName();
+    }
+    return QStringLiteral("### Document: %1\n%2").arg(name, doc.markdown);
+}
+
+QString Widget::describeDocumentList(const QVector<DocumentAttachment> &docs) const
+{
+    if (docs.isEmpty()) return QString();
+    QStringList names;
+    names.reserve(docs.size());
+    for (const DocumentAttachment &doc : docs)
+    {
+        QString name = doc.displayName;
+        if (name.isEmpty())
+        {
+            const QFileInfo info(doc.path);
+            name = info.fileName().isEmpty() ? doc.path : info.fileName();
+        }
+        names.append(name);
+    }
+    return names.join(QStringLiteral(", "));
+}
+
 void Widget::collectUserInputs(InputPack &pack)
 {
     pack.text.clear();
@@ -159,6 +220,20 @@ void Widget::collectUserInputs(InputPack &pack)
         ui->input->textEdit->clear();
     }
     pack.images = ui->input->imageFilePaths();
+    pack.documents.clear();
+    const QStringList documentPaths = ui->input->documentFilePaths();
+    if (!documentPaths.isEmpty())
+    {
+        pack.documents.reserve(documentPaths.size());
+        for (const QString &docPath : documentPaths)
+        {
+            DocumentAttachment attachment;
+            if (buildDocumentAttachment(docPath, attachment))
+            {
+                pack.documents.append(attachment);
+            }
+        }
+    }
     if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
     {
         const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
@@ -182,7 +257,8 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
     cancelLazyUnload(QStringLiteral("handle chat reply"));
 
     // user message assembly
-    if (in.images.isEmpty())
+    const bool hasMixedContent = !in.images.isEmpty() || !in.documents.isEmpty();
+    if (!hasMixedContent)
     {
         QJsonObject roleMessage;
         roleMessage.insert("role", DEFAULT_USER_NAME);
@@ -202,38 +278,53 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
             textMessage.insert("text", in.text);
             contentArray.append(textMessage);
         }
-        for (int i = 0; i < in.images.size(); ++i)
+        if (!in.documents.isEmpty())
         {
-            QFile imageFile(in.images[i]);
-            if (!imageFile.open(QIODevice::ReadOnly))
+            for (const DocumentAttachment &doc : in.documents)
             {
-                qDebug() << "Failed to open image file";
-                continue;
+                if (doc.markdown.isEmpty()) continue;
+                QJsonObject docObject;
+                docObject["type"] = "text";
+                docObject["text"] = formatDocumentPayload(doc);
+                contentArray.append(docObject);
             }
-            QByteArray imageData = imageFile.readAll();
-            QByteArray base64Data = imageData.toBase64();
-            QString base64String = QString("data:image/jpeg;base64,") + base64Data;
-            QJsonObject imageObject;
-            imageObject["type"] = "image_url";
-            QJsonObject imageUrlObject;
-            imageUrlObject["url"] = base64String;
-            imageObject["image_url"] = imageUrlObject;
-            contentArray.append(imageObject);
-            showImages({in.images[i]});
+        }
+        if (!in.images.isEmpty())
+        {
+            for (const QString &imagePath : in.images)
+            {
+                QFile imageFile(imagePath);
+                if (!imageFile.open(QIODevice::ReadOnly))
+                {
+                    qDebug() << "Failed to open image file";
+                    continue;
+                }
+                const QByteArray imageData = imageFile.readAll();
+                const QByteArray base64Data = imageData.toBase64();
+                const QString base64String = QStringLiteral("data:image/jpeg;base64,") + base64Data;
+                QJsonObject imageObject;
+                imageObject["type"] = QStringLiteral("image_url");
+                QJsonObject imageUrlObject;
+                imageUrlObject["url"] = base64String;
+                imageObject["image_url"] = imageUrlObject;
+                contentArray.append(imageObject);
+                showImages({imagePath});
+            }
         }
         message["content"] = contentArray;
         ui_messagesArray.append(message);
-        // Persist a history-only copy with local file paths for reliable restoration
         if (history_)
         {
             QJsonObject histMsg = message; // copy
-            QJsonArray locals;
-            for (const QString &p : in.images)
+            if (!in.images.isEmpty())
             {
-                // Store absolute path to improve robustness across cwd changes
-                locals.append(QFileInfo(p).absoluteFilePath());
+                QJsonArray locals;
+                for (const QString &p : in.images)
+                {
+                    locals.append(QFileInfo(p).absoluteFilePath());
+                }
+                if (!locals.isEmpty()) histMsg.insert("local_images", locals);
             }
-            if (!locals.isEmpty()) histMsg.insert("local_images", locals);
             history_->appendMessage(histMsg);
         }
     }
@@ -282,9 +373,19 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
     // Create record BEFORE printing header/content so docFrom anchors at header line
     int __idx = recordCreate(RecordRole::User);
     appendRoleHeader(QStringLiteral("user"));
-    reflash_output(in.text, 0, themeTextPrimary());
+    QString userDisplayText = in.text;
+    if (!in.documents.isEmpty())
+    {
+        for (const DocumentAttachment &doc : in.documents)
+        {
+            if (doc.markdown.isEmpty()) continue;
+            if (!userDisplayText.isEmpty()) userDisplayText.append(QStringLiteral("\n\n"));
+            userDisplayText.append(formatDocumentPayload(doc));
+        }
+    }
+    reflash_output(userDisplayText, 0, themeTextPrimary());
     // After content is printed, update record's text and docTo, and link msgIndex
-    recordAppendText(__idx, in.text);
+    recordAppendText(__idx, userDisplayText);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
     data.n_predict = ui_SETTINGS.hid_npredict;
     emit ui2net_data(data);

@@ -1,26 +1,31 @@
 #ifndef IMAGEINPUTBOX_H
 #define IMAGEINPUTBOX_H
 
+#include <QColor>
 #include <QDebug>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFont>
+#include <QFrame>
 #include <QGridLayout>
+#include <QHash>
 #include <QIcon>
 #include <QLabel>
-#include <QFrame>
 #include <QMimeData>
-#include <QPixmap>
 #include <QPainter>
+#include <QPixmap>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QSet>
 #include <QStyle>
 #include <QString>
-#include <QVariant>
 #include <QTextDocument>
 #include <QTextEdit>
 #include <QTimer>
+#include <QVariant>
+#include <QVector>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
@@ -34,7 +39,6 @@ class ImageInputBox : public QWidget
     QWidget *thumbnailContainer;
     QGridLayout *thumbnailLayout;
     QVBoxLayout *mainLayout;
-    QStringList filePaths; // 改为通用文件路径
     explicit ImageInputBox(QWidget *parent = nullptr)
         : QWidget(parent)
     {
@@ -55,9 +59,8 @@ class ImageInputBox : public QWidget
 
     void addFiles(const QStringList &paths)
     {
-        for (int i = 0; i < paths.size(); ++i)
+        for (const QString &path : paths)
         {
-            QString path = paths[i];
             addFileThumbnail(path);
         }
     }
@@ -65,47 +68,38 @@ class ImageInputBox : public QWidget
     // 检查是否是支持的文件类型
     bool isSupportedFile(const QString &path) const
     {
-        static QStringList extensions = {"png", "jpg", "jpeg", "gif", "bmp", "wav", "mp3"};
-        return extensions.contains(QFileInfo(path).suffix().toLower());
+        return classifyAttachment(path) != AttachmentKind::Unknown;
     }
     // 检查是否是图像文件
     bool isImageFile(const QString &path) const
     {
-        static QStringList imageExtensions = {"png", "jpg", "jpeg", "gif", "bmp"};
-        return imageExtensions.contains(QFileInfo(path).suffix().toLower());
+        return classifyAttachment(path) == AttachmentKind::Image;
     }
     // 检查是否是音频文件
     bool isAudioFile(const QString &path) const
     {
-        static QStringList audioExtensions = {"wav", "mp3"};
-        return audioExtensions.contains(QFileInfo(path).suffix().toLower());
+        return classifyAttachment(path) == AttachmentKind::Audio;
+    }
+    // 检查是否是文档文件
+    bool isDocumentFile(const QString &path) const
+    {
+        return classifyAttachment(path) == AttachmentKind::Document;
     }
 
-    // 新增：返回所有WAV文件路径
+    // 新增：返回所有音频文件路径
     QStringList wavFilePaths() const
     {
-        QStringList wavPaths;
-        for (const QString &path : filePaths)
-        {
-            if (isAudioFile(path))
-            {
-                wavPaths.append(path);
-            }
-        }
-        return wavPaths;
+        return filePathsByKind(AttachmentKind::Audio);
     }
     // 返回所有图像文件路径
     QStringList imageFilePaths() const
     {
-        QStringList imagePaths;
-        for (const QString &path : filePaths)
-        {
-            if (isImageFile(path))
-            {
-                imagePaths.append(path);
-            }
-        }
-        return imagePaths;
+        return filePathsByKind(AttachmentKind::Image);
+    }
+    // 返回所有文档文件路径
+    QStringList documentFilePaths() const
+    {
+        return filePathsByKind(AttachmentKind::Document);
     }
 
     bool hasSupportedUrls(const QMimeData *mimeData) const
@@ -124,23 +118,23 @@ class ImageInputBox : public QWidget
 
     void addFileThumbnail(const QString &path)
     {
-        if (filePaths.contains(path)) return;
+        const AttachmentKind kind = classifyAttachment(path);
+        if (kind == AttachmentKind::Unknown) return;
+        if (containsAttachment(path)) return;
 
         QLabel *previewLabel = new QLabel;
         QPixmap pixmap;
 
-        if (isAudioFile(path))
+        if (kind == AttachmentKind::Audio)
         {
-            // 音频文件使用图标
             QIcon audioIcon(":/logo/wav.png");
             if (audioIcon.isNull())
             {
-                // 内置备用图标
                 QPixmap audioPixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
                 audioPixmap.fill(Qt::transparent);
                 QPainter painter(&audioPixmap);
                 painter.setRenderHint(QPainter::Antialiasing);
-                painter.setBrush(QColor(70, 130, 180)); // 钢蓝色
+                painter.setBrush(QColor(70, 130, 180));
                 painter.setPen(Qt::NoPen);
                 painter.drawEllipse(5, 5, THUMBNAIL_SIZE - 10, THUMBNAIL_SIZE - 10);
                 painter.setBrush(Qt::white);
@@ -152,16 +146,20 @@ class ImageInputBox : public QWidget
             {
                 pixmap = audioIcon.pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
             }
-            previewLabel->setToolTip("音频文件: " + path);
+            previewLabel->setToolTip(tr("Audio: %1").arg(path));
+        }
+        else if (kind == AttachmentKind::Image)
+        {
+            pixmap = QPixmap(path);
+            if (pixmap.isNull()) return;
+            pixmap = pixmap.scaled(THUMBNAIL_SIZE, THUMBNAIL_SIZE, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            previewLabel->setToolTip(tr("Image: %1").arg(path));
         }
         else
         {
-            // 图像文件
-            pixmap = QPixmap(path);
-            if (pixmap.isNull()) return;
-            pixmap = pixmap.scaled(THUMBNAIL_SIZE, THUMBNAIL_SIZE,
-                                   Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            previewLabel->setToolTip("图像文件: " + path);
+            const QString suffix = QFileInfo(path).suffix();
+            pixmap = documentBadgeForSuffix(suffix);
+            previewLabel->setToolTip(tr("Document: %1").arg(path));
         }
 
         previewLabel->setPixmap(pixmap);
@@ -185,14 +183,14 @@ class ImageInputBox : public QWidget
         closeBtn->move(THUMBNAIL_SIZE - 15, 2);
         connect(closeBtn, &QPushButton::clicked, [this, path, previewLabel]()
                 {
-            filePaths.removeAll(path);
+            removeAttachment(path);
             thumbnailLayout->removeWidget(previewLabel);
             previewLabel->deleteLater();
             updateLayout();
             adjustHeight(); });
 
         thumbnailLayout->addWidget(previewLabel);
-        filePaths.append(path);
+        attachments_.append({path, kind});
         adjustHeight();
         updateLayout();
     }
@@ -214,13 +212,27 @@ class ImageInputBox : public QWidget
             delete child->widget();
             delete child;
         }
-        filePaths.clear();
+        attachments_.clear();
         updateLayout();
         adjustHeight();
     }
 
   private:
+    enum class AttachmentKind
+    {
+        Image,
+        Audio,
+        Document,
+        Unknown
+    };
+    struct AttachmentEntry
+    {
+        QString path;
+        AttachmentKind kind;
+    };
     const int THUMBNAIL_SIZE = 30;
+    QVector<AttachmentEntry> attachments_;
+    QHash<QString, QPixmap> docIconCache_;
     void updateDragHighlight(bool active)
     {
         const QByteArray value = active ? QByteArray("true") : QByteArray();
@@ -245,6 +257,195 @@ class ImageInputBox : public QWidget
 
         applyState(this);
         applyState(textEdit);
+    }
+    bool containsAttachment(const QString &path) const
+    {
+        for (const AttachmentEntry &entry : attachments_)
+        {
+            if (entry.path == path) return true;
+        }
+        return false;
+    }
+    QStringList filePathsByKind(AttachmentKind kind) const
+    {
+        QStringList paths;
+        for (const AttachmentEntry &entry : attachments_)
+        {
+            if (entry.kind == kind)
+            {
+                paths.append(entry.path);
+            }
+        }
+        return paths;
+    }
+    void removeAttachment(const QString &path)
+    {
+        for (int i = 0; i < attachments_.size(); ++i)
+        {
+            if (attachments_.at(i).path == path)
+            {
+                attachments_.removeAt(i);
+                break;
+            }
+        }
+    }
+    AttachmentKind classifyAttachment(const QString &path) const
+    {
+        const QString suffix = QFileInfo(path).suffix().toLower();
+        if (suffix.isEmpty()) return AttachmentKind::Unknown;
+        if (imageExtensions().contains(suffix)) return AttachmentKind::Image;
+        if (audioExtensions().contains(suffix)) return AttachmentKind::Audio;
+        if (documentExtensions().contains(suffix)) return AttachmentKind::Document;
+        return AttachmentKind::Unknown;
+    }
+    QPixmap documentBadgeForSuffix(const QString &suffix)
+    {
+        const QString lower = suffix.toLower();
+        const auto it = docIconCache_.constFind(lower);
+        if (it != docIconCache_.constEnd()) return it.value();
+
+        QString label = lower.isEmpty() ? QStringLiteral("DOC") : lower.left(4).toUpper();
+        QColor color(96, 125, 139);
+        if (wordExtensions().contains(lower))
+        {
+            label = QStringLiteral("DOC");
+            color = QColor(33, 118, 189);
+        }
+        else if (presentationExtensions().contains(lower))
+        {
+            label = QStringLiteral("PPT");
+            color = QColor(198, 96, 29);
+        }
+        else if (sheetExtensions().contains(lower))
+        {
+            label = QStringLiteral("XLS");
+            color = QColor(46, 125, 50);
+        }
+        else if (lower == QStringLiteral("pdf"))
+        {
+            label = QStringLiteral("PDF");
+            color = QColor(183, 53, 58);
+        }
+        else if (markdownExtensions().contains(lower))
+        {
+            label = QStringLiteral("MD");
+            color = QColor(103, 58, 183);
+        }
+        else if (htmlExtensions().contains(lower))
+        {
+            label = QStringLiteral("HTML");
+            color = QColor(230, 81, 0);
+        }
+        else if (codeExtensions().contains(lower))
+        {
+            label = QStringLiteral("CODE");
+            color = QColor(84, 110, 122);
+        }
+        else if (configExtensions().contains(lower))
+        {
+            label = lower.left(3).toUpper();
+            color = QColor(0, 150, 136);
+        }
+        else if (textExtensions().contains(lower))
+        {
+            label = QStringLiteral("TXT");
+            color = QColor(120, 144, 156);
+        }
+
+        QPixmap badge = buildDocBadge(label, color);
+        docIconCache_.insert(lower, badge);
+        return badge;
+    }
+    QPixmap buildDocBadge(const QString &label, const QColor &bg) const
+    {
+        QPixmap pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+        pixmap.fill(Qt::transparent);
+        QPainter painter(&pixmap);
+        painter.setRenderHint(QPainter::Antialiasing);
+        QRect rect = pixmap.rect().adjusted(2, 2, -2, -2);
+        painter.setBrush(bg);
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(rect, 4, 4);
+        QFont font = painter.font();
+        font.setBold(true);
+        const int length = label.size();
+        const qreal divisor = (length <= 3) ? 2.2 : 2.8;
+        font.setPointSizeF(qMax<qreal>(8.0, THUMBNAIL_SIZE / divisor));
+        painter.setFont(font);
+        painter.setPen(Qt::white);
+        painter.drawText(rect, Qt::AlignCenter, label);
+        painter.end();
+        return pixmap;
+    }
+    static const QSet<QString> &imageExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("png"), QStringLiteral("jpg"), QStringLiteral("jpeg"),
+                                           QStringLiteral("gif"), QStringLiteral("bmp"), QStringLiteral("webp")};
+        return exts;
+    }
+    static const QSet<QString> &audioExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("wav"), QStringLiteral("mp3"), QStringLiteral("ogg"), QStringLiteral("flac")};
+        return exts;
+    }
+    static const QSet<QString> &textExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("txt"), QStringLiteral("log")};
+        return exts;
+    }
+    static const QSet<QString> &wordExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("doc"), QStringLiteral("docx"), QStringLiteral("odt"), QStringLiteral("wps")};
+        return exts;
+    }
+    static const QSet<QString> &presentationExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("pptx"), QStringLiteral("odp"), QStringLiteral("dps")};
+        return exts;
+    }
+    static const QSet<QString> &sheetExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("xlsx"), QStringLiteral("ods"), QStringLiteral("et")};
+        return exts;
+    }
+    static const QSet<QString> &markdownExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("md"), QStringLiteral("markdown")};
+        return exts;
+    }
+    static const QSet<QString> &htmlExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("html"), QStringLiteral("htm")};
+        return exts;
+    }
+    static const QSet<QString> &codeExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("cpp"), QStringLiteral("cc"), QStringLiteral("c"),
+                                           QStringLiteral("h"),   QStringLiteral("hpp"), QStringLiteral("py"),
+                                           QStringLiteral("js"),  QStringLiteral("ts"),  QStringLiteral("css")};
+        return exts;
+    }
+    static const QSet<QString> &configExtensions()
+    {
+        static const QSet<QString> exts = {QStringLiteral("json"), QStringLiteral("ini"), QStringLiteral("cfg")};
+        return exts;
+    }
+    static const QSet<QString> &documentExtensions()
+    {
+        static const QSet<QString> exts = []()
+        {
+            QSet<QString> all = textExtensions();
+            all.unite(wordExtensions());
+            all.unite(presentationExtensions());
+            all.unite(sheetExtensions());
+            all.unite(markdownExtensions());
+            all.unite(htmlExtensions());
+            all.unite(codeExtensions());
+            all.unite(configExtensions());
+            all.insert(QStringLiteral("pdf"));
+            return all;
+        }();
+        return exts;
     }
     void setupUI()
     {
@@ -397,7 +598,7 @@ class ImageInputBox : public QWidget
         QSizeF docSize = doc->size();
 
         int thumbnail_height = 0;
-        if (!filePaths.isEmpty()) { thumbnail_height += THUMBNAIL_SIZE * 2; }
+        if (!attachments_.isEmpty()) { thumbnail_height += THUMBNAIL_SIZE * 2; }
         // 计算新的高度，考虑边框和内边距
         int newHeight = static_cast<int>(docSize.height()) + textEdit->frameWidth() * 2 + textEdit->contentsMargins().top() + textEdit->contentsMargins().bottom() + thumbnail_height;
 
