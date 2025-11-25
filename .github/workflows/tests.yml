@@ -1,0 +1,56 @@
+name: Tests
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    env:
+      CTEST_PARALLEL_LEVEL: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Qt and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            ninja-build \
+            cmake \
+            libx11-dev \
+            libxtst-dev \
+            libxext-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtchooser \
+            qt5-qmake \
+            qtdeclarative5-dev \
+            qtscript5-dev \
+            qtmultimedia5-dev \
+            qttools5-dev \
+            qttools5-dev-tools \
+            libqt5svg5-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libssl-dev
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DEVA_ENABLE_UNIT_TESTS=ON
+          -DEVA_ENABLE_FUNCTIONAL_TESTS=OFF
+          -DBODY_PACK=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run unit tests
+        run: ctest --test-dir build --output-on-failure -L unit
