@@ -529,7 +529,7 @@ QString Widget::checkCompile()
             if (nl != -1) trimmed = trimmed.left(nl);
             lines << QStringLiteral("%1: %2").arg(label, trimmed.trimmed());
         };
-        dockerLine(QStringLiteral("MinGW version"), QStringLiteral("g++ --version | head -n 1"));
+        dockerLine(QStringLiteral("GCC version"), QStringLiteral("gcc --version | head -n 1"));
         dockerLine(QStringLiteral("Clang version"), QStringLiteral("clang --version | head -n 1"));
         if (lines.isEmpty()) lines << QStringLiteral("No compiler detected.");
         return lines.join('\n') + QStringLiteral("\n");
