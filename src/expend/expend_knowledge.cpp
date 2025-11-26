@@ -516,6 +516,7 @@ void Expend::on_embedding_test_pushButton_clicked()
     ui->embedding_txt_embedding->setEnabled(0);        // 嵌入按钮
     ui->embedding_test_pushButton->setEnabled(0);      // 检索按钮
     ui->embedding_txt_modelpath_button->setEnabled(0); // 选择模型按钮
+    ui->embedding_test_result->clear();                // Clear previous retrieval results
 
     QEventLoop loop; // 进入事件循环，等待回复
     QNetworkAccessManager manager;
