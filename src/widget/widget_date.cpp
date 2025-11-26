@@ -2,6 +2,7 @@
 #include "widget.h"
 
 #include <QProcess>
+#include <QRegularExpression>
 #include <QSet>
 #include <QSignalBlocker>
 #include "../utils/processrunner.h"
@@ -51,9 +52,13 @@ void Widget::set_DateDialog()
         date_ui->docker_image_comboBox->setInsertPolicy(QComboBox::NoInsert);
         updateDockerImageCombo();
         connect(date_ui->docker_image_comboBox, &QComboBox::editTextChanged, this, [=](const QString &)
-                { autosave(); });
+                {
+            updateDockerComboToolTip();
+            autosave(); });
         connect(date_ui->docker_image_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
-                { autosave(); });
+                {
+            updateDockerComboToolTip();
+            autosave(); });
     }
     if (date_ui->docker_image_label)
     {
@@ -85,6 +90,16 @@ void Widget::set_DateDialog()
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int)
             {
         updateSkillVisibility(date_ui->engineer_checkbox->isChecked());
+        if (date_ui->engineer_checkbox->isChecked())
+        {
+            refreshDockerImageList();
+        }
+        else
+        {
+            dockerImagesFetched_ = false;
+            dockerImageList_.clear();
+            updateDockerImageCombo();
+        }
         autosave(); });
     if (date_ui->skills_list)
     {
@@ -253,29 +268,53 @@ void Widget::refreshDockerImageList(bool force)
     }
     QStringList foundImages;
     bool success = false;
-    const QString program =
+    QString program = ProcessRunner::findExecutable(QStringLiteral("docker"));
 #ifdef Q_OS_WIN
-        QStringLiteral("docker.exe");
-#else
-        QStringLiteral("docker");
+    if (program.isEmpty()) program = ProcessRunner::findExecutable(QStringLiteral("docker.exe"));
 #endif
-    QStringList args{QStringLiteral("images"), QStringLiteral("--format"), QStringLiteral("{{.Repository}}:{{.Tag}}")};
-    ProcessResult result = ProcessRunner::run(program, args, applicationDirPath, QProcessEnvironment::systemEnvironment(), 10000);
-    if (result.exitCode == 0)
-    {
-        const QString output = result.stdOut;
-        const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+    qDebug() << "docker list program" << program;
+    auto parseOutput = [&](const QString &text) {
+        const QStringList lines = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
         QSet<QString> seen;
         for (QString line : lines)
         {
             line = line.trimmed();
             if (line.isEmpty()) continue;
-            if (line.contains(QStringLiteral("<none>"))) continue;
+            if (line.contains(QStringLiteral("<none>"), Qt::CaseInsensitive)) continue;
             if (seen.contains(line)) continue;
             seen.insert(line);
             foundImages << line;
         }
-        success = true;
+        return !foundImages.isEmpty();
+    };
+    if (!program.isEmpty())
+    {
+        QStringList args{QStringLiteral("images"), QStringLiteral("--format"), QStringLiteral("{{.Repository}}:{{.Tag}}")};
+        ProcessResult result = ProcessRunner::run(program, args, applicationDirPath, QProcessEnvironment::systemEnvironment(), 15000);
+        if (!result.timedOut && result.exitCode == 0)
+        {
+            qDebug() << "docker images direct out" << result.stdOut << "err" << result.stdErr;
+            success = parseOutput(result.stdOut);
+        }
+        else
+        {
+            qWarning() << "docker images direct failed" << result.exitCode << result.timedOut << result.stdErr;
+        }
+    }
+    if (!success)
+    {
+        const QString shellCmd = QStringLiteral("docker images --format \"{{.Repository}}:{{.Tag}}\"");
+        ProcessResult shellResult = ProcessRunner::runShellCommand(shellCmd, applicationDirPath, QProcessEnvironment::systemEnvironment(), 15000);
+        if (!shellResult.timedOut && shellResult.exitCode == 0)
+        {
+            qDebug() << "docker images shell out" << shellResult.stdOut << "err" << shellResult.stdErr;
+            foundImages.clear();
+            success = parseOutput(shellResult.stdOut);
+        }
+        else
+        {
+            qWarning() << "docker images shell failed" << shellResult.exitCode << shellResult.timedOut << shellResult.stdErr;
+        }
     }
     if (success)
     {
@@ -307,8 +346,24 @@ void Widget::updateDockerImageCombo()
     QSignalBlocker blocker(date_ui->docker_image_comboBox);
     date_ui->docker_image_comboBox->clear();
     if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
+    for (int i = 0; i < ordered.size(); ++i)
+    {
+        date_ui->docker_image_comboBox->setItemData(i, ordered.at(i), Qt::ToolTipRole);
+    }
     const QString target = engineerDockerImage.trimmed().isEmpty() ? QStringLiteral("ubuntu:latest") : engineerDockerImage.trimmed();
     date_ui->docker_image_comboBox->setEditText(target);
+    updateDockerComboToolTip();
+}
+
+void Widget::updateDockerComboToolTip()
+{
+    if (!date_ui || !date_ui->docker_image_comboBox) return;
+    const QString text = date_ui->docker_image_comboBox->currentText().trimmed();
+    date_ui->docker_image_comboBox->setToolTip(text);
+    if (QLineEdit *edit = date_ui->docker_image_comboBox->lineEdit())
+    {
+        edit->setToolTip(text);
+    }
 }
 
 void Widget::restoreDateDialogSnapshot()
@@ -539,3 +594,4 @@ void Widget::on_set_clicked()
     applySettingsDialogSizing();
     settings_dialog->exec();
 }
+void foo(){}

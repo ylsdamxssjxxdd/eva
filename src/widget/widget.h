@@ -183,6 +183,7 @@ class Widget : public QWidget
     QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
     void refreshDockerImageList(bool force = false);
     void updateDockerImageCombo();
+    void updateDockerComboToolTip();
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 

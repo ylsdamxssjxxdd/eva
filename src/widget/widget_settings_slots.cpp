@@ -135,7 +135,7 @@ void Widget::tool_change()
         if (checkbox == date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
         {
             triggerEngineerEnvRefresh(true);
-            refreshDockerImageList();
+            refreshDockerImageList(true);
             // If a work dir was chosen previously, reuse it silently
             const QString fallback = QDir(applicationDirPath).filePath("EVA_WORK");
             const QString current = engineerWorkDir.isEmpty() ? fallback : engineerWorkDir;
