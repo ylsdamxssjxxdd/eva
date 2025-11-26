@@ -1,4 +1,4 @@
-find_package(Qt5 COMPONENTS Core Gui REQUIRED)
+find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
 
 add_executable(local_server_args_tests
     local_server_args_tests.cpp
@@ -8,6 +8,7 @@ add_executable(local_server_args_tests
 target_link_libraries(local_server_args_tests PRIVATE
     Qt5::Core
     Qt5::Gui
+    Qt5::Widgets
     eva_doctest
 )
 target_include_directories(local_server_args_tests PRIVATE
@@ -23,6 +24,7 @@ add_executable(device_manager_tests
 target_link_libraries(device_manager_tests PRIVATE
     Qt5::Core
     Qt5::Gui
+    Qt5::Widgets
     eva_doctest
 )
 target_include_directories(device_manager_tests PRIVATE

@@ -11,12 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CTEST_PARALLEL_LEVEL: 2
+      APT_CACHE_DIR: ${{ github.workspace }}/.apt-cache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore apt cache
+        uses: actions/cache@v4
+        with:
+          path: .apt-cache
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/tests.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
       - name: Install Qt and build dependencies
         run: |
+          set -euo pipefail
+          if [ -d "$APT_CACHE_DIR/archives" ]; then
+            sudo mkdir -p /var/cache/apt/archives
+            sudo cp -a "$APT_CACHE_DIR/archives/." /var/cache/apt/archives/ || true
+          fi
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
@@ -41,6 +55,9 @@ jobs:
             libgl1-mesa-dev \
             libglu1-mesa-dev \
             libssl-dev
+          mkdir -p "$APT_CACHE_DIR/archives"
+          sudo cp -a /var/cache/apt/archives/. "$APT_CACHE_DIR/archives/" || true
+          sudo chown -R $USER:$USER "$APT_CACHE_DIR"
 
       - name: Configure CMake
         run: >-
