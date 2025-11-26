@@ -544,9 +544,9 @@ int main(int argc, char *argv[])
         {
             w.date_ui->dockerSandbox_checkbox->setChecked(w.ui_dockerSandboxEnabled);
         }
-        if (w.date_ui->docker_image_LineEdit)
+        if (w.date_ui->docker_image_comboBox)
         {
-            w.date_ui->docker_image_LineEdit->setText(w.engineerDockerImage);
+            w.updateDockerImageCombo();
         }
         if (settings.contains("skills_enabled"))
         {
@@ -559,7 +559,7 @@ int main(int argc, char *argv[])
             w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
             if (w.date_ui->dockerSandbox_checkbox) w.date_ui->dockerSandbox_checkbox->setVisible(engineerOn);
             if (w.date_ui->docker_image_label) w.date_ui->docker_image_label->setVisible(engineerOn);
-            if (w.date_ui->docker_image_LineEdit) w.date_ui->docker_image_LineEdit->setVisible(engineerOn);
+            if (w.date_ui->docker_image_comboBox) w.date_ui->docker_image_comboBox->setVisible(engineerOn);
         }
         w.is_load_tool = calculatorOn || knowledgeOn || controllerOn || stablediffusionOn || engineerOn || mcpOn;
         if (engineerOn)

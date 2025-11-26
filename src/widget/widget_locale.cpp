@@ -192,10 +192,10 @@ void Widget::apply_language(int language_flag_)
     {
         date_ui->docker_image_label->setText(jtr("docker image label"));
     }
-    if (date_ui->docker_image_LineEdit)
+    if (date_ui->docker_image_comboBox && date_ui->docker_image_comboBox->lineEdit())
     {
-        date_ui->docker_image_LineEdit->setPlaceholderText(jtr("docker image placeholder"));
-        date_ui->docker_image_LineEdit->setToolTip(jtr("docker image tooltip"));
+        date_ui->docker_image_comboBox->lineEdit()->setPlaceholderText(jtr("docker image placeholder"));
+        date_ui->docker_image_comboBox->setToolTip(jtr("docker image tooltip"));
     }
     if (date_ui->skills_box)
     {

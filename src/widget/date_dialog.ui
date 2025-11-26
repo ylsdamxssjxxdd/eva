@@ -340,7 +340,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="docker_image_LineEdit">
+        <widget class="QComboBox" name="docker_image_comboBox">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -353,8 +353,8 @@
            <height>25</height>
           </size>
          </property>
-         <property name="placeholderText">
-          <string>ubuntu:latest</string>
+         <property name="editable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

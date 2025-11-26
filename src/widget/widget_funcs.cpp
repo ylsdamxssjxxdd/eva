@@ -179,9 +179,9 @@ void Widget::get_date()
     {
         ui_dockerSandboxEnabled = date_ui->dockerSandbox_checkbox->isChecked();
     }
-    if (date_ui->docker_image_LineEdit)
+    if (date_ui->docker_image_comboBox)
     {
-        engineerDockerImage = date_ui->docker_image_LineEdit->text().trimmed();
+        engineerDockerImage = date_ui->docker_image_comboBox->currentText().trimmed();
     }
     // 记录自定义模板
     if (ui_template == jtr("custom set1"))

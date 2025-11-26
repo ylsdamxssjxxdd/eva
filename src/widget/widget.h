@@ -181,6 +181,8 @@ class Widget : public QWidget
     void refreshEngineerPromptBlock();
     bool shouldUseDockerEnv() const;
     QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
+    void refreshDockerImageList(bool force = false);
+    void updateDockerImageCombo();
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
@@ -419,6 +421,8 @@ class Widget : public QWidget
     };
     DockerSandboxStatus dockerSandboxStatus_;
     bool dockerSandboxStatusValid_ = false;
+    QStringList dockerImageList_;
+    bool dockerImagesFetched_ = false;
     EngineerEnvSnapshot collectEngineerEnvSnapshot();
     void onEngineerEnvProbeFinished();
     void applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt);

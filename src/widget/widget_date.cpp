@@ -1,6 +1,11 @@
 #include "ui_widget.h"
 #include "widget.h"
 
+#include <QProcess>
+#include <QSet>
+#include <QSignalBlocker>
+#include "../utils/processrunner.h"
+
 //-------------------------------------------------------------------------
 //--------------------------------约定选项相关------------------------------
 //-------------------------------------------------------------------------
@@ -39,11 +44,15 @@ void Widget::set_DateDialog()
         connect(date_ui->dockerSandbox_checkbox, &QCheckBox::stateChanged, this, [=](int)
                 { autosave(); });
     }
-    if (date_ui->docker_image_LineEdit)
+    if (date_ui->docker_image_comboBox)
     {
-        date_ui->docker_image_LineEdit->setVisible(false);
-        date_ui->docker_image_LineEdit->setText(engineerDockerImage);
-        connect(date_ui->docker_image_LineEdit, &QLineEdit::textChanged, this, [=](const QString &)
+        date_ui->docker_image_comboBox->setVisible(false);
+        date_ui->docker_image_comboBox->setEditable(true);
+        date_ui->docker_image_comboBox->setInsertPolicy(QComboBox::NoInsert);
+        updateDockerImageCombo();
+        connect(date_ui->docker_image_comboBox, &QComboBox::editTextChanged, this, [=](const QString &)
+                { autosave(); });
+        connect(date_ui->docker_image_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
                 { autosave(); });
     }
     if (date_ui->docker_image_label)
@@ -83,6 +92,10 @@ void Widget::set_DateDialog()
         connect(date_ui->skills_list, &SkillDropArea::skillToggleRequested, this, &Widget::onSkillToggleRequested);
         connect(date_ui->skills_list, &SkillDropArea::skillRemoveRequested, this, &Widget::onSkillRemoveRequested);
     }
+    if (ui_engineer_ischecked)
+        refreshDockerImageList(true);
+    else
+        updateDockerImageCombo();
     // 工程师工作目录（默认隐藏，仅在勾选“软件工程师”后显示）
     if (date_ui->date_engineer_workdir_label)
     {
@@ -142,10 +155,7 @@ void Widget::on_date_clicked()
     {
         date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
     }
-    if (date_ui->docker_image_LineEdit)
-    {
-        date_ui->docker_image_LineEdit->setText(engineerDockerImage);
-    }
+    if (date_ui->docker_image_comboBox) updateDockerImageCombo();
     if (date_ui->date_engineer_workdir_LineEdit)
     {
         date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
@@ -155,7 +165,7 @@ void Widget::on_date_clicked()
         date_ui->date_engineer_workdir_browse->setVisible(vis);
         if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
         if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
-        if (date_ui->docker_image_LineEdit) date_ui->docker_image_LineEdit->setVisible(vis);
+        if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
         updateSkillVisibility(vis);
         if (vis) refreshSkillsUI();
     }
@@ -226,6 +236,79 @@ void Widget::set_date()
     dateDialogSnapshot_.reset();
 
     on_reset_clicked();
+}
+
+void Widget::refreshDockerImageList(bool force)
+{
+    if (!date_ui || !date_ui->docker_image_comboBox) return;
+    if (!ui_engineer_ischecked)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    if (!force && dockerImagesFetched_)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    QStringList foundImages;
+    bool success = false;
+    const QString program =
+#ifdef Q_OS_WIN
+        QStringLiteral("docker.exe");
+#else
+        QStringLiteral("docker");
+#endif
+    QStringList args{QStringLiteral("images"), QStringLiteral("--format"), QStringLiteral("{{.Repository}}:{{.Tag}}")};
+    ProcessResult result = ProcessRunner::run(program, args, applicationDirPath, QProcessEnvironment::systemEnvironment(), 10000);
+    if (result.exitCode == 0)
+    {
+        const QString output = result.stdOut;
+        const QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        QSet<QString> seen;
+        for (QString line : lines)
+        {
+            line = line.trimmed();
+            if (line.isEmpty()) continue;
+            if (line.contains(QStringLiteral("<none>"))) continue;
+            if (seen.contains(line)) continue;
+            seen.insert(line);
+            foundImages << line;
+        }
+        success = true;
+    }
+    if (success)
+    {
+        dockerImagesFetched_ = true;
+        dockerImageList_ = foundImages;
+    }
+    else if (force)
+    {
+        dockerImagesFetched_ = false;
+        dockerImageList_.clear();
+    }
+    updateDockerImageCombo();
+}
+
+void Widget::updateDockerImageCombo()
+{
+    if (!date_ui || !date_ui->docker_image_comboBox) return;
+    QStringList ordered;
+    auto addUnique = [&](const QString &value) {
+        const QString trimmed = value.trimmed();
+        if (trimmed.isEmpty()) return;
+        if (ordered.contains(trimmed)) return;
+        ordered << trimmed;
+    };
+    addUnique(QStringLiteral("ubuntu:latest"));
+    for (const QString &img : dockerImageList_) addUnique(img);
+    if (!engineerDockerImage.trimmed().isEmpty()) addUnique(engineerDockerImage);
+
+    QSignalBlocker blocker(date_ui->docker_image_comboBox);
+    date_ui->docker_image_comboBox->clear();
+    if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
+    const QString target = engineerDockerImage.trimmed().isEmpty() ? QStringLiteral("ubuntu:latest") : engineerDockerImage.trimmed();
+    date_ui->docker_image_comboBox->setEditText(target);
 }
 
 void Widget::restoreDateDialogSnapshot()
@@ -325,9 +408,10 @@ void Widget::restoreDateDialogSnapshot()
     {
         date_ui->dockerSandbox_checkbox->setChecked(snapshot.ui_dockerSandboxEnabled);
     }
-    if (date_ui->docker_image_LineEdit)
+    if (date_ui->docker_image_comboBox)
     {
-        date_ui->docker_image_LineEdit->setText(snapshot.engineerDockerImage);
+        engineerDockerImage = snapshot.engineerDockerImage;
+        updateDockerImageCombo();
     }
 
     if (date_ui->date_engineer_workdir_LineEdit)
@@ -342,7 +426,7 @@ void Widget::restoreDateDialogSnapshot()
         if (date_ui->date_engineer_workdir_browse) date_ui->date_engineer_workdir_browse->setVisible(vis);
         if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
         if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
-        if (date_ui->docker_image_LineEdit) date_ui->docker_image_LineEdit->setVisible(vis);
+        if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
     }
     if (date_ui->switch_lan_button)
     {
