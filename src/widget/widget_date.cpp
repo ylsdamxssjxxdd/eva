@@ -4,6 +4,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSet>
+#include <QSettings>
 #include <QSignalBlocker>
 #include "../utils/processrunner.h"
 
@@ -253,6 +254,13 @@ void Widget::set_date()
     on_reset_clicked();
 }
 
+QString Widget::loadPersistedDockerImage() const
+{
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    return settings.value("docker_sandbox_image").toString().trimmed();
+}
+
 void Widget::refreshDockerImageList(bool force)
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
@@ -332,6 +340,11 @@ void Widget::refreshDockerImageList(bool force)
 void Widget::updateDockerImageCombo()
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
+    if (engineerDockerImage.trimmed().isEmpty())
+    {
+        const QString persisted = loadPersistedDockerImage();
+        if (!persisted.isEmpty()) engineerDockerImage = persisted;
+    }
     QStringList ordered;
     auto addUnique = [&](const QString &value) {
         const QString trimmed = value.trimmed();

@@ -251,6 +251,16 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     if (!snapshot.workdir.isEmpty()) snapshot.workdir = QDir::cleanPath(snapshot.workdir);
     snapshot.enabled = ui_engineer_ischecked && ui_dockerSandboxEnabled && !snapshot.workdir.isEmpty();
     snapshot.image = engineerDockerImage.trimmed();
+    if (snapshot.image.isEmpty())
+    {
+        const QString persisted = loadPersistedDockerImage();
+        if (!persisted.isEmpty())
+        {
+            snapshot.image = persisted;
+            engineerDockerImage = persisted;
+            updateDockerImageCombo();
+        }
+    }
     if (snapshot.image.isEmpty()) snapshot.image = QStringLiteral("ubuntu:latest");
     if (!forceEmit && hasDockerConfigSnapshot_ && snapshot.enabled == lastDockerConfigSnapshot_.enabled &&
         snapshot.image == lastDockerConfigSnapshot_.image && snapshot.workdir == lastDockerConfigSnapshot_.workdir)

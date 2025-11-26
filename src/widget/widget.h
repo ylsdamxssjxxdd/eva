@@ -184,6 +184,7 @@ class Widget : public QWidget
     void refreshDockerImageList(bool force = false);
     void updateDockerImageCombo();
     void updateDockerComboToolTip();
+    QString loadPersistedDockerImage() const;
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
