@@ -34,7 +34,6 @@ jobs:
             qtdeclarative5-dev \
             qtscript5-dev \
             qtmultimedia5-dev \
-            qtspeech5-dev \
             qttools5-dev \
             qttools5-dev-tools \
             libqt5svg5-dev \
@@ -49,6 +48,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DEVA_ENABLE_UNIT_TESTS=ON
           -DEVA_ENABLE_FUNCTIONAL_TESTS=OFF
+          -DEVA_ENABLE_QT_TTS=OFF
           -DBODY_PACK=OFF
 
       - name: Build
