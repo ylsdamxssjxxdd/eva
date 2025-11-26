@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QScreen>
+#include <QProcess>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
 
@@ -53,7 +54,7 @@ void appendWorkspaceListing(const QDir &dir, int depth, int maxDepth, int maxEnt
 }
 } // namespace
 
-QString Widget::buildWorkspaceSnapshot(const QString &root) const
+QString Widget::buildWorkspaceSnapshot(const QString &root, bool dockerView) const
 {
     QDir rootDir(root);
     if (!rootDir.exists())
@@ -62,7 +63,10 @@ QString Widget::buildWorkspaceSnapshot(const QString &root) const
     }
 
     QStringList lines;
-    lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalOrAbsolutePath(rootDir)));
+    if (dockerView)
+        lines << QStringLiteral("Root: /workspace");
+    else
+        lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalOrAbsolutePath(rootDir)));
 
     constexpr int kMaxDepth = 2;
     constexpr int kMaxEntriesPerDir = 60;
@@ -100,11 +104,10 @@ QString Widget::create_engineer_info()
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
     engineer_system_info_.replace("{NODE_ENV}", node_env);
     engineer_system_info_.replace("{DIR}", workdirDisplay);
-    engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(hostDir));
+    engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(hostDir, sandboxRequested));
     if (sandboxRequested)
     {
         QStringList dockerNotes;
-        dockerNotes << QStringLiteral("Host workspace: %1").arg(hostDirDisplay);
         dockerNotes << QStringLiteral("Container mount point: %1").arg(containerDir);
         if (sandboxReady)
         {
@@ -257,6 +260,38 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     lastDockerConfigSnapshot_ = snapshot;
     hasDockerConfigSnapshot_ = true;
     emit ui2tool_dockerConfigChanged(snapshot.enabled, snapshot.image, snapshot.workdir);
+}
+
+bool Widget::shouldUseDockerEnv() const
+{
+    return ui_engineer_ischecked && ui_dockerSandboxEnabled && dockerSandboxStatusValid_ &&
+           dockerSandboxStatus_.ready && !dockerSandboxStatus_.containerName.isEmpty();
+}
+
+QString Widget::runDockerExecCommand(const QString &command, int timeoutMs) const
+{
+    if (!shouldUseDockerEnv()) return {};
+#ifdef Q_OS_WIN
+    const QString program = QStringLiteral("docker.exe");
+#else
+    const QString program = QStringLiteral("docker");
+#endif
+    QStringList args;
+    args << QStringLiteral("exec") << QStringLiteral("-i") << dockerSandboxStatus_.containerName
+         << QStringLiteral("/bin/sh") << QStringLiteral("-c") << command;
+    QProcess process;
+    process.start(program, args);
+    if (!process.waitForFinished(timeoutMs))
+    {
+        process.kill();
+        process.waitForFinished(1000);
+        return {};
+    }
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+    {
+        return {};
+    }
+    return QString::fromUtf8(process.readAllStandardOutput());
 }
 
 void Widget::monitorTime()

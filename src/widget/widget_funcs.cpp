@@ -449,9 +449,30 @@ QString Widget::truncateString(const QString &str, int maxLength)
 }
 QString Widget::checkPython()
 {
-    const QString projDir = applicationDirPath;
     QStringList lines;
+    if (shouldUseDockerEnv())
+    {
+        auto dockerLine = [&](const QString &label, const QString &cmd) {
+            const QString output = runDockerExecCommand(cmd);
+            QString trimmed = output.trimmed();
+            if (trimmed.isEmpty())
+            {
+                lines << QStringLiteral("%1: not found").arg(label);
+            }
+            else
+            {
+                const int nl = trimmed.indexOf('\n');
+                if (nl != -1) trimmed = trimmed.left(nl);
+                lines << QStringLiteral("%1: %2").arg(label, trimmed.trimmed());
+            }
+        };
+        dockerLine(QStringLiteral("Python"), QStringLiteral("python3 --version || python --version"));
+        dockerLine(QStringLiteral("git"), QStringLiteral("git --version"));
+        dockerLine(QStringLiteral("cmake"), QStringLiteral("cmake --version | head -n 1"));
+        return lines.join('\n') + QStringLiteral("\n");
+    }
 
+    const QString projDir = applicationDirPath;
     ExecSpec spec = DependencyResolver::discoverPython3(projDir);
     if (spec.program.isEmpty())
     {
@@ -497,6 +518,23 @@ QString Widget::checkPython()
 }
 QString Widget::checkCompile()
 {
+    if (shouldUseDockerEnv())
+    {
+        QStringList lines;
+        auto dockerLine = [&](const QString &label, const QString &cmd) {
+            QString output = runDockerExecCommand(cmd);
+            QString trimmed = output.trimmed();
+            if (trimmed.isEmpty()) return;
+            const int nl = trimmed.indexOf('\n');
+            if (nl != -1) trimmed = trimmed.left(nl);
+            lines << QStringLiteral("%1: %2").arg(label, trimmed.trimmed());
+        };
+        dockerLine(QStringLiteral("MinGW version"), QStringLiteral("g++ --version | head -n 1"));
+        dockerLine(QStringLiteral("Clang version"), QStringLiteral("clang --version | head -n 1"));
+        if (lines.isEmpty()) lines << QStringLiteral("No compiler detected.");
+        return lines.join('\n') + QStringLiteral("\n");
+    }
+
     QString compilerInfo;
     QProcess process;
     // Windows平台的编译器检查
@@ -597,6 +635,22 @@ QString Widget::checkCompile()
 }
 QString Widget::checkNode()
 {
+    if (shouldUseDockerEnv())
+    {
+        QStringList lines;
+        auto dockerLine = [&](const QString &label, const QString &cmd) {
+            QString output = runDockerExecCommand(cmd);
+            QString trimmed = output.trimmed();
+            if (trimmed.isEmpty())
+                lines << QStringLiteral("%1: not found").arg(label);
+            else
+                lines << QStringLiteral("%1: %2").arg(label, trimmed.split('\n').first().trimmed());
+        };
+        dockerLine(QStringLiteral("node"), QStringLiteral("node --version"));
+        dockerLine(QStringLiteral("npm"), QStringLiteral("npm --version"));
+        return lines.join('\n') + QStringLiteral("\n");
+    }
+
     const QString workingDir = applicationDirPath;
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     auto versionLine = [&](const QString &program, const QStringList &args) -> QString {

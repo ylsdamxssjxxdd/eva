@@ -179,6 +179,8 @@ class Widget : public QWidget
     void triggerEngineerEnvRefresh(bool updatePrompt = true);
     void syncDockerSandboxConfig(bool forceEmit = false);
     void refreshEngineerPromptBlock();
+    bool shouldUseDockerEnv() const;
+    QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
@@ -701,7 +703,7 @@ class Widget : public QWidget
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
     void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)
     void fetchPropsContextLimit();  // fallback: GET /props and read default_generation_settings.n_ctx
-    QString buildWorkspaceSnapshot(const QString &root) const;
+    QString buildWorkspaceSnapshot(const QString &root, bool dockerView = false) const;
     // Global UI styling helpers
     void setupGlobalSettingsPanel();
     void syncGlobalSettingsPanelControls();
