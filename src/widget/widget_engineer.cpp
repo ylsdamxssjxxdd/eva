@@ -77,16 +77,46 @@ QString Widget::create_engineer_info()
     QString engineer_system_info_ = promptx::engineerSystemInfo();
     QDate currentDate = QDate::currentDate(); // 今天日期
     QString dateString = currentDate.toString("yyyy" + QString(" ") + jtr("year") + QString(" ") + "M" + QString(" ") + jtr("month") + QString(" ") + "d" + QString(" ") + jtr("day"));
-    engineer_system_info_.replace("{OS}", USEROS);
+    const QString hostDir = engineerWorkDir.isEmpty() ? QDir(applicationDirPath).filePath("EVA_WORK") : engineerWorkDir;
+    const QString hostDirDisplay = QDir::toNativeSeparators(hostDir);
+    const bool sandboxRequested = ui_engineer_ischecked && ui_dockerSandboxEnabled;
+    const bool sandboxReady = sandboxRequested && dockerSandboxStatus_.ready;
+    const QString containerDir = sandboxReady && !dockerSandboxStatus_.containerWorkdir.isEmpty() ? dockerSandboxStatus_.containerWorkdir : QStringLiteral("/workspace");
+    const QString dockerImageName = dockerSandboxStatus_.image.isEmpty() ? QStringLiteral("ubuntu:latest") : dockerSandboxStatus_.image;
+    QString osDisplay = USEROS;
+    QString shellDisplay = shell;
+    QString workdirDisplay = hostDirDisplay;
+    if (sandboxRequested)
+    {
+        osDisplay = sandboxReady ? QStringLiteral("Docker container (%1)").arg(dockerImageName)
+                                 : QStringLiteral("Docker sandbox (%1) pending").arg(dockerImageName);
+        shellDisplay = QStringLiteral("/bin/sh");
+        workdirDisplay = containerDir;
+    }
+    engineer_system_info_.replace("{OS}", osDisplay);
     engineer_system_info_.replace("{DATE}", dateString);
-    engineer_system_info_.replace("{SHELL}", shell);
+    engineer_system_info_.replace("{SHELL}", shellDisplay);
     engineer_system_info_.replace("{COMPILE_ENV}", compile_env);
     engineer_system_info_.replace("{PYTHON_ENV}", python_env);
     engineer_system_info_.replace("{NODE_ENV}", node_env);
-    // Use selected engineer working directory (fallback to default)
-    const QString dir = engineerWorkDir.isEmpty() ? (applicationDirPath + "/EVA_WORK") : engineerWorkDir;
-    engineer_system_info_.replace("{DIR}", QDir::toNativeSeparators(dir));
-    engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(dir));
+    engineer_system_info_.replace("{DIR}", workdirDisplay);
+    engineer_system_info_.replace("{WORKSPACE_TREE}", buildWorkspaceSnapshot(hostDir));
+    if (sandboxRequested)
+    {
+        QStringList dockerNotes;
+        dockerNotes << QStringLiteral("Host workspace: %1").arg(hostDirDisplay);
+        dockerNotes << QStringLiteral("Container mount point: %1").arg(containerDir);
+        if (sandboxReady)
+        {
+            if (!dockerSandboxStatus_.osPretty.isEmpty()) dockerNotes << dockerSandboxStatus_.osPretty;
+            if (!dockerSandboxStatus_.kernelPretty.isEmpty()) dockerNotes << dockerSandboxStatus_.kernelPretty;
+        }
+        else if (!dockerSandboxStatus_.lastError.isEmpty())
+        {
+            dockerNotes << QStringLiteral("Sandbox status: %1").arg(dockerSandboxStatus_.lastError);
+        }
+        engineer_system_info_.append(QStringLiteral("\nDocker sandbox details:\n") + dockerNotes.join(QStringLiteral("\n")));
+    }
     engineer_info_.replace("{engineer_system_info}", engineer_system_info_);
     return engineer_info_;
 }
@@ -98,6 +128,33 @@ Widget::EngineerEnvSnapshot Widget::collectEngineerEnvSnapshot()
     snapshot.compile = checkCompile();
     snapshot.node = checkNode();
     return snapshot;
+}
+
+void Widget::refreshEngineerPromptBlock()
+{
+    if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return;
+    ui_extra_prompt = create_extra_prompt();
+    get_date();
+
+    if (!ui_messagesArray.isEmpty())
+    {
+        QJsonObject system = ui_messagesArray.first().toObject();
+        system.insert(QStringLiteral("content"), ui_DATES.date_prompt);
+        ui_messagesArray.replace(0, system);
+    }
+    if (history_ && !history_->sessionId().isEmpty())
+    {
+        history_->rewriteAllMessages(ui_messagesArray);
+    }
+    if (lastSystemRecordIndex_ >= 0)
+    {
+        updateRecordEntryContent(lastSystemRecordIndex_, ui_DATES.date_prompt);
+    }
+    if (engineerRestoreOutputAfterEngineerRefresh_)
+    {
+        engineerRestoreOutputAfterEngineerRefresh_ = false;
+        ensureOutputAtBottom();
+    }
 }
 
 void Widget::triggerEngineerEnvRefresh(bool updatePrompt)
@@ -144,28 +201,7 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     }
     if (!updatePrompt) return;
 
-    ui_extra_prompt = create_extra_prompt();
-    get_date();
-
-    if (!ui_messagesArray.isEmpty())
-    {
-        QJsonObject system = ui_messagesArray.first().toObject();
-        system.insert(QStringLiteral("content"), ui_DATES.date_prompt);
-        ui_messagesArray.replace(0, system);
-    }
-    if (history_ && !history_->sessionId().isEmpty())
-    {
-        history_->rewriteAllMessages(ui_messagesArray);
-    }
-    if (lastSystemRecordIndex_ >= 0)
-    {
-        updateRecordEntryContent(lastSystemRecordIndex_, ui_DATES.date_prompt);
-    }
-    if (engineerRestoreOutputAfterEngineerRefresh_)
-    {
-        engineerRestoreOutputAfterEngineerRefresh_ = false;
-        ensureOutputAtBottom();
-    }
+    refreshEngineerPromptBlock();
 }
 
 void Widget::setEngineerWorkDirSilently(const QString &dir)
@@ -202,6 +238,25 @@ void Widget::setEngineerWorkDir(const QString &dir)
     // Workdir affects the engineer info injected into extra prompt; rebuild so
     // that the main UI system message shows the latest path immediately.
     ui_extra_prompt = create_extra_prompt();
+    syncDockerSandboxConfig();
+}
+
+void Widget::syncDockerSandboxConfig(bool forceEmit)
+{
+    DockerConfigSnapshot snapshot;
+    snapshot.workdir = engineerWorkDir.trimmed();
+    if (!snapshot.workdir.isEmpty()) snapshot.workdir = QDir::cleanPath(snapshot.workdir);
+    snapshot.enabled = ui_engineer_ischecked && ui_dockerSandboxEnabled && !snapshot.workdir.isEmpty();
+    snapshot.image = engineerDockerImage.trimmed();
+    if (snapshot.image.isEmpty()) snapshot.image = QStringLiteral("ubuntu:latest");
+    if (!forceEmit && hasDockerConfigSnapshot_ && snapshot.enabled == lastDockerConfigSnapshot_.enabled &&
+        snapshot.image == lastDockerConfigSnapshot_.image && snapshot.workdir == lastDockerConfigSnapshot_.workdir)
+    {
+        return;
+    }
+    lastDockerConfigSnapshot_ = snapshot;
+    hasDockerConfigSnapshot_ = true;
+    emit ui2tool_dockerConfigChanged(snapshot.enabled, snapshot.image, snapshot.workdir);
 }
 
 void Widget::monitorTime()

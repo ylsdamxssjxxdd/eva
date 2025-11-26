@@ -30,6 +30,26 @@ void Widget::set_DateDialog()
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_dialog, &QDialog::rejected, this, &Widget::onDateDialogRejected);
+    const auto autosave = [this]()
+    { get_date(); auto_save_user(); };
+    if (date_ui->dockerSandbox_checkbox)
+    {
+        date_ui->dockerSandbox_checkbox->setVisible(false);
+        date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
+        connect(date_ui->dockerSandbox_checkbox, &QCheckBox::stateChanged, this, [=](int)
+                { autosave(); });
+    }
+    if (date_ui->docker_image_LineEdit)
+    {
+        date_ui->docker_image_LineEdit->setVisible(false);
+        date_ui->docker_image_LineEdit->setText(engineerDockerImage);
+        connect(date_ui->docker_image_LineEdit, &QLineEdit::textChanged, this, [=](const QString &)
+                { autosave(); });
+    }
+    if (date_ui->docker_image_label)
+    {
+        date_ui->docker_image_label->setVisible(false);
+    }
 
     if (language_flag == 0)
     {
@@ -40,9 +60,7 @@ void Widget::set_DateDialog()
         ui_extra_lan = "en";
     }
 
-    prompt_template_change(); // 先应用提示词模板    // Auto-save on template/tool toggles (no reset)
-    auto autosave = [this]()
-    { get_date(); auto_save_user(); };
+    prompt_template_change(); // ��Ӧ����ʾ��ģ��    // Auto-save on template/tool toggles (no reset)
     connect(date_ui->chattemplate_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
             { autosave(); });
     connect(date_ui->knowledge_checkbox, &QCheckBox::stateChanged, this, [=](int)
@@ -120,6 +138,14 @@ void Widget::on_date_clicked()
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
+    if (date_ui->dockerSandbox_checkbox)
+    {
+        date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
+    }
+    if (date_ui->docker_image_LineEdit)
+    {
+        date_ui->docker_image_LineEdit->setText(engineerDockerImage);
+    }
     if (date_ui->date_engineer_workdir_LineEdit)
     {
         date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
@@ -127,6 +153,9 @@ void Widget::on_date_clicked()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         date_ui->date_engineer_workdir_browse->setVisible(vis);
+        if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
+        if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
+        if (date_ui->docker_image_LineEdit) date_ui->docker_image_LineEdit->setVisible(vis);
         updateSkillVisibility(vis);
         if (vis) refreshSkillsUI();
     }
@@ -152,6 +181,8 @@ void Widget::captureDateDialogSnapshot()
     state.ui_controller_ischecked = ui_controller_ischecked;
     state.ui_MCPtools_ischecked = ui_MCPtools_ischecked;
     state.ui_engineer_ischecked = ui_engineer_ischecked;
+    state.ui_dockerSandboxEnabled = ui_dockerSandboxEnabled;
+    state.engineerDockerImage = engineerDockerImage;
     state.is_load_tool = is_load_tool;
     state.engineerWorkDir = engineerWorkDir;
     state.language_flag = language_flag;
@@ -266,6 +297,8 @@ void Widget::restoreDateDialogSnapshot()
     ui_controller_ischecked = snapshot.ui_controller_ischecked;
     ui_MCPtools_ischecked = snapshot.ui_MCPtools_ischecked;
     ui_engineer_ischecked = snapshot.ui_engineer_ischecked;
+    ui_dockerSandboxEnabled = snapshot.ui_dockerSandboxEnabled;
+    engineerDockerImage = snapshot.engineerDockerImage;
     language_flag = snapshot.language_flag;
 
     if (date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() != snapshot.ui_template)
@@ -288,6 +321,14 @@ void Widget::restoreDateDialogSnapshot()
     restoreCheck(date_ui->controller_checkbox, snapshot.ui_controller_ischecked);
     restoreCheck(date_ui->MCPtools_checkbox, snapshot.ui_MCPtools_ischecked);
     restoreCheck(date_ui->engineer_checkbox, snapshot.ui_engineer_ischecked);
+    if (date_ui->dockerSandbox_checkbox)
+    {
+        date_ui->dockerSandbox_checkbox->setChecked(snapshot.ui_dockerSandboxEnabled);
+    }
+    if (date_ui->docker_image_LineEdit)
+    {
+        date_ui->docker_image_LineEdit->setText(snapshot.engineerDockerImage);
+    }
 
     if (date_ui->date_engineer_workdir_LineEdit)
     {
@@ -299,6 +340,9 @@ void Widget::restoreDateDialogSnapshot()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         if (date_ui->date_engineer_workdir_LineEdit) date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         if (date_ui->date_engineer_workdir_browse) date_ui->date_engineer_workdir_browse->setVisible(vis);
+        if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
+        if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
+        if (date_ui->docker_image_LineEdit) date_ui->docker_image_LineEdit->setVisible(vis);
     }
     if (date_ui->switch_lan_button)
     {

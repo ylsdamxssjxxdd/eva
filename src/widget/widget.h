@@ -70,6 +70,7 @@
 #include "../utils/customswitchbutton.h"
 #include "../utils/cutscreendialog.h"
 #include "../utils/devicemanager.h" // backend runtime detection / selection
+#include "../utils/docker_sandbox.h"
 #include "../utils/doubleqprogressbar.h"
 #include "../utils/history_store.h" // per-session history persistence
 #include "../utils/recordbar.h"
@@ -176,6 +177,8 @@ class Widget : public QWidget
     // Set workdir without emitting signals (for early restore during startup)
     void setEngineerWorkDirSilently(const QString &dir);
     void triggerEngineerEnvRefresh(bool updatePrompt = true);
+    void syncDockerSandboxConfig(bool forceEmit = false);
+    void refreshEngineerPromptBlock();
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
@@ -365,6 +368,8 @@ class Widget : public QWidget
     bool ui_controller_ischecked = false;
     bool ui_MCPtools_ischecked = false;
     bool ui_engineer_ischecked = false;
+    bool ui_dockerSandboxEnabled = false;
+    QString engineerDockerImage;
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择
@@ -381,6 +386,8 @@ class Widget : public QWidget
         bool ui_controller_ischecked = false;
         bool ui_MCPtools_ischecked = false;
         bool ui_engineer_ischecked = false;
+        bool ui_dockerSandboxEnabled = false;
+        QString engineerDockerImage;
         bool is_load_tool = false;
         QString engineerWorkDir;
         int language_flag = 0;
@@ -390,6 +397,14 @@ class Widget : public QWidget
     void restoreDateDialogSnapshot();
     void onDateDialogRejected();
     std::optional<DateDialogState> dateDialogSnapshot_;
+    struct DockerConfigSnapshot
+    {
+        bool enabled = false;
+        QString image;
+        QString workdir;
+    };
+    DockerConfigSnapshot lastDockerConfigSnapshot_;
+    bool hasDockerConfigSnapshot_ = false;
     void change_api_dialog(bool enable);
     QString checkPython();  // 获取环境中的python版本以及库信息
     QString checkCompile(); // 获取环境中的编译器版本
@@ -400,6 +415,8 @@ class Widget : public QWidget
         QString compile;
         QString node;
     };
+    DockerSandboxStatus dockerSandboxStatus_;
+    bool dockerSandboxStatusValid_ = false;
     EngineerEnvSnapshot collectEngineerEnvSnapshot();
     void onEngineerEnvProbeFinished();
     void applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt);
@@ -490,6 +507,7 @@ class Widget : public QWidget
     void ui2tool_language(int language_flag_); // 传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
+    void ui2tool_dockerConfigChanged(bool enabled, QString image, QString workdir);
     void ui2tool_interruptCommand();           // 终止当前命令
     void ui2tool_cancelActive();               // 中断所有工具执行
 
@@ -520,6 +538,7 @@ class Widget : public QWidget
     void recv_freeover_loadlater();                                              // 模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                // 处理tool推理完毕的槽
+    void recv_docker_status(const DockerSandboxStatus &status);
     void reflash_output(const QString result, bool is_while, QColor color);      // 更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 更新状态区
     void recv_pushover();                                                        // 推理完毕的后处理

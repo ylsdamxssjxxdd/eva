@@ -181,6 +181,9 @@ xTool::xTool(QString applicationDirPath_)
     applicationDirPath = applicationDirPath_;
     // Default engineer working directory under app path
     workDirRoot = QDir::cleanPath(applicationDirPath + "/EVA_WORK");
+    dockerSandbox_ = new DockerSandbox();
+    dockerSandbox_->setParent(this);
+    connect(dockerSandbox_, &DockerSandbox::statusChanged, this, &xTool::onDockerStatusChanged);
     qDebug() << "tool init over";
 }
 
@@ -197,6 +200,50 @@ void xTool::recv_workdir(QString dir)
     workDirRoot = QDir::cleanPath(dir);
     // Do not force-create here to avoid unwanted dirs; Exec() ensures presence
     sendStateMessage("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
+}
+
+void xTool::recv_dockerConfig(bool enabled, QString image, QString workdir)
+{
+    DockerSandbox::Config cfg;
+    cfg.enabled = enabled;
+    cfg.image = image.trimmed();
+    cfg.hostWorkdir = workdir.trimmed().isEmpty() ? QString() : QDir::cleanPath(workdir.trimmed());
+    dockerConfig_ = cfg;
+    if (dockerSandbox_) dockerSandbox_->applyConfig(cfg);
+}
+
+void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
+{
+    emit tool2ui_dockerStatusChanged(status);
+    QString message;
+    SIGNAL_STATE level = USUAL_SIGNAL;
+    if (!status.enabled)
+    {
+        message = QStringLiteral("docker sandbox disabled");
+    }
+    else if (!status.lastError.isEmpty())
+    {
+        message = QStringLiteral("docker sandbox error: %1").arg(status.lastError);
+        level = WRONG_SIGNAL;
+        sendPushMessage(message);
+    }
+    else if (status.ready)
+    {
+        const QString hostDir = status.hostWorkdir.isEmpty() ? resolveWorkRoot() : status.hostWorkdir;
+        const QString hostDisplay = QDir::toNativeSeparators(hostDir);
+        const QString containerDir = status.containerWorkdir.isEmpty() ? QStringLiteral("/workspace") : status.containerWorkdir;
+        message = QStringLiteral("docker sandbox ready (%1)\nhost %2 -> container %3")
+                      .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image,
+                           hostDisplay,
+                           containerDir);
+        level = SUCCESS_SIGNAL;
+    }
+    else
+    {
+        message = QStringLiteral("docker sandbox preparing (%1)")
+                      .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image);
+    }
+    sendStateMessage("tool:" + message, level);
 }
 
 void xTool::cancelExecuteCommand()
@@ -1023,6 +1070,16 @@ void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
     sendStateMessage("tool:" + QString("execute_command(") + content + ")");
     const QString work = resolveWorkRoot();
     ensureWorkdirExists(work);
+    const bool useDocker = dockerSandboxEnabled();
+    QString dockerError;
+    if (useDocker && !ensureDockerSandboxReady(&dockerError))
+    {
+        sendPushMessage(QStringLiteral("execute_command failed: ") + dockerError);
+        sendStateMessage("tool:" + QStringLiteral("execute_command docker error\n") + dockerError, WRONG_SIGNAL);
+        finishInvocation(invocation);
+        return;
+    }
+    const QString effectiveWorkdir = dockerWorkdirOrFallback(work);
     auto process = new QProcess(this);
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 #ifdef __linux__
@@ -1035,8 +1092,8 @@ void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
     activeCommandInvocation_ = invocation;
     activeCommandInterrupted_ = false;
     invocation->aggregatedOutput.clear();
-    invocation->workingDirectory = work;
-    emit tool2ui_terminalCommandStarted(content, work);
+    invocation->workingDirectory = effectiveWorkdir;
+    emit tool2ui_terminalCommandStarted(content, effectiveWorkdir);
     QObject::connect(process, &QProcess::readyReadStandardOutput, this, [this, process, invocation]()
                      { handleCommandStdout(invocation, process, false); });
     QObject::connect(process, &QProcess::readyReadStandardError, this, [this, process, invocation]()
@@ -1054,13 +1111,28 @@ void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
             handleCommandFinished(invocation, process, -1, QProcess::CrashExit);
             process->deleteLater();
         } });
+    QString program;
+    QStringList args;
+    if (useDocker)
+    {
 #ifdef _WIN32
-    const QString program = QStringLiteral("cmd.exe");
-    const QStringList args{QStringLiteral("/c"), content};
+        program = QStringLiteral("docker.exe");
 #else
-    const QString program = QStringLiteral("/bin/sh");
-    const QStringList args{QStringLiteral("-lc"), content};
+        program = QStringLiteral("docker");
 #endif
+        args << QStringLiteral("exec") << QStringLiteral("-i") << dockerSandbox_->containerName()
+             << QStringLiteral("/bin/sh") << QStringLiteral("-lc") << content;
+    }
+    else
+    {
+#ifdef _WIN32
+        program = QStringLiteral("cmd.exe");
+        args << QStringLiteral("/c") << content;
+#else
+        program = QStringLiteral("/bin/sh");
+        args << QStringLiteral("-lc") << content;
+#endif
+    }
     process->start(program, args);
     if (process->state() == QProcess::NotRunning && process->error() == QProcess::FailedToStart)
     {
@@ -1175,6 +1247,30 @@ QString xTool::resolveWorkRoot() const
 {
     if (!workDirRoot.isEmpty()) return workDirRoot;
     return QDir::cleanPath(applicationDirPath + "/EVA_WORK");
+}
+
+bool xTool::dockerSandboxEnabled() const
+{
+    return dockerSandbox_ && dockerConfig_.enabled && !dockerConfig_.hostWorkdir.isEmpty();
+}
+
+bool xTool::ensureDockerSandboxReady(QString *errorMessage)
+{
+    if (!dockerSandboxEnabled()) return false;
+    if (!dockerSandbox_->prepare(errorMessage))
+    {
+        return false;
+    }
+    return true;
+}
+
+QString xTool::dockerWorkdirOrFallback(const QString &hostWorkdir) const
+{
+    if (dockerSandboxEnabled() && dockerSandbox_->sandboxEnabled())
+    {
+        return dockerSandbox_->containerWorkdir();
+    }
+    return hostWorkdir;
 }
 
 void xTool::ensureWorkdirExists(const QString &work) const

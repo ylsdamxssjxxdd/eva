@@ -175,6 +175,14 @@ void Widget::get_date()
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
+    if (date_ui->dockerSandbox_checkbox)
+    {
+        ui_dockerSandboxEnabled = date_ui->dockerSandbox_checkbox->isChecked();
+    }
+    if (date_ui->docker_image_LineEdit)
+    {
+        engineerDockerImage = date_ui->docker_image_LineEdit->text().trimmed();
+    }
     // 记录自定义模板
     if (ui_template == jtr("custom set1"))
     {
@@ -186,6 +194,7 @@ void Widget::get_date()
     }
     // 添加额外停止标志
     addStopwords();
+    syncDockerSandboxConfig();
 }
 // 手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
@@ -772,12 +781,14 @@ void Widget::auto_save_user()
     auto appendTool = [&](QCheckBox *box, const QString &id) {
         if (box && box->isChecked()) enabledTools << id;
     };
-    appendTool(date_ui->calculator_checkbox, QStringLiteral("calculator"));
-    appendTool(date_ui->knowledge_checkbox, QStringLiteral("knowledge"));
-    appendTool(date_ui->controller_checkbox, QStringLiteral("controller"));
-    appendTool(date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"));
-    appendTool(date_ui->engineer_checkbox, QStringLiteral("engineer"));
-    appendTool(date_ui->MCPtools_checkbox, QStringLiteral("mcp"));
+    settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // ����������
+    settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge����
+    settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller����
+    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); // ����������
+    settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer����
+    settings.setValue("docker_sandbox_checkbox", ui_dockerSandboxEnabled);
+    settings.setValue("docker_sandbox_image", engineerDockerImage);
+    settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools����
     settings.setValue("enabled_tools", enabledTools);
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge工具

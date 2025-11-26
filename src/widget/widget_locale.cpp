@@ -174,6 +174,11 @@ void Widget::apply_language(int language_flag_)
     date_ui->calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
     date_ui->engineer_checkbox->setText(jtr("engineer"));
     date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
+    if (date_ui->dockerSandbox_checkbox)
+    {
+        date_ui->dockerSandbox_checkbox->setText(jtr("docker sandbox checkbox"));
+        date_ui->dockerSandbox_checkbox->setToolTip(jtr("docker sandbox tooltip"));
+    }
     date_ui->controller_checkbox->setText(jtr("controller"));
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
     date_ui->knowledge_checkbox->setText(jtr("knowledge"));
@@ -183,6 +188,15 @@ void Widget::apply_language(int language_flag_)
     date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
     date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
     date_ui->date_engineer_workdir_label->setText(jtr("work dir"));
+    if (date_ui->docker_image_label)
+    {
+        date_ui->docker_image_label->setText(jtr("docker image label"));
+    }
+    if (date_ui->docker_image_LineEdit)
+    {
+        date_ui->docker_image_LineEdit->setPlaceholderText(jtr("docker image placeholder"));
+        date_ui->docker_image_LineEdit->setToolTip(jtr("docker image tooltip"));
+    }
     if (date_ui->skills_box)
     {
         date_ui->skills_box->setTitle(jtr("skills mount"));

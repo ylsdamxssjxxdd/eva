@@ -25,6 +25,7 @@
 #include <QTimer>
 
 #include "thirdparty/tinyexpr/tinyexpr.h"
+#include "utils/docker_sandbox.h"
 #include "xconfig.h"
 
 #include <atomic>
@@ -101,11 +102,13 @@ class xTool : public QObject
     void recv_calllist_over(quint64 invocationId);
     // Update working directory root for engineer tools
     void recv_workdir(QString dir);
+    void recv_dockerConfig(bool enabled, QString image, QString workdir);
   signals:
     void tool2ui_terminalCommandStarted(const QString &command, const QString &workingDir);
     void tool2ui_terminalStdout(const QString &chunk);
     void tool2ui_terminalStderr(const QString &chunk);
     void tool2ui_terminalCommandFinished(int exitCode, bool interrupted);
+    void tool2ui_dockerStatusChanged(const DockerSandboxStatus &status);
     void tool2mcp_toollist(quint64 invocationId);
     void tool2mcp_toolcall(quint64 invocationId, QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);
@@ -133,6 +136,10 @@ class xTool : public QObject
     void handleMcpToolCall(const ToolInvocationPtr &invocation);
     QString resolveWorkRoot() const;
     void ensureWorkdirExists(const QString &work) const;
+    void onDockerStatusChanged(const DockerSandboxStatus &status);
+    bool dockerSandboxEnabled() const;
+    bool ensureDockerSandboxReady(QString *errorMessage);
+    QString dockerWorkdirOrFallback(const QString &hostWorkdir) const;
     ToolInvocationPtr activeInvocation() const;
     void setActiveInvocation(const ToolInvocationPtr &invocation);
     void clearActiveInvocation(const ToolInvocationPtr &invocation);
@@ -148,6 +155,8 @@ class xTool : public QObject
     std::unordered_map<quint64, std::weak_ptr<ToolInvocation>> pendingMcpInvocations_;
     std::unordered_map<quint64, std::weak_ptr<ToolInvocation>> pendingMcpListInvocations_;
     static thread_local ToolInvocation *tlsCurrentInvocation_;
+    DockerSandbox *dockerSandbox_ = nullptr;
+    DockerSandbox::Config dockerConfig_;
 };
 
 // 鼠标键盘工具的函数

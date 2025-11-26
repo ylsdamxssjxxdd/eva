@@ -479,3 +479,12 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
     const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
 }
+void Widget::recv_docker_status(const DockerSandboxStatus &status)
+{
+    dockerSandboxStatus_ = status;
+    dockerSandboxStatusValid_ = true;
+    if (ui_engineer_ischecked && ui_dockerSandboxEnabled)
+    {
+        refreshEngineerPromptBlock();
+    }
+}

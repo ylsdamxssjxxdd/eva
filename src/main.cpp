@@ -29,6 +29,7 @@ Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
 #include "utils/devicemanager.h"
+#include "utils/docker_sandbox.h"
 #include "utils/gpuchecker.h"
 #include "utils/startuplogger.h"
 #include "utils/singleinstance.h" // single-instance guard (per app path)
@@ -304,6 +305,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<EXPEND_WINDOW>("EXPEND_WINDOW");
     qRegisterMetaType<MCP_CONNECT_STATE>("MCP_CONNECT_STATE");
     qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
+    qRegisterMetaType<DockerSandboxStatus>("DockerSandboxStatus");
     //------------------开启多线程 ------------------------
     QThread *gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
@@ -406,8 +408,10 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language); // 传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              // 开始推理
     QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);   // 设置工程师工作目录
+    QObject::connect(&w, &Widget::ui2tool_dockerConfigChanged, &tool, &xTool::recv_dockerConfig);
     QObject::connect(&w, &Widget::ui2tool_interruptCommand, &tool, &xTool::cancelExecuteCommand);
     QObject::connect(&w, &Widget::ui2tool_cancelActive, &tool, &xTool::cancelActiveTool);
+    QObject::connect(&tool, &xTool::tool2ui_dockerStatusChanged, &w, &Widget::recv_docker_status);
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 // 传递已嵌入文本段数据
@@ -532,7 +536,18 @@ int main(int argc, char *argv[])
             w.setEngineerWorkDirSilently(norm);
         }
         const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
+        w.ui_engineer_ischecked = engineerOn;
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
+        w.ui_dockerSandboxEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
+        w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
+        if (w.date_ui->dockerSandbox_checkbox)
+        {
+            w.date_ui->dockerSandbox_checkbox->setChecked(w.ui_dockerSandboxEnabled);
+        }
+        if (w.date_ui->docker_image_LineEdit)
+        {
+            w.date_ui->docker_image_LineEdit->setText(w.engineerDockerImage);
+        }
         if (settings.contains("skills_enabled"))
         {
             w.restoreSkillSelection(settings.value("skills_enabled").toStringList());
@@ -542,6 +557,9 @@ int main(int argc, char *argv[])
             w.date_ui->date_engineer_workdir_label->setVisible(engineerOn);
             w.date_ui->date_engineer_workdir_LineEdit->setVisible(engineerOn);
             w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
+            if (w.date_ui->dockerSandbox_checkbox) w.date_ui->dockerSandbox_checkbox->setVisible(engineerOn);
+            if (w.date_ui->docker_image_label) w.date_ui->docker_image_label->setVisible(engineerOn);
+            if (w.date_ui->docker_image_LineEdit) w.date_ui->docker_image_LineEdit->setVisible(engineerOn);
         }
         w.is_load_tool = calculatorOn || knowledgeOn || controllerOn || stablediffusionOn || engineerOn || mcpOn;
         if (engineerOn)
@@ -553,6 +571,7 @@ int main(int argc, char *argv[])
         {
             w.ui_extra_prompt = w.is_load_tool ? w.create_extra_prompt() : QString();
         }
+        w.syncDockerSandboxConfig(true);
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
         // 推理设备：先根据目录填充选项，再应用用户偏好。恢复自定义后端覆盖路径。

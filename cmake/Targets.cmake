@@ -50,6 +50,7 @@ add_executable(
     src/utils/history_store.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
+    src/utils/docker_sandbox.cpp src/utils/docker_sandbox.h
     src/utils/pathutil.cpp src/utils/pathutil.h src/utils/processrunner.cpp src/utils/processrunner.h src/utils/depresolver.cpp src/utils/depresolver.h
     src/utils/startuplogger.cpp src/utils/startuplogger.h
     src/utils/singleinstance.cpp src/utils/singleinstance.h
