@@ -24,6 +24,22 @@
 #include "../utils/textspacing.h"
 #include "../utils/startuplogger.h"
 
+void toggleWindowVisibility(QWidget *w, bool visible)
+{
+    if (!w) return;
+    if (visible)
+    {
+        w->setWindowFlags(Qt::Window);
+        w->showNormal();
+        w->raise();
+        w->activateWindow();
+    }
+    else
+    {
+        w->hide();
+    }
+}
+
 Widget::Widget(QWidget *parent, QString applicationDirPath_)
     : QWidget(parent), ui(new Ui::Widget)
 {

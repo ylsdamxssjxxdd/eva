@@ -17,7 +17,6 @@
 #include <QStandardPaths>
 #include <QThread>
 #include <QStringList>
-#include <QWidget>
 #include <array>
 #include <iostream>
 // removed libsamplerate/libsndfile usage; whisper-cli handles resampling
@@ -25,6 +24,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+
+class QWidget;
 
 // 默认约定
 #define DEFAULT_DATE_PROMPT "You are a helpful assistant."
@@ -547,20 +548,7 @@ const QString USEROS = QOperatingSystemVersion::current().name() + " " + QString
 #endif
 
 // 设置窗口可见性
-inline void toggleWindowVisibility(QWidget *w, bool visible)
-{
-    if (visible)
-    {
-        w->setWindowFlags(Qt::Window); // 设置为普通窗口
-        w->showNormal();               // 显示并激活窗口
-        w->raise();
-        w->activateWindow();
-    }
-    else
-    {
-        w->hide();
-    }
-};
+void toggleWindowVisibility(QWidget *w, bool visible);
 
 // 安全获取字符串列表（原函数增强版，支持任意键）
 inline std::vector<std::string> get_string_list_safely(const mcp::json &json_, const std::string &key)
