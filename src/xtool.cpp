@@ -115,6 +115,13 @@ QString snippetPreview(const QString &text)
     if (trimmed.size() > kPreviewLimit) trimmed = trimmed.left(kPreviewLimit) + "...";
     return trimmed;
 }
+
+QString shellQuote(const QString &value)
+{
+    QString escaped = value;
+    escaped.replace('\'', "'\\''");
+    return QStringLiteral("'") + escaped + QStringLiteral("'");
+}
 } // namespace
 
 struct xTool::ToolInvocation
@@ -392,50 +399,61 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     //----------------------读取文件------------------
     else if (tools_name == "read_file")
     {
-        // 获取路径参数
         QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "path"));
         QString filepath = build_in_tool_arg;
-        // Normalize to work root; strip duplicated root prefix then join
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
         filepath = QDir::fromNativeSeparators(filepath);
         if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
         filepath = QDir(root).filePath(filepath);
-        // 获取行号参数，默认为1
         int start_line = get_int_safely(tools_args_, "start_line", 1);
         int end_line = get_int_safely(tools_args_, "end_line", INT_MAX);
-        // 验证行号有效性
         if (start_line < 1) start_line = 1;
         if (end_line < start_line) end_line = start_line;
         if (end_line - start_line + 1 > 200) end_line = start_line + 199;
+        const bool useDocker = dockerSandboxEnabled();
         QString result;
-        QFile file(filepath);
-        // 尝试打开文件
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        {
-            sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath)); // 返回错误
-            return;
-        }
-        // 使用 QTextStream 读取文件内容
-        QTextStream in(&file);
-        in.setCodec("UTF-8"); // 设置编码为UTF-8
-        // 读取指定行范围
-        QStringList lines;
         int current_line = 0;
-        while (!in.atEnd())
-        {
-            current_line++;
-            QString line = in.readLine();
-            if (current_line >= start_line && current_line <= end_line)
+        auto extractLines = [&](QTextStream &stream) {
+            QStringList lines;
+            current_line = 0;
+            while (!stream.atEnd())
             {
-                lines.append(line);
+                current_line++;
+                QString line = stream.readLine();
+                if (current_line >= start_line && current_line <= end_line) lines.append(line);
+                if (current_line > end_line) break;
             }
-            if (current_line > end_line) break;
+            result = lines.join("\n");
+        };
+        if (useDocker)
+        {
+            QString fileContent;
+            QString error;
+            if (!dockerReadTextFile(filepath, &fileContent, &error))
+            {
+                sendPushMessage(QString("read_file ") + jtr("return") + " " + error);
+                return;
+            }
+            QTextStream stream(&fileContent, QIODevice::ReadOnly);
+            extractLines(stream);
         }
-        file.close();
-        result = lines.join("\n");
+        else
+        {
+            QFile file(filepath);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath));
+                return;
+            }
+            QTextStream in(&file);
+            in.setCodec("UTF-8");
+            extractLines(in);
+            file.close();
+        }
         sendStateMessage("tool:" + QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result, TOOL_SIGNAL);
-        sendPushMessage(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result); // 返回结果
+        sendPushMessage(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result);
     }
+
     //----------------------写入文件------------------
     else if (tools_name == "write_file")
     {
@@ -445,32 +463,41 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         filepath = QDir::fromNativeSeparators(filepath);
         if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
         filepath = QDir(root).filePath(filepath);
-        // Extract the directory path from the file path
-        QFileInfo fileInfo(filepath);
-        QString dirPath = fileInfo.absolutePath();
-        // Create the directory structure if it doesn't exist
-        QDir dir;
-        if (!dir.mkpath(dirPath))
+        if (dockerSandboxEnabled())
         {
-            sendPushMessage(QString("write_file ") + jtr("return") + "Failed to create directory"); // 返回错误
-            return; // or handle the error as appropriate
+            QString error;
+            if (!dockerWriteTextFile(filepath, content, &error))
+            {
+                sendPushMessage(QString("write_file ") + jtr("return") + "\n" + error);
+                return;
+            }
         }
-        QFile file(filepath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        else
         {
-            sendPushMessage(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString()); // 返回错误
-            return; // or handle the error as appropriate
+            QFileInfo fileInfo(filepath);
+            QString dirPath = fileInfo.absolutePath();
+            QDir dir;
+            if (!dir.mkpath(dirPath))
+            {
+                sendPushMessage(QString("write_file ") + jtr("return") + "Failed to create directory");
+                return;
+            }
+            QFile file(filepath);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                sendPushMessage(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString());
+                return;
+            }
+            QTextStream out(&file);
+            out.setCodec("UTF-8");
+            out << content;
+            file.close();
         }
-        // 处理换行符
-        // qDebug()<<content;
-        QTextStream out(&file);
-        out.setCodec("UTF-8"); // 设置编码为UTF-8
-        out << content;
-        file.close();
         QString result = "write over";
         sendStateMessage("tool:" + QString("write_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         sendPushMessage(QString("write_file ") + jtr("return") + "\n" + result);
     }
+
     else if (tools_name == "replace_in_file")
     {
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
@@ -492,21 +519,34 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (oldStrRaw.isEmpty())
         {
-            sendPushMessage("replace_in_file " + jtr("return") + " old_string is empty.");
+            sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + QStringLiteral(" old_string is empty."));
             return;
         }
         const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
         filepath = QDir::fromNativeSeparators(filepath);
         if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
         filepath = QDir(root).filePath(filepath);
-        QFile inFile(filepath);
-        if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        QString originalContent;
+        if (dockerSandboxEnabled())
         {
-            sendPushMessage("replace_in_file " + jtr("return") + "Could not open file for reading: " + inFile.errorString());
-            return;
+            QString error;
+            if (!dockerReadTextFile(filepath, &originalContent, &error))
+            {
+                sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + error);
+                return;
+            }
         }
-        QString originalContent = QString::fromUtf8(inFile.readAll());
-        inFile.close();
+        else
+        {
+            QFile inFile(filepath);
+            if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + "Could not open file for reading: " + inFile.errorString());
+                return;
+            }
+            originalContent = QString::fromUtf8(inFile.readAll());
+            inFile.close();
+        }
         const bool hadCRLF = originalContent.contains("\r\n");
         const bool hadCR = !hadCRLF && originalContent.contains('\r');
         QString normalizedContent = normalizeNewlines(originalContent);
@@ -521,7 +561,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (matches.isEmpty())
         {
-            QString message = "replace_in_file " + jtr("return") + " old_string NOT found.";
+            QString message = QStringLiteral("replace_in_file ") + jtr("return") + QStringLiteral(" old_string NOT found.");
             const QString preview = snippetPreview(normalizedOld);
             if (!preview.isEmpty())
             {
@@ -533,7 +573,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (expectedProvided && matches.size() != expectedRepl)
         {
-            sendPushMessage("replace_in_file " + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
+            sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
             return;
         }
         const bool autoExpanded = !expectedProvided && matches.size() > expectedRepl;
@@ -547,38 +587,51 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             ++applied;
         }
         QString finalContent = restoreNewlines(normalizedContent, hadCRLF, hadCR);
-        QFileInfo fi(filepath);
-        QDir dir;
-        if (!dir.mkpath(fi.absolutePath()))
+        if (dockerSandboxEnabled())
         {
-            sendPushMessage("replace_in_file " + jtr("return") + "Failed to create directory.");
-            return;
+            QString error;
+            if (!dockerWriteTextFile(filepath, finalContent, &error))
+            {
+                sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + error);
+                return;
+            }
         }
-        QFile outFile(filepath);
-        if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        else
         {
-            sendPushMessage("replace_in_file " + jtr("return") + "Could not open file for writing: " + outFile.errorString());
-            return;
+            QFileInfo fi(filepath);
+            QDir dir;
+            if (!dir.mkpath(fi.absolutePath()))
+            {
+                sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + QStringLiteral("Failed to create directory."));
+                return;
+            }
+            QFile outFile(filepath);
+            if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+            {
+                sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + "Could not open file for writing: " + outFile.errorString());
+                return;
+            }
+            QTextStream ts(&outFile);
+            ts.setCodec("UTF-8");
+            ts << finalContent;
+            outFile.close();
         }
-        QTextStream ts(&outFile);
-        ts.setCodec("UTF-8");
-        ts << finalContent;
-        outFile.close();
         QString result = QString("replaced %1 occurrence(s)").arg(applied);
         QStringList notes;
         if (usedFlexibleMatch) notes << "whitespace-insensitive search";
         if (autoExpanded && applied > 1) notes << QString("auto-applied to %1 identical matches").arg(applied);
         if (!notes.isEmpty()) result += QString(" [%1]").arg(notes.join("; "));
-        sendStateMessage("tool:replace_in_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
-        sendPushMessage("replace_in_file " + jtr("return") + "\n" + result);
+        sendStateMessage(QStringLiteral("tool:replace_in_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + "\n" + result);
     }
+
 
 
 
     else if (tools_name == "edit_in_file")
     {
         const auto sendError = [&](const QString &msg) {
-            sendPushMessage("edit_in_file " + jtr("return") + " " + msg);
+            sendPushMessage(QStringLiteral("edit_in_file ") + jtr("return") + " " + msg);
         };
         if (!tools_args_.contains("edits") || !tools_args_["edits"].is_array())
         {
@@ -590,14 +643,27 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         filepath = QDir::fromNativeSeparators(filepath);
         if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
         filepath = QDir(root).filePath(filepath);
-        QFile inFile(filepath);
-        if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        QString originalContent;
+        if (dockerSandboxEnabled())
         {
-            sendError("Could not open file for reading: " + inFile.errorString());
-            return;
+            QString error;
+            if (!dockerReadTextFile(filepath, &originalContent, &error))
+            {
+                sendError(error);
+                return;
+            }
         }
-        QString originalContent = QString::fromUtf8(inFile.readAll());
-        inFile.close();
+        else
+        {
+            QFile inFile(filepath);
+            if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                sendError("Could not open file for reading: " + inFile.errorString());
+                return;
+            }
+            originalContent = QString::fromUtf8(inFile.readAll());
+            inFile.close();
+        }
         const bool hadCRLF = originalContent.contains("\r\n");
         const bool hadCR = !hadCRLF && originalContent.contains('\r');
         QString normalizedContent = normalizeNewlines(originalContent);
@@ -706,7 +772,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (operations.isEmpty())
         {
-            sendPushMessage("edit_in_file " + jtr("return") + " no edits supplied.");
+            sendPushMessage(QStringLiteral("edit_in_file ") + jtr("return") + QStringLiteral(" no edits supplied."));
             return;
         }
         std::sort(operations.begin(), operations.end(), [](const EditOperation &a, const EditOperation &b) {
@@ -780,23 +846,35 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         if (ensureNewline && !normalizedResult.endsWith("\n")) normalizedResult.append("\n");
         else if (!ensureNewline && normalizedResult.endsWith("\n") && !normalizedResult.isEmpty()) normalizedResult.chop(1);
         QString finalContent = restoreNewlines(normalizedResult, hadCRLF, hadCR);
-        QFileInfo fi(filepath);
-        QDir dir;
-        if (!dir.mkpath(fi.absolutePath()))
+        if (dockerSandboxEnabled())
         {
-            sendError("Failed to create directory.");
-            return;
+            QString error;
+            if (!dockerWriteTextFile(filepath, finalContent, &error))
+            {
+                sendError(error);
+                return;
+            }
         }
-        QFile outFile(filepath);
-        if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        else
         {
-            sendError("Could not open file for writing: " + outFile.errorString());
-            return;
+            QFileInfo fi(filepath);
+            QDir dir;
+            if (!dir.mkpath(fi.absolutePath()))
+            {
+                sendError("Failed to create directory.");
+                return;
+            }
+            QFile outFile(filepath);
+            if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+            {
+                sendError("Could not open file for writing: " + outFile.errorString());
+                return;
+            }
+            QTextStream ts(&outFile);
+            ts.setCodec("UTF-8");
+            ts << finalContent;
+            outFile.close();
         }
-        QTextStream ts(&outFile);
-        ts.setCodec("UTF-8");
-        ts << finalContent;
-        outFile.close();
         QStringList parts;
         const QString actions[] = {"replace", "insert_before", "insert_after", "delete"};
         for (const QString &act : actions)
@@ -810,9 +888,10 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         {
             result += ensureNewline ? " [newline ensured]" : " [newline removed]";
         }
-        sendStateMessage("tool:edit_in_file " + jtr("return") + "\n" + result, TOOL_SIGNAL);
-        sendPushMessage("edit_in_file " + jtr("return") + "\n" + result);
+        sendStateMessage(QStringLiteral("tool:edit_in_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage(QStringLiteral("edit_in_file ") + jtr("return") + "\n" + result);
     }
+
 
     //----------------------列出目录（工程师）------------------
     else if (tools_name == "list_files")
@@ -1271,6 +1350,134 @@ QString xTool::dockerWorkdirOrFallback(const QString &hostWorkdir) const
         return dockerSandbox_->containerWorkdir();
     }
     return hostWorkdir;
+}
+
+QString xTool::containerPathForHost(const QString &absHostPath) const
+{
+    const QString root = QDir::cleanPath(resolveWorkRoot());
+    QString normalized = QDir::cleanPath(absHostPath);
+    QDir rootDir(root);
+    QString relative = rootDir.relativeFilePath(normalized);
+    if (relative.startsWith("..")) return {};
+    QString containerRoot = dockerSandbox_ ? dockerSandbox_->containerWorkdir() : QStringLiteral("/workspace");
+    if (containerRoot.isEmpty()) containerRoot = QStringLiteral("/workspace");
+    QDir containerDir(containerRoot);
+    return QDir::cleanPath(containerDir.filePath(relative));
+}
+
+bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QString *errorMessage)
+{
+    if (!dockerSandboxEnabled())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("docker sandbox not enabled");
+        return false;
+    }
+    QString ensureError;
+    if (!ensureDockerSandboxReady(&ensureError))
+    {
+        if (errorMessage) *errorMessage = ensureError;
+        return false;
+    }
+    const QString containerPath = containerPathForHost(absHostPath);
+    if (containerPath.isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Path outside engineer workdir");
+        return false;
+    }
+    QString stdOut;
+    QString stdErr;
+    QString execError;
+    const QString command = QStringLiteral("cat %1").arg(shellQuote(containerPath));
+    if (!runDockerShellCommand(command, &stdOut, &stdErr, &execError))
+    {
+        if (errorMessage) *errorMessage = execError.isEmpty() ? stdErr.trimmed() : execError;
+        return false;
+    }
+    if (content) *content = stdOut;
+    return true;
+}
+
+bool xTool::dockerWriteTextFile(const QString &absHostPath, const QString &content, QString *errorMessage)
+{
+    if (!dockerSandboxEnabled())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("docker sandbox not enabled");
+        return false;
+    }
+    QString ensureError;
+    if (!ensureDockerSandboxReady(&ensureError))
+    {
+        if (errorMessage) *errorMessage = ensureError;
+        return false;
+    }
+    const QString containerPath = containerPathForHost(absHostPath);
+    if (containerPath.isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Path outside engineer workdir");
+        return false;
+    }
+    QString dirPath = containerPath;
+    const int lastSlash = dirPath.lastIndexOf('/');
+    if (lastSlash > 0)
+        dirPath = dirPath.left(lastSlash);
+    else
+        dirPath = QStringLiteral(".");
+    const QString command = QStringLiteral("set -e; mkdir -p %1 && cat > %2").arg(shellQuote(dirPath), shellQuote(containerPath));
+    QString stdErr;
+    QString execError;
+    QByteArray data = content.toUtf8();
+    if (!runDockerShellCommand(command, nullptr, &stdErr, &execError, data))
+    {
+        if (errorMessage) *errorMessage = execError.isEmpty() ? stdErr.trimmed() : execError;
+        return false;
+    }
+    return true;
+}
+
+bool xTool::runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData) const
+{
+    if (!dockerSandboxEnabled() || !dockerSandbox_ || dockerSandbox_->containerName().isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("docker sandbox not ready");
+        return false;
+    }
+#ifdef _WIN32
+    const QString program = QStringLiteral("docker.exe");
+#else
+    const QString program = QStringLiteral("docker");
+#endif
+    QStringList args;
+    args << QStringLiteral("exec") << QStringLiteral("-i") << dockerSandbox_->containerName()
+         << QStringLiteral("/bin/sh") << QStringLiteral("-c") << shellCommand;
+    QProcess process;
+    process.setProgram(program);
+    process.setArguments(args);
+    process.setProcessChannelMode(QProcess::SeparateChannels);
+    process.start();
+    if (!stdinData.isEmpty())
+    {
+        process.write(stdinData);
+    }
+    process.closeWriteChannel();
+    if (!process.waitForFinished(120000))
+    {
+        process.kill();
+        if (errorMessage) *errorMessage = QStringLiteral("docker exec timeout");
+        return false;
+    }
+    const QString outText = QString::fromUtf8(process.readAllStandardOutput());
+    const QString errText = QString::fromUtf8(process.readAllStandardError());
+    if (stdOut) *stdOut = outText;
+    if (stdErr) *stdErr = errText;
+    const bool success = process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
+    if (!success && errorMessage)
+    {
+        if (!errText.trimmed().isEmpty())
+            *errorMessage = errText.trimmed();
+        else
+            *errorMessage = QStringLiteral("docker exec failed (%1)").arg(process.exitCode());
+    }
+    return success;
 }
 
 void xTool::ensureWorkdirExists(const QString &work) const

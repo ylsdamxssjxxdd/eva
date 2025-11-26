@@ -140,6 +140,10 @@ class xTool : public QObject
     bool dockerSandboxEnabled() const;
     bool ensureDockerSandboxReady(QString *errorMessage);
     QString dockerWorkdirOrFallback(const QString &hostWorkdir) const;
+    QString containerPathForHost(const QString &absHostPath) const;
+    bool dockerReadTextFile(const QString &absHostPath, QString *content, QString *errorMessage);
+    bool dockerWriteTextFile(const QString &absHostPath, const QString &content, QString *errorMessage);
+    bool runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData = QByteArray()) const;
     ToolInvocationPtr activeInvocation() const;
     void setActiveInvocation(const ToolInvocationPtr &invocation);
     void clearActiveInvocation(const ToolInvocationPtr &invocation);
