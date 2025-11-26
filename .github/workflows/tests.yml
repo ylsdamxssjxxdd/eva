@@ -34,6 +34,7 @@ jobs:
             qtdeclarative5-dev \
             qtscript5-dev \
             qtmultimedia5-dev \
+            qtspeech5-dev \
             qttools5-dev \
             qttools5-dev-tools \
             libqt5svg5-dev \
