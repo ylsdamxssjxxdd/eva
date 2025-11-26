@@ -544,10 +544,7 @@ int main(int argc, char *argv[])
         {
             w.date_ui->dockerSandbox_checkbox->setChecked(w.ui_dockerSandboxEnabled);
         }
-        if (w.date_ui->docker_image_comboBox)
-        {
-            w.updateDockerImageCombo();
-        }
+        w.refreshDockerImageList(true);
         if (settings.contains("skills_enabled"))
         {
             w.restoreSkillSelection(settings.value("skills_enabled").toStringList());

@@ -135,6 +135,7 @@ class xTool : public QObject
     void handleMcpToolList(const ToolInvocationPtr &invocation);
     void handleMcpToolCall(const ToolInvocationPtr &invocation);
     QString resolveWorkRoot() const;
+    QString resolveHostPathWithinWorkdir(const QString &inputPath, QString *errorMessage = nullptr) const;
     void ensureWorkdirExists(const QString &work) const;
     void onDockerStatusChanged(const DockerSandboxStatus &status);
     bool dockerSandboxEnabled() const;
