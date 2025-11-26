@@ -245,6 +245,17 @@ void xTool::recv_dockerConfig(bool enabled, QString image, QString workdir)
     if (dockerSandbox_) dockerSandbox_->applyConfig(cfg);
 }
 
+void xTool::shutdownDockerSandbox()
+{
+    if (!dockerSandbox_) return;
+    if (!dockerConfig_.enabled) return;
+    DockerSandbox::Config cfg = dockerConfig_;
+    cfg.enabled = false;
+    dockerConfig_ = cfg;
+    dockerSandbox_->applyConfig(cfg);
+    qDebug() << "docker sandbox stopped before exit";
+}
+
 void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
 {
     emit tool2ui_dockerStatusChanged(status);

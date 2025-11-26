@@ -17,6 +17,7 @@
 #include <QtGlobal> // qRound/qBound
 #include <QElapsedTimer>
 #include <QGuiApplication>
+#include <QMetaObject>
 #include <QtPlugin>
 #include <climits>
 #include <functional>
@@ -347,8 +348,9 @@ int main(int argc, char *argv[])
                      {
         cpuer_thread->quit();
         cpuer_thread->wait(1000); });
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [tool_thread]()
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [&tool, tool_thread]()
                      {
+        QMetaObject::invokeMethod(&tool, "shutdownDockerSandbox", Qt::BlockingQueuedConnection);
         tool_thread->quit();
         tool_thread->wait(2000); });
     QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp_thread]()
