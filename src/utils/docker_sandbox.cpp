@@ -101,6 +101,11 @@ void DockerSandbox::applyConfig(const Config &config)
         if (!previousContainer.isEmpty())
         {
             stopContainer(previousContainer);
+            if (previouslyManaged)
+            {
+                QString removeError;
+                removeContainer(previousContainer, &removeError);
+            }
         }
         status_.ready = false;
         status_.lastError.clear();
@@ -113,6 +118,11 @@ void DockerSandbox::applyConfig(const Config &config)
     if (!previousContainer.isEmpty() && previousContainer != status_.containerName)
     {
         stopContainer(previousContainer);
+        if (previouslyManaged)
+        {
+            QString removeError;
+            removeContainer(previousContainer, &removeError);
+        }
     }
 
     QString error;
