@@ -65,9 +65,7 @@ void Widget::set_api()
     reflash_state("ui:" + EVA_title, USUAL_SIGNAL);
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
-    EVA_icon = QIcon(":/logo/dark_logo.png");
-    QApplication::setWindowIcon(EVA_icon); // 设置应用程序图标
-    trayIcon->setIcon(EVA_icon);           // 设置系统托盘图标
+    setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
 
     emit ui2net_apis(apis);
     // Broadcast to Expend (evaluation tab) as well

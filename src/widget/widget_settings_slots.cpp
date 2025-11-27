@@ -132,63 +132,63 @@ void Widget::tool_change()
     // 如果是软件工程师则查询python环境
     if (QCheckBox *checkbox = qobject_cast<QCheckBox *>(senderObj))
     {
-        if (checkbox == date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+        if (checkbox == date_ui->engineer_checkbox)
         {
-            triggerEngineerEnvRefresh(true);
-            refreshDockerImageList(true);
-            // If a work dir was chosen previously, reuse it silently
-            const QString fallback = QDir(applicationDirPath).filePath("EVA_WORK");
-            const QString current = engineerWorkDir.isEmpty() ? fallback : engineerWorkDir;
-            if (engineerWorkDir.isEmpty())
+            ui_engineer_ischecked = checkbox->isChecked();
+            if (checkbox->isChecked())
             {
-                // Prompt only when not set before (or path missing)
-                QString picked = QFileDialog::getExistingDirectory(this, jtr("choose work dir"), current,
-                                                                   QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-                if (!picked.isEmpty())
+                triggerEngineerEnvRefresh(true);
+                refreshDockerImageList(true);
+                // If a work dir was chosen previously, reuse it silently
+                const QString fallback = QDir(applicationDirPath).filePath("EVA_WORK");
+                const QString current = engineerWorkDir.isEmpty() ? fallback : engineerWorkDir;
+                if (engineerWorkDir.isEmpty())
                 {
-                    setEngineerWorkDir(picked);
-                    // Persist immediately to avoid losing selection on crash
-                    auto_save_user();
+                    // Prompt only when not set before (or path missing)
+                    QString picked = QFileDialog::getExistingDirectory(this, jtr("choose work dir"), current,
+                                                                       QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+                    if (!picked.isEmpty())
+                    {
+                        setEngineerWorkDir(picked);
+                        // Persist immediately to avoid losing selection on crash
+                        auto_save_user();
+                    }
+                    else // user canceled and not set previously -> stick to default silently
+                    {
+                        setEngineerWorkDir(current);
+                        auto_save_user();
+                    }
                 }
-                else // user canceled and not set previously -> stick to default silently
+                else
                 {
-                    setEngineerWorkDir(current);
-                    auto_save_user();
+                    // Already determined -> just propagate to tool to ensure it's in sync
+                    emit ui2tool_workdir(engineerWorkDir);
                 }
+
+                // 显示“工程师工作目录”行（在约定对话框）并更新显示
+                if (date_ui->date_engineer_workdir_LineEdit)
+                {
+                    date_ui->date_engineer_workdir_label->setVisible(true);
+                    date_ui->date_engineer_workdir_LineEdit->setVisible(true);
+                    date_ui->date_engineer_workdir_browse->setVisible(true);
+                    date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
+                }
+                if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(true);
+                if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(true);
             }
             else
             {
-                // Already determined -> just propagate to tool to ensure it's in sync
-                emit ui2tool_workdir(engineerWorkDir);
+                if (date_ui->date_engineer_workdir_LineEdit)
+                {
+                    date_ui->date_engineer_workdir_label->setVisible(false);
+                    date_ui->date_engineer_workdir_LineEdit->setVisible(false);
+                    date_ui->date_engineer_workdir_browse->setVisible(false);
+                }
+                if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(false);
+                if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(false);
+                dockerImagesFetched_ = false;
             }
-
-            // 显示“工程师工作目录”行（在约定对话框）并更新显示
-            if (date_ui->date_engineer_workdir_LineEdit)
-            {
-                date_ui->date_engineer_workdir_label->setVisible(true);
-                date_ui->date_engineer_workdir_LineEdit->setVisible(true);
-                date_ui->date_engineer_workdir_browse->setVisible(true);
-                date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
-            }
-            if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(true);
-            if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(true);
-        }
-    }
-
-    // 取消工程师挂载时隐藏该行
-    if (QCheckBox *checkbox2 = qobject_cast<QCheckBox *>(senderObj))
-    {
-        if (checkbox2 == date_ui->engineer_checkbox && !date_ui->engineer_checkbox->isChecked())
-        {
-            if (date_ui->date_engineer_workdir_LineEdit)
-            {
-                date_ui->date_engineer_workdir_label->setVisible(false);
-                date_ui->date_engineer_workdir_LineEdit->setVisible(false);
-                date_ui->date_engineer_workdir_browse->setVisible(false);
-            }
-            if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(false);
-            if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(false);
-            dockerImagesFetched_ = false;
+            refreshWindowIcon();
         }
     }
 

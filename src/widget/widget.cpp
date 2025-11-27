@@ -150,6 +150,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ghost.date_prompt = jtr("Mediocre ghost prompt");
     ghost.is_load_tool = false;
     date_map.insert(jtr("Mediocre ghost"), ghost);
+    StartupLogger::log(QStringLiteral("[widget] date templates initialized"));
 
     //-------------默认展示内容-------------
     right_menu = nullptr;     // 初始设置输入区右击菜单为空
@@ -163,8 +164,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         }
         globalUiSettings_.themeId = QStringLiteral("unit01");
     }
-    EVA_icon = QIcon(":/logo/dark_logo.png");
-    QApplication::setWindowIcon(EVA_icon);                                         // 设置应用程序图标
+    setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
     ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                       // 设置设置图标
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                  // 设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL); // 初始提示
@@ -321,7 +321,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //----------------设置系统托盘-----------------------
     // 创建托盘图标
     trayIcon = new QSystemTrayIcon(this);
-    trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
+    refreshWindowIcon();
     trayIcon->setToolTip(EVA_title);
     trayIcon->setContextMenu(trayMenu);
     // 托盘图标点击事件
@@ -371,6 +371,27 @@ Widget::~Widget()
     delete cutscreen_dialog;
     delete date_ui;
     delete settings_ui;
+}
+
+void Widget::setBaseWindowIcon(const QIcon &icon)
+{
+    EVA_icon = icon;
+    refreshWindowIcon();
+}
+
+void Widget::refreshWindowIcon()
+{
+    const QIcon engineerIcon(QStringLiteral(":/logo/User.ico"));
+    const bool engineerActive = isEngineerToolActive();
+    const QIcon targetIcon = engineerActive ? engineerIcon : EVA_icon;
+    QApplication::setWindowIcon(targetIcon);
+    if (trayIcon) trayIcon->setIcon(targetIcon);
+}
+
+bool Widget::isEngineerToolActive() const
+{
+    if (date_ui && date_ui->engineer_checkbox) return date_ui->engineer_checkbox->isChecked();
+    return ui_engineer_ischecked;
 }
 
 void Widget::loadSkillsAsync()

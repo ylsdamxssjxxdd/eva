@@ -448,6 +448,7 @@ void Widget::restoreDateDialogSnapshot()
     ui_controller_ischecked = snapshot.ui_controller_ischecked;
     ui_MCPtools_ischecked = snapshot.ui_MCPtools_ischecked;
     ui_engineer_ischecked = snapshot.ui_engineer_ischecked;
+    refreshWindowIcon();
     ui_dockerSandboxEnabled = snapshot.ui_dockerSandboxEnabled;
     engineerDockerImage = snapshot.engineerDockerImage;
     language_flag = snapshot.language_flag;

@@ -359,9 +359,7 @@ void Widget::updateMonitorTimer()
         {
             qDebug() << "开始监视..." << ui_monitor_frame;
             monitor_timer.start(intervalMs);
-            EVA_icon = QIcon(":/logo/jimu.png"); // 千年积木
-            QApplication::setWindowIcon(EVA_icon);
-            trayIcon->setIcon(EVA_icon);
+            setBaseWindowIcon(QIcon(":/logo/jimu.png")); // 千年积木
         }
     }
     else

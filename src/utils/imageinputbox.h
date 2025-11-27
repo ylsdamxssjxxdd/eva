@@ -7,7 +7,6 @@
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QFileIconProvider>
 #include <QFont>
 #include <QFontMetrics>
 #include <QFrame>
@@ -151,7 +150,6 @@ class ImageInputBox : public QWidget
         captionLabel->setToolTip(path);
 
         QPixmap pixmap;
-        QIcon systemIcon;
 
         if (kind == AttachmentKind::Audio)
         {
@@ -185,16 +183,8 @@ class ImageInputBox : public QWidget
         }
         else
         {
-            systemIcon = systemIconForPath(path);
-            if (!systemIcon.isNull())
-            {
-                pixmap = systemIcon.pixmap(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
-            }
-            else
-            {
-                const QString suffix = QFileInfo(path).suffix();
-                pixmap = documentBadgeForSuffix(suffix);
-            }
+            const QString suffix = QFileInfo(path).suffix();
+            pixmap = documentBadgeForSuffix(suffix);
             previewLabel->setToolTip(tr("Document: %1").arg(path));
         }
 
@@ -337,61 +327,93 @@ class ImageInputBox : public QWidget
     }
     QPixmap documentBadgeForSuffix(const QString &suffix)
     {
-        const QString lower = suffix.toLower();
-        const auto it = docIconCache_.constFind(lower);
+        const QString normalized = suffix.trimmed().toLower();
+        const QString cacheKey = normalized.isEmpty() ? QStringLiteral("__unknown") : normalized;
+        const auto it = docIconCache_.constFind(cacheKey);
         if (it != docIconCache_.constEnd()) return it.value();
 
-        QString label = lower.isEmpty() ? QStringLiteral("DOC") : lower.left(4).toUpper();
-        QColor color(96, 125, 139);
-        if (wordExtensions().contains(lower))
+        QPixmap pixmap;
+        const QString resourcePath = docIconResourcePath(normalized);
+        if (!resourcePath.isEmpty())
         {
-            label = QStringLiteral("DOC");
-            color = QColor(33, 118, 189);
+            pixmap.load(resourcePath);
         }
-        else if (presentationExtensions().contains(lower))
+        if (pixmap.isNull())
         {
-            label = QStringLiteral("PPT");
-            color = QColor(198, 96, 29);
+            pixmap.load(QStringLiteral(":/logo/doc-icons/other.ico"));
         }
-        else if (sheetExtensions().contains(lower))
+        if (pixmap.isNull())
         {
-            label = QStringLiteral("XLS");
-            color = QColor(46, 125, 50);
+            pixmap = buildDocBadge(QStringLiteral("DOC"), QColor(96, 125, 139));
         }
-        else if (lower == QStringLiteral("pdf"))
-        {
-            label = QStringLiteral("PDF");
-            color = QColor(183, 53, 58);
-        }
-        else if (markdownExtensions().contains(lower))
-        {
-            label = QStringLiteral("MD");
-            color = QColor(103, 58, 183);
-        }
-        else if (htmlExtensions().contains(lower))
-        {
-            label = QStringLiteral("HTML");
-            color = QColor(230, 81, 0);
-        }
-        else if (codeExtensions().contains(lower))
-        {
-            label = QStringLiteral("CODE");
-            color = QColor(84, 110, 122);
-        }
-        else if (configExtensions().contains(lower))
-        {
-            label = lower.left(3).toUpper();
-            color = QColor(0, 150, 136);
-        }
-        else if (textExtensions().contains(lower))
-        {
-            label = QStringLiteral("TXT");
-            color = QColor(120, 144, 156);
-        }
-
-        QPixmap badge = buildDocBadge(label, color);
-        docIconCache_.insert(lower, badge);
-        return badge;
+        docIconCache_.insert(cacheKey, pixmap);
+        return pixmap;
+    }
+    QString docIconResourcePath(const QString &suffix) const
+    {
+        const QString lower = suffix.toLower();
+        static const QHash<QString, QString> iconMap = {
+            {QStringLiteral("ckt"), QStringLiteral(":/logo/doc-icons/ckt.ico")},
+            {QStringLiteral("dbt"), QStringLiteral(":/logo/doc-icons/dbt.ico")},
+            {QStringLiteral("doc"), QStringLiteral(":/logo/doc-icons/doc.ico")},
+            {QStringLiteral("docx"), QStringLiteral(":/logo/doc-icons/docx.ico")},
+            {QStringLiteral("docm"), QStringLiteral(":/logo/doc-icons/docx.ico")},
+            {QStringLiteral("dot"), QStringLiteral(":/logo/doc-icons/dot.ico")},
+            {QStringLiteral("dotx"), QStringLiteral(":/logo/doc-icons/dot.ico")},
+            {QStringLiteral("dps"), QStringLiteral(":/logo/doc-icons/dps.ico")},
+            {QStringLiteral("dpt"), QStringLiteral(":/logo/doc-icons/dpt.ico")},
+            {QStringLiteral("epub"), QStringLiteral(":/logo/doc-icons/e-book.ico")},
+            {QStringLiteral("mobi"), QStringLiteral(":/logo/doc-icons/e-book.ico")},
+            {QStringLiteral("azw"), QStringLiteral(":/logo/doc-icons/e-book.ico")},
+            {QStringLiteral("azw3"), QStringLiteral(":/logo/doc-icons/e-book.ico")},
+            {QStringLiteral("et"), QStringLiteral(":/logo/doc-icons/et.ico")},
+            {QStringLiteral("ett"), QStringLiteral(":/logo/doc-icons/ett.ico")},
+            {QStringLiteral("form"), QStringLiteral(":/logo/doc-icons/form.ico")},
+            {QStringLiteral("html"), QStringLiteral(":/logo/doc-icons/html.ico")},
+            {QStringLiteral("htm"), QStringLiteral(":/logo/doc-icons/html.ico")},
+            {QStringLiteral("ksheet"), QStringLiteral(":/logo/doc-icons/ksheet.ico")},
+            {QStringLiteral("csv"), QStringLiteral(":/logo/doc-icons/ksheet.ico")},
+            {QStringLiteral("tsv"), QStringLiteral(":/logo/doc-icons/ksheet.ico")},
+            {QStringLiteral("kw"), QStringLiteral(":/logo/doc-icons/kw.ico")},
+            {QStringLiteral("ofd"), QStringLiteral(":/logo/doc-icons/ofd.ico")},
+            {QStringLiteral("opg"), QStringLiteral(":/logo/doc-icons/opg.ico")},
+            {QStringLiteral("otl"), QStringLiteral(":/logo/doc-icons/otl.ico")},
+            {QStringLiteral("pdf"), QStringLiteral(":/logo/doc-icons/pdf.ico")},
+            {QStringLiteral("pot"), QStringLiteral(":/logo/doc-icons/pot.ico")},
+            {QStringLiteral("potx"), QStringLiteral(":/logo/doc-icons/pot.ico")},
+            {QStringLiteral("ppt"), QStringLiteral(":/logo/doc-icons/ppt.ico")},
+            {QStringLiteral("pptx"), QStringLiteral(":/logo/doc-icons/pptx.ico")},
+            {QStringLiteral("pptm"), QStringLiteral(":/logo/doc-icons/pptx.ico")},
+            {QStringLiteral("processon_flow"), QStringLiteral(":/logo/doc-icons/processon_flow.ico")},
+            {QStringLiteral("flow"), QStringLiteral(":/logo/doc-icons/processon_flow.ico")},
+            {QStringLiteral("processon_mind"), QStringLiteral(":/logo/doc-icons/processon_mind.ico")},
+            {QStringLiteral("mind"), QStringLiteral(":/logo/doc-icons/processon_mind.ico")},
+            {QStringLiteral("resh"), QStringLiteral(":/logo/doc-icons/resh.ico")},
+            {QStringLiteral("txt"), QStringLiteral(":/logo/doc-icons/txt.ico")},
+            {QStringLiteral("log"), QStringLiteral(":/logo/doc-icons/txt.ico")},
+            {QStringLiteral("md"), QStringLiteral(":/logo/doc-icons/txt.ico")},
+            {QStringLiteral("markdown"), QStringLiteral(":/logo/doc-icons/txt.ico")},
+            {QStringLiteral("uot"), QStringLiteral(":/logo/doc-icons/uot.ico")},
+            {QStringLiteral("wps"), QStringLiteral(":/logo/doc-icons/wps.ico")},
+            {QStringLiteral("wpsnote"), QStringLiteral(":/logo/doc-icons/wpsnote.ico")},
+            {QStringLiteral("wpt"), QStringLiteral(":/logo/doc-icons/wpt.ico")},
+            {QStringLiteral("xls"), QStringLiteral(":/logo/doc-icons/xls.ico")},
+            {QStringLiteral("xlsx"), QStringLiteral(":/logo/doc-icons/xlsx.ico")},
+            {QStringLiteral("xlsm"), QStringLiteral(":/logo/doc-icons/xlsx.ico")},
+            {QStringLiteral("xlt"), QStringLiteral(":/logo/doc-icons/xlt.ico")},
+            {QStringLiteral("xltx"), QStringLiteral(":/logo/doc-icons/xlt.ico")}
+        };
+        const QString defaultIcon = QStringLiteral(":/logo/doc-icons/other.ico");
+        const auto it = iconMap.constFind(lower);
+        if (it != iconMap.constEnd()) return it.value();
+        if (lower.isEmpty()) return defaultIcon;
+        if (wordExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/doc.ico");
+        if (presentationExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/ppt.ico");
+        if (sheetExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/xls.ico");
+        if (markdownExtensions().contains(lower) || textExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/txt.ico");
+        if (htmlExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/html.ico");
+        if (codeExtensions().contains(lower) || configExtensions().contains(lower)) return QStringLiteral(":/logo/doc-icons/txt.ico");
+        return defaultIcon;
     }
     QString attachmentDisplayName(const QString &path) const
     {
@@ -404,11 +426,6 @@ class ImageInputBox : public QWidget
         const QString name = attachmentDisplayName(path);
         QFontMetrics fm(font());
         return fm.elidedText(name, Qt::ElideMiddle, THUMBNAIL_TEXT_WIDTH);
-    }
-    QIcon systemIconForPath(const QString &path) const
-    {
-        static QFileIconProvider provider;
-        return provider.icon(QFileInfo(path));
     }
     QPixmap buildDocBadge(const QString &label, const QColor &bg) const
     {
@@ -444,27 +461,33 @@ class ImageInputBox : public QWidget
     }
     static const QSet<QString> &textExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("txt"), QStringLiteral("log")};
+        static const QSet<QString> exts = {QStringLiteral("txt"), QStringLiteral("log"), QStringLiteral("text")};
         return exts;
     }
     static const QSet<QString> &wordExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("doc"), QStringLiteral("docx"), QStringLiteral("odt"), QStringLiteral("wps")};
+        static const QSet<QString> exts = {QStringLiteral("doc"),  QStringLiteral("docx"), QStringLiteral("docm"), QStringLiteral("dot"),
+                                           QStringLiteral("dotx"), QStringLiteral("dotm"), QStringLiteral("odt"),  QStringLiteral("rtf"),
+                                           QStringLiteral("wps"),  QStringLiteral("wpt"),  QStringLiteral("kw"),   QStringLiteral("uot")};
         return exts;
     }
     static const QSet<QString> &presentationExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("pptx"), QStringLiteral("odp"), QStringLiteral("dps")};
+        static const QSet<QString> exts = {QStringLiteral("ppt"),  QStringLiteral("pptx"), QStringLiteral("pptm"), QStringLiteral("odp"),
+                                           QStringLiteral("pps"),  QStringLiteral("ppsx"), QStringLiteral("pot"),  QStringLiteral("potx"),
+                                           QStringLiteral("dps"),  QStringLiteral("dpt")};
         return exts;
     }
     static const QSet<QString> &sheetExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("xlsx"), QStringLiteral("ods"), QStringLiteral("et")};
+        static const QSet<QString> exts = {QStringLiteral("xls"),  QStringLiteral("xlsx"), QStringLiteral("xlsm"), QStringLiteral("xlt"),
+                                           QStringLiteral("xltx"), QStringLiteral("ods"),  QStringLiteral("csv"),  QStringLiteral("tsv"),
+                                           QStringLiteral("et"),   QStringLiteral("ett"),  QStringLiteral("ksheet")};
         return exts;
     }
     static const QSet<QString> &markdownExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("md"), QStringLiteral("markdown")};
+        static const QSet<QString> exts = {QStringLiteral("md"), QStringLiteral("markdown"), QStringLiteral("mdown"), QStringLiteral("mkd")};
         return exts;
     }
     static const QSet<QString> &htmlExtensions()
@@ -481,7 +504,8 @@ class ImageInputBox : public QWidget
     }
     static const QSet<QString> &configExtensions()
     {
-        static const QSet<QString> exts = {QStringLiteral("json"), QStringLiteral("ini"), QStringLiteral("cfg")};
+        static const QSet<QString> exts = {QStringLiteral("json"), QStringLiteral("ini"), QStringLiteral("cfg"),
+                                           QStringLiteral("yaml"), QStringLiteral("yml"), QStringLiteral("toml")};
         return exts;
     }
     static const QSet<QString> &documentExtensions()

@@ -162,10 +162,13 @@ class Widget : public QWidget
     QString currentpath;
     QString historypath;
     void apply_language(int language_flag_); // 改变语种相关
-    QSystemTrayIcon *trayIcon;               // 系统托盘图标
+    QSystemTrayIcon *trayIcon = nullptr;     // 系统托盘图标
     QMenu *trayMenu;                         // 托盘右键菜单
     QIcon EVA_icon;                          // 机体的图标
     QString EVA_title;                       // 机体的标题
+    void setBaseWindowIcon(const QIcon &icon);
+    void refreshWindowIcon();
+    bool isEngineerToolActive() const;
 
     bool is_config = false; // 是否是读取了配置进行的装载
     void auto_save_user();  // 每次约定和设置后都保存配置到本地
@@ -334,7 +337,7 @@ class Widget : public QWidget
     void commitPendingBackendOverrides();
     void rebuildReasoningCombo();
     Ui::Settings_Dialog_Ui *settings_ui;
-    QDialog *settings_dialog;
+    QDialog *settings_dialog = nullptr;
     QString deviceLabelBaseText; // “推理设备”标签的原始文本，用于 auto 提示拼接
     void chooseLorapath();
     void chooseMmprojpath();
@@ -363,8 +366,8 @@ class Widget : public QWidget
     QString shell = DEFAULT_SHELL;
     QString pythonExecutable = DEFAULT_PYTHON;
     void set_DateDialog(); // 设置约定选项
-    Ui::Date_Dialog_Ui *date_ui;
-    QDialog *date_dialog;
+    Ui::Date_Dialog_Ui *date_ui = nullptr;
+    QDialog *date_dialog = nullptr;
     QString ui_extra_lan = "zh";
     QString ui_extra_prompt;
     QString ui_date_prompt;

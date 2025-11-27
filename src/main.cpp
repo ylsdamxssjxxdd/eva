@@ -539,6 +539,7 @@ int main(int argc, char *argv[])
         }
         const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
         w.ui_engineer_ischecked = engineerOn;
+        w.refreshWindowIcon();
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
         w.ui_dockerSandboxEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();

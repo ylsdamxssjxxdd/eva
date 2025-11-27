@@ -240,15 +240,11 @@ void Widget::recv_resetover()
 {
     if (ui_SETTINGS.ngl == 0)
     {
-        EVA_icon = QIcon(":/logo/blue_logo.png");
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
+        setBaseWindowIcon(QIcon(":/logo/blue_logo.png"));
     } // 恢复
     else
     {
-        EVA_icon = QIcon(":/logo/green_logo.png");
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon); // 设置系统托盘图标
+        setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
     } // 恢复
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 
@@ -442,9 +438,7 @@ void Widget::on_reset_clicked()
         // 远端模式：显示当前端点
         current_api = (ui_state == CHAT_STATE) ? (apis.api_endpoint + apis.api_chat_endpoint)
                                                : (apis.api_endpoint + apis.api_completion_endpoint);
-        EVA_icon = QIcon(":/logo/dark_logo.png");
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon);
+        setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
         EVA_title = jtr("current api") + " " + current_api;
         reflash_state(QString("ui:") + EVA_title, USUAL_SIGNAL);
         this->setWindowTitle(EVA_title);
@@ -458,14 +452,12 @@ void Widget::on_reset_clicked()
         trayIcon->setToolTip(EVA_title);
         if (ui_SETTINGS.ngl == 0)
         {
-            EVA_icon = QIcon(":/logo/blue_logo.png");
+            setBaseWindowIcon(QIcon(":/logo/blue_logo.png"));
         }
         else
         {
-            EVA_icon = QIcon(":/logo/green_logo.png");
+            setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
         }
-        QApplication::setWindowIcon(EVA_icon);
-        trayIcon->setIcon(EVA_icon);
     }
     return;
 }

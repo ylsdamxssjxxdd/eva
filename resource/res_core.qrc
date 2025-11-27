@@ -30,5 +30,39 @@
         <file>logo/connection-point-blue.png</file>
         <file>logo/connection-point-green.png</file>
         <file>logo/jimu.png</file>
+        <file>logo/User.ico</file>
+        <file>logo/doc-icons/ckt.ico</file>
+        <file>logo/doc-icons/dbt.ico</file>
+        <file>logo/doc-icons/doc.ico</file>
+        <file>logo/doc-icons/docx.ico</file>
+        <file>logo/doc-icons/dot.ico</file>
+        <file>logo/doc-icons/dps.ico</file>
+        <file>logo/doc-icons/dpt.ico</file>
+        <file>logo/doc-icons/e-book.ico</file>
+        <file>logo/doc-icons/et.ico</file>
+        <file>logo/doc-icons/ett.ico</file>
+        <file>logo/doc-icons/form.ico</file>
+        <file>logo/doc-icons/html.ico</file>
+        <file>logo/doc-icons/ksheet.ico</file>
+        <file>logo/doc-icons/kw.ico</file>
+        <file>logo/doc-icons/ofd.ico</file>
+        <file>logo/doc-icons/opg.ico</file>
+        <file>logo/doc-icons/other.ico</file>
+        <file>logo/doc-icons/otl.ico</file>
+        <file>logo/doc-icons/pdf.ico</file>
+        <file>logo/doc-icons/pot.ico</file>
+        <file>logo/doc-icons/ppt.ico</file>
+        <file>logo/doc-icons/pptx.ico</file>
+        <file>logo/doc-icons/processon_flow.ico</file>
+        <file>logo/doc-icons/processon_mind.ico</file>
+        <file>logo/doc-icons/resh.ico</file>
+        <file>logo/doc-icons/txt.ico</file>
+        <file>logo/doc-icons/uot.ico</file>
+        <file>logo/doc-icons/wps.ico</file>
+        <file>logo/doc-icons/wpsnote.ico</file>
+        <file>logo/doc-icons/wpt.ico</file>
+        <file>logo/doc-icons/xls.ico</file>
+        <file>logo/doc-icons/xlsx.ico</file>
+        <file>logo/doc-icons/xlt.ico</file>
     </qresource>
 </RCC>
