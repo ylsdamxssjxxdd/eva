@@ -1483,15 +1483,34 @@ QString xTool::dockerWorkdirOrFallback(const QString &hostWorkdir) const
 
 QString xTool::containerPathForHost(const QString &absHostPath) const
 {
-    const QString root = QDir::cleanPath(resolveWorkRoot());
-    QString normalized = QDir::cleanPath(absHostPath);
-    QDir rootDir(root);
-    QString relative = rootDir.relativeFilePath(normalized);
-    if (relative.startsWith("..")) return {};
-    QString containerRoot = dockerSandbox_ ? dockerSandbox_->containerWorkdir() : DockerSandbox::defaultContainerWorkdir();
-    if (containerRoot.isEmpty()) containerRoot = DockerSandbox::defaultContainerWorkdir();
-    QDir containerDir(containerRoot);
-    return QDir::cleanPath(containerDir.filePath(relative));
+    const QString normalized = QDir::cleanPath(absHostPath);
+    auto mapIntoContainer = [&](const QString &hostRoot, const QString &containerRoot) -> QString {
+        if (hostRoot.isEmpty() || containerRoot.isEmpty()) return {};
+        QString cleanHostRoot = QDir::cleanPath(hostRoot);
+        QDir rootDir(cleanHostRoot);
+        QString relative = rootDir.relativeFilePath(normalized);
+        if (relative.startsWith(QStringLiteral(".."))) return {};
+        QDir containerDir(containerRoot);
+        return QDir::cleanPath(containerDir.filePath(relative));
+    };
+
+    QString containerRoot = DockerSandbox::defaultContainerWorkdir();
+    if (dockerSandbox_)
+    {
+        const QString sandboxRoot = dockerSandbox_->containerWorkdir();
+        if (!sandboxRoot.isEmpty()) containerRoot = sandboxRoot;
+    }
+
+    const QString workMapped = mapIntoContainer(resolveWorkRoot(), containerRoot);
+    if (!workMapped.isEmpty()) return workMapped;
+
+    if (!dockerConfig_.hostSkillsDir.isEmpty())
+    {
+        const QString skillsMapped = mapIntoContainer(dockerConfig_.hostSkillsDir, DockerSandbox::skillsMountPoint());
+        if (!skillsMapped.isEmpty()) return skillsMapped;
+    }
+
+    return {};
 }
 
 bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QString *errorMessage)
@@ -1510,7 +1529,7 @@ bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QSt
     const QString containerPath = containerPathForHost(absHostPath);
     if (containerPath.isEmpty())
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Path outside engineer workdir");
+        if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
         return false;
     }
     QString stdOut;
@@ -1542,7 +1561,7 @@ bool xTool::dockerWriteTextFile(const QString &absHostPath, const QString &conte
     const QString containerPath = containerPathForHost(absHostPath);
     if (containerPath.isEmpty())
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Path outside engineer workdir");
+        if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
         return false;
     }
     QString dirPath = containerPath;
