@@ -81,7 +81,7 @@
 3. 软件工程师
     - 类似 Cline 的自动化工具执行链（execute_command/read_file/write_file/replace_in_file/edit_in_file/list_files/search_content/MCP…）。
     - 例如：帮我构建一个cmake qt的初始项目
-    - 支持 Docker 沙盒：约定窗口可勾选“Docker 沙盒”并填写镜像（默认 ubuntu:latest）。EVA 会自动查询 `docker images`，拉起匹配容器并把工程师工作目录挂载到 `/eva_workspace`，所有命令与文件操作都在容器内执行，UI 同步显示容器镜像/状态/挂载点。也可切换到“容器模式”，直接从 `docker ps -a` 中选择现有容器，EVA 会自动重启并复用它。
+    - 支持 Docker 沙盒：约定窗口可勾选“Docker 沙盒”并填写镜像（默认 ubuntu:latest）。EVA 会自动查询 `docker images`，拉起匹配容器并把工程师工作目录挂载到 `/eva_workspace`，同时将 EVA 技能目录挂载到 `/eva_skills`，所有命令与文件操作都在容器内执行，UI 同步显示容器镜像/状态/挂载点。也可切换到“容器模式”，直接从 `docker ps -a` 中选择现有容器，EVA 会自动重启并复用它。
     - 沙盒镜像、启用状态与工作目录会落盘，重启后继续复用原有容器；退出应用时自动 `docker stop`，避免残留进程。
     - 调用难度：⭐⭐⭐⭐⭐
 

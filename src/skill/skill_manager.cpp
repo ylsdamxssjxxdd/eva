@@ -344,7 +344,10 @@ QStringList SkillManager::enabledSkillIds() const
     return ids;
 }
 
-QString SkillManager::composePromptBlock(const QString &engineerWorkDir, bool engineerActive) const
+QString SkillManager::composePromptBlock(const QString &engineerWorkDir,
+                                         bool engineerActive,
+                                         const QString &workspaceDisplayPath,
+                                         const QString &skillDisplayRoot) const
 {
     if (!engineerActive) return {};
     QStringList segments;
@@ -356,19 +359,57 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir, bool en
     }
     if (enabledSkills.isEmpty()) return {};
 
+    const QString workDisplay = [&]() -> QString {
+        if (!workspaceDisplayPath.trimmed().isEmpty()) return workspaceDisplayPath.trimmed();
+        if (!engineerWorkDir.trimmed().isEmpty()) return QDir::toNativeSeparators(engineerWorkDir.trimmed());
+        return QString();
+    }();
+
     segments << QStringLiteral("[Skill Usage Protocol]");
     segments << QStringLiteral("Follow the Agent Skills specification. Treat each mounted skill as an extension to be activated deliberately.");
     segments << QStringLiteral("Use the YAML frontmatter below to understand when a skill applies. Before relying on a skill, call the `read_file` tool to load its `SKILL.md` for full instructions.");
-    segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory (%1). Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.")
-                     .arg(QDir::toNativeSeparators(engineerWorkDir));
+    if (!workDisplay.isEmpty())
+    {
+        segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory (%1). Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.")
+                        .arg(workDisplay);
+    }
+    else
+    {
+        segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory. Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.");
+    }
 
     segments << QString();
     segments << QStringLiteral("[Mounted Skills]");
+
+    auto skillPathForPrompt = [&](const SkillRecord &rec) -> QString {
+        if (!skillDisplayRoot.trimmed().isEmpty() && !skillsRoot_.isEmpty())
+        {
+            QDir root(skillsRoot_);
+            QString relative = root.relativeFilePath(rec.skillFilePath);
+            if (!relative.isEmpty() && !relative.startsWith(QStringLiteral("..")))
+            {
+                QString normalized = QDir::fromNativeSeparators(relative).trimmed();
+                if (!normalized.isEmpty())
+                {
+                    QString base = skillDisplayRoot;
+                    if (base.endsWith(QLatin1Char('/')) || base.endsWith(QLatin1Char('\\')))
+                    {
+                        base.chop(1);
+                    }
+                    QString joined = base + QStringLiteral("/") + normalized;
+                    joined.replace(QLatin1Char('\\'), QChar('/'));
+                    return joined;
+                }
+            }
+        }
+        return QDir::toNativeSeparators(rec.skillFilePath);
+    };
+
     for (const auto &rec : enabledSkills)
     {
         segments << QString();
         segments << QStringLiteral("- %1").arg(rec.id);
-        segments << QStringLiteral("  SKILL.md: %1").arg(QDir::toNativeSeparators(rec.skillFilePath));
+        segments << QStringLiteral("  SKILL.md: %1").arg(skillPathForPrompt(rec));
         if (!rec.frontmatterBody.isEmpty())
         {
             segments << QStringLiteral("  Frontmatter:");

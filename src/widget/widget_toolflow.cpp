@@ -491,11 +491,18 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
         if (!dockerMountPromptedContainers_.contains(status.containerName))
         {
             dockerMountPromptedContainers_.insert(status.containerName);
-            const QString hostPath = QDir::toNativeSeparators(status.hostWorkdir.isEmpty() ? engineerWorkDir : status.hostWorkdir);
+            QString missingTarget = status.missingMountTarget;
+            if (missingTarget.isEmpty()) missingTarget = DockerSandbox::defaultContainerWorkdir();
+            QString selectedHost = status.hostWorkdir.isEmpty() ? engineerWorkDir : status.hostWorkdir;
+            if (missingTarget == DockerSandbox::skillsMountPoint() && !status.hostSkillsDir.isEmpty())
+            {
+                selectedHost = status.hostSkillsDir;
+            }
+            const QString hostPath = QDir::toNativeSeparators(selectedHost);
             const QString hostDisplay = hostPath.isEmpty() ? jtr("engineer workdir") : hostPath;
             const QString body = jtr("docker fix mount body")
                                      .arg(status.containerName,
-                                          DockerSandbox::defaultContainerWorkdir(),
+                                          missingTarget.isEmpty() ? DockerSandbox::defaultContainerWorkdir() : missingTarget,
                                           hostDisplay);
             const auto reply = QMessageBox::question(
                 this,

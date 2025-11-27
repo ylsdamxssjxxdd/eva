@@ -19,6 +19,9 @@ struct DockerSandboxStatus
     QString containerName;
     QString hostWorkdir;
     QString containerWorkdir;
+    QString hostSkillsDir;
+    QString skillsMountPoint;
+    QString missingMountTarget;
     QString osPretty;
     QString kernelPretty;
     QString lastError;
@@ -44,11 +47,13 @@ class DockerSandbox : public QObject
         QString image;
         QString containerName;
         QString hostWorkdir;
+        QString hostSkillsDir;
     };
 
     explicit DockerSandbox(QObject *parent = nullptr);
 
     static QString defaultContainerWorkdir();
+    static QString skillsMountPoint();
 
     void applyConfig(const Config &config);
     bool prepare(QString *errorMessage);
@@ -104,9 +109,9 @@ class DockerSandbox : public QObject
     bool ensureExistingContainer(QString *errorMessage);
     bool containerExists(const QString &name, bool *running, QString *errorMessage);
     bool inspectContainerObject(const QString &name, QJsonObject *object, QString *errorMessage);
-    bool extractMountSource(const QJsonArray &mounts, QString *source, QString *errorMessage) const;
-    bool ensureExistingMountAligned(const QString &source, QString *errorMessage) const;
-    bool createContainer(const QString &image, const QString &name, const QString &hostWorkdir, QString *errorMessage);
+    bool extractMountSource(const QJsonArray &mounts, const QString &target, QString *source, QString *errorMessage) const;
+    bool ensureExistingMountAligned(const QString &source, const QString &expectedHost, const QString &target, QString *errorMessage) const;
+    bool createContainer(const QString &image, const QString &name, const QString &hostWorkdir, const QString &hostSkillsDir, QString *errorMessage);
     bool startContainer(const QString &name, QString *errorMessage);
     bool removeContainer(const QString &name, QString *errorMessage);
     void stopContainer(const QString &name);

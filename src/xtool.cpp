@@ -298,6 +298,12 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
                       .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image,
                            hostDisplay,
                            containerDir);
+        const QString skillsTarget = status.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
+                                                                       : status.skillsMountPoint;
+        if (!skillsTarget.isEmpty())
+        {
+            message.append(QStringLiteral("\nskills available at %1").arg(skillsTarget));
+        }
         level = SUCCESS_SIGNAL;
     }
     else

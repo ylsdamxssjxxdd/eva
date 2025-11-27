@@ -375,7 +375,21 @@ QString Widget::create_extra_prompt()
     {
         if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
         {
-            const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true);
+            QString workspaceDisplay = engineerWorkDir;
+            if (workspaceDisplay.isEmpty())
+            {
+                workspaceDisplay = QDir(applicationDirPath).filePath(QStringLiteral("EVA_WORK"));
+            }
+            workspaceDisplay = QDir::toNativeSeparators(QDir::cleanPath(workspaceDisplay));
+            QString skillDisplayRoot;
+            if (shouldUseDockerEnv())
+            {
+                workspaceDisplay = dockerSandboxStatus_.containerWorkdir.isEmpty() ? DockerSandbox::defaultContainerWorkdir()
+                                                                                  : dockerSandboxStatus_.containerWorkdir;
+                skillDisplayRoot = dockerSandboxStatus_.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
+                                                                                   : dockerSandboxStatus_.skillsMountPoint;
+            }
+            const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true, workspaceDisplay, skillDisplayRoot);
             if (!skillBlock.isEmpty()) skill_usage_block = skillBlock;
         }
         available_tools_describe += promptx::toolAnswer().text + "\n\n";

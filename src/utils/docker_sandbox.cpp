@@ -59,11 +59,17 @@ DockerSandbox::DockerSandbox(QObject *parent)
     : QObject(parent)
 {
     status_.containerWorkdir = DockerSandbox::defaultContainerWorkdir();
+    status_.skillsMountPoint = DockerSandbox::skillsMountPoint();
 }
 
 QString DockerSandbox::defaultContainerWorkdir()
 {
     return QStringLiteral("/eva_workspace");
+}
+
+QString DockerSandbox::skillsMountPoint()
+{
+    return QStringLiteral("/eva_skills");
 }
 
 void DockerSandbox::applyConfig(const Config &config)
@@ -75,6 +81,8 @@ void DockerSandbox::applyConfig(const Config &config)
     normalized.containerName = trimAndCollapse(normalized.containerName);
     const QString hostRoot = trimAndCollapse(normalized.hostWorkdir);
     normalized.hostWorkdir = hostRoot.isEmpty() ? QString() : QDir::cleanPath(hostRoot);
+    const QString skillsRoot = trimAndCollapse(normalized.hostSkillsDir);
+    normalized.hostSkillsDir = skillsRoot.isEmpty() ? QString() : QDir::cleanPath(skillsRoot);
     config_ = normalized;
 
     if (config_.target == TargetType::Image && config_.image.isEmpty())
@@ -90,6 +98,9 @@ void DockerSandbox::applyConfig(const Config &config)
     status_.image = status_.managedContainer ? config_.image : QString();
     status_.hostWorkdir = config_.hostWorkdir;
     status_.containerWorkdir = DockerSandbox::defaultContainerWorkdir();
+    status_.hostSkillsDir = config_.hostSkillsDir;
+    status_.skillsMountPoint = DockerSandbox::skillsMountPoint();
+    status_.missingMountTarget.clear();
 
     if (status_.managedContainer)
         status_.containerName = config_.enabled ? desiredContainerName() : QString();
@@ -343,9 +354,8 @@ bool DockerSandbox::inspectContainerObject(const QString &name, QJsonObject *obj
     return true;
 }
 
-bool DockerSandbox::extractMountSource(const QJsonArray &mounts, QString *source, QString *errorMessage) const
+bool DockerSandbox::extractMountSource(const QJsonArray &mounts, const QString &target, QString *source, QString *errorMessage) const
 {
-    const QString target = DockerSandbox::defaultContainerWorkdir();
     for (const QJsonValue &item : mounts)
     {
         if (!item.isObject()) continue;
@@ -365,28 +375,52 @@ bool DockerSandbox::extractMountSource(const QJsonArray &mounts, QString *source
     return false;
 }
 
-bool DockerSandbox::ensureExistingMountAligned(const QString &source, QString *errorMessage) const
+bool DockerSandbox::ensureExistingMountAligned(const QString &source, const QString &expectedHost, const QString &target, QString *errorMessage) const
 {
     const QString normalizedSource = normalizedPathPortable(source);
-    const QString normalizedHost = normalizedPathPortable(config_.hostWorkdir);
+    const QString normalizedHost = normalizedPathPortable(expectedHost);
     if (normalizedSource.isEmpty())
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Container mount source for %1 is empty").arg(DockerSandbox::defaultContainerWorkdir());
+        if (errorMessage)
+        {
+            *errorMessage = QStringLiteral("Container mount source for %1 is empty").arg(target);
+        }
         return false;
     }
     if (normalizedHost.isEmpty())
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Host workspace is not configured.");
+        if (errorMessage)
+        {
+            *errorMessage = QStringLiteral("Host directory for %1 is not configured.").arg(target);
+        }
         return false;
     }
     if (normalizedSource != normalizedHost)
     {
         if (errorMessage)
         {
-            *errorMessage = QStringLiteral("Container %1 mounts %2, but EVA workspace is %3.")
-                                .arg(config_.containerName,
-                                     QDir::toNativeSeparators(source),
-                                     QDir::toNativeSeparators(config_.hostWorkdir));
+            if (target == DockerSandbox::defaultContainerWorkdir())
+            {
+                *errorMessage = QStringLiteral("Container %1 mounts %2, but EVA workspace is %3.")
+                                    .arg(config_.containerName,
+                                         QDir::toNativeSeparators(source),
+                                         QDir::toNativeSeparators(expectedHost));
+            }
+            else if (target == DockerSandbox::skillsMountPoint())
+            {
+                *errorMessage = QStringLiteral("Container %1 mounts %2, but EVA skills directory is %3.")
+                                    .arg(config_.containerName,
+                                         QDir::toNativeSeparators(source),
+                                         QDir::toNativeSeparators(expectedHost));
+            }
+            else
+            {
+                *errorMessage = QStringLiteral("Container %1 mounts %2, but host directory for %3 is %4.")
+                                    .arg(config_.containerName,
+                                         QDir::toNativeSeparators(source),
+                                         target,
+                                         QDir::toNativeSeparators(expectedHost));
+            }
         }
         return false;
     }
@@ -394,7 +428,11 @@ bool DockerSandbox::ensureExistingMountAligned(const QString &source, QString *e
     return true;
 }
 
-bool DockerSandbox::createContainer(const QString &image, const QString &name, const QString &hostWorkdir, QString *errorMessage)
+bool DockerSandbox::createContainer(const QString &image,
+                                    const QString &name,
+                                    const QString &hostWorkdir,
+                                    const QString &hostSkillsDir,
+                                    QString *errorMessage)
 {
     QString host = hostWorkdir;
     if (host.isEmpty())
@@ -408,6 +446,17 @@ bool DockerSandbox::createContainer(const QString &image, const QString &name, c
         dir.mkpath(QStringLiteral("."));
     }
     const QString mount = QStringLiteral("%1:%2").arg(formattedHostPath(dir.absolutePath()), DockerSandbox::defaultContainerWorkdir());
+    QString skillsHost = hostSkillsDir;
+    QString skillsMount;
+    if (!skillsHost.isEmpty())
+    {
+        QDir skillsDir(skillsHost);
+        if (!skillsDir.exists())
+        {
+            skillsDir.mkpath(QStringLiteral("."));
+        }
+        skillsMount = QStringLiteral("%1:%2").arg(formattedHostPath(skillsDir.absolutePath()), DockerSandbox::skillsMountPoint());
+    }
     QStringList args;
     args << QStringLiteral("run")
          << QStringLiteral("-d")
@@ -416,8 +465,12 @@ bool DockerSandbox::createContainer(const QString &image, const QString &name, c
          << QStringLiteral("-w")
          << containerWorkdir()
          << QStringLiteral("-v")
-         << mount
-         << image
+         << mount;
+    if (!skillsMount.isEmpty())
+    {
+        args << QStringLiteral("-v") << skillsMount;
+    }
+    args << image
          << QStringLiteral("/bin/sh")
          << QStringLiteral("-c")
          << QStringLiteral("while true; do sleep 3600; done");
@@ -486,6 +539,7 @@ bool DockerSandbox::ensureContainer(QString *errorMessage)
 
 bool DockerSandbox::ensureImageContainer(QString *errorMessage)
 {
+    status_.missingMountTarget.clear();
     if (!ensureDockerReachable(errorMessage)) return false;
     if (!ensureImageReady(desiredImage(), errorMessage)) return false;
     bool running = false;
@@ -498,7 +552,7 @@ bool DockerSandbox::ensureImageContainer(QString *errorMessage)
     }
     if (!existed)
     {
-        if (!createContainer(desiredImage(), status_.containerName, config_.hostWorkdir, errorMessage))
+        if (!createContainer(desiredImage(), status_.containerName, config_.hostWorkdir, config_.hostSkillsDir, errorMessage))
         {
             return false;
         }
@@ -547,11 +601,25 @@ bool DockerSandbox::ensureExistingContainer(QString *errorMessage)
     stateStatus = stateStatus.trimmed().toLower();
 
     QString mountSource;
-    if (!extractMountSource(inspect.value(QStringLiteral("Mounts")).toArray(), &mountSource, errorMessage))
+    const QJsonArray mountsArray = inspect.value(QStringLiteral("Mounts")).toArray();
+    const QString workTarget = DockerSandbox::defaultContainerWorkdir();
+    if (!extractMountSource(mountsArray, workTarget, &mountSource, errorMessage))
     {
+        status_.missingMountTarget = workTarget;
         return false;
     }
-    if (!ensureExistingMountAligned(mountSource, errorMessage)) return false;
+    if (!ensureExistingMountAligned(mountSource, config_.hostWorkdir, workTarget, errorMessage)) return false;
+    if (!config_.hostSkillsDir.isEmpty())
+    {
+        QString skillsSource;
+        const QString skillsTarget = DockerSandbox::skillsMountPoint();
+        if (!extractMountSource(mountsArray, skillsTarget, &skillsSource, errorMessage))
+        {
+            status_.missingMountTarget = skillsTarget;
+            return false;
+        }
+        if (!ensureExistingMountAligned(skillsSource, config_.hostSkillsDir, skillsTarget, errorMessage)) return false;
+    }
 
     const bool wasRunning = (stateStatus == QStringLiteral("running"));
     if (wasRunning)
@@ -610,11 +678,21 @@ bool DockerSandbox::recreateContainerWithRequiredMount(QString *errorMessage)
     QDir hostDir(config_.hostWorkdir);
     if (!hostDir.exists()) hostDir.mkpath(QStringLiteral("."));
     const QString hostPath = formattedHostPath(hostDir.absolutePath());
+    QString skillsBind;
+    if (!config_.hostSkillsDir.isEmpty())
+    {
+        QDir skillsDir(config_.hostSkillsDir);
+        if (!skillsDir.exists()) skillsDir.mkpath(QStringLiteral("."));
+        const QString hostSkillsPath = formattedHostPath(skillsDir.absolutePath());
+        skillsBind = QStringLiteral("%1:%2:%3")
+                         .arg(hostSkillsPath, DockerSandbox::skillsMountPoint(), QStringLiteral("rw"));
+    }
     QStringList filteredBinds;
     for (const QString &bind : std::as_const(spec.binds))
     {
         const QString destination = containerPathFromBind(bind);
         if (destination == DockerSandbox::defaultContainerWorkdir()) continue;
+        if (!skillsBind.isEmpty() && destination == DockerSandbox::skillsMountPoint()) continue;
         filteredBinds << bind;
     }
     QString evaBind = QStringLiteral("%1:%2:%3")
@@ -622,6 +700,7 @@ bool DockerSandbox::recreateContainerWithRequiredMount(QString *errorMessage)
                                DockerSandbox::defaultContainerWorkdir(),
                                QStringLiteral("rw"));
     filteredBinds << evaBind;
+    if (!skillsBind.isEmpty()) filteredBinds << skillsBind;
     spec.binds = filteredBinds;
 
     if (!removeContainer(config_.containerName, errorMessage)) return false;
@@ -629,8 +708,18 @@ bool DockerSandbox::recreateContainerWithRequiredMount(QString *errorMessage)
 
     status_.image = spec.image;
     status_.lastError.clear();
-    status_.infoMessage = QStringLiteral("docker sandbox recreated %1 with mount %2")
-                              .arg(config_.containerName, DockerSandbox::defaultContainerWorkdir());
+    if (skillsBind.isEmpty())
+    {
+        status_.infoMessage = QStringLiteral("docker sandbox recreated %1 with mount %2")
+                                  .arg(config_.containerName, DockerSandbox::defaultContainerWorkdir());
+    }
+    else
+    {
+        status_.infoMessage = QStringLiteral("docker sandbox recreated %1 with mounts %2 and %3")
+                                  .arg(config_.containerName,
+                                       DockerSandbox::defaultContainerWorkdir(),
+                                       DockerSandbox::skillsMountPoint());
+    }
     return true;
 }
 

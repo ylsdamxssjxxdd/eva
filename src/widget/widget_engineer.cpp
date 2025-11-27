@@ -111,6 +111,12 @@ QString Widget::create_engineer_info()
         dockerNotes << QStringLiteral("Container mount point: %1").arg(containerDir);
         if (sandboxReady)
         {
+            const QString skillsTarget = dockerSandboxStatus_.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
+                                                                                        : dockerSandboxStatus_.skillsMountPoint;
+            if (!skillsTarget.isEmpty())
+            {
+                dockerNotes << QStringLiteral("Skills mount: %1").arg(skillsTarget);
+            }
             if (!dockerSandboxStatus_.osPretty.isEmpty()) dockerNotes << dockerSandboxStatus_.osPretty;
             if (!dockerSandboxStatus_.kernelPretty.isEmpty()) dockerNotes << dockerSandboxStatus_.kernelPretty;
         }
@@ -251,6 +257,17 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     DockerSandbox::Config cfg;
     cfg.hostWorkdir = engineerWorkDir.trimmed();
     if (!cfg.hostWorkdir.isEmpty()) cfg.hostWorkdir = QDir::cleanPath(cfg.hostWorkdir);
+    QString skillsRoot;
+    if (skillManager)
+    {
+        skillsRoot = skillManager->skillsRoot().trimmed();
+    }
+    if (skillsRoot.isEmpty())
+    {
+        skillsRoot = QDir(applicationDirPath).filePath(QStringLiteral("EVA_SKILLS"));
+    }
+    cfg.hostSkillsDir = skillsRoot.trimmed();
+    if (!cfg.hostSkillsDir.isEmpty()) cfg.hostSkillsDir = QDir::cleanPath(cfg.hostSkillsDir);
 
     const bool baseEnabled = ui_engineer_ischecked && ui_dockerSandboxEnabled && !cfg.hostWorkdir.isEmpty();
     cfg.target = (dockerTargetMode_ == DockerTargetMode::Container) ? DockerSandbox::TargetType::Container : DockerSandbox::TargetType::Image;
@@ -289,7 +306,8 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
 
     if (!forceEmit && hasDockerConfigSnapshot_ && cfg.enabled == lastDockerConfigSnapshot_.enabled &&
         cfg.image == lastDockerConfigSnapshot_.image && cfg.containerName == lastDockerConfigSnapshot_.containerName &&
-        cfg.hostWorkdir == lastDockerConfigSnapshot_.hostWorkdir && cfg.target == lastDockerConfigSnapshot_.target)
+        cfg.hostWorkdir == lastDockerConfigSnapshot_.hostWorkdir && cfg.hostSkillsDir == lastDockerConfigSnapshot_.hostSkillsDir &&
+        cfg.target == lastDockerConfigSnapshot_.target)
     {
         return;
     }

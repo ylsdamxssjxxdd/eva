@@ -45,7 +45,10 @@ public:
 
     const QVector<SkillRecord> &skills() const { return skills_; }
 
-    QString composePromptBlock(const QString &engineerWorkDir, bool engineerActive) const;
+    QString composePromptBlock(const QString &engineerWorkDir,
+                               bool engineerActive,
+                               const QString &workspaceDisplayPath = QString(),
+                               const QString &skillDisplayRoot = QString()) const;
 
 signals:
     void skillsChanged();
