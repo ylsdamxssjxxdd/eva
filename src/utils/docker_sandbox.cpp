@@ -7,6 +7,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QStringList>
+#include <QSet>
 #include <QtGlobal>
 
 namespace
@@ -26,6 +27,31 @@ QString fallbackImage()
 QString constantPrefix()
 {
     return QStringLiteral("eva-sandbox-");
+}
+
+QStringList jsonArrayToStringList(const QJsonArray &array)
+{
+    QStringList out;
+    for (const QJsonValue &value : array)
+    {
+        if (value.isString())
+        {
+            const QString str = value.toString().trimmed();
+            if (!str.isEmpty()) out << str;
+        }
+    }
+    return out;
+}
+
+QStringList jsonToStringListRecursive(const QJsonValue &value)
+{
+    if (value.isArray()) return jsonArrayToStringList(value.toArray());
+    if (value.isString())
+    {
+        const QString str = value.toString().trimmed();
+        return str.isEmpty() ? QStringList() : QStringList(str);
+    }
+    return {};
 }
 } // namespace
 
@@ -72,7 +98,7 @@ void DockerSandbox::applyConfig(const Config &config)
 
     if (!config_.enabled)
     {
-        if (previouslyManaged && !previousContainer.isEmpty())
+        if (!previousContainer.isEmpty())
         {
             stopContainer(previousContainer);
         }
@@ -84,7 +110,7 @@ void DockerSandbox::applyConfig(const Config &config)
         return;
     }
 
-    if (previouslyManaged && !previousContainer.isEmpty() && previousContainer != status_.containerName)
+    if (!previousContainer.isEmpty() && previousContainer != status_.containerName)
     {
         stopContainer(previousContainer);
     }
@@ -559,22 +585,274 @@ bool DockerSandbox::recreateContainerWithRequiredMount(QString *errorMessage)
         return false;
     }
 
-    QString image = status_.image;
-    if (image.isEmpty())
+    QJsonObject inspect;
+    if (!inspectContainerObject(config_.containerName, &inspect, errorMessage)) return false;
+
+    ContainerLaunchSpec spec;
+    if (!parseContainerLaunchSpec(inspect, &spec, errorMessage)) return false;
+
+    if (spec.image.isEmpty())
     {
-        QJsonObject inspect;
-        if (!inspectContainerObject(config_.containerName, &inspect, errorMessage)) return false;
-        image = inspect.value(QStringLiteral("Config")).toObject().value(QStringLiteral("Image")).toString().trimmed();
-        if (image.isEmpty()) image = fallbackImage();
+        spec.image = status_.image.isEmpty() ? fallbackImage() : status_.image;
     }
+    spec.name = config_.containerName;
+
+    QDir hostDir(config_.hostWorkdir);
+    if (!hostDir.exists()) hostDir.mkpath(QStringLiteral("."));
+    const QString hostPath = formattedHostPath(hostDir.absolutePath());
+    QStringList filteredBinds;
+    for (const QString &bind : std::as_const(spec.binds))
+    {
+        const QString destination = containerPathFromBind(bind);
+        if (destination == DockerSandbox::defaultContainerWorkdir()) continue;
+        filteredBinds << bind;
+    }
+    QString evaBind = QStringLiteral("%1:%2:%3")
+                          .arg(hostPath,
+                               DockerSandbox::defaultContainerWorkdir(),
+                               QStringLiteral("rw"));
+    filteredBinds << evaBind;
+    spec.binds = filteredBinds;
 
     if (!removeContainer(config_.containerName, errorMessage)) return false;
-    if (!createContainer(image, config_.containerName, config_.hostWorkdir, errorMessage)) return false;
+    if (!runContainerFromSpec(spec, errorMessage)) return false;
 
-    status_.image = image;
+    status_.image = spec.image;
     status_.lastError.clear();
     status_.infoMessage = QStringLiteral("docker sandbox recreated %1 with mount %2")
                               .arg(config_.containerName, DockerSandbox::defaultContainerWorkdir());
+    return true;
+}
+
+QString DockerSandbox::containerPathFromBind(const QString &bind) const
+{
+    const QString trimmed = bind.trimmed();
+    const int firstColon = trimmed.indexOf(QLatin1Char(':'));
+    if (firstColon == -1) return QString();
+    const QString rest = trimmed.mid(firstColon + 1);
+    const int secondColon = rest.indexOf(QLatin1Char(':'));
+    if (secondColon == -1) return rest;
+    return rest.left(secondColon);
+}
+
+bool DockerSandbox::parseContainerLaunchSpec(const QJsonObject &inspect, ContainerLaunchSpec *spec, QString *errorMessage) const
+{
+    if (!spec)
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Invalid container spec pointer.");
+        return false;
+    }
+    ContainerLaunchSpec parsed;
+    QString name = inspect.value(QStringLiteral("Name")).toString().trimmed();
+    if (name.startsWith(QLatin1Char('/'))) name.remove(0, 1);
+    parsed.name = name;
+
+    const QJsonObject configObj = inspect.value(QStringLiteral("Config")).toObject();
+    parsed.image = configObj.value(QStringLiteral("Image")).toString().trimmed();
+    parsed.workdir = configObj.value(QStringLiteral("WorkingDir")).toString().trimmed();
+    parsed.user = configObj.value(QStringLiteral("User")).toString().trimmed();
+    parsed.env = jsonArrayToStringList(configObj.value(QStringLiteral("Env")).toArray());
+
+    QStringList entrypointParts = jsonArrayToStringList(configObj.value(QStringLiteral("Entrypoint")).toArray());
+    if (!entrypointParts.isEmpty())
+    {
+        parsed.entrypointProgram = entrypointParts.takeFirst();
+        parsed.entrypointArgs = entrypointParts;
+    }
+    parsed.cmd = jsonArrayToStringList(configObj.value(QStringLiteral("Cmd")).toArray());
+
+    const QJsonArray mountsArray = inspect.value(QStringLiteral("Mounts")).toArray();
+    QSet<QString> seenBinds;
+    for (const QJsonValue &mountValue : mountsArray)
+    {
+        const QJsonObject mountObj = mountValue.toObject();
+        QString destination = mountObj.value(QStringLiteral("Destination")).toString().trimmed();
+        QString type = mountObj.value(QStringLiteral("Type")).toString().trimmed();
+        if (destination.isEmpty()) continue;
+        QString source;
+        if (type == QStringLiteral("bind"))
+        {
+            source = mountObj.value(QStringLiteral("Source")).toString().trimmed();
+        }
+        else if (type == QStringLiteral("volume"))
+        {
+            source = mountObj.value(QStringLiteral("Name")).toString().trimmed();
+            if (source.isEmpty()) source = mountObj.value(QStringLiteral("Source")).toString().trimmed();
+        }
+        if (source.isEmpty()) continue;
+        QString mode = mountObj.value(QStringLiteral("Mode")).toString().trimmed();
+        if (mode.isEmpty())
+        {
+            const bool rw = mountObj.value(QStringLiteral("RW")).toBool(true);
+            mode = rw ? QStringLiteral("rw") : QStringLiteral("ro");
+        }
+        QString bind = QStringLiteral("%1:%2").arg(source, destination);
+        if (!mode.isEmpty()) bind += QStringLiteral(":%1").arg(mode);
+        if (seenBinds.contains(bind)) continue;
+        parsed.binds << bind;
+        seenBinds.insert(bind);
+    }
+
+    const QJsonObject hostConfig = inspect.value(QStringLiteral("HostConfig")).toObject();
+    parsed.networkMode = hostConfig.value(QStringLiteral("NetworkMode")).toString().trimmed();
+    parsed.privileged = hostConfig.value(QStringLiteral("Privileged")).toBool(false);
+    const QJsonObject restartObj = hostConfig.value(QStringLiteral("RestartPolicy")).toObject();
+    parsed.restartPolicy = restartObj.value(QStringLiteral("Name")).toString().trimmed();
+
+    const QJsonObject portBindings = hostConfig.value(QStringLiteral("PortBindings")).toObject();
+    for (auto it = portBindings.begin(); it != portBindings.end(); ++it)
+    {
+        const QString key = it.key().trimmed(); // e.g. 8001/tcp
+        if (key.isEmpty()) continue;
+        QString containerPort = key;
+        const QStringList parts = key.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+        if (!parts.isEmpty())
+        {
+            containerPort = parts.at(0);
+        }
+        QString proto = parts.size() > 1 ? parts.at(1) : QStringLiteral("tcp");
+        proto = proto.trimmed().toLower();
+        QString containerPortToken = containerPort.trimmed();
+        if (proto != QStringLiteral("tcp") && !proto.isEmpty())
+        {
+            containerPortToken += QStringLiteral("/%1").arg(proto);
+        }
+
+        const QJsonArray mappingArray = it.value().toArray();
+        for (const QJsonValue &mappingValue : mappingArray)
+        {
+            const QJsonObject mapping = mappingValue.toObject();
+            QString hostPort = mapping.value(QStringLiteral("HostPort")).toString().trimmed();
+            if (hostPort.isEmpty()) continue;
+            QString hostIp = mapping.value(QStringLiteral("HostIp")).toString().trimmed();
+            QString mapString;
+            if (!hostIp.isEmpty())
+            {
+                mapString = QStringLiteral("%1:%2:%3").arg(hostIp, hostPort, containerPortToken);
+            }
+            else
+            {
+                mapString = QStringLiteral("%1:%2").arg(hostPort, containerPortToken);
+            }
+            parsed.portMappings << mapString;
+        }
+    }
+
+    const QJsonArray extraHostsArray = hostConfig.value(QStringLiteral("ExtraHosts")).toArray();
+    parsed.extraHosts = jsonArrayToStringList(extraHostsArray);
+
+    const QJsonArray deviceRequests = hostConfig.value(QStringLiteral("DeviceRequests")).toArray();
+    for (const QJsonValue &requestValue : deviceRequests)
+    {
+        const QJsonObject request = requestValue.toObject();
+        const QJsonArray capabilitiesArray = request.value(QStringLiteral("Capabilities")).toArray();
+        for (const QJsonValue &capVal : capabilitiesArray)
+        {
+            const QStringList caps = jsonArrayToStringList(capVal.toArray());
+            if (caps.contains(QStringLiteral("gpu"), Qt::CaseInsensitive))
+            {
+                QString gpus;
+                const QStringList deviceIds = jsonArrayToStringList(request.value(QStringLiteral("DeviceIDs")).toArray());
+                if (!deviceIds.isEmpty())
+                {
+                    gpus = QStringLiteral("device=%1").arg(deviceIds.join(QLatin1Char(',')));
+                }
+                else
+                {
+                    const int count = request.value(QStringLiteral("Count")).toInt(-1);
+                    if (count <= 0)
+                        gpus = QStringLiteral("all");
+                    else
+                        gpus = QString::number(count);
+                }
+                parsed.gpusRequest = gpus;
+                break;
+            }
+        }
+        if (!parsed.gpusRequest.isEmpty()) break;
+    }
+
+    *spec = parsed;
+    if (errorMessage) errorMessage->clear();
+    return true;
+}
+
+bool DockerSandbox::runContainerFromSpec(const ContainerLaunchSpec &spec, QString *errorMessage)
+{
+    if (spec.image.isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Container image is empty.");
+        return false;
+    }
+    if (spec.name.isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Container name is empty.");
+        return false;
+    }
+
+    QStringList args;
+    args << QStringLiteral("run") << QStringLiteral("-d") << QStringLiteral("--name") << spec.name;
+    if (spec.privileged) args << QStringLiteral("--privileged");
+    if (!spec.networkMode.isEmpty() && spec.networkMode != QStringLiteral("default"))
+    {
+        args << QStringLiteral("--network") << spec.networkMode;
+    }
+    if (!spec.restartPolicy.isEmpty() && spec.restartPolicy != QStringLiteral("no"))
+    {
+        args << QStringLiteral("--restart") << spec.restartPolicy;
+    }
+    if (!spec.gpusRequest.isEmpty())
+    {
+        args << QStringLiteral("--gpus") << spec.gpusRequest;
+    }
+    if (!spec.user.isEmpty()) args << QStringLiteral("-u") << spec.user;
+    if (!spec.workdir.isEmpty()) args << QStringLiteral("-w") << spec.workdir;
+
+    for (const QString &env : spec.env)
+    {
+        if (env.isEmpty()) continue;
+        args << QStringLiteral("-e") << env;
+    }
+    for (const QString &bind : spec.binds)
+    {
+        if (bind.isEmpty()) continue;
+        args << QStringLiteral("-v") << bind;
+    }
+    for (const QString &mapping : spec.portMappings)
+    {
+        if (mapping.isEmpty()) continue;
+        args << QStringLiteral("-p") << mapping;
+    }
+    for (const QString &host : spec.extraHosts)
+    {
+        if (host.isEmpty()) continue;
+        args << QStringLiteral("--add-host") << host;
+    }
+    QStringList finalCmd = spec.entrypointArgs;
+    finalCmd.append(spec.cmd);
+    if (!spec.entrypointProgram.isEmpty())
+    {
+        args << QStringLiteral("--entrypoint") << spec.entrypointProgram;
+    }
+    args << spec.image;
+    for (const QString &cmdArg : finalCmd)
+    {
+        if (cmdArg.isEmpty()) continue;
+        args << cmdArg;
+    }
+
+    const DockerCommandResult result = runDocker(args, 120000);
+    if (!result.success())
+    {
+        if (errorMessage)
+        {
+            QString err = trimAndCollapse(result.stdErr);
+            if (err.isEmpty()) err = QStringLiteral("Failed to recreate docker container %1").arg(spec.name);
+            *errorMessage = err;
+        }
+        return false;
+    }
+    if (errorMessage) errorMessage->clear();
     return true;
 }
 

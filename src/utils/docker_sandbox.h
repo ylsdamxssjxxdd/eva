@@ -6,6 +6,7 @@
 #include <QMetaType>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QStringList>
 
 struct DockerSandboxStatus
 {
@@ -61,6 +62,25 @@ class DockerSandbox : public QObject
     void statusChanged(const DockerSandboxStatus &status);
 
   private:
+    struct ContainerLaunchSpec
+    {
+        QString name;
+        QString image;
+        QString workdir;
+        QString user;
+        QString entrypointProgram;
+        QStringList entrypointArgs;
+        QStringList cmd;
+        QStringList env;
+        QStringList binds;
+        QStringList extraHosts;
+        QStringList portMappings;
+        QString networkMode;
+        QString restartPolicy;
+        QString gpusRequest;
+        bool privileged = false;
+    };
+
     struct DockerCommandResult
     {
         int exitCode = -1;
@@ -92,6 +112,9 @@ class DockerSandbox : public QObject
     void stopContainer(const QString &name);
     void fetchMetadata();
     void updateStatusAndNotify();
+    bool parseContainerLaunchSpec(const QJsonObject &inspect, ContainerLaunchSpec *spec, QString *errorMessage) const;
+    bool runContainerFromSpec(const ContainerLaunchSpec &spec, QString *errorMessage);
+    QString containerPathFromBind(const QString &bind) const;
 
     Config config_;
     DockerSandboxStatus status_;
