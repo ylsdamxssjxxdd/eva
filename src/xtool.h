@@ -102,8 +102,9 @@ class xTool : public QObject
     void recv_calllist_over(quint64 invocationId);
     // Update working directory root for engineer tools
     void recv_workdir(QString dir);
-    void recv_dockerConfig(bool enabled, QString image, QString workdir);
+    void recv_dockerConfig(DockerSandbox::Config config);
     void shutdownDockerSandbox();
+    void fixDockerContainerMount(const QString &containerName);
   signals:
     void tool2ui_terminalCommandStarted(const QString &command, const QString &workingDir);
     void tool2ui_terminalStdout(const QString &chunk);

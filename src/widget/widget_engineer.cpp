@@ -64,7 +64,7 @@ QString Widget::buildWorkspaceSnapshot(const QString &root, bool dockerView) con
 
     QStringList lines;
     if (dockerView)
-        lines << QStringLiteral("Root: /workspace");
+        lines << QStringLiteral("Root: %1").arg(DockerSandbox::defaultContainerWorkdir());
     else
         lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalOrAbsolutePath(rootDir)));
 
@@ -85,7 +85,7 @@ QString Widget::create_engineer_info()
     const QString hostDirDisplay = QDir::toNativeSeparators(hostDir);
     const bool sandboxRequested = ui_engineer_ischecked && ui_dockerSandboxEnabled;
     const bool sandboxReady = sandboxRequested && dockerSandboxStatus_.ready;
-    const QString containerDir = sandboxReady && !dockerSandboxStatus_.containerWorkdir.isEmpty() ? dockerSandboxStatus_.containerWorkdir : QStringLiteral("/workspace");
+    const QString containerDir = sandboxReady && !dockerSandboxStatus_.containerWorkdir.isEmpty() ? dockerSandboxStatus_.containerWorkdir : DockerSandbox::defaultContainerWorkdir();
     const QString dockerImageName = dockerSandboxStatus_.image.isEmpty() ? QStringLiteral("ubuntu:latest") : dockerSandboxStatus_.image;
     QString osDisplay = USEROS;
     QString shellDisplay = shell;
@@ -211,6 +211,7 @@ void Widget::setEngineerWorkDirSilently(const QString &dir)
 {
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
+    dockerMountPromptedContainers_.clear();
     if (ui->terminalPane)
     {
         ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
@@ -228,6 +229,7 @@ void Widget::setEngineerWorkDir(const QString &dir)
 {
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
+    dockerMountPromptedContainers_.clear();
     if (ui->terminalPane)
     {
         ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
@@ -246,30 +248,54 @@ void Widget::setEngineerWorkDir(const QString &dir)
 
 void Widget::syncDockerSandboxConfig(bool forceEmit)
 {
-    DockerConfigSnapshot snapshot;
-    snapshot.workdir = engineerWorkDir.trimmed();
-    if (!snapshot.workdir.isEmpty()) snapshot.workdir = QDir::cleanPath(snapshot.workdir);
-    snapshot.enabled = ui_engineer_ischecked && ui_dockerSandboxEnabled && !snapshot.workdir.isEmpty();
-    snapshot.image = engineerDockerImage.trimmed();
-    if (snapshot.image.isEmpty())
+    DockerSandbox::Config cfg;
+    cfg.hostWorkdir = engineerWorkDir.trimmed();
+    if (!cfg.hostWorkdir.isEmpty()) cfg.hostWorkdir = QDir::cleanPath(cfg.hostWorkdir);
+
+    const bool baseEnabled = ui_engineer_ischecked && ui_dockerSandboxEnabled && !cfg.hostWorkdir.isEmpty();
+    cfg.target = (dockerTargetMode_ == DockerTargetMode::Container) ? DockerSandbox::TargetType::Container : DockerSandbox::TargetType::Image;
+
+    if (cfg.target == DockerSandbox::TargetType::Image)
     {
-        const QString persisted = loadPersistedDockerImage();
-        if (!persisted.isEmpty())
+        cfg.image = engineerDockerImage.trimmed();
+        if (cfg.image.isEmpty())
         {
-            snapshot.image = persisted;
-            engineerDockerImage = persisted;
-            updateDockerImageCombo();
+            const QString persisted = loadPersistedDockerImage();
+            if (!persisted.isEmpty())
+            {
+                cfg.image = persisted;
+                engineerDockerImage = persisted;
+                updateDockerImageCombo();
+            }
         }
+        if (cfg.image.isEmpty()) cfg.image = QStringLiteral("ubuntu:latest");
+        cfg.enabled = baseEnabled;
     }
-    if (snapshot.image.isEmpty()) snapshot.image = QStringLiteral("ubuntu:latest");
-    if (!forceEmit && hasDockerConfigSnapshot_ && snapshot.enabled == lastDockerConfigSnapshot_.enabled &&
-        snapshot.image == lastDockerConfigSnapshot_.image && snapshot.workdir == lastDockerConfigSnapshot_.workdir)
+    else
+    {
+        cfg.containerName = engineerDockerContainer.trimmed();
+        if (cfg.containerName.isEmpty())
+        {
+            const QString persisted = loadPersistedDockerContainer();
+            if (!persisted.isEmpty())
+            {
+                cfg.containerName = persisted;
+                engineerDockerContainer = persisted;
+                updateDockerImageCombo();
+            }
+        }
+        cfg.enabled = baseEnabled && !cfg.containerName.isEmpty();
+    }
+
+    if (!forceEmit && hasDockerConfigSnapshot_ && cfg.enabled == lastDockerConfigSnapshot_.enabled &&
+        cfg.image == lastDockerConfigSnapshot_.image && cfg.containerName == lastDockerConfigSnapshot_.containerName &&
+        cfg.hostWorkdir == lastDockerConfigSnapshot_.hostWorkdir && cfg.target == lastDockerConfigSnapshot_.target)
     {
         return;
     }
-    lastDockerConfigSnapshot_ = snapshot;
+    lastDockerConfigSnapshot_ = cfg;
     hasDockerConfigSnapshot_ = true;
-    emit ui2tool_dockerConfigChanged(snapshot.enabled, snapshot.image, snapshot.workdir);
+    emit ui2tool_dockerConfigChanged(cfg);
 }
 
 bool Widget::shouldUseDockerEnv() const

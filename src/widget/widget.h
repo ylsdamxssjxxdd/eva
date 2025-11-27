@@ -16,6 +16,7 @@
 #include <QGroupBox>
 #include <QFrame>
 #include <QGuiApplication>
+#include <QHash>
 #include <QHostAddress>
 #include <QHostInfo>
 #include <QIODevice>
@@ -98,6 +99,12 @@ enum class ConversationTask
     ChatReply,
     Completion,
     ToolLoop
+};
+
+enum class DockerTargetMode
+{
+    Image,
+    Container
 };
 struct DocumentAttachment
 {
@@ -185,9 +192,13 @@ class Widget : public QWidget
     bool shouldUseDockerEnv() const;
     QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
     void refreshDockerImageList(bool force = false);
+    void refreshDockerContainerList(bool force = false);
     void updateDockerImageCombo();
     void updateDockerComboToolTip();
+    void applyDockerTargetMode(DockerTargetMode mode, bool autosave = true);
+    DockerTargetMode loadPersistedDockerMode() const;
     QString loadPersistedDockerImage() const;
+    QString loadPersistedDockerContainer() const;
     void setBaseStylesheet(const QString &style);
     void loadGlobalUiSettings(const QSettings &settings);
 
@@ -379,6 +390,8 @@ class Widget : public QWidget
     bool ui_engineer_ischecked = false;
     bool ui_dockerSandboxEnabled = false;
     QString engineerDockerImage;
+    QString engineerDockerContainer;
+    DockerTargetMode dockerTargetMode_ = DockerTargetMode::Image;
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择
@@ -397,6 +410,8 @@ class Widget : public QWidget
         bool ui_engineer_ischecked = false;
         bool ui_dockerSandboxEnabled = false;
         QString engineerDockerImage;
+        QString engineerDockerContainer;
+        DockerTargetMode dockerTargetMode = DockerTargetMode::Image;
         bool is_load_tool = false;
         QString engineerWorkDir;
         int language_flag = 0;
@@ -406,13 +421,7 @@ class Widget : public QWidget
     void restoreDateDialogSnapshot();
     void onDateDialogRejected();
     std::optional<DateDialogState> dateDialogSnapshot_;
-    struct DockerConfigSnapshot
-    {
-        bool enabled = false;
-        QString image;
-        QString workdir;
-    };
-    DockerConfigSnapshot lastDockerConfigSnapshot_;
+    DockerSandbox::Config lastDockerConfigSnapshot_;
     bool hasDockerConfigSnapshot_ = false;
     void change_api_dialog(bool enable);
     QString checkPython();  // 获取环境中的python版本以及库信息
@@ -428,6 +437,10 @@ class Widget : public QWidget
     bool dockerSandboxStatusValid_ = false;
     QStringList dockerImageList_;
     bool dockerImagesFetched_ = false;
+    QSet<QString> dockerMountPromptedContainers_;
+    QStringList dockerContainerList_;
+    QHash<QString, QString> dockerContainerTooltips_;
+    bool dockerContainersFetched_ = false;
     EngineerEnvSnapshot collectEngineerEnvSnapshot();
     void onEngineerEnvProbeFinished();
     void applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool updatePrompt);
@@ -518,7 +531,8 @@ class Widget : public QWidget
     void ui2tool_language(int language_flag_); // 传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
-    void ui2tool_dockerConfigChanged(bool enabled, QString image, QString workdir);
+    void ui2tool_dockerConfigChanged(DockerSandbox::Config config);
+    void ui2tool_fixDockerContainerMount(const QString &containerName);
     void ui2tool_interruptCommand();           // 终止当前命令
     void ui2tool_cancelActive();               // 中断所有工具执行
 

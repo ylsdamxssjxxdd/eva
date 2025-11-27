@@ -66,6 +66,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     refreshOutputFont();
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
+    dockerTargetMode_ = loadPersistedDockerMode();
     skillManager = new SkillManager(this);
     skillManager->setApplicationDir(applicationDirPath);
     connect(skillManager, &SkillManager::skillsChanged, this, &Widget::onSkillsChanged);

@@ -4,11 +4,16 @@
 #include <QObject>
 #include <QString>
 #include <QMetaType>
+#include <QJsonArray>
+#include <QJsonObject>
 
 struct DockerSandboxStatus
 {
     bool enabled = false;
     bool ready = false;
+    bool usingExistingContainer = false;
+    bool managedContainer = false;
+    bool restartedExistingContainer = false;
     QString image;
     QString containerName;
     QString hostWorkdir;
@@ -16,6 +21,7 @@ struct DockerSandboxStatus
     QString osPretty;
     QString kernelPretty;
     QString lastError;
+    QString infoMessage;
 };
 Q_DECLARE_METATYPE(DockerSandboxStatus)
 
@@ -23,14 +29,25 @@ class DockerSandbox : public QObject
 {
     Q_OBJECT
   public:
+    enum class TargetType
+    {
+        Image,
+        Container
+    };
+    Q_ENUM(TargetType)
+
     struct Config
     {
         bool enabled = false;
+        TargetType target = TargetType::Image;
         QString image;
+        QString containerName;
         QString hostWorkdir;
     };
 
     explicit DockerSandbox(QObject *parent = nullptr);
+
+    static QString defaultContainerWorkdir();
 
     void applyConfig(const Config &config);
     bool prepare(QString *errorMessage);
@@ -38,6 +55,7 @@ class DockerSandbox : public QObject
     QString containerWorkdir() const;
     QString effectiveImage() const;
     QString containerName() const { return status_.containerName; }
+    bool recreateContainerWithRequiredMount(QString *errorMessage);
 
   signals:
     void statusChanged(const DockerSandboxStatus &status);
@@ -56,14 +74,21 @@ class DockerSandbox : public QObject
     QString desiredImage() const;
     QString desiredContainerName() const;
     QString formattedHostPath(const QString &path) const;
+    QString normalizedPathPortable(const QString &path) const;
 
     DockerCommandResult runDocker(const QStringList &args, int timeoutMs = 120000) const;
     bool ensureDockerReachable(QString *errorMessage);
     bool ensureImageReady(const QString &image, QString *errorMessage);
     bool ensureContainer(QString *errorMessage);
+    bool ensureImageContainer(QString *errorMessage);
+    bool ensureExistingContainer(QString *errorMessage);
     bool containerExists(const QString &name, bool *running, QString *errorMessage);
+    bool inspectContainerObject(const QString &name, QJsonObject *object, QString *errorMessage);
+    bool extractMountSource(const QJsonArray &mounts, QString *source, QString *errorMessage) const;
+    bool ensureExistingMountAligned(const QString &source, QString *errorMessage) const;
     bool createContainer(const QString &image, const QString &name, const QString &hostWorkdir, QString *errorMessage);
     bool startContainer(const QString &name, QString *errorMessage);
+    bool removeContainer(const QString &name, QString *errorMessage);
     void stopContainer(const QString &name);
     void fetchMetadata();
     void updateStatusAndNotify();
@@ -72,5 +97,7 @@ class DockerSandbox : public QObject
     DockerSandboxStatus status_;
     QString dockerVersion_;
 };
+
+Q_DECLARE_METATYPE(DockerSandbox::Config)
 
 #endif // DOCKER_SANDBOX_H

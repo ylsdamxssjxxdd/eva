@@ -2,6 +2,9 @@
 #include "ui_widget.h"
 #include "terminal_pane.h"
 
+#include <QDir>
+#include <QMessageBox>
+
 void Widget::recv_pushover()
 {
     flushPendingStream();
@@ -478,5 +481,33 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
     if (ui_engineer_ischecked && ui_dockerSandboxEnabled)
     {
         refreshEngineerPromptBlock();
+    }
+
+    const bool needPrompt = (dockerTargetMode_ == DockerTargetMode::Container) && ui_engineer_ischecked && ui_dockerSandboxEnabled &&
+                            !status.containerName.isEmpty() && !status.lastError.isEmpty() &&
+                            status.lastError.contains(QStringLiteral("missing a bind mount"), Qt::CaseInsensitive);
+    if (needPrompt)
+    {
+        if (!dockerMountPromptedContainers_.contains(status.containerName))
+        {
+            dockerMountPromptedContainers_.insert(status.containerName);
+            const QString hostPath = QDir::toNativeSeparators(status.hostWorkdir.isEmpty() ? engineerWorkDir : status.hostWorkdir);
+            const QString hostDisplay = hostPath.isEmpty() ? jtr("engineer workdir") : hostPath;
+            const QString body = jtr("docker fix mount body")
+                                     .arg(status.containerName,
+                                          DockerSandbox::defaultContainerWorkdir(),
+                                          hostDisplay);
+            const auto reply = QMessageBox::question(
+                this,
+                jtr("docker fix mount title"),
+                body,
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::Yes);
+            if (reply == QMessageBox::Yes)
+            {
+                dockerMountPromptedContainers_.remove(status.containerName);
+                emit ui2tool_fixDockerContainerMount(status.containerName);
+            }
+        }
     }
 }

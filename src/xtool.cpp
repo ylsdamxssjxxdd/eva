@@ -235,14 +235,10 @@ void xTool::recv_workdir(QString dir)
     sendStateMessage("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
 }
 
-void xTool::recv_dockerConfig(bool enabled, QString image, QString workdir)
+void xTool::recv_dockerConfig(DockerSandbox::Config config)
 {
-    DockerSandbox::Config cfg;
-    cfg.enabled = enabled;
-    cfg.image = image.trimmed();
-    cfg.hostWorkdir = workdir.trimmed().isEmpty() ? QString() : QDir::cleanPath(workdir.trimmed());
-    dockerConfig_ = cfg;
-    if (dockerSandbox_) dockerSandbox_->applyConfig(cfg);
+    dockerConfig_ = config;
+    if (dockerSandbox_) dockerSandbox_->applyConfig(dockerConfig_);
 }
 
 void xTool::shutdownDockerSandbox()
@@ -254,6 +250,29 @@ void xTool::shutdownDockerSandbox()
     dockerConfig_ = cfg;
     dockerSandbox_->applyConfig(cfg);
     qDebug() << "docker sandbox stopped before exit";
+}
+
+void xTool::fixDockerContainerMount(const QString &containerName)
+{
+    if (!dockerSandbox_) return;
+    if (dockerConfig_.target != DockerSandbox::TargetType::Container)
+    {
+        sendStateMessage("tool:docker sandbox fix ignored (not in container mode)");
+        return;
+    }
+    if (!containerName.trimmed().isEmpty())
+    {
+        dockerConfig_.containerName = containerName.trimmed();
+    }
+    QString error;
+    if (!dockerSandbox_->recreateContainerWithRequiredMount(&error))
+    {
+        if (error.isEmpty()) error = QStringLiteral("unknown docker error");
+        sendStateMessage("tool:" + QStringLiteral("docker sandbox fix failed -> %1").arg(error), WRONG_SIGNAL);
+        return;
+    }
+    dockerSandbox_->applyConfig(dockerConfig_);
+    sendStateMessage("tool:" + QStringLiteral("docker sandbox container remounted"), SUCCESS_SIGNAL);
 }
 
 void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
@@ -275,7 +294,7 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
     {
         const QString hostDir = status.hostWorkdir.isEmpty() ? resolveWorkRoot() : status.hostWorkdir;
         const QString hostDisplay = QDir::toNativeSeparators(hostDir);
-        const QString containerDir = status.containerWorkdir.isEmpty() ? QStringLiteral("/workspace") : status.containerWorkdir;
+        const QString containerDir = status.containerWorkdir.isEmpty() ? DockerSandbox::defaultContainerWorkdir() : status.containerWorkdir;
         message = QStringLiteral("docker sandbox ready (%1)\nhost %2 -> container %3")
                       .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image,
                            hostDisplay,
@@ -288,6 +307,10 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
                       .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image);
     }
     sendStateMessage("tool:" + message, level);
+    if (!status.infoMessage.isEmpty())
+    {
+        sendStateMessage("tool:" + status.infoMessage, SIGNAL_SIGNAL);
+    }
 }
 
 void xTool::cancelExecuteCommand()
@@ -1374,7 +1397,7 @@ QString xTool::resolveHostPathWithinWorkdir(const QString &inputPath, QString *e
     if (dockerSandboxEnabled())
     {
         QString containerRoot = dockerSandbox_ && !dockerSandbox_->containerWorkdir().isEmpty() ? dockerSandbox_->containerWorkdir()
-                                                                                               : QStringLiteral("/workspace");
+                                                                                               : DockerSandbox::defaultContainerWorkdir();
         containerRoot = normalizeUnixPath(containerRoot.startsWith('/') ? containerRoot : QStringLiteral("/") + containerRoot);
         QString normalizedInput = normalizeUnixPath(trimmed);
         if (normalizedInput.startsWith('/'))
@@ -1460,8 +1483,8 @@ QString xTool::containerPathForHost(const QString &absHostPath) const
     QDir rootDir(root);
     QString relative = rootDir.relativeFilePath(normalized);
     if (relative.startsWith("..")) return {};
-    QString containerRoot = dockerSandbox_ ? dockerSandbox_->containerWorkdir() : QStringLiteral("/workspace");
-    if (containerRoot.isEmpty()) containerRoot = QStringLiteral("/workspace");
+    QString containerRoot = dockerSandbox_ ? dockerSandbox_->containerWorkdir() : DockerSandbox::defaultContainerWorkdir();
+    if (containerRoot.isEmpty()) containerRoot = DockerSandbox::defaultContainerWorkdir();
     QDir containerDir(containerRoot);
     return QDir::cleanPath(containerDir.filePath(relative));
 }

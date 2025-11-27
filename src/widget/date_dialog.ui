@@ -321,21 +321,18 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_docker_image">
         <item>
-         <widget class="QLabel" name="docker_image_label">
+         <widget class="QComboBox" name="docker_target_comboBox">
           <property name="minimumSize">
            <size>
-            <width>80</width>
+            <width>90</width>
             <height>25</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>80</width>
+            <width>110</width>
             <height>25</height>
            </size>
-          </property>
-          <property name="text">
-           <string>容器镜像</string>
           </property>
          </widget>
         </item>

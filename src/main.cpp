@@ -307,6 +307,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<MCP_CONNECT_STATE>("MCP_CONNECT_STATE");
     qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
     qRegisterMetaType<DockerSandboxStatus>("DockerSandboxStatus");
+    qRegisterMetaType<DockerSandbox::Config>("DockerSandbox::Config");
     //------------------开启多线程 ------------------------
     QThread *gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
@@ -411,6 +412,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              // 开始推理
     QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);   // 设置工程师工作目录
     QObject::connect(&w, &Widget::ui2tool_dockerConfigChanged, &tool, &xTool::recv_dockerConfig);
+    QObject::connect(&w, &Widget::ui2tool_fixDockerContainerMount, &tool, &xTool::fixDockerContainerMount);
     QObject::connect(&w, &Widget::ui2tool_interruptCommand, &tool, &xTool::cancelExecuteCommand);
     QObject::connect(&w, &Widget::ui2tool_cancelActive, &tool, &xTool::cancelActiveTool);
     QObject::connect(&tool, &xTool::tool2ui_dockerStatusChanged, &w, &Widget::recv_docker_status);
@@ -543,11 +545,18 @@ int main(int argc, char *argv[])
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
         w.ui_dockerSandboxEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
+        w.engineerDockerContainer = settings.value("docker_sandbox_container").toString().trimmed();
+        const QString dockerModeSetting = settings.value("docker_sandbox_mode", QStringLiteral("image")).toString().trimmed().toLower();
+        w.dockerTargetMode_ = dockerModeSetting == QStringLiteral("container") ? DockerTargetMode::Container : DockerTargetMode::Image;
         if (w.date_ui->dockerSandbox_checkbox)
         {
             w.date_ui->dockerSandbox_checkbox->setChecked(w.ui_dockerSandboxEnabled);
         }
         w.refreshDockerImageList(true);
+        if (w.dockerTargetMode_ == DockerTargetMode::Container)
+        {
+            w.refreshDockerContainerList(true);
+        }
         if (settings.contains("skills_enabled"))
         {
             w.restoreSkillSelection(settings.value("skills_enabled").toStringList());
@@ -558,7 +567,7 @@ int main(int argc, char *argv[])
             w.date_ui->date_engineer_workdir_LineEdit->setVisible(engineerOn);
             w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
             if (w.date_ui->dockerSandbox_checkbox) w.date_ui->dockerSandbox_checkbox->setVisible(engineerOn);
-            if (w.date_ui->docker_image_label) w.date_ui->docker_image_label->setVisible(engineerOn);
+            if (w.date_ui->docker_target_comboBox) w.date_ui->docker_target_comboBox->setVisible(engineerOn);
             if (w.date_ui->docker_image_comboBox) w.date_ui->docker_image_comboBox->setVisible(engineerOn);
         }
         w.is_load_tool = calculatorOn || knowledgeOn || controllerOn || stablediffusionOn || engineerOn || mcpOn;

@@ -25,6 +25,7 @@
 #include <QProcessEnvironment>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtGlobal>
+#include <QVariant>
 #include <algorithm>
 
 // 添加右击问题
@@ -179,9 +180,26 @@ void Widget::get_date()
     {
         ui_dockerSandboxEnabled = date_ui->dockerSandbox_checkbox->isChecked();
     }
+    if (date_ui->docker_target_comboBox)
+    {
+        const QVariant modeData = date_ui->docker_target_comboBox->currentData();
+        if (modeData.isValid()) dockerTargetMode_ = static_cast<DockerTargetMode>(modeData.toInt());
+    }
     if (date_ui->docker_image_comboBox)
     {
-        engineerDockerImage = date_ui->docker_image_comboBox->currentText().trimmed();
+        const QString text = date_ui->docker_image_comboBox->currentText().trimmed();
+        if (dockerTargetMode_ == DockerTargetMode::Container)
+        {
+            if (text != engineerDockerContainer)
+            {
+                dockerMountPromptedContainers_.clear();
+                engineerDockerContainer = text;
+            }
+        }
+        else
+        {
+            engineerDockerImage = text;
+        }
     }
     // 记录自定义模板
     if (ui_template == jtr("custom set1"))
@@ -842,6 +860,9 @@ void Widget::auto_save_user()
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer����
     settings.setValue("docker_sandbox_checkbox", ui_dockerSandboxEnabled);
     settings.setValue("docker_sandbox_image", engineerDockerImage);
+    settings.setValue("docker_sandbox_container", engineerDockerContainer);
+    settings.setValue("docker_sandbox_mode",
+                      dockerTargetMode_ == DockerTargetMode::Container ? QStringLiteral("container") : QStringLiteral("image"));
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools����
     settings.setValue("enabled_tools", enabledTools);
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具

@@ -6,6 +6,7 @@
 #include <QSet>
 #include <QSettings>
 #include <QSignalBlocker>
+#include <QHash>
 #include "../utils/processrunner.h"
 
 //-------------------------------------------------------------------------
@@ -46,6 +47,21 @@ void Widget::set_DateDialog()
         connect(date_ui->dockerSandbox_checkbox, &QCheckBox::stateChanged, this, [=](int)
                 { autosave(); });
     }
+    if (date_ui->docker_target_comboBox)
+    {
+        date_ui->docker_target_comboBox->setVisible(false);
+        date_ui->docker_target_comboBox->clear();
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option image"), static_cast<int>(DockerTargetMode::Image));
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option container"), static_cast<int>(DockerTargetMode::Container));
+        const int currentIndex = date_ui->docker_target_comboBox->findData(static_cast<int>(dockerTargetMode_));
+        if (currentIndex >= 0) date_ui->docker_target_comboBox->setCurrentIndex(currentIndex);
+        connect(date_ui->docker_target_comboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, [=](int index)
+                {
+            const QVariant data = date_ui->docker_target_comboBox->itemData(index);
+            if (!data.isValid()) return;
+            const auto mode = static_cast<DockerTargetMode>(data.toInt());
+            applyDockerTargetMode(mode); });
+    }
     if (date_ui->docker_image_comboBox)
     {
         date_ui->docker_image_comboBox->setVisible(false);
@@ -60,10 +76,6 @@ void Widget::set_DateDialog()
                 {
             updateDockerComboToolTip();
             autosave(); });
-    }
-    if (date_ui->docker_image_label)
-    {
-        date_ui->docker_image_label->setVisible(false);
     }
 
     if (language_flag == 0)
@@ -88,17 +100,21 @@ void Widget::set_DateDialog()
             { autosave(); });
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, [=](int)
             { autosave(); });
-    connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int)
-            {
+        connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int)
+                {
         updateSkillVisibility(date_ui->engineer_checkbox->isChecked());
         if (date_ui->engineer_checkbox->isChecked())
         {
             refreshDockerImageList();
+            if (dockerTargetMode_ == DockerTargetMode::Container) refreshDockerContainerList();
         }
         else
         {
             dockerImagesFetched_ = false;
             dockerImageList_.clear();
+            dockerContainersFetched_ = false;
+            dockerContainerList_.clear();
+            dockerContainerTooltips_.clear();
             updateDockerImageCombo();
         }
         autosave(); });
@@ -109,9 +125,15 @@ void Widget::set_DateDialog()
         connect(date_ui->skills_list, &SkillDropArea::skillRemoveRequested, this, &Widget::onSkillRemoveRequested);
     }
     if (ui_engineer_ischecked)
+    {
         refreshDockerImageList(true);
+        if (dockerTargetMode_ == DockerTargetMode::Container)
+            refreshDockerContainerList(true);
+    }
     else
+    {
         updateDockerImageCombo();
+    }
     // 工程师工作目录（默认隐藏，仅在勾选“软件工程师”后显示）
     if (date_ui->date_engineer_workdir_label)
     {
@@ -171,6 +193,12 @@ void Widget::on_date_clicked()
     {
         date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
     }
+    if (date_ui->docker_target_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->docker_target_comboBox);
+        const int idx = date_ui->docker_target_comboBox->findData(static_cast<int>(dockerTargetMode_));
+        if (idx >= 0) date_ui->docker_target_comboBox->setCurrentIndex(idx);
+    }
     if (date_ui->docker_image_comboBox) updateDockerImageCombo();
     if (date_ui->date_engineer_workdir_LineEdit)
     {
@@ -180,7 +208,7 @@ void Widget::on_date_clicked()
         date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         date_ui->date_engineer_workdir_browse->setVisible(vis);
         if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
-        if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
+        if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(vis);
         if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
         updateSkillVisibility(vis);
         if (vis) refreshSkillsUI();
@@ -209,6 +237,8 @@ void Widget::captureDateDialogSnapshot()
     state.ui_engineer_ischecked = ui_engineer_ischecked;
     state.ui_dockerSandboxEnabled = ui_dockerSandboxEnabled;
     state.engineerDockerImage = engineerDockerImage;
+    state.engineerDockerContainer = engineerDockerContainer;
+    state.dockerTargetMode = dockerTargetMode_;
     state.is_load_tool = is_load_tool;
     state.engineerWorkDir = engineerWorkDir;
     state.language_flag = language_flag;
@@ -259,6 +289,22 @@ QString Widget::loadPersistedDockerImage() const
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
     return settings.value("docker_sandbox_image").toString().trimmed();
+}
+
+QString Widget::loadPersistedDockerContainer() const
+{
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    return settings.value("docker_sandbox_container").toString().trimmed();
+}
+
+DockerTargetMode Widget::loadPersistedDockerMode() const
+{
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    const QString stored = settings.value("docker_sandbox_mode").toString().trimmed().toLower();
+    if (stored == QStringLiteral("container")) return DockerTargetMode::Container;
+    return DockerTargetMode::Image;
 }
 
 void Widget::refreshDockerImageList(bool force)
@@ -337,34 +383,159 @@ void Widget::refreshDockerImageList(bool force)
     updateDockerImageCombo();
 }
 
+void Widget::refreshDockerContainerList(bool force)
+{
+    if (!date_ui || !date_ui->docker_image_comboBox) return;
+    if (!ui_engineer_ischecked)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    if (!force && dockerContainersFetched_)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    QStringList foundContainers;
+    QHash<QString, QString> tooltips;
+    bool success = false;
+    QString program = ProcessRunner::findExecutable(QStringLiteral("docker"));
+#ifdef Q_OS_WIN
+    if (program.isEmpty()) program = ProcessRunner::findExecutable(QStringLiteral("docker.exe"));
+#endif
+    auto parseOutput = [&](const QString &text) {
+        const QStringList lines = text.split(QRegularExpression(QStringLiteral("[\\r\\n]+")), Qt::SkipEmptyParts);
+        QSet<QString> seen;
+        for (QString line : lines)
+        {
+            line = line.trimmed();
+            if (line.isEmpty()) continue;
+            const QStringList parts = line.split(QLatin1Char('|'));
+            const QString name = parts.value(0).trimmed();
+            if (name.isEmpty()) continue;
+            if (seen.contains(name)) continue;
+            seen.insert(name);
+            foundContainers << name;
+            const QString image = parts.value(1).trimmed();
+            const QString status = parts.value(2).trimmed();
+            QString tooltip;
+            if (!image.isEmpty()) tooltip += QStringLiteral("Image: %1").arg(image);
+            if (!status.isEmpty())
+            {
+                if (!tooltip.isEmpty()) tooltip.append(QChar('\n'));
+                tooltip += QStringLiteral("Status: %1").arg(status);
+            }
+            if (!tooltip.isEmpty()) tooltips.insert(name, tooltip);
+        }
+        return !foundContainers.isEmpty();
+    };
+
+    if (!program.isEmpty())
+    {
+        QStringList args{QStringLiteral("ps"), QStringLiteral("-a"), QStringLiteral("--format"), QStringLiteral("{{.Names}}|{{.Image}}|{{.Status}}")};
+        ProcessResult result = ProcessRunner::run(program, args, applicationDirPath, QProcessEnvironment::systemEnvironment(), 15000);
+        if (!result.timedOut && result.exitCode == 0)
+        {
+            success = parseOutput(result.stdOut);
+        }
+        else
+        {
+            qWarning() << "docker ps direct failed" << result.exitCode << result.timedOut << result.stdErr;
+        }
+    }
+    if (!success)
+    {
+        const QString shellCmd = QStringLiteral("docker ps -a --format \"{{.Names}}|{{.Image}}|{{.Status}}\"");
+        ProcessResult shellResult = ProcessRunner::runShellCommand(shellCmd, applicationDirPath, QProcessEnvironment::systemEnvironment(), 15000);
+        if (!shellResult.timedOut && shellResult.exitCode == 0)
+        {
+            foundContainers.clear();
+            tooltips.clear();
+            success = parseOutput(shellResult.stdOut);
+        }
+        else
+        {
+            qWarning() << "docker ps shell failed" << shellResult.exitCode << shellResult.timedOut << shellResult.stdErr;
+        }
+    }
+
+    if (success)
+    {
+        dockerContainersFetched_ = true;
+        dockerContainerList_ = foundContainers;
+        dockerContainerTooltips_ = tooltips;
+    }
+    else if (force)
+    {
+        dockerContainersFetched_ = false;
+        dockerContainerList_.clear();
+        dockerContainerTooltips_.clear();
+    }
+    updateDockerImageCombo();
+}
+
 void Widget::updateDockerImageCombo()
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
-    if (engineerDockerImage.trimmed().isEmpty())
-    {
-        const QString persisted = loadPersistedDockerImage();
-        if (!persisted.isEmpty()) engineerDockerImage = persisted;
-    }
-    QStringList ordered;
-    auto addUnique = [&](const QString &value) {
-        const QString trimmed = value.trimmed();
-        if (trimmed.isEmpty()) return;
-        if (ordered.contains(trimmed)) return;
-        ordered << trimmed;
-    };
-    addUnique(QStringLiteral("ubuntu:latest"));
-    for (const QString &img : dockerImageList_) addUnique(img);
-    if (!engineerDockerImage.trimmed().isEmpty()) addUnique(engineerDockerImage);
-
     QSignalBlocker blocker(date_ui->docker_image_comboBox);
     date_ui->docker_image_comboBox->clear();
-    if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
-    for (int i = 0; i < ordered.size(); ++i)
+
+    if (dockerTargetMode_ == DockerTargetMode::Container)
     {
-        date_ui->docker_image_comboBox->setItemData(i, ordered.at(i), Qt::ToolTipRole);
+        QStringList ordered;
+        auto addUnique = [&](const QString &value) {
+            const QString trimmed = value.trimmed();
+            if (trimmed.isEmpty()) return;
+            if (ordered.contains(trimmed)) return;
+            ordered << trimmed;
+        };
+        if (!dockerContainerList_.isEmpty())
+        {
+            for (const QString &name : dockerContainerList_) addUnique(name);
+        }
+        if (engineerDockerContainer.trimmed().isEmpty())
+        {
+            const QString persisted = loadPersistedDockerContainer();
+            if (!persisted.isEmpty()) engineerDockerContainer = persisted;
+        }
+        if (!engineerDockerContainer.trimmed().isEmpty()) addUnique(engineerDockerContainer);
+        if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
+        for (int i = 0; i < ordered.size(); ++i)
+        {
+            const QString name = ordered.at(i);
+            if (dockerContainerTooltips_.contains(name))
+            {
+                date_ui->docker_image_comboBox->setItemData(i, dockerContainerTooltips_.value(name), Qt::ToolTipRole);
+            }
+        }
+        date_ui->docker_image_comboBox->setEditText(engineerDockerContainer);
     }
-    const QString target = engineerDockerImage.trimmed().isEmpty() ? QStringLiteral("ubuntu:latest") : engineerDockerImage.trimmed();
-    date_ui->docker_image_comboBox->setEditText(target);
+    else
+    {
+        if (engineerDockerImage.trimmed().isEmpty())
+        {
+            const QString persisted = loadPersistedDockerImage();
+            if (!persisted.isEmpty()) engineerDockerImage = persisted;
+        }
+        QStringList ordered;
+        auto addUniqueImage = [&](const QString &value) {
+            const QString trimmed = value.trimmed();
+            if (trimmed.isEmpty()) return;
+            if (ordered.contains(trimmed)) return;
+            ordered << trimmed;
+        };
+        addUniqueImage(QStringLiteral("ubuntu:latest"));
+        for (const QString &img : dockerImageList_) addUniqueImage(img);
+        if (!engineerDockerImage.trimmed().isEmpty()) addUniqueImage(engineerDockerImage);
+        if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
+        for (int i = 0; i < ordered.size(); ++i)
+        {
+            date_ui->docker_image_comboBox->setItemData(i, ordered.at(i), Qt::ToolTipRole);
+        }
+        const QString target = engineerDockerImage.trimmed().isEmpty() ? QStringLiteral("ubuntu:latest") : engineerDockerImage.trimmed();
+        date_ui->docker_image_comboBox->setEditText(target);
+    }
+
     updateDockerComboToolTip();
 }
 
@@ -372,11 +543,57 @@ void Widget::updateDockerComboToolTip()
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
     const QString text = date_ui->docker_image_comboBox->currentText().trimmed();
-    date_ui->docker_image_comboBox->setToolTip(text);
+    QString tooltipText = text;
+    QString placeholder;
+    if (dockerTargetMode_ == DockerTargetMode::Container)
+    {
+        if (dockerContainerTooltips_.contains(text))
+            tooltipText = dockerContainerTooltips_.value(text);
+        else if (tooltipText.isEmpty())
+            tooltipText = jtr("docker container tooltip");
+        placeholder = jtr("docker container placeholder");
+    }
+    else
+    {
+        placeholder = jtr("docker image placeholder");
+        if (tooltipText.isEmpty()) tooltipText = jtr("docker image tooltip");
+    }
+    if (tooltipText.isEmpty()) tooltipText = text;
+    date_ui->docker_image_comboBox->setToolTip(tooltipText);
     if (QLineEdit *edit = date_ui->docker_image_comboBox->lineEdit())
     {
-        edit->setToolTip(text);
+        edit->setToolTip(tooltipText);
+        edit->setPlaceholderText(placeholder);
     }
+}
+
+void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave)
+{
+    if (dockerTargetMode_ == mode) return;
+    dockerTargetMode_ = mode;
+    dockerMountPromptedContainers_.clear();
+    if (date_ui && date_ui->docker_target_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->docker_target_comboBox);
+        const int idx = date_ui->docker_target_comboBox->findData(static_cast<int>(mode));
+        if (idx >= 0) date_ui->docker_target_comboBox->setCurrentIndex(idx);
+    }
+    if (mode == DockerTargetMode::Container)
+    {
+        if (ui_engineer_ischecked)
+            refreshDockerContainerList(true);
+        else
+            updateDockerImageCombo();
+    }
+    else
+    {
+        updateDockerImageCombo();
+    }
+    if (autosave)
+    {
+        auto_save_user();
+    }
+    syncDockerSandboxConfig();
 }
 
 void Widget::restoreDateDialogSnapshot()
@@ -451,6 +668,8 @@ void Widget::restoreDateDialogSnapshot()
     refreshWindowIcon();
     ui_dockerSandboxEnabled = snapshot.ui_dockerSandboxEnabled;
     engineerDockerImage = snapshot.engineerDockerImage;
+    engineerDockerContainer = snapshot.engineerDockerContainer;
+    dockerTargetMode_ = snapshot.dockerTargetMode;
     language_flag = snapshot.language_flag;
 
     if (date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() != snapshot.ui_template)
@@ -477,9 +696,16 @@ void Widget::restoreDateDialogSnapshot()
     {
         date_ui->dockerSandbox_checkbox->setChecked(snapshot.ui_dockerSandboxEnabled);
     }
+    if (date_ui->docker_target_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->docker_target_comboBox);
+        const int idx = date_ui->docker_target_comboBox->findData(static_cast<int>(snapshot.dockerTargetMode));
+        if (idx >= 0) date_ui->docker_target_comboBox->setCurrentIndex(idx);
+    }
     if (date_ui->docker_image_comboBox)
     {
         engineerDockerImage = snapshot.engineerDockerImage;
+        engineerDockerContainer = snapshot.engineerDockerContainer;
         updateDockerImageCombo();
     }
 
@@ -494,7 +720,7 @@ void Widget::restoreDateDialogSnapshot()
         if (date_ui->date_engineer_workdir_LineEdit) date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         if (date_ui->date_engineer_workdir_browse) date_ui->date_engineer_workdir_browse->setVisible(vis);
         if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
-        if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(vis);
+        if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(vis);
         if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
     }
     if (date_ui->switch_lan_button)

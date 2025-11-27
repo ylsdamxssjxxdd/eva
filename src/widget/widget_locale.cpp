@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QMap>
+#include <QSignalBlocker>
 
 namespace
 {
@@ -188,15 +189,17 @@ void Widget::apply_language(int language_flag_)
     date_ui->stablediffusion_checkbox->setText(jtr("stablediffusion"));
     date_ui->stablediffusion_checkbox->setToolTip(jtr("stablediffusion_checkbox_tooltip"));
     date_ui->date_engineer_workdir_label->setText(jtr("work dir"));
-    if (date_ui->docker_image_label)
+    if (date_ui->docker_target_comboBox)
     {
-        date_ui->docker_image_label->setText(jtr("docker image label"));
+        QSignalBlocker blocker(date_ui->docker_target_comboBox);
+        const int current = date_ui->docker_target_comboBox->currentData().toInt();
+        date_ui->docker_target_comboBox->clear();
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option image"), static_cast<int>(DockerTargetMode::Image));
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option container"), static_cast<int>(DockerTargetMode::Container));
+        int idx = date_ui->docker_target_comboBox->findData(current);
+        if (idx >= 0) date_ui->docker_target_comboBox->setCurrentIndex(idx);
     }
-    if (date_ui->docker_image_comboBox && date_ui->docker_image_comboBox->lineEdit())
-    {
-        date_ui->docker_image_comboBox->lineEdit()->setPlaceholderText(jtr("docker image placeholder"));
-        date_ui->docker_image_comboBox->setToolTip(jtr("docker image tooltip"));
-    }
+    updateDockerComboToolTip();
     if (date_ui->skills_box)
     {
         date_ui->skills_box->setTitle(jtr("skills mount"));

@@ -173,7 +173,7 @@ void Widget::tool_change()
                     date_ui->date_engineer_workdir_browse->setVisible(true);
                     date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
                 }
-                if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(true);
+                if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(true);
                 if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(true);
             }
             else
@@ -184,9 +184,12 @@ void Widget::tool_change()
                     date_ui->date_engineer_workdir_LineEdit->setVisible(false);
                     date_ui->date_engineer_workdir_browse->setVisible(false);
                 }
-                if (date_ui->docker_image_label) date_ui->docker_image_label->setVisible(false);
+                if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(false);
                 if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(false);
                 dockerImagesFetched_ = false;
+                dockerContainersFetched_ = false;
+                dockerContainerList_.clear();
+                dockerContainerTooltips_.clear();
             }
             refreshWindowIcon();
         }
