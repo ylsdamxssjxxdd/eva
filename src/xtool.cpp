@@ -465,11 +465,13 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     else if (tools_name == "read_file")
     {
         QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "path"));
-        QString filepath = build_in_tool_arg;
-        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-        filepath = QDir::fromNativeSeparators(filepath);
-        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
-        filepath = QDir(root).filePath(filepath);
+        ToolPathResolution pathRes;
+        QString pathError;
+        if (!resolveToolPath(build_in_tool_arg, &pathRes, &pathError))
+        {
+            sendPushMessage(QString("read_file ") + jtr("return") + " " + (pathError.isEmpty() ? QStringLiteral("invalid path") : pathError));
+            return;
+        }
         int start_line = get_int_safely(tools_args_, "start_line", 1);
         int end_line = get_int_safely(tools_args_, "end_line", INT_MAX);
         if (start_line < 1) start_line = 1;
@@ -494,7 +496,9 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         {
             QString fileContent;
             QString error;
-            if (!dockerReadTextFile(filepath, &fileContent, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerReadTextFile(dockerPath, &fileContent, &error, pathIsContainer))
             {
                 sendPushMessage(QString("read_file ") + jtr("return") + " " + error);
                 return;
@@ -504,10 +508,10 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFile file(filepath);
+            QFile file(pathRes.hostPath);
             if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-                sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(filepath));
+                sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(pathRes.hostPath));
                 return;
             }
             QTextStream in(&file);
@@ -524,14 +528,19 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     {
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
         QString content = QString::fromStdString(get_string_safely(tools_args_, "content"));
-        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-        filepath = QDir::fromNativeSeparators(filepath);
-        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
-        filepath = QDir(root).filePath(filepath);
+        ToolPathResolution pathRes;
+        QString pathError;
+        if (!resolveToolPath(filepath, &pathRes, &pathError))
+        {
+            sendPushMessage(QString("write_file ") + jtr("return") + "\n" + (pathError.isEmpty() ? QStringLiteral("invalid path") : pathError));
+            return;
+        }
         if (dockerSandboxEnabled())
         {
             QString error;
-            if (!dockerWriteTextFile(filepath, content, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerWriteTextFile(dockerPath, content, &error, pathIsContainer))
             {
                 sendPushMessage(QString("write_file ") + jtr("return") + "\n" + error);
                 return;
@@ -539,7 +548,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFileInfo fileInfo(filepath);
+            QFileInfo fileInfo(pathRes.hostPath);
             QString dirPath = fileInfo.absolutePath();
             QDir dir;
             if (!dir.mkpath(dirPath))
@@ -547,7 +556,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 sendPushMessage(QString("write_file ") + jtr("return") + "Failed to create directory");
                 return;
             }
-            QFile file(filepath);
+            QFile file(pathRes.hostPath);
             if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
                 sendPushMessage(QString("write_file ") + jtr("return") + "Could not open file for writing" + file.errorString());
@@ -587,15 +596,20 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + QStringLiteral(" old_string is empty."));
             return;
         }
-        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-        filepath = QDir::fromNativeSeparators(filepath);
-        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
-        filepath = QDir(root).filePath(filepath);
+        ToolPathResolution pathRes;
+        QString pathError;
+        if (!resolveToolPath(filepath, &pathRes, &pathError))
+        {
+            sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + (pathError.isEmpty() ? QStringLiteral("invalid path") : pathError));
+            return;
+        }
         QString originalContent;
         if (dockerSandboxEnabled())
         {
             QString error;
-            if (!dockerReadTextFile(filepath, &originalContent, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerReadTextFile(dockerPath, &originalContent, &error, pathIsContainer))
             {
                 sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + error);
                 return;
@@ -603,7 +617,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFile inFile(filepath);
+            QFile inFile(pathRes.hostPath);
             if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
             {
                 sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + "Could not open file for reading: " + inFile.errorString());
@@ -655,7 +669,9 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         if (dockerSandboxEnabled())
         {
             QString error;
-            if (!dockerWriteTextFile(filepath, finalContent, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerWriteTextFile(dockerPath, finalContent, &error, pathIsContainer))
             {
                 sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + error);
                 return;
@@ -663,14 +679,14 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFileInfo fi(filepath);
+            QFileInfo fi(pathRes.hostPath);
             QDir dir;
             if (!dir.mkpath(fi.absolutePath()))
             {
                 sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + QStringLiteral("Failed to create directory."));
                 return;
             }
-            QFile outFile(filepath);
+            QFile outFile(pathRes.hostPath);
             if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
             {
                 sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + "Could not open file for writing: " + outFile.errorString());
@@ -704,15 +720,20 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             return;
         }
         QString filepath = QString::fromStdString(get_string_safely(tools_args_, "path"));
-        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-        filepath = QDir::fromNativeSeparators(filepath);
-        if (filepath.startsWith(root + "/")) filepath = filepath.mid(root.size() + 1);
-        filepath = QDir(root).filePath(filepath);
+        ToolPathResolution pathRes;
+        QString pathError;
+        if (!resolveToolPath(filepath, &pathRes, &pathError))
+        {
+            sendError(pathError.isEmpty() ? QStringLiteral("Invalid path") : pathError);
+            return;
+        }
         QString originalContent;
         if (dockerSandboxEnabled())
         {
             QString error;
-            if (!dockerReadTextFile(filepath, &originalContent, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerReadTextFile(dockerPath, &originalContent, &error, pathIsContainer))
             {
                 sendError(error);
                 return;
@@ -720,7 +741,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFile inFile(filepath);
+            QFile inFile(pathRes.hostPath);
             if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text))
             {
                 sendError("Could not open file for reading: " + inFile.errorString());
@@ -914,7 +935,9 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         if (dockerSandboxEnabled())
         {
             QString error;
-            if (!dockerWriteTextFile(filepath, finalContent, &error))
+            const bool pathIsContainer = pathRes.containerAbsolute;
+            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+            if (!dockerWriteTextFile(dockerPath, finalContent, &error, pathIsContainer))
             {
                 sendError(error);
                 return;
@@ -922,14 +945,14 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         else
         {
-            QFileInfo fi(filepath);
+            QFileInfo fi(pathRes.hostPath);
             QDir dir;
             if (!dir.mkpath(fi.absolutePath()))
             {
                 sendError("Failed to create directory.");
                 return;
             }
-            QFile outFile(filepath);
+            QFile outFile(pathRes.hostPath);
             if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
             {
                 sendError("Could not open file for writing: " + outFile.errorString());
@@ -1457,6 +1480,42 @@ QString xTool::resolveHostPathWithinWorkdir(const QString &inputPath, QString *e
     return candidate;
 }
 
+bool xTool::resolveToolPath(const QString &inputPath, ToolPathResolution *resolution, QString *errorMessage) const
+{
+    if (!resolution) return false;
+    ToolPathResolution result;
+    result.originalInput = inputPath;
+    const bool docker = dockerSandboxEnabled();
+    const QString trimmed = QDir::fromNativeSeparators(inputPath.trimmed());
+    if (docker && trimmed.startsWith(QLatin1Char('/')))
+    {
+        result.containerAbsolute = true;
+        result.containerPath = normalizeUnixPath(trimmed);
+    }
+    else
+    {
+        QString hostError;
+        result.hostPath = resolveHostPathWithinWorkdir(trimmed, &hostError);
+        if (result.hostPath.isEmpty())
+        {
+            if (errorMessage) *errorMessage = hostError.isEmpty() ? QStringLiteral("Invalid path") : hostError;
+            return false;
+        }
+        if (docker)
+        {
+            const QString mapped = containerPathForHost(result.hostPath);
+            if (mapped.isEmpty())
+            {
+                if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
+                return false;
+            }
+            result.containerPath = mapped;
+        }
+    }
+    *resolution = result;
+    return true;
+}
+
 bool xTool::dockerSandboxEnabled() const
 {
     return dockerSandbox_ && dockerConfig_.enabled && !dockerConfig_.hostWorkdir.isEmpty();
@@ -1513,7 +1572,7 @@ QString xTool::containerPathForHost(const QString &absHostPath) const
     return {};
 }
 
-bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QString *errorMessage)
+bool xTool::dockerReadTextFile(const QString &path, QString *content, QString *errorMessage, bool pathIsContainer)
 {
     if (!dockerSandboxEnabled())
     {
@@ -1526,11 +1585,19 @@ bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QSt
         if (errorMessage) *errorMessage = ensureError;
         return false;
     }
-    const QString containerPath = containerPathForHost(absHostPath);
-    if (containerPath.isEmpty())
+    QString containerPath;
+    if (pathIsContainer)
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
-        return false;
+        containerPath = normalizeUnixPath(path);
+    }
+    else
+    {
+        containerPath = containerPathForHost(path);
+        if (containerPath.isEmpty())
+        {
+            if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
+            return false;
+        }
     }
     QString stdOut;
     QString stdErr;
@@ -1545,7 +1612,7 @@ bool xTool::dockerReadTextFile(const QString &absHostPath, QString *content, QSt
     return true;
 }
 
-bool xTool::dockerWriteTextFile(const QString &absHostPath, const QString &content, QString *errorMessage)
+bool xTool::dockerWriteTextFile(const QString &path, const QString &content, QString *errorMessage, bool pathIsContainer)
 {
     if (!dockerSandboxEnabled())
     {
@@ -1558,11 +1625,19 @@ bool xTool::dockerWriteTextFile(const QString &absHostPath, const QString &conte
         if (errorMessage) *errorMessage = ensureError;
         return false;
     }
-    const QString containerPath = containerPathForHost(absHostPath);
-    if (containerPath.isEmpty())
+    QString containerPath;
+    if (pathIsContainer)
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
-        return false;
+        containerPath = normalizeUnixPath(path);
+    }
+    else
+    {
+        containerPath = containerPathForHost(path);
+        if (containerPath.isEmpty())
+        {
+            if (errorMessage) *errorMessage = QStringLiteral("Path outside permitted roots");
+            return false;
+        }
     }
     QString dirPath = containerPath;
     const int lastSlash = dirPath.lastIndexOf('/');

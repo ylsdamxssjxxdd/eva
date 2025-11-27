@@ -119,6 +119,14 @@ class xTool : public QObject
     void tool2ui_controller(int num); // Notify drawing progress
 
   private:
+    struct ToolPathResolution
+    {
+        QString originalInput;
+        QString hostPath;
+        QString containerPath;
+        bool containerAbsolute = false;
+    };
+
     void sendStateMessage(const QString &message, SIGNAL_STATE state = USUAL_SIGNAL);
     void sendPushMessage(const QString &message);
     struct ToolInvocation;
@@ -138,14 +146,15 @@ class xTool : public QObject
     void handleMcpToolCall(const ToolInvocationPtr &invocation);
     QString resolveWorkRoot() const;
     QString resolveHostPathWithinWorkdir(const QString &inputPath, QString *errorMessage = nullptr) const;
+    bool resolveToolPath(const QString &inputPath, ToolPathResolution *resolution, QString *errorMessage = nullptr) const;
     void ensureWorkdirExists(const QString &work) const;
     void onDockerStatusChanged(const DockerSandboxStatus &status);
     bool dockerSandboxEnabled() const;
     bool ensureDockerSandboxReady(QString *errorMessage);
     QString dockerWorkdirOrFallback(const QString &hostWorkdir) const;
     QString containerPathForHost(const QString &absHostPath) const;
-    bool dockerReadTextFile(const QString &absHostPath, QString *content, QString *errorMessage);
-    bool dockerWriteTextFile(const QString &absHostPath, const QString &content, QString *errorMessage);
+    bool dockerReadTextFile(const QString &path, QString *content, QString *errorMessage, bool pathIsContainer = false);
+    bool dockerWriteTextFile(const QString &path, const QString &content, QString *errorMessage, bool pathIsContainer = false);
     bool runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData = QByteArray()) const;
     ToolInvocationPtr activeInvocation() const;
     void setActiveInvocation(const ToolInvocationPtr &invocation);
