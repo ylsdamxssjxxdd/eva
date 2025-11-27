@@ -78,7 +78,7 @@
     - 例如：帮我自动在冒险岛里搬砖
     - 调用难度：⭐⭐⭐⭐⭐
 
-3. 软件工程师
+3. 系统工程师
     - 类似 Cline 的自动化工具执行链（execute_command/read_file/write_file/replace_in_file/edit_in_file/list_files/search_content/MCP…）。
     - 例如：帮我构建一个cmake qt的初始项目
     - 支持 Docker 沙盒：约定窗口可勾选“Docker 沙盒”并填写镜像（默认 ubuntu:latest）。EVA 会自动查询 `docker images`，拉起匹配容器并把工程师工作目录挂载到 `/eva_workspace`，同时将 EVA 技能目录挂载到 `/eva_skills`，所有命令与文件操作都在容器内执行，UI 同步显示容器镜像/状态/挂载点。也可切换到“容器模式”，直接从 `docker ps -a` 中选择现有容器，EVA 会自动重启并复用它。
@@ -108,7 +108,7 @@
 技能为机体在约定框架下引入的可插拔能力包。通过该机制，指挥员可在不改动主程序的情况下，为驾驶员注入特定场景的工作流程、模板与脚本指令。
 具体可参考EVA_SIKLLS目录下的示例技能。
 
-- **规范约束**：挂载软件工程师工具后，将技能文件夹压缩成zip文件，可拖入技能区进行导入。每个技能都必须提供 `SKILL.md`，文件以 YAML frontmatter 描述 `name`、`description`、`license` 等元数据，正文给出操作步骤、输入输出格式、注意事项。EVA 在解析时严格依赖这些字段，缺失将直接拒绝导入。
+- **规范约束**：挂载系统工程师工具后，将技能文件夹压缩成zip文件，可拖入技能区进行导入。每个技能都必须提供 `SKILL.md`，文件以 YAML frontmatter 描述 `name`、`description`、`license` 等元数据，正文给出操作步骤、输入输出格式、注意事项。EVA 在解析时严格依赖这些字段，缺失将直接拒绝导入。
 </details>
 
 ### 增强功能

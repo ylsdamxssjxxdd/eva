@@ -368,7 +368,7 @@ QString Widget::create_extra_prompt()
     QString extra_prompt_;            // 额外指令
     QString available_tools_describe; // 工具名和描述
     QString skill_usage_block;
-    QString engineer_info;            // 软件工程师信息
+    QString engineer_info;            // 系统工程师信息
     extra_prompt_ = promptx::extraPromptTemplate();
     extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
     if (is_load_tool)

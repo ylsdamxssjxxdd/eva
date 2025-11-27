@@ -129,7 +129,7 @@ void Widget::tool_change()
 {
     QObject *senderObj = sender(); // gets the object that sent the signal
 
-    // 如果是软件工程师则查询python环境
+    // 如果是系统工程师则查询python环境
     if (QCheckBox *checkbox = qobject_cast<QCheckBox *>(senderObj))
     {
         if (checkbox == date_ui->engineer_checkbox)

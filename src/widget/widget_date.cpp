@@ -134,7 +134,7 @@ void Widget::set_DateDialog()
     {
         updateDockerImageCombo();
     }
-    // 工程师工作目录（默认隐藏，仅在勾选“软件工程师”后显示）
+    // 工程师工作目录（默认隐藏，仅在勾选“系统工程师”后显示）
     if (date_ui->date_engineer_workdir_label)
     {
         date_ui->date_engineer_workdir_label->setText(jtr("work dir"));
@@ -257,7 +257,7 @@ void Widget::set_date()
     }
 
     // 如果用户在“约定”对话框中修改了工程师工作目录，点击“确定”后立即生效
-    // 仅当已勾选“软件工程师”工具时才向 xTool 下发（未勾选时仅保存值供下次使用）
+    // 仅当已勾选“系统工程师”工具时才向 xTool 下发（未勾选时仅保存值供下次使用）
     if (date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked() && date_ui->date_engineer_workdir_LineEdit)
     {
         const QString typed = date_ui->date_engineer_workdir_LineEdit->text().trimmed();
