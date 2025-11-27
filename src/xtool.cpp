@@ -288,7 +288,6 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
     {
         message = QStringLiteral("docker sandbox error: %1").arg(status.lastError);
         level = WRONG_SIGNAL;
-        sendPushMessage(message);
     }
     else if (status.ready)
     {
