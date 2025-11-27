@@ -45,7 +45,12 @@ TEST_CASE("ProcessRunner::runShellCommand respects timeout and sets timedOut fla
 
 TEST_CASE("ProcessRunner::envWithPathPrepend injects directories to the front of PATH")
 {
-    const QStringList injected = {QStringLiteral("C:/eva/tools"), QStringLiteral("/opt/eva/bin")};
+    const QStringList injected =
+#ifdef Q_OS_WIN
+        {QStringLiteral("C:/eva/tools"), QStringLiteral("D:/eva/bin")};
+#else
+        {QStringLiteral("/opt/eva/tools"), QStringLiteral("/usr/local/eva/bin")};
+#endif
     const QProcessEnvironment env = ProcessRunner::envWithPathPrepend(injected);
     const QChar sep =
 #ifdef Q_OS_WIN

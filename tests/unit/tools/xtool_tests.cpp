@@ -539,6 +539,9 @@ void XToolClampTest::readFileOutputIsClamped()
 
 int main(int argc, char **argv)
 {
+#ifdef Q_OS_LINUX
+    qputenv("QT_QPA_PLATFORM", QByteArray("offscreen"));
+#endif
     QApplication app(argc, argv);
 
     int status = 0;

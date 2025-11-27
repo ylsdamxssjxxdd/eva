@@ -51,8 +51,7 @@ QString toToolFriendlyPath(const QString &path)
     out.resize(int(written));
     return out;
 #else
-    Q_UNUSED(path);
-    return path; // unchanged on non-Windows
+    return toNativeAbs(path);
 #endif
 }
 

@@ -599,10 +599,26 @@ std::string markdownToText(const std::string &markdown)
     md = std::regex_replace(md, std::regex("`([^`]*)`"), "$1");
     md = std::regex_replace(md, std::regex("!\\[([^\\]]*)\\]\\([^\\)]*\\)"), "$1");
     md = std::regex_replace(md, std::regex("\\[([^\\]]*)\\]\\([^\\)]*\\)"), "$1");
-    md = std::regex_replace(md, std::regex("(?m)^\\s*#+\\s*"), "");
-    md = std::regex_replace(md, std::regex("(?m)^>\\s*"), "");
-    md = std::regex_replace(md, std::regex("(?m)^\\|.*\\|$"), "");
-    md = std::regex_replace(md, std::regex("(?m)^\\s*\\|?\\s*:-*:?\\s*(\\|\\s*:-*:?\\s*)*$"), "");
+    {
+        static const std::regex heading("^\\s*#+\\s*");
+        static const std::regex quote("^>\\s*");
+        static const std::regex tableRow("^\\|.*\\|\\s*$");
+        static const std::regex tableRule("^\\s*\\|?\\s*:-*:?\\s*(\\|\\s*:-*:?\\s*)*$");
+        std::vector<std::string> lines = splitLines(md);
+        std::vector<std::string> filtered;
+        filtered.reserve(lines.size());
+        for (std::string line : lines)
+        {
+            line = std::regex_replace(line, heading, "");
+            line = std::regex_replace(line, quote, "");
+            if (std::regex_match(line, tableRow) || std::regex_match(line, tableRule))
+            {
+                continue;
+            }
+            filtered.emplace_back(std::move(line));
+        }
+        md = join(filtered, "\n");
+    }
     md = std::regex_replace(md, std::regex("<[^>]+>"), "");
     replaceAll(md, "**", "");
     replaceAll(md, "*", "");
