@@ -31,6 +31,7 @@ void appendMessage(QJsonArray &history, const QString &role, const QString &cont
 TEST_CASE("createChatBody injects local sampling controls and tool translations")
 {
     xNet net;
+    net.apis.is_local_backend = true;
     net.apis.api_endpoint = QStringLiteral("http://127.0.0.1:9000");
     net.apis.api_model = QStringLiteral("eva-unit-chat");
     net.endpoint_data.date_prompt = QStringLiteral("Pilot sync prompt");
@@ -82,6 +83,7 @@ TEST_CASE("createChatBody injects local sampling controls and tool translations"
 TEST_CASE("createChatBody clamps sampling for remote endpoints and omits local extras")
 {
     xNet net;
+    net.apis.is_local_backend = false;
     net.apis.api_endpoint = QStringLiteral("https://eva.remote");
     net.apis.api_model = QStringLiteral("eva-link");
     net.apis.is_cache = false;
@@ -116,6 +118,7 @@ TEST_CASE("createChatBody clamps sampling for remote endpoints and omits local e
 TEST_CASE("createCompleteBody honors local extras and reasoning effort")
 {
     xNet net;
+    net.apis.is_local_backend = true;
     net.apis.api_endpoint = QStringLiteral("http://10.0.0.5:8080");
     net.apis.api_model = QStringLiteral("eva-complete");
     net.apis.is_cache = true;

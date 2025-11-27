@@ -336,14 +336,14 @@ void xNet::ensureNetObjects()
 QByteArray xNet::createChatBody()
 { // Build JSON body in OpenAI-compatible chat format with multimodal support
     QJsonObject json;
-    const bool __isLocal = apis.is_local_backend;
-    if (__isLocal && apis.is_cache)
+    const bool isLocal = apis.is_local_backend;
+    if (isLocal && apis.is_cache)
     {
         json.insert("cache_prompt", apis.is_cache);
     }
     json.insert("model", apis.api_model);
     json.insert("stream", true);
-    if (__isLocal)
+    if (isLocal)
     {
         json.insert("include_usage", true);
     }
@@ -359,7 +359,7 @@ QByteArray xNet::createChatBody()
     {
         const int cappedPredict = qBound(1, requestedPredict, 99999);
         json.insert("n_predict", cappedPredict);
-        if (!__isLocal)
+        if (!isLocal)
         {
             json.insert("max_completion_tokens", cappedPredict);
         }
@@ -384,16 +384,11 @@ QByteArray xNet::createChatBody()
     }
     json.insert("stop", stopkeys);
 
-    // Heuristic: treat localhost/LAN as local llama.cpp endpoint
-    if (__isLocal)
+    // Only local llama.cpp accepts these sampling knobs
+    if (isLocal)
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
-    }
-    else
-    {
-        json.insert("top_k", endpoint_data.top_k);
-        json.insert("repetition_penalty", endpoint_data.repeat);
     }
 
     // Normalize UI messages into OpenAI-compatible messages
@@ -448,8 +443,8 @@ QByteArray xNet::createChatBody()
     }
     json.insert("messages", compatMsgs);
     // Reuse llama.cpp server slot KV cache if available
-    if (__isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
-    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, __isLocal);
+    if (isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, isLocal);
 
     // debug summary: role and content kind/length
     QStringList dbgLines;
@@ -477,8 +472,8 @@ QByteArray xNet::createCompleteBody()
 {
     // 创建 JSON 数据
     QJsonObject json;
-    const bool __isLocal2 = apis.is_local_backend;
-    if (__isLocal2 && apis.is_cache)
+    const bool isLocal = apis.is_local_backend;
+    if (isLocal && apis.is_cache)
     {
         json.insert("cache_prompt", apis.is_cache);
     } // 缓存上文
@@ -490,13 +485,13 @@ QByteArray xNet::createCompleteBody()
     {
         const int cappedPredict2 = qBound(1, requestedPredict2, 99999);
         json.insert("n_predict", cappedPredict2);
-        if (!__isLocal2)
+        if (!isLocal)
         {
             json.insert("max_completion_tokens", cappedPredict2);
         }
     }
     json.insert("stream", true);
-    if (__isLocal2)
+    if (isLocal)
     {
         json.insert("include_usage", true);
     }
@@ -523,18 +518,13 @@ QByteArray xNet::createCompleteBody()
         stopkeys2.append(endpoint_data.stopwords.at(i));
     }
     json.insert("stop", stopkeys2);
-    if (__isLocal2)
+    if (isLocal)
     {
         json.insert("top_k", endpoint_data.top_k);
         json.insert("repeat_penalty", endpoint_data.repeat);
     }
-    else
-    {
-        json.insert("top_k", endpoint_data.top_k);
-        json.insert("repetition_penalty", endpoint_data.repeat);
-    }
-    if (__isLocal2 && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
-    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, __isLocal2);
+    if (isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
+    maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, isLocal);
 
     // 将 JSON 对象转换为字节序列
     QJsonDocument doc(json);
