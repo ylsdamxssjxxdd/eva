@@ -525,6 +525,11 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
         if (status.ready)
         {
             engineerDockerLaunchPending_ = false;
+            if (engineerEnvSummaryPending_)
+            {
+                engineerEnvSummaryPending_ = false;
+                logEngineerEnvSummary();
+            }
         }
     }
     else

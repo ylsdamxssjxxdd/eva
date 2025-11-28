@@ -333,10 +333,18 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     if (!updatePrompt) return;
 
     refreshEngineerPromptBlock();
-    if (engineerEnvSummaryPending_)
+    const bool canLogNow = !ui_dockerSandboxEnabled || engineerDockerReady_;
+    if (canLogNow)
     {
-        engineerEnvSummaryPending_ = false;
-        logEngineerEnvSummary();
+        if (engineerEnvSummaryPending_)
+        {
+            engineerEnvSummaryPending_ = false;
+            logEngineerEnvSummary();
+        }
+    }
+    else
+    {
+        engineerEnvSummaryPending_ = true;
     }
 }
 
