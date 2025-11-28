@@ -217,6 +217,7 @@ void Widget::onEngineerEnvReady()
 {
     engineerEnvReady_ = true;
     drainEngineerGateQueue();
+    ensureOutputAtBottom();
 }
 
 void Widget::enforceEngineerEnvReadyCheckpoint()
