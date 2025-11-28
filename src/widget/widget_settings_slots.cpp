@@ -134,7 +134,19 @@ void Widget::tool_change()
     {
         if (checkbox == date_ui->engineer_checkbox)
         {
+            const bool wasEngineerActive = ui_engineer_ischecked;
             ui_engineer_ischecked = checkbox->isChecked();
+            if (ui_engineer_ischecked && !wasEngineerActive)
+            {
+                markEngineerEnvDirty();
+            }
+            else if (!ui_engineer_ischecked && wasEngineerActive)
+            {
+                engineerEnvReady_ = true;
+                engineerGateActive_ = false;
+                engineerDockerReady_ = true;
+                if (engineerUiLockActive_) applyEngineerUiLock(false);
+            }
             if (checkbox->isChecked())
             {
                 triggerEngineerEnvRefresh(true);

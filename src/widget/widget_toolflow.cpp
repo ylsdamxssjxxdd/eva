@@ -420,16 +420,16 @@ void Widget::on_reset_clicked()
         if (!engineerRefreshAfterResetScheduled_)
         {
             engineerRefreshAfterResetScheduled_ = true;
-            QTimer::singleShot(120, this, [this]()
-                               {
-                                   engineerRefreshAfterResetScheduled_ = false;
-                                   if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked())
-                                   {
-                                       engineerRestoreOutputAfterEngineerRefresh_ = false;
-                                       return;
-                                   }
-                                   triggerEngineerEnvRefresh(true);
-                               });
+            if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked())
+            {
+                engineerRefreshAfterResetScheduled_ = false;
+                engineerRestoreOutputAfterEngineerRefresh_ = false;
+            }
+            else
+            {
+                triggerEngineerEnvRefresh(true);
+                engineerRefreshAfterResetScheduled_ = false;
+            }
         }
     }
 
@@ -517,4 +517,15 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
             }
         }
     }
+
+    const bool sandboxExpected = ui_engineer_ischecked && ui_dockerSandboxEnabled;
+    if (sandboxExpected)
+    {
+        engineerDockerReady_ = status.ready;
+    }
+    else
+    {
+        engineerDockerReady_ = true;
+    }
+    if (ui_engineer_ischecked) maybeUnlockEngineerGate();
 }

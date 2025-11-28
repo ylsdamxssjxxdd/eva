@@ -56,6 +56,7 @@
 #include <QtGlobal>
 #include <QSplitter>
 #include <QFontComboBox>
+#include <functional>
 #include <thread>
 #include <optional>
 #ifdef _WIN32
@@ -188,6 +189,12 @@ class Widget : public QWidget
     // Set workdir without emitting signals (for early restore during startup)
     void setEngineerWorkDirSilently(const QString &dir);
     void triggerEngineerEnvRefresh(bool updatePrompt = true);
+    void enforceEngineerEnvReadyCheckpoint();
+    void applyEngineerUiLock(bool locked);
+    void markEngineerEnvDirty();
+    void onEngineerEnvReady();
+    void queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady);
+    void maybeUnlockEngineerGate();
     void syncDockerSandboxConfig(bool forceEmit = false);
     void refreshEngineerPromptBlock();
     bool shouldUseDockerEnv() const;
@@ -456,6 +463,10 @@ class Widget : public QWidget
     bool engineerEnvRefreshQueued_ = false;
     bool engineerEnvPendingPromptUpdate_ = false;
     bool engineerEnvApplyPromptOnCompletion_ = false;
+    bool engineerEnvReady_ = true;
+    bool engineerUiLockActive_ = false;
+    bool engineerGateActive_ = false;
+    bool engineerDockerReady_ = true;
     QString truncateString(const QString &str, int maxLength);
 
     // 工具相关

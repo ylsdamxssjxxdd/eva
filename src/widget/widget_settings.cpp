@@ -852,7 +852,7 @@ void Widget::settings_ui_confirm_button_clicked()
     settings_dialog->accept();
     // 监视帧率无需重启后端；实时应用
     updateMonitorTimer();
-    auto finalizeOverrides = [&]()
+    auto finalizeOverrides = [this]()
     {
         if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
         {
@@ -867,10 +867,11 @@ void Widget::settings_ui_confirm_button_clicked()
         syncBackendOverrideState();
         refreshDeviceBackendUI();
     };
-    auto finalizeAndPersist = [&]()
+    auto finalizeAndPersist = [this, finalizeOverrides]()
     {
         finalizeOverrides();
         auto_save_user();
+        enforceEngineerEnvReadyCheckpoint();
     };
     if (sameSettings)
     {
@@ -878,36 +879,38 @@ void Widget::settings_ui_confirm_button_clicked()
         finalizeAndPersist();
         return;
     }
-    if (sameServer)
+    auto applyChanges = [this, sameServer, finalizeAndPersist]()
     {
-        // 仅采样/推理相关变化：不重启后端，仅重置上下文应用参数
-        if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
+        if (sameServer)
+        {
+            if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
+            {
+                on_reset_clicked();
+            }
+            finalizeAndPersist();
+            return;
+        }
+        if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
+        {
+            commitPendingBackendOverrides();
+            backendOverrideSnapshot_ = DeviceManager::programOverrides();
+        }
+        if (ui_mode == LOCAL_MODE)
+        {
+            ensureLocalServer();
+            if (!lastServerRestart_)
+            {
+                on_reset_clicked();
+            }
+        }
+        else
         {
             on_reset_clicked();
         }
         finalizeAndPersist();
-        return;
-    }
-    // 将待定后端覆写立即写入 DeviceManager，确保即将重启的后端使用最新路径
-    if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
-    {
-        commitPendingBackendOverrides();
-        backendOverrideSnapshot_ = DeviceManager::programOverrides();
-    }
-    // 有影响后端的变化：必要时重启后端并在未重启的情况下重置
-    if (ui_mode == LOCAL_MODE)
-    {
-        ensureLocalServer();
-        if (!lastServerRestart_)
-        {
-            on_reset_clicked();
-        }
-    }
-    else
-    {
-        on_reset_clicked();
-    }
-    finalizeAndPersist();
+    };
+
+    queueEngineerGateAction(applyChanges, ui_engineer_ischecked && ui_dockerSandboxEnabled);
 }
 
 // 设置选项卡取消按钮响应

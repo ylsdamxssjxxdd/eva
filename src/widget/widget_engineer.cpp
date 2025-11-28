@@ -192,9 +192,76 @@ void Widget::refreshEngineerPromptBlock()
     }
 }
 
+void Widget::markEngineerEnvDirty()
+{
+    if (!ui_engineer_ischecked) return;
+    engineerEnvReady_ = false;
+}
+
+void Widget::applyEngineerUiLock(bool locked)
+{
+    if (engineerUiLockActive_ == locked) return;
+    engineerUiLockActive_ = locked;
+    if (locked)
+    {
+        reflash_state("ui:" + jtr("engineer env initializing"), SIGNAL_SIGNAL);
+    }
+    else
+    {
+        reflash_state("ui:" + jtr("engineer env ready"), SUCCESS_SIGNAL);
+    }
+    ui_state_normal();
+}
+
+void Widget::onEngineerEnvReady()
+{
+    engineerEnvReady_ = true;
+    maybeUnlockEngineerGate();
+}
+
+void Widget::enforceEngineerEnvReadyCheckpoint()
+{
+    if (!ui_engineer_ischecked) return;
+    if (engineerEnvReady_) return;
+    if (!engineerEnvWatcher_.isRunning())
+    {
+        triggerEngineerEnvRefresh(true);
+    }
+    if (!engineerUiLockActive_) applyEngineerUiLock(true);
+}
+
+void Widget::queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady)
+{
+    if (!ui_engineer_ischecked)
+    {
+        if (action) action();
+        return;
+    }
+    engineerGateActive_ = true;
+    markEngineerEnvDirty();
+    engineerDockerReady_ = requireDockerReady ? false : true;
+    applyEngineerUiLock(true);
+    if (action) action();
+    enforceEngineerEnvReadyCheckpoint();
+}
+
+void Widget::maybeUnlockEngineerGate()
+{
+    if (!engineerGateActive_) return;
+    if (!engineerEnvReady_ || !engineerDockerReady_) return;
+    engineerGateActive_ = false;
+    if (engineerUiLockActive_)
+    {
+        QTimer::singleShot(0, this, [this]() {
+            if (engineerUiLockActive_) applyEngineerUiLock(false);
+        });
+    }
+}
+
 void Widget::triggerEngineerEnvRefresh(bool updatePrompt)
 {
     if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return;
+    markEngineerEnvDirty();
     if (engineerEnvWatcher_.isRunning())
     {
         engineerEnvRefreshQueued_ = true;
@@ -229,6 +296,7 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     python_env = snapshot.python;
     compile_env = snapshot.compile;
     node_env = snapshot.node;
+    onEngineerEnvReady();
     if (updatePrompt && !date_ui) updatePrompt = false;
     if (updatePrompt && (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()))
     {
@@ -262,6 +330,7 @@ void Widget::setEngineerWorkDir(const QString &dir)
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
     dockerMountPromptedContainers_.clear();
+    markEngineerEnvDirty();
     if (ui->terminalPane)
     {
         ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);

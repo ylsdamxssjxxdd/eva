@@ -88,7 +88,7 @@ void Widget::ui_state_pushing()
 // 待机界面状态
 void Widget::ui_state_normal()
 {
-    if (wakeUiLocked_)
+    if (wakeUiLocked_ || engineerUiLockActive_)
     {
         if (decode_pTimer) decode_pTimer->stop();
         if (!ui) return;

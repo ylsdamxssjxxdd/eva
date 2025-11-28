@@ -270,7 +270,12 @@ void Widget::set_date()
     auto_save_user(); // persist date settings
     dateDialogSnapshot_.reset();
 
-    on_reset_clicked();
+    auto performReset = [this]()
+    {
+        on_reset_clicked();
+        enforceEngineerEnvReadyCheckpoint();
+    };
+    queueEngineerGateAction(performReset, ui_engineer_ischecked && ui_dockerSandboxEnabled);
 }
 
 QString Widget::loadPersistedDockerImage() const
