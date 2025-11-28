@@ -301,36 +301,18 @@
        </layout>
       </item>
       <item>
-       <widget class="QCheckBox" name="dockerSandbox_checkbox">
-        <property name="minimumSize">
-         <size>
-          <width>110</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>9</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Docker 沙盒</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <layout class="QHBoxLayout" name="horizontalLayout_docker_image">
         <item>
          <widget class="QComboBox" name="docker_target_comboBox">
           <property name="minimumSize">
            <size>
-            <width>90</width>
+            <width>80</width>
             <height>25</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>110</width>
+            <width>80</width>
             <height>25</height>
            </size>
           </property>
@@ -340,13 +322,13 @@
          <widget class="QComboBox" name="docker_image_comboBox">
           <property name="minimumSize">
            <size>
-            <width>160</width>
+            <width>140</width>
             <height>25</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
-            <width>160</width>
+            <width>9999999</width>
             <height>25</height>
            </size>
           </property>

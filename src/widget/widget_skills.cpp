@@ -17,7 +17,6 @@ void Widget::updateSkillVisibility(bool engineerEnabled)
 {
     if (!date_ui) return;
     if (date_ui->skills_box) date_ui->skills_box->setVisible(engineerEnabled);
-    if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(engineerEnabled);
     if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(engineerEnabled);
     if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(engineerEnabled);
     if (engineerEnabled)

@@ -543,15 +543,19 @@ int main(int argc, char *argv[])
         w.ui_engineer_ischecked = engineerOn;
         w.refreshWindowIcon();
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
-        w.ui_dockerSandboxEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
+        const bool legacyDockerEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
         w.engineerDockerContainer = w.sanitizeDockerContainerValue(settings.value("docker_sandbox_container").toString());
-        const QString dockerModeSetting = settings.value("docker_sandbox_mode", QStringLiteral("image")).toString().trimmed().toLower();
-        w.dockerTargetMode_ = dockerModeSetting == QStringLiteral("container") ? DockerTargetMode::Container : DockerTargetMode::Image;
-        if (w.date_ui->dockerSandbox_checkbox)
-        {
-            w.date_ui->dockerSandbox_checkbox->setChecked(w.ui_dockerSandboxEnabled);
-        }
+        const QString dockerModeSetting = settings.value("docker_sandbox_mode").toString().trimmed().toLower();
+        if (dockerModeSetting == QStringLiteral("container"))
+            w.dockerTargetMode_ = DockerTargetMode::Container;
+        else if (dockerModeSetting == QStringLiteral("image"))
+            w.dockerTargetMode_ = DockerTargetMode::Image;
+        else if (dockerModeSetting == QStringLiteral("none") || dockerModeSetting.isEmpty())
+            w.dockerTargetMode_ = legacyDockerEnabled ? DockerTargetMode::Image : DockerTargetMode::None;
+        else
+            w.dockerTargetMode_ = DockerTargetMode::None;
+        w.ui_dockerSandboxEnabled = (w.dockerTargetMode_ != DockerTargetMode::None);
         w.refreshDockerImageList(true);
         if (w.dockerTargetMode_ == DockerTargetMode::Container)
         {
@@ -566,7 +570,6 @@ int main(int argc, char *argv[])
             w.date_ui->date_engineer_workdir_label->setVisible(engineerOn);
             w.date_ui->date_engineer_workdir_LineEdit->setVisible(engineerOn);
             w.date_ui->date_engineer_workdir_browse->setVisible(engineerOn);
-            if (w.date_ui->dockerSandbox_checkbox) w.date_ui->dockerSandbox_checkbox->setVisible(engineerOn);
             if (w.date_ui->docker_target_comboBox) w.date_ui->docker_target_comboBox->setVisible(engineerOn);
             if (w.date_ui->docker_image_comboBox) w.date_ui->docker_image_comboBox->setVisible(engineerOn);
         }

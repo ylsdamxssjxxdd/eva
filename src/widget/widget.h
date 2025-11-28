@@ -103,6 +103,7 @@ enum class ConversationTask
 
 enum class DockerTargetMode
 {
+    None,
     Image,
     Container
 };
@@ -395,7 +396,7 @@ class Widget : public QWidget
     bool ui_dockerSandboxEnabled = false;
     QString engineerDockerImage;
     QString engineerDockerContainer;
-    DockerTargetMode dockerTargetMode_ = DockerTargetMode::Image;
+    DockerTargetMode dockerTargetMode_ = DockerTargetMode::None;
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择
@@ -415,7 +416,7 @@ class Widget : public QWidget
         bool ui_dockerSandboxEnabled = false;
         QString engineerDockerImage;
         QString engineerDockerContainer;
-        DockerTargetMode dockerTargetMode = DockerTargetMode::Image;
+        DockerTargetMode dockerTargetMode = DockerTargetMode::None;
         bool is_load_tool = false;
         QString engineerWorkDir;
         int language_flag = 0;

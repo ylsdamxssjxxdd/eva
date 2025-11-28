@@ -175,11 +175,6 @@ void Widget::apply_language(int language_flag_)
     date_ui->calculator_checkbox->setToolTip(jtr("calculator_checkbox_tooltip"));
     date_ui->engineer_checkbox->setText(jtr("engineer"));
     date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
-    if (date_ui->dockerSandbox_checkbox)
-    {
-        date_ui->dockerSandbox_checkbox->setText(jtr("docker sandbox checkbox"));
-        date_ui->dockerSandbox_checkbox->setToolTip(jtr("docker sandbox tooltip"));
-    }
     date_ui->controller_checkbox->setText(jtr("controller"));
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
     date_ui->knowledge_checkbox->setText(jtr("knowledge"));
@@ -194,6 +189,7 @@ void Widget::apply_language(int language_flag_)
         QSignalBlocker blocker(date_ui->docker_target_comboBox);
         const int current = date_ui->docker_target_comboBox->currentData().toInt();
         date_ui->docker_target_comboBox->clear();
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option none"), static_cast<int>(DockerTargetMode::None));
         date_ui->docker_target_comboBox->addItem(jtr("docker target option image"), static_cast<int>(DockerTargetMode::Image));
         date_ui->docker_target_comboBox->addItem(jtr("docker target option container"), static_cast<int>(DockerTargetMode::Container));
         int idx = date_ui->docker_target_comboBox->findData(current);

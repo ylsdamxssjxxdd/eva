@@ -40,17 +40,11 @@ void Widget::set_DateDialog()
     connect(date_dialog, &QDialog::rejected, this, &Widget::onDateDialogRejected);
     const auto autosave = [this]()
     { get_date(); auto_save_user(); };
-    if (date_ui->dockerSandbox_checkbox)
-    {
-        date_ui->dockerSandbox_checkbox->setVisible(false);
-        date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
-        connect(date_ui->dockerSandbox_checkbox, &QCheckBox::stateChanged, this, [=](int)
-                { autosave(); });
-    }
     if (date_ui->docker_target_comboBox)
     {
         date_ui->docker_target_comboBox->setVisible(false);
         date_ui->docker_target_comboBox->clear();
+        date_ui->docker_target_comboBox->addItem(jtr("docker target option none"), static_cast<int>(DockerTargetMode::None));
         date_ui->docker_target_comboBox->addItem(jtr("docker target option image"), static_cast<int>(DockerTargetMode::Image));
         date_ui->docker_target_comboBox->addItem(jtr("docker target option container"), static_cast<int>(DockerTargetMode::Container));
         const int currentIndex = date_ui->docker_target_comboBox->findData(static_cast<int>(dockerTargetMode_));
@@ -189,10 +183,6 @@ void Widget::on_date_clicked()
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
-    if (date_ui->dockerSandbox_checkbox)
-    {
-        date_ui->dockerSandbox_checkbox->setChecked(ui_dockerSandboxEnabled);
-    }
     if (date_ui->docker_target_comboBox)
     {
         QSignalBlocker blocker(date_ui->docker_target_comboBox);
@@ -207,7 +197,6 @@ void Widget::on_date_clicked()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         date_ui->date_engineer_workdir_browse->setVisible(vis);
-        if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
         if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(vis);
         if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
         updateSkillVisibility(vis);
@@ -304,7 +293,10 @@ DockerTargetMode Widget::loadPersistedDockerMode() const
     settings.setIniCodec("utf-8");
     const QString stored = settings.value("docker_sandbox_mode").toString().trimmed().toLower();
     if (stored == QStringLiteral("container")) return DockerTargetMode::Container;
-    return DockerTargetMode::Image;
+    if (stored == QStringLiteral("image")) return DockerTargetMode::Image;
+    if (stored == QStringLiteral("none")) return DockerTargetMode::None;
+    const bool legacyEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
+    return legacyEnabled ? DockerTargetMode::Image : DockerTargetMode::None;
 }
 
 QString Widget::sanitizeDockerContainerValue(const QString &value) const
@@ -318,6 +310,11 @@ void Widget::refreshDockerImageList(bool force)
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
     if (!ui_engineer_ischecked)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    if (dockerTargetMode_ == DockerTargetMode::None)
     {
         updateDockerImageCombo();
         return;
@@ -394,6 +391,11 @@ void Widget::refreshDockerContainerList(bool force)
 {
     if (!date_ui || !date_ui->docker_image_comboBox) return;
     if (!ui_engineer_ischecked)
+    {
+        updateDockerImageCombo();
+        return;
+    }
+    if (dockerTargetMode_ != DockerTargetMode::Container)
     {
         updateDockerImageCombo();
         return;
@@ -486,6 +488,14 @@ void Widget::updateDockerImageCombo()
     if (!date_ui || !date_ui->docker_image_comboBox) return;
     QSignalBlocker blocker(date_ui->docker_image_comboBox);
     date_ui->docker_image_comboBox->clear();
+    if (dockerTargetMode_ == DockerTargetMode::None)
+    {
+        date_ui->docker_image_comboBox->setEnabled(false);
+        date_ui->docker_image_comboBox->setEditText(QString());
+        updateDockerComboToolTip();
+        return;
+    }
+    date_ui->docker_image_comboBox->setEnabled(true);
 
     if (dockerTargetMode_ == DockerTargetMode::Container)
     {
@@ -567,10 +577,15 @@ void Widget::updateDockerComboToolTip()
             tooltipText = jtr("docker container tooltip");
         placeholder = jtr("docker container placeholder");
     }
-    else
+    else if (dockerTargetMode_ == DockerTargetMode::Image)
     {
         placeholder = jtr("docker image placeholder");
         if (tooltipText.isEmpty()) tooltipText = jtr("docker image tooltip");
+    }
+    else
+    {
+        placeholder = jtr("docker target none placeholder");
+        tooltipText = placeholder;
     }
     if (tooltipText.isEmpty()) tooltipText = text;
     date_ui->docker_image_comboBox->setToolTip(tooltipText);
@@ -599,6 +614,7 @@ bool Widget::isDockerNoneSentinel(const QString &text) const
 
 void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave)
 {
+    ui_dockerSandboxEnabled = (mode != DockerTargetMode::None);
     if (dockerTargetMode_ == mode) return;
     dockerTargetMode_ = mode;
     dockerMountPromptedContainers_.clear();
@@ -696,10 +712,10 @@ void Widget::restoreDateDialogSnapshot()
     ui_MCPtools_ischecked = snapshot.ui_MCPtools_ischecked;
     ui_engineer_ischecked = snapshot.ui_engineer_ischecked;
     refreshWindowIcon();
-    ui_dockerSandboxEnabled = snapshot.ui_dockerSandboxEnabled;
     engineerDockerImage = snapshot.engineerDockerImage;
     engineerDockerContainer = snapshot.engineerDockerContainer;
     dockerTargetMode_ = snapshot.dockerTargetMode;
+    ui_dockerSandboxEnabled = (dockerTargetMode_ != DockerTargetMode::None);
     language_flag = snapshot.language_flag;
 
     if (date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() != snapshot.ui_template)
@@ -722,10 +738,6 @@ void Widget::restoreDateDialogSnapshot()
     restoreCheck(date_ui->controller_checkbox, snapshot.ui_controller_ischecked);
     restoreCheck(date_ui->MCPtools_checkbox, snapshot.ui_MCPtools_ischecked);
     restoreCheck(date_ui->engineer_checkbox, snapshot.ui_engineer_ischecked);
-    if (date_ui->dockerSandbox_checkbox)
-    {
-        date_ui->dockerSandbox_checkbox->setChecked(snapshot.ui_dockerSandboxEnabled);
-    }
     if (date_ui->docker_target_comboBox)
     {
         QSignalBlocker blocker(date_ui->docker_target_comboBox);
@@ -749,7 +761,6 @@ void Widget::restoreDateDialogSnapshot()
         date_ui->date_engineer_workdir_label->setVisible(vis);
         if (date_ui->date_engineer_workdir_LineEdit) date_ui->date_engineer_workdir_LineEdit->setVisible(vis);
         if (date_ui->date_engineer_workdir_browse) date_ui->date_engineer_workdir_browse->setVisible(vis);
-        if (date_ui->dockerSandbox_checkbox) date_ui->dockerSandbox_checkbox->setVisible(vis);
         if (date_ui->docker_target_comboBox) date_ui->docker_target_comboBox->setVisible(vis);
         if (date_ui->docker_image_comboBox) date_ui->docker_image_comboBox->setVisible(vis);
     }

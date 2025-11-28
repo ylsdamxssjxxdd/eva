@@ -67,6 +67,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
     dockerTargetMode_ = loadPersistedDockerMode();
+    ui_dockerSandboxEnabled = (dockerTargetMode_ != DockerTargetMode::None);
     skillManager = new SkillManager(this);
     skillManager->setApplicationDir(applicationDirPath);
     connect(skillManager, &SkillManager::skillsChanged, this, &Widget::onSkillsChanged);

@@ -176,15 +176,12 @@ void Widget::get_date()
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
-    if (date_ui->dockerSandbox_checkbox)
-    {
-        ui_dockerSandboxEnabled = date_ui->dockerSandbox_checkbox->isChecked();
-    }
     if (date_ui->docker_target_comboBox)
     {
         const QVariant modeData = date_ui->docker_target_comboBox->currentData();
         if (modeData.isValid()) dockerTargetMode_ = static_cast<DockerTargetMode>(modeData.toInt());
     }
+    ui_dockerSandboxEnabled = (dockerTargetMode_ != DockerTargetMode::None);
     if (date_ui->docker_image_comboBox)
     {
         QString text = date_ui->docker_image_comboBox->currentText().trimmed();
@@ -198,7 +195,7 @@ void Widget::get_date()
                 engineerDockerContainer = text;
             }
         }
-        else
+        else if (dockerTargetMode_ == DockerTargetMode::Image)
         {
             engineerDockerImage = text;
         }
@@ -877,8 +874,11 @@ void Widget::auto_save_user()
     settings.setValue("docker_sandbox_checkbox", ui_dockerSandboxEnabled);
     settings.setValue("docker_sandbox_image", engineerDockerImage);
     settings.setValue("docker_sandbox_container", engineerDockerContainer);
-    settings.setValue("docker_sandbox_mode",
-                      dockerTargetMode_ == DockerTargetMode::Container ? QStringLiteral("container") : QStringLiteral("image"));
+    QString dockerModeValue = QStringLiteral("none");
+    if (dockerTargetMode_ == DockerTargetMode::Image) dockerModeValue = QStringLiteral("image");
+    else if (dockerTargetMode_ == DockerTargetMode::Container)
+        dockerModeValue = QStringLiteral("container");
+    settings.setValue("docker_sandbox_mode", dockerModeValue);
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools����
     settings.setValue("enabled_tools", enabledTools);
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
