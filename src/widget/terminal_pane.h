@@ -2,6 +2,7 @@
 #define TERMINAL_PANE_H
 
 #include <QProcess>
+#include <QtGlobal>
 #include <QVector>
 #include <QWidget>
 
@@ -48,7 +49,9 @@ class TerminalPane : public QWidget
     void resetManualProcess(bool interrupted);
     void updateControls();
     void flushPendingChunks();
-    void trimToMaximum();
+    bool trimToMaximum();
+    void appendTrimNotice();
+    bool shouldEmitTrimNotice();
     bool isAtBottom() const;
 
     QPlainTextEdit *output_ = nullptr;
@@ -65,6 +68,7 @@ class TerminalPane : public QWidget
         Channel channel;
     };
     QVector<PendingChunk> pendingChunks_;
+    qint64 lastTrimNoticeMs_ = 0;
 };
 
 #endif // TERMINAL_PANE_H

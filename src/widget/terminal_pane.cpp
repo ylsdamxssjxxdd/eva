@@ -2,6 +2,7 @@
 
 #include <QBoxLayout>
 #include <QColor>
+#include <QDateTime>
 #include <QDir>
 #include <QFontDatabase>
 #include <QKeySequence>
@@ -21,10 +22,11 @@
 
 namespace
 {
-constexpr int kMaxBlocks = 4000;
-constexpr int kMaxCharacters = 250000;
-constexpr int kTrimBatchBlocks = 200;
+constexpr int kMaxBlocks = 1500;
+constexpr int kMaxCharacters = 120000;
+constexpr int kTrimBatchBlocks = 300;
 constexpr int kFlushIntervalMs = 30;
+constexpr qint64 kTrimNoticeCooldownMs = 2000;
 const QColor kStdOutGreen(90, 247, 141);
 const QColor kStdErrRed(255, 123, 109);
 const QColor kSystemGray(135, 158, 189);
@@ -54,7 +56,7 @@ TerminalPane::TerminalPane(QWidget *parent)
     output_->setObjectName(QStringLiteral("terminalOutput"));
     output_->setReadOnly(true);
     output_->setFrameShape(QFrame::NoFrame);
-    output_->setMaximumBlockCount(kMaxBlocks);
+    output_->setMaximumBlockCount(0); // manual trimming keeps history bounded
     output_->setUndoRedoEnabled(false);
     output_->setWordWrapMode(QTextOption::NoWrap);
     QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
@@ -414,9 +416,14 @@ void TerminalPane::flushPendingChunks()
     cursor.endEditBlock();
     output_->setTextCursor(cursor);
 
-    trimToMaximum();
+    const bool trimmed = trimToMaximum();
 
     output_->setUpdatesEnabled(true);
+
+    if (trimmed && shouldEmitTrimNotice())
+    {
+        appendTrimNotice();
+    }
 
     if (stickToBottom) output_->ensureCursorVisible();
 
@@ -428,29 +435,29 @@ void TerminalPane::flushPendingChunks()
     }
 }
 
-void TerminalPane::trimToMaximum()
+bool TerminalPane::trimToMaximum()
 {
-    if (!output_) return;
+    if (!output_) return false;
     QTextDocument *doc = output_->document();
-    if (!doc) return;
+    if (!doc) return false;
 
     const int blockOverflow = doc->blockCount() - kMaxBlocks;
     const int charOverflow = doc->characterCount() - kMaxCharacters;
-    if (blockOverflow <= 0 && charOverflow <= 0) return;
+    if (blockOverflow <= 0 && charOverflow <= 0) return false;
 
     const int totalBlocks = doc->blockCount();
-    if (totalBlocks <= 1 && blockOverflow <= 0) return;
+    if (totalBlocks <= 1 && blockOverflow <= 0) return false;
 
     int blocksToRemove = blockOverflow > 0 ? blockOverflow + kTrimBatchBlocks : 0;
     if (blocksToRemove <= 0 && charOverflow > 0 && totalBlocks > 0)
     {
-        const int approxCharsPerBlock = qMax(1, doc->characterCount() / totalBlocks);
+        const int approxCharsPerBlock = qMax(1, doc->characterCount() / qMax(1, totalBlocks));
         blocksToRemove = (charOverflow / approxCharsPerBlock) + kTrimBatchBlocks;
     }
 
     blocksToRemove = qMax(1, blocksToRemove);
     if (totalBlocks > 0) blocksToRemove = qMin(blocksToRemove, totalBlocks - 1);
-    if (blocksToRemove <= 0) return;
+    if (blocksToRemove <= 0) return false;
 
     QTextCursor cursor(doc);
     cursor.beginEditBlock();
@@ -458,6 +465,36 @@ void TerminalPane::trimToMaximum()
     cursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, blocksToRemove);
     cursor.removeSelectedText();
     cursor.endEditBlock();
+    return true;
+}
+
+void TerminalPane::appendTrimNotice()
+{
+    if (!output_) return;
+
+    QTextCursor cursor = output_->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    QTextCharFormat format = cursor.charFormat();
+    format.setForeground(kSystemGray);
+    cursor.setCharFormat(format);
+
+    const double approxKB = static_cast<double>(kMaxCharacters) / 1024.0;
+    const QString notice = tr("Terminal output trimmed. Showing the latest %1 lines (~%2 KB) to keep the UI responsive.\n")
+                               .arg(kMaxBlocks)
+                               .arg(QString::number(approxKB, 'f', 1));
+    cursor.insertText(QStringLiteral("\n") + notice);
+    output_->setTextCursor(cursor);
+}
+
+bool TerminalPane::shouldEmitTrimNotice()
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (lastTrimNoticeMs_ > 0 && (now - lastTrimNoticeMs_) < kTrimNoticeCooldownMs)
+    {
+        return false;
+    }
+    lastTrimNoticeMs_ = now;
+    return true;
 }
 
 bool TerminalPane::isAtBottom() const
