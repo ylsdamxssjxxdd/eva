@@ -295,7 +295,7 @@ QString Widget::loadPersistedDockerContainer() const
 {
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    return settings.value("docker_sandbox_container").toString().trimmed();
+    return sanitizeDockerContainerValue(settings.value("docker_sandbox_container").toString());
 }
 
 DockerTargetMode Widget::loadPersistedDockerMode() const
@@ -305,6 +305,13 @@ DockerTargetMode Widget::loadPersistedDockerMode() const
     const QString stored = settings.value("docker_sandbox_mode").toString().trimmed().toLower();
     if (stored == QStringLiteral("container")) return DockerTargetMode::Container;
     return DockerTargetMode::Image;
+}
+
+QString Widget::sanitizeDockerContainerValue(const QString &value) const
+{
+    QString trimmed = value.trimmed();
+    if (trimmed.compare(QStringLiteral("ubuntu:latest"), Qt::CaseInsensitive) == 0) return QString();
+    return trimmed;
 }
 
 void Widget::refreshDockerImageList(bool force)
@@ -493,12 +500,17 @@ void Widget::updateDockerImageCombo()
         {
             for (const QString &name : dockerContainerList_) addUnique(name);
         }
-        if (engineerDockerContainer.trimmed().isEmpty())
+        QString containerValue = sanitizeDockerContainerValue(engineerDockerContainer);
+        if (containerValue.isEmpty())
         {
             const QString persisted = loadPersistedDockerContainer();
-            if (!persisted.isEmpty()) engineerDockerContainer = persisted;
+            if (!persisted.isEmpty())
+            {
+                engineerDockerContainer = persisted;
+                containerValue = persisted.trimmed();
+            }
         }
-        if (!engineerDockerContainer.trimmed().isEmpty()) addUnique(engineerDockerContainer);
+        if (!containerValue.isEmpty()) addUnique(containerValue);
         if (!ordered.isEmpty()) date_ui->docker_image_comboBox->addItems(ordered);
         for (int i = 0; i < ordered.size(); ++i)
         {
@@ -508,7 +520,9 @@ void Widget::updateDockerImageCombo()
                 date_ui->docker_image_comboBox->setItemData(i, dockerContainerTooltips_.value(name), Qt::ToolTipRole);
             }
         }
-        date_ui->docker_image_comboBox->setEditText(engineerDockerContainer);
+        const bool showNoneSentinel = containerValue.isEmpty() && dockerNoneSentinelEnabled();
+        const QString editValue = showNoneSentinel ? QStringLiteral("none") : containerValue;
+        date_ui->docker_image_comboBox->setEditText(editValue);
     }
     else
     {
@@ -565,6 +579,22 @@ void Widget::updateDockerComboToolTip()
         edit->setToolTip(tooltipText);
         edit->setPlaceholderText(placeholder);
     }
+}
+
+bool Widget::dockerNoneSentinelEnabled() const
+{
+    const QString sentinel = QStringLiteral("none");
+    for (const QString &name : dockerContainerList_)
+    {
+        if (name.compare(sentinel, Qt::CaseInsensitive) == 0) return false;
+    }
+    return true;
+}
+
+bool Widget::isDockerNoneSentinel(const QString &text) const
+{
+    if (!dockerNoneSentinelEnabled()) return false;
+    return text.trimmed().compare(QStringLiteral("none"), Qt::CaseInsensitive) == 0;
 }
 
 void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave)

@@ -278,6 +278,15 @@ void xTool::fixDockerContainerMount(const QString &containerName)
 void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
 {
     emit tool2ui_dockerStatusChanged(status);
+    const auto targetDisplay = [](const DockerSandboxStatus &stat) -> QString {
+        if (stat.usingExistingContainer)
+        {
+            const QString container = stat.containerName.trimmed();
+            return container.isEmpty() ? QStringLiteral("none") : container;
+        }
+        const QString image = stat.image.trimmed();
+        return image.isEmpty() ? QStringLiteral("ubuntu:latest") : image;
+    };
     QString message;
     SIGNAL_STATE level = USUAL_SIGNAL;
     if (!status.enabled)
@@ -295,7 +304,7 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
         const QString hostDisplay = QDir::toNativeSeparators(hostDir);
         const QString containerDir = status.containerWorkdir.isEmpty() ? DockerSandbox::defaultContainerWorkdir() : status.containerWorkdir;
         message = QStringLiteral("docker sandbox ready (%1)\nhost %2 -> container %3")
-                      .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image,
+                      .arg(targetDisplay(status),
                            hostDisplay,
                            containerDir);
         const QString skillsTarget = status.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
@@ -309,7 +318,7 @@ void xTool::onDockerStatusChanged(const DockerSandboxStatus &status)
     else
     {
         message = QStringLiteral("docker sandbox preparing (%1)")
-                      .arg(status.image.isEmpty() ? QStringLiteral("ubuntu:latest") : status.image);
+                      .arg(targetDisplay(status));
     }
     sendStateMessage("tool:" + message, level);
     if (!status.infoMessage.isEmpty())

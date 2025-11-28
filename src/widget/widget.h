@@ -196,6 +196,10 @@ class Widget : public QWidget
     void updateDockerImageCombo();
     void updateDockerComboToolTip();
     void applyDockerTargetMode(DockerTargetMode mode, bool autosave = true);
+    QString dockerSandboxDisplayName() const;
+    bool dockerNoneSentinelEnabled() const;
+    bool isDockerNoneSentinel(const QString &text) const;
+    QString sanitizeDockerContainerValue(const QString &value) const;
     DockerTargetMode loadPersistedDockerMode() const;
     QString loadPersistedDockerImage() const;
     QString loadPersistedDockerContainer() const;

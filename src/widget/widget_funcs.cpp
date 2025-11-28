@@ -187,9 +187,11 @@ void Widget::get_date()
     }
     if (date_ui->docker_image_comboBox)
     {
-        const QString text = date_ui->docker_image_comboBox->currentText().trimmed();
+        QString text = date_ui->docker_image_comboBox->currentText().trimmed();
         if (dockerTargetMode_ == DockerTargetMode::Container)
         {
+            if (isDockerNoneSentinel(text)) text.clear();
+            text = sanitizeDockerContainerValue(text);
             if (text != engineerDockerContainer)
             {
                 dockerMountPromptedContainers_.clear();

@@ -54,6 +54,32 @@ void appendWorkspaceListing(const QDir &dir, int depth, int maxDepth, int maxEnt
 }
 } // namespace
 
+QString Widget::dockerSandboxDisplayName() const
+{
+    const bool sandboxRequested = ui_engineer_ischecked && ui_dockerSandboxEnabled;
+    const bool containerModeActive =
+        dockerSandboxStatus_.usingExistingContainer || (sandboxRequested && dockerTargetMode_ == DockerTargetMode::Container);
+    if (containerModeActive)
+    {
+        const QString statusName = dockerSandboxStatus_.containerName.trimmed();
+        if (!statusName.isEmpty()) return statusName;
+        if (sandboxRequested)
+        {
+            const QString configured = engineerDockerContainer.trimmed();
+            if (!configured.isEmpty()) return configured;
+        }
+        return QStringLiteral("none");
+    }
+    const QString statusImage = dockerSandboxStatus_.image.trimmed();
+    if (!statusImage.isEmpty()) return statusImage;
+    if (sandboxRequested)
+    {
+        const QString configuredImage = engineerDockerImage.trimmed();
+        if (!configuredImage.isEmpty()) return configuredImage;
+    }
+    return QStringLiteral("ubuntu:latest");
+}
+
 QString Widget::buildWorkspaceSnapshot(const QString &root, bool dockerView) const
 {
     QDir rootDir(root);
@@ -86,14 +112,14 @@ QString Widget::create_engineer_info()
     const bool sandboxRequested = ui_engineer_ischecked && ui_dockerSandboxEnabled;
     const bool sandboxReady = sandboxRequested && dockerSandboxStatus_.ready;
     const QString containerDir = sandboxReady && !dockerSandboxStatus_.containerWorkdir.isEmpty() ? dockerSandboxStatus_.containerWorkdir : DockerSandbox::defaultContainerWorkdir();
-    const QString dockerImageName = dockerSandboxStatus_.image.isEmpty() ? QStringLiteral("ubuntu:latest") : dockerSandboxStatus_.image;
+    const QString dockerDisplayName = dockerSandboxDisplayName();
     QString osDisplay = USEROS;
     QString shellDisplay = shell;
     QString workdirDisplay = hostDirDisplay;
     if (sandboxRequested)
     {
-        osDisplay = sandboxReady ? QStringLiteral("Docker container (%1)").arg(dockerImageName)
-                                 : QStringLiteral("Docker sandbox (%1) pending").arg(dockerImageName);
+        osDisplay = sandboxReady ? QStringLiteral("Docker container (%1)").arg(dockerDisplayName)
+                                 : QStringLiteral("Docker sandbox (%1) pending").arg(dockerDisplayName);
         shellDisplay = QStringLiteral("/bin/sh");
         workdirDisplay = containerDir;
     }
@@ -290,7 +316,7 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     }
     else
     {
-        cfg.containerName = engineerDockerContainer.trimmed();
+        cfg.containerName = sanitizeDockerContainerValue(engineerDockerContainer);
         if (cfg.containerName.isEmpty())
         {
             const QString persisted = loadPersistedDockerContainer();

@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
         w.ui_dockerSandboxEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
-        w.engineerDockerContainer = settings.value("docker_sandbox_container").toString().trimmed();
+        w.engineerDockerContainer = w.sanitizeDockerContainerValue(settings.value("docker_sandbox_container").toString());
         const QString dockerModeSetting = settings.value("docker_sandbox_mode", QStringLiteral("image")).toString().trimmed().toLower();
         w.dockerTargetMode_ = dockerModeSetting == QStringLiteral("container") ? DockerTargetMode::Container : DockerTargetMode::Image;
         if (w.date_ui->dockerSandbox_checkbox)
