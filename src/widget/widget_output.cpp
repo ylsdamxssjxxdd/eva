@@ -283,6 +283,15 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         ui->state->setCurrentCharFormat(base);
     };
 
+    const auto ensureStateScrolledLeft = [this]()
+    {
+        if (!ui || !ui->state) return;
+        if (QScrollBar *hbar = ui->state->horizontalScrollBar())
+        {
+            hbar->setValue(hbar->minimum());
+        }
+    };
+
     if (state == EVA_SIGNAL)
     {
         QFont font = format.font();
@@ -306,6 +315,7 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         ui->state->appendPlainText(jtr("cubes"));
 
         resetFormat();
+        ensureStateScrolledLeft();
         return;
     }
 
@@ -313,6 +323,7 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
     ui->state->setCurrentCharFormat(format);
     ui->state->appendPlainText(state_string);
     resetFormat();
+    ensureStateScrolledLeft();
 
     if (state_string.startsWith("tool:"))
     {
