@@ -195,6 +195,7 @@ class Widget : public QWidget
     void markEngineerEnvDirty();
     void markEngineerSandboxDirty();
     void markEngineerWorkDirPending();
+    void logEngineerEnvSummary();
     void onEngineerEnvReady();
     void queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady);
     void drainEngineerGateQueue();
@@ -409,6 +410,7 @@ class Widget : public QWidget
     DockerTargetMode dockerTargetMode_ = DockerTargetMode::None;
     bool engineerSandboxDirty_ = false;
     bool engineerWorkDirPendingApply_ = false;
+    bool engineerEnvSummaryPending_ = false;
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择

@@ -196,6 +196,7 @@ void Widget::markEngineerEnvDirty()
 {
     if (!ui_engineer_ischecked) return;
     engineerEnvReady_ = false;
+    engineerEnvSummaryPending_ = true;
 }
 
 void Widget::markEngineerSandboxDirty()
@@ -332,6 +333,11 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     if (!updatePrompt) return;
 
     refreshEngineerPromptBlock();
+    if (engineerEnvSummaryPending_)
+    {
+        engineerEnvSummaryPending_ = false;
+        logEngineerEnvSummary();
+    }
 }
 
 void Widget::setEngineerWorkDirSilently(const QString &dir)
@@ -539,4 +545,24 @@ void Widget::updateMonitorTimer()
     {
         if (monitor_timer.isActive()) monitor_timer.stop();
     }
+}
+void Widget::logEngineerEnvSummary()
+{
+    QStringList segments;
+    auto appendField = [&](const QString &label, const QString &value) {
+        const QString normalized = value.trimmed().isEmpty() ? QStringLiteral("n/a") : value.trimmed();
+        segments << QStringLiteral("%1=%2").arg(label, normalized);
+    };
+    appendField(QStringLiteral("Python"), python_env);
+    appendField(QStringLiteral("Compile"), compile_env);
+    appendField(QStringLiteral("Node"), node_env);
+    const QString workdirDisplay = engineerWorkDir.isEmpty() ? jtr("engineer workdir") : QDir::toNativeSeparators(engineerWorkDir);
+    segments << QStringLiteral("Workdir=%1").arg(workdirDisplay);
+    if (ui_dockerSandboxEnabled)
+    {
+        const QString dockerLabel = dockerSandboxStatus_.ready ? QStringLiteral("Docker ready") : QStringLiteral("Docker pending");
+        const QString dockerName = dockerSandboxDisplayName();
+        segments << QStringLiteral("%1 (%2)").arg(dockerLabel, dockerName.isEmpty() ? QStringLiteral("n/a") : dockerName);
+    }
+    reflash_state(QString::fromUtf8("ui:工程师环境信息刷新完成 -> ") + segments.join(QStringLiteral(" | ")), SUCCESS_SIGNAL);
 }
