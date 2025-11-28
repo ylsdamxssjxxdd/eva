@@ -396,6 +396,11 @@ bool Widget::isEngineerToolActive() const
     return ui_engineer_ischecked;
 }
 
+bool Widget::shouldApplySandboxNow() const
+{
+    return !(date_dialog && date_dialog->isVisible());
+}
+
 void Widget::loadSkillsAsync()
 {
     if (!skillManager) return;

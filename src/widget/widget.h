@@ -182,16 +182,19 @@ class Widget : public QWidget
     bool is_config = false; // 是否是读取了配置进行的装载
     void auto_save_user();  // 每次约定和设置后都保存配置到本地
     void get_set();         // 获取设置中的纸面值
-    void get_date();        // 获取约定中的纸面值
+    void get_date(bool applySandbox = true);        // 获取约定中的纸面值
     void restoreSkillSelection(const QStringList &skills);
     // Set engineer working directory and propagate to xTool
     void setEngineerWorkDir(const QString &dir);
     // Set workdir without emitting signals (for early restore during startup)
     void setEngineerWorkDirSilently(const QString &dir);
+    bool shouldApplySandboxNow() const;
     void triggerEngineerEnvRefresh(bool updatePrompt = true);
     void enforceEngineerEnvReadyCheckpoint();
     void applyEngineerUiLock(bool locked);
     void markEngineerEnvDirty();
+    void markEngineerSandboxDirty();
+    void markEngineerWorkDirPending();
     void onEngineerEnvReady();
     void queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady);
     void drainEngineerGateQueue();
@@ -203,7 +206,7 @@ class Widget : public QWidget
     void refreshDockerContainerList(bool force = false);
     void updateDockerImageCombo();
     void updateDockerComboToolTip();
-    void applyDockerTargetMode(DockerTargetMode mode, bool autosave = true);
+    void applyDockerTargetMode(DockerTargetMode mode, bool autosave = true, bool syncNow = true);
     QString dockerSandboxDisplayName() const;
     bool dockerNoneSentinelEnabled() const;
     bool isDockerNoneSentinel(const QString &text) const;
@@ -404,6 +407,8 @@ class Widget : public QWidget
     QString engineerDockerImage;
     QString engineerDockerContainer;
     DockerTargetMode dockerTargetMode_ = DockerTargetMode::None;
+    bool engineerSandboxDirty_ = false;
+    bool engineerWorkDirPendingApply_ = false;
     QString create_extra_prompt();  // 构建附加指令
     QString create_engineer_info(); // 构建工程师指令
     void tool_change();             // 响应工具选择
@@ -466,6 +471,7 @@ class Widget : public QWidget
     bool engineerEnvReady_ = true;
     bool engineerUiLockActive_ = false;
     bool engineerGateActive_ = false;
+    bool engineerDockerLaunchPending_ = false;
     bool engineerDockerReady_ = true;
     QVector<std::function<void()>> engineerGateQueue_;
     QString truncateString(const QString &str, int maxLength);

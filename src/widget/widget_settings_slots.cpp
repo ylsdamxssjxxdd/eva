@@ -139,6 +139,8 @@ void Widget::tool_change()
             if (ui_engineer_ischecked && !wasEngineerActive)
             {
                 markEngineerEnvDirty();
+                markEngineerSandboxDirty();
+                markEngineerWorkDirPending();
             }
             else if (!ui_engineer_ischecked && wasEngineerActive)
             {
@@ -147,6 +149,7 @@ void Widget::tool_change()
                 engineerGateQueue_.clear();
                 engineerDockerReady_ = true;
                 if (engineerUiLockActive_) applyEngineerUiLock(false);
+                markEngineerSandboxDirty();
             }
             if (checkbox->isChecked())
             {
@@ -162,20 +165,24 @@ void Widget::tool_change()
                                                                        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
                     if (!picked.isEmpty())
                     {
-                        setEngineerWorkDir(picked);
+                        setEngineerWorkDirSilently(picked);
+                        markEngineerWorkDirPending();
+                        markEngineerSandboxDirty();
                         // Persist immediately to avoid losing selection on crash
                         auto_save_user();
                     }
                     else // user canceled and not set previously -> stick to default silently
                     {
-                        setEngineerWorkDir(current);
+                        setEngineerWorkDirSilently(current);
+                        markEngineerWorkDirPending();
+                        markEngineerSandboxDirty();
                         auto_save_user();
                     }
                 }
                 else
                 {
-                    // Already determined -> just propagate to tool to ensure it's in sync
-                    emit ui2tool_workdir(engineerWorkDir);
+                    // Already determined; defer propagation until user confirms
+                    markEngineerSandboxDirty();
                 }
 
                 // 显示“工程师工作目录”行（在约定对话框）并更新显示
@@ -191,6 +198,7 @@ void Widget::tool_change()
             }
             else
             {
+                markEngineerSandboxDirty();
                 if (date_ui->date_engineer_workdir_LineEdit)
                 {
                     date_ui->date_engineer_workdir_label->setVisible(false);

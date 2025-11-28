@@ -39,7 +39,7 @@ void Widget::set_DateDialog()
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_dialog, &QDialog::rejected, this, &Widget::onDateDialogRejected);
     const auto autosave = [this]()
-    { get_date(); auto_save_user(); };
+    { get_date(false); auto_save_user(); };
     if (date_ui->docker_target_comboBox)
     {
         date_ui->docker_target_comboBox->setVisible(false);
@@ -54,7 +54,8 @@ void Widget::set_DateDialog()
             const QVariant data = date_ui->docker_target_comboBox->itemData(index);
             if (!data.isValid()) return;
             const auto mode = static_cast<DockerTargetMode>(data.toInt());
-            applyDockerTargetMode(mode); });
+            applyDockerTargetMode(mode, false, false);
+            autosave(); });
     }
     if (date_ui->docker_image_comboBox)
     {
@@ -144,7 +145,9 @@ void Widget::set_DateDialog()
                                                                QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
             if (!picked.isEmpty())
             {
-                setEngineerWorkDir(picked);
+                setEngineerWorkDirSilently(picked);
+                markEngineerWorkDirPending();
+                markEngineerSandboxDirty();
                 date_ui->date_engineer_workdir_LineEdit->setText(engineerWorkDir);
                 auto_save_user();
             } });
@@ -188,6 +191,11 @@ void Widget::on_date_clicked()
         QSignalBlocker blocker(date_ui->docker_target_comboBox);
         const int idx = date_ui->docker_target_comboBox->findData(static_cast<int>(dockerTargetMode_));
         if (idx >= 0) date_ui->docker_target_comboBox->setCurrentIndex(idx);
+    }
+    if (ui_engineer_ischecked)
+    {
+        refreshDockerImageList(true);
+        if (dockerTargetMode_ == DockerTargetMode::Container) refreshDockerContainerList(true);
     }
     if (date_ui->docker_image_comboBox) updateDockerImageCombo();
     if (date_ui->date_engineer_workdir_LineEdit)
@@ -253,7 +261,8 @@ void Widget::set_date()
         if (!typed.isEmpty())
         {
             const QString norm = QDir::cleanPath(typed);
-            if (norm != engineerWorkDir)
+            const bool needsApply = engineerWorkDirPendingApply_ || (norm != engineerWorkDir);
+            if (needsApply)
             {
                 // setEngineerWorkDir 会更新成员变量、同步到 xTool，并刷新行编辑显示
                 setEngineerWorkDir(norm);
@@ -617,7 +626,7 @@ bool Widget::isDockerNoneSentinel(const QString &text) const
     return text.trimmed().compare(QStringLiteral("none"), Qt::CaseInsensitive) == 0;
 }
 
-void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave)
+void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave, bool syncNow)
 {
     ui_dockerSandboxEnabled = (mode != DockerTargetMode::None);
     if (dockerTargetMode_ == mode) return;
@@ -644,7 +653,14 @@ void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave)
     {
         auto_save_user();
     }
-    syncDockerSandboxConfig();
+    if (syncNow)
+    {
+        syncDockerSandboxConfig();
+    }
+    else
+    {
+        markEngineerSandboxDirty();
+    }
 }
 
 void Widget::restoreDateDialogSnapshot()
@@ -699,6 +715,8 @@ void Widget::restoreDateDialogSnapshot()
         emit ui2expend_language(language_flag);
 
         ui_extra_prompt = create_extra_prompt();
+        engineerSandboxDirty_ = false;
+        engineerWorkDirPendingApply_ = false;
         auto_save_user();
         return;
     }
@@ -812,6 +830,8 @@ void Widget::restoreDateDialogSnapshot()
     ui_extra_prompt = create_extra_prompt();
     ui_DATES = snapshot.ui_dates;
 
+    engineerSandboxDirty_ = false;
+    engineerWorkDirPendingApply_ = false;
     auto_save_user();
 }
 

@@ -169,7 +169,7 @@ void Widget::refreshEngineerPromptBlock()
 {
     if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return;
     ui_extra_prompt = create_extra_prompt();
-    get_date();
+    get_date(shouldApplySandboxNow());
 
     if (!ui_messagesArray.isEmpty())
     {
@@ -196,6 +196,16 @@ void Widget::markEngineerEnvDirty()
 {
     if (!ui_engineer_ischecked) return;
     engineerEnvReady_ = false;
+}
+
+void Widget::markEngineerSandboxDirty()
+{
+    engineerSandboxDirty_ = true;
+}
+
+void Widget::markEngineerWorkDirPending()
+{
+    engineerWorkDirPendingApply_ = true;
 }
 
 void Widget::applyEngineerUiLock(bool locked)
@@ -240,7 +250,16 @@ void Widget::queueEngineerGateAction(const std::function<void()> &action, bool r
     }
     engineerGateActive_ = true;
     markEngineerEnvDirty();
-    if (requireDockerReady) engineerDockerReady_ = false;
+    const bool waitForDocker = requireDockerReady &&
+                               (engineerDockerLaunchPending_ || engineerSandboxDirty_ || engineerWorkDirPendingApply_);
+    if (waitForDocker)
+    {
+        engineerDockerReady_ = false;
+    }
+    else
+    {
+        engineerDockerReady_ = true;
+    }
     if (action) engineerGateQueue_.append(action);
     applyEngineerUiLock(true);
     enforceEngineerEnvReadyCheckpoint();
@@ -339,6 +358,7 @@ void Widget::setEngineerWorkDir(const QString &dir)
     engineerWorkDir = QDir::cleanPath(dir);
     dockerMountPromptedContainers_.clear();
     markEngineerEnvDirty();
+    engineerWorkDirPendingApply_ = false;
     if (ui->terminalPane)
     {
         ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
@@ -416,7 +436,13 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     }
     lastDockerConfigSnapshot_ = cfg;
     hasDockerConfigSnapshot_ = true;
+    engineerDockerLaunchPending_ = cfg.enabled;
+    if (!cfg.enabled)
+    {
+        engineerDockerReady_ = true;
+    }
     emit ui2tool_dockerConfigChanged(cfg);
+    engineerSandboxDirty_ = false;
 }
 
 bool Widget::shouldUseDockerEnv() const

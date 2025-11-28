@@ -10,7 +10,7 @@ void Widget::refreshSkillsUI()
 void Widget::rebuildSkillPrompts()
 {
     ui_extra_prompt = create_extra_prompt();
-    if (date_ui) get_date();
+    if (date_ui) get_date(shouldApplySandboxNow());
 }
 
 void Widget::updateSkillVisibility(bool engineerEnabled)

@@ -369,7 +369,7 @@ void Widget::on_reset_clicked()
     {
         // Rebuild system prompt so workspace snapshot reflects current workspace state.
         ui_extra_prompt = create_extra_prompt();
-        get_date();
+        get_date(shouldApplySandboxNow());
     }
 
     // reflash_state("ui:" + jtr("clicked reset"), SIGNAL_SIGNAL);
@@ -522,10 +522,15 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
     if (sandboxExpected)
     {
         engineerDockerReady_ = status.ready;
+        if (status.ready)
+        {
+            engineerDockerLaunchPending_ = false;
+        }
     }
     else
     {
         engineerDockerReady_ = true;
+        engineerDockerLaunchPending_ = false;
     }
     if (ui_engineer_ischecked) drainEngineerGateQueue();
 }

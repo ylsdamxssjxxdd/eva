@@ -155,8 +155,14 @@ void Widget::get_set()
     DeviceManager::setUserChoice(ui_device_backend);
 }
 // 获取约定中的纸面值
-void Widget::get_date()
+void Widget::get_date(bool applySandbox)
 {
+    const bool prevEngineerChecked = ui_engineer_ischecked;
+    const bool prevSandboxEnabled = ui_dockerSandboxEnabled;
+    const DockerTargetMode prevDockerMode = dockerTargetMode_;
+    const QString prevDockerImage = engineerDockerImage;
+    const QString prevDockerContainer = engineerDockerContainer;
+
     ui_date_prompt = date_ui->date_prompt_TextEdit->toPlainText();
     // 合并附加指令
     if (ui_extra_prompt != "")
@@ -211,7 +217,22 @@ void Widget::get_date()
     }
     // 添加额外停止标志
     addStopwords();
-    syncDockerSandboxConfig();
+
+    const bool sandboxConfigChanged = (prevEngineerChecked != ui_engineer_ischecked) ||
+                                      (prevSandboxEnabled != ui_dockerSandboxEnabled) ||
+                                      (prevDockerMode != dockerTargetMode_) ||
+                                      (prevDockerImage != engineerDockerImage) ||
+                                      (prevDockerContainer != engineerDockerContainer);
+
+    if (!applySandbox && (sandboxConfigChanged || engineerWorkDirPendingApply_))
+    {
+        markEngineerSandboxDirty();
+    }
+
+    if (applySandbox)
+    {
+        syncDockerSandboxConfig();
+    }
 }
 // 手搓输出解析器，提取可能的xml，目前只支持一个参数
 mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
@@ -459,7 +480,7 @@ void Widget::recv_mcp_tools_changed()
     ui_extra_prompt = create_extra_prompt();
     if (date_ui)
     {
-        get_date();
+        get_date(shouldApplySandboxNow());
         auto_save_user();
     }
 }
