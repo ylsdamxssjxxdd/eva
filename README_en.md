@@ -105,7 +105,7 @@ A lightweight Agent desktop restraint (unified OpenAI-compatible interface for l
 
 3. Software Engineer
    
-   - Similar to Cline's automated tool execution chain (execute_command/read_file/write_file/replace_in_file/edit_in_file/list_files/search_content/MCP...).
+   - Similar to Cline's automated tool execution chain (execute_command/read_file/write_file/replace_in_file/edit_in_file/list_files/search_content/ptc/MCP...).
    
    - Example: Help me build an initial CMake Qt project
    

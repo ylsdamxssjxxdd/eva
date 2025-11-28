@@ -45,6 +45,7 @@ const QString &defaultEngineerInfo()
         "You possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices.\n"
         "You can only use one tool at a time; wait and observe the results returned by the tool before proceeding to the next step.\n"
         "Try to solve problems independently as much as possible. Review the provided workspace overview before planning any work so you clearly understand the project layout and act with whole-project awareness.If user clarification is required, ask via the answer tool.\n"
+        "Whenever a problem looks complex or requires multiple steps, prefer invoking the programmatic_tool_calling (ptc) tool to author a Python helper instead of chaining brittle shell commands.\n"
         "When replying to the user at the end of a task, summarize objectives, key modifications, and validation steps without pasting detailed code listings. Describe changes at a high level instead.\n"
         "You may write file contents directly without echoing them in the conversation.\n"
         "The current environment is: {engineer_system_info}");
@@ -134,6 +135,10 @@ Passing Parameter Examples:
          "execute_command",
          R"({"type":"object","properties":{"content":{"type":"string","description":"CLI commands"}},"required":["content"]})",
          QStringLiteral("Request to execute CLI commands on the system. Use this command when you need to perform system operations or run specific commands to complete any step of a user task. You must adjust the commands according to the user's system. Prioritize executing complex CLI commands over creating executable scripts, as they are more flexible and easier to run. The command will be executed in the current working directory.")},
+        {promptx::PROMPT_TOOL_PTC,
+         "ptc",
+         R"({"type":"object","properties":{"filename":{"type":"string","description":"Python file name, e.g. helper.py."},"workdir":{"type":"string","description":"Working directory relative to the engineer workspace. Use \".\" for the workspace root."},"content":{"type":"string","description":"Full Python source code that should run inside the target workdir."}},"required":["filename","workdir","content"]})",
+         QStringLiteral("When CLI commands become unwieldy, author a Python helper script via programmatic_tool_calling. Provide the filename, the working directory (relative to the engineer workspace), and the script content. EVA stores the file under ptc_temp and executes it immediately, returning stdout/stderr." )},
         {promptx::PROMPT_TOOL_LIST_FILES,
          "list_files",
          R"({"type":"object","properties":{"path":{"type":"string","description":"Optional directory to list (relative to the engineer working directory). Leave blank to use the current working directory."}}})",
@@ -263,33 +268,38 @@ const TOOLS_INFO &toolExecuteCommand()
     return toolTemplates()[6].cache;
 }
 
-const TOOLS_INFO &toolListFiles()
+const TOOLS_INFO &toolPtc()
 {
     return toolTemplates()[7].cache;
 }
 
-const TOOLS_INFO &toolSearchContent()
+const TOOLS_INFO &toolListFiles()
 {
     return toolTemplates()[8].cache;
 }
 
-const TOOLS_INFO &toolReadFile()
+const TOOLS_INFO &toolSearchContent()
 {
     return toolTemplates()[9].cache;
 }
 
-const TOOLS_INFO &toolWriteFile()
+const TOOLS_INFO &toolReadFile()
 {
     return toolTemplates()[10].cache;
 }
 
-const TOOLS_INFO &toolReplaceInFile()
+const TOOLS_INFO &toolWriteFile()
 {
     return toolTemplates()[11].cache;
 }
 
-const TOOLS_INFO &toolEditInFile()
+const TOOLS_INFO &toolReplaceInFile()
 {
     return toolTemplates()[12].cache;
+}
+
+const TOOLS_INFO &toolEditInFile()
+{
+    return toolTemplates()[13].cache;
 }
 } // namespace promptx

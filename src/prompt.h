@@ -21,7 +21,8 @@ enum PromptEntryId : int
     PROMPT_TOOL_READ_FILE = 51009,
     PROMPT_TOOL_WRITE_FILE = 51010,
     PROMPT_TOOL_REPLACE_IN_FILE = 51011,
-    PROMPT_TOOL_EDIT_IN_FILE = 51012
+    PROMPT_TOOL_EDIT_IN_FILE = 51012,
+    PROMPT_TOOL_PTC = 51013
 };
 
 // Load prompt definitions from prompt.ini (qrc path by default).
@@ -43,6 +44,7 @@ const TOOLS_INFO &toolMcpList();
 const TOOLS_INFO &toolKnowledge();
 const TOOLS_INFO &toolStableDiffusion();
 const TOOLS_INFO &toolExecuteCommand();
+const TOOLS_INFO &toolPtc();
 const TOOLS_INFO &toolListFiles();
 const TOOLS_INFO &toolSearchContent();
 const TOOLS_INFO &toolReadFile();

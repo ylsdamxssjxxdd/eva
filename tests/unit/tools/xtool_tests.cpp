@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFile>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
 #include <memory>
@@ -89,6 +90,85 @@ void XToolExecuteCommandTest::executeCommandSendsTerminalSignals()
     const auto finishedArgs = finishedSpy.takeFirst();
     QCOMPARE(finishedArgs.at(0).toInt(), 0);
     QCOMPARE(finishedArgs.at(1).toBool(), false);
+}
+
+class XToolPtcTest : public QObject
+{
+    Q_OBJECT
+
+  private:
+    static QString resolvePythonSpec()
+    {
+        const QStringList candidates = {QStringLiteral("python3"), QStringLiteral("python"), QStringLiteral("py")};
+        for (const QString &candidate : candidates)
+        {
+            const QString exe = QStandardPaths::findExecutable(candidate);
+            if (exe.isEmpty()) continue;
+            if (candidate == QStringLiteral("py"))
+            {
+                return QStringLiteral("\"%1\" -3").arg(exe);
+            }
+            return exe;
+        }
+        return {};
+    }
+
+  private slots:
+    void ptcExecutesScript();
+    void ptcRejectsInvalidFilename();
+};
+
+void XToolPtcTest::ptcExecutesScript()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for ptc test");
+
+    const QString workRoot = makeUniqueWorkRoot(tempDir);
+    QVERIFY2(QDir().mkpath(workRoot), "Failed to create work root for ptc test");
+
+    auto tool = createTestTool(tempDir.path(), workRoot);
+    const QString pythonSpec = resolvePythonSpec();
+    if (pythonSpec.isEmpty())
+    {
+        QSKIP("Python interpreter not available; skipping ptc script execution test");
+    }
+    tool->pythonExecutable = pythonSpec;
+
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+    const QString scriptBody = QStringLiteral(
+        "import pathlib\n"
+        "print('PTC_OK')\n"
+        "print(pathlib.Path('.').resolve())\n");
+
+    tool->Exec(makeToolCall("ptc",
+                            mcp::json::object({{"filename", "helper_ptc.py"},
+                                               {"workdir", "."},
+                                               {"content", scriptBody.toStdString()}})));
+
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(5000), "ptc script test produced no push message");
+    const QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("PTC_OK")), "ptc script output missing expected marker");
+
+    QFile saved(QDir(workRoot).filePath(QStringLiteral("ptc_temp/helper_ptc.py")));
+    QVERIFY2(saved.exists(), "ptc script was not persisted under ptc_temp");
+}
+
+void XToolPtcTest::ptcRejectsInvalidFilename()
+{
+    QTemporaryDir tempDir;
+    QVERIFY2(tempDir.isValid(), "Failed to create temporary directory for ptc guard test");
+
+    auto tool = createTestTool(tempDir.path(), makeUniqueWorkRoot(tempDir));
+    QSignalSpy pushSpy(tool.get(), &xTool::tool2ui_pushover);
+
+    tool->Exec(makeToolCall("ptc",
+                            mcp::json::object({{"filename", "../hack.py"},
+                                               {"workdir", "."},
+                                               {"content", "print('oops')"}})));
+
+    QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "ptc guard test produced no push message");
+    const QString message = pushSpy.takeFirst().at(0).toString();
+    QVERIFY2(message.contains(QStringLiteral("filename")), "ptc guard did not report filename validation error");
 }
 
 class XToolMcpFlowTest : public QObject
@@ -551,6 +631,10 @@ int main(int argc, char **argv)
     }
     {
         XToolExecuteCommandTest tc;
+        status |= QTest::qExec(&tc, argc, argv);
+    }
+    {
+        XToolPtcTest tc;
         status |= QTest::qExec(&tc, argc, argv);
     }
     {

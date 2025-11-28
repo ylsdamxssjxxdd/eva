@@ -989,6 +989,180 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         sendPushMessage(QStringLiteral("edit_in_file ") + jtr("return") + "\n" + result);
     }
 
+    //----------------------ptc（工程师）------------------
+    else if (tools_name == "ptc")
+    {
+        auto fail = [&](const QString &message) {
+            sendPushMessage(QStringLiteral("ptc ") + jtr("return") + " " + message);
+            sendStateMessage(QStringLiteral("tool:ptc error -> ") + message, WRONG_SIGNAL);
+        };
+        QString fileName = QString::fromStdString(get_string_safely(tools_args_, "filename")).trimmed();
+        QString workdirArg = QString::fromStdString(get_string_safely(tools_args_, "workdir")).trimmed();
+        QString scriptContent = QString::fromStdString(get_string_safely(tools_args_, "content"));
+        if (fileName.isEmpty())
+        {
+            fail(QStringLiteral("filename is required."));
+            return;
+        }
+        if (fileName.contains('/') || fileName.contains('\\') || fileName.contains(".."))
+        {
+            fail(QStringLiteral("filename must not contain path separators or \"..\" segments."));
+            return;
+        }
+        if (scriptContent.trimmed().isEmpty())
+        {
+            fail(QStringLiteral("content is empty."));
+            return;
+        }
+        if (workdirArg.isEmpty()) workdirArg = QStringLiteral(".");
+        QString pathError;
+        const QString hostRunDir = resolveHostPathWithinWorkdir(workdirArg, &pathError);
+        if (hostRunDir.isEmpty())
+        {
+            fail(pathError.isEmpty() ? QStringLiteral("Unable to resolve workdir.") : pathError);
+            return;
+        }
+        QDir runDir(hostRunDir);
+        if (!runDir.exists())
+        {
+            fail(QStringLiteral("workdir not found: %1").arg(QDir::toNativeSeparators(hostRunDir)));
+            return;
+        }
+
+        const QString workRoot = resolveWorkRoot();
+        ensureWorkdirExists(workRoot);
+        QDir workRootDir(workRoot);
+        const QString ptcDirPath = workRootDir.filePath(QStringLiteral("ptc_temp"));
+        if (!QDir().mkpath(ptcDirPath))
+        {
+            fail(QStringLiteral("Failed to create ptc_temp under %1").arg(QDir::toNativeSeparators(workRoot)));
+            return;
+        }
+        const QString scriptHostPath = QDir(ptcDirPath).filePath(fileName);
+        QFile scriptFile(scriptHostPath);
+        if (!scriptFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+        {
+            fail(QStringLiteral("Could not write %1: %2").arg(QDir::toNativeSeparators(scriptHostPath), scriptFile.errorString()));
+            return;
+        }
+        QTextStream stream(&scriptFile);
+        stream.setCodec("UTF-8");
+        stream << scriptContent;
+        scriptFile.close();
+        sendStateMessage(QStringLiteral("tool:ptc saved -> %1").arg(QDir::toNativeSeparators(scriptHostPath)));
+
+        auto pythonParts = [this]() {
+            QString spec = pythonExecutable.trimmed();
+            if (spec.isEmpty())
+            {
+                spec = QStringLiteral(DEFAULT_PYTHON);
+            }
+            QStringList parts = QProcess::splitCommand(spec);
+            if (parts.isEmpty())
+            {
+                parts << QStringLiteral(DEFAULT_PYTHON);
+            }
+            return parts;
+        }();
+        if (pythonParts.isEmpty())
+        {
+            pythonParts << QStringLiteral(DEFAULT_PYTHON);
+        }
+        const QString pythonProgram = pythonParts.first();
+        QStringList pythonArgs = pythonParts.mid(1);
+
+        QString stdoutText;
+        QString stderrText;
+        int exitCode = 0;
+        bool exitKnown = false;
+        bool dockerOk = true;
+        QString dockerFailureText;
+
+        if (dockerSandboxEnabled())
+        {
+            QString ensureError;
+            if (!ensureDockerSandboxReady(&ensureError))
+            {
+                fail(ensureError.isEmpty() ? QStringLiteral("docker sandbox not ready.") : ensureError);
+                return;
+            }
+            QString containerRunDir = containerPathForHost(hostRunDir);
+            if (containerRunDir.isEmpty())
+            {
+                fail(QStringLiteral("Unable to map workdir into docker sandbox."));
+                return;
+            }
+            QString containerScriptPath = containerPathForHost(scriptHostPath);
+            if (containerScriptPath.isEmpty())
+            {
+                fail(QStringLiteral("Unable to map script path into docker sandbox."));
+                return;
+            }
+            QStringList dockerCmdParts = pythonParts;
+            dockerCmdParts << containerScriptPath;
+            auto joinShellParts = [](const QStringList &parts) {
+                QStringList quoted;
+                quoted.reserve(parts.size());
+                for (const QString &part : parts)
+                {
+                    quoted << shellQuote(part);
+                }
+                return quoted.join(' ');
+            };
+            const QString command = QStringLiteral("cd %1 && %2")
+                                        .arg(shellQuote(containerRunDir),
+                                             joinShellParts(dockerCmdParts));
+            QString dockerStdOut;
+            QString dockerStdErr;
+            QString dockerError;
+            dockerOk = runDockerShellCommand(command, &dockerStdOut, &dockerStdErr, &dockerError);
+            stdoutText = dockerStdOut;
+            stderrText = dockerStdErr;
+            if (!dockerOk)
+            {
+                dockerFailureText = dockerError.isEmpty() ? QStringLiteral("docker exec returned non-zero exit status.") : dockerError;
+            }
+        }
+        else
+        {
+            exitKnown = true;
+            QStringList finalArgs = pythonArgs;
+            finalArgs << QDir::toNativeSeparators(scriptHostPath);
+            QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+            ProcessResult result = ProcessRunner::run(pythonProgram, finalArgs, hostRunDir, env);
+            if (result.timedOut)
+            {
+                fail(QStringLiteral("python execution timed out."));
+                return;
+            }
+            stdoutText = result.stdOut;
+            stderrText = result.stdErr;
+            exitCode = result.exitCode;
+        }
+
+        QString finalText = stdoutText.trimmed();
+        if (finalText.isEmpty())
+        {
+            finalText = QStringLiteral("[no stdout]");
+        }
+        if (!stderrText.trimmed().isEmpty())
+        {
+            if (!finalText.isEmpty()) finalText += QStringLiteral("\n[stderr]\n") + stderrText.trimmed();
+            else finalText = QStringLiteral("[stderr]\n") + stderrText.trimmed();
+        }
+        if (exitKnown)
+        {
+            finalText.prepend(QStringLiteral("exit code %1\n").arg(exitCode));
+        }
+        else if (!dockerOk)
+        {
+            if (dockerFailureText.isEmpty())
+                dockerFailureText = QStringLiteral("docker exec returned non-zero exit status.");
+            finalText.prepend(dockerFailureText + QStringLiteral("\n"));
+        }
+        sendStateMessage(QStringLiteral("tool:ptc ") + jtr("return") + "\n" + finalText, TOOL_SIGNAL);
+        sendPushMessage(QStringLiteral("ptc ") + jtr("return") + "\n" + finalText);
+    }
 
     //----------------------列出目录（工程师）------------------
     else if (tools_name == "list_files")

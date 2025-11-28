@@ -435,6 +435,7 @@ QString Widget::create_extra_prompt()
             available_tools_describe += promptx::toolEditInFile().text + "\n\n";
             available_tools_describe += promptx::toolListFiles().text + "\n\n";
             available_tools_describe += promptx::toolSearchContent().text + "\n\n";
+            available_tools_describe += promptx::toolPtc().text + "\n\n";
             // 这里添加更多工程师的工具
             engineer_info = create_engineer_info(); // 构建工程师信息
         }
