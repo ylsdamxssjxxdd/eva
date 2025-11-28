@@ -216,7 +216,7 @@ void Widget::applyEngineerUiLock(bool locked)
 void Widget::onEngineerEnvReady()
 {
     engineerEnvReady_ = true;
-    maybeUnlockEngineerGate();
+    drainEngineerGateQueue();
 }
 
 void Widget::enforceEngineerEnvReadyCheckpoint()
@@ -239,17 +239,24 @@ void Widget::queueEngineerGateAction(const std::function<void()> &action, bool r
     }
     engineerGateActive_ = true;
     markEngineerEnvDirty();
-    engineerDockerReady_ = requireDockerReady ? false : true;
+    if (requireDockerReady) engineerDockerReady_ = false;
+    if (action) engineerGateQueue_.append(action);
     applyEngineerUiLock(true);
-    if (action) action();
     enforceEngineerEnvReadyCheckpoint();
+    drainEngineerGateQueue();
 }
 
-void Widget::maybeUnlockEngineerGate()
+void Widget::drainEngineerGateQueue()
 {
     if (!engineerGateActive_) return;
     if (!engineerEnvReady_ || !engineerDockerReady_) return;
+    const auto pending = engineerGateQueue_;
+    engineerGateQueue_.clear();
     engineerGateActive_ = false;
+    for (const auto &fn : pending)
+    {
+        if (fn) fn();
+    }
     if (engineerUiLockActive_)
     {
         QTimer::singleShot(0, this, [this]() {

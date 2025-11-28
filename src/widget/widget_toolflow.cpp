@@ -527,5 +527,5 @@ void Widget::recv_docker_status(const DockerSandboxStatus &status)
     {
         engineerDockerReady_ = true;
     }
-    if (ui_engineer_ischecked) maybeUnlockEngineerGate();
+    if (ui_engineer_ischecked) drainEngineerGateQueue();
 }

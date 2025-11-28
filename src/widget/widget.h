@@ -194,7 +194,7 @@ class Widget : public QWidget
     void markEngineerEnvDirty();
     void onEngineerEnvReady();
     void queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady);
-    void maybeUnlockEngineerGate();
+    void drainEngineerGateQueue();
     void syncDockerSandboxConfig(bool forceEmit = false);
     void refreshEngineerPromptBlock();
     bool shouldUseDockerEnv() const;
@@ -467,6 +467,7 @@ class Widget : public QWidget
     bool engineerUiLockActive_ = false;
     bool engineerGateActive_ = false;
     bool engineerDockerReady_ = true;
+    QVector<std::function<void()>> engineerGateQueue_;
     QString truncateString(const QString &str, int maxLength);
 
     // 工具相关

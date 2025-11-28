@@ -144,6 +144,7 @@ void Widget::tool_change()
             {
                 engineerEnvReady_ = true;
                 engineerGateActive_ = false;
+                engineerGateQueue_.clear();
                 engineerDockerReady_ = true;
                 if (engineerUiLockActive_) applyEngineerUiLock(false);
             }
