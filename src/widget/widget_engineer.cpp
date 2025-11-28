@@ -572,5 +572,5 @@ void Widget::logEngineerEnvSummary()
         const QString dockerName = dockerSandboxDisplayName();
         segments << QStringLiteral("%1 (%2)").arg(dockerLabel, dockerName.isEmpty() ? QStringLiteral("n/a") : dockerName);
     }
-    reflash_state(QString::fromUtf8("ui:工程师环境信息刷新完成 -> ") + segments.join(QStringLiteral(" | ")), SUCCESS_SIGNAL);
+    qInfo().noquote() << "[engineer-env]" << segments.join(QStringLiteral(" | "));
 }
