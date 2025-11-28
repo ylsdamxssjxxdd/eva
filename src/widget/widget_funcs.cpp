@@ -888,6 +888,12 @@ void Widget::auto_save_user()
     auto appendTool = [&](QCheckBox *box, const QString &id) {
         if (box && box->isChecked()) enabledTools << id;
     };
+    appendTool(date_ui->calculator_checkbox, QStringLiteral("calculator"));
+    appendTool(date_ui->knowledge_checkbox, QStringLiteral("knowledge"));
+    appendTool(date_ui->controller_checkbox, QStringLiteral("controller"));
+    appendTool(date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"));
+    appendTool(date_ui->engineer_checkbox, QStringLiteral("engineer"));
+    appendTool(date_ui->MCPtools_checkbox, QStringLiteral("mcp"));
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // ����������
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge����
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller����

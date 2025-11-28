@@ -415,6 +415,8 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_fixDockerContainerMount, &tool, &xTool::fixDockerContainerMount);
     QObject::connect(&w, &Widget::ui2tool_interruptCommand, &tool, &xTool::cancelExecuteCommand);
     QObject::connect(&w, &Widget::ui2tool_cancelActive, &tool, &xTool::cancelActiveTool);
+    QObject::connect(&w, &Widget::ui2tool_shutdownDocker, &tool, &xTool::shutdownDockerSandbox, Qt::QueuedConnection);
+    QObject::connect(&tool, &xTool::dockerShutdownCompleted, &w, &Widget::onDockerShutdownCompleted, Qt::QueuedConnection);
     QObject::connect(&tool, &xTool::tool2ui_dockerStatusChanged, &w, &Widget::recv_docker_status);
 
     //------------------连接增殖窗口和tool-------------------

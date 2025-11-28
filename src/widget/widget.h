@@ -200,6 +200,7 @@ class Widget : public QWidget
     void queueEngineerGateAction(const std::function<void()> &action, bool requireDockerReady);
     void drainEngineerGateQueue();
     void syncDockerSandboxConfig(bool forceEmit = false);
+    bool shouldShutdownDockerOnExit() const;
     void refreshEngineerPromptBlock();
     bool shouldUseDockerEnv() const;
     QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
@@ -560,6 +561,8 @@ class Widget : public QWidget
     void ui2tool_fixDockerContainerMount(const QString &containerName);
     void ui2tool_interruptCommand();           // 终止当前命令
     void ui2tool_cancelActive();               // 中断所有工具执行
+    void ui2tool_shutdownDocker();             // 关闭 Docker 沙盒（退出收尾）
+    void dockerShutdownFinished();
 
     // 发送给expend的信号
     void ui2expend_language(int language_flag_);                      // 传递使用的语言
@@ -611,6 +614,7 @@ class Widget : public QWidget
     void toolCommandStderr(const QString &chunk);
     void toolCommandFinished(int exitCode, bool interrupted);
     void recv_mcp_tools_changed(); // MCP工具开关变更
+    void onDockerShutdownCompleted();
 
     // 处理expend信号的槽
     void recv_speechdecode_over(QString result);
@@ -831,3 +835,4 @@ class Widget : public QWidget
   };
 
 #endif // WIDGET_H
+

@@ -12,6 +12,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QElapsedTimer>
+#include <QEventLoop>
 #include <QMessageBox>
 #include <QSet>
 #include <QStringList>
@@ -695,39 +696,59 @@ void Widget::closeEvent(QCloseEvent *event)
         & ~Qt::WindowCloseButtonHint                          // 移除关闭按钮
     );
     dlg->setWindowTitle("quit");
+    dlg->setLabelText(jtr("quit stopping backend"));
     dlg->show();
     dlg->raise();
     dlg->activateWindow();
     qApp->processEvents(); // 刷新一次以显示对话框
 
-    // 如果后端未在运行，直接退出
-    if (!serverManager || !serverManager->isRunning())
-    {
+    const bool stopDocker = shouldShutdownDockerOnExit();
+    auto finalizeQuit = [this, dlg, stopDocker]() {
+        if (stopDocker)
+        {
+            dlg->setLabelText(jtr("quit stopping docker"));
+            qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+            QEventLoop dockerLoop;
+            QMetaObject::Connection conn = connect(this, &Widget::dockerShutdownFinished, &dockerLoop, &QEventLoop::quit);
+            emit ui2tool_shutdownDocker();
+            dockerLoop.exec(QEventLoop::ExcludeUserInputEvents);
+            disconnect(conn);
+        }
         dlg->close();
         dlg->deleteLater();
-        event->accept();
         QTimer::singleShot(0, qApp, &QCoreApplication::quit);
+    };
+
+    // 服务未在运行，直接退出
+    if (!serverManager || !serverManager->isRunning())
+    {
+        finalizeQuit();
+        event->accept();
         return;
     }
 
-    // 在 UI 线程发起非阻塞的优雅停止，避免跨线程调用 QProcess 导致 QWinEventNotifier 警告/卡顿
+    // 在 UI 线程等待后端停止，防止退出阶段跨线程清理
     event->ignore();
     if (serverManager)
     {
-        // 完成后关闭对话框并退出应用
-        connect(serverManager, &LocalServerManager::serverStopped, dlg, &QProgressDialog::close);
-        connect(serverManager, &LocalServerManager::serverStopped, dlg, &QObject::deleteLater);
-        connect(serverManager, &LocalServerManager::serverStopped, qApp, []()
-                { QTimer::singleShot(0, qApp, &QCoreApplication::quit); });
+        connect(serverManager, &LocalServerManager::serverStopped, this, [finalizeQuit]()
+                { finalizeQuit(); });
         serverManager->stopAsync();
     }
     else
     {
-        // 理论上不走到这里，因为上面已判断 running；兜底直接退出
-        dlg->close();
-        dlg->deleteLater();
-        QTimer::singleShot(0, qApp, &QCoreApplication::quit);
+        finalizeQuit();
     }
+}
+
+bool Widget::shouldShutdownDockerOnExit() const
+{
+    return ui_engineer_ischecked && ui_dockerSandboxEnabled;
+}
+
+void Widget::onDockerShutdownCompleted()
+{
+    emit dockerShutdownFinished();
 }
 
 void Widget::enableSplitterHover(QSplitter *splitter)

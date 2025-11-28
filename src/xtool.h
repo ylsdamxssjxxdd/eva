@@ -111,6 +111,7 @@ class xTool : public QObject
     void tool2ui_terminalStderr(const QString &chunk);
     void tool2ui_terminalCommandFinished(int exitCode, bool interrupted);
     void tool2ui_dockerStatusChanged(const DockerSandboxStatus &status);
+    void dockerShutdownCompleted();
     void tool2mcp_toollist(quint64 invocationId);
     void tool2mcp_toolcall(quint64 invocationId, QString tool_name, QString tool_args);
     void tool2ui_pushover(QString tool_result);

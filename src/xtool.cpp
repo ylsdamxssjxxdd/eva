@@ -250,6 +250,7 @@ void xTool::shutdownDockerSandbox()
     dockerConfig_ = cfg;
     dockerSandbox_->applyConfig(cfg);
     qDebug() << "docker sandbox stopped before exit";
+    emit dockerShutdownCompleted();
 }
 
 void xTool::fixDockerContainerMount(const QString &containerName)
