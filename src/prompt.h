@@ -9,6 +9,7 @@ enum PromptEntryId : int
     PROMPT_EXTRA_TEMPLATE = 50000,
     PROMPT_ENGINEER_INFO = 50001,
     PROMPT_ENGINEER_SYSTEM = 50002,
+    PROMPT_ARCHITECT_INFO = 50003,
     PROMPT_TOOL_ANSWER = 51000,
     PROMPT_TOOL_CALCULATOR = 51001,
     PROMPT_TOOL_CONTROLLER = 51002,
@@ -22,7 +23,8 @@ enum PromptEntryId : int
     PROMPT_TOOL_WRITE_FILE = 51010,
     PROMPT_TOOL_REPLACE_IN_FILE = 51011,
     PROMPT_TOOL_EDIT_IN_FILE = 51012,
-    PROMPT_TOOL_PTC = 51013
+    PROMPT_TOOL_PTC = 51013,
+    PROMPT_TOOL_ENGINEER_PROXY = 51014
 };
 
 // Load prompt definitions from prompt.ini (qrc path by default).
@@ -35,6 +37,7 @@ QString promptById(int id, const QString &fallback = QString());
 const QString &extraPromptTemplate();
 const QString &engineerInfo();
 const QString &engineerSystemInfo();
+const QString &architectInfo();
 
 // Built-in tool descriptors with descriptions resolved from prompt.ini.
 const TOOLS_INFO &toolAnswer();
@@ -51,4 +54,5 @@ const TOOLS_INFO &toolReadFile();
 const TOOLS_INFO &toolWriteFile();
 const TOOLS_INFO &toolReplaceInFile();
 const TOOLS_INFO &toolEditInFile();
+const TOOLS_INFO &toolEngineerProxy();
 } // namespace promptx

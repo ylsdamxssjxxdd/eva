@@ -544,6 +544,8 @@ int main(int argc, char *argv[])
         const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
         w.ui_engineer_ischecked = engineerOn;
         w.refreshWindowIcon();
+        const bool savedArchitect = settings.value("engineer_architect_mode", false).toBool();
+        w.setEngineerArchitectMode(savedArchitect, false);
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
         const bool legacyDockerEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();

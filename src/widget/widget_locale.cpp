@@ -277,7 +277,7 @@ void Widget::apply_language(int language_flag_)
     if (backendManagerDialog_) backendManagerDialog_->refreshTranslations();
 }
 
-QString Widget::jtr(QString customstr)
+QString Widget::jtr(QString customstr) const
 {
     return wordsObj[customstr].toArray()[language_flag].toString();
 }

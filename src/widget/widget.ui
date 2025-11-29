@@ -168,30 +168,57 @@
         </layout>
        </item>
        <item>
-        <widget class="QTextEdit" name="output">
-         <property name="enabled">
+        <widget class="QSplitter" name="outputSplitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="childrenCollapsible">
           <bool>true</bool>
          </property>
-         <property name="minimumSize">
-          <size>
-           <width>320</width>
-           <height>170</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-          </font>
-         </property>
-         <property name="lineWidth">
-          <number>0</number>
-         </property>
+         <widget class="QTextEdit" name="output">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>320</width>
+            <height>170</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="lineWidth">
+           <number>0</number>
+          </property>
+         </widget>
+         <widget class="QTextEdit" name="engineerConsole">
+          <property name="visible">
+           <bool>false</bool>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>170</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+           </font>
+          </property>
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+          <property name="lineWrapMode">
+           <enum>QTextEdit::WidgetWidth</enum>
+          </property>
+          <property name="placeholderText">
+           <string>系统工程师输出</string>
+          </property>
+         </widget>
         </widget>
        </item>
        <item>

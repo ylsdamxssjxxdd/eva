@@ -35,6 +35,14 @@ void Widget::recv_pushover()
     {
         roleMessage.insert("reasoning_content", reasoningText);
     }
+    if (engineerProxyRuntime_.active)
+    {
+        handleEngineerAssistantMessage(finalText, reasoningText);
+        temp_assistant_history = "";
+        currentThinkIndex_ = -1;
+        currentAssistantIndex_ = -1;
+        return;
+    }
     ui_messagesArray.append(roleMessage);
     if (history_ && ui_state == CHAT_STATE)
     {
@@ -76,6 +84,11 @@ void Widget::recv_pushover()
                     QString tools_name = QString::fromStdString(tools_call.value("name", ""));
                     reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
                     // 工具层面指出结束
+                    if (tools_name == "system_engineer_proxy")
+                    {
+                        startEngineerProxyTool(tools_call);
+                        return;
+                    }
                     if (tools_name == "answer" || tools_name == "response")
                     {
                         normal_finish_pushover();
@@ -91,6 +104,8 @@ void Widget::recv_pushover()
                             updateKvBarUi();
                             lastReasoningTokens_ = 0;
                         }
+                        // 下一段回答需要重新打印“模型/思考”标题
+                        pendingAssistantHeaderReset_ = true;
                         toolInvocationActive_ = true;
                         emit ui2tool_exec(tools_call);
                         // use tool; decoding remains paused
@@ -110,6 +125,7 @@ void Widget::recv_pushover()
 void Widget::normal_finish_pushover()
 {
     turnThinkActive_ = false;
+    pendingAssistantHeaderReset_ = false;
     // Reset per-turn header flags
     turnActive_ = false;
     is_run = false;
@@ -154,6 +170,15 @@ void Widget::recv_toolpushover(QString tool_result_)
         tool_result = tool_result_;
         tool_result = truncateString(tool_result, DEFAULT_MAX_INPUT); // 超出最大输入的部分截断
     }
+
+    if (engineerProxyRuntime_.active)
+    {
+        const QString observation = tool_result;
+        handleEngineerToolResult(observation);
+        tool_result.clear();
+        return;
+    }
+
 
     on_send_clicked(); // 触发发送继续预测下一个词
 }
@@ -337,6 +362,12 @@ void Widget::recv_setreset()
 
 void Widget::on_reset_clicked()
 {
+    if (engineerProxyOuterActive_)
+    {
+        cancelEngineerProxy(QStringLiteral("reset"));
+        engineerProxyOuterActive_ = false;
+        toolInvocationActive_ = false;
+    }
     if (toolInvocationActive_)
     {
         emit ui2tool_cancelActive();
@@ -362,6 +393,15 @@ void Widget::on_reset_clicked()
         // 传递推理停止信号,模型停止后会再次触发on_reset_clicked()
         return;
     }
+
+    flushPendingStream();
+    temp_assistant_history.clear();
+    turnThinkActive_ = false;
+    turnThinkHeaderPrinted_ = false;
+    turnAssistantHeaderPrinted_ = false;
+    currentThinkIndex_ = -1;
+    currentAssistantIndex_ = -1;
+    pendingAssistantHeaderReset_ = false;
 
     const bool engineerActive = date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked();
 

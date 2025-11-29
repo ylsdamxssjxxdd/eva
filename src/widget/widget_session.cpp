@@ -436,6 +436,8 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     recordAppendText(__idx, tool_result);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
 
+    pendingAssistantHeaderReset_ = true;
+
     tool_result = "";
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
     is_run = true;
@@ -483,10 +485,11 @@ void Widget::on_send_clicked()
     pendingSendAfterWake_ = false;
 
     // Reset headers and kv tracker
+    pendingAssistantHeaderReset_ = false;
+    flushPendingStream();
+    turnThinkActive_ = false;
     turnThinkHeaderPrinted_ = false;
     turnAssistantHeaderPrinted_ = false;
-    turnThinkActive_ = false;
-    flushPendingStream();
     sawPromptPast_ = false;
     sawFinalPast_ = false;
     // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);

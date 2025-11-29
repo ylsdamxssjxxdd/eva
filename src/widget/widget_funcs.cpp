@@ -449,16 +449,23 @@ QString Widget::create_extra_prompt()
         }
         if (date_ui->engineer_checkbox->isChecked())
         {
-            available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
-            available_tools_describe += promptx::toolReadFile().text + "\n\n";
-            available_tools_describe += promptx::toolWriteFile().text + "\n\n";
-            available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
-            available_tools_describe += promptx::toolEditInFile().text + "\n\n";
-            available_tools_describe += promptx::toolListFiles().text + "\n\n";
-            available_tools_describe += promptx::toolSearchContent().text + "\n\n";
-            available_tools_describe += promptx::toolPtc().text + "\n\n";
-            // 这里添加更多工程师的工具
-            engineer_info = create_engineer_info(); // 构建工程师信息
+            if (isArchitectModeActive())
+            {
+                available_tools_describe += promptx::toolEngineerProxy().text + "\n\n";
+                engineer_info = create_architect_info();
+            }
+            else
+            {
+                available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
+                available_tools_describe += promptx::toolReadFile().text + "\n\n";
+                available_tools_describe += promptx::toolWriteFile().text + "\n\n";
+                available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
+                available_tools_describe += promptx::toolEditInFile().text + "\n\n";
+                available_tools_describe += promptx::toolListFiles().text + "\n\n";
+                available_tools_describe += promptx::toolSearchContent().text + "\n\n";
+                available_tools_describe += promptx::toolPtc().text + "\n\n";
+                engineer_info = create_engineer_info();
+            }
         }
 
         extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
@@ -916,6 +923,7 @@ void Widget::auto_save_user()
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer工具
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
     settings.setValue("engineer_work_dir", engineerWorkDir);                                       // 工程师工作目录
+    settings.setValue("engineer_architect_mode", engineerArchitectMode_);
     settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
     settings.beginGroup("backend_overrides");
     settings.remove("");

@@ -39,6 +39,7 @@
 #include <QScrollBar>
 #include <QFutureWatcher>
 #include <QSettings>
+#include <QSharedPointer>
 #include <QShortcut>
 #include <QSlider>
 #include <QSpinBox>
@@ -122,6 +123,16 @@ struct InputPack
     QVector<DocumentAttachment> documents;
 };
 
+// Lightweight conversation state for engineer proxy runs
+struct EngineerSession
+{
+    QString id;
+    QString systemPrompt;
+    QJsonArray messages;
+    int tokenBudget = 0;
+    int usedTokens = 0;
+};
+
 class Widget : public QWidget
 {
     Q_OBJECT
@@ -151,7 +162,7 @@ class Widget : public QWidget
     QJsonObject wordsObj;                  // 中文英文
     void getWords(const QString &languageRoot); // 中文英文
     int language_flag = 0;                 // 0是中文1是英文
-    QString jtr(QString customstr);        // 根据language.json(wordsObj)和language_flag中找到对应的文字
+    QString jtr(QString customstr) const;  // 根据language.json(wordsObj)和language_flag中找到对应的文字
 
     // ui相关
     QString ui_output, ui_state_info;
@@ -237,6 +248,8 @@ class Widget : public QWidget
     bool is_load = false;                                        // 模型装载标签
     bool is_run = false;                                         // 模型运行标签,方便设置界面的状态
     bool toolInvocationActive_ = false;                          // 是否存在未完成的工具调用
+    bool engineerArchitectMode_ = false;                         // 是否启用系统林机师模式
+    bool engineerProxyOuterActive_ = false;                      // 架构师代理是否仍在执行
     EVA_MODE ui_mode = LOCAL_MODE;                               // 机体的模式
     EVA_STATE ui_state = CHAT_STATE;                             // 机体的状态
     ConversationTask currentTask_ = ConversationTask::ChatReply; // current send task
@@ -267,6 +280,7 @@ class Widget : public QWidget
     bool turnThinkHeaderPrinted_ = false;     // printed think header this turn
     bool turnAssistantHeaderPrinted_ = false; // printed assistant header this turn
     bool turnThinkActive_ = false;            // streaming: inside <think> section
+    bool pendingAssistantHeaderReset_ = false; // force next assistant header after tool loop
     bool sawPromptPast_ = false;              // saw prompt done n_past -> use as turn baseline
     bool sawFinalPast_ = false;               // saw stop processing n_past -> prefer this over totals
     int ui_maxngl = 0;                        // 模型可卸载到gpu上的层数
@@ -412,8 +426,30 @@ class Widget : public QWidget
     bool engineerSandboxDirty_ = false;
     bool engineerWorkDirPendingApply_ = false;
     bool engineerEnvSummaryPending_ = false;
-    QString create_extra_prompt();  // 构建附加指令
-    QString create_engineer_info(); // 构建工程师指令
+    QString engineerCheckboxLabel_;
+    QString create_extra_prompt();    // 构建附加指令
+    QString buildEngineerSystemDetails() const;
+    QString create_engineer_info();   // 构建工程师指令
+    QString create_architect_info();  // 构建架构师指令
+    QString create_engineer_proxy_prompt(); // 构建工程师代理系统提示（含工具与技能说明）
+    bool isArchitectModeActive() const;
+    void onEngineerCheckboxContextMenuRequested(const QPoint &pos);
+    void setEngineerArchitectMode(bool enabled, bool persist = true);
+    void updateEngineerConsoleVisibility();
+    void appendEngineerConsole(const QString &line, bool reset = false);
+    void resetEngineerConsole();
+    void startEngineerProxyTool(const mcp::json &call);
+    QSharedPointer<EngineerSession> ensureEngineerSession(const QString &engineerId);
+    void sendEngineerProxyRequest(const QString &reason);
+    void handleEngineerStreamOutput(const QString &chunk, bool streaming);
+    void handleEngineerAssistantMessage(const QString &message, const QString &reasoning);
+    void handleEngineerToolResult(const QString &result);
+    void finalizeEngineerProxy(const QString &assistantText);
+    void cancelEngineerProxy(const QString &reason);
+    QString formatEngineerProxyResult(const QSharedPointer<EngineerSession> &session, const QString &assistantText);
+    QString clampEngineerSummary(const QString &text) const;
+    void recordEngineerUsage(int promptTokens, int generatedTokens);
+    void recordEngineerReasoning(int tokens);
     void tool_change();             // 响应工具选择
     struct DateDialogState
     {
@@ -477,6 +513,29 @@ class Widget : public QWidget
     bool engineerDockerLaunchPending_ = false;
     bool engineerDockerReady_ = true;
     QVector<std::function<void()>> engineerGateQueue_;
+    struct EngineerProxyRuntime
+    {
+        bool active = false;
+        QSharedPointer<EngineerSession> session;
+        QString engineerId;
+        QString task;
+        QStringList streamBuffer;
+        QString lastAssistantText;
+        QString lastReasoningText;
+        bool waitingToolResult = false;
+        int lastPromptTokens = 0;
+        int lastGeneratedTokens = 0;
+        int lastReasoningTokens = 0;
+    };
+    QHash<QString, QSharedPointer<EngineerSession>> engineerSessions_;
+    EngineerProxyRuntime engineerProxyRuntime_;
+    bool engineerThinkActive_ = false;
+    bool engineerThinkHeaderPrinted_ = false;
+    bool engineerAssistantHeaderPrinted_ = false;
+    void appendEngineerText(const QString &text, bool newline);
+    void resetEngineerStreamState();
+    void appendEngineerRoleBlock(const QString &role, const QString &text);
+    void processEngineerStreamChunk(const QString &chunk);
     QString truncateString(const QString &str, int maxLength);
 
     // 工具相关

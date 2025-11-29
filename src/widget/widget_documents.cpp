@@ -103,6 +103,11 @@ void Widget::recv_prompt_baseline(int tokens)
 
 void Widget::recv_turn_counters(int cacheTokens, int promptTokens, int predictedTokens)
 {
+    if (engineerProxyRuntime_.active)
+    {
+        recordEngineerUsage(qMax(0, promptTokens), qMax(0, predictedTokens));
+        return;
+    }
     const int cache = qMax(0, cacheTokens);
     const int prompt = qMax(0, promptTokens);
     const int generated = qMax(0, predictedTokens);
@@ -128,6 +133,10 @@ void Widget::recv_turn_counters(int cacheTokens, int promptTokens, int predicted
 
 void Widget::recv_kv_from_net(int usedTokens)
 {
+    if (engineerProxyRuntime_.active)
+    {
+        return;
+    }
     const int newStream = qMax(0, usedTokens);
     // Approximate KV usage accumulation during streaming tokens from xNet.
     if (ui_mode == LINK_MODE)
@@ -170,6 +179,11 @@ void Widget::onSlotAssigned(int slotId)
 
 void Widget::recv_reasoning_tokens(int tokens)
 {
+    if (engineerProxyRuntime_.active)
+    {
+        recordEngineerReasoning(qMax(0, tokens));
+        return;
+    }
     lastReasoningTokens_ = qMax(0, tokens);
 }
 

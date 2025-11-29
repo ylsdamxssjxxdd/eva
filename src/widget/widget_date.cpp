@@ -37,6 +37,13 @@ void Widget::set_DateDialog()
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
+    if (date_ui->engineer_checkbox)
+    {
+        if (engineerCheckboxLabel_.isEmpty()) engineerCheckboxLabel_ = date_ui->engineer_checkbox->text();
+        date_ui->engineer_checkbox->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(date_ui->engineer_checkbox, &QCheckBox::customContextMenuRequested, this, &Widget::onEngineerCheckboxContextMenuRequested);
+        if (engineerArchitectMode_) date_ui->engineer_checkbox->setText(QStringLiteral("系统架构师"));
+    }
     connect(date_dialog, &QDialog::rejected, this, &Widget::onDateDialogRejected);
     const auto autosave = [this]()
     { get_date(false); auto_save_user(); };
@@ -274,6 +281,7 @@ void Widget::set_date()
     get_date(); // 获取约定中的纸面值
     updateSkillVisibility(ui_engineer_ischecked);
     if (ui_engineer_ischecked) refreshSkillsUI();
+    updateEngineerConsoleVisibility();
 
     // 约定变化后统一重置对话上下文（本地/远端一致）并持久化
     auto_save_user(); // persist date settings

@@ -80,6 +80,24 @@ QString &currentEngineerSystemInfo()
     return value;
 }
 
+const QString &defaultArchitectInfo()
+{
+    static const QString value = QStringLiteral(
+        "You serve as EVA's System Architect. Focus on scoping work, writing crisp requirements, and sequencing plans. "
+        "Never run shell commands yourself; instead, invoke the system_engineer tool whenever code, files, or shells must be touched. "
+        "Reuse an engineer_id to keep the same engineer and its remaining memory, or create a new id when you need a fresh engineer. "
+        "Provide enough context (objectives, constraints, acceptance criteria) for the engineer to act autonomously. "
+        "Always wait for the engineer's reply before taking the next step. When the commander requests a status update, summarize decisions and surface unresolved risks. "
+        "Environment snapshot:\n{engineer_system_info}");
+    return value;
+}
+
+QString &currentArchitectInfo()
+{
+    static QString value = defaultArchitectInfo();
+    return value;
+}
+
 struct ToolTemplate
 {
     promptx::PromptEntryId descriptionId;
@@ -162,7 +180,11 @@ Passing Parameter Examples:
         {promptx::PROMPT_TOOL_EDIT_IN_FILE,
          "edit_in_file",
          R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to edit."},"edits":{"type":"array","description":"Ordered list of edit operations.","items":{"type":"object","properties":{"action":{"type":"string","enum":["replace","insert_before","insert_after","delete"],"description":"Type of edit to apply."},"start_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit begins."},"end_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit ends (inclusive). Required for replace and delete."},"new_content":{"type":"string","description":"Replacement or insertion content. Use actual line breaks inside the string for multi-line updates."}},"required":["action","start_line"],"additionalProperties":false}},"ensure_newline_at_eof":{"type":"boolean","description":"Ensure the file ends with a trailing newline when true."}},"required":["path","edits"]})",
-         QStringLiteral("Apply structured line-based edits to an existing text file. Each edit is applied from bottom to top to keep line numbers stable. Provide concise context to avoid unintended changes.")}
+         QStringLiteral("Apply structured line-based edits to an existing text file. Each edit is applied from bottom to top to keep line numbers stable. Provide concise context to avoid unintended changes.")},
+        {promptx::PROMPT_TOOL_ENGINEER_PROXY,
+         "system_engineer_proxy",
+         R"({"type":"object","properties":{"engineer_id":{"type":"string","description":"Engineer identifier. Reuse to keep prior context or set a new id to start fresh."},"task":{"type":"string","description":"Task description, including objectives, context, and acceptance criteria."}},"required":["engineer_id","task"]})",
+         QStringLiteral("Escalate implementation work to the resident system engineer. Provide an engineer_id (reuse an old one to keep its memory) and a detailed task. The engineer replies with remaining memory and a <=200-character summary.")},
     };
     return templates;
 }
@@ -214,6 +236,7 @@ bool loadPromptLibrary(const QString &resourcePath)
     currentExtraPrompt() = resolvePrompt(PROMPT_EXTRA_TEMPLATE, defaultExtraPrompt());
     currentEngineerInfo() = resolvePrompt(PROMPT_ENGINEER_INFO, defaultEngineerInfo());
     currentEngineerSystemInfo() = resolvePrompt(PROMPT_ENGINEER_SYSTEM, defaultEngineerSystemInfo());
+    currentArchitectInfo() = resolvePrompt(PROMPT_ARCHITECT_INFO, defaultArchitectInfo());
     rebuildToolEntries();
     return true;
 }
@@ -231,6 +254,11 @@ const QString &engineerInfo()
 const QString &engineerSystemInfo()
 {
     return currentEngineerSystemInfo();
+}
+
+const QString &architectInfo()
+{
+    return currentArchitectInfo();
 }
 
 const TOOLS_INFO &toolAnswer()
@@ -301,5 +329,10 @@ const TOOLS_INFO &toolReplaceInFile()
 const TOOLS_INFO &toolEditInFile()
 {
     return toolTemplates()[13].cache;
+}
+
+const TOOLS_INFO &toolEngineerProxy()
+{
+    return toolTemplates()[14].cache;
 }
 } // namespace promptx

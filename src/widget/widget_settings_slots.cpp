@@ -211,8 +211,13 @@ void Widget::tool_change()
                 dockerContainersFetched_ = false;
                 dockerContainerList_.clear();
                 dockerContainerTooltips_.clear();
+                if (engineerProxyOuterActive_)
+                {
+                    cancelEngineerProxy(QStringLiteral("系统工程师已关闭"));
+                }
             }
             refreshWindowIcon();
+            updateEngineerConsoleVisibility();
         }
     }
 

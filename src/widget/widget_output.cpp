@@ -11,6 +11,12 @@
 // 更新输出，is_while 表示从流式输出的 token
 void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
+    if (engineerProxyRuntime_.active)
+    {
+        temp_assistant_history += result;
+        handleEngineerStreamOutput(result, is_while);
+        return;
+    }
     if (is_while)
     {
         enqueueStreamChunk(result, color);
@@ -30,6 +36,16 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
 {
     if (chunk.isEmpty()) return;
     Q_UNUSED(color);
+
+    if (pendingAssistantHeaderReset_)
+    {
+        pendingAssistantHeaderReset_ = false;
+        turnThinkActive_ = false;
+        turnThinkHeaderPrinted_ = false;
+        turnAssistantHeaderPrinted_ = false;
+        currentThinkIndex_ = -1;
+        currentAssistantIndex_ = -1;
+    }
 
     const QString begin = QString(DEFAULT_THINK_BEGIN);
     const QString tend = QString(DEFAULT_THINK_END);
