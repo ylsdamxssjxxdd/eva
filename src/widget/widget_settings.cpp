@@ -27,6 +27,23 @@ int clampFontPointSize(int candidate, int fallback = Widget::kDefaultUiFontPt)
     }
     return qBound(Widget::kMinFontPt, candidate, Widget::kMaxFontPt);
 }
+
+QString resolveSarasaFallback(const QString &resourceFamily)
+{
+    if (!resourceFamily.trimmed().isEmpty())
+    {
+        return resourceFamily.trimmed();
+    }
+    return QStringLiteral("Sarasa Fixed CL");
+}
+
+bool isLegacyOutputFont(const QString &family)
+{
+    const QString trimmed = family.trimmed();
+    if (trimmed.isEmpty()) return true;
+    const QString lower = trimmed.toLower();
+    return lower.contains(QStringLiteral("simsun"));
+}
 } // namespace
 
 //-------------------------------------------------------------------------
@@ -655,7 +672,7 @@ void Widget::loadOutputFontFromResource()
     if (!ui || !ui->output) return;
     if (!outputFontResourceLoaded_)
     {
-        const int fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/simsun.ttc"));
+        const int fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/SarasaFixedCL-Regular.ttf"));
         if (fontId >= 0)
         {
             const QStringList families = QFontDatabase::applicationFontFamilies(fontId);
@@ -750,11 +767,16 @@ void Widget::loadGlobalUiSettings(const QSettings &settings)
 {
     const QString family = settings.value("global_font_family", globalUiSettings_.fontFamily).toString();
     const int sizePt = settings.value("global_font_size", globalUiSettings_.fontSizePt).toInt();
-    const QString outputFamily = settings.value("output_font_family", globalUiSettings_.outputFontFamily).toString();
+    QString outputFamily = settings.value("output_font_family", globalUiSettings_.outputFontFamily).toString();
     const int outputSize = settings.value("output_font_size", globalUiSettings_.outputFontSizePt).toInt();
     const QString themeId = settings.value("global_theme", globalUiSettings_.themeId).toString();
 
     applyGlobalFont(family, sizePt > 0 ? sizePt : globalUiSettings_.fontSizePt, false);
+    const QString fallbackFamily = resolveSarasaFallback(outputFontFallbackFamily_);
+    if (isLegacyOutputFont(outputFamily))
+    {
+        outputFamily = fallbackFamily;
+    }
     applyOutputFont(outputFamily, outputSize > 0 ? outputSize : globalUiSettings_.outputFontSizePt, false);
     applyGlobalTheme(themeId, false);
 }

@@ -1,4 +1,4 @@
-#include "cmakeconfig.h"
+﻿#include "cmakeconfig.h"
 #include <QByteArray>
 #include <QCoreApplication>
 #include <QDir>
@@ -7,9 +7,11 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QCheckBox>
+#include <QDebug>
 #include <QLocale> // C-locale parsing for numeric strings
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QResource>
 #include <QSignalBlocker>
 #include <QStringList>
 #include <QStandardPaths>
@@ -95,6 +97,32 @@ static inline void createDesktopShortcut(QString appPath)
 #endif
 }
 
+static void registerSarasaFontResource(const QString &runtimeDir)
+{
+    QDir dir(runtimeDir);
+    QStringList candidates;
+    candidates << dir.filePath(QStringLiteral("font_out.rcc"));
+    candidates << dir.filePath(QStringLiteral("../font_out.rcc"));
+    candidates << dir.filePath(QStringLiteral("resources/font_out.rcc"));
+    candidates << dir.filePath(QStringLiteral("../resources/font_out.rcc"));
+    candidates << dir.filePath(QStringLiteral("EVA_RES/font_out.rcc"));
+    for (const QString &candidate : candidates)
+    {
+        QFileInfo info(candidate);
+        if (!info.exists()) continue;
+        if (QResource::registerResource(info.absoluteFilePath()))
+        {
+            qInfo() << "Registered Sarasa font resource from" << info.absoluteFilePath();
+        }
+        else
+        {
+            qWarning() << "Failed to register Sarasa font resource at" << info.absoluteFilePath();
+        }
+        return;
+    }
+    qWarning() << "font_out.rcc not found; Sarasa font resource unavailable.";
+}
+
 int main(int argc, char *argv[])
 {
     StartupLogger::start();
@@ -116,6 +144,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       // 自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); // 适配非整数倍缩放
     QApplication a(argc, argv);                                                                              // 事件实例
+    registerSarasaFontResource(QCoreApplication::applicationDirPath());
     StartupLogger::log(QStringLiteral("QApplication 初始化完成"));
     a.setQuitOnLastWindowClosed(false);                                                                      // 即使关闭所有窗口也不退出程序，为了保持系统托盘正常
     // 加载资源文件中的字体
@@ -761,4 +790,5 @@ int main(int argc, char *argv[])
     StartupLogger::log(QStringLiteral("启动阶段结束，进入事件循环"));
     return a.exec(); // 进入事件循环
 }
+
 

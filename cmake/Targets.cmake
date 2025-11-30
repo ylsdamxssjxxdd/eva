@@ -6,10 +6,38 @@ include_guard(GLOBAL)
 # Resources
 set(resource_FILES
     resource/res_core.qrc
-    resource/font_base.qrc
-    resource/font_simsun.qrc)
+    resource/font_base.qrc)
 list(APPEND resource_FILES resource/res_docs.qrc)
 set(logo_FILES resource/logo/ico.rc)
+
+# Sarasa font is embedded via a binary RCC to avoid generating a gigantic C++ TU.
+if (TARGET Qt5::rcc)
+    set(EVA_RCC_EXECUTABLE Qt5::rcc)
+elseif (Qt5_RCC_EXECUTABLE)
+    set(EVA_RCC_EXECUTABLE "${Qt5_RCC_EXECUTABLE}")
+else()
+    message(FATAL_ERROR "Qt rcc executable not found; cannot embed Sarasa font resource.")
+endif()
+
+set(FONT_OUT_RCC_DIR ${CMAKE_BINARY_DIR}/qtresources)
+set(FONT_OUT_RCC ${FONT_OUT_RCC_DIR}/font_out.rcc)
+set(FONT_OUT_RUNTIME ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/font_out.rcc)
+add_custom_command(
+    OUTPUT ${FONT_OUT_RCC}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${FONT_OUT_RCC_DIR}
+    COMMAND ${EVA_RCC_EXECUTABLE} --binary -o ${FONT_OUT_RCC} ${CMAKE_SOURCE_DIR}/resource/font_out.qrc
+    DEPENDS ${CMAKE_SOURCE_DIR}/resource/font_out.qrc
+            ${CMAKE_SOURCE_DIR}/resource/SarasaFixedCL-Regular.ttf
+    COMMENT "Generating binary resource font_out.rcc"
+    VERBATIM)
+add_custom_command(
+    OUTPUT ${FONT_OUT_RUNTIME}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FONT_OUT_RCC} ${FONT_OUT_RUNTIME}
+    DEPENDS ${FONT_OUT_RCC}
+    COMMENT "Copying font_out.rcc beside eva executable"
+    VERBATIM)
+add_custom_target(font_out_resource ALL DEPENDS ${FONT_OUT_RUNTIME})
 
 
 add_executable(
@@ -73,6 +101,7 @@ add_executable(
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
     src/net/localproxy.h
 )
+add_dependencies(${EVA_TARGET} font_out_resource)
 ## Executable name
 # Linux: keep binary name as plain "eva" for runtime/AppDir consistency
 # Other platforms: keep the versioned/output-friendly name
