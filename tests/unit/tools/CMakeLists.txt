@@ -2,11 +2,14 @@ set(XTOOL_TEST_SOURCES
     xtool_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/xtool.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/docker_sandbox.cpp
-    ${CMAKE_SOURCE_DIR}/src/utils/processrunner.cpp
     ${CMAKE_SOURCE_DIR}/thirdparty/tinyexpr/tinyexpr.c
 )
 
 find_package(Qt5 COMPONENTS Test REQUIRED)
+
+add_library(processrunner_test STATIC ${CMAKE_SOURCE_DIR}/src/utils/processrunner.cpp)
+target_link_libraries(processrunner_test PRIVATE Qt5::Core)
+target_compile_features(processrunner_test PRIVATE cxx_std_17)
 
 add_executable(xtool_tests ${XTOOL_TEST_SOURCES})
 
@@ -26,6 +29,7 @@ target_link_libraries(xtool_tests PRIVATE
     Qt5::Network
     eva_test_support
     qtmcp
+    processrunner_test
 )
 
 if (UNIX AND NOT APPLE)
