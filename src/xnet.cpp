@@ -29,6 +29,20 @@ void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort, bool 
 }
 } // namespace
 
+QString xNet::turnTag() const
+{
+    if (turn_id_ == 0) return QString();
+    return QStringLiteral("[turn%1]").arg(turn_id_);
+}
+
+void xNet::emitFlowLog(const QString &msg, SIGNAL_STATE state)
+{
+    const QString tag = turnTag();
+    const QString line = tag.isEmpty() ? msg : (tag + " " + msg);
+    qInfo().noquote() << line;
+    Q_UNUSED(state);
+}
+
 xNet::xNet()
 {
     // Defer creation of network objects until we are in worker thread
@@ -149,11 +163,12 @@ void xNet::run()
 {
     if (running_)
     {
-        emit net2ui_state("net: busy, request ignored", SIGNAL_SIGNAL);
+        emitFlowLog("net: busy, request ignored", SIGNAL_SIGNAL);
         return;
     }
 
     running_ = true;
+    turn_id_ = endpoint_data.turn_id;
     resetState();
     // Clear any stale stop flag from previous aborted turn
     is_stop = false;
@@ -167,13 +182,19 @@ void xNet::run()
     const QByteArray body = isChat ? createChatBody() : createCompleteBody();
     logRequestPayload(isChat ? "chat" : "complete", body);
     QNetworkRequest request = buildRequest(url);
+    emitFlowLog(QStringLiteral("net:req %1 url=%2 model=%3 npredict=%4")
+                    .arg(isChat ? QStringLiteral("chat") : QStringLiteral("complete"),
+                         url.toString(),
+                         apis.api_model,
+                         QString::number(endpoint_data.n_predict)),
+                SIGNAL_SIGNAL);
 
     // Fire asynchronous request
     reply_ = nam_->post(request, body);
     if (!reply_)
     {
         running_ = false;
-        emit net2ui_state("net: failed to create request", WRONG_SIGNAL);
+        emitFlowLog("net: failed to create request", WRONG_SIGNAL);
         emit net2ui_pushover();
         return;
     }
@@ -189,6 +210,7 @@ void xNet::run()
         {
             firstByteSeen_ = true;
             t_first_.start();
+            emitFlowLog("net:stream begin", SIGNAL_SIGNAL);
         }
 
         QByteArray chunk = reply_->readAll();
@@ -260,14 +282,17 @@ void xNet::run()
 
             if (err == QNetworkReply::NoError)
             {
-
+                emitFlowLog(QStringLiteral("net:done http=%1 tokens=%2 promptTok=%3 genTok=%4")
+                                .arg(httpCode)
+                                .arg(tokens_)
+                                .arg(promptTokens_)
+                                .arg(predictedTokens_),
+                            SIGNAL_SIGNAL);
             }
             else
             {
                 QString errStr = reply_ ? reply_->errorString() : QString("unknown error");
-                emit net2ui_state("net:" + errStr, WRONG_SIGNAL);
-                if (httpCode)
-                    emit net2ui_state("net:http " + QString::number(httpCode), WRONG_SIGNAL);
+                emitFlowLog(QStringLiteral("net:error http=%1 %2").arg(httpCode).arg(errStr), WRONG_SIGNAL);
             }
             // If we streamed provider-specific reasoning without explicit </think>, close it now
             if (extThinkActive_)
@@ -327,7 +352,7 @@ void xNet::ensureNetObjects()
         timeoutTimer_->setSingleShot(true);
         connect(timeoutTimer_, &QTimer::timeout, this, [this]()
                 {
-            emit net2ui_state("net: timeout", WRONG_SIGNAL);
+            emitFlowLog("net: timeout", WRONG_SIGNAL);
             abortActiveReply(); });
     }
 }
@@ -764,6 +789,7 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
 void xNet::recv_data(ENDPOINT_DATA data)
 {
     endpoint_data = data;
+    turn_id_ = data.turn_id;
 }
 // 传递api设置参数
 void xNet::recv_apis(APIS apis_)
@@ -800,6 +826,11 @@ void xNet::recv_stop(bool stop)
 void xNet::recv_language(int language_flag_)
 {
     language_flag = language_flag_;
+}
+
+void xNet::recv_turn(quint64 turnId)
+{
+    turn_id_ = turnId;
 }
 
 // 根据language.json和language_flag中找到对应的文字

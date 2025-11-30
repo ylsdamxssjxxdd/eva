@@ -104,6 +104,7 @@ class xTool : public QObject
     void recv_workdir(QString dir);
     void recv_dockerConfig(DockerSandbox::Config config);
     void shutdownDockerSandbox();
+    void recv_turn(quint64 turnId); // ä¼ é€’å›žåŽæµç¨‹ID
     void fixDockerContainerMount(const QString &containerName);
   signals:
     void tool2ui_terminalCommandStarted(const QString &command, const QString &workingDir);
@@ -151,6 +152,7 @@ class xTool : public QObject
     void ensureWorkdirExists(const QString &work) const;
     void onDockerStatusChanged(const DockerSandboxStatus &status);
     bool dockerSandboxEnabled() const;
+    QString flowTag(quint64 turnId) const;
     bool ensureDockerSandboxReady(QString *errorMessage);
     QString dockerWorkdirOrFallback(const QString &hostWorkdir) const;
     QString containerPathForHost(const QString &absHostPath) const;
@@ -174,6 +176,7 @@ class xTool : public QObject
     static thread_local ToolInvocation *tlsCurrentInvocation_;
     DockerSandbox *dockerSandbox_ = nullptr;
     DockerSandbox::Config dockerConfig_;
+    std::atomic<quint64> activeTurnId_{0};
 };
 
 // 鼠标键盘工具的函数

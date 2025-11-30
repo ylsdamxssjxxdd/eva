@@ -129,6 +129,7 @@ ENDPOINT_DATA Widget::prepareEndpointData()
     d.reasoning_effort = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
     d.messagesArray = ui_messagesArray;
     d.id_slot = currentSlotId_;
+    d.turn_id = activeTurnId_;
     return d;
 }
 
@@ -370,6 +371,13 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         }
     }
     data.messagesArray = ui_messagesArray;
+    logFlow(FlowPhase::Build,
+            QStringLiteral("chat msgs=%1 img=%2 doc=%3 audio=%4")
+                .arg(ui_messagesArray.size())
+                .arg(in.images.size())
+                .arg(in.documents.size())
+                .arg(in.wavs.size()),
+            SIGNAL_SIGNAL);
     // Create record BEFORE printing header/content so docFrom anchors at header line
     int __idx = recordCreate(RecordRole::User);
     appendRoleHeader(QStringLiteral("user"));
@@ -388,6 +396,16 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
     recordAppendText(__idx, userDisplayText);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
     data.n_predict = ui_SETTINGS.hid_npredict;
+    const QString endpointDisplay = (ui_mode == LINK_MODE)
+                                        ? (apis.api_endpoint + apis.api_chat_endpoint)
+                                        : formatLocalEndpoint(activeServerHost_, activeServerPort_);
+    const QString modelDisplay = (ui_mode == LINK_MODE)
+                                     ? apis.api_model
+                                     : QFileInfo(ui_SETTINGS.modelpath).fileName();
+    logFlow(FlowPhase::NetRequest,
+            QStringLiteral("send chat -> %1 model=%2 n_predict=%3")
+                .arg(endpointDisplay, modelDisplay, QString::number(data.n_predict)),
+            SIGNAL_SIGNAL);
     emit ui2net_data(data);
     emit ui2net_push();
     if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) monitorFrames_.clear();
@@ -400,6 +418,19 @@ void Widget::handleCompletion(ENDPOINT_DATA &data)
 
     data.input_prompt = ui->output->toPlainText();
     data.n_predict = ui_SETTINGS.hid_npredict;
+    logFlow(FlowPhase::Build,
+            QStringLiteral("completion prompt_len=%1").arg(data.input_prompt.size()),
+            SIGNAL_SIGNAL);
+    const QString endpointDisplay = (ui_mode == LINK_MODE)
+                                        ? (apis.api_endpoint + apis.api_completion_endpoint)
+                                        : formatLocalEndpoint(activeServerHost_, activeServerPort_);
+    const QString modelDisplay = (ui_mode == LINK_MODE)
+                                     ? apis.api_model
+                                     : QFileInfo(ui_SETTINGS.modelpath).fileName();
+    logFlow(FlowPhase::NetRequest,
+            QStringLiteral("send completion -> %1 model=%2 n_predict=%3")
+                .arg(endpointDisplay, modelDisplay, QString::number(data.n_predict)),
+            SIGNAL_SIGNAL);
     emit ui2net_data(data);
     emit ui2net_push();
 }
@@ -436,12 +467,72 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     recordAppendText(__idx, tool_result);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
 
+    logFlow(FlowPhase::ToolResult,
+            QStringLiteral("observation len=%1 pending_images=%2").arg(tool_result.size()).arg(wait_to_show_images_filepath.size()),
+            SIGNAL_SIGNAL);
     pendingAssistantHeaderReset_ = true;
 
     tool_result = "";
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
     is_run = true;
     ui_state_pushing();
+}
+
+QString Widget::flowPhaseName(FlowPhase phase) const
+{
+    switch (phase)
+    {
+    case FlowPhase::Start: return QStringLiteral("start");
+    case FlowPhase::Build: return QStringLiteral("build");
+    case FlowPhase::NetRequest: return QStringLiteral("net_req");
+    case FlowPhase::Streaming: return QStringLiteral("stream");
+    case FlowPhase::NetDone: return QStringLiteral("net_done");
+    case FlowPhase::ToolParsed: return QStringLiteral("tool_parse");
+    case FlowPhase::ToolStart: return QStringLiteral("tool_start");
+    case FlowPhase::ToolResult: return QStringLiteral("tool_result");
+    case FlowPhase::ContinueTurn: return QStringLiteral("continue");
+    case FlowPhase::Finish: return QStringLiteral("finish");
+    case FlowPhase::Cancel: return QStringLiteral("cancel");
+    }
+    return QStringLiteral("unknown");
+}
+
+QString Widget::flowTag(quint64 turnId) const
+{
+    if (turnId == 0) return QStringLiteral("[turn-]");
+    return QStringLiteral("[turn%1]").arg(turnId);
+}
+
+void Widget::logFlow(FlowPhase phase, const QString &detail, SIGNAL_STATE state)
+{
+    const QString line = QStringLiteral("%1[%2] %3").arg(flowTag(activeTurnId_), flowPhaseName(phase), detail);
+    qInfo().noquote() << line;
+    Q_UNUSED(state);
+}
+
+void Widget::startTurnFlow(ConversationTask task, bool continuingTool)
+{
+    if (activeTurnId_ == 0 || !turnActive_)
+    {
+        activeTurnId_ = nextTurnId_++;
+    }
+    turnActive_ = true;
+    const QString taskName = (task == ConversationTask::ChatReply)  ? QStringLiteral("chat")
+                            : (task == ConversationTask::Completion) ? QStringLiteral("completion")
+                                                                     : QStringLiteral("tool_loop");
+    const QString modeName = (ui_mode == LINK_MODE) ? QStringLiteral("link") : QStringLiteral("local");
+    const QString detail = QStringLiteral("task=%1 mode=%2 tool_cont=%3").arg(taskName, modeName, continuingTool ? QStringLiteral("yes") : QStringLiteral("no"));
+    logFlow(FlowPhase::Start, detail, SIGNAL_SIGNAL);
+    emit ui2tool_turn(activeTurnId_);
+}
+
+void Widget::finishTurnFlow(const QString &reason, bool success)
+{
+    if (activeTurnId_ == 0) return;
+    const QString detail = QStringLiteral("%1 kvUsed=%2").arg(reason).arg(kvUsed_);
+    logFlow(FlowPhase::Finish, detail, success ? SIGNAL_SIGNAL : WRONG_SIGNAL);
+    turnActive_ = false;
+    activeTurnId_ = 0;
 }
 
 void Widget::logCurrentTask(ConversationTask task)
@@ -464,6 +555,7 @@ void Widget::logCurrentTask(ConversationTask task)
 
 void Widget::on_send_clicked()
 {
+    const bool continuingTool = !tool_result.isEmpty();
     if (ui_mode == LOCAL_MODE)
     {
         const bool serverRunning = serverManager && serverManager->isRunning();
@@ -493,7 +585,6 @@ void Widget::on_send_clicked()
     sawPromptPast_ = false;
     sawFinalPast_ = false;
     // reflash_state("ui:" + jtr("clicked send"), SIGNAL_SIGNAL);
-    turnActive_ = true;
     kvUsedBeforeTurn_ = kvUsed_;
     cancelLazyUnload(QStringLiteral("user send"));
     markBackendActivity();
@@ -509,14 +600,14 @@ void Widget::on_send_clicked()
     // }
 
     emit ui2net_stop(0);
-    ENDPOINT_DATA data = prepareEndpointData();
-
     if (ui_state == CHAT_STATE) beginSessionIfNeeded();
 
     if (!tool_result.isEmpty())
     {
         currentTask_ = ConversationTask::ToolLoop;
+        startTurnFlow(currentTask_, true);
         logCurrentTask(currentTask_);
+        ENDPOINT_DATA data = prepareEndpointData();
         handleToolLoop(data);
         return;
     }
@@ -524,15 +615,19 @@ void Widget::on_send_clicked()
     if (ui_state == CHAT_STATE)
     {
         currentTask_ = ConversationTask::ChatReply;
+        startTurnFlow(currentTask_, continuingTool);
         logCurrentTask(currentTask_);
         InputPack in;
         collectUserInputs(in);
+        ENDPOINT_DATA data = prepareEndpointData();
         handleChatReply(data, in);
     }
     else
     {
         currentTask_ = ConversationTask::Completion;
+        startTurnFlow(currentTask_, continuingTool);
         logCurrentTask(currentTask_);
+        ENDPOINT_DATA data = prepareEndpointData();
         handleCompletion(data);
     }
 

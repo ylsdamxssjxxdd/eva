@@ -50,6 +50,7 @@ class xNet : public QObject
     void recv_apis(APIS apis_);         // 传递api设置参数
     void recv_stop(bool stop);          // 传递停止信号
     void recv_language(int language_flag_);
+    void recv_turn(quint64 turnId);     // ä¼ é€’å›žåŽç±»ID
 
   signals:
     void net2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL);            // 状态
@@ -98,6 +99,7 @@ class xNet : public QObject
     bool sawToolStopword_ = false; // seen </tool_call> this turn; allow coasting to receive usage/timings
     int cacheTokens_ = -1;
     bool totalsEmitted_ = false;
+    quint64 turn_id_ = 0; // å½“å‰å›žåŽIDç”¨äºŽæµç¨‹æ‰«æ
 
     // Keep track of connections to safely disconnect on abort
     QMetaObject::Connection connReadyRead_;
@@ -112,6 +114,8 @@ class xNet : public QObject
     QNetworkRequest buildRequest(const QUrl &url) const;
     void ensureNetObjects();
     void logRequestPayload(const char *modeTag, const QByteArray &body);
+    QString turnTag() const;
+    void emitFlowLog(const QString &msg, SIGNAL_STATE state = USUAL_SIGNAL);
 
   protected:
     void processSsePayload(bool isChat, const QByteArray &payload);

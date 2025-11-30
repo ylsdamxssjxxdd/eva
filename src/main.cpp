@@ -440,6 +440,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language); // 传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              // 开始推理
     QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);   // 设置工程师工作目录
+    QObject::connect(&w, &Widget::ui2tool_turn, &tool, &xTool::recv_turn);         // 同步当前回合ID
     QObject::connect(&w, &Widget::ui2tool_dockerConfigChanged, &tool, &xTool::recv_dockerConfig);
     QObject::connect(&w, &Widget::ui2tool_fixDockerContainerMount, &tool, &xTool::fixDockerContainerMount);
     QObject::connect(&w, &Widget::ui2tool_interruptCommand, &tool, &xTool::cancelExecuteCommand);

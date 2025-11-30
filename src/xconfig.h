@@ -243,6 +243,7 @@ struct ENDPOINT_DATA
     QString reasoning_effort; // 推理强度（off/minimal/low/medium/high/auto）
     QStringList stopwords;    // 停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
+    quint64 turn_id = 0;       // å½“å‰å›žåŽçš„æµç¨‹æ ‡è¯†
 };
 
 // 单参数工具

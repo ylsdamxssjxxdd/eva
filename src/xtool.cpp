@@ -153,6 +153,7 @@ QString normalizeUnixPath(const QString &path)
 struct xTool::ToolInvocation
 {
     quint64 id = 0;
+    quint64 turnId = 0;
     QString name;
     mcp::json call;
     mcp::json args;
@@ -164,16 +165,28 @@ struct xTool::ToolInvocation
 
 thread_local xTool::ToolInvocation *xTool::tlsCurrentInvocation_ = nullptr;
 
+QString xTool::flowTag(quint64 turnId) const
+{
+    if (turnId == 0) return QString();
+    return QStringLiteral("[turn%1] ").arg(turnId);
+}
+
 void xTool::sendStateMessage(const QString &message, SIGNAL_STATE state)
 {
+    quint64 turnId = activeTurnId_.load(std::memory_order_relaxed);
+    if (tlsCurrentInvocation_) turnId = tlsCurrentInvocation_->turnId;
     if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
-    emit tool2ui_state(clampToolMessage(message), state);
+    const QString line = flowTag(turnId) + message;
+    emit tool2ui_state(clampToolMessage(line), state);
 }
 
 void xTool::sendPushMessage(const QString &message)
 {
+    quint64 turnId = activeTurnId_.load(std::memory_order_relaxed);
+    if (tlsCurrentInvocation_) turnId = tlsCurrentInvocation_->turnId;
     if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
-    emit tool2ui_pushover(clampToolMessage(message));
+    const QString line = flowTag(turnId) + message;
+    emit tool2ui_pushover(clampToolMessage(line));
 }
 
 xTool::ToolInvocationPtr xTool::activeInvocation() const
@@ -202,6 +215,7 @@ xTool::ToolInvocationPtr xTool::createInvocation(mcp::json tools_call)
     cancelActiveTool();
     auto invocation = std::make_shared<ToolInvocation>();
     invocation->id = nextInvocationId_.fetch_add(1, std::memory_order_relaxed);
+    invocation->turnId = activeTurnId_.load(std::memory_order_relaxed);
     invocation->call = std::move(tools_call);
     invocation->name = QString::fromStdString(get_string_safely(invocation->call, "name"));
     invocation->args = get_json_object_safely(invocation->call, "arguments");
@@ -239,6 +253,11 @@ void xTool::recv_dockerConfig(DockerSandbox::Config config)
 {
     dockerConfig_ = config;
     if (dockerSandbox_) dockerSandbox_->applyConfig(dockerConfig_);
+}
+
+void xTool::recv_turn(quint64 turnId)
+{
+    activeTurnId_.store(turnId, std::memory_order_relaxed);
 }
 
 void xTool::shutdownDockerSandbox()
@@ -369,6 +388,7 @@ void xTool::Exec(mcp::json tools_call)
     if (!invocation) return;
     QString tools_args = QString::fromStdString(invocation->args.dump());
     qDebug() << "tools_name" << invocation->name << "tools_args" << tools_args;
+    sendStateMessage(QStringLiteral("tool:start %1").arg(invocation->name), SIGNAL_SIGNAL);
     if (invocation->name == "execute_command")
     {
         invocation->commandContent = QString::fromStdString(get_string_safely(invocation->args, "content"));
@@ -1542,6 +1562,10 @@ void xTool::handleCommandFinished(const ToolInvocationPtr &invocation, QProcess 
 void xTool::finishInvocation(const ToolInvocationPtr &invocation)
 {
     if (!invocation) return;
+    const QString name = invocation->name.isEmpty() ? QStringLiteral("<unknown>") : invocation->name;
+    const QString line = flowTag(invocation->turnId) + QStringLiteral("tool:done %1").arg(name);
+    qInfo().noquote() << line;
+    emit tool2ui_state(clampToolMessage(line), SIGNAL_SIGNAL);
     postFinishCleanup(invocation);
     clearActiveInvocation(invocation);
 }

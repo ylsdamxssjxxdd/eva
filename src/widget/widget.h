@@ -103,6 +103,21 @@ enum class ConversationTask
     ToolLoop
 };
 
+enum class FlowPhase
+{
+    Start,
+    Build,
+    NetRequest,
+    Streaming,
+    NetDone,
+    ToolParsed,
+    ToolStart,
+    ToolResult,
+    ContinueTurn,
+    Finish,
+    Cancel
+};
+
 enum class DockerTargetMode
 {
     None,
@@ -255,6 +270,8 @@ class Widget : public QWidget
     ConversationTask currentTask_ = ConversationTask::ChatReply; // current send task
     bool engineerRefreshAfterResetScheduled_ = false;            // 延迟刷新是否已排队
     bool engineerRestoreOutputAfterEngineerRefresh_ = false;     // 刷新后是否需要恢复滚动
+    quint64 nextTurnId_ = 1;                                     // monotonic turn id for tracing a full flow
+    quint64 activeTurnId_ = 0;                                   // turn id of the currently active flow
 
     QString history_lorapath = "";
     QString history_mmprojpath = "";
@@ -621,6 +638,7 @@ class Widget : public QWidget
     void ui2tool_interruptCommand();           // 终止当前命令
     void ui2tool_cancelActive();               // 中断所有工具执行
     void ui2tool_shutdownDocker();             // 关闭 Docker 沙盒（退出收尾）
+    void ui2tool_turn(quint64 turnId);
     void dockerShutdownFinished();
 
     // 发送给expend的信号
@@ -804,6 +822,11 @@ class Widget : public QWidget
     void handleCompletion(ENDPOINT_DATA &data);
     void handleToolLoop(ENDPOINT_DATA &data);
     void logCurrentTask(ConversationTask task);
+    QString flowPhaseName(FlowPhase phase) const;
+    QString flowTag(quint64 turnId) const;
+    void logFlow(FlowPhase phase, const QString &detail, SIGNAL_STATE state = USUAL_SIGNAL);
+    void startTurnFlow(ConversationTask task, bool continuingTool);
+    void finishTurnFlow(const QString &reason, bool success);
 
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);
