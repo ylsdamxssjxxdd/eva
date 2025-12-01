@@ -535,6 +535,40 @@ void Widget::finishTurnFlow(const QString &reason, bool success)
     activeTurnId_ = 0;
 }
 
+void Widget::ensureSystemHeader(const QString &systemText)
+{
+    const bool needRecord = (ui_state == CHAT_STATE);
+    const bool engineerProxyWasActive = engineerProxyRuntime_.active;
+    // force UI path when printing system header
+    engineerProxyRuntime_.active = false;
+    // Ensure first message is system
+    if (ui_messagesArray.isEmpty() || ui_messagesArray.first().toObject().value(QStringLiteral("role")).toString() != QStringLiteral(DEFAULT_SYSTEM_NAME))
+    {
+        QJsonObject systemMessage;
+        systemMessage.insert(QStringLiteral("role"), DEFAULT_SYSTEM_NAME);
+        systemMessage.insert(QStringLiteral("content"), systemText);
+        if (ui_messagesArray.isEmpty())
+            ui_messagesArray.append(systemMessage);
+        else
+            ui_messagesArray.replace(0, systemMessage);
+    }
+
+    const bool docEmpty = !ui->output->document() || ui->output->document()->isEmpty();
+    if (needRecord && (lastSystemRecordIndex_ < 0 || docEmpty))
+    {
+        const int idx = recordCreate(RecordRole::System);
+        appendRoleHeader(QStringLiteral("system"));
+        reflash_output(systemText, 0, themeTextPrimary());
+        recordAppendText(idx, systemText);
+        lastSystemRecordIndex_ = idx;
+        if (!ui_messagesArray.isEmpty())
+        {
+            recordEntries_[idx].msgIndex = 0;
+        }
+        logFlow(FlowPhase::Build, QStringLiteral("system header inserted"), SIGNAL_SIGNAL);
+    }
+    engineerProxyRuntime_.active = engineerProxyWasActive;
+}
 void Widget::logCurrentTask(ConversationTask task)
 {
     Q_UNUSED(task);

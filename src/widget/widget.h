@@ -228,6 +228,7 @@ class Widget : public QWidget
     void syncDockerSandboxConfig(bool forceEmit = false);
     bool shouldShutdownDockerOnExit() const;
     void refreshEngineerPromptBlock();
+    void refreshEngineerPromptPreview();
     bool shouldUseDockerEnv() const;
     QString runDockerExecCommand(const QString &command, int timeoutMs = 10000) const;
     void refreshDockerImageList(bool force = false);
@@ -549,7 +550,8 @@ class Widget : public QWidget
     bool engineerThinkActive_ = false;
     bool engineerThinkHeaderPrinted_ = false;
     bool engineerAssistantHeaderPrinted_ = false;
-    void appendEngineerText(const QString &text, bool newline);
+    bool engineerConsolePreviewActive_ = false;
+    void appendEngineerText(const QString &text, bool newline, const QColor &color = QColor());
     void resetEngineerStreamState();
     void appendEngineerRoleBlock(const QString &role, const QString &text);
     void processEngineerStreamChunk(const QString &chunk);
@@ -827,6 +829,7 @@ class Widget : public QWidget
     void logFlow(FlowPhase phase, const QString &detail, SIGNAL_STATE state = USUAL_SIGNAL);
     void startTurnFlow(ConversationTask task, bool continuingTool);
     void finishTurnFlow(const QString &reason, bool success);
+    void ensureSystemHeader(const QString &systemText);
 
     // Output helpers: print a role header then content separately
     void appendRoleHeader(const QString &role);

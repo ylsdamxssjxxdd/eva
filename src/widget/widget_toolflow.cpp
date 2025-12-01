@@ -432,6 +432,7 @@ void Widget::on_reset_clicked()
     turnActive_ = false;
     activeTurnId_ = 0;
     nextTurnId_ = 1;
+    engineerProxyRuntime_.active = false; // reset engineer proxy session
     emit ui2tool_turn(0);
     updateKvBarUi();
     currentSlotId_ = -1; // new conversation -> no slot yet
@@ -450,20 +451,7 @@ void Widget::on_reset_clicked()
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
     ui_messagesArray.append(systemMessage);
-    if (ui_state == CHAT_STATE)
-    {
-        // Create record BEFORE header so gotoRecord can place role name at top
-        int __idx = recordCreate(RecordRole::System);
-        appendRoleHeader(QStringLiteral("system"));
-        reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
-        recordAppendText(__idx, ui_DATES.date_prompt);
-        lastSystemRecordIndex_ = __idx;
-        if (!ui_messagesArray.isEmpty())
-        {
-            int mi = ui_messagesArray.size() - 1;
-            recordEntries_[__idx].msgIndex = mi;
-        }
-    }
+    ensureSystemHeader(ui_DATES.date_prompt);
     ensureOutputAtBottom();
 
     if (engineerActive)

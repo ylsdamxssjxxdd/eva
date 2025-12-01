@@ -8,6 +8,7 @@
 #include <QProcess>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QMenu>
+#include <QTextDocument>
 #include <algorithm>
 
 namespace
@@ -132,14 +133,23 @@ void Widget::resetEngineerConsole()
 {
     if (!ui || !ui->engineerConsole) return;
     ui->engineerConsole->clear();
+    engineerConsolePreviewActive_ = false;
     resetEngineerStreamState();
 }
 
 void Widget::appendEngineerConsole(const QString &line, bool reset)
 {
     if (!ui || !ui->engineerConsole) return;
-    if (reset) ui->engineerConsole->clear();
-    if (!line.isEmpty()) ui->engineerConsole->append(line);
+    if (reset)
+    {
+        ui->engineerConsole->clear();
+        engineerConsolePreviewActive_ = false;
+    }
+    if (!line.isEmpty())
+    {
+        engineerConsolePreviewActive_ = false;
+        ui->engineerConsole->append(line);
+    }
 }
 
 void Widget::resetEngineerStreamState()
@@ -149,13 +159,20 @@ void Widget::resetEngineerStreamState()
     engineerAssistantHeaderPrinted_ = false;
 }
 
-void Widget::appendEngineerText(const QString &text, bool newline)
+void Widget::appendEngineerText(const QString &text, bool newline, const QColor &color)
 {
     if (!ui || !ui->engineerConsole) return;
     QTextCursor c = ui->engineerConsole->textCursor();
     c.movePosition(QTextCursor::End);
-    c.insertText(text);
+    const QColor resolved = color.isValid() ? color : themeTextPrimary();
+    QTextCharFormat fmt;
+    fmt.setForeground(QBrush(resolved));
+    c.mergeCharFormat(fmt);
+    if (!text.isEmpty()) c.insertText(text);
     if (newline) c.insertText(QStringLiteral("\n"));
+    QTextCharFormat reset;
+    reset.setForeground(QBrush(themeTextPrimary()));
+    c.mergeCharFormat(reset);
     ui->engineerConsole->setTextCursor(c);
     if (QScrollBar *sb = ui->engineerConsole->verticalScrollBar()) sb->setValue(sb->maximum());
 }
@@ -164,7 +181,27 @@ void Widget::appendEngineerRoleBlock(const QString &role, const QString &text)
 {
     if (!ui || !ui->engineerConsole) return;
     if (!ui->engineerConsole->document()->isEmpty()) appendEngineerText(QString(), true);
-    appendEngineerText(role, true);
+
+    const QString trimmed = role.trimmed();
+    const QString canonical = trimmed.toLower();
+    const QString labelSystem = jtr("role_system");
+    const QString labelUser = jtr("role_user");
+    const QString labelThink = jtr("role_think");
+    const QString labelTool = jtr("role_tool");
+    const QString labelModel = jtr("role_model");
+    RecordRole roleType = RecordRole::System;
+    if (canonical == QStringLiteral("tool") || trimmed == labelTool)
+        roleType = RecordRole::Tool;
+    else if (canonical == QStringLiteral("think") || trimmed == labelThink)
+        roleType = RecordRole::Think;
+    else if (canonical == QStringLiteral("assistant") || canonical == QStringLiteral("model") || trimmed == labelModel)
+        roleType = RecordRole::Assistant;
+    else if (canonical == QStringLiteral("user") || trimmed == labelUser)
+        roleType = RecordRole::User;
+    else
+        roleType = RecordRole::System;
+
+    appendEngineerText(role, true, chipColorForRole(roleType));
     if (!text.isEmpty()) appendEngineerText(text, true);
 }
 
@@ -379,6 +416,14 @@ void Widget::setEngineerArchitectMode(bool enabled, bool persist)
     {
         get_date(shouldApplySandboxNow());
         if (persist) auto_save_user();
+    }
+    if (enabled)
+    {
+        refreshEngineerPromptPreview();
+    }
+    else if (!engineerProxyRuntime_.active)
+    {
+        resetEngineerConsole();
     }
     const QString notice = enabled ? QStringLiteral("ui:系统架构师模式已开启") : QStringLiteral("ui:系统架构师模式已关闭");
     reflash_state(notice, SIGNAL_SIGNAL);
@@ -762,6 +807,23 @@ void Widget::refreshEngineerPromptBlock()
         engineerRestoreOutputAfterEngineerRefresh_ = false;
         ensureOutputAtBottom();
     }
+    refreshEngineerPromptPreview();
+}
+
+void Widget::refreshEngineerPromptPreview()
+{
+    if (!isArchitectModeActive()) return;
+    if (engineerProxyRuntime_.active) return;
+    if (!ui || !ui->engineerConsole) return;
+    QTextDocument *doc = ui->engineerConsole->document();
+    const bool docEmpty = !doc || doc->isEmpty();
+    if (!docEmpty && !engineerConsolePreviewActive_) return;
+
+    const QString labelSystem = jtr("role_system").isEmpty() ? QStringLiteral("system") : jtr("role_system");
+    const QString prompt = create_engineer_proxy_prompt();
+    resetEngineerConsole();
+    appendEngineerRoleBlock(labelSystem, prompt);
+    engineerConsolePreviewActive_ = true;
 }
 
 void Widget::markEngineerEnvDirty()
@@ -905,6 +967,7 @@ void Widget::applyEngineerEnvSnapshot(const EngineerEnvSnapshot &snapshot, bool 
     if (!updatePrompt) return;
 
     refreshEngineerPromptBlock();
+    ensureSystemHeader(ui_DATES.date_prompt);
     const bool canLogNow = !ui_dockerSandboxEnabled || engineerDockerReady_;
     if (canLogNow)
     {

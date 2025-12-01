@@ -1,6 +1,15 @@
 #include "widget.h"
 #include "ui_widget.h"
 
+namespace
+{
+inline bool isDocLineBreak(QChar ch)
+{
+    return ch == QChar('\n') || ch == QChar('\r') || ch == QChar(QChar::LineSeparator) ||
+           ch == QChar(QChar::ParagraphSeparator);
+}
+}
+
 int Widget::recordCreate(RecordRole role)
 {
     RecordEntry e;
@@ -42,7 +51,7 @@ void Widget::updateRecordEntryContent(int index, const QString &newText)
     if (!doc) return;
     const int docEnd = outputDocEnd();
     int contentFrom = qBound(0, entry.docFrom, docEnd);
-    while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
+    while (contentFrom < docEnd && isDocLineBreak(doc->characterAt(contentFrom))) ++contentFrom;
 
     const auto canonicalRoleName = [](RecordRole r) -> QString
     {
@@ -93,7 +102,7 @@ void Widget::updateRecordEntryContent(int index, const QString &newText)
             {
                 if (doc->characterAt(pos + i) != candidate.at(i)) return false;
             }
-            if (doc->characterAt(pos + len) != QChar('\n')) return false;
+            if (!isDocLineBreak(doc->characterAt(pos + len))) return false;
             pos += len + 1;
             return true;
         };
@@ -133,7 +142,7 @@ void Widget::gotoRecord(int index)
 
     // Normalize start: skip any leading blank lines so the role header is the first visible line
     int from = qBound(0, e.docFrom, end);
-    while (from < end && doc->characterAt(from) == QChar('\n')) ++from;
+    while (from < end && isDocLineBreak(doc->characterAt(from))) ++from;
 
     // Place caret at header start and ensure it's visible
     QTextCursor c(doc);
@@ -418,7 +427,7 @@ void Widget::onRecordDoubleClicked(int index)
     int contentFrom = qBound(0, e.docFrom, docEnd);
 
     // Skip leading blank line inserted before header (if any)
-    while (contentFrom < docEnd && doc->characterAt(contentFrom) == QChar('\n')) ++contentFrom;
+    while (contentFrom < docEnd && isDocLineBreak(doc->characterAt(contentFrom))) ++contentFrom;
 
     auto consumeHeaderIfPresent = [&](int &pos, const QStringList &candidates)
     {
@@ -431,7 +440,7 @@ void Widget::onRecordDoubleClicked(int index)
             {
                 if (doc->characterAt(pos + i) != candidate.at(i)) return false;
             }
-            if (doc->characterAt(pos + len) != QChar('\n')) return false;
+            if (!isDocLineBreak(doc->characterAt(pos + len))) return false;
             pos += len + 1;
             return true;
         };
@@ -469,7 +478,7 @@ void Widget::onRecordDoubleClicked(int index)
         const int docEnd2 = outputDocEnd();
         int s = qBound(0, recordEntries_[index].docFrom, docEnd2);
         // Skip any leading blank lines before header
-        while (s < docEnd2 && doc->characterAt(s) == QChar('\n')) ++s;
+        while (s < docEnd2 && isDocLineBreak(doc->characterAt(s))) ++s;
 
         const auto hasHeader = [&](int startPos, const QStringList &candidates) -> bool
         {
@@ -488,7 +497,7 @@ void Widget::onRecordDoubleClicked(int index)
                     }
                 }
                 if (!headerMatch) continue;
-                if (doc->characterAt(startPos + len) != QChar('\n')) continue;
+                if (!isDocLineBreak(doc->characterAt(startPos + len))) continue;
                 return true;
             }
             return false;
@@ -535,11 +544,11 @@ void Widget::onRecordDoubleClicked(int index)
                 if (startPos >= docTail) startPos = docTail - 1;
                 const QChar atStart = safeCharAt(startPos);
                 const QChar beforeStart = safeCharAt(startPos - 1);
-                if (beforeStart == QChar('\n') && atStart != QChar('\n') && startPos > 0)
+                if (isDocLineBreak(beforeStart) && !isDocLineBreak(atStart) && startPos > 0)
                 {
                     cur.docFrom = startPos - 1;
                 }
-                else if (atStart != QChar('\n'))
+                else if (!isDocLineBreak(atStart))
                 {
                     QTextCursor separatorCursor(doc2);
                     separatorCursor.setPosition(startPos);
