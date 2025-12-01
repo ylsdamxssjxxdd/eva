@@ -505,7 +505,7 @@ QString Widget::flowTag(quint64 turnId) const
 
 void Widget::logFlow(FlowPhase phase, const QString &detail, SIGNAL_STATE state)
 {
-    const QString line = QStringLiteral("%1[%2] %3").arg(flowTag(activeTurnId_), flowPhaseName(phase), detail);
+    const QString line = QStringLiteral("[%1] %2").arg(flowPhaseName(phase), detail);
     qInfo().noquote() << line;
     Q_UNUSED(state);
 }

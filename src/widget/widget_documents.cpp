@@ -73,6 +73,11 @@ void Widget::updateKvBarUi()
 
 void Widget::recv_prompt_baseline(int tokens)
 {
+    if (engineerProxyRuntime_.active)
+    {
+        if (tokens >= 0) engineerProxyRuntime_.lastPromptTokens = qMax(0, tokens);
+        return;
+    }
     if (tokens < 0) return;
     const int promptTokens = qMax(0, tokens);
     // Always treat provider usage as the absolute prompt baseline for this turn.
@@ -135,6 +140,7 @@ void Widget::recv_kv_from_net(int usedTokens)
 {
     if (engineerProxyRuntime_.active)
     {
+        engineerProxyRuntime_.lastGeneratedTokens = qMax(0, usedTokens);
         return;
     }
     const int newStream = qMax(0, usedTokens);

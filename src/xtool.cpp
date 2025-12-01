@@ -167,8 +167,8 @@ thread_local xTool::ToolInvocation *xTool::tlsCurrentInvocation_ = nullptr;
 
 QString xTool::flowTag(quint64 turnId) const
 {
-    if (turnId == 0) return QString();
-    return QStringLiteral("[turn%1] ").arg(turnId);
+    Q_UNUSED(turnId);
+    return QString();
 }
 
 void xTool::sendStateMessage(const QString &message, SIGNAL_STATE state)
