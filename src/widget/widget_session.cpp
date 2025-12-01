@@ -1,5 +1,6 @@
 #include "widget.h"
 #include "ui_widget.h"
+#include "../utils/flowtracer.h"
 
 #include <doc2md/document_converter.h>
 #include <QFile>
@@ -8,6 +9,7 @@
 
 void Widget::on_load_clicked()
 {
+    FlowTracer::log(FlowChannel::UI, QStringLiteral("action: load clicked"), activeTurnId_);
     // reflash_state("ui:" + jtr("clicked load"), SIGNAL_SIGNAL);
 
     // 弹出模式选择对话框：本地模式 或 链接模式（上下结构、紧凑、无“取消”按钮）
@@ -36,9 +38,10 @@ void Widget::on_load_clicked()
                      { modeDlg.done(2); });
     const int ret = modeDlg.exec();
 
-    if (ret == 1)
-    {
-        // 用户选择本地模式：选择模型并启动本地 llama-server
+	if (ret == 1)
+	{
+		FlowTracer::log(FlowChannel::UI, QStringLiteral("action: choose local mode"), activeTurnId_);
+		// 用户选择本地模式：选择模型并启动本地 llama-server
         currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
         // 允许选择与上次相同的模型路径以便重新装载（如服务器已停止或需要重试）
         if (currentpath == "")
@@ -56,9 +59,10 @@ void Widget::on_load_clicked()
         // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
         ensureLocalServer();
     }
-    else if (ret == 2)
-    {
-        // 用户选择链接模式：打开链接设置对话框
+	else if (ret == 2)
+	{
+		FlowTracer::log(FlowChannel::UI, QStringLiteral("action: choose link mode"), activeTurnId_);
+		// 用户选择链接模式：打开链接设置对话框
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
         // 预填：优先使用已持久化的链接配置，避免本地模式切换时被覆盖
@@ -89,7 +93,8 @@ void Widget::recv_freeover_loadlater()
 
 void Widget::preLoad()
 {
-    is_load = false; // 重置is_load标签
+	FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: preload start %1").arg(ui_SETTINGS.modelpath), activeTurnId_);
+	is_load = false; // 重置is_load标签
     preserveConversationOnNextReady_ = false; // Fresh load starts a new chat
     skipUnlockLoadIntro_ = false;            // Ensure unlockLoad prints system prompt
     flushPendingStream();
@@ -506,7 +511,7 @@ QString Widget::flowTag(quint64 turnId) const
 void Widget::logFlow(FlowPhase phase, const QString &detail, SIGNAL_STATE state)
 {
     const QString line = QStringLiteral("[%1] %2").arg(flowPhaseName(phase), detail);
-    qInfo().noquote() << line;
+    FlowTracer::log(FlowChannel::Session, line, activeTurnId_);
     Q_UNUSED(state);
 }
 
@@ -589,7 +594,13 @@ void Widget::logCurrentTask(ConversationTask task)
 
 void Widget::on_send_clicked()
 {
-    const bool continuingTool = !tool_result.isEmpty();
+	FlowTracer::log(FlowChannel::Session,
+	                QStringLiteral("action: send clicked mode=%1 state=%2 tool_cont=%3")
+	                    .arg(ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"))
+	                    .arg(ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"))
+	                    .arg(tool_result.isEmpty() ? QStringLiteral("no") : QStringLiteral("yes")),
+	                activeTurnId_);
+	const bool continuingTool = !tool_result.isEmpty();
     if (ui_mode == LOCAL_MODE)
     {
         const bool serverRunning = serverManager && serverManager->isRunning();

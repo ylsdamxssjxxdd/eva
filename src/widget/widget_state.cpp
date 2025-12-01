@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include "../utils/flowtracer.h"
 
 #include <QStyle>
 #include <QVariant>
@@ -52,6 +53,7 @@ void Widget::applyInputVisualState(const QByteArray &state)
 // 初始界面状态
 void Widget::ui_state_init()
 {
+    FlowTracer::log(FlowChannel::UI, QStringLiteral("ui_state:init (load enabled, others locked)"), activeTurnId_);
     ui->load->setEnabled(1);  // 装载按钮
     ui->date->setEnabled(0);  // 约定按钮
     ui->set->setEnabled(0);   // 设置按钮
@@ -64,6 +66,7 @@ void Widget::ui_state_init()
 // 装载中界面状态
 void Widget::ui_state_loading()
 {
+    FlowTracer::log(FlowChannel::UI, QStringLiteral("ui_state:loading (all controls disabled)"), activeTurnId_);
     ui->send->setEnabled(0);         // 发送按钮
     ui->reset->setEnabled(0);        // 重置按钮
     ui->date->setEnabled(0);         // 约定按钮
@@ -75,6 +78,7 @@ void Widget::ui_state_loading()
 // 推理中界面状态
 void Widget::ui_state_pushing()
 {
+    FlowTracer::log(FlowChannel::UI, QStringLiteral("ui_state:pushing (send disabled, reset enabled)"), activeTurnId_);
     wait_play(); // 开启推理动画
     ui->load->setEnabled(0);
     ui->date->setEnabled(0);
@@ -88,6 +92,13 @@ void Widget::ui_state_pushing()
 // 待机界面状态
 void Widget::ui_state_normal()
 {
+    FlowTracer::log(FlowChannel::UI,
+                    QStringLiteral("ui_state:normal mode=%1 state=%2 loaded=%3 running=%4")
+                        .arg(ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"))
+                        .arg(ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"))
+                        .arg(is_load ? QStringLiteral("yes") : QStringLiteral("no"))
+                        .arg(is_run ? QStringLiteral("yes") : QStringLiteral("no")),
+                    activeTurnId_);
     if (wakeUiLocked_ || engineerUiLockActive_)
     {
         if (decode_pTimer) decode_pTimer->stop();

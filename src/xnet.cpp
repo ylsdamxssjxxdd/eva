@@ -1,5 +1,6 @@
 #include "xnet.h"
 #include "prompt_builder.h"
+#include "utils/flowtracer.h"
 #if QT_CONFIG(ssl)
 #include <QSslError>
 #endif
@@ -39,7 +40,7 @@ void xNet::emitFlowLog(const QString &msg, SIGNAL_STATE state)
 {
     const QString tag = turnTag();
     const QString line = tag.isEmpty() ? msg : (tag + " " + msg);
-    qInfo().noquote() << line;
+    FlowTracer::log(FlowChannel::Net, line, turn_id_);
     Q_UNUSED(state);
 }
 

@@ -1,6 +1,7 @@
 #include "xtool.h"
 
 #include "utils/processrunner.h"
+#include "utils/flowtracer.h"
 
 #include <QDirIterator>
 #include <QEventLoop>
@@ -220,6 +221,9 @@ xTool::ToolInvocationPtr xTool::createInvocation(mcp::json tools_call)
     invocation->name = QString::fromStdString(get_string_safely(invocation->call, "name"));
     invocation->args = get_json_object_safely(invocation->call, "arguments");
     setActiveInvocation(invocation);
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:create id=%1 name=%2").arg(invocation->id).arg(invocation->name),
+                    invocation->turnId);
     return invocation;
 }
 
@@ -361,6 +365,9 @@ void xTool::cancelExecuteCommand()
 void xTool::startWorkerInvocation(const ToolInvocationPtr &invocation)
 {
     if (!invocation) return;
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:start async name=%1").arg(invocation->name),
+                    invocation->turnId);
     QtConcurrent::run([this, invocation]()
                       {
         ToolInvocation *previous = tlsCurrentInvocation_;
@@ -388,6 +395,9 @@ void xTool::Exec(mcp::json tools_call)
     if (!invocation) return;
     QString tools_args = QString::fromStdString(invocation->args.dump());
     qDebug() << "tools_name" << invocation->name << "tools_args" << tools_args;
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:dispatch name=%1").arg(invocation->name),
+                    invocation->turnId);
     sendStateMessage(QStringLiteral("tool:start %1").arg(invocation->name), SIGNAL_SIGNAL);
     if (invocation->name == "execute_command")
     {
@@ -1564,8 +1574,8 @@ void xTool::finishInvocation(const ToolInvocationPtr &invocation)
     if (!invocation) return;
     const QString name = invocation->name.isEmpty() ? QStringLiteral("<unknown>") : invocation->name;
     const QString line = flowTag(invocation->turnId) + QStringLiteral("tool:done %1").arg(name);
-    qInfo().noquote() << line;
-    emit tool2ui_state(clampToolMessage(line), SIGNAL_SIGNAL);
+    FlowTracer::log(FlowChannel::Tool, line, invocation->turnId);
+    emit tool2ui_state(clampToolMessage(QStringLiteral("tool:done %1").arg(name)), SIGNAL_SIGNAL);
     postFinishCleanup(invocation);
     clearActiveInvocation(invocation);
 }

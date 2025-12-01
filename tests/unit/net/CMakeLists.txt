@@ -4,6 +4,7 @@ add_executable(xnet_body_tests
     xnet_body_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/xnet.cpp
     ${CMAKE_SOURCE_DIR}/src/prompt_builder.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/flowtracer.cpp
 )
 
 target_link_libraries(xnet_body_tests PRIVATE
@@ -37,6 +38,7 @@ add_executable(xnet_stream_tests
     xnet_stream_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/xnet.cpp
     ${CMAKE_SOURCE_DIR}/src/prompt_builder.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/flowtracer.cpp
 )
 
 target_link_libraries(xnet_stream_tests PRIVATE

@@ -1,5 +1,6 @@
 #include "xbackend.h"
 #include "utils/devicemanager.h"
+#include "utils/flowtracer.h"
 #include "xbackend_args.h"
 #include <QCoreApplication>
 #include <QDir>
@@ -73,6 +74,7 @@ void LocalServerManager::hookProcessSignals()
     connect(proc_, &QProcess::started, this, [this]()
             {
                 // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
+                FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: process started"));
             });
     connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
             {
@@ -84,8 +86,9 @@ void LocalServerManager::hookProcessSignals()
         if (!out.isEmpty()) emit serverOutput(out);
         if (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on"))
         {
-            // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
-            emit serverReady(endpointBase());
+        // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+        emit serverReady(endpointBase());
+        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: listening %1").arg(endpointBase()));
         } });
     connect(proc_, &QProcess::readyReadStandardError, this, [this]()
             {
@@ -125,6 +128,7 @@ void LocalServerManager::startProcess(const QStringList &args)
     const QString prog = programPath();
     lastProgram_ = prog;
     lastArgs_ = args;
+    FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: launch %1").arg(QDir::toNativeSeparators(prog)));
     // Ensure program-local runtime deps can be found by the child process
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString toolDir = QFileInfo(prog).absolutePath();
@@ -162,6 +166,7 @@ void LocalServerManager::ensureRunning()
         emit serverState(msg, WRONG_SIGNAL);
         emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
         emit serverStartFailed(msg);
+        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: executable missing (%1)").arg(prog));
         return;
     }
     // If not running -> start; if running with different args -> restart
@@ -197,6 +202,7 @@ void LocalServerManager::restart()
         emit serverState(msg, WRONG_SIGNAL);
         emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
         emit serverStartFailed(msg);
+        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: executable missing (%1)").arg(prog));
         return;
     }
     if (isRunning())

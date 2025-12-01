@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include "../utils/startuplogger.h"
+#include "../utils/flowtracer.h"
 #include <QTcpServer>
 #include <QElapsedTimer>
 #include <QMessageBox>
@@ -88,6 +89,11 @@ void Widget::ensureLocalServer(bool lazyWake)
 {
     if (!serverManager) return;
 
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: ensureLocalServer lazy=%1 mode=%2")
+                        .arg(lazyWake ? QStringLiteral("yes") : QStringLiteral("no"))
+                        .arg(ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local")),
+                    activeTurnId_);
     StartupLogger::log(QStringLiteral("ensureLocalServer start (lazy=%1)").arg(lazyWake));
     QElapsedTimer ensureTimer;
     ensureTimer.start();
@@ -238,6 +244,10 @@ void Widget::ensureLocalServer(bool lazyWake)
 
     activeServerHost_ = frontendHost;
     activeServerPort_ = chosenPort;
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: proxy ready front %1:%2")
+                        .arg(activeServerHost_, activeServerPort_),
+                    activeTurnId_);
 
     QString backendPort = activeBackendPort_;
     const bool backendRunning = serverManager->isRunning();
@@ -262,6 +272,10 @@ void Widget::ensureLocalServer(bool lazyWake)
     }
     activeBackendPort_ = backendPort;
     updateProxyBackend(backendListenHost_, activeBackendPort_);
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: target %1:%2 (proxy %3:%4)")
+                        .arg(backendListenHost_, activeBackendPort_, activeServerHost_, activeServerPort_),
+                    activeTurnId_);
 
     serverManager->setSettings(ui_SETTINGS);
     serverManager->setHost(backendListenHost_);
@@ -296,10 +310,18 @@ void Widget::ensureLocalServer(bool lazyWake)
 
     serverManager->ensureRunning();
     StartupLogger::log(QStringLiteral("ensureLocalServer ensureRunning done (%1 ms)").arg(ensureTimer.elapsed()));
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: ensureRunning issued restart=%1")
+                        .arg(lastServerRestart_ ? QStringLiteral("yes") : QStringLiteral("no")),
+                    activeTurnId_);
 
     backendOnline_ = serverManager->isRunning() && !lastServerRestart_;
     if (proxyServer_) proxyServer_->setBackendAvailable(backendOnline_);
     if (!lazyWake && backendOnline_) markBackendActivity();
+    if (backendOnline_)
+    {
+        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: online"), activeTurnId_);
+    }
 
     if (!lastServerRestart_ && backendRunning)
     {

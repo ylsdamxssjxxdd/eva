@@ -36,6 +36,7 @@ Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
 #include "utils/gpuchecker.h"
 #include "utils/startuplogger.h"
 #include "utils/singleinstance.h" // single-instance guard (per app path)
+#include "utils/flowtracer.h"
 #include "widget/widget.h"
 #include "xmcp.h"
 #include "prompt.h"
@@ -126,6 +127,7 @@ static void registerSarasaFontResource(const QString &runtimeDir)
 int main(int argc, char *argv[])
 {
     StartupLogger::start();
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: enter main"));
     StartupLogger::log(QStringLiteral("进入 main"));
     // 设置linux下动态库的默认路径
 #ifdef BODY_LINUX_PACK
@@ -144,6 +146,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       // 自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); // 适配非整数倍缩放
     QApplication a(argc, argv);                                                                              // 事件实例
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: QApplication created"));
     registerSarasaFontResource(QCoreApplication::applicationDirPath());
     StartupLogger::log(QStringLiteral("QApplication 初始化完成"));
     a.setQuitOnLastWindowClosed(false);                                                                      // 即使关闭所有窗口也不退出程序，为了保持系统托盘正常
@@ -169,6 +172,7 @@ int main(int argc, char *argv[])
     }
     promptx::loadPromptLibrary();
     StartupLogger::log(QStringLiteral("字体资源加载完成"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: fonts loaded"));
 
     // 设置创建EVA_TEMP文件夹所在的目录
 #if BODY_LINUX_PACK
@@ -187,6 +191,7 @@ int main(int argc, char *argv[])
 #endif
     qDebug() << "EVA_PATH" << appPath;
     StartupLogger::log(QStringLiteral("应用目录初始化完成"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: application directory ready"));
 
     // Single-instance: only one process per application path. If another is running,
     // ping it to raise the window and exit quietly.
@@ -198,6 +203,7 @@ int main(int argc, char *argv[])
         return 0;
     }
     StartupLogger::log(QStringLiteral("单实例检查通过"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: single instance check passed"));
     // Auto-discover default models from EVA_MODELS when no config exists
     {
         const QString tempDir = applicationDirPath + "/EVA_TEMP";
@@ -277,19 +283,23 @@ int main(int argc, char *argv[])
         }
     }
     StartupLogger::log(QStringLiteral("默认模型自动发现完成"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: default model discovery finished"));
     //------------------实例化主要节点------------------
     QElapsedTimer widgetTimer;
     widgetTimer.start();
     Widget w(nullptr, applicationDirPath);      // 窗口实例
     StartupLogger::log(QStringLiteral("Widget 构造完成（%1 ms）").arg(widgetTimer.elapsed()));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: Widget %1 ms").arg(widgetTimer.elapsed()));
     QElapsedTimer expendTimer;
     expendTimer.start();
     Expend expend(nullptr, applicationDirPath); // 增殖窗口实例
     StartupLogger::log(QStringLiteral("Expend 构造完成（%1 ms）").arg(expendTimer.elapsed()));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: Expend %1 ms").arg(expendTimer.elapsed()));
     QElapsedTimer toolTimer;
     toolTimer.start();
     xTool tool(applicationDirPath);             // 工具实例
     StartupLogger::log(QStringLiteral("xTool 构造完成（%1 ms）").arg(toolTimer.elapsed()));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: xTool %1 ms").arg(toolTimer.elapsed()));
     // 将 xNet 改为堆对象，确保在其所属线程内析构，避免 Windows 下 QWinEventNotifier 跨线程清理告警
     xNet *net = new xNet; // 链接实例（worker 线程内生命周期）
     xMcp mcp;             // mcp管理实例
@@ -786,9 +796,11 @@ int main(int argc, char *argv[])
     }
     w.show();        // 展示窗口
     StartupLogger::log(QStringLiteral("主窗口显示完成"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("ui: main window shown"));
     QFontInfo info(w.font());              // this widget's resolved font
     qDebug() << "Widget uses font:" << info.family();
     StartupLogger::log(QStringLiteral("启动阶段结束，进入事件循环"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: enter event loop"));
     return a.exec(); // 进入事件循环
 }
 
