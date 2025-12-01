@@ -38,9 +38,7 @@ QString xNet::turnTag() const
 
 void xNet::emitFlowLog(const QString &msg, SIGNAL_STATE state)
 {
-    const QString tag = turnTag();
-    const QString line = tag.isEmpty() ? msg : (tag + " " + msg);
-    FlowTracer::log(FlowChannel::Net, line, turn_id_);
+    FlowTracer::log(FlowChannel::Net, msg, turn_id_);
     Q_UNUSED(state);
 }
 
@@ -325,13 +323,17 @@ void xNet::run()
     // Network errors should not hang the loop
     connError_ = connect(reply_, qOverload<QNetworkReply::NetworkError>(&QNetworkReply::errorOccurred), this, [this](QNetworkReply::NetworkError)
                          {
-        if (timeoutTimer_) timeoutTimer_->stop(); });
+        if (timeoutTimer_) timeoutTimer_->stop();
+        FlowTracer::log(FlowChannel::Net,
+                        QStringLiteral("net: network error reply"),
+                        turn_id_); });
 #if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0) && QT_CONFIG(ssl)
     connSslErrors_ = connect(reply_, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &errors)
                              {
         Q_UNUSED(errors);
         // Report but do not ignore by default
-        emit net2ui_state("net: SSL error", WRONG_SIGNAL); });
+        emit net2ui_state("net: SSL error", WRONG_SIGNAL);
+        FlowTracer::log(FlowChannel::Net, QStringLiteral("net: ssl error"), turn_id_); });
 #endif
 
     // Arm an overall timeout (no bytes + no finish)
@@ -595,7 +597,9 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
     if (perr.error != QJsonParseError::NoError || (!doc.isObject() && !doc.isArray()))
     {
         // noisy providers may send partials; keep silent in UI
-        qDebug() << "net: json parse fail" << perr.errorString();
+        FlowTracer::log(FlowChannel::Net,
+                        QStringLiteral("net: json parse fail %1").arg(perr.errorString()),
+                        turn_id_);
         return;
     }
 

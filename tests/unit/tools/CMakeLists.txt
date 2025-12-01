@@ -31,6 +31,7 @@ target_link_libraries(xtool_tests PRIVATE
     eva_test_support
     qtmcp
     processrunner_test
+    Qt5::Sql
 )
 
 if (UNIX AND NOT APPLE)

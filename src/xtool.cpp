@@ -360,6 +360,7 @@ void xTool::cancelExecuteCommand()
     {
         activeCommandProcess_->kill();
     }
+    FlowTracer::log(FlowChannel::Tool, QStringLiteral("tool:command cancel"), activeTurnId_.load(std::memory_order_relaxed));
 }
 
 void xTool::startWorkerInvocation(const ToolInvocationPtr &invocation)
@@ -1449,6 +1450,11 @@ void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
     if (!invocation) return;
     const QString content = invocation->commandContent;
     sendStateMessage("tool:" + QString("execute_command(") + content + ")");
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:exec start workdir=%1 docker=%2")
+                        .arg(resolveWorkRoot(),
+                             dockerSandboxEnabled() ? QStringLiteral("yes") : QStringLiteral("no")),
+                    invocation->turnId);
     const QString work = resolveWorkRoot();
     ensureWorkdirExists(work);
     const bool useDocker = dockerSandboxEnabled();
@@ -1457,6 +1463,9 @@ void xTool::startExecuteCommand(const ToolInvocationPtr &invocation)
     {
         sendPushMessage(QStringLiteral("execute_command failed: ") + dockerError);
         sendStateMessage("tool:" + QStringLiteral("execute_command docker error\n") + dockerError, WRONG_SIGNAL);
+        FlowTracer::log(FlowChannel::Tool,
+                        QStringLiteral("tool:exec docker error %1").arg(dockerError),
+                        invocation->turnId);
         finishInvocation(invocation);
         return;
     }
@@ -1573,7 +1582,7 @@ void xTool::finishInvocation(const ToolInvocationPtr &invocation)
 {
     if (!invocation) return;
     const QString name = invocation->name.isEmpty() ? QStringLiteral("<unknown>") : invocation->name;
-    const QString line = flowTag(invocation->turnId) + QStringLiteral("tool:done %1").arg(name);
+    const QString line = QStringLiteral("tool:done %1").arg(name);
     FlowTracer::log(FlowChannel::Tool, line, invocation->turnId);
     emit tool2ui_state(clampToolMessage(QStringLiteral("tool:done %1").arg(name)), SIGNAL_SIGNAL);
     postFinishCleanup(invocation);
@@ -1617,6 +1626,9 @@ void xTool::handleMcpToolList(const ToolInvocationPtr &invocation)
 {
     if (!invocation) return;
     pendingMcpListInvocations_[invocation->id] = invocation;
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:mcp list id=%1").arg(invocation->id),
+                    invocation->turnId);
     emit tool2mcp_toollist(invocation->id);
 }
 
@@ -1625,6 +1637,9 @@ void xTool::handleMcpToolCall(const ToolInvocationPtr &invocation)
     if (!invocation) return;
     pendingMcpInvocations_[invocation->id] = invocation;
     QString toolArgs = QString::fromStdString(invocation->args.dump());
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:mcp call %1 id=%2").arg(invocation->name).arg(invocation->id),
+                    invocation->turnId);
     emit tool2mcp_toolcall(invocation->id, invocation->name, toolArgs);
 }
 

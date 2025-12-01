@@ -231,6 +231,10 @@ void Widget::ensureLocalServer(bool lazyWake)
         if (!proxyError.isEmpty())
         {
             reflash_state(QStringLiteral("ui:proxy %1").arg(proxyError), WRONG_SIGNAL);
+            FlowTracer::log(FlowChannel::Backend,
+                            QStringLiteral("backend: proxy listen fail %1:%2 (%3)")
+                                .arg(frontendHost, chosenPort, proxyError),
+                            activeTurnId_);
         }
         if (!portFallbackInFlight_)
         {
@@ -500,6 +504,9 @@ void Widget::scheduleLazyUnload()
         idleSince_.start();
     else
         idleSince_.restart();
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: lazy schedule %1ms").arg(lazyUnloadMs_),
+                    activeTurnId_);
     lazyUnloadTimer_->start(lazyUnloadMs_);
     updateLazyCountdownLabel();
 }
@@ -512,6 +519,9 @@ void Widget::cancelLazyUnload(const QString &reason)
     if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
     lazyUnloaded_ = false;
     idleSince_ = QElapsedTimer();
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: lazy cancel (%1)").arg(reason),
+                    activeTurnId_);
     updateLazyCountdownLabel();
 }
 
@@ -558,6 +568,11 @@ void Widget::performLazyUnloadInternal(bool forced)
     backendOnline_ = false;
     if (proxyServer_) proxyServer_->setBackendAvailable(false);
     reflash_state("ui:" + jtr("auto eject stop backend"), SIGNAL_SIGNAL);
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: lazy unload forced=%1 preserve=%2")
+                        .arg(forced ? QStringLiteral("yes") : QStringLiteral("no"))
+                        .arg(lazyUnloadPreserveState_ ? QStringLiteral("yes") : QStringLiteral("no")),
+                    activeTurnId_);
     suppressStateClearOnStop_ = !forced;
     if (serverManager && serverManager->isRunning())
     {
@@ -664,6 +679,7 @@ void Widget::onLazyUnloadNowClicked()
         return;
     }
     reflash_state("ui:" + jtr("pop trigger"), SIGNAL_SIGNAL);
+    FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: manual lazy unload"), activeTurnId_);
     performLazyUnloadInternal(true);
 }
 
@@ -682,6 +698,10 @@ void Widget::onServerReady(const QString &endpoint)
 
     scheduleLazyUnload();
     updateLazyCountdownLabel();
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: ready %1 (front %2:%3 backend %4)")
+                        .arg(endpoint, activeServerHost_, activeServerPort_, activeBackendPort_),
+                    activeTurnId_);
 
     if (pendingSendAfterWake_)
     {
