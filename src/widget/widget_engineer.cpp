@@ -157,6 +157,10 @@ void Widget::resetEngineerStreamState()
     engineerThinkActive_ = false;
     engineerThinkHeaderPrinted_ = false;
     engineerAssistantHeaderPrinted_ = false;
+    engineerReasoningStreamSeen_ = false;
+    engineerAssistantStreamSeen_ = false;
+    engineerReasoningNeedsLineBreak_ = false;
+    engineerAssistantNeedsLineBreak_ = false;
 }
 
 void Widget::appendEngineerText(const QString &text, bool newline, const QColor &color)
@@ -234,6 +238,9 @@ void Widget::processEngineerStreamChunk(const QString &chunk)
                     engineerThinkHeaderPrinted_ = true;
                 }
                 appendEngineerText(thinkPart, false);
+                engineerReasoningStreamSeen_ = true;
+                const bool endsWithNewline = thinkPart.endsWith(QChar('\n')) || thinkPart.endsWith(QChar('\r'));
+                engineerReasoningNeedsLineBreak_ = !endsWithNewline;
             }
             if (endIdx == -1)
             {
@@ -263,6 +270,9 @@ void Widget::processEngineerStreamChunk(const QString &chunk)
                     engineerAssistantHeaderPrinted_ = true;
                 }
                 appendEngineerText(asstPart, false);
+                engineerAssistantStreamSeen_ = true;
+                const bool endsWithNewline = asstPart.endsWith(QChar('\n')) || asstPart.endsWith(QChar('\r'));
+                engineerAssistantNeedsLineBreak_ = !endsWithNewline;
             }
             if (beginIdx == -1)
             {
@@ -609,7 +619,17 @@ void Widget::handleEngineerAssistantMessage(const QString &message, const QStrin
             appendEngineerRoleBlock(labelThink, QString());
             engineerThinkHeaderPrinted_ = true;
         }
-        appendEngineerText(reasoning, true);
+        if (!engineerReasoningStreamSeen_)
+        {
+            appendEngineerText(reasoning, true);
+            engineerReasoningStreamSeen_ = true;
+            engineerReasoningNeedsLineBreak_ = false;
+        }
+        else if (engineerReasoningNeedsLineBreak_)
+        {
+            appendEngineerText(QString(), true);
+            engineerReasoningNeedsLineBreak_ = false;
+        }
     }
     if (!message.isEmpty())
     {
@@ -618,7 +638,17 @@ void Widget::handleEngineerAssistantMessage(const QString &message, const QStrin
             appendEngineerRoleBlock(labelAssistant, QString());
             engineerAssistantHeaderPrinted_ = true;
         }
-        appendEngineerText(message, true);
+        if (!engineerAssistantStreamSeen_)
+        {
+            appendEngineerText(message, true);
+            engineerAssistantStreamSeen_ = true;
+            engineerAssistantNeedsLineBreak_ = false;
+        }
+        else if (engineerAssistantNeedsLineBreak_)
+        {
+            appendEngineerText(QString(), true);
+            engineerAssistantNeedsLineBreak_ = false;
+        }
     }
     engineerThinkActive_ = false;
     QJsonObject assistant;
@@ -646,9 +676,7 @@ void Widget::handleEngineerAssistantMessage(const QString &message, const QStrin
         return;
     }
     // 下一次模型回复应重新打印“模型”标题，避免工具调用时只打印 JSON 而最终回答缺少头
-    engineerAssistantHeaderPrinted_ = false;
-    engineerThinkHeaderPrinted_ = false;
-    engineerThinkActive_ = false;
+    resetEngineerStreamState();
     engineerProxyRuntime_.waitingToolResult = true;
     emit ui2tool_exec(call);
 }

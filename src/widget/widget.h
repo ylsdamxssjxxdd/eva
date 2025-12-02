@@ -550,6 +550,10 @@ class Widget : public QWidget
     bool engineerThinkActive_ = false;
     bool engineerThinkHeaderPrinted_ = false;
     bool engineerAssistantHeaderPrinted_ = false;
+    bool engineerReasoningStreamSeen_ = false;
+    bool engineerAssistantStreamSeen_ = false;
+    bool engineerReasoningNeedsLineBreak_ = false;
+    bool engineerAssistantNeedsLineBreak_ = false;
     bool engineerConsolePreviewActive_ = false;
     void appendEngineerText(const QString &text, bool newline, const QColor &color = QColor());
     void resetEngineerStreamState();
