@@ -768,18 +768,13 @@ QString Widget::formatEngineerProxyResult(const QSharedPointer<EngineerSession> 
 {
     const int budget = session ? session->tokenBudget : ui_SETTINGS.nctx;
     const int used = session ? session->usedTokens : 0;
-    const QString summary = clampEngineerSummary(assistantText);
+    Q_UNUSED(budget);
+    Q_UNUSED(used);
+    const QString summary = assistantText;
     QString engineerId = engineerProxyRuntime_.engineerId;
     if (engineerId.isEmpty() && session) engineerId = session->id;
     if (engineerId.isEmpty()) engineerId = QStringLiteral("default");
     return QStringLiteral("工程师[%1]\n结果：%2").arg(engineerId, summary);
-}
-
-QString Widget::clampEngineerSummary(const QString &text) const
-{
-    QString simplified = text.simplified();
-    if (simplified.size() <= 200) return simplified;
-    return simplified.left(200) + QStringLiteral("...");
 }
 
 void Widget::recordEngineerUsage(int promptTokens, int generatedTokens)

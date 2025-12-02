@@ -465,7 +465,6 @@ class Widget : public QWidget
     void finalizeEngineerProxy(const QString &assistantText);
     void cancelEngineerProxy(const QString &reason);
     QString formatEngineerProxyResult(const QSharedPointer<EngineerSession> &session, const QString &assistantText);
-    QString clampEngineerSummary(const QString &text) const;
     void recordEngineerUsage(int promptTokens, int generatedTokens);
     void recordEngineerReasoning(int tokens);
     void tool_change();             // 响应工具选择
