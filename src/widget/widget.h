@@ -50,6 +50,7 @@
 #include <QTextCodec>
 #include <QTextCursor>
 #include <QTextEdit>
+#include <QTabWidget>
 #include <QThread>
 #include <QTimer>
 #include <QVector>
@@ -79,6 +80,7 @@
 #include "../utils/recordbar.h"
 #include "../skill/skill_manager.h"
 #include "../net/localproxy.h"
+#include "../net/controlchannel.h"
 #include "../xbackend.h" // local llama.cpp server manager
 #include "../xconfig.h"  // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
@@ -146,6 +148,12 @@ struct EngineerSession
     QJsonArray messages;
     int tokenBudget = 0;
     int usedTokens = 0;
+};
+
+enum class LinkProfile
+{
+    Api,
+    Control
 };
 
 class Widget : public QWidget
@@ -872,11 +880,59 @@ class Widget : public QWidget
     QColor themeThinkColor() const { return themeVisuals_.textSecondary; }
     int predictTokenCap() const;
     void enforcePredictLimit(bool syncSpin = true, bool clampSettings = true);
+    // Control channel helpers
+    void setupControlChannel();
+    void beginControlLink();
+    void releaseControl(bool notifyRemote = true);
+    void handleControlHostClientChanged(bool connected, const QString &reason);
+    void handleControlHostCommand(const QJsonObject &payload);
+    void handleControlControllerEvent(const QJsonObject &payload);
+    void handleControlControllerState(ControlChannel::ControllerState state, const QString &reason);
+    void applyControlSnapshot(const QJsonObject &snap);
+    void broadcastControlSnapshot();
+    void broadcastControlOutput(const QString &result, bool isStream, const QColor &color);
+    void broadcastControlState(const QString &stateString, SIGNAL_STATE level);
+    void broadcastControlKv(int used, int cap, int percent);
+    void broadcastControlUiPhase(const QString &phase);
+    void applyControlUiLock();
+    bool isControllerActive() const;
+    bool isHostControlled() const;
+    QJsonObject buildControlSnapshot() const;
 
   private:
     Ui::Widget *ui;
     int terminalAutoExpandSize_ = 320;
     bool terminalCollapsed_ = true;
+
+    // Control channel state
+    ControlChannel *controlChannel_ = nullptr;
+    LinkProfile linkProfile_ = LinkProfile::Api;
+    struct ControlHostState
+    {
+        bool active = false;
+        QString peer;
+    } controlHost_;
+    struct ControlClientState
+    {
+        ControlChannel::ControllerState state = ControlChannel::ControllerState::Idle;
+        QString peer;
+        bool remoteRunning = false;
+        EVA_STATE remoteUiState = CHAT_STATE;
+    } controlClient_;
+    QString controlTargetHost_;
+    quint16 controlTargetPort_ = DEFAULT_CONTROL_PORT;
+    QString controlToken_;
+    bool controlAwaitingHello_ = false;
+
+    QTabWidget *linkTabWidget = nullptr;
+    QWidget *apiTabWidget = nullptr;
+    QWidget *controlTabWidget = nullptr;
+    QLabel *control_host_label = nullptr;
+    QLineEdit *control_host_LineEdit = nullptr;
+    QLabel *control_port_label = nullptr;
+    QLineEdit *control_port_LineEdit = nullptr;
+    QLabel *control_token_label = nullptr;
+    QLineEdit *control_token_LineEdit = nullptr;
 
     struct GlobalUiSettings
     {

@@ -30,11 +30,23 @@
  */
 #include "config.h"
 #include <stdlib.h>
+#include <limits.h>
 #include "../include/libxls/locale.h"
+
+#if defined(_WIN32) || defined(WIN32) || defined(_WIN64) || defined(WIN64) || defined(WINDOWS)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 xls_locale_t xls_createlocale(void) {
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64) || defined(WIN64) || defined(WINDOWS)
-    return _create_locale(LC_CTYPE, ".65001");
+    xls_locale_t locale = (xls_locale_t)malloc(sizeof(*locale));
+    if (!locale)
+        return NULL;
+    locale->codepage = CP_UTF8;
+    return locale;
 #elif defined(__APPLE__)
     return newlocale(LC_CTYPE_MASK, "UTF-8", NULL);
 #else
@@ -46,7 +58,7 @@ void xls_freelocale(xls_locale_t locale) {
     if (!locale)
         return;
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64) || defined(WIN64) || defined(WINDOWS)
-    _free_locale(locale);
+    free(locale);
 #else
     freelocale(locale);
 #endif
@@ -54,7 +66,28 @@ void xls_freelocale(xls_locale_t locale) {
 
 size_t xls_wcstombs_l(char *restrict s, const wchar_t *restrict pwcs, size_t n, xls_locale_t loc) {
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64) || defined(WIN64) || defined(WINDOWS)
-    return _wcstombs_l(s, pwcs, n, loc);
+    if (!pwcs)
+        return (size_t)-1;
+
+    UINT codepage = CP_UTF8;
+    if (loc)
+        codepage = loc->codepage;
+
+    if (!s) {
+        int required = WideCharToMultiByte(codepage, 0, pwcs, -1, NULL, 0, NULL, NULL);
+        if (required == 0)
+            return (size_t)-1;
+        return (size_t)(required - 1);
+    }
+
+    if (n == 0)
+        return 0;
+
+    size_t capped = n > (size_t)INT_MAX ? (size_t)INT_MAX : n;
+    int written = WideCharToMultiByte(codepage, 0, pwcs, -1, s, (int)capped, NULL, NULL);
+    if (written == 0)
+        return (size_t)-1;
+    return (size_t)(written - 1);
 #elif defined(HAVE_WCSTOMBS_L)
     return wcstombs_l(s, pwcs, n, loc);
 #else

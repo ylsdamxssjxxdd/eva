@@ -274,7 +274,7 @@ static char *unicode_decode_wcstombs(const char *s, size_t len, xls_locale_t loc
     }
 
     converted = calloc(count+1, sizeof(char));
-    count2 = xls_wcstombs_l(converted, w, count, locale);
+    count2 = xls_wcstombs_l(converted, w, count + 1, locale);
     if (count2 <= 0) {
         printf("wcstombs failed (%lu)\n", (unsigned long)len/2);
         goto cleanup;

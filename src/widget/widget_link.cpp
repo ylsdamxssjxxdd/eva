@@ -3,6 +3,7 @@
 #include "../utils/textparse.h"
 #include <QDateTime>
 #include <QUrl>
+#include <QHostInfo>
 
 namespace
 {
@@ -42,6 +43,8 @@ void Widget::set_api()
     // 纯请求式：不再使用本地嵌入模型进程（xbot）
     is_load = false;  // 重置
     historypath = ""; // 重置
+    linkProfile_ = LinkProfile::Api;
+    controlAwaitingHello_ = false;
 
     // 获取设置值
     // Sanitize endpoint/key/model: strip whitespace, normalize scheme, strip trailing /v1
@@ -360,4 +363,411 @@ void Widget::fetchPropsContextLimit()
             if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
             emit ui2expend_settings(snap);
         } });
+}
+
+//-------------------------------------------------------------------------
+//---------------------------机体控制/镜像-----------------------------------
+//-------------------------------------------------------------------------
+
+bool Widget::isControllerActive() const
+{
+    return linkProfile_ == LinkProfile::Control && controlChannel_ && controlClient_.state == ControlChannel::ControllerState::Connected && !controlAwaitingHello_;
+}
+
+bool Widget::isHostControlled() const
+{
+    return controlChannel_ && controlHost_.active;
+}
+
+void Widget::setupControlChannel()
+{
+    if (controlChannel_) return;
+    controlChannel_ = new ControlChannel(this);
+    connect(controlChannel_, &ControlChannel::hostClientChanged, this, &Widget::handleControlHostClientChanged);
+    connect(controlChannel_, &ControlChannel::hostCommandArrived, this, &Widget::handleControlHostCommand);
+    connect(controlChannel_, &ControlChannel::controllerEventArrived, this, &Widget::handleControlControllerEvent);
+    connect(controlChannel_, &ControlChannel::controllerStateChanged, this, &Widget::handleControlControllerState);
+    const bool ok = controlChannel_->startHost(static_cast<quint16>(DEFAULT_CONTROL_PORT));
+    if (ok)
+    {
+        reflash_state(jtr("control listen ok").arg(QString::number(DEFAULT_CONTROL_PORT)), SIGNAL_SIGNAL);
+    }
+    else
+    {
+        reflash_state(jtr("control listen fail"), WRONG_SIGNAL);
+    }
+}
+
+QJsonObject Widget::buildControlSnapshot() const
+{
+    QJsonObject snap;
+    if (ui && ui->output) snap.insert(QStringLiteral("output"), ui->output->toPlainText());
+    if (ui && ui->state) snap.insert(QStringLiteral("state_log"), ui->state->toPlainText());
+
+    int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
+    if (cap <= 0) cap = DEFAULT_NCTX;
+    int used = qMax(0, kvUsed_);
+    if (used > cap) used = cap;
+    int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+    if (used > 0 && percent == 0) percent = 1;
+
+    snap.insert(QStringLiteral("kv_used"), used);
+    snap.insert(QStringLiteral("kv_cap"), cap);
+    snap.insert(QStringLiteral("kv_percent"), percent);
+    snap.insert(QStringLiteral("ui_state"), ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"));
+    snap.insert(QStringLiteral("is_run"), is_run);
+    snap.insert(QStringLiteral("title"), windowTitle());
+    snap.insert(QStringLiteral("mode"), ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"));
+    return snap;
+}
+
+void Widget::broadcastControlSnapshot()
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("snapshot"));
+    payload.insert(QStringLiteral("snapshot"), buildControlSnapshot());
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlOutput(const QString &result, bool isStream, const QColor &color)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("output"));
+    payload.insert(QStringLiteral("text"), result);
+    payload.insert(QStringLiteral("stream"), isStream);
+    payload.insert(QStringLiteral("color"), color.name(QColor::HexArgb));
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlState(const QString &stateString, SIGNAL_STATE level)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("state_log"));
+    payload.insert(QStringLiteral("text"), stateString);
+    payload.insert(QStringLiteral("level"), static_cast<int>(level));
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlKv(int used, int cap, int percent)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("kv"));
+    payload.insert(QStringLiteral("used"), used);
+    payload.insert(QStringLiteral("cap"), cap);
+    payload.insert(QStringLiteral("percent"), percent);
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlUiPhase(const QString &phase)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("ui_state"));
+    payload.insert(QStringLiteral("phase"), phase);
+    payload.insert(QStringLiteral("is_run"), is_run);
+    payload.insert(QStringLiteral("state"), ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"));
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::handleControlHostClientChanged(bool connected, const QString &reason)
+{
+    Q_UNUSED(reason);
+    if (!connected)
+    {
+        controlHost_.active = false;
+        controlHost_.peer.clear();
+        broadcastControlState(jtr("control disconnected"), SIGNAL_SIGNAL);
+        return;
+    }
+    controlHost_.peer = controlChannel_ ? controlChannel_->hostPeer() : QString();
+}
+
+void Widget::handleControlHostCommand(const QJsonObject &payload)
+{
+    const QString type = payload.value(QStringLiteral("type")).toString();
+    if (type == QStringLiteral("hello"))
+    {
+        if (controlHost_.active)
+        {
+            QJsonObject busy;
+            busy.insert(QStringLiteral("type"), QStringLiteral("reject"));
+            busy.insert(QStringLiteral("reason"), QStringLiteral("busy"));
+            controlChannel_->sendToController(busy);
+            return;
+        }
+        controlHost_.active = true;
+        controlHost_.peer = controlChannel_ ? controlChannel_->hostPeer() : QString();
+        reflash_state(jtr("control connected").arg(controlHost_.peer), SIGNAL_SIGNAL);
+        QJsonObject ack;
+        ack.insert(QStringLiteral("type"), QStringLiteral("hello_ack"));
+        ack.insert(QStringLiteral("snapshot"), buildControlSnapshot());
+        ack.insert(QStringLiteral("peer"), QHostInfo::localHostName());
+        controlChannel_->sendToController(ack);
+        return;
+    }
+    if (!isHostControlled()) return;
+    if (type != QStringLiteral("command")) return;
+    const QString name = payload.value(QStringLiteral("name")).toString();
+    if (name == QStringLiteral("release"))
+    {
+        controlHost_.active = false;
+        reflash_state(jtr("control host exit"), SIGNAL_SIGNAL);
+        QJsonObject bye;
+        bye.insert(QStringLiteral("type"), QStringLiteral("released"));
+        controlChannel_->sendToController(bye);
+        return;
+    }
+    if (name == QStringLiteral("stop"))
+    {
+        if (is_run || turnActive_ || toolInvocationActive_)
+        {
+            reflash_state(jtr("control stop"), SIGNAL_SIGNAL);
+            emit ui2net_stop(true);
+            emit ui2tool_cancelActive();
+        }
+        return;
+    }
+    if (name == QStringLiteral("reset"))
+    {
+        reflash_state(jtr("control reset"), SIGNAL_SIGNAL);
+        on_reset_clicked();
+        broadcastControlSnapshot();
+        return;
+    }
+    if (name == QStringLiteral("send"))
+    {
+        if (is_run || turnActive_)
+        {
+            QJsonObject warn;
+            warn.insert(QStringLiteral("type"), QStringLiteral("state_log"));
+            warn.insert(QStringLiteral("text"), jtr("control command blocked"));
+            warn.insert(QStringLiteral("level"), static_cast<int>(WRONG_SIGNAL));
+            controlChannel_->sendToController(warn);
+            return;
+        }
+        const QString text = payload.value(QStringLiteral("text")).toString();
+        if (text.trimmed().isEmpty())
+        {
+            QJsonObject warn;
+            warn.insert(QStringLiteral("type"), QStringLiteral("state_log"));
+            warn.insert(QStringLiteral("text"), jtr("control send missing"));
+            warn.insert(QStringLiteral("level"), static_cast<int>(WRONG_SIGNAL));
+            controlChannel_->sendToController(warn);
+            return;
+        }
+        struct DraftBackup
+        {
+            QString text;
+            QStringList attachments;
+        };
+        DraftBackup backup;
+        if (ui && ui->input && ui->input->textEdit)
+        {
+            backup.text = ui->input->textEdit->toPlainText();
+            QStringList paths = ui->input->imageFilePaths();
+            paths.append(ui->input->documentFilePaths());
+            paths.append(ui->input->wavFilePaths());
+            backup.attachments = paths;
+        }
+        if (ui && ui->input && ui->input->textEdit)
+        {
+            ui->input->textEdit->setPlainText(text);
+            ui->input->clearThumbnails();
+            on_send_clicked();
+            if (!backup.text.isEmpty() || !backup.attachments.isEmpty())
+            {
+                ui->input->textEdit->setPlainText(backup.text);
+                ui->input->clearThumbnails();
+                if (!backup.attachments.isEmpty())
+                    ui->input->addFiles(backup.attachments);
+            }
+        }
+        return;
+    }
+}
+
+void Widget::handleControlControllerEvent(const QJsonObject &payload)
+{
+    const QString type = payload.value(QStringLiteral("type")).toString();
+    if (type == QStringLiteral("reject"))
+    {
+        reflash_state(jtr("control busy"), WRONG_SIGNAL);
+        releaseControl(false);
+        return;
+    }
+    if (type == QStringLiteral("hello_ack") || type == QStringLiteral("snapshot"))
+    {
+        controlAwaitingHello_ = false;
+        if (payload.contains(QStringLiteral("peer"))) controlClient_.peer = payload.value(QStringLiteral("peer")).toString();
+        const QJsonObject snap = payload.value(QStringLiteral("snapshot")).toObject();
+        applyControlSnapshot(snap);
+        reflash_state(jtr("control snapshot applied"), SIGNAL_SIGNAL);
+        applyControlUiLock();
+        return;
+    }
+    if (!isControllerActive()) return;
+    if (type == QStringLiteral("output"))
+    {
+        const QString text = payload.value(QStringLiteral("text")).toString();
+        const bool stream = payload.value(QStringLiteral("stream")).toBool();
+        QColor c(themeTextPrimary());
+        const QString cstr = payload.value(QStringLiteral("color")).toString();
+        if (!cstr.isEmpty())
+        {
+            QColor parsed(cstr);
+            if (parsed.isValid()) c = parsed;
+        }
+        reflash_output(text, stream, c);
+        return;
+    }
+    if (type == QStringLiteral("state_log"))
+    {
+        const QString text = payload.value(QStringLiteral("text")).toString();
+        const int lv = payload.value(QStringLiteral("level")).toInt(static_cast<int>(USUAL_SIGNAL));
+        reflash_state(text, static_cast<SIGNAL_STATE>(lv));
+        return;
+    }
+    if (type == QStringLiteral("kv"))
+    {
+        kvUsed_ = payload.value(QStringLiteral("used")).toInt(kvUsed_);
+        slotCtxMax_ = payload.value(QStringLiteral("cap")).toInt(slotCtxMax_);
+        updateKvBarUi();
+        return;
+    }
+    if (type == QStringLiteral("ui_state"))
+    {
+        controlClient_.remoteRunning = payload.value(QStringLiteral("is_run")).toBool(controlClient_.remoteRunning);
+        const QString stateStr = payload.value(QStringLiteral("state")).toString();
+        controlClient_.remoteUiState = (stateStr == QStringLiteral("complete")) ? COMPLETE_STATE : CHAT_STATE;
+        applyControlUiLock();
+        return;
+    }
+    if (type == QStringLiteral("released"))
+    {
+        reflash_state(jtr("control disconnected"), SIGNAL_SIGNAL);
+        releaseControl(false);
+        return;
+    }
+}
+
+void Widget::handleControlControllerState(ControlChannel::ControllerState state, const QString &reason)
+{
+    Q_UNUSED(reason);
+    controlClient_.state = state;
+    if (state == ControlChannel::ControllerState::Connected)
+    {
+        controlAwaitingHello_ = true;
+        QJsonObject hello;
+        hello.insert(QStringLiteral("type"), QStringLiteral("hello"));
+        hello.insert(QStringLiteral("token"), controlToken_);
+        hello.insert(QStringLiteral("peer"), QHostInfo::localHostName());
+        if (controlChannel_) controlChannel_->sendToHost(hello);
+    }
+    else if (state == ControlChannel::ControllerState::Idle)
+    {
+        if (linkProfile_ == LinkProfile::Control) releaseControl(false);
+    }
+}
+
+void Widget::applyControlSnapshot(const QJsonObject &snap)
+{
+    if (!ui) return;
+    if (ui->output) resetOutputDocument();
+    if (ui->state) resetStateDocument();
+    if (ui->output) ui->output->setPlainText(snap.value(QStringLiteral("output")).toString());
+    if (ui->state) ui->state->setPlainText(snap.value(QStringLiteral("state_log")).toString());
+    kvUsed_ = snap.value(QStringLiteral("kv_used")).toInt(kvUsed_);
+    slotCtxMax_ = snap.value(QStringLiteral("kv_cap")).toInt(slotCtxMax_);
+    updateKvBarUi();
+    const QString stateStr = snap.value(QStringLiteral("ui_state")).toString();
+    controlClient_.remoteUiState = (stateStr == QStringLiteral("complete")) ? COMPLETE_STATE : CHAT_STATE;
+    controlClient_.remoteRunning = snap.value(QStringLiteral("is_run")).toBool(false);
+    const QString title = snap.value(QStringLiteral("title")).toString();
+    if (!title.isEmpty())
+    {
+        this->setWindowTitle(title);
+        trayIcon->setToolTip(title);
+    }
+}
+
+void Widget::applyControlUiLock()
+{
+    if (!ui) return;
+    if (isControllerActive())
+    {
+        const bool canSend = !controlClient_.remoteRunning;
+        ui->send->setEnabled(canSend);
+        ui->reset->setEnabled(true);
+        ui->date->setText(jtr("control release"));
+        ui->set->setText(jtr("control release"));
+        ui->date->setEnabled(true);
+        ui->set->setEnabled(true);
+        ui->load->setEnabled(true);
+        if (ui->input && ui->input->textEdit) ui->input->textEdit->setReadOnly(false);
+    }
+    else
+    {
+        ui->date->setText(jtr("date"));
+        ui->set->setText(jtr("set"));
+    }
+}
+
+void Widget::beginControlLink()
+{
+    const int tabIndex = (linkTabWidget) ? linkTabWidget->currentIndex() : 0;
+    if (tabIndex == 0)
+    {
+        linkProfile_ = LinkProfile::Api;
+        controlAwaitingHello_ = false;
+        set_api();
+        return;
+    }
+    linkProfile_ = LinkProfile::Control;
+    const QString rawHost = control_host_LineEdit ? control_host_LineEdit->text() : QString();
+    const QString host = TextParse::removeAllWhitespace(rawHost);
+    const QString portText = control_port_LineEdit ? TextParse::removeAllWhitespace(control_port_LineEdit->text()) : QString();
+    bool ok = false;
+    const int port = portText.toInt(&ok);
+    if (host.isEmpty())
+    {
+        reflash_state(jtr("control invalid host"), WRONG_SIGNAL);
+        return;
+    }
+    if (!ok || port <= 0 || port > 65535)
+    {
+        reflash_state(jtr("control invalid port"), WRONG_SIGNAL);
+        return;
+    }
+    controlTargetHost_ = host;
+    controlTargetPort_ = static_cast<quint16>(port);
+    controlToken_ = control_token_LineEdit ? control_token_LineEdit->text() : QString();
+    ui_mode = LINK_MODE;
+    controlClient_.remoteRunning = false;
+    controlClient_.remoteUiState = ui_state;
+    controlAwaitingHello_ = true;
+    if (controlChannel_) controlChannel_->connectToHost(controlTargetHost_, controlTargetPort_);
+    reflash_state(jtr("control connect").arg(QStringLiteral("%1:%2").arg(controlTargetHost_).arg(controlTargetPort_)), SIGNAL_SIGNAL);
+    ui_state_normal();
+}
+
+void Widget::releaseControl(bool notifyRemote)
+{
+    if (isControllerActive() && controlChannel_ && notifyRemote)
+    {
+        QJsonObject bye;
+        bye.insert(QStringLiteral("type"), QStringLiteral("command"));
+        bye.insert(QStringLiteral("name"), QStringLiteral("release"));
+        controlChannel_->sendToHost(bye);
+    }
+    controlClient_.state = ControlChannel::ControllerState::Idle;
+    controlClient_.peer.clear();
+    controlClient_.remoteRunning = false;
+    controlAwaitingHello_ = false;
+    linkProfile_ = LinkProfile::Api;
+    if (controlChannel_) controlChannel_->disconnectFromHost();
+    ui_state_normal();
 }

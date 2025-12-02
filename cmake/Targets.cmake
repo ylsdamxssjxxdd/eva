@@ -101,6 +101,7 @@ add_executable(
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
     src/net/localproxy.h
+    src/net/controlchannel.cpp src/net/controlchannel.h
 )
 add_dependencies(${EVA_TARGET} font_out_resource)
 ## Executable name

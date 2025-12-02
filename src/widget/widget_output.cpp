@@ -11,6 +11,10 @@
 // 更新输出，is_while 表示从流式输出的 token
 void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
+    if (isHostControlled())
+    {
+        broadcastControlOutput(result, is_while, color);
+    }
     if (engineerProxyRuntime_.active)
     {
         temp_assistant_history += result;
@@ -354,5 +358,9 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         {
             decode_finish();
         }
+    }
+    if (isHostControlled())
+    {
+        broadcastControlState(state_string, state);
     }
 }

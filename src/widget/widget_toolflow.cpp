@@ -371,6 +371,24 @@ void Widget::recv_setreset()
 
 void Widget::on_reset_clicked()
 {
+    if (linkProfile_ == LinkProfile::Control && !isControllerActive())
+    {
+        reflash_state(jtr("control disconnected"), WRONG_SIGNAL);
+        return;
+    }
+    if (isControllerActive())
+    {
+        if (controlChannel_)
+        {
+            QJsonObject cmd;
+            cmd.insert(QStringLiteral("type"), QStringLiteral("command"));
+            const bool stopOnly = controlClient_.remoteRunning;
+            cmd.insert(QStringLiteral("name"), stopOnly ? QStringLiteral("stop") : QStringLiteral("reset"));
+            controlChannel_->sendToHost(cmd);
+            reflash_state(stopOnly ? jtr("control stop") : jtr("control reset"), SIGNAL_SIGNAL);
+        }
+        return;
+    }
     if (engineerProxyOuterActive_)
     {
         cancelEngineerProxy(QStringLiteral("reset"));

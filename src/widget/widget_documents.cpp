@@ -69,6 +69,7 @@ void Widget::updateKvBarUi()
     ui->kv_bar->setShowText(jtr("kv bar label"));
     ui->kv_bar->setCenterText("");
     ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(cap));
+    broadcastControlKv(used, cap, percent);
 }
 
 void Widget::recv_prompt_baseline(int tokens)

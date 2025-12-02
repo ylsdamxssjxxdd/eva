@@ -59,6 +59,7 @@ class QWidget;
 #define DEFAULT_NGL 0
 #define DEFAULT_MONITOR_FRAME 0                // 默认监视帧率
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
+#define DEFAULT_CONTROL_PORT 61550             // 远程控制监听端口
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口
 #define DEFAULT_EMBEDDING_IP "127.0.0.1"       // 嵌入端点ip
 #define DEFAULT_EMBEDDING_API "/v1/embeddings" // 嵌入端点地址

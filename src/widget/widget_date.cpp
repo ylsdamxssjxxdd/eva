@@ -182,6 +182,11 @@ void Widget::date_ui_cancel_button_clicked()
 void Widget::on_date_clicked()
 {
     // reflash_state("ui:" + jtr("clicked date"), SIGNAL_SIGNAL);
+    if (isControllerActive())
+    {
+        releaseControl();
+        return;
+    }
 
     // 展示最近一次设置值
     date_ui->chattemplate_comboBox->setCurrentText(ui_template); // 默认使用default的提示词模板
@@ -855,6 +860,11 @@ void Widget::cancel_date()
 
 void Widget::on_set_clicked()
 {
+    if (isControllerActive())
+    {
+        releaseControl();
+        return;
+    }
     reflash_state("ui:" + jtr("clicked") + jtr("set"), SIGNAL_SIGNAL);
     if (ui_state == CHAT_STATE)
     {

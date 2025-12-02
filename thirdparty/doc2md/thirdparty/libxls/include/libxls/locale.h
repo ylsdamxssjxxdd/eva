@@ -34,7 +34,9 @@
 #include <locale.h>
 
 #if defined(_WIN32) || defined(WIN32) || defined(_WIN64) || defined(WIN64) || defined(WINDOWS)
-typedef _locale_t xls_locale_t;
+typedef struct xls_win_locale {
+    unsigned int codepage;
+} *xls_locale_t;
 #else
 typedef locale_t xls_locale_t;
 #endif

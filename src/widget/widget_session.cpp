@@ -600,6 +600,30 @@ void Widget::on_send_clicked()
 	                    .arg(ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"))
 	                    .arg(tool_result.isEmpty() ? QStringLiteral("no") : QStringLiteral("yes")),
 	                activeTurnId_);
+    if (linkProfile_ == LinkProfile::Control && !isControllerActive())
+    {
+        reflash_state(jtr("control disconnected"), WRONG_SIGNAL);
+        return;
+    }
+    if (isControllerActive())
+    {
+        const QString text = ui && ui->input && ui->input->textEdit ? ui->input->textEdit->toPlainText() : QString();
+        if (text.trimmed().isEmpty())
+        {
+            reflash_state(jtr("control send missing"), WRONG_SIGNAL);
+            return;
+        }
+        if (controlChannel_)
+        {
+            QJsonObject cmd;
+            cmd.insert(QStringLiteral("type"), QStringLiteral("command"));
+            cmd.insert(QStringLiteral("name"), QStringLiteral("send"));
+            cmd.insert(QStringLiteral("text"), text);
+            controlChannel_->sendToHost(cmd);
+        }
+        if (ui && ui->input && ui->input->textEdit) ui->input->textEdit->clear();
+        return;
+    }
 	const bool continuingTool = !tool_result.isEmpty();
     if (ui_mode == LOCAL_MODE)
     {
