@@ -1584,7 +1584,7 @@ void xTool::finishInvocation(const ToolInvocationPtr &invocation)
     const QString name = invocation->name.isEmpty() ? QStringLiteral("<unknown>") : invocation->name;
     const QString line = QStringLiteral("tool:done %1").arg(name);
     FlowTracer::log(FlowChannel::Tool, line, invocation->turnId);
-    emit tool2ui_state(clampToolMessage(QStringLiteral("tool:done %1").arg(name)), SIGNAL_SIGNAL);
+    // emit tool2ui_state(clampToolMessage(QStringLiteral("tool:done %1").arg(name)), SIGNAL_SIGNAL);
     postFinishCleanup(invocation);
     clearActiveInvocation(invocation);
 }

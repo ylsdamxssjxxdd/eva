@@ -4,6 +4,34 @@
 #include <QDateTime>
 #include <QUrl>
 
+namespace
+{
+QString normalizeLinkEndpoint(const QString &rawEndpoint)
+{
+    // Remove whitespace, infer scheme when missing, and drop a trailing /v1 to avoid duplicating the version segment
+    QString clean = TextParse::removeAllWhitespace(rawEndpoint);
+    QUrl url = QUrl::fromUserInput(clean);
+    const QString host = url.host();
+    const bool isLocal = isLoopbackHost(host);
+    const QString scheme = url.scheme().toLower();
+    if (scheme.isEmpty())
+        url.setScheme(isLocal ? QStringLiteral("http") : QStringLiteral("https"));
+
+    QString path = url.path();
+    while (path.endsWith('/') && path.length() > 1)
+        path.chop(1);
+    if (path.toLower().endsWith(QStringLiteral("/v1")))
+    {
+        const int slashPos = path.lastIndexOf('/');
+        QString basePath = path.left(slashPos);
+        if (basePath.isEmpty())
+            basePath = QStringLiteral("/");
+        url.setPath(basePath);
+    }
+    return url.toString(QUrl::RemoveFragment);
+}
+} // namespace
+
 //-------------------------------------------------------------------------
 //----------------------------------链接相关--------------------------------
 //-------------------------------------------------------------------------
@@ -16,20 +44,8 @@ void Widget::set_api()
     historypath = ""; // 重置
 
     // 获取设置值
-    // Sanitize endpoint/key/model: strip all whitespace to avoid mistakes
-    QString clean_endpoint = TextParse::removeAllWhitespace(api_endpoint_LineEdit->text());
-    // Normalize scheme: prefer https for public hosts; http for localhost/LAN when scheme missing
-    {
-        QUrl u = QUrl::fromUserInput(clean_endpoint);
-        const QString host = u.host();
-        QString scheme = u.scheme().toLower();
-        const bool isLocal = isLoopbackHost(host);
-        if (scheme.isEmpty())
-        {
-            u.setScheme(isLocal ? "http" : "https");
-        }
-        clean_endpoint = u.toString(QUrl::RemoveFragment);
-    }
+    // Sanitize endpoint/key/model: strip whitespace, normalize scheme, strip trailing /v1
+    QString clean_endpoint = normalizeLinkEndpoint(api_endpoint_LineEdit->text());
     const QString clean_key = TextParse::removeAllWhitespace(api_key_LineEdit->text());
     const QString clean_model = TextParse::removeAllWhitespace(api_model_LineEdit->text());
     // Reflect cleaned values in UI
@@ -135,17 +151,7 @@ void Widget::tool_testhandleTimeout()
     // Ensure latest LINK apis before pushing (users may edit endpoint/key/model after linking)
     if (ui_mode == LINK_MODE)
     {
-        QString clean_endpoint = TextParse::removeAllWhitespace(api_endpoint_LineEdit->text());
-        // Normalize scheme for remote hosts
-        {
-            QUrl u = QUrl::fromUserInput(clean_endpoint);
-            const QString host = u.host();
-            QString scheme = u.scheme().toLower();
-            const bool isLocal = isLoopbackHost(host);
-            if (scheme.isEmpty())
-                u.setScheme(isLocal ? "http" : "https");
-            clean_endpoint = u.toString(QUrl::RemoveFragment);
-        }
+        QString clean_endpoint = normalizeLinkEndpoint(api_endpoint_LineEdit->text());
         const QString clean_key = TextParse::removeAllWhitespace(api_key_LineEdit->text());
         const QString clean_model = TextParse::removeAllWhitespace(api_model_LineEdit->text());
         if (clean_endpoint != apis.api_endpoint || clean_key != apis.api_key || clean_model != apis.api_model)
