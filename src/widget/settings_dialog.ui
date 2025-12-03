@@ -737,9 +737,9 @@
            <string>Idle unload (min)</string>
           </property>
          </widget>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="lazy_timeout_spin">
+       </item>
+       <item>
+        <widget class="QSpinBox" name="lazy_timeout_spin">
           <property name="minimumSize">
            <size>
             <width>100</width>
@@ -761,10 +761,17 @@
           <property name="value">
            <number>10</number>
           </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="allow_control_checkbox">
+       <property name="text">
+        <string>允许机体控制</string>
+       </property>
+      </widget>
+     </item>
      </layout>
     </widget>
    </item>

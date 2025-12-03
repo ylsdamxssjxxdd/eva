@@ -196,6 +196,11 @@ void Widget::set_SetDialog()
         connect(settings_ui->lazy_timeout_label, &QLabel::customContextMenuRequested, this, [this](const QPoint &)
                 { onLazyUnloadNowClicked(); }, Qt::UniqueConnection);
     }
+    if (settings_ui->allow_control_checkbox)
+    {
+        settings_ui->allow_control_checkbox->setText(jtr("control host allow"));
+        settings_ui->allow_control_checkbox->setToolTip(jtr("control host allow tooltip").arg(QString::number(DEFAULT_CONTROL_PORT)));
+    }
     if (settings_ui->lazy_timeout_spin)
     {
         settings_ui->lazy_timeout_spin->setRange(0, 1440);
@@ -800,6 +805,8 @@ void Widget::settings_ui_confirm_button_clicked()
     // 先读取对话框中的值，与打开对话框时的快照对比；完全一致则不做任何动作
     // 注意：get_set() 会把控件值写入 ui_SETTINGS 与 ui_port
     get_set();
+    const bool requestedHostAllow = (settings_ui && settings_ui->allow_control_checkbox) ? settings_ui->allow_control_checkbox->isChecked() : controlHostAllowed_;
+    const bool hostPermissionChanged = (requestedHostAllow != controlHostAllowed_);
     // Inform Expend (evaluation tab) of latest settings snapshot
     {
         SETTINGS snap = ui_SETTINGS;
@@ -849,6 +856,7 @@ void Widget::settings_ui_confirm_button_clicked()
     };
 
     const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_) && !backendOverrideDirty_;
+    const bool onlyHostChange = hostPermissionChanged && sameSettings;
 
     // 仅比较会触发后端重启的设置项
     auto eq_server = [&](const SETTINGS &A, const SETTINGS &B)
@@ -889,25 +897,32 @@ void Widget::settings_ui_confirm_button_clicked()
         syncBackendOverrideState();
         refreshDeviceBackendUI();
     };
-    auto finalizeAndPersist = [this, finalizeOverrides]()
+    auto finalizeAndPersist = [this, finalizeOverrides, hostPermissionChanged, requestedHostAllow]()
     {
         finalizeOverrides();
+        if (hostPermissionChanged)
+        {
+            setControlHostEnabled(requestedHostAllow);
+        }
         auto_save_user();
         enforceEngineerEnvReadyCheckpoint();
     };
-    if (sameSettings)
+    if (sameSettings && !hostPermissionChanged)
     {
         // 未发生任何变化：不重启、不重置
         finalizeAndPersist();
         return;
     }
-    auto applyChanges = [this, sameServer, finalizeAndPersist]()
+    auto applyChanges = [this, sameServer, finalizeAndPersist, onlyHostChange]()
     {
         if (sameServer)
         {
-            if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
+            if (!onlyHostChange)
             {
-                on_reset_clicked();
+                if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
+                {
+                    on_reset_clicked();
+                }
             }
             finalizeAndPersist();
             return;

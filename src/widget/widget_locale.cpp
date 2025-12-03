@@ -254,6 +254,11 @@ void Widget::apply_language(int language_flag_)
     settings_ui->port_label->setText(jtr("exposed port"));
     settings_ui->port_label->setToolTip(jtr("port_label_tooltip"));
     settings_ui->port_lineEdit->setToolTip(jtr("port_label_tooltip"));
+    if (settings_ui->allow_control_checkbox)
+    {
+        settings_ui->allow_control_checkbox->setText(jtr("control host allow"));
+        settings_ui->allow_control_checkbox->setToolTip(jtr("control host allow tooltip").arg(QString::number(DEFAULT_CONTROL_PORT)));
+    }
     settings_ui->frame_label->setText(jtr("frame"));
     settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
     settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));

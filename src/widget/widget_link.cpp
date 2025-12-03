@@ -387,15 +387,51 @@ void Widget::setupControlChannel()
     connect(controlChannel_, &ControlChannel::hostCommandArrived, this, &Widget::handleControlHostCommand);
     connect(controlChannel_, &ControlChannel::controllerEventArrived, this, &Widget::handleControlControllerEvent);
     connect(controlChannel_, &ControlChannel::controllerStateChanged, this, &Widget::handleControlControllerState);
-    const bool ok = controlChannel_->startHost(static_cast<quint16>(DEFAULT_CONTROL_PORT));
-    if (ok)
+}
+
+void Widget::setControlHostEnabled(bool enabled)
+{
+    if (enabled)
     {
-        reflash_state(jtr("control listen ok").arg(QString::number(DEFAULT_CONTROL_PORT)), SIGNAL_SIGNAL);
+        setupControlChannel();
+        if (!controlChannel_)
+        {
+            reflash_state(jtr("control listen fail"), WRONG_SIGNAL);
+            return;
+        }
+        if (controlHostAllowed_)
+        {
+            // Already hosting; nothing to change
+            return;
+        }
+        if (controlChannel_->startHost(static_cast<quint16>(DEFAULT_CONTROL_PORT)))
+        {
+            controlHostAllowed_ = true;
+            reflash_state(jtr("control listen ok").arg(QString::number(DEFAULT_CONTROL_PORT)), SIGNAL_SIGNAL);
+        }
+        else
+        {
+            controlHostAllowed_ = false;
+            reflash_state(jtr("control listen fail"), WRONG_SIGNAL);
+        }
+        return;
     }
-    else
+
+    if (!controlHostAllowed_)
     {
-        reflash_state(jtr("control listen fail"), WRONG_SIGNAL);
+        return;
     }
+    controlHostAllowed_ = false;
+    if (!controlChannel_) return;
+    if (isHostControlled())
+    {
+        QJsonObject bye;
+        bye.insert(QStringLiteral("type"), QStringLiteral("released"));
+        controlChannel_->sendToController(bye);
+        controlHost_.active = false;
+        controlHost_.peer.clear();
+    }
+    controlChannel_->stopHost();
 }
 
 QJsonObject Widget::buildControlSnapshot() const
@@ -740,6 +776,12 @@ void Widget::beginControlLink()
     if (!ok || port <= 0 || port > 65535)
     {
         reflash_state(jtr("control invalid port"), WRONG_SIGNAL);
+        return;
+    }
+    setupControlChannel();
+    if (!controlChannel_)
+    {
+        reflash_state(jtr("control listen fail"), WRONG_SIGNAL);
         return;
     }
     controlTargetHost_ = host;

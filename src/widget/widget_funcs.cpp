@@ -888,6 +888,7 @@ void Widget::auto_save_user()
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
     settings.setValue("reasoning_effort", ui_SETTINGS.reasoning_effort);
     settings.setValue("port", ui_port);                     // 服务端口
+    settings.setValue("control_host_enabled", controlHostAllowed_);
     settings.setValue("device_backend", ui_device_backend); // 推理设备auto/cpu/cuda/vulkan/opencl
     settings.setValue("lazy_unload_minutes", lazyUnloadMs_ / 60000); // 惰性卸载(分钟)
     settings.setValue("chattemplate", date_ui->chattemplate_comboBox->currentText()); // 对话模板

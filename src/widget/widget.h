@@ -882,6 +882,7 @@ class Widget : public QWidget
     void enforcePredictLimit(bool syncSpin = true, bool clampSettings = true);
     // Control channel helpers
     void setupControlChannel();
+    void setControlHostEnabled(bool enabled);
     void beginControlLink();
     void releaseControl(bool notifyRemote = true);
     void handleControlHostClientChanged(bool connected, const QString &reason);
@@ -906,6 +907,7 @@ class Widget : public QWidget
 
     // Control channel state
     ControlChannel *controlChannel_ = nullptr;
+    bool controlHostAllowed_ = false;
     LinkProfile linkProfile_ = LinkProfile::Api;
     struct ControlHostState
     {

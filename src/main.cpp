@@ -301,8 +301,8 @@ int main(int argc, char *argv[])
     StartupLogger::log(QStringLiteral("xTool 构造完成（%1 ms）").arg(toolTimer.elapsed()));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: xTool %1 ms").arg(toolTimer.elapsed()));
     // 将 xNet 改为堆对象，确保在其所属线程内析构，避免 Windows 下 QWinEventNotifier 跨线程清理告警
-    xNet *net = new xNet; // 链接实例（worker 线程内生命周期）
-    xMcp mcp;             // mcp管理实例
+    xNet *net = new xNet;  // 链接实例（worker 线程内生命周期）
+    xMcp *mcp = new xMcp;  // MCP 管理实例（确保在线程内析构避免跨线程 QTimer 告警）
     gpuChecker gpuer;     // 监测显卡信息
     cpuChecker cpuer;     // 监视系统信息
 
@@ -375,9 +375,9 @@ int main(int argc, char *argv[])
     QObject::connect(&a, &QCoreApplication::aboutToQuit, &expend, [&expend]()
                      { expend.stopEmbeddingServer(true); }, Qt::QueuedConnection);
     QThread *mcp_thread = new QThread;
-    mcp.moveToThread(mcp_thread);
+    mcp->moveToThread(mcp_thread);
+    QObject::connect(mcp_thread, &QThread::finished, mcp, &QObject::deleteLater);
     mcp_thread->start();
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, &mcp, &xMcp::disconnectAll, Qt::QueuedConnection);
 
     // 统一的应用退出收尾：优雅停止各工作线程，避免退出阶段跨线程清理产生告警/卡顿
     QObject::connect(&a, &QCoreApplication::aboutToQuit, [gpuer_thread]()
@@ -393,8 +393,10 @@ int main(int argc, char *argv[])
         QMetaObject::invokeMethod(&tool, "shutdownDockerSandbox", Qt::BlockingQueuedConnection);
         tool_thread->quit();
         tool_thread->wait(2000); });
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp_thread]()
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [mcp, mcp_thread]()
                      {
+        QMetaObject::invokeMethod(mcp, "disconnectAll", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(mcp, "deleteLater", Qt::QueuedConnection);
         mcp_thread->quit();
         mcp_thread->wait(2000); });
     //------------------监测gpu信息-------------------
@@ -473,18 +475,18 @@ int main(int argc, char *argv[])
     }
 
     //------------------连接mcp管理器-------------------
-    QObject::connect(&mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
-    QObject::connect(&expend, &Expend::expend2mcp_addService, &mcp, &xMcp::addService);
-    QObject::connect(&expend, &Expend::expend2mcp_refreshTools, &mcp, &xMcp::refreshTools);
-    QObject::connect(&expend, &Expend::expend2mcp_disconnectAll, &mcp, &xMcp::disconnectAll);
-    QObject::connect(&expend, &Expend::expend2mcp_updateEnabledServices, &mcp, &xMcp::setEnabledServices);
-    QObject::connect(&mcp, &xMcp::toolsRefreshed, &expend, &Expend::recv_mcp_tools_refreshed);
-    QObject::connect(&mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // 添加某个mcp服务完成
-    QObject::connect(&mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
-    QObject::connect(&tool, &xTool::tool2mcp_toollist, &mcp, &xMcp::callList);       // 查询mcp可用工具
-    QObject::connect(&mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); // 查询mcp可用工具完成
-    QObject::connect(&tool, &xTool::tool2mcp_toolcall, &mcp, &xMcp::callTool);       // 开始调用mcp可用工具
-    QObject::connect(&mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); // mcp可用工具调用完成
+    QObject::connect(mcp, &xMcp::mcp_message, &expend, &Expend::recv_mcp_message);
+    QObject::connect(&expend, &Expend::expend2mcp_addService, mcp, &xMcp::addService);
+    QObject::connect(&expend, &Expend::expend2mcp_refreshTools, mcp, &xMcp::refreshTools);
+    QObject::connect(&expend, &Expend::expend2mcp_disconnectAll, mcp, &xMcp::disconnectAll);
+    QObject::connect(&expend, &Expend::expend2mcp_updateEnabledServices, mcp, &xMcp::setEnabledServices);
+    QObject::connect(mcp, &xMcp::toolsRefreshed, &expend, &Expend::recv_mcp_tools_refreshed);
+    QObject::connect(mcp, &xMcp::addService_single_over, &expend, &Expend::recv_addService_single_over); // 添加某个mcp服务完成
+    QObject::connect(mcp, &xMcp::addService_over, &expend, &Expend::recv_addService_over);
+    QObject::connect(&tool, &xTool::tool2mcp_toollist, mcp, &xMcp::callList);       // 查询mcp可用工具
+    QObject::connect(mcp, &xMcp::callList_over, &tool, &xTool::recv_calllist_over); // 查询mcp可用工具完成
+    QObject::connect(&tool, &xTool::tool2mcp_toolcall, mcp, &xMcp::callTool);       // 开始调用mcp可用工具
+    QObject::connect(mcp, &xMcp::callTool_over, &tool, &xTool::recv_callTool_over); // mcp可用工具调用完成
 
     //---------------读取配置文件并执行------------------
     QFile configfile(applicationDirPath + "/EVA_TEMP/eva_config.ini");
@@ -562,6 +564,7 @@ int main(int argc, char *argv[])
             w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
         }
         const QStringList enabledTools = settings.value("enabled_tools").toStringList();
+        const bool allowControlHost = settings.value("control_host_enabled", false).toBool();
         auto restoreToolCheckbox = [&](QCheckBox *box, const QString &id, const QString &legacyKey) -> bool {
             if (!box) return false;
             const bool fallback = settings.value(legacyKey, false).toBool();
@@ -630,6 +633,10 @@ int main(int argc, char *argv[])
         w.syncDockerSandboxConfig(true);
         if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
+        if (allowControlHost)
+        {
+            w.setControlHostEnabled(true);
+        }
         // 推理设备：先根据目录填充选项，再应用用户偏好。恢复自定义后端覆盖路径。
         DeviceManager::clearProgramOverrides();
         settings.beginGroup("backend_overrides");

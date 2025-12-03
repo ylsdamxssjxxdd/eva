@@ -87,6 +87,14 @@ void Widget::recv_cpu_status(double cpuload, double memload)
 
 void Widget::ensureLocalServer(bool lazyWake)
 {
+    if (isShuttingDown_)
+    {
+        FlowTracer::log(FlowChannel::Backend,
+                        QStringLiteral("backend: ensureLocalServer skipped (shutting down)"),
+                        activeTurnId_);
+        return;
+    }
+
     if (!serverManager) return;
 
     FlowTracer::log(FlowChannel::Backend,
@@ -470,6 +478,7 @@ void Widget::updateProxyBackend(const QString &backendHost, const QString &backe
 
 void Widget::onProxyWakeRequested()
 {
+    if (isShuttingDown_) return;
     if (!lazyUnloadEnabled()) return;
     if (lazyWakeInFlight_) return;
     if (backendOnline_ && serverManager && serverManager->isRunning()) return;
@@ -504,9 +513,9 @@ void Widget::scheduleLazyUnload()
         idleSince_.start();
     else
         idleSince_.restart();
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: lazy schedule %1ms").arg(lazyUnloadMs_),
-                    activeTurnId_);
+    // FlowTracer::log(FlowChannel::Backend,
+    //                 QStringLiteral("backend: lazy schedule %1ms").arg(lazyUnloadMs_),
+    //                 activeTurnId_);
     lazyUnloadTimer_->start(lazyUnloadMs_);
     updateLazyCountdownLabel();
 }
@@ -519,9 +528,9 @@ void Widget::cancelLazyUnload(const QString &reason)
     if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
     lazyUnloaded_ = false;
     idleSince_ = QElapsedTimer();
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: lazy cancel (%1)").arg(reason),
-                    activeTurnId_);
+    // FlowTracer::log(FlowChannel::Backend,
+    //                 QStringLiteral("backend: lazy cancel (%1)").arg(reason),
+    //                 activeTurnId_);
     updateLazyCountdownLabel();
 }
 

@@ -140,7 +140,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->kv_bar->setShowText(jtr("kv bar label"));
     ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(0).arg(0));
     updateKvBarUi();
-    setupControlChannel();
     //-------------初始化约定模板-------------
     ui_date_prompt = DEFAULT_DATE_PROMPT;
     ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
@@ -684,6 +683,15 @@ void Widget::closeEvent(QCloseEvent *event)
     }
 
     isShuttingDown_ = true;
+
+    // 停止一切可能唤醒后端或继续转发的通道，避免退出阶段再次拉起后端
+    if (proxyServer_) proxyServer_->stop();
+    if (controlChannel_)
+    {
+        if (isControllerActive()) releaseControl(true);
+        controlChannel_->stopHost();
+        controlChannel_->disconnectFromHost();
+    }
 
     // 构建一个无确定进度（0,0）的进度对话框，立刻显示，应用级模态
     QProgressDialog *dlg = new QProgressDialog(this);
