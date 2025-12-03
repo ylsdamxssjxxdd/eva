@@ -728,13 +728,23 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
 void Widget::applyControlUiLock()
 {
     if (!ui) return;
+    const QString dateLabel = jtr("date");
+    const QString setLabel = jtr("set");
+    const QString releaseLabel = jtr("control release");
     if (isControllerActive())
     {
         const bool canSend = !controlClient_.remoteRunning;
         ui->send->setEnabled(canSend);
         ui->reset->setEnabled(true);
-        ui->date->setText(jtr("control release"));
-        ui->set->setText(jtr("control release"));
+        // Merge load/date/set into a single “解除” control to match controller UI spec
+        if (ui->load) ui->load->setVisible(false);
+        if (ui->set) ui->set->setVisible(false);
+        if (ui->date)
+        {
+            ui->date->setVisible(true);
+            ui->date->setText(releaseLabel);
+            ui->date->setToolTip(releaseLabel);
+        }
         ui->date->setEnabled(true);
         ui->set->setEnabled(true);
         ui->load->setEnabled(true);
@@ -742,8 +752,19 @@ void Widget::applyControlUiLock()
     }
     else
     {
-        ui->date->setText(jtr("date"));
-        ui->set->setText(jtr("set"));
+        if (ui->load) ui->load->setVisible(true);
+        if (ui->set) ui->set->setVisible(true);
+        if (ui->date)
+        {
+            ui->date->setVisible(true);
+            ui->date->setText(dateLabel);
+            ui->date->setToolTip(dateLabel);
+        }
+        if (ui->set)
+        {
+            ui->set->setText(setLabel);
+            ui->set->setToolTip(jtr("set"));
+        }
     }
 }
 
@@ -807,4 +828,5 @@ void Widget::releaseControl(bool notifyRemote)
     linkProfile_ = LinkProfile::Api;
     if (controlChannel_) controlChannel_->disconnectFromHost();
     ui_state_normal();
+    applyControlUiLock();
 }

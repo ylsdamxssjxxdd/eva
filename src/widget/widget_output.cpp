@@ -179,9 +179,14 @@ void Widget::appendRoleHeader(const QString &role)
 {
     // Ensure a blank line before header if output is not empty
     const bool emptyDoc = ui->output->document() && ui->output->document()->isEmpty();
+    const auto broadcastChunk = [this](const QString &text, const QColor &clr) {
+        if (isHostControlled()) broadcastControlOutput(text, false, clr);
+    };
+    const QColor primaryColor = themeTextPrimary();
     if (!emptyDoc)
     {
-        output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
+        output_scroll(QString(DEFAULT_SPLITER), primaryColor);
+        broadcastChunk(QString(DEFAULT_SPLITER), primaryColor);
     }
     QColor c = chipColorForRole(RecordRole::System);
     const QString trimmed = role.trimmed();
@@ -223,7 +228,9 @@ void Widget::appendRoleHeader(const QString &role)
     }
     // Insert role label and a newline
     output_scroll(label, c);
-    output_scroll(QString(DEFAULT_SPLITER), themeTextPrimary());
+    broadcastChunk(label, c);
+    output_scroll(QString(DEFAULT_SPLITER), primaryColor);
+    broadcastChunk(QString(DEFAULT_SPLITER), primaryColor);
 }
 
 // 输出区滚动条事件响应
