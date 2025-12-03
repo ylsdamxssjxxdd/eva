@@ -114,20 +114,15 @@ void Widget::set_api()
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
     reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
-    {
-        recordAppendText(__idx, ui_DATES.date_prompt);
-        if (!ui_messagesArray.isEmpty())
-        {
-            int mi = ui_messagesArray.size() - 1;
-            recordEntries_[__idx].msgIndex = mi;
-        }
-    }
+    recordAppendText(__idx, ui_DATES.date_prompt);
+    lastSystemRecordIndex_ = __idx;
     // 重置对话消息并注入系统指令
     ui_messagesArray = QJsonArray();
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
     ui_messagesArray.append(systemMessage);
+    recordEntries_[__idx].msgIndex = 0;
     // start a new persistent history session in LINK mode
     if (history_)
     {

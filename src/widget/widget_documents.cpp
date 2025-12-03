@@ -498,9 +498,22 @@ void Widget::unlockLoad()
         skipUnlockLoadIntro_ = false; // Already showing prior chat, do not inject system prompt
         return;
     }
+    const bool canReuseSystemRecord = (lastSystemRecordIndex_ >= 0 && ui && ui->output && ui->output->document() && !ui->output->document()->isEmpty());
+    if (canReuseSystemRecord)
+    {
+        updateRecordEntryContent(lastSystemRecordIndex_, bot_predecode_content);
+        ensureOutputAtBottom();
+        return;
+    }
     // Record a system header and show system prompt as pre-decode content
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
     reflash_output(bot_predecode_content, 0, themeTextPrimary());
     recordAppendText(__idx, bot_predecode_content);
+    // Track the injected system record so later prompt refreshes reuse it instead of duplicating blocks
+    if (!ui_messagesArray.isEmpty())
+    {
+        recordEntries_[__idx].msgIndex = 0;
+    }
+    lastSystemRecordIndex_ = __idx;
 }

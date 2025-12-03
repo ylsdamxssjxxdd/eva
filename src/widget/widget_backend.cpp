@@ -746,6 +746,7 @@ void Widget::onServerReady(const QString &endpoint)
     if (!preserveConversation)
     {
         ui->output->clear();
+        recordClear(); // drop any pre-load records (e.g., engineer probe output) before starting a new session
         ui_messagesArray = QJsonArray();
         {
             QJsonObject systemMessage;
