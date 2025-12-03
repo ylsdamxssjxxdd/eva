@@ -48,12 +48,12 @@ void SdParamsDialog::buildUi()
     modelPathLe_->setToolTip("Main model file path");
     vaeLe_ = addPathRow(formModel, "VAE", "(*.ckpt *.safetensors *.gguf *.ggml *.pt)");
     vaeLe_->setToolTip("VAE model (optional)");
-    qwen2vlLe_ = addPathRow(formModel, "Qwen2VL", "(*.gguf *.ggml *.safetensors)");
-    qwen2vlLe_->setToolTip("Qwen2-VL text encoder (Qwen-Image)");
+    llmLe_ = addPathRow(formModel, "LLM", "(*.gguf *.ggml *.safetensors)");
+    llmLe_->setToolTip("LLM text encoder (formerly Qwen2-VL)");
 
-    qwen2vlVisionLe_ = addPathRow(formModel, "Qwen2VL-Vision", "(*.safetensors *.gguf *.ggml)");
+    llmVisionLe_ = addPathRow(formModel, "LLM-Vision", "(*.safetensors *.gguf *.ggml)");
 
-    qwen2vlVisionLe_->setToolTip("Qwen2-VL vision encoder (optional)");
+    llmVisionLe_->setToolTip("LLM vision encoder (optional)");
     clipLLe_ = addPathRow(formModel, "CLIP-L", "(*.safetensors *.gguf *.ggml)");
     clipLLe_->setToolTip("CLIP-L text encoder");
     clipGLe_ = addPathRow(formModel, "CLIP-G", "(*.safetensors *.gguf *.ggml)");
@@ -279,9 +279,9 @@ void SdParamsDialog::setConfig(const SDRunConfig &c)
     clipGLe_->setText(c.clipGPath);
     clipVisionLe_->setText(c.clipVisionPath);
     t5Le_->setText(c.t5xxlPath);
-    qwen2vlLe_->setText(c.qwen2vlPath);
+    llmLe_->setText(c.llmPath);
 
-    qwen2vlVisionLe_->setText(c.qwen2vlVisionPath);
+    llmVisionLe_->setText(c.llmVisionPath);
     loraDirLe_->setText(c.loraDirPath);
     taesdLe_->setText(c.taesdPath);
     upscaleLe_->setText(c.upscaleModelPath);
@@ -332,8 +332,8 @@ SDRunConfig SdParamsDialog::config() const
     c.clipGPath = clipGLe_->text();
     c.clipVisionPath = clipVisionLe_->text();
     c.t5xxlPath = t5Le_->text();
-    c.qwen2vlPath = qwen2vlLe_->text();
-    c.qwen2vlVisionPath = qwen2vlVisionLe_->text();
+    c.llmPath = llmLe_->text();
+    c.llmVisionPath = llmVisionLe_->text();
     c.loraDirPath = loraDirLe_->text();
     c.taesdPath = taesdLe_->text();
     c.upscaleModelPath = upscaleLe_->text();
@@ -521,7 +521,7 @@ void SdParamsDialog::hookAutosave()
     connect(schedulerBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
     connect(rngBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, arm);
     // Line edits
-    for (QLineEdit *le : {modelPathLe_, vaeLe_, clipLLe_, clipGLe_, clipVisionLe_, t5Le_, qwen2vlLe_, qwen2vlVisionLe_, loraDirLe_, taesdLe_, upscaleLe_, controlNetLe_, controlImgLe_, modifyEdit_})
+    for (QLineEdit *le : {modelPathLe_, vaeLe_, clipLLe_, clipGLe_, clipVisionLe_, t5Le_, llmLe_, llmVisionLe_, loraDirLe_, taesdLe_, upscaleLe_, controlNetLe_, controlImgLe_, modifyEdit_})
         if (le) connect(le, &QLineEdit::textChanged, this, arm);
     // Text edits
     if (negativeEdit_) connect(negativeEdit_, &QPlainTextEdit::textChanged, this, arm);

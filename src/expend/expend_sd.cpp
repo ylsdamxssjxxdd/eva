@@ -82,9 +82,9 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     c.clipGPath = get("sd_preset_" + key + "_clip_g_path", "").toString();
     c.clipVisionPath = get("sd_preset_" + key + "_clip_vision_path", "").toString();
     c.t5xxlPath = get("sd_preset_" + key + "_t5xxl_path", "").toString();
-    c.qwen2vlPath = get("sd_preset_" + key + "_qwen2vl_path", "").toString();
+    c.llmPath = get("sd_preset_" + key + "_llm_path", "").toString();
 
-    c.qwen2vlVisionPath = get("sd_preset_" + key + "_qwen2vl_vision_path", "").toString();
+    c.llmVisionPath = get("sd_preset_" + key + "_llm_vision_path", "").toString();
     c.loraDirPath = get("sd_preset_" + key + "_lora_dir", "").toString();
     c.taesdPath = get("sd_preset_" + key + "_taesd_path", "").toString();
     c.upscaleModelPath = get("sd_preset_" + key + "_upscale_model", "").toString();
@@ -139,9 +139,9 @@ void Expend::savePresetConfig(const QString &preset, const SDRunConfig &cfg) con
     settings.setValue("sd_preset_" + key + "_clip_g_path", cfg.clipGPath);
     settings.setValue("sd_preset_" + key + "_clip_vision_path", cfg.clipVisionPath);
     settings.setValue("sd_preset_" + key + "_t5xxl_path", cfg.t5xxlPath);
-    settings.setValue("sd_preset_" + key + "_qwen2vl_path", cfg.qwen2vlPath);
+    settings.setValue("sd_preset_" + key + "_llm_path", cfg.llmPath);
 
-    settings.setValue("sd_preset_" + key + "_qwen2vl_vision_path", cfg.qwen2vlVisionPath);
+    settings.setValue("sd_preset_" + key + "_llm_vision_path", cfg.llmVisionPath);
     settings.setValue("sd_preset_" + key + "_lora_dir", cfg.loraDirPath);
     settings.setValue("sd_preset_" + key + "_taesd_path", cfg.taesdPath);
     settings.setValue("sd_preset_" + key + "_upscale_model", cfg.upscaleModelPath);
@@ -360,8 +360,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     SDModelArgKind argk = sd_run_config_.modelArg;
     if (argk == SDModelArgKind::Auto)
     {
-        // Heuristic: prefer --diffusion-model when clip/t5/qwen2vl provided or filename hints
-        const bool hasExtra = !sd_run_config_.t5xxlPath.isEmpty() || !sd_run_config_.qwen2vlPath.isEmpty() || !sd_run_config_.qwen2vlVisionPath.isEmpty() || !sd_run_config_.clipLPath.isEmpty() || !sd_run_config_.clipGPath.isEmpty();
+        // Heuristic: prefer --diffusion-model when clip/t5/llm provided or filename hints
+        const bool hasExtra = !sd_run_config_.t5xxlPath.isEmpty() || !sd_run_config_.llmPath.isEmpty() || !sd_run_config_.llmVisionPath.isEmpty() || !sd_run_config_.clipLPath.isEmpty() || !sd_run_config_.clipGPath.isEmpty();
         if (hasExtra || sd_run_config_.modelPath.contains("flux", Qt::CaseInsensitive) || sd_run_config_.modelPath.contains("qwen", Qt::CaseInsensitive))
             argk = SDModelArgKind::Diffusion;
         else
@@ -378,9 +378,9 @@ void Expend::on_sd_draw_pushButton_clicked()
     if (!sd_run_config_.clipGPath.isEmpty()) arguments << "--clip_g" << ensureToolFriendlyFilePath(sd_run_config_.clipGPath);
     if (!sd_run_config_.clipVisionPath.isEmpty()) arguments << "--clip_vision" << ensureToolFriendlyFilePath(sd_run_config_.clipVisionPath);
     if (!sd_run_config_.t5xxlPath.isEmpty()) arguments << "--t5xxl" << ensureToolFriendlyFilePath(sd_run_config_.t5xxlPath);
-    if (!sd_run_config_.qwen2vlPath.isEmpty()) arguments << "--qwen2vl" << ensureToolFriendlyFilePath(sd_run_config_.qwen2vlPath);
-
-    if (!sd_run_config_.qwen2vlVisionPath.isEmpty()) arguments << "--qwen2vl_vision" << ensureToolFriendlyFilePath(sd_run_config_.qwen2vlVisionPath);
+    if (!sd_run_config_.llmPath.isEmpty()) arguments << "--llm" << ensureToolFriendlyFilePath(sd_run_config_.llmPath);
+ 
+    if (!sd_run_config_.llmVisionPath.isEmpty()) arguments << "--llm_vision" << ensureToolFriendlyFilePath(sd_run_config_.llmVisionPath);
     if (!sd_run_config_.taesdPath.isEmpty()) arguments << "--taesd" << ensureToolFriendlyFilePath(sd_run_config_.taesdPath);
     if (!sd_run_config_.upscaleModelPath.isEmpty()) arguments << "--upscale-model" << ensureToolFriendlyFilePath(sd_run_config_.upscaleModelPath);
     if (!sd_run_config_.controlNetPath.isEmpty()) arguments << "--control-net" << ensureToolFriendlyFilePath(sd_run_config_.controlNetPath);

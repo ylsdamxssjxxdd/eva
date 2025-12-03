@@ -434,9 +434,9 @@ void Expend::readConfig()
     sd_run_config_.clipGPath = settings.value("sd_adv_clip_g_path", clip_g_modelpath).toString();
     sd_run_config_.clipVisionPath = settings.value("sd_adv_clip_vision_path", "").toString();
     sd_run_config_.t5xxlPath = settings.value("sd_adv_t5xxl_path", t5_modelpath).toString();
-    sd_run_config_.qwen2vlPath = settings.value("sd_adv_qwen2vl_path", "").toString();
-
-    sd_run_config_.qwen2vlVisionPath = settings.value("sd_adv_qwen2vl_vision_path", "").toString();
+    sd_run_config_.llmPath = settings.value("sd_adv_llm_path", "").toString();
+ 
+    sd_run_config_.llmVisionPath = settings.value("sd_adv_llm_vision_path", "").toString();
     sd_run_config_.modifyPrompt = settings.value("sd_adv_modify", "").toString();
     sd_run_config_.negativePrompt = settings.value("sd_adv_negative", "").toString();
     sd_run_config_.loraDirPath = settings.value("sd_adv_lora_dir", "").toString();
