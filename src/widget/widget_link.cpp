@@ -486,6 +486,13 @@ QJsonArray Widget::buildControlRecords() const
     {
         QJsonObject obj;
         obj.insert(QStringLiteral("role"), static_cast<int>(e.role));
+        obj.insert(QStringLiteral("doc_from"), e.docFrom);
+        obj.insert(QStringLiteral("doc_to"), e.docTo);
+        obj.insert(QStringLiteral("text"), e.text);
+        if (e.role == RecordRole::Tool && !e.toolName.isEmpty())
+        {
+            obj.insert(QStringLiteral("tool"), e.toolName);
+        }
         arr.append(obj);
     }
     return arr;
@@ -615,7 +622,7 @@ void Widget::applyControlRecordClear()
 void Widget::applyControlRecordAdd(RecordRole role, const QString &toolName)
 {
     if (role == RecordRole::Tool) lastToolCallName_ = toolName;
-    recordCreate(role);
+    recordCreate(role, toolName);
 }
 
 void Widget::applyControlRecordUpdate(int index, const QString &deltaText)
@@ -773,31 +780,20 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
         }
         const QString role = payload.value(QStringLiteral("role")).toString();
         const int thinkFlag = payload.value(QStringLiteral("think_active")).toInt(-1);
-        const bool roleIsThink = (role == QStringLiteral("think"));
         if (!role.isEmpty()) controlStreamRole_ = role;
-        const bool treatAsThink = (thinkFlag == 1) || roleIsThink || (role.isEmpty() && controlThinkActive_);
-        if (treatAsThink)
+        // Mirror host output verbatim to avoid re-parsing <think> on controller side
+        if (stream) flushPendingStream();
+        QString plain = text;
+        plain.replace(QString(DEFAULT_THINK_BEGIN), QString());
+        plain.replace(QString(DEFAULT_THINK_END), QString());
+        output_scroll(plain, c);
+        if (role == QStringLiteral("think"))
         {
-            QString chunk = text;
-            if (!controlThinkActive_) chunk.prepend(QString(DEFAULT_THINK_BEGIN));
-            // Do not auto-close on stream==false; leave closure to role switch/end-of-turn.
-            controlThinkActive_ = true;
-            reflash_output(chunk, true, themeThinkColor());
-            if (thinkFlag == 0)
-            {
-                reflash_output(QString(DEFAULT_THINK_END), true, themeThinkColor());
-                controlThinkActive_ = false;
-            }
+            controlThinkActive_ = (thinkFlag != 0);
         }
-        else
+        else if (!role.isEmpty() || thinkFlag == 0)
         {
-            // Close any lingering think block before normal output to keep headers aligned
-            if (controlThinkActive_)
-            {
-                reflash_output(QString(DEFAULT_THINK_END), true, themeThinkColor());
-                controlThinkActive_ = false;
-            }
-            reflash_output(text, stream, c);
+            controlThinkActive_ = false;
         }
         return;
     }
@@ -894,18 +890,68 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
     is_stop_output_scroll = false;
     if (ui->output) resetOutputDocument();
     if (ui->state) resetStateDocument();
-    if (ui->output) ui->output->setPlainText(snap.value(QStringLiteral("output")).toString());
+
+    const QJsonArray recs = snap.value(QStringLiteral("records")).toArray();
+    bool rebuiltFromRecords = false;
+    const auto hasRecordText = [&]() -> bool
+    {
+        for (const auto &v : recs)
+        {
+            if (!v.isObject()) continue;
+            if (v.toObject().contains(QStringLiteral("text"))) return true;
+        }
+        return false;
+    };
+    if (ui->output && hasRecordText())
+    {
+        ui->output->clear();
+        const auto roleToken = [](RecordRole role) -> QString
+        {
+            switch (role)
+            {
+            case RecordRole::System: return QStringLiteral("system");
+            case RecordRole::User: return QStringLiteral("user");
+            case RecordRole::Assistant: return QStringLiteral("assistant");
+            case RecordRole::Think: return QStringLiteral("think");
+            case RecordRole::Tool: return QStringLiteral("tool");
+            }
+            return QString();
+        };
+        for (const auto &v : recs)
+        {
+            if (!v.isObject()) continue;
+            const QJsonObject ro = v.toObject();
+            const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
+            const QString text = ro.value(QStringLiteral("text")).toString();
+            const QString toolName = ro.value(QStringLiteral("tool")).toString();
+            const RecordRole role = static_cast<RecordRole>(roleInt);
+            if (role == RecordRole::Tool) lastToolCallName_ = toolName;
+            const int idx = recordCreate(role, toolName);
+            const QString header = roleToken(role);
+            if (!header.isEmpty()) appendRoleHeader(header);
+            reflash_output(text, 0, textColorForRole(role));
+            recordAppendText(idx, text);
+        }
+        rebuiltFromRecords = true;
+    }
+    else if (ui->output)
+    {
+        ui->output->setPlainText(snap.value(QStringLiteral("output")).toString());
+    }
     if (ui->state) ui->state->setPlainText(snap.value(QStringLiteral("state_log")).toString());
     kvUsed_ = snap.value(QStringLiteral("kv_used")).toInt(kvUsed_);
     slotCtxMax_ = snap.value(QStringLiteral("kv_cap")).toInt(slotCtxMax_);
     updateKvBarUi();
-    const QJsonArray recs = snap.value(QStringLiteral("records")).toArray();
-    for (const auto &v : recs)
+    if (!rebuiltFromRecords)
     {
-        if (!v.isObject()) continue;
-        const QJsonObject ro = v.toObject();
-        const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
-        applyControlRecordAdd(static_cast<RecordRole>(roleInt), QString());
+        for (const auto &v : recs)
+        {
+            if (!v.isObject()) continue;
+            const QJsonObject ro = v.toObject();
+            const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
+            const QString toolName = ro.value(QStringLiteral("tool")).toString();
+            applyControlRecordAdd(static_cast<RecordRole>(roleInt), toolName);
+        }
     }
     applyControlMonitor(snap.value(QStringLiteral("monitor")).toObject());
     const QString stateStr = snap.value(QStringLiteral("ui_state")).toString();

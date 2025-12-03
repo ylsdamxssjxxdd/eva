@@ -58,24 +58,33 @@ RecordNodeVisual buildRecordNodeVisual(const Widget *w, Widget::RecordRole role,
 }
 }
 
-int Widget::recordCreate(RecordRole role)
+int Widget::recordCreate(RecordRole role, const QString &toolNameOverride)
 {
     RecordEntry e;
     e.role = role;
     e.docFrom = outputDocEnd();
     e.docTo = e.docFrom;
     e.text.clear();
+    if (role == RecordRole::Tool)
+    {
+        e.toolName = toolNameOverride.isEmpty() ? lastToolCallName_ : toolNameOverride;
+    }
+    else
+    {
+        e.toolName.clear();
+    }
     e.msgIndex = -1;
     recordEntries_.push_back(e);
     const int idx = recordEntries_.size() - 1;
     if (ui->recordBar)
     {
-        const RecordNodeVisual visual = buildRecordNodeVisual(this, role, (role == RecordRole::Tool) ? lastToolCallName_ : QString());
+        const QString toolBadgeName = (role == RecordRole::Tool) ? recordEntries_[idx].toolName : QString();
+        const RecordNodeVisual visual = buildRecordNodeVisual(this, role, toolBadgeName);
         ui->recordBar->addNode(visual.base, QString(), visual.badge);
     }
     if (isHostControlled())
     {
-        const QString toolName = (role == RecordRole::Tool) ? lastToolCallName_ : QString();
+        const QString toolName = (role == RecordRole::Tool) ? recordEntries_[idx].toolName : QString();
         broadcastControlRecordAdd(role, toolName);
     }
     return idx;

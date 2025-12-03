@@ -803,6 +803,7 @@ class Widget : public QWidget
         int docFrom = 0;
         int docTo = 0;
         QString text;
+        QString toolName;
         int msgIndex = -1;
     };
     QVector<RecordEntry> recordEntries_;
@@ -814,7 +815,7 @@ class Widget : public QWidget
     int outputDocEnd() const;
     QColor chipColorForRole(RecordRole r) const;
     QColor textColorForRole(RecordRole r) const;
-    int recordCreate(RecordRole role);
+    int recordCreate(RecordRole role, const QString &toolNameOverride = QString());
     void recordAppendText(int index, const QString &text);
     void recordClear();
     void gotoRecord(int index);
