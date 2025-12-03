@@ -43,9 +43,9 @@ const QString &defaultEngineerInfo()
 {
     static const QString value = QStringLiteral(
         "You possess the ability of a senior software engineer, proficient in multiple programming languages, frameworks, design patterns, and best practices.\n"
-        "You can only use one tool at a time; wait and observe the results returned by the tool before proceeding to the next step.\n"
         "Try to solve problems independently as much as possible. Review the provided workspace overview before planning any work so you clearly understand the project layout and act with whole-project awareness.If user clarification is required, ask via the answer tool.\n"
         "Whenever a problem looks complex or requires multiple steps, prefer invoking the programmatic_tool_calling (ptc) tool to author a Python helper instead of chaining brittle shell commands.\n"
+        "Prefer batching related file reads into a single read_file call (the tool supports multiple files and line ranges) to reduce round trips.\n"
         "When replying to the user at the end of a task, summarize objectives, key modifications, and validation steps without pasting detailed code listings. Describe changes at a high level instead.\n"
         "You may write file contents directly without echoing them in the conversation.\n"
         "The current environment is: {engineer_system_info}");
@@ -161,14 +161,14 @@ Passing Parameter Examples:
          "list_files",
          R"({"type":"object","properties":{"path":{"type":"string","description":"Optional directory to list (relative to the engineer working directory). Leave blank to use the current working directory."}}})",
          QStringLiteral("List all immediate subfolders and files under a directory. If no path is provided, default to the engineer working directory. Paths are resolved relative to the engineer working directory and output stays compact, one entry per line.")},
-        {promptx::PROMPT_TOOL_SEARCH_CONTENT,
-         "search_content",
-         R"({"type":"object","properties":{"query":{"type":"string","description":"The text to search for."}},"required":["query"]})",
-         QStringLiteral("Search all text files under the engineer working directory for a query string (case-insensitive). Returns lines in the form <path>:<line>:<content>.")},
-        {promptx::PROMPT_TOOL_READ_FILE,
-         "read_file",
-         R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to read"},"start_line":{"type":"integer","description":"The starting line number (1-based index). Optional, default is 1","minimum":1},"end_line":{"type":"integer","description":"The ending line number (1-based index). Optional, maximum 200 lines from start_line","minimum":1}},"required":["path"]})",
-         QStringLiteral("Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file. You can specify start and end line numbers to read only a portion of the file. Maximum 200 lines can be read at once.")},
+         {promptx::PROMPT_TOOL_SEARCH_CONTENT,
+          "search_content",
+          R"({"type":"object","properties":{"query":{"type":"string","description":"The text to search for (case-insensitive literal)."},"path":{"type":"string","description":"Optional directory to limit the search to, relative to the engineer working directory."},"file_pattern":{"type":"string","description":"Optional glob to filter files, e.g. *.cpp or src/**.ts"}},"required":["query"]})",
+          QStringLiteral("Search text files under the engineer working directory using a fast grep. Optional path limits scope; optional file_pattern filters files (glob). Results stay compact as <path>:<line>:<content>.")},
+         {promptx::PROMPT_TOOL_READ_FILE,
+          "read_file",
+          R"({"type":"object","properties":{"files":{"type":"array","description":"List of files to read. Each entry may include optional line ranges.","items":{"type":"object","properties":{"path":{"type":"string","description":"Path to read, relative to the engineer workspace."},"start_line":{"type":"integer","minimum":1,"description":"Optional start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Optional end line (inclusive)."},"line_ranges":{"type":"array","description":"Optional explicit ranges.","items":{"type":"array","items":[{"type":"integer","minimum":1},{"type":"integer","minimum":1}]}}},"required":["path"]}},"path":{"type":"string","description":"Legacy single-file path."},"start_line":{"type":"integer","minimum":1,"description":"Legacy start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Legacy end line (inclusive)."}},"anyOf":[{"required":["files"]},{"required":["path"]}]})",
+          QStringLiteral("Read one or more files with optional line ranges. Prefer batching related files in a single call. Each file supports start/end_line or multiple line_ranges. Falls back to legacy path/start_line/end_line when files is omitted. Line output is capped to keep responses concise.")},
         {promptx::PROMPT_TOOL_WRITE_FILE,
          "write_file",
          R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to write"},"content":{"type":"string","description":"The file content"}},"required":["path","content"]})",

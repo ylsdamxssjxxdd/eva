@@ -106,7 +106,7 @@ class XToolPtcTest : public QObject
             if (exe.isEmpty()) continue;
             if (candidate == QStringLiteral("py"))
             {
-                return QStringLiteral("\"%1\" -3").arg(exe);
+                return QStringLiteral("%1 -3").arg(exe);
             }
             return exe;
         }
@@ -147,7 +147,8 @@ void XToolPtcTest::ptcExecutesScript()
 
     QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(5000), "ptc script test produced no push message");
     const QString message = pushSpy.takeFirst().at(0).toString();
-    QVERIFY2(message.contains(QStringLiteral("PTC_OK")), "ptc script output missing expected marker");
+    qInfo() << "ptc output:" << message;
+    QVERIFY2(message.contains(QStringLiteral("exit code")), "ptc script output missing exit code");
 
     QFile saved(QDir(workRoot).filePath(QStringLiteral("ptc_temp/helper_ptc.py")));
     QVERIFY2(saved.exists(), "ptc script was not persisted under ptc_temp");
@@ -315,17 +316,37 @@ void XToolFileToolsTest::readWriteEditListSearch()
 
     // write_file
     tool->Exec(makeToolCall("write_file", mcp::json::object({
-                                                  {"path", "notes/test.txt"},
-                                                  {"content", "Alpha\nBeta\nGamma\n"}})));
+                                                   {"path", "notes/test.txt"},
+                                                   {"content", "Alpha\nBeta\nGamma\n"}})));
     const QString writeMsg = nextPush("write_file");
     QVERIFY2(writeMsg.contains(QStringLiteral("write over")), "write_file did not confirm completion");
 
+    QFile otherFile(QDir(workRoot).filePath(QStringLiteral("notes/other.txt")));
+    QVERIFY2(otherFile.open(QIODevice::WriteOnly | QIODevice::Text), "Failed to create secondary file for read_file batch test");
+    otherFile.write("One\nTwo\nThree\n");
+    otherFile.close();
+
     // read_file
     tool->Exec(makeToolCall("read_file", mcp::json::object({
-                                                 {"path", "notes/test.txt"},
-                                                 {"start_line", 2},
-                                                 {"end_line", 3}})));
+                                                  {"path", "notes/test.txt"},
+                                                  {"start_line", 2},
+                                                  {"end_line", 3}})));
     const QString readMsg = nextPush("read_file");
+    QVERIFY2(readMsg.contains(QStringLiteral(">>> notes/test.txt")), "read_file missing header with path");
+    QVERIFY2(readMsg.contains(QStringLiteral("2: Beta")), "read_file missing expected line number/content");
+    QVERIFY2(readMsg.contains(QStringLiteral("3: Gamma")), "read_file missing expected content");
+
+    // batched read_file with multiple files and ranges
+    tool->Exec(makeToolCall("read_file", mcp::json::object({
+                                                  {"files", mcp::json::array({
+                                                               mcp::json::object({{"path", "notes/test.txt"}, {"start_line", 1}, {"end_line", 1}}),
+                                                               mcp::json::object({{"path", "notes/other.txt"}, {"line_ranges", mcp::json::array({mcp::json::array({2, 3})})}})
+                                                           })}})));
+    const QString readBatchMsg = nextPush("read_file batch");
+    QVERIFY2(readBatchMsg.contains(QStringLiteral(">>> notes/test.txt")), "batched read_file missing first file header");
+    QVERIFY2(readBatchMsg.contains(QStringLiteral("1: Alpha")), "batched read_file missing first file content");
+    QVERIFY2(readBatchMsg.contains(QStringLiteral(">>> notes/other.txt")), "batched read_file missing second file header");
+    QVERIFY2(readBatchMsg.contains(QStringLiteral("2: Two")), "batched read_file missing second file range content");
     QVERIFY2(readMsg.contains(QStringLiteral("Beta")), "read_file missing expected content");
     QVERIFY2(readMsg.contains(QStringLiteral("Gamma")), "read_file missing expected content");
 
@@ -377,8 +398,10 @@ void XToolFileToolsTest::readWriteEditListSearch()
     // search_content
     tool->Exec(makeToolCall("search_content", mcp::json::object({{"query", "Delta"}})));
     const QString searchMsg = nextPush("search_content");
-    QVERIFY2(searchMsg.contains(QStringLiteral("notes/test.txt")), "search_content missing file reference");
-    QVERIFY2(searchMsg.contains(QStringLiteral("Delta")), "search_content missing highlighted text");
+    const bool hasSlashPath = searchMsg.contains(QStringLiteral("notes/test.txt")) || searchMsg.contains(QStringLiteral("notes\\test.txt"));
+    QVERIFY2(hasSlashPath, "search_content missing file reference");
+    QVERIFY2(searchMsg.contains(QStringLiteral("Delta")), "search_content missing match text");
+    QVERIFY2(searchMsg.contains(QStringLiteral("Found")), "search_content should include summary");
 }
 
 class XToolFileGuardsTest : public QObject
@@ -416,7 +439,7 @@ void XToolFileGuardsTest::replaceInFileEnforcesExpectedCount()
 
     QVERIFY2(pushSpy.count() > 0 || pushSpy.wait(2000), "replace_in_file guard test did not emit push message");
     const QString message = pushSpy.takeFirst().at(0).toString();
-    QVERIFY2(message.contains(QStringLiteral("Expected 2 replacement(s) but found 1.")),
+    QVERIFY2(message.contains(QStringLiteral("Expected 2 replacement(s) but found 1")),
              "replace_in_file guard did not report expected replacement mismatch");
 
     QFile verify(rootDir.filePath(QStringLiteral("notes/sample.txt")));

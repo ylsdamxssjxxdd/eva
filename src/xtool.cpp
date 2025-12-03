@@ -10,6 +10,7 @@
 #include <QRegularExpression>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -35,6 +36,18 @@ struct MatchRange
 {
     int start = -1;
     int length = 0;
+};
+
+struct LineRange
+{
+    int start = 1;
+    int end = std::numeric_limits<int>::max();
+};
+
+struct FileReadSpec
+{
+    QString path;
+    QVector<LineRange> ranges;
 };
 
 QString normalizeNewlines(QString text)
@@ -148,6 +161,103 @@ QString normalizeUnixPath(const QString &path)
     }
     if (absolute) result.prepend('/');
     return result;
+}
+
+bool parseFileSpecsFromArgs(const mcp::json &args, QVector<FileReadSpec> &out, QString &error)
+{
+    out.clear();
+    const int kMaxFiles = 5;
+    const int kMaxRangeSpan = 400;
+    const int kDefaultSpan = 200;
+
+    auto clampRange = [&](LineRange &range) {
+        if (range.start < 1) range.start = 1;
+        if (range.end < range.start) range.end = range.start;
+        if (range.end - range.start + 1 > kMaxRangeSpan) range.end = range.start + kMaxRangeSpan - 1;
+    };
+
+    auto parseRanges = [&](const mcp::json &item, FileReadSpec &spec) {
+        if (item.contains("line_ranges") && item["line_ranges"].is_array())
+        {
+            for (const auto &rangeVal : item["line_ranges"])
+            {
+                if (!rangeVal.is_array() || rangeVal.size() < 2) continue;
+                LineRange r;
+                try
+                {
+                    r.start = std::max(1, rangeVal.at(0).get<int>());
+                    r.end = std::max(1, rangeVal.at(1).get<int>());
+                }
+                catch (...)
+                {
+                    continue;
+                }
+                clampRange(r);
+                spec.ranges.append(r);
+            }
+        }
+        int startLine = get_int_safely(item, "start_line", -1);
+        int endLine = get_int_safely(item, "end_line", -1);
+        if (startLine > 0)
+        {
+            LineRange r;
+            r.start = startLine;
+            r.end = endLine > 0 ? endLine : startLine + kDefaultSpan - 1;
+            clampRange(r);
+            spec.ranges.append(r);
+        }
+    };
+
+    if (args.contains("files") && args["files"].is_array())
+    {
+        for (const auto &fileVal : args["files"])
+        {
+            if (!fileVal.is_object()) continue;
+            const QString path = QString::fromStdString(get_string_safely(fileVal, "path")).trimmed();
+            if (path.isEmpty()) continue;
+            FileReadSpec spec;
+            spec.path = path;
+            parseRanges(fileVal, spec);
+            if (spec.ranges.isEmpty())
+            {
+                LineRange def;
+                def.end = def.start + kDefaultSpan - 1;
+                spec.ranges.append(def);
+            }
+            out.append(spec);
+            if (out.size() >= kMaxFiles) break;
+        }
+    }
+
+    if (out.isEmpty())
+    {
+        const QString legacyPath = QString::fromStdString(get_string_safely(args, "path")).trimmed();
+        if (!legacyPath.isEmpty())
+        {
+            FileReadSpec spec;
+            spec.path = legacyPath;
+            LineRange range;
+            int start = get_int_safely(args, "start_line", 1);
+            int end = get_int_safely(args, "end_line", start + kDefaultSpan - 1);
+            range.start = start;
+            range.end = end;
+            clampRange(range);
+            spec.ranges.append(range);
+            out.append(spec);
+        }
+    }
+
+    if (out.isEmpty())
+    {
+        error = QStringLiteral("No file paths provided.");
+        return false;
+    }
+
+    if (out.size() > kMaxFiles)
+    {
+        out = out.mid(0, kMaxFiles);
+    }
+    return true;
 }
 } // namespace
 
@@ -505,63 +615,113 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     //----------------------读取文件------------------
     else if (tools_name == "read_file")
     {
-        QString build_in_tool_arg = QString::fromStdString(get_string_safely(tools_args_, "path"));
-        ToolPathResolution pathRes;
-        QString pathError;
-        if (!resolveToolPath(build_in_tool_arg, &pathRes, &pathError))
+        QVector<FileReadSpec> specs;
+        QString parseError;
+        if (!parseFileSpecsFromArgs(tools_args_, specs, parseError))
         {
-            sendPushMessage(QString("read_file ") + jtr("return") + " " + (pathError.isEmpty() ? QStringLiteral("invalid path") : pathError));
+            sendPushMessage(QStringLiteral("read_file ") + jtr("return") + " " + parseError);
             return;
         }
-        int start_line = get_int_safely(tools_args_, "start_line", 1);
-        int end_line = get_int_safely(tools_args_, "end_line", INT_MAX);
-        if (start_line < 1) start_line = 1;
-        if (end_line < start_line) end_line = start_line;
-        if (end_line - start_line + 1 > 200) end_line = start_line + 199;
-        const bool useDocker = dockerSandboxEnabled();
-        QString result;
-        int current_line = 0;
-        auto extractLines = [&](QTextStream &stream) {
-            QStringList lines;
-            current_line = 0;
-            while (!stream.atEnd())
-            {
-                current_line++;
-                QString line = stream.readLine();
-                if (current_line >= start_line && current_line <= end_line) lines.append(line);
-                if (current_line > end_line) break;
-            }
-            result = lines.join("\n");
-        };
-        if (useDocker)
+        const int kMaxFiles = 5;
+        if (specs.size() > kMaxFiles)
         {
-            QString fileContent;
-            QString error;
-            const bool pathIsContainer = pathRes.containerAbsolute;
-            const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
-            if (!dockerReadTextFile(dockerPath, &fileContent, &error, pathIsContainer))
-            {
-                sendPushMessage(QString("read_file ") + jtr("return") + " " + error);
-                return;
-            }
-            QTextStream stream(&fileContent, QIODevice::ReadOnly);
-            extractLines(stream);
+            specs = specs.mid(0, kMaxFiles);
         }
-        else
-        {
+        const bool useDocker = dockerSandboxEnabled();
+        const QString root = QDir::cleanPath(resolveWorkRoot());
+        QStringList outputs;
+        outputs.reserve(specs.size());
+
+        auto readFileContent = [&](const ToolPathResolution &pathRes, QString &content, QString &error) -> bool {
+            if (useDocker)
+            {
+                const bool pathIsContainer = pathRes.containerAbsolute;
+                const QString dockerPath = pathIsContainer ? pathRes.containerPath : pathRes.hostPath;
+                if (!dockerReadTextFile(dockerPath, &content, &error, pathIsContainer)) return false;
+                return true;
+            }
             QFile file(pathRes.hostPath);
             if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-                sendPushMessage(QString("read_file ") + jtr("return") + QString("can not open file: %1").arg(pathRes.hostPath));
-                return;
+                error = QStringLiteral("cannot open file: %1").arg(pathRes.hostPath);
+                return false;
             }
             QTextStream in(&file);
             in.setCodec("UTF-8");
-            extractLines(in);
+            content = in.readAll();
             file.close();
+            return true;
+        };
+
+        for (const FileReadSpec &spec : specs)
+        {
+            if (shouldAbort(invocation)) break;
+            ToolPathResolution pathRes;
+            QString pathError;
+            if (!resolveToolPath(spec.path, &pathRes, &pathError))
+            {
+                outputs << QStringLiteral(">>> %1\n%2").arg(spec.path, pathError.isEmpty() ? QStringLiteral("invalid path") : pathError);
+                continue;
+            }
+            QString fileContent;
+            QString readError;
+            if (!readFileContent(pathRes, fileContent, readError))
+            {
+                outputs << QStringLiteral(">>> %1\n%2").arg(spec.path, readError);
+                continue;
+            }
+
+            const bool hadCRLF = fileContent.contains("\r\n");
+            const bool hadCR = !hadCRLF && fileContent.contains('\r');
+            QString normalized = normalizeNewlines(fileContent);
+            const bool hadTrailingNewline = normalized.endsWith('\n');
+            QStringList lines = normalized.split('\n', Qt::KeepEmptyParts);
+            if (hadTrailingNewline && !lines.isEmpty() && lines.last().isEmpty()) lines.removeLast();
+
+            QString displayPath;
+            if (useDocker && pathRes.containerAbsolute)
+                displayPath = pathRes.containerPath;
+            else
+                displayPath = QDir(root).relativeFilePath(pathRes.hostPath);
+            if (displayPath.isEmpty() || displayPath.startsWith("..")) displayPath = pathRes.hostPath;
+
+            QStringList rangeOutput;
+            for (const LineRange &range : spec.ranges)
+            {
+                if (shouldAbort(invocation)) break;
+                const int start = std::max(1, range.start);
+                const int end = std::max(start, range.end);
+                if (lines.isEmpty())
+                {
+                    rangeOutput << QStringLiteral("(empty file)");
+                    continue;
+                }
+                if (start > lines.size())
+                {
+                    rangeOutput << QStringLiteral("(range %1-%2 out of file size %3)").arg(start).arg(end).arg(lines.size());
+                    continue;
+                }
+                const int last = std::min(end, lines.size());
+                QStringList slice;
+                for (int i = start - 1; i < last; ++i)
+                {
+                    slice << QStringLiteral("%1: %2").arg(i + 1).arg(lines.at(i));
+                }
+                rangeOutput << slice.join("\n");
+            }
+            const QString header = QStringLiteral(">>> %1").arg(displayPath);
+            outputs << header + QStringLiteral("\n") + rangeOutput.join("\n---\n");
         }
-        sendStateMessage("tool:" + QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result, TOOL_SIGNAL);
-        sendPushMessage(QString("read_file ") + jtr("return") + QString(" (lines %1-%2)\n").arg(start_line).arg(qMin(current_line, end_line)) + result);
+
+        if (outputs.isEmpty())
+        {
+            sendPushMessage(QStringLiteral("read_file ") + jtr("return") + " no readable files.");
+            return;
+        }
+
+        const QString result = outputs.join("\n\n");
+        sendStateMessage("tool:" + QString("read_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage(QString("read_file ") + jtr("return") + "\n" + result);
     }
 
     //----------------------写入文件------------------
@@ -693,7 +853,9 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         }
         if (expectedProvided && matches.size() != expectedRepl)
         {
-            sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + QString("Expected %1 replacement(s) but found %2.").arg(expectedRepl).arg(matches.size()));
+            QString msg = QString("Expected %1 replacement(s) but found %2. ").arg(expectedRepl).arg(matches.size());
+            msg += QStringLiteral("Consider narrowing old_string or reading the file to confirm current content.");
+            sendPushMessage(QStringLiteral("replace_in_file ") + jtr("return") + " " + msg);
             return;
         }
         const bool autoExpanded = !expectedProvided && matches.size() > expectedRepl;
@@ -916,7 +1078,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 const int endIdx = op.endLine - 1;
                 if (startIdx < 0 || endIdx >= currentLineCount)
                 {
-                    sendError(QString("edit #%1 references line out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    sendError(QString("edit #%1 references line out of range (file has %2 lines). Please refresh the file with read_file before editing.").arg(op.ordinal).arg(currentLineCount));
                     return;
                 }
                 for (int i = endIdx; i >= startIdx; --i) lines.removeAt(i);
@@ -938,7 +1100,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 const int insertIdx = op.startLine - 1;
                 if (insertIdx < 0 || insertIdx > currentLineCount)
                 {
-                    sendError(QString("edit #%1 insert_before target is out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    sendError(QString("edit #%1 insert_before target is out of range (file has %2 lines). Please refresh the file with read_file before editing.").arg(op.ordinal).arg(currentLineCount));
                     return;
                 }
                 for (int i = 0; i < op.newLines.size(); ++i) lines.insert(insertIdx + i, op.newLines.at(i));
@@ -948,7 +1110,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 const int anchorIdx = op.startLine - 1;
                 if (anchorIdx < 0 || anchorIdx >= currentLineCount)
                 {
-                    sendError(QString("edit #%1 insert_after target is out of range (file has %2 lines).").arg(op.ordinal).arg(currentLineCount));
+                    sendError(QString("edit #%1 insert_after target is out of range (file has %2 lines). Please refresh the file with read_file before editing.").arg(op.ordinal).arg(currentLineCount));
                     return;
                 }
                 int insertIdx = anchorIdx + 1;
@@ -1256,6 +1418,8 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     else if (tools_name == "search_content")
     {
         const QString query = QString::fromStdString(get_string_safely(tools_args_, "query"));
+        const QString subDir = QString::fromStdString(get_string_safely(tools_args_, "path")).trimmed();
+        const QString filePattern = QString::fromStdString(get_string_safely(tools_args_, "file_pattern")).trimmed();
         sendStateMessage("tool:" + QString("search_content(") + query + ")");
         if (query.trimmed().isEmpty())
         {
@@ -1264,168 +1428,147 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
             return;
         }
-        const QString root = QDir::fromNativeSeparators(workDirRoot.isEmpty() ? applicationDirPath + "/EVA_WORK" : workDirRoot);
-        QDir rootDir(root);
-        // 仅扫描工程师目录内的文本文件
-        auto isLikelyText = [](const QString &path, qint64 size) -> bool
+        const QString root = QDir::cleanPath(resolveWorkRoot());
+        QString targetRoot = root;
+        if (!subDir.isEmpty())
         {
-            static const QSet<QString> exts = {
-                "txt", "md", "markdown", "log", "ini", "cfg", "conf", "csv", "tsv", "json", "yaml", "yml", "toml", "xml", "html", "htm",
-                "css", "js", "ts", "tsx", "jsx", "py", "ipynb", "c", "cc", "cpp", "h", "hpp", "hh", "java", "kt", "rs", "go", "rb", "php",
-                "sh", "bash", "zsh", "ps1", "bat", "cmake", "mak", "make", "gradle", "properties", "sql", "mm", "m", "swift"
-            };
-            static const QSet<QString> namesWithoutExt = {
-                ".gitignore", ".gitmodules", ".gitattributes", ".clang-format", ".clang-tidy", ".editorconfig", ".env", ".env.local",
-                ".env.example", "dockerfile", "makefile", "cmakelists.txt", "license", "license.txt", "readme", "readme.md"
-            };
-            if (size > (qint64)2 * 1024 * 1024) return false; // >2MB 视为非文本，直接跳过
-            const QFileInfo info(path);
-            const QString ext = info.suffix().toLower();
-            if (!ext.isEmpty()) return exts.contains(ext);
-            const QString name = info.fileName().toLower();
-            return namesWithoutExt.contains(name);
-        };
+            QString resolveError;
+            const QString resolved = resolveHostPathWithinWorkdir(subDir, &resolveError);
+            if (resolved.isEmpty())
+            {
+                const QString msg = resolveError.isEmpty() ? QStringLiteral("Invalid search path: %1").arg(subDir) : resolveError;
+                sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
+                sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
+                return;
+            }
+            targetRoot = resolved;
+        }
+        QDir rootDir(targetRoot);
         if (!rootDir.exists())
         {
-            const QString msg = QString("Work directory not found: %1").arg(root);
+            const QString msg = QString("Work directory not found: %1").arg(targetRoot);
             sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
             sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
             return;
         }
-        struct FileSearchResult
-        {
-            QString path;
-            QVector<QPair<int, QString>> matches;
-        };
-        QVector<FileSearchResult> fileResults;
-        QHash<QString, int> fileIndexByPath;
-        const int kMaxMatches = 300;
-        const int kMaxOutputBytes = 220 * 1024;
-        int totalMatches = 0;
-        bool matchLimitHit = false;
-        auto sanitizeLine = [](QString text) -> QString
-        {
-            text.replace('\t', ' ');
-            text.replace('\r', ' ');
-            if (text.size() > 400) text = text.left(400) + "...";
-            return text;
-        };
-        auto ensureFileResult = [&](const QString &relativePath) -> FileSearchResult &
-        {
-            auto it = fileIndexByPath.find(relativePath);
-            if (it != fileIndexByPath.end())
-            {
-                return fileResults[*it];
-            }
-            FileSearchResult result;
-            result.path = relativePath;
-            fileResults.append(result);
-            const int newIndex = fileResults.size() - 1;
-            fileIndexByPath.insert(relativePath, newIndex);
-            return fileResults[newIndex];
-        };
-        QDirIterator it(rootDir.absolutePath(), QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
-        while (it.hasNext())
-        {
-            if (shouldAbort(invocation)) break;
-            const QString absolutePath = it.next();
-            const QFileInfo fi(absolutePath);
-            const QString relCheck = rootDir.relativeFilePath(fi.absoluteFilePath());
-            if (relCheck.startsWith("..")) continue;
-            if (!isLikelyText(absolutePath, fi.size())) continue;
-            QFile file(absolutePath);
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
-            QTextStream stream(&file);
-            stream.setCodec("UTF-8");
+
+        auto runRipGrep = [&]() -> QStringList {
             QStringList lines;
-            while (!stream.atEnd())
+            QProcess rg;
+#ifdef Q_OS_WIN
+            rg.setProgram(QStringLiteral("rg.exe"));
+#else
+            rg.setProgram(QStringLiteral("rg"));
+#endif
+            QStringList args;
+            args << QStringLiteral("--fixed-strings") << QStringLiteral("--ignore-case") << QStringLiteral("--no-heading") << QStringLiteral("--line-number")
+                 << QStringLiteral("--max-count") << QStringLiteral("3") << QStringLiteral("--max-filesize") << QStringLiteral("2000K")
+                 << QStringLiteral("--color") << QStringLiteral("never");
+            if (!filePattern.isEmpty()) args << QStringLiteral("-g") << filePattern;
+            args << query << QStringLiteral(".");
+            rg.setArguments(args);
+            rg.setWorkingDirectory(rootDir.absolutePath());
+            rg.start();
+            if (!rg.waitForFinished(15000))
             {
-                if (shouldAbort(invocation)) break;
-                lines.append(stream.readLine());
+                rg.kill();
+                return lines;
             }
-            file.close();
-            if (shouldAbort(invocation)) break;
-            const QString relativePath = rootDir.relativeFilePath(fi.absoluteFilePath());
-            for (int i = 0; i < lines.size(); ++i)
+            const QString stderrText = QString::fromUtf8(rg.readAllStandardError());
+            if (rg.error() != QProcess::UnknownError || rg.exitCode() >= 2)
+            {
+                qDebug() << "ripgrep failed:" << stderrText;
+                return lines;
+            }
+            const QString stdoutText = QString::fromUtf8(rg.readAllStandardOutput());
+            const QStringList raw = stdoutText.split('\n', Qt::SkipEmptyParts);
+            const int kMaxLines = 160;
+            for (int i = 0; i < raw.size() && lines.size() < kMaxLines; ++i)
             {
                 if (shouldAbort(invocation)) break;
-                const QString &line = lines.at(i);
-                if (!line.contains(query, Qt::CaseInsensitive)) continue;
-                FileSearchResult &fileResult = ensureFileResult(relativePath);
-                fileResult.matches.append(QPair<int, QString>(i + 1, sanitizeLine(line)));
-                ++totalMatches;
-                if (totalMatches >= kMaxMatches)
+                lines << raw.at(i);
+            }
+            return lines;
+        };
+
+        QStringList results = runRipGrep();
+        if (results.isEmpty())
+        {
+            // 回退到简易扫描
+            auto isLikelyText = [](const QFileInfo &info, qint64 size) -> bool {
+                if (size > (qint64)2 * 1024 * 1024) return false;
+                static const QSet<QString> exts = {
+                    "txt", "md", "markdown", "log", "ini", "cfg", "conf", "csv", "tsv", "json", "yaml", "yml", "toml", "xml", "html", "htm",
+                    "css", "js", "ts", "tsx", "jsx", "py", "ipynb", "c", "cc", "cpp", "h", "hpp", "hh", "java", "kt", "rs", "go", "rb", "php",
+                    "sh", "bash", "zsh", "ps1", "bat", "cmake", "mak", "make", "gradle", "properties", "sql", "mm", "m", "swift"
+                };
+                static const QSet<QString> namesWithoutExt = {
+                    ".gitignore", ".gitmodules", ".gitattributes", ".clang-format", ".clang-tidy", ".editorconfig", ".env", ".env.local",
+                    ".env.example", "dockerfile", "makefile", "cmakelists.txt", "license", "license.txt", "readme", "readme.md"
+                };
+                const QString ext = info.suffix().toLower();
+                if (!ext.isEmpty()) return exts.contains(ext);
+                const QString name = info.fileName().toLower();
+                return namesWithoutExt.contains(name);
+            };
+            QRegularExpression globRegex;
+            if (!filePattern.isEmpty())
+            {
+                globRegex = QRegularExpression(QRegularExpression::wildcardToRegularExpression(filePattern));
+            }
+
+            const int kMaxMatches = 200;
+            QDirIterator it(rootDir.absolutePath(), QDir::Files, QDirIterator::Subdirectories);
+            while (it.hasNext())
+            {
+                if (shouldAbort(invocation)) break;
+                const QString absolutePath = it.next();
+                const QFileInfo fi(absolutePath);
+                const QString relCheck = rootDir.relativeFilePath(fi.absoluteFilePath());
+                if (relCheck.startsWith("..")) continue;
+                if (fi.fileName().startsWith('.')) continue;
+                if (!globRegex.pattern().isEmpty() && !globRegex.match(relCheck).hasMatch()) continue;
+                if (!isLikelyText(fi, fi.size())) continue;
+                QFile file(absolutePath);
+                if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+                QTextStream stream(&file);
+                stream.setCodec("UTF-8");
+                int lineNumber = 0;
+                while (!stream.atEnd() && results.size() < kMaxMatches)
                 {
-                    matchLimitHit = true;
-                    break;
+                    if (shouldAbort(invocation)) break;
+                    ++lineNumber;
+                    const QString line = stream.readLine();
+                    if (!line.contains(query, Qt::CaseInsensitive)) continue;
+                    const QString rel = rootDir.relativeFilePath(fi.absoluteFilePath());
+                    results << QString("%1:%2:%3").arg(rel).arg(lineNumber).arg(line.trimmed());
                 }
+                file.close();
+                if (results.size() >= kMaxMatches || shouldAbort(invocation)) break;
             }
-            if (matchLimitHit) break;
         }
+
         if (shouldAbort(invocation)) return;
-        if (totalMatches == 0)
+        if (results.isEmpty())
         {
             const QString msg = QString("No matches.");
             sendPushMessage(QString("search_content ") + jtr("return") + " " + msg);
             sendStateMessage("tool:" + QString("search_content ") + jtr("return") + " " + msg, TOOL_SIGNAL);
             return;
         }
-        QStringList outputLines;
-        int byteCount = 0;
-        bool outputLimitHit = false;
-        auto tryAppendLine = [&](const QString &line) -> bool
+
+        const QString summary = QString("Found %1 line(s) in %2 (pattern:%3)")
+                                    .arg(results.size())
+                                    .arg(QDir::toNativeSeparators(rootDir.absolutePath()))
+                                    .arg(filePattern.isEmpty() ? QStringLiteral("all") : filePattern);
+        results.prepend(summary);
+        if (results.size() > 160)
         {
-            const QByteArray utf8 = line.toUtf8();
-            const int needed = utf8.size() + 1;
-            if (byteCount + needed > kMaxOutputBytes)
-            {
-                return false;
-            }
-            outputLines.append(line);
-            byteCount += needed;
-            return true;
-        };
-        const int fileCount = fileResults.size();
-        if (!outputLimitHit)
-        {
-            const QString summary =
-                QString("Found %1 match%2 across %3 file%4.")
-                    .arg(totalMatches)
-                    .arg(totalMatches == 1 ? "" : "es")
-                    .arg(fileCount)
-                    .arg(fileCount == 1 ? "" : "s");
-            if (!tryAppendLine(summary)) outputLimitHit = true;
+            results = results.mid(0, 160);
+            results << QStringLiteral("[Results truncated. Refine your query or add file_pattern/path.]");
         }
-        if (!outputLimitHit)
-        {
-            if (!tryAppendLine(QString("Search root: %1").arg(root))) outputLimitHit = true;
-        }
-        for (const FileSearchResult &fileResult : fileResults)
-        {
-            if (outputLimitHit) break;
-            if (fileResult.matches.isEmpty()) continue;
-            if (!outputLimitHit)
-            {
-                if (!tryAppendLine(QString())) { outputLimitHit = true; break; }
-            }
-            if (!tryAppendLine(fileResult.path)) { outputLimitHit = true; break; }
-            for (const auto &match : fileResult.matches)
-            {
-                const QString line =
-                    QString("%1: %2").arg(match.first).arg(match.second);
-                if (!tryAppendLine(line))
-                {
-                    outputLimitHit = true;
-                    break;
-                }
-            }
-        }
-        const bool truncated = matchLimitHit || outputLimitHit;
-        if (truncated)
-        {
-            outputLines.append(QString("[Results truncated. Refine your search to narrow matches.]"));
-        }
-        const QString result = outputLines.join("\n");
+
+        const QString result = results.join("\n");
         const QString prefix = QString("search_content ") + jtr("return") + "\n";
         sendStateMessage("tool:" + prefix + result, TOOL_SIGNAL);
         sendPushMessage(prefix + result);
