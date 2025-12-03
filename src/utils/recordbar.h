@@ -3,11 +3,12 @@
 
 #include <QColor>
 #include <QEvent>
+#include <QFont>
+#include <QFontMetrics>
 #include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
-#include <QPixmap>
 #include <QRect>
 #include <QResizeEvent>
 #include <QSizePolicy>
@@ -28,7 +29,7 @@ class RecordBar : public QWidget
         : QWidget(parent)
     {
         setMouseTracking(true);
-        setMinimumHeight(14);
+        setMinimumHeight(18);
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setAttribute(Qt::WA_StyledBackground, true);
     }
@@ -37,11 +38,14 @@ class RecordBar : public QWidget
     {
         QColor color;
         QString tooltip; // full or truncated content
+        QString badge;   // short label (e.g., S/U/M/T)
     };
 
-    int addNode(const QColor &color, const QString &tooltip)
+    int addNode(const QColor &color,
+                const QString &tooltip,
+                const QString &badge = QString())
     {
-        Node n{color, tooltip};
+        Node n{color, tooltip, badge};
         nodes_.push_back(n);
         if (chipRectsCache_.size() != nodes_.size()) chipRectsCache_.resize(nodes_.size());
         // auto-scroll to latest when overflow occurs
@@ -197,12 +201,16 @@ class RecordBar : public QWidget
                 p.setBrush(Qt::NoBrush);
                 p.drawPolygon(poly);
 
-                // Hover accent line at top edge (subtle)
-                if (isHover && !isSel)
+                // Badge: initials to quickly identify role/tool
+                if (!nodes_[i].badge.isEmpty())
                 {
-                    QPen hoverPen(base.lighter(140), 1);
-                    p.setPen(hoverPen);
-                    p.drawLine(QPoint(r.left() + sl + 1, r.top() + 1), QPoint(r.right() + sl - 1, r.top() + 1));
+                    QFont f = p.font();
+                    f.setBold(true);
+                    f.setPointSize(qMax(6, f.pointSize() - 1));
+                    QColor textColor = badgeTextColor(nodes_[i].color);
+                    p.setFont(f);
+                    p.setPen(textColor);
+                    p.drawText(r, Qt::AlignCenter, nodes_[i].badge);
                 }
             }
 
@@ -289,6 +297,13 @@ class RecordBar : public QWidget
     }
 
   private:
+    QColor badgeTextColor(const QColor &bg) const
+    {
+        // Simple contrast heuristic
+        const int l = bg.toHsl().lightness();
+        return (l < 128) ? QColor(Qt::white) : QColor(Qt::black);
+    }
+
     int indexAt(const QPoint &pt) const
     {
         // Compute index based on geometry and scroll; prefer cache if initialized
@@ -321,10 +336,10 @@ class RecordBar : public QWidget
     QVector<QRect> chipRectsCache_;
     int scrollX_ = 0;
     // visuals
-    int chipW_ = 12;
-    int spacing_ = 2;
-    int margin_ = 4;
-    int slant_ = 3; // EVA style tilt (px)
+    int chipW_ = 18;
+    int spacing_ = 3;
+    int margin_ = 6;
+    int slant_ = 4; // EVA style tilt (px)
     // interaction state
     int selectedIndex_ = -1;
     int hoveredIndex_ = -1;

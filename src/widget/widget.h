@@ -808,6 +808,7 @@ class Widget : public QWidget
     int currentThinkIndex_ = -1;     // index of streaming think in current turn
     int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
     int lastSystemRecordIndex_ = -1; // system record index for current session (for env refresh)
+    QString lastToolCallName_;       // latest parsed tool name for record badges
     // Record helpers
     int outputDocEnd() const;
     QColor chipColorForRole(RecordRole r) const;

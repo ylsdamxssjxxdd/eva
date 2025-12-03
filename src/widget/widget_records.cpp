@@ -1,12 +1,60 @@
 #include "widget.h"
 #include "ui_widget.h"
 
+#include <QApplication>
+
 namespace
 {
 inline bool isDocLineBreak(QChar ch)
 {
     return ch == QChar('\n') || ch == QChar('\r') || ch == QChar(QChar::LineSeparator) ||
            ch == QChar(QChar::ParagraphSeparator);
+}
+
+struct RecordNodeVisual
+{
+    QColor base;
+    QString badge;
+};
+
+QString compactLabel(const QString &src, int maxLen = 3)
+{
+    QString cleaned;
+    cleaned.reserve(src.size());
+    for (const QChar &ch : src)
+    {
+        if (ch.isLetterOrNumber()) cleaned.append(ch);
+    }
+    cleaned = cleaned.trimmed().toUpper();
+    if (cleaned.isEmpty()) cleaned = src.trimmed().toUpper();
+    if (cleaned.size() > maxLen) cleaned = cleaned.left(maxLen);
+    return cleaned;
+}
+
+RecordNodeVisual buildRecordNodeVisual(const Widget *w, Widget::RecordRole role, const QString &toolName)
+{
+    RecordNodeVisual v;
+    if (!w) return v;
+    v.base = w->chipColorForRole(role);
+    switch (role)
+    {
+    case Widget::RecordRole::System:
+        v.badge = QStringLiteral("S");
+        break;
+    case Widget::RecordRole::User:
+        v.badge = QStringLiteral("U");
+        break;
+    case Widget::RecordRole::Assistant:
+        v.badge = QStringLiteral("M");
+        break;
+    case Widget::RecordRole::Think:
+        v.badge = QStringLiteral("T");
+        break;
+    case Widget::RecordRole::Tool:
+        v.badge = compactLabel(toolName.isEmpty() ? QStringLiteral("TOOL") : toolName, 2);
+        break;
+    }
+    return v;
 }
 }
 
@@ -20,7 +68,11 @@ int Widget::recordCreate(RecordRole role)
     e.msgIndex = -1;
     recordEntries_.push_back(e);
     const int idx = recordEntries_.size() - 1;
-    if (ui->recordBar) ui->recordBar->addNode(chipColorForRole(role), QString());
+    if (ui->recordBar)
+    {
+        const RecordNodeVisual visual = buildRecordNodeVisual(this, role, (role == RecordRole::Tool) ? lastToolCallName_ : QString());
+        ui->recordBar->addNode(visual.base, QString(), visual.badge);
+    }
     return idx;
 }
 
@@ -40,6 +92,7 @@ void Widget::recordClear()
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
     lastSystemRecordIndex_ = -1;
+    lastToolCallName_.clear();
     if (ui->recordBar) ui->recordBar->clearNodes();
 }
 
