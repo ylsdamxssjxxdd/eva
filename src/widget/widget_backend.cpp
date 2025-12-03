@@ -38,6 +38,11 @@ void Widget::recv_kv(float percent, int ctx_size)
 
 void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
 {
+    // Controller UI should mirror remote metrics; ignore local probes to prevent jitter.
+    if (blockLocalMonitor_)
+    {
+        return;
+    }
     Q_UNUSED(vmem);
     vfree = vfree_; // 剩余显存
     ui->vcore_bar->setValue(vcore);
@@ -46,7 +51,7 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
     {
         is_first_getvram = false;
         first_vramp = vramp;
-        ui->vram_bar->setValue(first_vramp);
+    ui->vram_bar->setValue(first_vramp);
     }
     ui->vram_bar->setSecondValue(vramp - first_vramp);
 
@@ -68,10 +73,16 @@ void Widget::recv_gpu_status(float vmem, float vramp, float vcore, float vfree_)
         // 应用新设置并按需重启本地服务
         if (ui_mode == LOCAL_MODE) ensureLocalServer();
     }
+    broadcastControlMonitor();
 }
 
 void Widget::recv_cpu_status(double cpuload, double memload)
 {
+    // Controller UI should mirror remote metrics; ignore local probes to prevent jitter.
+    if (blockLocalMonitor_)
+    {
+        return;
+    }
     ui->cpu_bar->setValue(cpuload);
     // 取巧,用第一次内存作为基准,模型占的内存就是当前多出来的内存,因为模型占的内存存在泄露不好测
     if (is_first_getmem)
@@ -83,6 +94,7 @@ void Widget::recv_cpu_status(double cpuload, double memload)
     ui->mem_bar->setSecondValue(memload - first_memp);
     // ui->mem_bar->setValue(physMemUsedPercent-(model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
     // ui->mem_bar->setSecondValue((model_memusage.toFloat() + ctx_memusage.toFloat())*100 *1024*1024 / totalPhysMem);
+    broadcastControlMonitor();
 }
 
 void Widget::ensureLocalServer(bool lazyWake)

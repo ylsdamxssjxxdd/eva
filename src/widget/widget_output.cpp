@@ -11,10 +11,6 @@
 // 更新输出，is_while 表示从流式输出的 token
 void Widget::reflash_output(const QString result, bool is_while, QColor color)
 {
-    if (isHostControlled())
-    {
-        broadcastControlOutput(result, is_while, color);
-    }
     if (engineerProxyRuntime_.active)
     {
         temp_assistant_history += result;
@@ -71,7 +67,7 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
             }
-            if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor());
+            if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor(), true);
             if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
             if (endIdx == -1)
             {
@@ -102,7 +98,7 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
                     appendRoleHeader(QStringLiteral("assistant"));
                     turnAssistantHeaderPrinted_ = true;
                 }
-                output_scroll(asstPart, themeTextPrimary());
+                output_scroll(asstPart, themeTextPrimary(), true);
                 if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
             }
             if (beginIdx == -1)
@@ -179,14 +175,10 @@ void Widget::appendRoleHeader(const QString &role)
 {
     // Ensure a blank line before header if output is not empty
     const bool emptyDoc = ui->output->document() && ui->output->document()->isEmpty();
-    const auto broadcastChunk = [this](const QString &text, const QColor &clr) {
-        if (isHostControlled()) broadcastControlOutput(text, false, clr);
-    };
     const QColor primaryColor = themeTextPrimary();
     if (!emptyDoc)
     {
         output_scroll(QString(DEFAULT_SPLITER), primaryColor);
-        broadcastChunk(QString(DEFAULT_SPLITER), primaryColor);
     }
     QColor c = chipColorForRole(RecordRole::System);
     const QString trimmed = role.trimmed();
@@ -228,9 +220,7 @@ void Widget::appendRoleHeader(const QString &role)
     }
     // Insert role label and a newline
     output_scroll(label, c);
-    broadcastChunk(label, c);
     output_scroll(QString(DEFAULT_SPLITER), primaryColor);
-    broadcastChunk(QString(DEFAULT_SPLITER), primaryColor);
 }
 
 // 输出区滚动条事件响应
@@ -249,7 +239,7 @@ void Widget::output_scrollBarValueChanged(int value)
 }
 
 // 在 output 末尾追加文本并着色
-void Widget::output_scroll(QString output, QColor color)
+void Widget::output_scroll(QString output, QColor color, bool isStream)
 {
     QTextCursor cursor = ui->output->textCursor();
     QTextCharFormat textFormat;
@@ -267,6 +257,10 @@ void Widget::output_scroll(QString output, QColor color)
     if (!is_stop_output_scroll) // 未手动停用自动滚动时每次追加自动滚动到底
     {
         ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); // 设置滚动条到最底端
+    }
+    if (isHostControlled())
+    {
+        broadcastControlOutput(output, isStream, color);
     }
 }
 

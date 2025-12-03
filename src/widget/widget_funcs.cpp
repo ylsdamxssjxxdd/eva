@@ -803,11 +803,13 @@ void Widget::bench_onProcessFinished()
 // 更新gpu内存使用率
 void Widget::updateGpuStatus()
 {
+    if (blockLocalMonitor_) return;
     emit gpu_reflash();
 }
 // 更新cpu内存使用率
 void Widget::updateCpuStatus()
 {
+    if (blockLocalMonitor_) return;
     emit cpu_reflash();
 }
 

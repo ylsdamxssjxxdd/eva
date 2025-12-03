@@ -73,6 +73,11 @@ int Widget::recordCreate(RecordRole role)
         const RecordNodeVisual visual = buildRecordNodeVisual(this, role, (role == RecordRole::Tool) ? lastToolCallName_ : QString());
         ui->recordBar->addNode(visual.base, QString(), visual.badge);
     }
+    if (isHostControlled())
+    {
+        const QString toolName = (role == RecordRole::Tool) ? lastToolCallName_ : QString();
+        broadcastControlRecordAdd(role, toolName);
+    }
     return idx;
 }
 
@@ -84,6 +89,10 @@ void Widget::recordAppendText(int index, const QString &text)
     QString tip = recordEntries_[index].text;
     if (tip.size() > 600) tip = tip.left(600) + "...";
     if (ui->recordBar) ui->recordBar->updateNode(index, tip);
+    if (isHostControlled())
+    {
+        broadcastControlRecordUpdate(index, text);
+    }
 }
 
 void Widget::recordClear()
@@ -94,6 +103,7 @@ void Widget::recordClear()
     lastSystemRecordIndex_ = -1;
     lastToolCallName_.clear();
     if (ui->recordBar) ui->recordBar->clearNodes();
+    if (isHostControlled()) broadcastControlRecordClear();
 }
 
 void Widget::updateRecordEntryContent(int index, const QString &newText)

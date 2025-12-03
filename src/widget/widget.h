@@ -189,7 +189,7 @@ class Widget : public QWidget
 
     // ui相关
     QString ui_output, ui_state_info;
-    void output_scroll(QString output, QColor color = QColor(0, 0, 0)); // 向output末尾添加文本并滚动
+    void output_scroll(QString output, QColor color = QColor(0, 0, 0), bool isStream = false); // 向output末尾添加文本并滚动
     void ensureOutputAtBottom();                                        // Force output view to stay at the bottom
     bool is_stop_output_scroll = false;                                 // 输出区滚动标签
     QMenu *right_menu;                                                  // 输入区右击菜单
@@ -288,6 +288,7 @@ class Widget : public QWidget
     QString bot_predecode_content = "";  // 模型预解码的内容
     void normal_finish_pushover();       // 正常情况处理推理完毕
     bool gpu_wait_load = false;          // 等待检测完显存信息重新装载的标签
+    bool blockLocalMonitor_ = false;     // 控制模式下禁用本地监视采集
     bool firstAutoNglEvaluated_ = false; // 首次装载前是否已进行显存阈值判断
 
     EVA_DATES ui_DATES;                       // ui的约定
@@ -895,11 +896,21 @@ class Widget : public QWidget
     void broadcastControlOutput(const QString &result, bool isStream, const QColor &color);
     void broadcastControlState(const QString &stateString, SIGNAL_STATE level);
     void broadcastControlKv(int used, int cap, int percent);
+    void broadcastControlMonitor();
+    void broadcastControlRecordClear();
+    void broadcastControlRecordAdd(RecordRole role, const QString &toolName);
+    void broadcastControlRecordUpdate(int index, const QString &deltaText);
     void broadcastControlUiPhase(const QString &phase);
+    void applyControlMonitor(const QJsonObject &mon);
+    void applyControlRecordClear();
+    void applyControlRecordAdd(RecordRole role, const QString &toolName);
+    void applyControlRecordUpdate(int index, const QString &deltaText);
     void applyControlUiLock();
     bool isControllerActive() const;
     bool isHostControlled() const;
     QJsonObject buildControlSnapshot() const;
+    QJsonObject buildControlMonitor() const;
+    QJsonArray buildControlRecords() const;
 
   private:
     Ui::Widget *ui;

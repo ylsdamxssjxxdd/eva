@@ -449,7 +449,46 @@ QJsonObject Widget::buildControlSnapshot() const
     snap.insert(QStringLiteral("is_run"), is_run);
     snap.insert(QStringLiteral("title"), windowTitle());
     snap.insert(QStringLiteral("mode"), ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"));
+    snap.insert(QStringLiteral("monitor"), buildControlMonitor());
+    snap.insert(QStringLiteral("records"), buildControlRecords());
     return snap;
+}
+
+QJsonObject Widget::buildControlMonitor() const
+{
+    QJsonObject mon;
+    if (ui && ui->cpu_bar)
+    {
+        mon.insert(QStringLiteral("cpu"), ui->cpu_bar->value());
+        mon.insert(QStringLiteral("cpu2"), ui->cpu_bar->m_secondValue);
+    }
+    if (ui && ui->mem_bar)
+    {
+        mon.insert(QStringLiteral("mem"), ui->mem_bar->value());
+        mon.insert(QStringLiteral("mem2"), ui->mem_bar->m_secondValue);
+    }
+    if (ui && ui->vram_bar)
+    {
+        mon.insert(QStringLiteral("vram"), ui->vram_bar->value());
+        mon.insert(QStringLiteral("vram2"), ui->vram_bar->m_secondValue);
+    }
+    if (ui && ui->vcore_bar)
+    {
+        mon.insert(QStringLiteral("vcore"), ui->vcore_bar->value());
+    }
+    return mon;
+}
+
+QJsonArray Widget::buildControlRecords() const
+{
+    QJsonArray arr;
+    for (const RecordEntry &e : recordEntries_)
+    {
+        QJsonObject obj;
+        obj.insert(QStringLiteral("role"), static_cast<int>(e.role));
+        arr.append(obj);
+    }
+    return arr;
 }
 
 void Widget::broadcastControlSnapshot()
@@ -458,6 +497,43 @@ void Widget::broadcastControlSnapshot()
     QJsonObject payload;
     payload.insert(QStringLiteral("type"), QStringLiteral("snapshot"));
     payload.insert(QStringLiteral("snapshot"), buildControlSnapshot());
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlMonitor()
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("monitor"));
+    payload.insert(QStringLiteral("monitor"), buildControlMonitor());
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlRecordClear()
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("record_clear"));
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlRecordAdd(RecordRole role, const QString &toolName)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("record_add"));
+    payload.insert(QStringLiteral("role"), static_cast<int>(role));
+    if (!toolName.isEmpty()) payload.insert(QStringLiteral("tool"), toolName);
+    controlChannel_->sendToController(payload);
+}
+
+void Widget::broadcastControlRecordUpdate(int index, const QString &deltaText)
+{
+    if (!isHostControlled()) return;
+    QJsonObject payload;
+    payload.insert(QStringLiteral("type"), QStringLiteral("record_update"));
+    payload.insert(QStringLiteral("index"), index);
+    payload.insert(QStringLiteral("delta"), deltaText);
     controlChannel_->sendToController(payload);
 }
 
@@ -502,6 +578,47 @@ void Widget::broadcastControlUiPhase(const QString &phase)
     payload.insert(QStringLiteral("is_run"), is_run);
     payload.insert(QStringLiteral("state"), ui_state == CHAT_STATE ? QStringLiteral("chat") : QStringLiteral("complete"));
     controlChannel_->sendToController(payload);
+}
+
+void Widget::applyControlMonitor(const QJsonObject &mon)
+{
+    if (mon.isEmpty()) return;
+    if (!ui) return;
+    if (ui->cpu_bar)
+    {
+        ui->cpu_bar->setValue(mon.value(QStringLiteral("cpu")).toInt(ui->cpu_bar->value()));
+        ui->cpu_bar->setSecondValue(mon.value(QStringLiteral("cpu2")).toInt(ui->cpu_bar->m_secondValue));
+    }
+    if (ui->mem_bar)
+    {
+        ui->mem_bar->setValue(mon.value(QStringLiteral("mem")).toInt(ui->mem_bar->value()));
+        ui->mem_bar->setSecondValue(mon.value(QStringLiteral("mem2")).toInt(ui->mem_bar->m_secondValue));
+    }
+    if (ui->vram_bar)
+    {
+        ui->vram_bar->setValue(mon.value(QStringLiteral("vram")).toInt(ui->vram_bar->value()));
+        ui->vram_bar->setSecondValue(mon.value(QStringLiteral("vram2")).toInt(ui->vram_bar->m_secondValue));
+    }
+    if (ui->vcore_bar)
+    {
+        ui->vcore_bar->setValue(mon.value(QStringLiteral("vcore")).toInt(ui->vcore_bar->value()));
+    }
+}
+
+void Widget::applyControlRecordClear()
+{
+    recordClear();
+}
+
+void Widget::applyControlRecordAdd(RecordRole role, const QString &toolName)
+{
+    if (role == RecordRole::Tool) lastToolCallName_ = toolName;
+    recordCreate(role);
+}
+
+void Widget::applyControlRecordUpdate(int index, const QString &deltaText)
+{
+    recordAppendText(index, deltaText);
 }
 
 void Widget::handleControlHostClientChanged(bool connected, const QString &reason)
@@ -669,6 +786,31 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
         updateKvBarUi();
         return;
     }
+    if (type == QStringLiteral("monitor"))
+    {
+        const QJsonObject mon = payload.value(QStringLiteral("monitor")).toObject();
+        applyControlMonitor(mon);
+        return;
+    }
+    if (type == QStringLiteral("record_clear"))
+    {
+        applyControlRecordClear();
+        return;
+    }
+    if (type == QStringLiteral("record_add"))
+    {
+        const int roleInt = payload.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
+        const QString toolName = payload.value(QStringLiteral("tool")).toString();
+        applyControlRecordAdd(static_cast<RecordRole>(roleInt), toolName);
+        return;
+    }
+    if (type == QStringLiteral("record_update"))
+    {
+        const int idx = payload.value(QStringLiteral("index")).toInt(-1);
+        const QString delta = payload.value(QStringLiteral("delta")).toString();
+        applyControlRecordUpdate(idx, delta);
+        return;
+    }
     if (type == QStringLiteral("ui_state"))
     {
         controlClient_.remoteRunning = payload.value(QStringLiteral("is_run")).toBool(controlClient_.remoteRunning);
@@ -707,6 +849,18 @@ void Widget::handleControlControllerState(ControlChannel::ControllerState state,
 void Widget::applyControlSnapshot(const QJsonObject &snap)
 {
     if (!ui) return;
+    recordClear();
+    if (streamFlushTimer_ && streamFlushTimer_->isActive()) streamFlushTimer_->stop();
+    streamPending_.clear();
+    streamPendingChars_ = 0;
+    temp_assistant_history.clear();
+    pendingAssistantHeaderReset_ = false;
+    turnThinkActive_ = false;
+    turnThinkHeaderPrinted_ = false;
+    turnAssistantHeaderPrinted_ = false;
+    currentThinkIndex_ = -1;
+    currentAssistantIndex_ = -1;
+    is_stop_output_scroll = false;
     if (ui->output) resetOutputDocument();
     if (ui->state) resetStateDocument();
     if (ui->output) ui->output->setPlainText(snap.value(QStringLiteral("output")).toString());
@@ -714,6 +868,15 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
     kvUsed_ = snap.value(QStringLiteral("kv_used")).toInt(kvUsed_);
     slotCtxMax_ = snap.value(QStringLiteral("kv_cap")).toInt(slotCtxMax_);
     updateKvBarUi();
+    const QJsonArray recs = snap.value(QStringLiteral("records")).toArray();
+    for (const auto &v : recs)
+    {
+        if (!v.isObject()) continue;
+        const QJsonObject ro = v.toObject();
+        const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
+        applyControlRecordAdd(static_cast<RecordRole>(roleInt), QString());
+    }
+    applyControlMonitor(snap.value(QStringLiteral("monitor")).toObject());
     const QString stateStr = snap.value(QStringLiteral("ui_state")).toString();
     controlClient_.remoteUiState = (stateStr == QStringLiteral("complete")) ? COMPLETE_STATE : CHAT_STATE;
     controlClient_.remoteRunning = snap.value(QStringLiteral("is_run")).toBool(false);
@@ -728,8 +891,8 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
 void Widget::applyControlUiLock()
 {
     if (!ui) return;
+    blockLocalMonitor_ = isControllerActive();
     const QString dateLabel = jtr("date");
-    const QString setLabel = jtr("set");
     const QString releaseLabel = jtr("control release");
     if (isControllerActive())
     {
@@ -762,7 +925,7 @@ void Widget::applyControlUiLock()
         }
         if (ui->set)
         {
-            ui->set->setText(setLabel);
+            ui->set->setText(QString());
             ui->set->setToolTip(jtr("set"));
         }
     }
