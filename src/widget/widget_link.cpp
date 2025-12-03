@@ -1,12 +1,25 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include "../utils/textparse.h"
+#include "../utils/flowtracer.h"
 #include <QDateTime>
 #include <QUrl>
 #include <QHostInfo>
 
 namespace
 {
+QString previewForLog(const QString &text, int limit = 120)
+{
+    QString trimmed = text;
+    trimmed.replace("\n", "\\n");
+    trimmed.replace("\r", "\\r");
+    if (trimmed.size() > limit)
+    {
+        trimmed = trimmed.left(limit) + QStringLiteral("…");
+    }
+    return trimmed;
+}
+
 QString normalizeLinkEndpoint(const QString &rawEndpoint)
 {
     // Remove whitespace, infer scheme when missing, and drop a trailing /v1 to avoid duplicating the version segment
@@ -486,12 +499,14 @@ QJsonArray Widget::buildControlRecords() const
     {
         QJsonObject obj;
         obj.insert(QStringLiteral("role"), static_cast<int>(e.role));
-        obj.insert(QStringLiteral("doc_from"), e.docFrom);
-        obj.insert(QStringLiteral("doc_to"), e.docTo);
         obj.insert(QStringLiteral("text"), e.text);
         if (e.role == RecordRole::Tool && !e.toolName.isEmpty())
         {
             obj.insert(QStringLiteral("tool"), e.toolName);
+        }
+        if (e.msgIndex >= 0)
+        {
+            obj.insert(QStringLiteral("msg_index"), e.msgIndex);
         }
         arr.append(obj);
     }
@@ -505,6 +520,15 @@ void Widget::broadcastControlSnapshot()
     payload.insert(QStringLiteral("type"), QStringLiteral("snapshot"));
     payload.insert(QStringLiteral("snapshot"), buildControlSnapshot());
     controlChannel_->sendToController(payload);
+    const int recordCount = recordEntries_.size();
+    const int outputLen = (ui && ui->output) ? ui->output->toPlainText().size() : 0;
+    const int stateLen = (ui && ui->state) ? ui->state->toPlainText().size() : 0;
+    FlowTracer::log(FlowChannel::Session,
+                    QStringLiteral("[control] host snapshot push records=%1 output=%2 state=%3")
+                        .arg(recordCount)
+                        .arg(outputLen)
+                        .arg(stateLen),
+                    activeTurnId_);
 }
 
 void Widget::broadcastControlMonitor()
@@ -555,6 +579,13 @@ void Widget::broadcastControlOutput(const QString &result, bool isStream, const 
     if (!roleHint.isEmpty()) payload.insert(QStringLiteral("role"), roleHint);
     if (thinkActiveFlag >= 0) payload.insert(QStringLiteral("think_active"), thinkActiveFlag);
     controlChannel_->sendToController(payload);
+    // FlowTracer::log(FlowChannel::Session,
+    //                 QStringLiteral("[control] host stream role=%1 stream=%2 think=%3 text=%4")
+    //                     .arg(roleHint.isEmpty() ? QStringLiteral("-") : roleHint)
+    //                     .arg(isStream ? QStringLiteral("yes") : QStringLiteral("no"))
+    //                     .arg(thinkActiveFlag)
+    //                     .arg(previewForLog(result)),
+    //                 activeTurnId_);
 }
 
 void Widget::broadcastControlState(const QString &stateString, SIGNAL_STATE level)
@@ -781,6 +812,13 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
         const QString role = payload.value(QStringLiteral("role")).toString();
         const int thinkFlag = payload.value(QStringLiteral("think_active")).toInt(-1);
         if (!role.isEmpty()) controlStreamRole_ = role;
+        FlowTracer::log(FlowChannel::Session,
+                        QStringLiteral("[control] controller recv role=%1 stream=%2 think=%3 text=%4")
+                            .arg(role.isEmpty() ? QStringLiteral("-") : role)
+                            .arg(stream ? QStringLiteral("yes") : QStringLiteral("no"))
+                            .arg(thinkFlag)
+                            .arg(previewForLog(text)),
+                        activeTurnId_);
         // Mirror host output verbatim to avoid re-parsing <think> on controller side
         if (stream) flushPendingStream();
         QString plain = text;
@@ -891,32 +929,29 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
     if (ui->output) resetOutputDocument();
     if (ui->state) resetStateDocument();
 
-    const QJsonArray recs = snap.value(QStringLiteral("records")).toArray();
-    bool rebuiltFromRecords = false;
-    const auto hasRecordText = [&]() -> bool
+    const auto renderRoleLabel = [&](RecordRole role) -> QString
     {
-        for (const auto &v : recs)
+        switch (role)
         {
-            if (!v.isObject()) continue;
-            if (v.toObject().contains(QStringLiteral("text"))) return true;
+        case RecordRole::System: return QStringLiteral("system");
+        case RecordRole::User: return QStringLiteral("user");
+        case RecordRole::Assistant: return QStringLiteral("assistant");
+        case RecordRole::Think: return QStringLiteral("think");
+        case RecordRole::Tool: return QStringLiteral("tool");
         }
-        return false;
+        return QString();
     };
-    if (ui->output && hasRecordText())
+    const auto renderColor = [&](RecordRole role) -> QColor
     {
-        ui->output->clear();
-        const auto roleToken = [](RecordRole role) -> QString
-        {
-            switch (role)
-            {
-            case RecordRole::System: return QStringLiteral("system");
-            case RecordRole::User: return QStringLiteral("user");
-            case RecordRole::Assistant: return QStringLiteral("assistant");
-            case RecordRole::Think: return QStringLiteral("think");
-            case RecordRole::Tool: return QStringLiteral("tool");
-            }
-            return QString();
-        };
+        if (role == RecordRole::Think) return themeThinkColor();
+        if (role == RecordRole::Tool) return themeStateColor(TOOL_SIGNAL);
+        return themeTextPrimary();
+    };
+
+    bool renderedFromRecords = false;
+    const QJsonArray recs = snap.value(QStringLiteral("records")).toArray();
+    if (ui->output && !recs.isEmpty())
+    {
         for (const auto &v : recs)
         {
             if (!v.isObject()) continue;
@@ -924,17 +959,19 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
             const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
             const QString text = ro.value(QStringLiteral("text")).toString();
             const QString toolName = ro.value(QStringLiteral("tool")).toString();
+            const int msgIndex = ro.value(QStringLiteral("msg_index")).toInt(-1);
             const RecordRole role = static_cast<RecordRole>(roleInt);
-            if (role == RecordRole::Tool) lastToolCallName_ = toolName;
+            const QString header = renderRoleLabel(role);
             const int idx = recordCreate(role, toolName);
-            const QString header = roleToken(role);
             if (!header.isEmpty()) appendRoleHeader(header);
-            reflash_output(text, 0, textColorForRole(role));
+            if (!text.isEmpty()) reflash_output(text, 0, renderColor(role));
             recordAppendText(idx, text);
+            recordEntries_[idx].msgIndex = msgIndex;
+            if (role == RecordRole::System) lastSystemRecordIndex_ = idx;
+            renderedFromRecords = true;
         }
-        rebuiltFromRecords = true;
     }
-    else if (ui->output)
+    if (!renderedFromRecords && ui->output)
     {
         ui->output->setPlainText(snap.value(QStringLiteral("output")).toString());
     }
@@ -942,18 +979,23 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
     kvUsed_ = snap.value(QStringLiteral("kv_used")).toInt(kvUsed_);
     slotCtxMax_ = snap.value(QStringLiteral("kv_cap")).toInt(slotCtxMax_);
     updateKvBarUi();
-    if (!rebuiltFromRecords)
+    if (renderedFromRecords && ui->recordBar)
     {
-        for (const auto &v : recs)
+        for (int i = 0; i < recordEntries_.size(); ++i)
         {
-            if (!v.isObject()) continue;
-            const QJsonObject ro = v.toObject();
-            const int roleInt = ro.value(QStringLiteral("role")).toInt(static_cast<int>(RecordRole::System));
-            const QString toolName = ro.value(QStringLiteral("tool")).toString();
-            applyControlRecordAdd(static_cast<RecordRole>(roleInt), toolName);
+            QString tip = recordEntries_[i].text;
+            if (tip.size() > 600) tip = tip.left(600) + "...";
+            ui->recordBar->updateNode(i, tip);
         }
     }
+
     applyControlMonitor(snap.value(QStringLiteral("monitor")).toObject());
+    FlowTracer::log(FlowChannel::Session,
+                    QStringLiteral("[control] controller snapshot applied records=%1 rendered_from_records=%2 output=%3")
+                        .arg(recs.size())
+                        .arg(renderedFromRecords ? 1 : 0)
+                        .arg((ui && ui->output) ? ui->output->toPlainText().size() : 0),
+                    activeTurnId_);
     const QString stateStr = snap.value(QStringLiteral("ui_state")).toString();
     controlClient_.remoteUiState = (stateStr == QStringLiteral("complete")) ? COMPLETE_STATE : CHAT_STATE;
     controlClient_.remoteRunning = snap.value(QStringLiteral("is_run")).toBool(false);
