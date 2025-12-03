@@ -459,6 +459,7 @@ class Widget : public QWidget
     QString create_engineer_info();   // 构建工程师指令
     QString create_architect_info();  // 构建架构师指令
     QString create_engineer_proxy_prompt(); // 构建工程师代理系统提示（含工具与技能说明）
+    QString loadAgentsGuidance() const;
     bool isArchitectModeActive() const;
     void onEngineerCheckboxContextMenuRequested(const QPoint &pos);
     void setEngineerArchitectMode(bool enabled, bool persist = true);

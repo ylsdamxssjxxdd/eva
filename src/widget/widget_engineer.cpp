@@ -3,6 +3,7 @@
 #include <QDate>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QScreen>
 #include <QProcess>
@@ -343,10 +344,61 @@ QString Widget::buildEngineerSystemDetails() const
     return engineer_system_info_;
 }
 
+QString Widget::loadAgentsGuidance() const
+{
+    if (!ui_engineer_ischecked) return {};
+    if (!date_ui || !date_ui->engineer_checkbox || !date_ui->engineer_checkbox->isChecked()) return {};
+
+    QStringList searchRoots;
+    const auto pushCandidate = [&searchRoots](const QString &dir) {
+        const QString trimmed = dir.trimmed();
+        if (trimmed.isEmpty()) return;
+        const QString normalized = QDir(trimmed).absolutePath();
+        if (normalized.isEmpty()) return;
+        if (!searchRoots.contains(normalized, Qt::CaseInsensitive)) searchRoots << normalized;
+    };
+
+    if (!engineerWorkDir.trimmed().isEmpty())
+        pushCandidate(engineerWorkDir);
+    else
+        pushCandidate(QDir(applicationDirPath).filePath(QStringLiteral("EVA_WORK")));
+    pushCandidate(applicationDirPath);
+    pushCandidate(QDir::currentPath());
+
+    constexpr qint64 kMaxAgentsBytes = 256 * 1024; // hard cap to avoid oversized prompts
+    const QString targetName = QStringLiteral("AGENTS.md");
+
+    for (const QString &root : searchRoots)
+    {
+        const QString candidatePath = QDir(root).filePath(targetName);
+        QFileInfo info(candidatePath);
+        if (!info.exists() || !info.isFile()) continue;
+        QFile file(info.absoluteFilePath());
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+        QByteArray raw = file.read(kMaxAgentsBytes);
+        if (raw.isEmpty()) continue;
+        QString text = QString::fromUtf8(raw);
+        QString trimmed = text.trimmed();
+        if (trimmed.isEmpty()) continue;
+        if (file.bytesAvailable() > 0)
+        {
+            trimmed.append(QStringLiteral("\n[AGENTS.md truncated at %1 bytes]").arg(kMaxAgentsBytes));
+        }
+        return trimmed;
+    }
+
+    return {};
+}
+
 QString Widget::create_engineer_info()
 {
     QString engineer_info_ = promptx::engineerInfo();
     engineer_info_.replace("{engineer_system_info}", buildEngineerSystemDetails());
+    const QString doctrine = loadAgentsGuidance();
+    if (!doctrine.isEmpty())
+    {
+        engineer_info_.append(QStringLiteral("\n\n[AGENTS.md Guidance]\n%1").arg(doctrine));
+    }
     return engineer_info_;
 }
 
