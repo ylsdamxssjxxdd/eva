@@ -67,7 +67,8 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
                 appendRoleHeader(QStringLiteral("think"));
                 turnThinkHeaderPrinted_ = true;
             }
-            if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor(), true);
+            const bool endsHere = (endIdx != -1);
+            if (!thinkPart.isEmpty()) output_scroll(thinkPart, themeThinkColor(), true, QStringLiteral("think"), endsHere ? 0 : 1);
             if (!thinkPart.isEmpty() && currentThinkIndex_ >= 0) recordAppendText(currentThinkIndex_, thinkPart);
             if (endIdx == -1)
             {
@@ -98,7 +99,7 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
                     appendRoleHeader(QStringLiteral("assistant"));
                     turnAssistantHeaderPrinted_ = true;
                 }
-                output_scroll(asstPart, themeTextPrimary(), true);
+                output_scroll(asstPart, themeTextPrimary(), true, QStringLiteral("assistant"));
                 if (currentAssistantIndex_ >= 0) recordAppendText(currentAssistantIndex_, asstPart);
             }
             if (beginIdx == -1)
@@ -239,7 +240,7 @@ void Widget::output_scrollBarValueChanged(int value)
 }
 
 // 在 output 末尾追加文本并着色
-void Widget::output_scroll(QString output, QColor color, bool isStream)
+void Widget::output_scroll(QString output, QColor color, bool isStream, const QString &roleHint, int thinkActiveFlag)
 {
     QTextCursor cursor = ui->output->textCursor();
     QTextCharFormat textFormat;
@@ -260,7 +261,7 @@ void Widget::output_scroll(QString output, QColor color, bool isStream)
     }
     if (isHostControlled())
     {
-        broadcastControlOutput(output, isStream, color);
+        broadcastControlOutput(output, isStream, color, roleHint, thinkActiveFlag);
     }
 }
 

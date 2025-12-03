@@ -157,6 +157,16 @@ void Widget::normal_finish_pushover()
         //                   .arg(kvUsedBeforeTurn_));
     }
     decode_finish();
+    if (linkProfile_ == LinkProfile::Control && !isHostControlled())
+    {
+        // Controller端：回合结束前补齐未闭合的思考片段，保持记录一致
+        if (controlThinkActive_)
+        {
+            reflash_output(QString(DEFAULT_THINK_END), true, themeThinkColor());
+            controlThinkActive_ = false;
+        }
+        controlStreamRole_.clear();
+    }
     if (!wait_to_show_images_filepath.isEmpty())
     {
         showImages(wait_to_show_images_filepath);

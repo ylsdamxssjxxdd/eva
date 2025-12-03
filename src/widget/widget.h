@@ -189,7 +189,7 @@ class Widget : public QWidget
 
     // ui相关
     QString ui_output, ui_state_info;
-    void output_scroll(QString output, QColor color = QColor(0, 0, 0), bool isStream = false); // 向output末尾添加文本并滚动
+    void output_scroll(QString output, QColor color = QColor(0, 0, 0), bool isStream = false, const QString &roleHint = QString(), int thinkActiveFlag = -1); // thinkActiveFlag: -1 unknown, 0 end, 1 active
     void ensureOutputAtBottom();                                        // Force output view to stay at the bottom
     bool is_stop_output_scroll = false;                                 // 输出区滚动标签
     QMenu *right_menu;                                                  // 输入区右击菜单
@@ -893,7 +893,7 @@ class Widget : public QWidget
     void handleControlControllerState(ControlChannel::ControllerState state, const QString &reason);
     void applyControlSnapshot(const QJsonObject &snap);
     void broadcastControlSnapshot();
-    void broadcastControlOutput(const QString &result, bool isStream, const QColor &color);
+    void broadcastControlOutput(const QString &result, bool isStream, const QColor &color, const QString &roleHint = QString(), int thinkActiveFlag = -1);
     void broadcastControlState(const QString &stateString, SIGNAL_STATE level);
     void broadcastControlKv(int used, int cap, int percent);
     void broadcastControlMonitor();
@@ -921,6 +921,8 @@ class Widget : public QWidget
     ControlChannel *controlChannel_ = nullptr;
     bool controlHostAllowed_ = false;
     LinkProfile linkProfile_ = LinkProfile::Api;
+    bool controlThinkActive_ = false; // controller side: track ongoing think stream
+    QString controlStreamRole_;       // last role hint from host ("think"/"assistant")
     struct ControlHostState
     {
         bool active = false;

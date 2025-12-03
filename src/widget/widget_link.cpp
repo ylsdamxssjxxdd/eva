@@ -537,7 +537,7 @@ void Widget::broadcastControlRecordUpdate(int index, const QString &deltaText)
     controlChannel_->sendToController(payload);
 }
 
-void Widget::broadcastControlOutput(const QString &result, bool isStream, const QColor &color)
+void Widget::broadcastControlOutput(const QString &result, bool isStream, const QColor &color, const QString &roleHint, int thinkActiveFlag)
 {
     if (!isHostControlled()) return;
     QJsonObject payload;
@@ -545,6 +545,8 @@ void Widget::broadcastControlOutput(const QString &result, bool isStream, const 
     payload.insert(QStringLiteral("text"), result);
     payload.insert(QStringLiteral("stream"), isStream);
     payload.insert(QStringLiteral("color"), color.name(QColor::HexArgb));
+    if (!roleHint.isEmpty()) payload.insert(QStringLiteral("role"), roleHint);
+    if (thinkActiveFlag >= 0) payload.insert(QStringLiteral("think_active"), thinkActiveFlag);
     controlChannel_->sendToController(payload);
 }
 
@@ -769,7 +771,34 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
             QColor parsed(cstr);
             if (parsed.isValid()) c = parsed;
         }
-        reflash_output(text, stream, c);
+        const QString role = payload.value(QStringLiteral("role")).toString();
+        const int thinkFlag = payload.value(QStringLiteral("think_active")).toInt(-1);
+        const bool roleIsThink = (role == QStringLiteral("think"));
+        if (!role.isEmpty()) controlStreamRole_ = role;
+        const bool treatAsThink = (thinkFlag == 1) || roleIsThink || (role.isEmpty() && controlThinkActive_);
+        if (treatAsThink)
+        {
+            QString chunk = text;
+            if (!controlThinkActive_) chunk.prepend(QString(DEFAULT_THINK_BEGIN));
+            // Do not auto-close on stream==false; leave closure to role switch/end-of-turn.
+            controlThinkActive_ = true;
+            reflash_output(chunk, true, themeThinkColor());
+            if (thinkFlag == 0)
+            {
+                reflash_output(QString(DEFAULT_THINK_END), true, themeThinkColor());
+                controlThinkActive_ = false;
+            }
+        }
+        else
+        {
+            // Close any lingering think block before normal output to keep headers aligned
+            if (controlThinkActive_)
+            {
+                reflash_output(QString(DEFAULT_THINK_END), true, themeThinkColor());
+                controlThinkActive_ = false;
+            }
+            reflash_output(text, stream, c);
+        }
         return;
     }
     if (type == QStringLiteral("state_log"))
@@ -849,6 +878,8 @@ void Widget::handleControlControllerState(ControlChannel::ControllerState state,
 void Widget::applyControlSnapshot(const QJsonObject &snap)
 {
     if (!ui) return;
+    controlThinkActive_ = false;
+    controlStreamRole_.clear();
     recordClear();
     if (streamFlushTimer_ && streamFlushTimer_->isActive()) streamFlushTimer_->stop();
     streamPending_.clear();
