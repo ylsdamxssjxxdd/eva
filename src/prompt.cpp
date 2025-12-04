@@ -40,6 +40,7 @@ const QString &defaultEngineerInfo()
         "- If context is missing, ask succinctly via answer; avoid small talk.\n"
         "- Prefer batched read_file/list_files before editing; writes may overwrite, ensure trailing newline if needed.\n"
         "- Use ptc for long or fragile command chains.\n"
+        "- Keep every reply concise: <=3 bullet points, no logs or long code unless explicitly requested.\n"
         "- Finish with a change summary and validation steps, not code dumps.\n"
         "Current environment: {engineer_system_info}");
     return value;
