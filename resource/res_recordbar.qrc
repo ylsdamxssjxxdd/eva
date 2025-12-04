@@ -8,8 +8,8 @@
         <file alias="tool/calculator.svg">RemixIcon_Svg_v4.7.0/Business/calculator-line.svg</file>
         <file alias="tool/terminal.svg">RemixIcon_Svg_v4.7.0/Development/terminal-box-line.svg</file>
         <file alias="tool/knowledge.svg">RemixIcon_Svg_v4.7.0/Document/book-3-line.svg</file>
-        <file alias="tool/controller.svg">RemixIcon_Svg_v4.7.0/Device/remote-control-line.svg</file>
-        <file alias="tool/diffusion.svg">RemixIcon_Svg_v4.7.0/Design/paint-brush-line.svg</file>
+        <file alias="tool/controller.svg">RemixIcon_Svg_v4.7.0/Device/mouse-line.svg</file>
+        <file alias="tool/diffusion.svg">RemixIcon_Svg_v4.7.0/Design/palette-line.svg</file>
         <file alias="tool/read.svg">RemixIcon_Svg_v4.7.0/Document/file-3-line.svg</file>
         <file alias="tool/write.svg">RemixIcon_Svg_v4.7.0/Document/file-edit-line.svg</file>
         <file alias="tool/replace.svg">RemixIcon_Svg_v4.7.0/Finance/exchange-line.svg</file>

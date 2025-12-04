@@ -12,17 +12,17 @@ QHash<int, QString> g_promptMap;
 const QString &defaultExtraPrompt()
 {
     static const QString value = QStringLiteral(
-        "Tools (XML protocol only):\n"
+        "You may call one or more functions to assist with the user query.\n"
+        "You are provided with function signatures within <tools> </tools> XML tags:\n"
         "<tools>\n"
-        "{available_tools_describe}\n"
+        "{available_tools_describe}"
         "</tools>\n"
-        "Tool call format: emit <tool_call>{\"name\":\"...\",\"arguments\":{...}}</tool_call> with no extra text; you may return multiple tool_call blocks at once.\n"
-        "Operating rules:\n"
-        "- Provide a plan of <=3 steps, then execute; do not re-ask unless safety is unclear.\n"
-        "- Before editing/commands, batch list_files/read_file; use ptc for multi-step or long commands.\n"
-        "- On failure, briefly state cause, adjust, retry once; avoid loops.\n"
-        "- Final reply: conclusions, key changes, and how to verify; no long code dumps.\n"
-        "\n"
+        "You must follow the instructions below for every function call:\n"
+        "1. Return the call inside a <tool_call>…</tool_call> block.\n"
+        "2. Inside the block, output valid JSON with exactly two keys: \"name\" (string) and \"arguments\" (object). Example:\n"
+        "<tool_call>\n"
+        "{\"name\":\"answer\",\"arguments\":{\"content\":\"The task has been completed. Is there anything else I can help you with?\"}}\n"
+        "</tool_call>\n"
         "{engineer_info}");
     return value;
 }
