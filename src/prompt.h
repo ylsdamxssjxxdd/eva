@@ -3,7 +3,7 @@
 
 namespace promptx
 {
-// Numeric ids for prompt entries (kept in sync with resource/language/prompt.ini).
+// Numeric ids for prompt entries (all text is baked into prompt.cpp).
 enum PromptEntryId : int
 {
     PROMPT_EXTRA_TEMPLATE = 50000,
@@ -27,7 +27,7 @@ enum PromptEntryId : int
     PROMPT_TOOL_ENGINEER_PROXY = 51014
 };
 
-// Load prompt definitions from prompt.ini (qrc path by default).
+// Load prompt definitions (resourcePath ignored, kept for compatibility).
 bool loadPromptLibrary(const QString &resourcePath = QString());
 
 // Resolve arbitrary prompt ids with fallback to provided text.
@@ -39,7 +39,7 @@ const QString &engineerInfo();
 const QString &engineerSystemInfo();
 const QString &architectInfo();
 
-// Built-in tool descriptors with descriptions resolved from prompt.ini.
+// Built-in tool descriptors.
 const TOOLS_INFO &toolAnswer();
 const TOOLS_INFO &toolCalculator();
 const TOOLS_INFO &toolController();

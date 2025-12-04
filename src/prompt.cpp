@@ -1,28 +1,23 @@
 #include "prompt.h"
 
-#include "utils/simpleini.h"
-#include <QHash>
-#include <QVector>
 #include <QVector>
 
 namespace
 {
-QHash<int, QString> g_promptMap;
-
 const QString &defaultExtraPrompt()
 {
     static const QString value = QStringLiteral(
         "You may call one or more functions to assist with the user query.\n"
         "You are provided with function signatures within <tools> </tools> XML tags:\n"
         "<tools>\n"
-        "{available_tools_describe}"
-        "</tools>\n"
+        "{available_tools_describe}</tools>\n"
         "You must follow the instructions below for every function call:\n"
-        "1. Return the call inside a <tool_call>…</tool_call> block.\n"
+        "1. Return the call inside a <tool_call>...</tool_call> block.\n"
         "2. Inside the block, output valid JSON with exactly two keys: \"name\" (string) and \"arguments\" (object). Example:\n"
         "<tool_call>\n"
         "{\"name\":\"answer\",\"arguments\":{\"content\":\"The task has been completed. Is there anything else I can help you with?\"}}\n"
         "</tool_call>\n"
+        "\n"
         "{engineer_info}");
     return value;
 }
@@ -36,10 +31,10 @@ QString &currentExtraPrompt()
 const QString &defaultEngineerInfo()
 {
     static const QString value = QStringLiteral(
-        "Role: EVA execution engineer. Goal: finish the commander’s task with minimal chatter.\n"
+        "Role: EVA execution engineer. Goal: finish the commander's task with minimal chatter.\n"
         "- If context is missing, ask succinctly via answer; avoid small talk.\n"
         "- Prefer batched read_file/list_files before editing; writes may overwrite, ensure trailing newline if needed.\n"
-        "- Use ptc for long or fragile command chains.\n"
+        "- Default to ptc whenever a workflow spans multiple CLI commands, fragile parsing, or structured edits; reach for ptc first and fall back to ad-hoc shell only when a one-liner truly suffices.\n"
         "- Keep every reply concise: <=3 bullet points, no logs or long code unless explicitly requested.\n"
         "- Finish with a change summary and validation steps, not code dumps.\n"
         "Current environment: {engineer_system_info}");
@@ -93,7 +88,7 @@ struct ToolTemplate
     const char *name;
     const char *schema;
     QString fallback;
-    TOOLS_INFO cache;
+    TOOLS_INFO cache{};
 };
 
 QVector<ToolTemplate> &toolTemplates()
@@ -137,7 +132,7 @@ Passing Parameter Examples:
         {promptx::PROMPT_TOOL_SD,
          "stablediffusion",
          R"({"type":"object","properties":{"prompt":{"type":"string","description":"Describe the image you want to draw."}},"required":["prompt"]})",
-         QStringLiteral("Describe the image you want to draw in any language. The tool sends the text to the diffusion model and returns the image. You can prepend style modifiers or phrases, separated by commas, to improve quality.")},
+         QStringLiteral("Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas.")},
         {promptx::PROMPT_TOOL_EXECUTE,
          "execute_command",
          R"({"type":"object","properties":{"content":{"type":"string","description":"CLI commands"}},"required":["content"]})",
@@ -145,19 +140,19 @@ Passing Parameter Examples:
         {promptx::PROMPT_TOOL_PTC,
          "ptc",
          R"({"type":"object","properties":{"filename":{"type":"string","description":"Python file name, e.g. helper.py."},"workdir":{"type":"string","description":"Working directory relative to the engineer workspace. Use \".\" for the workspace root."},"content":{"type":"string","description":"Full Python source code that should run inside the target workdir."}},"required":["filename","workdir","content"]})",
-         QStringLiteral("When CLI commands become unwieldy, author a Python helper script via programmatic_tool_calling. Provide the filename, the working directory (relative to the engineer workspace), and the script content. EVA stores the file under ptc_temp and executes it immediately, returning stdout/stderr." )},
+         QStringLiteral("Programmatic Tool Calling lets you write a Python helper when CLI commands become unwieldy. Provide the file name, working directory (relative to the engineer workspace), and full script content. EVA saves the file under ptc_temp, runs it immediately, and returns stdout/stderr so you can chain additional steps.")},
         {promptx::PROMPT_TOOL_LIST_FILES,
          "list_files",
          R"({"type":"object","properties":{"path":{"type":"string","description":"Optional directory to list (relative to the engineer working directory). Leave blank to use the current working directory."}}})",
          QStringLiteral("List all immediate subfolders and files under a directory. If no path is provided, default to the engineer working directory. Paths are resolved relative to the engineer working directory and output stays compact, one entry per line.")},
-         {promptx::PROMPT_TOOL_SEARCH_CONTENT,
-          "search_content",
-          R"({"type":"object","properties":{"query":{"type":"string","description":"The text to search for (case-insensitive literal)."},"path":{"type":"string","description":"Optional directory to limit the search to, relative to the engineer working directory."},"file_pattern":{"type":"string","description":"Optional glob to filter files, e.g. *.cpp or src/**.ts"}},"required":["query"]})",
-          QStringLiteral("Search text files under the engineer working directory using a fast grep. Optional path limits scope; optional file_pattern filters files (glob). Results stay compact as <path>:<line>:<content>.")},
-         {promptx::PROMPT_TOOL_READ_FILE,
-          "read_file",
-          R"({"type":"object","properties":{"files":{"type":"array","description":"List of files to read. Each entry may include optional line ranges.","items":{"type":"object","properties":{"path":{"type":"string","description":"Path to read, relative to the engineer workspace."},"start_line":{"type":"integer","minimum":1,"description":"Optional start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Optional end line (inclusive)."},"line_ranges":{"type":"array","description":"Optional explicit ranges.","items":{"type":"array","items":[{"type":"integer","minimum":1},{"type":"integer","minimum":1}]}}},"required":["path"]}},"path":{"type":"string","description":"Legacy single-file path."},"start_line":{"type":"integer","minimum":1,"description":"Legacy start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Legacy end line (inclusive)."}},"anyOf":[{"required":["files"]},{"required":["path"]}]})",
-          QStringLiteral("Read one or more files with optional line ranges. Prefer batching related files in a single call. Each file supports start/end_line or multiple line_ranges. Falls back to legacy path/start_line/end_line when files is omitted. Line output is capped to keep responses concise.")},
+        {promptx::PROMPT_TOOL_SEARCH_CONTENT,
+         "search_content",
+         R"({"type":"object","properties":{"query":{"type":"string","description":"The text to search for (case-insensitive literal)."},"path":{"type":"string","description":"Optional directory to limit the search to, relative to the engineer working directory."},"file_pattern":{"type":"string","description":"Optional glob to filter files, e.g. *.cpp or src/**.ts"}},"required":["query"]})",
+         QStringLiteral("Search all text files under the engineer working directory for a query string (case-insensitive). Returns lines in the form <path>:<line>:<content>.")},
+        {promptx::PROMPT_TOOL_READ_FILE,
+         "read_file",
+         R"({"type":"object","properties":{"files":{"type":"array","description":"List of files to read. Each entry may include optional line ranges.","items":{"type":"object","properties":{"path":{"type":"string","description":"Path to read, relative to the engineer workspace."},"start_line":{"type":"integer","minimum":1,"description":"Optional start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Optional end line (inclusive)."},"line_ranges":{"type":"array","description":"Optional explicit ranges.","items":{"type":"array","items":[{"type":"integer","minimum":1},{"type":"integer","minimum":1}]}}},"required":["path"]}},"path":{"type":"string","description":"Legacy single-file path."},"start_line":{"type":"integer","minimum":1,"description":"Legacy start line (inclusive)."},"end_line":{"type":"integer","minimum":1,"description":"Legacy end line (inclusive)."}},"anyOf":[{"required":["files"]},{"required":["path"]}]})",
+         QStringLiteral("Request to read the content of a file in a specified path, used when you need to check the content of an existing file, such as analyzing code, reviewing text files, or extracting information from a configuration file. You can specify start and end line numbers to read only a portion of the file. Maximum 200 lines can be read at once.")},
         {promptx::PROMPT_TOOL_WRITE_FILE,
          "write_file",
          R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to write"},"content":{"type":"string","description":"The file content"}},"required":["path","content"]})",
@@ -173,14 +168,9 @@ Passing Parameter Examples:
         {promptx::PROMPT_TOOL_ENGINEER_PROXY,
          "system_engineer_proxy",
          R"({"type":"object","properties":{"engineer_id":{"type":"string","description":"Engineer identifier. Reuse to keep prior context or set a new id to start fresh."},"task":{"type":"string","description":"Task description, including objectives, context, and acceptance criteria."}},"required":["engineer_id","task"]})",
-         QStringLiteral("Escalate implementation work to the resident system engineer. Provide an engineer_id (reuse an old one to keep its memory) and a detailed task. The engineer replies with a <=200-character summary.")},
+         QStringLiteral("Escalate a task to the resident system engineer. Arguments include engineer_id (string) and task (string). The task should describe the desired outcome, context, and constraints. The engineer replies with a summary of the work (<=200 characters). Use the same engineer_id to reuse prior memory; send a new id to start with a fresh engineer.")},
     };
     return templates;
-}
-
-QString resolvePrompt(int id, const QString &fallback)
-{
-    return g_promptMap.value(id, fallback);
 }
 
 void rebuildToolEntries()
@@ -188,8 +178,7 @@ void rebuildToolEntries()
     auto &defs = toolTemplates();
     for (auto &tpl : defs)
     {
-        const QString description = resolvePrompt(tpl.descriptionId, tpl.fallback);
-        tpl.cache = TOOLS_INFO(QString::fromUtf8(tpl.name), description, QString::fromUtf8(tpl.schema));
+        tpl.cache = TOOLS_INFO(QString::fromUtf8(tpl.name), tpl.fallback, QString::fromUtf8(tpl.schema));
     }
 }
 } // namespace
@@ -198,34 +187,33 @@ namespace promptx
 {
 QString promptById(int id, const QString &fallback)
 {
-    return resolvePrompt(id, fallback);
+    switch (id)
+    {
+    case PROMPT_EXTRA_TEMPLATE:
+        return currentExtraPrompt();
+    case PROMPT_ENGINEER_INFO:
+        return currentEngineerInfo();
+    case PROMPT_ENGINEER_SYSTEM:
+        return currentEngineerSystemInfo();
+    case PROMPT_ARCHITECT_INFO:
+        return currentArchitectInfo();
+    default:
+        break;
+    }
+    for (const auto &tpl : toolTemplates())
+    {
+        if (tpl.descriptionId == id) return tpl.fallback;
+    }
+    return fallback;
 }
 
 bool loadPromptLibrary(const QString &resourcePath)
 {
-    const QString path = resourcePath.isEmpty() ? QStringLiteral(":/language/prompt.ini") : resourcePath;
-    const auto map = simpleini::parseFile(path);
-    if (map.isEmpty())
-    {
-        g_promptMap.clear();
-        currentExtraPrompt() = defaultExtraPrompt();
-        currentEngineerInfo() = defaultEngineerInfo();
-        currentEngineerSystemInfo() = defaultEngineerSystemInfo();
-        rebuildToolEntries();
-        return false;
-    }
-    g_promptMap.clear();
-    for (auto it = map.constBegin(); it != map.constEnd(); ++it)
-    {
-        bool ok = false;
-        const int id = it.key().toInt(&ok);
-        if (!ok) continue;
-        g_promptMap.insert(id, it.value());
-    }
-    currentExtraPrompt() = resolvePrompt(PROMPT_EXTRA_TEMPLATE, defaultExtraPrompt());
-    currentEngineerInfo() = resolvePrompt(PROMPT_ENGINEER_INFO, defaultEngineerInfo());
-    currentEngineerSystemInfo() = resolvePrompt(PROMPT_ENGINEER_SYSTEM, defaultEngineerSystemInfo());
-    currentArchitectInfo() = resolvePrompt(PROMPT_ARCHITECT_INFO, defaultArchitectInfo());
+    (void)resourcePath;
+    currentExtraPrompt() = defaultExtraPrompt();
+    currentEngineerInfo() = defaultEngineerInfo();
+    currentEngineerSystemInfo() = defaultEngineerSystemInfo();
+    currentArchitectInfo() = defaultArchitectInfo();
     rebuildToolEntries();
     return true;
 }

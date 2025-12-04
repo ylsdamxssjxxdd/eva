@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <file>language/lang_zh.ini</file>
         <file>language/lang_en.ini</file>
-        <file>language/prompt.ini</file>
         <file>logo/Player.ico</file>
         <file>logo/Tools.ico</file>
         <file>logo/Nav_green_left.ico</file>

@@ -171,10 +171,6 @@ int main(int argc, char *argv[])
         // qDebug() << "Loaded font:" << customFont.family();
     }
     promptx::loadPromptLibrary();
-    StartupLogger::log(QStringLiteral("字体资源加载完成"));
-    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: fonts loaded"));
-
-    // 设置创建EVA_TEMP文件夹所在的目录
 #if BODY_LINUX_PACK
     const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString appImagePath = env.value("APPIMAGE");
@@ -185,6 +181,10 @@ int main(int argc, char *argv[])
     const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
     const QString appPath = QCoreApplication::applicationFilePath();
 #endif
+    const QString tempDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP"));
+    StartupLogger::log(QStringLiteral("字体资源加载完成"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: fonts loaded"));
+
 // linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
 #ifdef Q_OS_LINUX
     createDesktopShortcut(appPath);
@@ -206,9 +206,8 @@ int main(int argc, char *argv[])
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: single instance check passed"));
     // Auto-discover default models from EVA_MODELS when no config exists
     {
-        const QString tempDir = applicationDirPath + "/EVA_TEMP";
         QDir().mkpath(tempDir);
-        const QString cfgPath = tempDir + "/eva_config.ini";
+        const QString cfgPath = QDir(tempDir).filePath(QStringLiteral("eva_config.ini"));
         if (!QFile::exists(cfgPath))
         {
             auto findSmallest = [](const QString &root, const QStringList &exts, std::function<bool(const QFileInfo &)> pred = nullptr) -> QString
