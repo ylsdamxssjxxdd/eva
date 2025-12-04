@@ -405,7 +405,6 @@ QString Widget::create_engineer_info()
 QString Widget::create_architect_info()
 {
     QString architect_info = promptx::architectInfo();
-    architect_info.replace("{engineer_system_info}", buildEngineerSystemDetails());
     return architect_info;
 }
 
