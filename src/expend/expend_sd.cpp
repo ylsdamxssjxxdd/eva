@@ -468,21 +468,23 @@ void Expend::on_sd_draw_pushButton_clicked()
     arguments << "-o" << toToolFriendlyPath(sd_outputpath);
     arguments << "-v";
 
+    sd_process_output_.clear();
     // 连接信号和槽,获取程序的输出
     connect(sd_process, &QProcess::readyReadStandardOutput, [=]()
             {
-        QByteArray sd_process_output_byte = sd_process->readAllStandardOutput(); // 读取子进程的标准错误输出
+        QByteArray sd_process_output_byte = sd_process->readAllStandardOutput(); // 读取子进程的标准输出
 #ifdef Q_OS_WIN
         QString sd_process_output = QString::fromLocal8Bit(sd_process_output_byte); // 在 Windows 上，假设标准输出使用本地编码（例如 GBK）
 #else
         QString sd_process_output = QString::fromUtf8(sd_process_output_byte);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
 #endif
 
+        sd_process_output_.append(sd_process_output);
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
         cursor.insertText(sd_process_output);
         ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum()); //滚动条滚动到最下面
-        if (sd_process_output.contains("CUDA error"))
+        if (sd_process_output_.contains("CUDA error"))
         {
             sd_process->kill();
         } });
@@ -494,11 +496,12 @@ void Expend::on_sd_draw_pushButton_clicked()
 #else
         QString sd_process_output = QString::fromUtf8(sd_process_output_byte);// 在其他平台（如 Linux）上，假设标准输出使用 UTF-8
 #endif
+        sd_process_output_.append(sd_process_output);
         QTextCursor cursor(ui->sd_log->textCursor());
         cursor.movePosition(QTextCursor::End);
         cursor.insertText(sd_process_output);
         ui->sd_log->verticalScrollBar()->setValue(ui->sd_log->verticalScrollBar()->maximum()); //滚动条滚动到最下面
-        if (sd_process_output.contains("CUDA error"))
+        if (sd_process_output_.contains("CUDA error"))
         {
             sd_process->kill();
         } });
@@ -568,15 +571,23 @@ void Expend::sd_onProcessFinished()
     else if (!is_handle_sd)
     {
         is_handle_sd = true;
-        if (sd_process_output.contains("CUDA error"))
+        if (sd_process_output_.contains("CUDA error"))
         {
             emit expend2ui_state("expend:" + jtr("draw fail cuda"), WRONG_SIGNAL);
-            emit expend2tool_drawover(current_sd_invocation_id_, jtr("draw fail cuda"), 0); // 绘制完成信号
+            QString detail = sd_process_output_;
+            if (detail.size() > 800) detail = detail.right(800);
+            QString msg = jtr("draw fail cuda");
+            if (!detail.isEmpty()) msg += QStringLiteral("\n[sd output tail]\n%1").arg(detail);
+            emit expend2tool_drawover(current_sd_invocation_id_, msg, 0); // 绘制完成信号
         }
         else
         {
             emit expend2ui_state("expend:" + jtr("draw fail prompt"), WRONG_SIGNAL);
-            emit expend2tool_drawover(current_sd_invocation_id_, jtr("draw fail prompt"), 0); // 绘制完成信号
+            QString detail = sd_process_output_;
+            if (detail.size() > 800) detail = detail.right(800);
+            QString msg = jtr("draw fail prompt");
+            if (!detail.isEmpty()) msg += QStringLiteral("\n[sd output tail]\n%1").arg(detail);
+            emit expend2tool_drawover(current_sd_invocation_id_, msg, 0); // 绘制完成信号
         }
     }
 }

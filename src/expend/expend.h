@@ -267,7 +267,7 @@ class Expend : public QWidget
     QString sd_outputpath; // 最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
-    QString sd_process_output;
+    QString sd_process_output_;
     bool img2img = false; // 是否是图生图操作
     // Legacy file scanning removed (was used by inline SD path panel)
     bool is_readconfig = false; // 用于控制模板的应用

@@ -136,8 +136,8 @@ Passing Parameter Examples:
          QStringLiteral("Ask a question to the knowledge base, the more detailed the question, the better. The knowledge base will return three text segments with the highest similarity to the question. knowledge database describe: {embeddingdb describe}")},
         {promptx::PROMPT_TOOL_SD,
          "stablediffusion",
-         R"({"type":"object","properties":{"prompt":{"type":"string","description":"Describe the image you want to draw with a paragraph of English text"}},"required":["prompt"]})",
-         QStringLiteral("Describe the image you want to draw with a paragraph of English text. The tool will send the text to the drawing model and then return the drawn image, making sure to input English. You can add modifiers or phrases to improve the quality of the image before the text and separate them with commas.")},
+         R"({"type":"object","properties":{"prompt":{"type":"string","description":"Describe the image you want to draw."}},"required":["prompt"]})",
+         QStringLiteral("Describe the image you want to draw in any language. The tool sends the text to the diffusion model and returns the image. You can prepend style modifiers or phrases, separated by commas, to improve quality.")},
         {promptx::PROMPT_TOOL_EXECUTE,
          "execute_command",
          R"({"type":"object","properties":{"content":{"type":"string","description":"CLI commands"}},"required":["content"]})",
@@ -173,7 +173,7 @@ Passing Parameter Examples:
         {promptx::PROMPT_TOOL_ENGINEER_PROXY,
          "system_engineer_proxy",
          R"({"type":"object","properties":{"engineer_id":{"type":"string","description":"Engineer identifier. Reuse to keep prior context or set a new id to start fresh."},"task":{"type":"string","description":"Task description, including objectives, context, and acceptance criteria."}},"required":["engineer_id","task"]})",
-         QStringLiteral("Escalate implementation work to the resident system engineer. Provide an engineer_id (reuse an old one to keep its memory) and a detailed task. The engineer replies with remaining memory and a <=200-character summary.")},
+         QStringLiteral("Escalate implementation work to the resident system engineer. Provide an engineer_id (reuse an old one to keep its memory) and a detailed task. The engineer replies with a <=200-character summary.")},
     };
     return templates;
 }
