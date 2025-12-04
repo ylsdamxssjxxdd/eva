@@ -2,6 +2,8 @@
 #include "ui_widget.h"
 
 #include <QApplication>
+#include <QHash>
+#include <QIcon>
 
 namespace
 {
@@ -15,6 +17,7 @@ struct RecordNodeVisual
 {
     QColor base;
     QString badge;
+    QIcon icon; // 记录块需要绘制的 SVG 图标
 };
 
 QString compactLabel(const QString &src, int maxLen = 3)
@@ -31,11 +34,74 @@ QString compactLabel(const QString &src, int maxLen = 3)
     return cleaned;
 }
 
+// 统一缓存记录条所需图标，避免在流式阶段重复解析 SVG
+QIcon loadRecordIcon(const QString &alias)
+{
+    static QHash<QString, QIcon> cache;
+    const auto it = cache.constFind(alias);
+    if (it != cache.constEnd()) return it.value();
+    const QIcon icon(alias);
+    cache.insert(alias, icon);
+    return icon;
+}
+
+// 工具名 -> 图标资源路径 的映射表，方便拓展
+const QHash<QString, QString> &toolIconAliasMap()
+{
+    static const QHash<QString, QString> map = {
+        {QStringLiteral("calculator"), QStringLiteral(":/record/tool/calculator.svg")},
+        {QStringLiteral("execute_command"), QStringLiteral(":/record/tool/terminal.svg")},
+        {QStringLiteral("knowledge"), QStringLiteral(":/record/tool/knowledge.svg")},
+        {QStringLiteral("controller"), QStringLiteral(":/record/tool/controller.svg")},
+        {QStringLiteral("stablediffusion"), QStringLiteral(":/record/tool/diffusion.svg")},
+        {QStringLiteral("read_file"), QStringLiteral(":/record/tool/read.svg")},
+        {QStringLiteral("write_file"), QStringLiteral(":/record/tool/write.svg")},
+        {QStringLiteral("replace_in_file"), QStringLiteral(":/record/tool/replace.svg")},
+        {QStringLiteral("edit_in_file"), QStringLiteral(":/record/tool/edit.svg")},
+        {QStringLiteral("ptc"), QStringLiteral(":/record/tool/ptc.svg")},
+        {QStringLiteral("list_files"), QStringLiteral(":/record/tool/list.svg")},
+        {QStringLiteral("search_content"), QStringLiteral(":/record/tool/search.svg")},
+        {QStringLiteral("mcp_tools_list"), QStringLiteral(":/record/tool/mcp.svg")},
+        {QStringLiteral("system_engineer_proxy"), QStringLiteral(":/record/tool/ptc.svg")}
+    };
+    return map;
+}
+
+// 根据角色类型挑选默认图标
+QIcon iconForRole(Widget::RecordRole role)
+{
+    switch (role)
+    {
+    case Widget::RecordRole::System: return loadRecordIcon(QStringLiteral(":/record/role/system.svg"));
+    case Widget::RecordRole::User: return loadRecordIcon(QStringLiteral(":/record/role/user.svg"));
+    case Widget::RecordRole::Assistant: return loadRecordIcon(QStringLiteral(":/record/role/assistant.svg"));
+    case Widget::RecordRole::Think: return loadRecordIcon(QStringLiteral(":/record/role/think.svg"));
+    case Widget::RecordRole::Tool: return loadRecordIcon(QStringLiteral(":/record/role/tool.svg"));
+    }
+    return QIcon();
+}
+
+// 根据工具名挑选更贴切的 Remix 图标，并对 MCP/工程师场景做特殊处理
+QIcon iconForToolName(const QString &toolName)
+{
+    const QString key = toolName.trimmed().toLower();
+    if (key.isEmpty()) return iconForRole(Widget::RecordRole::Tool);
+    if (key.startsWith(QStringLiteral("mcp_tools_list")) || key.contains(QLatin1Char('@')))
+        return loadRecordIcon(QStringLiteral(":/record/tool/mcp.svg"));
+    const auto &map = toolIconAliasMap();
+    const QString alias = map.value(key);
+    if (!alias.isEmpty()) return loadRecordIcon(alias);
+    if (key.contains(QStringLiteral("mcp"))) return loadRecordIcon(QStringLiteral(":/record/tool/mcp.svg"));
+    if (key.contains(QStringLiteral("engineer"))) return loadRecordIcon(QStringLiteral(":/record/tool/ptc.svg"));
+    return loadRecordIcon(QStringLiteral(":/record/tool/generic.svg"));
+}
+
 RecordNodeVisual buildRecordNodeVisual(const Widget *w, Widget::RecordRole role, const QString &toolName)
 {
     RecordNodeVisual v;
     if (!w) return v;
     v.base = w->chipColorForRole(role);
+    v.icon = iconForRole(role);
     switch (role)
     {
     case Widget::RecordRole::System:
@@ -52,6 +118,7 @@ RecordNodeVisual buildRecordNodeVisual(const Widget *w, Widget::RecordRole role,
         break;
     case Widget::RecordRole::Tool:
         v.badge = compactLabel(toolName.isEmpty() ? QStringLiteral("TOOL") : toolName, 2);
+        v.icon = iconForToolName(toolName);
         break;
     }
     return v;
@@ -80,7 +147,7 @@ int Widget::recordCreate(RecordRole role, const QString &toolNameOverride)
     {
         const QString toolBadgeName = (role == RecordRole::Tool) ? recordEntries_[idx].toolName : QString();
         const RecordNodeVisual visual = buildRecordNodeVisual(this, role, toolBadgeName);
-        ui->recordBar->addNode(visual.base, QString(), visual.badge);
+        ui->recordBar->addNode(visual.base, QString(), visual.badge, visual.icon);
     }
     if (isHostControlled())
     {

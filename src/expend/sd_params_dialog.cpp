@@ -32,7 +32,7 @@ void SdParamsDialog::buildUi()
 
     // Preset selector
     presetBox_ = new QComboBox;
-    presetBox_->addItems({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"});
+    presetBox_->addItems({"flux1-dev", "qwen-image", "z-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"});
     connect(presetBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SdParamsDialog::onPresetChanged);
     root->addWidget(wrapH(new QLabel("Preset"), presetBox_));
 
@@ -92,7 +92,7 @@ void SdParamsDialog::buildUi()
     hSpin_->setSingleStep(64);
     samplerBox_ = new QComboBox;
     samplerBox_->addItems({"euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "ipndm", "ipndm_v", "lcm", "ddim_trailing", "tcd"});
-    samplerBox_->setToolTip("Sampling method (e.g. euler/euler_a/dpm++2m/…)");
+    samplerBox_->setToolTip("Sampling method (e.g. euler/euler_a/dpm++2m/...)");
     schedulerBox_ = new QComboBox;
     schedulerBox_->addItems({"discrete", "karras", "exponential", "ays", "gits", "smoothstep", "sgm_uniform", "simple"});
     schedulerBox_->setToolTip("Sigma scheduler for denoising");
@@ -417,6 +417,25 @@ void SdParamsDialog::applyPreset(const QString &name)
         flowShiftEnable_->setChecked(true);
         flowShiftSpin_->setValue(3.0);
         // keep user's prompts as-is
+    }
+    else if (name == "z-image")
+    {
+        // 按 z-image 超快配置给出默认参数，采用 512x1024 分辨率与 1.0 CFG，便于一键出图
+        modelArgBox_->setCurrentIndex(static_cast<int>(SDModelArgKind::Diffusion));
+        samplerBox_->setCurrentText("euler");
+        wSpin_->setValue(512);
+        hSpin_->setValue(1024);
+        stepsSpin_->setValue(20);
+        cfgSpin_->setValue(1.0);
+        clipSkipSpin_->setValue(-1);
+        batchSpin_->setValue(1);
+        seedSpin_->setValue(-1);
+        rngBox_->setCurrentText("cuda");
+        diffFaCb_->setChecked(true);
+        offloadCpuCb_->setChecked(true);
+        flowShiftEnable_->setChecked(false);
+        if (modifyEdit_ && modifyEdit_->text().trimmed().isEmpty())
+            modifyEdit_->setText(QStringLiteral("EVA第十三号机"));
     }
     else if (name == "sd1.5-anything-3")
     {

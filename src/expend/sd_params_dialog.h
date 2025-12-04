@@ -33,8 +33,8 @@ class SdParamsDialog : public QWidget
     void setConfig(const SDRunConfig &cfg);
     SDRunConfig config() const;
 
-    // Apply a preset by name: "flux1-dev", "qwen-image", "sd1.5-anything-3",
-    // "custom1", "custom2"
+    // Apply a preset by name: "flux1-dev", "qwen-image", "z-image", "sd1.5-anything-3",
+    // "wan2.2", "custom1", "custom2"
     void applyPreset(const QString &name);
 
     // Mute autosave emissions during programmatic updates

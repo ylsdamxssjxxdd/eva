@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/record">
+        <file alias="role/system.svg">RemixIcon_Svg_v4.7.0/Development/terminal-window-line.svg</file>
+        <file alias="role/user.svg">RemixIcon_Svg_v4.7.0/User &amp; Faces/user-3-line.svg</file>
+        <file alias="role/assistant.svg">RemixIcon_Svg_v4.7.0/User &amp; Faces/ai-agent-line.svg</file>
+        <file alias="role/think.svg">RemixIcon_Svg_v4.7.0/Others/lightbulb-line.svg</file>
+        <file alias="role/tool.svg">RemixIcon_Svg_v4.7.0/Design/tools-line.svg</file>
+        <file alias="tool/calculator.svg">RemixIcon_Svg_v4.7.0/Business/calculator-line.svg</file>
+        <file alias="tool/terminal.svg">RemixIcon_Svg_v4.7.0/Development/terminal-box-line.svg</file>
+        <file alias="tool/knowledge.svg">RemixIcon_Svg_v4.7.0/Document/book-3-line.svg</file>
+        <file alias="tool/controller.svg">RemixIcon_Svg_v4.7.0/Device/remote-control-line.svg</file>
+        <file alias="tool/diffusion.svg">RemixIcon_Svg_v4.7.0/Design/paint-brush-line.svg</file>
+        <file alias="tool/read.svg">RemixIcon_Svg_v4.7.0/Document/file-3-line.svg</file>
+        <file alias="tool/write.svg">RemixIcon_Svg_v4.7.0/Document/file-edit-line.svg</file>
+        <file alias="tool/replace.svg">RemixIcon_Svg_v4.7.0/Finance/exchange-line.svg</file>
+        <file alias="tool/edit.svg">RemixIcon_Svg_v4.7.0/Design/edit-2-line.svg</file>
+        <file alias="tool/list.svg">RemixIcon_Svg_v4.7.0/Document/folder-3-line.svg</file>
+        <file alias="tool/search.svg">RemixIcon_Svg_v4.7.0/System/search-line.svg</file>
+        <file alias="tool/ptc.svg">RemixIcon_Svg_v4.7.0/Development/git-merge-line.svg</file>
+        <file alias="tool/mcp.svg">RemixIcon_Svg_v4.7.0/Device/database-2-line.svg</file>
+        <file alias="tool/generic.svg">RemixIcon_Svg_v4.7.0/Design/tools-line.svg</file>
+    </qresource>
+</RCC>

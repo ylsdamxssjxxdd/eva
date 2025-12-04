@@ -20,6 +20,7 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     { return settings.value(k, def); };
     SDRunConfig c;
     // Recommended family defaults
+    SDModelArgKind defModelArg = SDModelArgKind::Auto;
     int defW = 512, defH = 512, defSteps = 20, defClipSkip = -1, defBatch = 1, defSeed = -1;
     double defCfg = 7.5;
     QString defSampler = "euler";
@@ -27,6 +28,9 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     double defFlow = 0.0;
     bool defOffload = false, defFA = false;
     QString defRng = "cuda";
+    QString defModelPath;
+    QString defVaePath;
+    QString defLlmPath;
     if (preset == "flux1-dev")
     {
         defW = 768;
@@ -52,6 +56,21 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
         defFlowEn = true;
         defFlow = 3.0;
     }
+    else if (preset == "z-image")
+    {
+        // æ ¹æ®ææŒ¥å‘˜æ��ä¾›çš„è®¾ç½®ï¼Œé»˜è®¤ä»¥ --diffusion-model æ–¹å¼è·¯å¾„å¼•å…¥ z-image è¶…å¿«æ¨¡åž‹
+        defModelArg = SDModelArgKind::Diffusion;
+        defW = 512;
+        defH = 1024;
+        defSteps = 20;
+        defCfg = 1.0;
+        defSampler = "euler";
+        defOffload = true;
+        defFA = true;
+        defModelPath = applicationDirPath + "/z_image_turbo-Q4_0.gguf";
+        defVaePath = applicationDirPath + "/ae.safetensors";
+        defLlmPath = applicationDirPath + "/Qwen3-4B-Instruct-2507-Q4_K_M.gguf";
+    }
     else if (preset == "sd1.5-anything-3")
     {
         defW = 512;
@@ -75,14 +94,14 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
         defFlow = 3.0;
     }
 
-    c.modelArg = static_cast<SDModelArgKind>(get("sd_preset_" + key + "_model_arg", static_cast<int>(SDModelArgKind::Auto)).toInt());
-    c.modelPath = get("sd_preset_" + key + "_model_path", "").toString();
-    c.vaePath = get("sd_preset_" + key + "_vae_path", "").toString();
+    c.modelArg = static_cast<SDModelArgKind>(get("sd_preset_" + key + "_model_arg", static_cast<int>(defModelArg)).toInt());
+    c.modelPath = get("sd_preset_" + key + "_model_path", defModelPath).toString();
+    c.vaePath = get("sd_preset_" + key + "_vae_path", defVaePath).toString();
     c.clipLPath = get("sd_preset_" + key + "_clip_l_path", "").toString();
     c.clipGPath = get("sd_preset_" + key + "_clip_g_path", "").toString();
     c.clipVisionPath = get("sd_preset_" + key + "_clip_vision_path", "").toString();
     c.t5xxlPath = get("sd_preset_" + key + "_t5xxl_path", "").toString();
-    c.llmPath = get("sd_preset_" + key + "_llm_path", "").toString();
+    c.llmPath = get("sd_preset_" + key + "_llm_path", defLlmPath).toString();
 
     c.llmVisionPath = get("sd_preset_" + key + "_llm_vision_path", "").toString();
     c.loraDirPath = get("sd_preset_" + key + "_lora_dir", "").toString();

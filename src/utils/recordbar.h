@@ -5,6 +5,8 @@
 #include <QEvent>
 #include <QFont>
 #include <QFontMetrics>
+#include <QIcon>
+#include <QImage>
 #include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
@@ -16,6 +18,7 @@
 #include <QToolTip>
 #include <QVector>
 #include <QWheelEvent>
+#include <QtMath>
 // A thin horizontal bar that displays key conversation nodes as colored chips.
 // - Hover: shows tooltip text (content snippet)
 // - Single click: emit nodeClicked(index)
@@ -37,15 +40,21 @@ class RecordBar : public QWidget
     struct Node
     {
         QColor color;
-        QString tooltip; // full or truncated content
-        QString badge;   // short label (e.g., S/U/M/T)
+        QString tooltip; // 完整或截断后的提示内容
+        QString badge;   // 缺省字母徽标（无图标时使用）
+        QIcon icon;      // 角色或工具图标
     };
 
     int addNode(const QColor &color,
                 const QString &tooltip,
-                const QString &badge = QString())
+                const QString &badge = QString(),
+                const QIcon &icon = QIcon())
     {
-        Node n{color, tooltip, badge};
+        Node n;
+        n.color = color;
+        n.tooltip = tooltip;
+        n.badge = badge;
+        n.icon = icon;
         nodes_.push_back(n);
         if (chipRectsCache_.size() != nodes_.size()) chipRectsCache_.resize(nodes_.size());
         // auto-scroll to latest when overflow occurs
@@ -189,6 +198,7 @@ class RecordBar : public QWidget
                     fill = base.lighter(140);
                 else if (isHover)
                     fill = base.lighter(115);
+                const QColor fgColor = badgeTextColor(fill);
 
                 p.setPen(Qt::NoPen);
                 p.setBrush(fill);
@@ -201,15 +211,27 @@ class RecordBar : public QWidget
                 p.setBrush(Qt::NoBrush);
                 p.drawPolygon(poly);
 
-                // Badge: initials to quickly identify role/tool
-                if (!nodes_[i].badge.isEmpty())
+                bool drewIcon = false;
+                if (!nodes_[i].icon.isNull())
+                {
+                    const int iconSize = qMax(8, qMin(h - 4, chipW_ - 4));
+                    QPixmap iconPixmap = makeTintedIcon(nodes_[i], iconSize, fgColor);
+                    if (!iconPixmap.isNull())
+                    {
+                        QRect iconRect(0, 0, iconSize, iconSize);
+                        iconRect.moveCenter(r.center());
+                        p.drawPixmap(iconRect.topLeft(), iconPixmap);
+                        drewIcon = true;
+                    }
+                }
+                // 徽章：若无图标则继续使用首字母
+                if (!drewIcon && !nodes_[i].badge.isEmpty())
                 {
                     QFont f = p.font();
                     f.setBold(true);
                     f.setPointSize(qMax(6, f.pointSize() - 1));
-                    QColor textColor = badgeTextColor(nodes_[i].color);
                     p.setFont(f);
-                    p.setPen(textColor);
+                    p.setPen(fgColor);
                     p.drawText(r, Qt::AlignCenter, nodes_[i].badge);
                 }
             }
@@ -336,13 +358,36 @@ class RecordBar : public QWidget
     QVector<QRect> chipRectsCache_;
     int scrollX_ = 0;
     // visuals
-    int chipW_ = 18;
-    int spacing_ = 3;
+    int chipW_ = 20;
+    int spacing_ = 4;
     int margin_ = 6;
     int slant_ = 4; // EVA style tilt (px)
     // interaction state
     int selectedIndex_ = -1;
     int hoveredIndex_ = -1;
+
+    // 依据当前主题色重新着色一张图标位图，保持高分屏显示清晰
+    QPixmap makeTintedIcon(const Node &node, int logicalSize, const QColor &tint) const
+    {
+        if (node.icon.isNull() || logicalSize <= 0) return QPixmap();
+        const qreal dpr = devicePixelRatioF();
+        const int pxSize = qMax(1, qCeil(logicalSize * dpr));
+        QPixmap source = node.icon.pixmap(pxSize, pxSize);
+        if (source.isNull()) return QPixmap();
+        source.setDevicePixelRatio(dpr);
+        QImage img = source.toImage();
+        if (img.format() != QImage::Format_ARGB32_Premultiplied)
+        {
+            img = img.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        }
+        QPainter iconPainter(&img);
+        iconPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+        iconPainter.fillRect(img.rect(), tint);
+        iconPainter.end();
+        QPixmap tinted = QPixmap::fromImage(img);
+        tinted.setDevicePixelRatio(dpr);
+        return tinted;
+    }
 };
 
 #endif // RECORDBAR_H

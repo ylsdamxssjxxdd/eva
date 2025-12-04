@@ -443,7 +443,7 @@ void Expend::readConfig()
     sd_run_config_.taesdPath = settings.value("sd_adv_taesd_path", "").toString();
     sd_run_config_.upscaleModelPath = settings.value("sd_adv_upscale_model", "").toString();
     // Build strict per-preset configuration map and pick the active one
-    const QStringList presetsAll = {"flux1-dev", "qwen-image", "sd1.5-anything-3", "custom1", "custom2"};
+    const QStringList presetsAll = {"flux1-dev", "qwen-image", "z-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"};
     for (const QString &p : presetsAll)
         sd_preset_configs_[p] = loadPresetConfig(p);
     // Active preset is read below (sd_params_template); sync current run config after that
@@ -465,16 +465,16 @@ void Expend::readConfig()
 
     // 旧的行内路径/参数不再应用到界面；统一由高级设置管理
 
-    // 预设列表固定：flux1-dev, qwen-image, sd1.5-anything-3, wan2.2, custom1, custom2
+    // 预设列表固定：flux1-dev, qwen-image, z-image, sd1.5-anything-3, wan2.2, custom1, custom2
     // Clamp template key to supported set
-    if (!QStringList({"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"}).contains(sd_params_template))
+    if (!QStringList({"flux1-dev", "qwen-image", "z-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"}).contains(sd_params_template))
         sd_params_template = "sd1.5-anything-3";
     // 当前预设的运行配置
     sd_run_config_ = sd_preset_configs_.value(sd_params_template, SDRunConfig{});
     // Load per-preset prompts from config (avoid cross-preset leakage)
     auto sanitize = [this](QString s)
     { return sanitizePresetKey(s); };
-    const QStringList presets = {"flux1-dev", "qwen-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"};
+    const QStringList presets = {"flux1-dev", "qwen-image", "z-image", "sd1.5-anything-3", "wan2.2", "custom1", "custom2"};
     for (const QString &p : presets)
     {
         const QString key = sanitize(p);
