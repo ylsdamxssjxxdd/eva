@@ -95,8 +95,8 @@ class xNet : public QObject
     // Optional direct speeds when provided by server (tokens/second); -1 if unknown
     double promptPerSec_ = -1.0;
     double predictedPerSec_ = -1.0;
-    // Tool-call handling: do not abort immediately on DEFAULT_OBSERVATION_STOPWORD
-    bool sawToolStopword_ = false; // seen </tool_call> this turn; allow coasting to receive usage/timings
+    // 工具调用停符处理：命中 </tool_call> 后标记并立刻终止当前流，避免模型继续输出干扰工具判定
+    bool sawToolStopword_ = false; // 本轮是否已命中工具停符，防止重复中止
     int cacheTokens_ = -1;
     bool totalsEmitted_ = false;
     quint64 turn_id_ = 0; // å½“å‰å›žåŽIDç”¨äºŽæµç¨‹æ‰«æ

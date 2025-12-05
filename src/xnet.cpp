@@ -257,6 +257,7 @@ void xNet::run()
             }
 
             processSsePayload(isChat, payloadAgg);
+            if (aborted_ || !reply_) return; // 流被主动中止时立即退出解析循环
         }
     });
 
@@ -633,6 +634,7 @@ void xNet::logRequestPayload(const char *modeTag, const QByteArray &body)
 void xNet::processSsePayload(bool isChat, const QByteArray &payload)
 {
     QByteArray data = payload;
+    bool toolStopTriggered = false; // 检测到工具调用停符后用于打断后续解析
     // Some servers prepend junk before JSON; locate first '{' or '['
     int jposObj = data.indexOf('{');
     int jposArr = data.indexOf('[');
@@ -716,11 +718,9 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
                     // if this chunk is part of <think>, count it approximately
                     const bool isReasoningChunk = thinkFlag || current_content.contains(DEFAULT_THINK_BEGIN);
                     if (isReasoningChunk) reasoningTokensTurn_++;
-                    // Detect tool-call end; do not abort here, just mark seen to allow tail meta
-                    if (!thinkFlag && !sawToolStopword_ && current_content.contains(DEFAULT_OBSERVATION_STOPWORD))
-                    {
-                        sawToolStopword_ = true;
-                    }
+                    const bool hitToolStopword = !thinkFlag && !sawToolStopword_ &&
+                                                 current_content.contains(DEFAULT_OBSERVATION_STOPWORD);
+                    if (hitToolStopword) sawToolStopword_ = true;
                     // 不再在状态区流式输出内容；仅把内容流式发往输出区
                     if (current_content.contains(DEFAULT_THINK_BEGIN)) thinkFlag = true;
                     if (thinkFlag)
@@ -728,6 +728,15 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
                     else
                         emit net2ui_output(current_content, true);
                     if (current_content.contains(DEFAULT_THINK_END)) thinkFlag = false;
+                    if (hitToolStopword && !aborted_)
+                    {
+                        FlowTracer::log(FlowChannel::Net,
+                                        QStringLiteral("net: tool stopword hit, abort stream"),
+                                        turn_id_);
+                        toolStopTriggered = true;
+                        abortActiveReply(); // 立即中止流式请求，避免模型继续输出干扰工具判定
+                        return;
+                    }
                 }
             }
         }
@@ -830,13 +839,16 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
     if (doc.isObject())
     {
         processObj(doc.object());
+        if (toolStopTriggered) return;
     }
     else if (doc.isArray())
     {
         const QJsonArray arr = doc.array();
         for (const auto &v : arr)
         {
+            if (toolStopTriggered) break;
             if (v.isObject()) processObj(v.toObject());
+            if (toolStopTriggered) break;
         }
     }
 }
