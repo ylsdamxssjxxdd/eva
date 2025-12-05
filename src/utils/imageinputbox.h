@@ -217,8 +217,8 @@ class ImageInputBox : public QWidget
 
         thumbnailLayout->addWidget(itemWidget);
         attachments_.append({path, kind});
-        adjustHeight();
-        updateLayout();
+        updateLayout();  // 先刷新预览可见性，确保高度计算包含上传区域
+        adjustHeight();  // 重新按当前布局高度拉伸，避免拖入附件后输入框被压缩遮挡
     }
 
     // 重写 resizeEvent，当宽度变化时重新调整高度
