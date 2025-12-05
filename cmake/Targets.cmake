@@ -68,6 +68,7 @@ add_executable(
     src/utils/evallogedit.cpp src/utils/evallogedit.h
     src/utils/introanimedit.cpp src/utils/introanimedit.h
     src/utils/textspacing.cpp src/utils/textspacing.h
+    src/utils/elidelabel.cpp src/utils/elidelabel.h
     src/utils/minibarchart.cpp  src/utils/minibarchart.h src/utils/flowprogressbar.h
     src/utils/textparse.cpp src/utils/textparse.h
     src/utils/zip_extractor.cpp src/utils/zip_extractor.h

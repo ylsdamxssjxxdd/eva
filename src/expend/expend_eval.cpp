@@ -75,7 +75,12 @@ void Expend::updateEvalInfoUi()
         modelStr = eval_apis.api_model;
     }
     if (modelStr.isEmpty()) modelStr = QStringLiteral("-");
-    ui->eval_model_value->setText(modelStr);
+    // 模型名称过长时保持单行省略，避免撑开“当前信息”区域
+    if (ui->eval_model_value)
+    {
+        ui->eval_model_value->setContentText(modelStr);
+        ui->eval_model_value->setToolTip(modelStr == QStringLiteral("-") ? QString() : modelStr);
+    }
     // Device and key runtime toggles (best-effort)
     ui->eval_device_value->setText(DeviceManager::effectiveBackend());
     // n_ctx: for LINK mode, Widget side passes the discovered maximum context via settings.nctx

@@ -565,7 +565,19 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QLabel" name="eval_model_value">
+              <widget class="ElideLabel" name="eval_model_value">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
@@ -3389,9 +3401,14 @@ p, li { white-space: pre-wrap; }
    <header>src/utils/neuronlogedit.h</header>
   </customwidget>
   <customwidget>
-   <class>EvalLogEdit</class>
-   <extends>QPlainTextEdit</extends>
-   <header>src/utils/evallogedit.h</header>
+  <class>EvalLogEdit</class>
+  <extends>QPlainTextEdit</extends>
+  <header>src/utils/evallogedit.h</header>
+ </customwidget>
+  <customwidget>
+   <class>ElideLabel</class>
+   <extends>QLabel</extends>
+   <header>src/utils/elidelabel.h</header>
   </customwidget>
   <customwidget>
    <class>FlowProgressBar</class>

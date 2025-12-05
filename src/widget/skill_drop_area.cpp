@@ -16,6 +16,9 @@
 #include <QStringList>
 #include <QScrollArea>
 #include <QSizePolicy>
+#include <QResizeEvent>
+#include <QEvent>
+#include <QtGlobal>
 
 #include "../utils/toggleswitch.h"
 
@@ -59,21 +62,22 @@ SkillDropArea::SkillDropArea(QWidget *parent)
     rootLayout->setContentsMargins(0, 0, 0, 0);
     rootLayout->setSpacing(6);
 
-    auto *scrollArea = new QScrollArea(this);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-    scrollArea->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-    scrollArea->setMaximumHeight(320);
-    rootLayout->addWidget(scrollArea);
+    scrollArea_ = new QScrollArea(this);
+    scrollArea_->setWidgetResizable(true);
+    scrollArea_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea_->setFrameShape(QFrame::NoFrame);
+    scrollArea_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    scrollArea_->setMaximumHeight(320);
+    rootLayout->addWidget(scrollArea_);
 
-    QWidget *cardsContainer = new QWidget(scrollArea);
-    cardsLayout_ = new QVBoxLayout(cardsContainer);
+    cardsContainer_ = new QWidget(scrollArea_);
+    cardsLayout_ = new QVBoxLayout(cardsContainer_);
     cardsLayout_->setContentsMargins(4, 4, 4, 4);
     cardsLayout_->setSpacing(8);
     cardsLayout_->setAlignment(Qt::AlignTop);
-    scrollArea->setWidget(cardsContainer);
+    scrollArea_->setWidget(cardsContainer_);
+    if (scrollArea_->viewport()) scrollArea_->viewport()->installEventFilter(this);
 
     ensureEmptyHint();
 }
@@ -92,6 +96,7 @@ void SkillDropArea::setSkills(const QVector<SkillManager::SkillRecord> &skills)
 
     removeObsoleteCards(remaining);
     ensureEmptyHint();
+    updateCardWidths();
 }
 
 void SkillDropArea::dragEnterEvent(QDragEnterEvent *event)
@@ -198,13 +203,30 @@ void SkillDropArea::ensureEmptyHint()
     }
 }
 
+bool SkillDropArea::eventFilter(QObject *watched, QEvent *event)
+{
+    // 监听滚动区域视口的尺寸变化，保持卡片宽度与可用区域一致
+    if (scrollArea_ && watched == scrollArea_->viewport() && event && event->type() == QEvent::Resize)
+    {
+        updateCardWidths();
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void SkillDropArea::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    updateCardWidths();
+}
+
 void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
 {
     auto it = cards_.find(rec.id);
     if (it != cards_.end())
     {
         CardWidgets &card = it.value();
-        card.title->setText(rec.id);
+        card.title->setContentText(rec.id);
+        card.title->refreshElide();
         const QString tooltip = metadataTooltip(rec);
         card.frame->setToolTip(tooltip);
         card.title->setToolTip(tooltip);
@@ -219,19 +241,23 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
     }
 
     CardWidgets card;
-    card.frame = new QFrame(this);
+    card.frame = new QFrame(cardsContainer_);
     card.frame->setObjectName(QStringLiteral("skillCard"));
     card.frame->setProperty("skillId", rec.id);
+    card.frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    card.frame->setMinimumWidth(0);
 
     auto *cardLayout = new QHBoxLayout(card.frame);
     cardLayout->setContentsMargins(12, 8, 12, 8);
     cardLayout->setSpacing(8);
 
-    card.title = new QLabel(rec.id, card.frame);
+    card.title = new ElideLabel(card.frame);
     card.title->setObjectName(QStringLiteral("skillTitle"));
-    card.title->setWordWrap(false);
+    card.title->setContentText(rec.id);
     card.title->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+    card.title->setElideMode(Qt::ElideRight);
     card.title->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    card.title->setMinimumWidth(0);
     cardLayout->addWidget(card.title, 1, Qt::AlignVCenter);
 
     card.toggle = new ToggleSwitch(card.frame);
@@ -249,6 +275,7 @@ void SkillDropArea::createOrUpdateCard(const SkillManager::SkillRecord &rec)
 
     cardsLayout_->addWidget(card.frame);
     cards_.insert(rec.id, card);
+    updateCardWidths();
 }
 
 void SkillDropArea::removeObsoleteCards(const QSet<QString> &remaining)
@@ -300,4 +327,22 @@ QString SkillDropArea::metadataTooltip(const SkillManager::SkillRecord &rec) con
         parts << rec.frontmatterBody.trimmed();
     }
     return parts.join(QStringLiteral("\n"));
+}
+
+void SkillDropArea::updateCardWidths()
+{
+    if (!cardsLayout_ || !scrollArea_) return;
+
+    const int margins = cardsLayout_->contentsMargins().left() + cardsLayout_->contentsMargins().right();
+    // 卡片宽度锁定为视口宽度减去布局边距，防止长标题撑开外层窗口
+    const int availableWidth = qMax(0, scrollArea_->viewport()->width() - margins);
+
+    for (auto it = cards_.begin(); it != cards_.end(); ++it)
+    {
+        CardWidgets &card = it.value();
+        if (!card.frame) continue;
+        card.frame->setMinimumWidth(availableWidth);
+        card.frame->setMaximumWidth(availableWidth);
+        if (card.title) card.title->refreshElide();
+    }
 }
