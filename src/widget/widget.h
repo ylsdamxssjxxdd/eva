@@ -854,8 +854,11 @@ class Widget : public QWidget
     void processStreamChunk(const QString &chunk, const QColor &color);
 
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
-    void fetchRemoteContextLimit(); // probe /v1/models for max context (LINK mode)
-    void fetchPropsContextLimit();  // fallback: GET /props and read default_generation_settings.n_ctx
+    void fetchRemoteContextLimit();                                                     // probe props/models for context (LINK mode)
+    void fetchModelsContextLimit(bool isLocalEndpoint);                                 // GET /v1/models for context/alias
+    void fetchPropsContextLimit(bool allowLinkMode = false, bool fallbackModels = false); // GET /props for runtime n_ctx/alias; optional fallback to models
+    void applyDiscoveredAlias(const QString &alias, const QString &sourceTag);          // update model alias and notify subsystems
+    void applyDiscoveredContext(int nctx, const QString &sourceTag);                    // update n_ctx/slotCtxMax_ and notify UI/Expend
     QString buildWorkspaceSnapshot(const QString &root, bool dockerView = false) const;
     // Global UI styling helpers
     void setupGlobalSettingsPanel();

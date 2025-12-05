@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QUrl>
 #include <QHostInfo>
+#include <QFileInfo>
 
 namespace
 {
@@ -221,10 +222,18 @@ void Widget::change_api_dialog(bool enable)
 void Widget::fetchRemoteContextLimit()
 {
     if (ui_mode != LINK_MODE) return;
-    // Build URL: base endpoint + /v1/models
     QUrl base = QUrl::fromUserInput(apis.api_endpoint);
     if (!base.isValid()) return;
-    const bool isLocalEndpoint = (ui_mode == LOCAL_MODE);
+    // 无论是否本机，优先读取 /props 获取实际运行时 n_ctx；若缺失则回退 /v1/models
+    fetchPropsContextLimit(true, true);
+}
+
+void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
+{
+    Q_UNUSED(isLocalEndpoint);
+    if (ui_mode != LINK_MODE) return;
+    QUrl base = QUrl::fromUserInput(apis.api_endpoint);
+    if (!base.isValid()) return;
     QUrl url(base);
     QString path = url.path();
     if (!path.endsWith('/')) path += '/';
@@ -238,14 +247,12 @@ void Widget::fetchRemoteContextLimit()
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp, isLocalEndpoint]()
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
             {
         rp->deleteLater();
         nam->deleteLater();
         if (rp->error() != QNetworkReply::NoError)
         {
-            // leave slotCtxMax_ unchanged on error
-            if (isLocalEndpoint) fetchPropsContextLimit();
             return;
         }
         const QByteArray body = rp->readAll();
@@ -253,15 +260,32 @@ void Widget::fetchRemoteContextLimit()
         QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
         if (perr.error != QJsonParseError::NoError)
         {
-            if (isLocalEndpoint) fetchPropsContextLimit();
             return;
         }
         int maxCtx = -1;
+        int firstCtx = -1;
+        QString firstAlias;
+        QStringList dbgLines;
         auto tryPick = [&](const QJsonObject &o) {
             // Try common fields from various providers
             const char *keys[] = {"max_model_len","context_length","max_input_tokens","max_context_length","max_input_length","prompt_token_limit","input_token_limit"};
             for (auto k : keys) {
                 if (o.contains(k)) { int v = o.value(k).toInt(-1); if (v > 0) return v; }
+            }
+            // Nested meta fields (llama.cpp returns meta.n_ctx_train)
+            if (o.contains("meta") && o.value("meta").isObject()) {
+                const QJsonObject meta = o.value("meta").toObject();
+                const char *mkeys[] = {"n_ctx_train","n_ctx","context_length","max_context_length"};
+                for (auto k : mkeys) {
+                    int v = meta.value(k).toInt(-1);
+                    if (v > 0) return v;
+                }
+            }
+            // Some providers expose details.context_length
+            if (o.contains("details") && o.value("details").isObject()) {
+                const QJsonObject det = o.value("details").toObject();
+                int v = det.value("context_length").toInt(-1);
+                if (v > 0) return v;
             }
             // Also look under nested objects
             if (o.contains("capabilities") && o.value("capabilities").isObject()) {
@@ -274,10 +298,30 @@ void Widget::fetchRemoteContextLimit()
             }
             return -1;
         };
-        auto matchModel = [&](const QString &id) {
+        auto baseName = [](QString s) {
+            QFileInfo fi(s);
+            QString name = fi.fileName();
+            if (name.isEmpty()) name = s;
+            if (name.endsWith(QStringLiteral(".gguf"), Qt::CaseInsensitive)) name.chop(5);
+            return name;
+        };
+        auto matchModel = [&](const QString &idRaw) {
+            if (apis.api_model.isEmpty()) return false;
+            QString id = idRaw;
+            if (id.isEmpty()) return false;
             if (id == apis.api_model) return true;
             // accept provider-prefixed ids like provider:model
-            return id.endsWith(":" + apis.api_model) || id.endsWith("/" + apis.api_model);
+            if (id.endsWith(":" + apis.api_model) || id.endsWith("/" + apis.api_model)) return true;
+            const QString idBase = baseName(id);
+            const QString targetBase = baseName(apis.api_model);
+            if (!idBase.isEmpty() && idBase == targetBase) return true;
+            if (id.contains(targetBase) || targetBase.contains(idBase)) return true;
+            return false;
+        };
+        auto updateAlias = [&](const QString &alias) {
+            if (!alias.isEmpty() && alias != apis.api_model) {
+                applyDiscoveredAlias(alias, QStringLiteral("v1/models"));
+            }
         };
         if (doc.isObject())
         {
@@ -290,9 +334,48 @@ void Widget::fetchRemoteContextLimit()
                     if (!v.isObject()) continue;
                     const QJsonObject m = v.toObject();
                     const QString mid = m.value("id").toString();
-                    if (!mid.isEmpty() && matchModel(mid))
+                    const QString altModel = m.value("model").toString();
+                    const QString name = m.value("name").toString();
+                    const int ctxCandidate = tryPick(m);
+                    if (firstAlias.isEmpty())
                     {
-                        maxCtx = tryPick(m);
+                        firstAlias = !mid.isEmpty() ? mid : (!altModel.isEmpty() ? altModel : name);
+                        firstCtx = ctxCandidate;
+                    }
+                    dbgLines << QStringLiteral("[data] id=%1 model=%2 name=%3 ctx=%4")
+                                    .arg(mid, altModel, name, QString::number(ctxCandidate));
+                    if ((!mid.isEmpty() && matchModel(mid)) || (!altModel.isEmpty() && matchModel(altModel)) || (!name.isEmpty() && matchModel(name)))
+                    {
+                        const QString alias = !mid.isEmpty() ? mid : (!altModel.isEmpty() ? altModel : name);
+                        updateAlias(alias);
+                        maxCtx = ctxCandidate;
+                        if (maxCtx > 0) break;
+                    }
+                }
+            }
+            // Some providers might return "models" array (llama-server legacy) or a single object
+            if (maxCtx <= 0 && root.contains("models") && root.value("models").isArray())
+            {
+                const QJsonArray arr = root.value("models").toArray();
+                for (const auto &v : arr)
+                {
+                    if (!v.isObject()) continue;
+                    const QJsonObject m = v.toObject();
+                    const QString mid = m.value("model").toString();
+                    const QString name = m.value("name").toString();
+                    const int ctxCandidate = tryPick(m);
+                    if (firstAlias.isEmpty())
+                    {
+                        firstAlias = !mid.isEmpty() ? mid : name;
+                        firstCtx = ctxCandidate;
+                    }
+                    dbgLines << QStringLiteral("[models] id=%1 name=%2 ctx=%3")
+                                    .arg(mid, name, QString::number(ctxCandidate));
+                    if ((!mid.isEmpty() && matchModel(mid)) || (!name.isEmpty() && matchModel(name)))
+                    {
+                        const QString alias = !mid.isEmpty() ? mid : name;
+                        updateAlias(alias);
+                        maxCtx = ctxCandidate;
                         if (maxCtx > 0) break;
                     }
                 }
@@ -301,7 +384,19 @@ void Widget::fetchRemoteContextLimit()
             if (maxCtx <= 0)
             {
                 maxCtx = tryPick(root);
+                dbgLines << QStringLiteral("[root] ctx=%1").arg(maxCtx);
+                if (firstAlias.isEmpty() && root.contains("id")) firstAlias = root.value("id").toString();
+                if (firstAlias.isEmpty() && root.contains("model")) firstAlias = root.value("model").toString();
+                if (firstAlias.isEmpty() && root.contains("name")) firstAlias = root.value("name").toString();
+                if (firstCtx <= 0) firstCtx = maxCtx;
             }
+        }
+        // Fallback: if没有匹配到但只有一个候选，直接采用首个模型的别名与上下文
+        if (maxCtx <= 0 && !firstAlias.isEmpty() && firstCtx > 0)
+        {
+            updateAlias(firstAlias);
+            maxCtx = firstCtx;
+            dbgLines << QStringLiteral("[fallback-first] alias=%1 ctx=%2").arg(firstAlias).arg(firstCtx);
         }
         if (maxCtx > 0)
         {
@@ -312,18 +407,17 @@ void Widget::fetchRemoteContextLimit()
             SETTINGS snap = ui_SETTINGS;
             if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
             emit ui2expend_settings(snap);
+            const QString log = QStringLiteral("net:n_ctx via /v1/models = %1").arg(maxCtx);
+            FlowTracer::log(FlowChannel::Net, dbgLines.join(QStringLiteral(" | ")), 0);
+            FlowTracer::log(FlowChannel::Net, log, 0);
         }
-        else
-        {
-            // Fallback: try llama.cpp tools/server props API
-            if (isLocalEndpoint) fetchPropsContextLimit();
-        } });
+    });
 }
 
-// Fallback: GET /props from llama.cpp tools/server to obtain global n_ctx
-void Widget::fetchPropsContextLimit()
+// Fallback: GET /props from llama.cpp tools/server to obtain runtime n_ctx
+void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
 {
-    if (ui_mode != LOCAL_MODE) return;
+    if (ui_mode != LOCAL_MODE && !allowLinkMode) return;
     QUrl base = QUrl::fromUserInput(apis.api_endpoint);
     if (!base.isValid()) return;
     QUrl url(base);
@@ -338,39 +432,98 @@ void Widget::fetchPropsContextLimit()
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp, allowLinkMode, fallbackModels]()
             {
         rp->deleteLater();
         nam->deleteLater();
-        if (rp->error() != QNetworkReply::NoError) return;
-        const QByteArray body = rp->readAll();
-        QJsonParseError perr{};
-        QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
-        if (perr.error != QJsonParseError::NoError) return;
-        if (!doc.isObject()) return;
-        const QJsonObject root = doc.object();
-        int nctx = -1;
-        if (root.contains("default_generation_settings") && root.value("default_generation_settings").isObject())
-        {
-            const QJsonObject dgs = root.value("default_generation_settings").toObject();
-            nctx = dgs.value("n_ctx").toInt(-1);
-            if (nctx <= 0 && dgs.contains("params") && dgs.value("params").isObject())
+        bool gotAlias = false;
+        bool gotCtx = false;
+        auto fallback = [&]() {
+            if (fallbackModels && !gotCtx)
             {
-                const QJsonObject params = dgs.value("params").toObject();
-                nctx = params.value("n_ctx").toInt(nctx);
+                fetchModelsContextLimit(true);
+            }
+        };
+        if (rp->error() == QNetworkReply::NoError)
+        {
+            const QByteArray body = rp->readAll();
+            QJsonParseError perr{};
+            QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+            if (perr.error == QJsonParseError::NoError && doc.isObject())
+            {
+                const QJsonObject root = doc.object();
+                const QString alias = root.value(QStringLiteral("model_alias")).toString();
+                int nctx = -1;
+                if (root.contains("default_generation_settings") && root.value("default_generation_settings").isObject())
+                {
+                    const QJsonObject dgs = root.value("default_generation_settings").toObject();
+                    nctx = dgs.value("n_ctx").toInt(-1);
+                    if (nctx <= 0 && dgs.contains("params") && dgs.value("params").isObject())
+                    {
+                        const QJsonObject params = dgs.value("params").toObject();
+                        nctx = params.value("n_ctx").toInt(nctx);
+                    }
+                }
+                if (!alias.isEmpty() && alias != apis.api_model)
+                {
+                    gotAlias = true;
+                    applyDiscoveredAlias(alias, QStringLiteral("props"));
+                }
+                if (nctx > 0)
+                {
+                    gotCtx = true;
+                    applyDiscoveredContext(nctx, QStringLiteral("props"));
+                }
+                else
+                {
+                    FlowTracer::log(FlowChannel::Net,
+                                    QStringLiteral("net:/props missing n_ctx, body=%1").arg(QString::fromUtf8(body)),
+                                    0);
+                }
+            }
+            else
+            {
+                FlowTracer::log(FlowChannel::Net,
+                                QStringLiteral("net:/props parse error=%1 body=%2")
+                                    .arg(perr.errorString(), QString::fromUtf8(body)),
+                                0);
             }
         }
-        if (nctx > 0)
+        else
         {
-            slotCtxMax_ = nctx;
-            enforcePredictLimit();
-            updateKvBarUi();
-            reflash_state(QString("net:ctx via /props = %1").arg(nctx), SIGNAL_SIGNAL);
-            // Notify Expend to refresh displayed n_ctx
-            SETTINGS snap = ui_SETTINGS;
-            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
-            emit ui2expend_settings(snap);
-        } });
+            FlowTracer::log(FlowChannel::Net,
+                            QStringLiteral("net:/props http fail=%1").arg(rp->error()),
+                            0);
+        }
+        fallback();
+    });
+}
+
+void Widget::applyDiscoveredAlias(const QString &alias, const QString &sourceTag)
+{
+    if (alias.isEmpty() || alias == apis.api_model) return;
+    apis.api_model = alias;
+    api_model_LineEdit->setText(alias);
+    emit ui2net_apis(apis);
+    emit ui2expend_apis(apis);
+    FlowTracer::log(FlowChannel::Net,
+                    QStringLiteral("net:model via %1 = %2").arg(sourceTag, alias),
+                    0);
+}
+
+void Widget::applyDiscoveredContext(int nctx, const QString &sourceTag)
+{
+    if (nctx <= 0) return;
+    slotCtxMax_ = nctx;
+    enforcePredictLimit();
+    updateKvBarUi();
+    // Notify Expend (evaluation tab) with latest effective n_ctx
+    SETTINGS snap = ui_SETTINGS;
+    if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+    emit ui2expend_settings(snap);
+    FlowTracer::log(FlowChannel::Net,
+                    QStringLiteral("net:n_ctx via %1 = %2").arg(sourceTag).arg(nctx),
+                    0);
 }
 
 //-------------------------------------------------------------------------
