@@ -7,33 +7,22 @@
 #include <QPainter>
 #include <QDateTime>
 #include <QDir>
+#include <QFileInfo>
 #include <QUrl>
 #include <QTextCursor>
-#include <QTextImageFormat>
 #include <QAudioDeviceInfo>
 #include <QScrollBar>
 
 void Widget::showImages(QStringList images_filepath)
 {
+    static const QString imageBadge = QStringLiteral("[IMG]");
     for (int i = 0; i < images_filepath.size(); ++i)
     {
-        QString imagepath = images_filepath[i];
-        QString ui_output = imagepath + "\n";
-        if (ui_output != ":/logo/wav.png") { output_scroll(ui_output); }
-        // 加载图片以获取其原始尺寸,由于qtextedit在显示时会按软件的系数对图片进行缩放,所以除回来
-        QImage image(imagepath);
-        int originalWidth = image.width() / devicePixelRatioF();
-        int originalHeight = image.height() / devicePixelRatioF();
-        QTextCursor cursor(ui->output->textCursor());
-        cursor.movePosition(QTextCursor::End);
-        QTextImageFormat imageFormat;
-        imageFormat.setWidth(originalWidth / 2);   // 设置图片的宽度
-        imageFormat.setHeight(originalHeight / 2); // 设置图片的高度
-        imageFormat.setName(imagepath);            // 图片资源路径
-        cursor.insertImage(imageFormat);
-        output_scroll("\n");
-        // 滚动到底部展示
-        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum()); // 滚动条滚动到最下面
+        const QString rawPath = images_filepath[i];
+        QFileInfo info(rawPath);
+        const QString displayPath = info.exists() ? info.absoluteFilePath() : rawPath;
+        const QString line = QStringLiteral("%1 %2").arg(imageBadge, QDir::toNativeSeparators(displayPath));
+        output_scroll(line + QStringLiteral("\n"));
     }
 }
 

@@ -3,6 +3,7 @@
 #include "../utils/flowtracer.h"
 
 #include <doc2md/document_converter.h>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <string>
@@ -53,6 +54,17 @@ void Widget::on_load_clicked()
         ui_SETTINGS.modelpath = currentpath;
         ui_SETTINGS.mmprojpath = ""; // 清空mmproj模型路径
         ui_SETTINGS.lorapath = "";   // 清空lora模型路径
+        // 自动在同级目录搜索带有 mmproj 关键字的 gguf 视觉模型，存在则设置路径
+        const QString autoMmprojPath = autoDetectSiblingMmproj(currentpath);
+        if (!autoMmprojPath.isEmpty())
+        {
+            ui_SETTINGS.mmprojpath = autoMmprojPath;
+            reflash_state("ui:" + jtr("load mmproj") + " " + autoMmprojPath, USUAL_SIGNAL);
+        }
+        if (settings_ui && settings_ui->mmproj_LineEdit)
+        {
+            settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
+        }
         is_load = false;
         monitor_timer.stop();
         firstAutoNglEvaluated_ = false; // 新模型：允许重新评估一次是否可全量 offload
@@ -83,6 +95,46 @@ void Widget::on_load_clicked()
         // 用户关闭对话框（未选择） -> 不做任何事
         return;
     }
+}
+
+QString Widget::autoDetectSiblingMmproj(const QString &modelPath) const
+{
+    // 在选中 gguf 模型后，尝试在同级目录中寻找名称包含 mmproj（不区分大小写）的视觉模型
+    const QString trimmed = modelPath.trimmed();
+    if (trimmed.isEmpty()) return QString();
+    const QFileInfo modelInfo(trimmed);
+    if (!modelInfo.exists()) return QString();
+    const QDir modelDir = modelInfo.dir();
+    if (!modelDir.exists()) return QString();
+
+    const QString modelBaseLower = modelInfo.completeBaseName().toLower();
+    const QFileInfoList entries = modelDir.entryInfoList(QDir::Files | QDir::Readable, QDir::Name | QDir::IgnoreCase);
+    QFileInfoList candidates;
+    for (const QFileInfo &entry : entries)
+    {
+        if (!entry.isFile()) continue;
+        if (entry.suffix().compare(QStringLiteral("gguf"), Qt::CaseInsensitive) != 0) continue;
+        if (!entry.fileName().toLower().contains(QStringLiteral("mmproj"))) continue;
+        candidates.append(entry);
+    }
+    if (candidates.isEmpty()) return QString();
+
+    const auto pickBest = [&](const QFileInfo &candidate) -> bool
+    {
+        const QString baseLower = candidate.completeBaseName().toLower();
+        if (baseLower == modelBaseLower) return true;
+        if (!modelBaseLower.isEmpty())
+        {
+            if (baseLower.startsWith(modelBaseLower) || modelBaseLower.startsWith(baseLower)) return true;
+            if (baseLower.contains(modelBaseLower)) return true;
+        }
+        return false;
+    };
+    for (const QFileInfo &candidate : candidates)
+    {
+        if (pickBest(candidate)) return candidate.absoluteFilePath();
+    }
+    return candidates.first().absoluteFilePath();
 }
 
 void Widget::recv_freeover_loadlater()

@@ -58,7 +58,6 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     }
     else if (preset == "z-image")
     {
-        // æ ¹æ®ææŒ¥å‘˜æ��ä¾›çš„è®¾ç½®ï¼Œé»˜è®¤ä»¥ --diffusion-model æ–¹å¼è·¯å¾„å¼•å…¥ z-image è¶…å¿«æ¨¡åž‹
         defModelArg = SDModelArgKind::Diffusion;
         defW = 512;
         defH = 1024;
@@ -67,9 +66,6 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
         defSampler = "euler";
         defOffload = true;
         defFA = true;
-        defModelPath = applicationDirPath + "/z_image_turbo-Q4_0.gguf";
-        defVaePath = applicationDirPath + "/ae.safetensors";
-        defLlmPath = applicationDirPath + "/Qwen3-4B-Instruct-2507-Q4_K_M.gguf";
     }
     else if (preset == "sd1.5-anything-3")
     {

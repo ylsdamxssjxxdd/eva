@@ -201,6 +201,7 @@ class Widget : public QWidget
     void create_tray_right_menu();                                      // 添加托盘右击事件
     mcp::json tools_call;                                               // 提取出来的工具名和参数
     QString customOpenfile(QString dirpath, QString describe, QString format);
+    QString autoDetectSiblingMmproj(const QString &modelPath) const; // 根据当前模型路径自动匹配 mmproj 视觉模型
     QFont ui_font; // 约定和设置的字体大小
     QString currentpath;
     QString historypath;

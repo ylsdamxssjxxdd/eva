@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include <QTextDocument>
+#include <QPlainTextDocumentLayout>
 #include "../utils/textparse.h"
 
 void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
@@ -10,7 +11,7 @@ void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
 
 void Widget::initTextComponentsMemoryPolicy()
 {
-    // Output area (QTextEdit): no undo stack to avoid growth on streaming inserts
+    // Output area（QPlainTextEdit）: no undo stack to avoid growth on streaming inserts
     ui->output->setUndoRedoEnabled(false);
 
     // State log (QPlainTextEdit): disable undo and cap block count
@@ -28,6 +29,7 @@ void Widget::resetOutputDocument()
     // Create a fresh document and hand ownership to the widget.
     // Qt will destroy the previous document for us; avoid manual delete.
     QTextDocument *doc = new QTextDocument(ui->output);
+    doc->setDocumentLayout(new QPlainTextDocumentLayout(doc)); // 确保使用纯文本布局以提升性能
     doc->setUndoRedoEnabled(false);
     const QFont font = currentOutputFont();
     doc->setDefaultFont(font); // keep the configured output font after reset
@@ -42,6 +44,7 @@ void Widget::resetStateDocument()
 {
     // Same as above: let Qt own and clean up the previous document.
     QTextDocument *doc = new QTextDocument(ui->state);
+    doc->setDocumentLayout(new QPlainTextDocumentLayout(doc));
     doc->setUndoRedoEnabled(false);
     ui->state->setDocument(doc);
 }
