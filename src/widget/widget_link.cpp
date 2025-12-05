@@ -436,7 +436,6 @@ void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
             {
         rp->deleteLater();
         nam->deleteLater();
-        bool gotAlias = false;
         bool gotCtx = false;
         auto fallback = [&]() {
             if (fallbackModels && !gotCtx)
@@ -466,7 +465,6 @@ void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
                 }
                 if (!alias.isEmpty() && alias != apis.api_model)
                 {
-                    gotAlias = true;
                     applyDiscoveredAlias(alias, QStringLiteral("props"));
                 }
                 if (nctx > 0)

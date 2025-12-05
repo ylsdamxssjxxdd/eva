@@ -676,7 +676,7 @@ QFont Widget::currentOutputFont() const
 void Widget::loadOutputFontFromResource()
 {
     if (!ui || !ui->output) return;
-    if (!outputFontResourceLoaded_)
+    auto tryRegister = [&]() -> bool
     {
         const int fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/SarasaFixedCL-Regular.ttf"));
         if (fontId >= 0)
@@ -686,7 +686,16 @@ void Widget::loadOutputFontFromResource()
             {
                 outputFontFallbackFamily_ = families.first();
                 outputFontResourceLoaded_ = true;
+                return true;
             }
+        }
+        return false;
+    };
+    if (!outputFontResourceLoaded_)
+    {
+        if (!tryRegister())
+        {
+            // Windows-specific fallback removed; qrc big resource should always be available
         }
     }
     // 兜底使用 SarasaFixedCL-Regular 作为输出区默认字体，避免回退到系统宋体或其他不一致字体

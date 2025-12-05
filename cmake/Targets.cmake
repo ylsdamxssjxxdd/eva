@@ -11,40 +11,14 @@ set(resource_FILES
 list(APPEND resource_FILES resource/res_docs.qrc)
 set(logo_FILES resource/logo/ico.rc)
 
-# Sarasa font is embedded via a binary RCC to avoid generating a gigantic C++ TU.
-if (TARGET Qt5::rcc)
-    set(EVA_RCC_EXECUTABLE Qt5::rcc)
-elseif (Qt5_RCC_EXECUTABLE)
-    set(EVA_RCC_EXECUTABLE "${Qt5_RCC_EXECUTABLE}")
-else()
-    message(FATAL_ERROR "Qt rcc executable not found; cannot embed Sarasa font resource.")
-endif()
-
-set(FONT_OUT_RCC_DIR ${CMAKE_BINARY_DIR}/qtresources)
-set(FONT_OUT_RCC ${FONT_OUT_RCC_DIR}/font_out.rcc)
-set(FONT_OUT_RUNTIME ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/font_out.rcc)
-add_custom_command(
-    OUTPUT ${FONT_OUT_RCC}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${FONT_OUT_RCC_DIR}
-    COMMAND ${EVA_RCC_EXECUTABLE} --binary -o ${FONT_OUT_RCC} ${CMAKE_SOURCE_DIR}/resource/font_out.qrc
-    DEPENDS ${CMAKE_SOURCE_DIR}/resource/font_out.qrc
-            ${CMAKE_SOURCE_DIR}/resource/SarasaFixedCL-Regular.ttf
-    COMMENT "Generating binary resource font_out.rcc"
-    VERBATIM)
-add_custom_command(
-    OUTPUT ${FONT_OUT_RUNTIME}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FONT_OUT_RCC} ${FONT_OUT_RUNTIME}
-    DEPENDS ${FONT_OUT_RCC}
-    COMMENT "Copying font_out.rcc beside eva executable"
-    VERBATIM)
-add_custom_target(font_out_resource ALL DEPENDS ${FONT_OUT_RUNTIME})
-
+# Embed Sarasa with Qt big resources以降低编译内存又保持单可执行
+qt5_add_big_resources(FONT_OUT_BIG_SRCS ${CMAKE_SOURCE_DIR}/resource/font_out.qrc)
 
 add_executable(
     ${EVA_TARGET}
     ${BODY_PACK_EXE}
     ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
+    ${FONT_OUT_BIG_SRCS}
     src/main.cpp
     src/widget/widget.cpp
     src/widget/widget_session.cpp
@@ -104,7 +78,6 @@ add_executable(
     src/net/localproxy.h
     src/net/controlchannel.cpp src/net/controlchannel.h
 )
-add_dependencies(${EVA_TARGET} font_out_resource)
 ## Executable name
 # Linux: keep binary name as plain "eva" for runtime/AppDir consistency
 # Other platforms: keep the versioned/output-friendly name
