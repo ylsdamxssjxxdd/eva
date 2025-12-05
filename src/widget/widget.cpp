@@ -18,6 +18,7 @@
 #include <QStringList>
 #include <QSignalBlocker>
 #include <QSplitter>
+#include <QSysInfo>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QtGlobal>
@@ -76,8 +77,36 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
             { reflash_state(QString::fromUtf8("ui:skill imported -> ") + id, SUCCESS_SIGNAL); });
     connect(skillManager, &SkillManager::skillOperationFailed, this, [this](const QString &msg)
             { reflash_state("ui:" + msg, WRONG_SIGNAL); });
-    QTimer::singleShot(0, this, &Widget::loadSkillsAsync);
-    logStep(QStringLiteral("技能管理器初始化并安排异步加载"));
+    // Win7/老环境存在 SIGILL 时允许跳过技能预加载，可通过环境变量强制关闭/开启
+    const QString osId = DeviceManager::currentOsId();
+    const QString productVer = QSysInfo::productVersion();
+    const QString kernelVer = QSysInfo::kernelVersion();
+    const bool envDisableSkills = (qEnvironmentVariableIntValue("EVA_DISABLE_SKILLS") != 0);
+    const bool envEnableSkills = (qEnvironmentVariableIntValue("EVA_ENABLE_SKILLS") != 0);
+    const QOperatingSystemVersion osv = QOperatingSystemVersion::current();
+    const bool legacyWin = (osv.majorVersion() > 0 && osv.majorVersion() <= 6) ||
+                           productVer.startsWith(QStringLiteral("7")) ||
+                           productVer.startsWith(QStringLiteral("6.")) ||
+                           kernelVer.startsWith(QStringLiteral("6.")) ||
+                           (osId == QStringLiteral("win7"));
+    bool disableSkills = envDisableSkills || (legacyWin && !envEnableSkills);
+    StartupLogger::log(QStringLiteral("[widget] skills preload gate: osId=%1 productVer=%2 kernel=%3 env_disable=%4 env_enable=%5 legacyWin=%6 -> %7")
+                           .arg(osId,
+                                productVer,
+                                kernelVer,
+                                envDisableSkills ? QStringLiteral("1") : QStringLiteral("0"),
+                                envEnableSkills ? QStringLiteral("1") : QStringLiteral("0"),
+                                legacyWin ? QStringLiteral("1") : QStringLiteral("0"),
+                                disableSkills ? QStringLiteral("skip") : QStringLiteral("load")));
+    if (disableSkills)
+    {
+        StartupLogger::log(QStringLiteral("[widget] skip skills preload (win7 or EVA_DISABLE_SKILLS=1)"));
+    }
+    else
+    {
+        QTimer::singleShot(0, this, &Widget::loadSkillsAsync);
+        logStep(QStringLiteral("技能管理器初始化并安排异步加载"));
+    }
     engineerEnvWatcher_.setParent(this);
     connect(&engineerEnvWatcher_, &QFutureWatcher<EngineerEnvSnapshot>::finished, this, &Widget::onEngineerEnvProbeFinished);
     // Default engineer workdir under application directory
@@ -404,6 +433,20 @@ bool Widget::shouldApplySandboxNow() const
 
 void Widget::loadSkillsAsync()
 {
+    // 在部分 Win7/老旧环境上解析技能目录可能触发非法指令，提供再次兜底的运行时跳过
+    const bool envDisableSkills = (qEnvironmentVariableIntValue("EVA_DISABLE_SKILLS") != 0);
+    const bool legacyWin = DeviceManager::currentOsId() == QStringLiteral("win7") ||
+                           QSysInfo::productVersion().startsWith(QStringLiteral("7")) ||
+                           QSysInfo::productVersion().startsWith(QStringLiteral("6.")) ||
+                           QSysInfo::kernelVersion().startsWith(QStringLiteral("6."));
+    if (envDisableSkills || legacyWin)
+    {
+        StartupLogger::log(QStringLiteral("[widget] loadSkillsAsync skipped at runtime (env=%1 legacyWin=%2)")
+                               .arg(envDisableSkills ? QStringLiteral("1") : QStringLiteral("0"))
+                               .arg(legacyWin ? QStringLiteral("1") : QStringLiteral("0")));
+        return;
+    }
+    StartupLogger::log(QStringLiteral("[widget] loadSkillsAsync enter"));
     if (!skillManager) return;
     QElapsedTimer timer;
     timer.start();
@@ -415,6 +458,7 @@ void Widget::loadSkillsAsync()
 
 void Widget::initializeAudioSubsystem()
 {
+    StartupLogger::log(QStringLiteral("[widget] initializeAudioSubsystem enter"));
     QElapsedTimer timer;
     timer.start();
     const bool audioReady = checkAudio();

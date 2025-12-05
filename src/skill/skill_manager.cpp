@@ -442,36 +442,44 @@ QString SkillManager::normalizeFrontmatter(const QString &rawContent, QString *f
 QString SkillManager::extractYamlScalar(const QString &frontmatter, const QString &key)
 {
     if (frontmatter.isEmpty()) return {};
-    const QString pattern = QStringLiteral("^(%1)\\s*:\\s*(.*)$").arg(QRegularExpression::escape(key));
-    QRegularExpression re(pattern, QRegularExpression::MultilineOption);
-    QRegularExpressionMatch match = re.match(frontmatter);
-    if (!match.hasMatch()) return {};
-    QString value = match.captured(2).trimmed();
-    if (value == QStringLiteral("|") || value == QStringLiteral(">"))
+    const QStringList lines = frontmatter.split(QLatin1Char('\n'));
+    for (int i = 0; i < lines.size(); ++i)
     {
-        // Collect indented lines
-        QStringList lines;
-        const int start = match.capturedEnd();
-        const QString tail = frontmatter.mid(start);
-        const QStringList tailLines = tail.split('\n');
-        for (const QString &line : tailLines)
+        const QString rawLine = lines.at(i);
+        const QString trimmed = rawLine.trimmed();
+        if (trimmed.isEmpty()) continue;
+        const int colonIdx = trimmed.indexOf(QLatin1Char(':'));
+        if (colonIdx <= 0) continue;
+        const QString k = trimmed.left(colonIdx).trimmed();
+        if (!k.compare(key, Qt::CaseInsensitive) == 0)
         {
-            if (line.startsWith(QStringLiteral("  ")) || line.startsWith(QStringLiteral("\t")))
-            {
-                lines << line.trimmed();
-            }
-            else if (line.trimmed().isEmpty())
-            {
-                lines << QString();
-            }
-            else
-            {
-                break;
-            }
+            continue;
         }
-        value = lines.join('\n').trimmed();
+        QString value = trimmed.mid(colonIdx + 1).trimmed();
+        if (value == QStringLiteral("|") || value == QStringLiteral(">"))
+        {
+            QStringList block;
+            for (int j = i + 1; j < lines.size(); ++j)
+            {
+                const QString nextLine = lines.at(j);
+                if (nextLine.startsWith(QStringLiteral("  ")) || nextLine.startsWith(QStringLiteral("\t")))
+                {
+                    block << nextLine.trimmed();
+                }
+                else if (nextLine.trimmed().isEmpty())
+                {
+                    block << QString();
+                }
+                else
+                {
+                    break;
+                }
+            }
+            value = block.join(QLatin1Char('\n')).trimmed();
+        }
+        return value;
     }
-    return value;
+    return {};
 }
 
 QString SkillManager::sanitizePathForCommand(const QString &path)

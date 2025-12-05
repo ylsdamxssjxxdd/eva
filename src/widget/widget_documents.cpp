@@ -3,6 +3,7 @@
 #include <QTextDocument>
 #include <QPlainTextDocumentLayout>
 #include "../utils/textparse.h"
+#include "../utils/startuplogger.h"
 
 void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
 {
@@ -199,6 +200,12 @@ void Widget::recv_reasoning_tokens(int tokens)
 
 void Widget::onServerOutput(const QString &line)
 {
+    static int s_firstLogs = 0;
+    if (s_firstLogs < 6)
+    {
+        ++s_firstLogs;
+        StartupLogger::log(QStringLiteral("[server log %1] %2").arg(s_firstLogs).arg(line.left(200)));
+    }
     const QString trimmedLine = line.trimmed();
     if (lazyUnloadEnabled())
     {

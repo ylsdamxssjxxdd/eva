@@ -6,11 +6,13 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QHash>
+#include <QDebug>
 #include <QLibrary>
 #include <QOperatingSystemVersion>
 #include <QProcessEnvironment>
 #include <QSet>
 #include <QSysInfo>
+#include <QtGlobal>
 
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 static QStringList g_lastProbed;                      // debug: last probed paths
@@ -295,6 +297,18 @@ QVector<DeviceManager::BackendExecutableInfo> DeviceManager::enumerateExecutable
 // --- Runtime capability probes (very lightweight; best-effort) ---
 static bool supportsCuda()
 {
+    // 允许通过环境变量跳过 GPU 驱动探测，便于在 Win7 等老环境规避 nvcuda 初始化触发的非法指令
+    static const bool skipProbe = (qEnvironmentVariableIntValue("EVA_SKIP_CUDA_PROBE") != 0);
+    if (skipProbe)
+    {
+        static bool logged = false;
+        if (!logged)
+        {
+            logged = true;
+            qInfo().noquote() << "[backend-probe] EVA_SKIP_CUDA_PROBE=1 -> skip CUDA driver probe";
+        }
+        return false;
+    }
 #if defined(Q_OS_WIN)
     QLibrary lib(QStringLiteral("nvcuda"));
     const bool ok = lib.load();

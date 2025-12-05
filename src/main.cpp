@@ -20,6 +20,7 @@
 #include <QElapsedTimer>
 #include <QGuiApplication>
 #include <QMetaObject>
+#include <QTimer>
 #include <QtPlugin>
 #include <climits>
 #include <functional>
@@ -129,6 +130,9 @@ int main(int argc, char *argv[])
     StartupLogger::start();
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: enter main"));
     StartupLogger::log(QStringLiteral("进入 main"));
+    // 兼容老旧 CPU：禁用 Qt PCRE2 JIT，优先排查 Win7 SIGILL/illegal instruction 问题
+    qputenv("QT_DISABLE_REGEXP_JIT", QByteArray("1"));
+    FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("compat: QT_DISABLE_REGEXP_JIT=1"));
     // 设置linux下动态库的默认路径
 #ifdef BODY_LINUX_PACK
     QString appDirPath = qgetenv("APPDIR"); // 获取镜像的路径
@@ -192,6 +196,32 @@ int main(int argc, char *argv[])
     qDebug() << "EVA_PATH" << appPath;
     StartupLogger::log(QStringLiteral("应用目录初始化完成"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: application directory ready"));
+    // 后端探测快照：记录当前架构/系统/设备选择与解析到的可执行路径，方便 Win7 非法指令排查
+    auto logBackendSnapshot = [] (const QString &tag)
+    {
+        const QString archId = DeviceManager::currentArchId();
+        const QString osId = DeviceManager::currentOsId();
+        const QString userChoice = DeviceManager::userChoice();
+        const QString effective = DeviceManager::effectiveBackend();
+        const QString program = DeviceManager::programPath(QStringLiteral("llama-server-main"));
+        const QString resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
+        const QStringList roots = DeviceManager::candidateBackendRoots();
+        const QStringList probed = DeviceManager::probedBackendRoots();
+        const QStringList avail = DeviceManager::availableBackends();
+        const QString line = QStringLiteral("[backend-probe][%1] arch=%2 os=%3 choice=%4 effective=%5 resolved=%6 prog=%7 roots=%8 probed=%9 avail=%10")
+                                 .arg(tag,
+                                      archId,
+                                      osId,
+                                      userChoice,
+                                      effective,
+                                      resolvedDevice.isEmpty() ? QStringLiteral("unknown") : resolvedDevice,
+                                      QDir::toNativeSeparators(program),
+                                      roots.join(QStringLiteral("|")),
+                                      probed.join(QStringLiteral("|")),
+                                      avail.join(QStringLiteral("|")));
+        qInfo().noquote() << line;
+    };
+    logBackendSnapshot(QStringLiteral("startup"));
 
     // Single-instance: only one process per application path. If another is running,
     // ping it to raise the window and exit quietly.
@@ -807,6 +837,9 @@ int main(int argc, char *argv[])
     qDebug() << "Widget uses font:" << info.family();
     StartupLogger::log(QStringLiteral("启动阶段结束，进入事件循环"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: enter event loop"));
+    // 事件循环首次心跳：用单次定时器确认 event loop 已启动
+    QTimer::singleShot(0, []()
+                       { FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: event loop heartbeat")); });
     return a.exec(); // 进入事件循环
 }
 

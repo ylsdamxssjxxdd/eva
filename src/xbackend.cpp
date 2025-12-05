@@ -1,6 +1,7 @@
 #include "xbackend.h"
 #include "utils/devicemanager.h"
 #include "utils/flowtracer.h"
+#include "utils/startuplogger.h"
 #include "xbackend_args.h"
 #include <QCoreApplication>
 #include <QDir>
@@ -75,6 +76,7 @@ void LocalServerManager::hookProcessSignals()
             {
                 // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
                 FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: process started"));
+                StartupLogger::log(QStringLiteral("[backend] process started"));
             });
     connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
             {
@@ -84,6 +86,12 @@ void LocalServerManager::hookProcessSignals()
             {
         const QString out = QString::fromUtf8(proc_->readAllStandardOutput());
         if (!out.isEmpty()) emit serverOutput(out);
+        static int s_outCount = 0;
+        if (s_outCount < 6 && !out.isEmpty())
+        {
+            ++s_outCount;
+            StartupLogger::log(QStringLiteral("[backend][stdout %1] %2").arg(s_outCount).arg(out.left(200)));
+        }
         if (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on"))
         {
         // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
@@ -94,6 +102,12 @@ void LocalServerManager::hookProcessSignals()
             {
         const QString err = QString::fromUtf8(proc_->readAllStandardError());
         if (!err.isEmpty()) emit serverOutput(err);
+        static int s_errCount = 0;
+        if (s_errCount < 6 && !err.isEmpty())
+        {
+            ++s_errCount;
+            StartupLogger::log(QStringLiteral("[backend][stderr %1] %2").arg(s_errCount).arg(err.left(200)));
+        }
         // llama.cpp may print slightly different phrases across versions
         if (err.contains(SERVER_START) || err.contains("listening at") || err.contains("listening on"))
         {
@@ -148,6 +162,12 @@ void LocalServerManager::ensureRunning()
 {
     const QString prog = programPath();
     const QStringList args = buildArgs();
+    // 启动前记录解析结果，便于复现 Win7/老 CPU 环境的非法指令或找不到后端的问题
+    FlowTracer::log(FlowChannel::Backend,
+                    QStringLiteral("backend: resolve program=%1 device=%2 args=%3")
+                        .arg(QDir::toNativeSeparators(prog),
+                             DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main")),
+                             args.join(QLatin1Char(' '))));
     // Validate executable presence
     if (prog.isEmpty() || !QFileInfo::exists(prog))
     {

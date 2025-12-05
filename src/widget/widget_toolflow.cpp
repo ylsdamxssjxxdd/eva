@@ -1,6 +1,7 @@
 ﻿#include "widget.h"
 #include "ui_widget.h"
 #include "terminal_pane.h"
+#include "../utils/startuplogger.h"
 
 #include <QDir>
 #include <QMessageBox>
@@ -201,6 +202,7 @@ void Widget::recv_toolpushover(QString tool_result_)
 
 void Widget::collapseTerminalPane()
 {
+    StartupLogger::log(QStringLiteral("[widget] collapseTerminalPane enter"));
     if (!ui->statusTerminalSplitter || !ui->terminalPane) return;
     QList<int> sizes;
     sizes << 1 << 0;
