@@ -54,7 +54,7 @@ xNet::~xNet()
     // Ensure cleanup happens only in the owning thread to avoid QWinEventNotifier warnings on Windows
     if (QThread::currentThread() == this->thread())
     {
-        abortActiveReply();
+        abortActiveReply(AbortReason::Other);
         if (timeoutTimer_)
         {
             timeoutTimer_->stop();
@@ -82,6 +82,8 @@ void xNet::resetState()
     firstByteSeen_ = false;
     t_first_.invalidate();
     aborted_ = false;
+    abortReason_ = AbortReason::None;
+    speedsEmitted_ = false;
     reasoningTokensTurn_ = 0;
     extThinkActive_ = false;
     sawToolStopword_ = false;
@@ -97,8 +99,10 @@ void xNet::resetState()
     totalsEmitted_ = false;
 }
 
-void xNet::abortActiveReply()
+void xNet::abortActiveReply(AbortReason reason)
 {
+    // 仅记录第一次中断原因，避免多次 stop 覆盖工具中断等信息
+    if (abortReason_ == AbortReason::None) abortReason_ = reason;
     if (timeoutTimer_) timeoutTimer_->stop();
     if (reply_)
     {
@@ -131,6 +135,41 @@ void xNet::abortActiveReply()
         reply_ = nullptr;
         running_ = false;
         emit net2ui_pushover();
+    }
+}
+
+void xNet::emitSpeedsIfAvailable(bool allowFallback)
+{
+    // 统一封装速度上报：优先使用服务器 timings，缺失时可在工具中断场景下回退为本地估算
+    if (speedsEmitted_) return;
+
+    double promptPerSec = -1.0;
+    double genPerSec = -1.0;
+
+    if (timingsReceived_)
+    {
+        // 服务器侧测速：优先直接给出的 per_second，其次根据 tokens/ms 计算
+        promptPerSec = (promptPerSec_ >= 0.0)
+                           ? promptPerSec_
+                           : ((promptMs_ > 0.0 && promptTokens_ >= 0) ? (1000.0 * double(promptTokens_) / promptMs_) : -1.0);
+        genPerSec = (predictedPerSec_ >= 0.0)
+                        ? predictedPerSec_
+                        : ((predictedMs_ > 0.0 && predictedTokens_ >= 0) ? (1000.0 * double(predictedTokens_) / predictedMs_) : -1.0);
+    }
+    else if (allowFallback)
+    {
+        // 工具调用命中停符被提前中断时，服务器不会回传 timings；使用本地计数做近似提示
+        if (tokens_ > 0 && t_first_.isValid())
+        {
+            const double elapsed = t_first_.nsecsElapsed() / 1e9;
+            if (elapsed > 0.0) genPerSec = double(tokens_) / elapsed;
+        }
+    }
+
+    if (promptPerSec > 0.0 || genPerSec > 0.0)
+    {
+        speedsEmitted_ = true;
+        emit net2ui_speeds(promptPerSec, genPerSec);
     }
 }
 
@@ -270,6 +309,8 @@ void xNet::run()
         // Determine if finish is due to user abort/cancel
         const auto err = reply_ ? reply_->error() : QNetworkReply::NoError;
         const bool canceled = aborted_ || (err == QNetworkReply::OperationCanceledError);
+        const AbortReason finishReason = abortReason_;
+        const bool toolInterrupted = (finishReason == AbortReason::ToolStop);
 
         if (!canceled)
         {
@@ -302,13 +343,12 @@ void xNet::run()
                 extThinkActive_ = false;
                 thinkFlag = false;
             }
-            // Report final speeds from timings if available
-            if (timingsReceived_) {
-                double promptPerSec = promptPerSec_ >= 0.0 ? promptPerSec_ : ((promptMs_ > 0.0 && promptTokens_ >= 0) ? (1000.0 * double(promptTokens_) / promptMs_) : -1.0);
-                double genPerSec = predictedPerSec_ >= 0.0 ? predictedPerSec_ : ((predictedMs_ > 0.0 && predictedTokens_ >= 0) ? (1000.0 * double(predictedTokens_) / predictedMs_) : -1.0);
-                emit net2ui_speeds(promptPerSec, genPerSec);
-            }
+        }
 
+        // 工具链中断（需要继续发送 observation）仍然希望看到速度提示；用户手动终止则跳过
+        if (!canceled || toolInterrupted)
+        {
+            emitSpeedsIfAvailable(toolInterrupted);
         }
 
         if (reply_)
@@ -317,6 +357,7 @@ void xNet::run()
             reply_ = nullptr;
         }
 
+        abortReason_ = AbortReason::None;
         running_ = false;
         // Report reasoning token count of this turn before finishing
         emit net2ui_reasoning_tokens(reasoningTokensTurn_);
@@ -358,7 +399,7 @@ void xNet::ensureNetObjects()
         connect(timeoutTimer_, &QTimer::timeout, this, [this]()
                 {
             emitFlowLog("net: timeout", WRONG_SIGNAL);
-            abortActiveReply(); });
+            abortActiveReply(AbortReason::Timeout); });
     }
 }
 
@@ -734,7 +775,7 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
                                         QStringLiteral("net: tool stopword hit, abort stream"),
                                         turn_id_);
                         toolStopTriggered = true;
-                        abortActiveReply(); // 立即中止流式请求，避免模型继续输出干扰工具判定
+                        abortActiveReply(AbortReason::ToolStop); // 立即中止流式请求，避免模型继续输出干扰工具判定
                         return;
                     }
                 }
@@ -870,7 +911,7 @@ void xNet::recv_apis(APIS apis_)
     apis = apis_;
     if (changed)
     {
-        abortActiveReply();
+        abortActiveReply(AbortReason::ApiChange);
         resetState();
         // emit net2ui_state("net: apis updated", SIGNAL_SIGNAL);
     }
@@ -883,7 +924,7 @@ void xNet::recv_stop(bool stop)
     if (stop)
     {
         // emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
-        abortActiveReply(); // cancels reply_, disconnects signals, emits pushover
+        abortActiveReply(AbortReason::UserStop); // cancels reply_, disconnects signals, emits pushover
     }
 }
 

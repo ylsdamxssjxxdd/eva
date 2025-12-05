@@ -66,6 +66,17 @@ class xNet : public QObject
     void net2ui_turn_counters(int cacheTokens, int promptTokens, int predictedTokens);
 
   private:
+    // 网络中断原因，用于区分用户主动停止、工具中断等场景
+    enum class AbortReason
+    {
+        None,
+        UserStop,
+        Timeout,
+        ApiChange,
+        ToolStop,
+        Other
+    };
+
     // A single QNetworkAccessManager reused to keep TCP connection warm and reduce overhead
     QNetworkAccessManager *nam_ = nullptr; // created in worker thread lazily
     QPointer<QNetworkReply> reply_;
@@ -95,6 +106,9 @@ class xNet : public QObject
     // Optional direct speeds when provided by server (tokens/second); -1 if unknown
     double promptPerSec_ = -1.0;
     double predictedPerSec_ = -1.0;
+    // 速度上报控制：单次请求仅输出一次，便于在工具链中也能稳定回传
+    bool speedsEmitted_ = false;
+    AbortReason abortReason_ = AbortReason::None;
     // 工具调用停符处理：命中 </tool_call> 后标记并立刻终止当前流，避免模型继续输出干扰工具判定
     bool sawToolStopword_ = false; // 本轮是否已命中工具停符，防止重复中止
     int cacheTokens_ = -1;
@@ -110,12 +124,13 @@ class xNet : public QObject
 #endif
 
     void resetState();
-    void abortActiveReply();
+    void abortActiveReply(AbortReason reason = AbortReason::Other);
     QNetworkRequest buildRequest(const QUrl &url) const;
     void ensureNetObjects();
     void logRequestPayload(const char *modeTag, const QByteArray &body);
     QString turnTag() const;
     void emitFlowLog(const QString &msg, SIGNAL_STATE state = USUAL_SIGNAL);
+    void emitSpeedsIfAvailable(bool allowFallback);
 
   protected:
     void processSsePayload(bool isChat, const QByteArray &payload);
