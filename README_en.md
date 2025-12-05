@@ -195,6 +195,23 @@ Skills are pluggable capability bundles introduced into EVA under the covenant f
 
 </details>
 
+<details>
+<summary> System Architect </summary>
+
+- How to enable: In the Covenant window, check "System Engineer", then right-click and choose "Upgrade to System Architect".
+- After enabling: The architect delegates tasks to the engineer for execution, reducing the architect's context consumption.
+
+</details>
+
+<details>
+<summary> EVA Control </summary>
+
+- How to enable: On the controlled side, the settings page must check "Allow EVA Control" to start listening (disabled by default).
+- As the controller: In "Link Mode → EVA Control", fill in the target EVA address to link remotely; the interface mirrors the peer's input/progress and only offers safe operations such as Send, Terminate, Reset, and Unlink.
+- As the controlled side: Loading and inference progress are synchronized in real time to the controller; once unlinked, the local instance immediately returns to normal operation.
+
+</details>
+
 ## Source Code Compilation
 
 <details>

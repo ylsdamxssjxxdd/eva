@@ -162,6 +162,25 @@ void Widget::apply_language(int language_flag_)
     api_model_label->setText(jtr("api model"));
     api_model_LineEdit->setPlaceholderText(jtr("sd_vaepath_lineEdit_placeholder"));
     api_model_LineEdit->setToolTip(jtr("input api model"));
+    if (linkTabWidget && apiTabWidget)
+        linkTabWidget->setTabText(linkTabWidget->indexOf(apiTabWidget), jtr("api link tab"));
+    if (linkTabWidget && controlTabWidget)
+        linkTabWidget->setTabText(linkTabWidget->indexOf(controlTabWidget), jtr("control link tab"));
+    if (control_host_label)
+        control_host_label->setText(jtr("control target"));
+    if (control_host_LineEdit)
+        control_host_LineEdit->setPlaceholderText(jtr("control target placeholder"));
+    if (control_port_label)
+        control_port_label->setText(jtr("control port"));
+    if (control_port_LineEdit)
+        control_port_LineEdit->setPlaceholderText(QString::number(DEFAULT_CONTROL_PORT));
+    if (control_token_label)
+        control_token_label->setText(jtr("control token"));
+    if (control_token_LineEdit)
+    {
+        control_token_LineEdit->setPlaceholderText(jtr("control token placeholder"));
+        control_token_LineEdit->setToolTip(jtr("control token placeholder"));
+    }
     // 约定选项语种
     date_ui->prompt_box->setTitle(jtr("character")); // 提示词模板设置区域
     date_ui->chattemplate_label->setText(jtr("chat template"));
