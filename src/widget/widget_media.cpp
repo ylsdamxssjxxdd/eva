@@ -16,6 +16,15 @@
 void Widget::showImages(QStringList images_filepath)
 {
     static const QString imageBadge = QStringLiteral("[IMG]");
+    // 若前一行没有换行，则先补一行，避免与用户文本紧贴在同一行
+    if (!images_filepath.isEmpty() && ui && ui->output)
+    {
+        const QString current = ui->output->toPlainText();
+        if (!current.isEmpty() && !current.endsWith(QLatin1Char('\n')))
+        {
+            output_scroll(QStringLiteral("\n"));
+        }
+    }
     for (int i = 0; i < images_filepath.size(); ++i)
     {
         const QString rawPath = images_filepath[i];

@@ -366,7 +366,6 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
                 imageUrlObject["url"] = base64String;
                 imageObject["image_url"] = imageUrlObject;
                 contentArray.append(imageObject);
-                showImages({imagePath});
             }
         }
         message["content"] = contentArray;
@@ -452,6 +451,11 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
     // After content is printed, update record's text and docTo, and link msgIndex
     recordAppendText(__idx, userDisplayText);
     if (!ui_messagesArray.isEmpty()) { recordEntries_[__idx].msgIndex = ui_messagesArray.size() - 1; }
+    if (!in.images.isEmpty())
+    {
+        // 将图片路径附在用户消息底部，避免与正文交叉输出
+        showImages(in.images);
+    }
     data.n_predict = ui_SETTINGS.hid_npredict;
     const QString endpointDisplay = (ui_mode == LINK_MODE)
                                         ? (apis.api_endpoint + apis.api_chat_endpoint)

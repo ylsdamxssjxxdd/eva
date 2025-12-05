@@ -4,6 +4,7 @@
 #if QT_CONFIG(ssl)
 #include <QSslError>
 #endif
+#include <functional>
 
 namespace
 {
@@ -566,11 +567,59 @@ void xNet::logRequestPayload(const char *modeTag, const QByteArray &body)
     if (!modeTag) modeTag = "request";
 
     QJsonParseError parseErr{};
-    const QJsonDocument doc = QJsonDocument::fromJson(body, &parseErr);
+    QJsonDocument doc = QJsonDocument::fromJson(body, &parseErr);
+
+    // 避免日志被 data:image/base64 占满：截断 url 保留长度信息
+    auto truncateDataUrl = [](const QString &url) -> QString {
+        if (!url.startsWith(QStringLiteral("data:image"), Qt::CaseInsensitive)) return url;
+        const int maxLen = 96;
+        if (url.size() <= maxLen) return url;
+        return url.left(maxLen) + QStringLiteral("... (len=%1)").arg(url.size());
+    };
+    std::function<QJsonObject(const QJsonObject &)> sanitizeObject;
+    std::function<QJsonArray(const QJsonArray &)> sanitizeArray;
+    sanitizeArray = [&](const QJsonArray &arr) -> QJsonArray {
+        QJsonArray out = arr;
+        for (int i = 0; i < out.size(); ++i)
+        {
+            const QJsonValue v = out.at(i);
+            if (v.isObject())
+                out[i] = sanitizeObject(v.toObject());
+            else if (v.isArray())
+                out[i] = sanitizeArray(v.toArray());
+        }
+        return out;
+    };
+    sanitizeObject = [&](const QJsonObject &obj) -> QJsonObject {
+        QJsonObject out = obj;
+        for (auto it = out.begin(); it != out.end(); ++it)
+        {
+            const QString key = it.key();
+            QJsonValue val = it.value();
+            if (val.isObject())
+            {
+                val = sanitizeObject(val.toObject());
+            }
+            else if (val.isArray())
+            {
+                val = sanitizeArray(val.toArray());
+            }
+            else if (val.isString() && key.compare(QStringLiteral("url"), Qt::CaseInsensitive) == 0)
+            {
+                val = truncateDataUrl(val.toString());
+            }
+            it.value() = val;
+        }
+        return out;
+    };
 
     QByteArray pretty = body;
     if (parseErr.error == QJsonParseError::NoError && !doc.isNull())
     {
+        if (doc.isObject())
+            doc = QJsonDocument(sanitizeObject(doc.object()));
+        else if (doc.isArray())
+            doc = QJsonDocument(sanitizeArray(doc.array()));
         pretty = doc.toJson(QJsonDocument::Indented);
     }
 
