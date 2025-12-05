@@ -711,9 +711,9 @@
         </item>
        </layout>
       </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_lazyTimeout">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_lazyTimeout">
-        <item>
          <widget class="QLabel" name="lazy_timeout_label">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -761,17 +761,10 @@
           <property name="value">
            <number>10</number>
           </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="allow_control_checkbox">
-       <property name="text">
-        <string>允许机体控制</string>
-       </property>
-      </widget>
-     </item>
+       </widget>
+      </item>
+     </layout>
+    </item>
      </layout>
     </widget>
    </item>
@@ -907,12 +900,19 @@
         </item>
        </layout>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
+    </layout>
+   </widget>
+  </item>
+  <item>
+   <widget class="QCheckBox" name="allow_control_checkbox">
+    <property name="text">
+     <string>允许机体控制</string>
+    </property>
+   </widget>
+  </item>
+  <item>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
       <widget class="QPushButton" name="global_pushButton">
        <property name="text">
         <string>全局</string>

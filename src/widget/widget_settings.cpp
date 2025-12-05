@@ -42,7 +42,8 @@ bool isLegacyOutputFont(const QString &family)
     const QString trimmed = family.trimmed();
     if (trimmed.isEmpty()) return true;
     const QString lower = trimmed.toLower();
-    return lower.contains(QStringLiteral("simsun"));
+    // 将早期的宋体/点阵字体（如 zpix）视为需要回退到默认 Sarasa 的旧配置
+    return lower.contains(QStringLiteral("simsun")) || lower.contains(QStringLiteral("zpix"));
 }
 } // namespace
 
@@ -513,7 +514,7 @@ QString Widget::buildOutputFontCss() const
     QString escapedFamily = family;
     escapedFamily.replace('"', "\\\"");
     return QStringLiteral(
-               "QTextEdit#output {\n"
+               "QPlainTextEdit#output, QTextEdit#output {\n"
                "  font-family: \"%1\";\n"
                "  font-size: %2pt;\n"
                "}\n")
@@ -688,10 +689,12 @@ void Widget::loadOutputFontFromResource()
             }
         }
     }
+    // 兜底使用 SarasaFixedCL-Regular 作为输出区默认字体，避免回退到系统宋体或其他不一致字体
     if (outputFontFallbackFamily_.isEmpty())
     {
-        outputFontFallbackFamily_ = ui->output->font().family();
+        outputFontFallbackFamily_ = QStringLiteral("Sarasa Fixed CL");
     }
+    outputFontFallbackFamily_ = resolveSarasaFallback(outputFontFallbackFamily_);
     if (outputFontFallbackSizePt_ <= 0)
     {
         // Force a predictable default for the output pane regardless of template font sizes.
@@ -778,11 +781,13 @@ void Widget::loadGlobalUiSettings(const QSettings &settings)
 
     applyGlobalFont(family, sizePt > 0 ? sizePt : globalUiSettings_.fontSizePt, false);
     const QString fallbackFamily = resolveSarasaFallback(outputFontFallbackFamily_);
-    if (isLegacyOutputFont(outputFamily))
+    // 若未配置输出区字体，则默认使用 Sarasa；用户已有选择时尊重配置
+    if (outputFamily.trimmed().isEmpty())
     {
         outputFamily = fallbackFamily;
     }
     applyOutputFont(outputFamily, outputSize > 0 ? outputSize : globalUiSettings_.outputFontSizePt, false);
+    refreshOutputFont(); // 确保输出区应用最新字体（默认 Sarasa，或用户自选）
     applyGlobalTheme(themeId, false);
 }
 
