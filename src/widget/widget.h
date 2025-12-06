@@ -590,7 +590,7 @@ class Widget : public QWidget
     void decode_move();         // 下一帧
     // 使用已有的“解码动画”作为通用转轮；labelKey 用于显示基础文案（默认：input decode）
     void wait_play(const QString &labelKey = "input decode");
-    void startWaitOnStateLine(const QString &labelKey, const QString &lineText);
+    void startWaitOnStateLine(const QString &labelKey, const QString &lineText, int lineNumber = -1);
     void decode_finish(); // 动画结束后将动画行替换为完成标志
     void decode_fail();   // 动画失败时将动画行替换为失败标志
     // 优雅等待动画：记录起始行与用时
@@ -687,6 +687,9 @@ class Widget : public QWidget
     void recv_docker_status(const DockerSandboxStatus &status);
     void reflash_output(const QString result, bool is_while, QColor color);      // 更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 更新状态区
+    int appendStateLine(const QString &text, const QTextCharFormat &format);     // 强制向状态区末尾追加一行并返回行号
+    void appendControlStateLog(const QString &text, SIGNAL_STATE level, const QString &prefix = QString(), bool mirrorToModelInfo = false); // 控制通道专用状态输出
+    void logControlInfoToModelInfo(const QString &line);                          // 将控制关键信息同步到模型信息窗口
     void recv_pushover();                                                        // 推理完毕的后处理
     void recv_stopover();                                                        // 停止完毕的后处理
     void recv_resetover();                                                       // 重置完毕的后处理

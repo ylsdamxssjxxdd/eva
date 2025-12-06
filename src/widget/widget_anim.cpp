@@ -23,14 +23,14 @@ void Widget::wait_play(const QString &labelKey)
     if (decode_pTimer) decode_pTimer->start(120); // 动画帧间隔
 }
 
-void Widget::startWaitOnStateLine(const QString &labelKey, const QString &lineText)
+void Widget::startWaitOnStateLine(const QString &labelKey, const QString &lineText, int lineNumber)
 {
     if (!ui || !ui->state || lineText.isEmpty()) return;
 
     const QString key = labelKey.isEmpty() ? QStringLiteral("input decode") : labelKey;
     decodeLabelKey_ = key;
     decodeBaseText_ = lineText;
-    decodeLineNumber_ = ui->state->document()->blockCount() - 1;
+    decodeLineNumber_ = (lineNumber >= 0) ? lineNumber : ui->state->document()->blockCount() - 1;
     decode_action = 0;
     decodeTimer_.restart();
 

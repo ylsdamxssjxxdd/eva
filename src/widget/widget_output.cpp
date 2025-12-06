@@ -286,9 +286,33 @@ void Widget::ensureOutputAtBottom()
     QTimer::singleShot(0, this, applyBottom);
 }
 
+// 状态区统一追加接口，保证始终写在末尾
+int Widget::appendStateLine(const QString &text, const QTextCharFormat &format)
+{
+    if (!ui || !ui->state) return -1;
+
+    QTextCursor cursor = ui->state->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    const bool docEmpty = ui->state->document() && ui->state->document()->blockCount() == 1 && ui->state->toPlainText().isEmpty();
+    if (!docEmpty)
+    {
+        cursor.insertBlock(); // 非首行先换行再写入，避免插入到中间
+    }
+    cursor.setCharFormat(format);
+    cursor.insertText(text);
+    const int lineNumber = cursor.blockNumber();
+    ui->state->setTextCursor(cursor);
+    if (QScrollBar *hbar = ui->state->horizontalScrollBar())
+    {
+        hbar->setValue(hbar->minimum());
+    }
+    return lineNumber;
+}
+
 // 刷新状态区
 void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
 {
+    if (!ui || !ui->state) return;
     QTextCharFormat format;
     if (state != MATRIX_SIGNAL)
     {
@@ -296,23 +320,7 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         state_string.replace("\r", "\\r");
     }
 
-    const auto resetFormat = [this]()
-    {
-        QTextCharFormat base;
-        base.setForeground(themeStateColor(USUAL_SIGNAL));
-        base.setFontItalic(false);
-        base.setFontWeight(QFont::Normal);
-        ui->state->setCurrentCharFormat(base);
-    };
-
-    const auto ensureStateScrolledLeft = [this]()
-    {
-        if (!ui || !ui->state) return;
-        if (QScrollBar *hbar = ui->state->horizontalScrollBar())
-        {
-            hbar->setValue(hbar->minimum());
-        }
-    };
+    const bool controllerView = (linkProfile_ == LinkProfile::Control && !isHostControlled());
 
     if (state == EVA_SIGNAL)
     {
@@ -321,40 +329,31 @@ void Widget::reflash_state(QString state_string, SIGNAL_STATE state)
         format.setFont(font);
         format.setFontItalic(true);
         format.setForeground(themeStateColor(EVA_SIGNAL));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(jtr("cubes"));
+        appendStateLine(jtr("cubes"), format);
 
         format.setFontItalic(false);
         format.setFontWeight(QFont::Black);
         format.setForeground(themeStateColor(EVA_SIGNAL));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(QStringLiteral("          ") + state_string);
+        appendStateLine(QStringLiteral("          ") + state_string, format);
 
         format.setFontItalic(true);
         format.setFontWeight(QFont::Normal);
         format.setForeground(themeStateColor(EVA_SIGNAL));
-        ui->state->setCurrentCharFormat(format);
-        ui->state->appendPlainText(jtr("cubes"));
-
-        resetFormat();
-        ensureStateScrolledLeft();
+        appendStateLine(jtr("cubes"), format);
         return;
     }
 
     format.setForeground(themeStateColor(state));
-    ui->state->setCurrentCharFormat(format);
-    ui->state->appendPlainText(state_string);
-    resetFormat();
-    ensureStateScrolledLeft();
+    const int lineNumber = appendStateLine(state_string, format);
 
-    if (state_string.startsWith("tool:"))
+    if (!controllerView && state_string.startsWith("tool:"))
     {
         const bool isReturn = state_string.contains(jtr("return")) || state_string.contains("return");
         const bool looksStart = state_string.contains('(') && !isReturn;
         if (looksStart)
         {
             if (decode_pTimer && decode_pTimer->isActive()) decode_finish();
-            startWaitOnStateLine(QStringLiteral("tool executing"), state_string);
+            startWaitOnStateLine(QStringLiteral("tool executing"), state_string, lineNumber);
         }
         else if (isReturn && decode_pTimer && decode_pTimer->isActive() && decodeLabelKey_ == QStringLiteral("tool executing"))
         {

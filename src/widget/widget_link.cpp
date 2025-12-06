@@ -6,6 +6,7 @@
 #include <QUrl>
 #include <QHostInfo>
 #include <QFileInfo>
+#include <QTextCharFormat>
 
 namespace
 {
@@ -606,6 +607,17 @@ QJsonObject Widget::buildControlSnapshot() const
     int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
     if (used > 0 && percent == 0) percent = 1;
 
+    QString modelLabel;
+    if (ui_mode == LINK_MODE)
+    {
+        modelLabel = apis.api_model;
+    }
+    else
+    {
+        modelLabel = QFileInfo(ui_SETTINGS.modelpath).fileName();
+    }
+    if (modelLabel.isEmpty()) modelLabel = jtr("unknown model");
+
     snap.insert(QStringLiteral("kv_used"), used);
     snap.insert(QStringLiteral("kv_cap"), cap);
     snap.insert(QStringLiteral("kv_percent"), percent);
@@ -613,6 +625,8 @@ QJsonObject Widget::buildControlSnapshot() const
     snap.insert(QStringLiteral("is_run"), is_run);
     snap.insert(QStringLiteral("title"), windowTitle());
     snap.insert(QStringLiteral("mode"), ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"));
+    snap.insert(QStringLiteral("model_name"), modelLabel);
+    snap.insert(QStringLiteral("endpoint"), current_api);
     snap.insert(QStringLiteral("monitor"), buildControlMonitor());
     snap.insert(QStringLiteral("records"), buildControlRecords());
     return snap;
@@ -749,6 +763,30 @@ void Widget::broadcastControlState(const QString &stateString, SIGNAL_STATE leve
     controlChannel_->sendToController(payload);
 }
 
+void Widget::appendControlStateLog(const QString &text, SIGNAL_STATE level, const QString &prefix, bool mirrorToModelInfo)
+{
+    QString line = text;
+    if (level != MATRIX_SIGNAL)
+    {
+        line.replace("\n", "\\n");
+        line.replace("\r", "\\r");
+    }
+    const QString composed = prefix.isEmpty() ? line : prefix + QStringLiteral(" ") + line;
+    QTextCharFormat fmt;
+    fmt.setForeground(themeStateColor(level));
+    appendStateLine(composed, fmt);
+    if (mirrorToModelInfo)
+    {
+        logControlInfoToModelInfo(composed);
+    }
+}
+
+void Widget::logControlInfoToModelInfo(const QString &line)
+{
+    const QString withBreak = line.endsWith(QChar('\n')) ? line : line + QStringLiteral("\n");
+    emit ui2expend_llamalog(withBreak);
+}
+
 void Widget::broadcastControlKv(int used, int cap, int percent)
 {
     if (!isHostControlled()) return;
@@ -819,6 +857,7 @@ void Widget::handleControlHostClientChanged(bool connected, const QString &reaso
     {
         controlHost_.active = false;
         controlHost_.peer.clear();
+        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
         broadcastControlState(jtr("control disconnected"), SIGNAL_SIGNAL);
         return;
     }
@@ -841,6 +880,25 @@ void Widget::handleControlHostCommand(const QJsonObject &payload)
         controlHost_.active = true;
         controlHost_.peer = controlChannel_ ? controlChannel_->hostPeer() : QString();
         reflash_state(jtr("control connected").arg(controlHost_.peer), SIGNAL_SIGNAL);
+        const QString modeLabel = (ui_mode == LINK_MODE) ? QStringLiteral("链接") : QStringLiteral("本地");
+        const QString stateLabel = (ui_state == CHAT_STATE) ? QStringLiteral("对话") : QStringLiteral("补完");
+        const QString runLabel = is_run ? QStringLiteral("推理中") : QStringLiteral("空闲");
+        QString modelLabel = (ui_mode == LINK_MODE) ? apis.api_model : QFileInfo(ui_SETTINGS.modelpath).fileName();
+        if (modelLabel.isEmpty()) modelLabel = QStringLiteral("-");
+        const int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
+        const int used = qMax(0, kvUsed_);
+        const int percent = (cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+        QString infoLine = QStringLiteral("控制端 %1 已接入 | 模式:%2 | 状态:%3 | 运行:%4 | 模型:%5 | KV:%6/%7(%8%)")
+                               .arg(controlHost_.peer.isEmpty() ? QStringLiteral("-") : controlHost_.peer)
+                               .arg(modeLabel)
+                               .arg(stateLabel)
+                               .arg(runLabel)
+                               .arg(modelLabel)
+                               .arg(used)
+                               .arg(cap)
+                               .arg(percent);
+        if (!current_api.isEmpty()) infoLine += QStringLiteral(" | 端点:") + current_api;
+        appendControlStateLog(infoLine, SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
         QJsonObject ack;
         ack.insert(QStringLiteral("type"), QStringLiteral("hello_ack"));
         ack.insert(QStringLiteral("snapshot"), buildControlSnapshot());
@@ -945,6 +1003,28 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
         const QJsonObject snap = payload.value(QStringLiteral("snapshot")).toObject();
         applyControlSnapshot(snap);
         reflash_state(jtr("control snapshot applied"), SIGNAL_SIGNAL);
+        const QString modeLabel = (snap.value(QStringLiteral("mode")).toString() == QStringLiteral("link")) ? QStringLiteral("链接") : QStringLiteral("本地");
+        const QString stateLabel = (snap.value(QStringLiteral("ui_state")).toString() == QStringLiteral("complete")) ? QStringLiteral("补完") : QStringLiteral("对话");
+        const QString runLabel = snap.value(QStringLiteral("is_run")).toBool(false) ? QStringLiteral("推理中") : QStringLiteral("空闲");
+        const int cap = snap.value(QStringLiteral("kv_cap")).toInt(0);
+        const int used = snap.value(QStringLiteral("kv_used")).toInt(0);
+        const int percent = (cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+        QString modelLabel = snap.value(QStringLiteral("model_name")).toString();
+        if (modelLabel.isEmpty()) modelLabel = apis.api_model;
+        if (modelLabel.isEmpty()) modelLabel = QFileInfo(ui_SETTINGS.modelpath).fileName();
+        if (modelLabel.isEmpty()) modelLabel = QStringLiteral("-");
+        const QString endpoint = snap.value(QStringLiteral("endpoint")).toString();
+        QString infoLine = QStringLiteral("目标 %1 | 模式:%2 | 状态:%3 | 运行:%4 | 模型:%5 | KV:%6/%7(%8%)")
+                               .arg(controlClient_.peer.isEmpty() ? QStringLiteral("-") : controlClient_.peer)
+                               .arg(modeLabel)
+                               .arg(stateLabel)
+                               .arg(runLabel)
+                               .arg(modelLabel)
+                               .arg(used)
+                               .arg(cap)
+                               .arg(percent);
+        if (!endpoint.isEmpty()) infoLine += QStringLiteral(" | 端点:") + endpoint;
+        appendControlStateLog(infoLine, SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
         applyControlUiLock();
         return;
     }
@@ -990,7 +1070,7 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
     {
         const QString text = payload.value(QStringLiteral("text")).toString();
         const int lv = payload.value(QStringLiteral("level")).toInt(static_cast<int>(USUAL_SIGNAL));
-        reflash_state(text, static_cast<SIGNAL_STATE>(lv));
+        appendControlStateLog(text, static_cast<SIGNAL_STATE>(lv), QStringLiteral("[被控端]"));
         return;
     }
     if (type == QStringLiteral("kv"))
@@ -1035,6 +1115,7 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
     }
     if (type == QStringLiteral("released"))
     {
+        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
         reflash_state(jtr("control disconnected"), SIGNAL_SIGNAL);
         releaseControl(false);
         return;
