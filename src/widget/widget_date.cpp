@@ -658,6 +658,18 @@ void Widget::applyDockerTargetMode(DockerTargetMode mode, bool autosave, bool sy
         else
             updateDockerImageCombo();
     }
+    else if (mode == DockerTargetMode::Image)
+    {
+        if (ui_engineer_ischecked)
+        {
+            // 切换到镜像模式后立即刷新本地镜像列表，避免仅显示默认占位
+            refreshDockerImageList(true);
+        }
+        else
+        {
+            updateDockerImageCombo();
+        }
+    }
     else
     {
         updateDockerImageCombo();
