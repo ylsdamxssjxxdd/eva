@@ -475,24 +475,24 @@ void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
                 }
                 else
                 {
-                    FlowTracer::log(FlowChannel::Net,
-                                    QStringLiteral("net:/props missing n_ctx, body=%1").arg(QString::fromUtf8(body)),
-                                    0);
+                    // FlowTracer::log(FlowChannel::Net,
+                    //                 QStringLiteral("net:/props missing n_ctx, body=%1").arg(QString::fromUtf8(body)),
+                    //                 0);
                 }
             }
             else
             {
-                FlowTracer::log(FlowChannel::Net,
-                                QStringLiteral("net:/props parse error=%1 body=%2")
-                                    .arg(perr.errorString(), QString::fromUtf8(body)),
-                                0);
+                // FlowTracer::log(FlowChannel::Net,
+                //                 QStringLiteral("net:/props parse error=%1 body=%2")
+                //                     .arg(perr.errorString(), QString::fromUtf8(body)),
+                //                 0);
             }
         }
         else
         {
-            FlowTracer::log(FlowChannel::Net,
-                            QStringLiteral("net:/props http fail=%1").arg(rp->error()),
-                            0);
+            // FlowTracer::log(FlowChannel::Net,
+            //                 QStringLiteral("net:/props http fail=%1").arg(rp->error()),
+            //                 0);
         }
         fallback();
     });
@@ -857,7 +857,7 @@ void Widget::handleControlHostClientChanged(bool connected, const QString &reaso
     {
         controlHost_.active = false;
         controlHost_.peer.clear();
-        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
+        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         broadcastControlState(jtr("control disconnected"), SIGNAL_SIGNAL);
         return;
     }
@@ -898,7 +898,7 @@ void Widget::handleControlHostCommand(const QJsonObject &payload)
                                .arg(cap)
                                .arg(percent);
         if (!current_api.isEmpty()) infoLine += QStringLiteral(" | 端点:") + current_api;
-        appendControlStateLog(infoLine, SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
+        appendControlStateLog(infoLine, SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         QJsonObject ack;
         ack.insert(QStringLiteral("type"), QStringLiteral("hello_ack"));
         ack.insert(QStringLiteral("snapshot"), buildControlSnapshot());
@@ -1024,7 +1024,7 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
                                .arg(cap)
                                .arg(percent);
         if (!endpoint.isEmpty()) infoLine += QStringLiteral(" | 端点:") + endpoint;
-        appendControlStateLog(infoLine, SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
+        appendControlStateLog(infoLine, SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         applyControlUiLock();
         return;
     }
@@ -1070,7 +1070,7 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
     {
         const QString text = payload.value(QStringLiteral("text")).toString();
         const int lv = payload.value(QStringLiteral("level")).toInt(static_cast<int>(USUAL_SIGNAL));
-        appendControlStateLog(text, static_cast<SIGNAL_STATE>(lv), QStringLiteral("[被控端]"));
+        appendControlStateLog(text, static_cast<SIGNAL_STATE>(lv), jtr("control peer prefix"));
         return;
     }
     if (type == QStringLiteral("kv"))
@@ -1115,7 +1115,7 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
     }
     if (type == QStringLiteral("released"))
     {
-        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, QStringLiteral("[被控端]"), true);
+        appendControlStateLog(jtr("control disconnected"), SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         reflash_state(jtr("control disconnected"), SIGNAL_SIGNAL);
         releaseControl(false);
         return;
@@ -1124,7 +1124,6 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
 
 void Widget::handleControlControllerState(ControlChannel::ControllerState state, const QString &reason)
 {
-    Q_UNUSED(reason);
     controlClient_.state = state;
     if (state == ControlChannel::ControllerState::Connected)
     {
@@ -1137,6 +1136,17 @@ void Widget::handleControlControllerState(ControlChannel::ControllerState state,
     }
     else if (state == ControlChannel::ControllerState::Idle)
     {
+        if (linkProfile_ == LinkProfile::Control && !reason.isEmpty())
+        {
+            if (reason == QStringLiteral("refused"))
+            {
+                reflash_state(jtr("control refused disabled"), WRONG_SIGNAL);
+            }
+            else
+            {
+                reflash_state(jtr("control refused generic"), WRONG_SIGNAL);
+            }
+        }
         if (linkProfile_ == LinkProfile::Control) releaseControl(false);
     }
 }

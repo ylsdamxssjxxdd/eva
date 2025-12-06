@@ -86,6 +86,9 @@ void Widget::setApiDialog()
     control_token_LineEdit->setEchoMode(QLineEdit::Password);
     control_token_LineEdit->setText(controlToken_);
     ctrlTokenLayout->addWidget(control_token_LineEdit);
+    // 控制令牌目前无需用户输入，隐藏避免干扰
+    control_token_label->setVisible(false);
+    control_token_LineEdit->setVisible(false);
     ctrlLayout->addLayout(ctrlTokenLayout);
     ctrlLayout->addStretch();
     controlTabWidget->setLayout(ctrlLayout);

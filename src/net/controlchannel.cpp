@@ -152,12 +152,20 @@ void ControlChannel::handleControllerDisconnected()
     disconnectFromHost();
 }
 
-void ControlChannel::handleSocketError(QAbstractSocket::SocketError)
+void ControlChannel::handleSocketError(QAbstractSocket::SocketError error)
 {
-    // Surface as a disconnect for simplicity.
+    // 对控制端：连接失败（如未开放控制）时给出明确原因，避免静默断开
     if (!controllerSocket_.isNull() && controllerSocket_->state() == QAbstractSocket::UnconnectedState)
     {
-        disconnectFromHost();
+        controllerSocket_->deleteLater();
+        controllerSocket_.clear();
+        controllerBuffer_.clear();
+        if (controllerState_ != ControllerState::Idle)
+        {
+            controllerState_ = ControllerState::Idle;
+            const QString reason = (error == QAbstractSocket::ConnectionRefusedError) ? QStringLiteral("refused") : QStringLiteral("error");
+            emit controllerStateChanged(controllerState_, reason);
+        }
     }
     if (!hostSocket_.isNull() && hostSocket_->state() == QAbstractSocket::UnconnectedState)
     {
