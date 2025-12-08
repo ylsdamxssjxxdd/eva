@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/record">
-        <file alias="role/system.svg">logo/pepicons-pencil--letter.svg</file>
+        <file alias="role/system.svg">logo/solar--letter-linear.svg</file>
         <file alias="role/user.svg">RemixIcon_Svg_v4.7.0/User &amp; Faces/user-3-line.svg</file>
         <file alias="role/assistant.svg">RemixIcon_Svg_v4.7.0/User &amp; Faces/skull-line.svg</file>
         <file alias="role/think.svg">RemixIcon_Svg_v4.7.0/Others/lightbulb-line.svg</file>

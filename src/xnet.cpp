@@ -742,7 +742,7 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
 
                 // 2) Normal assistant content
                 current_content = delta.value("content").toString();
-
+                // qDebug() << current_content;
                 // If reasoning section is open and normal content arrives, close think.
                 if (extThinkActive_ && !current_content.isEmpty())
                 {
