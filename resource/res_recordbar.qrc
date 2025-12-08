@@ -16,7 +16,7 @@
         <file alias="tool/edit.svg">RemixIcon_Svg_v4.7.0/Design/edit-2-line.svg</file>
         <file alias="tool/list.svg">RemixIcon_Svg_v4.7.0/Document/folder-3-line.svg</file>
         <file alias="tool/search.svg">RemixIcon_Svg_v4.7.0/System/search-line.svg</file>
-        <file alias="tool/ptc.svg">RemixIcon_Svg_v4.7.0/Development/git-merge-line.svg</file>
+        <file alias="tool/ptc.svg">logo/proicons--python.svg</file>
         <file alias="tool/mcp.svg">RemixIcon_Svg_v4.7.0/Device/database-2-line.svg</file>
         <file alias="tool/generic.svg">RemixIcon_Svg_v4.7.0/Design/tools-line.svg</file>
     </qresource>
