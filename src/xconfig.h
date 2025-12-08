@@ -63,6 +63,7 @@ class QWidget;
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口
 #define DEFAULT_EMBEDDING_IP "127.0.0.1"       // 嵌入端点ip
 #define DEFAULT_EMBEDDING_API "/v1/embeddings" // 嵌入端点地址
+#define DEFAULT_EMBEDDING_NGL 99               // 嵌入服务默认 GPU 卸载层数
 #define DEFAULT_EMBEDDING_SPLITLENTH 300
 #define DEFAULT_EMBEDDING_OVERLAP 20
 #define DEFAULT_EMBEDDING_RESULTNUMB 3

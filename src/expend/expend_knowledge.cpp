@@ -136,6 +136,7 @@ void Expend::embedding_server_start()
     arguments << "--host"
               << "0.0.0.0";                                        // 暴露本机ip
     arguments << "--port" << DEFAULT_EMBEDDING_PORT;               // 服务端口
+    arguments << "-ngl" << QString::number(DEFAULT_EMBEDDING_NGL); // 默认尽量使用 GPU 卸载
     arguments << "--threads" << QString::number(max_thread * 0.5); // 使用线程
     arguments << "-cb";                                            // 允许连续批处理
     arguments << "--embedding";                                    // 允许词嵌入
