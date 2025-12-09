@@ -51,8 +51,15 @@ void Expend::updateEvalInfoUi()
     if (!ui) return;
     if (!ui->eval_info_groupBox) return;
 
+    const QString unknownLabel = QStringLiteral("未知");
     ui->eval_mode_value->setText(eval_mode == LOCAL_MODE ? jtr("local mode") : jtr("link mode"));
-    ui->eval_endpoint_value->setText(eval_apis.api_endpoint.isEmpty() ? QStringLiteral("-") : eval_apis.api_endpoint);
+    const QString endpointStr = eval_apis.api_endpoint.trimmed().isEmpty() ? QStringLiteral("-") : eval_apis.api_endpoint.trimmed();
+    if (ui->eval_endpoint_value)
+    {
+        // 与模型名称一致：长文本单行省略，tooltip 展示完整端点
+        ui->eval_endpoint_value->setContentText(endpointStr);
+        ui->eval_endpoint_value->setToolTip(endpointStr == QStringLiteral("-") ? QString() : endpointStr);
+    }
     // Model: local shows only file name (not full path); link shows provider model id
     QString modelStr;
     if (eval_mode == LOCAL_MODE)
@@ -74,17 +81,17 @@ void Expend::updateEvalInfoUi()
     {
         modelStr = eval_apis.api_model;
     }
-    if (modelStr.isEmpty()) modelStr = QStringLiteral("-");
+    if (modelStr.isEmpty()) modelStr = unknownLabel;
     // 模型名称过长时保持单行省略，避免撑开“当前信息”区域
     if (ui->eval_model_value)
     {
         ui->eval_model_value->setContentText(modelStr);
-        ui->eval_model_value->setToolTip(modelStr == QStringLiteral("-") ? QString() : modelStr);
+        ui->eval_model_value->setToolTip(modelStr == unknownLabel ? QString() : modelStr);
     }
     // Device and key runtime toggles (best-effort)
     ui->eval_device_value->setText(DeviceManager::effectiveBackend());
     // n_ctx: for LINK mode, Widget side passes the discovered maximum context via settings.nctx
-    ui->eval_nctx_value->setText(eval_settings.nctx > 0 ? QString::number(eval_settings.nctx) : QStringLiteral("-"));
+    ui->eval_nctx_value->setText(eval_settings.nctx > 0 ? QString::number(eval_settings.nctx) : unknownLabel);
     ui->eval_threads_value->setText(eval_settings.nthread > 0 ? QString::number(eval_settings.nthread) : QStringLiteral("-"));
 }
 

@@ -824,8 +824,8 @@ void Widget::settings_ui_confirm_button_clicked()
     // Inform Expend (evaluation tab) of latest settings snapshot
     {
         SETTINGS snap = ui_SETTINGS;
-        if (ui_mode == LINK_MODE && slotCtxMax_ > 0)
-            snap.nctx = slotCtxMax_;
+        if (ui_mode == LINK_MODE)
+            snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
         emit ui2expend_settings(snap);
     }
 

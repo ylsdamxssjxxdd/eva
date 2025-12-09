@@ -105,6 +105,12 @@ void Widget::set_api()
     // Broadcast to Expend (evaluation tab) as well
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
+    {
+        // 切换链接模式后立即同步评估页上下文上限（未探测到时标记为未知）
+        SETTINGS snap = ui_SETTINGS;
+        if (ui_mode == LINK_MODE) snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
+        emit ui2expend_settings(snap);
+    }
     // Reset LINK-mode memory/state since endpoint/key/model changed
     // Reset KV counters when switching to LINK mode to avoid leaking local state
     kvTokensTurn_ = 0;
@@ -406,7 +412,7 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
             updateKvBarUi();
             // Notify Expend (evaluation tab) to refresh displayed n_ctx
             SETTINGS snap = ui_SETTINGS;
-            if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+            if (ui_mode == LINK_MODE) snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
             emit ui2expend_settings(snap);
             const QString log = QStringLiteral("net:n_ctx via /v1/models = %1").arg(maxCtx);
             FlowTracer::log(FlowChannel::Net, dbgLines.join(QStringLiteral(" | ")), 0);
@@ -518,11 +524,40 @@ void Widget::applyDiscoveredContext(int nctx, const QString &sourceTag)
     updateKvBarUi();
     // Notify Expend (evaluation tab) with latest effective n_ctx
     SETTINGS snap = ui_SETTINGS;
-    if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+    if (ui_mode == LINK_MODE) snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
     emit ui2expend_settings(snap);
     FlowTracer::log(FlowChannel::Net,
                     QStringLiteral("net:n_ctx via %1 = %2").arg(sourceTag).arg(nctx),
                     0);
+}
+
+int Widget::resolvedContextLimitForUi() const
+{
+    // 优先使用从 /props 或 /v1/models 探测到的有效 n_ctx；LINK 模式下未探测到时返回 0 表示未知
+    if (slotCtxMax_ > 0) return slotCtxMax_;
+    if (ui_mode == LINK_MODE) return 0;
+    if (ui_SETTINGS.nctx > 0) return ui_SETTINGS.nctx;
+    return DEFAULT_NCTX;
+}
+
+QString Widget::resolvedContextLabelForUi() const
+{
+    const int cap = resolvedContextLimitForUi();
+    return (cap > 0) ? QString::number(cap) : QStringLiteral("未知");
+}
+
+QString Widget::resolvedModelLabelForUi() const
+{
+    // LINK 模式下优先展示用户填写/探测到的模型名，否则用“未知”占位，避免误用本地默认模型名
+    if (ui_mode == LINK_MODE)
+    {
+        const QString linkModel = apis.api_model.trimmed();
+        if (!linkModel.isEmpty()) return linkModel;
+        return QStringLiteral("未知");
+    }
+    QString modelLabel = QFileInfo(ui_SETTINGS.modelpath).fileName();
+    if (modelLabel.isEmpty()) modelLabel = jtr("unknown model");
+    return modelLabel;
 }
 
 //-------------------------------------------------------------------------
@@ -600,23 +635,14 @@ QJsonObject Widget::buildControlSnapshot() const
     if (ui && ui->output) snap.insert(QStringLiteral("output"), ui->output->toPlainText());
     if (ui && ui->state) snap.insert(QStringLiteral("state_log"), ui->state->toPlainText());
 
-    int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
-    if (cap <= 0) cap = DEFAULT_NCTX;
+    const int cap = resolvedContextLimitForUi();
+    const bool capKnown = cap > 0;
     int used = qMax(0, kvUsed_);
-    if (used > cap) used = cap;
-    int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
-    if (used > 0 && percent == 0) percent = 1;
+    if (capKnown && used > cap) used = cap;
+    int percent = (capKnown && cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+    if (capKnown && used > 0 && percent == 0) percent = 1;
 
-    QString modelLabel;
-    if (ui_mode == LINK_MODE)
-    {
-        modelLabel = apis.api_model;
-    }
-    else
-    {
-        modelLabel = QFileInfo(ui_SETTINGS.modelpath).fileName();
-    }
-    if (modelLabel.isEmpty()) modelLabel = jtr("unknown model");
+    const QString modelLabel = resolvedModelLabelForUi();
 
     snap.insert(QStringLiteral("kv_used"), used);
     snap.insert(QStringLiteral("kv_cap"), cap);
@@ -883,11 +909,14 @@ void Widget::handleControlHostCommand(const QJsonObject &payload)
         const QString modeLabel = (ui_mode == LINK_MODE) ? QStringLiteral("链接") : QStringLiteral("本地");
         const QString stateLabel = (ui_state == CHAT_STATE) ? QStringLiteral("对话") : QStringLiteral("补完");
         const QString runLabel = is_run ? QStringLiteral("推理中") : QStringLiteral("空闲");
-        QString modelLabel = (ui_mode == LINK_MODE) ? apis.api_model : QFileInfo(ui_SETTINGS.modelpath).fileName();
-        if (modelLabel.isEmpty()) modelLabel = QStringLiteral("-");
-        const int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
-        const int used = qMax(0, kvUsed_);
-        const int percent = (cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+        const QString modelLabel = resolvedModelLabelForUi();
+        const int cap = resolvedContextLimitForUi();
+        const bool capKnown = cap > 0;
+        int used = qMax(0, kvUsed_);
+        if (capKnown && cap > 0 && used > cap) used = cap;
+        const int percent = (capKnown && cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+        const QString capLabel = resolvedContextLabelForUi();
+        const QString percentLabel = capKnown ? QString::number(percent) : QStringLiteral("-");
         QString infoLine = QStringLiteral("控制端 %1 已接入 | 模式:%2 | 状态:%3 | 运行:%4 | 模型:%5 | KV:%6/%7(%8%)")
                                .arg(controlHost_.peer.isEmpty() ? QStringLiteral("-") : controlHost_.peer)
                                .arg(modeLabel)
@@ -895,8 +924,8 @@ void Widget::handleControlHostCommand(const QJsonObject &payload)
                                .arg(runLabel)
                                .arg(modelLabel)
                                .arg(used)
-                               .arg(cap)
-                               .arg(percent);
+                               .arg(capLabel)
+                               .arg(percentLabel);
         if (!current_api.isEmpty()) infoLine += QStringLiteral(" | 端点:") + current_api;
         appendControlStateLog(infoLine, SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         QJsonObject ack;
@@ -1007,12 +1036,15 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
         const QString stateLabel = (snap.value(QStringLiteral("ui_state")).toString() == QStringLiteral("complete")) ? QStringLiteral("补完") : QStringLiteral("对话");
         const QString runLabel = snap.value(QStringLiteral("is_run")).toBool(false) ? QStringLiteral("推理中") : QStringLiteral("空闲");
         const int cap = snap.value(QStringLiteral("kv_cap")).toInt(0);
-        const int used = snap.value(QStringLiteral("kv_used")).toInt(0);
-        const int percent = (cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+        bool capKnown = cap > 0;
+        int used = snap.value(QStringLiteral("kv_used")).toInt(0);
+        if (capKnown && cap > 0 && used > cap) used = cap;
+        const int percent = (capKnown && cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
         QString modelLabel = snap.value(QStringLiteral("model_name")).toString();
-        if (modelLabel.isEmpty()) modelLabel = apis.api_model;
-        if (modelLabel.isEmpty()) modelLabel = QFileInfo(ui_SETTINGS.modelpath).fileName();
+        if (modelLabel.isEmpty()) modelLabel = resolvedModelLabelForUi();
         if (modelLabel.isEmpty()) modelLabel = QStringLiteral("-");
+        const QString capLabel = capKnown ? QString::number(cap) : QStringLiteral("未知");
+        const QString percentLabel = capKnown ? QString::number(percent) : QStringLiteral("-");
         const QString endpoint = snap.value(QStringLiteral("endpoint")).toString();
         QString infoLine = QStringLiteral("目标 %1 | 模式:%2 | 状态:%3 | 运行:%4 | 模型:%5 | KV:%6/%7(%8%)")
                                .arg(controlClient_.peer.isEmpty() ? QStringLiteral("-") : controlClient_.peer)
@@ -1021,8 +1053,8 @@ void Widget::handleControlControllerEvent(const QJsonObject &payload)
                                .arg(runLabel)
                                .arg(modelLabel)
                                .arg(used)
-                               .arg(cap)
-                               .arg(percent);
+                               .arg(capLabel)
+                               .arg(percentLabel);
         if (!endpoint.isEmpty()) infoLine += QStringLiteral(" | 端点:") + endpoint;
         appendControlStateLog(infoLine, SIGNAL_SIGNAL, jtr("control peer prefix"), true);
         applyControlUiLock();

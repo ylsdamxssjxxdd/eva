@@ -857,6 +857,9 @@ class Widget : public QWidget
     void processStreamChunk(const QString &chunk, const QColor &color);
 
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
+    int resolvedContextLimitForUi() const;           // 计算用于展示/控制的上下文上限（LINK 未探测到时返回 0）
+    QString resolvedContextLabelForUi() const;       // 返回上下文显示文本（已探测数值或“未知”）
+    QString resolvedModelLabelForUi() const;         // 返回模型名称显示文本（LINK 模式优先用户填写）
     void fetchRemoteContextLimit();                                                     // probe props/models for context (LINK mode)
     void fetchModelsContextLimit(bool isLocalEndpoint);                                 // GET /v1/models for context/alias
     void fetchPropsContextLimit(bool allowLinkMode = false, bool fallbackModels = false); // GET /props for runtime n_ctx/alias; optional fallback to models

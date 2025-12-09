@@ -52,19 +52,19 @@ void Widget::resetStateDocument()
 
 void Widget::updateKvBarUi()
 {
-    // Prefer server-reported n_ctx_slot; fallback to UI nctx
-    int cap = slotCtxMax_ > 0 ? slotCtxMax_ : (ui_SETTINGS.nctx > 0 ? ui_SETTINGS.nctx : DEFAULT_NCTX);
-    if (cap <= 0) cap = DEFAULT_NCTX;
+    // 优先展示真实探测到的上下文上限，LINK 模式下未探测成功则用“未知”而非默认值
+    const int cap = resolvedContextLimitForUi();
+    const bool capKnown = cap > 0;
 
     int used = qMax(0, kvUsed_);
-    if (used > cap) used = cap;
+    if (capKnown && used > cap) used = cap;
 
     // Convert used/cap to percent in a single (orange) segment
-    int percent = cap > 0 ? int(qRound(100.0 * double(used) / double(cap))) : 0;
+    int percent = (capKnown && cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
     // Visual minimum: if any memory, show at least 1%
-    if (used > 0 && percent == 0) percent = 1;
+    if (capKnown && used > 0 && percent == 0) percent = 1;
 
     // Force progress range 0..100; use second segment only (orange)
     if (ui->kv_bar->maximum() != 100 || ui->kv_bar->minimum() != 0) ui->kv_bar->setRange(0, 100);
@@ -72,7 +72,7 @@ void Widget::updateKvBarUi()
     ui->kv_bar->setSecondValue(percent);
     ui->kv_bar->setShowText(jtr("kv bar label"));
     ui->kv_bar->setCenterText("");
-    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(cap));
+    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(resolvedContextLabelForUi()));
     broadcastControlKv(used, cap, percent);
 }
 
@@ -327,7 +327,7 @@ void Widget::onServerOutput(const QString &line)
         enforcePredictLimit();
         updateKvBarUi();
         SETTINGS snap = ui_SETTINGS;
-        if (ui_mode == LINK_MODE && slotCtxMax_ > 0) snap.nctx = slotCtxMax_;
+        if (ui_mode == LINK_MODE) snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
         emit ui2expend_settings(snap);
     }
 

@@ -641,13 +641,25 @@ QLabel[summaryValue=&quot;true&quot;][state=&quot;bad&quot;] {
                </property>
               </widget>
              </item>
-             <item row="0" column="3">
-              <widget class="QLabel" name="eval_endpoint_value">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
+            <item row="0" column="3">
+             <widget class="ElideLabel" name="eval_endpoint_value">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
                </property>
                <property name="text">
                 <string>-</string>
