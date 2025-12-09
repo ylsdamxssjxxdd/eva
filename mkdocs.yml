@@ -3,6 +3,7 @@ site_description: EVA 机体用户与开发者文档（本地/链接双模，工
 site_author: EVA Team
 site_dir: site
 docs_dir: docs
+site_url: https://ylsdamxssjxxdd.github.io/eva/
 theme:
   name: material
   language: zh
