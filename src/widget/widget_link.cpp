@@ -34,15 +34,39 @@ QString normalizeLinkEndpoint(const QString &rawEndpoint)
         url.setScheme(isLocal ? QStringLiteral("http") : QStringLiteral("https"));
 
     QString path = url.path();
-    while (path.endsWith('/') && path.length() > 1)
-        path.chop(1);
-    if (path.toLower().endsWith(QStringLiteral("/v1")))
+    // Collapse连续的斜杠，避免用户多输“////”导致路径异常
+    QString collapsed;
+    collapsed.reserve(path.size());
+    bool prevSlash = false;
+    for (const QChar ch : path)
+    {
+        if (ch == QLatin1Char('/'))
+        {
+            if (!prevSlash) collapsed.append(ch);
+            prevSlash = true;
+        }
+        else
+        {
+            collapsed.append(ch);
+            prevSlash = false;
+        }
+    }
+    path = collapsed;
+    while (path.endsWith('/') && path.length() > 1) path.chop(1);
+    const QString lowerPath = path.toLower();
+    if (lowerPath.endsWith(QStringLiteral("/v1")))
     {
         const int slashPos = path.lastIndexOf('/');
         QString basePath = path.left(slashPos);
         if (basePath.isEmpty())
             basePath = QStringLiteral("/");
         url.setPath(basePath);
+    }
+    else
+    {
+        // 仅去掉尾部斜杠并应用规整后的路径
+        if (path.isEmpty()) path = QStringLiteral("/");
+        url.setPath(path);
     }
     return url.toString(QUrl::RemoveFragment);
 }
