@@ -26,7 +26,7 @@ jobs:
           python -m pip install mkdocs mkdocs-material
 
       - name: Build site
-        run: python -m mkdocs build
+        run: python -m mkdocs build -f docs/pages/mkdocs.yml
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

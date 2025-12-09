@@ -1,8 +1,8 @@
 site_name: EVA 文档
 site_description: EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）
 site_author: EVA Team
-site_dir: site
-docs_dir: docs
+site_dir: ../../site
+docs_dir: ..
 site_url: https://ylsdamxssjxxdd.github.io/eva/
 theme:
   name: material
@@ -20,7 +20,7 @@ markdown_extensions:
   - codehilite
   - tables
 nav:
-  - 首页: GitHubPages用户引导.md
+  - 首页: pages/GitHubPages用户引导.md
   - 入门体验:
       - 对话：开局即用: pages/01-对话.md
       - 补完：精准一击: pages/02-补完.md

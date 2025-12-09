@@ -4,6 +4,8 @@
 
 \[ 中文 | [English](README_en.md) \]
 
+**在线文档：** https://ylsdamxssjxxdd.github.io/eva/  （GitHub Pages 最新站点）
+
 <img width="1906" height="984" alt="约定框架-DATE Framework" src="https://github.com/user-attachments/assets/20e655a2-cd60-4649-9fb2-21dced3d2664" />
 
 

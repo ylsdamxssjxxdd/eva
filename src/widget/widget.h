@@ -9,6 +9,7 @@
 #include <QByteArray>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCompleter>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QElapsedTimer>
@@ -36,6 +37,7 @@
 #include <QProgressDialog>
 #include <QRadioButton>
 #include <QResource>
+#include <QStringListModel>
 #include <QScrollBar>
 #include <QFutureWatcher>
 #include <QSettings>
@@ -613,6 +615,9 @@ class Widget : public QWidget
     void setApiDialog();                               // 初始化设置api选项
     void set_api();                                    // 应用api设置
     void startConnection(const QString &ip, int port); // 检测ip是否通畅
+    void scheduleRemoteModelDiscovery();               // 触发端点模型探测的计时器
+    void fetchOpenAiModelsAsync();                     // 非阻塞请求 /v1/models 并刷新候选
+    void applyModelCompleter();                        // 刷新模型 LineEdit 的补全列表
     QDialog *api_dialog;
     QLabel *api_endpoint_label;
     QLineEdit *api_endpoint_LineEdit;
@@ -620,6 +625,12 @@ class Widget : public QWidget
     QLineEdit *api_key_LineEdit;
     QLabel *api_model_label;
     QLineEdit *api_model_LineEdit;
+    QTimer *apiModelProbeTimer_ = nullptr;    // 阻止高频触发网络请求的延迟计时器
+    QCompleter *apiModelCompleter_ = nullptr; // 模型候选提示
+    QStringList apiModelCandidates_;          // 当前找到的所有模型ID
+    QString apiModelProbeLastEndpoint_;       // 上次成功探测的端点
+    QString apiModelProbeLastKey_;            // 上次成功探测的 key
+    bool apiModelFetchInFlight_ = false;      // 网络探测是否正在进行中
     APIS apis;                           // api配置参数
     QJsonArray ui_messagesArray;         // 将要构造的历史数据
     QString temp_assistant_history = ""; // 临时数据
