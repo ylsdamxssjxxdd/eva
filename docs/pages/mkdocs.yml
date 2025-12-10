@@ -20,7 +20,7 @@ markdown_extensions:
   - codehilite
   - tables
 nav:
-  - 首页: pages/GitHubPages用户引导.md
+  - 首页: index.md
   - 入门体验:
       - 对话：开局即用: pages/01-对话.md
       - 补完：精准一击: pages/02-补完.md
