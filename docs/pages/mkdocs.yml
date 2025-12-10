@@ -21,19 +21,19 @@ markdown_extensions:
   - tables
 nav:
   - 首页: index.md
-  - 入门体验:
-      - 对话：开局即用: pages/01-对话.md
-      - 补完：精准一击: pages/02-补完.md
-      - 语音交互：开麦即聊: pages/03-语音交互.md
-      - 视觉交互：看图说话: pages/04-视觉交互.md
-      - 文生图：把想法拉成画面: pages/05-文生图.md
-      - 知识库：你的私有大脑: pages/06-知识库.md
-      - MCP：连接外部服务: pages/07-MCP.md
-      - 系统工程师：命令与编程协作: pages/08-系统工程师.md
-      - 使用沙盒：把高风险关进盒子: pages/09-使用沙盒.md
-      - 使用技能：外挂式扩展: pages/10-使用技能.md
-      - 系统架构师：规划与设计: pages/11-系统架构师.md
-      - 机体控制：远程接管: pages/12-机体控制.md
+  - 快速使用:
+      - 对话: pages/01-对话.md
+      - 补完: pages/02-补完.md
+      - 语音交互: pages/03-语音交互.md
+      - 视觉交互: pages/04-视觉交互.md
+      - 文生图: pages/05-文生图.md
+      - 知识库: pages/06-知识库.md
+      - MCP: pages/07-MCP.md
+      - 系统工程师: pages/08-系统工程师.md
+      - 使用沙盒: pages/09-使用沙盒.md
+      - 使用技能: pages/10-使用技能.md
+      - 系统架构师: pages/11-系统架构师.md
+      - 机体控制: pages/12-机体控制.md
   - 其他文档:
       - 使用说明书: 使用说明书.md
       - 软件技术说明书: 软件技术说明书.md
