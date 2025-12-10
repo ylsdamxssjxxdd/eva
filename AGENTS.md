@@ -14,11 +14,11 @@
 点击"装载"→选择"本地模式"→选择 gguf 模型→进入装载中（清屏/锁定/转轮）→后台按当前设置启动或重启 llama.cpp server→就绪后自动切换到本地端点并新建会话（插入系统指令）→解锁→可聊天
 首次装载会按可用显存与模型体积自动估算 GPU offload（尽量拉满，装载后以 n_layer+1 修正显示）；CPU/GPU 状态定时刷新
 装载（链接）
-点击"装载"→选择"链接模式"→填写 endpoint/key/model→确认后切换为远端模式并停止本地服务/在途请求→清屏并注入系统指令→解锁→可聊天
+点击"装载"→选择"链接模式"→填写 endpoint/key/model→确认后切换为远端模式并停止本地服务→清屏并注入系统指令→解锁→可聊天
 发送/推理（统一）
 无论本地/远端，UI 会构建 OpenAI 兼容消息（system+user，可含 text/image_url/input_audio）并发送；以 SSE 流式接收模型输出，完成后自动收尾并解锁；如启用工具则进入工具调用直至结束
 工具调用
-模型在答复中给出工具调用（<tool>...</tool> 包含 JSON：name/arguments）；EVA 执行对应工具（calculator/execute_command/knowledge/controller/stablediffusion/MCP…），把结果以"tool_response: ..."追加到对话，并自动继续发送，直到没有新的工具请求
+模型在答复中给出工具调用（<tool_call>...</tool_calll> 包含 JSON：name/arguments）；EVA 执行对应工具（calculator/execute_command/knowledge/controller/stablediffusion/MCP…），把结果以"tool_response: ..."追加到对话，并自动继续发送，直到没有新的工具请求
 图像/音频输入
 图像：拖拽/上传/按 F1 截图，作为 user 消息中的 image_url；支持多图。本地对话模式下，可按“监视帧率”自动附带最近屏幕帧
 音频：上传 WAV/MP3/OGG/FLAC，UI 先以 audio_url 暂存，发送前转换为 OpenAI input_audio 结构
