@@ -605,7 +605,11 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         sendStateMessage("tool:" + QString("controller(") + QString::fromStdString(build_in_tool_arg_) + ")");
         // 执行行动序列
         excute_sequence(build_in_tool_arg);
-        sendPushMessage(QString("controller ") + jtr("return") + "\n" + "excute sequence over" + "\n");
+        const QString detail = QStringLiteral("excute sequence over\nsteps=%1\nsequence=%2")
+                                   .arg(build_in_tool_arg.size())
+                                   .arg(QString::fromStdString(build_in_tool_arg_));
+        sendStateMessage("tool:" + QString("controller ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
+        sendPushMessage(QString("controller ") + jtr("return") + "\n" + detail);
     }
     //----------------------文生图------------------
     else if (tools_name == "stablediffusion")

@@ -10,6 +10,7 @@ void Widget::recv_pushover()
 {
     flushPendingStream();
     lastToolCallName_.clear();
+    lastToolPendingName_.clear();
     // Separate all reasoning (<think>...</think>) blocks from final content; capture both roles
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
@@ -88,6 +89,7 @@ void Widget::recv_pushover()
                 {
                     QString tools_name = QString::fromStdString(tools_call.value("name", ""));
                     lastToolCallName_ = tools_name;
+                    lastToolPendingName_ = tools_name; // 保留工具名，供工具返回时附加截图等场景
                     reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
                     // 宸ュ叿灞傞潰鎸囧嚭缁撴潫
                     if (tools_name == "system_engineer_proxy")

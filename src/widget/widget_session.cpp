@@ -266,7 +266,7 @@ QString Widget::describeDocumentList(const QVector<DocumentAttachment> &docs) co
     return names.join(QStringLiteral(", "));
 }
 
-void Widget::collectUserInputs(InputPack &pack)
+void Widget::collectUserInputs(InputPack &pack, bool attachControllerFrame)
 {
     pack.text.clear();
     // Only collect user text when we are NOT in a tool loop. The current task
@@ -304,6 +304,12 @@ void Widget::collectUserInputs(InputPack &pack)
             if (f.exists()) f.remove();
         }
         for (const auto &mf : monitorFrames_) pack.images.append(mf.path);
+    }
+    if (attachControllerFrame && ui_controller_ischecked)
+    {
+        // 桌面控制器开启时，为模型附带最新截屏并额外保存带坐标的标注图
+        const ControllerFrame frame = captureControllerFrame();
+        if (!frame.imagePath.isEmpty()) pack.images.append(frame.imagePath);
     }
     pack.wavs = ui->input->wavFilePaths();
     ui->input->clearThumbnails();
@@ -505,6 +511,53 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     toolInvocationActive_ = false;
     QJsonObject roleMessage;
     roleMessage.insert("role", QStringLiteral("tool"));
+    // 控制器工具返回时附带最新截图，提升模型定位能力
+    ControllerFrame controllerFrame;
+    if (ui_controller_ischecked && lastToolPendingName_ == QStringLiteral("controller"))
+    {
+        // 给系统一点时间渲染出菜单/弹窗，再截取屏幕，避免抢在绘制前
+        QThread::msleep(200);
+        controllerFrame = captureControllerFrame();
+        if (!controllerFrame.imagePath.isEmpty())
+        {
+            // 单独插入一条用户消息携带截图，保持 tool 消息仍为纯文本，避免 role 不兼容导致被丢弃
+            QJsonArray screenshotContent;
+            QJsonObject textPart;
+            textPart["type"] = QStringLiteral("text");
+            textPart["text"] = jtr("controller") + QStringLiteral(" screenshot");
+            screenshotContent.append(textPart);
+
+            QFile imageFile(controllerFrame.imagePath);
+            if (imageFile.open(QIODevice::ReadOnly))
+            {
+                const QByteArray imageData = imageFile.readAll();
+                const QByteArray base64Data = imageData.toBase64();
+                const QString base64String = QStringLiteral("data:image/png;base64,") + base64Data;
+                QJsonObject imageObject;
+                imageObject["type"] = QStringLiteral("image_url");
+                QJsonObject imageUrlObject;
+                imageUrlObject["url"] = base64String;
+                imageObject["image_url"] = imageUrlObject;
+                screenshotContent.append(imageObject);
+            }
+
+            QJsonObject screenshotMessage;
+            screenshotMessage.insert("role", DEFAULT_USER_NAME);
+            screenshotMessage.insert("content", screenshotContent);
+            ui_messagesArray.append(screenshotMessage);
+            reflash_state(QStringLiteral("ui:controller screenshot attached"), SIGNAL_SIGNAL);
+            if (history_ && ui_state == CHAT_STATE)
+            {
+                QJsonObject histShot = screenshotMessage;
+                QJsonArray locals;
+                locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
+                if (!controllerFrame.overlayPath.isEmpty()) locals.append(QFileInfo(controllerFrame.overlayPath).absoluteFilePath());
+                histShot.insert("local_images", locals);
+                history_->appendMessage(histShot);
+            }
+        }
+    }
+
     roleMessage.insert("content", tool_result);
     ui_messagesArray.append(roleMessage);
     if (history_ && ui_state == CHAT_STATE)
@@ -516,6 +569,13 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             QJsonArray locals;
             for (const QString &p : wait_to_show_images_filepath)
                 locals.append(QFileInfo(p).absoluteFilePath());
+            histMsg.insert("local_images", locals);
+        }
+        if (!controllerFrame.imagePath.isEmpty())
+        {
+            QJsonArray locals = histMsg.value(QStringLiteral("local_images")).toArray();
+            locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
+            if (!controllerFrame.overlayPath.isEmpty()) locals.append(QFileInfo(controllerFrame.overlayPath).absoluteFilePath());
             histMsg.insert("local_images", locals);
         }
         history_->appendMessage(histMsg);
@@ -534,6 +594,7 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     pendingAssistantHeaderReset_ = true;
 
     tool_result = "";
+    lastToolPendingName_.clear();
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
     is_run = true;
     ui_state_pushing();
@@ -742,8 +803,10 @@ void Widget::on_send_clicked()
         currentTask_ = ConversationTask::ChatReply;
         startTurnFlow(currentTask_, continuingTool);
         logCurrentTask(currentTask_);
+        const bool controllerToolPending = continuingTool && lastToolCallName_ == QStringLiteral("controller");
+        const bool attachControllerFrame = ui_controller_ischecked && (!continuingTool || controllerToolPending);
         InputPack in;
-        collectUserInputs(in);
+        collectUserInputs(in, attachControllerFrame);
         ENDPOINT_DATA data = prepareEndpointData();
         handleChatReply(data, in);
     }

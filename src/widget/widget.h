@@ -324,7 +324,18 @@ class Widget : public QWidget
     // 监视相关
     bool is_monitor = false;
     double ui_monitor_frame = 0; // 监视帧率 多少帧/秒
+    // 桌面控制器截屏缓存，保存附带给模型的原图与带位置信息的标注图
+    struct ControllerFrame
+    {
+        QString imagePath;   // 发送给模型的原始截图路径
+        QString overlayPath; // 叠加坐标/提示后的截图路径，便于人工查看
+        qint64 tsMs = 0;     // 捕获时间戳
+    };
+    QList<ControllerFrame> controllerFrames_; // 已保存的桌面控制器截图列表
+    const int kMaxControllerFrames_ = 120;    // 最多保留条目，超出后清理旧文件
     QString saveScreen();        // 保存屏幕截图
+    ControllerFrame captureControllerFrame(); // 捕获桌面控制器需要的截图与标注图
+    void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
     QTimer monitor_timer;        // 监视定时器 1000/ui_monitor_frame
     // 按 1 分钟滚动窗口缓存最近的监视截图；在下一次用户发送时一并附带
     struct MonitorFrame
@@ -827,6 +838,7 @@ class Widget : public QWidget
     int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
     int lastSystemRecordIndex_ = -1; // system record index for current session (for env refresh)
     QString lastToolCallName_;       // latest parsed tool name for record badges
+    QString lastToolPendingName_;    // 最近一次工具名，供工具结果续推时使用
     // Record helpers
     int outputDocEnd() const;
     QColor chipColorForRole(RecordRole r) const;
@@ -846,7 +858,7 @@ class Widget : public QWidget
     void replaceOutputRangeColored(int from, int to, const QString &text, QColor color);
     ENDPOINT_DATA prepareEndpointData();
     void beginSessionIfNeeded();
-    void collectUserInputs(InputPack &pack);
+    void collectUserInputs(InputPack &pack, bool attachControllerFrame);
     bool buildDocumentAttachment(const QString &path, DocumentAttachment &attachment);
     QString formatDocumentPayload(const DocumentAttachment &doc) const;
     QString describeDocumentList(const QVector<DocumentAttachment> &docs) const;
@@ -1018,4 +1030,3 @@ class Widget : public QWidget
   };
 
 #endif // WIDGET_H
-
