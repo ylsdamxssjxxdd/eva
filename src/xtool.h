@@ -179,7 +179,7 @@ class xTool : public QObject
     std::atomic<quint64> activeTurnId_{0};
 };
 
-// 鼠标键盘工具的函数
+// 桌面控制器工具的函数
 // ─────────────────────── 通用小工具 ──────────────────────────────────────────
 inline void msleep(unsigned long ms)
 {

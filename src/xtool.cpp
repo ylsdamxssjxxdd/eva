@@ -587,7 +587,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             sendPushMessage(QString("knowledge ") + jtr("return") + "\n" + result);
         }
     }
-    //----------------------鼠标键盘------------------
+    //----------------------桌面控制器------------------
     else if (tools_name == "controller")
     {
         std::vector<std::string> build_in_tool_arg = get_string_list_safely(tools_args_, "sequence");
