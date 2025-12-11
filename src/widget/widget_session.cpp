@@ -309,7 +309,11 @@ void Widget::collectUserInputs(InputPack &pack, bool attachControllerFrame)
     {
         // 桌面控制器开启时，为模型附带最新截屏并额外保存带坐标的标注图
         const ControllerFrame frame = captureControllerFrame();
-        if (!frame.imagePath.isEmpty()) pack.images.append(frame.imagePath);
+        if (!frame.imagePath.isEmpty())
+        {
+            pack.images.append(frame.imagePath);
+            if (!frame.overlayPath.isEmpty()) pack.images.append(frame.overlayPath);
+        }
     }
     pack.wavs = ui->input->wavFilePaths();
     ui->input->clearThumbnails();
@@ -433,6 +437,13 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         }
     }
     data.messagesArray = ui_messagesArray;
+    // 终端打印即将发送的图片路径，便于调试
+    if (!in.images.isEmpty())
+    {
+        QStringList absPaths;
+        for (const QString &p : in.images) absPaths << QDir::toNativeSeparators(QFileInfo(p).absoluteFilePath());
+        qInfo().noquote() << "[chat-images]" << absPaths.join(" | ");
+    }
     logFlow(FlowPhase::Build,
             QStringLiteral("chat msgs=%1 img=%2 doc=%3 audio=%4")
                 .arg(ui_messagesArray.size())
@@ -524,7 +535,12 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             QJsonArray screenshotContent;
             QJsonObject textPart;
             textPart["type"] = QStringLiteral("text");
-            textPart["text"] = jtr("controller") + QStringLiteral(" screenshot");
+            QString textLabel = jtr("controller") + QStringLiteral(" screenshot");
+            if (controllerFrame.cursorX >= 0 && controllerFrame.cursorY >= 0)
+            {
+                textLabel += QStringLiteral(" (cursor: %1,%2)").arg(controllerFrame.cursorX).arg(controllerFrame.cursorY);
+            }
+            textPart["text"] = textLabel;
             screenshotContent.append(textPart);
 
             QFile imageFile(controllerFrame.imagePath);
@@ -539,6 +555,21 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
                 imageUrlObject["url"] = base64String;
                 imageObject["image_url"] = imageUrlObject;
                 screenshotContent.append(imageObject);
+            }
+            if (!controllerFrame.overlayPath.isEmpty())
+            {
+                QFile overlayFile(controllerFrame.overlayPath);
+                if (overlayFile.open(QIODevice::ReadOnly))
+                {
+                    const QByteArray overlayData = overlayFile.readAll();
+                    const QByteArray base64Overlay = overlayData.toBase64();
+                    QJsonObject imageObject;
+                    imageObject["type"] = QStringLiteral("image_url");
+                    QJsonObject imageUrlObject;
+                    imageUrlObject["url"] = QStringLiteral("data:image/png;base64,") + base64Overlay;
+                    imageObject["image_url"] = imageUrlObject;
+                    screenshotContent.append(imageObject);
+                }
             }
 
             QJsonObject screenshotMessage;
@@ -555,6 +586,9 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
                 histShot.insert("local_images", locals);
                 history_->appendMessage(histShot);
             }
+            // 终端调试输出截图路径，便于排查
+            qInfo().noquote() << "[controller-screenshot]" << QDir::toNativeSeparators(controllerFrame.imagePath)
+                              << (controllerFrame.overlayPath.isEmpty() ? "" : QDir::toNativeSeparators(controllerFrame.overlayPath));
         }
     }
 

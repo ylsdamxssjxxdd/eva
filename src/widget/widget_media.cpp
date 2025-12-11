@@ -150,7 +150,7 @@ Widget::ControllerFrame Widget::captureControllerFrame()
         reflash_state(QStringLiteral("ui:未检测到屏幕，无法附带桌面控制器截图"), WRONG_SIGNAL);
         return frame;
     }
-    const qreal devicePixelRatio = screen->devicePixelRatio(); // 物理像素比例，用于坐标换算
+    const qreal screenDpr = screen->devicePixelRatio(); // 物理像素比例，用于坐标换算
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     frame.tsMs = nowMs;
     // 捕获全屏图像
@@ -166,46 +166,41 @@ Widget::ControllerFrame Widget::captureControllerFrame()
         reflash_state(QStringLiteral("ui:截屏数据为空，桌面控制器未能附带截图"), WRONG_SIGNAL);
         return frame;
     }
-    // 保持 1920x1080 以内，避免请求体过大
-    double scaleRatio = 1.0;
-    if (scaledImage.width() > 1920 || scaledImage.height() > 1080)
+    // 若超过 1920x1080 则等比压缩，兼顾体积与可读性
+    const int physicalWidth = int(qRound(snapshot.width() * screenDpr));
+    const int physicalHeight = int(qRound(snapshot.height() * screenDpr));
+    double logicalScale = 1.0; // 作用于逻辑坐标的缩放
+    const int kMaxW = 1920;
+    const int kMaxH = 1080;
+    if (scaledImage.width() > kMaxW || scaledImage.height() > kMaxH)
     {
-        scaleRatio = qMin(1920.0 / scaledImage.width(), 1080.0 / scaledImage.height());
-        scaledImage = scaledImage.scaled(int(scaledImage.width() * scaleRatio),
-                                         int(scaledImage.height() * scaleRatio),
+        logicalScale = qMin(double(kMaxW) / scaledImage.width(), double(kMaxH) / scaledImage.height());
+        scaledImage = scaledImage.scaled(int(scaledImage.width() * logicalScale),
+                                         int(scaledImage.height() * logicalScale),
                                          Qt::KeepAspectRatio,
                                          Qt::SmoothTransformation);
     }
+    // 物理坐标 -> 缩放后图像坐标的换算比例
+    const double scaleRatio = logicalScale / screenDpr;
     // 计算光标在缩放图上的位置
     const QPoint cursorLogical = QCursor::pos();
-    const QPoint cursorPhysical(qRound(cursorLogical.x() * devicePixelRatio), qRound(cursorLogical.y() * devicePixelRatio));
+    const QPoint cursorPhysical(qRound(cursorLogical.x() * screenDpr), qRound(cursorLogical.y() * screenDpr));
     const QPoint cursorScaled(qRound(cursorPhysical.x() * scaleRatio), qRound(cursorPhysical.y() * scaleRatio));
+    frame.cursorX = cursorPhysical.x();
+    frame.cursorY = cursorPhysical.y();
     // 绘制光标，确保模型能看到当前指针位置
     QImage baseImage = scaledImage.convertToFormat(QImage::Format_ARGB32);
     {
         QPainter painter(&baseImage);
         painter.setRenderHint(QPainter::Antialiasing);
-        QPixmap cursorPixmap;
-        if (QApplication::overrideCursor()) cursorPixmap = QApplication::overrideCursor()->pixmap();
-        if (cursorPixmap.isNull())
-        {
-            const int baseSize = qMax(16, int(16 * scaleRatio));
-            cursorPixmap = QPixmap(baseSize, baseSize);
-            cursorPixmap.fill(Qt::transparent);
-            QPainter cursorPainter(&cursorPixmap);
-            cursorPainter.setRenderHint(QPainter::Antialiasing);
-            cursorPainter.setPen(QPen(Qt::black, qMax(1, int(scaleRatio))));
-            cursorPainter.setBrush(Qt::white);
-            QPolygonF arrow;
-            arrow << QPointF(0, 0) << QPointF(0, baseSize * 0.75) << QPointF(baseSize * 0.45, baseSize * 0.45)
-                  << QPointF(baseSize * 0.7, baseSize * 0.8);
-            cursorPainter.drawPolygon(arrow);
-        }
-        else if (!qFuzzyCompare(scaleRatio, 1.0))
-        {
-            cursorPixmap = cursorPixmap.scaled(cursorPixmap.size() * scaleRatio, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        }
-        painter.drawPixmap(cursorScaled, cursorPixmap);
+        // 使用黄色十字线高亮光标位置，便于对齐
+        QPen cursorPen(QColor(255, 215, 0, 230), qMax(2, int(logicalScale)));
+        painter.setPen(cursorPen);
+        painter.drawLine(cursorScaled.x(), 0, cursorScaled.x(), baseImage.height());
+        painter.drawLine(0, cursorScaled.y(), baseImage.width(), cursorScaled.y());
+        // 画一个小圆点标注中心
+        painter.setBrush(QColor(255, 215, 0, 200));
+        painter.drawEllipse(cursorScaled, qMax(4, int(4 * scaleRatio)), qMax(4, int(4 * scaleRatio)));
     }
     // 准备保存路径
     const QString baseDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP/controller_snapshots"));
@@ -225,24 +220,48 @@ Widget::ControllerFrame Widget::captureControllerFrame()
     QPainter overlayPainter(&overlayImage);
     overlayPainter.setRenderHint(QPainter::Antialiasing);
     const QColor gridColor(0, 122, 255, 160); // 半透明蓝色网格
-    QPen gridPen(gridColor, qMax(1, int(scaleRatio)));
+    QPen gridPen(gridColor, qMax(1, int(logicalScale)));
     overlayPainter.setPen(gridPen);
-    // 以 10% 为步长绘制横纵网格，便于快速确认坐标
-    const int vStep = qMax(40, overlayImage.width() / 10);
-    const int hStep = qMax(40, overlayImage.height() / 10);
-    for (int x = vStep; x < overlayImage.width(); x += vStep)
+    // 以物理 50 像素为步长绘制网格，数字标签改为每 200 像素标注一次，避免文字过密
+    const int stepPhysical = 50;
+    const int labelStepPhysical = 200;
+    QFont gridFont = overlayPainter.font();
+    gridFont.setPointSize(qMax(9, int(10 * scaleRatio)));
+    overlayPainter.setFont(gridFont);
+    QFontMetrics fm(gridFont);
+
+    for (int px = stepPhysical; px < physicalWidth; px += stepPhysical)
     {
+        const int x = int(qRound(px * scaleRatio));
         overlayPainter.drawLine(x, 0, x, overlayImage.height());
+        if (px % labelStepPhysical == 0)
+        {
+            const QString label = QString::number(px);
+            overlayPainter.setPen(Qt::white);
+            overlayPainter.drawText(x + 4, fm.ascent() + 4, label);
+            overlayPainter.setPen(gridPen);
+        }
     }
-    for (int y = hStep; y < overlayImage.height(); y += hStep)
+    for (int py = stepPhysical; py < physicalHeight; py += stepPhysical)
     {
+        const int y = int(qRound(py * scaleRatio));
         overlayPainter.drawLine(0, y, overlayImage.width(), y);
+        if (py % labelStepPhysical == 0)
+        {
+            const QString label = QString::number(py);
+            overlayPainter.setPen(Qt::white);
+            overlayPainter.drawText(4, y + fm.ascent() + 4, label);
+            overlayPainter.setPen(gridPen);
+        }
     }
-    // 以更醒目的线标注当前光标位置
-    QPen cursorPen(QColor(0, 122, 255, 220), qMax(2, int(scaleRatio)));
+    // 更醒目的黄色十字线标注当前光标位置（覆盖蓝网格）
+    QPen cursorPen(QColor(255, 215, 0, 230), qMax(3, int(2 * logicalScale)));
     overlayPainter.setPen(cursorPen);
     overlayPainter.drawLine(cursorScaled.x(), 0, cursorScaled.x(), overlayImage.height());
     overlayPainter.drawLine(0, cursorScaled.y(), overlayImage.width(), cursorScaled.y());
+    // 仅在左上角标注(0,0)，避免遮挡
+    overlayPainter.setPen(Qt::white);
+    overlayPainter.drawText(4, fm.ascent() + 4, QStringLiteral("(0,0)"));
     overlayPainter.end();
     const QString overlayPath = QDir(overlayDir).filePath(stamp + QStringLiteral("_overlay.png"));
     overlayImage.save(overlayPath);

@@ -330,6 +330,8 @@ class Widget : public QWidget
         QString imagePath;   // 发送给模型的原始截图路径
         QString overlayPath; // 叠加坐标/提示后的截图路径，便于人工查看
         qint64 tsMs = 0;     // 捕获时间戳
+        int cursorX = -1;    // 当前光标物理坐标 X
+        int cursorY = -1;    // 当前光标物理坐标 Y
     };
     QList<ControllerFrame> controllerFrames_; // 已保存的桌面控制器截图列表
     const int kMaxControllerFrames_ = 120;    // 最多保留条目，超出后清理旧文件
