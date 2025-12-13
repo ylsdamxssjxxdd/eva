@@ -2,7 +2,7 @@
 // 用于查询gpu的显存/显存利用率/gpu利用率/剩余显存
 // 跨平台实现：
 // - NVIDIA：优先使用 nvidia-smi
-// - AMD：Linux 优先使用 rocm-smi；Windows 使用内置 Get-GpuStatus.ps1（释放到 EVA_TEMP 并允许生成缓存）
+// - AMD：Windows 使用内置 Get-GpuStatus.ps1（释放到 EVA_TEMP 并允许生成缓存）；Linux 优先走 sysfs（/sys/class/drm/...）
 // 不可用时返回 0
 // 需要连接对应的信号槽
 // 依赖qt5
@@ -113,6 +113,68 @@ static inline bool runProcessReadAll(const QString &program,
     }
     return p.exitCode() == 0 && !stdOut.trimmed().isEmpty();
 }
+
+#if defined(__linux__)
+// -------------------------------
+// Linux 通用 GPU 信息探测（优先 sysfs）
+// -------------------------------
+// 设计目标：
+// - 不依赖 rocm-smi 等第三方工具（ROCm 不一定安装）
+// - 避免引入额外链接库（例如 libdrm/libamdgpu）
+// - 使用内核驱动暴露的 /sys/class/drm/.../device/ 下的统计信息
+// 常用文件：
+// - vendor: 0x1002(AMD), 0x10de(NVIDIA), 0x8086(Intel)
+// - mem_info_vram_total / mem_info_vram_used（amdgpu）
+// - mem_info_gtt_total / mem_info_gtt_used（APU/共享内存场景兜底）
+// - gpu_busy_percent（0~100）
+static inline bool readTextFileTrimmed(const QString &path, QString &out)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+    out = QString::fromUtf8(f.readAll()).trimmed();
+    return !out.isEmpty();
+}
+
+static inline bool readInt64FromTextFile(const QString &path, qint64 &out)
+{
+    QString s;
+    if (!readTextFileTrimmed(path, s)) return false;
+    bool ok = false;
+    // base=0：同时支持 "123" 与 "0x1002" 这类格式
+    out = s.toLongLong(&ok, 0);
+    return ok;
+}
+
+static inline bool isBaseDrmCardName(const QString &name)
+{
+    // /sys/class/drm/ 下既有 card0 也有 card0-DP-1 等连接器目录
+    // 这里仅保留形如 "card<number>" 的基础节点
+    if (!name.startsWith(QStringLiteral("card"))) return false;
+    if (name.contains('-')) return false;
+    bool ok = false;
+    name.mid(4).toInt(&ok);
+    return ok;
+}
+
+static inline QString detectLinuxGpuVendorFromSysfs()
+{
+    QDir drm(QStringLiteral("/sys/class/drm"));
+    if (!drm.exists()) return QString();
+
+    const QStringList entries = drm.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &e : entries)
+    {
+        if (!isBaseDrmCardName(e)) continue;
+        const QString vendorPath = drm.filePath(e + QStringLiteral("/device/vendor"));
+        qint64 vendor = 0;
+        if (!readInt64FromTextFile(vendorPath, vendor)) continue;
+        if (vendor == 0x10de) return QStringLiteral("NVIDIA");
+        if (vendor == 0x1002) return QStringLiteral("AMD");
+        if (vendor == 0x8086) return QStringLiteral("Intel");
+    }
+    return QString();
+}
+#endif
 
 // -------------------------------
 // Windows AMD 显存查询脚本支持
@@ -297,7 +359,10 @@ class AmdGpuInfoProvider : public GpuInfoProvider
         // Windows 下不依赖 rocm-smi：改用内置 PowerShell 脚本获取显存/利用率信息
         getGpuInfoViaGetGpuStatusScript();
 #else
-        // 非 Windows 仍然优先使用 rocm-smi
+        // Linux：优先使用 sysfs（更通用），失败再尝试 rocm-smi（ROCm 环境下可用）
+#if defined(__linux__)
+        if (getGpuInfoViaAmdSysfs()) return;
+#endif
         getGpuInfoViaRocmSmi();
 #endif
     }
@@ -503,6 +568,95 @@ class AmdGpuInfoProvider : public GpuInfoProvider
     float cachedVcorePct_ = 0.0f;
     float cachedVfreeMb_ = 0.0f;
 #else
+#if defined(__linux__)
+    // 使用 sysfs 获取 AMD 显存与利用率（通用实现：不依赖 ROCm）
+    bool getGpuInfoViaAmdSysfs()
+    {
+        // 只在第一次扫描一次，后续直接读取同一张卡的 sysfs 文件，避免不必要的目录遍历
+        if (amdSysfsDevicePath_.isEmpty())
+        {
+            amdSysfsDevicePath_ = pickAmdSysfsDevicePath();
+        }
+        if (amdSysfsDevicePath_.isEmpty()) return false;
+
+        // 优先读取 VRAM（独显/大显存）；若 VRAM 不可用则退化到 GTT（APU/共享显存场景）
+        qint64 totalBytes = 0;
+        qint64 usedBytes = 0;
+        bool ok = readInt64FromTextFile(amdSysfsDevicePath_ + QStringLiteral("/mem_info_vram_total"), totalBytes)
+                  && readInt64FromTextFile(amdSysfsDevicePath_ + QStringLiteral("/mem_info_vram_used"), usedBytes)
+                  && totalBytes > 0;
+        if (!ok)
+        {
+            ok = readInt64FromTextFile(amdSysfsDevicePath_ + QStringLiteral("/mem_info_gtt_total"), totalBytes)
+                 && readInt64FromTextFile(amdSysfsDevicePath_ + QStringLiteral("/mem_info_gtt_used"), usedBytes)
+                 && totalBytes > 0;
+        }
+        if (!ok) return false;
+
+        if (usedBytes < 0) usedBytes = 0;
+        if (usedBytes > totalBytes) usedBytes = totalBytes;
+        qint64 freeBytes = totalBytes - usedBytes;
+        if (freeBytes < 0) freeBytes = 0;
+
+        // GPU 忙碌度：有些驱动/设备可能没有该文件，缺失则置 0
+        qint64 busyPct = 0;
+        if (!readInt64FromTextFile(amdSysfsDevicePath_ + QStringLiteral("/gpu_busy_percent"), busyPct))
+        {
+            busyPct = 0;
+        }
+        if (busyPct < 0) busyPct = 0;
+        if (busyPct > 100) busyPct = 100;
+
+        // 统一到现有 UI 的单位：MiB + 百分比
+        const double mib = 1024.0 * 1024.0;
+        const float totalMb = float(double(totalBytes) / mib);
+        const float freeMb = float(double(freeBytes) / mib);
+        float usedPct = 0.0f;
+        if (totalBytes > 0) usedPct = float(double(usedBytes) / double(totalBytes) * 100.0);
+        if (usedPct < 0.0f) usedPct = 0.0f;
+        if (usedPct > 100.0f) usedPct = 100.0f;
+
+        emit gpu_status(totalMb, usedPct, float(busyPct), freeMb);
+        return true;
+    }
+
+    QString pickAmdSysfsDevicePath()
+    {
+        // 多卡场景：选择“可用显存（VRAM）最大”的 AMD 卡作为主要监控对象
+        QDir drm(QStringLiteral("/sys/class/drm"));
+        if (!drm.exists()) return QString();
+
+        QString bestDevicePath;
+        qint64 bestTotal = -1;
+
+        const QStringList entries = drm.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &e : entries)
+        {
+            if (!isBaseDrmCardName(e)) continue;
+            const QString devicePath = drm.filePath(e + QStringLiteral("/device"));
+            qint64 vendor = 0;
+            if (!readInt64FromTextFile(devicePath + QStringLiteral("/vendor"), vendor)) continue;
+            if (vendor != 0x1002) continue; // AMD
+
+            qint64 total = 0;
+            if (!readInt64FromTextFile(devicePath + QStringLiteral("/mem_info_vram_total"), total) || total <= 0)
+            {
+                // APU/共享显存兜底：用 GTT 作为选择依据（至少能选到一张可用的 AMD 卡）
+                readInt64FromTextFile(devicePath + QStringLiteral("/mem_info_gtt_total"), total);
+            }
+
+            if (total > bestTotal)
+            {
+                bestTotal = total;
+                bestDevicePath = devicePath;
+            }
+        }
+        return bestDevicePath;
+    }
+
+    QString amdSysfsDevicePath_;
+#endif
+
     void getGpuInfoViaRocmSmi()
     {
         QString output;
@@ -613,6 +767,12 @@ class gpuChecker : public QObject
                 output = tmp;
         }
 #elif __linux__
+        // Linux 优先使用 sysfs 判断显卡厂商（避免依赖 lspci/pciutils）
+        {
+            const QString vendor = detectLinuxGpuVendorFromSysfs();
+            if (!vendor.isEmpty()) return vendor;
+        }
+        // 兜底：如果 sysfs 不可用，再尝试 lspci
         if (!runProcessReadAll("bash", {"-lc", "lspci -nn | grep -i 'VGA'"}, output)) output.clear();
 #endif
         if (output.contains("NVIDIA", Qt::CaseInsensitive)) return QStringLiteral("NVIDIA");

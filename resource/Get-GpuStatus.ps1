@@ -5,7 +5,7 @@ param(
   [int]$MaxSamples = 1,
   [ValidateSet('Max', 'Average')]
   [string]$UtilizationAggregate = 'Max',
-  [switch]$All = $true,
+  [bool]$All = $true,
   [switch]$RefreshCache,
   [switch]$NoCache,
   [switch]$NoDxDiag
@@ -42,7 +42,7 @@ function Read-GpuStatusCache {
     $raw = Get-Content -Path $Path -Raw -ErrorAction Stop
     $cache = $raw | ConvertFrom-Json -ErrorAction Stop
     if (-not $cache) { return $null }
-    if ($cache.CacheVersion -ne 1) { return $null }
+    if ($cache.CacheVersion -notin @(1, 2)) { return $null }
     return $cache
   } catch {
     return $null
@@ -54,20 +54,31 @@ function Write-GpuStatusCache {
   param(
     [Parameter(Mandatory)]
     [string]$Path,
-
-    [Parameter(Mandatory)]
-    [object[]]$DxDiagDevices
+    [object[]]$DxDiagDevices,
+    [object[]]$DxgiAdapters
   )
 
+  $existing = Read-GpuStatusCache -Path $Path
+  if (-not $PSBoundParameters.ContainsKey('DxDiagDevices')) {
+    $DxDiagDevices = if ($existing -and $existing.DxDiagDevices) { @($existing.DxDiagDevices) } else { @() }
+  }
+  if (-not $PSBoundParameters.ContainsKey('DxgiAdapters')) {
+    $DxgiAdapters = if ($existing -and $existing.DxgiAdapters) { @($existing.DxgiAdapters) } else { @() }
+  }
+
+  $DxDiagDevices = @($DxDiagDevices) | Where-Object { $_ }
+  $DxgiAdapters = @($DxgiAdapters) | Where-Object { $_ }
+
   $cache = [pscustomobject]@{
-    CacheVersion  = 1
+    CacheVersion  = 2
     CreatedUtc    = (Get-Date).ToUniversalTime().ToString('o')
     ComputerName  = $env:COMPUTERNAME
     DxDiagDevices = $DxDiagDevices
+    DxgiAdapters  = $DxgiAdapters
   }
 
   try {
-    $json = $cache | ConvertTo-Json -Depth 8
+    $json = $cache | ConvertTo-Json -Depth 10
     $tmp = "$Path.tmp"
     Set-Content -Path $tmp -Value $json -Encoding UTF8 -ErrorAction Stop
     Move-Item -Path $tmp -Destination $Path -Force -ErrorAction Stop
@@ -153,7 +164,7 @@ function Get-DxDiagDisplayDevice {
   }
 }
 
-function Get-DxgiAdapter {
+function Get-DxgiAdapterRuntime {
   [CmdletBinding()]
   param()
 
@@ -327,6 +338,40 @@ public static class DxgiAdapterUtil
   [DxgiAdapterUtil]::Get()
 }
 
+function Get-DxgiAdapter {
+  [CmdletBinding()]
+  param(
+    [string]$CachePath = (Get-GpuStatusCachePath),
+    [switch]$RefreshCache,
+    [switch]$NoCache
+  )
+
+  if (-not $NoCache) {
+    $cache = Read-GpuStatusCache -Path $CachePath
+    if ($cache -and $cache.DxgiAdapters -and -not $RefreshCache) {
+      return @($cache.DxgiAdapters)
+    }
+  }
+
+  $adapters = foreach ($a in @(Get-DxgiAdapterRuntime)) {
+    if (-not $a) { continue }
+    [pscustomobject]@{
+      Description          = [string]$a.Description
+      Luid                 = [string]$a.Luid
+      VendorId             = [uint32]($a.VendorId -as [uint32])
+      DeviceId             = [uint32]($a.DeviceId -as [uint32])
+      Flags                = [uint32]($a.Flags -as [uint32])
+      DedicatedVideoMemory = [uint64]($a.DedicatedVideoMemory -as [uint64])
+    }
+  }
+
+  if (-not $NoCache -and $adapters) {
+    Write-GpuStatusCache -Path $CachePath -DxgiAdapters @($adapters)
+  }
+
+  return @($adapters)
+}
+
 function Get-GpuStatus {
   [CmdletBinding()]
   param(
@@ -335,51 +380,11 @@ function Get-GpuStatus {
     [int]$MaxSamples = 1,
     [ValidateSet('Max', 'Average')]
     [string]$UtilizationAggregate = 'Max',
-    [switch]$All = $true,
+    [bool]$All = $true,
     [switch]$RefreshCache,
     [switch]$NoCache,
     [switch]$NoDxDiag
   )
-
-  $counters = @(
-    '\GPU Adapter Memory(*)\Dedicated Usage',
-    '\GPU Engine(*)\Utilization Percentage'
-  )
-
-  $samples = (Get-Counter -Counter $counters -SampleInterval $SampleIntervalSeconds -MaxSamples $MaxSamples -ErrorAction Stop).CounterSamples
-  if ($MaxSamples -gt 1) {
-    $latest = ($samples | Measure-Object -Property Timestamp -Maximum).Maximum
-    if ($latest) { $samples = $samples | Where-Object { $_.Timestamp -eq $latest } }
-  }
-
-  $mem = foreach ($s in ($samples | Where-Object { $_.Path -like '*\GPU Adapter Memory(*)\Dedicated Usage' })) {
-    [pscustomobject]@{
-      Instance       = $s.InstanceName
-      DedicatedBytes = [int64]($s.CookedValue -as [double])
-    }
-  }
-
-  $utilByAdapterKey = @{}
-  foreach ($s in ($samples | Where-Object { $_.Path -like '*\GPU Engine(*)\Utilization Percentage' })) {
-    $m = [regex]::Match($s.InstanceName, 'luid_0x[0-9A-Fa-f]+_0x[0-9A-Fa-f]+_phys_\d+')
-    if (-not $m.Success) { continue }
-
-    $v = [double]$s.CookedValue
-    if ($v -lt 0) { $v = 0 }
-    if ($v -gt 100) { $v = 100 }
-
-    $k = $m.Value
-    if (-not $utilByAdapterKey.ContainsKey($k)) {
-      $utilByAdapterKey[$k] = @()
-    }
-    $utilByAdapterKey[$k] += $v
-  }
-
-  foreach ($k in @($utilByAdapterKey.Keys)) {
-    $vals = $utilByAdapterKey[$k]
-    $agg = if ($UtilizationAggregate -eq 'Average') { ($vals | Measure-Object -Average).Average } else { ($vals | Measure-Object -Maximum).Maximum }
-    $utilByAdapterKey[$k] = [math]::Round([double]$agg, 2)
-  }
 
   $dxdiagByVenDev = @{}
   $dxdiagByName = @{}
@@ -398,11 +403,171 @@ function Get-GpuStatus {
   }
 
   $dxgiByLuidBase = @{}
+  $realLuidBasesForEngineFilter = @()
   try {
-    foreach ($a in (Get-DxgiAdapter)) {
-      if ($a -and $a.Luid) { $dxgiByLuidBase[$a.Luid.ToLowerInvariant()] = $a }
+    foreach ($a in (Get-DxgiAdapter -RefreshCache:$RefreshCache -NoCache:$NoCache)) {
+      if (-not $a -or -not $a.Luid) { continue }
+
+      $dxgiByLuidBase[$a.Luid.ToLowerInvariant()] = $a
+
+      $flags = [int]($a.Flags -as [int])
+      $isSoftware = (($flags -band 2) -ne 0)
+      $isRemote = (($flags -band 4) -ne 0)
+      $isMicrosoft = ([int]($a.VendorId -as [int]) -eq 0x1414)
+
+      if ((-not $isSoftware) -and (-not $isRemote) -and (-not $isMicrosoft)) {
+        $realLuidBasesForEngineFilter += $a.Luid.ToUpperInvariant()
+      }
     }
   } catch {}
+
+  $engineNameFilter = $null
+  $uniqueRealLuidBases = @($realLuidBasesForEngineFilter | Sort-Object -Unique)
+  if ($uniqueRealLuidBases.Count -gt 0) {
+    $likeClauses = $uniqueRealLuidBases | ForEach-Object { "Name LIKE '%$_%'" }
+    $engineNameFilter = '(' + ($likeClauses -join ' OR ') + ')'
+  }
+
+  $samplesToTake = if ($MaxSamples -lt 1) { 1 } else { $MaxSamples }
+  $sleepSeconds = if ($SampleIntervalSeconds -lt 0) { 0 } else { $SampleIntervalSeconds }
+
+  $cimSession = $null
+  try {
+    $so = New-CimSessionOption -Protocol Dcom
+    $cimSession = New-CimSession -SessionOption $so
+  } catch {
+    $cimSession = $null
+  }
+
+  $adapterMemSample = $null
+  $engineSample = $null
+
+  try {
+    for ($i = 1; $i -le $samplesToTake; $i++) {
+      $adapterMemSample = @(
+        if ($cimSession) {
+          Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory -Property Name, DedicatedUsage -ErrorAction Stop
+        } else {
+          Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUAdapterMemory -Property Name, DedicatedUsage -ErrorAction Stop
+        }
+      )
+
+      if ($UtilizationAggregate -eq 'Max') {
+        $wql = 'UtilizationPercentage > 0'
+        if ($engineNameFilter) { $wql = "$wql AND $engineNameFilter" }
+        try {
+          $engineSample = @(
+            if ($cimSession) {
+              Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter $wql -ErrorAction Stop
+            } else {
+              Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter $wql -ErrorAction Stop
+            }
+          )
+        } catch {
+          try {
+            $engineSample = @(
+              if ($cimSession) {
+                Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter 'UtilizationPercentage > 0' -ErrorAction Stop
+              } else {
+                Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter 'UtilizationPercentage > 0' -ErrorAction Stop
+              }
+            )
+          } catch {
+            $engineSample = @(
+              if ($cimSession) {
+                Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+              } else {
+                Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+              }
+            )
+          }
+        }
+      } else {
+        if ($engineNameFilter) {
+          try {
+            $engineSample = @(
+              if ($cimSession) {
+                Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter $engineNameFilter -ErrorAction Stop
+              } else {
+                Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -Filter $engineNameFilter -ErrorAction Stop
+              }
+            )
+          } catch {
+            $engineSample = @(
+              if ($cimSession) {
+                Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+              } else {
+                Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+              }
+            )
+          }
+        } else {
+          $engineSample = @(
+            if ($cimSession) {
+              Get-CimInstance -CimSession $cimSession Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+            } else {
+              Get-CimInstance Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -Property Name, UtilizationPercentage -ErrorAction Stop
+            }
+          )
+        }
+      }
+
+      if ($i -lt $samplesToTake -and $sleepSeconds -gt 0) {
+        Start-Sleep -Seconds $sleepSeconds
+      }
+    }
+  } finally {
+    if ($cimSession) {
+      Remove-CimSession $cimSession -ErrorAction SilentlyContinue
+    }
+  }
+
+  $mem = foreach ($s in $adapterMemSample) {
+    [pscustomobject]@{
+      Instance       = [string]$s.Name
+      DedicatedBytes = [int64]$s.DedicatedUsage
+    }
+  }
+
+  $utilByAdapterKey = @{}
+  $utilSumByAdapterKey = @{}
+  $utilCountByAdapterKey = @{}
+
+  foreach ($s in $engineSample) {
+    $name = [string]$s.Name
+    $m = [regex]::Match($name, 'luid_0x[0-9A-Fa-f]+_0x[0-9A-Fa-f]+_phys_\d+')
+    if (-not $m.Success) { continue }
+
+    $v = [double]($s.UtilizationPercentage -as [double])
+    if ($v -lt 0) { $v = 0 }
+    if ($v -gt 100) { $v = 100 }
+
+    $k = $m.Value
+    if ($UtilizationAggregate -eq 'Max') {
+      if (-not $utilByAdapterKey.ContainsKey($k) -or $v -gt $utilByAdapterKey[$k]) {
+        $utilByAdapterKey[$k] = $v
+      }
+    } else {
+      if (-not $utilSumByAdapterKey.ContainsKey($k)) {
+        $utilSumByAdapterKey[$k] = 0.0
+        $utilCountByAdapterKey[$k] = 0
+      }
+      $utilSumByAdapterKey[$k] += $v
+      $utilCountByAdapterKey[$k] += 1
+    }
+  }
+
+  if ($UtilizationAggregate -eq 'Max') {
+    foreach ($k in @($utilByAdapterKey.Keys)) {
+      $utilByAdapterKey[$k] = [math]::Round([double]$utilByAdapterKey[$k], 2)
+    }
+  } else {
+    foreach ($k in @($utilSumByAdapterKey.Keys)) {
+      $count = [double]$utilCountByAdapterKey[$k]
+      $avg = if ($count -gt 0) { $utilSumByAdapterKey[$k] / $count } else { 0.0 }
+      $utilByAdapterKey[$k] = [math]::Round([double]$avg, 2)
+    }
+  }
 
   $results = foreach ($m in $mem) {
     $luidBase = [regex]::Match($m.Instance, '^luid_0x[0-9A-Fa-f]+_0x[0-9A-Fa-f]+').Value
@@ -455,7 +620,7 @@ function Get-GpuStatus {
     }
 
     $util = $null
-    if ($adapterKey -and $utilByAdapterKey.ContainsKey($adapterKey)) { $util = $utilByAdapterKey[$adapterKey] }
+    if ($adapterKey -and $utilByAdapterKey.ContainsKey($adapterKey)) { $util = $utilByAdapterKey[$adapterKey] } else { $util = 0 }
 
     [pscustomobject]@{
       Instance         = $m.Instance
@@ -510,7 +675,7 @@ function Get-GpuStatus {
   }
 
   if ($All) {
-    $detailText = $detail | Format-Table -AutoSize | Out-String -Width 200
+    $detailText = $detail | Format-Table | Out-String -Width 200
     if ($detailText) { Write-Host $detailText }
   }
 
