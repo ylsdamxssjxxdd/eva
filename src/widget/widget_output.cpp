@@ -47,6 +47,59 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
         currentAssistantIndex_ = -1;
     }
 
+    // 补完模式：输出区全文作为 prompt，模型返回内容应当“续写追加”在原文本末尾。
+    // 1) 不能插入新的“模型/think”角色头与分隔线，否则会破坏文本连续性；
+    // 2) <think>...</think> 属于推理过程，补完模式下不应污染续写文本，直接忽略显示；
+    // 3) 仍然把原始 chunk 追加到 temp_assistant_history，保证收尾阶段能正确提取最终文本与推理。
+    if (ui_state == COMPLETE_STATE)
+    {
+        const QString begin = QString(DEFAULT_THINK_BEGIN);
+        const QString tend = QString(DEFAULT_THINK_END);
+
+        int pos = 0;
+        const int n = chunk.size();
+        while (pos < n)
+        {
+            if (turnThinkActive_)
+            {
+                const int endIdx = chunk.indexOf(tend, pos);
+                if (endIdx == -1)
+                {
+                    // 仍处于 think 块中：本段剩余内容全部跳过（仅保留在历史里用于收尾解析）。
+                    break;
+                }
+                // 跳过 </think>，恢复到正文续写
+                turnThinkActive_ = false;
+                pos = endIdx + tend.size();
+                continue;
+            }
+
+            const int beginIdx = chunk.indexOf(begin, pos);
+            if (beginIdx == -1)
+            {
+                const QString appendText = chunk.mid(pos);
+                if (!appendText.isEmpty())
+                {
+                    output_scroll(appendText, themeTextPrimary(), true);
+                }
+                break;
+            }
+
+            // 先输出 <think> 之前的正文部分
+            const QString appendText = chunk.mid(pos, beginIdx - pos);
+            if (!appendText.isEmpty())
+            {
+                output_scroll(appendText, themeTextPrimary(), true);
+            }
+            // 进入 think 块：跳过 <think>
+            turnThinkActive_ = true;
+            pos = beginIdx + begin.size();
+        }
+
+        temp_assistant_history += chunk;
+        return;
+    }
+
     const QString begin = QString(DEFAULT_THINK_BEGIN);
     const QString tend = QString(DEFAULT_THINK_END);
 
