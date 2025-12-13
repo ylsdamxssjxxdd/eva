@@ -218,6 +218,13 @@ void Widget::onServerOutput(const QString &line)
         const QString lowerLine = trimmedLine.toLower();
         if (lowerLine.contains(QStringLiteral("all slots are idle")) || lowerLine.contains(QStringLiteral("no pending work")) || lowerLine.contains(QStringLiteral("all clients are idle")))
         {
+            // 外部客户端（通过本地代理直连 API）发起的请求不会走 UI 的 finishTurnFlow()，
+            // turnActive_ 可能只会在日志里被置为 true，却没有机会归零，导致倒计时永远“待命”。
+            // 当后端明确输出“空闲”提示且当前没有 UI turn 绑定（activeTurnId_==0）时，主动清理 turnActive_。
+            if (activeTurnId_ == 0)
+            {
+                turnActive_ = false;
+            }
             scheduleLazyUnload();
         }
         else if (!busy && backendOnline_)

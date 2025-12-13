@@ -370,6 +370,13 @@ void Widget::ensureLocalServer(bool lazyWake)
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
     updateLazyCountdownLabel();
+
+    // ensureLocalServer() 入口会调用 cancelLazyUnload() 停止倒计时；如果本次只是“确认后端在线”
+    //（无需重启），倒计时会一直停留在“待命”。这里在后端在线且当前不忙时重新装载惰性卸载倒计时。
+    if (backendOnline_ && lazyUnloadEnabled())
+    {
+        scheduleLazyUnload();
+    }
 }
 
 QString Widget::pickFreeTcpPort(const QHostAddress &addr) const
@@ -509,8 +516,31 @@ void Widget::onProxyWakeRequested()
 
 void Widget::onProxyExternalActivity()
 {
+    // 代理转发的外部访问也属于“后端活动”，应当重置倒计时而不是永久停在“待命”。
+    // 这里的策略与 onServerOutput 保持一致：
+    // - 若后端忙（推理/工具链/唤醒中），停止计时器，避免倒计时在忙时到期误触发卸载；
+    // - 若后端空闲且在线，重新武装惰性卸载计时器（相当于把倒计时重置为 full）。
+    if (!lazyUnloadEnabled()) return;
+
     markBackendActivity();
-    cancelLazyUnload(QStringLiteral("proxy activity"));
+
+    const bool busy = turnActive_ || toolInvocationActive_ || lazyWakeInFlight_;
+    if (busy)
+    {
+        cancelLazyUnload(QStringLiteral("proxy activity"));
+        return;
+    }
+
+    // 后端已在线：直接重新开始倒计时。
+    // 注意 scheduleLazyUnload() 会检查 serverManager->isRunning()，并在满足条件时启动单次计时器。
+    if (backendOnline_ && !lazyUnloaded_)
+    {
+        scheduleLazyUnload();
+    }
+    else
+    {
+        updateLazyCountdownLabel();
+    }
 }
 
 void Widget::markBackendActivity()
