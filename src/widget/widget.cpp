@@ -393,13 +393,28 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
 Widget::~Widget()
 {
+    // 退出阶段务必先处理“可能在析构/断开时 emit 信号”的对象。
+    // 否则这些信号会在 UI 指针已释放后回调到 Widget 的槽函数，引发退出崩溃（Win7 下会弹窗报错）。
+    if (controlChannel_)
+    {
+        controlChannel_->blockSignals(true);
+        delete controlChannel_;
+        controlChannel_ = nullptr;
+    }
+
     if (serverManager) serverManager->stop();
     if (proxyServer_) proxyServer_->stop();
     delete history_;
+    history_ = nullptr;
+
     delete ui;
+    ui = nullptr;
     delete cutscreen_dialog;
+    cutscreen_dialog = nullptr;
     delete date_ui;
+    date_ui = nullptr;
     delete settings_ui;
+    settings_ui = nullptr;
 }
 
 void Widget::setBaseWindowIcon(const QIcon &icon)

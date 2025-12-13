@@ -2,6 +2,7 @@
 
 #include <QDataStream>
 #include <QJsonDocument>
+#include <QSignalBlocker>
 
 namespace
 {
@@ -28,6 +29,11 @@ ControlChannel::ControlChannel(QObject *parent)
 
 ControlChannel::~ControlChannel()
 {
+    // 注意：Qt 的 QObject 子对象会在父对象析构的“最后阶段”（QObject::~QObject）才被销毁。
+    // 如果在析构函数里 emit 信号，接收方很可能已经先释放了 UI/成员资源，导致退出时出现
+    // “QCoreApplication::postEvent: Unexpected null receiver”甚至崩溃（Win7 上更明显）。
+    // 因此这里在清理网络资源前先阻断信号，确保析构过程不会回调到上层业务对象。
+    const QSignalBlocker blocker(this);
     stopHost();
     disconnectFromHost();
 }
