@@ -532,7 +532,6 @@ int main(int argc, char *argv[])
         w.currentpath = w.historypath = expend.currentpath = modelpath;                                                             // 默认打开路径
         w.ui_SETTINGS.modelpath = modelpath;
         w.ui_mode = static_cast<EVA_MODE>(settings.value("ui_mode", "0").toInt()); //
-        w.ui_monitor_frame = settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toDouble();
         w.api_endpoint_LineEdit->setText(settings.value("api_endpoint", "").toString());
         w.api_key_LineEdit->setText(settings.value("api_key", "").toString());
         w.api_model_LineEdit->setText(settings.value("api_model", "default").toString());
@@ -751,7 +750,6 @@ int main(int argc, char *argv[])
         }
         w.settings_ui->parallel_slider->setValue(settings.value("hid_parallel", DEFAULT_PARALLEL).toInt());
         w.settings_ui->port_lineEdit->setText(settings.value("port", DEFAULT_SERVER_PORT).toString());
-        w.settings_ui->frame_lineEdit->setText(settings.value("monitor_frame", DEFAULT_MONITOR_FRAME).toString());
         const int lazyMinutes = settings.value("lazy_unload_minutes", 5).toInt();
         w.lazyUnloadMs_ = qMax(0, lazyMinutes) * 60000;
         if (w.settings_ui && w.settings_ui->lazy_timeout_spin)
@@ -842,5 +840,4 @@ int main(int argc, char *argv[])
                        { FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: event loop heartbeat")); });
     return a.exec(); // 进入事件循环
 }
-
 

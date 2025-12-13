@@ -66,7 +66,6 @@ void Widget::on_load_clicked()
             settings_ui->mmproj_LineEdit->setText(ui_SETTINGS.mmprojpath);
         }
         is_load = false;
-        monitor_timer.stop();
 
         // 手动装载：用户在“装载→本地模式→选择模型”后，先一律把 ngl 设为 999（尽可能全量 offload）。
         // 目的：即使显存探测（vfree）没有正确获取，也能让用户直接获得 GPU 加速体验。
@@ -308,19 +307,6 @@ void Widget::collectUserInputs(InputPack &pack, bool attachControllerFrame)
             }
         }
     }
-    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty())
-    {
-        const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
-        const qint64 cutoff = nowMs - qint64(kMonitorKeepSeconds_) * 1000;
-        while (!monitorFrames_.isEmpty() && monitorFrames_.front().tsMs < cutoff)
-        {
-            const QString old = monitorFrames_.front().path;
-            monitorFrames_.pop_front();
-            QFile f(old);
-            if (f.exists()) f.remove();
-        }
-        for (const auto &mf : monitorFrames_) pack.images.append(mf.path);
-    }
     if (attachControllerFrame && ui_controller_ischecked)
     {
         // 桌面控制器开启时，为模型附带最新截屏并额外保存带坐标的标注图
@@ -502,7 +488,6 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
             SIGNAL_SIGNAL);
     emit ui2net_data(data);
     emit ui2net_push();
-    if (ui_mode == LOCAL_MODE && ui_state == CHAT_STATE && !monitorFrames_.isEmpty()) monitorFrames_.clear();
 }
 
 void Widget::handleCompletion(ENDPOINT_DATA &data)

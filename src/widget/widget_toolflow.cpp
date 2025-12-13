@@ -295,8 +295,6 @@ void Widget::recv_resetover()
         setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
     } // 鎭㈠
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
-
-    updateMonitorTimer();
 }
 
 void Widget::recv_reload()

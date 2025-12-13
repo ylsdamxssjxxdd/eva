@@ -886,8 +886,6 @@ void Widget::onServerReady(const QString &endpoint)
     }
     // 直接解锁界面（不再补帧播放复杂装载动画）
     unlockLoad();
-    // 刚装载完成：若已设置监视帧率，则启动监视
-    updateMonitorTimer();
 }
 
 void Widget::recv_embeddingdb_describe(QString describe)

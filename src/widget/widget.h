@@ -321,9 +321,6 @@ class Widget : public QWidget
     float load_time = 0;
     QElapsedTimer load_timer; // measure local-server load duration
 
-    // 监视相关
-    bool is_monitor = false;
-    double ui_monitor_frame = 0; // 监视帧率 多少帧/秒
     // 桌面控制器截屏缓存，保存附带给模型的原图与带位置信息的标注图
     struct ControllerFrame
     {
@@ -338,16 +335,6 @@ class Widget : public QWidget
     QString saveScreen();        // 保存屏幕截图
     ControllerFrame captureControllerFrame(); // 捕获桌面控制器需要的截图与标注图
     void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
-    QTimer monitor_timer;        // 监视定时器 1000/ui_monitor_frame
-    // 按 1 分钟滚动窗口缓存最近的监视截图；在下一次用户发送时一并附带
-    struct MonitorFrame
-    {
-        QString path; // 文件路径
-        qint64 tsMs;  // 捕获时间（ms）
-    };
-    QList<MonitorFrame> monitorFrames_;  // 最近 1 分钟的截图缓冲
-    void updateMonitorTimer();           // 根据 ui_monitor_frame 与当前状态启动/停止定时器
-    const int kMonitorKeepSeconds_ = 60; // 最长缓存 60 秒
 
     // 扩展相关
     QString embeddingdb_describe; // 知识库的描述
@@ -728,7 +715,6 @@ class Widget : public QWidget
     void onSlotAssigned(int slotId);                                             // server slot id notification
     void recv_reasoning_tokens(int tokens);                                      // capture <think> token count of this turn
     void recv_net_speeds(double promptPerSec, double genPerSec);                 // final speeds from xNet timings
-    void recv_monitor_decode_ok();
     void toolCommandStarted(const QString &command, const QString &workingDir);
     void toolCommandStdout(const QString &chunk);
     void toolCommandStderr(const QString &chunk);
@@ -749,7 +735,6 @@ class Widget : public QWidget
     void recv_cpu_status(double cpuload, double memload);                     // 传递cpu信息
     void onRecordClicked(int index);
     void onRecordDoubleClicked(int index);
-    void monitorTime();      // 监视时间到
     void stop_recordAudio(); // 停止录音
     void unlockLoad();
     void send_testhandleTimeout();                // 链接模式下测试时延迟发送

@@ -278,9 +278,6 @@ void Widget::apply_language(int language_flag_)
         settings_ui->allow_control_checkbox->setText(jtr("control host allow"));
         settings_ui->allow_control_checkbox->setToolTip(jtr("control host allow tooltip").arg(QString::number(DEFAULT_CONTROL_PORT)));
     }
-    settings_ui->frame_label->setText(jtr("frame"));
-    settings_ui->frame_label->setToolTip(jtr("frame_label_tooltip"));
-    settings_ui->frame_lineEdit->setToolTip(jtr("frame_label_tooltip"));
     if (settings_ui->lazy_timeout_label)
         settings_ui->lazy_timeout_label->setToolTip(jtr("pop countdown tooltip"));
     if (settings_ui->lazy_timeout_spin)

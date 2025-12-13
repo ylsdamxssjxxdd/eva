@@ -139,7 +139,6 @@ void Widget::get_set()
     {
         ui_SETTINGS.reasoning_effort = QStringLiteral("auto");
     }
-    ui_monitor_frame = settings_ui->frame_lineEdit->text().toDouble();
     if (settings_ui->chat_btn->isChecked())
     {
         ui_state = CHAT_STATE;
@@ -871,7 +870,7 @@ void Widget::auto_save_user()
     settings.setValue("nctx", ui_SETTINGS.nctx);
     settings.setValue("mmprojpath", ui_SETTINGS.mmprojpath); // 视觉
     settings.setValue("lorapath", ui_SETTINGS.lorapath);     // lora
-    settings.setValue("monitor_frame", ui_monitor_frame);    // 监视帧率
+    settings.remove("monitor_frame"); // 监视帧/监视帧率功能已移除：清理旧配置项，避免误解
     // 保存隐藏设置
     settings.setValue("hid_npredict", ui_SETTINGS.hid_npredict); // 最大输出长度
     settings.setValue("hid_top_p_str", QString::number(ui_SETTINGS.hid_top_p, 'f', 6));

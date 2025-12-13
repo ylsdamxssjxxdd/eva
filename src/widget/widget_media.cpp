@@ -289,11 +289,6 @@ void Widget::cleanupControllerFrames()
     }
 }
 
-void Widget::recv_monitor_decode_ok()
-{
-    is_monitor = false; // 解锁
-}
-
 bool Widget::checkAudio()
 {
     audioSettings.setCodec("audio/x-raw");

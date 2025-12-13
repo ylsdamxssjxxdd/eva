@@ -238,12 +238,9 @@ void Widget::set_SetDialog()
     }
     updateLazyCountdownLabel();
     // web_btn 已从 UI 移除
-    // 监视帧率设置
-    settings_ui->frame_lineEdit->setValidator(new QDoubleValidator(0.0, 1000.0, 8, this)); // 只允许输入数字
-
-        connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
-        connect(settings_ui->cancel, &QPushButton::clicked, settings_dialog, &QDialog::reject);
-        connect(settings_dialog, &QDialog::rejected, this, &Widget::settings_ui_cancel_button_clicked, Qt::UniqueConnection);
+    connect(settings_ui->confirm, &QPushButton::clicked, this, &Widget::settings_ui_confirm_button_clicked);
+    connect(settings_ui->cancel, &QPushButton::clicked, settings_dialog, &QDialog::reject);
+    connect(settings_dialog, &QDialog::rejected, this, &Widget::settings_ui_cancel_button_clicked, Qt::UniqueConnection);
 
     settings_dialog->setWindowTitle(jtr("set"));
 }
@@ -894,8 +891,6 @@ void Widget::settings_ui_confirm_button_clicked()
     const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
     settings_dialog->accept();
-    // 监视帧率无需重启后端；实时应用
-    updateMonitorTimer();
     auto finalizeOverrides = [this]()
     {
         if (backendOverrideDirty_ || !pendingBackendOverrides_.isEmpty())
@@ -1142,5 +1137,3 @@ void Widget::enforcePredictLimit(bool syncSpin, bool clampSettings)
         npredict_change();
     }
 }
-
-

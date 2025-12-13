@@ -364,9 +364,6 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
             toggleWindowVisibility(this, true); // 显示窗体
         } });
 
-    // 监视相关
-    connect(&monitor_timer, SIGNAL(timeout()), this, SLOT(monitorTime())); // 新开一个线程
-
     lazyUnloadTimer_ = new QTimer(this);
     lazyUnloadTimer_->setSingleShot(true);
     connect(lazyUnloadTimer_, &QTimer::timeout, this, &Widget::performLazyUnload);
