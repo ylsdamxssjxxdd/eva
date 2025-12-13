@@ -28,6 +28,11 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     double defFlow = 0.0;
     bool defOffload = false, defFA = false;
     QString defRng = "cuda";
+    // 显存/性能相关默认值：瓦解 VAE 计算为 tile，可明显降低显存占用（更慢但更稳）
+    bool defVaeTiling = false;
+    int defVaeTileX = 32;
+    int defVaeTileY = 32;
+    double defVaeTileOverlap = 0.5;
     QString defModelPath;
     QString defVaePath;
     QString defLlmPath;
@@ -66,6 +71,8 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
         defSampler = "euler";
         defOffload = true;
         defFA = true;
+        // z-image 预设以“一键复现/显存友好”为目标，默认开启 --vae-tiling
+        defVaeTiling = true;
     }
     else if (preset == "sd1.5-anything-3")
     {
@@ -129,10 +136,10 @@ SDRunConfig Expend::loadPresetConfig(const QString &preset) const
     c.controlNetOnCpu = get("sd_preset_" + key + "_control_cpu", false).toBool();
     c.diffusionFA = get("sd_preset_" + key + "_diff_fa", defFA).toBool();
 
-    c.vaeTiling = get("sd_preset_" + key + "_vae_tiling", false).toBool();
-    c.vaeTileX = get("sd_preset_" + key + "_vae_tile_x", 32).toInt();
-    c.vaeTileY = get("sd_preset_" + key + "_vae_tile_y", 32).toInt();
-    c.vaeTileOverlap = get("sd_preset_" + key + "_vae_tile_overlap", 0.5).toDouble();
+    c.vaeTiling = get("sd_preset_" + key + "_vae_tiling", defVaeTiling).toBool();
+    c.vaeTileX = get("sd_preset_" + key + "_vae_tile_x", defVaeTileX).toInt();
+    c.vaeTileY = get("sd_preset_" + key + "_vae_tile_y", defVaeTileY).toInt();
+    c.vaeTileOverlap = get("sd_preset_" + key + "_vae_tile_overlap", defVaeTileOverlap).toDouble();
 
     c.modifyPrompt = get("sd_preset_" + key + "_modify", "").toString();
     c.negativePrompt = get("sd_preset_" + key + "_negative", "").toString();

@@ -433,6 +433,8 @@ void SdParamsDialog::applyPreset(const QString &name)
         rngBox_->setCurrentText("cuda");
         diffFaCb_->setChecked(true);
         offloadCpuCb_->setChecked(true);
+        // 默认开启 --vae-tiling：降低显存占用，避免在竖图/大图时容易 OOM（指挥员可手动关闭）
+        vaeTilingCb_->setChecked(true);
         flowShiftEnable_->setChecked(false);
         if (modifyEdit_ && modifyEdit_->text().trimmed().isEmpty())
             modifyEdit_->setText(QStringLiteral("EVA第十三号机"));
