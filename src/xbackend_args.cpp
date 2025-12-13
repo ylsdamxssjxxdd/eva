@@ -49,11 +49,8 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
     args << QStringLiteral("--reasoning-format") << QStringLiteral("auto");
     args << QStringLiteral("--verbose-prompt");
 
-    bool forcedNoMmap = false;
     if (!input.loraPath.isEmpty())
     {
-        args << QStringLiteral("--no-mmap");
-        forcedNoMmap = true;
         args << QStringLiteral("--lora") << ensureToolFriendlyFilePath(input.loraPath);
     }
     if (!input.mmprojPath.isEmpty())
@@ -68,9 +65,9 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
     {
         args << QStringLiteral("--mlock");
     }
-    if (!forcedNoMmap && !input.settings.hid_use_mmap)
+    if (!input.settings.hid_use_mmap)
     {
-        args << QStringLiteral("--no-mmap");
+        args << QStringLiteral("--no-mmap");// 默认应用--no-mmapno-mmap
     }
 
     const QString normalizedModel = input.modelPath.toLower();
