@@ -435,7 +435,7 @@ void Expend::runQATest()
     if (qaIndex_ == 0) evalSetStatus(2, jtr("in progress") + QStringLiteral(" 0/") + QString::number(qaPlanned_));
     // Print question first for QA
     evalLog(QStringLiteral("[") + jtr("common qa") + QStringLiteral("] ") + jtr("question") + QStringLiteral("(") + QString::number(qaIndex_ + 1) + "/" + QString::number(qaPlanned_) + QStringLiteral(")\n") + p.first);
-    ENDPOINT_DATA d = makeBaseData(0.1, 64);
+    ENDPOINT_DATA d = makeBaseData(0.1, 0);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
     // Reset per-turn accumulators
@@ -480,7 +480,7 @@ void Expend::runLogicTest()
     if (logicIndex_ == 0) evalSetStatus(3, jtr("in progress") + QStringLiteral(" 0/") + QString::number(logicPlanned_));
     // Print question first for Logic
     evalLog(QStringLiteral("[") + jtr("logic") + QStringLiteral("] ") + jtr("question") + QStringLiteral("(") + QString::number(logicIndex_ + 1) + "/" + QString::number(logicPlanned_) + QStringLiteral(")\n") + p.first);
-    ENDPOINT_DATA d = makeBaseData(0.1, 64);
+    ENDPOINT_DATA d = makeBaseData(0.1, 0);
     d.messagesArray = makeMsgs(QStringLiteral("You are a concise assistant. Reply with a single letter A/B/C/D only."), p.first);
     evalFirstToken = false;
     // Reset per-turn accumulators for logic question
@@ -528,7 +528,7 @@ void Expend::runToolcallTest()
     sys.replace("{engineer_info}", QString());
     const QString task = tc.user + QStringLiteral(" Strictly output exactly one <tool_call> JSON and stop.");
 
-    ENDPOINT_DATA d = makeBaseData(0.2, 640);
+    ENDPOINT_DATA d = makeBaseData(0.2, 0);
     d.messagesArray = makeMsgs(sys, task);
     evalFirstToken = false;
     // Reset per-turn accumulators for tool case
@@ -745,11 +745,21 @@ void Expend::onEvalPushover()
     switch (evalStep)
     {
     case 0:
-        if (m_firstTokenMs < 0 && evalStreamSeen_)
+        if (m_firstTokenMs < 0)
         {
-            m_firstTokenMs = 0.0;
+            // No first token detected via streaming; use total request time as latency
+            const double totalMs = evalTimer.isValid() ? (evalTimer.nsecsElapsed() / 1e6) : 0.0;
+            m_firstTokenMs = totalMs;
             evalFirstToken = true;
-            evalSetTable(0, jtr("first token"), QString::number(100.0, 'f', 0));
+            auto scoreTTFB = [&](double t_ms)
+            {
+                if (t_ms < 0) return 0.0;
+                if (t_ms <= 500.0) return 100.0;
+                if (t_ms >= 10000.0) return 0.0;
+                return (10000.0 - t_ms) * 100.0 / (10000.0 - 500.0);
+            };
+            const double s = scoreTTFB(m_firstTokenMs);
+            evalSetTable(0, jtr("first token"), QString::number(s, 'f', 0));
             updateScoreBars();
         }
         // Nothing else; rely on server-reported speeds if any
@@ -830,7 +840,7 @@ void Expend::onEvalPushover()
         else
         {
             // Compute average tok/s across runs and update score once more
-            const double avgTok = (genTokPerSecSum_ > 0 ? (genTokPerSecSum_ / double(genPlanned_)) : m_genTokPerSec);
+            const double avgTok = (genTokPerSecSum_ > 0 && genPlanned_ > 0) ? (genTokPerSecSum_ / double(genPlanned_)) : m_genTokPerSec;
             if (avgTok > 0)
             {
                 m_genTokPerSec = avgTok;
@@ -850,7 +860,7 @@ void Expend::onEvalPushover()
     {
         // Judge this QA item (MC A-D). Prefer outside-<think> text as the final answer.
         const QString ansVisible = evalAnswer_.trimmed();
-        const QString ansRaw = (ansVisible.isEmpty() ? evalAccum.trimmed() : ansVisible);
+        const QString ansRaw = ansVisible; // 仅使用思考标记之外的内容
         const QChar pick = parseMCAnswer(ansRaw);
         const QString expect = qaPairs_[qaIndex_].second;
         const QString question = qaPairs_[qaIndex_].first;
@@ -863,7 +873,7 @@ void Expend::onEvalPushover()
         logLine += jtr("answer key") + QStringLiteral(": ") + expect.toUpper();
         if (!thinkText.isEmpty())
             logLine += QStringLiteral("\n") + jtr("reasoning") + QStringLiteral(":\n") + thinkText;
-        logLine += QStringLiteral("\n") + jtr("output") + QStringLiteral(": ") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
+        logLine += QStringLiteral("\n") + jtr("output") + QStringLiteral(": ") + outText;
         logLine += QStringLiteral("\n") + jtr("model pick") + QStringLiteral(": ") + (pick.isNull() ? jtr("unrecognized") : QString(pick).toUpper());
         logLine += QStringLiteral("\n") + jtr("verdict") + QStringLiteral(": ") + (ok ? jtr("correct") : jtr("wrong"));
         evalLog(logLine);
@@ -892,7 +902,7 @@ void Expend::onEvalPushover()
     {
         // Judge logic MC, prefer outside-<think> as final output
         const QString ansVisible = evalAnswer_.trimmed();
-        const QString ansRaw = (ansVisible.isEmpty() ? evalAccum.trimmed() : ansVisible);
+        const QString ansRaw = ansVisible; // 仅使用思考标记之外的内容
         const QChar pick = parseMCAnswer(ansRaw);
         const QString expect = logicPairs_[logicIndex_].second;
         const QString question = logicPairs_[logicIndex_].first;
@@ -905,7 +915,7 @@ void Expend::onEvalPushover()
         logLine += jtr("answer key") + QStringLiteral(": ") + expect.toUpper();
         if (!thinkText.isEmpty())
             logLine += QStringLiteral("\n") + jtr("reasoning") + QStringLiteral(":\n") + thinkText;
-        logLine += QStringLiteral("\n") + jtr("output") + QStringLiteral(": ") + (outText.isEmpty() ? evalAccum.trimmed() : outText);
+        logLine += QStringLiteral("\n") + jtr("output") + QStringLiteral(": ") + outText;
         logLine += QStringLiteral("\n") + jtr("model pick") + QStringLiteral(": ") + (pick.isNull() ? jtr("unrecognized") : QString(pick).toUpper());
         logLine += QStringLiteral("\n") + jtr("verdict") + QStringLiteral(": ") + (ok ? jtr("correct") : jtr("wrong"));
         evalLog(logLine);
