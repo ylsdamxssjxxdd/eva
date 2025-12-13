@@ -128,25 +128,34 @@ void Widget::ensureLocalServer(bool lazyWake)
     if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
     {
         firstAutoNglEvaluated_ = true;
-        QFileInfo fileInfo(ui_SETTINGS.modelpath);
-        QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);
-        const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
-        if (modelsize_MB > 0 && vfree > 0)
+        // Only auto-evaluate ngl on first-run when there is no persisted positive value.
+        // If the user had a saved ngl (>0) in the config, respect it and do not override.
+        if (ui_SETTINGS.ngl <= 0)
         {
-            const double limit = 0.95 * vfree;
-            if (modelsize_MB <= limit)
+            QFileInfo fileInfo(ui_SETTINGS.modelpath);
+            QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);
+            const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
+            if (modelsize_MB > 0 && vfree > 0)
             {
-                ui_SETTINGS.ngl = 999;
-                if (settings_ui && settings_ui->ngl_slider)
+                const double limit = 0.95 * vfree;
+                if (modelsize_MB <= limit)
                 {
-                    settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
-                    settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
+                    ui_SETTINGS.ngl = 999; // 初次装载：尽可能全量 offload
+                    if (settings_ui && settings_ui->ngl_slider)
+                    {
+                        settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
+                        settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
+                    }
                 }
             }
+            else if (modelsize_MB > 0 && vfree <= 0)
+            {
+                gpu_wait_load = true;
+            }
         }
-        else if (modelsize_MB > 0 && vfree <= 0)
+        else
         {
-            gpu_wait_load = true;
+            // Persisted positive ngl present (e.g. saved by user). Respect it and skip auto-evaluation.
         }
     }
 

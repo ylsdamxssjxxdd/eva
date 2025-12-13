@@ -67,8 +67,24 @@ void Widget::on_load_clicked()
         }
         is_load = false;
         monitor_timer.stop();
-        firstAutoNglEvaluated_ = false; // 新模型：允许重新评估一次是否可全量 offload
-        // 启动/重启本地llama-server（内部会根据是否需要重启来切换到“装载中”状态）
+
+        // 手动装载：用户在“装载→本地模式→选择模型”后，先一律把 ngl 设为 999（尽可能全量 offload）。
+        // 目的：即使显存探测（vfree）没有正确获取，也能让用户直接获得 GPU 加速体验。
+        // 说明：模型真正可卸载的层数会在装载完成后由后端回传（max_ngl = n_layer + 1），
+        //      recv_params() 会把 999 自动修正为真实值，并同步更新滑条与显示（保持当前行为）。
+        ui_SETTINGS.ngl = 999;
+        gpu_wait_load = false;         // 清理“等待显存信息再重载”的路径，避免把 ngl 覆盖回 0
+        firstAutoNglEvaluated_ = true; // 手动装载已明确选择“拉满”，无需再做 vfree 阈值判断
+
+        if (settings_ui && settings_ui->ngl_slider && settings_ui->ngl_label)
+        {
+            // 装载前先把 UI 置为“拉满”意图；装载后会根据真实 max_ngl 自动收敛。
+            settings_ui->ngl_slider->setMaximum(999);
+            settings_ui->ngl_slider->setValue(999);
+            settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
+        }
+
+        // 启动/重启本地 llama-server（内部会根据是否需要重启来切换到“装载中”状态）
         ensureLocalServer();
     }
 	else if (ret == 2)
