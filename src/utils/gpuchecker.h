@@ -344,7 +344,8 @@ class AmdGpuInfoProvider : public GpuInfoProvider
     void getGpuInfoViaGetGpuStatusScript()
     {
         // 节流：脚本缓存后单次执行约 3s；UI 每 500ms 触发一次刷新，因此这里必须降低实际执行频率
-        constexpr int kMinRefreshIntervalMs = 8000;
+        // 需求：拿到一次结果后，约 1s 再允许下一次执行（实际周期还会叠加脚本自身运行耗时）
+        constexpr int kMinRefreshIntervalMs = 1000;
 
         if (scriptDisabled_)
         {
