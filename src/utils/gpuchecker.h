@@ -1,17 +1,27 @@
 // gpuChecker
 // 用于查询gpu的显存/显存利用率/gpu利用率/剩余显存
-// 跨平台实现：优先使用 nvidia-smi/rocm-smi；Windows 不再依赖 NVML；不可用时返回 0
+// 跨平台实现：
+// - NVIDIA：优先使用 nvidia-smi
+// - AMD：Linux 优先使用 rocm-smi；Windows 使用内置 Get-GpuStatus.ps1（释放到 EVA_TEMP 并允许生成缓存）
+// 不可用时返回 0
 // 需要连接对应的信号槽
 // 依赖qt5
 
 #ifndef GPUCHECKER_H
 #define GPUCHECKER_H
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include <QObject>
 #include <QProcess>
+#include <QSaveFile>
 #include <QStandardPaths>
 #include <QThread>
 
@@ -103,6 +113,87 @@ static inline bool runProcessReadAll(const QString &program,
     }
     return p.exitCode() == 0 && !stdOut.trimmed().isEmpty();
 }
+
+// -------------------------------
+// Windows AMD 显存查询脚本支持
+// -------------------------------
+// 需求背景：
+// - UI 每 500ms 会请求一次 GPU 状态（见 Widget::updateGpuStatus）。
+// - Get-GpuStatus.ps1 首次运行会生成 Get-GpuStatus.cache.json（同目录），耗时约 10s；后续约 3s。
+// - 因此必须：
+//   1) 把脚本打包到资源文件，按需释放到 EVA_TEMP
+//   2) C++ 侧做节流（最小刷新间隔）
+//   3) 任何一次脚本运行报错后永久熔断，避免反复失败拖累其它功能
+#ifdef _WIN32
+static inline QString psEscapeSingleQuoted(const QString &s)
+{
+    // PowerShell 单引号字符串内，单引号需要写成两个单引号
+    QString out = s;
+    out.replace('\'', "''");
+    return out;
+}
+
+static inline QString evaTempRootPath()
+{
+    // 与主程序保持一致：EVA_TEMP 放在可执行程序同级目录
+    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("EVA_TEMP"));
+}
+
+static inline QString ensureGetGpuStatusScriptExtracted(QString *errorMessage = nullptr)
+{
+    // 释放位置：EVA_TEMP/tools/Get-GpuStatus.ps1
+    // 说明：脚本会在同目录写入缓存 Get-GpuStatus.cache.json
+    const QString tempRoot = evaTempRootPath();
+    const QString toolDir = QDir(tempRoot).filePath(QStringLiteral("tools"));
+    const QString dstPath = QDir(toolDir).filePath(QStringLiteral("Get-GpuStatus.ps1"));
+    const QString resPath = QStringLiteral(":/Get-GpuStatus.ps1");
+
+    if (!QDir().mkpath(toolDir))
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("创建目录失败：%1").arg(QDir::toNativeSeparators(toolDir));
+        return QString();
+    }
+
+    QFile res(resPath);
+    if (!res.open(QIODevice::ReadOnly))
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("打开资源失败：%1").arg(resPath);
+        return QString();
+    }
+
+    const QByteArray payload = res.readAll();
+    if (payload.isEmpty())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("资源脚本为空：%1").arg(resPath);
+        return QString();
+    }
+
+    // 若文件已存在且大小一致，认为无需重复释放（避免影响脚本缓存文件的 locality）
+    const QFileInfo dstInfo(dstPath);
+    if (dstInfo.exists() && dstInfo.size() == payload.size())
+    {
+        return dstPath;
+    }
+
+    QSaveFile out(dstPath);
+    if (!out.open(QIODevice::WriteOnly))
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("写入脚本失败：%1").arg(QDir::toNativeSeparators(dstPath));
+        return QString();
+    }
+    if (out.write(payload) != payload.size())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("写入脚本数据不完整：%1").arg(QDir::toNativeSeparators(dstPath));
+        return QString();
+    }
+    if (!out.commit())
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("落盘失败：%1").arg(QDir::toNativeSeparators(dstPath));
+        return QString();
+    }
+    return dstPath;
+}
+#endif
 class GpuInfoProvider : public QObject
 {
     Q_OBJECT
@@ -173,6 +264,160 @@ class AmdGpuInfoProvider : public GpuInfoProvider
   public:
     void getGpuInfo() override
     {
+#ifdef _WIN32
+        // Windows 下不依赖 rocm-smi：改用内置 PowerShell 脚本获取显存/利用率信息
+        getGpuInfoViaGetGpuStatusScript();
+#else
+        // 非 Windows 仍然优先使用 rocm-smi
+        getGpuInfoViaRocmSmi();
+#endif
+    }
+
+  private:
+#ifdef _WIN32
+    void emitCachedOrZero()
+    {
+        if (hasCached_)
+        {
+            emit gpu_status(cachedVmemMb_, cachedVrampPct_, cachedVcorePct_, cachedVfreeMb_);
+            return;
+        }
+        emit gpu_status(0, 0, 0, 0);
+    }
+
+    void disableScriptAndEmitCached(const QString &reason)
+    {
+        // 熔断：只要出现一次错误，后续不再尝试运行脚本，避免 500ms 刷新把系统拖垮
+        scriptDisabled_ = true;
+        qWarning().noquote() << "[gpuchecker] Get-GpuStatus.ps1 disabled:" << reason;
+        emitCachedOrZero();
+    }
+
+    void cacheAndEmit(float vmemMb, float vrampPct, float vcorePct, float vfreeMb)
+    {
+        cachedVmemMb_ = vmemMb;
+        cachedVrampPct_ = vrampPct;
+        cachedVcorePct_ = vcorePct;
+        cachedVfreeMb_ = vfreeMb;
+        hasCached_ = true;
+
+        if (!lastOkTimer_.isValid())
+        {
+            lastOkTimer_.start();
+        }
+        else
+        {
+            lastOkTimer_.restart();
+        }
+        emit gpu_status(vmemMb, vrampPct, vcorePct, vfreeMb);
+    }
+
+    void getGpuInfoViaGetGpuStatusScript()
+    {
+        // 节流：脚本缓存后单次执行约 3s；UI 每 500ms 触发一次刷新，因此这里必须降低实际执行频率
+        constexpr int kMinRefreshIntervalMs = 8000;
+
+        if (scriptDisabled_)
+        {
+            emitCachedOrZero();
+            return;
+        }
+
+        if (hasCached_ && lastOkTimer_.isValid() && lastOkTimer_.elapsed() < kMinRefreshIntervalMs)
+        {
+            emitCachedOrZero();
+            return;
+        }
+
+        QString extractErr;
+        const QString scriptPath = ensureGetGpuStatusScriptExtracted(&extractErr);
+        if (scriptPath.isEmpty())
+        {
+            disableScriptAndEmitCached(extractErr.isEmpty() ? QStringLiteral("extract failed") : extractErr);
+            return;
+        }
+
+        // 根据缓存文件是否已存在，给出不同的超时：首次生成缓存更慢
+        const QString cachePath = QDir(QFileInfo(scriptPath).absolutePath()).filePath(QStringLiteral("Get-GpuStatus.cache.json"));
+        const int timeoutMs = QFileInfo::exists(cachePath) ? 12000 : 30000;
+
+        // 让脚本仅输出汇总对象，并转换为 JSON，便于稳定解析
+        // 输出示例：{"TotalGB":96.0,"UsedGB":2.13,"FreeGB":93.87,"UtilizationPct":7.71}
+        const QString psPath = psEscapeSingleQuoted(QDir::toNativeSeparators(scriptPath));
+        const QString cmd = QStringLiteral(
+                                "& { "
+                                "$ErrorActionPreference='Stop'; "
+                                "$ProgressPreference='SilentlyContinue'; "
+                                "& '%1' -All:$false | ConvertTo-Json -Compress "
+                                "}")
+                                .arg(psPath);
+
+        QString output;
+        const QStringList args = {"-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", cmd};
+        if (!runProcessReadAll("powershell", args, output, timeoutMs))
+        {
+            disableScriptAndEmitCached(QStringLiteral("PowerShell 执行失败或超时（timeout=%1ms）").arg(timeoutMs));
+            return;
+        }
+
+        const QByteArray jsonBytes = output.trimmed().toUtf8();
+        QJsonParseError parseErr;
+        const QJsonDocument doc = QJsonDocument::fromJson(jsonBytes, &parseErr);
+        if (parseErr.error != QJsonParseError::NoError || !doc.isObject())
+        {
+            disableScriptAndEmitCached(QStringLiteral("JSON 解析失败：%1").arg(parseErr.errorString()));
+            return;
+        }
+        const QJsonObject obj = doc.object();
+
+        const QJsonValue totalV = obj.value(QStringLiteral("TotalGB"));
+        const QJsonValue usedV = obj.value(QStringLiteral("UsedGB"));
+        const QJsonValue freeV = obj.value(QStringLiteral("FreeGB"));
+        const QJsonValue utilV = obj.value(QStringLiteral("UtilizationPct"));
+        if (!totalV.isDouble() || !usedV.isDouble() || !freeV.isDouble())
+        {
+            disableScriptAndEmitCached(QStringLiteral("脚本输出缺少字段：%1").arg(QString::fromUtf8(jsonBytes.left(120))));
+            return;
+        }
+
+        const double totalGB = totalV.toDouble();
+        const double usedGB = usedV.toDouble();
+        const double freeGB = freeV.toDouble();
+        const double utilPct = utilV.isDouble() ? utilV.toDouble() : 0.0;
+
+        if (!(totalGB > 0.0) || usedGB < 0.0 || freeGB < 0.0)
+        {
+            disableScriptAndEmitCached(QStringLiteral("脚本输出异常：TotalGB=%1 UsedGB=%2 FreeGB=%3").arg(totalGB).arg(usedGB).arg(freeGB));
+            return;
+        }
+
+        // 统一到现有 UI 的单位：v* 以 MiB 为主（历史兼容），百分比 0~100
+        const float totalMb = float(totalGB * 1024.0);
+        const float usedMb = float(usedGB * 1024.0);
+        const float freeMb = float(freeGB * 1024.0);
+
+        float usedPct = 0.0f;
+        if (totalMb > 0.0f) usedPct = usedMb / totalMb * 100.0f;
+        if (usedPct < 0.0f) usedPct = 0.0f;
+        if (usedPct > 100.0f) usedPct = 100.0f;
+
+        float corePct = float(utilPct);
+        if (corePct < 0.0f) corePct = 0.0f;
+        if (corePct > 100.0f) corePct = 100.0f;
+
+        cacheAndEmit(totalMb, usedPct, corePct, freeMb);
+    }
+
+    bool scriptDisabled_ = false;
+    bool hasCached_ = false;
+    QElapsedTimer lastOkTimer_;
+    float cachedVmemMb_ = 0.0f;
+    float cachedVrampPct_ = 0.0f;
+    float cachedVcorePct_ = 0.0f;
+    float cachedVfreeMb_ = 0.0f;
+#else
+    void getGpuInfoViaRocmSmi()
+    {
         QString output;
         const QString program = "rocm-smi";
         const QStringList args = {"--showmeminfo", "vram", "--showuse", "--csv"};
@@ -205,6 +450,7 @@ class AmdGpuInfoProvider : public GpuInfoProvider
         }
         emit gpu_status(0, 0, 0, 0);
     }
+#endif
 };
 
 class gpuChecker : public QObject
@@ -278,8 +524,6 @@ class gpuChecker : public QObject
             QString tmp;
             if (runProcessReadAll("nvidia-smi", {"-L"}, tmp))
                 output = tmp;
-            else if (runProcessReadAll("rocm-smi", {"--showuse"}, tmp))
-                output = tmp;
         }
 #elif __linux__
         if (!runProcessReadAll("bash", {"-lc", "lspci -nn | grep -i 'VGA'"}, output)) output.clear();
@@ -299,4 +543,3 @@ class gpuChecker : public QObject
 };
 
 #endif // GPUCHECKER_H
-
