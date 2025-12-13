@@ -139,6 +139,35 @@ static inline QString evaTempRootPath()
     return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("EVA_TEMP"));
 }
 
+static inline QString normalizeWinPathForCompare(const QString &path)
+{
+    // Windows 路径大小写不敏感：统一成 '/' + 小写，便于比较
+    return QDir::fromNativeSeparators(path).trimmed().toLower();
+}
+
+static inline QString resolveNativePowerShellExe()
+{
+    // 关键点：当前机体可能是 32 位进程（例如 MinGW i686 静态构建），
+    // 若直接启动 "powershell" 或 System32 下的 powershell.exe，会被 WOW64 重定向到 32 位版本。
+    // 32 位 PowerShell 进一步调用 dxdiag 时，可能得到被截断的显存（常见为 4GB 级别），导致缓存错误。
+    //
+    // 解决：优先使用 Sysnative 访问 64 位 powershell.exe（仅 32 位进程可见），从而使用 64 位 dxdiag 生成正确缓存。
+    const QString baseWin = qEnvironmentVariable("SystemRoot", "C:/Windows");
+    const QString sysnative = baseWin + "/Sysnative/WindowsPowerShell/v1.0/powershell.exe";
+    const QString system32 = baseWin + "/System32/WindowsPowerShell/v1.0/powershell.exe";
+    const QString syswow64 = baseWin + "/SysWOW64/WindowsPowerShell/v1.0/powershell.exe";
+
+    if (QFileInfo::exists(sysnative)) return sysnative;
+    if (QFileInfo::exists(system32)) return system32;
+    if (QFileInfo::exists(syswow64)) return syswow64;
+
+    QString found = QStandardPaths::findExecutable(QStringLiteral("powershell"));
+    if (!found.isEmpty()) return found;
+    found = QStandardPaths::findExecutable(QStringLiteral("powershell.exe"));
+    if (!found.isEmpty()) return found;
+    return QStringLiteral("powershell");
+}
+
 static inline QString ensureGetGpuStatusScriptExtracted(QString *errorMessage = nullptr)
 {
     // 释放位置：EVA_TEMP/tools/Get-GpuStatus.ps1
@@ -337,26 +366,67 @@ class AmdGpuInfoProvider : public GpuInfoProvider
             return;
         }
 
-        // 根据缓存文件是否已存在，给出不同的超时：首次生成缓存更慢
-        const QString cachePath = QDir(QFileInfo(scriptPath).absolutePath()).filePath(QStringLiteral("Get-GpuStatus.cache.json"));
-        const int timeoutMs = QFileInfo::exists(cachePath) ? 12000 : 30000;
+        const QString scriptDir = QFileInfo(scriptPath).absolutePath();
+        const QString cachePath = QDir(scriptDir).filePath(QStringLiteral("Get-GpuStatus.cache.json"));
+        const QString metaPath = QDir(scriptDir).filePath(QStringLiteral("Get-GpuStatus.eva.meta.json"));
+
+        const QString psExe = resolveNativePowerShellExe();
+
+        // 若已存在缓存但来源不明（例如曾经用 32 位 PowerShell 生成），则强制刷新一次以纠正总显存。
+        bool refreshCache = false;
+        const bool cacheExists = QFileInfo::exists(cachePath);
+        if (cacheExists)
+        {
+            bool metaOk = false;
+            QFile metaFile(metaPath);
+            if (metaFile.open(QIODevice::ReadOnly))
+            {
+                QJsonParseError metaErr;
+                const QJsonDocument metaDoc = QJsonDocument::fromJson(metaFile.readAll(), &metaErr);
+                if (metaErr.error == QJsonParseError::NoError && metaDoc.isObject())
+                {
+                    const QJsonObject metaObj = metaDoc.object();
+                    const int ver = metaObj.value(QStringLiteral("MetaVersion")).toInt(-1);
+                    const QString lastPs = metaObj.value(QStringLiteral("PowerShellExe")).toString();
+                    if (ver == 1 && !lastPs.isEmpty())
+                    {
+                        metaOk = true;
+                        if (normalizeWinPathForCompare(lastPs) != normalizeWinPathForCompare(psExe))
+                        {
+                            refreshCache = true;
+                        }
+                    }
+                }
+            }
+            if (!metaOk)
+            {
+                // 没有 meta 但缓存已存在：无法判断是否可靠，刷新一次最稳妥
+                refreshCache = true;
+            }
+        }
+
+        // 根据缓存/刷新决策设置超时：首次生成/强制刷新更慢
+        const int timeoutMs = (!cacheExists || refreshCache) ? 30000 : 12000;
 
         // 让脚本仅输出汇总对象，并转换为 JSON，便于稳定解析
         // 输出示例：{"TotalGB":96.0,"UsedGB":2.13,"FreeGB":93.87,"UtilizationPct":7.71}
         const QString psPath = psEscapeSingleQuoted(QDir::toNativeSeparators(scriptPath));
+        const QString refreshArg = refreshCache ? QStringLiteral(" -RefreshCache") : QString();
         const QString cmd = QStringLiteral(
                                 "& { "
                                 "$ErrorActionPreference='Stop'; "
                                 "$ProgressPreference='SilentlyContinue'; "
-                                "& '%1' -All:$false | ConvertTo-Json -Compress "
+                                "& '%1' -All:$false%2 | ConvertTo-Json -Compress "
                                 "}")
-                                .arg(psPath);
+                                .arg(psPath, refreshArg);
 
         QString output;
         const QStringList args = {"-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", cmd};
-        if (!runProcessReadAll("powershell", args, output, timeoutMs))
+        if (!runProcessReadAll(psExe, args, output, timeoutMs))
         {
-            disableScriptAndEmitCached(QStringLiteral("PowerShell 执行失败或超时（timeout=%1ms）").arg(timeoutMs));
+            disableScriptAndEmitCached(QStringLiteral("PowerShell 执行失败或超时（timeout=%1ms, refresh=%2）")
+                                           .arg(timeoutMs)
+                                           .arg(refreshCache ? QStringLiteral("yes") : QStringLiteral("no")));
             return;
         }
 
@@ -404,6 +474,22 @@ class AmdGpuInfoProvider : public GpuInfoProvider
         float corePct = float(utilPct);
         if (corePct < 0.0f) corePct = 0.0f;
         if (corePct > 100.0f) corePct = 100.0f;
+
+        // 记录本次缓存的生成环境（用于下一次判断是否需要强制刷新）
+        {
+            QJsonObject meta;
+            meta.insert(QStringLiteral("MetaVersion"), 1);
+            meta.insert(QStringLiteral("PowerShellExe"), QDir::toNativeSeparators(psExe));
+            meta.insert(QStringLiteral("ScriptPath"), QDir::toNativeSeparators(scriptPath));
+            meta.insert(QStringLiteral("CachePath"), QDir::toNativeSeparators(cachePath));
+            const QJsonDocument metaDoc(meta);
+            QSaveFile metaOut(metaPath);
+            if (metaOut.open(QIODevice::WriteOnly))
+            {
+                metaOut.write(metaDoc.toJson(QJsonDocument::Compact));
+                metaOut.commit();
+            }
+        }
 
         cacheAndEmit(totalMb, usedPct, corePct, freeMb);
     }
