@@ -59,20 +59,22 @@ void Widget::updateKvBarUi()
     int used = qMax(0, kvUsed_);
     if (capKnown && used > cap) used = cap;
 
-    // Convert used/cap to percent in a single (orange) segment
+    // 统一换算为百分比：KV 条只用第二段（橙色）表示占用
     int percent = (capKnown && cap > 0) ? int(qRound(100.0 * double(used) / double(cap))) : 0;
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
-    // Visual minimum: if any memory, show at least 1%
+    // 视觉最小值：只要 used>0，就至少显示 1%，避免“明明有记忆但条是空的”
     if (capKnown && used > 0 && percent == 0) percent = 1;
 
-    // Force progress range 0..100; use second segment only (orange)
+    // 强制进度范围为 0..100，避免 UI 组件被外部 setRange 影响
     if (ui->kv_bar->maximum() != 100 || ui->kv_bar->minimum() != 0) ui->kv_bar->setRange(0, 100);
     ui->kv_bar->setValue(0);
     ui->kv_bar->setSecondValue(percent);
     ui->kv_bar->setShowText(jtr("kv bar label"));
-    ui->kv_bar->setCenterText("");
-    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(resolvedContextLabelForUi()));
+    // 中心文本与其它进度条保持一致：显示百分比（由 DoubleQProgressBar 默认绘制）
+    const QString capLabel = resolvedContextLabelForUi();
+    ui->kv_bar->setCenterText(QString());
+    ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(used).arg(capLabel));
     broadcastControlKv(used, cap, percent);
 }
 
@@ -171,6 +173,8 @@ void Widget::recv_kv_from_net(int usedTokens)
     }
     // LOCAL mode
     if (!turnActive_) return;
+    // 若已从 llama-server 日志拿到 stop processing 的最终 n_tokens/n_past，则以其为准，避免流式近似覆盖最终值
+    if (sawFinalPast_) return;
     kvStreamedTurn_ = newStream;
     kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
     // apply only after server reported prompt baseline (prompt done)
@@ -385,20 +389,38 @@ void Widget::onServerOutput(const QString &line)
         // Reserved for future UI log.
     }
 
+    // llama-server 日志在不同版本里字段名会变化：
+    // - 旧版常见：n_past=xxx
+    // - 新版常见：n_tokens = xxx
+    // 这里统一做兼容解析，避免 UI 的“记忆容量(KV)”统计失真或只在最后一刻跳变。
+    auto extractPastLikeTokens = [&](const QString &text, int &out) -> bool
+    {
+        // 先尝试更“语义化”的 n_past，再回退到 n_tokens
+        if (TextParse::extractIntAfterKeyword(text, QStringLiteral("n_past"), out)) return true;
+        if (TextParse::extractIntAfterKeyword(text, QStringLiteral("n_tokens"), out)) return true;
+        return false;
+    };
+
     if (line.contains(QStringLiteral("total time")))
     {
         int totalTokens = 0;
         if (TextParse::extractLastIntBeforeSuffix(line, QStringLiteral("tokens"), totalTokens))
         {
-            kvStreamedTurn_ = totalTokens;
-            if (ui_mode == LINK_MODE)
+            // 该行的 token 统计是“本轮总计”(prompt+output)的近似值，不是“流式输出token数”。
+            // 仅当 stop processing 尚未给出最终 n_tokens/n_past 时，用它作为兜底刷新 UI。
+            if (!sawFinalPast_)
             {
-                kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
-                updateKvBarUi();
-            }
-            else if (sawPromptPast_ && !sawFinalPast_)
-            {
-                kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+                const int totalUsed = qMax(0, totalTokens);
+                if (sawPromptPast_)
+                {
+                    kvStreamedTurn_ = qMax(0, totalUsed - kvUsedBeforeTurn_);
+                    kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
+                    kvUsed_ = qMax(0, kvUsedBeforeTurn_ + kvStreamedTurn_);
+                }
+                else
+                {
+                    kvUsed_ = totalUsed;
+                }
                 updateKvBarUi();
             }
         }
@@ -407,11 +429,15 @@ void Widget::onServerOutput(const QString &line)
     if (line.contains(QStringLiteral("prompt done")))
     {
         int past = 0;
-        if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_past"), past))
+        if (extractPastLikeTokens(line, past))
         {
-            kvUsed_ = qMax(0, past);
-            kvUsedBeforeTurn_ = qMax(0, past);
+            const int baseline = qMax(0, past);
+            kvUsed_ = baseline;
+            kvUsedBeforeTurn_ = baseline;
+            // 在本地模式下，把“prompt done 的 tokens”作为本轮 prompt 基线（便于 UI 与后续流式累加保持一致）
+            kvPromptTokensTurn_ = baseline;
             kvStreamedTurn_ = 0;
+            kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
             sawPromptPast_ = true;
             updateKvBarUi();
             markBackendActivity();
@@ -421,9 +447,15 @@ void Widget::onServerOutput(const QString &line)
     if (line.contains(QStringLiteral("stop processing")))
     {
         int past = 0;
-        if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_past"), past))
+        if (extractPastLikeTokens(line, past))
         {
-            kvUsed_ = qMax(0, past);
+            const int finalUsed = qMax(0, past);
+            kvUsed_ = finalUsed;
+            if (sawPromptPast_)
+            {
+                kvStreamedTurn_ = qMax(0, finalUsed - kvUsedBeforeTurn_);
+                kvTokensTurn_ = kvPromptTokensTurn_ + kvStreamedTurn_;
+            }
             sawFinalPast_ = true;
             updateKvBarUi();
             markBackendActivity();
