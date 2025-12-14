@@ -42,6 +42,7 @@ add_executable(
     src/widget/widget_slots.cpp
     src/widget/widget_output.cpp
     src/widget/widget_anim.cpp
+    src/widget/controller_overlay.cpp src/widget/controller_overlay.h
     src/widget/backendmanagerdialog.cpp src/widget/backendmanagerdialog.h
     src/widget/terminal_pane.cpp
     src/widget/toolcall_test_dialog.cpp src/widget/toolcall_test_dialog.h
@@ -147,7 +148,6 @@ if (TARGET backends)
 endif()
 
 message(STATUS "eva型号: ${eva_OUTPUT_NAME}")
-
 
 
 

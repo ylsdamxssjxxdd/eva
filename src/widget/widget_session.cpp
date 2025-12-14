@@ -6,6 +6,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QImage>
+#include <QImageReader>
 #include <string>
 
 void Widget::on_load_clicked()
@@ -313,6 +315,8 @@ void Widget::collectUserInputs(InputPack &pack, bool attachControllerFrame)
         const ControllerFrame frame = captureControllerFrame();
         if (!frame.imagePath.isEmpty())
         {
+            // 记录“最后一次发给模型的控制器截图”，用于后续将 bbox 等信息叠加后落盘（EVA_TEMP/overlay）
+            lastControllerImagePathForModel_ = frame.imagePath;
             pack.images.append(frame.imagePath);
         }
     }
@@ -360,6 +364,7 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         }
         if (!in.images.isEmpty())
         {
+            // 附带图片时：只发送图片本体，不再额外插入“图片文件名/尺寸”等元信息文本，避免干扰模型决策。
             for (const QString &imagePath : in.images)
             {
                 QFile imageFile(imagePath);
@@ -370,7 +375,18 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
                 }
                 const QByteArray imageData = imageFile.readAll();
                 const QByteArray base64Data = imageData.toBase64();
-                const QString base64String = QStringLiteral("data:image/jpeg;base64,") + base64Data;
+                // 按文件后缀选择 MIME，避免固定写死导致部分后端/模型解析异常。
+                const QString ext = QFileInfo(imagePath).suffix().toLower();
+                QString mimeType = QStringLiteral("image/png");
+                if (ext == QStringLiteral("jpg") || ext == QStringLiteral("jpeg"))
+                    mimeType = QStringLiteral("image/jpeg");
+                else if (ext == QStringLiteral("png"))
+                    mimeType = QStringLiteral("image/png");
+                else if (ext == QStringLiteral("webp"))
+                    mimeType = QStringLiteral("image/webp");
+                else if (ext == QStringLiteral("gif"))
+                    mimeType = QStringLiteral("image/gif");
+                const QString base64String = QStringLiteral("data:%1;base64,").arg(mimeType) + base64Data;
                 QJsonObject imageObject;
                 imageObject["type"] = QStringLiteral("image_url");
                 QJsonObject imageUrlObject;
@@ -531,6 +547,8 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
         controllerFrame = captureControllerFrame();
         if (!controllerFrame.imagePath.isEmpty())
         {
+            // 该截图会在下一轮继续发送给模型：记录下来，便于 controller 工具调用时回溯标注。
+            lastControllerImagePathForModel_ = controllerFrame.imagePath;
             // 单独插入一条用户消息携带截图，保持 tool 消息仍为纯文本，避免 role 不兼容导致被丢弃
             QJsonArray screenshotContent;
             QJsonObject textPart;

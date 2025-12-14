@@ -451,8 +451,11 @@ QString Widget::create_extra_prompt()
         }
         if (date_ui->controller_checkbox->isChecked())
         {
-            // 桌面控制器提示词不再拼接屏幕尺寸信息：避免误导并减少提示词噪声
-            available_tools_describe += promptx::toolController().text + "\n\n";
+            // 桌面控制器提示词：把“截图归一化尺寸”写进提示词里（用当前设置值替换占位符），避免每条消息都额外注入图片元信息文本。
+            QString controllerText = promptx::toolController().text;
+            controllerText.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+            controllerText.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+            available_tools_describe += controllerText + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
         {

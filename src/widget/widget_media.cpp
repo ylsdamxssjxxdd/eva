@@ -1,6 +1,10 @@
 #include "widget.h"
 #include "ui_widget.h"
+#include "controller_overlay.h"
 #include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPixmap>
 #include <QScreen>
 #include <QCursor>
@@ -13,6 +17,274 @@
 #include <QTextCursor>
 #include <QAudioDeviceInfo>
 #include <QScrollBar>
+
+void Widget::ensureControllerOverlay()
+{
+    if (controllerOverlay_) return;
+    controllerOverlay_ = new ControllerOverlay();
+    controllerOverlay_->hideNow();
+}
+
+void Widget::hideControllerOverlay()
+{
+    if (!controllerOverlay_) return;
+    controllerOverlay_->hideNow();
+}
+
+void Widget::recv_controller_hint(int x, int y, const QString &description)
+{
+    ensureControllerOverlay();
+    if (!controllerOverlay_) return;
+    controllerOverlay_->showHint(x, y, description);
+}
+
+void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
+{
+    // -----------------------------------------------------------------------------
+    // 需求：为了更好观察模型的定位
+    // - controller 工具被调用时，把模型传入的 bbox/action/description/to_bbox 等信息绘制到截图上
+    // - 将标注后的图片保存到 EVA_TEMP/overlay 目录，便于回溯与复盘
+    // -----------------------------------------------------------------------------
+
+    // 1) 选择“作为底图的截图”：优先使用最近一次发给模型的控制器截图（归一化坐标系截图）
+    QString basePath = lastControllerImagePathForModel_;
+    if (basePath.isEmpty() || !QFileInfo::exists(basePath))
+    {
+        // 兜底：使用最近一次捕获的控制器截图
+        if (!controllerFrames_.isEmpty())
+        {
+            const QString candidate = controllerFrames_.last().imagePath;
+            if (!candidate.isEmpty() && QFileInfo::exists(candidate))
+            {
+                basePath = candidate;
+            }
+        }
+    }
+    if (basePath.isEmpty() || !QFileInfo::exists(basePath))
+    {
+        // 再兜底：现场抓一张（可能不是模型当时看到的那张，但至少能落盘观察 bbox 是否合理）
+        const ControllerFrame frame = captureControllerFrame();
+        if (!frame.imagePath.isEmpty() && QFileInfo::exists(frame.imagePath))
+        {
+            basePath = frame.imagePath;
+        }
+    }
+    if (basePath.isEmpty() || !QFileInfo::exists(basePath))
+    {
+        qWarning().noquote() << "[controller-overlay] no base screenshot available";
+        return;
+    }
+
+    // 2) 解析 arguments JSON，提取 bbox/action/description 等字段
+    QJsonParseError parseError;
+    const QJsonDocument doc = QJsonDocument::fromJson(argsJson.toUtf8(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject())
+    {
+        qWarning().noquote() << "[controller-overlay] invalid argsJson:" << parseError.errorString();
+        return;
+    }
+    const QJsonObject obj = doc.object();
+
+    auto toIntRounded = [](const QJsonValue &v, int fallback = 0) -> int {
+        if (v.isDouble())
+        {
+            return qRound(v.toDouble());
+        }
+        if (v.isString())
+        {
+            bool ok = false;
+            const double d = v.toString().toDouble(&ok);
+            if (ok) return qRound(d);
+        }
+        return fallback;
+    };
+
+    auto parseBBox = [&](const char *key, bool required, QRect &outRect) -> bool {
+        if (!obj.contains(QString::fromLatin1(key)))
+        {
+            return !required;
+        }
+        const QJsonValue v = obj.value(QString::fromLatin1(key));
+        if (!v.isArray()) return !required;
+        const QJsonArray a = v.toArray();
+        if (a.size() != 4) return !required;
+        const int x1 = toIntRounded(a.at(0));
+        const int y1 = toIntRounded(a.at(1));
+        const int x2 = toIntRounded(a.at(2));
+        const int y2 = toIntRounded(a.at(3));
+        outRect = QRect(QPoint(x1, y1), QPoint(x2, y2)).normalized();
+        return true;
+    };
+
+    QRect bbox;
+    if (!parseBBox("bbox", true, bbox))
+    {
+        qWarning().noquote() << "[controller-overlay] missing/invalid bbox";
+        return;
+    }
+    QRect toBbox;
+    const bool hasToBbox = parseBBox("to_bbox", false, toBbox) && !toBbox.isNull();
+
+    const QString action = obj.value(QStringLiteral("action")).toString().trimmed();
+    const QString description = obj.value(QStringLiteral("description")).toString().trimmed();
+    const QString key = obj.value(QStringLiteral("key")).toString().trimmed();
+    const QString text = obj.value(QStringLiteral("text")).toString();
+    const int delayMs = obj.contains(QStringLiteral("delay_ms")) ? toIntRounded(obj.value(QStringLiteral("delay_ms")), -1) : -1;
+    const int durationMs = obj.contains(QStringLiteral("duration_ms")) ? toIntRounded(obj.value(QStringLiteral("duration_ms")), -1) : -1;
+    const int scrollSteps = obj.contains(QStringLiteral("scroll_steps")) ? toIntRounded(obj.value(QStringLiteral("scroll_steps")), -1) : -1;
+
+    // 3) 加载底图并绘制标注
+    QImage img(basePath);
+    if (img.isNull())
+    {
+        qWarning().noquote() << "[controller-overlay] failed to load base screenshot:" << QDir::toNativeSeparators(basePath);
+        return;
+    }
+    if (img.format() != QImage::Format_ARGB32) img = img.convertToFormat(QImage::Format_ARGB32);
+
+    const QRect imgRect(0, 0, img.width() - 1, img.height() - 1);
+    auto clampRectToImage = [&](QRect r) -> QRect {
+        if (imgRect.width() <= 0 || imgRect.height() <= 0) return QRect();
+        r = r.normalized();
+        return r.intersected(imgRect);
+    };
+    auto clampPointToImage = [&](QPoint p) -> QPoint {
+        if (imgRect.width() <= 0 || imgRect.height() <= 0) return QPoint(0, 0);
+        p.setX(qBound(imgRect.left(), p.x(), imgRect.right()));
+        p.setY(qBound(imgRect.top(), p.y(), imgRect.bottom()));
+        return p;
+    };
+
+    const QRect bboxClamped = clampRectToImage(bbox);
+    const QRect toBboxClamped = hasToBbox ? clampRectToImage(toBbox) : QRect();
+    const QPoint bboxCenter = clampPointToImage(bbox.center());
+    const QPoint toBboxCenter = hasToBbox ? clampPointToImage(toBbox.center()) : QPoint();
+
+    QPainter p(&img);
+    p.setRenderHint(QPainter::Antialiasing, true);
+
+    // bbox：蓝色框（与“系统相关为蓝色”的视觉约定一致）
+    const QColor bboxBorder(0, 140, 255, 230);
+    const QColor bboxFill(0, 140, 255, 40);
+    p.setPen(QPen(bboxBorder, 3));
+    p.setBrush(bboxFill);
+    if (!bboxClamped.isNull()) p.drawRect(bboxClamped);
+
+    // 中心点：十字 + 小圆
+    const QColor centerColor(255, 255, 255, 240);
+    p.setPen(QPen(centerColor, 2));
+    p.setBrush(centerColor);
+    p.drawEllipse(bboxCenter, 3, 3);
+    p.drawLine(bboxCenter.x() - 12, bboxCenter.y(), bboxCenter.x() + 12, bboxCenter.y());
+    p.drawLine(bboxCenter.x(), bboxCenter.y() - 12, bboxCenter.x(), bboxCenter.y() + 12);
+
+    // to_bbox：橙色框（拖放终点等）
+    if (hasToBbox && !toBboxClamped.isNull())
+    {
+        const QColor toBorder(255, 140, 0, 230);
+        const QColor toFill(255, 140, 0, 30);
+        QPen pen(toBorder, 3);
+        pen.setStyle(Qt::DashLine);
+        p.setPen(pen);
+        p.setBrush(toFill);
+        p.drawRect(toBboxClamped);
+
+        // 用箭头线把起点与终点连起来
+        QPen linkPen(toBorder, 2);
+        p.setPen(linkPen);
+        p.setBrush(Qt::NoBrush);
+        p.drawLine(bboxCenter, toBboxCenter);
+        p.drawEllipse(toBboxCenter, 3, 3);
+    }
+
+    // 4) 文本信息：action/description/bbox 等，绘制在左上角，带半透明背景
+    const QFileInfo baseInfo(basePath);
+    const QString baseName = baseInfo.fileName().isEmpty() ? baseInfo.absoluteFilePath() : baseInfo.fileName();
+
+    QStringList lines;
+    lines << QStringLiteral("controller overlay");
+    lines << QStringLiteral("turn: %1").arg(turnId == 0 ? QStringLiteral("-") : QString::number(turnId));
+    lines << QStringLiteral("image: %1 (%2x%3)").arg(baseName).arg(img.width()).arg(img.height());
+    if (!action.isEmpty()) lines << QStringLiteral("action: %1").arg(action);
+    lines << QStringLiteral("bbox: [%1,%2,%3,%4] center=(%5,%6)")
+                 .arg(bbox.left())
+                 .arg(bbox.top())
+                 .arg(bbox.right())
+                 .arg(bbox.bottom())
+                 .arg(bboxCenter.x())
+                 .arg(bboxCenter.y());
+    if (hasToBbox)
+    {
+        lines << QStringLiteral("to_bbox: [%1,%2,%3,%4] center=(%5,%6)")
+                     .arg(toBbox.left())
+                     .arg(toBbox.top())
+                     .arg(toBbox.right())
+                     .arg(toBbox.bottom())
+                     .arg(toBboxCenter.x())
+                     .arg(toBboxCenter.y());
+    }
+    if (!key.isEmpty()) lines << QStringLiteral("key: %1").arg(key);
+    if (delayMs >= 0) lines << QStringLiteral("delay_ms: %1").arg(delayMs);
+    if (durationMs >= 0) lines << QStringLiteral("duration_ms: %1").arg(durationMs);
+    if (scrollSteps >= 0) lines << QStringLiteral("scroll_steps: %1").arg(scrollSteps);
+    if (!text.isEmpty())
+    {
+        // 避免文本过长撑爆标注
+        QString clipped = text;
+        if (clipped.size() > 160) clipped = clipped.left(160) + QStringLiteral("...");
+        lines << QStringLiteral("text: %1").arg(clipped);
+    }
+    if (!description.isEmpty())
+    {
+        QString clipped = description;
+        if (clipped.size() > 240) clipped = clipped.left(240) + QStringLiteral("...");
+        lines << QStringLiteral("desc: %1").arg(clipped);
+    }
+
+    QFont font = p.font();
+    font.setBold(true);
+    p.setFont(font);
+    const QString overlayText = lines.join(QStringLiteral("\n"));
+    const int margin = 10;
+    const QRect textArea(margin, margin, img.width() - margin * 2, img.height() - margin * 2);
+    QFontMetrics fm(font);
+    QRect textRect = fm.boundingRect(textArea, Qt::TextWordWrap, overlayText);
+    textRect = textRect.adjusted(-10, -8, 10, 8); // padding
+
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(0, 0, 0, 160));
+    p.drawRoundedRect(textRect, 8, 8);
+
+    p.setPen(QColor(255, 255, 255, 240));
+    p.drawText(textRect.adjusted(10, 8, -10, -8), Qt::TextWordWrap, overlayText);
+
+    // 5) 落盘：EVA_TEMP/overlay
+    const QString overlayDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP/overlay"));
+    QDir().mkpath(overlayDir);
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_hh-mm-ss-zzz"));
+
+    auto sanitize = [](QString s) -> QString {
+        s = s.trimmed();
+        if (s.isEmpty()) return QStringLiteral("controller");
+        for (int i = 0; i < s.size(); ++i)
+        {
+            const QChar ch = s.at(i);
+            const bool ok = ch.isLetterOrNumber() || ch == QLatin1Char('_') || ch == QLatin1Char('-');
+            if (!ok) s[i] = QLatin1Char('_');
+        }
+        return s;
+    };
+
+    const QString turnPart = (turnId == 0) ? QStringLiteral("turn-") : QStringLiteral("turn%1").arg(turnId);
+    const QString fileName = QStringLiteral("%1_%2_%3.png").arg(stamp, turnPart, sanitize(action));
+    const QString outPath = QDir(overlayDir).filePath(fileName);
+    if (!img.save(outPath))
+    {
+        qWarning().noquote() << "[controller-overlay] failed to save:" << QDir::toNativeSeparators(outPath);
+        return;
+    }
+    qInfo().noquote() << "[controller-overlay]" << QDir::toNativeSeparators(outPath);
+}
 
 void Widget::showImages(QStringList images_filepath)
 {
@@ -144,6 +416,8 @@ QString Widget::saveScreen()
 Widget::ControllerFrame Widget::captureControllerFrame()
 {
     ControllerFrame frame;
+    // 控制器截图一定要“干净”：避免把叠加提示也截进去，污染模型输入。
+    hideControllerOverlay();
     QScreen *screen = QApplication::primaryScreen();
     if (!screen)
     {

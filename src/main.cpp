@@ -474,6 +474,8 @@ int main(int argc, char *argv[])
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);        // 窗口状态区更新
     QObject::connect(&tool, &xTool::tool2ui_pushover, &w, &Widget::recv_toolpushover); // 完成推理
+    QObject::connect(&tool, &xTool::tool2ui_controller_hint, &w, &Widget::recv_controller_hint, Qt::QueuedConnection); // 桌面控制器：屏幕叠加提示
+    QObject::connect(&tool, &xTool::tool2ui_controller_overlay, &w, &Widget::recv_controller_overlay, Qt::QueuedConnection); // 桌面控制器：落盘带 bbox 的截图标注
     QObject::connect(&tool, &xTool::tool2ui_terminalCommandStarted, &w, &Widget::toolCommandStarted);
     QObject::connect(&tool, &xTool::tool2ui_terminalStdout, &w, &Widget::toolCommandStdout);
     QObject::connect(&tool, &xTool::tool2ui_terminalStderr, &w, &Widget::toolCommandStderr);

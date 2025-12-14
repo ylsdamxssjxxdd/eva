@@ -2,6 +2,7 @@
 
 #include "widget.h"
 
+#include "controller_overlay.h"
 #include "terminal_pane.h"
 #include "toolcall_test_dialog.h"
 #include "backendmanagerdialog.h"
@@ -415,6 +416,13 @@ Widget::~Widget()
     date_ui = nullptr;
     delete settings_ui;
     settings_ui = nullptr;
+
+    if (controllerOverlay_)
+    {
+        controllerOverlay_->hideNow();
+        delete controllerOverlay_;
+        controllerOverlay_ = nullptr;
+    }
 }
 
 void Widget::setBaseWindowIcon(const QIcon &icon)

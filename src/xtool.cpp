@@ -590,6 +590,388 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
     //----------------------桌面控制器------------------
     else if (tools_name == "controller")
     {
+        // -----------------------------------------------------------------------------
+        // 桌面控制器（新版）：bbox + action + description
+        // - bbox 坐标：以“最新截图”的像素坐标为准（截图已缩放到归一化尺寸），原点左上角，x 向右，y 向下
+        // - 执行坐标：取 bbox 中心点，并按 controllerNormX_/Y_ 映射回真实屏幕坐标
+        // - UI 提示：执行前通过 tool2ui_controller_hint 在屏幕上绘制中心点 + 80x80 框 + 描述
+        // -----------------------------------------------------------------------------
+        const bool looksLikeNewSchema = tools_args_.is_object() && tools_args_.contains("action") && tools_args_.contains("description") &&
+                                        tools_args_.contains("bbox");
+        if (looksLikeNewSchema)
+        {
+            auto cancelled = [&]() -> bool {
+                return tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire);
+            };
+
+            struct BBox
+            {
+                int x1 = 0;
+                int y1 = 0;
+                int x2 = 0;
+                int y2 = 0;
+            };
+
+            auto parseIntJsonRounded = [](const mcp::json &val, int &out) -> bool {
+                try
+                {
+                    if (val.is_number_integer())
+                    {
+                        out = val.get<int>();
+                        return true;
+                    }
+                    if (val.is_number_float())
+                    {
+                        const double v = val.get<double>();
+                        out = static_cast<int>(v >= 0.0 ? (v + 0.5) : (v - 0.5));
+                        return true;
+                    }
+                    if (val.is_string())
+                    {
+                        const std::string s = val.get<std::string>();
+                        size_t idx = 0;
+                        const double v = std::stod(s, &idx);
+                        while (idx < s.size() && std::isspace(static_cast<unsigned char>(s[idx]))) ++idx;
+                        if (idx != s.size()) return false;
+                        out = static_cast<int>(v >= 0.0 ? (v + 0.5) : (v - 0.5));
+                        return true;
+                    }
+                }
+                catch (...)
+                {
+                }
+                return false;
+            };
+
+            auto parseBBox = [&](const mcp::json &obj, const char *key, BBox &out, QString &error) -> bool {
+                if (!obj.contains(key))
+                {
+                    error = QStringLiteral("missing %1").arg(QString::fromLatin1(key));
+                    return false;
+                }
+                const auto &v = obj.at(key);
+                if (!v.is_array() || v.size() != 4)
+                {
+                    error = QStringLiteral("%1 must be [x1,y1,x2,y2]").arg(QString::fromLatin1(key));
+                    return false;
+                }
+                int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+                if (!parseIntJsonRounded(v.at(0), x1) || !parseIntJsonRounded(v.at(1), y1) || !parseIntJsonRounded(v.at(2), x2) ||
+                    !parseIntJsonRounded(v.at(3), y2))
+                {
+                    error = QStringLiteral("%1 contains non-numeric values").arg(QString::fromLatin1(key));
+                    return false;
+                }
+                out = {x1, y1, x2, y2};
+                return true;
+            };
+
+            BBox bbox;
+            QString parseError;
+            if (!parseBBox(tools_args_, "bbox", bbox, parseError))
+            {
+                const QString detail = QStringLiteral("controller invalid args: %1").arg(parseError);
+                sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+                sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+                return;
+            }
+
+            const QString actionRaw = QString::fromStdString(get_string_safely(tools_args_, "action")).trimmed();
+            const QString description = QString::fromStdString(get_string_safely(tools_args_, "description")).trimmed();
+            const QString key = QString::fromStdString(get_string_safely(tools_args_, "key")).trimmed();
+            const QString text = QString::fromStdString(get_string_safely(tools_args_, "text"));
+
+            if (actionRaw.isEmpty() || description.isEmpty())
+            {
+                const QString detail = QStringLiteral("controller invalid args: action/description is required");
+                sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+                sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+                return;
+            }
+
+            auto normAction = [](QString a) -> QString {
+                a = a.trimmed().toLower();
+                a.replace('-', '_');
+                a.remove(' ');
+                return a;
+            };
+            const QString action = normAction(actionRaw);
+
+            // 将“模型传入的参数”（原始 arguments JSON）交给 UI：
+            // - 用于把 bbox/action/description/to_bbox 等信息绘制到截图上并落盘（EVA_TEMP/overlay）
+            // - 仅用于回溯观察模型定位，不参与执行逻辑
+            emit tool2ui_controller_overlay(invocation->turnId, tools_args);
+
+            // -----------------------------------------------------------------------------
+            // 坐标映射：归一化坐标系 -> 真实屏幕坐标（0~screenMaxX / 0~screenMaxY）
+            // -----------------------------------------------------------------------------
+            const int normMaxX = std::max(1, controllerNormX_.load(std::memory_order_acquire));
+            const int normMaxY = std::max(1, controllerNormY_.load(std::memory_order_acquire));
+
+            int screenMaxX = 0;
+            int screenMaxY = 0;
+#ifdef _WIN32
+            screenMaxX = std::max(0, GetSystemMetrics(SM_CXSCREEN) - 1);
+            screenMaxY = std::max(0, GetSystemMetrics(SM_CYSCREEN) - 1);
+#else
+            Display *display = platform::dsp();
+            if (display)
+            {
+                const int screenIndex = DefaultScreen(display);
+                screenMaxX = std::max(0, DisplayWidth(display, screenIndex) - 1);
+                screenMaxY = std::max(0, DisplayHeight(display, screenIndex) - 1);
+            }
+#endif
+
+            auto mapCoord = [](int value, int srcMax, int dstMax) -> int {
+                if (dstMax <= 0) return 0;
+                if (srcMax <= 0) return std::clamp(value, 0, dstMax);
+                const int clamped = std::clamp(value, 0, srcMax);
+                const long long numerator = 1LL * clamped * dstMax + srcMax / 2;
+                const int mapped = int(numerator / srcMax);
+                return std::clamp(mapped, 0, dstMax);
+            };
+
+            auto bboxCenterNorm = [](const BBox &b) -> std::pair<int, int> {
+                int x1 = b.x1, y1 = b.y1, x2 = b.x2, y2 = b.y2;
+                if (x1 > x2) std::swap(x1, x2);
+                if (y1 > y2) std::swap(y1, y2);
+                return {(x1 + x2) / 2, (y1 + y2) / 2};
+            };
+
+            const auto [cxNormRaw, cyNormRaw] = bboxCenterNorm(bbox);
+            const int cxNorm = std::clamp(cxNormRaw, 0, normMaxX);
+            const int cyNorm = std::clamp(cyNormRaw, 0, normMaxY);
+            const int cx = mapCoord(cxNorm, normMaxX, screenMaxX);
+            const int cy = mapCoord(cyNorm, normMaxY, screenMaxY);
+
+            auto showOverlayHint = [&](int x, int y, const QString &desc) {
+                // 通过信号让 UI 线程绘制叠加提示；稍作等待，尽量让用户看清后再执行动作。
+                emit tool2ui_controller_hint(x, y, desc);
+                msleep(80);
+            };
+
+            auto smoothMoveTo = [&](int ex, int ey, int durationMs) {
+                using namespace platform;
+                if (durationMs <= 0)
+                {
+                    moveCursor(ex, ey);
+                    return;
+                }
+                const int fps = 60;
+                const int steps = std::max(1, int((durationMs / 1000.0) * fps));
+#ifdef _WIN32
+                POINT p;
+                GetCursorPos(&p);
+                int sx = p.x, sy = p.y;
+#else
+                Window root_r, child_r;
+                int sx = 0, sy = 0;
+                int rx = 0, ry = 0;
+                unsigned int mask = 0;
+                XQueryPointer(dsp(), DefaultRootWindow(dsp()), &root_r, &child_r,
+                              &rx, &ry, &sx, &sy, &mask);
+#endif
+                const int stepSleep = std::max(1, durationMs / steps);
+                for (int i = 1; i <= steps; ++i)
+                {
+                    if (cancelled()) return;
+                    const double k = double(i) / steps;
+                    moveCursor(int(sx + k * (ex - sx)), int(sy + k * (ey - sy)));
+                    msleep(static_cast<unsigned long>(stepSleep));
+                }
+            };
+
+            auto sendKeyString = [&](const QString &keysText) {
+                std::string keys = keysText.toStdString();
+                if (keys.find('+') != std::string::npos)
+                    platform::sendKeyCombo(split(keys, '+'));
+                else
+                    platform::sendKeyCombo({keys});
+            };
+
+            const int delayMs = std::max(0, get_int_safely(tools_args_, "delay_ms", 0));
+            const int durationMs = std::max(0, get_int_safely(tools_args_, "duration_ms", 0));
+            const int scrollSteps = std::max(1, get_int_safely(tools_args_, "scroll_steps", 1));
+
+            sendStateMessage(QStringLiteral("tool:controller action=%1 center_norm=(%2,%3)")
+                                 .arg(actionRaw)
+                                 .arg(cxNorm)
+                                 .arg(cyNorm),
+                             SIGNAL_SIGNAL);
+
+            if (cancelled()) return;
+
+            using namespace platform;
+            if (action == QStringLiteral("left_click") || actionRaw == QStringLiteral("左键单击") || actionRaw == QStringLiteral("左键点击"))
+            {
+                showOverlayHint(cx, cy, description);
+                leftDown(cx, cy);
+                msleep(30);
+                leftUp();
+            }
+            else if (action == QStringLiteral("left_double_click") || actionRaw == QStringLiteral("左键双击"))
+            {
+                showOverlayHint(cx, cy, description);
+                leftDown(cx, cy);
+                msleep(20);
+                leftUp();
+                msleep(100);
+                leftDown(cx, cy);
+                msleep(20);
+                leftUp();
+            }
+            else if (action == QStringLiteral("right_click") || actionRaw == QStringLiteral("右击单击") || actionRaw == QStringLiteral("右键单击") ||
+                     actionRaw == QStringLiteral("右键点击"))
+            {
+                showOverlayHint(cx, cy, description);
+                rightDown(cx, cy);
+                msleep(20);
+                rightUp();
+            }
+            else if (action == QStringLiteral("middle_click") || actionRaw == QStringLiteral("中键单击") || actionRaw == QStringLiteral("中键点击"))
+            {
+                showOverlayHint(cx, cy, description);
+                middleDown(cx, cy);
+                msleep(20);
+                middleUp();
+            }
+            else if (action == QStringLiteral("left_hold") || actionRaw == QStringLiteral("按住左键"))
+            {
+                showOverlayHint(cx, cy, description);
+                leftDown(cx, cy);
+            }
+            else if (action == QStringLiteral("right_hold") || actionRaw == QStringLiteral("按住右键"))
+            {
+                showOverlayHint(cx, cy, description);
+                rightDown(cx, cy);
+            }
+            else if (action == QStringLiteral("middle_hold") || actionRaw == QStringLiteral("按住中键"))
+            {
+                showOverlayHint(cx, cy, description);
+                middleDown(cx, cy);
+            }
+            else if (action == QStringLiteral("left_release") || actionRaw == QStringLiteral("松开左键"))
+            {
+                showOverlayHint(cx, cy, description);
+                leftUp();
+            }
+            else if (action == QStringLiteral("right_release") || actionRaw == QStringLiteral("松开右键"))
+            {
+                showOverlayHint(cx, cy, description);
+                rightUp();
+            }
+            else if (action == QStringLiteral("middle_release") || actionRaw == QStringLiteral("松开中键"))
+            {
+                showOverlayHint(cx, cy, description);
+                middleUp();
+            }
+            else if (action == QStringLiteral("scroll_down") || actionRaw == QStringLiteral("滚轮下滚"))
+            {
+                showOverlayHint(cx, cy, description);
+                moveCursor(cx, cy);
+                wheel(-scrollSteps);
+            }
+            else if (action == QStringLiteral("scroll_up") || actionRaw == QStringLiteral("滚轮上滚"))
+            {
+                showOverlayHint(cx, cy, description);
+                moveCursor(cx, cy);
+                wheel(scrollSteps);
+            }
+            else if (action == QStringLiteral("press_key") || actionRaw == QStringLiteral("按键盘") || action == QStringLiteral("keyboard"))
+            {
+                if (key.isEmpty())
+                {
+                    const QString detail = QStringLiteral("controller invalid args: key is required for action=%1").arg(actionRaw);
+                    sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+                    sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+                    return;
+                }
+                showOverlayHint(cx, cy, description);
+                sendKeyString(key);
+            }
+            else if (action == QStringLiteral("type_text") || actionRaw == QStringLiteral("发送文字") || action == QStringLiteral("send_text"))
+            {
+                showOverlayHint(cx, cy, description);
+#ifdef _WIN32
+                // Windows：使用 KEYEVENTF_UNICODE 直接注入 UTF-16，避免污染剪贴板。
+                const std::wstring w = text.toStdWString();
+                for (wchar_t ch : w)
+                {
+                    if (cancelled()) return;
+                    INPUT inputs[2]{};
+                    inputs[0].type = INPUT_KEYBOARD;
+                    inputs[0].ki.wVk = 0;
+                    inputs[0].ki.wScan = static_cast<WORD>(ch);
+                    inputs[0].ki.dwFlags = KEYEVENTF_UNICODE;
+                    inputs[1] = inputs[0];
+                    inputs[1].ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+                    SendInput(2, inputs, sizeof(INPUT));
+                    msleep(1);
+                }
+#else
+                const QString warn = QStringLiteral("type_text is not supported on Linux/X11 yet");
+                sendStateMessage(QStringLiteral("tool:controller warn: ") + warn, WRONG_SIGNAL);
+#endif
+            }
+            else if (action == QStringLiteral("delay") || actionRaw == QStringLiteral("延时") || action == QStringLiteral("sleep"))
+            {
+                showOverlayHint(cx, cy, description);
+                if (delayMs > 0) msleep(static_cast<unsigned long>(delayMs));
+            }
+            else if (action == QStringLiteral("move_mouse") || actionRaw == QStringLiteral("移动鼠标") || action == QStringLiteral("move"))
+            {
+                showOverlayHint(cx, cy, description);
+                smoothMoveTo(cx, cy, durationMs);
+            }
+            else if (action == QStringLiteral("drag_drop") || actionRaw == QStringLiteral("拖放") || action == QStringLiteral("drag"))
+            {
+                BBox toBbox;
+                QString err;
+                if (!parseBBox(tools_args_, "to_bbox", toBbox, err))
+                {
+                    const QString detail = QStringLiteral("controller invalid args: to_bbox is required for drag_drop (%1)").arg(err);
+                    sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+                    sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+                    return;
+                }
+                const auto [toCxNormRaw, toCyNormRaw] = bboxCenterNorm(toBbox);
+                const int toCxNorm = std::clamp(toCxNormRaw, 0, normMaxX);
+                const int toCyNorm = std::clamp(toCyNormRaw, 0, normMaxY);
+                const int toCx = mapCoord(toCxNorm, normMaxX, screenMaxX);
+                const int toCy = mapCoord(toCyNorm, normMaxY, screenMaxY);
+
+                showOverlayHint(cx, cy, description);
+                leftDown(cx, cy);
+                msleep(50);
+                smoothMoveTo(toCx, toCy, durationMs > 0 ? durationMs : 400);
+                msleep(20);
+                showOverlayHint(toCx, toCy, description);
+                leftUp();
+            }
+            else
+            {
+                const QString detail = QStringLiteral("controller invalid action: %1").arg(actionRaw);
+                sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+                sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+                return;
+            }
+
+            if (cancelled()) return;
+
+            const QString detail = QStringLiteral("ok\naction=%1\nbbox=[%2,%3,%4,%5]\ncenter_norm=(%6,%7)")
+                                       .arg(actionRaw)
+                                       .arg(bbox.x1)
+                                       .arg(bbox.y1)
+                                       .arg(bbox.x2)
+                                       .arg(bbox.y2)
+                                       .arg(cxNorm)
+                                       .arg(cyNorm);
+            sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
+            sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
+            return;
+        }
+
         std::vector<std::string> build_in_tool_arg = get_string_list_safely(tools_args_, "sequence");
         // 拼接打印参数
         std::ostringstream oss;

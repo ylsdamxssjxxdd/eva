@@ -120,7 +120,12 @@ class xTool : public QObject
     void tool2ui_pushover(QString tool_result);
     void tool2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 发送的状态信号
     void tool2expend_draw(quint64 invocationId, QString prompt_);
-    void tool2ui_controller(int num); // Notify drawing progress
+    // 桌面控制器：用于在 UI 线程绘制“即将执行”的屏幕叠加提示。
+    // x/y 为真实屏幕坐标（与鼠标移动/点击一致），UI 侧会以此为中心绘制 80x80 目标框与描述文案。
+    void tool2ui_controller_hint(int x, int y, const QString &description);
+    // 桌面控制器：用于将模型传入的 bbox/action/description 等信息叠加到“最近一次发给模型的控制器截图”上并落盘，便于回溯定位。
+    // argsJson 为 tool_call.arguments 的 JSON 文本（只用于 UI 侧解析与绘制，不参与执行）。
+    void tool2ui_controller_overlay(quint64 turnId, const QString &argsJson);
 
   private:
     struct ToolPathResolution
@@ -261,6 +266,25 @@ inline void rightUp()
 {
     mouseFlag(MOUSEEVENTF_RIGHTUP);
 }
+inline void middleDown(int x, int y)
+{
+    moveCursor(x, y);
+    mouseFlag(MOUSEEVENTF_MIDDLEDOWN);
+}
+inline void middleUp()
+{
+    mouseFlag(MOUSEEVENTF_MIDDLEUP);
+}
+inline void wheel(int steps)
+{
+    if (steps == 0) return;
+    INPUT in{};
+    in.type = INPUT_MOUSE;
+    in.mi.dwFlags = MOUSEEVENTF_WHEEL;
+    const LONG wheelDelta = static_cast<LONG>(WHEEL_DELTA) * static_cast<LONG>(steps);
+    in.mi.mouseData = static_cast<DWORD>(wheelDelta);
+    SendInput(1, &in, sizeof(in));
+}
 
 inline WORD mapSingleKey(const std::string &k)
 {
@@ -378,6 +402,31 @@ inline void rightDown(int x, int y)
 inline void rightUp()
 {
     XTestFakeButtonEvent(dsp(), 3, False, CurrentTime);
+    flush();
+}
+inline void middleDown(int x, int y)
+{
+    moveCursor(x, y);
+    XTestFakeButtonEvent(dsp(), 2, True, CurrentTime);
+    flush();
+}
+inline void middleUp()
+{
+    XTestFakeButtonEvent(dsp(), 2, False, CurrentTime);
+    flush();
+}
+inline void wheel(int steps)
+{
+    // X11 约定：4=滚轮上，5=滚轮下。这里按“步数”触发按下/抬起。
+    if (steps == 0) return;
+    const int stepsAbs = (steps >= 0) ? steps : -steps;
+    const int stepsClamped = (stepsAbs < 1) ? 1 : stepsAbs;
+    const int button = (steps >= 0) ? 4 : 5;
+    for (int i = 0; i < stepsClamped; ++i)
+    {
+        XTestFakeButtonEvent(dsp(), button, True, CurrentTime);
+        XTestFakeButtonEvent(dsp(), button, False, CurrentTime);
+    }
     flush();
 }
 

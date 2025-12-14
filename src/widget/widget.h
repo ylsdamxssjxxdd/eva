@@ -98,6 +98,7 @@ QT_END_NAMESPACE
 class TerminalPane;
 class BackendManagerDialog;
 class ToolCallTestDialog;
+class ControllerOverlay;
 
 // Task dispatch for send flow
 enum class ConversationTask
@@ -331,9 +332,13 @@ class Widget : public QWidget
     };
     QList<ControllerFrame> controllerFrames_; // 已保存的桌面控制器截图列表
     const int kMaxControllerFrames_ = 120;    // 最多保留条目，超出后清理旧文件
+    QString lastControllerImagePathForModel_; // 最近一次“随消息发给模型”的控制器截图路径（用于回溯标注）
     QString saveScreen();        // 保存屏幕截图
     ControllerFrame captureControllerFrame(); // 捕获桌面控制器需要的截图（不绘制鼠标/坐标叠加）
     void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
+    void ensureControllerOverlay();           // 懒创建桌面控制器叠加层
+    void hideControllerOverlay();             // 截图/收尾前隐藏叠加层，避免被 captureControllerFrame 捕获
+    ControllerOverlay *controllerOverlay_ = nullptr;
 
     // 扩展相关
     QString embeddingdb_describe; // 知识库的描述
@@ -697,6 +702,8 @@ class Widget : public QWidget
     void recv_freeover_loadlater();                                              // 模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                // 处理tool推理完毕的槽
+    void recv_controller_hint(int x, int y, const QString &description); // 桌面控制器：绘制屏幕叠加提示
+    void recv_controller_overlay(quint64 turnId, const QString &argsJson); // 桌面控制器：保存带 bbox 等信息的标注截图（EVA_TEMP/overlay）
     void recv_docker_status(const DockerSandboxStatus &status);
     void reflash_output(const QString result, bool is_while, QColor color);      // 更新输出区,is_while表示从流式输出的token
     void reflash_state(QString state_string, SIGNAL_STATE state = USUAL_SIGNAL); // 更新状态区
