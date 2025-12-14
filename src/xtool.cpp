@@ -2114,6 +2114,15 @@ void xTool::cancelActiveTool()
     cancelExecuteCommand();
 }
 
+void xTool::recv_controllerNormalize(int normX, int normY)
+{
+    // 保护：避免异常值导致后续换算出现除零或溢出
+    const int x = std::clamp(normX, 100, 2048);
+    const int y = std::clamp(normY, 100, 2048);
+    controllerNormX_.store(x, std::memory_order_release);
+    controllerNormY_.store(y, std::memory_order_release);
+}
+
 // 创建临时文件夹EVA_TEMP
 
 bool xTool::createTempDirectory(const QString &path)
@@ -2406,6 +2415,59 @@ QString xTool::mcpToolParser(mcp::json toolsinfo)
 void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
 {
     // build_in_tool_arg的样式为 ["left_down(100,200)", "time_span(0.1)", "left_up()", "time_span(0.5)", "left_down(100,200)", "time_span(0.1)", "left_up()"]
+    // -----------------------------------------------------------------------------
+    // 桌面控制器：归一化坐标 -> 真实屏幕坐标
+    // - UI 侧会把截图缩放到 (controllerNormX_, controllerNormY_)
+    // - 模型输出的 x/y 也按该归一化坐标系给出
+    // - 工具层在执行前按比例换算回真实屏幕坐标（0~screenMaxX / 0~screenMaxY）
+    // -----------------------------------------------------------------------------
+    const int normMaxX = std::max(1, controllerNormX_.load(std::memory_order_acquire));
+    const int normMaxY = std::max(1, controllerNormY_.load(std::memory_order_acquire));
+
+    int screenMaxX = 0;
+    int screenMaxY = 0;
+#ifdef _WIN32
+    screenMaxX = std::max(0, GetSystemMetrics(SM_CXSCREEN) - 1);
+    screenMaxY = std::max(0, GetSystemMetrics(SM_CYSCREEN) - 1);
+#else
+    Display *display = platform::dsp();
+    if (display)
+    {
+        const int screenIndex = DefaultScreen(display);
+        screenMaxX = std::max(0, DisplayWidth(display, screenIndex) - 1);
+        screenMaxY = std::max(0, DisplayHeight(display, screenIndex) - 1);
+    }
+#endif
+
+    auto mapCoord = [](int value, int srcMax, int dstMax) -> int {
+        if (dstMax <= 0) return 0;
+        if (srcMax <= 0) return std::clamp(value, 0, dstMax);
+        const int clamped = std::clamp(value, 0, srcMax);
+        const long long numerator = 1LL * clamped * dstMax + srcMax / 2;
+        const int mapped = int(numerator / srcMax);
+        return std::clamp(mapped, 0, dstMax);
+    };
+
+    auto parseIntRounded = [](std::string text, int &out) -> bool {
+        // 允许输入 "123" / 123 / 123.4 这类格式，统一解析为四舍五入后的整数
+        text.erase(std::remove(text.begin(), text.end(), '\''), text.end());
+        text.erase(std::remove(text.begin(), text.end(), '\"'), text.end());
+        if (text.empty()) return false;
+        try
+        {
+            size_t idx = 0;
+            const double v = std::stod(text, &idx);
+            while (idx < text.size() && std::isspace(static_cast<unsigned char>(text[idx]))) ++idx;
+            if (idx != text.size()) return false;
+            out = static_cast<int>(v >= 0.0 ? (v + 0.5) : (v - 0.5));
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    };
+
     for (const auto &action : build_in_tool_arg)
     {
         if (tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire)) return;
@@ -2452,9 +2514,18 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
         using namespace platform;
         if (func_name == "left_down" && args_list.size() == 2)
         {
+            int xNorm = 0;
+            int yNorm = 0;
+            if (!parseIntRounded(args_list[0], xNorm) || !parseIntRounded(args_list[1], yNorm))
+            {
+                std::cout << "left_down invalid args";
+                continue;
+            }
+            const int x = mapCoord(xNorm, normMaxX, screenMaxX);
+            const int y = mapCoord(yNorm, normMaxY, screenMaxY);
             std::cout << "left_down "
-                      << " x " << args_list[0] << " y " << args_list[1];
-            leftDown(std::stoi(args_list[0]), std::stoi(args_list[1]));
+                      << " x " << xNorm << " y " << yNorm;
+            leftDown(x, y);
         }
         else if (func_name == "left_up")
         {
@@ -2463,9 +2534,18 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
         }
         else if (func_name == "right_down" && args_list.size() == 2)
         {
+            int xNorm = 0;
+            int yNorm = 0;
+            if (!parseIntRounded(args_list[0], xNorm) || !parseIntRounded(args_list[1], yNorm))
+            {
+                std::cout << "right_down invalid args";
+                continue;
+            }
+            const int x = mapCoord(xNorm, normMaxX, screenMaxX);
+            const int y = mapCoord(yNorm, normMaxY, screenMaxY);
             std::cout << "right_down "
-                      << " x " << args_list[0] << " y " << args_list[1];
-            rightDown(std::stoi(args_list[0]), std::stoi(args_list[1]));
+                      << " x " << xNorm << " y " << yNorm;
+            rightDown(x, y);
         }
         else if (func_name == "right_up")
         {
@@ -2474,11 +2554,27 @@ void xTool::excute_sequence(std::vector<std::string> build_in_tool_arg)
         }
         else if (func_name == "move" && args_list.size() == 3)
         {
-            int ex = std::stoi(args_list[0]);
-            int ey = std::stoi(args_list[1]);
-            float sec = std::stof(args_list[2]);
+            int exNorm = 0;
+            int eyNorm = 0;
+            if (!parseIntRounded(args_list[0], exNorm) || !parseIntRounded(args_list[1], eyNorm))
+            {
+                std::cout << "move invalid args";
+                continue;
+            }
+            float sec = 0.0f;
+            try
+            {
+                sec = std::stof(args_list[2]);
+            }
+            catch (...)
+            {
+                std::cout << "move invalid duration";
+                continue;
+            }
+            const int ex = mapCoord(exNorm, normMaxX, screenMaxX);
+            const int ey = mapCoord(eyNorm, normMaxY, screenMaxY);
             std::cout << "move "
-                      << " x " << args_list[0] << " y " << args_list[1] << " t " << args_list[2];
+                      << " x " << exNorm << " y " << eyNorm << " t " << args_list[2];
 #ifdef _WIN32
             POINT p;
             GetCursorPos(&p);

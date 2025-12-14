@@ -180,7 +180,17 @@ void Widget::get_date(bool applySandbox)
     ui_MCPtools_ischecked = date_ui->MCPtools_checkbox->isChecked();
     ui_knowledge_ischecked = date_ui->knowledge_checkbox->isChecked();
     ui_controller_ischecked = date_ui->controller_checkbox->isChecked();
+    if (date_ui->controller_norm_x_spin)
+    {
+        ui_controller_norm_x = date_ui->controller_norm_x_spin->value();
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        ui_controller_norm_y = date_ui->controller_norm_y_spin->value();
+    }
     ui_stablediffusion_ischecked = date_ui->stablediffusion_checkbox->isChecked();
+    // 同步给工具层：用于把模型输出的归一化坐标换算为真实屏幕坐标
+    emit ui2tool_controllerNormalize(ui_controller_norm_x, ui_controller_norm_y);
     if (date_ui->docker_target_comboBox)
     {
         const QVariant modeData = date_ui->docker_target_comboBox->currentData();
@@ -441,10 +451,8 @@ QString Widget::create_extra_prompt()
         }
         if (date_ui->controller_checkbox->isChecked())
         {
-            screen_info = create_screen_info(); // 构建屏幕信息
-            QString controllerText = promptx::toolController().text;
-            controllerText.replace("{screen_info}", screen_info);
-            available_tools_describe += controllerText + "\n\n";
+            // 桌面控制器提示词不再拼接屏幕尺寸信息：避免误导并减少提示词噪声
+            available_tools_describe += promptx::toolController().text + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
         {
@@ -918,6 +926,8 @@ void Widget::auto_save_user()
     settings.setValue("docker_sandbox_mode", dockerModeValue);
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools����
     settings.setValue("enabled_tools", enabledTools);
+    settings.setValue("controller_norm_x", ui_controller_norm_x); // 桌面控制器归一化 X
+    settings.setValue("controller_norm_y", ui_controller_norm_y); // 桌面控制器归一化 Y
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge工具
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller工具

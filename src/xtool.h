@@ -93,6 +93,8 @@ class xTool : public QObject
   public slots:
     void cancelExecuteCommand();
     void cancelActiveTool();
+    // 桌面控制器：归一化坐标系（截图与坐标统一），用于把模型输出坐标换算为真实屏幕坐标
+    void recv_controllerNormalize(int normX, int normY);
     void recv_embedding_resultnumb(int resultnumb);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_drawover(quint64 invocationId, QString result_, bool ok_); // 接收图像绘制完成信号
@@ -177,6 +179,8 @@ class xTool : public QObject
     DockerSandbox *dockerSandbox_ = nullptr;
     DockerSandbox::Config dockerConfig_;
     std::atomic<quint64> activeTurnId_{0};
+    std::atomic<int> controllerNormX_{1000};
+    std::atomic<int> controllerNormY_{1000};
 };
 
 // 桌面控制器工具的函数

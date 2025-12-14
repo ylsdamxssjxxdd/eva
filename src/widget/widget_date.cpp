@@ -35,6 +35,19 @@ void Widget::set_DateDialog()
     connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); // 点击工具响应
     connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
+    // 桌面控制器：归一化坐标系设置（截图与坐标统一）
+    if (date_ui->controller_norm_x_spin)
+    {
+        date_ui->controller_norm_x_spin->setRange(100, 2048);
+        date_ui->controller_norm_x_spin->setValue(ui_controller_norm_x);
+        connect(date_ui->controller_norm_x_spin, qOverload<int>(&QSpinBox::valueChanged), this, &Widget::tool_change);
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        date_ui->controller_norm_y_spin->setRange(100, 2048);
+        date_ui->controller_norm_y_spin->setValue(ui_controller_norm_y);
+        connect(date_ui->controller_norm_y_spin, qOverload<int>(&QSpinBox::valueChanged), this, &Widget::tool_change);
+    }
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);        // 点击工具响应
     if (date_ui->engineer_checkbox)
@@ -100,6 +113,16 @@ void Widget::set_DateDialog()
             { autosave(); });
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, [=](int)
             { autosave(); });
+    if (date_ui->controller_norm_x_spin)
+    {
+        connect(date_ui->controller_norm_x_spin, qOverload<int>(&QSpinBox::valueChanged), this, [=](int)
+                { autosave(); });
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        connect(date_ui->controller_norm_y_spin, qOverload<int>(&QSpinBox::valueChanged), this, [=](int)
+                { autosave(); });
+    }
     connect(date_ui->MCPtools_checkbox, &QCheckBox::stateChanged, this, [=](int)
             { autosave(); });
         connect(date_ui->engineer_checkbox, &QCheckBox::stateChanged, this, [=](int)
@@ -196,6 +219,20 @@ void Widget::on_date_clicked()
     date_ui->knowledge_checkbox->setChecked(ui_knowledge_ischecked);
     date_ui->stablediffusion_checkbox->setChecked(ui_stablediffusion_ischecked);
     date_ui->controller_checkbox->setChecked(ui_controller_ischecked);
+    if (date_ui->controller_norm_x_spin)
+    {
+        QSignalBlocker blocker(date_ui->controller_norm_x_spin);
+        date_ui->controller_norm_x_spin->setValue(ui_controller_norm_x);
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        QSignalBlocker blocker(date_ui->controller_norm_y_spin);
+        date_ui->controller_norm_y_spin->setValue(ui_controller_norm_y);
+    }
+    if (date_ui->controller_norm_box)
+    {
+        date_ui->controller_norm_box->setVisible(date_ui->controller_checkbox->isChecked());
+    }
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
     if (date_ui->docker_target_comboBox)
@@ -242,6 +279,8 @@ void Widget::captureDateDialogSnapshot()
     state.ui_knowledge_ischecked = ui_knowledge_ischecked;
     state.ui_stablediffusion_ischecked = ui_stablediffusion_ischecked;
     state.ui_controller_ischecked = ui_controller_ischecked;
+    state.ui_controller_norm_x = ui_controller_norm_x;
+    state.ui_controller_norm_y = ui_controller_norm_y;
     state.ui_MCPtools_ischecked = ui_MCPtools_ischecked;
     state.ui_engineer_ischecked = ui_engineer_ischecked;
     state.ui_dockerSandboxEnabled = ui_dockerSandboxEnabled;
@@ -712,6 +751,20 @@ void Widget::restoreDateDialogSnapshot()
         };
         restoreCheck(date_ui->calculator_checkbox, ui_calculator_ischecked);
         restoreCheck(date_ui->controller_checkbox, ui_controller_ischecked);
+        if (date_ui->controller_norm_x_spin)
+        {
+            QSignalBlocker blocker(date_ui->controller_norm_x_spin);
+            date_ui->controller_norm_x_spin->setValue(ui_controller_norm_x);
+        }
+        if (date_ui->controller_norm_y_spin)
+        {
+            QSignalBlocker blocker(date_ui->controller_norm_y_spin);
+            date_ui->controller_norm_y_spin->setValue(ui_controller_norm_y);
+        }
+        if (date_ui->controller_norm_box)
+        {
+            date_ui->controller_norm_box->setVisible(ui_controller_ischecked);
+        }
         restoreCheck(date_ui->knowledge_checkbox, ui_knowledge_ischecked);
         restoreCheck(date_ui->stablediffusion_checkbox, ui_stablediffusion_ischecked);
         restoreCheck(date_ui->MCPtools_checkbox, ui_MCPtools_ischecked);
@@ -733,6 +786,8 @@ void Widget::restoreDateDialogSnapshot()
         }
         updateSkillVisibility(ui_engineer_ischecked);
         if (ui_engineer_ischecked) refreshSkillsUI();
+
+        emit ui2tool_controllerNormalize(ui_controller_norm_x, ui_controller_norm_y);
 
         apply_language(language_flag);
         emit ui2tool_language(language_flag);
@@ -757,6 +812,8 @@ void Widget::restoreDateDialogSnapshot()
     ui_knowledge_ischecked = snapshot.ui_knowledge_ischecked;
     ui_stablediffusion_ischecked = snapshot.ui_stablediffusion_ischecked;
     ui_controller_ischecked = snapshot.ui_controller_ischecked;
+    ui_controller_norm_x = snapshot.ui_controller_norm_x;
+    ui_controller_norm_y = snapshot.ui_controller_norm_y;
     ui_MCPtools_ischecked = snapshot.ui_MCPtools_ischecked;
     ui_engineer_ischecked = snapshot.ui_engineer_ischecked;
     refreshWindowIcon();
@@ -765,6 +822,7 @@ void Widget::restoreDateDialogSnapshot()
     dockerTargetMode_ = snapshot.dockerTargetMode;
     ui_dockerSandboxEnabled = (dockerTargetMode_ != DockerTargetMode::None);
     language_flag = snapshot.language_flag;
+    emit ui2tool_controllerNormalize(ui_controller_norm_x, ui_controller_norm_y);
 
     if (date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() != snapshot.ui_template)
     {
@@ -784,6 +842,20 @@ void Widget::restoreDateDialogSnapshot()
     restoreCheck(date_ui->knowledge_checkbox, snapshot.ui_knowledge_ischecked);
     restoreCheck(date_ui->stablediffusion_checkbox, snapshot.ui_stablediffusion_ischecked);
     restoreCheck(date_ui->controller_checkbox, snapshot.ui_controller_ischecked);
+    if (date_ui->controller_norm_x_spin)
+    {
+        QSignalBlocker blocker(date_ui->controller_norm_x_spin);
+        date_ui->controller_norm_x_spin->setValue(snapshot.ui_controller_norm_x);
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        QSignalBlocker blocker(date_ui->controller_norm_y_spin);
+        date_ui->controller_norm_y_spin->setValue(snapshot.ui_controller_norm_y);
+    }
+    if (date_ui->controller_norm_box)
+    {
+        date_ui->controller_norm_box->setVisible(snapshot.ui_controller_ischecked);
+    }
     restoreCheck(date_ui->MCPtools_checkbox, snapshot.ui_MCPtools_ischecked);
     restoreCheck(date_ui->engineer_checkbox, snapshot.ui_engineer_ischecked);
     if (date_ui->docker_target_comboBox)

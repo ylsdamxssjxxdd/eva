@@ -151,6 +151,12 @@ Widget::ControllerFrame Widget::captureControllerFrame()
         return frame;
     }
     const qreal screenDpr = screen->devicePixelRatio(); // 物理像素比例，用于坐标换算
+    // 归一化参数：约定窗口可配置，默认 1000×1000
+    // 注意：这里不做“保持宽高比”，而是把屏幕强制映射到一个规则矩形，
+    // 这样模型输出的坐标可以用线性比例直接换算为真实屏幕坐标，逻辑最简单稳定。
+    const int normX = qBound(100, ui_controller_norm_x, 2048);
+    const int normY = qBound(100, ui_controller_norm_y, 2048);
+
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     frame.tsMs = nowMs;
     // 捕获全屏图像
@@ -169,45 +175,30 @@ Widget::ControllerFrame Widget::captureControllerFrame()
     // 若超过 1920x1080 则等比压缩，兼顾体积与可读性
     const int physicalWidth = int(qRound(snapshot.width() * screenDpr));
     const int physicalHeight = int(qRound(snapshot.height() * screenDpr));
-    double logicalScale = 1.0; // 作用于逻辑坐标的缩放
-    const int kMaxW = 1920;
-    const int kMaxH = 1080;
-    if (scaledImage.width() > kMaxW || scaledImage.height() > kMaxH)
-    {
-        logicalScale = qMin(double(kMaxW) / scaledImage.width(), double(kMaxH) / scaledImage.height());
-        scaledImage = scaledImage.scaled(int(scaledImage.width() * logicalScale),
-                                         int(scaledImage.height() * logicalScale),
-                                         Qt::KeepAspectRatio,
-                                         Qt::SmoothTransformation);
-    }
-    // 物理坐标 -> 缩放后图像坐标的换算比例
-    const double scaleRatio = logicalScale / screenDpr;
-    // 计算光标在缩放图上的位置
+    // 直接缩放到归一化尺寸（忽略宽高比）
+    scaledImage = scaledImage.scaled(normX, normY, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    // 映射：把 [0,srcMax] 映射到 [0,dstMax]（含端点），并进行夹取，避免越界
+    const auto mapRange = [](int value, int srcMax, int dstMax) -> int {
+        if (dstMax <= 0) return 0;
+        if (srcMax <= 0) return qBound(0, value, dstMax);
+        const int clamped = qBound(0, value, srcMax);
+        const double t = double(clamped) / double(srcMax);
+        return qBound(0, int(qRound(t * dstMax)), dstMax);
+    };
+
+    // 计算光标物理坐标与在归一化图上的像素位置
     const QPoint cursorLogical = QCursor::pos();
     const QPoint cursorPhysical(qRound(cursorLogical.x() * screenDpr), qRound(cursorLogical.y() * screenDpr));
-    const QPoint cursorScaled(qRound(cursorPhysical.x() * scaleRatio), qRound(cursorPhysical.y() * scaleRatio));
-    frame.cursorX = cursorPhysical.x();
-    frame.cursorY = cursorPhysical.y();
-    // 绘制光标，确保模型能看到当前指针位置
+
+    // 归一化坐标系：x in [0,normX]，y in [0,normY]
+    frame.cursorX = mapRange(cursorPhysical.x(), physicalWidth - 1, normX);
+    frame.cursorY = mapRange(cursorPhysical.y(), physicalHeight - 1, normY);
+    // 控制器截屏仅用于“看图定位坐标”，这里保持截图原样（不再绘制鼠标标记/正交线/坐标网格），减少干扰与额外 token
     QImage baseImage = scaledImage.convertToFormat(QImage::Format_ARGB32);
-    {
-        QPainter painter(&baseImage);
-        painter.setRenderHint(QPainter::Antialiasing);
-        // 使用黄色十字线高亮光标位置，便于对齐
-        QPen cursorPen(QColor(255, 215, 0, 230), qMax(2, int(logicalScale)));
-        painter.setPen(cursorPen);
-        painter.drawLine(cursorScaled.x(), 0, cursorScaled.x(), baseImage.height());
-        painter.drawLine(0, cursorScaled.y(), baseImage.width(), cursorScaled.y());
-        // 画一个小圆点标注中心
-        painter.setBrush(QColor(255, 215, 0, 200));
-        painter.drawEllipse(cursorScaled, qMax(4, int(4 * scaleRatio)), qMax(4, int(4 * scaleRatio)));
-    }
     // 准备保存路径
     const QString baseDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP/controller_snapshots"));
-    const QString overlayDir = QDir(baseDir).filePath(QStringLiteral("overlay"));
     createTempDirectory(applicationDirPath + "/EVA_TEMP");
     createTempDirectory(baseDir);
-    createTempDirectory(overlayDir);
     const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_hh-mm-ss-zzz"));
     const QString basePath = QDir(baseDir).filePath(stamp + QStringLiteral(".png"));
     if (!baseImage.save(basePath))
@@ -215,65 +206,10 @@ Widget::ControllerFrame Widget::captureControllerFrame()
         reflash_state(QStringLiteral("ui:保存控制截图失败"), WRONG_SIGNAL);
         return frame;
     }
-    // 生成带位置信息的标注图：十字线 + 文本信息
-    QImage overlayImage = baseImage;
-    QPainter overlayPainter(&overlayImage);
-    overlayPainter.setRenderHint(QPainter::Antialiasing);
-    const QColor gridColor(0, 122, 255, 160); // 半透明蓝色网格
-    QPen gridPen(gridColor, qMax(1, int(logicalScale)));
-    overlayPainter.setPen(gridPen);
-    // 以物理 50 像素为步长绘制网格，数字标签改为每 200 像素标注一次，避免文字过密
-    const int stepPhysical = 50;
-    const int labelStepPhysical = 200;
-    QFont gridFont = overlayPainter.font();
-    gridFont.setPointSize(qMax(9, int(10 * scaleRatio)));
-    overlayPainter.setFont(gridFont);
-    QFontMetrics fm(gridFont);
-
-    for (int px = stepPhysical; px < physicalWidth; px += stepPhysical)
-    {
-        const int x = int(qRound(px * scaleRatio));
-        overlayPainter.drawLine(x, 0, x, overlayImage.height());
-        if (px % labelStepPhysical == 0)
-        {
-            const QString label = QString::number(px);
-            overlayPainter.setPen(Qt::white);
-            overlayPainter.drawText(x + 4, fm.ascent() + 4, label);
-            overlayPainter.setPen(gridPen);
-        }
-    }
-    for (int py = stepPhysical; py < physicalHeight; py += stepPhysical)
-    {
-        const int y = int(qRound(py * scaleRatio));
-        overlayPainter.drawLine(0, y, overlayImage.width(), y);
-        if (py % labelStepPhysical == 0)
-        {
-            const QString label = QString::number(py);
-            overlayPainter.setPen(Qt::white);
-            overlayPainter.drawText(4, y + fm.ascent() + 4, label);
-            overlayPainter.setPen(gridPen);
-        }
-    }
-    // 更醒目的黄色十字线标注当前光标位置（覆盖蓝网格）
-    QPen cursorPen(QColor(255, 215, 0, 230), qMax(3, int(2 * logicalScale)));
-    overlayPainter.setPen(cursorPen);
-    overlayPainter.drawLine(cursorScaled.x(), 0, cursorScaled.x(), overlayImage.height());
-    overlayPainter.drawLine(0, cursorScaled.y(), overlayImage.width(), cursorScaled.y());
-    // 仅在左上角标注(0,0)，避免遮挡
-    overlayPainter.setPen(Qt::white);
-    overlayPainter.drawText(4, fm.ascent() + 4, QStringLiteral("(0,0)"));
-    overlayPainter.end();
-    const QString overlayPath = QDir(overlayDir).filePath(stamp + QStringLiteral("_overlay.png"));
-    overlayImage.save(overlayPath);
-
     frame.imagePath = basePath;
-    frame.overlayPath = overlayPath;
     controllerFrames_.append(frame);
     cleanupControllerFrames();
-    reflash_state(QStringLiteral("ui:控制截图已保存 base=%1 overlay=%2")
-                      .arg(QDir::toNativeSeparators(basePath))
-                      .arg(QDir::toNativeSeparators(overlayPath)),
-                  SIGNAL_SIGNAL);
+    reflash_state(QStringLiteral("ui:控制截图已保存 %1").arg(QDir::toNativeSeparators(basePath)), SIGNAL_SIGNAL);
     return frame;
 }
 
@@ -284,7 +220,6 @@ void Widget::cleanupControllerFrames()
     {
         const ControllerFrame oldFrame = controllerFrames_.front();
         if (!oldFrame.imagePath.isEmpty()) QFile::remove(oldFrame.imagePath);
-        if (!oldFrame.overlayPath.isEmpty()) QFile::remove(oldFrame.overlayPath);
         controllerFrames_.pop_front();
     }
 }

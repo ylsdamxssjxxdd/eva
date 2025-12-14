@@ -481,6 +481,7 @@ int main(int argc, char *argv[])
     QObject::connect(&w, &Widget::ui2tool_language, &tool, &xTool::recv_language); // 传递使用的语言
     QObject::connect(&w, &Widget::ui2tool_exec, &tool, &xTool::Exec);              // 开始推理
     QObject::connect(&w, &Widget::ui2tool_workdir, &tool, &xTool::recv_workdir);   // 设置工程师工作目录
+    QObject::connect(&w, &Widget::ui2tool_controllerNormalize, &tool, &xTool::recv_controllerNormalize); // 桌面控制器归一化坐标系
     QObject::connect(&w, &Widget::ui2tool_turn, &tool, &xTool::recv_turn);         // 同步当前回合ID
     QObject::connect(&w, &Widget::ui2tool_dockerConfigChanged, &tool, &xTool::recv_dockerConfig);
     QObject::connect(&w, &Widget::ui2tool_fixDockerContainerMount, &tool, &xTool::fixDockerContainerMount);
@@ -604,6 +605,22 @@ int main(int argc, char *argv[])
         const bool calculatorOn = restoreToolCheckbox(w.date_ui->calculator_checkbox, QStringLiteral("calculator"), QStringLiteral("calculator_checkbox"));
         const bool knowledgeOn = restoreToolCheckbox(w.date_ui->knowledge_checkbox, QStringLiteral("knowledge"), QStringLiteral("knowledge_checkbox"));
         const bool controllerOn = restoreToolCheckbox(w.date_ui->controller_checkbox, QStringLiteral("controller"), QStringLiteral("controller_checkbox"));
+        // 桌面控制器：归一化坐标系（默认 1000×1000）
+        const int savedNormX = settings.value("controller_norm_x", 1000).toInt();
+        const int savedNormY = settings.value("controller_norm_y", 1000).toInt();
+        w.ui_controller_norm_x = qBound(100, savedNormX, 2048);
+        w.ui_controller_norm_y = qBound(100, savedNormY, 2048);
+        if (w.date_ui->controller_norm_x_spin)
+        {
+            const QSignalBlocker blocker(w.date_ui->controller_norm_x_spin);
+            w.date_ui->controller_norm_x_spin->setValue(w.ui_controller_norm_x);
+        }
+        if (w.date_ui->controller_norm_y_spin)
+        {
+            const QSignalBlocker blocker(w.date_ui->controller_norm_y_spin);
+            w.date_ui->controller_norm_y_spin->setValue(w.ui_controller_norm_y);
+        }
+        emit w.ui2tool_controllerNormalize(w.ui_controller_norm_x, w.ui_controller_norm_y);
         const bool stablediffusionOn = restoreToolCheckbox(w.date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"), QStringLiteral("stablediffusion_checkbox"));
         // Restore engineer work dir before toggling engineer checkbox (avoid double emits)
         {
@@ -840,4 +857,3 @@ int main(int argc, char *argv[])
                        { FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: event loop heartbeat")); });
     return a.exec(); // 进入事件循环
 }
-

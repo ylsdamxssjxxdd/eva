@@ -238,5 +238,11 @@ void Widget::tool_change()
         }
         is_load_tool = false;
     }
+
+    // 桌面控制器：仅当用户勾选该工具时，才显示“归一化设置”区域（放在沙盒设置上方）
+    if (date_ui && date_ui->controller_norm_box && date_ui->controller_checkbox)
+    {
+        date_ui->controller_norm_box->setVisible(date_ui->controller_checkbox->isChecked());
+    }
     ui_extra_prompt = create_extra_prompt();
 }

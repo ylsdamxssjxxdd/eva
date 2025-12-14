@@ -309,12 +309,11 @@ void Widget::collectUserInputs(InputPack &pack, bool attachControllerFrame)
     }
     if (attachControllerFrame && ui_controller_ischecked)
     {
-        // 桌面控制器开启时，为模型附带最新截屏并额外保存带坐标的标注图
+        // 桌面控制器开启时：为模型附带最新截屏（仅原图，不再附带坐标叠加图）
         const ControllerFrame frame = captureControllerFrame();
         if (!frame.imagePath.isEmpty())
         {
             pack.images.append(frame.imagePath);
-            if (!frame.overlayPath.isEmpty()) pack.images.append(frame.overlayPath);
         }
     }
     pack.wavs = ui->input->wavFilePaths();
@@ -557,21 +556,6 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
                 imageObject["image_url"] = imageUrlObject;
                 screenshotContent.append(imageObject);
             }
-            if (!controllerFrame.overlayPath.isEmpty())
-            {
-                QFile overlayFile(controllerFrame.overlayPath);
-                if (overlayFile.open(QIODevice::ReadOnly))
-                {
-                    const QByteArray overlayData = overlayFile.readAll();
-                    const QByteArray base64Overlay = overlayData.toBase64();
-                    QJsonObject imageObject;
-                    imageObject["type"] = QStringLiteral("image_url");
-                    QJsonObject imageUrlObject;
-                    imageUrlObject["url"] = QStringLiteral("data:image/png;base64,") + base64Overlay;
-                    imageObject["image_url"] = imageUrlObject;
-                    screenshotContent.append(imageObject);
-                }
-            }
 
             QJsonObject screenshotMessage;
             screenshotMessage.insert("role", DEFAULT_USER_NAME);
@@ -583,13 +567,11 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
                 QJsonObject histShot = screenshotMessage;
                 QJsonArray locals;
                 locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
-                if (!controllerFrame.overlayPath.isEmpty()) locals.append(QFileInfo(controllerFrame.overlayPath).absoluteFilePath());
                 histShot.insert("local_images", locals);
                 history_->appendMessage(histShot);
             }
             // 终端调试输出截图路径，便于排查
-            qInfo().noquote() << "[controller-screenshot]" << QDir::toNativeSeparators(controllerFrame.imagePath)
-                              << (controllerFrame.overlayPath.isEmpty() ? "" : QDir::toNativeSeparators(controllerFrame.overlayPath));
+            qInfo().noquote() << "[controller-screenshot]" << QDir::toNativeSeparators(controllerFrame.imagePath);
         }
     }
 
@@ -610,7 +592,6 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
         {
             QJsonArray locals = histMsg.value(QStringLiteral("local_images")).toArray();
             locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
-            if (!controllerFrame.overlayPath.isEmpty()) locals.append(QFileInfo(controllerFrame.overlayPath).absoluteFilePath());
             histMsg.insert("local_images", locals);
         }
         history_->appendMessage(histMsg);

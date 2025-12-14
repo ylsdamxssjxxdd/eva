@@ -1199,22 +1199,6 @@ QString Widget::runDockerExecCommand(const QString &command, int timeoutMs) cons
     return QString::fromUtf8(process.readAllStandardOutput());
 }
 
-QString Widget::create_screen_info()
-{
-    // 屏幕左上角坐标为(0,0) 右下角坐标为(x,y)
-    QString info;
-    QScreen *screen = QApplication::primaryScreen();
-    // 使用物理像素尺寸，而不是逻辑像素
-    QRect screenGeometry = screen->geometry();
-    qreal devicePixelRatio = screen->devicePixelRatio();
-    // 计算实际的物理像素尺寸
-    int physicalWidth = screenGeometry.width() * devicePixelRatio;
-    int physicalHeight = screenGeometry.height() * devicePixelRatio;
-    info = QString("The coordinates of the top left corner of the screen are (0,0) and the coordinates of the bottom right corner are (%1, %2)")
-               .arg(physicalWidth)
-               .arg(physicalHeight);
-    return info;
-}
 void Widget::logEngineerEnvSummary()
 {
     QStringList segments;

@@ -196,6 +196,19 @@ void Widget::apply_language(int language_flag_)
     date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
     date_ui->controller_checkbox->setText(jtr("controller"));
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
+    if (date_ui->controller_norm_box)
+    {
+        date_ui->controller_norm_box->setTitle(jtr("controller normalize"));
+        date_ui->controller_norm_box->setToolTip(jtr("controller normalize tooltip"));
+    }
+    if (date_ui->controller_norm_x_spin)
+    {
+        date_ui->controller_norm_x_spin->setToolTip(jtr("controller normalize tooltip"));
+    }
+    if (date_ui->controller_norm_y_spin)
+    {
+        date_ui->controller_norm_y_spin->setToolTip(jtr("controller normalize tooltip"));
+    }
     date_ui->knowledge_checkbox->setText(jtr("knowledge"));
     date_ui->knowledge_checkbox->setToolTip(jtr("knowledge_checkbox_tooltip"));
     date_ui->MCPtools_checkbox->setText(jtr("MCPtools"));

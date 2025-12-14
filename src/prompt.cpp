@@ -120,7 +120,7 @@ key is a key on the keyboard, which can be a combination key, e.g., "Ctrl+S".
 Passing Parameter Examples:
 ["left_down(100,200)", "time_span(0.1)", "left_up()", "time_span(0.5)", "left_down(100,200)", "time_span(0.1)", "left_up()"] - Double left mouse click.
 ["left_down(100,200)", "time_span(0.1)", "move(200,400,0.5)", "time_span(0.1)", "left_up()"] - Left mouse button drag. After the tool is executed, it will return the current screenshot"}},"required":["sequence"]})SCHEMA",
-         QStringLiteral("Pass in a sequence of actions to control the mouse and keyboard. Always locate targets using the latest user-provided screenshots (including overlay grid) and never guess coordinates; if the target is not visible, ask for a new screenshot. Yellow crosshair intersection is the current cursor position. {screen_info}")},
+         QStringLiteral("Pass in a sequence of actions to control the mouse and keyboard. Always locate targets using the latest user-provided screenshot(s) and never guess coordinates; if the target is not visible, ask for a new screenshot. Use the screenshot coordinate system (origin at top-left) when choosing x/y.")},
         {promptx::PROMPT_TOOL_MCP_LIST,
          "mcp_tools_list",
          R"({"type":"object","properties":{}})",

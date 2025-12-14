@@ -321,19 +321,18 @@ class Widget : public QWidget
     float load_time = 0;
     QElapsedTimer load_timer; // measure local-server load duration
 
-    // 桌面控制器截屏缓存，保存附带给模型的原图与带位置信息的标注图
+    // 桌面控制器截屏缓存：保存附带给模型的截图（不做坐标叠加与鼠标标记）
     struct ControllerFrame
     {
         QString imagePath;   // 发送给模型的原始截图路径
-        QString overlayPath; // 叠加坐标/提示后的截图路径，便于人工查看
         qint64 tsMs = 0;     // 捕获时间戳
-        int cursorX = -1;    // 当前光标物理坐标 X
-        int cursorY = -1;    // 当前光标物理坐标 Y
+        int cursorX = -1;    // 当前光标在归一化坐标系中的 X（0~ui_controller_norm_x）
+        int cursorY = -1;    // 当前光标在归一化坐标系中的 Y（0~ui_controller_norm_y）
     };
     QList<ControllerFrame> controllerFrames_; // 已保存的桌面控制器截图列表
     const int kMaxControllerFrames_ = 120;    // 最多保留条目，超出后清理旧文件
     QString saveScreen();        // 保存屏幕截图
-    ControllerFrame captureControllerFrame(); // 捕获桌面控制器需要的截图与标注图
+    ControllerFrame captureControllerFrame(); // 捕获桌面控制器需要的截图（不绘制鼠标/坐标叠加）
     void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
 
     // 扩展相关
@@ -447,6 +446,8 @@ class Widget : public QWidget
     bool ui_knowledge_ischecked = false;
     bool ui_stablediffusion_ischecked = false;
     bool ui_controller_ischecked = false;
+    int ui_controller_norm_x = 1000; // 桌面控制器归一化坐标系 X（同时作为截屏缩放宽度）
+    int ui_controller_norm_y = 1000; // 桌面控制器归一化坐标系 Y（同时作为截屏缩放高度）
     bool ui_MCPtools_ischecked = false;
     bool ui_engineer_ischecked = false;
     bool ui_dockerSandboxEnabled = false;
@@ -492,6 +493,8 @@ class Widget : public QWidget
         bool ui_knowledge_ischecked = false;
         bool ui_stablediffusion_ischecked = false;
         bool ui_controller_ischecked = false;
+        int ui_controller_norm_x = 1000;
+        int ui_controller_norm_y = 1000;
         bool ui_MCPtools_ischecked = false;
         bool ui_engineer_ischecked = false;
         bool ui_dockerSandboxEnabled = false;
@@ -579,8 +582,6 @@ class Widget : public QWidget
     mcp::json XMLparser(const QString &text, QStringList *debugLog = nullptr); // 手搓输出解析器，提取XMLparser
     QString tool_result;
     QStringList wait_to_show_images_filepath; // 文生图后待显示图像的图像路径
-    QString screen_info;
-    QString create_screen_info(); // 构建屏幕信息
 
     // 装载动画相关
 
@@ -660,6 +661,7 @@ class Widget : public QWidget
     void ui2tool_language(int language_flag_); // 传递使用的语言
     void ui2tool_exec(mcp::json tools_call);   // 开始推理
     void ui2tool_workdir(QString dir);         // 更新工程师工具工作目录
+    void ui2tool_controllerNormalize(int normX, int normY); // 桌面控制器归一化坐标系（截图与坐标统一）
     void ui2tool_dockerConfigChanged(DockerSandbox::Config config);
     void ui2tool_fixDockerContainerMount(const QString &containerName);
     void ui2tool_interruptCommand();           // 终止当前命令
