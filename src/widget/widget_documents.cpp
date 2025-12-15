@@ -4,6 +4,7 @@
 #include <QPlainTextDocumentLayout>
 #include "../utils/textparse.h"
 #include "../utils/startuplogger.h"
+#include "../utils/flowtracer.h"
 
 void Widget::recv_chat_format(EVA_CHATS_TEMPLATE chats)
 {
@@ -199,7 +200,28 @@ void Widget::recv_reasoning_tokens(int tokens)
         recordEngineerReasoning(qMax(0, tokens));
         return;
     }
-    lastReasoningTokens_ = qMax(0, tokens);
+    const int sanitized = qMax(0, tokens);
+    const int previous = lastReasoningTokens_;
+    lastReasoningTokens_ = sanitized;
+
+    // 调试：LINK 模式下 provider 可能会额外上报 reasoning tokens（思考 token）。
+    // 这些 token 通常不会回写到最终对话内容，但会计入本轮推理/计费 token。
+    // 当前 KV 统计选择“包含思考 token”，用来观察实际推理负载。
+    // 这里打印“收到上报”的时机与数值，便于你对齐本轮 KV 汇总日志。
+    if (ui_mode == LINK_MODE && sanitized > 0 && sanitized != previous)
+    {
+        FlowTracer::log(
+            FlowChannel::Session,
+            QStringLiteral("link:reasoning tokens update=%1 prev=%2 kvUsed=%3 usedBefore=%4 prompt=%5 stream=%6 turn=%7")
+                .arg(sanitized)
+                .arg(previous)
+                .arg(kvUsed_)
+                .arg(kvUsedBeforeTurn_)
+                .arg(kvPromptTokensTurn_)
+                .arg(kvStreamedTurn_)
+                .arg(kvTokensTurn_),
+            activeTurnId_);
+    }
 }
 
 void Widget::onServerOutput(const QString &line)

@@ -2,6 +2,7 @@
 #include "ui_widget.h"
 #include "terminal_pane.h"
 #include "../utils/startuplogger.h"
+#include "../utils/flowtracer.h"
 
 #include <QDir>
 #include <QMessageBox>
@@ -104,15 +105,6 @@ void Widget::recv_pushover()
                     else
                     {
                         logFlow(FlowPhase::ToolParsed, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
-                        // Before entering tool loop, correct LINK memory by subtracting this turn's reasoning tokens
-                        if (ui_mode == LINK_MODE && lastReasoningTokens_ > 0)
-                        {
-                            // Reasoning text is not sent back in LINK mode, so exclude it from memory usage
-                            kvUsed_ = qMax(0, kvUsed_ - lastReasoningTokens_);
-                            kvStreamedTurn_ = qMax(0, kvStreamedTurn_ - lastReasoningTokens_);
-                            updateKvBarUi();
-                            lastReasoningTokens_ = 0;
-                        }
                         pendingAssistantHeaderReset_ = true;
                         toolInvocationActive_ = true;
                         emit ui2tool_turn(activeTurnId_);
@@ -140,18 +132,24 @@ void Widget::normal_finish_pushover()
     turnActive_ = false;
     is_run = false;
     ui_state_normal(); // 寰呮満鐣岄潰鐘舵€?
-    // LINK mode: final correction of memory by excluding this turn's reasoning tokens
-    if (ui_mode == LINK_MODE && lastReasoningTokens_ > 0)
-    {
-        kvUsed_ = qMax(0, kvUsed_ - lastReasoningTokens_);
-        kvStreamedTurn_ = qMax(0, kvStreamedTurn_ - lastReasoningTokens_);
-        kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
-        updateKvBarUi();
-        lastReasoningTokens_ = 0;
-    }
     if (ui_mode == LINK_MODE)
     {
         kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
+        // 调试：LINK 模式下 reasoning tokens（思考 token）也计入本轮 KV 占用，便于观察真实推理负载。
+        // 此处输出一个“完结汇总”，用于和 net 层的 prompt/stream 统计对齐。
+        if (lastReasoningTokens_ > 0)
+        {
+            FlowTracer::log(
+                FlowChannel::Session,
+                QStringLiteral("link:kv finish(incl reasoning) reasoning=%1 kvUsed=%2 kvStream=%3 kvTurn=%4 prompt=%5 usedBefore=%6")
+                    .arg(lastReasoningTokens_)
+                    .arg(kvUsed_)
+                    .arg(kvStreamedTurn_)
+                    .arg(kvTokensTurn_)
+                    .arg(kvPromptTokensTurn_)
+                    .arg(kvUsedBeforeTurn_),
+                activeTurnId_);
+        }
         // reflash_state(QStringLiteral("link:turn complete prompt=%1 stream=%2 turn=%3 used=%4 used_before=%5")
         //                   .arg(kvPromptTokensTurn_)
         //                   .arg(kvStreamedTurn_)
