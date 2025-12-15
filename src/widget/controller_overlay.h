@@ -23,7 +23,7 @@ class ControllerOverlay final : public QWidget
 
     // 在全局屏幕坐标 (globalX/globalY) 处展示提示。
     // durationMs 为自动隐藏的时间（毫秒）。
-    void showHint(int globalX, int globalY, const QString &description, int durationMs = 2000);
+    void showHint(int globalX, int globalY, const QString &description, int durationMs = 3000);
 
     // 立即隐藏（用于截图前清理叠加层）。
     void hideNow();

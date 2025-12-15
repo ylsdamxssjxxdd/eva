@@ -5,6 +5,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -86,13 +87,85 @@ class HistoryStore
         line.append('\n');
         m.write(line);
         m.close();
+        // 生成会话标题：优先取“第一条用户消息”的文本摘要。
+        // 注意：挂载桌面控制器/多模态输入时，user.content 可能是数组（[{type:"text",...},{type:"image_url",...}]），
+        // 旧实现对数组使用 toVariant().toString() 会得到空串，导致历史记录一直显示 (untitled)。
         if (meta_.title.isEmpty() && msg.value("role").toString() == QStringLiteral("user"))
         {
-            const QString content = msg.value("content").isString()
-                                        ? msg.value("content").toString()
-                                        : msg.value("content").toVariant().toString();
-            meta_.title = content.left(64);
-            saveMeta();
+            auto sanitizeTitle = [](QString s) -> QString {
+                // 仅做轻量清洗：压缩空白、去掉换行，避免标题在列表中撑开。
+                s.replace('\n', ' ').replace('\r', ' ');
+                s = s.simplified();
+                // 再兜底一次：极端情况下 simplified 仍可能为空
+                return s.trimmed();
+            };
+
+            auto deriveTitleFromUserMessage = [&](const QJsonObject &m) -> QString {
+                const QJsonValue contentVal = m.value("content");
+
+                // 1) 纯文本：最常见
+                if (contentVal.isString())
+                {
+                    return sanitizeTitle(contentVal.toString()).left(64);
+                }
+
+                // 2) 多模态数组：优先取第一段文本（type=text 的 text 字段）
+                if (contentVal.isArray())
+                {
+                    const QJsonArray parts = contentVal.toArray();
+                    for (const QJsonValue &pv : parts)
+                    {
+                        if (!pv.isObject()) continue;
+                        const QJsonObject po = pv.toObject();
+                        const QString type = po.value("type").toString();
+                        // 兼容 EVA 自己组装的 {type:"text", text:"..."} 结构
+                        if (type == QStringLiteral("text"))
+                        {
+                            const QString t = sanitizeTitle(po.value("text").toString());
+                            if (!t.isEmpty()) return t.left(64);
+                        }
+                        // 兼容少数实现可能直接放 {text:"..."} 的情况
+                        const QString t2 = sanitizeTitle(po.value("text").toString());
+                        if (!t2.isEmpty()) return t2.left(64);
+                    }
+
+                    // 3) 没有文本时：用附件占位，至少不要让标题为空
+                    bool hasImage = false;
+                    bool hasAudio = false;
+                    for (const QJsonValue &pv : parts)
+                    {
+                        if (!pv.isObject()) continue;
+                        const QString type = pv.toObject().value("type").toString();
+                        if (type == QStringLiteral("image_url")) hasImage = true;
+                        if (type == QStringLiteral("audio_url") || type == QStringLiteral("input_audio")) hasAudio = true;
+                    }
+
+                    // 优先使用本地图片路径（若存在），可读性更好
+                    const QJsonArray locals = m.value(QStringLiteral("local_images")).toArray();
+                    if (!locals.isEmpty())
+                    {
+                        const QString firstPath = locals.first().toString();
+                        const QString name = QFileInfo(firstPath).fileName();
+                        const QString label = name.isEmpty() ? firstPath : name;
+                        return sanitizeTitle(label).left(64);
+                    }
+
+                    if (hasImage) return QStringLiteral("[image]");
+                    if (hasAudio) return QStringLiteral("[audio]");
+                }
+
+                // 4) 其它类型：尽量从 variant 中提取，但要避免空串
+                const QString fallback = sanitizeTitle(contentVal.toVariant().toString());
+                if (!fallback.isEmpty()) return fallback.left(64);
+                return QString();
+            };
+
+            const QString title = deriveTitleFromUserMessage(msg);
+            if (!title.isEmpty())
+            {
+                meta_.title = title;
+                saveMeta();
+            }
         }
     }
 
