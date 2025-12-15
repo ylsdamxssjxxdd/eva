@@ -338,6 +338,8 @@ class Widget : public QWidget
     void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
     void ensureControllerOverlay();           // 懒创建桌面控制器叠加层
     void hideControllerOverlay();             // 截图/收尾前隐藏叠加层，避免被 captureControllerFrame 捕获
+    void setControllerScreenshotMaskVisible(bool visible); // 桌面控制器截屏前：临时遮住输出区文字，避免截图把对话内容一起送给模型造成误导
+    QWidget *controllerScreenshotMask_ = nullptr;          // 桌面控制器截屏遮罩层（覆盖 ui->output，不改写文档内容）
     ControllerOverlay *controllerOverlay_ = nullptr;
 
     // 扩展相关

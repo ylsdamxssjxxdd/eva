@@ -17,6 +17,8 @@
 #include <QTextCursor>
 #include <QAudioDeviceInfo>
 #include <QScrollBar>
+#include <QEventLoop>
+#include <QPalette>
 
 void Widget::ensureControllerOverlay()
 {
@@ -29,6 +31,39 @@ void Widget::hideControllerOverlay()
 {
     if (!controllerOverlay_) return;
     controllerOverlay_->hideNow();
+}
+
+void Widget::setControllerScreenshotMaskVisible(bool visible)
+{
+    // 设计目标：桌面控制器的截图要尽量“干净”，避免 EVA 自己的对话内容出现在截图里干扰模型判断。
+    // 注意：这里不改写 ui->output 的 document（否则会破坏 recordBar 的锚点与颜色渲染），
+    // 仅在截图前临时盖一层同色遮罩，截图完成后立刻恢复显示。
+    if (!ui || !ui->output) return;
+
+    if (visible)
+    {
+        if (!controllerScreenshotMask_)
+        {
+            controllerScreenshotMask_ = new QWidget(ui->output);
+            controllerScreenshotMask_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+            controllerScreenshotMask_->setAutoFillBackground(true);
+            controllerScreenshotMask_->hide();
+        }
+
+        // 遮罩颜色尽量与输出区背景一致，看起来就像“清空了输出区”。
+        const QColor bg = ui->output->palette().base().color();
+        QPalette pal = controllerScreenshotMask_->palette();
+        pal.setColor(QPalette::Window, bg);
+        controllerScreenshotMask_->setPalette(pal);
+
+        controllerScreenshotMask_->setGeometry(ui->output->rect());
+        controllerScreenshotMask_->raise();
+        controllerScreenshotMask_->show();
+        controllerScreenshotMask_->repaint(); // 同步触发一次绘制，减少 grabWindow 截到旧帧的概率
+        return;
+    }
+
+    if (controllerScreenshotMask_) controllerScreenshotMask_->hide();
 }
 
 void Widget::recv_controller_hint(int x, int y, const QString &description)
@@ -416,8 +451,32 @@ QString Widget::saveScreen()
 Widget::ControllerFrame Widget::captureControllerFrame()
 {
     ControllerFrame frame;
-    // 控制器截图一定要“干净”：避免把叠加提示也截进去，污染模型输入。
+    // 控制器截图一定要“干净”：避免把叠加提示/对话内容也截进去，污染模型输入。
     hideControllerOverlay();
+
+    // 截图时机调整：先让输出区在屏幕上“清屏”，再 grabWindow。
+    // 这里用遮罩临时盖住 ui->output 的文字，而不是 clear()：
+    // - 不破坏 recordBar 的 docFrom/docTo 锚点
+    // - 不丢失输出区已经渲染的颜色与格式
+    // - 截图后立即恢复显示，用户体验更稳定
+    struct OutputMaskGuard
+    {
+        Widget *self = nullptr;
+        explicit OutputMaskGuard(Widget *w) : self(w)
+        {
+            if (self) self->setControllerScreenshotMaskVisible(true);
+        }
+        void release()
+        {
+            if (!self) return;
+            self->setControllerScreenshotMaskVisible(false);
+            self = nullptr;
+        }
+        ~OutputMaskGuard() { release(); }
+    } maskGuard(this);
+
+    // 强制处理一次绘制事件：确保遮罩已经渲染到屏幕，grabWindow 才能截到“清屏后”的画面。
+    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
     QScreen *screen = QApplication::primaryScreen();
     if (!screen)
     {
@@ -435,6 +494,10 @@ Widget::ControllerFrame Widget::captureControllerFrame()
     frame.tsMs = nowMs;
     // 捕获全屏图像
     QPixmap snapshot = screen->grabWindow(0);
+
+    // 截图已获取，立刻恢复输出区显示（避免 UI 长时间空白）。
+    maskGuard.release();
+    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
     if (snapshot.isNull())
     {
         reflash_state(QStringLiteral("ui:截屏失败，桌面控制器未能附带截图"), WRONG_SIGNAL);
