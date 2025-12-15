@@ -746,9 +746,23 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             const int cy = mapCoord(cyNorm, normMaxY, screenMaxY);
 
             auto showOverlayHint = [&](int x, int y, const QString &desc) {
-                // 通过信号让 UI 线程绘制叠加提示；稍作等待，尽量让用户看清后再执行动作。
+                // 通过信号让 UI 线程绘制叠加提示。
+                // 需求：提示框显示一段时间后再执行动作（避免“提示刚出现就已经点下去了”）。
                 emit tool2ui_controller_hint(x, y, desc);
-                msleep(80);
+
+                // 与 UI 侧 ControllerOverlay 的 durationMs 对齐：当前固定为 2000ms。
+                // 额外 +100ms 用于覆盖跨线程排队与绘制抖动，尽量确保“提示时间结束后再执行”。
+                constexpr unsigned long kOverlayDurationMs = 2000;
+                constexpr unsigned long kOverlayJitterMs = 100;
+                constexpr unsigned long kStepMs = 20;
+                unsigned long remaining = kOverlayDurationMs + kOverlayJitterMs;
+                while (remaining > 0)
+                {
+                    if (cancelled()) return;
+                    const unsigned long step = (remaining > kStepMs) ? kStepMs : remaining;
+                    msleep(step);
+                    remaining -= step;
+                }
             };
 
             auto smoothMoveTo = [&](int ex, int ey, int durationMs) {

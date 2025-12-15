@@ -70,7 +70,19 @@ void Widget::recv_controller_hint(int x, int y, const QString &description)
 {
     ensureControllerOverlay();
     if (!controllerOverlay_) return;
-    controllerOverlay_->showHint(x, y, description);
+
+    // 坐标系统一：tool 侧执行鼠标操作用的是“真实屏幕物理像素坐标”（GetSystemMetrics/SendInput），
+    // 但 Qt UI（已开启 AA_EnableHighDpiScaling）使用的是“逻辑坐标”。
+    // 若不做换算，叠加层位置会与最终鼠标落点不一致（尤其是 125%/150% 缩放时会明显偏移）。
+    const QScreen *screen = QGuiApplication::primaryScreen();
+    const qreal dpr = screen ? screen->devicePixelRatio() : 1.0;
+    const qreal safeDpr = (dpr <= 0.01) ? 1.0 : dpr;
+    const int logicalX = int(qRound(double(x) / double(safeDpr)));
+    const int logicalY = int(qRound(double(y) / double(safeDpr)));
+
+    // 叠加提示用于“让用户确认即将发生的动作”，显示时间拉到 2 秒便于看清。
+    constexpr int kHintDurationMs = 2000;
+    controllerOverlay_->showHint(logicalX, logicalY, description, kHintDurationMs);
 }
 
 void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)

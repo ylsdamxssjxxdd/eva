@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QImageReader>
+#include <QEventLoop>
 #include <string>
 
 void Widget::on_load_clicked()
@@ -542,8 +543,14 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     ControllerFrame controllerFrame;
     if (ui_controller_ischecked && lastToolPendingName_ == QStringLiteral("controller"))
     {
-        // 给系统一点时间渲染出菜单/弹窗，再截取屏幕，避免抢在绘制前
-        QThread::msleep(200);
+        // 给系统一点时间：
+        // 1) 让用户看清“即将执行的动作”叠加提示（tool 侧会提前 emit 提示）；
+        // 2) 等待菜单/弹窗真正渲染到屏幕，再截取屏幕，避免抢在绘制前。
+        // 不能用 QThread::msleep() 阻塞 UI 线程，否则叠加层/系统菜单可能根本来不及绘制。
+        constexpr int kHoldMs = 650;
+        QEventLoop loop;
+        QTimer::singleShot(kHoldMs, &loop, &QEventLoop::quit);
+        loop.exec(QEventLoop::ExcludeUserInputEvents);
         controllerFrame = captureControllerFrame();
         if (!controllerFrame.imagePath.isEmpty())
         {

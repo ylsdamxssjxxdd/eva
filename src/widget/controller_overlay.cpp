@@ -11,7 +11,9 @@ ControllerOverlay::ControllerOverlay(QWidget *parent)
     Q_UNUSED(parent);
 
     // 作为“提示层”存在：不进入任务栏、不抢焦点、置顶、无边框、透明背景、不拦截鼠标
-    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
+    // 关键点：必须做到“系统级输入透明”，否则在部分平台/窗口管理器下仍可能参与命中测试，导致真实点击被挡住。
+    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus |
+                   Qt::WindowTransparentForInput);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TransparentForMouseEvents, true);
@@ -57,7 +59,9 @@ void ControllerOverlay::showHint(int globalX, int globalY, const QString &descri
     // show/raise 不激活窗口（WA_ShowWithoutActivating），避免输入焦点被抢走
     show();
     raise();
-    update();
+    // 使用 repaint() 立即绘制，尽量避免“发出提示但用户看不到”的闪烁感。
+    // 该函数由 UI 线程调用，叠加层内容很轻量，直接同步绘制成本可控。
+    repaint();
 }
 
 void ControllerOverlay::hideNow()
@@ -78,11 +82,11 @@ void ControllerOverlay::paintEvent(QPaintEvent *event)
     const int half = kBoxSize / 2;
     QRect box(local.x() - half, local.y() - half, kBoxSize, kBoxSize);
 
-    // 颜色：偏系统蓝（与“系统相关为蓝色”的视觉约定一致），并加一点透明度
-    const QColor border(0, 140, 255, 220);
-    const QColor fill(0, 140, 255, 30);
-    const QColor centerColor(255, 255, 255, 230);
-    const QColor textBg(0, 0, 0, 170);
+    // 颜色：改为醒目的红色，便于用户在执行前快速确认即将发生的动作。
+    const QColor border(255, 50, 50, 230);
+    const QColor fill(255, 50, 50, 50);
+    const QColor centerColor(255, 80, 80, 240);
+    const QColor textBg(0, 0, 0, 180);
     const QColor textFg(255, 255, 255, 240);
 
     // 目标框
