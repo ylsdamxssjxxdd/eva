@@ -98,8 +98,8 @@ void Widget::recv_controller_hint_done(int x, int y, const QString &description)
     const int logicalX = int(qRound(double(x) / double(safeDpr)));
     const int logicalY = int(qRound(double(y) / double(safeDpr)));
 
-    // 完成态提示：绿色，滞留 1 秒，让用户确认动作已发生。
-    constexpr int kDoneDurationMs = 1000;
+    // 完成态提示：绿色，滞留 2 秒，让用户确认动作已发生。
+    constexpr int kDoneDurationMs = 2000;
     controllerOverlay_->showDoneHint(logicalX, logicalY, description, kDoneDurationMs);
 }
 

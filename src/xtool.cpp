@@ -770,14 +770,14 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             };
 
             auto showOverlayDone = [&](int x, int y, const QString &desc) {
-                // 动作执行完毕后：把红色提示切换为绿色，并让其滞留一段时间（默认 1 秒）。
+                // 动作执行完毕后：把红色提示切换为绿色，并让其滞留一段时间（默认 2 秒）。
                 // 注意：为了保证用户可见性，这里同样在 tool 线程做一次等待，避免 tool 结果立刻回传导致 UI 马上进入下一轮截图/推理流程。
                 emit tool2ui_controller_hint_done(x, y, desc);
 
-                // 与 UI 侧 ControllerOverlay::showDoneHint() 的 durationMs 对齐：当前固定为 1000ms。
-                // 额外 +80ms 用于覆盖跨线程排队与绘制抖动，尽量确保“绿色提示真的停留满 1 秒”。
-                constexpr unsigned long kOverlayDurationMs = 1000;
-                constexpr unsigned long kOverlayJitterMs = 80;
+                // 与 UI 侧 ControllerOverlay::showDoneHint() 的 durationMs 对齐：当前固定为 2000ms。
+                // 额外 +120ms 用于覆盖跨线程排队与绘制抖动，尽量确保“绿色提示真的停留满 2 秒”。
+                constexpr unsigned long kOverlayDurationMs = 2000;
+                constexpr unsigned long kOverlayJitterMs = 120;
                 constexpr unsigned long kStepMs = 20;
                 unsigned long remaining = kOverlayDurationMs + kOverlayJitterMs;
                 while (remaining > 0)

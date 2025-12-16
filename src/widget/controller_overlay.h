@@ -27,7 +27,7 @@ class ControllerOverlay final : public QWidget
 
     // 在动作“执行完毕后”展示完成态提示（绿色）。
     // 设计目标：与 showHint() 的红色“即将执行”形成对比，帮助用户确认动作已发生。
-    void showDoneHint(int globalX, int globalY, const QString &description, int durationMs = 1000);
+    void showDoneHint(int globalX, int globalY, const QString &description, int durationMs = 2000);
 
     // 立即隐藏（用于截图前清理叠加层）。
     void hideNow();
