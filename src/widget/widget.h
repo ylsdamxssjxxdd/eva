@@ -453,8 +453,8 @@ class Widget : public QWidget
     bool ui_knowledge_ischecked = false;
     bool ui_stablediffusion_ischecked = false;
     bool ui_controller_ischecked = false;
-    int ui_controller_norm_x = 1000; // 桌面控制器归一化坐标系 X（同时作为截屏缩放宽度）
-    int ui_controller_norm_y = 1000; // 桌面控制器归一化坐标系 Y（同时作为截屏缩放高度）
+    int ui_controller_norm_x = DEFAULT_CONTROLLER_NORM_X; // 桌面控制器归一化坐标系 X（同时作为截屏缩放宽度）
+    int ui_controller_norm_y = DEFAULT_CONTROLLER_NORM_Y; // 桌面控制器归一化坐标系 Y（同时作为截屏缩放高度）
     bool ui_MCPtools_ischecked = false;
     bool ui_engineer_ischecked = false;
     bool ui_dockerSandboxEnabled = false;
@@ -500,8 +500,8 @@ class Widget : public QWidget
         bool ui_knowledge_ischecked = false;
         bool ui_stablediffusion_ischecked = false;
         bool ui_controller_ischecked = false;
-        int ui_controller_norm_x = 1000;
-        int ui_controller_norm_y = 1000;
+        int ui_controller_norm_x = DEFAULT_CONTROLLER_NORM_X;
+        int ui_controller_norm_y = DEFAULT_CONTROLLER_NORM_Y;
         bool ui_MCPtools_ischecked = false;
         bool ui_engineer_ischecked = false;
         bool ui_dockerSandboxEnabled = false;

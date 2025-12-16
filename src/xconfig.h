@@ -59,6 +59,8 @@ class QWidget;
 #define DEFAULT_NGL 0
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
 #define DEFAULT_CONTROL_PORT 61550             // 远程控制监听端口
+#define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
+#define DEFAULT_CONTROLLER_NORM_Y 1000         // 桌面控制器：默认归一化坐标系高度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口
 #define DEFAULT_EMBEDDING_IP "127.0.0.1"       // 嵌入端点ip
 #define DEFAULT_EMBEDDING_API "/v1/embeddings" // 嵌入端点地址

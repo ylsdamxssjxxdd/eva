@@ -365,14 +365,14 @@
            <property name="minimum">
             <number>100</number>
            </property>
-           <property name="maximum">
-            <number>2048</number>
-           </property>
-           <property name="value">
-            <number>1000</number>
-           </property>
-          </widget>
-         </item>
+            <property name="maximum">
+             <number>2048</number>
+            </property>
+            <property name="value">
+             <number>1000</number>
+            </property>
+           </widget>
+          </item>
          <item>
           <widget class="QLabel" name="controller_norm_y_label">
            <property name="minimumSize">
@@ -409,15 +409,15 @@
            <property name="minimum">
             <number>100</number>
            </property>
-           <property name="maximum">
-            <number>2048</number>
-           </property>
-           <property name="value">
-            <number>1000</number>
-           </property>
-          </widget>
-         </item>
-        </layout>
+            <property name="maximum">
+             <number>2048</number>
+            </property>
+            <property name="value">
+             <number>1024</number>
+            </property>
+           </widget>
+          </item>
+         </layout>
        </widget>
       </item>
       <item>

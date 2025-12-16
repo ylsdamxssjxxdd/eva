@@ -609,8 +609,8 @@ int main(int argc, char *argv[])
         const bool knowledgeOn = restoreToolCheckbox(w.date_ui->knowledge_checkbox, QStringLiteral("knowledge"), QStringLiteral("knowledge_checkbox"));
         const bool controllerOn = restoreToolCheckbox(w.date_ui->controller_checkbox, QStringLiteral("controller"), QStringLiteral("controller_checkbox"));
         // 桌面控制器：归一化坐标系（默认 1000×1000）
-        const int savedNormX = settings.value("controller_norm_x", 1000).toInt();
-        const int savedNormY = settings.value("controller_norm_y", 1000).toInt();
+        const int savedNormX = settings.value("controller_norm_x", DEFAULT_CONTROLLER_NORM_X).toInt();
+        const int savedNormY = settings.value("controller_norm_y", DEFAULT_CONTROLLER_NORM_Y).toInt();
         w.ui_controller_norm_x = qBound(100, savedNormX, 2048);
         w.ui_controller_norm_y = qBound(100, savedNormY, 2048);
         if (w.date_ui->controller_norm_x_spin)

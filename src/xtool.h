@@ -187,8 +187,8 @@ class xTool : public QObject
     DockerSandbox *dockerSandbox_ = nullptr;
     DockerSandbox::Config dockerConfig_;
     std::atomic<quint64> activeTurnId_{0};
-    std::atomic<int> controllerNormX_{1000};
-    std::atomic<int> controllerNormY_{1000};
+    std::atomic<int> controllerNormX_{DEFAULT_CONTROLLER_NORM_X};
+    std::atomic<int> controllerNormY_{DEFAULT_CONTROLLER_NORM_Y};
 };
 
 // 桌面控制器工具的函数
