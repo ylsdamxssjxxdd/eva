@@ -2,6 +2,7 @@
 #include "widget.h"
 #include "../utils/textparse.h"
 #include "../utils/flowtracer.h"
+#include "../utils/openai_compat.h"
 #include <QDateTime>
 #include <QUrl>
 #include <QHostInfo>
@@ -98,6 +99,15 @@ void Widget::set_api()
     apis.api_key = clean_key;
     apis.api_model = clean_model;
     apis.is_local_backend = false;
+    // 根据 base url 自动选择 OpenAI 兼容接口路径风格：
+    // - 默认（OpenAI/llama.cpp 等）：base 不含版本号，接口固定为 /v1/...
+    // - 火山方舟 Ark：base 自带 /api/v3，接口直接使用 /chat/completions、/models 等
+    //   若仍然额外追加 /v1，会被拼成 /api/v3/v1/... 从而请求失败
+    {
+        const QUrl baseUrl = QUrl::fromUserInput(apis.api_endpoint);
+        apis.api_chat_endpoint = OpenAiCompat::chatCompletionsPath(baseUrl);
+        apis.api_completion_endpoint = OpenAiCompat::completionsPath(baseUrl);
+    }
 
     // 切换为链接模式
     ui_mode = LINK_MODE; // 按照链接模式的行为来
@@ -203,6 +213,13 @@ void Widget::tool_testhandleTimeout()
             apis.api_key = clean_key;
             apis.api_model = clean_model;
             apis.is_local_backend = false;
+            // 允许用户在不重新“装载/确认”的情况下修改端点：
+            // 这里需要同步更新各厂商的 OpenAI 兼容路径风格，避免 Ark(/api/v3) 被误拼为 /api/v3/v1/...
+            {
+                const QUrl baseUrl = QUrl::fromUserInput(apis.api_endpoint);
+                apis.api_chat_endpoint = OpenAiCompat::chatCompletionsPath(baseUrl);
+                apis.api_completion_endpoint = OpenAiCompat::completionsPath(baseUrl);
+            }
             emit ui2net_apis(apis);
         }
     }
@@ -265,11 +282,9 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
     if (ui_mode != LINK_MODE) return;
     QUrl base = QUrl::fromUserInput(apis.api_endpoint);
     if (!base.isValid()) return;
-    QUrl url(base);
-    QString path = url.path();
-    if (!path.endsWith('/')) path += '/';
-    path += QLatin1String("v1/models");
-    url.setPath(path);
+    // /v1/models 是最常见的 OpenAI 兼容路径；但火山方舟 Ark 的 base 已经包含 /api/v3，
+    // 因此 models 路径应为 /models（最终拼成 /api/v3/models）
+    const QUrl url = OpenAiCompat::joinPath(base, OpenAiCompat::modelsPath(base));
 
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");

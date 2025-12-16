@@ -366,6 +366,11 @@ void Widget::ensureLocalServer(bool lazyWake)
     apis.api_key = "";
     apis.api_model = "default";
     apis.is_local_backend = true;
+    // 切回本地后端时，必须恢复 llama.cpp 的 /v1/... 路径：
+    // 否则若上一次 LINK 模式用的是 Ark(/api/v3) 这类“base 自带版本号”的端点，
+    // api_chat_endpoint/api_completion_endpoint 会残留为 /chat/completions，导致本地请求 404。
+    apis.api_chat_endpoint = QStringLiteral(CHAT_ENDPOINT);
+    apis.api_completion_endpoint = QStringLiteral(COMPLETION_ENDPOINT);
     emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
@@ -781,6 +786,9 @@ void Widget::onServerReady(const QString &endpoint)
     apis.api_key = "";
     apis.api_model = "default";
     apis.is_local_backend = true;
+    // 同上：本地后端固定走 /v1/...，避免 LINK 模式端点残留
+    apis.api_chat_endpoint = QStringLiteral(CHAT_ENDPOINT);
+    apis.api_completion_endpoint = QStringLiteral(COMPLETION_ENDPOINT);
     emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);

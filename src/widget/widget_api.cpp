@@ -1,6 +1,7 @@
 #include "ui_widget.h"
 #include "widget.h"
 #include "../utils/textparse.h"
+#include "../utils/openai_compat.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -216,11 +217,10 @@ void Widget::fetchOpenAiModelsAsync()
     apiModelProbeLastEndpoint_ = normalizedBase;
     apiModelProbeLastKey_ = cleanKey;
 
-    QUrl url(normalizedBase);
-    QString path = url.path();
-    if (!path.endsWith('/')) path += '/';
-    path += QStringLiteral("v1/models");
-    url.setPath(path);
+    // 模型列表端点：大多数 OpenAI 兼容服务使用 /v1/models；
+    // 但火山方舟 Ark 的 base 已经包含 /api/v3，因此应使用 /models（最终拼成 /api/v3/models）
+    const QUrl baseUrl(normalizedBase);
+    const QUrl url = OpenAiCompat::joinPath(baseUrl, OpenAiCompat::modelsPath(baseUrl));
     if (!url.isValid())
     {
         apiModelFetchInFlight_ = false;
