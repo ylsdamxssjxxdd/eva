@@ -52,6 +52,7 @@ void ControllerOverlay::showHint(int globalX, int globalY, const QString &descri
 
     targetGlobalPos_ = QPoint(globalX, globalY);
     description_ = description;
+    hintState_ = HintState::Pending;
 
     if (durationMs <= 0) durationMs = 400;
     hideTimer_.start(durationMs);
@@ -61,6 +62,23 @@ void ControllerOverlay::showHint(int globalX, int globalY, const QString &descri
     raise();
     // 使用 repaint() 立即绘制，尽量避免“发出提示但用户看不到”的闪烁感。
     // 该函数由 UI 线程调用，叠加层内容很轻量，直接同步绘制成本可控。
+    repaint();
+}
+
+void ControllerOverlay::showDoneHint(int globalX, int globalY, const QString &description, int durationMs)
+{
+    updateVirtualGeometry();
+
+    targetGlobalPos_ = QPoint(globalX, globalY);
+    description_ = description;
+    hintState_ = HintState::Done;
+
+    // 完成态提示默认停留 1s；同样允许传入 0/负数时做一个小兜底，避免“瞬间消失”。
+    if (durationMs <= 0) durationMs = 400;
+    hideTimer_.start(durationMs);
+
+    show();
+    raise();
     repaint();
 }
 
@@ -82,12 +100,18 @@ void ControllerOverlay::paintEvent(QPaintEvent *event)
     const int half = kBoxSize / 2;
     QRect box(local.x() - half, local.y() - half, kBoxSize, kBoxSize);
 
-    // 颜色：改为醒目的红色，便于用户在执行前快速确认即将发生的动作。
-    const QColor border(255, 50, 50, 230);
-    const QColor fill(255, 50, 50, 50);
-    const QColor centerColor(255, 80, 80, 240);
-    const QColor textBg(0, 0, 0, 180);
-    const QColor textFg(255, 255, 255, 240);
+    // 颜色规范：
+    // - Pending（红色）：执行前确认“即将发生的动作”
+    // - Done（绿色）：执行后确认“动作已完成”
+    QColor border(255, 50, 50, 230);
+    QColor fill(255, 50, 50, 50);
+    QColor centerColor(255, 80, 80, 240);
+    if (hintState_ == HintState::Done)
+    {
+        border = QColor(60, 220, 120, 230);
+        fill = QColor(60, 220, 120, 50);
+        centerColor = QColor(80, 255, 160, 240);
+    }
 
     // 目标框
     p.setPen(QPen(border, 3));
@@ -107,13 +131,26 @@ void ControllerOverlay::paintEvent(QPaintEvent *event)
 
     QFont font = this->font();
     font.setBold(true);
+    // 描述文字：用于让用户确认“将要执行/已执行”的动作，因此需要更大字号。
+    // 这里按当前字体大小做增量放大，并设置一个最小值，避免在高分辨率/高 DPI 下仍显得过小。
+    const qreal basePt = font.pointSizeF();
+    if (basePt > 0.0)
+    {
+        font.setPointSizeF(qMax(18.0, basePt + 6.0));
+    }
+    else if (font.pixelSize() > 0)
+    {
+        font.setPixelSize(qMax(26, font.pixelSize() + 8));
+    }
+    else
+    {
+        font.setPointSize(18);
+    }
     p.setFont(font);
     QFontMetrics fm(font);
 
-    const int paddingX = 10;
-    const int paddingY = 6;
-    const QRect rawRect = fm.boundingRect(text);
-    QSize textSize(rawRect.width() + paddingX * 2, rawRect.height() + paddingY * 2);
+    // 无背景：仅绘制文字（按需求移除黑色底框），因此尺寸按单行文本计算即可。
+    const QSize textSize = fm.size(Qt::TextSingleLine, text);
 
     QPoint textTopLeft(box.left(), box.top() - textSize.height() - 8);
     if (textTopLeft.y() < 0)
@@ -128,12 +165,12 @@ void ControllerOverlay::paintEvent(QPaintEvent *event)
     if (textTopLeft.x() < 0) textTopLeft.setX(0);
 
     QRect textRect(textTopLeft, textSize);
-    p.setPen(Qt::NoPen);
-    p.setBrush(textBg);
-    p.drawRoundedRect(textRect, 6, 6);
 
-    p.setPen(textFg);
-    p.drawText(textRect.adjusted(paddingX, paddingY, -paddingX, -paddingY),
-               Qt::AlignLeft | Qt::AlignVCenter,
-               text);
+    // 文字颜色与状态一致（Pending=红，Done=绿），并用轻微阴影提高在复杂背景上的可读性。
+    const QColor textColor = border;
+    const QColor shadow(0, 0, 0, 160);
+    p.setPen(shadow);
+    p.drawText(textRect.translated(2, 2), Qt::AlignLeft | Qt::AlignVCenter, text);
+    p.setPen(textColor);
+    p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
 }

@@ -705,6 +705,7 @@ class Widget : public QWidget
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                // 处理tool推理完毕的槽
     void recv_controller_hint(int x, int y, const QString &description); // 桌面控制器：绘制屏幕叠加提示
+    void recv_controller_hint_done(int x, int y, const QString &description); // 桌面控制器：动作执行完毕后绘制完成态提示（绿色）
     void recv_controller_overlay(quint64 turnId, const QString &argsJson); // 桌面控制器：保存带 bbox 等信息的标注截图（EVA_TEMP/overlay）
     void recv_docker_status(const DockerSandboxStatus &status);
     void reflash_output(const QString result, bool is_while, QColor color);      // 更新输出区,is_while表示从流式输出的token

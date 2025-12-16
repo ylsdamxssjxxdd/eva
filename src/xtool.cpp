@@ -744,6 +744,10 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             const int cyNorm = std::clamp(cyNormRaw, 0, normMaxY);
             const int cx = mapCoord(cxNorm, normMaxX, screenMaxX);
             const int cy = mapCoord(cyNorm, normMaxY, screenMaxY);
+            // 默认把“完成态提示”绘制在本次 action 的中心点；
+            // 对于 drag_drop 等有终点的动作，会在分支内改为终点坐标。
+            int doneX = cx;
+            int doneY = cy;
 
             auto showOverlayHint = [&](int x, int y, const QString &desc) {
                 // 通过信号让 UI 线程绘制叠加提示。
@@ -754,6 +758,26 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 // 额外 +100ms 用于覆盖跨线程排队与绘制抖动，尽量确保“提示时间结束后再执行”。
                 constexpr unsigned long kOverlayDurationMs = 2000;
                 constexpr unsigned long kOverlayJitterMs = 100;
+                constexpr unsigned long kStepMs = 20;
+                unsigned long remaining = kOverlayDurationMs + kOverlayJitterMs;
+                while (remaining > 0)
+                {
+                    if (cancelled()) return;
+                    const unsigned long step = (remaining > kStepMs) ? kStepMs : remaining;
+                    msleep(step);
+                    remaining -= step;
+                }
+            };
+
+            auto showOverlayDone = [&](int x, int y, const QString &desc) {
+                // 动作执行完毕后：把红色提示切换为绿色，并让其滞留一段时间（默认 1 秒）。
+                // 注意：为了保证用户可见性，这里同样在 tool 线程做一次等待，避免 tool 结果立刻回传导致 UI 马上进入下一轮截图/推理流程。
+                emit tool2ui_controller_hint_done(x, y, desc);
+
+                // 与 UI 侧 ControllerOverlay::showDoneHint() 的 durationMs 对齐：当前固定为 1000ms。
+                // 额外 +80ms 用于覆盖跨线程排队与绘制抖动，尽量确保“绿色提示真的停留满 1 秒”。
+                constexpr unsigned long kOverlayDurationMs = 1000;
+                constexpr unsigned long kOverlayJitterMs = 80;
                 constexpr unsigned long kStepMs = 20;
                 unsigned long remaining = kOverlayDurationMs + kOverlayJitterMs;
                 while (remaining > 0)
@@ -954,6 +978,8 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 const int toCyNorm = std::clamp(toCyNormRaw, 0, normMaxY);
                 const int toCx = mapCoord(toCxNorm, normMaxX, screenMaxX);
                 const int toCy = mapCoord(toCyNorm, normMaxY, screenMaxY);
+                doneX = toCx;
+                doneY = toCy;
 
                 showOverlayHint(cx, cy, description);
                 leftDown(cx, cy);
@@ -971,6 +997,8 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 return;
             }
 
+            // 动作执行完毕：绿色提示停留 1 秒
+            showOverlayDone(doneX, doneY, description);
             if (cancelled()) return;
 
             const QString detail = QStringLiteral("ok\naction=%1\nbbox=[%2,%3,%4,%5]\ncenter_norm=(%6,%7)")

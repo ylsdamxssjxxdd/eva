@@ -25,6 +25,10 @@ class ControllerOverlay final : public QWidget
     // durationMs 为自动隐藏的时间（毫秒）。
     void showHint(int globalX, int globalY, const QString &description, int durationMs = 3000);
 
+    // 在动作“执行完毕后”展示完成态提示（绿色）。
+    // 设计目标：与 showHint() 的红色“即将执行”形成对比，帮助用户确认动作已发生。
+    void showDoneHint(int globalX, int globalY, const QString &description, int durationMs = 1000);
+
     // 立即隐藏（用于截图前清理叠加层）。
     void hideNow();
 
@@ -33,11 +37,17 @@ class ControllerOverlay final : public QWidget
 
   private:
     void updateVirtualGeometry();
+    enum class HintState
+    {
+        Pending, // 即将执行：红色
+        Done     // 执行完毕：绿色
+    };
 
   private:
     QRect virtualGeometry_;
     QPoint targetGlobalPos_{-1, -1};
     QString description_;
+    HintState hintState_ = HintState::Pending;
     QTimer hideTimer_;
 
     static constexpr int kBoxSize = 80;

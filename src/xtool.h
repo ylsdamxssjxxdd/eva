@@ -123,6 +123,9 @@ class xTool : public QObject
     // 桌面控制器：用于在 UI 线程绘制“即将执行”的屏幕叠加提示。
     // x/y 为真实屏幕坐标（与鼠标移动/点击一致），UI 侧会以此为中心绘制 80x80 目标框与描述文案。
     void tool2ui_controller_hint(int x, int y, const QString &description);
+    // 桌面控制器：用于在 UI 线程绘制“执行完毕”的屏幕叠加提示（绿色）。
+    // 设计目标：动作执行后把同一位置的红色提示切换为绿色，并短暂停留，便于用户确认结果。
+    void tool2ui_controller_hint_done(int x, int y, const QString &description);
     // 桌面控制器：用于将模型传入的 bbox/action/description 等信息叠加到“最近一次发给模型的控制器截图”上并落盘，便于回溯定位。
     // argsJson 为 tool_call.arguments 的 JSON 文本（只用于 UI 侧解析与绘制，不参与执行）。
     void tool2ui_controller_overlay(quint64 turnId, const QString &argsJson);

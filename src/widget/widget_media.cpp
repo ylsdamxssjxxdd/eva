@@ -85,6 +85,24 @@ void Widget::recv_controller_hint(int x, int y, const QString &description)
     controllerOverlay_->showHint(logicalX, logicalY, description, kHintDurationMs);
 }
 
+void Widget::recv_controller_hint_done(int x, int y, const QString &description)
+{
+    ensureControllerOverlay();
+    if (!controllerOverlay_) return;
+
+    // 坐标系统一：tool 侧为物理像素坐标；Qt 侧为逻辑坐标。
+    // 这里复用与 recv_controller_hint() 相同的换算逻辑，确保完成态提示与真实落点一致。
+    const QScreen *screen = QGuiApplication::primaryScreen();
+    const qreal dpr = screen ? screen->devicePixelRatio() : 1.0;
+    const qreal safeDpr = (dpr <= 0.01) ? 1.0 : dpr;
+    const int logicalX = int(qRound(double(x) / double(safeDpr)));
+    const int logicalY = int(qRound(double(y) / double(safeDpr)));
+
+    // 完成态提示：绿色，滞留 1 秒，让用户确认动作已发生。
+    constexpr int kDoneDurationMs = 1000;
+    controllerOverlay_->showDoneHint(logicalX, logicalY, description, kDoneDurationMs);
+}
+
 void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
 {
     // -----------------------------------------------------------------------------

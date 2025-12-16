@@ -452,10 +452,19 @@ QString Widget::create_extra_prompt()
         if (date_ui->controller_checkbox->isChecked())
         {
             // 桌面控制器提示词：把“截图归一化尺寸”写进提示词里（用当前设置值替换占位符），避免每条消息都额外注入图片元信息文本。
-            QString controllerText = promptx::toolController().text;
-            controllerText.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
-            controllerText.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
-            available_tools_describe += controllerText + "\n\n";
+            // 额外需求：当用户界面语言为中文时，要求模型在 controller.arguments.description 中使用中文描述动作，
+            // 否则屏幕叠加提示会显示英文，用户看不懂也无法确认即将执行/已执行的动作。
+            // 英文界面保持原提示词不变。
+            TOOLS_INFO controllerInfo = promptx::toolController();
+            controllerInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+            controllerInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+            if (language_flag == 0) // 0=中文，1=英文
+            {
+                controllerInfo.description += QStringLiteral(
+                    "\n- IMPORTANT (中文界面)：`description` 是用户可见的屏幕提示文案，必须用中文描述动作（例如：点击浏览器地址栏/在搜索框输入文本）。");
+            }
+            controllerInfo.generateToolText();
+            available_tools_describe += controllerInfo.text + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
         {
