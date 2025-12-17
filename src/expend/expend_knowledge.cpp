@@ -136,6 +136,7 @@ void Expend::embedding_server_start()
     arguments << "--host"
               << "0.0.0.0";                                        // 暴露本机ip
     arguments << "--port" << DEFAULT_EMBEDDING_PORT;               // 服务端口
+    arguments << "--parallel" << QString::number(DEFAULT_PARALLEL); // 默认并发：保持与主推理服务一致（默认 1）
 
     // 与主推理服务保持一致：默认开启 llama-server 的可选端点，方便统一监控与探测。
     // 说明：即便当前嵌入服务暂未使用 `/metrics`、`/props`，保持端点一致也便于排障与自动化监控。
@@ -146,6 +147,10 @@ void Expend::embedding_server_start()
     if (DEFAULT_LLAMA_ENDPOINT_PROPS)
     {
         arguments << "--props";
+    }
+    if (DEFAULT_LLAMA_DISABLE_KV_UNIFIED)
+    {
+        arguments << "-kvu";
     }
 
     arguments << "-ngl" << QString::number(DEFAULT_EMBEDDING_NGL); // 默认尽量使用 GPU 卸载

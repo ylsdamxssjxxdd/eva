@@ -67,6 +67,12 @@ class QWidget;
 //         如仅需本机使用，可将端口留空触发 127.0.0.1 绑定，或在后端侧启用鉴权（如 api-key）。
 #define DEFAULT_LLAMA_ENDPOINT_METRICS true
 #define DEFAULT_LLAMA_ENDPOINT_PROPS true
+
+// llama.cpp 新版 llama-server 默认会开启 kv_unified，并可能自动调整并发（日志提示“setting n_parallel = 4 and kv_unified = true”）。
+// 为保持 EVA 旧行为：
+// - 并发数量完全由机体参数 `--parallel`（设置窗口“并发数量”）控制，默认值为 1
+// - 默认关闭 kv_unified（按 llama-server 日志提示，可通过 `-kvu` 关闭）
+#define DEFAULT_LLAMA_DISABLE_KV_UNIFIED true
 #define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_NORM_Y 1000         // 桌面控制器：默认归一化坐标系高度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口

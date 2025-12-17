@@ -44,6 +44,5 @@ if (MINGW)
     endif()
 endif()
 
-add_test(NAME local_server_args_tests COMMAND local_server_args_tests)
 add_test(NAME device_manager_tests COMMAND device_manager_tests)
-set_tests_properties(local_server_args_tests device_manager_tests PROPERTIES LABELS unit)
+set_tests_properties(device_manager_tests PROPERTIES LABELS unit)

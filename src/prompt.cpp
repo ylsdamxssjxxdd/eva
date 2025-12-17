@@ -155,10 +155,20 @@ QVector<ToolTemplate> &toolTemplates()
          "edit_in_file",
          R"({"type":"object","properties":{"path":{"type":"string","description":"The file path which you want to edit."},"edits":{"type":"array","description":"Ordered list of edit operations.","items":{"type":"object","properties":{"action":{"type":"string","enum":["replace","insert_before","insert_after","delete"],"description":"Type of edit to apply."},"start_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit begins."},"end_line":{"type":"integer","minimum":1,"description":"1-based line number where the edit ends (inclusive). Required for replace and delete."},"new_content":{"type":"string","description":"Replacement or insertion content. Use actual line breaks inside the string for multi-line updates."}},"required":["action","start_line"],"additionalProperties":false}},"ensure_newline_at_eof":{"type":"boolean","description":"Ensure the file ends with a trailing newline when true."}},"required":["path","edits"]})",
          QStringLiteral("Apply structured line-based edits to an existing text file. Each edit is applied from bottom to top to keep line numbers stable. Provide concise context to avoid unintended changes.")},
-        {promptx::PROMPT_TOOL_ENGINEER_PROXY,
-         "system_engineer_proxy",
-         R"({"type":"object","properties":{"engineer_id":{"type":"string","description":"Engineer identifier. Reuse to keep prior context or set a new id to start fresh."},"task":{"type":"string","description":"Task description, including objectives, context, and acceptance criteria."}},"required":["engineer_id","task"]})",
-         QStringLiteral("Escalate a task to the resident system engineer. Arguments include engineer_id (string) and task (string). The task should describe the desired outcome, context, and constraints. The engineer replies with a summary of the work (<=200 characters). Use the same engineer_id to reuse prior memory; send a new id to start with a fresh engineer.")},
+         {promptx::PROMPT_TOOL_ENGINEER_PROXY,
+          "system_engineer_proxy",
+          R"({"type":"object","properties":{"engineer_id":{"type":"string","description":"Engineer identifier. Reuse to keep prior context or set a new id to start fresh."},"task":{"type":"string","description":"Task description, including objectives, context, and acceptance criteria."}},"required":["engineer_id","task"]})",
+          QStringLiteral("Escalate a task to the resident system engineer. Arguments include engineer_id (string) and task (string). The task should describe the desired outcome, context, and constraints. The engineer replies with a summary of the work (<=200 characters). Use the same engineer_id to reuse prior memory; send a new id to start with a fresh engineer.")},
+        {promptx::PROMPT_TOOL_MONITOR,
+         "monitor",
+         // 监视器工具的作用是“等待 + 截图”形成观测回路；同样使用最小化 schema，减少提示词注入长度。
+         R"({"type":"object","properties":{"wait_ms":{"type":"integer","minimum":0,"maximum":30000},"note":{"type":"string"}},"required":["wait_ms"],"additionalProperties":false})",
+         QStringLiteral(
+             "Desktop monitor:\n"
+             "- Use only when you need to watch the screen and wait for a UI change.\n"
+             "- One call waits `wait_ms` ms, then you will receive a fresh screenshot (same normalized space as controller: {controller_norm_x}x{controller_norm_y}).\n"
+             "- After each screenshot: if not ready, call monitor again (use backoff); if ready, stop monitoring and call controller.\n"
+             "- Do not loop forever: stop after reasonable attempts/time and ask the user.")},
     };
     return templates;
 }
@@ -301,5 +311,10 @@ const TOOLS_INFO &toolEditInFile()
 const TOOLS_INFO &toolEngineerProxy()
 {
     return toolTemplates()[14].cache;
+}
+
+const TOOLS_INFO &toolMonitor()
+{
+    return toolTemplates()[15].cache;
 }
 } // namespace promptx

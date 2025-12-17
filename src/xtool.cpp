@@ -1035,6 +1035,64 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         sendStateMessage("tool:" + QString("controller ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
         sendPushMessage(QString("controller ") + jtr("return") + "\n" + detail);
     }
+    //----------------------桌面监视器------------------
+    else if (tools_name == "monitor")
+    {
+        // -----------------------------------------------------------------------------
+        // 桌面监视器：等待 + 截图（观测回路）
+        // 设计目标：解决“需要持续监视屏幕变化后再操作”的任务，例如：
+        // - 等待加载完成/按钮可点击/弹窗出现/下载完成/倒计时结束等
+        //
+        // 约定：
+        // 1) monitor 工具本身只负责等待（并在等待期间给用户提示），不直接返回 base64 图片；
+        // 2) 截图由 UI 在 tool_result 回灌模型前统一抓取并附带（见 Widget::handleToolLoop）；
+        //    这样可以复用 controller 的“干净截图 + 归一化坐标系”管线，并避免在工具线程直接操作 UI。
+        // -----------------------------------------------------------------------------
+
+        auto cancelled = [&]() -> bool {
+            return tlsCurrentInvocation_ && tlsCurrentInvocation_->cancelled.load(std::memory_order_acquire);
+        };
+
+        int waitMs = get_int_safely(tools_args_, "wait_ms", -1);
+        if (waitMs < 0)
+        {
+            // 兼容：部分模型可能会输出 wait/delay_ms
+            waitMs = get_int_safely(tools_args_, "wait", get_int_safely(tools_args_, "delay_ms", 1000));
+        }
+        waitMs = std::clamp(waitMs, 0, 30000);
+
+        sendStateMessage(QStringLiteral("tool:monitor(wait_ms=%1)").arg(waitMs));
+        emit tool2ui_monitor_countdown(waitMs);
+
+        // 细粒度睡眠：支持中途取消（避免长 wait 阻塞取消操作）
+        constexpr int kStepMs = 50;
+        int remaining = waitMs;
+        while (remaining > 0)
+        {
+            if (cancelled()) break;
+            const int chunk = std::min(kStepMs, remaining);
+            msleep(static_cast<unsigned long>(chunk));
+            remaining -= chunk;
+        }
+
+        emit tool2ui_monitor_countdown_done();
+        if (cancelled()) return;
+
+        // 用归一化尺寸给模型一个稳定锚点（与 controller 保持一致），方便它在 monitor->controller 切换时不混淆坐标空间。
+        const int normMaxX = std::max(1, controllerNormX_.load(std::memory_order_acquire));
+        const int normMaxY = std::max(1, controllerNormY_.load(std::memory_order_acquire));
+
+        const QString detail = QStringLiteral(
+                                   "ok\n"
+                                   "wait_ms=%1\n"
+                                   "screenshot=attached (normalized %2x%3)\n"
+                                   "next=If the target state is NOT reached, call monitor again; if reached, call controller.")
+                                   .arg(waitMs)
+                                   .arg(normMaxX)
+                                   .arg(normMaxY);
+        sendStateMessage("tool:" + QStringLiteral("monitor ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
+        sendPushMessage(QStringLiteral("monitor ") + jtr("return") + "\n" + detail);
+    }
     //----------------------文生图------------------
     else if (tools_name == "stablediffusion")
     {

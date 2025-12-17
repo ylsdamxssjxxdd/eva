@@ -129,6 +129,10 @@ class xTool : public QObject
     // 桌面控制器：用于将模型传入的 bbox/action/description 等信息叠加到“最近一次发给模型的控制器截图”上并落盘，便于回溯定位。
     // argsJson 为 tool_call.arguments 的 JSON 文本（只用于 UI 侧解析与绘制，不参与执行）。
     void tool2ui_controller_overlay(quint64 turnId, const QString &argsJson);
+    // 桌面监视器：等待中倒计时提示（顶部居中），用于提醒用户即将抓取截图。
+    void tool2ui_monitor_countdown(int waitMs);
+    // 桌面监视器：结束/取消时隐藏倒计时提示。
+    void tool2ui_monitor_countdown_done();
 
   private:
     struct ToolPathResolution

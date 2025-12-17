@@ -1,6 +1,7 @@
 #include "controller_overlay.h"
 
 #include <QApplication>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QPainter>
 #include <QScreen>
@@ -21,7 +22,20 @@ ControllerOverlay::ControllerOverlay(QWidget *parent)
     setFocusPolicy(Qt::NoFocus);
 
     hideTimer_.setSingleShot(true);
-    connect(&hideTimer_, &QTimer::timeout, this, &ControllerOverlay::hide);
+    connect(&hideTimer_, &QTimer::timeout, this, &ControllerOverlay::hideNow);
+
+    // monitor 倒计时刷新：只负责触发重绘，不做任何阻塞等待。
+    monitorTickTimer_.setInterval(120);
+    monitorTickTimer_.setTimerType(Qt::PreciseTimer);
+    connect(&monitorTickTimer_, &QTimer::timeout, this, [this]() {
+        if (mode_ != OverlayMode::MonitorCountdown)
+        {
+            monitorTickTimer_.stop();
+            return;
+        }
+        // 倒计时文本在 paintEvent 中按当前时间计算，这里只需要重绘即可。
+        repaint();
+    });
 
     updateVirtualGeometry();
     hide();
@@ -50,6 +64,8 @@ void ControllerOverlay::showHint(int globalX, int globalY, const QString &descri
 {
     updateVirtualGeometry();
 
+    mode_ = OverlayMode::ActionHint;
+    monitorTickTimer_.stop();
     targetGlobalPos_ = QPoint(globalX, globalY);
     description_ = description;
     hintState_ = HintState::Pending;
@@ -69,6 +85,8 @@ void ControllerOverlay::showDoneHint(int globalX, int globalY, const QString &de
 {
     updateVirtualGeometry();
 
+    mode_ = OverlayMode::ActionHint;
+    monitorTickTimer_.stop();
     targetGlobalPos_ = QPoint(globalX, globalY);
     description_ = description;
     hintState_ = HintState::Done;
@@ -82,15 +100,114 @@ void ControllerOverlay::showDoneHint(int globalX, int globalY, const QString &de
     repaint();
 }
 
+void ControllerOverlay::showMonitorCountdown(int waitMs)
+{
+    updateVirtualGeometry();
+
+    mode_ = OverlayMode::MonitorCountdown;
+    hintState_ = HintState::Pending;
+    targetGlobalPos_ = QPoint(-1, -1);
+    description_.clear();
+
+    // 保护：避免异常值导致非常长的“置顶遮挡”体验。
+    monitorTotalMs_ = qBound(0, waitMs, 30000);
+    monitorDeadlineMs_ = QDateTime::currentMSecsSinceEpoch() + monitorTotalMs_;
+
+    // waitMs=0 时依然显示一个很短的提示，避免“没有反馈”的割裂感。
+    const int hideAfterMs = (monitorTotalMs_ <= 0) ? 400 : monitorTotalMs_;
+    hideTimer_.start(hideAfterMs);
+
+    monitorTickTimer_.start();
+
+    show();
+    raise();
+    repaint();
+}
+
 void ControllerOverlay::hideNow()
 {
     hideTimer_.stop();
+    monitorTickTimer_.stop();
     hide();
 }
 
 void ControllerOverlay::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
+
+    // -----------------------------------------------------------------------------
+    // monitor：顶部居中倒计时
+    // -----------------------------------------------------------------------------
+    if (mode_ == OverlayMode::MonitorCountdown)
+    {
+        // 计算剩余秒数（向上取整，保证用户看到的是“还剩几秒”）
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        qint64 remainMs = monitorDeadlineMs_ - now;
+        if (remainMs < 0) remainMs = 0;
+        const int remainSec = (remainMs <= 0) ? 0 : int((remainMs + 999) / 1000);
+
+        QString text;
+        if (monitorTotalMs_ <= 0 || remainSec <= 0)
+        {
+            text = QStringLiteral("等待中：即将截图");
+        }
+        else
+        {
+            text = QStringLiteral("等待中：%1 秒后截图").arg(remainSec);
+        }
+
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing, true);
+
+        // 位置：主屏幕顶部居中（更符合用户注视区域）
+        QRect anchor = virtualGeometry_;
+        if (QScreen *primary = QGuiApplication::primaryScreen())
+        {
+            anchor = primary->geometry();
+        }
+        const int globalX = anchor.center().x();
+        const int globalY = anchor.top() + 24;
+        const QPoint local = QPoint(globalX, globalY) - virtualGeometry_.topLeft();
+
+        // 字体：加粗放大，配合阴影提高复杂背景可读性
+        QFont font = this->font();
+        font.setBold(true);
+        const qreal basePt = font.pointSizeF();
+        if (basePt > 0.0)
+        {
+            font.setPointSizeF(qMax(20.0, basePt + 8.0));
+        }
+        else if (font.pixelSize() > 0)
+        {
+            font.setPixelSize(qMax(28, font.pixelSize() + 10));
+        }
+        else
+        {
+            font.setPointSize(20);
+        }
+        p.setFont(font);
+        const QFontMetrics fm(font);
+        const QSize textSize = fm.size(Qt::TextSingleLine, text);
+
+        // 顶部居中：x 居中，y 固定偏移；并做边界保护避免越界
+        int x = local.x() - textSize.width() / 2;
+        int y = local.y();
+        x = qBound(0, x, qMax(0, width() - textSize.width() - 1));
+        y = qBound(0, y, qMax(0, height() - textSize.height() - 1));
+        const QRect textRect(QPoint(x, y), textSize);
+
+        const QColor textColor(40, 160, 255, 240); // 蓝色：偏“系统提示”语义
+        const QColor shadow(0, 0, 0, 160);
+        p.setPen(shadow);
+        p.drawText(textRect.translated(2, 2), Qt::AlignLeft | Qt::AlignVCenter, text);
+        p.setPen(textColor);
+        p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, text);
+        return;
+    }
+
+    // -----------------------------------------------------------------------------
+    // controller：目标框 + 描述
+    // -----------------------------------------------------------------------------
     if (targetGlobalPos_.x() < 0 || targetGlobalPos_.y() < 0) return;
 
     QPainter p(this);

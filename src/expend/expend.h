@@ -321,10 +321,14 @@ class Expend : public QWidget
   public slots:
     void speech_player_over(QMediaPlayer::MediaStatus status); // Handle playback completion
     void start_tts(QString str);                               // Start text-to-speech
+#if defined(EVA_ENABLE_QT_TTS)
+    void onSysSpeechStateChanged(QTextToSpeech::State state);  // 系统语音状态变化：用于推进下一段朗读
+#endif
     void speechOver();
     void speechPlayOver();
     void recv_output(const QString result, bool is_while, QColor color); // Receive model output for TTS
     void onNetTurnDone();                                                // Trigger synthesis after each turn
+    void recv_toolpushover(QString tool_result_);                         // 工具返回：仅播报“模型调用xxx工具”
     void recv_resettts();                                                // Reset text-to-speech pipeline
     void speech_process();                                               // Process pending synthesis requests
     void speech_play_process();                                          // Process pending playback tasks
@@ -504,6 +508,12 @@ class Expend : public QWidget
   public:
     bool is_first_show_modelcard = true;
     // TTS streaming parser state
-    bool tts_in_think_ = false; // skip content inside <think>..</think>
+    bool tts_in_think_ = false;       // 是否处于 <think>..</think> 区域（该区域不朗读）
+    bool tts_in_tool_call_ = false;   // 是否处于 <tool_call>..</tool_call> 区域（该区域不朗读）
+    bool tts_resetting_ = false;      // 是否正在重置 TTS（用于屏蔽 kill/stop 引发的回调继续推进）
+    bool tts_sys_speaking_ = false;   // 系统语音是否处于“本次发起的朗读中”（用于识别朗读完成）
+    QString tts_stream_buffer_;       // 流式解析缓冲：用于处理标签跨 chunk 被拆分的情况
+    QString tts_tool_call_buffer_;    // 缓存当前工具调用 JSON（用于解析工具名，不朗读）
+    QString tts_last_tool_call_name_; // 最近一次工具名：工具返回时用于播报“模型调用xxx工具”
 };
 #endif // EXPEND_H

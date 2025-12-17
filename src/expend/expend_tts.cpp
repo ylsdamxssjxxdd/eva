@@ -7,6 +7,9 @@
 #include "../utils/pathutil.h"
 #include <QDateTime>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QRegularExpression>
 
 //-------------------------------------------------------------------------
 //----------------------------------文转声相关--------------------------------
@@ -55,6 +58,7 @@ void Expend::start_tts(QString str)
 {
     if (!speech_params.enable_speech)
     {
+        // 文转声被禁用时：直接解锁状态，避免卡在 is_speech=true 导致后续无法朗读
         speechOver();
         return;
     }
@@ -63,6 +67,8 @@ void Expend::start_tts(QString str)
     {
         if (speech_params.speech_name == SPPECH_TTSCPP)
         {
+            // 本地 tts.cpp：由子进程结束回调推进下一段
+            tts_sys_speaking_ = false;
             const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
             if (!modelPath.isEmpty())
             {
@@ -78,6 +84,11 @@ void Expend::start_tts(QString str)
         {
 #if defined(EVA_ENABLE_QT_TTS)
             if (!sys_speech) sys_speech = new QTextToSpeech(this);
+            // 系统语音：必须监听 stateChanged 才能在朗读结束后推进下一段
+            if (sys_speech)
+            {
+                connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::onSysSpeechStateChanged, Qt::UniqueConnection);
+            }
             foreach (const QVoice &voice, sys_speech->availableVoices())
             {
                 if (voice.name() == speech_params.speech_name)
@@ -88,6 +99,8 @@ void Expend::start_tts(QString str)
             }
             sys_speech->setRate(0.3);
             sys_speech->setVolume(1.0);
+            // 标记“当前段落由系统语音朗读中”，等待 Ready 状态时自动 speechOver()
+            tts_sys_speaking_ = true;
             sys_speech->say(str);
 #else
             ui->speech_log->appendPlainText("[info] Qt TextToSpeech support is disabled in this build.");
@@ -96,6 +109,40 @@ void Expend::start_tts(QString str)
         }
     }
 }
+
+#if defined(EVA_ENABLE_QT_TTS)
+// 系统语音状态变化：用于在朗读结束时推进下一段
+void Expend::onSysSpeechStateChanged(QTextToSpeech::State state)
+{
+    // 重置过程中会 stop()，此时不应继续推进（避免“重置后还在朗读/继续播放”）
+    if (tts_resetting_)
+    {
+        tts_sys_speaking_ = false;
+        is_speech = false;
+        return;
+    }
+
+    // 只处理由本类发起的“段落朗读”
+    if (!tts_sys_speaking_) return;
+
+    // Ready = 当前朗读结束（或 stop 导致回到 Ready）
+    if (state == QTextToSpeech::Ready)
+    {
+        tts_sys_speaking_ = false;
+        speechOver();
+        return;
+    }
+
+    // 后端报错：避免卡死在 is_speech=true，直接放行下一段
+    if (state == QTextToSpeech::BackendError)
+    {
+        tts_sys_speaking_ = false;
+        if (ui && ui->speech_log) ui->speech_log->appendPlainText("[error] system TTS backend error; skip.");
+        speechOver();
+        return;
+    }
+}
+#endif
 
 
 void Expend::speechOver()
@@ -152,76 +199,266 @@ void Expend::speech_play_process()
 void Expend::recv_output(const QString result, bool is_while, QColor color)
 {
     Q_UNUSED(color);
-    if (is_while)
+    if (!is_while) return;
+    if (result.isEmpty()) return;
+
+    // ---------------------------------------------------------------------
+    // 文转声流式朗读（TTS）策略：
+    // 1) 按“段落/换行”切分朗读，而不是按句号等标点切分（避免一句一句读太碎）。
+    // 2) 不朗读两类内容：
+    //    - 思考区：<think>..</think>
+    //    - 工具调用区：<tool_call>..</tool_call>（其内容为 JSON，给工具层解析）
+    //
+    // 兼容性：流式输出可能把标签拆成多个 chunk，因此这里维护一个解析缓冲，
+    //        并把“疑似标签前缀”的尾巴留到下一次再判断，避免读出 "<tool_" 之类碎片。
+    // ---------------------------------------------------------------------
+
+    // 累积到解析缓冲中，再统一剥离标签/过滤不可朗读区域
+    tts_stream_buffer_ += result;
+
+    const QString thinkBegin = QStringLiteral(DEFAULT_THINK_BEGIN);
+    const QString thinkEnd = QStringLiteral(DEFAULT_THINK_END);
+    const QString toolBegin = QStringLiteral("<tool_call>");
+    const QString toolEnd = QStringLiteral(DEFAULT_OBSERVATION_STOPWORD); // </tool_call>
+
+    auto findEarliestTag = [&](const QString &s, QString *tagOut) -> int
     {
-        // 处理思考标记：<think>..</think> 内的内容不进入语音
-        QString chunk = result;
-        // 进入/退出 think 区域（xNet 会单独发送 begin/end 标记与灰色内容）
-        if (chunk.contains(QString(DEFAULT_THINK_BEGIN)))
+        int bestPos = -1;
+        QString bestTag;
+        auto consider = [&](const QString &tag)
+        {
+            const int pos = s.indexOf(tag);
+            if (pos < 0) return;
+            if (bestPos < 0 || pos < bestPos)
+            {
+                bestPos = pos;
+                bestTag = tag;
+            }
+        };
+        consider(thinkBegin);
+        consider(thinkEnd);
+        consider(toolBegin);
+        consider(toolEnd);
+        if (tagOut) *tagOut = bestTag;
+        return bestPos;
+    };
+
+    auto parseToolNameFromPayload = [&](const QString &payload) -> QString
+    {
+        // payload 通常是 JSON：{"name":"xxx","arguments":{...}}
+        // 这里仅用于拿到 name，不需要完整解析 arguments。
+        // 先截取最外层 {...} 再尝试 JSON 解析；失败再用正则兜底（容忍噪声/换行）。
+        const int l = payload.indexOf('{');
+        const int r = payload.lastIndexOf('}');
+        if (l >= 0 && r > l)
+        {
+            const QByteArray bytes = payload.mid(l, r - l + 1).toUtf8();
+            QJsonParseError err;
+            const QJsonDocument doc = QJsonDocument::fromJson(bytes, &err);
+            if (err.error == QJsonParseError::NoError && doc.isObject())
+            {
+                const QString name = doc.object().value(QStringLiteral("name")).toString().trimmed();
+                if (!name.isEmpty()) return name;
+            }
+        }
+        QRegularExpression re(QStringLiteral("\"name\"\\s*:\\s*\"([^\"]+)\""));
+        const QRegularExpressionMatch m = re.match(payload);
+        if (m.hasMatch()) return m.captured(1).trimmed();
+        return QString();
+    };
+
+    // 收集本次可以被朗读的“可见文本”
+    QString visible;
+
+    // 1) 处理所有“完整标签”，把可朗读内容拼到 visible 中
+    while (true)
+    {
+        QString hitTag;
+        const int pos = findEarliestTag(tts_stream_buffer_, &hitTag);
+        if (pos < 0 || hitTag.isEmpty()) break;
+
+        const QString before = tts_stream_buffer_.left(pos);
+        if (tts_in_tool_call_)
+        {
+            // 工具调用 JSON：只缓存不朗读
+            tts_tool_call_buffer_ += before;
+        }
+        else if (!tts_in_think_)
+        {
+            // 普通可朗读内容
+            visible += before;
+        }
+
+        // 消费掉 before + tag
+        tts_stream_buffer_.remove(0, pos + hitTag.size());
+
+        // 标签切换状态
+        if (hitTag == thinkBegin)
         {
             tts_in_think_ = true;
-            chunk.replace(QString(DEFAULT_THINK_BEGIN), QString());
         }
-        if (chunk.contains(QString(DEFAULT_THINK_END)))
+        else if (hitTag == thinkEnd)
         {
             tts_in_think_ = false;
-            chunk.replace(QString(DEFAULT_THINK_END), QString());
         }
-        if (tts_in_think_)
+        else if (hitTag == toolBegin)
         {
-            // 忽略思考内容
-            return;
+            tts_in_tool_call_ = true;
+            tts_tool_call_buffer_.clear();
         }
-
-        // 累计输出的文本（仅普通助理内容）
-        temp_speech_txt += chunk;
-        // 句末标点切分：中文句号/问号/叹号，以及英文 .!?（排除小数点），以及顿号、逗号、分号、冒号
-        QRegularExpression re(QString::fromUtf8("([。！？]|(?<!\\d)[.!?](?=\\s|$)|[；;：:,，、])"));
-
-        // 逐段切出已成句的部分，剩余作为缓存
-        while (true)
+        else if (hitTag == toolEnd)
         {
-            const QRegularExpressionMatch m = re.match(temp_speech_txt);
-            if (!m.hasMatch()) break;
-            const int cut = m.capturedEnd();
-            const QString seg = temp_speech_txt.left(cut).trimmed();
-            if (!seg.isEmpty())
+            tts_in_tool_call_ = false;
+            const QString toolName = parseToolNameFromPayload(tts_tool_call_buffer_);
+            if (!toolName.isEmpty())
             {
-                wait_speech_txt_list << seg;
+                tts_last_tool_call_name_ = toolName;
             }
-            temp_speech_txt.remove(0, cut);
+            tts_tool_call_buffer_.clear();
         }
-
-        // 兜底：缓存过长但没有标点，按空白或定长切一刀，避免长时间不朗读
-        const int MAX_BUF = 240; // 约一到两句
-        if (temp_speech_txt.size() > MAX_BUF)
-        {
-            int cut = temp_speech_txt.lastIndexOf(QRegularExpression("\\s"), MAX_BUF);
-            if (cut < 40) cut = MAX_BUF; // 避免切得太短
-            const QString seg = temp_speech_txt.left(cut).trimmed();
-            if (!seg.isEmpty())
-            {
-                wait_speech_txt_list << seg;
-            }
-            temp_speech_txt.remove(0, cut);
-        }
-
-        // 事件驱动推进
-        startNextTTSIfIdle();
     }
+
+    // 2) 剩余内容里可能包含“标签前缀”（例如 "<tool_"），暂时保留到下一次
+    auto keepTailLen = [&](const QString &s) -> int
+    {
+        const QStringList tags = {thinkBegin, thinkEnd, toolBegin, toolEnd};
+        int keep = 0;
+        const int maxCheck = qMin(s.size(), 16); // 标签都很短，检查尾部最多 16 个字符即可
+        for (int len = 1; len <= maxCheck; ++len)
+        {
+            const QString suffix = s.right(len);
+            for (const QString &t : tags)
+            {
+                if (t.startsWith(suffix))
+                {
+                    keep = qMax(keep, len);
+                    break;
+                }
+            }
+        }
+        return keep;
+    };
+
+    const int keep = keepTailLen(tts_stream_buffer_);
+    const int readyLen = tts_stream_buffer_.size() - keep;
+    if (readyLen > 0)
+    {
+        const QString ready = tts_stream_buffer_.left(readyLen);
+        if (tts_in_tool_call_)
+            tts_tool_call_buffer_ += ready;
+        else if (!tts_in_think_)
+            visible += ready;
+    }
+    if (keep > 0)
+        tts_stream_buffer_ = tts_stream_buffer_.right(keep);
+    else
+        tts_stream_buffer_.clear();
+
+    if (visible.isEmpty()) return;
+
+    // 3) 累计可朗读文本，并按“段落/换行”切分入队
+    temp_speech_txt += visible;
+    // 统一换行符（Windows \r\n / 老式 \r -> \n）
+    temp_speech_txt.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    temp_speech_txt.replace('\r', '\n');
+
+    // 按换行切分：一行/一段读一次；连续空行会被折叠
+    while (true)
+    {
+        const int nl = temp_speech_txt.indexOf('\n');
+        if (nl < 0) break;
+        const QString seg = temp_speech_txt.left(nl).trimmed();
+        if (!seg.isEmpty()) wait_speech_txt_list << seg;
+        int removeLen = nl + 1;
+        while (removeLen < temp_speech_txt.size() && temp_speech_txt.at(removeLen) == '\n')
+        {
+            ++removeLen;
+        }
+        temp_speech_txt.remove(0, removeLen);
+    }
+
+    // 兜底：没有换行但缓存过长时，按空白/定长切分，避免长时间不朗读
+    const int MAX_BUF = 480; // 大约一段较长文本
+    if (temp_speech_txt.size() > MAX_BUF)
+    {
+        int cut = -1;
+        const int scanFrom = qMin(MAX_BUF, temp_speech_txt.size());
+        for (int i = scanFrom - 1; i >= 0; --i)
+        {
+            if (temp_speech_txt.at(i).isSpace())
+            {
+                cut = i + 1; // 保留空白作为分隔
+                break;
+            }
+        }
+        if (cut < 0) cut = scanFrom;
+        if (cut < 80) cut = qMin(scanFrom, temp_speech_txt.size()); // 避免切得太短导致过碎
+        const QString seg = temp_speech_txt.left(cut).trimmed();
+        if (!seg.isEmpty()) wait_speech_txt_list << seg;
+        temp_speech_txt.remove(0, cut);
+    }
+
+    // 事件驱动推进
+    startNextTTSIfIdle();
 }
 
 // 一轮推理结束：若缓冲里还有尾段（无终止标点），也加入待读列表
 void Expend::onNetTurnDone()
 {
-    if (!temp_speech_txt.trimmed().isEmpty())
-    {
-        wait_speech_txt_list << temp_speech_txt.trimmed();
-        temp_speech_txt.clear();
-    }
+    // 回合结束：把尚未遇到换行的“尾段”也加入队列，确保无换行结尾也能朗读
+    const QString tail = temp_speech_txt.trimmed();
+    if (!tail.isEmpty()) wait_speech_txt_list << tail;
+    temp_speech_txt.clear();
+
+    // 防止标签残留跨回合污染：回合结束后直接清空解析缓冲并重置状态
+    // 注意：tts_last_tool_call_name_ 需要保留到“工具返回”时使用，因此不在此清空
+    tts_stream_buffer_.clear();
+    tts_tool_call_buffer_.clear();
+    tts_in_think_ = false;
+    tts_in_tool_call_ = false;
     // 立即推进朗读/播放
     startNextTTSIfIdle();
     startNextPlayIfIdle();
+}
+
+// 工具返回：不朗读工具细节，只播报“模型调用xxx工具 / The model calls the xxx tool”
+void Expend::recv_toolpushover(QString tool_result_)
+{
+    Q_UNUSED(tool_result_);
+    if (!speech_params.enable_speech) return;
+
+    // 说明：tool_result_ 的内容往往很长且包含大量细节，不适合朗读；
+    // 这里只播报一条提示语。工具名优先来自 <tool_call> 的 JSON（更准确），
+    // 若解析失败再从 tool_result_ 的首个 token 做兜底提取。
+    QString toolName = tts_last_tool_call_name_.trimmed();
+    if (toolName.isEmpty())
+    {
+        QString s = tool_result_.trimmed();
+        const int nl = s.indexOf('\n');
+        if (nl >= 0) s = s.left(nl);
+        if (s.startsWith(QStringLiteral("<ylsdamxssjxxdd:showdraw>")))
+        {
+            toolName = QStringLiteral("stablediffusion");
+        }
+        else
+        {
+            int end = 0;
+            while (end < s.size() && !s.at(end).isSpace()) ++end;
+            toolName = s.left(end).trimmed();
+        }
+    }
+    if (toolName.isEmpty()) return;
+
+    QString speak;
+    if (language_flag == 0)
+        speak = QStringLiteral("模型调用%1工具").arg(toolName);
+    else
+        speak = QStringLiteral("The model calls the %1 tool").arg(toolName);
+
+    wait_speech_txt_list << speak;
+    // 使用一次就清空，避免后续误用旧工具名
+    tts_last_tool_call_name_.clear();
+    startNextTTSIfIdle();
 }
 
 // 递归删除文件夹及其内容的函数
@@ -262,19 +499,48 @@ bool Expend::removeDir(const QString &dirName)
 // 收到重置信号
 void Expend::recv_resettts()
 {
+    // 重置是“强终止”：停止当前朗读/播放，并清空所有队列与解析状态
+    tts_resetting_ = true;
+
+    // 先停掉轮询，避免 reset 过程被 timeout 回调打断导致状态错乱
+    speechTimer.stop();
+    speechPlayTimer.stop();
+
     temp_speech_txt = "";          // 清空待读列表
     wait_speech_txt_list.clear();  // 清空待读列表
     wait_speech_play_list.clear(); // 清空待读列表
+    // 重置流式解析状态，避免跨对话残留
+    tts_stream_buffer_.clear();
+    tts_tool_call_buffer_.clear();
+    tts_last_tool_call_name_.clear();
+    tts_in_think_ = false;
+    tts_in_tool_call_ = false;
+    tts_sys_speaking_ = false;
 #if defined(EVA_ENABLE_QT_TTS)
-    if (is_sys_speech_available)
-    {
-        sys_speech->stop(); // 停止朗读
-    }
+    // 无论是否能枚举到 voice，都要 stop()；否则某些环境会出现“重置后仍在朗读”
+    if (sys_speech) sys_speech->stop();
 #endif
 
-    tts_process->kill(); // 终止继续生成
-    speech_player->stop();
+    // 终止 tts.cpp 合成进程：blockSignals 避免 kill -> finished 回调又往播放队列里塞文件
+    if (tts_process)
+    {
+        const QSignalBlocker blocker(tts_process);
+        if (tts_process->state() != QProcess::NotRunning)
+        {
+            tts_process->kill();
+            tts_process->waitForFinished(150);
+        }
+    }
+    // 停止正在播放的音频
+    if (speech_player) speech_player->stop();
+    is_speech = false;
+    is_speech_play = false;
     removeDir(ttsOutputDir); // 清空产生的音频
+
+    // 恢复轮询（兜底），并解除 reset 屏蔽
+    tts_resetting_ = false;
+    speechTimer.start(500);
+    speechPlayTimer.start(500);
 }
 
 // Run tts.cpp CLI to synthesize speech
@@ -333,6 +599,13 @@ void Expend::tts_onProcessStarted() {}
 // 进程结束响应
 void Expend::tts_onProcessFinished()
 {
+    // 重置过程中 kill() 也会触发 finished，这里必须直接丢弃，否则会出现“重置后还在播放”
+    if (tts_resetting_)
+    {
+        is_speech = false;
+        return;
+    }
+
     QString playbackPath;
     const QString produced = QDir(ttsOutputDir).filePath("TTS.cpp.wav");
     if (QFileInfo::exists(produced))
@@ -420,6 +693,11 @@ void Expend::on_speech_manual_pushButton_clicked()
 // 音频播放完响应
 void Expend::speech_player_over(QMediaPlayer::MediaStatus status)
 {
+    if (tts_resetting_)
+    {
+        is_speech_play = false;
+        return;
+    }
     if (status == QMediaPlayer::MediaStatus::EndOfMedia)
     {
         // 播放停止时执行的操作

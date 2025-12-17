@@ -29,6 +29,10 @@ class ControllerOverlay final : public QWidget
     // 设计目标：与 showHint() 的红色“即将执行”形成对比，帮助用户确认动作已发生。
     void showDoneHint(int globalX, int globalY, const QString &description, int durationMs = 2000);
 
+    // 监视器工具：在主屏幕顶部居中显示“等待中 + 倒计时”，用于提示用户即将抓取截图。
+    // waitMs 为等待时长（毫秒）；倒计时结束后自动隐藏。
+    void showMonitorCountdown(int waitMs);
+
     // 立即隐藏（用于截图前清理叠加层）。
     void hideNow();
 
@@ -37,6 +41,11 @@ class ControllerOverlay final : public QWidget
 
   private:
     void updateVirtualGeometry();
+    enum class OverlayMode
+    {
+        ActionHint,      // controller：目标框 + 描述
+        MonitorCountdown // monitor：顶部居中倒计时提示
+    };
     enum class HintState
     {
         Pending, // 即将执行：红色
@@ -47,8 +56,14 @@ class ControllerOverlay final : public QWidget
     QRect virtualGeometry_;
     QPoint targetGlobalPos_{-1, -1};
     QString description_;
+    OverlayMode mode_ = OverlayMode::ActionHint;
     HintState hintState_ = HintState::Pending;
     QTimer hideTimer_;
+
+    // monitor 倒计时：在 UI 线程里用 QTimer 刷新显示，不阻塞界面绘制。
+    qint64 monitorDeadlineMs_ = 0;
+    int monitorTotalMs_ = 0;
+    QTimer monitorTickTimer_;
 
     static constexpr int kBoxSize = 80;
 };

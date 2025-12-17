@@ -539,18 +539,26 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     toolInvocationActive_ = false;
     QJsonObject roleMessage;
     roleMessage.insert("role", QStringLiteral("tool"));
-    // 控制器工具返回时附带最新截图，提升模型定位能力
+    // controller/monitor 工具返回时附带最新截图：
+    // - controller：动作执行后附带新图，便于模型定位下一步
+    // - monitor：等待结束后附带新图，形成“监视->判断->再监视/去操作”的观测回路
     ControllerFrame controllerFrame;
-    if (ui_controller_ischecked && lastToolPendingName_ == QStringLiteral("controller"))
+    const QString pendingToolName = lastToolPendingName_.trimmed();
+    const bool needControllerLikeFrame = (pendingToolName == QStringLiteral("controller") || pendingToolName == QStringLiteral("monitor"));
+    if (ui_controller_ischecked && needControllerLikeFrame)
     {
         // 给系统一点时间：
-        // 1) 让用户看清“即将执行的动作”叠加提示（tool 侧会提前 emit 提示）；
-        // 2) 等待菜单/弹窗真正渲染到屏幕，再截取屏幕，避免抢在绘制前。
+        // 1) controller：让用户看清“即将执行的动作”叠加提示（tool 侧会提前 emit 提示）；
+        // 2) monitor：让“等待中倒计时提示”有机会完成一次绘制/隐藏，并让 UI 变化落到屏幕；
+        // 3) 等待菜单/弹窗真正渲染到屏幕，再截取屏幕，避免抢在绘制前。
         // 不能用 QThread::msleep() 阻塞 UI 线程，否则叠加层/系统菜单可能根本来不及绘制。
-        constexpr int kHoldMs = 650;
-        QEventLoop loop;
-        QTimer::singleShot(kHoldMs, &loop, &QEventLoop::quit);
-        loop.exec(QEventLoop::ExcludeUserInputEvents);
+        const int holdMs = (pendingToolName == QStringLiteral("controller")) ? 650 : 80;
+        if (holdMs > 0)
+        {
+            QEventLoop loop;
+            QTimer::singleShot(holdMs, &loop, &QEventLoop::quit);
+            loop.exec(QEventLoop::ExcludeUserInputEvents);
+        }
         controllerFrame = captureControllerFrame();
         if (!controllerFrame.imagePath.isEmpty())
         {
@@ -560,7 +568,15 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             QJsonArray screenshotContent;
             QJsonObject textPart;
             textPart["type"] = QStringLiteral("text");
-            QString textLabel = jtr("controller") + QStringLiteral(" screenshot");
+            QString textLabel;
+            if (pendingToolName == QStringLiteral("monitor"))
+            {
+                textLabel = QStringLiteral("monitor screenshot");
+            }
+            else
+            {
+                textLabel = jtr("controller") + QStringLiteral(" screenshot");
+            }
             if (controllerFrame.cursorX >= 0 && controllerFrame.cursorY >= 0)
             {
                 textLabel += QStringLiteral(" (cursor: %1,%2)").arg(controllerFrame.cursorX).arg(controllerFrame.cursorY);
@@ -586,7 +602,8 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             screenshotMessage.insert("role", DEFAULT_USER_NAME);
             screenshotMessage.insert("content", screenshotContent);
             ui_messagesArray.append(screenshotMessage);
-            reflash_state(QStringLiteral("ui:controller screenshot attached"), SIGNAL_SIGNAL);
+            reflash_state(QStringLiteral("ui:%1 screenshot attached").arg(pendingToolName.isEmpty() ? QStringLiteral("controller") : pendingToolName),
+                          SIGNAL_SIGNAL);
             if (history_ && ui_state == CHAT_STATE)
             {
                 QJsonObject histShot = screenshotMessage;
@@ -596,7 +613,9 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
                 history_->appendMessage(histShot);
             }
             // 终端调试输出截图路径，便于排查
-            qInfo().noquote() << "[controller-screenshot]" << QDir::toNativeSeparators(controllerFrame.imagePath);
+            const QString tag = (pendingToolName == QStringLiteral("monitor")) ? QStringLiteral("[monitor-screenshot]")
+                                                                              : QStringLiteral("[controller-screenshot]");
+            qInfo().noquote() << tag << QDir::toNativeSeparators(controllerFrame.imagePath);
         }
     }
 

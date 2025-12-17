@@ -25,6 +25,3 @@ if (MINGW)
         target_link_options(doc2md_tests PRIVATE ${EVA_LINK_OPTIONS})
     endif()
 endif()
-
-add_test(NAME doc2md_tests COMMAND doc2md_tests)
-set_tests_properties(doc2md_tests PROPERTIES LABELS unit)

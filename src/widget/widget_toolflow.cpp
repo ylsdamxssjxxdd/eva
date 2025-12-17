@@ -405,6 +405,8 @@ void Widget::on_reset_clicked()
     if (toolInvocationActive_)
     {
         emit ui2tool_cancelActive();
+        // 重要：取消工具时也要立即终止文转声，否则可能出现“对话已重置但仍在朗读/播放”的体验问题
+        emit ui2expend_resettts();
         toolInvocationActive_ = false;
         tool_result.clear();
         turnActive_ = false;

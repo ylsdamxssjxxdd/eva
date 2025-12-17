@@ -24,7 +24,8 @@ enum PromptEntryId : int
     PROMPT_TOOL_REPLACE_IN_FILE = 51011,
     PROMPT_TOOL_EDIT_IN_FILE = 51012,
     PROMPT_TOOL_PTC = 51013,
-    PROMPT_TOOL_ENGINEER_PROXY = 51014
+    PROMPT_TOOL_ENGINEER_PROXY = 51014,
+    PROMPT_TOOL_MONITOR = 51015
 };
 
 // Load prompt definitions (resourcePath ignored, kept for compatibility).
@@ -55,4 +56,5 @@ const TOOLS_INFO &toolWriteFile();
 const TOOLS_INFO &toolReplaceInFile();
 const TOOLS_INFO &toolEditInFile();
 const TOOLS_INFO &toolEngineerProxy();
+const TOOLS_INFO &toolMonitor();
 } // namespace promptx

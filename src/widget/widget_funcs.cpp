@@ -465,6 +465,14 @@ QString Widget::create_extra_prompt()
             }
             controllerInfo.generateToolText();
             available_tools_describe += controllerInfo.text + "\n\n";
+
+            // 桌面监视器提示词：与 controller 配套使用，用“等待 + 截图”的观测回路解决需要持续监视屏幕变化的任务。
+            // 监视器截图与 controller 截图采用同一套归一化坐标系，避免模型在 monitor->controller 切换时坐标空间不一致。
+            TOOLS_INFO monitorInfo = promptx::toolMonitor();
+            monitorInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+            monitorInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+            monitorInfo.generateToolText();
+            available_tools_describe += monitorInfo.text + "\n\n";
         }
         if (date_ui->engineer_checkbox->isChecked())
         {

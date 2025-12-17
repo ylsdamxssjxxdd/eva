@@ -44,6 +44,12 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
         args << QStringLiteral("--props");
     }
 
+    // 默认关闭 kv_unified：避免 llama-server 自动调整并发，保持并发数量完全由 `--parallel` 控制。
+    if (DEFAULT_LLAMA_DISABLE_KV_UNIFIED)
+    {
+        args << QStringLiteral("-kvu");
+    }
+
     const int slotCtx = (input.settings.nctx > 0) ? input.settings.nctx : DEFAULT_NCTX;
     const int parallel = (input.settings.hid_parallel > 0) ? input.settings.hid_parallel : 1;
     const int totalCtx = slotCtx * parallel;
@@ -57,7 +63,7 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
 
     args << QStringLiteral("--threads") << QString::number(input.settings.nthread);
     args << QStringLiteral("-b") << QString::number(input.settings.hid_batch);
-    args << QStringLiteral("--parallel") << QString::number(input.settings.hid_parallel);
+    args << QStringLiteral("--parallel") << QString::number(parallel);
     args << QStringLiteral("--jinja");
     args << QStringLiteral("--reasoning-format") << QStringLiteral("auto");
     args << QStringLiteral("--verbose-prompt");

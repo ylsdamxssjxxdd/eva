@@ -163,6 +163,11 @@ void Expend::init_expend()
 #if defined(EVA_ENABLE_QT_TTS)
     // Lazily create system TTS and enumerate voices
     if (!sys_speech) sys_speech = new QTextToSpeech(this);
+    // 系统语音朗读完成需要回调推进下一段，否则只会读第一段就卡住
+    if (sys_speech)
+    {
+        connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::onSysSpeechStateChanged, Qt::UniqueConnection);
+    }
     is_sys_speech_available = false;
     if (sys_speech)
     {

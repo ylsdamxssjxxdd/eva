@@ -103,6 +103,21 @@ void Widget::recv_controller_hint_done(int x, int y, const QString &description)
     controllerOverlay_->showDoneHint(logicalX, logicalY, description, kDoneDurationMs);
 }
 
+void Widget::recv_monitor_countdown(int waitMs)
+{
+    // monitor 工具调用：等待过程中在主屏幕顶部居中展示倒计时提示，告诉用户“即将截图”。
+    // 注意：该叠加层会被 captureControllerFrame() 在截图前自动隐藏，避免污染模型输入。
+    ensureControllerOverlay();
+    if (!controllerOverlay_) return;
+    controllerOverlay_->showMonitorCountdown(waitMs);
+}
+
+void Widget::recv_monitor_countdown_done()
+{
+    // monitor 工具结束/取消时：立即隐藏提示，避免遮挡用户视线。
+    hideControllerOverlay();
+}
+
 void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
 {
     // -----------------------------------------------------------------------------
