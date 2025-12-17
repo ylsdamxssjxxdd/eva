@@ -1,5 +1,6 @@
 #include "widget.h"
 #include "ui_widget.h"
+#include <QDateTime>
 #include <QTextDocument>
 #include <QPlainTextDocumentLayout>
 #include "../utils/textparse.h"
@@ -296,6 +297,31 @@ bool Widget::processServerOutputLine(const QString &line)
             if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
             {
                 scheduleLazyUnload();
+            }
+        }
+    }
+
+    // -------------------- 视觉输入能力提示（mmproj） --------------------
+    // 典型触发场景：用户发送 image_url/input_image 等多模态输入，但当前模型不是视觉模型，
+    // 或者未为该模型挂载匹配的 mmproj（视觉模块）。
+    // llama-server 往往会输出类似日志并返回 500：
+    //   image input is not supported - hint: ... you may need to provide the mmproj
+    // 该错误属于“能力不匹配”，用户如果只看到 500 容易误判为网络/后端崩溃，因此在状态区给出明确引导。
+    {
+        const QString lower = trimmedLine.toLower();
+        const bool hitVisionNotSupported =
+            lower.contains(QStringLiteral("image input is not supported")) ||
+            lower.contains(QStringLiteral("you may need to provide the mmproj")) ||
+            (lower.contains(QStringLiteral("mmproj")) && lower.contains(QStringLiteral("image")) && lower.contains(QStringLiteral("not supported")));
+        if (hitVisionNotSupported)
+        {
+            // 去重：同一次请求可能会输出多行相关日志，避免状态区刷屏。
+            const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+            const qint64 kDedupWindowMs = 2500;
+            if (nowMs - lastVisionNotSupportedHintMs_ > kDedupWindowMs)
+            {
+                lastVisionNotSupportedHintMs_ = nowMs;
+                reflash_state(QStringLiteral("ui:") + jtr(QStringLiteral("vision not supported hint")), WRONG_SIGNAL);
             }
         }
     }

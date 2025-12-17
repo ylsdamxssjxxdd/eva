@@ -303,6 +303,7 @@ class Widget : public QWidget
     int kvPromptTokensTurn_ = 0;              // provider-reported prompt/input tokens for the active turn
     int server_nctx_ = 0;                     // captured from llama_server logs for verification
     QString serverLogLineBuffer_;             // llama-server 输出分行缓冲（QProcess 可能一次读出多行/半行）
+    qint64 lastVisionNotSupportedHintMs_ = 0; // 最近一次提示“模型不支持视觉/图片输入”的时间戳（ms），用于去重避免刷屏
                                               // KV tracking
     int slotCtxMax_ = 0;                      // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
     int kvUsed_ = 0;                          // total KV residency after the current turn (cache + prompt + output)
