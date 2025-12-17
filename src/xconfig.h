@@ -59,6 +59,14 @@ class QWidget;
 #define DEFAULT_NGL 0
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
 #define DEFAULT_CONTROL_PORT 61550             // 远程控制监听端口
+
+// llama.cpp llama-server 端点开关：为了便于机体探测运行时参数与监控性能，默认开启。
+// - `--metrics`：启用 Prometheus 兼容的 `/metrics` 指标端点（llama-server 默认关闭）
+// - `--props`：启用 `/props` 端点（用于读取/（可选）写入全局属性；llama-server 默认关闭）
+// 安全提示：若 `--host` 绑定到 `0.0.0.0`，局域网内其他设备也可访问这些端点；
+//         如仅需本机使用，可将端口留空触发 127.0.0.1 绑定，或在后端侧启用鉴权（如 api-key）。
+#define DEFAULT_LLAMA_ENDPOINT_METRICS true
+#define DEFAULT_LLAMA_ENDPOINT_PROPS true
 #define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_NORM_Y 1000         // 桌面控制器：默认归一化坐标系高度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口

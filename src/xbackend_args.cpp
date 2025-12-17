@@ -31,6 +31,19 @@ QStringList buildLocalServerArgs(const LocalServerArgsInput &input)
     args << QStringLiteral("--host") << sanitizedHost(input.host);
     args << QStringLiteral("--port") << sanitizedPort(input.port);
 
+    // 默认开启 llama-server 的可选端点：
+    // - `/metrics`：Prometheus 兼容指标（便于监控推理吞吐/耗时等）
+    // - `/props`：运行时属性读取（EVA 会用它探测 n_ctx/model_alias；同时也支持按需写入）
+    // 说明：llama-server 默认关闭这些端点，因此机体需要主动开启以保证探测逻辑稳定可用。
+    if (DEFAULT_LLAMA_ENDPOINT_METRICS)
+    {
+        args << QStringLiteral("--metrics");
+    }
+    if (DEFAULT_LLAMA_ENDPOINT_PROPS)
+    {
+        args << QStringLiteral("--props");
+    }
+
     const int slotCtx = (input.settings.nctx > 0) ? input.settings.nctx : DEFAULT_NCTX;
     const int parallel = (input.settings.hid_parallel > 0) ? input.settings.hid_parallel : 1;
     const int totalCtx = slotCtx * parallel;
