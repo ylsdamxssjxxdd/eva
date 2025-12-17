@@ -309,8 +309,45 @@ void Expend::recv_output(const QString result, bool is_while, QColor color)
         else if (hitTag == toolEnd)
         {
             tts_in_tool_call_ = false;
-            const QString toolName = parseToolNameFromPayload(tts_tool_call_buffer_);
-            if (!toolName.isEmpty())
+            // 工具调用结束：默认只记录工具名（用于工具返回时播报），不朗读 JSON。
+            // 但如果是 answer/response 工具，则需要把 arguments.content 当作最终回答朗读出来。
+            QString toolName;
+            QString answerContent;
+
+            const QString payload = tts_tool_call_buffer_;
+            const int l = payload.indexOf('{');
+            const int r = payload.lastIndexOf('}');
+            if (l >= 0 && r > l)
+            {
+                const QByteArray bytes = payload.mid(l, r - l + 1).toUtf8();
+                QJsonParseError err;
+                const QJsonDocument doc = QJsonDocument::fromJson(bytes, &err);
+                if (err.error == QJsonParseError::NoError && doc.isObject())
+                {
+                    const QJsonObject obj = doc.object();
+                    toolName = obj.value(QStringLiteral("name")).toString().trimmed();
+                    if (toolName == QStringLiteral("answer") || toolName == QStringLiteral("response"))
+                    {
+                        const QJsonObject args = obj.value(QStringLiteral("arguments")).toObject();
+                        answerContent = args.value(QStringLiteral("content")).toString();
+                    }
+                }
+            }
+
+            if (toolName.isEmpty()) toolName = parseToolNameFromPayload(payload);
+
+            if (toolName == QStringLiteral("answer") || toolName == QStringLiteral("response"))
+            {
+                const QString trimmed = answerContent.trimmed();
+                if (!trimmed.isEmpty())
+                {
+                    if (!visible.isEmpty() && !visible.endsWith('\n')) visible += '\n';
+                    visible += trimmed;
+                    // 追加一个换行，确保该段落能被及时切分入队
+                    if (!visible.endsWith('\n')) visible += '\n';
+                }
+            }
+            else if (!toolName.isEmpty())
             {
                 tts_last_tool_call_name_ = toolName;
             }
