@@ -31,6 +31,47 @@ bool extractIntAfterKeyword(const QString &line, const QString &keyword, int &va
     return parseFirstInt(tail, value);
 }
 
+bool extractFractionAfterKeyword(const QString &line, const QString &keyword, int &a, int &b)
+{
+    // 典型示例：
+    // - "load_tensors: offloaded 29/29 layers to GPU"
+    // 该函数只负责从 keyword 后面提取第一个 "A/B" 的整数对；不关心单位/后缀文本。
+    const int pos = line.indexOf(keyword);
+    if (pos < 0) return false;
+
+    const QString tail = line.mid(pos + keyword.size());
+
+    int i = 0;
+    while (i < tail.size() && !tail.at(i).isDigit() && tail.at(i) != '-') ++i;
+    if (i >= tail.size()) return false;
+
+    bool negative = false;
+    if (tail.at(i) == '-')
+    {
+        negative = true;
+        ++i;
+    }
+
+    const int start = i;
+    while (i < tail.size() && tail.at(i).isDigit()) ++i;
+    if (start == i) return false;
+
+    bool ok = false;
+    int first = tail.mid(start, i - start).toInt(&ok);
+    if (!ok) return false;
+    if (negative) first = -first;
+
+    const int slash = tail.indexOf('/', i);
+    if (slash < 0) return false;
+
+    int second = 0;
+    if (!parseFirstInt(tail.mid(slash + 1), second)) return false;
+
+    a = first;
+    b = second;
+    return true;
+}
+
 bool extractIntBetweenMarkers(const QString &line, const QString &left, const QString &right, int &value)
 {
     int start = line.indexOf(left);

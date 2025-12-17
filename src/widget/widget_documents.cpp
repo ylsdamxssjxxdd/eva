@@ -224,7 +224,45 @@ void Widget::recv_reasoning_tokens(int tokens)
     }
 }
 
-void Widget::onServerOutput(const QString &line)
+void Widget::onServerOutput(const QString &chunk)
+{
+    // LocalServerManager 使用 readAllStandardOutput/StandardError 读取时，一次回调可能携带：
+    // - 多行文本（包含多个 '\n'）
+    // - 半行文本（末尾不带 '\n'）
+    // 若直接按“整段文本”解析，会导致关键字跨行误命中、max_ngl 被覆盖等问题。
+    // 这里统一做分行缓冲：只对“完整的一行”调用解析逻辑。
+    if (chunk.isEmpty()) return;
+
+    serverLogLineBuffer_.append(chunk);
+
+    // 极端保护：若后端长时间不换行，缓冲可能无限增长；保留末尾更容易捕获最近错误行。
+    const int kMaxBufferedChars = 256 * 1024;
+    if (serverLogLineBuffer_.size() > kMaxBufferedChars)
+    {
+        serverLogLineBuffer_ = serverLogLineBuffer_.right(kMaxBufferedChars);
+    }
+
+    while (true)
+    {
+        const int newline = serverLogLineBuffer_.indexOf('\n');
+        if (newline < 0) break;
+
+        QString line = serverLogLineBuffer_.left(newline);
+        serverLogLineBuffer_.remove(0, newline + 1);
+
+        if (line.endsWith('\r')) line.chop(1);
+        if (line.isEmpty()) continue;
+
+        // processServerOutputLine 返回 true 表示触发了端口回退等“重启路径”，应立即停止继续解析旧日志。
+        if (processServerOutputLine(line))
+        {
+            serverLogLineBuffer_.clear();
+            return;
+        }
+    }
+}
+
+bool Widget::processServerOutputLine(const QString &line)
 {
     static int s_firstLogs = 0;
     if (s_firstLogs < 6)
@@ -283,7 +321,7 @@ void Widget::onServerOutput(const QString &line)
                 {
                     portConflictDetected_ = true;
                     initiatePortFallback();
-                    return;
+                    return true;
                 }
             }
         }
@@ -371,11 +409,16 @@ void Widget::onServerOutput(const QString &line)
         updateKvBarUi();
     }
 
-    int layers = 0;
-    if (TextParse::extractIntAfterKeyword(line, QStringLiteral("n_layer"), layers) && layers > 0)
+    // -------------------- ngl / max ngl 识别（兼容新版 llama-server 日志） --------------------
+    // 说明：
+    // - EVA 的 ngl 对应 llama.cpp 的 -ngl/--n-gpu-layers
+    // - 旧版常从 "print_info: n_layer = X" 推导 max_ngl = X + 1（+1 为 output layer）
+    // - 新版会直接输出 "load_tensors: offloaded A/B layers to GPU"，其中 B 更接近真实“总层数”
+    auto applyDetectedMaxNgl = [&](int maxngl)
     {
-        const int maxngl = layers + 1;
-        const bool shouldAdoptMax = (maxngl > 0 && (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl));
+        if (maxngl <= 0) return;
+        const bool shouldAdoptMax = (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl);
+
         if (ui_maxngl != maxngl)
         {
             ui_maxngl = maxngl;
@@ -385,24 +428,48 @@ void Widget::onServerOutput(const QString &line)
                 if (curMax != maxngl) settings_ui->ngl_slider->setMaximum(maxngl);
             }
         }
+
         if (shouldAdoptMax)
         {
             ui_SETTINGS.ngl = maxngl;
         }
-        if (settings_ui && settings_ui->ngl_slider)
+
+        if (settings_ui && settings_ui->ngl_slider && settings_ui->ngl_label)
         {
             int curVal = settings_ui->ngl_slider->value();
             if (shouldAdoptMax)
             {
                 curVal = ui_SETTINGS.ngl;
             }
-            else if (maxngl > 0 && curVal > maxngl)
+            else if (curVal > maxngl)
             {
                 curVal = maxngl;
             }
             if (curVal != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(curVal);
             settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
         }
+    };
+
+    // 新版：优先从 offloaded A/B 解析 max_ngl（B 为总层数，含 output layer）
+    {
+        const QString lower = trimmedLine.toLower();
+        int offloaded = 0;
+        int total = 0;
+        if (lower.contains(QStringLiteral("load_tensors")) && lower.contains(QStringLiteral("offloaded")) &&
+            lower.contains(QStringLiteral("layers")) && lower.contains(QStringLiteral("gpu")) &&
+            TextParse::extractFractionAfterKeyword(lower, QStringLiteral("offloaded"), offloaded, total))
+        {
+            Q_UNUSED(offloaded);
+            applyDetectedMaxNgl(total);
+        }
+    }
+
+    // 旧版/兜底：仅解析 print_info 的 n_layer，避免误读 vision hparams 等其它模块的 n_layer
+    int layers = 0;
+    if (trimmedLine.startsWith(QStringLiteral("print_info:")) &&
+        TextParse::extractIntAfterKeyword(trimmedLine, QStringLiteral("n_layer"), layers) && layers > 0)
+    {
+        applyDetectedMaxNgl(layers + 1);
     }
 
     const QString chatFmt = TextParse::textAfterKeyword(line, QStringLiteral("Chat format:"));
@@ -485,6 +552,7 @@ void Widget::onServerOutput(const QString &line)
         }
     }
     // qDebug()<< "Server log:" << line;
+    return false;
 }
 
 void Widget::onServerStartFailed(const QString &reason)

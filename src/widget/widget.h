@@ -302,6 +302,7 @@ class Widget : public QWidget
     int kvTokensTurn_ = 0;                    // tokens consumed during the active turn (prompt + generated output)
     int kvPromptTokensTurn_ = 0;              // provider-reported prompt/input tokens for the active turn
     int server_nctx_ = 0;                     // captured from llama_server logs for verification
+    QString serverLogLineBuffer_;             // llama-server 输出分行缓冲（QProcess 可能一次读出多行/半行）
                                               // KV tracking
     int slotCtxMax_ = 0;                      // n_ctx_slot reported by server; fallback to ui_SETTINGS.nctx
     int kvUsed_ = 0;                          // total KV residency after the current turn (cache + prompt + output)
@@ -947,6 +948,7 @@ class Widget : public QWidget
     QJsonArray buildControlRecords() const;
 
   private:
+    bool processServerOutputLine(const QString &line); // 按“单行”解析 llama-server 日志（onServerOutput 内部使用）；true=中断后续解析
     Ui::Widget *ui;
     int terminalAutoExpandSize_ = 320;
     bool terminalCollapsed_ = true;

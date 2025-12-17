@@ -8,6 +8,8 @@ namespace TextParse
 {
 bool parseFirstInt(const QString &text, int &value);
 bool extractIntAfterKeyword(const QString &line, const QString &keyword, int &value);
+// 从关键字后提取形如 "A/B" 的两个整数（例如 "offloaded 29/29"）。
+bool extractFractionAfterKeyword(const QString &line, const QString &keyword, int &a, int &b);
 bool extractIntBetweenMarkers(const QString &line, const QString &left, const QString &right, int &value);
 bool extractLastIntBeforeSuffix(const QString &line, const QString &suffix, int &value);
 QString textAfterKeyword(const QString &line, const QString &keyword);
