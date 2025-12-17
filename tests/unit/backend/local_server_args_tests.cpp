@@ -2,6 +2,7 @@
 #include <doctest.h>
 
 #include <algorithm>
+#include <QCoreApplication>
 #include <QFile>
 #include <QTemporaryDir>
 
@@ -9,6 +10,16 @@
 
 namespace
 {
+QCoreApplication *ensureQtApp()
+{
+    // Qt 的部分全局对象在退出阶段依赖 Q(Core)Application 的生命周期，
+    // 在某些静态构建/Windows 环境下若未创建 app 可能导致进程 exit 阶段崩溃。
+    static int argc = 0;
+    static char **argv = nullptr;
+    static QCoreApplication app(argc, argv);
+    return &app;
+}
+
 QString touchFile(QTemporaryDir &dir, const QString &name)
 {
     const QString path = dir.filePath(name);
@@ -22,6 +33,7 @@ QString touchFile(QTemporaryDir &dir, const QString &name)
 
 TEST_CASE("buildLocalServerArgs composes baseline options")
 {
+    ensureQtApp();
     QTemporaryDir tempDir;
     REQUIRE(tempDir.isValid());
     const QString modelPath = touchFile(tempDir, QStringLiteral("model.gguf"));
@@ -67,6 +79,7 @@ TEST_CASE("buildLocalServerArgs composes baseline options")
 
 TEST_CASE("buildLocalServerArgs handles lora, mmproj, and cpu devices")
 {
+    ensureQtApp();
     QTemporaryDir tempDir;
     REQUIRE(tempDir.isValid());
 
@@ -114,6 +127,7 @@ TEST_CASE("buildLocalServerArgs handles lora, mmproj, and cpu devices")
 
 TEST_CASE("buildLocalServerArgs adds no-repack for Win7 q4_0 models")
 {
+    ensureQtApp();
     QTemporaryDir tempDir;
     REQUIRE(tempDir.isValid());
     const QString modelPath = touchFile(tempDir, QStringLiteral("MODEL-Q4_0.GGUF"));

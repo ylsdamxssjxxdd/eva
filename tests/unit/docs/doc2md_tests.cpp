@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest.h>
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -13,6 +14,15 @@
 namespace
 {
 const QString kDoc2mdTestsDir = QStringLiteral(EVA_SOURCE_DIR "/thirdparty/doc2md/tests");
+
+QCoreApplication *ensureQtApp()
+{
+    // 同 local_server_args_tests：避免某些环境下 Qt 全局析构顺序导致 exit 阶段崩溃。
+    static int argc = 0;
+    static char **argv = nullptr;
+    static QCoreApplication app(argc, argv);
+    return &app;
+}
 
 QString sampleFile(const QString &name)
 {
@@ -85,6 +95,7 @@ QString writeDocxFixture(QTemporaryDir &dir)
 
 TEST_CASE("convertFile preserves utf8 plain text")
 {
+    ensureQtApp();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
 
@@ -104,6 +115,7 @@ TEST_CASE("convertFile preserves utf8 plain text")
 
 TEST_CASE("convertFile strips markdown noise")
 {
+    ensureQtApp();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     const QString filePath = dir.filePath(QStringLiteral("sample.md"));
@@ -132,6 +144,7 @@ TEST_CASE("convertFile strips markdown noise")
 
 TEST_CASE("convertFile extracts docx paragraphs")
 {
+    ensureQtApp();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     const QString path = writeDocxFixture(dir);
@@ -143,6 +156,7 @@ TEST_CASE("convertFile extracts docx paragraphs")
 
 TEST_CASE("convertFile extracts text from doc/wps samples")
 {
+    ensureQtApp();
     const QString docPath = sampleFile(QStringLiteral(u"测试.doc"));
     const QString wpsPath = sampleFile(QStringLiteral(u"测试.wps"));
     QFileInfo docFi(docPath);
@@ -161,6 +175,7 @@ TEST_CASE("convertFile extracts text from doc/wps samples")
 
 TEST_CASE("convertFile extracts worksheets from xlsx")
 {
+    ensureQtApp();
     const QString path = sampleFile(QStringLiteral(u"测试.xlsx"));
     QFileInfo fi(path);
     REQUIRE(fi.exists());
@@ -172,6 +187,7 @@ TEST_CASE("convertFile extracts worksheets from xlsx")
 
 TEST_CASE("convertFile extracts pptx slides")
 {
+    ensureQtApp();
     const QString path = sampleFile(QStringLiteral(u"测试.pptx"));
     QFileInfo fi(path);
     REQUIRE(fi.exists());
@@ -184,6 +200,7 @@ TEST_CASE("convertFile extracts pptx slides")
 
 TEST_CASE("convertFile keeps et sheets consistent with xlsx")
 {
+    ensureQtApp();
     const QString etPath = sampleFile(QStringLiteral(u"测试.et"));
     const QString xlsxPath = sampleFile(QStringLiteral(u"测试.xlsx"));
     QFileInfo etFi(etPath);
@@ -201,6 +218,7 @@ TEST_CASE("convertFile keeps et sheets consistent with xlsx")
 
 TEST_CASE("convertFile extracts dps slides")
 {
+    ensureQtApp();
     const QString path = sampleFile(QStringLiteral(u"测试.dps"));
     QFileInfo fi(path);
     REQUIRE(fi.exists());
