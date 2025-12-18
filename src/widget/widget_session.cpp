@@ -163,8 +163,15 @@ void Widget::recv_freeover_loadlater()
 
 void Widget::preLoad()
 {
-	FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: preload start %1").arg(ui_SETTINGS.modelpath), activeTurnId_);
-	is_load = false; // 重置is_load标签
+ 	FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: preload start %1").arg(ui_SETTINGS.modelpath), activeTurnId_);
+ 	is_load = false; // 重置is_load标签
+
+    // 重新装载前清空 max_ngl：
+    // - 多模态模型可能会在加载主模型与 mmproj/clip 组件时输出多段 n_layer/offload 日志；
+    // - 若不清空，旧的 max_ngl 可能与新模型不一致，或在解析过程中被错误值覆盖；
+    // - 由 onServerOutput()->processServerOutputLine() 重新识别并回填真实上限。
+    ui_maxngl = 0;
+
     preserveConversationOnNextReady_ = false; // Fresh load starts a new chat
     skipUnlockLoadIntro_ = false;            // Ensure unlockLoad prints system prompt
     flushPendingStream();

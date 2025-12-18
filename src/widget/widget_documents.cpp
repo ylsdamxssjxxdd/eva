@@ -442,8 +442,19 @@ bool Widget::processServerOutputLine(const QString &line)
     // - 新版会直接输出 "load_tensors: offloaded A/B layers to GPU"，其中 B 更接近真实“总层数”
     auto applyDetectedMaxNgl = [&](int maxngl)
     {
-        if (maxngl <= 0) return;
-        const bool shouldAdoptMax = (ui_SETTINGS.ngl == 999 || ui_SETTINGS.ngl > maxngl);
+        // 过滤明显不合理的 max_ngl：
+        // - 999 在 EVA 里代表“尽可能拉满”（启动前占位），不应被当成模型真实层数写回
+        // - 多模态/外挂组件（mmproj/clip）也可能输出相似日志；这里给一个足够宽松但合理的上限保护
+        constexpr int kMaxReasonableMaxNgl = 512;
+        if (maxngl <= 0 || maxngl > kMaxReasonableMaxNgl) return;
+
+        // 当同一次装载过程中识别到多个候选值时：优先保留更大的那个，避免被 mmproj/clip 的较小 n_layer 覆盖。
+        // 注意：preLoad() 会把 ui_maxngl 清零，因此跨模型装载不会“只增不减”。
+        if (ui_maxngl > 0 && maxngl < ui_maxngl) return;
+
+        const int oldMax = ui_maxngl;
+        const bool keepAtMaxIntent = (ui_SETTINGS.ngl == 999 || (oldMax > 0 && ui_SETTINGS.ngl == oldMax));
+        const bool shouldClamp = (ui_SETTINGS.ngl > maxngl);
 
         if (ui_maxngl != maxngl)
         {
@@ -455,24 +466,16 @@ bool Widget::processServerOutputLine(const QString &line)
             }
         }
 
-        if (shouldAdoptMax)
+        if (keepAtMaxIntent || shouldClamp)
         {
             ui_SETTINGS.ngl = maxngl;
         }
 
         if (settings_ui && settings_ui->ngl_slider && settings_ui->ngl_label)
         {
-            int curVal = settings_ui->ngl_slider->value();
-            if (shouldAdoptMax)
-            {
-                curVal = ui_SETTINGS.ngl;
-            }
-            else if (curVal > maxngl)
-            {
-                curVal = maxngl;
-            }
-            if (curVal != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(curVal);
-            settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(curVal));
+            const int sliderValue = qBound(settings_ui->ngl_slider->minimum(), ui_SETTINGS.ngl, settings_ui->ngl_slider->maximum());
+            if (sliderValue != settings_ui->ngl_slider->value()) settings_ui->ngl_slider->setValue(sliderValue);
+            settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(sliderValue));
         }
     };
 
@@ -486,17 +489,34 @@ bool Widget::processServerOutputLine(const QString &line)
             TextParse::extractFractionAfterKeyword(lower, QStringLiteral("offloaded"), offloaded, total))
         {
             Q_UNUSED(offloaded);
+
+            // 兼容 bug：部分 llama.cpp/llama-server 版本的该行日志中，分母 B 可能是“请求的 n_gpu_layers”
+            //（例如 EVA 启动前把 ngl=999 作为“尽可能拉满”的占位，会出现 "... offloaded A/999 ..."），
+            // 这不是模型真实总层数，不能用来更新 max_ngl。
+            // 真实 max_ngl 会在后续的 n_layer 行里出现（如 llm_load_print_meta / llama_model_load）。
             applyDetectedMaxNgl(total);
         }
     }
 
-    // 旧版/兜底：仅解析 print_info 的 n_layer，避免误读 vision hparams 等其它模块的 n_layer
+    // 旧版/兜底：解析 n_layer 推导 max_ngl = n_layer + 1。
+    // 兼容多种 llama.cpp 日志前缀（新版不一定再输出 print_info:）。
     int layers = 0;
-    if (trimmedLine.startsWith(QStringLiteral("print_info:")) &&
-        TextParse::extractIntAfterKeyword(trimmedLine, QStringLiteral("n_layer"), layers) && layers > 0)
     {
-        applyDetectedMaxNgl(layers + 1);
+        const QString lower = trimmedLine.toLower();
+        const bool looksLikeMetaLine =
+            lower.startsWith(QStringLiteral("print_info:")) ||
+            lower.startsWith(QStringLiteral("llm_load_print_meta:")) ||
+            lower.startsWith(QStringLiteral("llama_model_load:")) ||
+            lower.startsWith(QStringLiteral("llama_model_loader:"));
+
+        if (looksLikeMetaLine &&
+            TextParse::extractIntAfterKeyword(trimmedLine, QStringLiteral("n_layer"), layers) && layers > 0)
+        {
+            applyDetectedMaxNgl(layers + 1);
+        }
     }
+
+    // 若行前缀不匹配，则不解析 n_layer，避免误读其它模块（如 vision hparams）的同名字段。
 
     const QString chatFmt = TextParse::textAfterKeyword(line, QStringLiteral("Chat format:"));
     if (!chatFmt.isEmpty())
