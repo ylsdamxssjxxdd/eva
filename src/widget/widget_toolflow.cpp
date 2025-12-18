@@ -31,9 +31,23 @@ void Widget::recv_pushover()
         searchPos = s; // continue scanning from removal point
     }
     const QString reasoningText = reasonings.join("");
-    logFlow(FlowPhase::NetDone,
-            QStringLiteral("assistant_len=%1 reasoning_len=%2").arg(finalText.size()).arg(reasoningText.size()),
-            SIGNAL_SIGNAL);
+    // 重要：不要在这里打印 assistant_len/reasoning_len（字符长度），它很容易被误解为 token 数。
+    // 链接模式下我们只关心 token 口径（来自 usage/timings 的校准结果，以及 UI 侧的 KV 汇总）。
+    {
+        const int promptTok = qMax(0, kvPromptTokensTurn_);
+        const int genTok = qMax(0, kvStreamedTurn_);
+        const int reasoningTok = qMax(0, lastReasoningTokens_);
+        const int usedTok = qMax(0, kvUsed_);
+        const int turnTok = qMax(0, kvTokensTurn_);
+        logFlow(FlowPhase::NetDone,
+                QStringLiteral("tokens prompt=%1 gen=%2 reasoning=%3 turn=%4 used=%5")
+                    .arg(promptTok)
+                    .arg(genTok)
+                    .arg(reasoningTok)
+                    .arg(turnTok)
+                    .arg(usedTok),
+                SIGNAL_SIGNAL);
+    }
     // Persist assistant message (with optional reasoning) into UI/history
     QJsonObject roleMessage;
     roleMessage.insert("role", DEFAULT_MODEL_NAME);

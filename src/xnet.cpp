@@ -29,6 +29,76 @@ void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort, bool 
         json.insert(QStringLiteral("include_reasoning"), true);
     }
 }
+
+// -------------------- OpenAI 兼容 usage 解析工具 --------------------
+// 说明：
+// - 许多“OpenAI 兼容”服务商的 usage 字段形态并不完全一致（int/string/object 混用、字段名变化等）。
+// - LINK 模式下 UI 的“记忆量/KV 用量”无法从 llama.cpp 日志读取，需要依赖 usage 来校准：
+//   - prompt/input tokens：作为本轮 prompt 基线
+//   - completion/output/total tokens：作为本轮生成 token（包含思考/推理 token）
+// - 这里的解析尽量“宽松”，避免因为字段形态差异导致统计直接失效。
+static inline int toIntLoose(const QJsonValue &v, int fallback = -1)
+{
+    if (v.isDouble()) return int(v.toDouble());
+    if (v.isString())
+    {
+        bool ok = false;
+        const int x = v.toString().toInt(&ok);
+        if (ok) return x;
+    }
+    return fallback;
+}
+
+static inline int usageInt(const QJsonObject &u, const QString &key, int fallback = -1)
+{
+    if (!u.contains(key)) return fallback;
+    return toIntLoose(u.value(key), fallback);
+}
+
+static inline int parseTotalTokensLoose(const QJsonObject &u)
+{
+    if (!u.contains(QStringLiteral("total_tokens"))) return -1;
+    const QJsonValue tv = u.value(QStringLiteral("total_tokens"));
+    if (tv.isDouble() || tv.isString()) return toIntLoose(tv, -1);
+    if (tv.isObject())
+    {
+        // 兼容：total_tokens: { input: x, output: y }
+        const QJsonObject tt = tv.toObject();
+        const int inTok = usageInt(tt, QStringLiteral("input"), -1);
+        const int outTok = usageInt(tt, QStringLiteral("output"), -1);
+        if (inTok >= 0 && outTok >= 0) return inTok + outTok;
+        if (inTok >= 0) return inTok; // 罕见：只给 input
+        if (outTok >= 0) return outTok;
+    }
+    return -1;
+}
+
+static inline int parseReasoningTokensLoose(const QJsonObject &u)
+{
+    // 1) OpenAI：completion_tokens_details.reasoning_tokens
+    if (u.contains(QStringLiteral("completion_tokens_details")) && u.value(QStringLiteral("completion_tokens_details")).isObject())
+    {
+        const QJsonObject d = u.value(QStringLiteral("completion_tokens_details")).toObject();
+        int r = usageInt(d, QStringLiteral("reasoning_tokens"), -1);
+        // 兼容：部分实现用 thinking_tokens 命名
+        if (r < 0) r = usageInt(d, QStringLiteral("thinking_tokens"), -1);
+        if (r >= 0) return r;
+    }
+    // 2) 兼容：output_tokens_details.reasoning_tokens
+    if (u.contains(QStringLiteral("output_tokens_details")) && u.value(QStringLiteral("output_tokens_details")).isObject())
+    {
+        const QJsonObject d = u.value(QStringLiteral("output_tokens_details")).toObject();
+        int r = usageInt(d, QStringLiteral("reasoning_tokens"), -1);
+        if (r < 0) r = usageInt(d, QStringLiteral("thinking_tokens"), -1);
+        if (r >= 0) return r;
+    }
+    // 3) 兼容：顶层直接给 reasoning_tokens
+    {
+        const int r = usageInt(u, QStringLiteral("reasoning_tokens"), -1);
+        if (r >= 0) return r;
+    }
+    return -1;
+}
 } // namespace
 
 QString xNet::turnTag() const
@@ -819,36 +889,6 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
             }
         }
 
-        // Parse OpenAI-style usage if provided (LINK mode baseline should be prompt tokens only)
-        if (obj.contains("usage") && obj.value("usage").isObject())
-        {
-            const QJsonObject u = obj.value("usage").toObject();
-            int promptTokens = -1;
-            // Prefer explicit prompt/input tokens for baseline
-            if (u.contains("prompt_tokens")) promptTokens = u.value("prompt_tokens").toInt(-1);
-            if (promptTokens < 0 && u.contains("input_tokens")) promptTokens = u.value("input_tokens").toInt(-1);
-            // Fallback: derive prompt tokens from total - streamed (approx) when provider only exposes totals
-            if (promptTokens < 0 && u.contains("total_tokens"))
-            {
-                int totalTokens = -1;
-                const QJsonValue tv = u.value("total_tokens");
-                if (tv.isDouble() || tv.isString()) totalTokens = tv.toInt(-1);
-                if (tv.isObject())
-                {
-                    const QJsonObject tt = tv.toObject();
-                    int inTok = tt.value("input").toInt(-1);
-                    int outTok = tt.value("output").toInt(-1);
-                    if (inTok >= 0 && outTok >= 0) totalTokens = inTok + outTok;
-                    else if (inTok >= 0) totalTokens = inTok; // rare partial info
-                }
-                if (totalTokens >= 0 && tokens_ >= 0)
-                {
-                    int derived = totalTokens - tokens_;
-                    if (derived >= 0) promptTokens = derived;
-                }
-            }
-            if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
-        }
         if (obj.contains("timings") && obj.value("timings").isObject())
         {
             const QJsonObject tobj = obj.value("timings").toObject();
@@ -873,6 +913,84 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
                     totalsEmitted_ = true;
                     emit net2ui_turn_counters(cache, prompt, gen);
                 }
+            }
+        }
+
+        // Parse OpenAI-style usage if provided (LINK mode baseline should be prompt tokens only)
+        if (obj.contains("usage") && obj.value("usage").isObject())
+        {
+            const QJsonObject u = obj.value("usage").toObject();
+            // ---------- 1) 抽取 usage 的关键字段 ----------
+            // prompt/input tokens：本轮 prompt 基线
+            int promptTokens = usageInt(u, QStringLiteral("prompt_tokens"), -1);
+            if (promptTokens < 0) promptTokens = usageInt(u, QStringLiteral("input_tokens"), -1);
+
+            // completion/output tokens：本轮生成 token（多数实现会把“思考/推理 token”算在这里）
+            int completionTokens = usageInt(u, QStringLiteral("completion_tokens"), -1);
+            if (completionTokens < 0) completionTokens = usageInt(u, QStringLiteral("output_tokens"), -1);
+
+            // total tokens：本轮总 token（最可靠的“包含思考 token”的口径）
+            const int totalTokens = parseTotalTokensLoose(u);
+
+            // reasoning/thinking tokens：若提供单独字段，用于 UI 侧展示与对齐调试
+            const int reasoningTokens = parseReasoningTokensLoose(u);
+
+            // ---------- 2) 推导 prompt 基线 ----------
+            // 优先使用显式 prompt/input tokens；缺失时再用 total - completion / total - streamed(近似) 推导。
+            if (promptTokens < 0 && totalTokens >= 0 && completionTokens >= 0)
+            {
+                const int derived = totalTokens - completionTokens;
+                if (derived >= 0) promptTokens = derived;
+            }
+            if (promptTokens < 0 && totalTokens >= 0 && tokens_ >= 0)
+            {
+                // 兜底：当服务商只返回 total_tokens，且没有 prompt/completion 字段时，只能用“已流式输出的 chunk 数”近似。
+                // 注意：tokens_ 是 1 chunk ~= 1 token 的近似计数，误差取决于服务商的分片策略。
+                const int derived = totalTokens - tokens_;
+                if (derived >= 0) promptTokens = derived;
+            }
+            if (promptTokens >= 0) emit net2ui_prompt_baseline(promptTokens);
+
+            // ---------- 3) LINK 模式：用 usage 校准 UI 的 KV/记忆量统计 ----------
+            // 目标：
+            // - 本轮“记忆用量” = promptTokens + completionTokensEffective
+            // - completionTokensEffective 要尽量包含 reasoning/thinking token（有些模型不会把它流式输出到 content）
+            //
+            // 实现策略：
+            // - 若 totalTokens 可用：completion = total - prompt（最可靠，天然包含思考 token）
+            // - 否则：退回使用 completion/output tokens（可能已包含思考 token）
+            // - 若能得到 prompt 与 completion：发 net2ui_turn_counters(0, prompt, completion) 让 UI 一次性对齐
+            //
+            // 注意：
+            // - 若服务器同时提供 llama.cpp timings，则优先使用 timings（包含 cache_n/prompt_n/predicted_n），避免重复上报。
+            if (!apis.is_local_backend && !timingsReceived_)
+            {
+                int completionEffective = completionTokens;
+                if (totalTokens >= 0 && promptTokens >= 0)
+                {
+                    const int derived = totalTokens - promptTokens;
+                    if (derived >= 0) completionEffective = derived;
+                }
+                else if (completionEffective >= 0 && reasoningTokens > 0)
+                {
+                    // 兼容：少数实现会把 reasoning/thinking token 作为“额外字段”单独上报，
+                    // 且 completion/output tokens 仅包含可见输出（不含思考）。
+                    // 当缺失 total_tokens 时，我们宁愿把 reasoningTokens 加进来，以免 LINK 模式下 KV 用量明显偏小。
+                    completionEffective += reasoningTokens;
+                }
+
+                if (promptTokens >= 0 && completionEffective >= 0)
+                {
+                    emit net2ui_turn_counters(0, promptTokens, completionEffective);
+                }
+            }
+
+            // ---------- 4) 记录 reasoning token（用于 UI 调试/展示） ----------
+            // 某些推理模型（或服务商）不会把思考内容写入 content，而是只在 usage.details 里提供 reasoning_tokens。
+            // 这里用 provider 的上报值覆盖/修正本轮 reasoningTokensTurn_，确保 UI 能拿到“包含思考”的统计量。
+            if (reasoningTokens >= 0)
+            {
+                reasoningTokensTurn_ = qMax(0, reasoningTokens);
             }
         }
     };
