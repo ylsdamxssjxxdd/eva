@@ -376,7 +376,8 @@ void Widget::showImages(QStringList images_filepath)
         const QString current = ui->output->toPlainText();
         if (!current.isEmpty() && !current.endsWith(QLatin1Char('\n')))
         {
-            output_scroll(QStringLiteral("\n"));
+            // 附件信息属于“次要信息”，统一使用思考区的灰色，降低对正文阅读的干扰
+            output_scroll(QStringLiteral("\n"), themeThinkColor());
         }
     }
     for (int i = 0; i < images_filepath.size(); ++i)
@@ -385,7 +386,8 @@ void Widget::showImages(QStringList images_filepath)
         QFileInfo info(rawPath);
         const QString displayPath = info.exists() ? info.absoluteFilePath() : rawPath;
         const QString line = QStringLiteral("%1 %2").arg(imageBadge, QDir::toNativeSeparators(displayPath));
-        output_scroll(line + QStringLiteral("\n"));
+        // 将“请求附带的图片路径/工具产物路径”等统一用思考灰色渲染，避免输出区出现大量黑字路径刷屏
+        output_scroll(line + QStringLiteral("\n"), themeThinkColor());
     }
 }
 
