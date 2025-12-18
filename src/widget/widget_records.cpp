@@ -467,12 +467,11 @@ void Widget::restoreSessionById(const QString &sessionId)
         reflash_output(displayText, 0, roleToColor(role));
         recordAppendText(recIdx, displayText);
 
-        // Append sanitized message back to UI memory (remove local-only metadata)
+        // Append message back to UI memory.
+        // 注意：local_images/tool 等字段属于 EVA 的本地扩展字段（用于历史恢复与记录条图标），
+        // 不会在发给模型前出现在请求体里（prompt_builder 会统一移除）。
         QJsonObject uiMsg = m;
-        uiMsg.remove("local_images");
         uiMsg.remove("thinking");
-        // "tool" 为历史专用字段：不要带入 ui_messagesArray，避免影响 OpenAI 兼容请求。
-        uiMsg.remove("tool");
         if (!contentVal.isArray()) uiMsg.insert("content", displayText);
         if (recRole == RecordRole::Assistant)
         {

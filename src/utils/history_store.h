@@ -82,7 +82,12 @@ class HistoryStore
         if (sessionDir_.isEmpty()) return;
         QFile m(QDir(sessionDir_).filePath("messages.jsonl"));
         if (!m.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) return;
-        QJsonDocument d(msg);
+        // 历史记录需要“可恢复”，但也要避免把 data:image/png;base64,... 这种超长内容直接写入磁盘。
+        // 约定：
+        // - UI 运行期/发给模型：仍使用 base64 data URL（OpenAI 兼容 schema）
+        // - 写入历史：把 image_url.url 中的 base64 替换为本地路径（来自 local_images），显著降低 messages.jsonl 体积
+        const QJsonObject stored = sanitizeMessageForStorage(msg);
+        QJsonDocument d(stored);
         QByteArray line = d.toJson(QJsonDocument::Compact);
         line.append('\n');
         m.write(line);
@@ -90,7 +95,7 @@ class HistoryStore
         // 生成会话标题：优先取“第一条用户消息”的文本摘要。
         // 注意：挂载桌面控制器/多模态输入时，user.content 可能是数组（[{type:"text",...},{type:"image_url",...}]），
         // 旧实现对数组使用 toVariant().toString() 会得到空串，导致历史记录一直显示 (untitled)。
-        if (meta_.title.isEmpty() && msg.value("role").toString() == QStringLiteral("user"))
+        if (meta_.title.isEmpty() && stored.value("role").toString() == QStringLiteral("user"))
         {
             auto sanitizeTitle = [](QString s) -> QString {
                 // 仅做轻量清洗：压缩空白、去掉换行，避免标题在列表中撑开。
@@ -160,7 +165,7 @@ class HistoryStore
                 return QString();
             };
 
-            const QString title = deriveTitleFromUserMessage(msg);
+            const QString title = deriveTitleFromUserMessage(stored);
             if (!title.isEmpty())
             {
                 meta_.title = title;
@@ -181,7 +186,9 @@ class HistoryStore
             QJsonObject obj = v.toObject();
             if (obj.isEmpty())
                 continue; // skip non-object entries to keep file valid
-            QJsonDocument d(obj);
+            // 与 appendMessage() 一致：重写历史时也要清理 base64 图片，避免历史文件膨胀。
+            const QJsonObject stored = sanitizeMessageForStorage(obj);
+            QJsonDocument d(stored);
             QByteArray line = d.toJson(QJsonDocument::Compact);
             line.append('\n');
             m.write(line);
@@ -324,6 +331,76 @@ class HistoryStore
     }
 
   private:
+    // 将一条消息转换为“适合落盘”的历史格式：
+    // - 目标：避免把 data:image/...;base64,... 的超长字符串写入 messages.jsonl
+    // - 手段：当 content 为数组且包含 image_url 时：
+    //   1) 若 image_url.url 是 base64 data URL，则用 local_images 中同序号的本地路径替换
+    //   2) 若找不到可用路径，则直接丢弃该 image_url part（宁可少一张图，也不要写入巨量 base64）
+    // 注意：
+    // - 这里只做“历史落盘”清理，不改变 UI 内存/发给模型的数据结构；
+    // - local_images 为 EVA 的本地扩展字段，专用于历史恢复与 UI 展示，不会发给模型。
+    static inline QJsonObject sanitizeMessageForStorage(const QJsonObject &msg)
+    {
+        QJsonObject out = msg;
+        const QJsonValue contentVal = out.value(QStringLiteral("content"));
+        if (!contentVal.isArray()) return out;
+
+        const QJsonArray parts = contentVal.toArray();
+        if (parts.isEmpty()) return out;
+
+        const QJsonArray locals = out.value(QStringLiteral("local_images")).toArray();
+        int imageIndex = 0; // 与 content 中 image_url 的出现顺序一一对应
+
+        QJsonArray fixed;
+        for (const QJsonValue &pv : parts)
+        {
+            if (!pv.isObject())
+            {
+                fixed.append(pv);
+                continue;
+            }
+            QJsonObject po = pv.toObject();
+            const QString type = po.value(QStringLiteral("type")).toString();
+            if (type != QStringLiteral("image_url"))
+            {
+                fixed.append(po);
+                continue;
+            }
+
+            QJsonObject iu = po.value(QStringLiteral("image_url")).toObject();
+            const QString url = iu.value(QStringLiteral("url")).toString();
+            const bool isDataUrl = url.startsWith(QStringLiteral("data:"), Qt::CaseInsensitive) &&
+                                   url.contains(QStringLiteral(";base64,"), Qt::CaseInsensitive);
+            if (!isDataUrl)
+            {
+                // 不是 base64 data URL（例如 http(s) 链接或本地路径），体积可控，直接保留
+                fixed.append(po);
+                imageIndex++;
+                continue;
+            }
+
+            // base64 data URL：尝试用 local_images 替换为本地路径
+            QString replPath;
+            if (imageIndex >= 0 && imageIndex < locals.size() && locals.at(imageIndex).isString())
+            {
+                replPath = locals.at(imageIndex).toString();
+            }
+            imageIndex++;
+
+            if (replPath.isEmpty())
+            {
+                // 找不到路径：跳过该图片 part，避免把巨量 base64 落盘
+                continue;
+            }
+            iu.insert(QStringLiteral("url"), replPath);
+            po.insert(QStringLiteral("image_url"), iu);
+            fixed.append(po);
+        }
+
+        out.insert(QStringLiteral("content"), fixed);
+        return out;
+    }
+
     void saveMeta()
     {
         if (sessionDir_.isEmpty()) return;

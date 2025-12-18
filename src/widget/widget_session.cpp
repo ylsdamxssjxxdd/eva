@@ -373,6 +373,7 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
         if (!in.images.isEmpty())
         {
             // 附带图片时：只发送图片本体，不再额外插入“图片文件名/尺寸”等元信息文本，避免干扰模型决策。
+            QJsonArray locals;
             for (const QString &imagePath : in.images)
             {
                 QFile imageFile(imagePath);
@@ -401,24 +402,19 @@ void Widget::handleChatReply(ENDPOINT_DATA &data, const InputPack &in)
                 imageUrlObject["url"] = base64String;
                 imageObject["image_url"] = imageUrlObject;
                 contentArray.append(imageObject);
+
+                // 历史/本地恢复用：记录图片的本地路径，避免把 base64 落盘到 messages.jsonl 导致文件臃肿。
+                // 注意：该字段属于 EVA 的本地扩展字段，发给模型前会在 prompt_builder 中被移除。
+                locals.append(QFileInfo(imagePath).absoluteFilePath());
+            }
+            if (!locals.isEmpty())
+            {
+                message.insert(QStringLiteral("local_images"), locals);
             }
         }
         message["content"] = contentArray;
         ui_messagesArray.append(message);
-        if (history_)
-        {
-            QJsonObject histMsg = message; // copy
-            if (!in.images.isEmpty())
-            {
-                QJsonArray locals;
-                for (const QString &p : in.images)
-                {
-                    locals.append(QFileInfo(p).absoluteFilePath());
-                }
-                if (!locals.isEmpty()) histMsg.insert("local_images", locals);
-            }
-            history_->appendMessage(histMsg);
-        }
+        if (history_) history_->appendMessage(message);
     }
     if (!in.wavs.isEmpty())
     {
@@ -608,16 +604,15 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             QJsonObject screenshotMessage;
             screenshotMessage.insert("role", DEFAULT_USER_NAME);
             screenshotMessage.insert("content", screenshotContent);
+            // 历史/本地恢复用：记录截图本地路径，避免把 base64 落盘到 messages.jsonl 导致文件臃肿。
+            screenshotMessage.insert(QStringLiteral("local_images"),
+                                     QJsonArray{QFileInfo(controllerFrame.imagePath).absoluteFilePath()});
             ui_messagesArray.append(screenshotMessage);
             // reflash_state(QStringLiteral("ui:%1 screenshot attached").arg(pendingToolName.isEmpty() ? QStringLiteral("controller") : pendingToolName),
             //               SIGNAL_SIGNAL);
             if (history_ && ui_state == CHAT_STATE)
             {
-                QJsonObject histShot = screenshotMessage;
-                QJsonArray locals;
-                locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
-                histShot.insert("local_images", locals);
-                history_->appendMessage(histShot);
+                history_->appendMessage(screenshotMessage);
             }
             // 终端调试输出截图路径，便于排查
             const QString tag = (pendingToolName == QStringLiteral("monitor")) ? QStringLiteral("[monitor-screenshot]")
@@ -627,33 +622,29 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     }
 
     roleMessage.insert("content", tool_result);
-    ui_messagesArray.append(roleMessage);
-    if (history_ && ui_state == CHAT_STATE)
+    // 本地扩展字段：tool 名称（仅用于历史/回放恢复记录条图标）；发给模型前会被移除。
+    const QString toolNameForHistory = (pendingToolName.isEmpty() ? lastToolCallName_ : pendingToolName).trimmed();
+    if (!toolNameForHistory.isEmpty())
     {
-        // Include any pending image paths produced by tools so we can restore them later
-        QJsonObject histMsg = roleMessage;
-        // 历史记录补充：为 tool 角色消息额外记录“工具名”，用于回放/重载时让记录条恢复正确的工具图标。
-        // 注意：该字段只写入历史，不参与发给模型的 ui_messagesArray，避免对 OpenAI 兼容端点造成潜在影响。
-        const QString toolNameForHistory = (pendingToolName.isEmpty() ? lastToolCallName_ : pendingToolName).trimmed();
-        if (!toolNameForHistory.isEmpty())
-        {
-            histMsg.insert(QStringLiteral("tool"), toolNameForHistory);
-        }
-        if (!wait_to_show_images_filepath.isEmpty())
-        {
-            QJsonArray locals;
-            for (const QString &p : wait_to_show_images_filepath)
-                locals.append(QFileInfo(p).absoluteFilePath());
-            histMsg.insert("local_images", locals);
-        }
-        if (!controllerFrame.imagePath.isEmpty())
-        {
-            QJsonArray locals = histMsg.value(QStringLiteral("local_images")).toArray();
-            locals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
-            histMsg.insert("local_images", locals);
-        }
-        history_->appendMessage(histMsg);
+        roleMessage.insert(QStringLiteral("tool"), toolNameForHistory);
     }
+    // 本地扩展字段：记录工具产物图片路径，历史恢复时用于回显；发给模型前会被移除。
+    QJsonArray toolLocals;
+    if (!wait_to_show_images_filepath.isEmpty())
+    {
+        for (const QString &p : wait_to_show_images_filepath)
+            toolLocals.append(QFileInfo(p).absoluteFilePath());
+    }
+    if (!controllerFrame.imagePath.isEmpty())
+    {
+        toolLocals.append(QFileInfo(controllerFrame.imagePath).absoluteFilePath());
+    }
+    if (!toolLocals.isEmpty())
+    {
+        roleMessage.insert(QStringLiteral("local_images"), toolLocals);
+    }
+    ui_messagesArray.append(roleMessage);
+    if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
 
     // 记录区：工具触发时就创建记录块（见 recv_pushover()），这里复用该记录块写入 tool_result；
     // 若没有可复用的记录（兼容旧流程/异常分支），则退回到“收到结果才创建”的旧逻辑。
