@@ -68,7 +68,12 @@ void Expend::speech_source_change()
     settings.setValue("speech_source", speech_params.speech_source);
 
     const bool useLocalTts = (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP));
-    ui->speech_ttscpp_modelpath_frame->setEnabled(useLocalTts);
+    // 同一行上同时放了“模型选择 + 可用音色”，这里不能直接禁用整行，否则 system 声源时无法选音色。
+    // 仅禁用 tts.cpp 模型相关控件；音色下拉框由 refreshSpeechVoiceUi() 负责启用/禁用。
+    if (ui->speech_ttscpp_modelpath_frame) ui->speech_ttscpp_modelpath_frame->setEnabled(true);
+    if (ui->speech_ttscpp_modelpath_label) ui->speech_ttscpp_modelpath_label->setEnabled(useLocalTts);
+    if (ui->speech_ttscpp_modelpath_lineEdit) ui->speech_ttscpp_modelpath_lineEdit->setEnabled(useLocalTts);
+    if (ui->speech_ttscpp_modelpath_pushButton) ui->speech_ttscpp_modelpath_pushButton->setEnabled(useLocalTts);
     ui->speech_manual_frame->setEnabled(useLocalTts);
 
     // 切换声源后，刷新“可用音色”下拉框
