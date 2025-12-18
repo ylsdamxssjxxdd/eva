@@ -94,6 +94,18 @@ class QWidget;
 #define DEFAULT_WHISPER_MODEL_PATH "/EVA_MODELS/声转文模型/whisper-base-q5_1.bin"
 #define DEFAULT_TTSCPP_MODEL_PATH "/EVA_MODELS/text2speech/Kokoro_espeak_F16.gguf"
 
+//------------------------------------------------------------------------------
+// EVA_TEMP：机体临时/持久化目录
+//------------------------------------------------------------------------------
+// 说明：
+// 1) EVA 会在可执行程序同级目录创建 EVA_TEMP，用于保存配置、数据库与中间产物等。
+// 2) 这里仅提供“相对路径片段”，组合时使用：
+//    `QDir(applicationDirPath).filePath(EVA_TEMP_XXX_DIR_RELATIVE)`
+// 3) 统一约定输出目录可以避免把产物写到工作目录/后端目录，导致“到处都是”。
+#define EVA_TEMP_DIR_RELATIVE "EVA_TEMP"
+#define EVA_TEMP_SD_DIR_RELATIVE "EVA_TEMP/sd"
+#define EVA_TEMP_TTS_DIR_RELATIVE "EVA_TEMP/tts"
+
 // 不同操作系统相关
 #ifdef _WIN32
 #define SFX_NAME ".exe" // 第三方程序后缀名

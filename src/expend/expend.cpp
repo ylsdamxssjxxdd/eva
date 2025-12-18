@@ -30,7 +30,9 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     }
 
     // Ensure a dedicated temp dir for TTS outputs under EVA_TEMP to avoid touching working dir
-    ttsOutputDir = QDir(applicationDirPath).filePath("EVA_TEMP/tts");
+    ttsOutputDir = QDir(applicationDirPath).filePath(EVA_TEMP_TTS_DIR_RELATIVE);
+    // 统一将文生图输出落盘到 EVA_TEMP/sd，避免图片散落到工作目录或后端目录
+    sdOutputDir = QDir(applicationDirPath).filePath(EVA_TEMP_SD_DIR_RELATIVE);
 
     auto applySpacing = [](auto *edit, qreal factor)
     {

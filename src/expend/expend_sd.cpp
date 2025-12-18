@@ -350,7 +350,13 @@ void Expend::on_sd_draw_pushButton_clicked()
     QString timeString = currentTime.toString("-hh-mm-ss"); // 格式化时间为时-分-秒
     // Decide output extension by mode (image/video)
     const bool genVideo = (sd_run_config_.videoFrames > 0);
-    sd_outputpath = applicationDirPath + "/EVA_TEMP/sd_output" + timeString + (genVideo ? ".avi" : ".png");
+    // 统一把文生图产物落到 EVA_TEMP/sd，避免输出散落到工作目录或后端目录
+    // 说明：sdOutputDir 在 Expend 构造函数中初始化，这里再做一次兜底（防止旧对象/异常路径导致为空）
+    if (sdOutputDir.isEmpty())
+        sdOutputDir = QDir(applicationDirPath).filePath(EVA_TEMP_SD_DIR_RELATIVE);
+    createTempDirectory(sdOutputDir);
+    const QString fileName = QStringLiteral("sd_output") + timeString + (genVideo ? ".avi" : ".png");
+    sd_outputpath = QDir(sdOutputDir).filePath(fileName);
 
     // 结束sd
     sd_process->kill();
@@ -509,7 +515,8 @@ void Expend::on_sd_draw_pushButton_clicked()
             sd_process->kill();
         } });
 
-    createTempDirectory(applicationDirPath + "/EVA_TEMP");
+    // 确保输出目录存在（mkpath 会递归创建 EVA_TEMP）
+    createTempDirectory(sdOutputDir);
     // Add tool dir to library search path and set working directory
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString toolDir = QFileInfo(program).absolutePath();
@@ -521,7 +528,8 @@ void Expend::on_sd_draw_pushButton_clicked()
     env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
 #endif
     sd_process->setProcessEnvironment(env);
-    sd_process->setWorkingDirectory(toolDir);
+    // 将工作目录切到 EVA_TEMP/sd：即使后端忽略 -o，也会把默认输出写到这里，避免“到处都是”
+    sd_process->setWorkingDirectory(sdOutputDir);
     sd_process->start(program, arguments);
 }
 // 进程开始响应
@@ -531,6 +539,58 @@ void Expend::sd_onProcessFinished()
 {
     ui->sd_draw_pushButton->setText(QStringLiteral("生成"));
 
+    // 统一输出目录：优先使用成员变量；为空时按约定回退到 EVA_TEMP/sd
+    const QString outDir = sdOutputDir.isEmpty() ? QDir(applicationDirPath).filePath(EVA_TEMP_SD_DIR_RELATIVE) : sdOutputDir;
+
+    // 兜底：部分后端可能忽略 -o 或自行改名，这里尝试在统一目录/后端目录中“捞回”产物并搬运到 outDir
+    auto pickLatest = [](const QString &dirPath, const QStringList &filters) -> QString {
+        if (dirPath.isEmpty()) return {};
+        QDir dir(dirPath);
+        if (!dir.exists()) return {};
+        const QStringList cands = dir.entryList(filters, QDir::Files, QDir::Time);
+        if (cands.isEmpty()) return {};
+        return dir.absoluteFilePath(cands.first());
+    };
+    auto moveToExpected = [](const QString &src, const QString &dst) -> bool {
+        if (src.isEmpty() || dst.isEmpty() || src == dst) return QFileInfo::exists(dst);
+        // 1) 优先原子移动（同盘/同分区时更快）
+        if (QFile::rename(src, dst)) return true;
+        // 2) 回退到 copy+remove（跨盘时 rename 可能失败）
+        if (QFile::copy(src, dst))
+        {
+            QFile::remove(src);
+            return true;
+        }
+        return false;
+    };
+    auto normalizeOutputPath = [&](const QString &expected, const QStringList &filters) -> QString {
+        if (expected.isEmpty()) return {};
+        if (QFileInfo::exists(expected)) return expected;
+
+        // 先在 outDir 内查找（最符合“统一保存”的目标）
+        QString found = pickLatest(outDir, filters);
+        if (!found.isEmpty())
+        {
+            createTempDirectory(QFileInfo(expected).absolutePath());
+            // 如果找到了但名字不同，尝试改名到 expected，保证后续逻辑统一使用 sd_outputpath
+            if (moveToExpected(found, expected)) return expected;
+            return found;
+        }
+
+        // 再尝试在后端程序目录中查找（极少数后端会强制写到自身目录）
+        const QString program = DeviceManager::programPath(QStringLiteral("sd"));
+        const QString toolDir = program.isEmpty() ? QString() : QFileInfo(program).absolutePath();
+        found = pickLatest(toolDir, filters);
+        if (!found.isEmpty())
+        {
+            createTempDirectory(QFileInfo(expected).absolutePath());
+            if (moveToExpected(found, expected)) return expected;
+            return found; // 搬运失败也尽量返回真实产物路径，避免“生成成功但 UI 看不到”
+        }
+
+        return expected;
+    };
+
     // Detect media type by file suffix
     const QString suffix = QFileInfo(sd_outputpath).suffix().toLower();
     const bool isVideo = (suffix == "avi" || suffix == "mp4" || suffix == "mov" || suffix == "mkv");
@@ -538,14 +598,9 @@ void Expend::sd_onProcessFinished()
     bool ok = false;
     if (isVideo)
     {
-        // Some sd backends may ignore -o name and produce sd_output-..avi, try to discover
-        QString path = sd_outputpath;
-        if (!QFileInfo::exists(path))
-        {
-            QDir dir(applicationDirPath + "/EVA_TEMP");
-            const QStringList cands = dir.entryList(QStringList() << "sd_output-*.avi" << "sd_output*.avi", QDir::Files, QDir::Time);
-            if (!cands.isEmpty()) path = dir.absoluteFilePath(cands.first());
-        }
+        // 某些 sd 后端可能忽略 -o 或自行改名：按约定模式兜底发现并搬运到 outDir
+        const QStringList filters = QStringList() << "sd_output-*.avi" << "sd_output*.avi" << "sd_output-*.mp4" << "sd_output*.mp4";
+        QString path = normalizeOutputPath(sd_outputpath, filters);
         if (QFileInfo::exists(path) && sd_mediaResult)
         {
             sd_mediaResult->addVideo(path);
@@ -555,6 +610,9 @@ void Expend::sd_onProcessFinished()
     }
     else
     {
+        // 图像模式同样做一次兜底发现，避免产物落到错误目录导致“生成成功但 UI 显示失败”
+        const QStringList filters = QStringList() << "sd_output-*.png" << "sd_output*.png" << "sd_output-*.jpg" << "sd_output*.jpg" << "sd_output-*.jpeg" << "sd_output*.jpeg";
+        sd_outputpath = normalizeOutputPath(sd_outputpath, filters);
         QImage image(sd_outputpath);
         const int originalWidth = image.width() / qMax(1.0, devicePixelRatioF());
         if (originalWidth > 0 && sd_mediaResult)

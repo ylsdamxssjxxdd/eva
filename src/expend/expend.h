@@ -264,6 +264,7 @@ class Expend : public QWidget
 
   public:
     // Legacy inline SD template panel removed; presets managed by advanced dialog only
+    QString sdOutputDir;   // 文生图输出目录（固定为 EVA_TEMP/sd，用于收纳图片/视频产物）
     QString sd_outputpath; // 最终的绘制结果保存路径
     QProcess *sd_process;
     bool is_handle_sd = true;
