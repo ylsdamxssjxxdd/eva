@@ -190,11 +190,20 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
     }
     if (img.format() != QImage::Format_ARGB32) img = img.convertToFormat(QImage::Format_ARGB32);
 
-    const QRect imgRect(0, 0, img.width() - 1, img.height() - 1);
+    // 注意：QRect(int x,int y,int w,int h) 这里的第三、四参数是宽高而不是 right/bottom，
+    // 直接用 img.width()/img.height() 才能让 right/bottom 精确落在 (w-1)/(h-1) 上。
+    const QRect imgRect(0, 0, img.width(), img.height());
     auto clampRectToImage = [&](QRect r) -> QRect {
         if (imgRect.width() <= 0 || imgRect.height() <= 0) return QRect();
         r = r.normalized();
-        return r.intersected(imgRect);
+
+        // 这里不要用 intersected()：当 bbox 完全越界时会变成 null 矩形，导致“只有准星、没有蓝框”。
+        // 作为调试落盘图，更希望“至少能看到一个落在边缘的可视化框”，便于快速定位问题。
+        const int x1 = qBound(imgRect.left(), r.left(), imgRect.right());
+        const int y1 = qBound(imgRect.top(), r.top(), imgRect.bottom());
+        const int x2 = qBound(imgRect.left(), r.right(), imgRect.right());
+        const int y2 = qBound(imgRect.top(), r.bottom(), imgRect.bottom());
+        return QRect(QPoint(x1, y1), QPoint(x2, y2)).normalized();
     };
     auto clampPointToImage = [&](QPoint p) -> QPoint {
         if (imgRect.width() <= 0 || imgRect.height() <= 0) return QPoint(0, 0);
@@ -208,6 +217,30 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
     const QPoint bboxCenter = clampPointToImage(bbox.center());
     const QPoint toBboxCenter = hasToBbox ? clampPointToImage(toBbox.center()) : QPoint();
 
+    // 调试可视化：当 bbox 太小（例如只有中心点）时，保证至少有一个“看得见的蓝色方框”。
+    const int minBoxSize = qBound(12, qMin(img.width(), img.height()) / 25, 60);
+    auto ensureMinVisibleRect = [&](QRect r) -> QRect {
+        if (imgRect.width() <= 0 || imgRect.height() <= 0) return QRect();
+        r = r.normalized();
+
+        const QPoint c = clampPointToImage(r.center());
+        int targetW = qMax(r.width(), minBoxSize);
+        int targetH = qMax(r.height(), minBoxSize);
+        targetW = qMin(targetW, imgRect.width());
+        targetH = qMin(targetH, imgRect.height());
+
+        QRect out(0, 0, targetW, targetH);
+        out.moveCenter(c);
+        if (out.left() < imgRect.left()) out.moveLeft(imgRect.left());
+        if (out.top() < imgRect.top()) out.moveTop(imgRect.top());
+        if (out.right() > imgRect.right()) out.moveRight(imgRect.right());
+        if (out.bottom() > imgRect.bottom()) out.moveBottom(imgRect.bottom());
+        return out;
+    };
+
+    const QRect bboxDraw = ensureMinVisibleRect(bboxClamped);
+    const QRect toBboxDraw = hasToBbox ? ensureMinVisibleRect(toBboxClamped) : QRect();
+
     QPainter p(&img);
     p.setRenderHint(QPainter::Antialiasing, true);
 
@@ -216,7 +249,7 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
     const QColor bboxFill(0, 140, 255, 40);
     p.setPen(QPen(bboxBorder, 3));
     p.setBrush(bboxFill);
-    if (!bboxClamped.isNull()) p.drawRect(bboxClamped);
+    if (!bboxDraw.isNull()) p.drawRect(bboxDraw);
 
     // 中心点：十字 + 小圆
     const QColor centerColor(255, 255, 255, 240);
@@ -227,7 +260,7 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
     p.drawLine(bboxCenter.x(), bboxCenter.y() - 12, bboxCenter.x(), bboxCenter.y() + 12);
 
     // to_bbox：橙色框（拖放终点等）
-    if (hasToBbox && !toBboxClamped.isNull())
+    if (hasToBbox && !toBboxDraw.isNull())
     {
         const QColor toBorder(255, 140, 0, 230);
         const QColor toFill(255, 140, 0, 30);
@@ -235,7 +268,7 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
         pen.setStyle(Qt::DashLine);
         p.setPen(pen);
         p.setBrush(toFill);
-        p.drawRect(toBboxClamped);
+        p.drawRect(toBboxDraw);
 
         // 用箭头线把起点与终点连起来
         QPen linkPen(toBorder, 2);
