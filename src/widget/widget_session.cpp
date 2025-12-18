@@ -632,6 +632,13 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     {
         // Include any pending image paths produced by tools so we can restore them later
         QJsonObject histMsg = roleMessage;
+        // 历史记录补充：为 tool 角色消息额外记录“工具名”，用于回放/重载时让记录条恢复正确的工具图标。
+        // 注意：该字段只写入历史，不参与发给模型的 ui_messagesArray，避免对 OpenAI 兼容端点造成潜在影响。
+        const QString toolNameForHistory = (pendingToolName.isEmpty() ? lastToolCallName_ : pendingToolName).trimmed();
+        if (!toolNameForHistory.isEmpty())
+        {
+            histMsg.insert(QStringLiteral("tool"), toolNameForHistory);
+        }
         if (!wait_to_show_images_filepath.isEmpty())
         {
             QJsonArray locals;

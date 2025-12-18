@@ -340,6 +340,13 @@ void Widget::restoreSessionById(const QString &sessionId)
         return themeTextPrimary();
     };
 
+    // 历史回放：工具记录块的“图标形状”依赖 toolName。
+    // 但旧历史里 tool 角色消息可能只有 role/content，没有显式工具名，导致全部回退为默认工具图标。
+    // 这里用两条路线找回工具名：
+    // 1) 新格式：tool 消息里写入了 "tool" 字段（仅历史使用）；
+    // 2) 兼容旧格式：从上一条 assistant 文本里的 <tool_call>{...}</tool_call> 解析出 name，作为紧随其后的 tool 消息归属。
+    QString pendingToolNameFromToolCall;
+
     for (const auto &v : msgs)
     {
         QJsonObject m = v.toObject();
@@ -391,6 +398,21 @@ void Widget::restoreSessionById(const QString &sessionId)
             displayText = finalText;
         }
 
+        // 若该 assistant 输出包含 <tool_call>，尝试解析工具名，用于后续 tool 记录块恢复图标。
+        if (recRole == RecordRole::Assistant &&
+            displayText.contains(QStringLiteral("<tool_call"), Qt::CaseInsensitive))
+        {
+            const mcp::json call = XMLparser(displayText);
+            if (!call.empty() && call.contains("name"))
+            {
+                const QString toolName = QString::fromStdString(call.value("name", "")).trimmed();
+                if (!toolName.isEmpty())
+                {
+                    pendingToolNameFromToolCall = toolName;
+                }
+            }
+        }
+
         int thinkIdx = -1;
         if (recRole == RecordRole::Assistant && !reasoningText.isEmpty())
         {
@@ -400,7 +422,47 @@ void Widget::restoreSessionById(const QString &sessionId)
             recordAppendText(thinkIdx, reasoningText);
         }
 
-        const int recIdx = recordCreate(recRole);
+        // tool 角色：尽量带上工具名创建记录块，保证记录条图标能按工具类型恢复。
+        QString toolNameForRecord;
+        if (recRole == RecordRole::Tool)
+        {
+            // 1) 新格式：tool 字段（历史侧写入）
+            toolNameForRecord = m.value(QStringLiteral("tool")).toString().trimmed();
+            // 2) 其它来源（例如某些 OpenAI/函数调用格式会写 name）
+            if (toolNameForRecord.isEmpty())
+            {
+                toolNameForRecord = m.value(QStringLiteral("name")).toString().trimmed();
+            }
+            // 3) 兼容旧历史：从上一条 assistant 的 <tool_call> 解析到的 name
+            if (toolNameForRecord.isEmpty())
+            {
+                toolNameForRecord = pendingToolNameFromToolCall;
+            }
+            // 4) 兜底：若工具结果文本以工具名开头（例如 "stablediffusion ..."），则尝试从首 token 识别
+            if (toolNameForRecord.isEmpty() && !displayText.isEmpty())
+            {
+                QString token = displayText.trimmed();
+                int cut = -1;
+                for (int i = 0; i < token.size(); ++i)
+                {
+                    if (token.at(i).isSpace())
+                    {
+                        cut = i;
+                        break;
+                    }
+                }
+                if (cut > 0) token = token.left(cut);
+                token = token.trimmed().toLower();
+                if (!token.isEmpty() && toolIconAliasMap().contains(token))
+                {
+                    toolNameForRecord = token;
+                }
+            }
+            // tool 消息消费掉 pending（避免误关联到下一次 tool 输出）
+            pendingToolNameFromToolCall.clear();
+        }
+
+        const int recIdx = (recRole == RecordRole::Tool) ? recordCreate(recRole, toolNameForRecord) : recordCreate(recRole);
         appendRoleHeader(role);
         reflash_output(displayText, 0, roleToColor(role));
         recordAppendText(recIdx, displayText);
@@ -409,6 +471,8 @@ void Widget::restoreSessionById(const QString &sessionId)
         QJsonObject uiMsg = m;
         uiMsg.remove("local_images");
         uiMsg.remove("thinking");
+        // "tool" 为历史专用字段：不要带入 ui_messagesArray，避免影响 OpenAI 兼容请求。
+        uiMsg.remove("tool");
         if (!contentVal.isArray()) uiMsg.insert("content", displayText);
         if (recRole == RecordRole::Assistant)
         {
