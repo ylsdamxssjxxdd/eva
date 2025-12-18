@@ -1,7 +1,434 @@
 #include "ui_widget.h"
 #include "widget.h"
 
+#include <algorithm>
 #include <QTimer>
+
+namespace
+{
+// 提示词“工具块”高亮类型：只针对工具相关信息（<tools>/<tool_call> 中的工具名、参数名、关键字段）做轻量高亮。
+enum class ToolPromptHighlightKind
+{
+    Tag,      // <tools> / <tool_call> 等标签本体
+    JsonKey,  // "name" / "arguments" / "properties" / "required" 等关键字段
+    ToolName, // 工具名（"name" 的字符串值）
+    ParamName // 参数名（properties 里的 key / tool_call.arguments 里的 key / required 数组里的字符串）
+};
+
+struct ToolPromptSpan
+{
+    int start = 0;
+    int length = 0;
+    ToolPromptHighlightKind kind = ToolPromptHighlightKind::JsonKey;
+};
+
+struct JsonHighlightOptions
+{
+    // 在 <tools> block 内：参数名来自 schema.properties 的 key
+    bool highlightPropertiesObjectKeys = true;
+    // 在 <tool_call> block 内：参数名来自 tool_call.arguments 的 key
+    bool highlightArgumentsObjectKeys = false;
+};
+
+// 在指定区间内做一个“足够好用”的 JSON 扫描：它不要求整体是合法 JSON（允许多个对象拼接），
+// 但要求字符串引号能正确闭合。我们只提取对用户有帮助的“工具名/参数名/关键字段”范围用于高亮。
+static void collectJsonToolSpans(QVector<ToolPromptSpan> &out,
+                                const QString &text,
+                                int rangeStart,
+                                int rangeEnd,
+                                const JsonHighlightOptions &opt)
+{
+    rangeStart = qMax(0, rangeStart);
+    rangeEnd = qMin(text.size(), rangeEnd);
+    if (rangeEnd <= rangeStart) return;
+
+    enum class ContainerType
+    {
+        Object,
+        Array
+    };
+
+    struct ContainerState
+    {
+        ContainerType type = ContainerType::Object;
+
+        // Object 状态机：key -> ':' -> value -> (',' or '}')
+        bool expectKey = false;
+        bool expectColon = false;
+        bool expectValue = false;
+        bool expectCommaOrEnd = false;
+        QString lastKey;
+
+        // 仅当该 object 是 properties/arguments 的直接 value 时为 true：其直接子 key 视为“参数名”
+        bool highlightDirectKeysAsParams = false;
+
+        // 仅当该 array 是 required 的直接 value 时为 true：其直接子 string 视为“参数名”
+        bool highlightStringValuesAsParams = false;
+    };
+
+    auto pushObject = [&](QVector<ContainerState> &stack, bool highlightKeys) {
+        ContainerState st;
+        st.type = ContainerType::Object;
+        st.expectKey = true;
+        st.highlightDirectKeysAsParams = highlightKeys;
+        stack.push_back(st);
+    };
+    auto pushArray = [&](QVector<ContainerState> &stack, bool highlightStrings) {
+        ContainerState st;
+        st.type = ContainerType::Array;
+        st.expectValue = true;
+        st.highlightStringValuesAsParams = highlightStrings;
+        stack.push_back(st);
+    };
+
+    QVector<ContainerState> stack;
+    stack.reserve(16);
+
+    bool inString = false;
+    bool escape = false;
+    int stringStart = -1;
+
+    const auto addSpan = [&](int start, int length, ToolPromptHighlightKind kind) {
+        if (length <= 0) return;
+        const int s = qMax(rangeStart, start);
+        const int e = qMin(rangeEnd, start + length);
+        if (e <= s) return;
+        ToolPromptSpan sp;
+        sp.start = s;
+        sp.length = e - s;
+        sp.kind = kind;
+        out.push_back(sp);
+    };
+
+    const auto isKeyOfInterest = [](const QString &key) -> bool {
+        return key == QStringLiteral("name") || key == QStringLiteral("arguments") ||
+               key == QStringLiteral("properties") || key == QStringLiteral("required");
+    };
+
+    int i = rangeStart;
+    while (i < rangeEnd)
+    {
+        const QChar ch = text.at(i);
+
+        if (inString)
+        {
+            if (escape)
+            {
+                escape = false;
+                ++i;
+                continue;
+            }
+            if (ch == QLatin1Char('\\'))
+            {
+                escape = true;
+                ++i;
+                continue;
+            }
+            if (ch == QLatin1Char('"'))
+            {
+                // 完整字符串 token（含引号）范围：[stringStart, i]
+                const int tokenStart = stringStart;
+                const int tokenLen = (i - stringStart + 1);
+                const QString tokenContent = text.mid(stringStart + 1, tokenLen - 2);
+
+                if (!stack.isEmpty())
+                {
+                    ContainerState &top = stack.last();
+                    if (top.type == ContainerType::Object)
+                    {
+                        if (top.expectKey)
+                        {
+                            // 这是一个 key
+                            top.lastKey = tokenContent;
+                            top.expectKey = false;
+                            top.expectColon = true;
+
+                            // 1) properties/arguments 直接子 key：参数名
+                            if (top.highlightDirectKeysAsParams)
+                            {
+                                addSpan(tokenStart, tokenLen, ToolPromptHighlightKind::ParamName);
+                            }
+                            // 2) 关键字段：高亮
+                            else if (isKeyOfInterest(tokenContent))
+                            {
+                                addSpan(tokenStart, tokenLen, ToolPromptHighlightKind::JsonKey);
+                            }
+                        }
+                        else if (top.expectValue)
+                        {
+                            // 这是一个 string value
+                            const QString key = top.lastKey;
+                            if (key == QStringLiteral("name"))
+                            {
+                                addSpan(tokenStart, tokenLen, ToolPromptHighlightKind::ToolName);
+                            }
+                            // required 的数组值在 array 分支处理；这里只处理 "name" 即可。
+
+                            top.expectValue = false;
+                            top.expectCommaOrEnd = true;
+                        }
+                    }
+                    else
+                    {
+                        // Array: string value
+                        if (top.expectValue)
+                        {
+                            if (top.highlightStringValuesAsParams)
+                            {
+                                addSpan(tokenStart, tokenLen, ToolPromptHighlightKind::ParamName);
+                            }
+                            top.expectValue = false;
+                            top.expectCommaOrEnd = true;
+                        }
+                    }
+                }
+
+                inString = false;
+                stringStart = -1;
+                escape = false;
+                ++i;
+                continue;
+            }
+            ++i;
+            continue;
+        }
+
+        // 非字符串状态：跳过空白
+        if (ch.isSpace())
+        {
+            ++i;
+            continue;
+        }
+
+        // 字符串开始
+        if (ch == QLatin1Char('"'))
+        {
+            inString = true;
+            escape = false;
+            stringStart = i;
+            ++i;
+            continue;
+        }
+
+        // 结构字符处理
+        if (ch == QLatin1Char('{'))
+        {
+            bool highlightKeys = false;
+            if (!stack.isEmpty())
+            {
+                ContainerState &parent = stack.last();
+                if (parent.type == ContainerType::Object && parent.expectValue)
+                {
+                    const QString key = parent.lastKey;
+                    if (key == QStringLiteral("properties") && opt.highlightPropertiesObjectKeys)
+                    {
+                        highlightKeys = true;
+                    }
+                    else if (key == QStringLiteral("arguments") && opt.highlightArgumentsObjectKeys)
+                    {
+                        highlightKeys = true;
+                    }
+                    // value 已开始（object）
+                    parent.expectValue = false;
+                    parent.expectCommaOrEnd = true;
+                }
+                else if (parent.type == ContainerType::Array && parent.expectValue)
+                {
+                    parent.expectValue = false;
+                    parent.expectCommaOrEnd = true;
+                }
+            }
+            pushObject(stack, highlightKeys);
+            ++i;
+            continue;
+        }
+        if (ch == QLatin1Char('}'))
+        {
+            if (!stack.isEmpty()) stack.removeLast();
+            ++i;
+            continue;
+        }
+        if (ch == QLatin1Char('['))
+        {
+            bool highlightStrings = false;
+            if (!stack.isEmpty())
+            {
+                ContainerState &parent = stack.last();
+                if (parent.type == ContainerType::Object && parent.expectValue)
+                {
+                    if (parent.lastKey == QStringLiteral("required"))
+                    {
+                        highlightStrings = true;
+                    }
+                    parent.expectValue = false;
+                    parent.expectCommaOrEnd = true;
+                }
+                else if (parent.type == ContainerType::Array && parent.expectValue)
+                {
+                    parent.expectValue = false;
+                    parent.expectCommaOrEnd = true;
+                }
+            }
+            pushArray(stack, highlightStrings);
+            ++i;
+            continue;
+        }
+        if (ch == QLatin1Char(']'))
+        {
+            if (!stack.isEmpty()) stack.removeLast();
+            ++i;
+            continue;
+        }
+        if (ch == QLatin1Char(':'))
+        {
+            if (!stack.isEmpty())
+            {
+                ContainerState &top = stack.last();
+                if (top.type == ContainerType::Object && top.expectColon)
+                {
+                    top.expectColon = false;
+                    top.expectValue = true;
+                }
+            }
+            ++i;
+            continue;
+        }
+        if (ch == QLatin1Char(','))
+        {
+            if (!stack.isEmpty())
+            {
+                ContainerState &top = stack.last();
+                if (top.type == ContainerType::Object)
+                {
+                    if (top.expectCommaOrEnd)
+                    {
+                        top.expectCommaOrEnd = false;
+                        top.expectKey = true;
+                        top.lastKey.clear();
+                    }
+                }
+                else
+                {
+                    if (top.expectCommaOrEnd)
+                    {
+                        top.expectCommaOrEnd = false;
+                        top.expectValue = true;
+                    }
+                }
+            }
+            ++i;
+            continue;
+        }
+
+        // 标量 value（true/false/null/number 等）：在 expectValue 状态下也需要推进状态机
+        if (!stack.isEmpty())
+        {
+            ContainerState &top = stack.last();
+            if (top.type == ContainerType::Object && top.expectValue)
+            {
+                top.expectValue = false;
+                top.expectCommaOrEnd = true;
+            }
+            else if (top.type == ContainerType::Array && top.expectValue)
+            {
+                top.expectValue = false;
+                top.expectCommaOrEnd = true;
+            }
+        }
+
+        // 继续前进（不做复杂 token 化，直到遇到下一个结构字符自然会被处理）
+        ++i;
+    }
+}
+
+static void collectTagSpans(QVector<ToolPromptSpan> &out, const QString &text, const QString &tag, ToolPromptHighlightKind kind)
+{
+    int pos = 0;
+    while (true)
+    {
+        const int idx = text.indexOf(tag, pos);
+        if (idx < 0) break;
+        ToolPromptSpan sp;
+        sp.start = idx;
+        sp.length = tag.size();
+        sp.kind = kind;
+        out.push_back(sp);
+        pos = idx + tag.size();
+    }
+}
+
+static void collectToolPromptSpans(QVector<ToolPromptSpan> &out, const QString &text)
+{
+    out.clear();
+    // 1) 标签本体先高亮（用户视觉锚点）
+    collectTagSpans(out, text, QStringLiteral("<tools>"), ToolPromptHighlightKind::Tag);
+    collectTagSpans(out, text, QStringLiteral("</tools>"), ToolPromptHighlightKind::Tag);
+    collectTagSpans(out, text, QStringLiteral("<tool_call>"), ToolPromptHighlightKind::Tag);
+    collectTagSpans(out, text, QStringLiteral("</tool_call>"), ToolPromptHighlightKind::Tag);
+
+    // 2) <tools> block：高亮工具名/关键字段/参数名（properties/required）
+    {
+        const QString openTag = QStringLiteral("<tools>");
+        const QString closeTag = QStringLiteral("</tools>");
+        int pos = 0;
+        while (true)
+        {
+            const int start = text.indexOf(openTag, pos);
+            if (start < 0) break;
+            const int contentStart = start + openTag.size();
+            const int end = text.indexOf(closeTag, contentStart);
+            if (end < 0) break;
+            JsonHighlightOptions opt;
+            opt.highlightPropertiesObjectKeys = true;
+            opt.highlightArgumentsObjectKeys = false;
+            collectJsonToolSpans(out, text, contentStart, end, opt);
+            pos = end + closeTag.size();
+        }
+    }
+
+    // 3) <tool_call> block：高亮 tool_call JSON 内的工具名与 arguments 参数名
+    {
+        const QString openTag = QStringLiteral("<tool_call>");
+        const QString closeTag = QStringLiteral("</tool_call>");
+        int pos = 0;
+        while (true)
+        {
+            const int start = text.indexOf(openTag, pos);
+            if (start < 0) break;
+            const int contentStart = start + openTag.size();
+            const int end = text.indexOf(closeTag, contentStart);
+            if (end < 0) break;
+            JsonHighlightOptions opt;
+            opt.highlightPropertiesObjectKeys = false;
+            opt.highlightArgumentsObjectKeys = true;
+            collectJsonToolSpans(out, text, contentStart, end, opt);
+            pos = end + closeTag.size();
+        }
+    }
+
+    // 4) 排序 + 去重（避免偶发重复 span）
+    std::sort(out.begin(), out.end(), [](const ToolPromptSpan &a, const ToolPromptSpan &b) {
+        if (a.start != b.start) return a.start < b.start;
+        return a.length > b.length;
+    });
+
+    QVector<ToolPromptSpan> deduped;
+    deduped.reserve(out.size());
+    int lastEnd = -1;
+    for (const ToolPromptSpan &sp : out)
+    {
+        if (sp.length <= 0) continue;
+        if (sp.start < 0 || sp.start >= text.size()) continue;
+        const int end = sp.start + sp.length;
+        if (end <= sp.start) continue;
+        // 简化处理：出现重叠时保留更靠前的 span（常见情况下不会发生重叠）
+        if (sp.start < lastEnd) continue;
+        deduped.push_back(sp);
+        lastEnd = end;
+    }
+    out.swap(deduped);
+}
+} // namespace
 
 //-------------------------------------------------------------------------
 //------------------------------输出--------------------------------
@@ -30,6 +457,134 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
     out.replace(QString(DEFAULT_THINK_BEGIN), QString());
     out.replace(QString(DEFAULT_THINK_END), QString());
     output_scroll(out, color);
+}
+
+// 在指定 cursor 位置插入文本，并对提示词中的工具相关内容做轻量高亮。
+// 说明：这是“展示层”能力，不改变原始文本内容，也不影响消息/记录的持久化。
+void Widget::insertTextWithToolHighlight(QTextCursor &cursor, const QString &text, const QColor &baseColor)
+{
+    // 不包含工具标签时直接走普通插入，避免无意义的扫描开销
+    const bool mayContainTools = text.contains(QLatin1Char('<')) &&
+                                (text.contains(QStringLiteral("<tools>")) || text.contains(QStringLiteral("<tool_call>")) ||
+                                 text.contains(QStringLiteral("</tools>")) || text.contains(QStringLiteral("</tool_call>")));
+
+    QTextCharFormat baseFmt;
+    baseFmt.setForeground(QBrush(baseColor));
+
+    if (!mayContainTools)
+    {
+        cursor.setCharFormat(baseFmt);
+        cursor.insertText(text);
+        cursor.setCharFormat(QTextCharFormat());
+        return;
+    }
+
+    QVector<ToolPromptSpan> spans;
+    collectToolPromptSpans(spans, text);
+    if (spans.isEmpty())
+    {
+        cursor.setCharFormat(baseFmt);
+        cursor.insertText(text);
+        cursor.setCharFormat(QTextCharFormat());
+        return;
+    }
+
+    // 高亮样式：只把“原本带背景填充”的那部分（标签/参数名）改为蓝灰色，
+    // 其余（关键字段/工具名）仍保持原有配色，以便用户一眼分辨层级。
+    const QColor highlightBlueGray = themeVisuals_.darkBase ? PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_DARK
+                                                            : PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_LIGHT;
+    const QColor toolColor = themeVisuals_.stateTool;
+    const QColor keyColor = themeVisuals_.stateSignal;
+
+    QTextCharFormat tagFmt;
+    tagFmt.setForeground(QBrush(highlightBlueGray));
+    tagFmt.setFontWeight(QFont::Bold);
+
+    QTextCharFormat keyFmt;
+    keyFmt.setForeground(QBrush(keyColor));
+    keyFmt.setFontWeight(QFont::Bold);
+
+    QTextCharFormat toolNameFmt;
+    toolNameFmt.setForeground(QBrush(toolColor));
+    toolNameFmt.setFontWeight(QFont::Bold);
+
+    QTextCharFormat paramFmt;
+    paramFmt.setForeground(QBrush(highlightBlueGray));
+    paramFmt.setFontWeight(QFont::Bold);
+
+    const auto formatForKind = [&](ToolPromptHighlightKind kind) -> const QTextCharFormat & {
+        switch (kind)
+        {
+        case ToolPromptHighlightKind::Tag: return tagFmt;
+        case ToolPromptHighlightKind::JsonKey: return keyFmt;
+        case ToolPromptHighlightKind::ToolName: return toolNameFmt;
+        case ToolPromptHighlightKind::ParamName: return paramFmt;
+        }
+        return baseFmt;
+    };
+
+    int pos = 0;
+    for (const ToolPromptSpan &sp : spans)
+    {
+        if (sp.length <= 0) continue;
+        if (sp.start < 0 || sp.start >= text.size()) continue;
+        const int end = qMin(text.size(), sp.start + sp.length);
+        if (end <= sp.start) continue;
+
+        if (sp.start > pos)
+        {
+            cursor.setCharFormat(baseFmt);
+            cursor.insertText(text.mid(pos, sp.start - pos));
+        }
+
+        cursor.setCharFormat(formatForKind(sp.kind));
+        cursor.insertText(text.mid(sp.start, end - sp.start));
+        pos = end;
+    }
+
+    if (pos < text.size())
+    {
+        cursor.setCharFormat(baseFmt);
+        cursor.insertText(text.mid(pos));
+    }
+
+    // 恢复默认格式，避免后续输出继承高亮样式
+    cursor.setCharFormat(QTextCharFormat());
+}
+
+// 更新输出：专用于“系统提示词/约定提示词”的展示
+// - 基础颜色仍由调用方决定（通常为 themeTextPrimary）
+// - 仅在文本中出现 <tools>/<tool_call> 时进行工具相关高亮
+void Widget::reflash_output_tool_highlight(const QString &result, const QColor &baseColor)
+{
+    if (!ui || !ui->output) return;
+
+    // 工程师代理运行时，输出区被工程师 session 接管，避免破坏其流式处理逻辑
+    if (engineerProxyRuntime_.active)
+    {
+        reflash_output(result, false, baseColor);
+        return;
+    }
+
+    flushPendingStream();
+
+    QString out = result;
+    out.replace(QString(DEFAULT_THINK_BEGIN), QString());
+    out.replace(QString(DEFAULT_THINK_END), QString());
+
+    QTextCursor cursor = ui->output->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    insertTextWithToolHighlight(cursor, out, baseColor);
+    ui->output->setTextCursor(cursor);
+
+    if (!is_stop_output_scroll)
+    {
+        ui->output->verticalScrollBar()->setValue(ui->output->verticalScrollBar()->maximum());
+    }
+    if (isHostControlled())
+    {
+        broadcastControlOutput(out, false, baseColor);
+    }
 }
 
 void Widget::processStreamChunk(const QString &chunk, const QColor &color)
@@ -296,17 +851,11 @@ void Widget::output_scrollBarValueChanged(int value)
 void Widget::output_scroll(QString output, QColor color, bool isStream, const QString &roleHint, int thinkActiveFlag)
 {
     QTextCursor cursor = ui->output->textCursor();
-    QTextCharFormat textFormat;
-
-    textFormat.setForeground(QBrush(color)); // 设置文本颜色
-    cursor.movePosition(QTextCursor::End);   // 光标移动到末尾
-    cursor.mergeCharFormat(textFormat);      // 应用文本格式
-
-    cursor.insertText(output); // 写入
-
-    QTextCharFormat textFormat0;           // 恢复文本格式
     cursor.movePosition(QTextCursor::End); // 光标移动到末尾
-    cursor.mergeCharFormat(textFormat0);   // 应用文本格式
+
+    // 统一插入：正常文本直接插入；若包含 <tools>/<tool_call> 则仅对“工具相关关键字段”做高亮。
+    // 注意：这是纯展示逻辑，不改变 output 字符串本身，也不影响后续工具解析与消息持久化。
+    insertTextWithToolHighlight(cursor, output, color);
 
     if (!is_stop_output_scroll) // 未手动停用自动滚动时每次追加自动滚动到底
     {

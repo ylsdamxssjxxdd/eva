@@ -340,8 +340,6 @@ class Widget : public QWidget
     void cleanupControllerFrames();           // 限制桌面控制器截图数量并清理旧文件
     void ensureControllerOverlay();           // 懒创建桌面控制器叠加层
     void hideControllerOverlay();             // 截图/收尾前隐藏叠加层，避免被 captureControllerFrame 捕获
-    void setControllerScreenshotMaskVisible(bool visible); // 桌面控制器截屏前：临时遮住输出区文字，避免截图把对话内容一起送给模型造成误导
-    QWidget *controllerScreenshotMask_ = nullptr;          // 桌面控制器截屏遮罩层（覆盖 ui->output，不改写文档内容）
     ControllerOverlay *controllerOverlay_ = nullptr;
 
     // 扩展相关
@@ -882,6 +880,11 @@ class Widget : public QWidget
     void enqueueStreamChunk(const QString &chunk, const QColor &color);
     void flushPendingStream();
     void processStreamChunk(const QString &chunk, const QColor &color);
+
+    // 系统提示词渲染增强：仅对提示词中 <tools>/<tool_call> 相关内容做高亮，
+    // 让工具名/参数名更醒目，避免纯文本输出时“工具块淹没在提示词里”导致用户难以辨认。
+    void reflash_output_tool_highlight(const QString &result, const QColor &baseColor);
+    void insertTextWithToolHighlight(QTextCursor &cursor, const QString &text, const QColor &baseColor);
 
     void updateKvBarUi();           // refresh kv_bar from kvUsed_/slotCtxMax_
     int resolvedContextLimitForUi() const;           // 计算用于展示/控制的上下文上限（LINK 未探测到时返回 0）

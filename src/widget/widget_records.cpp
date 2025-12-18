@@ -492,12 +492,11 @@ void Widget::replaceOutputRangeColored(int from, int to, const QString &text, QC
     c.setPosition(from);
     c.setPosition(to, QTextCursor::KeepAnchor);
     c.removeSelectedText();
-    QTextCharFormat fmt;
-    fmt.setForeground(QBrush(color));
-    c.mergeCharFormat(fmt);
-    c.insertText(text);
-    QTextCharFormat fmt0;
-    c.mergeCharFormat(fmt0);
+
+    // 统一走“插入并可选高亮”的路径：
+    // - 常规文本：等价于原先的“着色插入”
+    // - 包含 <tools>/<tool_call> 的系统提示词：额外高亮工具名/参数名，提升可读性
+    insertTextWithToolHighlight(c, text, color);
 }
 
 void Widget::onRecordClicked(int index)

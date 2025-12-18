@@ -693,7 +693,7 @@ void Widget::unlockLoad()
     // Record a system header and show system prompt as pre-decode content
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
-    reflash_output(bot_predecode_content, 0, themeTextPrimary());
+    reflash_output_tool_highlight(bot_predecode_content, themeTextPrimary());
     recordAppendText(__idx, bot_predecode_content);
     // Track the injected system record so later prompt refreshes reuse it instead of duplicating blocks
     if (!ui_messagesArray.isEmpty())

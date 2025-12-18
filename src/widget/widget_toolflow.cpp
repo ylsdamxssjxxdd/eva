@@ -64,6 +64,18 @@ void Widget::recv_pushover()
     {
         recordEntries_[currentAssistantIndex_].msgIndex = asstMsgIndex;
     }
+
+    // 输出区增强：若模型输出包含完整的 <tool_call>...</tool_call> 工具调用块，
+    // 则在“流式输出结束”这一刻对该 assistant 记录块做一次重渲染：
+    // - 让工具名/参数名/关键字段以更醒目的颜色显示（用户更容易看懂模型在调用什么）；
+    // - 同时解决“<tool_call> JSON 跨 chunk 分片”导致的高亮不完整问题（这里用完整 finalText 重绘一次即可）。
+    // 仅当包含 tool_call 标签时才触发，避免对普通对话输出产生额外开销。
+    const bool hasToolCallBlock = finalText.contains(QStringLiteral("<tool_call>")) &&
+                                  finalText.contains(QStringLiteral("</tool_call>"));
+    if (hasToolCallBlock && currentAssistantIndex_ >= 0)
+    {
+        updateRecordEntryContent(currentAssistantIndex_, finalText);
+    }
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
     temp_assistant_history = "";

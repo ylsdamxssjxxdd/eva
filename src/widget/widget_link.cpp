@@ -168,7 +168,7 @@ void Widget::set_api()
     // Create record BEFORE printing header/content so docFrom anchors at header area
     int __idx = recordCreate(RecordRole::System);
     appendRoleHeader(QStringLiteral("system"));
-    reflash_output(ui_DATES.date_prompt, 0, themeTextPrimary());
+    reflash_output_tool_highlight(ui_DATES.date_prompt, themeTextPrimary());
     recordAppendText(__idx, ui_DATES.date_prompt);
     lastSystemRecordIndex_ = __idx;
     // 重置对话消息并注入系统指令

@@ -753,6 +753,12 @@ const QColor NORMAL_BLACK(0, 0, 0);       // 黑色
 const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
 
+// 提示词渲染：工具相关高亮（仅影响 UI 展示，不影响实际发送给模型的内容）
+// 统一使用“蓝灰色”前景色；浅色主题用更深一点，深色主题用更亮一点，保证可读性。
+// 注：这里使用接近 Material Blue Grey 的更亮一级色阶，保证在纯白背景上也能清晰“跳出来”。
+const QColor PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_LIGHT(120, 144, 156); // #78909C
+const QColor PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_DARK(160, 180, 190);  // #A0B4BE
+
 // Qt meta-type declarations for queued signal/slot delivery
 Q_DECLARE_METATYPE(APIS)
 Q_DECLARE_METATYPE(ENDPOINT_DATA)

@@ -757,7 +757,7 @@ void Widget::ensureSystemHeader(const QString &systemText)
     {
         const int idx = recordCreate(RecordRole::System);
         appendRoleHeader(QStringLiteral("system"));
-        reflash_output(systemText, 0, themeTextPrimary());
+        reflash_output_tool_highlight(systemText, themeTextPrimary());
         recordAppendText(idx, systemText);
         lastSystemRecordIndex_ = idx;
         if (!ui_messagesArray.isEmpty())
