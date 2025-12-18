@@ -641,8 +641,17 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
         history_->appendMessage(histMsg);
     }
 
-    // Create record BEFORE printing header/content so docFrom anchors at header area
-    int __idx = recordCreate(RecordRole::Tool);
+    // 记录区：工具触发时就创建记录块（见 recv_pushover()），这里复用该记录块写入 tool_result；
+    // 若没有可复用的记录（兼容旧流程/异常分支），则退回到“收到结果才创建”的旧逻辑。
+    int __idx = currentToolRecordIndex_;
+    const QString expectedToolName = pendingToolName.isEmpty() ? lastToolCallName_ : pendingToolName;
+    const bool canReuse = (__idx >= 0 && __idx < recordEntries_.size() && recordEntries_[__idx].role == RecordRole::Tool &&
+                           (expectedToolName.isEmpty() || recordEntries_[__idx].toolName == expectedToolName));
+    if (!canReuse)
+    {
+        // Create record BEFORE printing header/content so docFrom anchors at header area
+        __idx = recordCreate(RecordRole::Tool, pendingToolName);
+    }
     appendRoleHeader(QStringLiteral("tool"));
     reflash_output(tool_result, 0, themeStateColor(TOOL_SIGNAL));
     recordAppendText(__idx, tool_result);
@@ -654,6 +663,7 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     pendingAssistantHeaderReset_ = true;
 
     tool_result = "";
+    currentToolRecordIndex_ = -1;
     lastToolPendingName_.clear();
     QTimer::singleShot(100, this, SLOT(tool_testhandleTimeout()));
     is_run = true;

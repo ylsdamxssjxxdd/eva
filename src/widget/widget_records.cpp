@@ -178,6 +178,7 @@ void Widget::recordClear()
     recordEntries_.clear();
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
+    currentToolRecordIndex_ = -1;
     lastSystemRecordIndex_ = -1;
     lastToolCallName_.clear();
     if (ui->recordBar) ui->recordBar->clearNodes();

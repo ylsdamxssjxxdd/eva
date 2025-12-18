@@ -92,6 +92,14 @@ void Widget::recv_pushover()
                     lastToolCallName_ = tools_name;
                     lastToolPendingName_ = tools_name; // 保留工具名，供工具返回时附加截图等场景
                     reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
+
+                    // 记录区：工具“触发即显示”，不必等工具执行完成再出现记录块。
+                    // - 这里只创建记录块（图标/徽标），不输出内容；
+                    // - 工具返回时在 handleToolLoop() 中复用该记录块写入 tool_result。
+                    if (tools_name != QStringLiteral("answer") && tools_name != QStringLiteral("response"))
+                    {
+                        currentToolRecordIndex_ = recordCreate(RecordRole::Tool, tools_name);
+                    }
                     // 宸ュ叿灞傞潰鎸囧嚭缁撴潫
                     if (tools_name == "system_engineer_proxy")
                     {

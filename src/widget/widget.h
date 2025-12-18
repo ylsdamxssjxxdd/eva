@@ -839,6 +839,7 @@ class Widget : public QWidget
     QVector<RecordEntry> recordEntries_;
     int currentThinkIndex_ = -1;     // index of streaming think in current turn
     int currentAssistantIndex_ = -1; // index of streaming assistant in current turn
+    int currentToolRecordIndex_ = -1; // index of the in-flight tool record (created at tool trigger time)
     int lastSystemRecordIndex_ = -1; // system record index for current session (for env refresh)
     QString lastToolCallName_;       // latest parsed tool name for record badges
     QString lastToolPendingName_;    // 最近一次工具名，供工具结果续推时使用
