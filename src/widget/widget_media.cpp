@@ -187,11 +187,13 @@ void Widget::recv_controller_overlay(quint64 turnId, const QString &argsJson)
         const QJsonValue v = obj.value(QString::fromLatin1(key));
         if (!v.isArray()) return !required;
         const QJsonArray a = v.toArray();
-        if (a.size() != 4) return !required;
+        // 兼容：有些模型只会返回中心点 [cx,cy]（2 个参数）。
+        // 工具层会把它退化为 1x1 bbox；这里也同步兼容，保证 overlay 能落盘复盘。
+        if (a.size() != 4 && a.size() != 2) return !required;
         const int x1 = toIntRounded(a.at(0));
         const int y1 = toIntRounded(a.at(1));
-        const int x2 = toIntRounded(a.at(2));
-        const int y2 = toIntRounded(a.at(3));
+        const int x2 = (a.size() == 4) ? toIntRounded(a.at(2)) : x1;
+        const int y2 = (a.size() == 4) ? toIntRounded(a.at(3)) : y1;
         outRect = QRect(QPoint(x1, y1), QPoint(x2, y2)).normalized();
         return true;
     };
@@ -591,7 +593,7 @@ Widget::ControllerFrame Widget::captureControllerFrame()
     frame.imagePath = basePath;
     controllerFrames_.append(frame);
     cleanupControllerFrames();
-    reflash_state(QStringLiteral("ui:控制截图已保存 %1").arg(QDir::toNativeSeparators(basePath)), SIGNAL_SIGNAL);
+    // reflash_state(QStringLiteral("ui:控制截图已保存 %1").arg(QDir::toNativeSeparators(basePath)), SIGNAL_SIGNAL);
     return frame;
 }
 

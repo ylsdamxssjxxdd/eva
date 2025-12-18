@@ -650,19 +650,36 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                     return false;
                 }
                 const auto &v = obj.at(key);
-                if (!v.is_array() || v.size() != 4)
+                if (!v.is_array() || (v.size() != 4 && v.size() != 2))
                 {
-                    error = QStringLiteral("%1 must be [x1,y1,x2,y2]").arg(QString::fromLatin1(key));
+                    // 兼容：有些模型只会返回 bbox 的中心点坐标 [cx,cy]（2 个参数）。
+                    // 这里在工具层兜底：允许 [x1,y1,x2,y2] 或 [cx,cy]。
+                    error = QStringLiteral("%1 must be [x1,y1,x2,y2] or [cx,cy]").arg(QString::fromLatin1(key));
                     return false;
                 }
-                int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-                if (!parseIntJsonRounded(v.at(0), x1) || !parseIntJsonRounded(v.at(1), y1) || !parseIntJsonRounded(v.at(2), x2) ||
-                    !parseIntJsonRounded(v.at(3), y2))
+
+                // 1) 4 参数：标准 bbox
+                if (v.size() == 4)
+                {
+                    int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+                    if (!parseIntJsonRounded(v.at(0), x1) || !parseIntJsonRounded(v.at(1), y1) || !parseIntJsonRounded(v.at(2), x2) ||
+                        !parseIntJsonRounded(v.at(3), y2))
+                    {
+                        error = QStringLiteral("%1 contains non-numeric values").arg(QString::fromLatin1(key));
+                        return false;
+                    }
+                    out = {x1, y1, x2, y2};
+                    return true;
+                }
+
+                // 2) 2 参数：中心点坐标，退化为 1x1 bbox（保证后续流程统一用 bboxCenterNorm 取中心点）
+                int cx = 0, cy = 0;
+                if (!parseIntJsonRounded(v.at(0), cx) || !parseIntJsonRounded(v.at(1), cy))
                 {
                     error = QStringLiteral("%1 contains non-numeric values").arg(QString::fromLatin1(key));
                     return false;
                 }
-                out = {x1, y1, x2, y2};
+                out = {cx, cy, cx, cy};
                 return true;
             };
 
@@ -931,6 +948,14 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             else if (action == QStringLiteral("type_text") || actionRaw == QStringLiteral("发送文字") || action == QStringLiteral("send_text"))
             {
                 showOverlayHint(cx, cy, description);
+
+                // 输入文本：为了让模型“一步完成”（不必先 left_click 再 type_text），这里在输入前强制点击 bbox 中心点以激活输入区域。
+                // 注意：若目标不是输入框，这个点击可能会触发副作用，因此提示词中也要强调“bbox 必须对准输入框”。
+                leftDown(cx, cy);
+                msleep(30);
+                leftUp();
+                msleep(60); // 给 UI/应用一点时间切换焦点，降低丢字概率
+
 #ifdef _WIN32
                 // Windows：使用 KEYEVENTF_UNICODE 直接注入 UTF-16，避免污染剪贴板。
                 const std::wstring w = text.toStdWString();
@@ -1001,15 +1026,11 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
             showOverlayDone(doneX, doneY, description);
             if (cancelled()) return;
 
-            const QString detail = QStringLiteral("ok\naction=%1\nbbox=[%2,%3,%4,%5]\ncenter_norm=(%6,%7)")
+            const QString detail = QStringLiteral("ok\naction=%1\ncenter_norm=(%2,%3)")
                                        .arg(actionRaw)
-                                       .arg(bbox.x1)
-                                       .arg(bbox.y1)
-                                       .arg(bbox.x2)
-                                       .arg(bbox.y2)
                                        .arg(cxNorm)
                                        .arg(cyNorm);
-            sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
+            // sendStateMessage("tool:" + QStringLiteral("controller ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
             sendPushMessage(QStringLiteral("controller ") + jtr("return") + "\n" + detail);
             return;
         }
@@ -1090,7 +1111,7 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                                    .arg(waitMs)
                                    .arg(normMaxX)
                                    .arg(normMaxY);
-        sendStateMessage("tool:" + QStringLiteral("monitor ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
+        // sendStateMessage("tool:" + QStringLiteral("monitor ") + jtr("return") + "\n" + detail, TOOL_SIGNAL);
         sendPushMessage(QStringLiteral("monitor ") + jtr("return") + "\n" + detail);
     }
     //----------------------文生图------------------

@@ -105,12 +105,12 @@ QVector<ToolTemplate> &toolTemplates()
         {promptx::PROMPT_TOOL_CONTROLLER,
          "controller",
          // 桌面控制器的 arguments Schema 会直接拼进系统提示词；使用最小化、单行 JSON，避免提示词被无意义换行/描述拉长。
-         R"({"type":"object","properties":{"bbox":{"type":"array","items":{"type":"integer"},"minItems":4,"maxItems":4},"action":{"type":"string","enum":["left_click","left_double_click","right_click","middle_click","left_hold","right_hold","middle_hold","left_release","right_release","middle_release","scroll_down","scroll_up","press_key","type_text","delay","move_mouse","drag_drop"]},"description":{"type":"string"},"key":{"type":"string"},"text":{"type":"string"},"delay_ms":{"type":"integer","minimum":0},"duration_ms":{"type":"integer","minimum":0},"scroll_steps":{"type":"integer","minimum":1},"to_bbox":{"type":"array","items":{"type":"integer"},"minItems":4,"maxItems":4}},"required":["bbox","action","description"],"additionalProperties":false})",
-         QStringLiteral(
-             "Desktop controller:\n"
-             "- Use only when the user explicitly requests desktop actions or grants permission; otherwise ask.\n"
-             "- `bbox` is in normalized screenshot space {controller_norm_x}x{controller_norm_y} (origin top-left). One call = one atomic action; multi-step = multiple rounds using the latest screenshot.\n"
-             "- Never click/type in EVA's chat input box. Focus first, then press_key (`key`) / type_text (`text`); delay=`delay_ms`, scroll_steps optional, drag_drop uses `to_bbox`.")},
+         R"({"type":"object","properties":{"bbox":{"anyOf":[{"type":"array","items":{"type":"integer"},"minItems":4,"maxItems":4},{"type":"array","items":{"type":"integer"},"minItems":2,"maxItems":2}]},"action":{"type":"string","enum":["left_click","left_double_click","right_click","middle_click","left_hold","right_hold","middle_hold","left_release","right_release","middle_release","scroll_down","scroll_up","press_key","type_text","delay","move_mouse","drag_drop"]},"description":{"type":"string"},"key":{"type":"string"},"text":{"type":"string"},"delay_ms":{"type":"integer","minimum":0},"duration_ms":{"type":"integer","minimum":0},"scroll_steps":{"type":"integer","minimum":1},"to_bbox":{"anyOf":[{"type":"array","items":{"type":"integer"},"minItems":4,"maxItems":4},{"type":"array","items":{"type":"integer"},"minItems":2,"maxItems":2}]}},"required":["bbox","action","description"],"additionalProperties":false})",
+          QStringLiteral(
+              "Desktop controller:\n"
+              "- Use only when the user explicitly requests desktop actions or grants permission; otherwise ask.\n"
+              "- `bbox` is in normalized screenshot space {controller_norm_x}x{controller_norm_y} (origin top-left), format: [x1,y1,x2,y2] or [cx,cy]. One call = one atomic action; multi-step = multiple rounds using the latest screenshot.\n"
+             "- For `type_text`, EVA auto left-clicks the bbox center to focus before typing `text` (so you usually don't need a separate left_click). Never click/type in EVA's chat input box. press_key uses `key`; delay=`delay_ms`, scroll_steps optional, drag_drop uses `to_bbox` (same format as bbox).")},
          {promptx::PROMPT_TOOL_MCP_LIST,
           "mcp_tools_list",
           R"({"type":"object","properties":{}})",
@@ -166,7 +166,7 @@ QVector<ToolTemplate> &toolTemplates()
          QStringLiteral(
              "Desktop monitor:\n"
              "- Use only when you need to watch the screen and wait for a UI change.\n"
-             "- One call waits `wait_ms` ms, then you will receive a fresh screenshot (same normalized space as controller: {controller_norm_x}x{controller_norm_y}).\n"
+             "- One call waits `wait_ms` ms, then you will receive a fresh screenshot.\n"
              "- After each screenshot: if not ready, call monitor again (use backoff); if ready, stop monitoring and call controller.\n"
              "- Do not loop forever: stop after reasonable attempts/time and ask the user.")},
     };

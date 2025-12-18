@@ -602,8 +602,8 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             screenshotMessage.insert("role", DEFAULT_USER_NAME);
             screenshotMessage.insert("content", screenshotContent);
             ui_messagesArray.append(screenshotMessage);
-            reflash_state(QStringLiteral("ui:%1 screenshot attached").arg(pendingToolName.isEmpty() ? QStringLiteral("controller") : pendingToolName),
-                          SIGNAL_SIGNAL);
+            // reflash_state(QStringLiteral("ui:%1 screenshot attached").arg(pendingToolName.isEmpty() ? QStringLiteral("controller") : pendingToolName),
+            //               SIGNAL_SIGNAL);
             if (history_ && ui_state == CHAT_STATE)
             {
                 QJsonObject histShot = screenshotMessage;
