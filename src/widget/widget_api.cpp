@@ -258,8 +258,19 @@ void Widget::fetchOpenAiModelsAsync()
 
         QStringList models;
         QSet<QString> seen;
-        auto push = [&](const QString &id) {
+
+        // 过滤“Provider: Friendly Name”这类展示用模型名（常见：OpenRouter / 聚合平台）。
+        // 这类字符串往往包含冒号与空白（例如 "Google: Gemini 3 Flash Preview"），
+        // 不能作为真正的 model id 使用，且与同一对象里的 id/model 字段重复，保留只会造成误选与连接失败。
+        auto hasWhitespace = [](const QString &s) -> bool {
+            for (const QChar ch : s)
+                if (ch.isSpace()) return true;
+            return false;
+        };
+        auto push = [&](const QString &rawId) {
+            const QString id = rawId.trimmed();
             if (id.isEmpty() || seen.contains(id)) return;
+            if (id.contains(QLatin1Char(':')) && hasWhitespace(id)) return;
             seen.insert(id);
             models.append(id);
         };
