@@ -121,6 +121,13 @@ void Widget::ensureLocalServer(bool lazyWake)
     cancelLazyUnload(QStringLiteral("ensureLocalServer entry"));
     if (lazyWake)
     {
+        // 懒唤醒路径不会走 preLoad()，但 onServerReady() 依然会用 load_timer 计算“装载耗时”。
+        // 若不在进入唤醒流程时重置计时器，load_timer 可能沿用上一次装载的起点，导致耗时显示异常（例如几百秒）。
+        if (!lazyWakeInFlight_)
+        {
+            load_time = 0;
+            load_timer.start();
+        }
         lazyWakeInFlight_ = true;
         applyWakeUiLock(true);
     }
