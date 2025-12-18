@@ -53,6 +53,8 @@ const QHash<QString, QString> &toolIconAliasMap()
         {QStringLiteral("execute_command"), QStringLiteral(":/record/tool/terminal.svg")},
         {QStringLiteral("knowledge"), QStringLiteral(":/record/tool/knowledge.svg")},
         {QStringLiteral("controller"), QStringLiteral(":/record/tool/controller.svg")},
+        // monitor：观测工具（等待 + 截图），记录区使用“眼睛”图标提示这是“在看屏幕”的动作。
+        {QStringLiteral("monitor"), QStringLiteral(":/record/tool/monitor.svg")},
         {QStringLiteral("stablediffusion"), QStringLiteral(":/record/tool/diffusion.svg")},
         {QStringLiteral("read_file"), QStringLiteral(":/record/tool/read.svg")},
         {QStringLiteral("write_file"), QStringLiteral(":/record/tool/write.svg")},

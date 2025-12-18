@@ -6,8 +6,10 @@ namespace
 {
 const QString &defaultExtraPrompt()
 {
+    // 通用工具提示词（挂载工具后注入）：强调把任务拆分为可验证的小步骤，逐步完成（每步都依赖最新工具回传结果再推进）。
     static const QString value = QStringLiteral(
         "You may call one or more functions to assist with the user query.\n"
+        "Decompose the user's task into small, verifiable steps and complete them iteratively, step by step.\n"
         "You are provided with function signatures within <tools> </tools> XML tags:\n"
         "<tools>\n"
         "{available_tools_describe}</tools>\n"
