@@ -279,6 +279,15 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //-------------输出/状态区滚动条控制-------------
     output_scrollBar = ui->output->verticalScrollBar();
     connect(output_scrollBar, &QScrollBar::valueChanged, this, &Widget::output_scrollBarValueChanged);
+    // 关键兜底：当模型一次性输出大量内容时，QTextDocument 的布局/滚动范围更新可能晚于本次插入，
+    // 导致 output_scroll() 里立刻 setValue(maximum) 置底失败（maximum 还没来得及变大）。
+    // 这里监听 rangeChanged，在“自动滚动未被用户关闭”的情况下再补一次置底，确保大段输出也能正确跟随到底部。
+    connect(output_scrollBar, &QScrollBar::rangeChanged, this, [this](int, int)
+            {
+                if (is_stop_output_scroll) return;
+                if (!output_scrollBar) return;
+                output_scrollBar->setValue(output_scrollBar->maximum());
+            });
 
     //-------------截图相关-------------
     cutscreen_dialog = new CutScreenDialog(this);

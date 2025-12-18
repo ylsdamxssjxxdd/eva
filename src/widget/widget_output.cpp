@@ -837,7 +837,11 @@ void Widget::output_scrollBarValueChanged(int value)
 {
     // 滚动条处于底部时自动滚动
     int maximumValue = output_scrollBar->maximum();
-    if (value == maximumValue)
+    // 经验：一次性追加大量文本时，布局更新会导致 maximum 短时间内跳变，
+    // 此时 value 可能短暂落后于 maximum，若严格用 “==” 判定会误判为用户手动上滚，
+    // 进而关闭自动置底。这里用一个极小阈值做兜底（不影响用户真正上滚的场景）。
+    const int kBottomEpsilon = 2;
+    if (maximumValue - value <= kBottomEpsilon)
     {
         is_stop_output_scroll = 0;
     }
