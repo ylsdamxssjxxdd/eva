@@ -15,6 +15,24 @@
 //----------------------------------文转声相关--------------------------------
 //-------------------------------------------------------------------------
 
+namespace
+{
+// 判断一行输出是否“像”一个音色 id（tts.cpp 的 voice id 通常是纯英文/数字/下划线组合）
+// 说明：这里不用 QRegularExpression，避免引入 PCRE2 JIT 的兼容性风险。
+bool isTtscppVoiceIdCandidate(const QString &s)
+{
+    const QString t = s.trimmed();
+    if (t.isEmpty()) return false;
+    for (int i = 0; i < t.size(); ++i)
+    {
+        const QChar c = t.at(i);
+        const bool ok = (c.isLetterOrNumber() || c == QLatin1Char('_') || c == QLatin1Char('-'));
+        if (!ok) return false;
+    }
+    return true;
+}
+} // namespace
+
 // 用户点击启用声音选项响应
 void Expend::speech_enable_change()
 {
@@ -29,28 +47,313 @@ void Expend::speech_enable_change()
 // 用户切换声源响应
 void Expend::speech_source_change()
 {
-    speech_params.speech_name = ui->speech_source_comboBox->currentText();
-    // Persist selection so reload keeps the same voice
+    // 优先使用 userData（避免界面翻译导致 currentText 变化）
+    QString source = ui->speech_source_comboBox->currentData().toString().trimmed();
+    if (source.isEmpty()) source = ui->speech_source_comboBox->currentText().trimmed();
+
+    // 若系统 TTS 不可用，则强制回退到 tts.cpp，避免选中后无法朗读导致体验“像坏了一样”
+    if (source == QLatin1String(SPPECH_SYSTEM) && !is_sys_speech_available)
+    {
+        ui->speech_log->appendPlainText("[warn] system TTS is not available, fallback to tts.cpp");
+        const QSignalBlocker blocker(ui->speech_source_comboBox);
+        const int idx = ui->speech_source_comboBox->findData(QStringLiteral(SPPECH_TTSCPP));
+        if (idx >= 0) ui->speech_source_comboBox->setCurrentIndex(idx);
+        source = QStringLiteral(SPPECH_TTSCPP);
+    }
+
+    speech_params.speech_source = source;
+    // Persist selection so reload keeps the same source/voice
     QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
     settings.setIniCodec("utf-8");
-    settings.setValue("speech_name", speech_params.speech_name);
+    settings.setValue("speech_source", speech_params.speech_source);
 
-    const bool useLocalTts = (speech_params.speech_name == SPPECH_TTSCPP);
+    const bool useLocalTts = (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP));
     ui->speech_ttscpp_modelpath_frame->setEnabled(useLocalTts);
+    ui->speech_manual_frame->setEnabled(useLocalTts);
+
+    // 切换声源后，刷新“可用音色”下拉框
+    refreshSpeechVoiceUi();
 }
 
 
 // 添加可用声源
 void Expend::set_sys_speech(QStringList avaliable_speech_list)
 {
-    // Refresh the combo with newly discovered sources
+    // 刷新“声源”下拉框：只保留 tts.cpp / system 两项
+    // 注：avaliable_speech_list 这里约定传入的是“声源 key 列表”，而不是音色列表
+    const QSignalBlocker blocker(ui->speech_source_comboBox);
     ui->speech_source_comboBox->clear();
     for (int i = 0; i < avaliable_speech_list.size(); ++i)
     {
-        ui->speech_source_comboBox->addItem(avaliable_speech_list.at(i)); // add to dropdown
+        const QString key = avaliable_speech_list.at(i).trimmed();
+        if (key == QLatin1String(SPPECH_TTSCPP))
+        {
+            ui->speech_source_comboBox->addItem(QStringLiteral(SPPECH_TTSCPP), QStringLiteral(SPPECH_TTSCPP));
+        }
+        else if (key == QLatin1String(SPPECH_SYSTEM))
+        {
+            // 显示使用双语资源：中文=系统，英文=system
+            ui->speech_source_comboBox->addItem(jtr(QStringLiteral("role_system")), QStringLiteral(SPPECH_SYSTEM));
+        }
     }
-    ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
+
+    // 回填当前声源（优先按 data 匹配）
+    int idx = ui->speech_source_comboBox->findData(speech_params.speech_source);
+    if (idx < 0) idx = ui->speech_source_comboBox->findText(speech_params.speech_source);
+    if (idx >= 0) ui->speech_source_comboBox->setCurrentIndex(idx);
     ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
+}
+
+// 用户切换音色响应（tts.cpp/system 共用一个下拉框）
+void Expend::speech_voice_change()
+{
+    const QString voice = ui->speech_voice_comboBox->currentText().trimmed();
+
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+
+    if (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP))
+    {
+        speech_params.ttscpp_voice = voice;
+        settings.setValue("speech_ttscpp_voice", speech_params.ttscpp_voice);
+    }
+    else if (speech_params.speech_source == QLatin1String(SPPECH_SYSTEM))
+    {
+        speech_params.system_voice = voice;
+        settings.setValue("speech_system_voice", speech_params.system_voice);
+
+#if defined(EVA_ENABLE_QT_TTS)
+        // 即时生效：下次朗读会用新音色；若当前正在朗读则不强制打断
+        if (!sys_speech) sys_speech = new QTextToSpeech(this);
+        if (sys_speech && !speech_params.system_voice.isEmpty())
+        {
+            for (const QVoice &v : sys_speech->availableVoices())
+            {
+                if (v.name() == speech_params.system_voice)
+                {
+                    sys_speech->setVoice(v);
+                    break;
+                }
+            }
+        }
+#endif
+    }
+}
+
+// 用户手动编辑 tts.cpp 模型路径后触发：落盘 + 自动枚举音色
+void Expend::speech_ttscpp_modelpath_change()
+{
+    const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
+
+    // 立即持久化，确保下次启动仍能找到模型
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    settings.setValue("ttscpp_modelpath", modelPath);
+    // 清理历史字段（OuteTTS 时代遗留）
+    settings.remove("outetts_modelpath");
+    settings.remove("wavtokenizer_modelpath");
+
+    // 模型路径变化时清空缓存，避免把旧音色列表套到新模型上
+    if (modelPath != ttscpp_voice_list_modelpath_)
+    {
+        ttscpp_voice_list_cache_.clear();
+        ttscpp_voice_list_modelpath_.clear();
+    }
+
+    // 只有在当前选择 tts.cpp 声源时才触发枚举（避免用户选择 system 时仍频繁跑 CLI）
+    if (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP))
+        requestTtscppVoiceList();
+}
+
+// 按当前声源刷新“可用音色”
+void Expend::refreshSpeechVoiceUi()
+{
+    if (!ui || !ui->speech_voice_comboBox) return;
+
+    // 声源为 tts.cpp：从 tts-cli --list-voices 获取
+    if (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP))
+    {
+        ui->speech_voice_frame->setEnabled(true);
+        requestTtscppVoiceList();
+        return;
+    }
+
+    // 声源为 system：从 Qt TextToSpeech 枚举
+    if (speech_params.speech_source == QLatin1String(SPPECH_SYSTEM))
+    {
+#if defined(EVA_ENABLE_QT_TTS)
+        if (!sys_speech) sys_speech = new QTextToSpeech(this);
+        QStringList voices;
+        is_sys_speech_available = false;
+        if (sys_speech)
+        {
+            const auto vs = sys_speech->availableVoices();
+            if (!vs.isEmpty())
+            {
+                is_sys_speech_available = true;
+                for (const QVoice &v : vs) voices << v.name();
+            }
+        }
+        ui->speech_voice_frame->setEnabled(is_sys_speech_available);
+        applyVoiceComboItems(voices, speech_params.system_voice);
+        return;
+#else
+        ui->speech_voice_frame->setEnabled(false);
+        applyVoiceComboItems(QStringList{}, QString{});
+        return;
+#endif
+    }
+
+    // 未知声源：清空
+    ui->speech_voice_frame->setEnabled(false);
+    applyVoiceComboItems(QStringList{}, QString{});
+}
+
+// 填充“可用音色”下拉框并回填选择（同时更新参数与配置落盘）
+void Expend::applyVoiceComboItems(const QStringList &voices, const QString &preferred)
+{
+    if (!ui || !ui->speech_voice_comboBox) return;
+
+    const QSignalBlocker blocker(ui->speech_voice_comboBox);
+    ui->speech_voice_comboBox->clear();
+
+    for (const QString &v : voices)
+        ui->speech_voice_comboBox->addItem(v);
+
+    QString chosen;
+    if (!preferred.trimmed().isEmpty() && voices.contains(preferred)) chosen = preferred;
+    else if (!voices.isEmpty()) chosen = voices.first();
+
+    if (!chosen.isEmpty()) ui->speech_voice_comboBox->setCurrentText(chosen);
+    ui->speech_voice_comboBox->setEnabled(!voices.isEmpty());
+
+    // 下拉框被 blocker 屏蔽信号，这里需要手动同步到参数与配置
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    if (speech_params.speech_source == QLatin1String(SPPECH_TTSCPP))
+    {
+        speech_params.ttscpp_voice = chosen;
+        settings.setValue("speech_ttscpp_voice", speech_params.ttscpp_voice);
+    }
+    else if (speech_params.speech_source == QLatin1String(SPPECH_SYSTEM))
+    {
+        speech_params.system_voice = chosen;
+        settings.setValue("speech_system_voice", speech_params.system_voice);
+    }
+}
+
+// 启动 tts-cli --list-voices 并解析输出填充下拉框
+void Expend::requestTtscppVoiceList()
+{
+    if (!ui || !ui->speech_voice_comboBox) return;
+
+    const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
+    if (modelPath.isEmpty() || !QFileInfo::exists(modelPath))
+    {
+        ui->speech_log->appendPlainText("[warn] tts.cpp model path is empty or not found; cannot list voices.");
+        ui->speech_voice_comboBox->clear();
+        ui->speech_voice_comboBox->setEnabled(false);
+        return;
+    }
+
+    // 如果模型路径未变且缓存非空，直接使用缓存，避免重复跑 CLI
+    if (modelPath == ttscpp_voice_list_modelpath_ && !ttscpp_voice_list_cache_.isEmpty())
+    {
+        applyVoiceComboItems(ttscpp_voice_list_cache_, speech_params.ttscpp_voice);
+        return;
+    }
+
+    const QString program = DeviceManager::programPath(QStringLiteral("tts-cli"));
+    if (program.isEmpty() || !QFileInfo::exists(program))
+    {
+        ui->speech_log->appendPlainText("[error] tts-cli not found; cannot list voices.");
+        ui->speech_voice_comboBox->clear();
+        ui->speech_voice_comboBox->setEnabled(false);
+        return;
+    }
+
+    // 若上一次枚举仍在运行，先静默终止（避免 finished 回调把“半截输出”当成有效结果）
+    if (tts_list_process && tts_list_process->state() != QProcess::NotRunning)
+    {
+        const QSignalBlocker blocker(tts_list_process);
+        tts_list_process->kill();
+        tts_list_process->waitForFinished(150);
+    }
+
+    // UI 先给出“加载中”状态，避免用户误以为无音色
+    {
+        const QSignalBlocker blocker(ui->speech_voice_comboBox);
+        ui->speech_voice_comboBox->clear();
+        ui->speech_voice_comboBox->addItem(QStringLiteral("loading..."));
+        ui->speech_voice_comboBox->setEnabled(false);
+    }
+
+    // 记录本次模型路径，用于缓存判断
+    ttscpp_voice_list_modelpath_ = modelPath;
+    ttscpp_voice_list_cache_.clear();
+
+    QStringList arguments;
+    arguments << QStringLiteral("--model-path") << ensureToolFriendlyFilePath(modelPath);
+    arguments << QStringLiteral("--list-voices");
+
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    const QString toolDir = QFileInfo(program).absolutePath();
+#ifdef _WIN32
+    env.insert("PATH", toolDir + ";" + env.value("PATH"));
+#elif __APPLE__
+    env.insert("DYLD_LIBRARY_PATH", toolDir + ":" + env.value("DYLD_LIBRARY_PATH"));
+#else
+    env.insert("LD_LIBRARY_PATH", toolDir + ":" + env.value("LD_LIBRARY_PATH"));
+#endif
+
+    createTempDirectory(ttsOutputDir);
+    tts_list_process->setProcessEnvironment(env);
+    tts_list_process->setWorkingDirectory(ttsOutputDir);
+    tts_list_process->start(program, arguments);
+}
+
+// tts.cpp --list-voices 执行结束：解析输出并填充下拉框
+void Expend::tts_list_onProcessFinished()
+{
+    if (!tts_list_process) return;
+
+    const int exitCode = tts_list_process->exitCode();
+    const QProcess::ExitStatus exitStatus = tts_list_process->exitStatus();
+    const QString stdoutText = QString::fromUtf8(tts_list_process->readAllStandardOutput());
+    const QString stderrText = QString::fromUtf8(tts_list_process->readAllStandardError());
+
+    if (exitStatus != QProcess::NormalExit || exitCode != 0)
+    {
+        ui->speech_log->appendPlainText(QStringLiteral("[warn] list voices failed (exitCode=%1)").arg(exitCode));
+        if (!stderrText.trimmed().isEmpty()) ui->speech_log->appendPlainText(stderrText.trimmed());
+    }
+
+    QStringList voices;
+    QString normalized = stdoutText;
+    normalized.replace(QLatin1Char('\r'), QLatin1Char('\n'));
+    const QStringList lines = normalized.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : lines)
+    {
+        const QString t = line.trimmed();
+        if (!isTtscppVoiceIdCandidate(t)) continue;
+        if (!voices.contains(t)) voices << t;
+    }
+
+    ttscpp_voice_list_cache_ = voices;
+
+    // 如果用户此刻不在 tts.cpp 声源上，不要强行刷新 UI（但缓存已更新，切回来会立即可用）
+    if (speech_params.speech_source != QLatin1String(SPPECH_TTSCPP)) return;
+
+    if (voices.isEmpty())
+    {
+        ui->speech_log->appendPlainText("[warn] no voices found from tts-cli --list-voices");
+        ui->speech_voice_comboBox->clear();
+        ui->speech_voice_comboBox->setEnabled(false);
+        return;
+    }
+
+    applyVoiceComboItems(voices, speech_params.ttscpp_voice);
+    ui->speech_log->appendPlainText(QStringLiteral("[info] tts.cpp voices loaded: %1").arg(voices.size()));
 }
 
 // 开始文字转语音
@@ -63,24 +366,23 @@ void Expend::start_tts(QString str)
         return;
     }
 
-    if (!speech_params.speech_name.isEmpty())
+    const QString source = speech_params.speech_source.trimmed();
+    if (!source.isEmpty())
     {
-        if (speech_params.speech_name == SPPECH_TTSCPP)
+        if (source == QLatin1String(SPPECH_TTSCPP))
         {
             // 本地 tts.cpp：由子进程结束回调推进下一段
             tts_sys_speaking_ = false;
             const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
             if (!modelPath.isEmpty())
-            {
                 runTtsProcess(str);
-            }
             else
             {
                 ui->speech_log->appendPlainText("[warn] tts.cpp model path is empty; skip synthesis.");
                 speechOver();
             }
         }
-        else
+        else if (source == QLatin1String(SPPECH_SYSTEM))
         {
 #if defined(EVA_ENABLE_QT_TTS)
             if (!sys_speech) sys_speech = new QTextToSpeech(this);
@@ -89,12 +391,17 @@ void Expend::start_tts(QString str)
             {
                 connect(sys_speech, &QTextToSpeech::stateChanged, this, &Expend::onSysSpeechStateChanged, Qt::UniqueConnection);
             }
-            foreach (const QVoice &voice, sys_speech->availableVoices())
+            // 选择用户在“可用音色”里选中的系统音色
+            const QString want = speech_params.system_voice.trimmed();
+            if (!want.isEmpty() && sys_speech)
             {
-                if (voice.name() == speech_params.speech_name)
+                for (const QVoice &voice : sys_speech->availableVoices())
                 {
-                    sys_speech->setVoice(voice);
-                    break;
+                    if (voice.name() == want)
+                    {
+                        sys_speech->setVoice(voice);
+                        break;
+                    }
                 }
             }
             sys_speech->setRate(0.3);
@@ -106,6 +413,12 @@ void Expend::start_tts(QString str)
             ui->speech_log->appendPlainText("[info] Qt TextToSpeech support is disabled in this build.");
             speechOver();
 #endif
+        }
+        else
+        {
+            // 未知声源：直接放行，避免卡死
+            ui->speech_log->appendPlainText("[warn] unknown speech source, skip.");
+            speechOver();
         }
     }
 }
@@ -612,6 +925,11 @@ void Expend::runTtsProcess(const QString &text)
 
     QStringList arguments;
     arguments << QStringLiteral("--model-path") << ensureToolFriendlyFilePath(modelPath);
+
+    // 用户在“可用音色”下拉框中选择的音色（tts.cpp 使用 --voice 指定）
+    const QString voice = speech_params.ttscpp_voice.trimmed();
+    if (!voice.isEmpty()) arguments << QStringLiteral("--voice") << voice;
+
     arguments << QStringLiteral("-p") << text;
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -699,14 +1017,8 @@ void Expend::on_speech_ttscpp_modelpath_pushButton_clicked()
 {
     currentpath = customOpenfile(currentpath, "choose tts.cpp model", "(*.gguf)");
     ui->speech_ttscpp_modelpath_lineEdit->setText(currentpath);
-    if (!currentpath.isEmpty())
-    {
-        QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
-        settings.setIniCodec("utf-8");
-        settings.setValue("ttscpp_modelpath", currentpath);
-        settings.remove("outetts_modelpath");
-        settings.remove("wavtokenizer_modelpath");
-    }
+    // 统一走“模型路径变化”逻辑：落盘 + 自动枚举音色
+    speech_ttscpp_modelpath_change();
 }
 
 
@@ -716,6 +1028,12 @@ void Expend::on_speech_ttscpp_modelpath_pushButton_clicked()
 // 用户点击转为音频按钮时响应
 void Expend::on_speech_manual_pushButton_clicked()
 {
+    if (speech_params.speech_source != QLatin1String(SPPECH_TTSCPP))
+    {
+        ui->speech_log->appendPlainText("[warn] manual synthesis is only supported for tts.cpp source.");
+        return;
+    }
+
     if (!ui->speech_ttscpp_modelpath_lineEdit->text().trimmed().isEmpty())
     {
         runTtsProcess(ui->speech_manual_plainTextEdit->toPlainText());

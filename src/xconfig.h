@@ -415,14 +415,24 @@ struct QuantizeType
     QString recommand;  // 推荐度
 };
 
-// 文转声参数
+//------------------------------------------------------------------------------
+// 文转声（TTS）
+//------------------------------------------------------------------------------
+// 设计说明：
+// - “声源”与“音色”拆分保存，避免把系统 voice.name() 与 tts.cpp 的 voice id 混在一起。
+// - tts.cpp 走 CLI：`tts-cli --model-path xxx --voice <id> -p <text>`
+// - system 走 Qt TextToSpeech：按 `QVoice::name()` 选择音色
+//------------------------------------------------------------------------------
+#define SPPECH_TTSCPP "tts.cpp"
+#define SPPECH_SYSTEM "system"
+
 struct Speech_Params
 {
-    bool enable_speech = false;
-    QString speech_name = "";
+    bool enable_speech = false;              // 是否启用文转声
+    QString speech_source = SPPECH_TTSCPP;   // 声源：SPPECH_TTSCPP / SPPECH_SYSTEM
+    QString ttscpp_voice = "";               // tts.cpp 音色（--voice）
+    QString system_voice = "";               // 系统音色（QVoice::name）
 };
-
-#define SPPECH_TTSCPP "tts.cpp"
 
 // 文生图参数
 #define DEFAULT_SD_NOISE "0.75" // 噪声系数

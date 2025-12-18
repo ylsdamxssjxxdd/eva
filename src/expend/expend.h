@@ -316,6 +316,9 @@ class Expend : public QWidget
     QString temp_speech_txt;
     void runTtsProcess(const QString &text); // Invoke tts.cpp CLI for synthesis
     QProcess *tts_process;                  // Child process for tts.cpp
+    QProcess *tts_list_process;             // 枚举 tts.cpp 可用音色（--list-voices）
+    QStringList ttscpp_voice_list_cache_;   // 最近一次枚举到的 tts.cpp 音色列表（用于回填/兜底）
+    QString ttscpp_voice_list_modelpath_;   // 最近一次枚举音色时使用的模型路径（避免重复枚举）
 
   signals:
     void expend2ui_speechover();
@@ -342,10 +345,16 @@ class Expend : public QWidget
   private slots:
     void speech_enable_change(); // Toggle speech synthesis availability
     void speech_source_change(); // Handle speech source selection
+    void speech_voice_change();  // Handle voice selection (tts.cpp/system)
+    void speech_ttscpp_modelpath_change();                 // tts.cpp 模型路径被手动编辑后触发
     void on_speech_ttscpp_modelpath_pushButton_clicked();
     void on_speech_manual_pushButton_clicked();
+    void tts_list_onProcessFinished(); // tts.cpp --list-voices 结束
 
   private:
+    void refreshSpeechVoiceUi();               // 按当前声源刷新“可用音色”下拉框
+    void requestTtscppVoiceList();             // 启动 tts-cli --list-voices
+    void applyVoiceComboItems(const QStringList &voices, const QString &preferred); // 填充音色下拉框并回填选择
     // Strict per-preset isolation for SD advanced configuration
     QMap<QString, SDRunConfig> sd_preset_configs_; // key: preset name -> config
     QString sanitizePresetKey(const QString &preset) const

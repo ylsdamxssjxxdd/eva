@@ -88,6 +88,11 @@ Expend::Expend(QWidget *parent, QString applicationDirPath_)
     connect(tts_process, &QProcess::readyReadStandardOutput, this, &Expend::readyRead_tts_process_StandardOutput, Qt::QueuedConnection);
     connect(tts_process, &QProcess::readyReadStandardError, this, &Expend::readyRead_tts_process_StandardError, Qt::QueuedConnection);
 
+    // tts.cpp 音色枚举进程：用于执行 `tts-cli --list-voices`，把可用音色填充到下拉框
+    tts_list_process = new QProcess(this);
+    connect(tts_list_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
+            { tts_list_onProcessFinished(); });
+
     // Shutdown housekeeping on app exit
     connect(qApp, &QCoreApplication::aboutToQuit, this, [this]()
             {

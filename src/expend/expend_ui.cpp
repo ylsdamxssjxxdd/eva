@@ -151,15 +151,17 @@ void Expend::init_expend()
     // 文转声
     ui->speech_available_label->setText(jtr("Available sound"));
     ui->speech_enable_radioButton->setText(jtr("enable"));
+    if (ui->speech_voice_label) ui->speech_voice_label->setText(jtr("Available voice"));
     ui->speech_ttscpp_modelpath_label->setText("tts.cpp " + jtr("model"));
     ui->speech_log_groupBox->setTitle(jtr("log"));
     ui->speech_ttscpp_modelpath_lineEdit->setPlaceholderText(jtr("speech_ttscpp_modelpath_lineEdit placehold"));
     ui->speech_manual_plainTextEdit->setPlaceholderText(jtr("speech_manual_plainTextEdit placehold"));
     ui->speech_manual_pushButton->setText(jtr("convert to audio"));
-    ui->speech_source_comboBox->setCurrentText(speech_params.speech_name);
-    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech); // Initialize Text-to-Speech source list: always provide tts.cpp, plus system voices if available
+    ui->speech_enable_radioButton->setChecked(speech_params.enable_speech);
+
+    // 初始化“可用声源”：固定为 tts.cpp / system
     QStringList ttsSources;
-    ttsSources << SPPECH_TTSCPP;
+    ttsSources << SPPECH_TTSCPP << SPPECH_SYSTEM;
 #if defined(EVA_ENABLE_QT_TTS)
     // Lazily create system TTS and enumerate voices
     if (!sys_speech) sys_speech = new QTextToSpeech(this);
@@ -175,36 +177,32 @@ void Expend::init_expend()
         if (!voices.isEmpty())
         {
             is_sys_speech_available = true;
-            for (const QVoice &v : voices) ttsSources << v.name();
         }
     }
     // Pick a sensible default on first boot
-    if (speech_params.speech_name.trimmed().isEmpty())
+    if (speech_params.speech_source.trimmed().isEmpty())
     {
         const bool haveLocalTts = QFileInfo::exists(ui->speech_ttscpp_modelpath_lineEdit->text());
         if (haveLocalTts)
-            speech_params.speech_name = SPPECH_TTSCPP;
+            speech_params.speech_source = SPPECH_TTSCPP;
         else if (is_sys_speech_available)
-        {
-            for (const QString &n : ttsSources)
-            {
-                if (n != SPPECH_TTSCPP)
-                {
-                    speech_params.speech_name = n;
-                    break;
-                }
-            }
-        }
+            speech_params.speech_source = SPPECH_SYSTEM;
+        else
+            speech_params.speech_source = SPPECH_TTSCPP;
     }
 #else
     is_sys_speech_available = false;
-    // Force the dropdown to OuteTTS when Qt speech is unavailable
-    speech_params.speech_name = SPPECH_TTSCPP;
+    // Qt TextToSpeech 不可用时强制使用 tts.cpp
+    speech_params.speech_source = SPPECH_TTSCPP;
 #endif
     set_sys_speech(ttsSources);
     // React to toggles/selection changes
     connect(ui->speech_enable_radioButton, &QRadioButton::toggled, this, &Expend::speech_enable_change);
     connect(ui->speech_source_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_source_change);
+    if (ui->speech_voice_comboBox)
+        connect(ui->speech_voice_comboBox, &QComboBox::currentTextChanged, this, &Expend::speech_voice_change);
+    if (ui->speech_ttscpp_modelpath_lineEdit)
+        connect(ui->speech_ttscpp_modelpath_lineEdit, &QLineEdit::editingFinished, this, &Expend::speech_ttscpp_modelpath_change);
     speech_source_change();
 
     // mcp服务器
@@ -457,8 +455,32 @@ void Expend::readConfig()
 
     QString whisper_modelpath = settings.value("whisper_modelpath", default_whisper_modelpath).toString(); // whisper模型路径
 
-    speech_params.enable_speech = settings.value("speech_enable", "").toBool();                           // 是否启用语音朗读
-    speech_params.speech_name = settings.value("speech_name", "").toString();                             // 朗读者
+    // ----------------------------- 文转声（TTS）配置 -----------------------------
+    // 新格式：
+    // - speech_source：tts.cpp / system
+    // - speech_ttscpp_voice：tts.cpp 音色（--voice）
+    // - speech_system_voice：系统音色（QVoice::name）
+    //
+    // 兼容旧格式：speech_name（历史上把“tts.cpp/系统 voice.name()”混用在一个字段里）
+    speech_params.enable_speech = settings.value("speech_enable", false).toBool(); // 是否启用语音朗读
+    speech_params.speech_source = settings.value("speech_source", "").toString();  // 声源
+    speech_params.ttscpp_voice = settings.value("speech_ttscpp_voice", "").toString();
+    speech_params.system_voice = settings.value("speech_system_voice", "").toString();
+
+    // 旧字段回退（尽量不打断老用户配置）
+    if (speech_params.speech_source.trimmed().isEmpty())
+    {
+        const QString legacy = settings.value("speech_name", "").toString().trimmed();
+        if (legacy.isEmpty() || legacy == SPPECH_TTSCPP)
+        {
+            speech_params.speech_source = SPPECH_TTSCPP;
+        }
+        else
+        {
+            speech_params.speech_source = SPPECH_SYSTEM;
+            if (speech_params.system_voice.isEmpty()) speech_params.system_voice = legacy;
+        }
+    }
     QString ttscpp_modelpath = settings.value("ttscpp_modelpath").toString();                             // tts.cpp模型路径
     if (ttscpp_modelpath.isEmpty())
         ttscpp_modelpath = settings.value("outetts_modelpath", default_ttscpp_modelpath).toString();
