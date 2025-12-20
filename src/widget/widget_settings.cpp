@@ -1090,22 +1090,18 @@ void Widget::set_set()
 
 int Widget::predictTokenCap() const
 {
-    int ctxLimit = 0;
-    if (slotCtxMax_ > 0)
+    // n_predict 的上限应基于“单槽上下文”：
+    // - LOCAL 模式：优先使用矫正后的 resolvedContextLimitForUi()（它会把总 n_ctx 纠正为 n_ctx_slot）
+    // - LINK 模式：若未探测到上限则回退到 UI/配置值，避免 spinBox 范围为 0
+    int ctxLimit = resolvedContextLimitForUi();
+    if (ctxLimit <= 0)
     {
-        ctxLimit = slotCtxMax_;
-    }
-    else if (settings_ui && settings_ui->nctx_slider)
-    {
-        ctxLimit = settings_ui->nctx_slider->value();
-    }
-    else if (ui_SETTINGS.nctx > 0)
-    {
-        ctxLimit = ui_SETTINGS.nctx;
-    }
-    else
-    {
-        ctxLimit = DEFAULT_NCTX;
+        if (settings_ui && settings_ui->nctx_slider)
+            ctxLimit = settings_ui->nctx_slider->value();
+        else if (ui_SETTINGS.nctx > 0)
+            ctxLimit = ui_SETTINGS.nctx;
+        else
+            ctxLimit = DEFAULT_NCTX;
     }
     if (ctxLimit <= 0) ctxLimit = DEFAULT_NCTX;
     return ctxLimit;

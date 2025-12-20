@@ -572,11 +572,30 @@ void Widget::applyDiscoveredContext(int nctx, const QString &sourceTag)
 
 int Widget::resolvedContextLimitForUi() const
 {
-    // 优先使用从 /props 或 /v1/models 探测到的有效 n_ctx；LINK 模式下未探测到时返回 0 表示未知
-    if (slotCtxMax_ > 0) return slotCtxMax_;
-    if (ui_mode == LINK_MODE) return 0;
-    if (ui_SETTINGS.nctx > 0) return ui_SETTINGS.nctx;
-    return DEFAULT_NCTX;
+    // 统一目标：返回“单个槽(slot)可用的上下文上限”，用于 KV 记忆条、提示、以及 n_predict 上限等 UI 逻辑。
+    // - LINK 模式：优先用探测值；若未探测到则返回 0 表示未知（避免用本地默认值误导用户）。
+    // - LOCAL 模式：优先用日志/快照探测到的 slotCtxMax_；但当并发开启时，部分后端可能会上报“总 n_ctx”
+    //   （= 单槽 * 并发），这会导致 UI 把“总上下文”误当成“单槽记忆容量”。因此这里做一次矫正。
+    const int parallel = (ui_SETTINGS.hid_parallel > 0) ? ui_SETTINGS.hid_parallel : 1;
+    const int configuredSlot = (ui_SETTINGS.nctx > 0) ? ui_SETTINGS.nctx : DEFAULT_NCTX;
+
+    if (ui_mode == LINK_MODE)
+    {
+        return (slotCtxMax_ > 0) ? slotCtxMax_ : 0;
+    }
+
+    if (slotCtxMax_ > 0)
+    {
+        int cap = slotCtxMax_;
+        if (parallel > 1)
+        {
+            const int expectedTotal = configuredSlot * parallel;
+            if (cap == expectedTotal) cap = configuredSlot;
+        }
+        return cap;
+    }
+
+    return configuredSlot;
 }
 
 QString Widget::resolvedContextLabelForUi() const
