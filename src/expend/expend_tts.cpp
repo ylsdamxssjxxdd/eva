@@ -938,7 +938,7 @@ void Expend::runTtsProcess(const QString &text)
     if (!voice.isEmpty()) arguments << QStringLiteral("--voice") << voice;
 
     // ---------------------------------------------------------------------
-    // tts.cpp 的 `--lang` 参数用于控制“数字读法”等语言偏好（zh / en）。
+    // tts.cpp 的 `--lang` 参数用于控制“数字读法”等语言偏好（zh / en / ja）。
     // EVA 的界面语言现在支持：中文/英文/日文，但 tts.cpp 目前仅支持 zh/en，
     // 因此这里做一个明确映射：
     // - 中文界面：zh（也是 tts.cpp 默认值，但显式传入更可控）
