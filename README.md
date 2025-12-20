@@ -211,14 +211,6 @@
 
 </details>
 
-## 测试
-
-- 在构建目录启用测试：`cmake -B build -S . -DEVA_ENABLE_FUNCTIONAL_TESTS=ON`
-- 运行单元测试：`cmake --build build --target xtool_tests xtool_harness_tests && ctest -L unit`
-- 运行功能测试（需要可执行文件与场景配置）：`ctest -L functional`
-- 场景文件位于 `tests/functional/scenarios`，每个 JSON 描述 command/timeout/期望输出，可指向本地或链接模式脚本。
-- 生成覆盖率报告：`cmake -B build -S . -DEVA_ENABLE_COVERAGE=ON && cmake --build build && ctest -L unit && cmake --build build --target coverage`（需要提前安装 `gcovr`，报告输出在 `build/reports/coverage/index.html` / `build/reports/coverage/coverage.xml`）。
-
 
 ## 致谢
 
