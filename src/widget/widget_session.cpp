@@ -539,6 +539,12 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     cancelLazyUnload(QStringLiteral("handle tool loop"));
 
     Q_UNUSED(data);
+    const quint64 guardTurnId = activeTurnId_;
+    if (guardTurnId == 0 || tool_result.isEmpty())
+    {
+        // 若用户在进入 tool-loop 前已 reset（或 tool_result 被清空），则不继续发送。
+        return;
+    }
     toolInvocationActive_ = false;
     QJsonObject roleMessage;
     roleMessage.insert("role", QStringLiteral("tool"));
@@ -563,6 +569,11 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
             loop.exec(QEventLoop::ExcludeUserInputEvents);
         }
         controllerFrame = captureControllerFrame();
+        if (activeTurnId_ != guardTurnId || activeTurnId_ == 0 || tool_result.isEmpty())
+        {
+            // capture 期间允许用户 reset；若 turn 已变化/被清空，则放弃本轮 tool-loop。
+            return;
+        }
         if (!controllerFrame.imagePath.isEmpty())
         {
             // 该截图会在下一轮继续发送给模型：记录下来，便于 controller 工具调用时回溯标注。

@@ -18,6 +18,116 @@
 #include <QAudioDeviceInfo>
 #include <QScrollBar>
 #include <QEventLoop>
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+
+#include <vector>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+namespace
+{
+#ifdef _WIN32
+// -----------------------------------------------------------------------------
+// Windows 桌面截图（GDI/BitBlt）
+// -----------------------------------------------------------------------------
+// 背景：Qt 的 `QScreen::grabWindow(0)` 在极少数机器/驱动环境下可能出现“偶发卡死”，
+//       表现为调用线程被阻塞，UI 无法响应（重置按钮也无效）。
+// 目标：提供一个不依赖 Qt 平台插件截图链路的兜底实现，尽量避免 UI 被截图卡死。
+//
+// 说明：
+// - 这里只抓取“主屏幕”(0,0)-(SM_CXSCREEN,SM_CYSCREEN)，与 controller 工具层
+//   使用 `GetSystemMetrics(SM_CXSCREEN/SM_CYSCREEN)` 的坐标系保持一致。
+// - 返回的 QImage 为“物理像素”尺寸，不设置 devicePixelRatio；调用方如需按 Qt 逻辑坐标绘制，
+//   可以自行对 QPixmap 设置 devicePixelRatio。
+// -----------------------------------------------------------------------------
+static QImage capturePrimaryScreenWin32(int *outWidth, int *outHeight, QString *errorMessage)
+{
+    if (outWidth) *outWidth = 0;
+    if (outHeight) *outHeight = 0;
+
+    const int width = GetSystemMetrics(SM_CXSCREEN);
+    const int height = GetSystemMetrics(SM_CYSCREEN);
+    if (width <= 0 || height <= 0)
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("GetSystemMetrics returned invalid size");
+        return {};
+    }
+
+    HDC screenDc = GetDC(nullptr);
+    if (!screenDc)
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("GetDC(nullptr) failed");
+        return {};
+    }
+
+    HDC memDc = CreateCompatibleDC(screenDc);
+    if (!memDc)
+    {
+        ReleaseDC(nullptr, screenDc);
+        if (errorMessage) *errorMessage = QStringLiteral("CreateCompatibleDC failed");
+        return {};
+    }
+
+    HBITMAP bmp = CreateCompatibleBitmap(screenDc, width, height);
+    if (!bmp)
+    {
+        DeleteDC(memDc);
+        ReleaseDC(nullptr, screenDc);
+        if (errorMessage) *errorMessage = QStringLiteral("CreateCompatibleBitmap failed");
+        return {};
+    }
+
+    HGDIOBJ old = SelectObject(memDc, bmp);
+
+    // CAPTUREBLT：尽量包含 DWM/分层窗口内容（controller 截图前会隐藏 overlay，但加上更稳妥）
+    const BOOL bltOk = BitBlt(memDc, 0, 0, width, height, screenDc, 0, 0, SRCCOPY | CAPTUREBLT);
+    if (!bltOk)
+    {
+        const DWORD err = GetLastError();
+        SelectObject(memDc, old);
+        DeleteObject(bmp);
+        DeleteDC(memDc);
+        ReleaseDC(nullptr, screenDc);
+        if (errorMessage) *errorMessage = QStringLiteral("BitBlt failed (err=%1)").arg(err);
+        return {};
+    }
+
+    BITMAPINFO bmi{};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height; // 负数表示 top-down DIB，避免后续翻转
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<uchar> buffer(static_cast<size_t>(width) * static_cast<size_t>(height) * 4u);
+    const int scanlines = GetDIBits(memDc, bmp, 0, static_cast<UINT>(height), buffer.data(), &bmi, DIB_RGB_COLORS);
+
+    SelectObject(memDc, old);
+    DeleteObject(bmp);
+    DeleteDC(memDc);
+    ReleaseDC(nullptr, screenDc);
+
+    if (scanlines <= 0)
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("GetDIBits failed");
+        return {};
+    }
+
+    // QImage::Format_ARGB32 在 little-endian 下内存布局为 BGRA，与 DIB buffer 兼容。
+    // 但 GDI 截屏的 alpha 可能是未定义值，所以这里转一次 RGB32，强制 alpha=255。
+    QImage img(buffer.data(), width, height, QImage::Format_ARGB32);
+    QImage out = img.convertToFormat(QImage::Format_RGB32);
+
+    if (outWidth) *outWidth = width;
+    if (outHeight) *outHeight = height;
+    return out;
+}
+#endif
+} // namespace
 
 void Widget::ensureControllerOverlay()
 {
@@ -420,12 +530,34 @@ void Widget::stop_recordAudio()
 QString Widget::saveScreen()
 {
     QScreen *screen = QApplication::primaryScreen();
+    if (!screen) return {};
     // 获取屏幕几何信息
     qreal devicePixelRatio = screen->devicePixelRatio();
     // qDebug() << "逻辑尺寸:" << screenGeometry.width() << screenGeometry.height();
     // qDebug() << "缩放比例:" << devicePixelRatio;
     // 直接使用 grabWindow 获取完整屏幕截图（会自动处理DPI）
-    QPixmap m_screenPicture = screen->grabWindow(0);
+    // 截图：优先走 Win32/GDI 的稳定实现，避免 Qt grabWindow 偶发阻塞 UI。
+    QPixmap m_screenPicture;
+#ifdef _WIN32
+    {
+        QString err;
+        int w = 0;
+        int h = 0;
+        const QImage snap = capturePrimaryScreenWin32(&w, &h, &err);
+        if (snap.isNull())
+        {
+            // 兜底：失败时不再回退到 grabWindow，避免把“卡死风险”带回来。
+            reflash_state(QStringLiteral("ui:截屏失败（GDI）%1").arg(err.isEmpty() ? QString() : (QStringLiteral(" -> ") + err)), WRONG_SIGNAL);
+            return {};
+        }
+        m_screenPicture = QPixmap::fromImage(snap);
+        // 关键：把 devicePixelRatio 设置回 Qt 屏幕 DPR，使后续绘制/坐标换算逻辑保持一致。
+        m_screenPicture.setDevicePixelRatio(devicePixelRatio);
+    }
+#else
+    // 其他平台仍使用 Qt 原生截图
+    m_screenPicture = screen->grabWindow(0);
+#endif
     // qDebug() << "截图实际尺寸:" << m_screenPicture.width() << m_screenPicture.height();
     // 获取鼠标位置（使用逻辑坐标，不需要手动缩放）
     QPoint cursorPos = QCursor::pos();
@@ -523,23 +655,97 @@ Widget::ControllerFrame Widget::captureControllerFrame()
 
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     frame.tsMs = nowMs;
-    // 捕获全屏图像
-    QPixmap snapshot = screen->grabWindow(0);
 
+    // 捕获全屏图像（controller 坐标系以主屏幕为基准）
+    QImage scaledImage;
+    int physicalWidth = 0;
+    int physicalHeight = 0;
+#ifdef _WIN32
+    {
+        struct WinCaptureResult
+        {
+            QImage image;
+            int width = 0;
+            int height = 0;
+            QString error;
+        };
+
+        // turnId 守护：截图等待过程中允许用户点击“重置”，此时应立即放弃截图并返回。
+        const quint64 guardTurnId = activeTurnId_;
+
+        // 截图放到工作线程里做，并设置超时，避免极端情况下截图调用卡死 UI。
+        // 注意：这里用“等待 + 事件循环”的方式让 UI 仍可响应（例如用户点击重置）。
+        QFuture<WinCaptureResult> future = QtConcurrent::run([]() -> WinCaptureResult {
+            WinCaptureResult result;
+            result.image = capturePrimaryScreenWin32(&result.width, &result.height, &result.error);
+            return result;
+        });
+
+        QFutureWatcher<WinCaptureResult> watcher;
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        QTimer turnGuard;
+        turnGuard.setInterval(30);
+        turnGuard.setTimerType(Qt::PreciseTimer);
+        QObject::connect(&watcher, &QFutureWatcher<WinCaptureResult>::finished, &loop, &QEventLoop::quit);
+        QObject::connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+        QObject::connect(&turnGuard, &QTimer::timeout, &loop, [this, guardTurnId, &loop]() {
+            if (guardTurnId == 0 || activeTurnId_ != guardTurnId)
+            {
+                loop.quit();
+            }
+        });
+        watcher.setFuture(future);
+        timeout.start(DEFAULT_CONTROLLER_SCREENSHOT_TIMEOUT_MS);
+        turnGuard.start();
+        loop.exec();
+        turnGuard.stop();
+
+        if (guardTurnId == 0 || activeTurnId_ != guardTurnId)
+        {
+            // 用户在等待截图时触发了 reset：放弃截图，直接返回空 frame。
+            return frame;
+        }
+
+        if (!future.isFinished())
+        {
+            reflash_state(QStringLiteral("ui:桌面控制器截图超时（%1ms），本轮将不附带截图")
+                              .arg(DEFAULT_CONTROLLER_SCREENSHOT_TIMEOUT_MS),
+                          WRONG_SIGNAL);
+            return frame;
+        }
+
+        const WinCaptureResult result = future.result();
+        scaledImage = result.image;
+        physicalWidth = result.width;
+        physicalHeight = result.height;
+        if (scaledImage.isNull())
+        {
+            reflash_state(QStringLiteral("ui:截屏失败，桌面控制器未能附带截图%1")
+                              .arg(result.error.isEmpty() ? QString() : (QStringLiteral(" -> ") + result.error)),
+                          WRONG_SIGNAL);
+            return frame;
+        }
+    }
+#else
+    QPixmap snapshot = screen->grabWindow(0);
     if (snapshot.isNull())
     {
         reflash_state(QStringLiteral("ui:截屏失败，桌面控制器未能附带截图"), WRONG_SIGNAL);
         return frame;
     }
-    QImage scaledImage = snapshot.toImage();
+    scaledImage = snapshot.toImage();
+    physicalWidth = int(qRound(snapshot.width() * screenDpr));
+    physicalHeight = int(qRound(snapshot.height() * screenDpr));
+#endif
     if (scaledImage.isNull())
     {
         reflash_state(QStringLiteral("ui:截屏数据为空，桌面控制器未能附带截图"), WRONG_SIGNAL);
         return frame;
     }
+
     // 若超过 1920x1080 则等比压缩，兼顾体积与可读性
-    const int physicalWidth = int(qRound(snapshot.width() * screenDpr));
-    const int physicalHeight = int(qRound(snapshot.height() * screenDpr));
     // 直接缩放到归一化尺寸（忽略宽高比）
     scaledImage = scaledImage.scaled(normX, normY, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
     // 映射：把 [0,srcMax] 映射到 [0,dstMax]（含端点），并进行夹取，避免越界
