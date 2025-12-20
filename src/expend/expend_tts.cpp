@@ -944,7 +944,10 @@ void Expend::runTtsProcess(const QString &text)
     // - 中文界面：zh（也是 tts.cpp 默认值，但显式传入更可控）
     // - 英文/日文界面：en（兜底到英文读法，避免日文界面仍用中文数字读法）
     // ---------------------------------------------------------------------
-    const QString ttsLang = (language_flag == EVA_LANG_ZH) ? QStringLiteral("zh") : QStringLiteral("en");
+    // tts.cpp 当前支持 `--lang zh/en/ja`：按界面语言自动映射，未知值兜底为 en。
+    QString ttsLang = QStringLiteral("en");
+    if (language_flag == EVA_LANG_ZH) ttsLang = QStringLiteral("zh");
+    else if (language_flag == EVA_LANG_JA) ttsLang = QStringLiteral("ja");
     arguments << QStringLiteral("--lang") << ttsLang;
 
     arguments << QStringLiteral("-p") << text;

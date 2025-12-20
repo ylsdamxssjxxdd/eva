@@ -461,8 +461,8 @@ struct QuantizeType
 //------------------------------------------------------------------------------
 // 设计说明：
 // - “声源”与“音色”拆分保存，避免把系统 voice.name() 与 tts.cpp 的 voice id 混在一起。
-// - tts.cpp 走 CLI：`tts-cli --model-path xxx --voice <id> --lang zh|en -p <text>`
-//   其中 `--lang` 用于控制数字读法等语言偏好，EVA 会按界面语言自动注入该参数。
+// - tts.cpp 走 CLI：`tts-cli --model-path xxx --voice <id> --lang zh|en|ja -p <text>`
+//   其中 `--lang` 用于控制数字读法等语言偏好，EVA 会按界面语言自动注入该参数（zh/en/ja）。
 // - system 走 Qt TextToSpeech：按 `QVoice::name()` 选择音色
 //------------------------------------------------------------------------------
 #define SPPECH_TTSCPP "tts.cpp"
