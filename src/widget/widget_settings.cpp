@@ -152,7 +152,7 @@ void Widget::set_SetDialog()
     settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
     connect(settings_ui->nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
     // ctx length 记忆容量
-    settings_ui->nctx_slider->setRange(128, 32768);
+    settings_ui->nctx_slider->setRange(128, 9999999999);
     settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
     settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value()));
     connect(settings_ui->nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);

@@ -77,6 +77,10 @@ class LocalServerManager : public QObject
     bool readyEmitted_ = false;
     bool startFailedEmitted_ = false;
     bool stoppedEmitted_ = false;
+
+    // 主动 stop/restart 时置为 true：避免正常“切模型/重载”期间因为 kill/terminate 被 Qt 标记为 Crashed，
+    // 从而在状态栏刷出 `ui:backend crashed` 误导用户。
+    bool stopRequested_ = false;
 };
 
 #endif // XBACKEND_H

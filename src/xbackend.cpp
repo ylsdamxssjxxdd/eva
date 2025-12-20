@@ -95,7 +95,7 @@ void LocalServerManager::hookProcessSignals()
 
         // 启动阶段如果没有进入“listening”，但进程却已经退出/崩溃，
         // 则必须视为启动失败并通知 UI（否则装载界面会一直等 serverReady 卡死）。
-        if (!readyEmitted_ && !startFailedEmitted_)
+        if (!readyEmitted_ && !startFailedEmitted_ && !stopRequested_)
         {
             startFailedEmitted_ = true;
             const QString status = (exitStatus == QProcess::CrashExit) ? QStringLiteral("crash") : QStringLiteral("exit");
@@ -157,6 +157,16 @@ void LocalServerManager::hookProcessSignals()
     connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError e)
             {
         if (p != proc_) return;
+
+        // 正常流程（切模型/重载/重启）里我们会 terminate/kill 后端进程。
+        // 在 Windows 上这些“主动结束”有时会被 Qt 标记为 Crashed，从而刷出误导性的错误提示。
+        // 因此：只要是主动 stop/restart 触发的错误事件，统一静默处理（仍然发出 serverStopped 以推进 UI 流程）。
+        if (stopRequested_)
+        {
+            emitServerStoppedOnce();
+            return;
+        }
+
         QString msg;
         switch (e) {
         case QProcess::FailedToStart: msg = QStringLiteral("ui:backend failed to start"); break;
@@ -166,6 +176,14 @@ void LocalServerManager::hookProcessSignals()
         case QProcess::ReadError: msg = QStringLiteral("ui:backend read error"); break;
         default: msg = QStringLiteral(""); break;
         }
+        // 启动阶段的崩溃/非法指令：finished() 分支会给出更具体的 exitCode 信息并触发回退。
+        // 这里避免重复刷屏（只在“运行中崩溃”时提示 crashed）。
+        if (e == QProcess::Crashed && !readyEmitted_)
+        {
+            emitServerStoppedOnce();
+            return;
+        }
+
         if(msg!="") {emit serverState(msg, WRONG_SIGNAL);}
         emit serverOutput(msg);
         // 只有在“尚未 ready”时，才把错误当作启动失败；否则交由 serverStopped 处理运行中崩溃。
@@ -189,6 +207,7 @@ void LocalServerManager::startProcess(const QStringList &args)
     readyEmitted_ = false;
     startFailedEmitted_ = false;
     stoppedEmitted_ = false;
+    stopRequested_ = false;
     hookProcessSignals();
     const QString prog = programPath();
     lastProgram_ = prog;
@@ -278,6 +297,8 @@ void LocalServerManager::restart()
     }
     if (isRunning())
     {
+        // 主动重启：不要把旧进程的 kill 当作“崩溃”提示给用户。
+        stopRequested_ = true;
         proc_->kill(); // fast stop is fine here
         proc_->waitForFinished(2000);
     }
@@ -290,6 +311,8 @@ void LocalServerManager::stop()
 
     if (proc_->state() == QProcess::Running)
     {
+        // 主动停止：避免误报 crashed
+        stopRequested_ = true;
         // Try graceful termination first
         proc_->terminate();
         if (!proc_->waitForFinished(1500))
@@ -333,6 +356,9 @@ void LocalServerManager::stopAsync()
         emitServerStoppedOnce();
         return;
     }
+
+    // 主动停止：避免误报 crashed
+    stopRequested_ = true;
 
     // stopAsync() 可能与 UI 的“立即重启/切端口”等流程并发触发：
     // 必须把当前进程指针捕获下来，避免 finished 回调误清理了“新进程”的 proc_。
