@@ -48,8 +48,10 @@ class LocalServerManager : public QObject
     void serverState(const QString &line, SIGNAL_STATE type);
     void serverReady(const QString &endpoint); // emitted when server is listening
     void serverStopped();
-    // Emitted when a start/restart attempt fails before launching the process
-    // (e.g., executable missing). UI can stop loading animation and unlock.
+    // Emitted when a start/restart attempt fails:
+    // - executable missing / failed to start
+    // - process exits/crashes before becoming "ready"
+    // UI can stop loading animation and unlock, and optionally trigger fallbacks.
     void serverStartFailed(const QString &reason);
 
   private:
@@ -57,6 +59,7 @@ class LocalServerManager : public QObject
     QStringList buildArgs() const; // build args from SETTINGS and paths
     void startProcess(const QStringList &args);
     void hookProcessSignals();
+    void emitServerStoppedOnce();
 
     QString appDirPath_;
     SETTINGS settings_;
@@ -69,6 +72,11 @@ class LocalServerManager : public QObject
     QPointer<QProcess> proc_;
     QString lastProgram_;
     QStringList lastArgs_;
+
+    // 启动阶段状态：用于把“启动后立刻崩溃/退出”识别为启动失败，避免 UI 一直等待 serverReady 卡死。
+    bool readyEmitted_ = false;
+    bool startFailedEmitted_ = false;
+    bool stoppedEmitted_ = false;
 };
 
 #endif // XBACKEND_H

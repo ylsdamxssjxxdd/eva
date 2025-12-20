@@ -14,6 +14,14 @@
 #include <QSysInfo>
 #include <QtGlobal>
 
+#if defined(Q_PROCESSOR_X86_64) || defined(Q_PROCESSOR_X86)
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__GNUC__) || defined(__clang__)
+#include <cpuid.h>
+#endif
+#endif
+
 static QString g_userChoice = QStringLiteral("auto"); // process-local selection
 static QStringList g_lastProbed;                      // debug: last probed paths
 static QHash<QString, QString> g_lastResolvedDevice;  // program -> device that was actually resolved
@@ -360,6 +368,87 @@ static bool supportsOpenCL()
 #endif
 }
 
+// x86 指令集探测：是否可安全使用 AVX（CPU 支持 + OS 启用保存 YMM 状态）。
+// 说明：我们用它来决定 cpu/cpu-noavx 的优先级，避免在老 CPU 上直接触发“非法指令”崩溃。
+// - 仅在 x86/x64 下生效；其它架构直接返回 true（不存在 AVX 指令的问题）。
+// - 提供环境变量 EVA_FORCE_NOAVX=1 方便排障/强制回退。
+static quint64 xgetbv0()
+{
+#if defined(Q_PROCESSOR_X86_64) || defined(Q_PROCESSOR_X86)
+#if defined(_MSC_VER)
+    return static_cast<quint64>(_xgetbv(0));
+#elif defined(__GNUC__) || defined(__clang__)
+    quint32 eax = 0, edx = 0;
+    __asm__ volatile(".byte 0x0f, 0x01, 0xd0" : "=a"(eax), "=d"(edx) : "c"(0));
+    return (static_cast<quint64>(edx) << 32) | eax;
+#else
+    return 0;
+#endif
+#else
+    return 0;
+#endif
+}
+
+static bool supportsAvx()
+{
+#if defined(Q_PROCESSOR_X86_64) || defined(Q_PROCESSOR_X86)
+    // 进程内缓存：CPU 能力不会变化，且这些探测在 Win7/老硬件上越少越好。
+    static int cached = -1;
+    if (cached != -1) return cached != 0;
+
+    // 允许用户强制关闭 AVX（例如：打包的 cpu 后端误用了更高指令集，或用于复现问题）。
+    if (qEnvironmentVariableIntValue("EVA_FORCE_NOAVX") != 0)
+    {
+        cached = 0;
+        return false;
+    }
+
+    bool ok = false;
+#if defined(_MSC_VER)
+    int cpuInfo[4] = {0, 0, 0, 0};
+    __cpuid(cpuInfo, 1);
+    const bool hasXsave = (cpuInfo[2] & (1 << 26)) != 0;
+    const bool hasOsxsave = (cpuInfo[2] & (1 << 27)) != 0;
+    const bool hasAvx = (cpuInfo[2] & (1 << 28)) != 0;
+    if (hasXsave && hasOsxsave && hasAvx)
+    {
+        // XCR0 bit1(XMM) 与 bit2(YMM) 必须同时打开，否则 AVX 指令会触发非法指令。
+        const quint64 xcr0 = xgetbv0();
+        ok = ((xcr0 & 0x6) == 0x6);
+    }
+#elif defined(__GNUC__) || defined(__clang__)
+    unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
+    if (__get_cpuid(1, &eax, &ebx, &ecx, &edx))
+    {
+        const bool hasXsave = (ecx & (1u << 26)) != 0;
+        const bool hasOsxsave = (ecx & (1u << 27)) != 0;
+        const bool hasAvx = (ecx & (1u << 28)) != 0;
+        if (hasXsave && hasOsxsave && hasAvx)
+        {
+            const quint64 xcr0 = xgetbv0();
+            ok = ((xcr0 & 0x6) == 0x6);
+        }
+    }
+#else
+    ok = true; // 不认识的编译器：保守返回 true，后续仍有“崩溃后回退”兜底
+#endif
+
+    cached = ok ? 1 : 0;
+    if (!ok)
+    {
+        static bool logged = false;
+        if (!logged)
+        {
+            logged = true;
+            qInfo().noquote() << "[backend-probe] AVX unsupported -> prefer cpu-noavx";
+        }
+    }
+    return ok;
+#else
+    return true;
+#endif
+}
+
 // Windows 7/8 detection; Qt may lie without manifest, so be redundant
 static bool isWindows7Or8Family()
 {
@@ -400,6 +489,7 @@ static QStringList deviceSearchOrder()
     QStringList order;
     const QString choice = DeviceManager::userChoice();
     const bool autoMode = (choice == QLatin1String("auto") || choice == QLatin1String("custom"));
+    const bool avxOk = supportsAvx();
     auto add = [&](const QString &b)
     { if (!order.contains(b)) order << b; };
     auto addIf = [&](const QString &b, bool ok)
@@ -447,9 +537,17 @@ static QStringList deviceSearchOrder()
         else if (choice == QLatin1String("opencl"))
             addIf(QStringLiteral("opencl"), supportsOpenCL());
         else if (choice == QLatin1String("cpu"))
+        {
+            // 老 CPU 不支持 AVX 时，仍允许用户选 cpu，但优先尝试 cpu-noavx，避免直接崩溃。
+            if (!avxOk) add(QStringLiteral("cpu-noavx"));
             add(QStringLiteral("cpu"));
+        }
         else if (choice == QLatin1String("cpu-noavx"))
+        {
             add(QStringLiteral("cpu-noavx"));
+            // cpu-noavx 是更“保守”的二进制；如果机器支持 AVX，仍把 cpu 作为次选，方便用户切回更快版本。
+            add(QStringLiteral("cpu"));
+        }
         else
         {
             addIf(QStringLiteral("cuda"), supportsCuda());
@@ -460,6 +558,8 @@ static QStringList deviceSearchOrder()
         addIf(QStringLiteral("cuda"), supportsCuda());
         addIf(QStringLiteral("vulkan"), supportsVulkan());
         addIf(QStringLiteral("opencl"), supportsOpenCL());
+        // CPU 回退：若不支持 AVX，先尝试 cpu-noavx，避免 cpu 版本“非法指令”秒退。
+        if (!avxOk) add(QStringLiteral("cpu-noavx"));
         add(QStringLiteral("cpu"));
         add(QStringLiteral("cpu-noavx"));
     }
@@ -470,19 +570,27 @@ QStringList DeviceManager::preferredOrder()
     const QString arch = currentArchId();
     const bool win7Family = isWindows7Or8Family();
     const bool cpuFirst = arch.startsWith(QLatin1String("arm")) || win7Family;
+    const bool avxOk = supportsAvx();
     QStringList order;
     if (cpuFirst)
     {
+        // Win7/老硬件：默认优先 CPU，避免 GPU driver probe 引发崩溃。
+        // 但若机器不支持 AVX，则必须把 cpu-noavx 放在最前面，防止 llama-server/tts/sd 等直接异常退出。
+        if (!avxOk) order << QStringLiteral("cpu-noavx");
         order << QStringLiteral("cpu");
-        if (win7Family) order << QStringLiteral("cpu-noavx");
+        if (win7Family && !order.contains(QStringLiteral("cpu-noavx"))) order << QStringLiteral("cpu-noavx");
         order << QStringLiteral("cuda") << QStringLiteral("vulkan") << QStringLiteral("opencl");
         return order;
     }
     order << QStringLiteral("cuda") << QStringLiteral("vulkan") << QStringLiteral("opencl") << QStringLiteral("cpu");
-    if (win7Family && !order.contains(QStringLiteral("cpu-noavx")))
+    // 非 Win7 的默认顺序仍以 GPU 优先，但 CPU 回退也要考虑 AVX 兼容性。
+    if (!avxOk)
     {
-        order << QStringLiteral("cpu-noavx");
+        // 放在 cpu 前面更安全；cpu-noavx 不存在时会自动跳过。
+        order.removeAll(QStringLiteral("cpu"));
+        order << QStringLiteral("cpu-noavx") << QStringLiteral("cpu");
     }
+    if (win7Family && !order.contains(QStringLiteral("cpu-noavx"))) order << QStringLiteral("cpu-noavx");
     return order;
 }
 
@@ -575,6 +683,8 @@ QString DeviceManager::effectiveBackend()
     {
         return firstPreferredAvailable(avail);
     }
+    // 显式选择 cpu 但机器不支持 AVX：若存在 cpu-noavx，则自动降级，避免直接非法指令崩溃。
+    if (choice == QLatin1String("cpu") && !supportsAvx() && isAvail("cpu-noavx")) return QStringLiteral("cpu-noavx");
     // Explicit choice: honor if available and supported; else degrade
     if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
@@ -599,6 +709,7 @@ QString DeviceManager::effectiveBackendFor(const QString &preferred)
     {
         return firstPreferredAvailable(avail);
     }
+    if (choice == QLatin1String("cpu") && !supportsAvx() && isAvail("cpu-noavx")) return QStringLiteral("cpu-noavx");
     if (choice == QLatin1String("cuda") && supportsCuda() && isAvail("cuda")) return QStringLiteral("cuda");
     if (choice == QLatin1String("vulkan") && supportsVulkan() && isAvail("vulkan")) return QStringLiteral("vulkan");
     if (choice == QLatin1String("opencl") && supportsOpenCL() && isAvail("opencl")) return QStringLiteral("opencl");

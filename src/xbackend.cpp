@@ -68,23 +68,60 @@ QStringList LocalServerManager::buildArgs() const
     return buildLocalServerArgs(input);
 }
 
+void LocalServerManager::emitServerStoppedOnce()
+{
+    if (stoppedEmitted_) return;
+    stoppedEmitted_ = true;
+    emit serverStopped();
+}
+
 void LocalServerManager::hookProcessSignals()
 {
     if (!proc_) return;
+    // 注意：LocalServerManager 在重启/回收时会替换 proc_ 指针。
+    // 若旧进程在 deleteLater 之前仍然触发信号，必须忽略它们，避免把“旧进程退出”误判成“新进程启动失败”。
+    QProcess *p = proc_;
 
-    connect(proc_, &QProcess::started, this, [this]()
+    connect(p, &QProcess::started, this, [this, p]()
             {
+                if (p != proc_) return;
                 // emit serverState("ui:backend starting", SIGNAL_SIGNAL);
                 FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: process started"));
                 StartupLogger::log(QStringLiteral("[backend] process started"));
             });
-    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
+    connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, p](int exitCode, QProcess::ExitStatus exitStatus)
             {
+        if (p != proc_) return;
+
+        // 启动阶段如果没有进入“listening”，但进程却已经退出/崩溃，
+        // 则必须视为启动失败并通知 UI（否则装载界面会一直等 serverReady 卡死）。
+        if (!readyEmitted_ && !startFailedEmitted_)
+        {
+            startFailedEmitted_ = true;
+            const QString status = (exitStatus == QProcess::CrashExit) ? QStringLiteral("crash") : QStringLiteral("exit");
+            QString msg = QStringLiteral("ui:backend exited before ready (exitCode=%1, exitStatus=%2)")
+                              .arg(exitCode)
+                              .arg(status);
+#if defined(_WIN32)
+            // Windows: 0xC000001D = STATUS_ILLEGAL_INSTRUCTION（常见于 AVX/AVX2 不支持）
+            const quint32 winCode = static_cast<quint32>(exitCode);
+            if (exitStatus == QProcess::CrashExit && winCode == 0xC000001D)
+            {
+                msg += QStringLiteral(" [illegal instruction]");
+            }
+#endif
+            emit serverState(msg, WRONG_SIGNAL);
+            emit serverOutput(msg + QStringLiteral("\n"));
+            emit serverStartFailed(msg);
+            StartupLogger::log(QStringLiteral("[backend] early exit -> start failed: %1").arg(msg));
+            FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: early exit (%1)").arg(msg));
+        }
         // emit serverState("ui:backend stopped", SIGNAL_SIGNAL);
-        emit serverStopped(); });
-    connect(proc_, &QProcess::readyReadStandardOutput, this, [this]()
+        emitServerStoppedOnce(); });
+    connect(p, &QProcess::readyReadStandardOutput, this, [this, p]()
             {
-        const QString out = QString::fromUtf8(proc_->readAllStandardOutput());
+        if (p != proc_) return;
+        const QString out = QString::fromUtf8(p->readAllStandardOutput());
         if (!out.isEmpty()) emit serverOutput(out);
         static int s_outCount = 0;
         if (s_outCount < 6 && !out.isEmpty())
@@ -92,15 +129,17 @@ void LocalServerManager::hookProcessSignals()
             ++s_outCount;
             StartupLogger::log(QStringLiteral("[backend][stdout %1] %2").arg(s_outCount).arg(out.left(200)));
         }
-        if (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on"))
+        if (!readyEmitted_ && (out.contains(SERVER_START) || out.contains("listening at") || out.contains("listening on")))
         {
         // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+        readyEmitted_ = true;
         emit serverReady(endpointBase());
         FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: listening %1").arg(endpointBase()));
         } });
-    connect(proc_, &QProcess::readyReadStandardError, this, [this]()
+    connect(p, &QProcess::readyReadStandardError, this, [this, p]()
             {
-        const QString err = QString::fromUtf8(proc_->readAllStandardError());
+        if (p != proc_) return;
+        const QString err = QString::fromUtf8(p->readAllStandardError());
         if (!err.isEmpty()) emit serverOutput(err);
         static int s_errCount = 0;
         if (s_errCount < 6 && !err.isEmpty())
@@ -109,16 +148,19 @@ void LocalServerManager::hookProcessSignals()
             StartupLogger::log(QStringLiteral("[backend][stderr %1] %2").arg(s_errCount).arg(err.left(200)));
         }
         // llama.cpp may print slightly different phrases across versions
-        if (err.contains(SERVER_START) || err.contains("listening at") || err.contains("listening on"))
+        if (!readyEmitted_ && (err.contains(SERVER_START) || err.contains("listening at") || err.contains("listening on")))
         {
             // emit serverState("ui:backend ready", SUCCESS_SIGNAL);
+            readyEmitted_ = true;
             emit serverReady(endpointBase());
         } }); // Report process errors immediately so UI can recover
-    connect(proc_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError e)
+    connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError e)
             {
+        if (p != proc_) return;
         QString msg;
         switch (e) {
         case QProcess::FailedToStart: msg = QStringLiteral("ui:backend failed to start"); break;
+        case QProcess::Crashed: msg = QStringLiteral("ui:backend crashed"); break;
         case QProcess::Timedout: msg = QStringLiteral("ui:backend start timed out"); break;
         case QProcess::WriteError: msg = QStringLiteral("ui:backend write error"); break;
         case QProcess::ReadError: msg = QStringLiteral("ui:backend read error"); break;
@@ -126,8 +168,13 @@ void LocalServerManager::hookProcessSignals()
         }
         if(msg!="") {emit serverState(msg, WRONG_SIGNAL);}
         emit serverOutput(msg);
-        if(!msg.isEmpty()) emit serverStartFailed(msg);
-        emit serverStopped(); });
+        // 只有在“尚未 ready”时，才把错误当作启动失败；否则交由 serverStopped 处理运行中崩溃。
+        if(!readyEmitted_ && !msg.isEmpty() && !startFailedEmitted_)
+        {
+            startFailedEmitted_ = true;
+            emit serverStartFailed(msg);
+        }
+        emitServerStoppedOnce(); });
 }
 
 void LocalServerManager::startProcess(const QStringList &args)
@@ -138,6 +185,10 @@ void LocalServerManager::startProcess(const QStringList &args)
         proc_.clear();
     }
     proc_ = new QProcess(this);
+    // 新进程：重置状态机
+    readyEmitted_ = false;
+    startFailedEmitted_ = false;
+    stoppedEmitted_ = false;
     hookProcessSignals();
     const QString prog = programPath();
     lastProgram_ = prog;
@@ -271,7 +322,7 @@ void LocalServerManager::stopAsync()
 {
     if (!proc_)
     {
-        emit serverStopped();
+        emitServerStoppedOnce();
         return;
     }
     // If not running, just cleanup and emit
@@ -279,31 +330,35 @@ void LocalServerManager::stopAsync()
     {
         proc_->deleteLater();
         proc_.clear();
-        emit serverStopped();
+        emitServerStoppedOnce();
         return;
     }
 
+    // stopAsync() 可能与 UI 的“立即重启/切端口”等流程并发触发：
+    // 必须把当前进程指针捕获下来，避免 finished 回调误清理了“新进程”的 proc_。
+    QPointer<QProcess> p = proc_;
+
     // Request graceful termination on our owning thread (UI thread)
-    proc_->terminate();
+    p->terminate();
 
     // When it finishes, clean up and notify
-    connect(proc_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int, QProcess::ExitStatus)
+    connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, p](int, QProcess::ExitStatus)
             {
-        if (proc_)
+        if (p)
         {
-            proc_->deleteLater();
-            proc_.clear();
+            p->deleteLater();
+            if (proc_ == p) proc_.clear();
         }
-        emit serverStopped(); });
+        emitServerStoppedOnce(); });
 
     // Guard: force kill if it doesn't exit in time; avoid blocking UI
-    QTimer::singleShot(1500, this, [this]()
+    QTimer::singleShot(1500, this, [this, p]()
                        {
-        if (!proc_) return;
-        if (proc_->state() == QProcess::Running)
+        if (!p) return;
+        if (p->state() == QProcess::Running)
         {
 #ifdef _WIN32
-            const qint64 pid = proc_->processId();
+            const qint64 pid = p->processId();
             if (pid > 0)
             {
                 QStringList args;
@@ -312,10 +367,10 @@ void LocalServerManager::stopAsync()
             }
             else
             {
-                proc_->kill();
+                p->kill();
             }
 #else
-            proc_->kill();
+            p->kill();
 #endif
         } });
 }
