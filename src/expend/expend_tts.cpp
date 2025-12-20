@@ -805,8 +805,10 @@ void Expend::recv_toolpushover(QString tool_result_)
     if (toolName.isEmpty()) return;
 
     QString speak;
-    if (language_flag == 0)
+    if (language_flag == EVA_LANG_ZH)
         speak = QStringLiteral("模型调用%1工具").arg(toolName);
+    else if (language_flag == EVA_LANG_JA)
+        speak = QStringLiteral("モデルは%1ツールを呼び出しました").arg(toolName);
     else
         speak = QStringLiteral("The model calls the %1 tool").arg(toolName);
 
@@ -937,12 +939,12 @@ void Expend::runTtsProcess(const QString &text)
 
     // ---------------------------------------------------------------------
     // tts.cpp 的 `--lang` 参数用于控制“数字读法”等语言偏好（zh / en）。
-    // 这里按 EVA 的界面语言自动注入，保证朗读风格与用户语言设置一致：
+    // EVA 的界面语言现在支持：中文/英文/日文，但 tts.cpp 目前仅支持 zh/en，
+    // 因此这里做一个明确映射：
     // - 中文界面：zh（也是 tts.cpp 默认值，但显式传入更可控）
-    // - 英文界面：en
-    // 备注：如果未来扩展更多语言，建议在此处集中映射并为未知值提供兜底。
+    // - 英文/日文界面：en（兜底到英文读法，避免日文界面仍用中文数字读法）
     // ---------------------------------------------------------------------
-    const QString ttsLang = (language_flag == 1) ? QStringLiteral("en") : QStringLiteral("zh");
+    const QString ttsLang = (language_flag == EVA_LANG_ZH) ? QStringLiteral("zh") : QStringLiteral("en");
     arguments << QStringLiteral("--lang") << ttsLang;
 
     arguments << QStringLiteral("-p") << text;

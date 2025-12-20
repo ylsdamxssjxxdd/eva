@@ -95,7 +95,7 @@ class Expend : public QWidget
     QJsonObject wordsObj;
     ImageDropWidget *sd_imgDrop = nullptr;       // img2img drop area
     MediaResultWidget *sd_mediaResult = nullptr; // image/video result area
-    int language_flag = 0;
+    int language_flag = EVA_LANG_ZH; // 界面语言：0=中文，1=英文，2=日文
     QString jtr(QString customstr); // 根据language.json(wordsObj)和language_flag中找到对应的文字
     bool is_first_show_modelproliferation = true;
     bool is_first_show_sync = true;

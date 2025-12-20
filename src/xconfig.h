@@ -38,6 +38,46 @@ class QWidget;
 #define DEFAULT_THINK_END "</think>"
 #define DEFAULT_SPLITER "\n" // 分隔符
 
+//------------------------------------------------------------------------------
+// 多语言（界面语言）
+//------------------------------------------------------------------------------
+// 说明：language_flag 用于索引语言包数组。
+// - 0：中文
+// - 1：英文
+// - 2：日文
+// 注意：目前不少旧逻辑仍用 if (language_flag==0) else ... 的二分判断，
+//      新增语言时请显式补齐分支或提供兜底映射。
+enum EVA_UI_LANGUAGE
+{
+    EVA_LANG_ZH = 0,
+    EVA_LANG_EN = 1,
+    EVA_LANG_JA = 2,
+};
+
+// 语言代码 <-> language_flag 的集中映射（用于配置落盘与 UI 下拉框）。
+// 约定：使用 ISO 639-1 风格的短码：zh/en/ja。
+inline int evaLanguageFlagFromCode(const QString &code)
+{
+    const QString c = code.trimmed().toLower();
+    if (c == QStringLiteral("en")) return EVA_LANG_EN;
+    if (c == QStringLiteral("ja") || c == QStringLiteral("jp")) return EVA_LANG_JA;
+    return EVA_LANG_ZH;
+}
+
+inline QString evaLanguageCodeFromFlag(int flag)
+{
+    switch (flag)
+    {
+    case EVA_LANG_EN:
+        return QStringLiteral("en");
+    case EVA_LANG_JA:
+        return QStringLiteral("ja");
+    case EVA_LANG_ZH:
+    default:
+        return QStringLiteral("zh");
+    }
+}
+
 // 采样
 #define DEFAULT_NPREDICT -1
 #define DEFAULT_TEMP 0.4

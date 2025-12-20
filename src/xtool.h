@@ -68,9 +68,9 @@ class xTool : public QObject
     // Root directory for engineer tools to read/write and execute.
     // Defaults to {applicationDirPath}/EVA_WORK but can be overridden from UI.
     QString workDirRoot;
-    // 拯救中文
-    QJsonObject wordsObj;
-    int language_flag = 0;
+    // 语言资源
+    QJsonObject wordsObj;                    // 语言资源（key -> [zh,en,ja]）
+    int language_flag = EVA_LANG_ZH;         // 界面语言：0=中文，1=英文，2=日文
     QString jtr(QString customstr);  // 根据language.json(wordsObj)和language_flag中找到对应的文字
     void Exec(mcp::json tools_call); // 运行
 

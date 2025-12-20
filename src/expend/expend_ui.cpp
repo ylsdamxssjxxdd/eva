@@ -549,7 +549,8 @@ void Expend::showReadme()
 {
     if (!ui || !ui->info_card) return;
 
-    const QString resourcePath = (language_flag == 1) ? QStringLiteral(":/README_en.md") : QStringLiteral(":/README.md");
+    // README 仅内置中/英版本：日文界面暂使用英文 README 作为兜底。
+    const QString resourcePath = (language_flag == EVA_LANG_ZH) ? QStringLiteral(":/README.md") : QStringLiteral(":/README_en.md");
     QFile file(resourcePath);
     QString readmeText;
 

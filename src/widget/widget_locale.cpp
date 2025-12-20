@@ -39,7 +39,8 @@ bool loadLanguagePack(const QString &root, QJsonObject &out)
 {
     // Resource-only loader: avoid probing local disk on Win7.
     const QString base = root.endsWith(QLatin1Char('/')) ? root.left(root.size() - 1) : root;
-    const QStringList languageFiles{QStringLiteral("lang_zh.ini"), QStringLiteral("lang_en.ini")};
+    // 语言包文件列表：顺序必须与 language_flag 的索引一致（0=zh,1=en,2=ja）
+    const QStringList languageFiles{QStringLiteral("lang_zh.ini"), QStringLiteral("lang_en.ini"), QStringLiteral("lang_ja.ini")};
 
     QVector<QHash<int, QString>> languageTables;
     QMap<int, QString> idToKey;
@@ -114,16 +115,13 @@ void Widget::getWords(const QString &languageRoot)
 
 void Widget::switch_lan_change()
 {
-    if (date_ui->switch_lan_button->text() == "zh")
-    {
-        language_flag = 1;
-        date_ui->switch_lan_button->setText("en");
-    }
-    else if (date_ui->switch_lan_button->text() == "en")
-    {
-        language_flag = 0;
-        date_ui->switch_lan_button->setText("zh");
-    }
+    // 约定窗口底部语言切换：由“按钮”升级为“下拉框”，直接按选项决定 language_flag。
+    // 兼容：若 currentData 为空，则使用 currentText 兜底。
+    if (!date_ui || !date_ui->switch_lan_button) return;
+    const QString data = date_ui->switch_lan_button->currentData().toString();
+    const QString code = data.isEmpty() ? date_ui->switch_lan_button->currentText() : data;
+    language_flag = evaLanguageFlagFromCode(code);
+    ui_extra_lan = evaLanguageCodeFromFlag(language_flag);
     apply_language(language_flag);
     ui_extra_prompt = create_extra_prompt();
     emit ui2tool_language(language_flag);

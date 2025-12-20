@@ -34,8 +34,8 @@ class xNet : public QObject
     // Public settings (populated via recv_* from UI)
     APIS apis;
     ENDPOINT_DATA endpoint_data; // 端点参数
-    QJsonObject wordsObj;
-    int language_flag = 0;
+    QJsonObject wordsObj;                    // 语言资源（key -> [zh,en,ja]）
+    int language_flag = EVA_LANG_ZH;         // 界面语言：0=中文，1=英文，2=日文
     bool is_stop = false;    // 终止标签（UI触发）
     bool thinkFlag = false;  // 是否正在思考
     QString current_content; // 模型最近的输出

@@ -174,7 +174,14 @@ void Widget::get_date(bool applySandbox)
     }
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = date_ui->chattemplate_comboBox->currentText();
-    ui_extra_lan = date_ui->switch_lan_button->text();
+    // 额外指令语种：由下拉框提供（优先取 data，其次取 text）
+    if (date_ui->switch_lan_button)
+    {
+        const QString data = date_ui->switch_lan_button->currentData().toString().trimmed();
+        const QString text = date_ui->switch_lan_button->currentText().trimmed();
+        ui_extra_lan = !data.isEmpty() ? data : text;
+        if (ui_extra_lan.isEmpty()) ui_extra_lan = evaLanguageCodeFromFlag(language_flag);
+    }
     ui_calculator_ischecked = date_ui->calculator_checkbox->isChecked();
     ui_engineer_ischecked = date_ui->engineer_checkbox->isChecked();
     ui_MCPtools_ischecked = date_ui->MCPtools_checkbox->isChecked();
@@ -462,6 +469,11 @@ QString Widget::create_extra_prompt()
             {
                 controllerInfo.description += QStringLiteral(
                     "\n- IMPORTANT (中文界面)：`description` 是用户可见的屏幕提示文案，必须用中文描述动作（例如：点击浏览器地址栏/在搜索框输入文本）。");
+            }
+            else if (language_flag == EVA_LANG_JA) // 日文界面
+            {
+                controllerInfo.description += QStringLiteral(
+                    "\n- IMPORTANT (日本語UI)：`description` はユーザーに見える画面上の説明文です。必ず日本語で動作を説明してください（例：ブラウザのアドレスバーをクリックして検索欄にテキストを入力）。");
             }
             controllerInfo.generateToolText();
             available_tools_describe += controllerInfo.text + "\n\n";

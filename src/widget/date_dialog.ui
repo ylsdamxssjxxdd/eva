@@ -573,7 +573,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
      <item>
-      <widget class="QPushButton" name="switch_lan_button">
+      <widget class="QComboBox" name="switch_lan_button">
        <property name="minimumSize">
         <size>
          <width>0</width>
@@ -585,9 +585,21 @@
          <pointsize>9</pointsize>
         </font>
        </property>
-       <property name="text">
-        <string>zh</string>
-       </property>
+       <item>
+        <property name="text">
+         <string>zh</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>en</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ja</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>

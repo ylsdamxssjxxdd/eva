@@ -734,7 +734,24 @@ int main(int argc, char *argv[])
             w.ui_extra_prompt = w.is_load_tool ? w.create_extra_prompt() : QString();
         }
         w.syncDockerSandboxConfig(true);
-        if (settings.value("extra_lan", "zh").toString() != "zh") { w.switch_lan_change(); }
+        // 语言（zh/en/ja）：若用户曾保存则以保存值为准，否则保持系统 locale 推断结果。
+        {
+            QString savedLan = evaLanguageCodeFromFlag(w.language_flag);
+            if (settings.contains("extra_lan"))
+            {
+                const QString raw = settings.value("extra_lan").toString().trimmed().toLower();
+                if (!raw.isEmpty()) savedLan = raw;
+            }
+            if (w.date_ui && w.date_ui->switch_lan_button)
+            {
+                QSignalBlocker blocker(w.date_ui->switch_lan_button);
+                int idx = w.date_ui->switch_lan_button->findText(savedLan);
+                if (idx < 0) idx = w.date_ui->switch_lan_button->findText(evaLanguageCodeFromFlag(evaLanguageFlagFromCode(savedLan)));
+                if (idx >= 0) w.date_ui->switch_lan_button->setCurrentIndex(idx);
+            }
+            // 应用到全局（刷新 UI 文案并同步到 net/tool/expend）
+            w.switch_lan_change();
+        }
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
         if (allowControlHost)
         {

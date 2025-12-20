@@ -151,13 +151,18 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //--------------初始化语言--------------
     QLocale locale = QLocale::system();             // 获取系统locale
     QLocale::Language language = locale.language(); // 获取语言
-    if (locale.languageToString(language) == "Chinese")
+    // 语言索引：0=中文，1=英文，2=日文（默认除中文/日文外都走英文）
+    switch (language)
     {
-        language_flag = 0; // 中文
-    }
-    else
-    {
-        language_flag = 1; // 英文
+    case QLocale::Chinese:
+        language_flag = EVA_LANG_ZH;
+        break;
+    case QLocale::Japanese:
+        language_flag = EVA_LANG_JA;
+        break;
+    default:
+        language_flag = EVA_LANG_EN;
+        break;
     }
 
     StartupLogger::log(QStringLiteral("[widget] 语言资源读取开始"));

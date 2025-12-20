@@ -185,9 +185,9 @@ class Widget : public QWidget
     // 应用关闭时的无进度上限进度对话框（避免退出时等待后端停止的“卡顿”体验）
     bool isShuttingDown_ = false; // 防重入：仅执行一次关机流程
   public:
-    QJsonObject wordsObj;                  // 中文英文
-    void getWords(const QString &languageRoot); // 中文英文
-    int language_flag = 0;                 // 0是中文1是英文
+    QJsonObject wordsObj;                       // 语言资源（key -> [zh,en,ja]）
+    void getWords(const QString &languageRoot); // 加载语言资源（resource qrc）
+    int language_flag = EVA_LANG_ZH;            // 界面语言：0=中文，1=英文，2=日文
     QString jtr(QString customstr) const;  // 根据language.json(wordsObj)和language_flag中找到对应的文字
 
     // ui相关
@@ -744,7 +744,7 @@ class Widget : public QWidget
     // 自用的槽
   public slots:
     void showImages(QStringList images_filepath);                             // 显示文件名和图像
-    void switch_lan_change();                                                 // 切换行动纲领的语言
+    void switch_lan_change();                                                 // 切换界面/工具提示词语种（zh/en/ja）
     void recv_gpu_status(float vmem, float vramp, float vcore, float vfree_); // 更新gpu内存使用率
     void recv_cpu_status(double cpuload, double memload);                     // 传递cpu信息
     void onRecordClicked(int index);

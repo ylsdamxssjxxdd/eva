@@ -30,7 +30,11 @@ void Widget::set_DateDialog()
     connect(date_ui->chattemplate_comboBox, &QComboBox::currentTextChanged, this, &Widget::prompt_template_change);
     connect(date_ui->confirm_button, &QPushButton::clicked, this, &Widget::date_ui_confirm_button_clicked);
     connect(date_ui->cancel_button, &QPushButton::clicked, this, &Widget::date_ui_cancel_button_clicked);
-    connect(date_ui->switch_lan_button, &QPushButton::clicked, this, &Widget::switch_lan_change);
+    // 语言切换：从按钮升级为下拉框（zh/en/ja），并在切换后立即落盘，保证下次启动仍保持用户选择。
+    connect(date_ui->switch_lan_button, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+        switch_lan_change();
+        auto_save_user();
+    });
     connect(date_ui->knowledge_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);       // 点击工具响应
     connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); // 点击工具响应
     connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
@@ -93,13 +97,13 @@ void Widget::set_DateDialog()
             autosave(); });
     }
 
-    if (language_flag == 0)
+    // 默认让“额外指令语种”跟随界面语言（用户可在下拉框手动切换）
+    ui_extra_lan = evaLanguageCodeFromFlag(language_flag);
+    if (date_ui->switch_lan_button)
     {
-        ui_extra_lan = "zh";
-    }
-    if (language_flag == 1)
-    {
-        ui_extra_lan = "en";
+        QSignalBlocker blocker(date_ui->switch_lan_button);
+        const int idx = date_ui->switch_lan_button->findText(ui_extra_lan);
+        if (idx >= 0) date_ui->switch_lan_button->setCurrentIndex(idx);
     }
 
     prompt_template_change(); // ��Ӧ����ʾ��ģ��    // Auto-save on template/tool toggles (no reset)
@@ -260,7 +264,12 @@ void Widget::on_date_clicked()
         if (vis) refreshSkillsUI();
     }
 
-    date_ui->switch_lan_button->setText(ui_extra_lan);
+    if (date_ui->switch_lan_button)
+    {
+        QSignalBlocker blocker(date_ui->switch_lan_button);
+        const int idx = date_ui->switch_lan_button->findText(ui_extra_lan);
+        if (idx >= 0) date_ui->switch_lan_button->setCurrentIndex(idx);
+    }
 
     captureDateDialogSnapshot();
 
@@ -782,7 +791,9 @@ void Widget::restoreDateDialogSnapshot()
         }
         if (date_ui->switch_lan_button)
         {
-            date_ui->switch_lan_button->setText(ui_extra_lan);
+            QSignalBlocker blocker(date_ui->switch_lan_button);
+            const int idx = date_ui->switch_lan_button->findText(ui_extra_lan);
+            if (idx >= 0) date_ui->switch_lan_button->setCurrentIndex(idx);
         }
         updateSkillVisibility(ui_engineer_ischecked);
         if (ui_engineer_ischecked) refreshSkillsUI();
@@ -886,7 +897,9 @@ void Widget::restoreDateDialogSnapshot()
     }
     if (date_ui->switch_lan_button)
     {
-        date_ui->switch_lan_button->setText(snapshot.ui_extra_lan);
+        QSignalBlocker blocker(date_ui->switch_lan_button);
+        const int idx = date_ui->switch_lan_button->findText(snapshot.ui_extra_lan);
+        if (idx >= 0) date_ui->switch_lan_button->setCurrentIndex(idx);
     }
 
     if (skillManager)
