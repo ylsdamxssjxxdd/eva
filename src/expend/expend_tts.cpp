@@ -225,9 +225,18 @@ void Expend::applyVoiceComboItems(const QStringList &voices, const QString &pref
     for (const QString &v : voices)
         ui->speech_voice_comboBox->addItem(v);
 
+    // 选择默认音色的优先级：
+    // 1) 用户已保存/当前传入的 preferred 且在列表中：尊重用户选择
+    // 2) 若音色列表包含 DEFAULT_TTSCPP_VOICE_ID（例如 zf_001）：作为默认音色（开箱即用）
+    // 3) 兜底：选择列表第一个
     QString chosen;
-    if (!preferred.trimmed().isEmpty() && voices.contains(preferred)) chosen = preferred;
-    else if (!voices.isEmpty()) chosen = voices.first();
+    const QString preferredTrimmed = preferred.trimmed();
+    if (!preferredTrimmed.isEmpty() && voices.contains(preferredTrimmed))
+        chosen = preferredTrimmed;
+    else if (voices.contains(QStringLiteral(DEFAULT_TTSCPP_VOICE_ID)))
+        chosen = QStringLiteral(DEFAULT_TTSCPP_VOICE_ID);
+    else if (!voices.isEmpty())
+        chosen = voices.first();
 
     if (!chosen.isEmpty()) ui->speech_voice_comboBox->setCurrentText(chosen);
     ui->speech_voice_comboBox->setEnabled(!voices.isEmpty());

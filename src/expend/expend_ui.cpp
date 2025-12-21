@@ -462,7 +462,9 @@ void Expend::readConfig()
     // - speech_system_voice：系统音色（QVoice::name）
     //
     // 兼容旧格式：speech_name（历史上把“tts.cpp/系统 voice.name()”混用在一个字段里）
-    speech_params.enable_speech = settings.value("speech_enable", false).toBool(); // 是否启用语音朗读
+    // 默认启用文转声：若用户从未配置过该项，则按 DEFAULT_SPEECH_ENABLE 作为缺省值。
+    //（用户后续手动开关会立刻写入 eva_config.ini，启动时将优先读取用户配置）
+    speech_params.enable_speech = settings.value("speech_enable", DEFAULT_SPEECH_ENABLE).toBool(); // 是否启用语音朗读
     speech_params.speech_source = settings.value("speech_source", "").toString();  // 声源
     speech_params.ttscpp_voice = settings.value("speech_ttscpp_voice", "").toString();
     speech_params.system_voice = settings.value("speech_system_voice", "").toString();
