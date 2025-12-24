@@ -319,6 +319,7 @@ class Expend : public QWidget
     QProcess *tts_list_process;             // 枚举 tts.cpp 可用音色（--list-voices）
     QStringList ttscpp_voice_list_cache_;   // 最近一次枚举到的 tts.cpp 音色列表（用于回填/兜底）
     QString ttscpp_voice_list_modelpath_;   // 最近一次枚举音色时使用的模型路径（避免重复枚举）
+    int ttscpp_voice_list_retry_left_ = 0;  // tts.cpp 音色枚举重试剩余次数（处理偶发失败）
 
   signals:
     void expend2ui_speechover();
@@ -353,7 +354,7 @@ class Expend : public QWidget
 
   private:
     void refreshSpeechVoiceUi();               // 按当前声源刷新“可用音色”下拉框
-    void requestTtscppVoiceList();             // 启动 tts-cli --list-voices
+    void requestTtscppVoiceList(bool resetRetryBudget = true); // 启动 tts-cli --list-voices（resetRetryBudget=true 时重置重试次数）
     void applyVoiceComboItems(const QStringList &voices, const QString &preferred); // 填充音色下拉框并回填选择
     // Strict per-preset isolation for SD advanced configuration
     QMap<QString, SDRunConfig> sd_preset_configs_; // key: preset name -> config

@@ -257,9 +257,12 @@ void Expend::applyVoiceComboItems(const QStringList &voices, const QString &pref
 }
 
 // 启动 tts-cli --list-voices 并解析输出填充下拉框
-void Expend::requestTtscppVoiceList()
+void Expend::requestTtscppVoiceList(bool resetRetryBudget)
 {
     if (!ui || !ui->speech_voice_comboBox) return;
+
+    // 用户主动触发时重置重试次数，避免重启后偶发失败必须手动切换
+    if (resetRetryBudget) ttscpp_voice_list_retry_left_ = DEFAULT_TTSCPP_VOICE_LIST_RETRY_COUNT;
 
     const QString modelPath = ui->speech_ttscpp_modelpath_lineEdit->text().trimmed();
     if (modelPath.isEmpty() || !QFileInfo::exists(modelPath))
@@ -335,8 +338,9 @@ void Expend::tts_list_onProcessFinished()
     const QProcess::ExitStatus exitStatus = tts_list_process->exitStatus();
     const QString stdoutText = QString::fromUtf8(tts_list_process->readAllStandardOutput());
     const QString stderrText = QString::fromUtf8(tts_list_process->readAllStandardError());
+    const bool listFailed = (exitStatus != QProcess::NormalExit || exitCode != 0);
 
-    if (exitStatus != QProcess::NormalExit || exitCode != 0)
+    if (listFailed)
     {
         ui->speech_log->appendPlainText(QStringLiteral("[warn] list voices failed (exitCode=%1)").arg(exitCode));
         if (!stderrText.trimmed().isEmpty()) ui->speech_log->appendPlainText(stderrText.trimmed());
@@ -344,6 +348,11 @@ void Expend::tts_list_onProcessFinished()
 
     QStringList voices;
     QString normalized = stdoutText;
+    if (!stderrText.isEmpty())
+    {
+        if (!normalized.isEmpty() && !normalized.endsWith(QLatin1Char('\n'))) normalized += QLatin1Char('\n');
+        normalized += stderrText;
+    }
     normalized.replace(QLatin1Char('\r'), QLatin1Char('\n'));
     const QStringList lines = normalized.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
     for (const QString &line : lines)
@@ -360,12 +369,24 @@ void Expend::tts_list_onProcessFinished()
 
     if (voices.isEmpty())
     {
+        if (ttscpp_voice_list_retry_left_ > 0)
+        {
+            const int left = --ttscpp_voice_list_retry_left_;
+            ui->speech_log->appendPlainText(
+                QStringLiteral("[warn] tts.cpp voice list empty, retrying in %1 ms (%2 left)")
+                    .arg(DEFAULT_TTSCPP_VOICE_LIST_RETRY_DELAY_MS)
+                    .arg(left));
+            QTimer::singleShot(DEFAULT_TTSCPP_VOICE_LIST_RETRY_DELAY_MS, this, [this]()
+                               { requestTtscppVoiceList(false); });
+            return;
+        }
         ui->speech_log->appendPlainText("[warn] no voices found from tts-cli --list-voices");
         ui->speech_voice_comboBox->clear();
         ui->speech_voice_comboBox->setEnabled(false);
         return;
     }
 
+    ttscpp_voice_list_retry_left_ = 0;
     applyVoiceComboItems(voices, speech_params.ttscpp_voice);
     ui->speech_log->appendPlainText(QStringLiteral("[info] tts.cpp voices loaded: %1").arg(voices.size()));
 }

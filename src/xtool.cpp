@@ -2299,32 +2299,52 @@ QString xTool::resolveWorkRoot() const
     return QDir::cleanPath(applicationDirPath + "/EVA_WORK");
 }
 
+QString xTool::resolveSkillsRoot() const
+{
+    // 技能目录优先使用配置注入路径，若为空则回退到程序同级 EVA_SKILLS
+    const QString configured = dockerConfig_.hostSkillsDir.trimmed();
+    if (!configured.isEmpty()) return QDir::cleanPath(configured);
+    return QDir::cleanPath(QDir(applicationDirPath).filePath(QStringLiteral(EVA_SKILLS_DIR_RELATIVE)));
+}
+
 QString xTool::resolveHostPathWithinWorkdir(const QString &inputPath, QString *errorMessage) const
 {
-    const QString root = QDir::cleanPath(resolveWorkRoot());
-    QDir rootDir(root);
+    const QString workRoot = QDir::cleanPath(resolveWorkRoot());
+    const QString skillsRoot = QDir::cleanPath(resolveSkillsRoot());
     QString trimmed = QDir::fromNativeSeparators(inputPath.trimmed());
     if (trimmed.isEmpty()) trimmed = QStringLiteral(".");
+    QString baseRoot = workRoot;
     if (dockerSandboxEnabled())
     {
         QString containerRoot = dockerSandbox_ && !dockerSandbox_->containerWorkdir().isEmpty() ? dockerSandbox_->containerWorkdir()
                                                                                                : DockerSandbox::defaultContainerWorkdir();
         containerRoot = normalizeUnixPath(containerRoot.startsWith('/') ? containerRoot : QStringLiteral("/") + containerRoot);
+        QString skillsRootMount = DockerSandbox::skillsMountPoint();
+        skillsRootMount = normalizeUnixPath(skillsRootMount.startsWith('/') ? skillsRootMount : QStringLiteral("/") + skillsRootMount);
         QString normalizedInput = normalizeUnixPath(trimmed);
         if (normalizedInput.startsWith('/'))
         {
-            QString prefix = containerRoot;
-            if (!prefix.endsWith('/')) prefix += '/';
-            if (normalizedInput == containerRoot)
-            {
-                trimmed = QStringLiteral(".");
-            }
-            else if (normalizedInput.startsWith(prefix))
-            {
-                trimmed = normalizedInput.mid(prefix.length());
-                if (trimmed.isEmpty()) trimmed = QStringLiteral(".");
-            }
-            else
+            auto stripContainerRoot = [&](const QString &containerPath, const QString &hostRoot) -> bool {
+                if (containerPath.isEmpty() || hostRoot.isEmpty()) return false;
+                QString prefix = containerPath;
+                if (!prefix.endsWith('/')) prefix += '/';
+                if (normalizedInput == containerPath)
+                {
+                    trimmed = QStringLiteral(".");
+                    baseRoot = hostRoot;
+                    return true;
+                }
+                if (normalizedInput.startsWith(prefix))
+                {
+                    trimmed = normalizedInput.mid(prefix.length());
+                    if (trimmed.isEmpty()) trimmed = QStringLiteral(".");
+                    baseRoot = hostRoot;
+                    return true;
+                }
+                return false;
+            };
+            // 允许容器内工作区与技能目录的绝对路径映射到宿主机
+            if (!stripContainerRoot(containerRoot, workRoot) && !stripContainerRoot(skillsRootMount, skillsRoot))
             {
                 if (errorMessage) *errorMessage = QStringLiteral("Access denied: path outside docker workspace -> %1").arg(inputPath);
                 return {};
@@ -2335,7 +2355,7 @@ QString xTool::resolveHostPathWithinWorkdir(const QString &inputPath, QString *e
     const bool looksUnixAbsolute = trimmed.startsWith('/');
     if (trimmed == QStringLiteral("."))
     {
-        candidate = root;
+        candidate = baseRoot;
     }
     else if (QDir::isAbsolutePath(trimmed) || looksUnixAbsolute)
     {
@@ -2343,21 +2363,26 @@ QString xTool::resolveHostPathWithinWorkdir(const QString &inputPath, QString *e
     }
     else
     {
-        candidate = QDir::cleanPath(rootDir.filePath(trimmed));
+        candidate = QDir::cleanPath(QDir(baseRoot).filePath(trimmed));
     }
-    const QString normalizedRootFs = QDir::fromNativeSeparators(root);
     const QString normalizedCandidateFs = QDir::fromNativeSeparators(candidate);
 #ifdef _WIN32
     const Qt::CaseSensitivity cs = Qt::CaseInsensitive;
 #else
     const Qt::CaseSensitivity cs = Qt::CaseSensitive;
 #endif
-    QString prefix = normalizedRootFs;
-    if (!prefix.endsWith('/')) prefix += '/';
-    const bool insideRoot = normalizedCandidateFs.compare(normalizedRootFs, cs) == 0 || normalizedCandidateFs.startsWith(prefix, cs);
-    if (!insideRoot)
+    auto isInsideRoot = [&](const QString &rootPath) -> bool {
+        if (rootPath.isEmpty()) return false;
+        const QString normalizedRootFs = QDir::fromNativeSeparators(QDir::cleanPath(rootPath));
+        if (normalizedRootFs.isEmpty()) return false;
+        QString prefix = normalizedRootFs;
+        if (!prefix.endsWith('/')) prefix += '/';
+        return normalizedCandidateFs.compare(normalizedRootFs, cs) == 0 || normalizedCandidateFs.startsWith(prefix, cs);
+    };
+    const bool insideAllowed = isInsideRoot(workRoot) || isInsideRoot(skillsRoot);
+    if (!insideAllowed)
     {
-        if (errorMessage) *errorMessage = QStringLiteral("Access denied: path outside work root -> %1").arg(QDir::toNativeSeparators(candidate));
+        if (errorMessage) *errorMessage = QStringLiteral("Access denied: path outside permitted roots -> %1").arg(QDir::toNativeSeparators(candidate));
         return {};
     }
     return candidate;

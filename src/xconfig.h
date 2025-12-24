@@ -143,6 +143,9 @@ inline QString evaLanguageCodeFromFlag(int flag)
 // 2) tts.cpp 枚举音色后：若列表包含指定默认音色 id，则优先选中它（用户仍可手动切换）。
 #define DEFAULT_SPEECH_ENABLE true
 #define DEFAULT_TTSCPP_VOICE_ID "zf_001"
+// tts.cpp 音色枚举偶发失败时的自动重试策略
+#define DEFAULT_TTSCPP_VOICE_LIST_RETRY_COUNT 2
+#define DEFAULT_TTSCPP_VOICE_LIST_RETRY_DELAY_MS 800
 
 //------------------------------------------------------------------------------
 // EVA_TEMP：机体临时/持久化目录
@@ -155,6 +158,13 @@ inline QString evaLanguageCodeFromFlag(int flag)
 #define EVA_TEMP_DIR_RELATIVE "EVA_TEMP"
 #define EVA_TEMP_SD_DIR_RELATIVE "EVA_TEMP/sd"
 #define EVA_TEMP_TTS_DIR_RELATIVE "EVA_TEMP/tts"
+
+// EVA_SKILLS：技能包目录（与可执行程序同级）
+// 说明：
+// 1) EVA_SKILLS 用于存放技能包，每个子目录对应一个技能。
+// 2) SkillManager 与工程师工具共享该路径，确保读写白名单一致。
+// 3) 该值是相对路径片段，组合方式：QDir(applicationDirPath).filePath(EVA_SKILLS_DIR_RELATIVE)
+#define EVA_SKILLS_DIR_RELATIVE "EVA_SKILLS"
 
 // 不同操作系统相关
 #ifdef _WIN32

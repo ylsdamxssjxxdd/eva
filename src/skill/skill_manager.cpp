@@ -1,4 +1,5 @@
 #include "skill_manager.h"
+#include "../xconfig.h"
 
 #include <QCoreApplication>
 #include <QDirIterator>
@@ -137,7 +138,7 @@ SkillManager::ImportResult performImportJob(const QString &zipPath, const QStrin
     QDir root(skillsRoot);
     if (!root.exists() && !root.mkpath(QStringLiteral(".")))
     {
-        result.message = QObject::tr("Failed to create EVA_SKILLS directory.");
+        result.message = QObject::tr("Failed to create %1 directory.").arg(QStringLiteral(EVA_SKILLS_DIR_RELATIVE));
         return result;
     }
 
@@ -214,7 +215,7 @@ SkillManager::SkillManager(QObject *parent)
 void SkillManager::setApplicationDir(const QString &appDir)
 {
     applicationDir_ = QDir::cleanPath(appDir);
-    skillsRoot_ = QDir(applicationDir_).filePath(QStringLiteral("EVA_SKILLS"));
+    skillsRoot_ = QDir(applicationDir_).filePath(QStringLiteral(EVA_SKILLS_DIR_RELATIVE));
 }
 
 bool SkillManager::ensureSkillsRoot()
@@ -268,7 +269,7 @@ SkillManager::ImportResult SkillManager::importSkillArchive(const QString &zipPa
     ImportResult result;
     if (!ensureSkillsRoot())
     {
-        result.message = tr("Failed to create EVA_SKILLS directory.");
+        result.message = tr("Failed to create %1 directory.").arg(QStringLiteral(EVA_SKILLS_DIR_RELATIVE));
         finalizeImport(result);
         return result;
     }
@@ -365,17 +366,22 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir,
         return QString();
     }();
 
+    // 技能提示词：强化技能触发条件与“先读 SKILL.md 再执行”的流程
+    segments << QStringLiteral("\n");
     segments << QStringLiteral("[Skill Usage Protocol]");
-    segments << QStringLiteral("Follow the Agent Skills specification. Treat each mounted skill as an extension to be activated deliberately.");
-    segments << QStringLiteral("Use the YAML frontmatter below to understand when a skill applies. Before relying on a skill, call the `read_file` tool to load its `SKILL.md` for full instructions.");
+    segments << QStringLiteral("1) Skills are opt-in playbooks. Use a skill only when the task matches its YAML frontmatter.");
+    segments << QStringLiteral("2) Use the SKILL.md paths listed below and read them with `read_file` before relying on a skill.");
+    segments << QStringLiteral("3) Follow the skill workflow exactly; do not invent missing steps. Prefer bundled scripts/templates/assets.");
+    segments << QStringLiteral("4) If multiple skills match, choose the most specific; if unsure, ask the user to choose.");
+    segments << QStringLiteral("5) Only claim a skill was used after executing its steps.");
     if (!workDisplay.isEmpty())
     {
-        segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory (%1). Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.")
+        segments << QStringLiteral("6) Run skill scripts via `execute_command` inside the engineer work directory (%1) and write outputs back into the engineer workspace.")
                         .arg(workDisplay);
     }
     else
     {
-        segments << QStringLiteral("Run any scripts packaged with a skill via the `execute_command` tool while staying inside the engineer work directory. Reference the absolute skill paths listed below and write all generated artefacts back into the engineer workspace.");
+        segments << QStringLiteral("6) Run skill scripts via `execute_command` inside the engineer work directory and write outputs back into the engineer workspace.");
     }
 
     segments << QString();
@@ -576,7 +582,7 @@ void SkillManager::processNextQueuedImport()
     if (!ensureSkillsRoot())
     {
         ImportResult result;
-        result.message = tr("Failed to create EVA_SKILLS directory.");
+        result.message = tr("Failed to create %1 directory.").arg(QStringLiteral(EVA_SKILLS_DIR_RELATIVE));
         finalizeImport(result);
         pendingImports_.clear();
         return;

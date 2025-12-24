@@ -161,6 +161,8 @@ class xTool : public QObject
     void handleMcpToolList(const ToolInvocationPtr &invocation);
     void handleMcpToolCall(const ToolInvocationPtr &invocation);
     QString resolveWorkRoot() const;
+    // 统一技能目录根路径，供工具白名单判断使用
+    QString resolveSkillsRoot() const;
     QString resolveHostPathWithinWorkdir(const QString &inputPath, QString *errorMessage = nullptr) const;
     bool resolveToolPath(const QString &inputPath, ToolPathResolution *resolution, QString *errorMessage = nullptr) const;
     void ensureWorkdirExists(const QString &work) const;

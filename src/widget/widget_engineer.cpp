@@ -1109,7 +1109,7 @@ void Widget::syncDockerSandboxConfig(bool forceEmit)
     }
     if (skillsRoot.isEmpty())
     {
-        skillsRoot = QDir(applicationDirPath).filePath(QStringLiteral("EVA_SKILLS"));
+        skillsRoot = QDir(applicationDirPath).filePath(QStringLiteral(EVA_SKILLS_DIR_RELATIVE));
     }
     cfg.hostSkillsDir = skillsRoot.trimmed();
     if (!cfg.hostSkillsDir.isEmpty()) cfg.hostSkillsDir = QDir::cleanPath(cfg.hostSkillsDir);
