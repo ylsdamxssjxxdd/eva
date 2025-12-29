@@ -167,6 +167,25 @@ inline QUrl resolve_endpoint(const QString &baseValue, const QString &endpointVa
     return base.resolved(relative);
 }
 
+inline QUrl normalize_streamable_http_base_url(const QUrl &baseUrl)
+{
+    if (!baseUrl.isValid() || baseUrl.scheme().isEmpty()) return baseUrl;
+    QUrl normalized(baseUrl);
+    QString path = normalized.path();
+    if (path.isEmpty())
+    {
+        normalized.setPath(QStringLiteral("/"));
+        return normalized;
+    }
+    if (!path.endsWith('/'))
+    {
+        // Streamable HTTP 端点补齐末尾斜杠，避免部分服务返回 307 重定向
+        path.append('/');
+        normalized.setPath(path);
+    }
+    return normalized;
+}
+
 } // namespace mcp_internal
 
 class McpToolManager
@@ -402,7 +421,7 @@ class McpToolManager
                 serverConfig.args.append(QString::fromStdString(arg));
             }
         }
-        else if (type == "streamablehttp" || type == "http")
+        else if (type == "streamablehttp" || type == "streamable-http" || type == "streamable_http" || type == "http")
         {
             serverConfig.transport = qmcp::TransportType::StreamableHttp;
             const std::string baseUrl = get_string_safely(config, "baseUrl", get_string_safely(config, "url"));
@@ -415,6 +434,7 @@ class McpToolManager
             {
                 throw client_exception("Streamable HTTP baseUrl must be an absolute URL");
             }
+            serverConfig.baseUrl = mcp_internal::normalize_streamable_http_base_url(serverConfig.baseUrl);
         }
         else
         {

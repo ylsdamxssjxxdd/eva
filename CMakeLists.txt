@@ -4,7 +4,7 @@ project(body)
 enable_testing()
 set(EVA_TARGET eva)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(version b7415)
+set(version b7566)
 
 # 输出目录（所有构建类型）
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
