@@ -651,6 +651,11 @@ void Widget::onServerStartFailed(const QString &reason)
     {
         return;
     }
+    if (triggerBackendFallback(attemptedBackend, QStringLiteral("start failure")))
+    {
+        return;
+    }
+    resetBackendFallbackState(QStringLiteral("start failure"));
     // 明确允许打开“设置/约定”以便更换后端/设备/提示词
     if (ui && ui->set) ui->set->setEnabled(true);
     if (ui && ui->date) ui->date->setEnabled(true);

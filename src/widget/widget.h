@@ -377,6 +377,8 @@ class Widget : public QWidget
     bool portFallbackInFlight_ = false;       // 标记当前是否在端口降级流程中
     bool portConflictDetected_ = false;       // 最近一次 llama-server 输出中检测到端口占用
     bool backendOnline_ = false;
+    bool backendFallbackActive_ = false;    // 是否处于自动后端回退流程（避免循环）
+    QStringList backendFallbackTried_;      // 本轮已尝试过的后端列表
     bool lazyWakeInFlight_ = false;
     bool lazyUnloaded_ = false;
     QTimer *lazyUnloadTimer_ = nullptr;
@@ -439,6 +441,9 @@ class Widget : public QWidget
     bool lazyUnloadEnabled() const;
     bool shouldArmWin7CpuFallback() const;
     bool triggerWin7CpuFallback(const QString &reasonTag);
+    void resetBackendFallbackState(const QString &reasonTag = QString());
+    QString pickNextBackendFallback(const QString &failedBackend) const;
+    bool triggerBackendFallback(const QString &failedBackend, const QString &reasonTag);
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;

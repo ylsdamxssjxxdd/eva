@@ -96,6 +96,24 @@ inline QString evaLanguageCodeFromFlag(int flag)
 #define DEFAULT_FLASH_ATTN true  // 默认开启注意力加速
 #define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
 
+// CUDA åŽç«¯ç‰ˆæœ¬çº¦æŸï¼šå½“å‰å†…ç½® CUDA 版 llama.cpp åªæ”¯æŒ?CUDA 12ï¼Œ
+// å› æ­¤åŽç«¯è·¯å¾„è§£æžæ—¶éœ€è¦åŒæ—¶æ£€æŸ¥ CUDA 12 runtime ä¾èµ–ã€?
+#define DEFAULT_CUDA_REQUIRED_MAJOR 12
+#define DEFAULT_CUDA_REQUIRE_RUNTIME_LIBS true
+#if defined(Q_OS_WIN)
+inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {
+    QStringLiteral("cudart64_12*.dll"),
+    QStringLiteral("cublas64_12*.dll"),
+};
+#elif defined(Q_OS_LINUX)
+inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {
+    QStringLiteral("libcudart.so.12*"),
+    QStringLiteral("libcublas.so.12*"),
+};
+#else
+inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
+#endif
+
 #define DEFAULT_NGL 0
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
 #define DEFAULT_CONTROL_PORT 61550             // 远程控制监听端口

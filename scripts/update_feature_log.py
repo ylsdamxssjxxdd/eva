@@ -104,7 +104,7 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 2
 
-    entry_line = f"{date_prefix}：{content}"
+    entry_line = f"- {date_prefix}：{content}"
     target_path = resolve_target_path(args.path)
     # 确保目标目录存在，避免首次写入时报错。
     target_path.parent.mkdir(parents=True, exist_ok=True)

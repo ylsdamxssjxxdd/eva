@@ -86,6 +86,7 @@ void Widget::on_load_clicked()
             settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
         }
 
+        resetBackendFallbackState(QStringLiteral("manual load"));
         // 启动/重启本地 llama-server（内部会根据是否需要重启来切换到“装载中”状态）
         ensureLocalServer();
     }

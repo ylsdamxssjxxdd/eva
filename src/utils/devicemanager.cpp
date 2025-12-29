@@ -302,9 +302,233 @@ QVector<DeviceManager::BackendExecutableInfo> DeviceManager::enumerateExecutable
     return result;
 }
 
+// ---------------------------------------------------------------------------
+// CUDA 12 runtime 探测辅助：用于在选择 CUDA 后端前判断运行时依赖是否可用
+// ---------------------------------------------------------------------------
+static QStringList osSearchOrder();
+
+static QStringList splitSearchPaths(const QString &raw)
+{
+    QStringList out;
+    const QChar sep = QDir::listSeparator();
+    const QStringList parts = raw.split(sep, Qt::SkipEmptyParts);
+    for (const QString &p : parts)
+    {
+        const QString cleaned = QDir::cleanPath(p.trimmed());
+        if (!cleaned.isEmpty()) out << cleaned;
+    }
+    out.removeDuplicates();
+    return out;
+}
+
+static QStringList cudaRuntimePatterns()
+{
+    return DEFAULT_CUDA_RUNTIME_LIB_PATTERNS;
+}
+
+static QStringList cudaRuntimeSearchDirs(const QString &exeDir)
+{
+    QStringList dirs;
+    if (!exeDir.trimmed().isEmpty())
+    {
+        dirs << QDir::cleanPath(exeDir.trimmed());
+    }
+    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+#if defined(Q_OS_WIN)
+    dirs << splitSearchPaths(env.value(QStringLiteral("PATH")));
+#elif defined(Q_OS_LINUX)
+    dirs << splitSearchPaths(env.value(QStringLiteral("LD_LIBRARY_PATH")));
+    // 常见系统库目录补充（避免 LD_LIBRARY_PATH 为空导致误判）
+    dirs << QStringLiteral("/usr/lib")
+         << QStringLiteral("/usr/lib64")
+         << QStringLiteral("/usr/lib/x86_64-linux-gnu")
+         << QStringLiteral("/usr/local/lib")
+         << QStringLiteral("/usr/local/cuda/lib")
+         << QStringLiteral("/usr/local/cuda/lib64");
+#elif defined(Q_OS_MAC)
+    dirs << splitSearchPaths(env.value(QStringLiteral("DYLD_LIBRARY_PATH")));
+#endif
+    dirs.removeDuplicates();
+    return dirs;
+}
+
+static bool dirHasPattern(const QString &dirPath, const QString &pattern)
+{
+    if (dirPath.trimmed().isEmpty()) return false;
+    QDir dir(dirPath);
+    if (!dir.exists()) return false;
+    return !dir.entryList(QStringList{pattern}, QDir::Files).isEmpty();
+}
+
+static bool hasRequiredPatternsInDirs(const QStringList &dirs, const QStringList &patterns, QStringList *missing)
+{
+    if (patterns.isEmpty()) return true;
+    QSet<int> found;
+    for (const QString &dir : dirs)
+    {
+        for (int i = 0; i < patterns.size(); ++i)
+        {
+            if (found.contains(i)) continue;
+            if (dirHasPattern(dir, patterns.at(i)))
+            {
+                found.insert(i);
+            }
+        }
+        if (found.size() == patterns.size()) break;
+    }
+    if (missing)
+    {
+        missing->clear();
+        for (int i = 0; i < patterns.size(); ++i)
+        {
+            if (!found.contains(i)) missing->append(patterns.at(i));
+        }
+    }
+    return found.size() == patterns.size();
+}
+
+static void scanDirRecursivelyForPatterns(const QString &root, const QStringList &patterns, QSet<int> *found)
+{
+    if (!found || patterns.isEmpty()) return;
+    if (root.trimmed().isEmpty()) return;
+    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext() && found->size() < patterns.size())
+    {
+        const QString filePath = it.next();
+        const QString fileName = QFileInfo(filePath).fileName();
+        for (int i = 0; i < patterns.size(); ++i)
+        {
+            if (found->contains(i)) continue;
+            if (QDir::match(patterns.at(i), fileName))
+            {
+                found->insert(i);
+            }
+        }
+    }
+}
+
+static bool queryCudaDriverVersion(int *outVersion)
+{
+#if defined(Q_OS_WIN)
+    QLibrary lib(QStringLiteral("nvcuda"));
+#elif defined(Q_OS_LINUX)
+    QLibrary lib(QStringLiteral("libcuda.so.1"));
+#else
+    QLibrary lib;
+#endif
+    if (!lib.load()) return false;
+    using CuDriverGetVersionFn = int (*)(int *);
+    auto fn = reinterpret_cast<CuDriverGetVersionFn>(lib.resolve("cuDriverGetVersion"));
+    if (!fn)
+    {
+        lib.unload();
+        return false;
+    }
+    int version = 0;
+    const int rc = fn(&version);
+    lib.unload();
+    if (rc != 0) return false;
+    if (outVersion) *outVersion = version;
+    return true;
+}
+
+static bool hasCudaRuntimeInBackendDirs(QStringList *missing, QString *hitDir)
+{
+    if (!DEFAULT_CUDA_REQUIRE_RUNTIME_LIBS) return true;
+    const QStringList patterns = cudaRuntimePatterns();
+    if (patterns.isEmpty()) return true;
+
+    const QStringList roots = DeviceManager::candidateBackendRoots();
+    if (roots.isEmpty()) return false;
+
+    const QString arch = DeviceManager::currentArchId();
+    const QStringList osOrder = osSearchOrder();
+    const QString project = DeviceManager::projectForProgram(QStringLiteral("llama-server"));
+
+    for (const QString &root : roots)
+    {
+        for (const QString &osName : osOrder)
+        {
+            const QString deviceDir = QDir(QDir(root).filePath(arch)).filePath(osName + QStringLiteral("/cuda"));
+            if (!QDir(deviceDir).exists()) continue;
+
+            const QString projDir = QDir(deviceDir).filePath(project);
+            QSet<int> found;
+            if (QDir(projDir).exists())
+            {
+                scanDirRecursivelyForPatterns(projDir, patterns, &found);
+            }
+            if (found.size() < patterns.size())
+            {
+                scanDirRecursivelyForPatterns(deviceDir, patterns, &found);
+            }
+            if (found.size() == patterns.size())
+            {
+                if (hitDir) *hitDir = QDir::cleanPath(QDir(projDir).exists() ? projDir : deviceDir);
+                return true;
+            }
+        }
+    }
+
+    if (missing) *missing = patterns;
+    return false;
+}
+
+static bool cudaRuntimeReadyForHost(QString *detail)
+{
+    if (!DEFAULT_CUDA_REQUIRE_RUNTIME_LIBS) return true;
+    const QStringList patterns = cudaRuntimePatterns();
+    if (patterns.isEmpty()) return true;
+
+    const int skipRuntimeProbe = qEnvironmentVariableIntValue("EVA_SKIP_CUDA_RUNTIME_CHECK");
+    if (skipRuntimeProbe != 0)
+    {
+        qInfo().noquote() << "[backend-probe] EVA_SKIP_CUDA_RUNTIME_CHECK=1 -> skip CUDA runtime probe";
+        return true;
+    }
+
+    const QStringList searchDirs = cudaRuntimeSearchDirs(QString());
+    QStringList missing;
+    if (hasRequiredPatternsInDirs(searchDirs, patterns, &missing)) return true;
+
+    QString backendHit;
+    if (hasCudaRuntimeInBackendDirs(nullptr, &backendHit)) return true;
+
+    if (detail)
+    {
+        const QString miss = missing.isEmpty() ? patterns.join(QStringLiteral(", ")) : missing.join(QStringLiteral(", "));
+        *detail = QStringLiteral("missing: %1; PATH=%2").arg(miss, searchDirs.join(QStringLiteral("; ")));
+    }
+    return false;
+}
+
+static bool cudaRuntimeReadyForExecutable(const QString &exePath, QString *detail)
+{
+    if (!DEFAULT_CUDA_REQUIRE_RUNTIME_LIBS) return true;
+    const QStringList patterns = cudaRuntimePatterns();
+    if (patterns.isEmpty()) return true;
+
+    const QString exeDir = QFileInfo(exePath).absolutePath();
+    const QStringList dirs = cudaRuntimeSearchDirs(exeDir);
+    QStringList missing;
+    const bool ok = hasRequiredPatternsInDirs(dirs, patterns, &missing);
+    if (ok) return true;
+
+    if (detail)
+    {
+        QStringList hint = missing;
+        hint.removeDuplicates();
+        *detail = QStringLiteral("missing: %1; search=%2")
+                      .arg(hint.join(QStringLiteral(", ")), dirs.join(QStringLiteral("; ")));
+    }
+    return false;
+}
+
 // --- Runtime capability probes (very lightweight; best-effort) ---
 static bool supportsCuda()
 {
+    static int cached = -1;
+    if (cached != -1) return cached != 0;
     // 允许通过环境变量跳过 GPU 驱动探测，便于在 Win7 等老环境规避 nvcuda 初始化触发的非法指令
     static const bool skipProbe = (qEnvironmentVariableIntValue("EVA_SKIP_CUDA_PROBE") != 0);
     if (skipProbe)
@@ -315,25 +539,65 @@ static bool supportsCuda()
             logged = true;
             qInfo().noquote() << "[backend-probe] EVA_SKIP_CUDA_PROBE=1 -> skip CUDA driver probe";
         }
+        cached = 0;
         return false;
     }
 #if defined(Q_OS_WIN)
     QLibrary lib(QStringLiteral("nvcuda"));
-    const bool ok = lib.load();
-    if (ok) lib.unload();
-    return ok;
+    bool driverOk = lib.load();
+    if (driverOk) lib.unload();
 #elif defined(Q_OS_LINUX)
     QLibrary lib(QStringLiteral("libcuda.so.1"));
-    if (lib.load())
+    bool driverOk = lib.load();
+    if (driverOk) lib.unload();
+    if (!driverOk)
     {
-        lib.unload();
-        return true;
+        // Fallback heuristics
+        driverOk = QFileInfo::exists("/proc/driver/nvidia/version") || QFileInfo::exists("/dev/nvidiactl");
     }
-    // Fallback heuristics
-    return QFileInfo::exists("/proc/driver/nvidia/version") || QFileInfo::exists("/dev/nvidiactl");
 #else
-    return false; // no CUDA on macOS and others
+    bool driverOk = false;
 #endif
+    if (!driverOk)
+    {
+        cached = 0;
+        return false;
+    }
+
+    // CUDA 12 only: driver 版本过低时直接视为不可用
+    if (DEFAULT_CUDA_REQUIRED_MAJOR > 0)
+    {
+        int driverVersion = 0;
+        if (queryCudaDriverVersion(&driverVersion))
+        {
+            const int required = DEFAULT_CUDA_REQUIRED_MAJOR * 1000;
+            if (driverVersion < required)
+            {
+                qInfo().noquote() << QStringLiteral("[backend-probe] CUDA driver version %1 < %2 (CUDA %3)")
+                                         .arg(driverVersion)
+                                         .arg(required)
+                                         .arg(DEFAULT_CUDA_REQUIRED_MAJOR);
+                cached = 0;
+                return false;
+            }
+        }
+        else
+        {
+            qInfo().noquote() << "[backend-probe] CUDA driver version unavailable; assume compatible";
+        }
+    }
+
+    // CUDA 12 runtime 依赖缺失时，直接阻止选择 CUDA 后端
+    QString runtimeDetail;
+    if (!cudaRuntimeReadyForHost(&runtimeDetail))
+    {
+        qInfo().noquote() << QStringLiteral("[backend-probe] CUDA runtime not ready (%1)").arg(runtimeDetail);
+        cached = 0;
+        return false;
+    }
+
+    cached = 1;
+    return true;
 }
 static bool supportsVulkan()
 {
@@ -751,6 +1015,19 @@ QString DeviceManager::programPath(const QString &name)
 
     g_lastResolvedDevice.remove(roleId);
 
+    auto acceptCandidate = [&](const QString &device, const QString &path) -> bool
+    {
+        if (device != QStringLiteral("cuda")) return true;
+        QString detail;
+        if (!cudaRuntimeReadyForExecutable(path, &detail))
+        {
+            qInfo().noquote() << QStringLiteral("[backend-probe] CUDA runtime not ready for %1 (%2)")
+                                     .arg(QDir::toNativeSeparators(path), detail);
+            return false;
+        }
+        return true;
+    };
+
     for (const QString &root : roots)
     {
         QString osDir;
@@ -773,12 +1050,14 @@ QString DeviceManager::programPath(const QString &name)
                 const QString direct = QDir(projDirNew).filePath(exe);
                 if (QFileInfo::exists(direct))
                 {
+                    if (!acceptCandidate(device, direct)) continue;
                     g_lastResolvedDevice.insert(roleId, device);
                     return direct;
                 }
                 const QString rec = findProgramRecursive(projDirNew, exe);
                 if (!rec.isEmpty())
                 {
+                    if (!acceptCandidate(device, rec)) continue;
                     g_lastResolvedDevice.insert(roleId, device);
                     return rec;
                 }
@@ -789,6 +1068,7 @@ QString DeviceManager::programPath(const QString &name)
                 const QString rec = findProgramRecursive(devDirNew, exe);
                 if (!rec.isEmpty())
                 {
+                    if (!acceptCandidate(device, rec)) continue;
                     g_lastResolvedDevice.insert(roleId, device);
                     return rec;
                 }

@@ -760,6 +760,7 @@ void Widget::onServerReady(const QString &endpoint)
     win7CpuFallbackArmed_ = false;
     win7CpuFallbackTriggered_ = false;
     backendOnline_ = true;
+    resetBackendFallbackState(QStringLiteral("backend ready"));
     lazyUnloaded_ = false;
     lazyWakeInFlight_ = false;
     applyWakeUiLock(false);
@@ -950,6 +951,88 @@ bool Widget::triggerWin7CpuFallback(const QString &reasonTag)
     }
     refreshDeviceBackendUI();
     reflash_state(QStringLiteral("ui:Win7 cpu backend failed (%1) -> retrying cpu-noavx").arg(reasonTag), WRONG_SIGNAL);
+    QTimer::singleShot(0, this, [this]()
+                       { ensureLocalServer(); });
+    return true;
+}
+
+void Widget::resetBackendFallbackState(const QString &reasonTag)
+{
+    Q_UNUSED(reasonTag);
+    backendFallbackActive_ = false;
+    backendFallbackTried_.clear();
+}
+
+QString Widget::pickNextBackendFallback(const QString &failedBackend) const
+{
+    const QString failed = failedBackend.trimmed().toLower();
+    QStringList order = DeviceManager::preferredOrder();
+    const QStringList available = DeviceManager::availableBackends();
+
+    // 如果系统提供了 cpu-noavx，但默认顺序里没有，也补到末尾兜底
+    if (available.contains(QStringLiteral("cpu-noavx")) && !order.contains(QStringLiteral("cpu-noavx")))
+    {
+        order << QStringLiteral("cpu-noavx");
+    }
+
+    int startIndex = order.indexOf(failed);
+    if (startIndex < 0) startIndex = -1;
+    for (int i = startIndex + 1; i < order.size(); ++i)
+    {
+        const QString candidate = order.at(i);
+        if (candidate.isEmpty()) continue;
+        if (backendFallbackTried_.contains(candidate)) continue;
+        if (!available.contains(candidate)) continue;
+        if (DeviceManager::effectiveBackendFor(candidate) != candidate) continue;
+        return candidate;
+    }
+    return QString();
+}
+
+bool Widget::triggerBackendFallback(const QString &failedBackend, const QString &reasonTag)
+{
+    const QString failed = failedBackend.trimmed().toLower();
+    if (failed.isEmpty()) return false;
+
+    const QString choice = DeviceManager::userChoice();
+    if (choice == QStringLiteral("custom")) return false;
+    if (!DeviceManager::programOverride(QStringLiteral("llama-server-main")).isEmpty()) return false;
+
+    const bool autoMode = (choice == QStringLiteral("auto"));
+    const bool failedIsCpu = (failed == QStringLiteral("cpu") || failed == QStringLiteral("cpu-noavx"));
+    if (!autoMode && failedIsCpu) return false;
+
+    if (!backendFallbackActive_) backendFallbackTried_.clear();
+    backendFallbackActive_ = true;
+    if (!backendFallbackTried_.contains(failed)) backendFallbackTried_.append(failed);
+
+    const QString next = pickNextBackendFallback(failed);
+    if (next.isEmpty())
+    {
+        resetBackendFallbackState(QStringLiteral("fallback exhausted"));
+        return false;
+    }
+
+    DeviceManager::setUserChoice(next);
+    ui_device_backend = next;
+    lastDeviceBeforeCustom_ = next;
+    if (settings_ui && settings_ui->device_comboBox)
+    {
+        int idx = settings_ui->device_comboBox->findText(next);
+        if (idx < 0)
+        {
+            settings_ui->device_comboBox->addItem(next);
+            idx = settings_ui->device_comboBox->findText(next);
+        }
+        if (idx >= 0)
+        {
+            QSignalBlocker blocker(settings_ui->device_comboBox);
+            settings_ui->device_comboBox->setCurrentIndex(idx);
+        }
+    }
+    refreshDeviceBackendUI();
+    reflash_state(QStringLiteral("ui:backend fallback -> %1 (%2)").arg(next, reasonTag), WRONG_SIGNAL);
+
     QTimer::singleShot(0, this, [this]()
                        { ensureLocalServer(); });
     return true;
