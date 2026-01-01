@@ -392,7 +392,8 @@ void xNet::run()
             const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
             Q_UNUSED(tokps);
 
-            if (err == QNetworkReply::NoError)
+            const bool httpError = (httpCode >= 400);
+            if (err == QNetworkReply::NoError && !httpError)
             {
                 emitFlowLog(QStringLiteral("net:done http=%1 tokens=%2 promptTok=%3 genTok=%4")
                                 .arg(httpCode)
@@ -400,11 +401,68 @@ void xNet::run()
                                 .arg(promptTokens_)
                                 .arg(predictedTokens_),
                             SIGNAL_SIGNAL);
+                if (!firstByteSeen_)
+                {
+                    emit net2ui_state(QStringLiteral("net: stream closed without data"), WRONG_SIGNAL);
+                }
             }
             else
             {
-                QString errStr = reply_ ? reply_->errorString() : QString("unknown error");
-                emitFlowLog(QStringLiteral("net:error http=%1 %2").arg(httpCode).arg(errStr), WRONG_SIGNAL);
+                QString errStr = reply_ ? reply_->errorString() : QStringLiteral("unknown error");
+                if (httpError)
+                {
+                    // HTTP 错误但 Qt 未标记网络错误时，尝试从响应体提取错误信息用于状态区提示
+                    QString detail;
+                    if (reply_)
+                    {
+                        const QByteArray body = reply_->readAll();
+                        if (!body.isEmpty())
+                        {
+                            QJsonParseError perr{};
+                            const QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+                            if (perr.error == QJsonParseError::NoError && doc.isObject())
+                            {
+                                const QJsonObject obj = doc.object();
+                                if (obj.contains(QStringLiteral("error")))
+                                {
+                                    const QJsonValue errVal = obj.value(QStringLiteral("error"));
+                                    if (errVal.isString())
+                                    {
+                                        detail = errVal.toString();
+                                    }
+                                    else if (errVal.isObject())
+                                    {
+                                        const QJsonObject errObj = errVal.toObject();
+                                        const QJsonValue msgVal = errObj.value(QStringLiteral("message"));
+                                        if (msgVal.isString()) detail = msgVal.toString();
+                                    }
+                                }
+                                if (detail.isEmpty() && obj.value(QStringLiteral("message")).isString())
+                                {
+                                    detail = obj.value(QStringLiteral("message")).toString();
+                                }
+                            }
+                            if (detail.isEmpty())
+                            {
+                                detail = QString::fromUtf8(body).trimmed();
+                            }
+                            if (detail.size() > 200) detail = detail.left(200) + QStringLiteral("...");
+                        }
+                    }
+                    const QString logDetail = detail.isEmpty() ? errStr : detail;
+                    emitFlowLog(QStringLiteral("net:error http=%1 %2").arg(httpCode).arg(logDetail), WRONG_SIGNAL);
+                    QString msg = QStringLiteral("net: http %1").arg(httpCode);
+                    if (!detail.isEmpty()) msg += QStringLiteral(" %1").arg(detail);
+                    emit net2ui_state(msg, WRONG_SIGNAL);
+                }
+                else
+                {
+                    emitFlowLog(QStringLiteral("net:error http=%1 %2").arg(httpCode).arg(errStr), WRONG_SIGNAL);
+                    QString msg = QStringLiteral("net: network error");
+                    if (httpCode > 0) msg += QStringLiteral(" http=%1").arg(httpCode);
+                    if (!errStr.trimmed().isEmpty()) msg += QStringLiteral(" %1").arg(errStr);
+                    emit net2ui_state(msg, WRONG_SIGNAL);
+                }
             }
             // If we streamed provider-specific reasoning without explicit </think>, close it now
             if (extThinkActive_)
@@ -469,6 +527,7 @@ void xNet::ensureNetObjects()
         connect(timeoutTimer_, &QTimer::timeout, this, [this]()
                 {
             emitFlowLog("net: timeout", WRONG_SIGNAL);
+            emit net2ui_state(QStringLiteral("net: timeout (no data for 120s)"), WRONG_SIGNAL);
             abortActiveReply(AbortReason::Timeout); });
     }
 }
