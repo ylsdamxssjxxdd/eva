@@ -359,7 +359,7 @@ void xTool::recv_workdir(QString dir)
 {
     if (dir.isEmpty()) return;
     workDirRoot = QDir::cleanPath(dir);
-    // Do not force-create here to avoid unwanted dirs; Exec() ensures presence
+    // 不在此处直接创建目录：统一在 resolveWorkRoot() 内按需创建，避免无工具调用时产生目录
     sendStateMessage("tool:" + QString("workdir -> ") + workDirRoot, USUAL_SIGNAL);
 }
 
@@ -2295,8 +2295,10 @@ void xTool::handleMcpToolCall(const ToolInvocationPtr &invocation)
 
 QString xTool::resolveWorkRoot() const
 {
-    if (!workDirRoot.isEmpty()) return workDirRoot;
-    return QDir::cleanPath(applicationDirPath + "/EVA_WORK");
+    const QString resolved = workDirRoot.isEmpty() ? QDir::cleanPath(applicationDirPath + "/EVA_WORK") : workDirRoot;
+    // 工程师工具依赖工作目录，缺失时自动创建，避免 list/search/read 等工具直接报错
+    ensureWorkdirExists(resolved);
+    return resolved;
 }
 
 QString xTool::resolveSkillsRoot() const
