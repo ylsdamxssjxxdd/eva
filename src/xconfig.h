@@ -134,6 +134,11 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 #define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_NORM_Y 1000         // 桌面控制器：默认归一化坐标系高度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_SCREENSHOT_TIMEOUT_MS 2000 // 桌面控制器：截图最长等待（ms），避免截图调用偶发阻塞导致 UI 卡死
+// GPU 状态检测：Windows AMD PowerShell 脚本超时（ms）
+// - 首次/强制刷新会调用 dxdiag 生成缓存，可能耗时较长
+// - 常规刷新仅读取缓存与性能计数器，耗时较短
+#define DEFAULT_GPUCHECKER_PS_TIMEOUT_FIRST_MS 60000
+#define DEFAULT_GPUCHECKER_PS_TIMEOUT_MS 12000
 #define DEFAULT_EMBEDDING_PORT "7758"          // 默认嵌入端口
 #define DEFAULT_EMBEDDING_IP "127.0.0.1"       // 嵌入端点ip
 #define DEFAULT_EMBEDDING_API "/v1/embeddings" // 嵌入端点地址

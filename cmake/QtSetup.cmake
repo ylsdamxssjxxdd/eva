@@ -12,6 +12,72 @@ if (EVA_ENABLE_QT_TTS)
     list(APPEND _EVA_QT_COMPONENTS TextToSpeech)
 endif()
 find_package(Qt5 COMPONENTS ${_EVA_QT_COMPONENTS} REQUIRED)
+
+function(eva_sanitize_openssl_link_paths)
+    if(NOT DEFINED EVA_OPENSSL_FALLBACK_DIR OR EVA_OPENSSL_FALLBACK_DIR STREQUAL "")
+        return()
+    endif()
+    file(TO_CMAKE_PATH "${EVA_OPENSSL_FALLBACK_DIR}" _eva_fallback_root)
+    if(NOT EXISTS "${_eva_fallback_root}/lib/libssl.a" OR NOT EXISTS "${_eva_fallback_root}/lib/libcrypto.a")
+        return()
+    endif()
+    function(_eva_sanitize_target_prop _eva_target _eva_prop)
+        get_property(_eva_prop_set TARGET ${_eva_target} PROPERTY ${_eva_prop} SET)
+        if(NOT _eva_prop_set)
+            return()
+        endif()
+        get_target_property(_eva_val ${_eva_target} ${_eva_prop})
+        if(NOT _eva_val)
+            return()
+        endif()
+        set(_eva_fixed "${_eva_val}")
+        string(REPLACE "\\" "/" _eva_fixed "${_eva_fixed}")
+        string(REGEX REPLACE "/+" "/" _eva_fixed "${_eva_fixed}")
+        string(REGEX REPLACE "[A-Za-z]:/openssl-static-3\\.1\\.1" "${_eva_fallback_root}" _eva_fixed "${_eva_fixed}")
+        if(NOT _eva_fixed STREQUAL _eva_val)
+            set_property(TARGET ${_eva_target} PROPERTY ${_eva_prop} "${_eva_fixed}")
+        endif()
+    endfunction()
+
+    get_property(_eva_targets GLOBAL PROPERTY TARGETS)
+    get_property(_eva_imported_targets GLOBAL PROPERTY IMPORTED_TARGETS)
+    list(APPEND _eva_targets ${_eva_imported_targets})
+    set(_eva_force_targets
+        Qt5::Core
+        Qt5::Network
+        Qt5::Gui
+        Qt5::Widgets
+        Qt5::Multimedia
+        Qt5::MultimediaWidgets
+        Qt5::Sql
+        Qt5::Concurrent
+        Qt5::TextToSpeech
+    )
+    list(APPEND _eva_targets ${_eva_force_targets})
+    list(REMOVE_DUPLICATES _eva_targets)
+    foreach(_eva_target IN LISTS _eva_targets)
+        if(NOT TARGET ${_eva_target})
+            continue()
+        endif()
+        foreach(_eva_prop IN ITEMS
+            INTERFACE_LINK_LIBRARIES
+            INTERFACE_LINK_OPTIONS
+            LINK_LIBRARIES
+            LINK_OPTIONS
+            IMPORTED_LINK_INTERFACE_LIBRARIES)
+            _eva_sanitize_target_prop(${_eva_target} ${_eva_prop})
+        endforeach()
+
+        get_target_property(_eva_configs ${_eva_target} IMPORTED_CONFIGURATIONS)
+        if(_eva_configs)
+            foreach(_eva_cfg IN LISTS _eva_configs)
+                _eva_sanitize_target_prop(${_eva_target} "IMPORTED_LINK_INTERFACE_LIBRARIES_${_eva_cfg}")
+            endforeach()
+        endif()
+    endforeach()
+endfunction()
+
+eva_sanitize_openssl_link_paths()
 # Try to resolve Qt bin dir from Qt5_DIR
 get_filename_component(Qt5_BIN_DIR "${Qt5_DIR}/../../../bin" ABSOLUTE)
 get_filename_component(Qt5_LIB_DIR "${Qt5_DIR}/../.." ABSOLUTE)

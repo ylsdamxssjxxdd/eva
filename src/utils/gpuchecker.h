@@ -10,6 +10,7 @@
 #ifndef GPUCHECKER_H
 #define GPUCHECKER_H
 
+#include "../xconfig.h"
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
@@ -472,7 +473,8 @@ class AmdGpuInfoProvider : public GpuInfoProvider
         }
 
         // 根据缓存/刷新决策设置超时：首次生成/强制刷新更慢
-        const int timeoutMs = (!cacheExists || refreshCache) ? 30000 : 12000;
+        const int timeoutMs = (!cacheExists || refreshCache) ? DEFAULT_GPUCHECKER_PS_TIMEOUT_FIRST_MS
+                                                             : DEFAULT_GPUCHECKER_PS_TIMEOUT_MS;
 
         // 让脚本仅输出汇总对象，并转换为 JSON，便于稳定解析
         // 输出示例：{"TotalGB":96.0,"UsedGB":2.13,"FreeGB":93.87,"UtilizationPct":7.71}
