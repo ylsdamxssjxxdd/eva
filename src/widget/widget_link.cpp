@@ -460,6 +460,126 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
     });
 }
 
+// MindIE: 通过自研接口 /v1/config 或 Triton 风格 /v2/models/{model}/config 获取最大上下文（maxSeqLen/max_seq_len）
+// - /v2/models/{model}/config：按模型返回配置，更精确
+// - /v1/config：返回服务启动时加载的静态配置（通常是首个模型）
+void Widget::fetchMindieContextLimit(bool fallbackModels)
+{
+    if (ui_mode != LINK_MODE) return;
+    QUrl base = QUrl::fromUserInput(apis.api_endpoint);
+    if (!base.isValid()) return;
+
+    auto fallback = [this, fallbackModels]() {
+        if (fallbackModels)
+        {
+            fetchModelsContextLimit(true);
+        }
+    };
+
+    auto requestV1Config = [this, base, fallback]() {
+        const QUrl url = OpenAiCompat::joinPath(base, QStringLiteral("/v1/config"));
+        if (!url.isValid())
+        {
+            fallback();
+            return;
+        }
+        QNetworkRequest req(url);
+        req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+        if (!apis.api_key.isEmpty())
+            req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+
+        auto *nam = new QNetworkAccessManager(this);
+        QNetworkReply *rp = nam->get(req);
+        connect(rp, &QNetworkReply::finished, this, [this, nam, rp, fallback]()
+                {
+            rp->deleteLater();
+            nam->deleteLater();
+            if (rp->error() != QNetworkReply::NoError)
+            {
+                fallback();
+                return;
+            }
+            const QByteArray body = rp->readAll();
+            QJsonParseError perr{};
+            QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+            if (perr.error != QJsonParseError::NoError || !doc.isObject())
+            {
+                fallback();
+                return;
+            }
+            const QJsonObject root = doc.object();
+            const QString alias = root.value(QStringLiteral("modelName")).toString();
+            const int nctx = root.value(QStringLiteral("maxSeqLen")).toInt(-1);
+            if (!alias.isEmpty())
+            {
+                applyDiscoveredAlias(alias, QStringLiteral("v1/config"));
+            }
+            if (nctx > 0)
+            {
+                applyDiscoveredContext(nctx, QStringLiteral("v1/config"));
+                return;
+            }
+            fallback();
+        });
+    };
+
+    // 优先尝试 /v2/models/{model}/config（需要用户填写 model）
+    const QString model = apis.api_model.trimmed();
+    if (model.isEmpty())
+    {
+        requestV1Config();
+        return;
+    }
+    const QString encodedModel = QString::fromUtf8(QUrl::toPercentEncoding(model));
+    const QUrl url = OpenAiCompat::joinPath(
+        base, QStringLiteral("/v2/models/") + encodedModel + QStringLiteral("/config"));
+    if (!url.isValid())
+    {
+        requestV1Config();
+        return;
+    }
+
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    if (!apis.api_key.isEmpty())
+        req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+
+    auto *nam = new QNetworkAccessManager(this);
+    QNetworkReply *rp = nam->get(req);
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp, requestV1Config]()
+            {
+        rp->deleteLater();
+        nam->deleteLater();
+        if (rp->error() != QNetworkReply::NoError)
+        {
+            requestV1Config();
+            return;
+        }
+        const QByteArray body = rp->readAll();
+        QJsonParseError perr{};
+        QJsonDocument doc = QJsonDocument::fromJson(body, &perr);
+        if (perr.error != QJsonParseError::NoError || !doc.isObject())
+        {
+            requestV1Config();
+            return;
+        }
+        const QJsonObject root = doc.object();
+        const QString alias = root.value(QStringLiteral("model_name")).toString();
+        int nctx = root.value(QStringLiteral("max_seq_len")).toInt(-1);
+        if (nctx <= 0) nctx = root.value(QStringLiteral("maxSeqLen")).toInt(-1);
+        if (!alias.isEmpty())
+        {
+            applyDiscoveredAlias(alias, QStringLiteral("v2/models/config"));
+        }
+        if (nctx > 0)
+        {
+            applyDiscoveredContext(nctx, QStringLiteral("v2/models/config"));
+            return;
+        }
+        requestV1Config();
+    });
+}
+
 // Fallback: GET /props from llama.cpp tools/server to obtain runtime n_ctx
 void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
 {
@@ -486,7 +606,7 @@ void Widget::fetchPropsContextLimit(bool allowLinkMode, bool fallbackModels)
         auto fallback = [&]() {
             if (fallbackModels && !gotCtx)
             {
-                fetchModelsContextLimit(true);
+                fetchMindieContextLimit(true);
             }
         };
         if (rp->error() == QNetworkReply::NoError)

@@ -897,7 +897,8 @@ class Widget : public QWidget
     QString resolvedModelLabelForUi() const;         // 返回模型名称显示文本（LINK 模式优先用户填写）
     void fetchRemoteContextLimit();                                                     // probe props/models for context (LINK mode)
     void fetchModelsContextLimit(bool isLocalEndpoint);                                 // GET /v1/models for context/alias
-    void fetchPropsContextLimit(bool allowLinkMode = false, bool fallbackModels = false); // GET /props for runtime n_ctx/alias; optional fallback to models
+    void fetchMindieContextLimit(bool fallbackModels = false);                          // GET /v1/config or /v2/models/{model}/config for MindIE; optional fallback to /v1/models
+    void fetchPropsContextLimit(bool allowLinkMode = false, bool fallbackModels = false); // GET /props for runtime n_ctx/alias; optional fallback to MindIE/models
     void applyDiscoveredAlias(const QString &alias, const QString &sourceTag);          // update model alias and notify subsystems
     void applyDiscoveredContext(int nctx, const QString &sourceTag);                    // update n_ctx/slotCtxMax_ and notify UI/Expend
     QString buildWorkspaceSnapshot(const QString &root, bool dockerView = false) const;
