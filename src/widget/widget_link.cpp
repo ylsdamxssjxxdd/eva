@@ -61,13 +61,28 @@ QString normalizeLinkEndpoint(const QString &rawEndpoint)
         QString basePath = path.left(slashPos);
         if (basePath.isEmpty())
             basePath = QStringLiteral("/");
-        url.setPath(basePath);
+        // 根路径不保留尾部斜杠，避免与后续路径拼接产生“//”
+        if (basePath == QStringLiteral("/"))
+        {
+            url.setPath(QString());
+        }
+        else
+        {
+            url.setPath(basePath);
+        }
     }
     else
     {
         // 仅去掉尾部斜杠并应用规整后的路径
-        if (path.isEmpty()) path = QStringLiteral("/");
-        url.setPath(path);
+        // 根路径不保留尾部斜杠，避免与后续路径拼接产生“//”
+        if (path.isEmpty() || path == QStringLiteral("/"))
+        {
+            url.setPath(QString());
+        }
+        else
+        {
+            url.setPath(path);
+        }
     }
     return url.toString(QUrl::RemoveFragment);
 }
