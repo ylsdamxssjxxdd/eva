@@ -1,4 +1,4 @@
-#ifndef XCONFIG_H
+﻿#ifndef XCONFIG_H
 #define XCONFIG_H
 
 #include "mcp_json.h"
@@ -47,6 +47,17 @@ class QWidget;
 // - 2：日文
 // 注意：目前不少旧逻辑仍用 if (language_flag==0) else ... 的二分判断，
 //      新增语言时请显式补齐分支或提供兜底映射。
+//------------------------------------------------------------------------------
+// 工具调用模式：0=tool_call 文本，1=function_call 结构化
+//------------------------------------------------------------------------------
+enum ToolCallMode
+{
+    TOOL_CALL_TEXT = 0,
+    TOOL_CALL_FUNCTION = 1,
+};
+
+#define DEFAULT_TOOL_CALL_MODE TOOL_CALL_TEXT
+
 enum EVA_UI_LANGUAGE
 {
     EVA_LANG_ZH = 0,
@@ -96,8 +107,8 @@ inline QString evaLanguageCodeFromFlag(int flag)
 #define DEFAULT_FLASH_ATTN true  // 默认开启注意力加速
 #define DEFAULT_USE_MLOCCK false // 默认关闭内存锁定
 
-// CUDA åŽç«¯ç‰ˆæœ¬çº¦æŸï¼šå½“å‰å†…ç½® CUDA 版 llama.cpp åªæ”¯æŒ?CUDA 12ï¼Œ
-// å› æ­¤åŽç«¯è·¯å¾„è§£æžæ—¶éœ€è¦åŒæ—¶æ£€æŸ¥ CUDA 12 runtime ä¾èµ–ã€?
+// CUDA 后端版本约束：当前内置 CUDA 版 llama.cpp 仅支持 CUDA 12，
+// 因此后端路径解析时需要同时检查 CUDA 12 runtime 依赖。
 #define DEFAULT_CUDA_REQUIRED_MAJOR 12
 #define DEFAULT_CUDA_REQUIRE_RUNTIME_LIBS true
 #if defined(Q_OS_WIN)
@@ -346,6 +357,8 @@ struct ENDPOINT_DATA
     QString date_prompt;      // 约定指令
     QString input_prompt;     // 补完模式提示词
     QJsonArray messagesArray; // 将要构造的历史数据
+    QJsonArray tools;         // function_call 模式下的 tools 清单
+    int tool_call_mode = DEFAULT_TOOL_CALL_MODE; // 工具调用模式
     bool is_complete_state;   // 是否为补完状态
     float temp;               // 温度
     double repeat;            // 重复惩罚
@@ -355,7 +368,7 @@ struct ENDPOINT_DATA
     QString reasoning_effort; // 推理强度（off/minimal/low/medium/high/auto）
     QStringList stopwords;    // 停止标志
     int id_slot = -1;         // llama.cpp server slot id for KV reuse (-1 to auto-assign)
-    quint64 turn_id = 0;       // å½“å‰å›žåŽçš„æµç¨‹æ ‡è¯†
+    quint64 turn_id = 0;       // 当前回合的流程标识
 };
 
 // 单参数工具

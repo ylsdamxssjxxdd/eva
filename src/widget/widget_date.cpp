@@ -1,4 +1,4 @@
-#include "ui_widget.h"
+﻿#include "ui_widget.h"
 #include "widget.h"
 
 #include <QProcess>
@@ -39,6 +39,15 @@ void Widget::set_DateDialog()
     connect(date_ui->stablediffusion_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change); // 点击工具响应
     connect(date_ui->calculator_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, &Widget::tool_change);      // 点击工具响应
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        date_ui->toolcall_mode_comboBox->clear();
+        date_ui->toolcall_mode_comboBox->addItem(jtr("tool call mode option tool_call"), static_cast<int>(TOOL_CALL_TEXT));
+        date_ui->toolcall_mode_comboBox->addItem(jtr("tool call mode option function_call"), static_cast<int>(TOOL_CALL_FUNCTION));
+        const int currentIndex = date_ui->toolcall_mode_comboBox->findData(ui_tool_call_mode);
+        if (currentIndex >= 0) date_ui->toolcall_mode_comboBox->setCurrentIndex(currentIndex);
+        connect(date_ui->toolcall_mode_comboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &Widget::tool_call_mode_change);
+    }
     // 桌面控制器：归一化坐标系设置（截图与坐标统一）
     if (date_ui->controller_norm_x_spin)
     {
@@ -106,7 +115,7 @@ void Widget::set_DateDialog()
         if (idx >= 0) date_ui->switch_lan_button->setCurrentIndex(idx);
     }
 
-    prompt_template_change(); // ��Ӧ����ʾ��ģ��    // Auto-save on template/tool toggles (no reset)
+    prompt_template_change(); // 响应并更新提示词模板    // Auto-save on template/tool toggles (no reset)
     connect(date_ui->chattemplate_comboBox, &QComboBox::currentTextChanged, this, [=](const QString &)
             { autosave(); });
     connect(date_ui->knowledge_checkbox, &QCheckBox::stateChanged, this, [=](int)
@@ -117,6 +126,11 @@ void Widget::set_DateDialog()
             { autosave(); });
     connect(date_ui->controller_checkbox, &QCheckBox::stateChanged, this, [=](int)
             { autosave(); });
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        connect(date_ui->toolcall_mode_comboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, [=](int)
+                { autosave(); });
+    }
     if (date_ui->controller_norm_x_spin)
     {
         connect(date_ui->controller_norm_x_spin, qOverload<int>(&QSpinBox::valueChanged), this, [=](int)
@@ -237,6 +251,12 @@ void Widget::on_date_clicked()
     {
         date_ui->controller_norm_box->setVisible(date_ui->controller_checkbox->isChecked());
     }
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->toolcall_mode_comboBox);
+        const int idx = date_ui->toolcall_mode_comboBox->findData(ui_tool_call_mode);
+        if (idx >= 0) date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
+    }
     date_ui->MCPtools_checkbox->setChecked(ui_MCPtools_ischecked);
     date_ui->engineer_checkbox->setChecked(ui_engineer_ischecked);
     if (date_ui->docker_target_comboBox)
@@ -282,6 +302,7 @@ void Widget::captureDateDialogSnapshot()
     state.ui_template = ui_template;
     state.ui_extra_lan = ui_extra_lan;
     state.ui_extra_prompt = ui_extra_prompt;
+    state.ui_tool_call_mode = ui_tool_call_mode;
     state.ui_date_prompt = ui_date_prompt;
     state.ui_dates = ui_DATES;
     state.ui_calculator_ischecked = ui_calculator_ischecked;
@@ -774,6 +795,12 @@ void Widget::restoreDateDialogSnapshot()
         {
             date_ui->controller_norm_box->setVisible(ui_controller_ischecked);
         }
+        if (date_ui->toolcall_mode_comboBox)
+        {
+            QSignalBlocker blocker(date_ui->toolcall_mode_comboBox);
+            const int idx = date_ui->toolcall_mode_comboBox->findData(ui_tool_call_mode);
+            if (idx >= 0) date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
+        }
         restoreCheck(date_ui->knowledge_checkbox, ui_knowledge_ischecked);
         restoreCheck(date_ui->stablediffusion_checkbox, ui_stablediffusion_ischecked);
         restoreCheck(date_ui->MCPtools_checkbox, ui_MCPtools_ischecked);
@@ -825,6 +852,7 @@ void Widget::restoreDateDialogSnapshot()
     ui_controller_ischecked = snapshot.ui_controller_ischecked;
     ui_controller_norm_x = snapshot.ui_controller_norm_x;
     ui_controller_norm_y = snapshot.ui_controller_norm_y;
+    ui_tool_call_mode = snapshot.ui_tool_call_mode;
     ui_MCPtools_ischecked = snapshot.ui_MCPtools_ischecked;
     ui_engineer_ischecked = snapshot.ui_engineer_ischecked;
     refreshWindowIcon();
@@ -866,6 +894,12 @@ void Widget::restoreDateDialogSnapshot()
     if (date_ui->controller_norm_box)
     {
         date_ui->controller_norm_box->setVisible(snapshot.ui_controller_ischecked);
+    }
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->toolcall_mode_comboBox);
+        const int idx = date_ui->toolcall_mode_comboBox->findData(snapshot.ui_tool_call_mode);
+        if (idx >= 0) date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
     }
     restoreCheck(date_ui->MCPtools_checkbox, snapshot.ui_MCPtools_ischecked);
     restoreCheck(date_ui->engineer_checkbox, snapshot.ui_engineer_ischecked);

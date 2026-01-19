@@ -1,4 +1,4 @@
-// 功能函数
+﻿// 功能函数
 #include "../utils/depresolver.h"
 #include "../utils/processrunner.h"
 #include "../utils/textparse.h"
@@ -10,6 +10,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QByteArray>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <QCheckBox>
 #include <QDialog>
 #include <QHBoxLayout>
@@ -174,6 +176,11 @@ void Widget::get_date(bool applySandbox)
     }
     ui_DATES.is_load_tool = is_load_tool;
     ui_template = date_ui->chattemplate_comboBox->currentText();
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        const QVariant data = date_ui->toolcall_mode_comboBox->currentData();
+        ui_tool_call_mode = data.isValid() ? data.toInt() : DEFAULT_TOOL_CALL_MODE;
+    }
     // 额外指令语种：由下拉框提供（优先取 data，其次取 text）
     if (date_ui->switch_lan_button)
     {
@@ -401,126 +408,297 @@ mcp::json Widget::XMLparser(const QString &text, QStringList *debugLog)
 // 构建额外指令
 QString Widget::create_extra_prompt()
 {
-    QString extra_prompt_;            // 额外指令
-    QString available_tools_describe; // 工具名和描述
     QString skill_usage_block;
-    QString engineer_info;            // 系统工程师信息
-    extra_prompt_ = promptx::extraPromptTemplate();
-    extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
-    if (is_load_tool)
+    QString engineer_info; // 系统工程师信息
+
+    if (!is_load_tool)
     {
-        if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
-        {
-            QString workspaceDisplay = engineerWorkDir;
-            if (workspaceDisplay.isEmpty())
-            {
-                workspaceDisplay = QDir(applicationDirPath).filePath(QStringLiteral("EVA_WORK"));
-            }
-            workspaceDisplay = QDir::toNativeSeparators(QDir::cleanPath(workspaceDisplay));
-            QString skillDisplayRoot;
-            if (shouldUseDockerEnv())
-            {
-                workspaceDisplay = dockerSandboxStatus_.containerWorkdir.isEmpty() ? DockerSandbox::defaultContainerWorkdir()
-                                                                                  : dockerSandboxStatus_.containerWorkdir;
-                skillDisplayRoot = dockerSandboxStatus_.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
-                                                                                   : dockerSandboxStatus_.skillsMountPoint;
-            }
-            const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true, workspaceDisplay, skillDisplayRoot);
-            if (!skillBlock.isEmpty()) skill_usage_block = skillBlock;
-        }
-        available_tools_describe += promptx::toolAnswer().text + "\n\n";
-        // qDebug()<< MCP_TOOLS_INFO_LIST.size();
-        if (date_ui->MCPtools_checkbox->isChecked())
-        {
-            QStringList mcpToolEntries;
-            for (const auto &info : MCP_TOOLS_INFO_LIST)
-            {
-                mcpToolEntries << info.text;
-            }
-            if (!mcpToolEntries.isEmpty())
-            {
-                available_tools_describe += mcpToolEntries.join("\n") + "\n\n";
-            }
-        }
-        if (date_ui->calculator_checkbox->isChecked())
-        {
-            available_tools_describe += promptx::toolCalculator().text + "\n\n";
-        }
-        if (date_ui->knowledge_checkbox->isChecked())
-        {
-            QString knowledgeText = promptx::toolKnowledge().text;
-            knowledgeText.replace("{embeddingdb describe}", embeddingdb_describe);
-            available_tools_describe += knowledgeText + "\n\n";
-        }
-        if (date_ui->stablediffusion_checkbox->isChecked())
-        {
-            available_tools_describe += promptx::toolStableDiffusion().text + "\n\n";
-        }
-        if (date_ui->controller_checkbox->isChecked())
-        {
-            // 桌面控制器提示词：把“截图归一化尺寸”写进提示词里（用当前设置值替换占位符），避免每条消息都额外注入图片元信息文本。
-            // 额外需求：当用户界面语言为中文时，要求模型在 controller.arguments.description 中使用中文描述动作，
-            // 否则屏幕叠加提示会显示英文，用户看不懂也无法确认即将执行/已执行的动作。
-            // 英文界面保持原提示词不变。
-            TOOLS_INFO controllerInfo = promptx::toolController();
-            controllerInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
-            controllerInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
-            if (language_flag == 0) // 0=中文，1=英文
-            {
-                controllerInfo.description += QStringLiteral(
-                    "\n- IMPORTANT (中文界面)：`description` 是用户可见的屏幕提示文案，必须用中文描述动作（例如：点击浏览器地址栏/在搜索框输入文本）。");
-            }
-            else if (language_flag == EVA_LANG_JA) // 日文界面
-            {
-                controllerInfo.description += QStringLiteral(
-                    "\n- IMPORTANT (日本語UI)：`description` はユーザーに見える画面上の説明文です。必ず日本語で動作を説明してください（例：ブラウザのアドレスバーをクリックして検索欄にテキストを入力）。");
-            }
-            controllerInfo.generateToolText();
-            available_tools_describe += controllerInfo.text + "\n\n";
+        return ""; // 没有挂载工具则为空
+    }
 
-            // 桌面监视器提示词：与 controller 配套使用，用“等待 + 截图”的观测回路解决需要持续监视屏幕变化的任务。
-            // 监视器截图与 controller 截图采用同一套归一化坐标系，避免模型在 monitor->controller 切换时坐标空间不一致。
-            TOOLS_INFO monitorInfo = promptx::toolMonitor();
-            monitorInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
-            monitorInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
-            monitorInfo.generateToolText();
-            available_tools_describe += monitorInfo.text + "\n\n";
-        }
-        if (date_ui->engineer_checkbox->isChecked())
+    if (skillManager && date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+    {
+        QString workspaceDisplay = engineerWorkDir;
+        if (workspaceDisplay.isEmpty())
         {
-            if (isArchitectModeActive())
-            {
-                available_tools_describe += promptx::toolEngineerProxy().text + "\n\n";
-                engineer_info = create_architect_info();
-            }
-            else
-            {
-                available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
-                available_tools_describe += promptx::toolReadFile().text + "\n\n";
-                available_tools_describe += promptx::toolWriteFile().text + "\n\n";
-                available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
-                available_tools_describe += promptx::toolEditInFile().text + "\n\n";
-                available_tools_describe += promptx::toolListFiles().text + "\n\n";
-                available_tools_describe += promptx::toolSearchContent().text + "\n\n";
-                available_tools_describe += promptx::toolPtc().text + "\n\n";
-                engineer_info = create_engineer_info();
-            }
+            workspaceDisplay = QDir(applicationDirPath).filePath(QStringLiteral("EVA_WORK"));
         }
+        workspaceDisplay = QDir::toNativeSeparators(QDir::cleanPath(workspaceDisplay));
+        QString skillDisplayRoot;
+        if (shouldUseDockerEnv())
+        {
+            workspaceDisplay = dockerSandboxStatus_.containerWorkdir.isEmpty() ? DockerSandbox::defaultContainerWorkdir()
+                                                                              : dockerSandboxStatus_.containerWorkdir;
+            skillDisplayRoot = dockerSandboxStatus_.skillsMountPoint.isEmpty() ? DockerSandbox::skillsMountPoint()
+                                                                               : dockerSandboxStatus_.skillsMountPoint;
+        }
+        const QString skillBlock = skillManager->composePromptBlock(engineerWorkDir, true, workspaceDisplay, skillDisplayRoot);
+        if (!skillBlock.isEmpty()) skill_usage_block = skillBlock;
+    }
 
-        extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
-        extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
+    if (date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+    {
+        engineer_info = isArchitectModeActive() ? create_architect_info() : create_engineer_info();
+    }
+
+    // function_call 模式：不注入工具提示词与工具清单，仅保留工程信息与技能提示
+    if (ui_tool_call_mode == TOOL_CALL_FUNCTION)
+    {
+        QString extra_prompt_;
+        if (!engineer_info.isEmpty())
+        {
+            extra_prompt_ = engineer_info;
+        }
         if (!skill_usage_block.isEmpty())
         {
-            extra_prompt_ = extra_prompt_ + skill_usage_block;// 技能描述放到最后
+            if (!extra_prompt_.isEmpty()) extra_prompt_ += "\n\n";
+            extra_prompt_ += skill_usage_block;
+        }
+        return extra_prompt_;
+    }
+
+    QString extra_prompt_ = promptx::extraPromptTemplate();
+    QString available_tools_describe; // 工具名和描述
+    extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
+    available_tools_describe += promptx::toolAnswer().text + "\n\n";
+    // qDebug()<< MCP_TOOLS_INFO_LIST.size();
+    if (date_ui->MCPtools_checkbox->isChecked())
+    {
+        QStringList mcpToolEntries;
+        for (const auto &info : MCP_TOOLS_INFO_LIST)
+        {
+            mcpToolEntries << info.text;
+        }
+        if (!mcpToolEntries.isEmpty())
+        {
+            available_tools_describe += mcpToolEntries.join("\n") + "\n\n";
         }
     }
-    else
+    if (date_ui->calculator_checkbox->isChecked())
     {
-        extra_prompt_ = ""; // 没有挂载工具则为空
+        available_tools_describe += promptx::toolCalculator().text + "\n\n";
+    }
+    if (date_ui->knowledge_checkbox->isChecked())
+    {
+        QString knowledgeText = promptx::toolKnowledge().text;
+        knowledgeText.replace("{embeddingdb describe}", embeddingdb_describe);
+        available_tools_describe += knowledgeText + "\n\n";
+    }
+    if (date_ui->stablediffusion_checkbox->isChecked())
+    {
+        available_tools_describe += promptx::toolStableDiffusion().text + "\n\n";
+    }
+    if (date_ui->controller_checkbox->isChecked())
+    {
+        // 桌面控制器提示词：把“截图归一化尺寸”写进提示词里（用当前设置值替换占位符），避免每条消息都额外注入图片元信息文本。
+        // 额外需求：当用户界面语言为中文时，要让模型在 controller.arguments.description 中使用中文描述动作，
+        // 否则屏幕叠加提示会显示英文，用户看不懂也无法确认即将执行/已执行的动作。
+        // 英文界面保持原提示词不变。
+        TOOLS_INFO controllerInfo = promptx::toolController();
+        controllerInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+        controllerInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+        if (language_flag == 0) // 0=中文，1=英文
+        {
+            controllerInfo.description += QStringLiteral(
+                "\n- IMPORTANT (中文界面)：`description` 是用户可见的屏幕提示文本，必须用中文描述动作（例如：点击浏览器地址栏，在搜索框输入文本）。");
+        }
+        else if (language_flag == EVA_LANG_JA) // 日文界面
+        {
+            controllerInfo.description += QStringLiteral(
+                "\n- IMPORTANT (日本語UI)：`description` はユーザーに表示される画面上の説明文です。必ず日本語で動作を説明してください（例：ブラウザーのアドレスバーをクリックし、検索欄にテキストを入力）。");
+        }
+        controllerInfo.generateToolText();
+        available_tools_describe += controllerInfo.text + "\n\n";
+
+        // 桌面监视器提示词：与 controller 配套使用，用“等待 + 截图”的观察回路解决需要持续监视屏幕变化的任务。
+        // 监视器截图与 controller 截图采用同一套归一化坐标系，避免模型在 monitor->controller 切换时坐标空间不一致。
+        TOOLS_INFO monitorInfo = promptx::toolMonitor();
+        monitorInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+        monitorInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+        monitorInfo.generateToolText();
+        available_tools_describe += monitorInfo.text + "\n\n";
+    }
+    if (date_ui->engineer_checkbox->isChecked())
+    {
+        if (isArchitectModeActive())
+        {
+            available_tools_describe += promptx::toolEngineerProxy().text + "\n\n";
+        }
+        else
+        {
+            available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
+            available_tools_describe += promptx::toolReadFile().text + "\n\n";
+            available_tools_describe += promptx::toolWriteFile().text + "\n\n";
+            available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
+            available_tools_describe += promptx::toolEditInFile().text + "\n\n";
+            available_tools_describe += promptx::toolListFiles().text + "\n\n";
+            available_tools_describe += promptx::toolSearchContent().text + "\n\n";
+            available_tools_describe += promptx::toolPtc().text + "\n\n";
+        }
+    }
+
+    extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
+    extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
+    if (!skill_usage_block.isEmpty())
+    {
+        extra_prompt_ = extra_prompt_ + skill_usage_block; // 技能描述放到最后
     }
     return extra_prompt_;
 }
 
+QJsonArray Widget::buildFunctionTools() const
+{
+    QJsonArray tools;
+    if (!is_load_tool || !date_ui)
+    {
+        return tools;
+    }
+
+    auto defaultParams = []() -> QJsonObject {
+        QJsonObject params;
+        params.insert(QStringLiteral("type"), QStringLiteral("object"));
+        params.insert(QStringLiteral("properties"), QJsonObject());
+        return params;
+    };
+
+    auto sanitizeSchemaValue = [&](const QJsonValue &value, const auto &self) -> QJsonValue {
+        if (value.isObject())
+        {
+            QJsonObject obj = value.toObject();
+            // llama.cpp 的 JSON schema 转换器对 anyOf/oneOf 等关键字支持不完整，统一移除做兼容。
+            obj.remove(QStringLiteral("$schema"));
+            obj.remove(QStringLiteral("anyOf"));
+            obj.remove(QStringLiteral("oneOf"));
+            obj.remove(QStringLiteral("allOf"));
+            obj.remove(QStringLiteral("not"));
+            obj.remove(QStringLiteral("if"));
+            obj.remove(QStringLiteral("then"));
+            obj.remove(QStringLiteral("else"));
+            obj.remove(QStringLiteral("additionalProperties"));
+            for (auto it = obj.begin(); it != obj.end(); ++it)
+            {
+                if (it.value().isObject() || it.value().isArray())
+                {
+                    it.value() = self(it.value(), self);
+                }
+            }
+            if (!obj.contains(QStringLiteral("type")))
+            {
+                if (obj.contains(QStringLiteral("properties")) || obj.contains(QStringLiteral("required")))
+                {
+                    obj.insert(QStringLiteral("type"), QStringLiteral("object"));
+                }
+                else if (obj.contains(QStringLiteral("items")))
+                {
+                    obj.insert(QStringLiteral("type"), QStringLiteral("array"));
+                }
+            }
+            return obj;
+        }
+        if (value.isArray())
+        {
+            QJsonArray arr;
+            for (const auto &item : value.toArray())
+            {
+                arr.append(self(item, self));
+            }
+            return arr;
+        }
+        return value;
+    };
+
+    auto parseParams = [&](const QString &raw) -> QJsonObject {
+        if (raw.trimmed().isEmpty()) return defaultParams();
+        QJsonParseError err{};
+        QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8(), &err);
+        if (err.error == QJsonParseError::NoError && doc.isObject())
+        {
+            const QJsonValue sanitized = sanitizeSchemaValue(doc.object(), sanitizeSchemaValue);
+            return sanitized.isObject() ? sanitized.toObject() : defaultParams();
+        }
+        return defaultParams();
+    };
+
+    auto appendTool = [&](const TOOLS_INFO &info) {
+        const QString name = info.name.trimmed();
+        if (name.isEmpty()) return;
+        QJsonObject fn;
+        fn.insert(QStringLiteral("name"), name);
+        if (!info.description.trimmed().isEmpty())
+        {
+            fn.insert(QStringLiteral("description"), info.description);
+        }
+        fn.insert(QStringLiteral("parameters"), parseParams(info.arguments));
+        QJsonObject item;
+        item.insert(QStringLiteral("type"), QStringLiteral("function"));
+        item.insert(QStringLiteral("function"), fn);
+        tools.append(item);
+    };
+
+    // MCP 工具
+    if (date_ui->MCPtools_checkbox && date_ui->MCPtools_checkbox->isChecked())
+    {
+        for (const auto &info : MCP_TOOLS_INFO_LIST)
+        {
+            appendTool(info);
+        }
+    }
+    if (date_ui->calculator_checkbox && date_ui->calculator_checkbox->isChecked())
+    {
+        appendTool(promptx::toolCalculator());
+    }
+    if (date_ui->knowledge_checkbox && date_ui->knowledge_checkbox->isChecked())
+    {
+        TOOLS_INFO knowledgeInfo = promptx::toolKnowledge();
+        knowledgeInfo.description.replace(QStringLiteral("{embeddingdb describe}"), embeddingdb_describe);
+        appendTool(knowledgeInfo);
+    }
+    if (date_ui->stablediffusion_checkbox && date_ui->stablediffusion_checkbox->isChecked())
+    {
+        appendTool(promptx::toolStableDiffusion());
+    }
+    if (date_ui->controller_checkbox && date_ui->controller_checkbox->isChecked())
+    {
+        TOOLS_INFO controllerInfo = promptx::toolController();
+        controllerInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+        controllerInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+        if (language_flag == 0) // 中文界面
+        {
+            controllerInfo.description += QStringLiteral(
+                "\n- IMPORTANT (中文界面)：`description` 是用户可见的屏幕提示文本，必须用中文描述动作（例如：点击浏览器地址栏，在搜索框输入文本）。");
+        }
+        else if (language_flag == EVA_LANG_JA) // 日文界面
+        {
+            controllerInfo.description += QStringLiteral(
+                "\n- IMPORTANT (日本語UI)：`description` はユーザーに表示される画面上の説明文です。必ず日本語で動作を説明してください（例：ブラウザーのアドレスバーをクリックし、検索欄にテキストを入力）。");
+        }
+        appendTool(controllerInfo);
+
+        TOOLS_INFO monitorInfo = promptx::toolMonitor();
+        monitorInfo.description.replace(QStringLiteral("{controller_norm_x}"), QString::number(ui_controller_norm_x));
+        monitorInfo.description.replace(QStringLiteral("{controller_norm_y}"), QString::number(ui_controller_norm_y));
+        appendTool(monitorInfo);
+    }
+    if (date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
+    {
+        if (isArchitectModeActive())
+        {
+            appendTool(promptx::toolEngineerProxy());
+        }
+        else
+        {
+            appendTool(promptx::toolExecuteCommand());
+            appendTool(promptx::toolReadFile());
+            appendTool(promptx::toolWriteFile());
+            appendTool(promptx::toolReplaceInFile());
+            appendTool(promptx::toolEditInFile());
+            appendTool(promptx::toolListFiles());
+            appendTool(promptx::toolSearchContent());
+            appendTool(promptx::toolPtc());
+        }
+    }
+    return tools;
+}
 void Widget::recv_mcp_tools_changed()
 {
     ui_extra_prompt = create_extra_prompt();
@@ -943,11 +1121,6 @@ void Widget::auto_save_user()
     appendTool(date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"));
     appendTool(date_ui->engineer_checkbox, QStringLiteral("engineer"));
     appendTool(date_ui->MCPtools_checkbox, QStringLiteral("mcp"));
-    settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // ����������
-    settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge����
-    settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller����
-    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); // ����������
-    settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer����
     settings.setValue("docker_sandbox_checkbox", ui_dockerSandboxEnabled);
     settings.setValue("docker_sandbox_image", engineerDockerImage);
     settings.setValue("docker_sandbox_container", engineerDockerContainer);
@@ -956,19 +1129,19 @@ void Widget::auto_save_user()
     else if (dockerTargetMode_ == DockerTargetMode::Container)
         dockerModeValue = QStringLiteral("container");
     settings.setValue("docker_sandbox_mode", dockerModeValue);
-    settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools����
     settings.setValue("enabled_tools", enabledTools);
     settings.setValue("controller_norm_x", ui_controller_norm_x); // 桌面控制器归一化 X
     settings.setValue("controller_norm_y", ui_controller_norm_y); // 桌面控制器归一化 Y
     settings.setValue("calculator_checkbox", date_ui->calculator_checkbox->isChecked());           // 计算器工具
     settings.setValue("knowledge_checkbox", date_ui->knowledge_checkbox->isChecked());             // knowledge工具
     settings.setValue("controller_checkbox", date_ui->controller_checkbox->isChecked());           // controller工具
-    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); // 计算器工具
+    settings.setValue("stablediffusion_checkbox", date_ui->stablediffusion_checkbox->isChecked()); // 文生图工具
     settings.setValue("engineer_checkbox", date_ui->engineer_checkbox->isChecked());               // engineer工具
     settings.setValue("MCPtools_checkbox", date_ui->MCPtools_checkbox->isChecked());               // MCPtools工具
     settings.setValue("engineer_work_dir", engineerWorkDir);                                       // 工程师工作目录
     settings.setValue("engineer_architect_mode", engineerArchitectMode_);
     settings.setValue("extra_lan", ui_extra_lan);                                                  // 额外指令语种
+    settings.setValue("tool_call_mode", ui_tool_call_mode);                                        // 工具调用方式
     settings.beginGroup("backend_overrides");
     settings.remove("");
     const QMap<QString, QString> overrides = DeviceManager::programOverrides();

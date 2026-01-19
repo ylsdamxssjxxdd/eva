@@ -1,4 +1,4 @@
-#include "widget.h"
+﻿#include "widget.h"
 #include "ui_widget.h"
 #include "toolcall_test_dialog.h"
 #include "backendmanagerdialog.h"
@@ -194,6 +194,22 @@ void Widget::apply_language(int language_flag_)
     date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
     date_ui->controller_checkbox->setText(jtr("controller"));
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
+    if (date_ui->toolcall_mode_label)
+    {
+        date_ui->toolcall_mode_label->setText(jtr("tool call mode"));
+        date_ui->toolcall_mode_label->setToolTip(jtr("tool call mode tooltip"));
+    }
+    if (date_ui->toolcall_mode_comboBox)
+    {
+        QSignalBlocker blocker(date_ui->toolcall_mode_comboBox);
+        const int current = date_ui->toolcall_mode_comboBox->currentData().toInt();
+        date_ui->toolcall_mode_comboBox->clear();
+        date_ui->toolcall_mode_comboBox->addItem(jtr("tool call mode option tool_call"), static_cast<int>(TOOL_CALL_TEXT));
+        date_ui->toolcall_mode_comboBox->addItem(jtr("tool call mode option function_call"), static_cast<int>(TOOL_CALL_FUNCTION));
+        const int idx = date_ui->toolcall_mode_comboBox->findData(current);
+        if (idx >= 0) date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
+        date_ui->toolcall_mode_comboBox->setToolTip(jtr("tool call mode tooltip"));
+    }
     if (date_ui->controller_norm_box)
     {
         date_ui->controller_norm_box->setTitle(jtr("controller normalize"));

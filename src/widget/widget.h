@@ -1,4 +1,4 @@
-#ifndef WIDGET_H
+﻿#ifndef WIDGET_H
 #define WIDGET_H
 
 #include <QApplication>
@@ -203,6 +203,8 @@ class Widget : public QWidget
     void restoreSessionById(const QString &sessionId);                  // 从SQLite加载并还原历史会话
     void create_tray_right_menu();                                      // 添加托盘右击事件
     mcp::json tools_call;                                               // 提取出来的工具名和参数
+    QJsonArray pendingToolCallsPayload_;                                // function_call 模式缓存的 tool_calls
+    QString pendingToolCallId_;                                         // 当前工具调用的 tool_call_id
     QString customOpenfile(QString dirpath, QString describe, QString format);
     QString autoDetectSiblingMmproj(const QString &modelPath) const; // 根据当前模型路径自动匹配 mmproj 视觉模型
     QFont ui_font; // 约定和设置的字体大小
@@ -453,6 +455,7 @@ class Widget : public QWidget
     QDialog *date_dialog = nullptr;
     QString ui_extra_lan = "zh";
     QString ui_extra_prompt;
+    int ui_tool_call_mode = DEFAULT_TOOL_CALL_MODE; // 工具调用方式（tool_call/function_call）
     QString ui_date_prompt;
     bool ui_calculator_ischecked = false;
     bool ui_knowledge_ischecked = false;
@@ -470,7 +473,8 @@ class Widget : public QWidget
     bool engineerWorkDirPendingApply_ = false;
     bool engineerEnvSummaryPending_ = false;
     QString engineerCheckboxLabel_;
-    QString create_extra_prompt();    // 构建附加指令
+    QString create_extra_prompt();         // 构建附加指令
+    QJsonArray buildFunctionTools() const; // 构建 function_call tools 清单
     QString buildEngineerSystemDetails() const;
     QString create_engineer_info();   // 构建工程师指令
     QString create_architect_info();  // 构建架构师指令
@@ -494,11 +498,13 @@ class Widget : public QWidget
     void recordEngineerUsage(int promptTokens, int generatedTokens);
     void recordEngineerReasoning(int tokens);
     void tool_change();             // 响应工具选择
+    void tool_call_mode_change(int index); // 工具调用方式切换
     struct DateDialogState
     {
         QString ui_template;
         QString ui_extra_lan;
         QString ui_extra_prompt;
+        int ui_tool_call_mode = DEFAULT_TOOL_CALL_MODE;
         QString ui_date_prompt;
         EVA_DATES ui_dates;
         bool ui_calculator_ischecked = false;
@@ -709,6 +715,7 @@ class Widget : public QWidget
     void recv_freeover_loadlater();                                              // 模型释放完毕并重新装载
     void recv_predecode(QString bot_predecode_content_);                         // 传递模型预解码的内容
     void recv_toolpushover(QString tool_result_);                                // 处理tool推理完毕的槽
+    void recv_tool_calls(const QString &payload);                                // function_call 工具调用回填
     void recv_controller_hint(int x, int y, const QString &description); // 桌面控制器：绘制屏幕叠加提示
     void recv_controller_hint_done(int x, int y, const QString &description); // 桌面控制器：动作执行完毕后绘制完成态提示（绿色）
     void recv_controller_overlay(quint64 turnId, const QString &argsJson); // 桌面控制器：保存带 bbox 等信息的标注截图（EVA_TEMP/overlay）

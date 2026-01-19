@@ -1,4 +1,4 @@
-#include "widget.h"
+﻿#include "widget.h"
 #include "ui_widget.h"
 
 void Widget::temp_change()
@@ -244,5 +244,14 @@ void Widget::tool_change()
     {
         date_ui->controller_norm_box->setVisible(date_ui->controller_checkbox->isChecked());
     }
+    ui_extra_prompt = create_extra_prompt();
+}
+
+void Widget::tool_call_mode_change(int)
+{
+    if (!date_ui || !date_ui->toolcall_mode_comboBox) return;
+    const QVariant data = date_ui->toolcall_mode_comboBox->currentData();
+    ui_tool_call_mode = data.isValid() ? data.toInt() : DEFAULT_TOOL_CALL_MODE;
+    // 工具调用模式切换后需要刷新附加提示词（function_call 会移除工具提示块）。
     ui_extra_prompt = create_extra_prompt();
 }

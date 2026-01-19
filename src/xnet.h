@@ -1,4 +1,4 @@
-#ifndef XNET_H
+﻿#ifndef XNET_H
 #define XNET_H
 
 #include <QColor>
@@ -26,6 +26,13 @@ class xNet : public QObject
     xNet();
     ~xNet() override;
 
+    struct StreamToolCall
+    {
+        QString id;
+        QString name;
+        QString arguments;
+    };
+
     // Start one request based on current endpoint_data/apis
     // Mark as invokable so QMetaObject::invokeMethod can call it across threads
     Q_INVOKABLE void run();
@@ -50,9 +57,10 @@ class xNet : public QObject
     void recv_apis(APIS apis_);         // 传递api设置参数
     void recv_stop(bool stop);          // 传递停止信号
     void recv_language(int language_flag_);
-    void recv_turn(quint64 turnId);     // ä¼ é€’å›žåŽç±»ID
+    void recv_turn(quint64 turnId);
 
   signals:
+    void net2ui_tool_calls(const QString &payload);
     void net2ui_state(const QString &state_string, SIGNAL_STATE state = USUAL_SIGNAL);            // 状态
     void net2ui_output(const QString &result, bool is_while = 1, QColor color = QColor(0, 0, 0)); // 输出
     void net2ui_pushover();                                                                       // 推理完成
@@ -113,6 +121,8 @@ class xNet : public QObject
     bool sawToolStopword_ = false; // 本轮是否已命中工具停符，防止重复中止
     int cacheTokens_ = -1;
     bool totalsEmitted_ = false;
+    QVector<StreamToolCall> toolCallsAcc_;
+    bool toolCallsEmitted_ = false;
     quint64 turn_id_ = 0; // å½“å‰å›žåŽIDç”¨äºŽæµç¨‹æ‰«æ
 
     // Keep track of connections to safely disconnect on abort
@@ -131,6 +141,7 @@ class xNet : public QObject
     QString turnTag() const;
     void emitFlowLog(const QString &msg, SIGNAL_STATE state = USUAL_SIGNAL);
     void emitSpeedsIfAvailable(bool allowFallback);
+    void emitToolCallsIfAvailable();
 
   protected:
     void processSsePayload(bool isChat, const QByteArray &payload);

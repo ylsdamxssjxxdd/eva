@@ -1,4 +1,4 @@
-#include "xnet.h"
+﻿#include "xnet.h"
 #include "prompt_builder.h"
 #include "utils/flowtracer.h"
 #if QT_CONFIG(ssl)
@@ -99,6 +99,112 @@ static inline int parseReasoningTokensLoose(const QJsonObject &u)
     }
     return -1;
 }
+
+static void appendJsonValue(QString &out, const QJsonValue &val)
+{
+    if (val.isString())
+    {
+        out += val.toString();
+        return;
+    }
+    if (val.isObject())
+    {
+        const QJsonDocument doc(val.toObject());
+        out += QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
+        return;
+    }
+    if (val.isArray())
+    {
+        const QJsonDocument doc(val.toArray());
+        out += QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
+        return;
+    }
+}
+
+static void applyFunctionDelta(xNet::StreamToolCall &slot, const QJsonObject &functionObj)
+{
+    if (functionObj.contains(QStringLiteral("name")) && functionObj.value(QStringLiteral("name")).isString())
+    {
+        slot.name += functionObj.value(QStringLiteral("name")).toString();
+    }
+    if (functionObj.contains(QStringLiteral("arguments")))
+    {
+        appendJsonValue(slot.arguments, functionObj.value(QStringLiteral("arguments")));
+    }
+}
+
+static void updateStreamToolCalls(QVector<xNet::StreamToolCall> &acc, const QJsonObject &delta)
+{
+    auto collectCalls = [&](const QJsonValue &val, QJsonArray &out) {
+        if (val.isArray())
+        {
+            const QJsonArray arr = val.toArray();
+            for (const auto &item : arr)
+            {
+                out.append(item);
+            }
+        }
+        else if (val.isObject())
+        {
+            out.append(val);
+        }
+    };
+
+    QJsonArray callItems;
+    collectCalls(delta.value(QStringLiteral("tool_calls")), callItems);
+    collectCalls(delta.value(QStringLiteral("tool_call")), callItems);
+
+    for (const auto &item : callItems)
+    {
+        if (!item.isObject()) continue;
+        const QJsonObject callObj = item.toObject();
+        const int index = callObj.value(QStringLiteral("index")).toInt(0);
+        while (acc.size() <= index) acc.append(xNet::StreamToolCall());
+        xNet::StreamToolCall &slot = acc[index];
+        if (callObj.value(QStringLiteral("id")).isString())
+        {
+            slot.id = callObj.value(QStringLiteral("id")).toString();
+        }
+        if (callObj.value(QStringLiteral("function")).isObject())
+        {
+            applyFunctionDelta(slot, callObj.value(QStringLiteral("function")).toObject());
+        }
+        else
+        {
+            QJsonObject fallback;
+            if (callObj.contains(QStringLiteral("name"))) fallback.insert(QStringLiteral("name"), callObj.value(QStringLiteral("name")));
+            if (callObj.contains(QStringLiteral("arguments"))) fallback.insert(QStringLiteral("arguments"), callObj.value(QStringLiteral("arguments")));
+            if (!fallback.isEmpty()) applyFunctionDelta(slot, fallback);
+        }
+    }
+
+    if (delta.value(QStringLiteral("function_call")).isObject())
+    {
+        if (acc.isEmpty()) acc.append(xNet::StreamToolCall());
+        applyFunctionDelta(acc[0], delta.value(QStringLiteral("function_call")).toObject());
+    }
+}
+
+static QJsonArray finalizeStreamToolCalls(const QVector<xNet::StreamToolCall> &acc)
+{
+    QJsonArray out;
+    for (const auto &call : acc)
+    {
+        if (call.name.trimmed().isEmpty()) continue;
+        QJsonObject fn;
+        fn.insert(QStringLiteral("name"), call.name);
+        fn.insert(QStringLiteral("arguments"), call.arguments);
+        QJsonObject item;
+        item.insert(QStringLiteral("type"), QStringLiteral("function"));
+        item.insert(QStringLiteral("function"), fn);
+        if (!call.id.trimmed().isEmpty())
+        {
+            item.insert(QStringLiteral("id"), call.id);
+        }
+        out.append(item);
+    }
+    return out;
+}
 } // namespace
 
 QString xNet::turnTag() const
@@ -157,6 +263,8 @@ void xNet::resetState()
     reasoningTokensTurn_ = 0;
     extThinkActive_ = false;
     sawToolStopword_ = false;
+    toolCallsAcc_.clear();
+    toolCallsEmitted_ = false;
     // reset timing stats
     promptTokens_ = -1;
     promptMs_ = 0.0;
@@ -487,6 +595,10 @@ void xNet::run()
 
         abortReason_ = AbortReason::None;
         running_ = false;
+        if (!canceled)
+        {
+            emitToolCallsIfAvailable();
+        }
         // Report reasoning token count of this turn before finishing
         emit net2ui_reasoning_tokens(reasoningTokensTurn_);
         emit net2ui_pushover(); });
@@ -530,6 +642,16 @@ void xNet::ensureNetObjects()
             emit net2ui_state(QStringLiteral("net: timeout (no data for 120s)"), WRONG_SIGNAL);
             abortActiveReply(AbortReason::Timeout); });
     }
+}
+
+void xNet::emitToolCallsIfAvailable()
+{
+    if (toolCallsEmitted_) return;
+    const QJsonArray calls = finalizeStreamToolCalls(toolCallsAcc_);
+    if (calls.isEmpty()) return;
+    toolCallsEmitted_ = true;
+    QJsonDocument doc(calls);
+    emit net2ui_tool_calls(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
 }
 
 // 构造请求的数据体
@@ -592,56 +714,73 @@ QByteArray xNet::createChatBody()
     }
 
     // Normalize UI messages into OpenAI-compatible messages
+    const bool useFunctionCall = (endpoint_data.tool_call_mode == TOOL_CALL_FUNCTION);
     QJsonArray oaiMessages = promptx::buildOaiChatMessages(endpoint_data.messagesArray, endpoint_data.date_prompt,
                                                            QStringLiteral(DEFAULT_SYSTEM_NAME),
                                                            QStringLiteral(DEFAULT_USER_NAME),
                                                            QStringLiteral(DEFAULT_MODEL_NAME));
-    // Some remote providers (e.g., OpenRouter/xAI) do not accept role="tool" unless using
-    // OpenAI-native tool_calls schema. We do not use tool_calls; instead we stream a plain
-    // observation back to the model. To maximize compatibility, convert any historical
-    // tool messages to a user message prefixed with DEFAULT_OBSERVATION_NAME.
-    QJsonArray compatMsgs;
-    for (const auto &v : oaiMessages)
+    QJsonArray finalMessages;
+    if (useFunctionCall)
     {
-        if (!v.isObject())
+        finalMessages = oaiMessages;
+        if (!endpoint_data.tools.isEmpty())
         {
-            compatMsgs.append(v);
-            continue;
-        }
-        QJsonObject m = v.toObject();
-        const QString role = m.value("role").toString();
-        if (role == QStringLiteral("tool"))
-        {
-            QString content;
-            const QJsonValue cv = m.value("content");
-            if (cv.isString())
-                content = cv.toString();
-            else if (cv.isArray())
-            {
-                // flatten parts to text if needed
-                QStringList parts;
-                for (const auto &pv : cv.toArray())
-                {
-                    if (pv.isObject())
-                    {
-                        QJsonObject po = pv.toObject();
-                        if (po.value("type").toString() == QStringLiteral("text"))
-                            parts << po.value("text").toString();
-                    }
-                }
-                content = parts.join(QString());
-            }
-            QJsonObject u;
-            u.insert("role", QStringLiteral("user"));
-            u.insert("content", QString(DEFAULT_OBSERVATION_NAME) + content);
-            compatMsgs.append(u);
-        }
-        else
-        {
-            compatMsgs.append(m);
+            json.insert(QStringLiteral("tools"), endpoint_data.tools);
+            json.insert(QStringLiteral("tool_choice"), QStringLiteral("auto"));
         }
     }
-    json.insert("messages", compatMsgs);
+    else
+    {
+        // Some remote providers (e.g., OpenRouter/xAI) do not accept role="tool" unless using
+        // OpenAI-native tool_calls schema. We do not use tool_calls; instead we stream a plain
+        // observation back to the model. To maximize compatibility, convert any historical
+        // tool messages to a user message prefixed with DEFAULT_OBSERVATION_NAME.
+        QJsonArray compatMsgs;
+        for (const auto &v : oaiMessages)
+        {
+            if (!v.isObject())
+            {
+                compatMsgs.append(v);
+                continue;
+            }
+            QJsonObject m = v.toObject();
+            m.remove(QStringLiteral("tool_calls"));
+            m.remove(QStringLiteral("tool_call_id"));
+            const QString role = m.value("role").toString();
+            if (role == QStringLiteral("tool"))
+            {
+                QString content;
+                const QJsonValue cv = m.value("content");
+                if (cv.isString())
+                    content = cv.toString();
+                else if (cv.isArray())
+                {
+                    // flatten parts to text if needed
+                    QStringList parts;
+                    for (const auto &pv : cv.toArray())
+                    {
+                        if (pv.isObject())
+                        {
+                            QJsonObject po = pv.toObject();
+                            if (po.value("type").toString() == QStringLiteral("text"))
+                                parts << po.value("text").toString();
+                        }
+                    }
+                    content = parts.join(QString());
+                }
+                QJsonObject u;
+                u.insert("role", QStringLiteral("user"));
+                u.insert("content", QString(DEFAULT_OBSERVATION_NAME) + content);
+                compatMsgs.append(u);
+            }
+            else
+            {
+                compatMsgs.append(m);
+            }
+        }
+        finalMessages = compatMsgs;
+    }
+    json.insert(QStringLiteral("messages"), finalMessages);
     // Reuse llama.cpp server slot KV cache if available
     if (isLocal && endpoint_data.id_slot >= 0) { json.insert("id_slot", endpoint_data.id_slot); }
     maybeAttachReasoningPayload(json, endpoint_data.reasoning_effort, isLocal);
@@ -842,6 +981,15 @@ void xNet::processSsePayload(bool isChat, const QByteArray &payload)
                 const QString finish = firstChoice.value("finish_reason").toString();
                 Q_UNUSED(finish);
                 const QJsonObject delta = firstChoice.value("delta").toObject();
+                updateStreamToolCalls(toolCallsAcc_, delta);
+                if (delta.isEmpty())
+                {
+                    const QJsonObject messageObj = firstChoice.value("message").toObject();
+                    if (!messageObj.isEmpty())
+                    {
+                        updateStreamToolCalls(toolCallsAcc_, messageObj);
+                    }
+                }
                 // 1) xAI/OpenAI reasoning fields (no <think> markers)
                 QString reasoning = delta.value("reasoning_content").toString();
                 if (reasoning.isEmpty() && delta.contains("reasoning"))

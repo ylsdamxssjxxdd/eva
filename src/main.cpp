@@ -456,6 +456,7 @@ int main(int argc, char *argv[])
     QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection); // 窗口输出区更新
     // Forward streaming output to Expend for TTS segmentation/playback
     QObject::connect(net, &xNet::net2ui_output, &expend, &Expend::recv_output, Qt::QueuedConnection);                // 文转声：接收模型流式输出
+    QObject::connect(net, &xNet::net2ui_tool_calls, &w, &Widget::recv_tool_calls, Qt::QueuedConnection);             // function_call 工具调用
     QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
     QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
     QObject::connect(net, &xNet::net2ui_pushover, &expend, &Expend::onNetTurnDone, Qt::QueuedConnection);            // 文转声：回合结束时刷新未完句
@@ -693,6 +694,15 @@ int main(int argc, char *argv[])
         const bool savedArchitect = settings.value("engineer_architect_mode", false).toBool();
         w.setEngineerArchitectMode(savedArchitect, false);
         const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
+        const int savedToolCallMode = settings.value("tool_call_mode", DEFAULT_TOOL_CALL_MODE).toInt();
+        w.ui_tool_call_mode = savedToolCallMode;
+        if (w.date_ui->toolcall_mode_comboBox)
+        {
+            QSignalBlocker blocker(w.date_ui->toolcall_mode_comboBox);
+            int idx = w.date_ui->toolcall_mode_comboBox->findData(savedToolCallMode);
+            if (idx < 0) idx = w.date_ui->toolcall_mode_comboBox->findData(DEFAULT_TOOL_CALL_MODE);
+            if (idx >= 0) w.date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
+        }
         const bool legacyDockerEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
         w.engineerDockerContainer = w.sanitizeDockerContainerValue(settings.value("docker_sandbox_container").toString());

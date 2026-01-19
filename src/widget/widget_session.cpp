@@ -1,4 +1,4 @@
-#include "widget.h"
+﻿#include "widget.h"
 #include "ui_widget.h"
 #include "../utils/flowtracer.h"
 
@@ -211,6 +211,8 @@ ENDPOINT_DATA Widget::prepareEndpointData()
     d.n_predict = ui_SETTINGS.hid_npredict;
     d.reasoning_effort = sanitizeReasoningEffort(ui_SETTINGS.reasoning_effort);
     d.messagesArray = ui_messagesArray;
+    d.tool_call_mode = ui_tool_call_mode;
+    d.tools = (ui_tool_call_mode == TOOL_CALL_FUNCTION) ? buildFunctionTools() : QJsonArray();
     d.id_slot = currentSlotId_;
     d.turn_id = activeTurnId_;
     return d;
@@ -549,6 +551,10 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     toolInvocationActive_ = false;
     QJsonObject roleMessage;
     roleMessage.insert("role", QStringLiteral("tool"));
+    if (ui_tool_call_mode == TOOL_CALL_FUNCTION && !pendingToolCallId_.isEmpty())
+    {
+        roleMessage.insert(QStringLiteral("tool_call_id"), pendingToolCallId_);
+    }
     // controller/monitor 工具返回时附带最新截图：
     // - controller：动作执行后附带新图，便于模型定位下一步
     // - monitor：等待结束后附带新图，形成“监视->判断->再监视/去操作”的观测回路
@@ -657,6 +663,7 @@ void Widget::handleToolLoop(ENDPOINT_DATA &data)
     }
     ui_messagesArray.append(roleMessage);
     if (history_ && ui_state == CHAT_STATE) history_->appendMessage(roleMessage);
+    if (ui_tool_call_mode == TOOL_CALL_FUNCTION) pendingToolCallId_.clear();
 
     // 记录区：工具触发时就创建记录块（见 recv_pushover()），这里复用该记录块写入 tool_result；
     // 若没有可复用的记录（兼容旧流程/异常分支），则退回到“收到结果才创建”的旧逻辑。

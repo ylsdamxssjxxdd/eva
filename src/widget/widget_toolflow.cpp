@@ -5,6 +5,8 @@
 #include "../utils/flowtracer.h"
 
 #include <QDir>
+#include <QJsonDocument>
+#include <QJsonParseError>
 #include <QMessageBox>
 
 void Widget::recv_pushover()
@@ -12,6 +14,9 @@ void Widget::recv_pushover()
     flushPendingStream();
     lastToolCallName_.clear();
     lastToolPendingName_.clear();
+    pendingToolCallId_.clear();
+    const QJsonArray toolCallsSnapshot = pendingToolCallsPayload_;
+    pendingToolCallsPayload_ = QJsonArray();
     // Separate all reasoning (<think>...</think>) blocks from final content; capture both roles
     QString finalText = temp_assistant_history;
     const QString tBegin = QString(DEFAULT_THINK_BEGIN);
@@ -55,6 +60,10 @@ void Widget::recv_pushover()
     if (!reasoningText.isEmpty())
     {
         roleMessage.insert("reasoning_content", reasoningText);
+    }
+    if (ui_tool_call_mode == TOOL_CALL_FUNCTION && !toolCallsSnapshot.isEmpty())
+    {
+        roleMessage.insert(QStringLiteral("tool_calls"), toolCallsSnapshot);
     }
     if (engineerProxyRuntime_.active)
     {
@@ -104,47 +113,167 @@ void Widget::recv_pushover()
         // 宸ュ叿閾惧紑鍏冲紑鍚椂锛屽皾璇曡В鏋愬伐鍏?JSON
         if (is_load_tool)
         {
-            QString tool_str = ui_messagesArray.last().toObject().value("content").toString();
-            tools_call = XMLparser(tool_str);
-            if (tools_call.empty())
+            if (ui_tool_call_mode == TOOL_CALL_FUNCTION)
             {
-                normal_finish_pushover();
-            }
-            else
-            {
-                if (tools_call.contains("name") && tools_call.contains("arguments"))
-                {
-                    QString tools_name = QString::fromStdString(tools_call.value("name", ""));
-                    lastToolCallName_ = tools_name;
-                    lastToolPendingName_ = tools_name; // 保留工具名，供工具返回时附加截图等场景
-                    reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
+                auto parseArguments = [&](const QJsonValue &value) -> mcp::json {
+                    if (value.isObject())
+                    {
+                        const QJsonDocument doc(value.toObject());
+                        const QByteArray bytes = doc.toJson(QJsonDocument::Compact);
+                        try
+                        {
+                            mcp::json parsed = mcp::json::parse(bytes.constData(), bytes.constData() + bytes.size());
+                            return parsed.is_object() ? parsed : mcp::json::object();
+                        }
+                        catch (const std::exception &)
+                        {
+                            return mcp::json::object();
+                        }
+                    }
+                    if (value.isString())
+                    {
+                        const QByteArray bytes = value.toString().toUtf8();
+                        try
+                        {
+                            mcp::json parsed = mcp::json::parse(bytes.constData(), bytes.constData() + bytes.size());
+                            return parsed.is_object() ? parsed : mcp::json::object();
+                        }
+                        catch (const std::exception &)
+                        {
+                            return mcp::json::object();
+                        }
+                    }
+                    return mcp::json::object();
+                };
 
-                    // 记录区：工具“触发即显示”，不必等工具执行完成再出现记录块。
-                    // - 这里只创建记录块（图标/徽标），不输出内容；
-                    // - 工具返回时在 handleToolLoop() 中复用该记录块写入 tool_result。
-                    if (tools_name != QStringLiteral("answer") && tools_name != QStringLiteral("response"))
+                if (toolCallsSnapshot.isEmpty())
+                {
+                    normal_finish_pushover();
+                }
+                else
+                {
+                    QJsonObject callObj;
+                    for (const auto &item : toolCallsSnapshot)
                     {
-                        currentToolRecordIndex_ = recordCreate(RecordRole::Tool, tools_name);
+                        if (item.isObject())
+                        {
+                            callObj = item.toObject();
+                            break;
+                        }
                     }
-                    // 宸ュ叿灞傞潰鎸囧嚭缁撴潫
-                    if (tools_name == "system_engineer_proxy")
-                    {
-                        startEngineerProxyTool(tools_call);
-                        return;
-                    }
-                    if (tools_name == "answer" || tools_name == "response")
+                    if (callObj.isEmpty())
                     {
                         normal_finish_pushover();
                     }
                     else
                     {
-                        logFlow(FlowPhase::ToolParsed, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
-                        pendingAssistantHeaderReset_ = true;
-                        toolInvocationActive_ = true;
-                        emit ui2tool_turn(activeTurnId_);
-                        logFlow(FlowPhase::ToolStart, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
-                        emit ui2tool_exec(tools_call);
-                        // use tool; decoding remains paused
+                        QString tools_name;
+                        QJsonValue argsValue;
+                        const QJsonValue functionVal = callObj.value(QStringLiteral("function"));
+                        if (functionVal.isObject())
+                        {
+                            const QJsonObject functionObj = functionVal.toObject();
+                            tools_name = functionObj.value(QStringLiteral("name")).toString();
+                            argsValue = functionObj.value(QStringLiteral("arguments"));
+                        }
+                        else
+                        {
+                            tools_name = callObj.value(QStringLiteral("name")).toString();
+                            argsValue = callObj.value(QStringLiteral("arguments"));
+                        }
+                        const QString toolCallId = callObj.value(QStringLiteral("id")).toString();
+
+                        if (tools_name.isEmpty())
+                        {
+                            normal_finish_pushover();
+                        }
+                        else
+                        {
+                            tools_call = mcp::json::object();
+                            tools_call["name"] = tools_name.toStdString();
+                            tools_call["arguments"] = parseArguments(argsValue);
+                            pendingToolCallId_ = toolCallId;
+
+                            lastToolCallName_ = tools_name;
+                            lastToolPendingName_ = tools_name; // 保留工具名，供工具返回时附加截图等场景
+                            reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
+
+                            // 记录区：工具“触发即显示”，不必等工具执行完成再出现记录块。
+                            // - 这里只创建记录块（图标/徽标），不输出内容；
+                            // - 工具返回时在 handleToolLoop() 中复用该记录块写入 tool_result。
+                            if (tools_name != QStringLiteral("answer") && tools_name != QStringLiteral("response"))
+                            {
+                                currentToolRecordIndex_ = recordCreate(RecordRole::Tool, tools_name);
+                            }
+                            // 工具层面指出结束
+                            if (tools_name == QStringLiteral("system_engineer_proxy"))
+                            {
+                                startEngineerProxyTool(tools_call);
+                                return;
+                            }
+                            if (tools_name == QStringLiteral("answer") || tools_name == QStringLiteral("response"))
+                            {
+                                pendingToolCallId_.clear();
+                                normal_finish_pushover();
+                            }
+                            else
+                            {
+                                logFlow(FlowPhase::ToolParsed, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
+                                pendingAssistantHeaderReset_ = true;
+                                toolInvocationActive_ = true;
+                                emit ui2tool_turn(activeTurnId_);
+                                logFlow(FlowPhase::ToolStart, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
+                                emit ui2tool_exec(tools_call);
+                                // use tool; decoding remains paused
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                QString tool_str = ui_messagesArray.last().toObject().value("content").toString();
+                tools_call = XMLparser(tool_str);
+                if (tools_call.empty())
+                {
+                    normal_finish_pushover();
+                }
+                else
+                {
+                    if (tools_call.contains("name") && tools_call.contains("arguments"))
+                    {
+                        QString tools_name = QString::fromStdString(tools_call.value("name", ""));
+                        lastToolCallName_ = tools_name;
+                        lastToolPendingName_ = tools_name; // 保留工具名，供工具返回时附加截图等场景
+                        reflash_state("ui:" + jtr("clicked") + " " + tools_name, SIGNAL_SIGNAL);
+
+                        // 记录区：工具“触发即显示”，不必等工具执行完成再出现记录块。
+                        // - 这里只创建记录块（图标/徽标），不输出内容；
+                        // - 工具返回时在 handleToolLoop() 中复用该记录块写入 tool_result。
+                        if (tools_name != QStringLiteral("answer") && tools_name != QStringLiteral("response"))
+                        {
+                            currentToolRecordIndex_ = recordCreate(RecordRole::Tool, tools_name);
+                        }
+                        // 工具层面指出结束
+                        if (tools_name == "system_engineer_proxy")
+                        {
+                            startEngineerProxyTool(tools_call);
+                            return;
+                        }
+                        if (tools_name == "answer" || tools_name == "response")
+                        {
+                            normal_finish_pushover();
+                        }
+                        else
+                        {
+                            logFlow(FlowPhase::ToolParsed, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
+                            pendingAssistantHeaderReset_ = true;
+                            toolInvocationActive_ = true;
+                            emit ui2tool_turn(activeTurnId_);
+                            logFlow(FlowPhase::ToolStart, QStringLiteral("name=%1").arg(tools_name), SIGNAL_SIGNAL);
+                            emit ui2tool_exec(tools_call);
+                            // use tool; decoding remains paused
+                        }
                     }
                 }
             }
@@ -156,6 +285,77 @@ void Widget::recv_pushover()
     }
     markBackendActivity();
     scheduleLazyUnload();
+}
+
+void Widget::recv_tool_calls(const QString &payload)
+{
+    if (ui_tool_call_mode != TOOL_CALL_FUNCTION)
+    {
+        return;
+    }
+
+    pendingToolCallsPayload_ = QJsonArray();
+    pendingToolCallId_.clear();
+
+    const QString trimmed = payload.trimmed();
+    if (trimmed.isEmpty()) return;
+
+    QJsonParseError err{};
+    const QJsonDocument doc = QJsonDocument::fromJson(trimmed.toUtf8(), &err);
+    QJsonArray calls;
+    if (err.error == QJsonParseError::NoError)
+    {
+        if (doc.isArray())
+        {
+            calls = doc.array();
+        }
+        else if (doc.isObject())
+        {
+            const QJsonObject obj = doc.object();
+            const QJsonValue toolCallsVal = obj.value(QStringLiteral("tool_calls"));
+            const QJsonValue functionCallVal = obj.value(QStringLiteral("function_call"));
+            if (toolCallsVal.isArray())
+            {
+                calls = toolCallsVal.toArray();
+            }
+            else if (functionCallVal.isObject())
+            {
+                calls.append(functionCallVal.toObject());
+            }
+            else if (!obj.isEmpty())
+            {
+                calls.append(obj);
+            }
+        }
+    }
+
+    if (!calls.isEmpty())
+    {
+        pendingToolCallsPayload_ = calls;
+    }
+    else
+    {
+        qWarning() << "function_call tool_calls payload parse failed:" << err.errorString();
+    }
+
+    // 让工具调用信息作为模型输出展示
+    flushPendingStream();
+    QString displayText;
+    if (!calls.isEmpty())
+    {
+        QJsonDocument outDoc(calls);
+        displayText = QString::fromUtf8(outDoc.toJson(QJsonDocument::Compact));
+    }
+    else
+    {
+        displayText = trimmed;
+    }
+    if (displayText.isEmpty()) return;
+    if (!temp_assistant_history.isEmpty() && !temp_assistant_history.endsWith('\n'))
+    {
+        displayText.prepend('\n');
+    }
+    reflash_output(displayText, true, themeTextPrimary());
 }
 
 void Widget::normal_finish_pushover()
