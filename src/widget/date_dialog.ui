@@ -303,31 +303,13 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_toolcall_mode">
         <item>
-         <widget class="QLabel" name="toolcall_mode_label">
-          <property name="minimumSize">
-           <size>
-            <width>80</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>80</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>工具调用方式</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QComboBox" name="toolcall_mode_comboBox">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
             <width>0</width>

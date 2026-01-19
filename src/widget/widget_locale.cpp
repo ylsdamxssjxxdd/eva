@@ -194,11 +194,6 @@ void Widget::apply_language(int language_flag_)
     date_ui->engineer_checkbox->setToolTip(jtr("engineer_checkbox_tooltip"));
     date_ui->controller_checkbox->setText(jtr("controller"));
     date_ui->controller_checkbox->setToolTip(jtr("controller_checkbox_tooltip"));
-    if (date_ui->toolcall_mode_label)
-    {
-        date_ui->toolcall_mode_label->setText(jtr("tool call mode"));
-        date_ui->toolcall_mode_label->setToolTip(jtr("tool call mode tooltip"));
-    }
     if (date_ui->toolcall_mode_comboBox)
     {
         QSignalBlocker blocker(date_ui->toolcall_mode_comboBox);
