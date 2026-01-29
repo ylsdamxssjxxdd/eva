@@ -64,7 +64,15 @@ void Expend::restoreEmbeddingsFromStore()
     if (vectorDb.currentDim() > 0)
     {
         embedding_server_dim = vectorDb.currentDim();
-        if (ui && ui->embedding_dim_spinBox) ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+        if (ui && ui->embedding_dim_spinBox)
+        {
+            // 从持久化向量库恢复维度时，不触发“手动修改维度”的重启逻辑
+            const bool prev_keep = keep_embedding_server;
+            keep_embedding_server = true;
+            ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+            keep_embedding_server = prev_keep;
+        }
+        emit expend2tool_embedding_dim(embedding_server_dim);
     }
 
     rebuildEmbeddedTableView();
@@ -213,10 +221,25 @@ void Expend::readyRead_server_process_StandardError()
     if (server_output.contains(SERVER_EMBD_INFO))
     {
         embedding_server_dim = server_output.split(SERVER_EMBD_INFO).at(1).split("\n").at(0).toInt();
-        ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+        if (ui && ui->embedding_dim_spinBox)
+        {
+            // 服务日志回报维度时，避免触发维度变更回调导致重复重启
+            const bool prev_keep = keep_embedding_server;
+            keep_embedding_server = true;
+            ui->embedding_dim_spinBox->setValue(embedding_server_dim);
+            keep_embedding_server = prev_keep;
+        }
         qDebug() << "该模型的嵌入维度为: " << embedding_server_dim << ui->embedding_dim_spinBox->value();
         // 更新向量库绑定的模型维度，若不一致将清空
-        vectorDb.setCurrentModel(embedding_params.modelpath, embedding_server_dim);
+        const bool reset = vectorDb.setCurrentModel(embedding_params.modelpath, embedding_server_dim);
+        if (reset)
+        {
+            // 维度变更后清理内存与界面，避免旧向量参与检索
+            Embedding_DB.clear();
+            rebuildEmbeddedTableView();
+            emit expend2tool_embeddingdb(Embedding_DB);
+        }
+        emit expend2tool_embedding_dim(embedding_server_dim);
         if (embedding_embed_need) // 用来自动构建知识库
         {
             embedding_embed_need = false;
@@ -895,4 +918,50 @@ void Expend::on_embedding_resultnumb_spinBox_valueChanged(int value)
 {
     embedding_resultnumb = value;
     emit expend2ui_embedding_resultnumb(embedding_resultnumb);
+}
+
+// 嵌入维度改变响应
+void Expend::on_embedding_dim_spinBox_valueChanged(int value)
+{
+    if (!ui) return;
+    // 初始化/程序内部同步时不触发重启逻辑
+    if (keep_embedding_server) return;
+    if (value <= 0) return;
+
+    // 1) 同步当前维度，并告知工具侧使用相同维度
+    embedding_server_dim = value;
+    emit expend2tool_embedding_dim(embedding_server_dim);
+
+    // 2) 持久化到配置，确保下次启动保持一致
+    QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
+    settings.setIniCodec("utf-8");
+    settings.setValue("embedding_dim", embedding_server_dim);
+
+    // 3) 更新向量库绑定维度；如不一致则清空旧向量，避免检索混淆
+    QString modelId;
+    if (ui->embedding_model_lineedit)
+        modelId = ui->embedding_model_lineedit->text().trimmed();
+    if (modelId.isEmpty())
+        modelId = vectorDb.currentModelId();
+    if (!modelId.isEmpty())
+    {
+        const bool reset = vectorDb.setCurrentModel(modelId, embedding_server_dim);
+        if (reset)
+        {
+            Embedding_DB.clear();
+            rebuildEmbeddedTableView();
+            emit expend2tool_embeddingdb(Embedding_DB);
+        }
+    }
+
+    // 4) 若嵌入服务正在运行，自动重启以应用新维度
+    if (embedding_server_active || (server_process && server_process->state() == QProcess::Running))
+    {
+        if (ui->embedding_test_log)
+        {
+            ui->embedding_test_log->appendPlainText(QStringLiteral("[info] embedding dim changed, restarting embedding server..."));
+        }
+        stopEmbeddingServer(true);
+        QTimer::singleShot(200, this, &Expend::embedding_server_start);
+    }
 }

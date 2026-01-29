@@ -192,7 +192,7 @@ class Expend : public QWidget
     void embedding_server_start();                  // 尝试启动server
     QString txtpath;                                // 用户上传的txt文件路径
     QStringList upload_paths;                       // selected source files (txt/md/docx)
-    int embedding_server_dim = 1024;                // 开启嵌入服务的嵌入维度
+    int embedding_server_dim = DEFAULT_EMBEDDING_DIM; // 开启嵌入服务的嵌入维度
     void preprocessTXT();                           // 预处理文件内容
     void preprocessFiles(const QStringList &paths); // preprocess multiple files
     int show_chunk_index = 0;                       // 待显示的嵌入文本段的序号
@@ -204,6 +204,7 @@ class Expend : public QWidget
 
   signals:
     void expend2tool_embeddingdb(QVector<Embedding_vector> Embedding_DB_); // 发送已嵌入文本段数据给tool
+    void expend2tool_embedding_dim(int dim);                               // 同步嵌入维度给工具侧
     void expend2ui_embeddingdb_describe(QString describe);                 // 传递知识库的描述
     void expend2ui_embedding_resultnumb(int resultnumb);                   // 传递嵌入结果返回个数
   public slots:
@@ -225,6 +226,7 @@ class Expend : public QWidget
     void on_embedding_model_lineedit_textChanged();               // 嵌入端点改变响应
     void on_embedding_txt_describe_lineEdit_textChanged();        // 知识库描述改变响应
     void on_embedding_resultnumb_spinBox_valueChanged(int value); // 嵌入结果返回个数改变响应
+    void on_embedding_dim_spinBox_valueChanged(int value);        // 嵌入维度改变响应
 
   private:
     QString embedding_store_path_;

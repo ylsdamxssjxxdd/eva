@@ -535,7 +535,14 @@ void Expend::readConfig()
     ui->embedding_split_spinbox->setValue(settings.value("embedding_split", DEFAULT_EMBEDDING_SPLITLENTH).toInt());
     ui->embedding_resultnumb_spinBox->setValue(settings.value("embedding_resultnumb", DEFAULT_EMBEDDING_RESULTNUMB).toInt());
     ui->embedding_overlap_spinbox->setValue(settings.value("embedding_overlap", DEFAULT_EMBEDDING_OVERLAP).toInt());
-    ui->embedding_dim_spinBox->setValue(settings.value("embedding_dim", 1024).toInt());
+    const int embedding_dim = settings.value("embedding_dim", DEFAULT_EMBEDDING_DIM).toInt();
+    // 避免初始化时触发维度变更逻辑：先暂时压制信号，再同步默认维度
+    const bool prev_keep = keep_embedding_server;
+    keep_embedding_server = true;
+    ui->embedding_dim_spinBox->setValue(embedding_dim);
+    keep_embedding_server = prev_keep;
+    embedding_server_dim = embedding_dim;
+    emit expend2tool_embedding_dim(embedding_server_dim);
 
     QString embedding_sourcetxt = settings.value("embedding_sourcetxt", "").toString(); // 源文档路径
     QFile embedding_sourcetxt_file(embedding_sourcetxt);

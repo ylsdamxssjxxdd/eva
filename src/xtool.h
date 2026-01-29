@@ -79,7 +79,7 @@ class xTool : public QObject
     QString pythonExecutable = DEFAULT_PYTHON;
 
     bool createTempDirectory(const QString &path);      // 创建临时文件夹
-    int embedding_server_dim = 1024;                    // 开启嵌入服务的嵌入维度
+    int embedding_server_dim = DEFAULT_EMBEDDING_DIM;   // 开启嵌入服务的嵌入维度
     int embedding_server_resultnumb = 3;                // 嵌入结果返回个数
     QVector<Embedding_vector> Embedding_DB;             // 嵌入的所有文本段的词向量，向量数据库
     QString embedding_query_process(QString query_str); // 获取查询词向量和计算相似度，返回匹配的文本段
@@ -95,6 +95,7 @@ class xTool : public QObject
     void cancelActiveTool();
     // 桌面控制器：归一化坐标系（截图与坐标统一），用于把模型输出坐标换算为真实屏幕坐标
     void recv_controllerNormalize(int normX, int normY);
+    void recv_embedding_dim(int dim);
     void recv_embedding_resultnumb(int resultnumb);
     void recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_);
     void recv_drawover(quint64 invocationId, QString result_, bool ok_); // 接收图像绘制完成信号

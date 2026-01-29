@@ -2715,17 +2715,24 @@ QString xTool::embedding_query_process(QString query_str)
                          {
                              QJsonObject dataObj = dataArray[i].toObject();
                              // 检查"data"对象中是否存在"embedding"
-                             if (dataObj.contains("embedding"))
-                             {
-                                 QJsonArray embeddingArray = dataObj["embedding"].toArray();
-                                 query_embedding_vector.value.resize(embedding_server_dim);
-                                 // 处理"embedding"数组
-                                 for (int j = 0; j < embeddingArray.size(); ++j)
-                                 {
-                                     query_embedding_vector.value[j] = embeddingArray[j].toDouble();
-                                     vector_str += QString::number(query_embedding_vector.value[j], 'f', 4) + ", ";
-                                 }
-                             }
+                              if (dataObj.contains("embedding"))
+                              {
+                                  QJsonArray embeddingArray = dataObj["embedding"].toArray();
+                                  const int actual_dim = embeddingArray.size();
+                                  int target_dim = embedding_server_dim;
+                                  if (!Embedding_DB.isEmpty())
+                                      target_dim = static_cast<int>(Embedding_DB.first().value.size());
+                                  if (target_dim <= 0) target_dim = actual_dim;
+                                  if (target_dim <= 0) break;
+                                  query_embedding_vector.value.assign(target_dim, 0.0);
+                                  const int fill_count = std::min(actual_dim, target_dim);
+                                  // 处理"embedding"数组：只写入安全范围，避免越界
+                                  for (int j = 0; j < fill_count; ++j)
+                                  {
+                                      query_embedding_vector.value[j] = embeddingArray[j].toDouble();
+                                      vector_str += QString::number(query_embedding_vector.value[j], 'f', 4) + ", ";
+                                  }
+                              }
                          }
                          vector_str += "]";
                          sendStateMessage("tool:" + jtr("The query text segment has been embedded") + jtr("dimension") + ": " + QString::number(query_embedding_vector.value.size()) + " " + jtr("word vector") + ": " + vector_str, USUAL_SIGNAL); });
@@ -2825,6 +2832,13 @@ void xTool::recv_embeddingdb(QVector<Embedding_vector> Embedding_DB_)
     Embedding_DB.clear();
     Embedding_DB = Embedding_DB_;
     sendStateMessage("tool:" + jtr("Received embedded text segment data"), USUAL_SIGNAL);
+}
+
+// 同步嵌入维度
+void xTool::recv_embedding_dim(int dim)
+{
+    if (dim <= 0) return;
+    embedding_server_dim = dim;
 }
 
 // 传递嵌入结果返回个数

@@ -341,6 +341,7 @@ int main(int argc, char *argv[])
     net->wordsObj = w.wordsObj;
     tool.wordsObj = w.wordsObj;
     expend.max_thread = w.max_thread;
+    tool.embedding_server_dim = expend.embedding_server_dim;               // 同步嵌入维度
     tool.embedding_server_resultnumb = expend.embedding_resultnumb;          // 同步数目
     w.currentpath = w.historypath = expend.currentpath = applicationDirPath; // 默认打开路径
     w.whisper_model_path = QString::fromStdString(expend.whisper_params.model);
@@ -500,6 +501,7 @@ int main(int argc, char *argv[])
 
     //------------------连接增殖窗口和tool-------------------
     QObject::connect(&expend, &Expend::expend2tool_embeddingdb, &tool, &xTool::recv_embeddingdb);                 // 传递已嵌入文本段数据
+    QObject::connect(&expend, &Expend::expend2tool_embedding_dim, &tool, &xTool::recv_embedding_dim);             // 同步嵌入维度
     QObject::connect(&expend, &Expend::expend2ui_embedding_resultnumb, &tool, &xTool::recv_embedding_resultnumb); // 传递嵌入结果返回个数
 
     QObject::connect(&tool, &xTool::tool2expend_draw, &expend, &Expend::recv_draw);         // 开始绘制图像
