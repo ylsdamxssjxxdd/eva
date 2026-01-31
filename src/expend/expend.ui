@@ -1727,10 +1727,10 @@ p, li { white-space: pre-wrap; }
            </widget>
           </item>
           <item>
-            <widget class="QSpinBox" name="embedding_dim_spinBox">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
+           <widget class="QSpinBox" name="embedding_dim_spinBox">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="minimumSize">
              <size>
               <width>80</width>
@@ -1744,7 +1744,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
              <property name="readOnly">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
             <property name="minimum">
              <number>128</number>
@@ -2810,7 +2810,7 @@ p, li { white-space: pre-wrap; }
              </size>
             </property>
             <property name="readOnly">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="placeholderText">
              <string>指定whisper.exe运行时使用的模型路径</string>

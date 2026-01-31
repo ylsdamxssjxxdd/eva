@@ -158,6 +158,9 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 #define DEFAULT_EMBEDDING_SPLITLENTH 300
 #define DEFAULT_EMBEDDING_OVERLAP 20
 #define DEFAULT_EMBEDDING_RESULTNUMB 3
+// 知识库嵌入服务上下文：按分块长度估算，避免使用 n_ctx_train 默认值导致显存膨胀
+#define DEFAULT_EMBEDDING_CTX_MIN 512
+#define DEFAULT_EMBEDDING_CTX_PADDING 64
 #define DEFAULT_MAX_INPUT 80000 // 一次最大输入字符数
 
 // llama日志信号字样，用来指示下一步动作

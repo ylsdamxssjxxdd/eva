@@ -144,6 +144,15 @@ void Expend::embedding_server_start()
     arguments << "--host"
               << "0.0.0.0";                                        // 暴露本机ip
     arguments << "--port" << DEFAULT_EMBEDDING_PORT;               // 服务端口
+    // 上下文长度按分块长度估算，避免默认 n_ctx_train 过大导致显存膨胀
+    int splitLength = DEFAULT_EMBEDDING_SPLITLENTH;
+    if (ui && ui->embedding_split_spinbox)
+    {
+        splitLength = ui->embedding_split_spinbox->value();
+    }
+    if (splitLength <= 0) splitLength = DEFAULT_EMBEDDING_SPLITLENTH;
+    const int ctxSize = std::max(DEFAULT_EMBEDDING_CTX_MIN, splitLength + DEFAULT_EMBEDDING_CTX_PADDING);
+    arguments << "-c" << QString::number(ctxSize);
     arguments << "--parallel" << QString::number(DEFAULT_PARALLEL); // 默认并发：保持与主推理服务一致（默认 1）
 
     // 与主推理服务保持一致：默认开启 llama-server 的可选端点，方便统一监控与探测。
@@ -189,6 +198,11 @@ void Expend::embedding_server_start()
 void Expend::readyRead_server_process_StandardOutput()
 {
     QString server_output = server_process->readAllStandardOutput();
+    // 将嵌入服务的原始输出同步到“模型日志”，便于定位装载差异
+    if (!server_output.isEmpty())
+    {
+        recv_llama_log(QStringLiteral("[embed] ") + server_output);
+    }
     // qDebug()<<"std "<<server_output;
 }
 
@@ -196,6 +210,11 @@ void Expend::readyRead_server_process_StandardOutput()
 void Expend::readyRead_server_process_StandardError()
 {
     QString server_output = server_process->readAllStandardError();
+    // 将嵌入服务的错误/启动日志同步到“模型日志”，便于统一排障
+    if (!server_output.isEmpty())
+    {
+        recv_llama_log(QStringLiteral("[embed] ") + server_output);
+    }
     // qDebug()<<"error "<<server_output;
     // 启动成功的标志
     QString log_output;
