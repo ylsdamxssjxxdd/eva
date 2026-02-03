@@ -455,8 +455,12 @@ QString Widget::create_engineer_proxy_prompt()
     }
 
     prompt.replace("{available_tools_describe}", tools.join(QStringLiteral("\n\n")));
-    prompt.replace("{engineer_info}", create_engineer_info());
-    if (!skill_usage_block.isEmpty()) prompt.append(skill_usage_block);
+    const QString engineerInfo = create_engineer_info();
+    if (!engineerInfo.isEmpty())
+    {
+        prompt.append(QStringLiteral("\n\n") + engineerInfo);
+    }
+    if (!skill_usage_block.isEmpty()) prompt.append(QStringLiteral("\n\n") + skill_usage_block);
     return prompt;
 }
 

@@ -37,6 +37,12 @@ QString &currentSystemPrompt()
     return value;
 }
 
+QString &currentWunderSystemPrompt()
+{
+    static QString value = QStringLiteral(DEFAULT_DATE_PROMPT);
+    return value;
+}
+
 const QString &defaultExtraPromptEn()
 {
     // 对齐参考项目 wunder 的工具提示词结构（英文版）
@@ -53,8 +59,7 @@ const QString &defaultExtraPromptEn()
         "</tool_call>\n"
         "\n"
         "Tool results will be returned as a user message prefixed with \"tool_response: \".\n"
-        "\n"
-        "{engineer_info}");
+        "\n");
     return value;
 }
 
@@ -74,8 +79,7 @@ const QString &defaultExtraPromptZh()
         "</tool_call>\n"
         "\n"
         "工具执行结果会作为以 \"tool_response: \" 前缀的 user 消息返回。\n"
-        "\n"
-        "{engineer_info}");
+        "\n");
     return value;
 }
 
@@ -330,6 +334,10 @@ void applyPromptLanguage(int languageFlag)
                                    ? QStringLiteral(DEFAULT_SYSTEM_PROMPT_ZH_RESOURCE)
                                    : QStringLiteral(DEFAULT_SYSTEM_PROMPT_EN_RESOURCE);
     currentSystemPrompt() = readPromptResource(systemPath, fallback);
+    const QString wunderPath = useChinesePrompt(languageFlag)
+                                   ? QStringLiteral(WUNDER_SYSTEM_PROMPT_ZH_RESOURCE)
+                                   : QStringLiteral(WUNDER_SYSTEM_PROMPT_EN_RESOURCE);
+    currentWunderSystemPrompt() = readPromptResource(wunderPath, currentSystemPrompt());
     if (useChinesePrompt(languageFlag))
     {
         currentExtraPrompt() = defaultExtraPromptZh();
@@ -394,6 +402,11 @@ const QString &extraPromptTemplate()
 const QString &systemPromptTemplate()
 {
     return currentSystemPrompt();
+}
+
+const QString &wunderSystemPromptTemplate()
+{
+    return currentWunderSystemPrompt();
 }
 
 const QString &engineerInfo()

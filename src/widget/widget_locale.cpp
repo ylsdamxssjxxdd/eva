@@ -137,16 +137,27 @@ void Widget::syncDefaultSystemPrompt()
     base.is_load_tool = false;
     date_map.insert(QStringLiteral("default"), base);
 
-    const bool usingDefaultTemplate =
-        (ui_template == QStringLiteral("default")) ||
-        (date_ui && date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() == QStringLiteral("default"));
-    if (!usingDefaultTemplate) return;
+    const QString wunderPrompt = promptx::wunderSystemPromptTemplate();
+    EVA_DATES wunder = date_map.value(QStringLiteral("wunder"), EVA_DATES());
+    wunder.date_prompt = wunderPrompt;
+    wunder.is_load_tool = false;
+    date_map.insert(QStringLiteral("wunder"), wunder);
 
-    ui_date_prompt = defaultPrompt;
+    QString currentTemplate = ui_template;
+    if (date_ui && date_ui->chattemplate_comboBox)
+    {
+        currentTemplate = date_ui->chattemplate_comboBox->currentText();
+    }
+    const bool usingDefaultTemplate = (currentTemplate == QStringLiteral("default"));
+    const bool usingWunderTemplate = (currentTemplate == QStringLiteral("wunder"));
+    if (!usingDefaultTemplate && !usingWunderTemplate) return;
+
+    const QString activePrompt = usingWunderTemplate ? wunderPrompt : defaultPrompt;
+    ui_date_prompt = activePrompt;
     if (date_ui && date_ui->date_prompt_TextEdit)
     {
         const QSignalBlocker blocker(date_ui->date_prompt_TextEdit);
-        date_ui->date_prompt_TextEdit->setPlainText(defaultPrompt);
+        date_ui->date_prompt_TextEdit->setPlainText(activePrompt);
     }
 }
 

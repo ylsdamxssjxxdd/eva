@@ -41,6 +41,7 @@ QString promptById(int id, const QString &fallback = QString());
 void setPromptLanguage(int languageFlag);
 const QString &extraPromptTemplate();
 const QString &systemPromptTemplate();
+const QString &wunderSystemPromptTemplate();
 const QString &engineerInfo();
 const QString &engineerSystemInfo();
 const QString &architectInfo();

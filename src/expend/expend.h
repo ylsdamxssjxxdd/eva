@@ -151,6 +151,7 @@ class Expend : public QWidget
     void on_schedule_run_button_clicked();
     void on_schedule_remove_button_clicked();
     void on_schedule_table_itemSelectionChanged();
+    void on_schedule_table_customContextMenuRequested(const QPoint &pos);
 
   private:
     Ui::Expend *ui;

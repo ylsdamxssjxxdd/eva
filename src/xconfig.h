@@ -28,9 +28,11 @@
 class QWidget;
 
 // 默认约定（内容由资源文件提供）
-#define DEFAULT_DATE_PROMPT "You are WUNDER."
-#define DEFAULT_SYSTEM_PROMPT_EN_RESOURCE ":/prompts/system_en.txt"
-#define DEFAULT_SYSTEM_PROMPT_ZH_RESOURCE ":/prompts/system_zh.txt"
+#define DEFAULT_DATE_PROMPT "You are a helpful assistant."
+#define DEFAULT_SYSTEM_PROMPT_EN_RESOURCE ":/prompts/default_system_en.txt"
+#define DEFAULT_SYSTEM_PROMPT_ZH_RESOURCE ":/prompts/default_system_zh.txt"
+#define WUNDER_SYSTEM_PROMPT_EN_RESOURCE ":/prompts/system_en.txt"
+#define WUNDER_SYSTEM_PROMPT_ZH_RESOURCE ":/prompts/system_zh.txt"
 #define DEFAULT_SYSTEM_NAME "system"
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"

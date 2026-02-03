@@ -3,6 +3,8 @@
         <file>language/lang_zh.ini</file>
         <file>language/lang_en.ini</file>
         <file>language/lang_ja.ini</file>
+        <file>prompts/default_system_en.txt</file>
+        <file>prompts/default_system_zh.txt</file>
         <file>prompts/system_en.txt</file>
         <file>prompts/system_zh.txt</file>
         <file>logo/Player.ico</file>

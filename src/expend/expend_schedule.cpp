@@ -1,15 +1,20 @@
 #include "expend.h"
 #include "ui_expend.h"
 
-#include <QDateTime>
 #include <QAbstractItemView>
+#include <QDateTime>
 #include <QHeaderView>
 #include <QJsonDocument>
+#include <QMenu>
 #include <QTableWidgetItem>
 
 void Expend::initScheduleUi()
 {
     if (!ui || !ui->schedule_table) return;
+    if (ui->schedule_enable_button) ui->schedule_enable_button->setVisible(false);
+    if (ui->schedule_disable_button) ui->schedule_disable_button->setVisible(false);
+    if (ui->schedule_run_button) ui->schedule_run_button->setVisible(false);
+    if (ui->schedule_remove_button) ui->schedule_remove_button->setVisible(false);
     ui->schedule_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->schedule_table->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->schedule_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -20,6 +25,9 @@ void Expend::initScheduleUi()
     }
     connect(ui->schedule_table, &QTableWidget::itemSelectionChanged,
             this, &Expend::on_schedule_table_itemSelectionChanged, Qt::UniqueConnection);
+    ui->schedule_table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->schedule_table, &QTableWidget::customContextMenuRequested,
+            this, &Expend::on_schedule_table_customContextMenuRequested, Qt::UniqueConnection);
 
     if (!scheduleCountdownTimer_.isActive())
     {
@@ -212,4 +220,64 @@ void Expend::on_schedule_remove_button_clicked()
 void Expend::on_schedule_table_itemSelectionChanged()
 {
     updateScheduleDetail();
+}
+
+void Expend::on_schedule_table_customContextMenuRequested(const QPoint &pos)
+{
+    if (!ui || !ui->schedule_table) return;
+    QTableWidgetItem *item = ui->schedule_table->itemAt(pos);
+    if (!item) return;
+    ui->schedule_table->setCurrentItem(item);
+    const QString jobId = item->data(Qt::UserRole).toString();
+    if (jobId.isEmpty()) return;
+
+    const QJsonObject job = scheduleJobMap_.value(jobId);
+    const bool enabled = job.value(QStringLiteral("enabled")).toBool(true);
+    QString name = job.value(QStringLiteral("name")).toString().trimmed();
+    if (name.isEmpty()) name = jobId;
+    const QString status = enabled ? jtr("schedule enabled") : jtr("schedule disabled");
+    const qint64 nextMs = job.value(QStringLiteral("next_run_ms")).toVariant().toLongLong();
+    QString nextText = QStringLiteral("-");
+    if (nextMs > 0)
+    {
+        nextText = QDateTime::fromMSecsSinceEpoch(nextMs).toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    }
+    const qint64 deltaMs = nextMs > 0 ? (nextMs - QDateTime::currentMSecsSinceEpoch()) : -1;
+    const QString countdown = enabled ? formatCountdown(deltaMs) : QStringLiteral("-");
+
+    QMenu menu(this);
+    QAction *infoName = menu.addAction(jtr("schedule name") + QStringLiteral(": ") + name);
+    QAction *infoStatus = menu.addAction(jtr("schedule status") + QStringLiteral(": ") + status);
+    QAction *infoNext = menu.addAction(jtr("schedule next run") + QStringLiteral(": ") + nextText);
+    QAction *infoCountdown = menu.addAction(jtr("schedule countdown") + QStringLiteral(": ") + countdown);
+    infoName->setEnabled(false);
+    infoStatus->setEnabled(false);
+    infoNext->setEnabled(false);
+    infoCountdown->setEnabled(false);
+    menu.addSeparator();
+    QAction *enableAction = menu.addAction(jtr("schedule enable"));
+    QAction *disableAction = menu.addAction(jtr("schedule disable"));
+    QAction *runAction = menu.addAction(jtr("schedule run now"));
+    QAction *removeAction = menu.addAction(jtr("schedule remove"));
+    enableAction->setEnabled(!enabled);
+    disableAction->setEnabled(enabled);
+
+    QAction *picked = menu.exec(ui->schedule_table->viewport()->mapToGlobal(pos));
+    if (!picked) return;
+    if (picked == enableAction)
+    {
+        emit expend2ui_scheduleAction(QStringLiteral("enable"), jobId);
+    }
+    else if (picked == disableAction)
+    {
+        emit expend2ui_scheduleAction(QStringLiteral("disable"), jobId);
+    }
+    else if (picked == runAction)
+    {
+        emit expend2ui_scheduleAction(QStringLiteral("run"), jobId);
+    }
+    else if (picked == removeAction)
+    {
+        emit expend2ui_scheduleAction(QStringLiteral("remove"), jobId);
+    }
 }

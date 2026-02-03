@@ -410,6 +410,7 @@ QString Widget::create_extra_prompt()
 {
     QString skill_usage_block;
     QString engineer_info; // 系统工程师信息
+    QString wunder_prompt; // Wunder 系统提示词（仅在系统工程师启用时追加）
 
     if (!is_load_tool)
     {
@@ -438,6 +439,7 @@ QString Widget::create_extra_prompt()
 
     if (date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked())
     {
+        wunder_prompt = promptx::wunderSystemPromptTemplate();
         engineer_info = isArchitectModeActive() ? create_architect_info() : create_engineer_info();
     }
 
@@ -445,9 +447,14 @@ QString Widget::create_extra_prompt()
     if (ui_tool_call_mode == TOOL_CALL_FUNCTION)
     {
         QString extra_prompt_;
+        if (!wunder_prompt.isEmpty())
+        {
+            extra_prompt_ = wunder_prompt;
+        }
         if (!engineer_info.isEmpty())
         {
-            extra_prompt_ = engineer_info;
+            if (!extra_prompt_.isEmpty()) extra_prompt_ += "\n\n";
+            extra_prompt_ += engineer_info;
         }
         if (!skill_usage_block.isEmpty())
         {
@@ -458,6 +465,10 @@ QString Widget::create_extra_prompt()
     }
 
     QString extra_prompt_ = promptx::extraPromptTemplate();
+    if (!wunder_prompt.isEmpty())
+    {
+        extra_prompt_ = wunder_prompt + "\n\n" + extra_prompt_;
+    }
     QString available_tools_describe; // 工具名和描述
     extra_prompt_.replace("{OBSERVATION_STOPWORD}", DEFAULT_OBSERVATION_STOPWORD);
     available_tools_describe += promptx::toolAnswer().text + "\n\n";
@@ -540,10 +551,13 @@ QString Widget::create_extra_prompt()
     }
 
     extra_prompt_.replace("{available_tools_describe}", available_tools_describe); // 替换相应内容
-    extra_prompt_.replace("{engineer_info}", engineer_info);                       // 替换相应内容
+    if (!engineer_info.isEmpty())
+    {
+        extra_prompt_ += "\n\n" + engineer_info;
+    }
     if (!skill_usage_block.isEmpty())
     {
-        extra_prompt_ = extra_prompt_ + skill_usage_block; // 技能描述放到最后
+        extra_prompt_ = extra_prompt_ + "\n\n" + skill_usage_block; // 技能描述放到最后
     }
     return extra_prompt_;
 }

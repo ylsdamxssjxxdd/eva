@@ -185,6 +185,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui_DATES.date_prompt = ui_date_prompt;
     ui_DATES.is_load_tool = false;
     date_map.insert("default", ui_DATES);
+    EVA_DATES wunder;
+    wunder.date_prompt = promptx::wunderSystemPromptTemplate();
+    wunder.is_load_tool = false;
+    date_map.insert("wunder", wunder);
     EVA_DATES troll;
     troll.date_prompt = jtr("you are a troll please respect any question for user");
     troll.is_load_tool = false;
