@@ -305,7 +305,7 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
 
     auto *nam = new QNetworkAccessManager(this);
     QNetworkReply *rp = nam->get(req);
-    connect(rp, &QNetworkReply::finished, this, [this, nam, rp]()
+    connect(rp, &QNetworkReply::finished, this, [this, nam, rp, base]()
             {
         rp->deleteLater();
         nam->deleteLater();
@@ -324,11 +324,27 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
         int firstCtx = -1;
         QString firstAlias;
         QStringList dbgLines;
-        auto tryPick = [&](const QJsonObject &o) {
+    auto tryPick = [&](const QJsonObject &o) {
             // Try common fields from various providers
             const char *keys[] = {"max_model_len","context_length","max_input_tokens","max_context_length","max_input_length","prompt_token_limit","input_token_limit"};
             for (auto k : keys) {
                 if (o.contains(k)) { int v = o.value(k).toInt(-1); if (v > 0) return v; }
+            }
+            // DashScope-style: extra_info.default_envs.max_input_tokens / max_tokens
+            if (o.contains("extra_info") && o.value("extra_info").isObject()) {
+                const QJsonObject extra = o.value("extra_info").toObject();
+                const char *ekeys[] = {"max_input_tokens","context_length","max_context_length"};
+                for (auto k : ekeys) {
+                    if (extra.contains(k)) { int v = extra.value(k).toInt(-1); if (v > 0) return v; }
+                }
+                if (extra.contains("default_envs") && extra.value("default_envs").isObject()) {
+                    const QJsonObject envs = extra.value("default_envs").toObject();
+                    const char *dkeys[] = {"max_input_tokens","context_length","max_context_length","max_tokens"};
+                    for (auto k : dkeys) {
+                        int v = envs.value(k).toInt(-1);
+                        if (v > 0) return v;
+                    }
+                }
             }
             // Nested meta fields (llama.cpp returns meta.n_ctx_train)
             if (o.contains("meta") && o.value("meta").isObject()) {
@@ -468,6 +484,43 @@ void Widget::fetchModelsContextLimit(bool isLocalEndpoint)
             const QString log = QStringLiteral("net:n_ctx via /v1/models = %1").arg(maxCtx);
             FlowTracer::log(FlowChannel::Net, dbgLines.join(QStringLiteral(" | ")), 0);
             FlowTracer::log(FlowChannel::Net, log, 0);
+        }
+        else
+        {
+            // Fallback: query single model detail if list lacks context fields (e.g. DashScope)
+            const QString modelId = apis.api_model.trimmed();
+            if (modelId.isEmpty()) return;
+            const QString encodedModel = QString::fromUtf8(QUrl::toPercentEncoding(modelId));
+            const QUrl detailUrl = OpenAiCompat::joinPath(base, OpenAiCompat::modelsPath(base) + QStringLiteral("/") + encodedModel);
+            if (!detailUrl.isValid()) return;
+
+            QNetworkRequest req(detailUrl);
+            req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+            if (!apis.api_key.isEmpty())
+                req.setRawHeader("Authorization", QByteArray("Bearer ") + apis.api_key.toUtf8());
+
+            auto *detailNam = new QNetworkAccessManager(this);
+            QNetworkReply *detailRp = detailNam->get(req);
+            connect(detailRp, &QNetworkReply::finished, this, [this, detailNam, detailRp, tryPick]() {
+                detailRp->deleteLater();
+                detailNam->deleteLater();
+                if (detailRp->error() != QNetworkReply::NoError) return;
+                QJsonParseError derr{};
+                const QByteArray body = detailRp->readAll();
+                QJsonDocument ddoc = QJsonDocument::fromJson(body, &derr);
+                if (derr.error != QJsonParseError::NoError || !ddoc.isObject()) return;
+                const QJsonObject obj = ddoc.object();
+                const QString alias = obj.value(QStringLiteral("id")).toString();
+                if (!alias.isEmpty() && alias != apis.api_model)
+                {
+                    applyDiscoveredAlias(alias, QStringLiteral("v1/models/{id}"));
+                }
+                const int ctx = tryPick(obj);
+                if (ctx > 0)
+                {
+                    applyDiscoveredContext(ctx, QStringLiteral("v1/models/{id}"));
+                }
+            });
         }
     });
 }

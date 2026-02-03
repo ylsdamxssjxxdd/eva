@@ -246,6 +246,10 @@ void Widget::get_date(bool applySandbox)
                                       (prevDockerMode != dockerTargetMode_) ||
                                       (prevDockerImage != engineerDockerImage) ||
                                       (prevDockerContainer != engineerDockerContainer);
+    if (sandboxConfigChanged)
+    {
+        invalidateWorkspaceSnapshotCache();
+    }
 
     if (!applySandbox && (sandboxConfigChanged || engineerWorkDirPendingApply_))
     {

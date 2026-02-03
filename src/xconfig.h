@@ -43,6 +43,8 @@ class QWidget;
 #define DEFAULT_SPLITER "\n" // 分隔符
 // 系统提示词/工具块高亮阈值：超过该长度时跳过高亮以避免重置卡顿
 #define PROMPT_TOOL_HIGHLIGHT_MAX_CHARS 8000
+// 工作区快照缓存时间（ms）：避免重置时反复扫描目录导致卡顿
+#define WORKSPACE_SNAPSHOT_CACHE_MS 30000
 
 //------------------------------------------------------------------------------
 // 多语言（界面语言）

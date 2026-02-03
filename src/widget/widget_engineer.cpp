@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include <QDate>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -91,17 +92,42 @@ QString Widget::buildWorkspaceSnapshot(const QString &root, bool dockerView) con
         return QStringLiteral("Workspace directory not found.");
     }
 
+    const QString canonicalRoot = canonicalOrAbsolutePath(rootDir);
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+    const bool cacheMatch = !workspaceSnapshotDirty_ &&
+                            cachedWorkspaceDockerView_ == dockerView &&
+                            !cachedWorkspaceRoot_.isEmpty() &&
+                            cachedWorkspaceRoot_ == canonicalRoot &&
+                            (cachedWorkspaceSnapshotAtMs_ > 0) &&
+                            (nowMs - cachedWorkspaceSnapshotAtMs_ < WORKSPACE_SNAPSHOT_CACHE_MS) &&
+                            !cachedWorkspaceSnapshot_.isEmpty();
+    if (cacheMatch)
+    {
+        return cachedWorkspaceSnapshot_;
+    }
+
     QStringList lines;
     if (dockerView)
         lines << QStringLiteral("Root: %1").arg(DockerSandbox::defaultContainerWorkdir());
     else
-        lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalOrAbsolutePath(rootDir)));
+        lines << QString("Root: %1").arg(QDir::toNativeSeparators(canonicalRoot));
 
     constexpr int kMaxDepth = 2;
     constexpr int kMaxEntriesPerDir = 60;
     appendWorkspaceListing(rootDir, 0, kMaxDepth, kMaxEntriesPerDir, lines);
 
-    return lines.join(QChar('\n'));
+    cachedWorkspaceSnapshot_ = lines.join(QChar('\n'));
+    cachedWorkspaceRoot_ = canonicalRoot;
+    cachedWorkspaceDockerView_ = dockerView;
+    cachedWorkspaceSnapshotAtMs_ = nowMs;
+    workspaceSnapshotDirty_ = false;
+    return cachedWorkspaceSnapshot_;
+}
+
+void Widget::invalidateWorkspaceSnapshotCache()
+{
+    workspaceSnapshotDirty_ = true;
+    cachedWorkspaceSnapshotAtMs_ = 0;
 }
 
 bool Widget::isArchitectModeActive() const
@@ -1066,6 +1092,7 @@ void Widget::setEngineerWorkDirSilently(const QString &dir)
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
     dockerMountPromptedContainers_.clear();
+    invalidateWorkspaceSnapshotCache();
     if (ui->terminalPane)
     {
         ui->terminalPane->setManualWorkingDirectory(engineerWorkDir);
@@ -1084,6 +1111,7 @@ void Widget::setEngineerWorkDir(const QString &dir)
     if (dir.isEmpty()) return;
     engineerWorkDir = QDir::cleanPath(dir);
     dockerMountPromptedContainers_.clear();
+    invalidateWorkspaceSnapshotCache();
     markEngineerEnvDirty();
     engineerWorkDirPendingApply_ = false;
     if (ui->terminalPane)

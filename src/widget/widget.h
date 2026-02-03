@@ -549,6 +549,13 @@ class Widget : public QWidget
     QString python_env = "";
     QString compile_env = "";
     QString node_env = "";
+    // 工程师系统信息缓存：工作区树扫描较慢，重置时复用最近快照
+    mutable QString cachedWorkspaceSnapshot_;
+    mutable QString cachedWorkspaceRoot_;
+    mutable bool cachedWorkspaceDockerView_ = false;
+    mutable qint64 cachedWorkspaceSnapshotAtMs_ = 0;
+    mutable bool workspaceSnapshotDirty_ = true;
+    void invalidateWorkspaceSnapshotCache();
     QFutureWatcher<EngineerEnvSnapshot> engineerEnvWatcher_;
     bool engineerEnvRefreshQueued_ = false;
     bool engineerEnvPendingPromptUpdate_ = false;
