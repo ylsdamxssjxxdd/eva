@@ -125,7 +125,6 @@ void Widget::switch_lan_change()
     apply_language(language_flag);
     ui_extra_prompt = create_extra_prompt();
     emit ui2tool_language(language_flag);
-    emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
 }
 

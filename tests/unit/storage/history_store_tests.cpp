@@ -9,7 +9,7 @@
 #include <QTime>
 #include <QVector>
 
-#include "utils/history_store.h"
+#include "storage/history_store.h"
 
 namespace
 {

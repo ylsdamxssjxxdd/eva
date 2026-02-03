@@ -2,7 +2,7 @@ find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
 
 add_executable(local_server_args_tests
     local_server_args_tests.cpp
-    ${CMAKE_SOURCE_DIR}/src/xbackend_args.cpp
+    ${CMAKE_SOURCE_DIR}/src/service/backend/xbackend_args.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/pathutil.cpp
 )
 target_link_libraries(local_server_args_tests PRIVATE

@@ -67,7 +67,7 @@
 
 #include "../mcp_tools.h"
 #include "../utils/mediaresultwidget.h"
-#include "../utils/vectordb.h"
+#include "../storage/vectordb.h"
 #include "../xconfig.h"
 #include "./src/utils/toggleswitch.h"
 #include "sd_params_dialog.h"

@@ -4,7 +4,7 @@
 #include <QSqlDatabase>
 #include <QTemporaryDir>
 
-#include "utils/vectordb.h"
+#include "storage/vectordb.h"
 
 namespace
 {

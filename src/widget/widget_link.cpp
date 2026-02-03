@@ -150,7 +150,6 @@ void Widget::set_api()
     trayIcon->setToolTip(EVA_title);
     setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
 
-    emit ui2net_apis(apis);
     // Broadcast to Expend (evaluation tab) as well
     emit ui2expend_apis(apis);
     emit ui2expend_mode(ui_mode);
@@ -235,7 +234,6 @@ void Widget::tool_testhandleTimeout()
                 apis.api_chat_endpoint = OpenAiCompat::chatCompletionsPath(baseUrl);
                 apis.api_completion_endpoint = OpenAiCompat::completionsPath(baseUrl);
             }
-            emit ui2net_apis(apis);
         }
     }
     ENDPOINT_DATA data;
@@ -257,8 +255,7 @@ void Widget::tool_testhandleTimeout()
     data.messagesArray = ui_messagesArray;
     data.id_slot = currentSlotId_;
 
-    emit ui2net_data(data);
-    emit ui2net_push();
+    emit_send(data);
 }
 
 void Widget::send_testhandleTimeout()
@@ -683,7 +680,6 @@ void Widget::applyDiscoveredAlias(const QString &alias, const QString &sourceTag
     if (alias.isEmpty() || alias == apis.api_model) return;
     apis.api_model = alias;
     api_model_LineEdit->setText(alias);
-    emit ui2net_apis(apis);
     emit ui2expend_apis(apis);
     FlowTracer::log(FlowChannel::Net,
                     QStringLiteral("net:model via %1 = %2").arg(sourceTag, alias),

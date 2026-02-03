@@ -1215,3 +1215,15 @@ void Widget::auto_save_user()
     settings.sync(); // flush to disk immediately
     // reflash_state("ui:" + jtr("save_config_mess"), USUAL_SIGNAL);
 }
+
+// ???????????????
+void Widget::emit_send(const ENDPOINT_DATA &data)
+{
+    RequestSnapshot snapshot;
+    snapshot.apis = apis;
+    snapshot.endpoint = data;
+    snapshot.wordsObj = wordsObj;
+    snapshot.languageFlag = language_flag;
+    snapshot.turnId = activeTurnId_;
+    emit ui2net_send(snapshot);
+}

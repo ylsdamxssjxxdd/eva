@@ -1,5 +1,6 @@
 #include "widget.h"
 #include "ui_widget.h"
+#include "service/backend/backend_coordinator.h"
 #include "../utils/startuplogger.h"
 #include "../utils/flowtracer.h"
 #include <QTcpServer>
@@ -99,812 +100,151 @@ void Widget::recv_cpu_status(double cpuload, double memload)
 
 void Widget::ensureLocalServer(bool lazyWake)
 {
-    if (isShuttingDown_)
-    {
-        FlowTracer::log(FlowChannel::Backend,
-                        QStringLiteral("backend: ensureLocalServer skipped (shutting down)"),
-                        activeTurnId_);
-        return;
-    }
-
-    if (!serverManager) return;
-
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: ensureLocalServer lazy=%1 mode=%2")
-                        .arg(lazyWake ? QStringLiteral("yes") : QStringLiteral("no"))
-                        .arg(ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local")),
-                    activeTurnId_);
-    StartupLogger::log(QStringLiteral("ensureLocalServer start (lazy=%1)").arg(lazyWake));
-    QElapsedTimer ensureTimer;
-    ensureTimer.start();
-
-    cancelLazyUnload(QStringLiteral("ensureLocalServer entry"));
-    if (lazyWake)
-    {
-        // 懒唤醒路径不会走 preLoad()，但 onServerReady() 依然会用 load_timer 计算“装载耗时”。
-        // 若不在进入唤醒流程时重置计时器，load_timer 可能沿用上一次装载的起点，导致耗时显示异常（例如几百秒）。
-        if (!lazyWakeInFlight_)
-        {
-            load_time = 0;
-            load_timer.start();
-        }
-        lazyWakeInFlight_ = true;
-        applyWakeUiLock(true);
-    }
-
-    if (!firstAutoNglEvaluated_ && !serverManager->isRunning())
-    {
-        firstAutoNglEvaluated_ = true;
-        // Only auto-evaluate ngl on first-run when there is no persisted positive value.
-        // If the user had a saved ngl (>0) in the config, respect it and do not override.
-        if (ui_SETTINGS.ngl <= 0)
-        {
-            QFileInfo fileInfo(ui_SETTINGS.modelpath);
-            QFileInfo fileInfo2(ui_SETTINGS.mmprojpath);
-            const int modelsize_MB = fileInfo.size() / 1024 / 1024 + fileInfo2.size() / 1024 / 1024;
-            if (modelsize_MB > 0 && vfree > 0)
-            {
-                const double limit = 0.95 * vfree;
-                if (modelsize_MB <= limit)
-                {
-                    ui_SETTINGS.ngl = 999; // 初次装载：尽可能全量 offload
-                    if (settings_ui && settings_ui->ngl_slider)
-                    {
-                        settings_ui->ngl_slider->setValue(ui_SETTINGS.ngl);
-                        settings_ui->ngl_label->setText("gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl));
-                    }
-                }
-            }
-            else if (modelsize_MB > 0 && vfree <= 0)
-            {
-                gpu_wait_load = true;
-            }
-        }
-        else
-        {
-            // Persisted positive ngl present (e.g. saved by user). Respect it and skip auto-evaluation.
-        }
-    }
-
-    const QString originalUserPort = ui_port.trimmed();
-    ui_port = originalUserPort;
-    portConflictDetected_ = false;
-    enum class PortFallbackReason
-    {
-        None,
-        Invalid,
-        Busy
-    };
-    PortFallbackReason fallbackReason = PortFallbackReason::None;
-
-    QString frontendHost = QStringLiteral("0.0.0.0");
-    QString chosenPort = originalUserPort;
-    bool appliedFallbackPort = false;
-
-    if (!portFallbackInFlight_)
-    {
-        forcedPortOverride_.clear();
-    }
-    if (!forcedPortOverride_.isEmpty())
-    {
-        chosenPort = forcedPortOverride_;
-        appliedFallbackPort = true;
-        fallbackReason = PortFallbackReason::Busy;
-    }
-
-    if (chosenPort.isEmpty())
-    {
-        frontendHost = QStringLiteral("127.0.0.1");
-        QString fallback = pickFreeTcpPort();
-        if (!fallback.isEmpty()) chosenPort = fallback;
-        if (chosenPort.isEmpty()) chosenPort = QString(DEFAULT_SERVER_PORT);
-        ui_port.clear();
-        lastPortConflictPreferred_.clear();
-        lastPortConflictFallback_.clear();
-        if (settings_ui && settings_ui->port_lineEdit)
-        {
-            settings_ui->port_lineEdit->setPlaceholderText("blank = localhost only (random port)");
-            settings_ui->port_lineEdit->setToolTip(QString());
-        }
-        reflash_state(QStringLiteral("ui:port cleared -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
-        appliedFallbackPort = true;
-    }
-    else
-    {
-        bool ok = false;
-        const quint16 portNum = chosenPort.toUShort(&ok);
-        if (!ok || portNum == 0)
-        {
-            frontendHost = QStringLiteral("127.0.0.1");
-            QString fallback = pickFreeTcpPort();
-            if (!fallback.isEmpty()) chosenPort = fallback;
-            appliedFallbackPort = true;
-            fallbackReason = PortFallbackReason::Invalid;
-            lastPortConflictPreferred_.clear();
-            lastPortConflictFallback_.clear();
-            reflash_state(QStringLiteral("ui:invalid port -> bind 127.0.0.1:%1").arg(chosenPort), SIGNAL_SIGNAL);
-            if (settings_ui && settings_ui->port_lineEdit)
-            {
-                settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(chosenPort));
-                settings_ui->port_lineEdit->setToolTip(jtr("invalid port fallback body").arg(chosenPort));
-            }
-        }
-    }
-
-    if (appliedFallbackPort)
-    {
-        ui_port = originalUserPort;
-        if (settings_ui && settings_ui->port_lineEdit)
-        {
-            QSignalBlocker blocker(settings_ui->port_lineEdit);
-            settings_ui->port_lineEdit->setText(originalUserPort);
-        }
-        if (fallbackReason == PortFallbackReason::Invalid && settings_ui && settings_ui->port_lineEdit)
-        {
-            settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(chosenPort));
-            settings_ui->port_lineEdit->setToolTip(jtr("invalid port fallback body").arg(chosenPort));
-        }
-        portFallbackInFlight_ = false;
-    }
-    else if (!originalUserPort.isEmpty())
-    {
-        ui_port = originalUserPort;
-        if (settings_ui && settings_ui->port_lineEdit)
-        {
-            settings_ui->port_lineEdit->setPlaceholderText(QString());
-            settings_ui->port_lineEdit->setToolTip(QString());
-        }
-        lastPortConflictPreferred_.clear();
-        lastPortConflictFallback_.clear();
-    }
-
-    forcedPortOverride_.clear();
-    portFallbackInFlight_ = false;
-
-    QString proxyError;
-    if (!ensureProxyListening(frontendHost, chosenPort, &proxyError))
-    {
-        if (!proxyError.isEmpty())
-        {
-            reflash_state(QStringLiteral("ui:proxy %1").arg(proxyError), WRONG_SIGNAL);
-            FlowTracer::log(FlowChannel::Backend,
-                            QStringLiteral("backend: proxy listen fail %1:%2 (%3)")
-                                .arg(frontendHost, chosenPort, proxyError),
-                            activeTurnId_);
-        }
-        if (!portFallbackInFlight_)
-        {
-            portConflictDetected_ = true;
-            initiatePortFallback();
-        }
-        lazyWakeInFlight_ = false;
-        applyWakeUiLock(false);
-        return;
-    }
-
-    activeServerHost_ = frontendHost;
-    activeServerPort_ = chosenPort;
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: proxy ready front %1:%2")
-                        .arg(activeServerHost_, activeServerPort_),
-                    activeTurnId_);
-
-    QString backendPort = activeBackendPort_;
-    const bool backendRunning = serverManager->isRunning();
-    if (backendPort.isEmpty() || backendPort == chosenPort || !backendRunning)
-    {
-        QString candidate;
-        for (int attempt = 0; attempt < 5; ++attempt)
-        {
-            candidate = pickFreeTcpPort(QHostAddress::LocalHost);
-            if (!candidate.isEmpty() && candidate != chosenPort)
-                break;
-        }
-        if (candidate.isEmpty() || candidate == chosenPort)
-        {
-            bool ok = false;
-            const quint16 frontNum = chosenPort.toUShort(&ok);
-            quint16 alt = ok ? quint16((frontNum + 1) % 65535) : 0;
-            if (alt == 0 || alt == frontNum) alt = 9000;
-            candidate = QString::number(alt);
-        }
-        backendPort = candidate;
-    }
-    activeBackendPort_ = backendPort;
-    updateProxyBackend(backendListenHost_, activeBackendPort_);
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: target %1:%2 (proxy %3:%4)")
-                        .arg(backendListenHost_, activeBackendPort_, activeServerHost_, activeServerPort_),
-                    activeTurnId_);
-
-    serverManager->setSettings(ui_SETTINGS);
-    serverManager->setHost(backendListenHost_);
-    serverManager->setPort(activeBackendPort_);
-    serverManager->setModelPath(ui_SETTINGS.modelpath);
-    serverManager->setMmprojPath(ui_SETTINGS.mmprojpath);
-    serverManager->setLoraPath(ui_SETTINGS.lorapath);
-
-    lastServerRestart_ = serverManager->needsRestart();
-    if (lastServerRestart_)
-    {
-        win7CpuFallbackArmed_ = shouldArmWin7CpuFallback();
-        win7CpuFallbackTriggered_ = false;
-    }
-    else
-    {
-        win7CpuFallbackArmed_ = false;
-        win7CpuFallbackTriggered_ = false;
-    }
-    const bool hadOld = backendRunning;
-    ignoreNextServerStopped_ = lastServerRestart_ && hadOld;
-    if (lastServerRestart_)
-    {
-        backendOnline_ = false;
-        if (proxyServer_) proxyServer_->setBackendAvailable(false);
-        if (!lazyWake)
-        {
-            preLoad();
-            emit ui2net_stop(true);
-        }
-    }
-
-    serverManager->ensureRunning();
-    StartupLogger::log(QStringLiteral("ensureLocalServer ensureRunning done (%1 ms)").arg(ensureTimer.elapsed()));
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: ensureRunning issued restart=%1")
-                        .arg(lastServerRestart_ ? QStringLiteral("yes") : QStringLiteral("no")),
-                    activeTurnId_);
-
-    backendOnline_ = serverManager->isRunning() && !lastServerRestart_;
-    if (proxyServer_) proxyServer_->setBackendAvailable(backendOnline_);
-    if (!lazyWake && backendOnline_) markBackendActivity();
-    if (backendOnline_)
-    {
-        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: online"), activeTurnId_);
-    }
-
-    if (!lastServerRestart_ && backendRunning)
-    {
-        lazyWakeInFlight_ = false;
-        applyWakeUiLock(false);
-    }
-
-    apis.api_endpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
-    apis.api_key = "";
-    apis.api_model = "default";
-    apis.is_local_backend = true;
-    // 切回本地后端时，必须恢复 llama.cpp 的 /v1/... 路径：
-    // 否则若上一次 LINK 模式用的是 Ark(/api/v3) 这类“base 自带版本号”的端点，
-    // api_chat_endpoint/api_completion_endpoint 会残留为 /chat/completions，导致本地请求 404。
-    apis.api_chat_endpoint = QStringLiteral(CHAT_ENDPOINT);
-    apis.api_completion_endpoint = QStringLiteral(COMPLETION_ENDPOINT);
-    emit ui2net_apis(apis);
-    emit ui2expend_apis(apis);
-    emit ui2expend_mode(ui_mode);
-    updateLazyCountdownLabel();
-
-    // ensureLocalServer() 入口会调用 cancelLazyUnload() 停止倒计时；如果本次只是“确认后端在线”
-    //（无需重启），倒计时会一直停留在“待命”。这里在后端在线且当前不忙时重新装载惰性卸载倒计时。
-    if (backendOnline_ && lazyUnloadEnabled())
-    {
-        scheduleLazyUnload();
-    }
+    if (backendCoordinator_)
+        backendCoordinator_->ensureLocalServer(lazyWake);
 }
+
+
 
 QString Widget::pickFreeTcpPort(const QHostAddress &addr) const
 {
-    QTcpServer server;
-    if (server.listen(addr, 0))
-    {
-        const quint16 port = server.serverPort();
-        server.close();
-        return QString::number(port);
-    }
-    return QString();
+    return backendCoordinator_ ? backendCoordinator_->pickFreeTcpPort(addr) : QString();
 }
+
+
 
 void Widget::announcePortBusy(const QString &requestedPort, const QString &alternativePort)
 {
-    if (alternativePort.isEmpty())
-    {
-        reflash_state(jtr("ui port busy none").arg(requestedPort), WRONG_SIGNAL);
-        return;
-    }
-
-    const bool repeated = (lastPortConflictPreferred_ == requestedPort && lastPortConflictFallback_ == alternativePort);
-    lastPortConflictPreferred_ = requestedPort;
-    lastPortConflictFallback_ = alternativePort;
-
-    const QString stateLine = jtr("ui port busy switched").arg(requestedPort, alternativePort);
-    reflash_state(stateLine, WRONG_SIGNAL);
-
-    const QString dialogTitle = jtr("port conflict title");
-    const QString dialogText = jtr("port conflict body").arg(requestedPort, alternativePort);
-
-    if (settings_ui && settings_ui->port_lineEdit)
-    {
-        settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(alternativePort));
-        settings_ui->port_lineEdit->setToolTip(dialogText);
-    }
-
-    if (!repeated)
-    {
-        QTimer::singleShot(0, this, [this, dialogTitle, dialogText]()
-                           { QMessageBox::warning(this, dialogTitle, dialogText); });
-    }
+    if (backendCoordinator_)
+        backendCoordinator_->announcePortBusy(requestedPort, alternativePort);
 }
+
+
 
 void Widget::initiatePortFallback()
 {
-    if (portFallbackInFlight_) return;
-
-    const QString preferred = ui_port.trimmed();
-    if (preferred.isEmpty()) return;
-
-    QString fallback = pickFreeTcpPort();
-    if (fallback.isEmpty() || fallback == preferred)
-    {
-        reflash_state(jtr("ui port busy none").arg(preferred), WRONG_SIGNAL);
-        return;
-    }
-
-    portConflictDetected_ = false;
-    portFallbackInFlight_ = true;
-    forcedPortOverride_ = fallback;
-
-    announcePortBusy(preferred, fallback);
-
-    if (settings_ui && settings_ui->port_lineEdit)
-    {
-        settings_ui->port_lineEdit->setPlaceholderText(jtr("port fallback placeholder").arg(fallback));
-        settings_ui->port_lineEdit->setToolTip(jtr("port conflict body").arg(preferred, fallback));
-    }
-
-    if (proxyServer_) proxyServer_->stop();
-    if (serverManager)
-    {
-        ignoreNextServerStopped_ = true;
-        serverManager->stopAsync();
-    }
-
-    QTimer::singleShot(150, this, [this]()
-                       { ensureLocalServer(); });
+    if (backendCoordinator_)
+        backendCoordinator_->initiatePortFallback();
 }
+
+
 
 bool Widget::ensureProxyListening(const QString &host, const QString &port, QString *errorMessage)
 {
-    if (!proxyServer_) return true;
-    bool ok = false;
-    const quint16 value = port.toUShort(&ok);
-    if (!ok || value == 0)
-    {
-        if (errorMessage) *errorMessage = QStringLiteral("invalid proxy port -> %1").arg(port);
-        return false;
-    }
-    if (proxyServer_->isListening() && proxyServer_->listenHost() == host && proxyServer_->listenPort() == value)
-    {
-        return true;
-    }
-    if (!proxyServer_->start(host, value, errorMessage))
-    {
-        return false;
-    }
-    return true;
+    return backendCoordinator_ ? backendCoordinator_->ensureProxyListening(host, port, errorMessage) : false;
 }
+
+
 
 QString Widget::formatLocalEndpoint(const QString &host, const QString &port) const
 {
-    QString displayHost = host.trimmed();
-    if (displayHost.isEmpty() || displayHost == QStringLiteral("0.0.0.0"))
-    {
-        displayHost = QStringLiteral("127.0.0.1");
-    }
-    QString displayPort = port.trimmed();
-    if (displayPort.isEmpty())
-    {
-        displayPort = QString(DEFAULT_SERVER_PORT);
-    }
-    return QStringLiteral("http://%1:%2").arg(displayHost, displayPort);
+    return backendCoordinator_ ? backendCoordinator_->formatLocalEndpoint(host, port) : QString();
 }
+
+
 
 void Widget::updateProxyBackend(const QString &backendHost, const QString &backendPort)
 {
-    if (!proxyServer_) return;
-    bool ok = false;
-    const quint16 value = backendPort.toUShort(&ok);
-    proxyServer_->setBackendEndpoint(backendHost, ok ? value : 0);
-    proxyServer_->setBackendAvailable(ok && backendOnline_);
+    if (backendCoordinator_)
+        backendCoordinator_->updateProxyBackend(backendHost, backendPort);
 }
+
+
 
 void Widget::onProxyWakeRequested()
 {
-    if (isShuttingDown_) return;
-    if (!lazyUnloadEnabled()) return;
-    if (lazyWakeInFlight_) return;
-    if (backendOnline_ && serverManager && serverManager->isRunning()) return;
-    reflash_state(QStringLiteral("ui:proxy wake request"), SIGNAL_SIGNAL);
-    ensureLocalServer(true);
+    if (backendCoordinator_)
+        backendCoordinator_->onProxyWakeRequested();
 }
+
+
 
 void Widget::onProxyExternalActivity()
 {
-    // 代理转发的外部访问也属于“后端活动”，应当重置倒计时而不是永久停在“待命”。
-    // 这里的策略与 onServerOutput 保持一致：
-    // - 若后端忙（推理/工具链/唤醒中），停止计时器，避免倒计时在忙时到期误触发卸载；
-    // - 若后端空闲且在线，重新武装惰性卸载计时器（相当于把倒计时重置为 full）。
-    if (!lazyUnloadEnabled()) return;
-
-    markBackendActivity();
-
-    const bool busy = turnActive_ || toolInvocationActive_ || lazyWakeInFlight_;
-    if (busy)
-    {
-        cancelLazyUnload(QStringLiteral("proxy activity"));
-        return;
-    }
-
-    // 后端已在线：直接重新开始倒计时。
-    // 注意 scheduleLazyUnload() 会检查 serverManager->isRunning()，并在满足条件时启动单次计时器。
-    if (backendOnline_ && !lazyUnloaded_)
-    {
-        scheduleLazyUnload();
-    }
-    else
-    {
-        updateLazyCountdownLabel();
-    }
+    if (backendCoordinator_)
+        backendCoordinator_->onProxyExternalActivity();
 }
+
+
 
 void Widget::markBackendActivity()
 {
-    if (!lazyUnloadEnabled()) return;
-    if (!idleSince_.isValid())
-        idleSince_.start();
-    else
-        idleSince_.restart();
-    updateLazyCountdownLabel();
+    if (backendCoordinator_)
+        backendCoordinator_->markBackendActivity();
 }
+
+
 
 void Widget::scheduleLazyUnload()
 {
-    if (!lazyUnloadEnabled()) return;
-    if (!serverManager || !serverManager->isRunning()) return;
-    if (turnActive_ || toolInvocationActive_) return;
-    if (!lazyUnloadTimer_) return;
-    lazyUnloaded_ = false;
-    if (!idleSince_.isValid())
-        idleSince_.start();
-    else
-        idleSince_.restart();
-    // FlowTracer::log(FlowChannel::Backend,
-    //                 QStringLiteral("backend: lazy schedule %1ms").arg(lazyUnloadMs_),
-    //                 activeTurnId_);
-    lazyUnloadTimer_->start(lazyUnloadMs_);
-    updateLazyCountdownLabel();
+    if (backendCoordinator_)
+        backendCoordinator_->scheduleLazyUnload();
 }
+
+
 
 void Widget::cancelLazyUnload(const QString &reason)
 {
-    Q_UNUSED(reason);
-    if (!lazyUnloadTimer_) return;
-    if (lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
-    if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
-    lazyUnloaded_ = false;
-    idleSince_ = QElapsedTimer();
-    // FlowTracer::log(FlowChannel::Backend,
-    //                 QStringLiteral("backend: lazy cancel (%1)").arg(reason),
-    //                 activeTurnId_);
-    updateLazyCountdownLabel();
+    if (backendCoordinator_)
+        backendCoordinator_->cancelLazyUnload(reason);
 }
+
+
 
 void Widget::performLazyUnload()
 {
-    performLazyUnloadInternal(false);
+    if (backendCoordinator_)
+        backendCoordinator_->performLazyUnload();
 }
+
+
 
 void Widget::performLazyUnloadInternal(bool forced)
 {
-    lazyUnloadPreserveState_ = false;
-    if (!forced && !lazyUnloadEnabled()) return;
-    pendingSendAfterWake_ = false;
-    if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive()) lazyUnloadTimer_->stop();
-    if (lazyCountdownTimer_ && lazyCountdownTimer_->isActive()) lazyCountdownTimer_->stop();
-    if (!forced && (turnActive_ || toolInvocationActive_))
-    {
-        scheduleLazyUnload();
-        updateLazyCountdownLabel();
-        return;
-    }
-    if (forced && turnActive_)
-    {
-        emit ui2net_stop(true);
-        turnActive_ = false;
-        is_run = false;
-    }
-    if (forced && toolInvocationActive_)
-    {
-        emit ui2tool_cancelActive();
-        toolInvocationActive_ = false;
-    }
-    const bool hasUi = ui && ui->output;
-    const bool hasDocument = hasUi && ui->output->document();
-    const bool hasRenderedContent = hasDocument && !ui->output->document()->isEmpty();
-    const bool hasConversationHistory = !ui_messagesArray.isEmpty();
-    const bool preserveAfterWake = (ui_state == CHAT_STATE) && (hasConversationHistory || hasRenderedContent);
-    lazyUnloaded_ = true;
-    if (preserveAfterWake)
-        lazyUnloadPreserveState_ = true;
-    preserveConversationOnNextReady_ = preserveAfterWake; // Resume chat log after lazy wake
-    lazyWakeInFlight_ = false;
-    applyWakeUiLock(false);
-    backendOnline_ = false;
-    if (proxyServer_) proxyServer_->setBackendAvailable(false);
-    reflash_state("ui:" + jtr("auto eject stop backend"), SIGNAL_SIGNAL);
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: lazy unload forced=%1 preserve=%2")
-                        .arg(forced ? QStringLiteral("yes") : QStringLiteral("no"))
-                        .arg(lazyUnloadPreserveState_ ? QStringLiteral("yes") : QStringLiteral("no")),
-                    activeTurnId_);
-    suppressStateClearOnStop_ = !forced;
-    if (serverManager && serverManager->isRunning())
-    {
-        serverManager->stopAsync();
-    }
-    else if (forced)
-    {
-        suppressStateClearOnStop_ = false;
-    }
-    idleSince_ = QElapsedTimer();
-    updateLazyCountdownLabel();
+    if (backendCoordinator_)
+        backendCoordinator_->performLazyUnloadInternal(forced);
 }
+
+
 
 bool Widget::lazyUnloadEnabled() const
 {
-    return proxyServer_ && lazyUnloadTimer_ && lazyUnloadMs_ > 0 && ui_mode == LOCAL_MODE;
+    return backendCoordinator_ ? backendCoordinator_->lazyUnloadEnabled() : false;
 }
+
+
 
 void Widget::setLazyCountdownLabelDisplay(const QString &status)
 {
-    if (!settings_ui || !settings_ui->lazy_timeout_label) return;
-
-    QString display = jtr("pop timeout label");
-    const QString trimmed = status.trimmed();
-    if (!trimmed.isEmpty())
-    {
-        if (!display.isEmpty()) display += QStringLiteral(" ");
-        display += trimmed;
-    }
-    else if (display.isEmpty())
-    {
-        display = trimmed;
-    }
-    settings_ui->lazy_timeout_label->setText(display);
+    if (backendCoordinator_)
+        backendCoordinator_->setLazyCountdownLabelDisplay(status);
 }
+
+
 
 void Widget::updateLazyCountdownLabel()
 {
-    if (!settings_ui || !settings_ui->lazy_timeout_label) return;
-
-    QString status;
-    if (lazyUnloadMs_ <= 0)
-    {
-        status = jtr("pop countdown disabled");
-    }
-    else if (!backendOnline_ || lazyUnloaded_)
-    {
-        status = jtr("pop countdown popped");
-    }
-    else if (!lazyUnloadTimer_ || !lazyUnloadTimer_->isActive())
-    {
-        status = jtr("pop countdown standby");
-    }
-    else
-    {
-        int remaining = lazyUnloadTimer_->remainingTime();
-        if (remaining < 0) remaining = 0;
-        const int totalSeconds = (remaining + 999) / 1000;
-        const int hours = totalSeconds / 3600;
-        const int minutes = (totalSeconds % 3600) / 60;
-        const int seconds = totalSeconds % 60;
-        if (hours > 0)
-        {
-            status = QStringLiteral("%1:%2:%3")
-                       .arg(hours, 2, 10, QLatin1Char('0'))
-                       .arg(minutes, 2, 10, QLatin1Char('0'))
-                       .arg(seconds, 2, 10, QLatin1Char('0'));
-        }
-        else
-        {
-            status = QStringLiteral("%1:%2")
-                       .arg(minutes, 2, 10, QLatin1Char('0'))
-                       .arg(seconds, 2, 10, QLatin1Char('0'));
-        }
-    }
-
-    setLazyCountdownLabelDisplay(status);
-    settings_ui->lazy_timeout_label->setToolTip(jtr("pop countdown tooltip"));
-
-    if (lazyCountdownTimer_)
-    {
-        if (lazyUnloadTimer_ && lazyUnloadTimer_->isActive() && lazyUnloadMs_ > 0 && backendOnline_)
-        {
-            if (!lazyCountdownTimer_->isActive()) lazyCountdownTimer_->start();
-        }
-        else
-        {
-            lazyCountdownTimer_->stop();
-        }
-    }
+    if (backendCoordinator_)
+        backendCoordinator_->updateLazyCountdownLabel();
 }
+
+
 
 void Widget::onLazyUnloadNowClicked()
 {
-    if (ui_mode != LOCAL_MODE)
-    {
-        reflash_state(QStringLiteral("ui:惰性卸载仅在本地模式启用"), WRONG_SIGNAL);
-        return;
-    }
-    if (!serverManager || !serverManager->isRunning())
-    {
-        reflash_state(QStringLiteral("ui:本地后端已停止"), SIGNAL_SIGNAL);
-        cancelLazyUnload(QStringLiteral("manual unload"));
-        return;
-    }
-    reflash_state("ui:" + jtr("pop trigger"), SIGNAL_SIGNAL);
-    FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: manual lazy unload"), activeTurnId_);
-    performLazyUnloadInternal(true);
+    if (backendCoordinator_)
+        backendCoordinator_->onLazyUnloadNowClicked();
 }
+
+
 
 void Widget::onServerReady(const QString &endpoint)
 {
-    win7CpuFallbackArmed_ = false;
-    win7CpuFallbackTriggered_ = false;
-    backendOnline_ = true;
-    resetBackendFallbackState(QStringLiteral("backend ready"));
-    lazyUnloaded_ = false;
-    lazyWakeInFlight_ = false;
-    applyWakeUiLock(false);
-    cancelLazyUnload(QStringLiteral("backend ready"));
-    markBackendActivity();
-    updateProxyBackend(backendListenHost_, activeBackendPort_);
-    if (proxyServer_) proxyServer_->setBackendAvailable(true);
-
-    scheduleLazyUnload();
-    updateLazyCountdownLabel();
-    FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: ready %1 (front %2:%3 backend %4)")
-                        .arg(endpoint, activeServerHost_, activeServerPort_, activeBackendPort_),
-                    activeTurnId_);
-
-    if (pendingSendAfterWake_)
-    {
-        pendingSendAfterWake_ = false;
-        QTimer::singleShot(0, this, [this]() { on_send_clicked(); });
-    }
-    // 后端就绪后尝试派发定时任务（若有队列）
-    tryDispatchScheduledJobs();
-
-    // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
-    const QUrl backendUrl = QUrl::fromUserInput(endpoint);
-    if (backendUrl.isValid() && backendUrl.port() > 0)
-    {
-        activeBackendPort_ = QString::number(backendUrl.port());
-        updateProxyBackend(backendListenHost_, activeBackendPort_);
-    }
-    const QString frontendEndpoint = formatLocalEndpoint(activeServerHost_, activeServerPort_);
-    apis.api_endpoint = frontendEndpoint;
-    apis.api_key = "";
-    apis.api_model = "default";
-    apis.is_local_backend = true;
-    // 同上：本地后端固定走 /v1/...，避免 LINK 模式端点残留
-    apis.api_chat_endpoint = QStringLiteral(CHAT_ENDPOINT);
-    apis.api_completion_endpoint = QStringLiteral(COMPLETION_ENDPOINT);
-    emit ui2net_apis(apis);
-    emit ui2expend_apis(apis);
-    emit ui2expend_mode(ui_mode);
-
-    // 完成装载：记录耗时，统一用简单转轮动画（decode_*）收尾，然后解锁 UI
-    load_time = load_timer.isValid() ? (load_timer.nsecsElapsed() / 1e9) : 0.0;
-    ui_mode = LOCAL_MODE;
-
-    const bool preserveConversation = preserveConversationOnNextReady_;
-    preserveConversationOnNextReady_ = false;
-    skipUnlockLoadIntro_ = preserveConversation;
-
-    flushPendingStream();
-    if (!preserveConversation)
-    {
-        ui->output->clear();
-        recordClear(); // drop any pre-load records (e.g., engineer probe output) before starting a new session
-        ui_messagesArray = QJsonArray();
-        {
-            QJsonObject systemMessage;
-            systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
-            systemMessage.insert("content", ui_DATES.date_prompt);
-            ui_messagesArray.append(systemMessage);
-            if (history_ && ui_state == CHAT_STATE)
-            {
-                SessionMeta meta;
-                meta.id = QString::number(QDateTime::currentMSecsSinceEpoch());
-                meta.title = "";
-                meta.endpoint = frontendEndpoint;
-                meta.model = ui_SETTINGS.modelpath;
-                meta.system = ui_DATES.date_prompt;
-                meta.n_ctx = ui_SETTINGS.nctx;
-                meta.slot_id = -1;
-                meta.startedAt = QDateTime::currentDateTime();
-                history_->begin(meta);
-                history_->appendMessage(systemMessage);
-                currentSlotId_ = -1;
-            }
-        }
-        bot_predecode_content = ui_DATES.date_prompt; // 使用系统指令作为“预解码内容”展示
-    }
-    is_load = true;
-    // After fresh load, the first "all slots are idle" is an idle baseline -> ignore once
-    lastServerRestart_ = false; // 一次重启流程结束
-    // Track the backend that actually came up and align UI hints/fallback logic.
-    const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
-    const QString previousRuntime = runtimeDeviceBackend_;
-    if (!resolvedBackend.isEmpty())
-    {
-        runtimeDeviceBackend_ = resolvedBackend;
-    }
-    const bool runtimeChanged = (!resolvedBackend.isEmpty() && resolvedBackend != previousRuntime);
-    // Sync settings device combobox with actually resolved backend if user chose an explicit device.
-    const QString userSel = DeviceManager::userChoice();
-    if (!userSel.isEmpty() && userSel != QLatin1String("auto"))
-    {
-        if (!resolvedBackend.isEmpty() && resolvedBackend != userSel)
-        {
-            if (settings_ui && settings_ui->device_comboBox)
-            {
-                int idx = settings_ui->device_comboBox->findText(resolvedBackend);
-                if (idx < 0)
-                {
-                    settings_ui->device_comboBox->addItem(resolvedBackend);
-                    idx = settings_ui->device_comboBox->findText(resolvedBackend);
-                }
-                if (idx >= 0)
-                {
-                    settings_ui->device_comboBox->setCurrentIndex(idx);
-                }
-            }
-            ui_device_backend = resolvedBackend;
-            DeviceManager::setUserChoice(resolvedBackend);
-            auto_save_user(); // persist corrected device selection
-            reflash_state(QStringLiteral("ui:device fallback -> ") + resolvedBackend, SIGNAL_SIGNAL);
-        }
-    }
-    else if (userSel == QLatin1String("auto") && runtimeChanged)
-    {
-        reflash_state(QStringLiteral("ui:device resolved -> %1").arg(resolvedBackend), SIGNAL_SIGNAL);
-    }
-    refreshDeviceBackendUI();
-    // Complete load animation and finalize spinner state.
-    decode_finish();
-    if (!activeServerPort_.isEmpty())
-    {
-        QString displayHost = activeServerHost_;
-        if (displayHost.isEmpty() || displayHost == QStringLiteral("0.0.0.0"))
-        {
-            displayHost = QStringLiteral("127.0.0.1");
-        }
-        const QString url = QStringLiteral("http://%1:%2").arg(displayHost, activeServerPort_);
-        QString lanHint;
-        if (activeServerHost_ == QStringLiteral("0.0.0.0"))
-        {
-            const QString lanIp = getFirstNonLoopbackIPv4Address();
-            if (!lanIp.isEmpty())
-            {
-                lanHint = QStringLiteral(" / http://%1:%2").arg(lanIp, activeServerPort_);
-            }
-        }
-        reflash_state("ui:" + jtr("local endpoint ready") + QStringLiteral(" -> %1%2").arg(url, lanHint), SUCCESS_SIGNAL);
-    }
-    // 直接解锁界面（不再补帧播放复杂装载动画）
-    unlockLoad();
+    if (backendCoordinator_)
+        backendCoordinator_->onServerReady(endpoint);
 }
+
+
 
 void Widget::recv_embeddingdb_describe(QString describe)
 {
@@ -913,129 +253,36 @@ void Widget::recv_embeddingdb_describe(QString describe)
 
 bool Widget::shouldArmWin7CpuFallback() const
 {
-    if (DeviceManager::currentOsId() != QStringLiteral("win7")) return false;
-    const QStringList available = DeviceManager::availableBackends();
-    if (!available.contains(QStringLiteral("cpu-noavx"))) return false;
-    const QString choice = DeviceManager::userChoice();
-    if (choice == QStringLiteral("cpu-noavx") || choice == QStringLiteral("custom")) return false;
-    if (choice == QStringLiteral("cpu")) return true;
-    if (choice == QStringLiteral("auto")) return DeviceManager::effectiveBackend() == QStringLiteral("cpu");
-    return false;
+    return backendCoordinator_ ? backendCoordinator_->shouldArmWin7CpuFallback() : false;
 }
+
+
 
 bool Widget::triggerWin7CpuFallback(const QString &reasonTag)
 {
-    if (!win7CpuFallbackArmed_ || win7CpuFallbackTriggered_) return false;
-    if (DeviceManager::currentOsId() != QStringLiteral("win7")) return false;
-    const QStringList available = DeviceManager::availableBackends();
-    if (!available.contains(QStringLiteral("cpu-noavx"))) return false;
-
-    win7CpuFallbackArmed_ = false;
-    win7CpuFallbackTriggered_ = true;
-
-    const QString fallbackDevice = QStringLiteral("cpu-noavx");
-    DeviceManager::setUserChoice(fallbackDevice);
-    ui_device_backend = fallbackDevice;
-    lastDeviceBeforeCustom_ = fallbackDevice;
-    if (settings_ui && settings_ui->device_comboBox)
-    {
-        int idx = settings_ui->device_comboBox->findText(fallbackDevice);
-        if (idx < 0)
-        {
-            settings_ui->device_comboBox->addItem(fallbackDevice);
-            idx = settings_ui->device_comboBox->findText(fallbackDevice);
-        }
-        if (idx >= 0)
-        {
-            QSignalBlocker blocker(settings_ui->device_comboBox);
-            settings_ui->device_comboBox->setCurrentIndex(idx);
-        }
-    }
-    refreshDeviceBackendUI();
-    reflash_state(QStringLiteral("ui:Win7 cpu backend failed (%1) -> retrying cpu-noavx").arg(reasonTag), WRONG_SIGNAL);
-    QTimer::singleShot(0, this, [this]()
-                       { ensureLocalServer(); });
-    return true;
+    return backendCoordinator_ ? backendCoordinator_->triggerWin7CpuFallback(reasonTag) : false;
 }
+
+
 
 void Widget::resetBackendFallbackState(const QString &reasonTag)
 {
-    Q_UNUSED(reasonTag);
-    backendFallbackActive_ = false;
-    backendFallbackTried_.clear();
+    if (backendCoordinator_)
+        backendCoordinator_->resetBackendFallbackState(reasonTag);
 }
+
+
 
 QString Widget::pickNextBackendFallback(const QString &failedBackend) const
 {
-    const QString failed = failedBackend.trimmed().toLower();
-    QStringList order = DeviceManager::preferredOrder();
-    const QStringList available = DeviceManager::availableBackends();
-
-    // 如果系统提供了 cpu-noavx，但默认顺序里没有，也补到末尾兜底
-    if (available.contains(QStringLiteral("cpu-noavx")) && !order.contains(QStringLiteral("cpu-noavx")))
-    {
-        order << QStringLiteral("cpu-noavx");
-    }
-
-    int startIndex = order.indexOf(failed);
-    if (startIndex < 0) startIndex = -1;
-    for (int i = startIndex + 1; i < order.size(); ++i)
-    {
-        const QString candidate = order.at(i);
-        if (candidate.isEmpty()) continue;
-        if (backendFallbackTried_.contains(candidate)) continue;
-        if (!available.contains(candidate)) continue;
-        if (DeviceManager::effectiveBackendFor(candidate) != candidate) continue;
-        return candidate;
-    }
-    return QString();
+    return backendCoordinator_ ? backendCoordinator_->pickNextBackendFallback(failedBackend) : QString();
 }
+
+
 
 bool Widget::triggerBackendFallback(const QString &failedBackend, const QString &reasonTag)
 {
-    const QString failed = failedBackend.trimmed().toLower();
-    if (failed.isEmpty()) return false;
-
-    const QString choice = DeviceManager::userChoice();
-    if (choice == QStringLiteral("custom")) return false;
-    if (!DeviceManager::programOverride(QStringLiteral("llama-server-main")).isEmpty()) return false;
-
-    const bool autoMode = (choice == QStringLiteral("auto"));
-    const bool failedIsCpu = (failed == QStringLiteral("cpu") || failed == QStringLiteral("cpu-noavx"));
-    if (!autoMode && failedIsCpu) return false;
-
-    if (!backendFallbackActive_) backendFallbackTried_.clear();
-    backendFallbackActive_ = true;
-    if (!backendFallbackTried_.contains(failed)) backendFallbackTried_.append(failed);
-
-    const QString next = pickNextBackendFallback(failed);
-    if (next.isEmpty())
-    {
-        resetBackendFallbackState(QStringLiteral("fallback exhausted"));
-        return false;
-    }
-
-    DeviceManager::setUserChoice(next);
-    ui_device_backend = next;
-    lastDeviceBeforeCustom_ = next;
-    if (settings_ui && settings_ui->device_comboBox)
-    {
-        int idx = settings_ui->device_comboBox->findText(next);
-        if (idx < 0)
-        {
-            settings_ui->device_comboBox->addItem(next);
-            idx = settings_ui->device_comboBox->findText(next);
-        }
-        if (idx >= 0)
-        {
-            QSignalBlocker blocker(settings_ui->device_comboBox);
-            settings_ui->device_comboBox->setCurrentIndex(idx);
-        }
-    }
-    refreshDeviceBackendUI();
-    reflash_state(QStringLiteral("ui:backend fallback -> %1 (%2)").arg(next, reasonTag), WRONG_SIGNAL);
-
-    QTimer::singleShot(0, this, [this]()
-                       { ensureLocalServer(); });
-    return true;
+    return backendCoordinator_ ? backendCoordinator_->triggerBackendFallback(failedBackend, reasonTag) : false;
 }
+
+

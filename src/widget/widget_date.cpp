@@ -829,7 +829,6 @@ void Widget::restoreDateDialogSnapshot()
 
         apply_language(language_flag);
         emit ui2tool_language(language_flag);
-        emit ui2net_language(language_flag);
         emit ui2expend_language(language_flag);
 
         ui_extra_prompt = create_extra_prompt();
@@ -967,7 +966,6 @@ void Widget::restoreDateDialogSnapshot()
 
     apply_language(language_flag);
     emit ui2tool_language(language_flag);
-    emit ui2net_language(language_flag);
     emit ui2expend_language(language_flag);
 
     is_load_tool = snapshot.is_load_tool;

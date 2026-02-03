@@ -2,7 +2,7 @@ find_package(Qt5 COMPONENTS Core Gui Sql REQUIRED)
 
 add_executable(vectordb_tests
     vectordb_tests.cpp
-    ${CMAKE_SOURCE_DIR}/src/utils/vectordb.cpp
+    ${CMAKE_SOURCE_DIR}/src/storage/vectordb.cpp
 )
 
 target_link_libraries(vectordb_tests PRIVATE

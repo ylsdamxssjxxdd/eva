@@ -1,4 +1,4 @@
-#include "src/net/localproxy.h"
+#include "service/backend/localproxy.h"
 
 #include <QAbstractSocket>
 #include <QHostAddress>

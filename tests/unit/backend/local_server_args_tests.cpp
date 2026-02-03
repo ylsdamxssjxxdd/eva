@@ -6,7 +6,7 @@
 #include <QFile>
 #include <QTemporaryDir>
 
-#include "xbackend_args.h"
+#include "service/backend/xbackend_args.h"
 
 namespace
 {

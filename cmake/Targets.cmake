@@ -19,6 +19,27 @@ add_executable(
     ${BODY_PACK_EXE}
     ${logo_FILES} ${resource_FILES} ${extra_INCLUDES}
     ${FONT_OUT_BIG_SRCS}
+    src/app/app_bootstrap.cpp
+    src/app/config_migrator.cpp
+    src/app/default_model_finder.cpp
+    src/app/app_context.h
+    src/app/app_bootstrap.h
+    src/app/config_migrator.h
+    src/app/default_model_finder.h
+    src/core/session/session_controller.cpp
+    src/core/session/session_controller.h
+    src/core/session/session_types.h
+    src/core/toolflow/tool_flow_controller.cpp
+    src/core/toolflow/tool_flow_controller.h
+    src/service/net/net_client.cpp
+    src/service/net/net_client.h
+    src/service/net/request_snapshot.h
+    src/service/backend/backend_coordinator.cpp
+    src/service/backend/backend_coordinator.h
+    src/service/tools/tool_executor.cpp
+    src/service/tools/tool_executor.h
+    src/service/tools/tool_registry.cpp
+    src/service/tools/tool_registry.h
     src/main.cpp
     src/widget/widget.cpp
     src/widget/widget_session.cpp
@@ -51,17 +72,17 @@ add_executable(
     src/expend/expend_eval.cpp 
     src/expend/expend_mcp.cpp src/expend/expend_tts.cpp src/expend/expend_schedule.cpp
     src/expend/sd_params_dialog.cpp src/expend/sd_params_dialog.h
-    src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp src/prompt.cpp
-    src/utils/history_store.cpp
+    src/expend/expend.cpp src/xnet.cpp src/service/backend/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/service/backend/xbackend.cpp src/service/backend/xbackend_args.cpp src/prompt_builder.cpp src/prompt.cpp
+    src/storage/history_store.cpp
     src/utils/scheduler_service.cpp
-    src/utils/vectordb.cpp src/utils/vectordb.h
+    src/storage/vectordb.cpp src/storage/vectordb.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
     src/utils/docker_sandbox.cpp src/utils/docker_sandbox.h
     src/utils/pathutil.cpp src/utils/pathutil.h src/utils/processrunner.cpp src/utils/processrunner.h src/utils/depresolver.cpp src/utils/depresolver.h
     src/utils/startuplogger.cpp src/utils/startuplogger.h
     src/utils/flowtracer.cpp src/utils/flowtracer.h
     src/utils/singleinstance.cpp src/utils/singleinstance.h
-    src/widget/widget.h src/widget/terminal_pane.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/xbackend.h
+    src/widget/widget.h src/widget/terminal_pane.h src/xtool.h src/expend/expend.h src/xnet.h src/xconfig.h src/xmcp.h src/prompt.h src/service/backend/xbackend.h
     src/widget/widget.ui src/expend/expend.ui src/widget/date_dialog.ui src/widget/settings_dialog.ui
     src/utils/gpuchecker.h src/utils/cpuchecker.h src/utils/doubleqprogressbar.h 
     src/utils/imageinputbox.h src/utils/cutscreendialog.h src/utils/customtabwidget.h src/utils/customswitchbutton.h src/utils/toggleswitch.h src/utils/statusindicator.h
@@ -79,9 +100,19 @@ add_executable(
     src/utils/static_plugin_stubs.cpp
     src/skill/skill_manager.cpp src/skill/skill_manager.h
     src/widget/skill_drop_area.cpp src/widget/skill_drop_area.h
-    src/net/localproxy.h
+    src/service/backend/localproxy.h
     src/net/controlchannel.cpp src/net/controlchannel.h
 )
+# 避免 AUTOUIC 在非 UI 源文件中误扫描 ui_*.h
+set_source_files_properties(
+    src/core/session/session_controller.cpp
+    PROPERTIES SKIP_AUTOUIC ON)
+set_source_files_properties(
+    src/core/toolflow/tool_flow_controller.cpp
+    PROPERTIES SKIP_AUTOUIC ON)
+set_source_files_properties(
+    src/service/backend/backend_coordinator.cpp
+    PROPERTIES SKIP_AUTOUIC ON)
 ## Executable name
 # Linux: keep binary name as plain "eva" for runtime/AppDir consistency
 # Other platforms: keep the versioned/output-friendly name
@@ -96,6 +127,7 @@ target_compile_features(${EVA_TARGET} PRIVATE cxx_std_17)
 target_include_directories(${EVA_TARGET} PRIVATE
     ${CMAKE_BINARY_DIR}/src/utils
     ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/thirdparty/nlohmann)
 
 if (EVA_ENABLE_QT_TTS)

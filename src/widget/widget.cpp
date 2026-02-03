@@ -1,6 +1,9 @@
 // 主函数和主要槽函数
 
 #include "widget.h"
+#include "core/session/session_controller.h"
+#include "core/toolflow/tool_flow_controller.h"
+#include "service/backend/backend_coordinator.h"
 
 #include "controller_overlay.h"
 #include "terminal_pane.h"
@@ -60,6 +63,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
     //---------------初始化ui--------------
     ui->setupUi(this);
+    // ??????????
+    sessionController_ = new SessionController(this);
+    toolFlowController_ = new ToolFlowController(this);
+    backendCoordinator_ = new BackendCoordinator(this);
     if (ui->recordBar)
     {
         connect(ui->recordBar, &RecordBar::nodeClicked, this, &Widget::onRecordClicked);

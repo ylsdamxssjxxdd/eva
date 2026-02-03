@@ -1,6 +1,6 @@
 // vectordb.cpp - implementation
 
-#include "vectordb.h"
+#include "storage/vectordb.h"
 
 #include <QDir>
 #include <QSqlError>

@@ -649,8 +649,7 @@ void Widget::sendEngineerProxyRequest(const QString &reason)
     data.n_predict = ui_SETTINGS.hid_npredict;
     data.stopwords = ui_DATES.extra_stop_words;
     data.id_slot = -1;
-    emit ui2net_data(data);
-    emit ui2net_push();
+    emit_send(data);
     reflash_state(QStringLiteral("tool:system engineer -> %1").arg(reason), SIGNAL_SIGNAL);
 }
 

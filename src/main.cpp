@@ -30,6 +30,8 @@
 Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
 #endif
 
+#include "app/app_bootstrap.h"
+#include "app/config_migrator.h"
 #include "expend/expend.h"
 #include "utils/cpuchecker.h"
 #include "utils/devicemanager.h"
@@ -41,89 +43,9 @@ Q_IMPORT_PLUGIN(QFcitxPlatformInputContextPlugin)
 #include "widget/widget.h"
 #include "xmcp.h"
 #include "prompt.h"
-#include "xnet.h"
-#include "xtool.h"
+#include "service/net/net_client.h"
+#include "service/tools/tool_executor.h"
 
-static inline void createDesktopShortcut(QString appPath)
-{
-#ifdef Q_OS_LINUX
-    // Prepare icon path and copy resource icon to user dir
-    const QString iconDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/icons/";
-    QDir().mkpath(iconDir);
-    const QString iconPath = iconDir + "eva.png";
-    QFile::copy(":/logo/blue_logo.png", iconPath);
-    QFile::setPermissions(iconPath, QFile::ReadOwner | QFile::WriteOwner);
-
-    // Compose .desktop content using Qt placeholders (%1, %2, %3)
-    const QString desktopContent = QStringLiteral(
-                                       "[Desktop Entry]\n"
-                                       "Type=Application\n"
-                                       "Name=%1\n"
-                                       "Comment=a lite llm tool\n"
-                                       "Exec=\"%2\"\n"
-                                       "Icon=%3\n"
-                                       "Terminal=false\n"
-                                       "Categories=Utility;\n")
-                                       .arg(QStringLiteral("eva"), appPath, iconPath);
-
-    // Write to ~/.local/share/applications/eva.desktop
-    const QString applicationsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation) + "/";
-    QDir().mkpath(applicationsDir);
-    QFile applicationsFile(applicationsDir + "eva.desktop");
-    if (applicationsFile.open(QIODevice::WriteOnly))
-    {
-        applicationsFile.write(desktopContent.toUtf8());
-        applicationsFile.close();
-        applicationsFile.setPermissions(QFile::ExeOwner | QFile::ReadOwner | QFile::WriteOwner);
-    }
-    else
-    {
-        qWarning() << "Failed to write applications desktop file";
-    }
-
-    // Write to ~/Desktop/eva.desktop
-    const QString desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/";
-    QFile desktopFile(desktopDir + "eva.desktop");
-    if (desktopFile.open(QIODevice::WriteOnly))
-    {
-        desktopFile.write(desktopContent.toUtf8());
-        desktopFile.close();
-        desktopFile.setPermissions(QFile::ExeOwner | QFile::ReadOwner | QFile::WriteOwner);
-    }
-    else
-    {
-        qWarning() << "Failed to write desktop shortcut";
-    }
-#else
-    Q_UNUSED(appPath);
-#endif
-}
-
-static void registerSarasaFontResource(const QString &runtimeDir)
-{
-    QDir dir(runtimeDir);
-    QStringList candidates;
-    candidates << dir.filePath(QStringLiteral("font_out.rcc"));
-    candidates << dir.filePath(QStringLiteral("../font_out.rcc"));
-    candidates << dir.filePath(QStringLiteral("resources/font_out.rcc"));
-    candidates << dir.filePath(QStringLiteral("../resources/font_out.rcc"));
-    candidates << dir.filePath(QStringLiteral("EVA_RES/font_out.rcc"));
-    for (const QString &candidate : candidates)
-    {
-        QFileInfo info(candidate);
-        if (!info.exists()) continue;
-        if (QResource::registerResource(info.absoluteFilePath()))
-        {
-            qInfo() << "Registered Sarasa font resource from" << info.absoluteFilePath();
-        }
-        else
-        {
-            qWarning() << "Failed to register Sarasa font resource at" << info.absoluteFilePath();
-        }
-        return;
-    }
-    qWarning() << "font_out.rcc not found; Sarasa font resource unavailable.";
-}
 
 int main(int argc, char *argv[])
 {
@@ -131,27 +53,16 @@ int main(int argc, char *argv[])
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: enter main"));
     StartupLogger::log(QStringLiteral("进入 main"));
     // 兼容老旧 CPU：禁用 Qt PCRE2 JIT，优先排查 Win7 SIGILL/illegal instruction 问题
-    qputenv("QT_DISABLE_REGEXP_JIT", QByteArray("1"));
+    AppBootstrap::applyEarlyEnv();
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("compat: QT_DISABLE_REGEXP_JIT=1"));
-    // 设置linux下动态库的默认路径
-#ifdef BODY_LINUX_PACK
-    QString appDirPath = qgetenv("APPDIR"); // 获取镜像的路径
-    QString ldLibraryPath = appDirPath + "/usr/lib";
-    std::string currentPath = ldLibraryPath.toLocal8Bit().constData();
-    setenv("LD_LIBRARY_PATH", currentPath.c_str(), 1); // 指定找动态库的默认路径 LD_LIBRARY_PATH
-#endif
-
-#if defined(Q_OS_LINUX) && defined(EVA_LINUX_STATIC_BUILD)
-    qputenv("QT_IM_MODULE", QByteArray("fcitx"));
-    qputenv("XMODIFIERS", QByteArray("@im=fcitx"));
-    qputenv("GTK_IM_MODULE", QByteArray("fcitx"));
-#endif
+    // 平台运行环境变量（Linux 静态构建 / AppImage）
+    AppBootstrap::applyLinuxRuntimeEnv();
 
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);                                       // 自适应缩放
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough); // 适配非整数倍缩放
     QApplication a(argc, argv);                                                                              // 事件实例
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: QApplication created"));
-    registerSarasaFontResource(QCoreApplication::applicationDirPath());
+    AppBootstrap::registerSarasaFontResource(QCoreApplication::applicationDirPath());
     StartupLogger::log(QStringLiteral("QApplication 初始化完成"));
     a.setQuitOnLastWindowClosed(false);                                                                      // 即使关闭所有窗口也不退出程序，为了保持系统托盘正常
     // 加载资源文件中的字体
@@ -175,39 +86,30 @@ int main(int argc, char *argv[])
         // qDebug() << "Loaded font:" << customFont.family();
     }
     promptx::loadPromptLibrary();
-#if BODY_LINUX_PACK
-    const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    const QString appImagePath = env.value("APPIMAGE");
-    const QFileInfo fileInfo(appImagePath);
-    const QString applicationDirPath = fileInfo.absolutePath(); // 在打包程序运行时所在目录创建EVA_TEMP文件夹
-    const QString appPath = appImagePath;                       // .AppImage所在路径
-#else
-    const QString applicationDirPath = QCoreApplication::applicationDirPath(); // 就在当前目录创建EVA_TEMP文件夹
-    const QString appPath = QCoreApplication::applicationFilePath();
-#endif
-    const QString tempDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP"));
+    const AppContext appCtx = AppBootstrap::buildContext();
+    const QString applicationDirPath = appCtx.appDir;
+    const QString appPath = appCtx.appPath;
+    const QString tempDir = appCtx.tempDir;
     StartupLogger::log(QStringLiteral("字体资源加载完成"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: fonts loaded"));
 
-// linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
-#ifdef Q_OS_LINUX
-    createDesktopShortcut(appPath);
-#endif
+    // linux下每次启动都创建.desktop到~/.local/share/applications/（开始菜单）和~/Desktop（桌面快捷方式）中
+    AppBootstrap::createLinuxDesktopShortcut(appPath);
     qDebug() << "EVA_PATH" << appPath;
     StartupLogger::log(QStringLiteral("应用目录初始化完成"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: application directory ready"));
     // 后端探测快照：记录当前架构/系统/设备选择与解析到的可执行路径，方便 Win7 非法指令排查
-    auto logBackendSnapshot = [] (const QString &tag)
+    auto logBackendSnapshot = [&appCtx] (const QString &tag)
     {
-        const QString archId = DeviceManager::currentArchId();
-        const QString osId = DeviceManager::currentOsId();
-        const QString userChoice = DeviceManager::userChoice();
-        const QString effective = DeviceManager::effectiveBackend();
+        const QString archId = appCtx.archId;
+        const QString osId = appCtx.osId;
+        const QString userChoice = appCtx.deviceChoice;
+        const QString effective = appCtx.effectiveBackend;
         const QString program = DeviceManager::programPath(QStringLiteral("llama-server-main"));
-        const QString resolvedDevice = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
-        const QStringList roots = DeviceManager::candidateBackendRoots();
-        const QStringList probed = DeviceManager::probedBackendRoots();
-        const QStringList avail = DeviceManager::availableBackends();
+        const QString resolvedDevice = appCtx.resolvedDevice;
+        const QStringList roots = appCtx.backendRoots;
+        const QStringList probed = appCtx.backendProbed;
+        const QStringList avail = appCtx.backendAvailable;
         const QString line = QStringLiteral("[backend-probe][%1] arch=%2 os=%3 choice=%4 effective=%5 resolved=%6 prog=%7 roots=%8 probed=%9 avail=%10")
                                  .arg(tag,
                                       archId,
@@ -235,82 +137,7 @@ int main(int argc, char *argv[])
     StartupLogger::log(QStringLiteral("单实例检查通过"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: single instance check passed"));
     // Auto-discover default models from EVA_MODELS when no config exists
-    {
-        QDir().mkpath(tempDir);
-        const QString cfgPath = QDir(tempDir).filePath(QStringLiteral("eva_config.ini"));
-        if (!QFile::exists(cfgPath))
-        {
-            auto findSmallest = [](const QString &root, const QStringList &exts, std::function<bool(const QFileInfo &)> pred = nullptr) -> QString
-            {
-                if (root.isEmpty() || !QDir(root).exists()) return QString();
-                QString best;
-                qint64 bestSz = LLONG_MAX;
-                QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
-                while (it.hasNext())
-                {
-                    const QString p = it.next();
-                    QFileInfo fi(p);
-                    if (!fi.isFile()) continue;
-                    const QString suffix = fi.suffix().toLower();
-                    if (!exts.contains("*." + suffix)) continue;
-                    if (pred && !pred(fi)) continue;
-                    const qint64 sz = fi.size();
-                    if (sz > 0 && sz < bestSz)
-                    {
-                        best = fi.absoluteFilePath();
-                        bestSz = sz;
-                    }
-                }
-                return best;
-            };
-            const QString modelsRoot = QDir(applicationDirPath).filePath("EVA_MODELS");
-            QString llmModel, embModel, whisperModel, ttsModel, sdModel;
-            if (QDir(modelsRoot).exists())
-            {
-                // LLM: EVA_MODELS/llm -> smallest .gguf
-                llmModel = findSmallest(QDir(modelsRoot).filePath("llm"), {"*.gguf"});
-                // Embedding: EVA_MODELS/embedding -> smallest .gguf
-                embModel = findSmallest(QDir(modelsRoot).filePath("embedding"), {"*.gguf"});
-                // Whisper(STT): EVA_MODELS/speech2text -> prefer filenames containing 'whisper'
-                const QString sttRoot = QDir(modelsRoot).filePath("speech2text");
-                whisperModel = findSmallest(sttRoot, {"*.bin", "*.gguf"}, [](const QFileInfo &fi)
-                                            { return fi.fileName().toLower().contains("whisper"); });
-                // TTS: prefer tts.cpp-compatible models (kokoro / tts keyword) under text2speech; fallback to smallest gguf
-                auto findTts = [&](const QString &root)
-                {
-                    QString picked = findSmallest(root, {"*.gguf"}, [](const QFileInfo &fi)
-                                                   {
-                                                       const QString name = fi.fileName().toLower();
-                                                       return name.contains("kokoro") || name.contains("tts");
-                                                   });
-                    if (picked.isEmpty()) picked = findSmallest(root, {"*.gguf"});
-                    return picked;
-                };
-                ttsModel = findTts(QDir(modelsRoot).filePath("text2speech"));
-                if (ttsModel.isEmpty()) ttsModel = findTts(sttRoot);
-                // SD: Prefer fixed path EVA_MODELS/text2image/sd1.5-anything-3-q8_0.gguf; fallback: smallest .gguf under text2image
-                const QString sdFixed = QDir(modelsRoot).filePath("text2image/sd1.5-anything-3-q8_0.gguf");
-                if (QFile::exists(sdFixed)) sdModel = QFileInfo(sdFixed).absoluteFilePath();
-                if (sdModel.isEmpty()) sdModel = findSmallest(QDir(modelsRoot).filePath("text2image"), {"*.gguf"});
-            }
-            // Persist discovered defaults so subsequent startup path applies uniformly
-            QSettings s(cfgPath, QSettings::IniFormat);
-            s.setIniCodec("utf-8");
-            if (!llmModel.isEmpty()) s.setValue("modelpath", llmModel);
-            if (!embModel.isEmpty()) s.setValue("embedding_modelpath", embModel);
-            if (!whisperModel.isEmpty()) s.setValue("whisper_modelpath", whisperModel);
-            if (!ttsModel.isEmpty()) s.setValue("ttscpp_modelpath", ttsModel);
-            if (!sdModel.isEmpty())
-            {
-                s.setValue("sd_modelpath", sdModel);
-                s.setValue("sd_params_template", "sd1.5-anything-3");
-            }
-            // Default to local mode and auto device backend on first boot
-            s.setValue("ui_mode", 0);
-            s.setValue("device_backend", DeviceManager::userChoice().isEmpty() ? "auto" : DeviceManager::userChoice());
-            s.sync();
-        }
-    }
+    AppBootstrap::ensureDefaultConfig(appCtx);
     StartupLogger::log(QStringLiteral("默认模型自动发现完成"));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("startup: default model discovery finished"));
     //------------------实例化主要节点------------------
@@ -326,11 +153,11 @@ int main(int argc, char *argv[])
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: Expend %1 ms").arg(expendTimer.elapsed()));
     QElapsedTimer toolTimer;
     toolTimer.start();
-    xTool tool(applicationDirPath);             // 工具实例
+    ToolExecutor tool(applicationDirPath);      // 工具执行器
+    NetClient *netClient = new NetClient;  // ?????worker ????????
     StartupLogger::log(QStringLiteral("xTool 构造完成（%1 ms）").arg(toolTimer.elapsed()));
     FlowTracer::log(FlowChannel::Lifecycle, QStringLiteral("construct: xTool %1 ms").arg(toolTimer.elapsed()));
     // 将 xNet 改为堆对象，确保在其所属线程内析构，避免 Windows 下 QWinEventNotifier 跨线程清理告警
-    xNet *net = new xNet;  // 链接实例（worker 线程内生命周期）
     xMcp *mcp = new xMcp;  // MCP 管理实例（确保在线程内析构避免跨线程 QTimer 告警）
     gpuChecker gpuer;     // 监测显卡信息
     cpuChecker cpuer;     // 监视系统信息
@@ -338,7 +165,6 @@ int main(int argc, char *argv[])
     //-----------------初始值设定-----------------------
     // 传递语言（注意 net 改为指针）
     expend.wordsObj = w.wordsObj;
-    net->wordsObj = w.wordsObj;
     tool.wordsObj = w.wordsObj;
     expend.max_thread = w.max_thread;
     tool.embedding_server_dim = expend.embedding_server_dim;               // 同步嵌入维度
@@ -377,6 +203,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QProcess::ProcessError>("QProcess::ProcessError");
     qRegisterMetaType<DockerSandboxStatus>("DockerSandboxStatus");
     qRegisterMetaType<DockerSandbox::Config>("DockerSandbox::Config");
+    qRegisterMetaType<RequestSnapshot>("RequestSnapshot");
     //------------------开启多线程 ------------------------
     QThread *gpuer_thread = new QThread;
     gpuer.moveToThread(gpuer_thread);
@@ -388,13 +215,13 @@ int main(int argc, char *argv[])
     tool.moveToThread(tool_thread);
     tool_thread->start();
     QThread *net_thread = new QThread;
-    net->moveToThread(net_thread);
+    netClient->moveToThread(net_thread);
     // 当线程结束时，在线程上下文中安全删除 xNet，避免跨线程销毁导致的 QWinEventNotifier 警告/卡顿
-    QObject::connect(net_thread, &QThread::finished, net, &QObject::deleteLater);
+    QObject::connect(net_thread, &QThread::finished, netClient, &QObject::deleteLater);
     net_thread->start();
     // 退出前先请求停止网络流（排队到 net 所在线程）
-    QObject::connect(&a, &QCoreApplication::aboutToQuit, [net]()
-                     { QMetaObject::invokeMethod(net, "recv_stop", Qt::QueuedConnection, Q_ARG(bool, true)); });
+    QObject::connect(&a, &QCoreApplication::aboutToQuit, [netClient]()
+                     { QMetaObject::invokeMethod(netClient, "stop", Qt::QueuedConnection, Q_ARG(bool, true)); });
     // 再优雅退出并等待线程结束，确保 xNet 在其线程内清理完毕，避免退出时短暂卡住
     QObject::connect(&a, &QCoreApplication::aboutToQuit, [net_thread]()
                      {
@@ -456,24 +283,21 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_scheduleAction, &w, &Widget::recv_schedule_action);            // 定时任务操作
 
     //------------------连接net和窗口-------------------
-    QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection); // 窗口输出区更新
+    QObject::connect(netClient, &NetClient::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection); // 窗口输出区更新
     // Forward streaming output to Expend for TTS segmentation/playback
-    QObject::connect(net, &xNet::net2ui_output, &expend, &Expend::recv_output, Qt::QueuedConnection);                // 文转声：接收模型流式输出
-    QObject::connect(net, &xNet::net2ui_tool_calls, &w, &Widget::recv_tool_calls, Qt::QueuedConnection);             // function_call 工具调用
-    QObject::connect(net, &xNet::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
-    QObject::connect(net, &xNet::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
-    QObject::connect(net, &xNet::net2ui_pushover, &expend, &Expend::onNetTurnDone, Qt::QueuedConnection);            // 文转声：回合结束时刷新未完句
-    QObject::connect(net, &xNet::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // 流式近似KV用量（链接模式兜底）
-    QObject::connect(net, &xNet::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
-    QObject::connect(net, &xNet::net2ui_prompt_baseline, &w, &Widget::recv_prompt_baseline, Qt::QueuedConnection);   // prompt baseline tokens (LINK mode)
-    QObject::connect(net, &xNet::net2ui_turn_counters, &w, &Widget::recv_turn_counters, Qt::QueuedConnection);       // timings cache/prompt/generated totals
-    QObject::connect(net, &xNet::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
-    QObject::connect(net, &xNet::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
-    QObject::connect(&w, &Widget::ui2net_push, net, &xNet::run, Qt::QueuedConnection);                               // 开始推理
-    QObject::connect(&w, &Widget::ui2net_language, net, &xNet::recv_language, Qt::QueuedConnection);                 // 传递使用的语言
-    QObject::connect(&w, &Widget::ui2net_apis, net, &xNet::recv_apis, Qt::QueuedConnection);                         // 传递api设置参数
-    QObject::connect(&w, &Widget::ui2net_data, net, &xNet::recv_data, Qt::QueuedConnection);                         // 传递端点参数
-    QObject::connect(&w, &Widget::ui2net_stop, net, &xNet::recv_stop, Qt::QueuedConnection);                         // 传递停止信号
+    QObject::connect(netClient, &NetClient::net2ui_output, &expend, &Expend::recv_output, Qt::QueuedConnection);                // 文转声：接收模型流式输出
+    QObject::connect(netClient, &NetClient::net2ui_tool_calls, &w, &Widget::recv_tool_calls, Qt::QueuedConnection);             // function_call 工具调用
+    QObject::connect(netClient, &NetClient::net2ui_state, &w, &Widget::reflash_state, Qt::QueuedConnection);                    // 窗口状态区更新
+    QObject::connect(netClient, &NetClient::net2ui_pushover, &w, &Widget::recv_pushover, Qt::QueuedConnection);                 // 完成推理
+    QObject::connect(netClient, &NetClient::net2ui_pushover, &expend, &Expend::onNetTurnDone, Qt::QueuedConnection);            // 文转声：回合结束时刷新未完句
+    QObject::connect(netClient, &NetClient::net2ui_kv_tokens, &w, &Widget::recv_kv_from_net, Qt::QueuedConnection);             // 流式近似KV用量（链接模式兜底）
+    QObject::connect(netClient, &NetClient::net2ui_speeds, &w, &Widget::recv_net_speeds, Qt::QueuedConnection);                 // 最终速度（来自 xNet timings）
+    QObject::connect(netClient, &NetClient::net2ui_prompt_baseline, &w, &Widget::recv_prompt_baseline, Qt::QueuedConnection);   // prompt baseline tokens (LINK mode)
+    QObject::connect(netClient, &NetClient::net2ui_turn_counters, &w, &Widget::recv_turn_counters, Qt::QueuedConnection);       // timings cache/prompt/generated totals
+    QObject::connect(netClient, &NetClient::net2ui_slot_id, &w, &Widget::onSlotAssigned, Qt::QueuedConnection);                 // capture server slot id
+    QObject::connect(netClient, &NetClient::net2ui_reasoning_tokens, &w, &Widget::recv_reasoning_tokens, Qt::QueuedConnection); // think tokens for this turn
+    QObject::connect(&w, &Widget::ui2net_send, netClient, &NetClient::send, Qt::QueuedConnection);                 // ?????
+    QObject::connect(&w, &Widget::ui2net_stop, netClient, &NetClient::stop, Qt::QueuedConnection);                // ??????
 
     //------------------连接tool和窗口-------------------
     QObject::connect(&tool, &xTool::tool2ui_state, &w, &Widget::reflash_state);        // 窗口状态区更新
@@ -537,6 +361,7 @@ int main(int argc, char *argv[])
                               //  读取配置文件中的值
         QSettings settings(applicationDirPath + "/EVA_TEMP/eva_config.ini", QSettings::IniFormat);
         settings.setIniCodec("utf-8");
+        ConfigMigrator::migrate(settings);
         w.loadGlobalUiSettings(settings);
         w.shell = tool.shell = expend.shell = settings.value("shell", DEFAULT_SHELL).toString();                                    // 读取记录在配置文件中的shell路径
         w.pythonExecutable = tool.pythonExecutable = expend.pythonExecutable = settings.value("python", DEFAULT_PYTHON).toString(); // 读取记录在配置文件中的python版本
@@ -552,142 +377,12 @@ int main(int argc, char *argv[])
         w.apis.api_model = w.api_model_LineEdit->text();
         w.apis.is_local_backend = (w.ui_mode == LOCAL_MODE);
 
-        // Migrate legacy numeric/percent keys -> string keys, then remove legacy keys.
-        // 注意：不能在旧键不存在时用“默认值”覆盖 string 键，否则会导致 temp/repeat 等持久化每次启动都被重置。
-        {
-            auto parseDoubleC = [](const QString &text, bool &ok) -> double
-            {
-                return QLocale::c().toDouble(text, &ok);
-            };
-
-            // top_p：优先从 hid_top_p 迁移，其次从 hid_top_p_percent 迁移；若 hid_top_p_str 已合法则不覆盖。
-            {
-                bool okStr = false;
-                const QString s = settings.value("hid_top_p_str", "").toString().trimmed();
-                const double strv = s.isEmpty() ? -1.0 : parseDoubleC(s, okStr);
-                const bool strValid = okStr && (strv > 0.0 && strv <= 1.0);
-
-                if (settings.contains("hid_top_p"))
-                {
-                    const double num = settings.value("hid_top_p").toDouble();
-                    const bool numValid = (num > 0.0 && num <= 1.0);
-                    if (numValid && (!strValid || qAbs(num - strv) > 0.0005))
-                    {
-                        settings.setValue("hid_top_p_str", QString::number(num, 'f', 6));
-                    }
-                }
-                else if (!strValid && settings.contains("hid_top_p_percent"))
-                {
-                    const int perc = settings.value("hid_top_p_percent").toInt();
-                    const double v = qBound(0, perc, 100) / 100.0;
-                    if (v > 0.0 && v <= 1.0)
-                    {
-                        settings.setValue("hid_top_p_str", QString::number(v, 'f', 6));
-                    }
-                }
-                settings.remove("hid_top_p");
-                settings.remove("hid_top_p_percent");
-            }
-
-            // temp：UI 统一按 0~2 映射；旧版 percent 兼容 0~200（=> 0.0~2.0）。
-            {
-                bool okStr = false;
-                const QString ts = settings.value("temp_str", "").toString().trimmed();
-                const double strv = ts.isEmpty() ? -1.0 : parseDoubleC(ts, okStr);
-                const bool strValid = okStr && (strv >= 0.0 && strv <= 2.0);
-
-                if (settings.contains("temp"))
-                {
-                    const double num = settings.value("temp").toDouble();
-                    const bool numValid = (num >= 0.0 && num <= 2.0);
-                    if (numValid && (!strValid || qAbs(num - strv) > 0.0005))
-                    {
-                        settings.setValue("temp_str", QString::number(num, 'f', 6));
-                    }
-                }
-                else if (!strValid && settings.contains("temp_percent"))
-                {
-                    const int perc = settings.value("temp_percent").toInt();
-                    const double v = qBound(0, perc, 200) / 100.0;
-                    if (v >= 0.0 && v <= 2.0)
-                    {
-                        settings.setValue("temp_str", QString::number(v, 'f', 6));
-                    }
-                }
-                settings.remove("temp");
-                settings.remove("temp_percent");
-            }
-
-            // repeat：旧版 percent 兼容 0~200（=> 0.0~2.0）。
-            {
-                bool okStr = false;
-                const QString rs = settings.value("repeat_str", "").toString().trimmed();
-                const double strv = rs.isEmpty() ? -1.0 : parseDoubleC(rs, okStr);
-                const bool strValid = okStr && (strv >= 0.0 && strv <= 2.0);
-
-                if (settings.contains("repeat"))
-                {
-                    const double num = settings.value("repeat").toDouble();
-                    const bool numValid = (num >= 0.0 && num <= 2.0);
-                    if (numValid && (!strValid || qAbs(num - strv) > 0.0005))
-                    {
-                        settings.setValue("repeat_str", QString::number(num, 'f', 6));
-                    }
-                }
-                else if (!strValid && settings.contains("repeat_percent"))
-                {
-                    const int perc = settings.value("repeat_percent").toInt();
-                    const double v = qBound(0, perc, 200) / 100.0;
-                    if (v >= 0.0 && v <= 2.0)
-                    {
-                        settings.setValue("repeat_str", QString::number(v, 'f', 6));
-                    }
-                }
-                settings.remove("repeat");
-                settings.remove("repeat_percent");
-            }
-
-            settings.sync();
-        }
         w.custom1_date_system = settings.value("custom1_date_system", "").toString();
         w.custom2_date_system = settings.value("custom2_date_system", "").toString();
         {
             const QSignalBlocker blocker(w.date_ui->chattemplate_comboBox);
             w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
         }
-        // 默认工具配置迁移：确保新版默认 tool_call + 工程师工具自动挂载
-        {
-            const QString migrateKey = QStringLiteral("defaults_migrated_20260203");
-            if (!settings.value(migrateKey, false).toBool())
-            {
-                bool updated = false;
-                const int storedToolCall = settings.value("tool_call_mode", DEFAULT_TOOL_CALL_MODE).toInt();
-                if (storedToolCall != DEFAULT_TOOL_CALL_MODE)
-                {
-                    settings.setValue("tool_call_mode", DEFAULT_TOOL_CALL_MODE);
-                    updated = true;
-                }
-                const bool storedEngineer = settings.value("engineer_checkbox", DEFAULT_ENGINEER_ENABLED).toBool();
-                if (storedEngineer != DEFAULT_ENGINEER_ENABLED)
-                {
-                    settings.setValue("engineer_checkbox", DEFAULT_ENGINEER_ENABLED);
-                    updated = true;
-                }
-                QStringList enabledTools = settings.value("enabled_tools").toStringList();
-                if (DEFAULT_ENGINEER_ENABLED && !enabledTools.contains(QStringLiteral("engineer")))
-                {
-                    enabledTools << QStringLiteral("engineer");
-                    settings.setValue("enabled_tools", enabledTools);
-                    updated = true;
-                }
-                if (updated)
-                {
-                    settings.setValue(migrateKey, true);
-                    settings.sync();
-                }
-            }
-        }
-
         const QStringList enabledTools = settings.value("enabled_tools").toStringList();
         const bool allowControlHost = settings.value("control_host_enabled", false).toBool();
         auto restoreToolCheckbox = [&](QCheckBox *box, const QString &id, const QString &legacyKey, bool defaultValue) -> bool {

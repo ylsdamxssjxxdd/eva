@@ -41,6 +41,8 @@ class QWidget;
 #define DEFAULT_THINK_BEGIN "<think>"
 #define DEFAULT_THINK_END "</think>"
 #define DEFAULT_SPLITER "\n" // 分隔符
+// 系统提示词/工具块高亮阈值：超过该长度时跳过高亮以避免重置卡顿
+#define PROMPT_TOOL_HIGHLIGHT_MAX_CHARS 8000
 
 //------------------------------------------------------------------------------
 // 多语言（界面语言）

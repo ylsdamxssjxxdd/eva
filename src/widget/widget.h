@@ -72,6 +72,7 @@
 
 #include "ui_date_dialog.h"
 #include "ui_settings_dialog.h"
+#include "../core/session/session_types.h"
 // #include "utils/globalshortcut.h"
 #include "../prompt.h"
 #include "../utils/customswitchbutton.h"
@@ -80,12 +81,13 @@
 #include "../utils/docker_sandbox.h"
 #include "../utils/doubleqprogressbar.h"
 #include "../utils/scheduler_service.h"
-#include "../utils/history_store.h" // per-session history persistence
+#include "../storage/history_store.h" // per-session history persistence
 #include "../utils/recordbar.h"
 #include "../skill/skill_manager.h"
-#include "../net/localproxy.h"
+#include "../service/backend/localproxy.h"
 #include "../net/controlchannel.h"
-#include "../xbackend.h" // local llama.cpp server manager
+#include "../service/net/request_snapshot.h"
+#include "../service/backend/xbackend.h" // local llama.cpp server manager
 #include "../xconfig.h"  // ui和bot都要导入的共有配置
 #include "thirdparty/QHotkey/QHotkey/qhotkey.h"
 #include "skill_drop_area.h"
@@ -101,30 +103,9 @@ class TerminalPane;
 class BackendManagerDialog;
 class ToolCallTestDialog;
 class ControllerOverlay;
-
-// Task dispatch for send flow
-enum class ConversationTask
-{
-    ChatReply,
-    Completion,
-    ToolLoop,
-    Compaction
-};
-
-enum class FlowPhase
-{
-    Start,
-    Build,
-    NetRequest,
-    Streaming,
-    NetDone,
-    ToolParsed,
-    ToolStart,
-    ToolResult,
-    ContinueTurn,
-    Finish,
-    Cancel
-};
+class SessionController;
+class ToolFlowController;
+class BackendCoordinator;
 
 enum class DockerTargetMode
 {
@@ -132,20 +113,6 @@ enum class DockerTargetMode
     Image,
     Container
 };
-struct DocumentAttachment
-{
-    QString path;
-    QString displayName;
-    QString markdown;
-};
-struct InputPack
-{
-    QString text;
-    QStringList images;
-    QStringList wavs;
-    QVector<DocumentAttachment> documents;
-};
-
 // Lightweight conversation state for engineer proxy runs
 struct EngineerSession
 {
@@ -165,6 +132,9 @@ enum class LinkProfile
 class Widget : public QWidget
 {
     Q_OBJECT
+    friend class SessionController;
+    friend class ToolFlowController;
+    friend class BackendCoordinator;
 
   public:
     static constexpr int kMinFontPt = 8;
@@ -694,10 +664,7 @@ class Widget : public QWidget
 
     // 发给net的信号
   signals:
-    void ui2net_language(int language_flag_); // 传递使用的语言
-    void ui2net_push();                       // 开始推理
-    void ui2net_data(ENDPOINT_DATA data);     // 传递端点参数
-    void ui2net_apis(APIS apis);              // 传递api设置参数
+    void ui2net_send(RequestSnapshot snapshot); // 快照式发送
     void ui2net_stop(bool stop);              // 传递停止信号
 
     // 发送给tool的信号
@@ -924,6 +891,7 @@ class Widget : public QWidget
     bool skillsUiRefreshGuard_ = false;
     void replaceOutputRangeColored(int from, int to, const QString &text, QColor color);
     ENDPOINT_DATA prepareEndpointData();
+    void emit_send(const ENDPOINT_DATA &data); // 统一发送到网络层
     void beginSessionIfNeeded();
     void collectUserInputs(InputPack &pack, bool attachControllerFrame);
     bool buildDocumentAttachment(const QString &path, DocumentAttachment &attachment);
@@ -1102,6 +1070,10 @@ class Widget : public QWidget
         QColor assistantRole = LCL_ORANGE;
     };
     ThemeVisuals themeVisuals_;
+    // 控制器：从 Widget 中剥离会话与工具流逻辑
+    SessionController *sessionController_ = nullptr;
+    ToolFlowController *toolFlowController_ = nullptr;
+    BackendCoordinator *backendCoordinator_ = nullptr;
   };
 
 #endif // WIDGET_H

@@ -491,6 +491,15 @@ void Widget::insertTextWithToolHighlight(QTextCursor &cursor, const QString &tex
     QTextCharFormat baseFmt;
     baseFmt.setForeground(QBrush(baseColor));
 
+    // 超长提示词：跳过工具高亮扫描，避免重置/刷新时卡顿
+    if (text.size() > PROMPT_TOOL_HIGHLIGHT_MAX_CHARS)
+    {
+        cursor.setCharFormat(baseFmt);
+        cursor.insertText(text);
+        cursor.setCharFormat(QTextCharFormat());
+        return;
+    }
+
     if (!mayContainTools)
     {
         cursor.setCharFormat(baseFmt);
