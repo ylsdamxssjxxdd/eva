@@ -739,6 +739,7 @@ QColor Widget::chipColorForRole(RecordRole r) const
     case RecordRole::Tool: return themeVisuals_.stateTool;
     case RecordRole::Think: return themeVisuals_.textSecondary;
     case RecordRole::Assistant: return themeVisuals_.assistantRole;
+    case RecordRole::Compact: return themeVisuals_.stateEva;
     case RecordRole::User:
     case RecordRole::System:
     default: return themeVisuals_.systemRole;
@@ -751,6 +752,7 @@ QColor Widget::textColorForRole(RecordRole r) const
     {
     case RecordRole::Think: return themeVisuals_.textSecondary;
     case RecordRole::Tool: return themeVisuals_.stateTool;
+    case RecordRole::Compact: return themeVisuals_.stateEva;
     default: return themeVisuals_.textPrimary;
     }
 }

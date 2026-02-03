@@ -528,6 +528,8 @@ QString Widget::create_extra_prompt()
         {
             available_tools_describe += promptx::toolExecuteCommand().text + "\n\n";
             available_tools_describe += promptx::toolReadFile().text + "\n\n";
+            available_tools_describe += promptx::toolSkillCall().text + "\n\n";
+            available_tools_describe += promptx::toolScheduleTask().text + "\n\n";
             available_tools_describe += promptx::toolWriteFile().text + "\n\n";
             available_tools_describe += promptx::toolReplaceInFile().text + "\n\n";
             available_tools_describe += promptx::toolEditInFile().text + "\n\n";
@@ -689,6 +691,8 @@ QJsonArray Widget::buildFunctionTools() const
         {
             appendTool(promptx::toolExecuteCommand());
             appendTool(promptx::toolReadFile());
+            appendTool(promptx::toolSkillCall());
+            appendTool(promptx::toolScheduleTask());
             appendTool(promptx::toolWriteFile());
             appendTool(promptx::toolReplaceInFile());
             appendTool(promptx::toolEditInFile());
@@ -726,6 +730,8 @@ QString Widget::truncateString(const QString &str, int maxLength)
 }
 QString Widget::checkPython()
 {
+    // 暂停工程师环境探测（Python/git/cmake），避免启动或刷新时执行外部检测。
+#if 0
     QStringList lines;
     if (shouldUseDockerEnv())
     {
@@ -792,9 +798,13 @@ QString Widget::checkPython()
     lines << (cmakeLine.isEmpty() ? QStringLiteral("cmake: not found") : QStringLiteral("cmake: %1").arg(cmakeLine));
 
     return lines.join('\n') + QStringLiteral("\n");
+#endif
+    return QString();
 }
 QString Widget::checkCompile()
 {
+    // 暂停工程师环境探测（编译器版本），避免执行外部检查命令。
+#if 0
     if (shouldUseDockerEnv())
     {
         QStringList lines;
@@ -909,9 +919,13 @@ QString Widget::checkCompile()
         compilerInfo = "No compiler detected.\n";
     }
     return compilerInfo;
+#endif
+    return QString();
 }
 QString Widget::checkNode()
 {
+    // 暂停工程师环境探测（Node/npm），避免执行外部检查命令。
+#if 0
     if (shouldUseDockerEnv())
     {
         QStringList lines;
@@ -971,6 +985,8 @@ QString Widget::checkNode()
     const QString npmLine = versionLine(QStringLiteral("npm"), {QStringLiteral("--version")});
     lines << (npmLine.isEmpty() ? QStringLiteral("npm: not found") : QStringLiteral("npm: %1").arg(npmLine));
     return lines.join('\n') + QStringLiteral("\n");
+#endif
+    return QString();
 }
 
 // 添加额外停止标志，本地模式时在xbot.cpp里已经现若同时包含"<|" 和 "|>"也停止
@@ -1106,6 +1122,21 @@ void Widget::auto_save_user()
     settings.setValue("hid_flash_attn", ui_SETTINGS.hid_flash_attn);
     settings.setValue("hid_parallel", ui_SETTINGS.hid_parallel);
     settings.setValue("reasoning_effort", ui_SETTINGS.reasoning_effort);
+    // 上下文压缩（Compaction）配置：可在配置文件中手动调整
+    settings.setValue("compaction_enabled", compactionSettings_.enabled);
+    settings.setValue("compaction_trigger_ratio", QString::number(compactionSettings_.trigger_ratio, 'f', 3));
+    settings.setValue("compaction_reserve_tokens", compactionSettings_.reserve_tokens);
+    settings.setValue("compaction_keep_last_messages", compactionSettings_.keep_last_messages);
+    settings.setValue("compaction_max_message_chars", compactionSettings_.max_message_chars);
+    settings.setValue("compaction_max_source_chars", compactionSettings_.max_source_chars);
+    settings.setValue("compaction_max_summary_chars", compactionSettings_.max_summary_chars);
+    settings.setValue("compaction_temp", QString::number(compactionSettings_.temp, 'f', 3));
+    settings.setValue("compaction_n_predict", compactionSettings_.n_predict);
+    // 定时任务（Scheduler）配置：支持通过 ini 手动调整
+    settings.setValue("cron_enabled", schedulerSettings_.enabled);
+    settings.setValue("cron_min_interval_ms", schedulerSettings_.min_interval_ms);
+    settings.setValue("cron_page_refresh_ms", schedulerSettings_.page_refresh_ms);
+    settings.setValue("cron_lookahead_days", schedulerSettings_.cron_lookahead_days);
     settings.setValue("port", ui_port);                     // 服务端口
     settings.setValue("control_host_enabled", controlHostAllowed_);
     settings.setValue("device_backend", ui_device_backend); // 推理设备auto/cpu/cuda/vulkan/opencl

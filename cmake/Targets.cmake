@@ -42,16 +42,18 @@ add_executable(
     src/widget/widget_slots.cpp
     src/widget/widget_output.cpp
     src/widget/widget_anim.cpp
+    src/widget/widget_scheduler.cpp
     src/widget/controller_overlay.cpp src/widget/controller_overlay.h
     src/widget/backendmanagerdialog.cpp src/widget/backendmanagerdialog.h
     src/widget/terminal_pane.cpp
     src/widget/toolcall_test_dialog.cpp src/widget/toolcall_test_dialog.h
     src/expend/expend_knowledge.cpp src/expend/expend_ui.cpp src/expend/expend_quantize.cpp src/expend/expend_whisper.cpp src/expend/expend_sd.cpp 
     src/expend/expend_eval.cpp 
-    src/expend/expend_mcp.cpp src/expend/expend_tts.cpp
+    src/expend/expend_mcp.cpp src/expend/expend_tts.cpp src/expend/expend_schedule.cpp
     src/expend/sd_params_dialog.cpp src/expend/sd_params_dialog.h
     src/expend/expend.cpp src/xnet.cpp src/net/localproxy.cpp src/xtool.cpp src/xmcp.cpp src/xmcp_internal.cpp src/xbackend.cpp src/xbackend_args.cpp src/prompt_builder.cpp src/prompt.cpp
     src/utils/history_store.cpp
+    src/utils/scheduler_service.cpp
     src/utils/vectordb.cpp src/utils/vectordb.h
     src/utils/devicemanager.cpp src/utils/devicemanager.h
     src/utils/docker_sandbox.cpp src/utils/docker_sandbox.h

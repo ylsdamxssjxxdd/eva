@@ -36,6 +36,15 @@ void Widget::recv_pushover()
         searchPos = s; // continue scanning from removal point
     }
     const QString reasoningText = reasonings.join("");
+    // 压缩请求回合：将输出作为摘要处理，避免走常规 assistant/tool 链路
+    if (compactionInFlight_)
+    {
+        handleCompactionReply(finalText, reasoningText);
+        temp_assistant_history = "";
+        currentThinkIndex_ = -1;
+        currentAssistantIndex_ = -1;
+        return;
+    }
     // 重要：不要在这里打印 assistant_len/reasoning_len（字符长度），它很容易被误解为 token 数。
     // 链接模式下我们只关心 token 口径（来自 usage/timings 的校准结果，以及 UI 侧的 KV 汇总）。
     {
@@ -211,6 +220,11 @@ void Widget::recv_pushover()
                                 startEngineerProxyTool(tools_call);
                                 return;
                             }
+                            if (tools_name == QStringLiteral("schedule_task"))
+                            {
+                                handleScheduleToolCall(tools_call);
+                                return;
+                            }
                             if (tools_name == QStringLiteral("answer") || tools_name == QStringLiteral("response"))
                             {
                                 pendingToolCallId_.clear();
@@ -258,6 +272,11 @@ void Widget::recv_pushover()
                         if (tools_name == "system_engineer_proxy")
                         {
                             startEngineerProxyTool(tools_call);
+                            return;
+                        }
+                        if (tools_name == "schedule_task")
+                        {
+                            handleScheduleToolCall(tools_call);
                             return;
                         }
                         if (tools_name == "answer" || tools_name == "response")
@@ -402,6 +421,8 @@ void Widget::normal_finish_pushover()
         showImages(wait_to_show_images_filepath);
         wait_to_show_images_filepath.clear();
     }
+    // 推理完成后尝试派发定时任务
+    tryDispatchScheduledJobs();
 }
 
 void Widget::recv_toolpushover(QString tool_result_)
@@ -672,6 +693,16 @@ void Widget::on_reset_clicked()
     currentThinkIndex_ = -1;
     currentAssistantIndex_ = -1;
     pendingAssistantHeaderReset_ = false;
+    // 重置压缩状态，避免残留影响后续对话
+    compactionInFlight_ = false;
+    compactionQueued_ = false;
+    compactionHeaderPrinted_ = false;
+    currentCompactIndex_ = -1;
+    compactionFromIndex_ = -1;
+    compactionToIndex_ = -1;
+    compactionReason_.clear();
+    compactionPendingHasInput_ = false;
+    compactionPendingInput_ = InputPack();
 
     const bool engineerActive = date_ui && date_ui->engineer_checkbox && date_ui->engineer_checkbox->isChecked();
 

@@ -129,9 +129,33 @@ void Widget::switch_lan_change()
     emit ui2expend_language(language_flag);
 }
 
+void Widget::syncDefaultSystemPrompt()
+{
+    const QString defaultPrompt = promptx::systemPromptTemplate();
+    EVA_DATES base = date_map.value(QStringLiteral("default"), EVA_DATES());
+    base.date_prompt = defaultPrompt;
+    base.is_load_tool = false;
+    date_map.insert(QStringLiteral("default"), base);
+
+    const bool usingDefaultTemplate =
+        (ui_template == QStringLiteral("default")) ||
+        (date_ui && date_ui->chattemplate_comboBox && date_ui->chattemplate_comboBox->currentText() == QStringLiteral("default"));
+    if (!usingDefaultTemplate) return;
+
+    ui_date_prompt = defaultPrompt;
+    if (date_ui && date_ui->date_prompt_TextEdit)
+    {
+        const QSignalBlocker blocker(date_ui->date_prompt_TextEdit);
+        date_ui->date_prompt_TextEdit->setPlainText(defaultPrompt);
+    }
+}
+
 void Widget::apply_language(int language_flag_)
 {
-    Q_UNUSED(language_flag_);
+    // 同步提示词与技能协议语种
+    promptx::setPromptLanguage(language_flag_);
+    if (skillManager) skillManager->setLanguage(language_flag_);
+    syncDefaultSystemPrompt();
     // 主界面语种
     ui->load->setText(jtr("load"));
     ui->load->setToolTip(jtr("load_button_tooltip"));

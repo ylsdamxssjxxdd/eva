@@ -57,6 +57,185 @@ QString normalizeNewlines(QString text)
     return text;
 }
 
+QString normalizeFrontmatter(const QString &rawContent, QString *frontmatterBody)
+{
+    QString text = normalizeNewlines(rawContent);
+    if (!text.startsWith(QStringLiteral("---\n"))) return {};
+    const int endIdx = text.indexOf(QStringLiteral("\n---"), 4);
+    if (endIdx == -1) return {};
+    const QString body = text.mid(4, endIdx - 4);
+    if (frontmatterBody) *frontmatterBody = body;
+    return QStringLiteral("---\n%1\n---").arg(body);
+}
+
+QString extractYamlScalar(const QString &frontmatter, const QString &key)
+{
+    if (frontmatter.isEmpty()) return {};
+    const QStringList lines = frontmatter.split(QLatin1Char('\n'));
+    for (int i = 0; i < lines.size(); ++i)
+    {
+        const QString rawLine = lines.at(i);
+        const QString trimmed = rawLine.trimmed();
+        if (trimmed.isEmpty()) continue;
+        const int colonIdx = trimmed.indexOf(QLatin1Char(':'));
+        if (colonIdx <= 0) continue;
+        const QString k = trimmed.left(colonIdx).trimmed();
+        if (k.compare(key, Qt::CaseInsensitive) != 0)
+        {
+            continue;
+        }
+        QString value = trimmed.mid(colonIdx + 1).trimmed();
+        if (value == QStringLiteral("|") || value == QStringLiteral(">"))
+        {
+            QStringList block;
+            for (int j = i + 1; j < lines.size(); ++j)
+            {
+                const QString nextLine = lines.at(j);
+                if (nextLine.startsWith(QStringLiteral("  ")) || nextLine.startsWith(QStringLiteral("\t")))
+                {
+                    block << nextLine.trimmed();
+                }
+                else if (nextLine.trimmed().isEmpty())
+                {
+                    block << QString();
+                }
+                else
+                {
+                    break;
+                }
+            }
+            value = block.join(QLatin1Char('\n')).trimmed();
+        }
+        return value;
+    }
+    return {};
+}
+
+// 技能调用工具需要读取 SKILL.md 并生成目录树
+struct SkillCallSpec
+{
+    QString name;
+    QString description;
+    QString skillFile;
+    QString rootDir;
+    QString skillContent;
+    QStringList tree;
+};
+
+QString readTextFileUtf8(const QString &path, QString *errorMessage)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        if (errorMessage) *errorMessage = QStringLiteral("Failed to open %1: %2").arg(path, file.errorString());
+        return {};
+    }
+    QTextStream in(&file);
+    in.setCodec("utf-8");
+    const QString content = in.readAll();
+    file.close();
+    return content;
+}
+
+bool parseSkillFrontmatter(const QString &content, QString &name, QString &description)
+{
+    QString frontmatterBody;
+    const QString frontmatter = normalizeFrontmatter(content, &frontmatterBody);
+    if (frontmatter.isEmpty()) return false;
+    name = extractYamlScalar(frontmatterBody, QStringLiteral("name")).trimmed();
+    description = extractYamlScalar(frontmatterBody, QStringLiteral("description")).trimmed();
+    return true;
+}
+
+void buildSkillTree(const QString &rootDir, QStringList &out)
+{
+    out.clear();
+    QDirIterator it(rootDir, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+    while (it.hasNext())
+    {
+        it.next();
+        const QFileInfo info = it.fileInfo();
+        const QString rel = QDir(rootDir).relativeFilePath(info.absoluteFilePath());
+        QString display = QDir::fromNativeSeparators(rel);
+        if (display.isEmpty() || display == QStringLiteral(".")) continue;
+        if (info.isDir()) display += QLatin1Char('/');
+        out.append(display);
+    }
+}
+
+bool resolveSkillCallSpec(const QString &skillsRoot, const QString &skillName, SkillCallSpec &out, QString &errorMessage)
+{
+    out = SkillCallSpec{};
+    const QString targetName = skillName.trimmed();
+    if (targetName.isEmpty())
+    {
+        errorMessage = QStringLiteral("Skill name is required.");
+        return false;
+    }
+    QFileInfo rootInfo(skillsRoot);
+    if (!rootInfo.exists() || !rootInfo.isDir())
+    {
+        errorMessage = QStringLiteral("Skills directory not found: %1").arg(skillsRoot);
+        return false;
+    }
+
+    SkillCallSpec found;
+    QStringList matches;
+    QDirIterator it(skillsRoot, QStringList() << QStringLiteral("SKILL.md"), QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext())
+    {
+        const QString skillFile = it.next();
+        const QFileInfo fileInfo(skillFile);
+        const QString rootDir = fileInfo.absolutePath();
+        const QString dirName = QFileInfo(rootDir).fileName();
+        const bool dirMatches = dirName.compare(targetName, Qt::CaseInsensitive) == 0;
+
+        QString readError;
+        const QString content = readTextFileUtf8(skillFile, &readError);
+        if (content.isEmpty() && !readError.isEmpty())
+        {
+            if (dirMatches)
+            {
+                errorMessage = readError;
+                return false;
+            }
+            continue;
+        }
+
+        QString skillDisplayName;
+        QString skillDescription;
+        parseSkillFrontmatter(content, skillDisplayName, skillDescription);
+        if (skillDisplayName.isEmpty()) skillDisplayName = dirName;
+        const bool nameMatches = skillDisplayName.compare(targetName, Qt::CaseInsensitive) == 0;
+        if (!dirMatches && !nameMatches) continue;
+
+        matches << skillDisplayName;
+        if (matches.size() == 1)
+        {
+            found.name = skillDisplayName;
+            found.description = skillDescription;
+            found.skillFile = skillFile;
+            found.rootDir = rootDir;
+            found.skillContent = content;
+        }
+    }
+
+    if (matches.isEmpty())
+    {
+        errorMessage = QStringLiteral("Skill not found: %1").arg(targetName);
+        return false;
+    }
+    if (matches.size() > 1)
+    {
+        errorMessage = QStringLiteral("Multiple skills matched: %1").arg(matches.join(QStringLiteral(", ")));
+        return false;
+    }
+
+    buildSkillTree(found.rootDir, found.tree);
+    out = found;
+    return true;
+}
+
 QString restoreNewlines(QString text, bool hadCRLF, bool hadCR)
 {
     if (hadCRLF) return text.replace("\n", "\r\n");
@@ -1229,6 +1408,60 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
         const QString result = outputs.join("\n\n");
         sendStateMessage("tool:" + QString("read_file ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
         sendPushMessage(QString("read_file ") + jtr("return") + "\n" + result);
+    }
+
+    //----------------------技能调用------------------
+    else if (tools_name == "skill_call" || tools_name == "skill_get" || tools_name == QStringLiteral("技能调用"))
+    {
+        QString rawName = QString::fromStdString(get_string_safely(tools_args_, "name")).trimmed();
+        if (rawName.isEmpty())
+        {
+            rawName = QString::fromStdString(get_string_safely(tools_args_, "skill_name")).trimmed();
+        }
+        if (rawName.isEmpty())
+        {
+            const QString detail = QStringLiteral("skill_call requires a non-empty name");
+            sendStateMessage("tool:skill_call " + jtr("return") + "\n" + detail, WRONG_SIGNAL);
+            sendPushMessage(QStringLiteral("skill_call ") + jtr("return") + "\n" + detail);
+            return;
+        }
+
+        const QString skillsRoot = QDir::cleanPath(resolveSkillsRoot());
+        SkillCallSpec spec;
+        QString resolveError;
+        if (!resolveSkillCallSpec(skillsRoot, rawName, spec, resolveError))
+        {
+            sendStateMessage("tool:skill_call " + jtr("return") + "\n" + resolveError, WRONG_SIGNAL);
+            sendPushMessage(QStringLiteral("skill_call ") + jtr("return") + "\n" + resolveError);
+            return;
+        }
+
+        QString rootDisplay = QDir::toNativeSeparators(spec.rootDir);
+        QString fileDisplay = QDir::toNativeSeparators(spec.skillFile);
+        if (dockerSandboxEnabled())
+        {
+            const QString mappedRoot = containerPathForHost(spec.rootDir);
+            if (!mappedRoot.isEmpty()) rootDisplay = mappedRoot;
+            const QString mappedFile = containerPathForHost(spec.skillFile);
+            if (!mappedFile.isEmpty()) fileDisplay = mappedFile;
+        }
+
+        mcp::json resultJson;
+        resultJson["name"] = spec.name.toStdString();
+        resultJson["description"] = spec.description.toStdString();
+        resultJson["path"] = QDir::fromNativeSeparators(fileDisplay).toStdString();
+        resultJson["root"] = QDir::fromNativeSeparators(rootDisplay).toStdString();
+        resultJson["skill_md"] = spec.skillContent.toStdString();
+        mcp::json tree = mcp::json::array();
+        for (const QString &item : spec.tree)
+        {
+            tree.push_back(item.toStdString());
+        }
+        resultJson["tree"] = tree;
+
+        const QString result = QString::fromStdString(resultJson.dump(2));
+        sendStateMessage("tool:" + QStringLiteral("skill_call ") + jtr("return") + "\n" + result, TOOL_SIGNAL);
+        sendPushMessage(QStringLiteral("skill_call ") + jtr("return") + "\n" + result);
     }
 
     //----------------------写入文件------------------

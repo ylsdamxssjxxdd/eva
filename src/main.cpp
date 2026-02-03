@@ -452,6 +452,8 @@ int main(int argc, char *argv[])
     QObject::connect(&expend, &Expend::expend2ui_embeddingdb_describe, &w, &Widget::recv_embeddingdb_describe); // 传递知识库的描述
     QObject::connect(&expend, &Expend::expend2ui_mcpToolsChanged, &w, &Widget::recv_mcp_tools_changed);         // MCP工具开关更新
     QObject::connect(&w, &Widget::ui2expend_llamalog, &expend, &Expend::recv_llama_log);                        // 传递llama日志
+    QObject::connect(&w, &Widget::ui2expend_schedule_jobs, &expend, &Expend::recv_schedule_jobs);               // 定时任务列表刷新
+    QObject::connect(&expend, &Expend::expend2ui_scheduleAction, &w, &Widget::recv_schedule_action);            // 定时任务操作
 
     //------------------连接net和窗口-------------------
     QObject::connect(net, &xNet::net2ui_output, &w, &Widget::reflash_output, Qt::QueuedConnection); // 窗口输出区更新
@@ -653,19 +655,52 @@ int main(int argc, char *argv[])
             const QSignalBlocker blocker(w.date_ui->chattemplate_comboBox);
             w.date_ui->chattemplate_comboBox->setCurrentText(settings.value("chattemplate", "default").toString());
         }
+        // 默认工具配置迁移：确保新版默认 tool_call + 工程师工具自动挂载
+        {
+            const QString migrateKey = QStringLiteral("defaults_migrated_20260203");
+            if (!settings.value(migrateKey, false).toBool())
+            {
+                bool updated = false;
+                const int storedToolCall = settings.value("tool_call_mode", DEFAULT_TOOL_CALL_MODE).toInt();
+                if (storedToolCall != DEFAULT_TOOL_CALL_MODE)
+                {
+                    settings.setValue("tool_call_mode", DEFAULT_TOOL_CALL_MODE);
+                    updated = true;
+                }
+                const bool storedEngineer = settings.value("engineer_checkbox", DEFAULT_ENGINEER_ENABLED).toBool();
+                if (storedEngineer != DEFAULT_ENGINEER_ENABLED)
+                {
+                    settings.setValue("engineer_checkbox", DEFAULT_ENGINEER_ENABLED);
+                    updated = true;
+                }
+                QStringList enabledTools = settings.value("enabled_tools").toStringList();
+                if (DEFAULT_ENGINEER_ENABLED && !enabledTools.contains(QStringLiteral("engineer")))
+                {
+                    enabledTools << QStringLiteral("engineer");
+                    settings.setValue("enabled_tools", enabledTools);
+                    updated = true;
+                }
+                if (updated)
+                {
+                    settings.setValue(migrateKey, true);
+                    settings.sync();
+                }
+            }
+        }
+
         const QStringList enabledTools = settings.value("enabled_tools").toStringList();
         const bool allowControlHost = settings.value("control_host_enabled", false).toBool();
-        auto restoreToolCheckbox = [&](QCheckBox *box, const QString &id, const QString &legacyKey) -> bool {
+        auto restoreToolCheckbox = [&](QCheckBox *box, const QString &id, const QString &legacyKey, bool defaultValue) -> bool {
             if (!box) return false;
-            const bool fallback = settings.value(legacyKey, false).toBool();
+            const bool fallback = settings.value(legacyKey, defaultValue).toBool();
             const bool shouldCheck = enabledTools.isEmpty() ? fallback : enabledTools.contains(id);
             const QSignalBlocker blocker(box);
             box->setChecked(shouldCheck);
             return shouldCheck;
         };
-        const bool calculatorOn = restoreToolCheckbox(w.date_ui->calculator_checkbox, QStringLiteral("calculator"), QStringLiteral("calculator_checkbox"));
-        const bool knowledgeOn = restoreToolCheckbox(w.date_ui->knowledge_checkbox, QStringLiteral("knowledge"), QStringLiteral("knowledge_checkbox"));
-        const bool controllerOn = restoreToolCheckbox(w.date_ui->controller_checkbox, QStringLiteral("controller"), QStringLiteral("controller_checkbox"));
+        const bool calculatorOn = restoreToolCheckbox(w.date_ui->calculator_checkbox, QStringLiteral("calculator"), QStringLiteral("calculator_checkbox"), false);
+        const bool knowledgeOn = restoreToolCheckbox(w.date_ui->knowledge_checkbox, QStringLiteral("knowledge"), QStringLiteral("knowledge_checkbox"), false);
+        const bool controllerOn = restoreToolCheckbox(w.date_ui->controller_checkbox, QStringLiteral("controller"), QStringLiteral("controller_checkbox"), false);
         // 桌面控制器：归一化坐标系（默认 1000×1000）
         const int savedNormX = settings.value("controller_norm_x", DEFAULT_CONTROLLER_NORM_X).toInt();
         const int savedNormY = settings.value("controller_norm_y", DEFAULT_CONTROLLER_NORM_Y).toInt();
@@ -682,7 +717,7 @@ int main(int argc, char *argv[])
             w.date_ui->controller_norm_y_spin->setValue(w.ui_controller_norm_y);
         }
         emit w.ui2tool_controllerNormalize(w.ui_controller_norm_x, w.ui_controller_norm_y);
-        const bool stablediffusionOn = restoreToolCheckbox(w.date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"), QStringLiteral("stablediffusion_checkbox"));
+        const bool stablediffusionOn = restoreToolCheckbox(w.date_ui->stablediffusion_checkbox, QStringLiteral("stablediffusion"), QStringLiteral("stablediffusion_checkbox"), false);
         // Restore engineer work dir before toggling engineer checkbox (avoid double emits)
         {
             const QString saved = settings.value("engineer_work_dir", QDir(w.applicationDirPath).filePath("EVA_WORK")).toString();
@@ -690,12 +725,12 @@ int main(int argc, char *argv[])
             if (!QDir(norm).exists()) { norm = QDir(w.applicationDirPath).filePath("EVA_WORK"); }
             w.setEngineerWorkDirSilently(norm);
         }
-        const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"));
+        const bool engineerOn = restoreToolCheckbox(w.date_ui->engineer_checkbox, QStringLiteral("engineer"), QStringLiteral("engineer_checkbox"), DEFAULT_ENGINEER_ENABLED);
         w.ui_engineer_ischecked = engineerOn;
         w.refreshWindowIcon();
         const bool savedArchitect = settings.value("engineer_architect_mode", false).toBool();
         w.setEngineerArchitectMode(savedArchitect, false);
-        const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"));
+        const bool mcpOn = restoreToolCheckbox(w.date_ui->MCPtools_checkbox, QStringLiteral("mcp"), QStringLiteral("MCPtools_checkbox"), false);
         const int savedToolCallMode = settings.value("tool_call_mode", DEFAULT_TOOL_CALL_MODE).toInt();
         w.ui_tool_call_mode = savedToolCallMode;
         if (w.date_ui->toolcall_mode_comboBox)
@@ -705,6 +740,21 @@ int main(int argc, char *argv[])
             if (idx < 0) idx = w.date_ui->toolcall_mode_comboBox->findData(DEFAULT_TOOL_CALL_MODE);
             if (idx >= 0) w.date_ui->toolcall_mode_comboBox->setCurrentIndex(idx);
         }
+        // 上下文压缩（Compaction）配置读取：无 UI 入口时以配置文件为准
+        w.compactionSettings_.enabled = settings.value("compaction_enabled", DEFAULT_COMPACTION_ENABLED).toBool();
+        w.compactionSettings_.trigger_ratio = settings.value("compaction_trigger_ratio", DEFAULT_COMPACTION_TRIGGER_RATIO).toDouble();
+        w.compactionSettings_.reserve_tokens = settings.value("compaction_reserve_tokens", DEFAULT_COMPACTION_RESERVE_TOKENS).toInt();
+        w.compactionSettings_.keep_last_messages = settings.value("compaction_keep_last_messages", DEFAULT_COMPACTION_KEEP_LAST_MESSAGES).toInt();
+        w.compactionSettings_.max_message_chars = settings.value("compaction_max_message_chars", DEFAULT_COMPACTION_MAX_MESSAGE_CHARS).toInt();
+        w.compactionSettings_.max_source_chars = settings.value("compaction_max_source_chars", DEFAULT_COMPACTION_MAX_SOURCE_CHARS).toInt();
+        w.compactionSettings_.max_summary_chars = settings.value("compaction_max_summary_chars", DEFAULT_COMPACTION_MAX_SUMMARY_CHARS).toInt();
+        w.compactionSettings_.temp = settings.value("compaction_temp", DEFAULT_COMPACTION_TEMP).toDouble();
+        w.compactionSettings_.n_predict = settings.value("compaction_n_predict", DEFAULT_COMPACTION_NPREDICT).toInt();
+        // 定时任务（Scheduler）配置读取
+        w.schedulerSettings_.enabled = settings.value("cron_enabled", DEFAULT_SCHEDULER_ENABLED).toBool();
+        w.schedulerSettings_.min_interval_ms = settings.value("cron_min_interval_ms", DEFAULT_SCHEDULER_MIN_INTERVAL_MS).toInt();
+        w.schedulerSettings_.page_refresh_ms = settings.value("cron_page_refresh_ms", DEFAULT_SCHEDULER_PAGE_REFRESH_MS).toInt();
+        w.schedulerSettings_.cron_lookahead_days = settings.value("cron_lookahead_days", DEFAULT_SCHEDULER_CRON_LOOKAHEAD_DAYS).toInt();
         const bool legacyDockerEnabled = settings.value("docker_sandbox_checkbox", false).toBool();
         w.engineerDockerImage = settings.value("docker_sandbox_image").toString().trimmed();
         w.engineerDockerContainer = w.sanitizeDockerContainerValue(settings.value("docker_sandbox_container").toString());
@@ -764,6 +814,8 @@ int main(int argc, char *argv[])
             // 应用到全局（刷新 UI 文案并同步到 net/tool/expend）
             w.switch_lan_change();
         }
+        // 应用定时任务配置（刷新调度器）
+        w.refreshSchedulerSettings();
         if (engineerOn) { w.triggerEngineerEnvRefresh(true); }
         if (allowControlHost)
         {

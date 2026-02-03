@@ -444,6 +444,26 @@ void Widget::reflash_output(const QString result, bool is_while, QColor color)
         handleEngineerStreamOutput(result, is_while);
         return;
     }
+    if (compactionInFlight_ && !is_while)
+    {
+        flushPendingStream();
+        if (!compactionHeaderPrinted_)
+        {
+            currentCompactIndex_ = recordCreate(RecordRole::Compact);
+            appendRoleHeader(QStringLiteral("compact"));
+            compactionHeaderPrinted_ = true;
+        }
+        QString clean = result;
+        clean.replace(QString(DEFAULT_THINK_BEGIN), QString());
+        clean.replace(QString(DEFAULT_THINK_END), QString());
+        if (!clean.isEmpty())
+        {
+            output_scroll(clean, textColorForRole(RecordRole::Compact));
+            if (currentCompactIndex_ >= 0) recordAppendText(currentCompactIndex_, clean);
+        }
+        temp_assistant_history += result;
+        return;
+    }
     if (is_while)
     {
         enqueueStreamChunk(result, color);
@@ -591,6 +611,27 @@ void Widget::processStreamChunk(const QString &chunk, const QColor &color)
 {
     if (chunk.isEmpty()) return;
     Q_UNUSED(color);
+
+    // 压缩模式：直接输出紫色摘要，不进入 think/assistant 分支
+    if (compactionInFlight_)
+    {
+        QString clean = chunk;
+        clean.replace(QString(DEFAULT_THINK_BEGIN), QString());
+        clean.replace(QString(DEFAULT_THINK_END), QString());
+        if (!compactionHeaderPrinted_)
+        {
+            currentCompactIndex_ = recordCreate(RecordRole::Compact);
+            appendRoleHeader(QStringLiteral("compact"));
+            compactionHeaderPrinted_ = true;
+        }
+        if (!clean.isEmpty())
+        {
+            output_scroll(clean, textColorForRole(RecordRole::Compact), true, QStringLiteral("compact"));
+            if (currentCompactIndex_ >= 0) recordAppendText(currentCompactIndex_, clean);
+        }
+        temp_assistant_history += chunk;
+        return;
+    }
 
     if (pendingAssistantHeaderReset_)
     {
@@ -798,10 +839,16 @@ void Widget::appendRoleHeader(const QString &role)
     const QString labelThink = jtr("role_think");
     const QString labelTool = jtr("role_tool");
     const QString labelModel = jtr("role_model");
+    const QString labelCompact = jtr("role_compact");
     if (canonical == QStringLiteral("tool") || trimmed == labelTool)
     {
         c = chipColorForRole(RecordRole::Tool);
         label = labelTool;
+    }
+    else if (canonical == QStringLiteral("compact") || trimmed == labelCompact)
+    {
+        c = chipColorForRole(RecordRole::Compact);
+        label = labelCompact;
     }
     else if (canonical == QStringLiteral("think") || trimmed == labelThink)
     {

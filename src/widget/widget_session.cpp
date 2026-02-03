@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QImageReader>
+#include <QDateTime>
 #include <QEventLoop>
 #include <string>
 
@@ -735,6 +736,7 @@ void Widget::startTurnFlow(ConversationTask task, bool continuingTool)
     turnActive_ = true;
     const QString taskName = (task == ConversationTask::ChatReply)  ? QStringLiteral("chat")
                             : (task == ConversationTask::Completion) ? QStringLiteral("completion")
+                            : (task == ConversationTask::Compaction) ? QStringLiteral("compaction")
                                                                      : QStringLiteral("tool_loop");
     const QString modeName = (ui_mode == LINK_MODE) ? QStringLiteral("link") : QStringLiteral("local");
     const QString detail = QStringLiteral("task=%1 mode=%2 tool_cont=%3").arg(taskName, modeName, continuingTool ? QStringLiteral("yes") : QStringLiteral("no"));
@@ -784,6 +786,334 @@ void Widget::ensureSystemHeader(const QString &systemText)
         logFlow(FlowPhase::Build, QStringLiteral("system header inserted"), SIGNAL_SIGNAL);
     }
     engineerProxyRuntime_.active = engineerProxyWasActive;
+}
+
+//------------------------------------------------------------------------------
+// 上下文压缩（Compaction）：触发判定 + 压缩请求 + 摘要落盘
+//------------------------------------------------------------------------------
+bool Widget::shouldTriggerCompaction() const
+{
+    if (!compactionSettings_.enabled) return false;
+    if (ui_state != CHAT_STATE) return false;
+    if (compactionInFlight_ || compactionQueued_) return false;
+    if (engineerProxyRuntime_.active) return false;
+    if (ui_messagesArray.isEmpty()) return false;
+
+    const int cap = resolvedContextLimitForUi();
+    if (cap <= 0) return false; // 未知上限时不自动压缩
+    const int used = qMax(0, kvUsed_);
+    if (used <= 0) return false;
+
+    const double ratio = static_cast<double>(used) / static_cast<double>(cap);
+    if (ratio >= compactionSettings_.trigger_ratio) return true;
+    if (used >= (cap - compactionSettings_.reserve_tokens)) return true;
+    return false;
+}
+
+bool Widget::startCompactionIfNeeded(const InputPack &pendingInput)
+{
+    if (!shouldTriggerCompaction()) return false;
+    compactionPendingInput_ = pendingInput;
+    compactionPendingHasInput_ = true;
+    compactionQueued_ = true;
+    const int cap = resolvedContextLimitForUi();
+    compactionReason_ = QStringLiteral("auto kvUsed=%1 cap=%2").arg(kvUsed_).arg(cap);
+    return true;
+}
+
+void Widget::startCompactionRun(const QString &reason)
+{
+    if (compactionInFlight_) return;
+    if (ui_messagesArray.isEmpty())
+    {
+        compactionQueued_ = false;
+        resumeSendAfterCompaction();
+        return;
+    }
+
+    // 计算压缩范围：保留 system + 最后 N 条，其余做摘要
+    int startIdx = 0;
+    if (!ui_messagesArray.isEmpty())
+    {
+        const QJsonObject first = ui_messagesArray.first().toObject();
+        if (first.value(QStringLiteral("role")).toString() == QStringLiteral(DEFAULT_SYSTEM_NAME))
+        {
+            startIdx = 1;
+        }
+    }
+    const int keepTail = qMax(1, compactionSettings_.keep_last_messages);
+    const int total = ui_messagesArray.size();
+    const int toIdx = total - keepTail;
+    if (toIdx <= startIdx)
+    {
+        // 无可压缩内容，直接继续发送
+        compactionQueued_ = false;
+        resumeSendAfterCompaction();
+        return;
+    }
+
+    compactionFromIndex_ = startIdx;
+    compactionToIndex_ = toIdx;
+    const QString sourceText = buildCompactionSourceText(startIdx, toIdx);
+    if (sourceText.trimmed().isEmpty())
+    {
+        compactionQueued_ = false;
+        resumeSendAfterCompaction();
+        return;
+    }
+
+    // 准备压缩请求（不启用工具调用，避免进入工具链）
+    compactionInFlight_ = true;
+    compactionQueued_ = false;
+    compactionHeaderPrinted_ = false;
+    currentCompactIndex_ = -1;
+    temp_assistant_history.clear();
+    pendingAssistantHeaderReset_ = true;
+    currentThinkIndex_ = -1;
+    currentAssistantIndex_ = -1;
+
+    ENDPOINT_DATA data = prepareEndpointData();
+    data.date_prompt = QStringLiteral("你是上下文压缩器。请将用户与助手的历史对话压缩成可用于继续对话的摘要。"
+                                      "必须保留：重要事实、关键决策、待办事项、角色/项目/时间/数值信息。"
+                                      "不要输出多余解释，不要虚构内容。只输出摘要正文。");
+    const QString userPrompt = QStringLiteral("以下是待压缩对话片段（role: content）。请输出不超过 %1 字符的摘要：\n\n%2")
+                                   .arg(compactionSettings_.max_summary_chars)
+                                   .arg(sourceText);
+    QJsonArray messages;
+    QJsonObject userMsg;
+    userMsg.insert(QStringLiteral("role"), QStringLiteral(DEFAULT_USER_NAME));
+    userMsg.insert(QStringLiteral("content"), userPrompt);
+    messages.append(userMsg);
+    data.messagesArray = messages;
+    data.tool_call_mode = TOOL_CALL_TEXT;
+    data.tools = QJsonArray();
+    data.temp = compactionSettings_.temp;
+    data.n_predict = compactionSettings_.n_predict;
+    data.id_slot = -1; // 压缩请求不复用主会话 slot
+
+    reflash_state(QStringLiteral("ui:上下文压缩中... (%1)").arg(reason), EVA_SIGNAL);
+    emit ui2net_data(data);
+    emit ui2net_push();
+}
+
+QString Widget::extractMessageTextForCompaction(const QJsonObject &msg) const
+{
+    const QJsonValue contentVal = msg.value(QStringLiteral("content"));
+    QString text;
+    if (contentVal.isString())
+    {
+        text = contentVal.toString();
+    }
+    else if (contentVal.isArray())
+    {
+        const QJsonArray parts = contentVal.toArray();
+        for (const QJsonValue &pv : parts)
+        {
+            if (!pv.isObject()) continue;
+            const QJsonObject po = pv.toObject();
+            const QString type = po.value(QStringLiteral("type")).toString();
+            if (type == QLatin1String("text"))
+            {
+                text.append(po.value(QStringLiteral("text")).toString());
+            }
+        }
+    }
+    if (text.isEmpty()) return QString();
+
+    QString trimmed = text.trimmed();
+    if (trimmed.size() > compactionSettings_.max_message_chars)
+    {
+        trimmed = trimmed.left(compactionSettings_.max_message_chars);
+        trimmed.append(QStringLiteral("..."));
+    }
+    return trimmed;
+}
+
+QString Widget::buildCompactionSourceText(int fromIndex, int toIndex) const
+{
+    if (fromIndex < 0) fromIndex = 0;
+    if (toIndex > ui_messagesArray.size()) toIndex = ui_messagesArray.size();
+    if (fromIndex >= toIndex) return QString();
+
+    QStringList lines;
+    int totalChars = 0;
+    for (int i = fromIndex; i < toIndex; ++i)
+    {
+        const QJsonObject msg = ui_messagesArray.at(i).toObject();
+        if (msg.isEmpty()) continue;
+        QString role = msg.value(QStringLiteral("role")).toString();
+        if (role == QStringLiteral("model")) role = QStringLiteral("assistant");
+        if (role == QStringLiteral("assistant")) role = QStringLiteral("assistant");
+        if (role == QStringLiteral("tool"))
+        {
+            const QString toolName = msg.value(QStringLiteral("tool")).toString().trimmed();
+            if (!toolName.isEmpty()) role = QStringLiteral("tool:%1").arg(toolName);
+        }
+        if (role == QStringLiteral("compact")) role = QStringLiteral("summary");
+
+        const QString content = extractMessageTextForCompaction(msg);
+        if (content.isEmpty()) continue;
+        QString line = QStringLiteral("%1: %2").arg(role, content);
+
+        const int nextTotal = totalChars + line.size();
+        if (compactionSettings_.max_source_chars > 0 && nextTotal > compactionSettings_.max_source_chars)
+        {
+            const int remain = compactionSettings_.max_source_chars - totalChars;
+            if (remain <= 0) break;
+            line = line.left(remain);
+            lines << line;
+            totalChars = compactionSettings_.max_source_chars;
+            break;
+        }
+        lines << line;
+        totalChars += line.size() + 1;
+    }
+    return lines.join(QStringLiteral("\n"));
+}
+
+bool Widget::appendCompactionSummaryFile(const QJsonObject &summaryObj) const
+{
+    if (!history_) return false;
+    const QString sessionId = history_->sessionId();
+    if (sessionId.isEmpty()) return false;
+    const QString baseDir = QDir(applicationDirPath).filePath(QStringLiteral("EVA_TEMP/compaction/%1").arg(sessionId));
+    QDir().mkpath(baseDir);
+    QFile f(QDir(baseDir).filePath(QStringLiteral("summary.jsonl")));
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) return false;
+    QJsonDocument doc(summaryObj);
+    QByteArray line = doc.toJson(QJsonDocument::Compact);
+    line.append('\n');
+    f.write(line);
+    f.close();
+    return true;
+}
+
+void Widget::applyCompactionSummary(const QString &summaryText)
+{
+    // 生成 compact 消息并重建 messagesArray（保留 system + compact + 尾部消息）
+    QJsonArray newMessages;
+    bool hasSystem = false;
+    if (!ui_messagesArray.isEmpty())
+    {
+        const QJsonObject first = ui_messagesArray.first().toObject();
+        if (first.value(QStringLiteral("role")).toString() == QStringLiteral(DEFAULT_SYSTEM_NAME))
+        {
+            newMessages.append(first);
+            hasSystem = true;
+        }
+    }
+    QJsonObject compactMsg;
+    compactMsg.insert(QStringLiteral("role"), QStringLiteral("compact"));
+    compactMsg.insert(QStringLiteral("content"), summaryText);
+    compactMsg.insert(QStringLiteral("range_from"), compactionFromIndex_);
+    compactMsg.insert(QStringLiteral("range_to"), compactionToIndex_);
+    compactMsg.insert(QStringLiteral("ts"), QDateTime::currentDateTime().toString(Qt::ISODate));
+    newMessages.append(compactMsg);
+
+    for (int i = qMax(0, compactionToIndex_); i < ui_messagesArray.size(); ++i)
+    {
+        newMessages.append(ui_messagesArray.at(i));
+    }
+    ui_messagesArray = newMessages;
+
+    // 记录条与消息索引已失配，统一清空 msgIndex（避免误编辑）
+    for (RecordEntry &entry : recordEntries_)
+    {
+        entry.msgIndex = -1;
+    }
+    // 记录 compact 记录块的 msgIndex（若已输出）
+    if (currentCompactIndex_ >= 0)
+    {
+        const int compactMsgIndex = hasSystem ? 1 : 0;
+        if (compactMsgIndex >= 0 && compactMsgIndex < ui_messagesArray.size())
+        {
+            recordEntries_[currentCompactIndex_].msgIndex = compactMsgIndex;
+        }
+    }
+
+    if (history_ && ui_state == CHAT_STATE)
+    {
+        history_->rewriteAllMessages(ui_messagesArray);
+    }
+}
+
+void Widget::handleCompactionReply(const QString &summaryText, const QString &reasoningText)
+{
+    Q_UNUSED(reasoningText);
+    compactionInFlight_ = false;
+    compactionHeaderPrinted_ = false;
+
+    QString summary = summaryText;
+    summary.replace(QString(DEFAULT_THINK_BEGIN), QString());
+    summary.replace(QString(DEFAULT_THINK_END), QString());
+    summary = summary.trimmed();
+    if (summary.isEmpty())
+    {
+        summary = QStringLiteral("（压缩结果为空）");
+    }
+    if (compactionSettings_.max_summary_chars > 0 && summary.size() > compactionSettings_.max_summary_chars)
+    {
+        summary = summary.left(compactionSettings_.max_summary_chars);
+        summary.append(QStringLiteral("..."));
+    }
+
+    // 如果压缩过程没有流式输出（或被静默），则此处补一个紫色记录块
+    if (currentCompactIndex_ < 0)
+    {
+        currentCompactIndex_ = appendCompactRecord(summary);
+    }
+    else
+    {
+        updateRecordEntryContent(currentCompactIndex_, summary);
+    }
+
+    // 写入 compaction 摘要文件（JSONL）
+    QJsonObject summaryObj;
+    summaryObj.insert(QStringLiteral("role"), QStringLiteral("compact"));
+    summaryObj.insert(QStringLiteral("summary"), summary);
+    summaryObj.insert(QStringLiteral("range_from"), compactionFromIndex_);
+    summaryObj.insert(QStringLiteral("range_to"), compactionToIndex_);
+    summaryObj.insert(QStringLiteral("kv_used"), kvUsed_);
+    summaryObj.insert(QStringLiteral("ctx_cap"), resolvedContextLimitForUi());
+    summaryObj.insert(QStringLiteral("ts"), QDateTime::currentDateTime().toString(Qt::ISODate));
+    appendCompactionSummaryFile(summaryObj);
+
+    // 应用压缩结果到会话历史
+    applyCompactionSummary(summary);
+
+    // 压缩后建议新 slot 开启，避免 KV 历史残留
+    currentSlotId_ = -1;
+    kvUsed_ = 0;
+    kvUsedBeforeTurn_ = 0;
+    kvStreamedTurn_ = 0;
+    updateKvBarUi();
+
+    // 清理本轮压缩状态
+    compactionFromIndex_ = -1;
+    compactionToIndex_ = -1;
+    compactionReason_.clear();
+
+    // 继续发送原始用户请求（若存在）
+    resumeSendAfterCompaction();
+}
+
+void Widget::resumeSendAfterCompaction()
+{
+    if (!compactionPendingHasInput_)
+    {
+        normal_finish_pushover();
+        return;
+    }
+
+    const InputPack input = compactionPendingInput_;
+    compactionPendingHasInput_ = false;
+    compactionPendingInput_ = InputPack();
+
+    currentTask_ = ConversationTask::ChatReply;
+    startTurnFlow(currentTask_, false);
+    logCurrentTask(currentTask_);
+    ENDPOINT_DATA data = prepareEndpointData();
+    handleChatReply(data, input);
 }
 void Widget::logCurrentTask(ConversationTask task)
 {
@@ -894,13 +1224,23 @@ void Widget::on_send_clicked()
 
     if (ui_state == CHAT_STATE)
     {
-        currentTask_ = ConversationTask::ChatReply;
-        startTurnFlow(currentTask_, continuingTool);
-        logCurrentTask(currentTask_);
         const bool controllerToolPending = continuingTool && lastToolCallName_ == QStringLiteral("controller");
         const bool attachControllerFrame = ui_controller_ischecked && (!continuingTool || controllerToolPending);
         InputPack in;
         collectUserInputs(in, attachControllerFrame);
+        if (startCompactionIfNeeded(in))
+        {
+            currentTask_ = ConversationTask::Compaction;
+            startTurnFlow(currentTask_, false);
+            logCurrentTask(currentTask_);
+            startCompactionRun(compactionReason_);
+            is_run = true;
+            ui_state_pushing();
+            return;
+        }
+        currentTask_ = ConversationTask::ChatReply;
+        startTurnFlow(currentTask_, continuingTool);
+        logCurrentTask(currentTask_);
         ENDPOINT_DATA data = prepareEndpointData();
         handleChatReply(data, in);
     }

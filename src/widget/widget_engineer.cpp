@@ -418,6 +418,7 @@ QString Widget::create_engineer_proxy_prompt()
     tools << promptx::toolAnswer().text;
     tools << promptx::toolExecuteCommand().text;
     tools << promptx::toolReadFile().text;
+    tools << promptx::toolSkillCall().text;
     tools << promptx::toolWriteFile().text;
     tools << promptx::toolReplaceInFile().text;
     tools << promptx::toolEditInFile().text;
@@ -844,9 +845,10 @@ void Widget::recordEngineerReasoning(int tokens)
 Widget::EngineerEnvSnapshot Widget::collectEngineerEnvSnapshot()
 {
     EngineerEnvSnapshot snapshot;
-    snapshot.python = checkPython();
-    snapshot.compile = checkCompile();
-    snapshot.node = checkNode();
+    // 暂停环境探测（Python/编译器/Node），避免执行外部检测命令。
+    // snapshot.python = checkPython();
+    // snapshot.compile = checkCompile();
+    // snapshot.node = checkNode();
     return snapshot;
 }
 

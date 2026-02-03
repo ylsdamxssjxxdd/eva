@@ -27,8 +27,10 @@
 
 class QWidget;
 
-// 默认约定
-#define DEFAULT_DATE_PROMPT "You are a helpful assistant."
+// 默认约定（内容由资源文件提供）
+#define DEFAULT_DATE_PROMPT "You are WUNDER."
+#define DEFAULT_SYSTEM_PROMPT_EN_RESOURCE ":/prompts/system_en.txt"
+#define DEFAULT_SYSTEM_PROMPT_ZH_RESOURCE ":/prompts/system_zh.txt"
 #define DEFAULT_SYSTEM_NAME "system"
 #define DEFAULT_USER_NAME "user"
 #define DEFAULT_MODEL_NAME "assistant"
@@ -56,7 +58,41 @@ enum ToolCallMode
     TOOL_CALL_FUNCTION = 1,
 };
 
-#define DEFAULT_TOOL_CALL_MODE TOOL_CALL_FUNCTION
+// 默认工具调用方式：tool_call 文本模式
+#define DEFAULT_TOOL_CALL_MODE TOOL_CALL_TEXT
+
+// 默认挂载系统工程师工具
+#define DEFAULT_ENGINEER_ENABLED true
+
+//------------------------------------------------------------------------------
+// 上下文压缩（Compaction）默认配置
+// 说明：这些配置用于"长时间运行助手"的上下文收敛与摘要生成。
+// - enabled: 是否开启自动压缩
+// - trigger_ratio: KV 用量超过此比例时触发
+// - reserve_tokens: 为下一轮/工具链预留的安全 token
+// - keep_last_messages: 压缩时保留的尾部消息数
+// - max_message_chars: 单条消息参与压缩的最大字符数
+// - max_source_chars: 本次压缩输入的最大字符数（防止 prompt 过大）
+// - max_summary_chars: 摘要最大长度（字符）
+// - temp / n_predict: 压缩摘要时的采样配置
+//------------------------------------------------------------------------------
+#define DEFAULT_COMPACTION_ENABLED true
+#define DEFAULT_COMPACTION_TRIGGER_RATIO 0.85
+#define DEFAULT_COMPACTION_RESERVE_TOKENS 2000
+#define DEFAULT_COMPACTION_KEEP_LAST_MESSAGES 8
+#define DEFAULT_COMPACTION_MAX_MESSAGE_CHARS 1200
+#define DEFAULT_COMPACTION_MAX_SOURCE_CHARS 20000
+#define DEFAULT_COMPACTION_MAX_SUMMARY_CHARS 2000
+#define DEFAULT_COMPACTION_TEMP 0.2
+#define DEFAULT_COMPACTION_NPREDICT 512
+
+//------------------------------------------------------------------------------
+// 定时任务（Scheduler/Cron）默认配置
+//------------------------------------------------------------------------------
+#define DEFAULT_SCHEDULER_ENABLED true
+#define DEFAULT_SCHEDULER_MIN_INTERVAL_MS 60000
+#define DEFAULT_SCHEDULER_PAGE_REFRESH_MS 1000
+#define DEFAULT_SCHEDULER_CRON_LOOKAHEAD_DAYS 366
 
 enum EVA_UI_LANGUAGE
 {
@@ -137,9 +173,9 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 #define DEFAULT_LLAMA_ENDPOINT_METRICS true
 #define DEFAULT_LLAMA_ENDPOINT_PROPS true
 
-// llama.cpp 新版 llama-server 默认会开启 kv_unified，并可能自动调整并发（日志提示“setting n_parallel = 4 and kv_unified = true”）。
+// llama.cpp 新版 llama-server 默认会开启 kv_unified，并可能自动调整并发（日志提示"setting n_parallel = 4 and kv_unified = true"）。
 // 为保持 EVA 旧行为：
-// - 并发数量完全由机体参数 `--parallel`（设置窗口“并发数量”）控制，默认值为 1
+// - 并发数量完全由机体参数 `--parallel`（设置窗口"并发数量"）控制，默认值为 1
 // - 默认关闭 kv_unified（按 llama-server 日志提示，可通过 `-kvu` 关闭）
 #define DEFAULT_LLAMA_DISABLE_KV_UNIFIED true
 #define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
@@ -177,7 +213,7 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 // 文转声（TTS）默认行为
 //------------------------------------------------------------------------------
 // 说明：
-// 1) 默认启用文转声：让机体“开箱即用”，无需用户额外点选。
+// 1) 默认启用文转声：让机体"开箱即用"，无需用户额外点选。
 // 2) tts.cpp 枚举音色后：若列表包含指定默认音色 id，则优先选中它（用户仍可手动切换）。
 #define DEFAULT_SPEECH_ENABLE true
 #define DEFAULT_TTSCPP_VOICE_ID "zf_001"
@@ -190,12 +226,16 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 //------------------------------------------------------------------------------
 // 说明：
 // 1) EVA 会在可执行程序同级目录创建 EVA_TEMP，用于保存配置、数据库与中间产物等。
-// 2) 这里仅提供“相对路径片段”，组合时使用：
+// 2) 这里仅提供"相对路径片段"，组合时使用：
 //    `QDir(applicationDirPath).filePath(EVA_TEMP_XXX_DIR_RELATIVE)`
-// 3) 统一约定输出目录可以避免把产物写到工作目录/后端目录，导致“到处都是”。
+// 3) 统一约定输出目录可以避免把产物写到工作目录/后端目录，导致"到处都是"。
 #define EVA_TEMP_DIR_RELATIVE "EVA_TEMP"
 #define EVA_TEMP_SD_DIR_RELATIVE "EVA_TEMP/sd"
 #define EVA_TEMP_TTS_DIR_RELATIVE "EVA_TEMP/tts"
+// 定时任务持久化目录
+#define EVA_TEMP_CRON_DIR_RELATIVE "EVA_TEMP/cron"
+#define EVA_TEMP_CRON_JOBS_FILE_RELATIVE "EVA_TEMP/cron/jobs.json"
+#define EVA_TEMP_CRON_RUNS_DIR_RELATIVE "EVA_TEMP/cron/runs"
 
 // EVA_SKILLS：技能包目录（与可执行程序同级）
 // 说明：
@@ -265,6 +305,7 @@ enum EXPEND_WINDOW
     TXT2IMG_WINDOW,      // 文生图窗口
     WHISPER_WINDOW,      // 声转文窗口
     TTS_WINDOW,          // 文转声窗口
+    SCHEDULE_WINDOW,     // 定时任务窗口
     NO_WINDOW,           // 关闭窗口
     PREV_WINDOW,         // 上一次的窗口
 };
@@ -280,6 +321,7 @@ const QMap<EXPEND_WINDOW, int> window_map = {
     {TXT2IMG_WINDOW, 6},
     {WHISPER_WINDOW, 7},
     {TTS_WINDOW, 8},
+    {SCHEDULE_WINDOW, 9},
     {NO_WINDOW, 999},
     {PREV_WINDOW, -1}};
 
@@ -331,6 +373,29 @@ struct SETTINGS
     bool hid_use_mlock = DEFAULT_USE_MLOCCK;  // use mlock to keep model in memory
     bool hid_flash_attn = DEFAULT_FLASH_ATTN; // flash attention
     int hid_parallel = DEFAULT_PARALLEL;
+};
+
+// 上下文压缩配置：用于自动压缩、摘要生成与输入裁剪
+struct COMPACTION_SETTINGS
+{
+    bool enabled = DEFAULT_COMPACTION_ENABLED;
+    double trigger_ratio = DEFAULT_COMPACTION_TRIGGER_RATIO;
+    int reserve_tokens = DEFAULT_COMPACTION_RESERVE_TOKENS;
+    int keep_last_messages = DEFAULT_COMPACTION_KEEP_LAST_MESSAGES;
+    int max_message_chars = DEFAULT_COMPACTION_MAX_MESSAGE_CHARS;
+    int max_source_chars = DEFAULT_COMPACTION_MAX_SOURCE_CHARS;
+    int max_summary_chars = DEFAULT_COMPACTION_MAX_SUMMARY_CHARS;
+    double temp = DEFAULT_COMPACTION_TEMP;
+    int n_predict = DEFAULT_COMPACTION_NPREDICT;
+};
+
+// 定时任务配置：用于任务调度、倒计时刷新与 cron 解析
+struct SCHEDULER_SETTINGS
+{
+    bool enabled = DEFAULT_SCHEDULER_ENABLED;              // 是否启用调度器
+    int min_interval_ms = DEFAULT_SCHEDULER_MIN_INTERVAL_MS; // 最小调度间隔（ms）
+    int page_refresh_ms = DEFAULT_SCHEDULER_PAGE_REFRESH_MS; // UI 倒计时刷新间隔（ms）
+    int cron_lookahead_days = DEFAULT_SCHEDULER_CRON_LOOKAHEAD_DAYS; // cron 寻找窗口（天）
 };
 
 // 模型参数,模型装载后发送给ui的参数
@@ -519,7 +584,7 @@ struct QuantizeType
 // 文转声（TTS）
 //------------------------------------------------------------------------------
 // 设计说明：
-// - “声源”与“音色”拆分保存，避免把系统 voice.name() 与 tts.cpp 的 voice id 混在一起。
+// - "声源"与"音色"拆分保存，避免把系统 voice.name() 与 tts.cpp 的 voice id 混在一起。
 // - tts.cpp 走 CLI：`tts-cli --model-path xxx --voice <id> --lang zh|en|ja -p <text>`
 //   其中 `--lang` 用于控制数字读法等语言偏好，EVA 会按界面语言自动注入该参数（zh/en/ja）。
 // - system 走 Qt TextToSpeech：按 `QVoice::name()` 选择音色
@@ -877,8 +942,8 @@ const QColor LCL_ORANGE(255, 165, 0);     // 橘黄色
 const QColor THINK_GRAY(128, 128, 128);   // 灰色
 
 // 提示词渲染：工具相关高亮（仅影响 UI 展示，不影响实际发送给模型的内容）
-// 统一使用“蓝灰色”前景色；浅色主题用更深一点，深色主题用更亮一点，保证可读性。
-// 注：这里使用接近 Material Blue Grey 的更亮一级色阶，保证在纯白背景上也能清晰“跳出来”。
+// 统一使用"蓝灰色"前景色；浅色主题用更深一点，深色主题用更亮一点，保证可读性。
+// 注：这里使用接近 Material Blue Grey 的更亮一级色阶，保证在纯白背景上也能清晰"跳出来"。
 const QColor PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_LIGHT(120, 144, 156); // #78909C
 const QColor PROMPT_TOOL_HIGHLIGHT_BLUEGRAY_DARK(160, 180, 190);  // #A0B4BE
 

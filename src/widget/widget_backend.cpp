@@ -781,6 +781,8 @@ void Widget::onServerReady(const QString &endpoint)
         pendingSendAfterWake_ = false;
         QTimer::singleShot(0, this, [this]() { on_send_clicked(); });
     }
+    // 后端就绪后尝试派发定时任务（若有队列）
+    tryDispatchScheduledJobs();
 
     // 配置本地端点；统一由动画收尾逻辑 unlockLoad() 设置标题/图标/状态
     const QUrl backendUrl = QUrl::fromUserInput(endpoint);

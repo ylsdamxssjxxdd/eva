@@ -7,6 +7,8 @@
 #include <QStringList>
 #include <QVector>
 
+#include "../xconfig.h"
+
 class SkillManager : public QObject
 {
     Q_OBJECT
@@ -42,6 +44,7 @@ public:
     bool setSkillEnabled(const QString &skillId, bool enabled);
     void restoreEnabledSet(const QSet<QString> &enabled);
     QStringList enabledSkillIds() const;
+    void setLanguage(int languageFlag);
 
     const QVector<SkillRecord> &skills() const { return skills_; }
 
@@ -59,6 +62,7 @@ public:
     QString applicationDir_;
     QString skillsRoot_;
     QVector<SkillRecord> skills_;
+    int languageFlag_ = EVA_LANG_EN;
     QFutureWatcher<ImportResult> importWatcher_;
     QStringList pendingImports_;
 

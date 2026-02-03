@@ -34,6 +34,7 @@ QString windowName(EXPEND_WINDOW w)
     case TXT2IMG_WINDOW: return QStringLiteral("txt2img");
     case WHISPER_WINDOW: return QStringLiteral("whisper");
     case TTS_WINDOW: return QStringLiteral("tts");
+    case SCHEDULE_WINDOW: return QStringLiteral("schedule");
     case NO_WINDOW: return QStringLiteral("none");
     case PREV_WINDOW: return QStringLiteral("prev");
     default: return QStringLiteral("unknown");
@@ -57,6 +58,7 @@ void Expend::init_expend()
     ui->tabWidget->setTabText(window_map[TXT2IMG_WINDOW], jtr("text2image"));               // 文生图
     ui->tabWidget->setTabText(window_map[WHISPER_WINDOW], jtr("speech2text"));              // 声转文
     ui->tabWidget->setTabText(window_map[TTS_WINDOW], jtr("text2speech"));                  // 文转声
+    ui->tabWidget->setTabText(window_map[SCHEDULE_WINDOW], jtr("schedule task"));          // 定时任务
     ui->tabWidget->setTabText(window_map[MODELEVAL_WINDOW], jtr("model evaluate"));         // 模型评估
     auto setSpacing = [](auto *edit, qreal factor)
     {
@@ -269,6 +271,8 @@ void Expend::init_expend()
     setSpacing(ui->whisper_log, 1.15);
     setSpacing(ui->speech_log, 1.15);
     setSpacing(ui->speech_manual_plainTextEdit, 1.2);
+    // 定时任务页面初始化
+    initScheduleUi();
 }
 
 // 用户切换选项卡时响应

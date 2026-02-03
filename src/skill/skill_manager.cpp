@@ -212,6 +212,11 @@ SkillManager::SkillManager(QObject *parent)
     connect(&importWatcher_, &QFutureWatcher<ImportResult>::finished, this, &SkillManager::handleImportFinished);
 }
 
+void SkillManager::setLanguage(int languageFlag)
+{
+    languageFlag_ = languageFlag;
+}
+
 void SkillManager::setApplicationDir(const QString &appDir)
 {
     applicationDir_ = QDir::cleanPath(appDir);
@@ -366,26 +371,32 @@ QString SkillManager::composePromptBlock(const QString &engineerWorkDir,
         return QString();
     }();
 
-    // 技能提示词：强化技能触发条件与“先读 SKILL.md 再执行”的流程
+    // 技能提示词：对齐参考项目 wunder 的协议结构
+    const bool useZh = (languageFlag_ == EVA_LANG_ZH);
+    const QString workHint = workDisplay.isEmpty()
+                                 ? (useZh ? QStringLiteral("当前工作目录") : QStringLiteral("current working directory"))
+                                 : workDisplay;
     segments << QStringLiteral("\n");
-    segments << QStringLiteral("[Skill Usage Protocol]");
-    segments << QStringLiteral("1) Skills are opt-in playbooks. Use a skill only when the task matches its YAML frontmatter.");
-    segments << QStringLiteral("2) Use the SKILL.md paths listed below and read them with `read_file` before relying on a skill.");
-    segments << QStringLiteral("3) Follow the skill workflow exactly; do not invent missing steps. Prefer bundled scripts/templates/assets.");
-    segments << QStringLiteral("4) If multiple skills match, choose the most specific; if unsure, ask the user to choose.");
-    segments << QStringLiteral("5) Only claim a skill was used after executing its steps.");
-    if (!workDisplay.isEmpty())
+    segments << (useZh ? QStringLiteral("[技能使用协议]") : QStringLiteral("[Skill Usage]"));
+    if (useZh)
     {
-        segments << QStringLiteral("6) Run skill scripts via `execute_command` inside the engineer work directory (%1) and write outputs back into the engineer workspace.")
-                        .arg(workDisplay);
+        segments << QStringLiteral("1) 用户的需求能用相关技能解决的，尽量调用 `skill_call`（技能调用）。");
+        segments << QStringLiteral("2) 使用技能名通过 `skill_call` 工具获取完整 SKILL.md，阅读后再使用技能。");
+        segments << QStringLiteral("3) 严格遵循技能流程，不要编造缺失步骤。优先使用技能随附脚本/模板/资产。");
+        segments << QStringLiteral("4) 特别注意，随附的脚本/模板/资产默认与 SKILL.md 位于同一目录下。使用 `execute_command` 运行相关技能脚本，并将输出写回工作目录。注意脚本等使用绝对路径，否则可能找不到文件。");
+        segments << QStringLiteral("5) 若需创建技能，请保存到你的工作目录（%1）。SKILL.md 通过 `skill_call` 工具获取。").arg(workHint);
     }
     else
     {
-        segments << QStringLiteral("6) Run skill scripts via `execute_command` inside the engineer work directory and write outputs back into the engineer workspace.");
+        segments << QStringLiteral("1) If the user's request can be solved by a skill, prefer calling `skill_call`.");
+        segments << QStringLiteral("2) Use the skill name with `skill_call` to fetch the full SKILL.md, read it, then use the skill.");
+        segments << QStringLiteral("3) Follow the skill steps strictly. Do not invent missing steps. Prefer bundled scripts/templates/assets.");
+        segments << QStringLiteral("4) Bundled scripts/templates/assets are in the same directory as SKILL.md by default. Use `execute_command` to run skill scripts and write outputs back to the working directory. Use absolute paths for scripts/assets to avoid missing files.");
+        segments << QStringLiteral("5) If you need to create a skill, save it in your working directory (%1). Fetch SKILL.md via `skill_call`.").arg(workHint);
     }
 
     segments << QString();
-    segments << QStringLiteral("[Mounted Skills]");
+    segments << (useZh ? QStringLiteral("[已挂载技能]") : QStringLiteral("[Mounted Skills]"));
 
     auto skillPathForPrompt = [&](const SkillRecord &rec) -> QString {
         if (!skillDisplayRoot.trimmed().isEmpty() && !skillsRoot_.isEmpty())

@@ -120,11 +120,13 @@ class Expend : public QWidget
     void expend2ui_state(QString state_string, SIGNAL_STATE state);
     void expend2ui_mcpToolsChanged();
     void expend2mcp_updateEnabledServices(QStringList enabledServices);
+    void expend2ui_scheduleAction(QString action, QString jobId); // 定时任务操作
 
   public slots:
     void recv_language(int language_flag_);      // 传递语言标志
     void recv_expend_show(EXPEND_WINDOW window); // 通知显示增殖窗口
     void recv_llama_log(QString log);            // 传递llama.cpp的log
+    void recv_schedule_jobs(QString payload);    // 接收定时任务列表
     // Eval: receive current UI mode/apis/settings snapshot from main UI
     void recv_eval_mode(EVA_MODE m) { eval_mode = m; }
     void recv_eval_apis(APIS a)
@@ -144,11 +146,27 @@ class Expend : public QWidget
     void recordTabVisit(int index);             // 记录最近打开的增殖选项卡
     // Eval: user actions
     void on_eval_start_pushButton_clicked();
+    void on_schedule_enable_button_clicked();
+    void on_schedule_disable_button_clicked();
+    void on_schedule_run_button_clicked();
+    void on_schedule_remove_button_clicked();
+    void on_schedule_table_itemSelectionChanged();
 
   private:
     Ui::Expend *ui;
     int lastTabIndex_ = 0;         // 最近一次有效的增殖选项卡索引
     bool lastTabInitialized_ = false; // 是否已经记录过有效索引
+    // 定时任务 UI
+    QJsonArray scheduleJobs_;
+    QHash<QString, QJsonObject> scheduleJobMap_;
+    QTimer scheduleCountdownTimer_;
+    void initScheduleUi();
+    void updateScheduleTexts();
+    void rebuildScheduleTable();
+    void updateScheduleDetail();
+    void refreshScheduleCountdown();
+    QString currentScheduleJobId() const;
+    QString formatCountdown(qint64 ms) const;
     //-------------------------------------------------------------------------
     //----------------------------------声转文相关--------------------------------
     //-------------------------------------------------------------------------

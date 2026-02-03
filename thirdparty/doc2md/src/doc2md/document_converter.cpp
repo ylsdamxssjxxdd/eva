@@ -20,7 +20,15 @@ ConversionResult convertFile(const std::string &path, const ConversionOptions &o
     const std::unordered_set<std::string> codeExtensions = {
         ".cpp", ".cc", ".c", ".h", ".hpp", ".py", ".js", ".ts", ".css", ".html", ".htm"};
 
-    if (extension == ".docx")
+    const bool isMarkdown = markdownExtensions.count(extension) > 0;
+    if (isMarkdown)
+    {
+        const std::string raw = detail::readTextFile(path);
+        const std::string trimmed = detail::trim(raw);
+        const std::string cleaned = detail::trim(detail::markdownToText(trimmed));
+        result.markdown = cleaned.empty() ? trimmed : cleaned;
+    }
+    else if (extension == ".docx")
         result.markdown = detail::readDocxText(path);
     else if (extension == ".odt")
         result.markdown = detail::readOdtText(path);
@@ -53,9 +61,7 @@ ConversionResult convertFile(const std::string &path, const ConversionOptions &o
         result.markdown = detail::trim(detail::readTextFile(path));
     }
 
-    if (markdownExtensions.count(extension))
-        result.markdown = detail::markdownToText(result.markdown);
-    else if (extension == ".html" || extension == ".htm")
+    if (extension == ".html" || extension == ".htm")
         result.markdown = detail::htmlToText(result.markdown);
 
     result.success = !result.markdown.empty();

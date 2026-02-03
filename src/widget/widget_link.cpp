@@ -1405,6 +1405,7 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
         case RecordRole::Assistant: return QStringLiteral("assistant");
         case RecordRole::Think: return QStringLiteral("think");
         case RecordRole::Tool: return QStringLiteral("tool");
+        case RecordRole::Compact: return QStringLiteral("compact");
         }
         return QString();
     };
@@ -1412,6 +1413,7 @@ void Widget::applyControlSnapshot(const QJsonObject &snap)
     {
         if (role == RecordRole::Think) return themeThinkColor();
         if (role == RecordRole::Tool) return themeStateColor(TOOL_SIGNAL);
+        if (role == RecordRole::Compact) return themeStateColor(EVA_SIGNAL);
         return themeTextPrimary();
     };
 

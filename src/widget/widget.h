@@ -39,6 +39,7 @@
 #include <QResource>
 #include <QStringListModel>
 #include <QScrollBar>
+#include <QQueue>
 #include <QFutureWatcher>
 #include <QSettings>
 #include <QSharedPointer>
@@ -78,6 +79,7 @@
 #include "../utils/devicemanager.h" // backend runtime detection / selection
 #include "../utils/docker_sandbox.h"
 #include "../utils/doubleqprogressbar.h"
+#include "../utils/scheduler_service.h"
 #include "../utils/history_store.h" // per-session history persistence
 #include "../utils/recordbar.h"
 #include "../skill/skill_manager.h"
@@ -105,7 +107,8 @@ enum class ConversationTask
 {
     ChatReply,
     Completion,
-    ToolLoop
+    ToolLoop,
+    Compaction
 };
 
 enum class FlowPhase
@@ -299,6 +302,9 @@ class Widget : public QWidget
 
     EVA_DATES ui_DATES;                       // ui的约定
     SETTINGS ui_SETTINGS;                     // ui的设置
+    COMPACTION_SETTINGS compactionSettings_;  // 上下文压缩配置（自动触发与摘要生成）
+    SCHEDULER_SETTINGS schedulerSettings_;    // 定时任务配置
+    SchedulerService *scheduler_ = nullptr;   // 定时任务调度器
     int kvTokensLast_ = 0;                    // last known used tokens for kv cache (accumulate within one conversation)
     int ui_n_ctx_train = 2048;                // 模型最大上下文长度
     int kvTokensTurn_ = 0;                    // tokens consumed during the active turn (prompt + generated output)
@@ -322,6 +328,25 @@ class Widget : public QWidget
     bool load_percent_tag;
     int max_thread = 1;           // 最大线程数
     int lastReasoningTokens_ = 0; // approximate reasoning tokens in last turn
+
+    // 上下文压缩运行时状态（Compaction）
+    bool compactionInFlight_ = false;     // 当前是否正在执行压缩请求
+    bool compactionQueued_ = false;       // 已判定需要压缩，等待执行
+    bool compactionHeaderPrinted_ = false; // 压缩输出头是否已输出
+    int currentCompactIndex_ = -1;        // 当前压缩记录块索引
+    int compactionFromIndex_ = -1;        // 本次压缩覆盖的起始消息索引（含）
+    int compactionToIndex_ = -1;          // 本次压缩覆盖的结束消息索引（不含）
+    InputPack compactionPendingInput_;    // 压缩完成后待发送的用户输入
+    bool compactionPendingHasInput_ = false; // 是否有待发送用户输入
+    QString compactionReason_;            // 触发原因（日志用）
+
+    // 定时任务：待发送队列
+    struct ScheduledDispatch
+    {
+        QJsonObject job;
+        QDateTime fireTime;
+    };
+    QQueue<ScheduledDispatch> scheduledDispatchQueue_;
 
     float load_time = 0;
     QElapsedTimer load_timer; // measure local-server load duration
@@ -464,7 +489,7 @@ class Widget : public QWidget
     int ui_controller_norm_x = DEFAULT_CONTROLLER_NORM_X; // 桌面控制器归一化坐标系 X（同时作为截屏缩放宽度）
     int ui_controller_norm_y = DEFAULT_CONTROLLER_NORM_Y; // 桌面控制器归一化坐标系 Y（同时作为截屏缩放高度）
     bool ui_MCPtools_ischecked = false;
-    bool ui_engineer_ischecked = false;
+    bool ui_engineer_ischecked = DEFAULT_ENGINEER_ENABLED;
     bool ui_dockerSandboxEnabled = false;
     QString engineerDockerImage;
     QString engineerDockerContainer;
@@ -514,7 +539,7 @@ class Widget : public QWidget
         int ui_controller_norm_x = DEFAULT_CONTROLLER_NORM_X;
         int ui_controller_norm_y = DEFAULT_CONTROLLER_NORM_Y;
         bool ui_MCPtools_ischecked = false;
-        bool ui_engineer_ischecked = false;
+        bool ui_engineer_ischecked = DEFAULT_ENGINEER_ENABLED;
         bool ui_dockerSandboxEnabled = false;
         QString engineerDockerImage;
         QString engineerDockerContainer;
@@ -698,6 +723,7 @@ class Widget : public QWidget
     void ui2expend_resettts();                                        // 重置文字转语音
     // 将后端（llama-server）日志输出给增殖窗口的“模型日志”
     void ui2expend_llamalog(QString log);
+    void ui2expend_schedule_jobs(QString payload);                   // 定时任务列表更新（JSON）
     // 自用信号
   signals:
     void gpu_reflash(); // 强制刷新gpu信息
@@ -752,6 +778,7 @@ class Widget : public QWidget
     void recv_speechdecode_over(QString result);
     void recv_whisper_modelpath(QString modelpath);   // 传递模型路径
     void recv_embeddingdb_describe(QString describe); // 传递知识库的描述
+    void recv_schedule_action(QString action, QString jobId); // 增殖窗口触发定时任务操作
 
     // 自用的槽
   public slots:
@@ -835,7 +862,8 @@ class Widget : public QWidget
         User,
         Assistant,
         Think,
-        Tool
+        Tool,
+        Compact // 上下文压缩提示
     };
     struct RecordEntry
     {
@@ -862,6 +890,31 @@ class Widget : public QWidget
     void recordClear();
     void gotoRecord(int index);
     void updateRecordEntryContent(int index, const QString &newText);
+    // 输出“压缩提示”并创建记录块（紫色），返回记录块索引
+    int appendCompactRecord(const QString &text);
+
+    // 上下文压缩（Compaction）
+    bool shouldTriggerCompaction() const;
+    bool startCompactionIfNeeded(const InputPack &pendingInput);
+    void startCompactionRun(const QString &reason);
+    void handleCompactionReply(const QString &summaryText, const QString &reasoningText);
+    void resumeSendAfterCompaction();
+    QString buildCompactionSourceText(int fromIndex, int toIndex) const;
+    QString extractMessageTextForCompaction(const QJsonObject &msg) const;
+    void applyCompactionSummary(const QString &summaryText);
+    bool appendCompactionSummaryFile(const QJsonObject &summaryObj) const;
+
+    // 定时任务（Scheduler）
+    void initScheduler();
+    void refreshSchedulerSettings();
+    void handleScheduleToolCall(const mcp::json &toolsCall);
+    void handleScheduleUiAction(const QString &action, const QString &jobId);
+    void onSchedulerJobsUpdated(const QJsonArray &jobs);
+    void onSchedulerJobDue(const QJsonObject &job, const QDateTime &fireTime);
+    void enqueueScheduledDispatch(const QJsonObject &job, const QDateTime &fireTime);
+    void tryDispatchScheduledJobs();
+    bool dispatchScheduledText(const QString &text, const QJsonObject &job);
+    QString buildScheduleMessage(const QJsonObject &job, const QDateTime &fireTime) const;
 
     void refreshSkillsUI();
     void rebuildSkillPrompts();
@@ -968,6 +1021,7 @@ class Widget : public QWidget
     QJsonArray buildControlRecords() const;
 
   private:
+    void syncDefaultSystemPrompt(); // 切换语种时刷新默认系统提示词
     bool processServerOutputLine(const QString &line); // 按“单行”解析 llama-server 日志（onServerOutput 内部使用）；true=中断后续解析
     Ui::Widget *ui;
     int terminalAutoExpandSize_ = 320;

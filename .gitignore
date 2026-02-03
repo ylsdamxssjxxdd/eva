@@ -17,3 +17,5 @@ build_check
 build2
 build32
 build_ninja
+build-*
+build_*

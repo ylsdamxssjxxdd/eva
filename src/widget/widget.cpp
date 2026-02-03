@@ -69,6 +69,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     refreshOutputFont();
     initTextComponentsMemoryPolicy();
     applicationDirPath = applicationDirPath_;
+    // 初始化定时任务调度器（后续会根据配置刷新参数）
+    initScheduler();
     dockerTargetMode_ = loadPersistedDockerMode();
     ui_dockerSandboxEnabled = (dockerTargetMode_ != DockerTargetMode::None);
     skillManager = new SkillManager(this);
@@ -167,6 +169,9 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
 
     StartupLogger::log(QStringLiteral("[widget] 语言资源读取开始"));
     getWords(QStringLiteral(":/language"));
+    // 同步提示词语种（先于默认约定模板初始化）
+    promptx::setPromptLanguage(language_flag);
+    if (skillManager) skillManager->setLanguage(language_flag);
     StartupLogger::log(QStringLiteral("[widget] 语言资源读取完成"));
     // 记忆进度条：文本“记忆:xx%”，使用第二进度（黄色）表示
     ui->kv_bar->setMaximum(100);
@@ -176,8 +181,8 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     ui->kv_bar->setToolTip(jtr("kv bar tooltip").arg(0).arg(0));
     updateKvBarUi();
     //-------------初始化约定模板-------------
-    ui_date_prompt = DEFAULT_DATE_PROMPT;
-    ui_DATES.date_prompt = DEFAULT_DATE_PROMPT;
+    ui_date_prompt = promptx::systemPromptTemplate();
+    ui_DATES.date_prompt = ui_date_prompt;
     ui_DATES.is_load_tool = false;
     date_map.insert("default", ui_DATES);
     EVA_DATES troll;

@@ -79,6 +79,7 @@ QIcon iconForRole(Widget::RecordRole role)
     case Widget::RecordRole::Assistant: return loadRecordIcon(QStringLiteral(":/record/role/assistant.svg"));
     case Widget::RecordRole::Think: return loadRecordIcon(QStringLiteral(":/record/role/think.svg"));
     case Widget::RecordRole::Tool: return loadRecordIcon(QStringLiteral(":/record/role/tool.svg"));
+    case Widget::RecordRole::Compact: return loadRecordIcon(QStringLiteral(":/record/role/system.svg"));
     }
     return QIcon();
 }
@@ -121,6 +122,9 @@ RecordNodeVisual buildRecordNodeVisual(const Widget *w, Widget::RecordRole role,
     case Widget::RecordRole::Tool:
         v.badge = compactLabel(toolName.isEmpty() ? QStringLiteral("TOOL") : toolName, 2);
         v.icon = iconForToolName(toolName);
+        break;
+    case Widget::RecordRole::Compact:
+        v.badge = QStringLiteral("C");
         break;
     }
     return v;
@@ -173,6 +177,24 @@ void Widget::recordAppendText(int index, const QString &text)
     }
 }
 
+int Widget::appendCompactRecord(const QString &text)
+{
+    if (!ui || !ui->output) return -1;
+    flushPendingStream();
+    const int idx = recordCreate(RecordRole::Compact);
+    appendRoleHeader(QStringLiteral("compact"));
+    if (!text.isEmpty())
+    {
+        output_scroll(text, textColorForRole(RecordRole::Compact));
+        recordAppendText(idx, text);
+    }
+    else
+    {
+        recordAppendText(idx, QString());
+    }
+    return idx;
+}
+
 void Widget::recordClear()
 {
     recordEntries_.clear();
@@ -204,6 +226,7 @@ void Widget::updateRecordEntryContent(int index, const QString &newText)
         case RecordRole::Assistant: return QStringLiteral("assistant");
         case RecordRole::Think: return QStringLiteral("think");
         case RecordRole::Tool: return QStringLiteral("tool");
+        case RecordRole::Compact: return QStringLiteral("compact");
         }
         return QString();
     };
@@ -221,6 +244,7 @@ void Widget::updateRecordEntryContent(int index, const QString &newText)
         case RecordRole::Assistant: return jtr("role_model");
         case RecordRole::Think: return jtr("role_think");
         case RecordRole::Tool: return jtr("role_tool");
+        case RecordRole::Compact: return jtr("role_compact");
         }
         return QString();
     };
@@ -331,12 +355,14 @@ void Widget::restoreSessionById(const QString &sessionId)
         if (r == QLatin1String("assistant") || r == QLatin1String("model")) return RecordRole::Assistant;
         if (r == QLatin1String("think")) return RecordRole::Think;
         if (r == QLatin1String("tool")) return RecordRole::Tool;
+        if (r == QLatin1String("compact")) return RecordRole::Compact;
         return RecordRole::User;
     };
     auto roleToColor = [&](const QString &r) -> QColor
     {
         if (r == QLatin1String("think")) return themeThinkColor();
         if (r == QLatin1String("tool")) return themeStateColor(TOOL_SIGNAL);
+        if (r == QLatin1String("compact")) return themeStateColor(EVA_SIGNAL);
         return themeTextPrimary();
     };
 
@@ -581,6 +607,7 @@ void Widget::onRecordDoubleClicked(int index)
         case RecordRole::Assistant: return QStringLiteral("assistant");
         case RecordRole::Think: return QStringLiteral("think");
         case RecordRole::Tool: return QStringLiteral("tool");
+        case RecordRole::Compact: return QStringLiteral("compact");
         }
         return QStringLiteral("user");
     };
@@ -598,6 +625,7 @@ void Widget::onRecordDoubleClicked(int index)
         case RecordRole::Assistant: return jtr("role_model");
         case RecordRole::Think: return jtr("role_think");
         case RecordRole::Tool: return jtr("role_tool");
+        case RecordRole::Compact: return jtr("role_compact");
         }
         return canonicalRoleName(r);
     };

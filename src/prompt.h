@@ -10,6 +10,7 @@ enum PromptEntryId : int
     PROMPT_ENGINEER_INFO = 50001,
     PROMPT_ENGINEER_SYSTEM = 50002,
     PROMPT_ARCHITECT_INFO = 50003,
+    PROMPT_SYSTEM_TEMPLATE = 50004,
     PROMPT_TOOL_ANSWER = 51000,
     PROMPT_TOOL_CALCULATOR = 51001,
     PROMPT_TOOL_CONTROLLER = 51002,
@@ -25,7 +26,9 @@ enum PromptEntryId : int
     PROMPT_TOOL_EDIT_IN_FILE = 51012,
     PROMPT_TOOL_PTC = 51013,
     PROMPT_TOOL_ENGINEER_PROXY = 51014,
-    PROMPT_TOOL_MONITOR = 51015
+    PROMPT_TOOL_MONITOR = 51015,
+    PROMPT_TOOL_SKILL_CALL = 51016,
+    PROMPT_TOOL_SCHEDULE_TASK = 51017
 };
 
 // Load prompt definitions (resourcePath ignored, kept for compatibility).
@@ -35,7 +38,9 @@ bool loadPromptLibrary(const QString &resourcePath = QString());
 QString promptById(int id, const QString &fallback = QString());
 
 // Frequently used prompt blocks.
+void setPromptLanguage(int languageFlag);
 const QString &extraPromptTemplate();
+const QString &systemPromptTemplate();
 const QString &engineerInfo();
 const QString &engineerSystemInfo();
 const QString &architectInfo();
@@ -57,4 +62,6 @@ const TOOLS_INFO &toolReplaceInFile();
 const TOOLS_INFO &toolEditInFile();
 const TOOLS_INFO &toolEngineerProxy();
 const TOOLS_INFO &toolMonitor();
+const TOOLS_INFO &toolSkillCall();
+const TOOLS_INFO &toolScheduleTask();
 } // namespace promptx
