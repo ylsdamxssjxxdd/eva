@@ -1,6 +1,8 @@
 set(XTOOL_TEST_SOURCES
     xtool_tests.cpp
     ${CMAKE_SOURCE_DIR}/src/xtool.cpp
+    ${CMAKE_SOURCE_DIR}/src/service/tools/tool_registry.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/perf_metrics.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/docker_sandbox.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/flowtracer.cpp
     ${CMAKE_SOURCE_DIR}/thirdparty/tinyexpr/tinyexpr.c

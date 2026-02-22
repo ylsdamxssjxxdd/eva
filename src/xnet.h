@@ -117,6 +117,8 @@ class xNet : public QObject
     // 速度上报控制：单次请求仅输出一次，便于在工具链中也能稳定回传
     bool speedsEmitted_ = false;
     AbortReason abortReason_ = AbortReason::None;
+    int retryAttempt_ = 0; // 当前请求已执行的重试次数（不含首次请求）
+    bool retrying_ = false;
     // 工具调用停符处理：命中 </tool_call> 后标记并立刻终止当前流，避免模型继续输出干扰工具判定
     bool sawToolStopword_ = false; // 本轮是否已命中工具停符，防止重复中止
     int cacheTokens_ = -1;

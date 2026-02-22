@@ -1,6 +1,8 @@
 #include "xbackend.h"
 #include "utils/devicemanager.h"
+#include "utils/eva_error.h"
 #include "utils/flowtracer.h"
+#include "utils/recovery_guidance.h"
 #include "utils/startuplogger.h"
 #include "xbackend_args.h"
 #include <QCoreApplication>
@@ -197,22 +199,45 @@ void LocalServerManager::hookProcessSignals()
 
 void LocalServerManager::startProcess(const QStringList &args)
 {
+    startProcess(programPath(), args);
+}
+
+void LocalServerManager::startProcess(const QString &program, const QStringList &args)
+{
+    const QString prog = program.trimmed();
+    if (prog.isEmpty() || !QFileInfo::exists(prog))
+    {
+        const QString msg = formatEvaErrorWithHint(EvaErrorCode::BeExecutableMissing,
+                                                   QStringLiteral("backend executable missing -> %1").arg(prog),
+                                                   RecoveryHintAction::CheckBackendPackage);
+        emit serverState(msg, WRONG_SIGNAL);
+        emit serverOutput(msg + QStringLiteral("\n"));
+        emit serverStartFailed(msg);
+        return;
+    }
+
     if (proc_)
     {
         proc_->deleteLater();
         proc_.clear();
     }
     proc_ = new QProcess(this);
-    // 新进程：重置状态机
+    // ???????????????????
     readyEmitted_ = false;
     startFailedEmitted_ = false;
     stoppedEmitted_ = false;
     stopRequested_ = false;
+    restartInFlight_ = false;
+    pendingProgram_.clear();
+    pendingArgs_.clear();
+    QObject::disconnect(restartFinishedConn_);
+    restartFinishedConn_ = QMetaObject::Connection{};
     hookProcessSignals();
-    const QString prog = programPath();
+
     lastProgram_ = prog;
     lastArgs_ = args;
     FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: launch %1").arg(QDir::toNativeSeparators(prog)));
+
     // Ensure program-local runtime deps can be found by the child process
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     const QString toolDir = QFileInfo(prog).absolutePath();
@@ -228,16 +253,31 @@ void LocalServerManager::startProcess(const QStringList &args)
     proc_->start(prog, args);
 }
 
+void LocalServerManager::launchPendingRestart()
+{
+    if (!restartInFlight_) return;
+    restartInFlight_ = false;
+
+    const QString targetProgram = pendingProgram_.isEmpty() ? programPath() : pendingProgram_;
+    const QStringList targetArgs = pendingArgs_.isEmpty() ? buildArgs() : pendingArgs_;
+    pendingProgram_.clear();
+    pendingArgs_.clear();
+
+    startProcess(targetProgram, targetArgs);
+}
+
+
 void LocalServerManager::ensureRunning()
 {
     const QString prog = programPath();
     const QStringList args = buildArgs();
-    // 启动前记录解析结果，便于复现 Win7/老 CPU 环境的非法指令或找不到后端的问题
+    // ??????????????? CPU ???????????????
     FlowTracer::log(FlowChannel::Backend,
                     QStringLiteral("backend: resolve program=%1 device=%2 args=%3")
                         .arg(QDir::toNativeSeparators(prog),
                              DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main")),
                              args.join(QLatin1Char(' '))));
+
     // Validate executable presence
     if (prog.isEmpty() || !QFileInfo::exists(prog))
     {
@@ -248,21 +288,34 @@ void LocalServerManager::ensureRunning()
         const QStringList searched = DeviceManager::probedBackendRoots();
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        const QString codedMsg = formatEvaErrorWithHint(EvaErrorCode::BeExecutableMissing,
+                                                        msg.mid(3), // drop "ui:" before wrapping
+                                                        RecoveryHintAction::CheckBackendPackage);
         QString hint;
         if (!searched.isEmpty())
         {
             hint = QStringLiteral("searched: ") + searched.join("; ");
         }
-        emit serverState(msg, WRONG_SIGNAL);
-        emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
-        emit serverStartFailed(msg);
+        emit serverState(codedMsg, WRONG_SIGNAL);
+        emit serverOutput(codedMsg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
+        emit serverStartFailed(codedMsg);
         FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: executable missing (%1)").arg(prog));
         return;
     }
+
+    // ?????????????????????????????????
+    if (restartInFlight_)
+    {
+        pendingProgram_ = prog;
+        pendingArgs_ = args;
+        FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: restart pending args updated"));
+        return;
+    }
+
     // If not running -> start; if running with different args -> restart
     if (!isRunning())
     {
-        startProcess(args);
+        startProcess(prog, args);
         return;
     }
     if (prog != lastProgram_ || args != lastArgs_)
@@ -270,6 +323,7 @@ void LocalServerManager::ensureRunning()
         restart();
     }
 }
+
 
 void LocalServerManager::restart()
 {
@@ -284,29 +338,87 @@ void LocalServerManager::restart()
         const QStringList searched = DeviceManager::probedBackendRoots();
         const QString msg = QStringLiteral("ui:backend executable not found (%1) for device '%2' (root=%3, arch=%4, os=%5)")
                                 .arg(QStringLiteral("llama-server"), eb, root, arch, os);
+        const QString codedMsg = formatEvaErrorWithHint(EvaErrorCode::BeExecutableMissing,
+                                                        msg.mid(3), // drop "ui:" before wrapping
+                                                        RecoveryHintAction::CheckBackendPackage);
         QString hint;
         if (!searched.isEmpty())
         {
             hint = QStringLiteral("searched: ") + searched.join("; ");
         }
-        emit serverState(msg, WRONG_SIGNAL);
-        emit serverOutput(msg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
-        emit serverStartFailed(msg);
+        emit serverState(codedMsg, WRONG_SIGNAL);
+        emit serverOutput(codedMsg + (hint.isEmpty() ? QStringLiteral("\n") : QStringLiteral("\n") + hint + QStringLiteral("\n")));
+        emit serverStartFailed(codedMsg);
         FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: executable missing (%1)").arg(prog));
         return;
     }
-    if (isRunning())
+
+    // ??????????????????????????????????????
+    if (restartInFlight_)
     {
-        // 主动重启：不要把旧进程的 kill 当作“崩溃”提示给用户。
-        stopRequested_ = true;
-        proc_->kill(); // fast stop is fine here
-        proc_->waitForFinished(2000);
+        pendingProgram_ = prog;
+        pendingArgs_ = args;
+        return;
     }
-    startProcess(args);
+
+    if (!isRunning())
+    {
+        startProcess(prog, args);
+        return;
+    }
+
+    // ???????? UI ???? waitForFinished ?????
+    restartInFlight_ = true;
+    pendingProgram_ = prog;
+    pendingArgs_ = args;
+    stopRequested_ = true;
+
+    QObject::disconnect(restartFinishedConn_);
+    QPointer<QProcess> oldProc = proc_;
+    restartFinishedConn_ = connect(oldProc,
+                                   QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                                   this,
+                                   [this, oldProc](int, QProcess::ExitStatus)
+                                   {
+                                       Q_UNUSED(oldProc);
+                                       QObject::disconnect(restartFinishedConn_);
+                                       restartFinishedConn_ = QMetaObject::Connection{};
+                                       launchPendingRestart();
+                                   });
+
+    oldProc->terminate();
+
+    // ??????????????????????????
+    QTimer::singleShot(1500, this, [oldProc]()
+                       {
+                           if (!oldProc) return;
+                           if (oldProc->state() != QProcess::Running) return;
+#ifdef _WIN32
+                           const qint64 pid = oldProc->processId();
+                           if (pid > 0)
+                           {
+                               QStringList args;
+                               args << "/PID" << QString::number(pid) << "/T" << "/F";
+                               QProcess::execute("taskkill", args);
+                           }
+                           else
+                           {
+                               oldProc->kill();
+                           }
+#else
+                           oldProc->kill();
+#endif
+                       });
 }
+
 
 void LocalServerManager::stop()
 {
+    restartInFlight_ = false;
+    pendingProgram_.clear();
+    pendingArgs_.clear();
+    QObject::disconnect(restartFinishedConn_);
+    restartFinishedConn_ = QMetaObject::Connection{};
     if (!proc_) return;
 
     if (proc_->state() == QProcess::Running)
@@ -343,6 +455,11 @@ void LocalServerManager::stop()
 
 void LocalServerManager::stopAsync()
 {
+    restartInFlight_ = false;
+    pendingProgram_.clear();
+    pendingArgs_.clear();
+    QObject::disconnect(restartFinishedConn_);
+    restartFinishedConn_ = QMetaObject::Connection{};
     if (!proc_)
     {
         emitServerStoppedOnce();
@@ -403,6 +520,7 @@ void LocalServerManager::stopAsync()
 
 bool LocalServerManager::needsRestart() const
 {
+    if (restartInFlight_) return true;
     const QString prog = programPath();
     const QStringList args = buildArgs();
     if (!isRunning()) return true;

@@ -1,10 +1,59 @@
 #include "service/tools/tool_registry.h"
 
+#include <QJsonArray>
+
 namespace
 {
 bool useChinesePrompt(int languageFlag)
 {
     return languageFlag == EVA_LANG_ZH;
+}
+
+void applyCapabilityMetadata(QVector<ToolRegistry::Entry> &entries)
+{
+    auto applyOne = [&entries](const QString &name, int schemaVersion, int timeoutMs, bool highRisk)
+    {
+        for (auto &entry : entries)
+        {
+            if (entry.name != name) continue;
+            entry.schemaVersion = schemaVersion;
+            entry.timeoutMs = timeoutMs;
+            entry.highRisk = highRisk;
+            return;
+        }
+    };
+
+    // 统一维护工具执行元信息，便于后续做限流、超时与风险提醒。
+    applyOne(QStringLiteral("answer"), 1, 10000, false);
+    applyOne(QStringLiteral("calculator"), 1, 10000, false);
+    applyOne(QStringLiteral("controller"), 1, 90000, true);
+    applyOne(QStringLiteral("monitor"), 1, 60000, false);
+    applyOne(QStringLiteral("knowledge"), 1, 30000, false);
+    applyOne(QStringLiteral("stablediffusion"), 1, 180000, false);
+    applyOne(QStringLiteral("execute_command"), 1, 180000, true);
+    applyOne(QStringLiteral("ptc"), 1, 180000, true);
+    applyOne(QStringLiteral("list_files"), 1, 30000, false);
+    applyOne(QStringLiteral("search_content"), 1, 60000, false);
+    applyOne(QStringLiteral("read_file"), 1, 30000, false);
+    applyOne(QStringLiteral("write_file"), 1, 30000, true);
+    applyOne(QStringLiteral("replace_in_file"), 1, 30000, true);
+    applyOne(QStringLiteral("edit_in_file"), 1, 30000, true);
+    applyOne(QStringLiteral("system_engineer_proxy"), 1, 120000, false);
+    applyOne(QStringLiteral("skill_call"), 1, 30000, false);
+    applyOne(QStringLiteral("schedule_task"), 1, 30000, false);
+}
+
+QJsonObject buildCapabilityObject(const ToolRegistry::Entry &entry)
+{
+    QJsonObject object;
+    object.insert(QStringLiteral("name"), entry.name);
+    object.insert(QStringLiteral("schema"), entry.schema);
+    object.insert(QStringLiteral("schema_version"), entry.schemaVersion);
+    object.insert(QStringLiteral("timeout_ms"), entry.timeoutMs);
+    object.insert(QStringLiteral("high_risk"), entry.highRisk);
+    object.insert(QStringLiteral("description"),
+                  entry.cache.description.isEmpty() ? entry.fallbackEn : entry.cache.description);
+    return object;
 }
 
 QVector<ToolRegistry::Entry> &mutableEntries()
@@ -119,6 +168,12 @@ QVector<ToolRegistry::Entry> &mutableEntries()
          QStringLiteral("Manage scheduled jobs. Use action add/update/remove/enable/disable/get/list/run. For add/update, provide job.schedule and payload.message."),
          QStringLiteral("定时任务管理：action 支持 add/update/remove/enable/disable/get/list/run。add/update 需提供 job.schedule 与 payload.message。")},
     };
+    static bool metadataApplied = false;
+    if (!metadataApplied)
+    {
+        metadataApplied = true;
+        applyCapabilityMetadata(entries);
+    }
     return entries;
 }
 
@@ -147,7 +202,7 @@ const QVector<ToolRegistry::Entry> &ToolRegistry::entries()
 const ToolRegistry::Entry &ToolRegistry::entryAt(int index)
 {
     auto &defs = mutableEntries();
-    static Entry empty{promptx::PROMPT_TOOL_ANSWER, QString(), QString(), QString(), QString(), TOOLS_INFO()};
+    static Entry empty{promptx::PROMPT_TOOL_ANSWER, QString(), QString(), QString(), QString(), 1, 120000, false, TOOLS_INFO()};
     if (index < 0 || index >= defs.size()) return empty;
     return defs[index];
 }
@@ -165,4 +220,34 @@ const TOOLS_INFO *ToolRegistry::findByPromptId(int id)
         if (tpl.descriptionId == id) return &tpl.cache;
     }
     return nullptr;
+}
+
+QJsonObject ToolRegistry::capabilityByName(const QString &toolName)
+{
+    const QString expected = toolName.trimmed().toLower();
+    if (expected.isEmpty()) return QJsonObject();
+
+    const auto &defs = mutableEntries();
+    for (const auto &entry : defs)
+    {
+        if (entry.name.toLower() != expected) continue;
+        return buildCapabilityObject(entry);
+    }
+    return QJsonObject();
+}
+
+QJsonObject ToolRegistry::capabilityManifest()
+{
+    const auto &defs = mutableEntries();
+    QJsonArray tools;
+    for (const auto &entry : defs)
+    {
+        tools.append(buildCapabilityObject(entry));
+    }
+
+    QJsonObject manifest;
+    manifest.insert(QStringLiteral("manifest_version"), 1);
+    manifest.insert(QStringLiteral("tool_count"), defs.size());
+    manifest.insert(QStringLiteral("tools"), tools);
+    return manifest;
 }

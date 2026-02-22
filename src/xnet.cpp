@@ -1,6 +1,8 @@
 ﻿#include "xnet.h"
 #include "prompt_builder.h"
+#include "utils/eva_error.h"
 #include "utils/flowtracer.h"
+#include "utils/net_retry_policy.h"
 #if QT_CONFIG(ssl)
 #include <QSslError>
 #endif
@@ -8,6 +10,17 @@
 
 namespace
 {
+QString netErrorStateLine(const QString &message)
+{
+    return formatEvaError(EvaErrorCode::NetRequestFailed, message);
+}
+
+QString netTimeoutStateLine()
+{
+    const int timeoutSeconds = qMax(1, DEFAULT_NET_IDLE_TIMEOUT_MS / 1000);
+    return netErrorStateLine(QStringLiteral("net: timeout (no data for %1s)").arg(timeoutSeconds));
+}
+
 void maybeAttachReasoningPayload(QJsonObject &json, const QString &effort, bool useLegacySchema)
 {
     const QString normalized = sanitizeReasoningEffort(effort);
@@ -384,6 +397,7 @@ void xNet::run()
         return;
     }
 
+    if (!retrying_) retryAttempt_ = 0;
     running_ = true;
     turn_id_ = endpoint_data.turn_id;
     resetState();
@@ -405,6 +419,13 @@ void xNet::run()
                          apis.api_model,
                          QString::number(endpoint_data.n_predict)),
                 SIGNAL_SIGNAL);
+    if (retryAttempt_ > 0)
+    {
+        emitFlowLog(QStringLiteral("net:req retry attempt=%1/%2")
+                        .arg(retryAttempt_)
+                        .arg(DEFAULT_NET_RETRY_MAX_RETRIES),
+                    SIGNAL_SIGNAL);
+    }
 
     // Fire asynchronous request
     reply_ = nam_->post(request, body);
@@ -412,6 +433,7 @@ void xNet::run()
     {
         running_ = false;
         emitFlowLog("net: failed to create request", WRONG_SIGNAL);
+        emit net2ui_state(netErrorStateLine(QStringLiteral("net: failed to create request")), WRONG_SIGNAL);
         emit net2ui_pushover();
         return;
     }
@@ -422,7 +444,7 @@ void xNet::run()
                               {
         if (aborted_ || !reply_) return; // guard against late events after abort
         // Refresh inactivity guard on any activity
-        if (timeoutTimer_) timeoutTimer_->start(120000);
+        if (timeoutTimer_) timeoutTimer_->start(DEFAULT_NET_IDLE_TIMEOUT_MS);
         if (!firstByteSeen_)
         {
             firstByteSeen_ = true;
@@ -486,15 +508,67 @@ void xNet::run()
 
         // Determine if finish is due to user abort/cancel
         const auto err = reply_ ? reply_->error() : QNetworkReply::NoError;
+        const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
+        const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
         const bool canceled = aborted_ || (err == QNetworkReply::OperationCanceledError);
         const AbortReason finishReason = abortReason_;
         const bool toolInterrupted = (finishReason == AbortReason::ToolStop);
 
+        // 仅在尚未收到首包时允许自动重试，避免流式中途重试导致重复内容。
+        if (shouldRetryNetRequest(canceled,
+                                  firstByteSeen_,
+                                  err,
+                                  httpCode,
+                                  retryAttempt_,
+                                  DEFAULT_NET_RETRY_MAX_RETRIES))
+        {
+            const int delayMs = nextRetryBackoffMs(retryAttempt_,
+                                                   DEFAULT_NET_RETRY_BASE_BACKOFF_MS,
+                                                   DEFAULT_NET_RETRY_MAX_BACKOFF_MS);
+            const int currentRetry = retryAttempt_ + 1;
+            retryAttempt_ = currentRetry;
+            retrying_ = true;
+
+            emitFlowLog(QStringLiteral("net: retry scheduled %1/%2 delay=%3ms http=%4 err=%5")
+                            .arg(currentRetry)
+                            .arg(DEFAULT_NET_RETRY_MAX_RETRIES)
+                            .arg(delayMs)
+                            .arg(httpCode)
+                            .arg(int(err)),
+                        SIGNAL_SIGNAL);
+            emit net2ui_state(QStringLiteral("net: retrying %1/%2 in %3ms")
+                                  .arg(currentRetry)
+                                  .arg(DEFAULT_NET_RETRY_MAX_RETRIES)
+                                  .arg(delayMs),
+                              SIGNAL_SIGNAL);
+
+            if (reply_)
+            {
+                reply_->deleteLater();
+                reply_ = nullptr;
+            }
+            running_ = false;
+            aborted_ = false;
+            abortReason_ = AbortReason::None;
+
+            QTimer::singleShot(delayMs, this, [this]()
+                               {
+                if (!retrying_) return;
+                if (is_stop)
+                {
+                    retrying_ = false;
+                    retryAttempt_ = 0;
+                    running_ = false;
+                    emit net2ui_pushover();
+                    return;
+                }
+                run(); });
+            return;
+        }
+
         if (!canceled)
         {
             // Normal finish -> report metrics and http code
-            const QVariant codeVar = reply_ ? reply_->attribute(QNetworkRequest::HttpStatusCodeAttribute) : QVariant();
-            const int httpCode = codeVar.isValid() ? codeVar.toInt() : 0;
             const double tAll = t_all_.nsecsElapsed() / 1e9;
             Q_UNUSED(tAll);
             const double tokps = (tokens_ > 0 && t_first_.isValid()) ? (tokens_ / (t_first_.nsecsElapsed() / 1e9)) : 0.0;
@@ -511,7 +585,7 @@ void xNet::run()
                             SIGNAL_SIGNAL);
                 if (!firstByteSeen_)
                 {
-                    emit net2ui_state(QStringLiteral("net: stream closed without data"), WRONG_SIGNAL);
+                    emit net2ui_state(netErrorStateLine(QStringLiteral("net: stream closed without data")), WRONG_SIGNAL);
                 }
             }
             else
@@ -561,7 +635,7 @@ void xNet::run()
                     emitFlowLog(QStringLiteral("net:error http=%1 %2").arg(httpCode).arg(logDetail), WRONG_SIGNAL);
                     QString msg = QStringLiteral("net: http %1").arg(httpCode);
                     if (!detail.isEmpty()) msg += QStringLiteral(" %1").arg(detail);
-                    emit net2ui_state(msg, WRONG_SIGNAL);
+                    emit net2ui_state(netErrorStateLine(msg), WRONG_SIGNAL);
                 }
                 else
                 {
@@ -569,7 +643,7 @@ void xNet::run()
                     QString msg = QStringLiteral("net: network error");
                     if (httpCode > 0) msg += QStringLiteral(" http=%1").arg(httpCode);
                     if (!errStr.trimmed().isEmpty()) msg += QStringLiteral(" %1").arg(errStr);
-                    emit net2ui_state(msg, WRONG_SIGNAL);
+                    emit net2ui_state(netErrorStateLine(msg), WRONG_SIGNAL);
                 }
             }
             // If we streamed provider-specific reasoning without explicit </think>, close it now
@@ -593,6 +667,8 @@ void xNet::run()
             reply_ = nullptr;
         }
 
+        retrying_ = false;
+        retryAttempt_ = 0;
         abortReason_ = AbortReason::None;
         running_ = false;
         if (!canceled)
@@ -615,12 +691,12 @@ void xNet::run()
                              {
         Q_UNUSED(errors);
         // Report but do not ignore by default
-        emit net2ui_state("net: SSL error", WRONG_SIGNAL);
+        emit net2ui_state(netErrorStateLine(QStringLiteral("net: SSL error")), WRONG_SIGNAL);
         FlowTracer::log(FlowChannel::Net, QStringLiteral("net: ssl error"), turn_id_); });
 #endif
 
     // Arm an overall timeout (no bytes + no finish)
-    if (timeoutTimer_) timeoutTimer_->start(120000); // 120s guard 超时设置
+    if (timeoutTimer_) timeoutTimer_->start(DEFAULT_NET_IDLE_TIMEOUT_MS); // 统一空闲超时设置
 
     // Fully async: return immediately
 }
@@ -639,7 +715,7 @@ void xNet::ensureNetObjects()
         connect(timeoutTimer_, &QTimer::timeout, this, [this]()
                 {
             emitFlowLog("net: timeout", WRONG_SIGNAL);
-            emit net2ui_state(QStringLiteral("net: timeout (no data for 120s)"), WRONG_SIGNAL);
+            emit net2ui_state(netTimeoutStateLine(), WRONG_SIGNAL);
             abortActiveReply(AbortReason::Timeout); });
     }
 }
@@ -1236,7 +1312,16 @@ void xNet::recv_apis(APIS apis_)
     apis = apis_;
     if (changed)
     {
+        const bool pendingRetryOnly = retrying_ && !reply_;
+        retrying_ = false;
+        retryAttempt_ = 0;
         abortActiveReply(AbortReason::ApiChange);
+        if (pendingRetryOnly)
+        {
+            running_ = false;
+            abortReason_ = AbortReason::None;
+            emit net2ui_pushover();
+        }
         resetState();
         // emit net2ui_state("net: apis updated", SIGNAL_SIGNAL);
     }
@@ -1248,6 +1333,16 @@ void xNet::recv_stop(bool stop)
     is_stop = stop;
     if (stop)
     {
+        const bool pendingRetryOnly = retrying_ && !reply_;
+        retrying_ = false;
+        retryAttempt_ = 0;
+        if (pendingRetryOnly)
+        {
+            running_ = false;
+            abortReason_ = AbortReason::None;
+            emit net2ui_pushover();
+            return;
+        }
         // emit net2ui_state("net:abort by user", SIGNAL_SIGNAL);
         abortActiveReply(AbortReason::UserStop); // cancels reply_, disconnects signals, emits pushover
     }

@@ -16,7 +16,7 @@ class BackendCoordinator : public QObject
   public:
     explicit BackendCoordinator(Widget *owner);
 
-    void ensureLocalServer(bool lazyWake = false);
+    void ensureLocalServer(bool lazyWake = false, bool forceReload = false);
     QString pickFreeTcpPort(const QHostAddress &addr = QHostAddress::Any) const;
     void announcePortBusy(const QString &requestedPort, const QString &alternativePort);
     void initiatePortFallback();

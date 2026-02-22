@@ -320,6 +320,11 @@ class Widget : public QWidget
 
     float load_time = 0;
     QElapsedTimer load_timer; // measure local-server load duration
+    QElapsedTimer turnPerfTimer_;     // 回合耗时基线计时器
+    bool turnPerfTimerActive_ = false;
+    QElapsedTimer backendLifecycleTimer_; // 后端生命周期阶段耗时（启动/重启/唤醒）
+    bool backendLifecycleTimerActive_ = false;
+    BackendLifecycleState backendLifecycleTimerFrom_ = BackendLifecycleState::Stopped;
 
     // 桌面控制器截屏缓存：保存附带给模型的截图（不做坐标叠加与鼠标标记）
     struct ControllerFrame
@@ -373,6 +378,7 @@ class Widget : public QWidget
     QString forcedPortOverride_;              // 若非空则下一次 ensureLocalServer 强制使用此端口
     bool portFallbackInFlight_ = false;       // 标记当前是否在端口降级流程中
     bool portConflictDetected_ = false;       // 最近一次 llama-server 输出中检测到端口占用
+    BackendLifecycleState backendLifecycleState_ = BackendLifecycleState::Stopped; // 本地后端生命周期状态（统一 UI 与重载控制）
     bool backendOnline_ = false;
     bool backendFallbackActive_ = false;    // 是否处于自动后端回退流程（避免循环）
     QStringList backendFallbackTried_;      // 本轮已尝试过的后端列表
@@ -441,6 +447,14 @@ class Widget : public QWidget
     void resetBackendFallbackState(const QString &reasonTag = QString());
     QString pickNextBackendFallback(const QString &failedBackend) const;
     bool triggerBackendFallback(const QString &failedBackend, const QString &reasonTag);
+    void setBackendLifecycleState(BackendLifecycleState state,
+                                  const QString &reason = QString(),
+                                  SIGNAL_STATE level = USUAL_SIGNAL,
+                                  bool emitStateLine = false);
+    bool isBackendLifecycleTransitioning() const;
+    void recordPerfEvent(const QString &eventName, const QJsonObject &fields = QJsonObject()) const;
+    void beginTurnPerfSample();
+    void finishTurnPerfSample(const QString &reason, bool success);
 
     // 约定选项相关
     QString shell = DEFAULT_SHELL;
@@ -705,8 +719,9 @@ class Widget : public QWidget
 
     // 处理模型信号的槽
   public slots:
-    // Ensure local server exists for LOCAL_MODE and wire API endpoint
-    void ensureLocalServer(bool lazyWake = false);
+    // Ensure local server exists for LOCAL_MODE and wire API endpoint.
+    // forceReload=true 用于“用户主动重载模型”场景：即使参数未变化也强制重启后端。
+    void ensureLocalServer(bool lazyWake = false, bool forceReload = false);
     void onServerReady(const QString &endpoint);
     void onServerOutput(const QString &line);                                    // parse llama_server logs for n_ctx
     void onServerStartFailed(const QString &reason);                             // 后端启动失败：立即停止动画并解锁

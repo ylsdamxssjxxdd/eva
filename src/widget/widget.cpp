@@ -327,6 +327,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
     //----------------本地后端管理（llama-server）------------------
     serverManager = new LocalServerManager(this, applicationDirPath);
     proxyServer_ = new LocalProxyServer(this);
+    setBackendLifecycleState(BackendLifecycleState::Stopped, QStringLiteral("init"), USUAL_SIGNAL, false);
     connect(proxyServer_, &LocalProxyServer::wakeRequested, this, &Widget::onProxyWakeRequested);
     connect(proxyServer_, &LocalProxyServer::externalActivity, this, &Widget::onProxyExternalActivity);
     connect(proxyServer_, &LocalProxyServer::proxyError, this, [this](const QString &msg)
@@ -354,6 +355,10 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         const bool lazyStop = lazyUnloadPreserveState_ || wasLazyUnloaded;
         cancelLazyUnload(QStringLiteral("server stopped"));
         pendingSendAfterWake_ = false;
+        setBackendLifecycleState(lazyStop ? BackendLifecycleState::Sleeping : BackendLifecycleState::Stopped,
+                                 lazyStop ? QStringLiteral("lazy stop") : QStringLiteral("process stopped"),
+                                 SIGNAL_SIGNAL,
+                                 false);
 
         suppressStateClearOnStop_ = false;
         lazyUnloadPreserveState_ = false;

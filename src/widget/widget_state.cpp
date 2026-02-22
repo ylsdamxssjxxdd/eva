@@ -101,6 +101,13 @@ void Widget::ui_state_normal()
                         .arg(is_load ? QStringLiteral("yes") : QStringLiteral("no"))
                         .arg(is_run ? QStringLiteral("yes") : QStringLiteral("no")),
                     activeTurnId_);
+    // 本地后端生命周期处于过渡态时，任何“回到 normal”的请求都应被忽略，
+    // 否则会把“装载中”按钮状态提前解锁，且会意外停止装载动画。
+    if (ui_mode == LOCAL_MODE && isBackendLifecycleTransitioning() && !lazyWakeInFlight_)
+    {
+        ui_state_loading();
+        return;
+    }
     if (wakeUiLocked_ || engineerUiLockActive_)
     {
         if (decode_pTimer) decode_pTimer->stop();

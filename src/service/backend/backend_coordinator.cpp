@@ -3,7 +3,9 @@
 #include "widget/widget.h"
 #include "ui_widget.h"
 #include "utils/devicemanager.h"
+#include "utils/eva_error.h"
 #include "utils/flowtracer.h"
+#include "utils/recovery_guidance.h"
 #include "utils/startuplogger.h"
 #include "utils/textparse.h"
 
@@ -24,7 +26,7 @@ BackendCoordinator::BackendCoordinator(Widget *owner)
 {
 }
 
-void BackendCoordinator::ensureLocalServer(bool lazyWake)
+void BackendCoordinator::ensureLocalServer(bool lazyWake, bool forceReload)
 {
     if (!w_) return;
     if (w_->isShuttingDown_)
@@ -38,11 +40,21 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
     if (!w_->serverManager) return;
 
     FlowTracer::log(FlowChannel::Backend,
-                    QStringLiteral("backend: ensureLocalServer lazy=%1 mode=%2")
+                    QStringLiteral("backend: ensureLocalServer lazy=%1 force=%2 mode=%3")
                         .arg(lazyWake ? QStringLiteral("yes") : QStringLiteral("no"))
+                        .arg(forceReload ? QStringLiteral("yes") : QStringLiteral("no"))
                         .arg(w_->ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local")),
                     w_->activeTurnId_);
-    StartupLogger::log(QStringLiteral("ensureLocalServer start (lazy=%1)").arg(lazyWake));
+    StartupLogger::log(QStringLiteral("ensureLocalServer start (lazy=%1, force=%2)")
+                           .arg(lazyWake)
+                           .arg(forceReload));
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("lazy_wake"), lazyWake);
+        fields.insert(QStringLiteral("force_reload"), forceReload);
+        fields.insert(QStringLiteral("mode"), w_->ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"));
+        w_->recordPerfEvent(QStringLiteral("backend.ensure"), fields);
+    }
     QElapsedTimer ensureTimer;
     ensureTimer.start();
 
@@ -57,6 +69,7 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
         }
         w_->lazyWakeInFlight_ = true;
         w_->applyWakeUiLock(true);
+        w_->setBackendLifecycleState(BackendLifecycleState::Waking, QStringLiteral("lazy wake"), SIGNAL_SIGNAL, false);
     }
 
     if (!w_->firstAutoNglEvaluated_ && !w_->serverManager->isRunning())
@@ -188,7 +201,10 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
     {
         if (!proxyError.isEmpty())
         {
-            w_->reflash_state(QStringLiteral("ui:proxy %1").arg(proxyError), WRONG_SIGNAL);
+            w_->reflash_state(formatEvaErrorWithHint(EvaErrorCode::BeProxyListenFailed,
+                                                     QStringLiteral("proxy %1").arg(proxyError),
+                                                     RecoveryHintAction::AdjustPort),
+                              WRONG_SIGNAL);
             FlowTracer::log(FlowChannel::Backend,
                             QStringLiteral("backend: proxy listen fail %1:%2 (%3)")
                                 .arg(frontendHost, chosenPort, proxyError),
@@ -201,6 +217,10 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
         }
         w_->lazyWakeInFlight_ = false;
         w_->applyWakeUiLock(false);
+        w_->setBackendLifecycleState(BackendLifecycleState::Error,
+                                     QStringLiteral("proxy listen failed"),
+                                     WRONG_SIGNAL,
+                                     false);
         return;
     }
 
@@ -246,7 +266,10 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
     w_->serverManager->setMmprojPath(w_->ui_SETTINGS.mmprojpath);
     w_->serverManager->setLoraPath(w_->ui_SETTINGS.lorapath);
 
-    w_->lastServerRestart_ = w_->serverManager->needsRestart();
+    // 用户主动“重载模型”时，即使参数完全相同也要强制重启后端，
+    // 否则会出现没有装载动画、按钮状态提前解锁的问题。
+    const bool forceRestartActive = forceReload && backendRunning;
+    w_->lastServerRestart_ = w_->serverManager->needsRestart() || forceRestartActive;
     if (w_->lastServerRestart_)
     {
         w_->win7CpuFallbackArmed_ = shouldArmWin7CpuFallback();
@@ -261,6 +284,15 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
     w_->ignoreNextServerStopped_ = w_->lastServerRestart_ && hadOld;
     if (w_->lastServerRestart_)
     {
+        const BackendLifecycleState targetState = hadOld ? BackendLifecycleState::Restarting : BackendLifecycleState::Starting;
+        w_->setBackendLifecycleState(targetState, QStringLiteral("ensure local backend"), SIGNAL_SIGNAL, false);
+    }
+    else if (backendRunning)
+    {
+        w_->setBackendLifecycleState(BackendLifecycleState::Running, QStringLiteral("reuse running backend"), USUAL_SIGNAL, false);
+    }
+    if (w_->lastServerRestart_)
+    {
         w_->backendOnline_ = false;
         if (w_->proxyServer_) w_->proxyServer_->setBackendAvailable(false);
         if (!lazyWake)
@@ -270,8 +302,17 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
         }
     }
 
-    w_->serverManager->ensureRunning();
-    StartupLogger::log(QStringLiteral("ensureLocalServer ensureRunning done (%1 ms)").arg(ensureTimer.elapsed()));
+    if (forceRestartActive)
+    {
+        w_->serverManager->restart();
+    }
+    else
+    {
+        w_->serverManager->ensureRunning();
+    }
+    StartupLogger::log(QStringLiteral("ensureLocalServer launch done (%1 ms, restart=%2)")
+                           .arg(ensureTimer.elapsed())
+                           .arg(w_->lastServerRestart_));
     FlowTracer::log(FlowChannel::Backend,
                     QStringLiteral("backend: ensureRunning issued restart=%1")
                         .arg(w_->lastServerRestart_ ? QStringLiteral("yes") : QStringLiteral("no")),
@@ -289,6 +330,7 @@ void BackendCoordinator::ensureLocalServer(bool lazyWake)
     {
         w_->lazyWakeInFlight_ = false;
         w_->applyWakeUiLock(false);
+        w_->setBackendLifecycleState(BackendLifecycleState::Running, QStringLiteral("already running"), USUAL_SIGNAL, false);
     }
 
     w_->apis.api_endpoint = formatLocalEndpoint(w_->activeServerHost_, w_->activeServerPort_);
@@ -333,7 +375,9 @@ void BackendCoordinator::announcePortBusy(const QString &requestedPort, const QS
     w_->lastPortConflictPreferred_ = requestedPort;
     w_->lastPortConflictFallback_ = alternativePort;
 
-    const QString stateLine = w_->jtr("ui port busy switched").arg(requestedPort, alternativePort);
+    const QString stateLine = formatEvaErrorWithHint(EvaErrorCode::BePortConflict,
+                                                     w_->jtr("ui port busy switched").arg(requestedPort, alternativePort),
+                                                     RecoveryHintAction::AdjustPort);
     w_->reflash_state(stateLine, WRONG_SIGNAL);
 
     const QString dialogTitle = w_->jtr("port conflict title");
@@ -445,6 +489,7 @@ void BackendCoordinator::onProxyWakeRequested()
     if (w_->backendOnline_ && w_->serverManager && w_->serverManager->isRunning()) return;
     w_->reflash_state(QStringLiteral("ui:proxy wake -> local backend"), SIGNAL_SIGNAL);
     w_->lazyWakeInFlight_ = true;
+    w_->setBackendLifecycleState(BackendLifecycleState::Waking, QStringLiteral("proxy wake request"), SIGNAL_SIGNAL, false);
     w_->pendingSendAfterWake_ = false;
     ensureLocalServer(true);
 }
@@ -554,6 +599,13 @@ void BackendCoordinator::performLazyUnloadInternal(bool forced)
     w_->lazyWakeInFlight_ = false;
     w_->applyWakeUiLock(false);
     w_->backendOnline_ = false;
+    w_->setBackendLifecycleState(BackendLifecycleState::Sleeping, QStringLiteral("lazy unload"), SIGNAL_SIGNAL, false);
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("forced"), forced);
+        fields.insert(QStringLiteral("preserve_conversation"), preserveAfterWake);
+        w_->recordPerfEvent(QStringLiteral("backend.lazy_unload"), fields);
+    }
     if (w_->proxyServer_) w_->proxyServer_->setBackendAvailable(false);
     w_->reflash_state(QStringLiteral("ui:") + w_->jtr("auto eject stop backend"), SIGNAL_SIGNAL);
     FlowTracer::log(FlowChannel::Backend,
@@ -681,6 +733,7 @@ void BackendCoordinator::onServerReady(const QString &endpoint)
     w_->win7CpuFallbackArmed_ = false;
     w_->win7CpuFallbackTriggered_ = false;
     w_->backendOnline_ = true;
+    w_->setBackendLifecycleState(BackendLifecycleState::Running, QStringLiteral("server ready"), SUCCESS_SIGNAL, false);
     resetBackendFallbackState(QStringLiteral("backend ready"));
     w_->lazyUnloaded_ = false;
     w_->lazyWakeInFlight_ = false;
@@ -725,6 +778,14 @@ void BackendCoordinator::onServerReady(const QString &endpoint)
 
     // 完成装载：记录耗时，统一用简单转轮动效收尾，然后解锁 UI
     w_->load_time = w_->load_timer.isValid() ? (w_->load_timer.nsecsElapsed() / 1e9) : 0.0;
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("mode"), QStringLiteral("local"));
+        fields.insert(QStringLiteral("load_seconds"), w_->load_time);
+        fields.insert(QStringLiteral("restart"), w_->lastServerRestart_);
+        fields.insert(QStringLiteral("port"), w_->activeServerPort_);
+        w_->recordPerfEvent(QStringLiteral("backend.ready"), fields);
+    }
     w_->ui_mode = LOCAL_MODE;
 
     const bool preserveConversation = w_->preserveConversationOnNextReady_;
@@ -1165,6 +1226,13 @@ void BackendCoordinator::onServerStartFailed(const QString &reason)
 {
     if (!w_) return;
     w_->backendOnline_ = false;
+    w_->setBackendLifecycleState(BackendLifecycleState::Error, reason, WRONG_SIGNAL, false);
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("reason"), reason);
+        fields.insert(QStringLiteral("mode"), QStringLiteral("local"));
+        w_->recordPerfEvent(QStringLiteral("backend.start_failed"), fields);
+    }
     w_->lazyWakeInFlight_ = false;
     w_->applyWakeUiLock(false);
     if (w_->proxyServer_) w_->proxyServer_->setBackendAvailable(false);
@@ -1181,17 +1249,35 @@ void BackendCoordinator::onServerStartFailed(const QString &reason)
     const QString selectedBackend = DeviceManager::userChoice();
     const QString resolvedBackend = DeviceManager::lastResolvedDeviceFor(QStringLiteral("llama-server-main"));
     const QString attemptedBackend = resolvedBackend.isEmpty() ? selectedBackend : resolvedBackend;
+    // 在给出启动失败文案前，先判断是否仍有自动恢复空间，帮助用户理解“系统接下来会自动做什么”。
+    const bool win7FallbackPossible = (w_->win7CpuFallbackArmed_ && !w_->win7CpuFallbackTriggered_);
+    const bool backendFallbackPossible = !pickNextBackendFallback(attemptedBackend).isEmpty();
+    const RecoveryHintAction startFailHint = (win7FallbackPossible || backendFallbackPossible)
+                                                 ? RecoveryHintAction::AutoFallback
+                                                 : RecoveryHintAction::AdjustDevice;
     if (!attemptedBackend.isEmpty())
     {
         QString statusLine;
         if (!selectedBackend.isEmpty() && selectedBackend != attemptedBackend)
         {
-            statusLine = QStringLiteral("ui:backend start failure (%1 -> %2)").arg(selectedBackend, attemptedBackend);
+            statusLine = formatEvaErrorWithHint(EvaErrorCode::BeStartFailed,
+                                                QStringLiteral("backend start failure (%1 -> %2)")
+                                                    .arg(selectedBackend, attemptedBackend),
+                                                startFailHint);
         }
         else
         {
-            statusLine = QStringLiteral("ui:backend start failure -> %1").arg(attemptedBackend);
+            statusLine = formatEvaErrorWithHint(EvaErrorCode::BeStartFailed,
+                                                QStringLiteral("backend start failure -> %1").arg(attemptedBackend),
+                                                startFailHint);
         }
+        w_->reflash_state(statusLine, WRONG_SIGNAL);
+    }
+    else
+    {
+        const QString statusLine = formatEvaErrorWithHint(EvaErrorCode::BeStartFailed,
+                                                          QStringLiteral("backend start failure"),
+                                                          startFailHint);
         w_->reflash_state(statusLine, WRONG_SIGNAL);
     }
     w_->refreshDeviceBackendUI();
@@ -1260,7 +1346,10 @@ bool BackendCoordinator::triggerWin7CpuFallback(const QString &reasonTag)
         }
     }
     w_->refreshDeviceBackendUI();
-    w_->reflash_state(QStringLiteral("ui:Win7 cpu backend failed (%1) -> retrying cpu-noavx").arg(reasonTag), WRONG_SIGNAL);
+    w_->reflash_state(formatEvaErrorWithHint(EvaErrorCode::BeStartFailed,
+                                             QStringLiteral("Win7 cpu backend failed (%1) -> retrying cpu-noavx").arg(reasonTag),
+                                             RecoveryHintAction::AutoFallback),
+                      WRONG_SIGNAL);
     QTimer::singleShot(0, w_, [this]()
                        { ensureLocalServer(); });
     return true;
@@ -1343,7 +1432,10 @@ bool BackendCoordinator::triggerBackendFallback(const QString &failedBackend, co
         }
     }
     w_->refreshDeviceBackendUI();
-    w_->reflash_state(QStringLiteral("ui:backend fallback -> %1 (%2)").arg(next, reasonTag), WRONG_SIGNAL);
+    w_->reflash_state(formatEvaErrorWithHint(EvaErrorCode::BeStartFailed,
+                                             QStringLiteral("backend fallback -> %1 (%2)").arg(next, reasonTag),
+                                             RecoveryHintAction::AutoFallback),
+                      WRONG_SIGNAL);
 
     QTimer::singleShot(0, w_, [this]()
                        { ensureLocalServer(); });

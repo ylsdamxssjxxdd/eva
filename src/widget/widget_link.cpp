@@ -135,6 +135,7 @@ void Widget::set_api()
         serverManager->stop();
         // reflash_state("ui:backend stopped", SIGNAL_SIGNAL);
     }
+    setBackendLifecycleState(BackendLifecycleState::Stopped, QStringLiteral("switch link mode"), SIGNAL_SIGNAL, false);
     reflash_state("ui:" + jtr("eva link"), EVA_SIGNAL);
     if (ui_state == CHAT_STATE)
     {

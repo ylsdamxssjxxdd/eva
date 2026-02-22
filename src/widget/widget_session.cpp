@@ -47,6 +47,7 @@ void Widget::on_load_clicked()
 	if (ret == 1)
 	{
 		FlowTracer::log(FlowChannel::UI, QStringLiteral("action: choose local mode"), activeTurnId_);
+        recordPerfEvent(QStringLiteral("ui.load.choose_local"));
 		// 用户选择本地模式：选择模型并启动本地 llama-server
         currentpath = customOpenfile(currentpath, jtr("load_button_tooltip"), "(*.bin *.gguf)");
         // 允许选择与上次相同的模型路径以便重新装载（如服务器已停止或需要重试）
@@ -89,12 +90,14 @@ void Widget::on_load_clicked()
         }
 
         resetBackendFallbackState(QStringLiteral("manual load"));
-        // 启动/重启本地 llama-server（内部会根据是否需要重启来切换到“装载中”状态）
-        ensureLocalServer();
+        // 用户从“装载”按钮主动触发时，语义是“重新装载当前模型”：
+        // 即使参数未变化，也应强制重启并进入装载动画，避免按钮提前解锁。
+        ensureLocalServer(false, true);
     }
 	else if (ret == 2)
 	{
 		FlowTracer::log(FlowChannel::UI, QStringLiteral("action: choose link mode"), activeTurnId_);
+        recordPerfEvent(QStringLiteral("ui.load.choose_link"));
 		// 用户选择链接模式：打开链接设置对话框
         ui_state_info = "ui:" + jtr("clicked") + jtr("link") + jtr("set");
         reflash_state(ui_state_info, SIGNAL_SIGNAL);
@@ -167,6 +170,12 @@ void Widget::recv_freeover_loadlater()
 void Widget::preLoad()
 {
  	FlowTracer::log(FlowChannel::Backend, QStringLiteral("backend: preload start %1").arg(ui_SETTINGS.modelpath), activeTurnId_);
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("model_path"), ui_SETTINGS.modelpath);
+        fields.insert(QStringLiteral("mode"), ui_mode == LINK_MODE ? QStringLiteral("link") : QStringLiteral("local"));
+        recordPerfEvent(QStringLiteral("backend.preload"), fields);
+    }
  	is_load = false; // 重置is_load标签
 
     // 重新装载前清空 max_ngl：
@@ -447,6 +456,7 @@ void Widget::on_send_clicked()
     //                       .arg(kvUsed_));
     // }
 
+    beginTurnPerfSample();
     emit ui2net_stop(0);
     if (ui_state == CHAT_STATE) beginSessionIfNeeded();
 

@@ -1007,21 +1007,8 @@ void Expend::evalUpdateProgress()
 
 void Expend::updateScoreBars()
 {
-    // Update compact chart in score group (6 bars: TTFB / Gen / QA / Logic / Tools / Overall)
-    auto scoreTTFB = [&](double ms) -> double
-    {
-        if (ms < 0) return 0.0;
-        if (ms <= 500) return 100.0;
-        if (ms >= 10000) return 0.0;
-        return (10000.0 - ms) * 100.0 / (10000.0 - 500.0);
-    };
-    auto scoreGen = [&](double tps) -> double
-    {
-        if (tps < 0) return 0.0;
-        if (tps >= 100.0) return 100.0;
-        if (tps <= 0) return 0.0;
-        return tps;
-    };
+    // 当前评分汇总交由 updateEvalSummary 统一刷新；
+    // 这里保留接口用于后续恢复图表细分评分（TTFB/Gen/QA/Logic/Tools）。
     updateEvalSummary();
 }
 

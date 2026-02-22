@@ -26,6 +26,7 @@ void Widget::recv_tool_calls(const QString &payload)
 
 void Widget::normal_finish_pushover()
 {
+    finishTurnPerfSample(QStringLiteral("net_finish"), true);
     turnThinkActive_ = false;
     pendingAssistantHeaderReset_ = false;
     // Reset per-turn header flags
@@ -154,6 +155,7 @@ void Widget::onTerminalInterruptRequested()
 
 void Widget::recv_stopover()
 {
+    finishTurnPerfSample(QStringLiteral("net_stopover"), false);
     flushPendingStream();
     if (ui_state == COMPLETE_STATE)
     {
@@ -292,6 +294,7 @@ void Widget::on_reset_clicked()
         is_run = false;
         decode_finish();
         ui_state_normal();
+        finishTurnPerfSample(QStringLiteral("user_reset_tool"), false);
         reflash_state("ui:tool cancelled", SIGNAL_SIGNAL);
         return;
     }
@@ -304,6 +307,7 @@ void Widget::on_reset_clicked()
     if (is_run)
     {
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
+        finishTurnPerfSample(QStringLiteral("user_stop"), false);
         emit ui2net_stop(1);
         // 浼犻€掓帹鐞嗗仠姝俊鍙?妯″瀷鍋滄鍚庝細鍐嶆瑙﹀彂on_reset_clicked()
         return;
@@ -419,6 +423,7 @@ void Widget::on_reset_clicked()
         }
     }
     finishTurnFlow(QStringLiteral("model reply finished"), true);
+    finishTurnPerfSample(QStringLiteral("user_reset"), false);
     return;
 }
 

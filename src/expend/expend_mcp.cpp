@@ -268,7 +268,8 @@ void Expend::populateMcpToolEntries()
         serviceTools[serviceName].append(&(*it));
     }
 
-    QSet<QString> serviceNames = mcpServerStates.keys().toSet();
+    const QList<QString> stateKeys = mcpServerStates.keys();
+    QSet<QString> serviceNames(stateKeys.begin(), stateKeys.end());
     for (auto it = serviceTools.cbegin(); it != serviceTools.cend(); ++it) serviceNames.insert(it.key());
 
     QStringList serviceNameList = serviceNames.values();

@@ -58,8 +58,10 @@ class LocalServerManager : public QObject
     QString programPath() const;   // resolve llama-server path per platform
     QStringList buildArgs() const; // build args from SETTINGS and paths
     void startProcess(const QStringList &args);
+    void startProcess(const QString &program, const QStringList &args);
     void hookProcessSignals();
     void emitServerStoppedOnce();
+    void launchPendingRestart();
 
     QString appDirPath_;
     SETTINGS settings_;
@@ -77,6 +79,10 @@ class LocalServerManager : public QObject
     bool readyEmitted_ = false;
     bool startFailedEmitted_ = false;
     bool stoppedEmitted_ = false;
+    bool restartInFlight_ = false;
+    QString pendingProgram_;
+    QStringList pendingArgs_;
+    QMetaObject::Connection restartFinishedConn_;
 
     // 主动 stop/restart 时置为 true：避免正常“切模型/重载”期间因为 kill/terminate 被 Qt 标记为 Crashed，
     // 从而在状态栏刷出 `ui:backend crashed` 误导用户。

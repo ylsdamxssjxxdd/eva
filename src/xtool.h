@@ -150,13 +150,14 @@ class xTool : public QObject
     using ToolInvocationPtr = std::shared_ptr<ToolInvocation>;
 
     ToolInvocationPtr createInvocation(mcp::json tools_call);
+    void armInvocationTimeout(const ToolInvocationPtr &invocation);
     void startWorkerInvocation(const ToolInvocationPtr &invocation);
     void runToolWorker(const ToolInvocationPtr &invocation);
     void startExecuteCommand(const ToolInvocationPtr &invocation);
     void handleCommandStdout(const ToolInvocationPtr &invocation, QProcess *process, bool isError);
     void handleCommandFinished(const ToolInvocationPtr &invocation, QProcess *process, int exitCode, QProcess::ExitStatus status);
     void finishInvocation(const ToolInvocationPtr &invocation);
-    bool shouldAbort(const ToolInvocationPtr &invocation) const;
+    bool shouldAbort(const ToolInvocationPtr &invocation);
     void postFinishCleanup(const ToolInvocationPtr &invocation);
     void handleStableDiffusion(const ToolInvocationPtr &invocation);
     void handleMcpToolList(const ToolInvocationPtr &invocation);
@@ -175,7 +176,8 @@ class xTool : public QObject
     QString containerPathForHost(const QString &absHostPath) const;
     bool dockerReadTextFile(const QString &path, QString *content, QString *errorMessage, bool pathIsContainer = false);
     bool dockerWriteTextFile(const QString &path, const QString &content, QString *errorMessage, bool pathIsContainer = false);
-    bool runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData = QByteArray()) const;
+    bool runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData = QByteArray());
+    bool markInvocationTimeout(const ToolInvocationPtr &invocation, int timeoutMs);
     ToolInvocationPtr activeInvocation() const;
     void setActiveInvocation(const ToolInvocationPtr &invocation);
     void clearActiveInvocation(const ToolInvocationPtr &invocation);

@@ -1,5 +1,8 @@
 #include "xtool.h"
 
+#include "service/tools/tool_registry.h"
+#include "utils/eva_error.h"
+#include "utils/perf_metrics.h"
 #include "utils/processrunner.h"
 #include "utils/flowtracer.h"
 
@@ -448,9 +451,15 @@ struct xTool::ToolInvocation
     mcp::json call;
     mcp::json args;
     std::atomic<bool> cancelled{false};
+    std::atomic<bool> timedOut{false};
+    std::atomic<bool> timeoutReported{false};
+    std::atomic<bool> finished{false};
     QString commandContent;
     QString aggregatedOutput;
     QString workingDirectory;
+    int timeoutMs = 120000;
+    bool highRisk = false;
+    QElapsedTimer elapsedTimer;
 };
 
 thread_local xTool::ToolInvocation *xTool::tlsCurrentInvocation_ = nullptr;
@@ -509,11 +518,87 @@ xTool::ToolInvocationPtr xTool::createInvocation(mcp::json tools_call)
     invocation->call = std::move(tools_call);
     invocation->name = QString::fromStdString(get_string_safely(invocation->call, "name"));
     invocation->args = get_json_object_safely(invocation->call, "arguments");
+    const QJsonObject capability = ToolRegistry::capabilityByName(invocation->name);
+    if (!capability.isEmpty())
+    {
+        invocation->timeoutMs = qMax(1000, capability.value(QStringLiteral("timeout_ms")).toInt(120000));
+        invocation->highRisk = capability.value(QStringLiteral("high_risk")).toBool(false);
+    }
+    invocation->elapsedTimer.start();
     setActiveInvocation(invocation);
     FlowTracer::log(FlowChannel::Tool,
-                    QStringLiteral("tool:create id=%1 name=%2").arg(invocation->id).arg(invocation->name),
+                    QStringLiteral("tool:create id=%1 name=%2 timeout=%3ms risk=%4")
+                        .arg(invocation->id)
+                        .arg(invocation->name)
+                        .arg(invocation->timeoutMs)
+                        .arg(invocation->highRisk ? QStringLiteral("high") : QStringLiteral("normal")),
                     invocation->turnId);
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("tool"), invocation->name);
+        fields.insert(QStringLiteral("turn_id"), static_cast<qint64>(invocation->turnId));
+        fields.insert(QStringLiteral("timeout_ms"), invocation->timeoutMs);
+        fields.insert(QStringLiteral("high_risk"), invocation->highRisk);
+        PerfMetrics::recordEvent(applicationDirPath, QStringLiteral("tool.begin"), fields);
+    }
     return invocation;
+}
+
+void xTool::armInvocationTimeout(const ToolInvocationPtr &invocation)
+{
+    if (!invocation) return;
+    const int timeoutMs = qMax(1000, invocation->timeoutMs);
+    QPointer<xTool> self(this);
+    QTimer::singleShot(timeoutMs, this, [self, invocation, timeoutMs]()
+                       {
+        if (!self || !invocation) return;
+        if (invocation->finished.load(std::memory_order_acquire)) return;
+        if (invocation->cancelled.load(std::memory_order_acquire)) return;
+
+        if (self->activeInvocation() != invocation) return;
+
+        invocation->timedOut.store(true, std::memory_order_release);
+        invocation->cancelled.store(true, std::memory_order_release);
+        const bool justReported = self->markInvocationTimeout(invocation, timeoutMs);
+        if (justReported && self->activeCommandInvocation_ == invocation)
+        {
+            const QString msg = formatEvaError(EvaErrorCode::ToolExecutionFailed,
+                                               QStringLiteral("tool timeout (%1 ms): %2")
+                                                   .arg(timeoutMs)
+                                                   .arg(invocation->name));
+            emit self->tool2ui_terminalStderr(msg + QStringLiteral("\n"));
+        }
+
+        if (self->activeCommandProcess_ && self->activeCommandInvocation_ == invocation &&
+            self->activeCommandProcess_->state() != QProcess::NotRunning)
+        {
+            self->activeCommandInterrupted_ = true;
+            self->activeCommandProcess_->kill();
+            return;
+        }
+
+        self->finishInvocation(invocation); });
+}
+
+bool xTool::markInvocationTimeout(const ToolInvocationPtr &invocation, int timeoutMs)
+{
+    if (!invocation) return false;
+    if (invocation->timeoutReported.exchange(true, std::memory_order_acq_rel)) return false;
+
+    invocation->timedOut.store(true, std::memory_order_release);
+    invocation->cancelled.store(true, std::memory_order_release);
+    const QString msg = formatEvaError(EvaErrorCode::ToolExecutionFailed,
+                                       QStringLiteral("tool timeout (%1 ms): %2")
+                                           .arg(timeoutMs)
+                                           .arg(invocation->name));
+    sendStateMessage(QStringLiteral("tool:") + msg, WRONG_SIGNAL);
+    sendPushMessage(msg);
+    FlowTracer::log(FlowChannel::Tool,
+                    QStringLiteral("tool:timeout name=%1 id=%2")
+                        .arg(invocation->name)
+                        .arg(invocation->id),
+                    invocation->turnId);
+    return true;
 }
 
 xTool::xTool(QString applicationDirPath_)
@@ -689,6 +774,11 @@ void xTool::Exec(mcp::json tools_call)
                     QStringLiteral("tool:dispatch name=%1").arg(invocation->name),
                     invocation->turnId);
     sendStateMessage(QStringLiteral("tool:start %1").arg(invocation->name), SIGNAL_SIGNAL);
+    armInvocationTimeout(invocation);
+    if (invocation->highRisk)
+    {
+        sendStateMessage(QStringLiteral("tool:risk high -> %1").arg(invocation->name), SIGNAL_SIGNAL);
+    }
     if (invocation->name == "execute_command")
     {
         invocation->commandContent = QString::fromStdString(get_string_safely(invocation->args, "content"));
@@ -1357,8 +1447,6 @@ void xTool::runToolWorker(const ToolInvocationPtr &invocation)
                 continue;
             }
 
-            const bool hadCRLF = fileContent.contains("\r\n");
-            const bool hadCR = !hadCRLF && fileContent.contains('\r');
             QString normalized = normalizeNewlines(fileContent);
             const bool hadTrailingNewline = normalized.endsWith('\n');
             QStringList lines = normalized.split('\n', Qt::KeepEmptyParts);
@@ -2464,7 +2552,20 @@ void xTool::handleCommandFinished(const ToolInvocationPtr &invocation, QProcess 
 void xTool::finishInvocation(const ToolInvocationPtr &invocation)
 {
     if (!invocation) return;
+    if (invocation->finished.exchange(true, std::memory_order_acq_rel)) return;
     const QString name = invocation->name.isEmpty() ? QStringLiteral("<unknown>") : invocation->name;
+    const bool cancelled = invocation->cancelled.load(std::memory_order_acquire);
+    const bool timedOut = invocation->timedOut.load(std::memory_order_acquire);
+    const qint64 elapsedMs = invocation->elapsedTimer.isValid() ? qMax<qint64>(0, invocation->elapsedTimer.elapsed()) : 0;
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("tool"), name);
+        fields.insert(QStringLiteral("turn_id"), static_cast<qint64>(invocation->turnId));
+        fields.insert(QStringLiteral("success"), !cancelled);
+        fields.insert(QStringLiteral("timed_out"), timedOut);
+        fields.insert(QStringLiteral("high_risk"), invocation->highRisk);
+        PerfMetrics::recordDuration(applicationDirPath, QStringLiteral("tool.finish"), elapsedMs, fields);
+    }
     const QString line = QStringLiteral("tool:done %1").arg(name);
     FlowTracer::log(FlowChannel::Tool, line, invocation->turnId);
     // emit tool2ui_state(clampToolMessage(QStringLiteral("tool:done %1").arg(name)), SIGNAL_SIGNAL);
@@ -2472,9 +2573,18 @@ void xTool::finishInvocation(const ToolInvocationPtr &invocation)
     clearActiveInvocation(invocation);
 }
 
-bool xTool::shouldAbort(const ToolInvocationPtr &invocation) const
+bool xTool::shouldAbort(const ToolInvocationPtr &invocation)
 {
-    return !invocation || invocation->cancelled.load(std::memory_order_acquire);
+    if (!invocation) return true;
+    if (invocation->cancelled.load(std::memory_order_acquire)) return true;
+
+    if (invocation->timeoutMs > 0 && invocation->elapsedTimer.isValid() &&
+        invocation->elapsedTimer.elapsed() > invocation->timeoutMs)
+    {
+        markInvocationTimeout(invocation, invocation->timeoutMs);
+        return true;
+    }
+    return false;
 }
 
 void xTool::postFinishCleanup(const ToolInvocationPtr &invocation)
@@ -2800,7 +2910,7 @@ bool xTool::dockerWriteTextFile(const QString &path, const QString &content, QSt
     return true;
 }
 
-bool xTool::runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData) const
+bool xTool::runDockerShellCommand(const QString &shellCommand, QString *stdOut, QString *stdErr, QString *errorMessage, const QByteArray &stdinData)
 {
     if (!dockerSandboxEnabled() || !dockerSandbox_ || dockerSandbox_->containerName().isEmpty())
     {
@@ -2825,10 +2935,30 @@ bool xTool::runDockerShellCommand(const QString &shellCommand, QString *stdOut, 
         process.write(stdinData);
     }
     process.closeWriteChannel();
-    if (!process.waitForFinished(120000))
+    int timeoutMs = 120000;
+    ToolInvocationPtr invocation = activeInvocation();
+    if (invocation && tlsCurrentInvocation_ && invocation.get() != tlsCurrentInvocation_)
+    {
+        invocation.reset();
+    }
+    if (invocation)
+    {
+        timeoutMs = qMax(1000, invocation->timeoutMs);
+    }
+    else if (tlsCurrentInvocation_)
+    {
+        timeoutMs = qMax(1000, tlsCurrentInvocation_->timeoutMs);
+    }
+    if (!process.waitForFinished(timeoutMs))
     {
         process.kill();
-        if (errorMessage) *errorMessage = QStringLiteral("docker exec timeout");
+        if (invocation)
+        {
+            markInvocationTimeout(invocation, timeoutMs);
+        }
+        const QString timeoutMsg = formatEvaError(EvaErrorCode::ToolExecutionFailed,
+                                                  QStringLiteral("docker exec timeout (%1 ms)").arg(timeoutMs));
+        if (errorMessage) *errorMessage = timeoutMsg;
         return false;
     }
     const QString outText = QString::fromUtf8(process.readAllStandardOutput());

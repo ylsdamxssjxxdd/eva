@@ -1,5 +1,6 @@
 #include "ui_widget.h"
 #include "widget.h"
+#include "utils/settings_change_analyzer.h"
 #include <QtGlobal>
 #include <QComboBox>
 #include <QFontComboBox>
@@ -37,14 +38,6 @@ QString resolveSarasaFallback(const QString &resourceFamily)
     return QStringLiteral("Sarasa Fixed CL");
 }
 
-bool isLegacyOutputFont(const QString &family)
-{
-    const QString trimmed = family.trimmed();
-    if (trimmed.isEmpty()) return true;
-    const QString lower = trimmed.toLower();
-    // 将早期的宋体/点阵字体（如 zpix）视为需要回退到默认 Sarasa 的旧配置
-    return lower.contains(QStringLiteral("simsun")) || lower.contains(QStringLiteral("zpix"));
-}
 } // namespace
 
 //-------------------------------------------------------------------------
@@ -152,7 +145,7 @@ void Widget::set_SetDialog()
     settings_ui->nthread_label->setText("cpu " + jtr("thread") + " " + QString::number(settings_ui->nthread_slider->value()));
     connect(settings_ui->nthread_slider, &QSlider::valueChanged, this, &Widget::nthread_change);
     // ctx length 记忆容量
-    settings_ui->nctx_slider->setRange(128, 9999999999);
+    settings_ui->nctx_slider->setRange(128, DEFAULT_NCTX_SLIDER_MAX);
     settings_ui->nctx_slider->setValue(ui_SETTINGS.nctx);
     settings_ui->nctx_label->setText(jtr("brain size") + " " + QString::number(settings_ui->nctx_slider->value()));
     connect(settings_ui->nctx_slider, &QSlider::valueChanged, this, &Widget::nctx_change);
@@ -820,6 +813,26 @@ void Widget::settings_ui_confirm_button_clicked()
     get_set();
     const bool requestedHostAllow = (settings_ui && settings_ui->allow_control_checkbox) ? settings_ui->allow_control_checkbox->isChecked() : controlHostAllowed_;
     const bool hostPermissionChanged = (requestedHostAllow != controlHostAllowed_);
+    const SettingsChangeSummary changeSummary = analyzeSettingsChanges(settings_snapshot_,
+                                                                       ui_SETTINGS,
+                                                                       port_snapshot_,
+                                                                       ui_port,
+                                                                       device_snapshot_,
+                                                                       ui_device_backend,
+                                                                       backendOverrideDirty_,
+                                                                       ui_maxngl);
+    const bool onlyHostChange = hostPermissionChanged && !changeSummary.hasAnyChange;
+    const bool sameServer = !changeSummary.requiresBackendRestart;
+
+    {
+        QJsonObject fields;
+        fields.insert(QStringLiteral("restart_required"), changeSummary.requiresBackendRestart);
+        fields.insert(QStringLiteral("session_reset_required"), changeSummary.requiresSessionReset);
+        fields.insert(QStringLiteral("host_permission_changed"), hostPermissionChanged);
+        fields.insert(QStringLiteral("restart_items"), compactChangeItems(changeSummary.restartItems, 4));
+        fields.insert(QStringLiteral("reset_items"), compactChangeItems(changeSummary.resetItems, 4));
+        recordPerfEvent(QStringLiteral("settings.apply"), fields);
+    }
     // Inform Expend (evaluation tab) of latest settings snapshot
     {
         SETTINGS snap = ui_SETTINGS;
@@ -827,70 +840,6 @@ void Widget::settings_ui_confirm_button_clicked()
             snap.nctx = (slotCtxMax_ > 0 ? slotCtxMax_ : 0);
         emit ui2expend_settings(snap);
     }
-
-    auto eq_str = [](const QString &a, const QString &b)
-    { return a == b; };
-    auto eq_ngl = [&](int a, int b)
-    {
-        // 视 999 与 (n_layer+1) 为等价（已知服务端最大层数时）
-        if (a == b) return true;
-        if (ui_maxngl > 0)
-        {
-            if ((a == 999 && b == ui_maxngl) || (b == 999 && a == ui_maxngl)) return true;
-        }
-        return false;
-    };
-    auto eq = [&](const SETTINGS &A, const SETTINGS &B)
-    {
-        // 影响 llama-server 启动参数的设置项（保持与 LocalServerManager::buildArgs 一致）
-        if (A.modelpath != B.modelpath) return false;
-        if (A.mmprojpath != B.mmprojpath) return false;
-        if (A.lorapath != B.lorapath) return false;
-        if (A.nctx != B.nctx) return false;
-        if (!eq_ngl(A.ngl, B.ngl)) return false;
-        if (A.nthread != B.nthread) return false;
-        if (A.hid_batch != B.hid_batch) return false;
-        if (A.hid_parallel != B.hid_parallel) return false;
-        if (A.hid_use_mmap != B.hid_use_mmap) return false;
-        if (A.hid_use_mlock != B.hid_use_mlock) return false;
-        if (A.hid_flash_attn != B.hid_flash_attn) return false;
-        // 推理设备（切换后需要重启后端）
-        if (ui_device_backend != device_snapshot_) return false;
-        // 其他仅影响采样/推理流程的设置项（不触发后端重启）也一并比较；若都未变，则完全不处理
-        if (A.temp != B.temp) return false;
-        if (A.repeat != B.repeat) return false;
-        if (A.top_k != B.top_k) return false;
-        if (A.hid_top_p != B.hid_top_p) return false;
-        if (A.hid_npredict != B.hid_npredict) return false;
-        if (A.hid_n_ubatch != B.hid_n_ubatch) return false;
-        if (A.complete_mode != B.complete_mode) return false;
-        if (A.reasoning_effort != B.reasoning_effort) return false;
-        return true;
-    };
-
-    const bool sameSettings = eq(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_) && !backendOverrideDirty_;
-    const bool onlyHostChange = hostPermissionChanged && sameSettings;
-
-    // 仅比较会触发后端重启的设置项
-    auto eq_server = [&](const SETTINGS &A, const SETTINGS &B)
-    {
-        if (A.modelpath != B.modelpath) return false;
-        if (A.mmprojpath != B.mmprojpath) return false;
-        if (A.lorapath != B.lorapath) return false;
-        if (A.nctx != B.nctx) return false;
-        if (!eq_ngl(A.ngl, B.ngl)) return false;
-        if (A.nthread != B.nthread) return false;
-        if (A.hid_batch != B.hid_batch) return false;
-        if (A.hid_parallel != B.hid_parallel) return false;
-        if (A.hid_use_mmap != B.hid_use_mmap) return false;
-        if (A.hid_use_mlock != B.hid_use_mlock) return false;
-        if (A.hid_flash_attn != B.hid_flash_attn) return false;
-        // 设备切换也需要重启后端
-        if (ui_device_backend != device_snapshot_) return false;
-        if (backendOverrideDirty_) return false;
-        return true;
-    };
-    const bool sameServer = eq_server(ui_SETTINGS, settings_snapshot_) && eq_str(ui_port, port_snapshot_);
 
     settings_dialog->accept();
     auto finalizeOverrides = [this]()
@@ -918,17 +867,33 @@ void Widget::settings_ui_confirm_button_clicked()
         auto_save_user();
         enforceEngineerEnvReadyCheckpoint();
     };
-    if (sameSettings && !hostPermissionChanged)
+    if (!changeSummary.hasAnyChange && !hostPermissionChanged)
     {
         // 未发生任何变化：不重启、不重置
         finalizeAndPersist();
         return;
     }
-    auto applyChanges = [this, sameServer, finalizeAndPersist, onlyHostChange]()
+    if (changeSummary.requiresBackendRestart)
+    {
+        reflash_state(QStringLiteral("ui:settings apply -> restart backend (%1)")
+                          .arg(compactChangeItems(changeSummary.restartItems, 3)),
+                      SIGNAL_SIGNAL);
+    }
+    else if (changeSummary.requiresSessionReset)
+    {
+        reflash_state(QStringLiteral("ui:settings apply -> reset session (%1)")
+                          .arg(compactChangeItems(changeSummary.resetItems, 3)),
+                      SIGNAL_SIGNAL);
+    }
+    else if (hostPermissionChanged)
+    {
+        reflash_state(QStringLiteral("ui:settings apply -> host control permission updated"), SIGNAL_SIGNAL);
+    }
+    auto applyChanges = [this, sameServer, finalizeAndPersist, onlyHostChange, changeSummary]()
     {
         if (sameServer)
         {
-            if (!onlyHostChange)
+            if (!onlyHostChange && changeSummary.requiresSessionReset)
             {
                 if (ui_mode == LOCAL_MODE || ui_mode == LINK_MODE)
                 {
@@ -946,7 +911,7 @@ void Widget::settings_ui_confirm_button_clicked()
         if (ui_mode == LOCAL_MODE)
         {
             ensureLocalServer();
-            if (!lastServerRestart_)
+            if (!lastServerRestart_ && changeSummary.requiresSessionReset)
             {
                 on_reset_clicked();
             }

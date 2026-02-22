@@ -33,21 +33,6 @@ QString readTextFile(const QString &path, QString *error)
     return content;
 }
 
-bool writeTextFile(const QString &path, const QString &content, QString *error)
-{
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
-    {
-        if (error) *error = QObject::tr("Failed to open %1 for writing: %2").arg(path, file.errorString());
-        return false;
-    }
-    QTextStream out(&file);
-    out.setCodec("utf-8");
-    out << content;
-    file.close();
-    return true;
-}
-
 QString normalizeNewlines(QString s)
 {
     s.replace("\r\n", "\n");

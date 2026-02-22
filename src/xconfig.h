@@ -170,6 +170,8 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 #define DEFAULT_NGL 0
 #define DEFAULT_SERVER_PORT "8080"             // 默认服务端口
 #define DEFAULT_CONTROL_PORT 61550             // 远程控制监听端口
+// 设置窗口 nctx 滑条的安全上限（QSlider 仅支持 int，避免使用超范围常量导致溢出告警）
+#define DEFAULT_NCTX_SLIDER_MAX 262144
 
 // llama.cpp llama-server 端点开关：为了便于机体探测运行时参数与监控性能，默认开启。
 // - `--metrics`：启用 Prometheus 兼容的 `/metrics` 指标端点（llama-server 默认关闭）
@@ -187,6 +189,14 @@ inline const QStringList DEFAULT_CUDA_RUNTIME_LIB_PATTERNS = {};
 #define DEFAULT_CONTROLLER_NORM_X 1000         // 桌面控制器：默认归一化坐标系宽度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_NORM_Y 1000         // 桌面控制器：默认归一化坐标系高度（用于截图缩放与 bbox 坐标空间）
 #define DEFAULT_CONTROLLER_SCREENSHOT_TIMEOUT_MS 2000 // 桌面控制器：截图最长等待（ms），避免截图调用偶发阻塞导致 UI 卡死
+// 网络空闲超时（ms）：SSE 长连接在该时间内无任何数据则主动终止，避免请求悬挂
+#define DEFAULT_NET_IDLE_TIMEOUT_MS 120000
+// 网络重试策略：
+// - max retries：单次请求最多重试次数（不含首次请求）
+// - base/max backoff：指数退避等待窗口（ms）
+#define DEFAULT_NET_RETRY_MAX_RETRIES 1
+#define DEFAULT_NET_RETRY_BASE_BACKOFF_MS 400
+#define DEFAULT_NET_RETRY_MAX_BACKOFF_MS 2000
 // GPU 状态检测：Windows AMD PowerShell 脚本超时（ms）
 // - 首次/强制刷新会调用 dxdiag 生成缓存，可能耗时较长
 // - 常规刷新仅读取缓存与性能计数器，耗时较短
@@ -298,6 +308,83 @@ enum EVA_STATE
     CHAT_STATE,     // 对话状态
     COMPLETE_STATE, // 补完状态
 };
+
+// 本地后端生命周期状态：
+// - Stopped: 后端未运行
+// - Starting: 首次启动中
+// - Restarting: 参数变更或手动重载触发的重启中
+// - Waking: 懒卸载后被唤醒中
+// - Running: 后端就绪可用
+// - Sleeping: 懒卸载休眠态（可唤醒）
+// - Error: 启动/运行异常，需要用户干预或自动回退
+enum class BackendLifecycleState
+{
+    Stopped,
+    Starting,
+    Restarting,
+    Waking,
+    Running,
+    Sleeping,
+    Error,
+};
+
+inline QString backendLifecycleStateName(BackendLifecycleState state)
+{
+    switch (state)
+    {
+    case BackendLifecycleState::Stopped: return QStringLiteral("stopped");
+    case BackendLifecycleState::Starting: return QStringLiteral("starting");
+    case BackendLifecycleState::Restarting: return QStringLiteral("restarting");
+    case BackendLifecycleState::Waking: return QStringLiteral("waking");
+    case BackendLifecycleState::Running: return QStringLiteral("running");
+    case BackendLifecycleState::Sleeping: return QStringLiteral("sleeping");
+    case BackendLifecycleState::Error: return QStringLiteral("error");
+    }
+    return QStringLiteral("unknown");
+}
+
+// 后端生命周期状态迁移约束：
+// - 用于收敛“装载/重载/唤醒/休眠”过程中的状态跳转，降低多标志位并行导致的竞态。
+// - 该函数只负责“是否合理”的判定；调用方可选择记录告警后继续迁移，避免死锁。
+inline bool isBackendLifecycleTransitionAllowed(BackendLifecycleState from, BackendLifecycleState to)
+{
+    if (from == to) return true;
+    switch (from)
+    {
+    case BackendLifecycleState::Stopped:
+        return to == BackendLifecycleState::Starting ||
+               to == BackendLifecycleState::Waking ||
+               to == BackendLifecycleState::Error;
+    case BackendLifecycleState::Starting:
+        return to == BackendLifecycleState::Running ||
+               to == BackendLifecycleState::Error ||
+               to == BackendLifecycleState::Stopped;
+    case BackendLifecycleState::Restarting:
+        return to == BackendLifecycleState::Running ||
+               to == BackendLifecycleState::Error ||
+               to == BackendLifecycleState::Stopped;
+    case BackendLifecycleState::Waking:
+        return to == BackendLifecycleState::Running ||
+               to == BackendLifecycleState::Sleeping ||
+               to == BackendLifecycleState::Error ||
+               to == BackendLifecycleState::Stopped;
+    case BackendLifecycleState::Running:
+        return to == BackendLifecycleState::Restarting ||
+               to == BackendLifecycleState::Sleeping ||
+               to == BackendLifecycleState::Stopped ||
+               to == BackendLifecycleState::Error;
+    case BackendLifecycleState::Sleeping:
+        return to == BackendLifecycleState::Waking ||
+               to == BackendLifecycleState::Stopped ||
+               to == BackendLifecycleState::Error;
+    case BackendLifecycleState::Error:
+        return to == BackendLifecycleState::Stopped ||
+               to == BackendLifecycleState::Starting ||
+               to == BackendLifecycleState::Restarting ||
+               to == BackendLifecycleState::Waking;
+    }
+    return true;
+}
 
 // 增殖窗口枚举
 enum EXPEND_WINDOW
