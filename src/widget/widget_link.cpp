@@ -149,7 +149,7 @@ void Widget::set_api()
     reflash_state("ui:" + EVA_title, USUAL_SIGNAL);
     this->setWindowTitle(EVA_title);
     trayIcon->setToolTip(EVA_title);
-    setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
+    setBaseWindowIcon(QIcon(":/logo/eva.png"));
 
     // Broadcast to Expend (evaluation tab) as well
     emit ui2expend_apis(apis);

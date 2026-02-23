@@ -190,7 +190,6 @@ class Widget : public QWidget
     QString EVA_title;                       // 机体的标题
     void setBaseWindowIcon(const QIcon &icon);
     void refreshWindowIcon();
-    bool isEngineerToolActive() const;
 
     bool is_config = false; // 是否是读取了配置进行的装载
     void auto_save_user();  // 每次约定和设置后都保存配置到本地

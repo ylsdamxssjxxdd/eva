@@ -218,7 +218,7 @@ Widget::Widget(QWidget *parent, QString applicationDirPath_)
         }
         globalUiSettings_.themeId = QStringLiteral("unit01");
     }
-    setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
+    setBaseWindowIcon(QIcon(":/logo/eva.png"));
     ui->set->setIcon(QIcon(":/logo/assimp_tools_icon.ico"));                       // 设置设置图标
     ui->reset->setIcon(QIcon(":/logo/sync.ico"));                                  // 设置重置图标
     reflash_state("ui:" + jtr("click load and choose a gguf file"), USUAL_SIGNAL); // 初始提示
@@ -468,17 +468,17 @@ void Widget::setBaseWindowIcon(const QIcon &icon)
 
 void Widget::refreshWindowIcon()
 {
-    const QIcon engineerIcon(QStringLiteral(":/logo/User.ico"));
-    const bool engineerActive = isEngineerToolActive();
-    const QIcon targetIcon = engineerActive ? engineerIcon : EVA_icon;
+    QIcon targetIcon = EVA_icon;
+    if (targetIcon.isNull())
+    {
+        targetIcon = QIcon(QStringLiteral(":/logo/eva.png"));
+    }
+    if (targetIcon.isNull())
+    {
+        targetIcon = QIcon(QStringLiteral(":/logo/eva.ico"));
+    }
     QApplication::setWindowIcon(targetIcon);
     if (trayIcon) trayIcon->setIcon(targetIcon);
-}
-
-bool Widget::isEngineerToolActive() const
-{
-    if (date_ui && date_ui->engineer_checkbox) return date_ui->engineer_checkbox->isChecked();
-    return ui_engineer_ischecked;
 }
 
 bool Widget::shouldApplySandboxNow() const

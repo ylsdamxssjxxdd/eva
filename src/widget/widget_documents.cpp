@@ -259,11 +259,11 @@ void Widget::unlockLoad()
     reflash_state("ui:" + jtr("load model") + jtr("over") + " " + QString::number(load_time, 'f', 2) + " s " + jtr("right click and check model log"), SUCCESS_SIGNAL);
     if (ui_SETTINGS.ngl > 0)
     {
-        setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
+        setBaseWindowIcon(QIcon(":/logo/eva.png"));
     }
     else
     {
-        setBaseWindowIcon(QIcon(":/logo/blue_logo.png"));
+        setBaseWindowIcon(QIcon(":/logo/eva.png"));
     }
     EVA_title = jtr("current model") + " " + ui_SETTINGS.modelpath.split("/").last();
     this->setWindowTitle(EVA_title);

@@ -99,7 +99,7 @@ void AppBootstrap::createLinuxDesktopShortcut(const QString &appPath)
     const QString iconDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/icons/";
     QDir().mkpath(iconDir);
     const QString iconPath = iconDir + "eva.png";
-    QFile::copy(":/logo/blue_logo.png", iconPath);
+    QFile::copy(":/logo/eva.png", iconPath);
     QFile::setPermissions(iconPath, QFile::ReadOwner | QFile::WriteOwner);
 
     // Compose .desktop content using Qt placeholders (%1, %2, %3)

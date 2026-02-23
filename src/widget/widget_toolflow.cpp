@@ -32,7 +32,7 @@ void Widget::normal_finish_pushover()
     // Reset per-turn header flags
     turnActive_ = false;
     is_run = false;
-    ui_state_normal(); // 寰呮満鐣岄潰鐘舵€?
+    ui_state_normal(); // 待机界面状态
     if (ui_mode == LINK_MODE)
     {
         kvTokensTurn_ = kvPromptTokensTurn_ + qMax(0, kvStreamedTurn_);
@@ -160,40 +160,40 @@ void Widget::recv_stopover()
     if (ui_state == COMPLETE_STATE)
     {
         ui->reset->click();
-    } // 琛ュ畬妯″紡缁堟鍚庨渶瑕侀噸缃?
+    } // 补完模式终止后需要重置
 }
 
 void Widget::recv_resetover()
 {
     if (ui_SETTINGS.ngl == 0)
     {
-        setBaseWindowIcon(QIcon(":/logo/blue_logo.png"));
-    } // 鎭㈠
+        setBaseWindowIcon(QIcon(":/logo/eva.png"));
+    } // 恢复图标
     else
     {
-        setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
-    } // 鎭㈠
+        setBaseWindowIcon(QIcon(":/logo/eva.png"));
+    } // 恢复图标
     reflash_state("ui:" + jtr("reset ok"), SUCCESS_SIGNAL);
 }
 
 void Widget::recv_reload()
 {
-    preLoad(); // 瑁呰浇鍓嶅姩浣?
+    preLoad(); // 装载前动作
 }
 
 void Widget::recv_datereset()
 {
-    // 鎵撳嵃绾﹀畾鐨勭郴缁熸寚浠?
-    ui_state_info = "路路路路路路路路路路路" + jtr("date") + "路路路路路路路路路路路";
+    // 打印约定中的系统指令
+    ui_state_info = "-----------" + jtr("date") + "-----------";
     reflash_state(ui_state_info, USUAL_SIGNAL);
     if (ui_state == COMPLETE_STATE)
     {
-        reflash_state("路 " + jtr("complete mode") + jtr("on") + " ", USUAL_SIGNAL);
+        reflash_state("- " + jtr("complete mode") + jtr("on") + " ", USUAL_SIGNAL);
     }
     else
     {
-        reflash_state("路 " + jtr("system calling") + " " + date_ui->date_prompt_TextEdit->toPlainText() + ui_extra_prompt, USUAL_SIGNAL);
-        // //灞曠ず棰濆鍋滄鏍囧織
+        reflash_state("- " + jtr("system calling") + " " + date_ui->date_prompt_TextEdit->toPlainText() + ui_extra_prompt, USUAL_SIGNAL);
+        // // 展示额外停止标记
         // QString stop_str;
         // stop_str = jtr("extra stop words") + " ";
         // // stop_str += bot_chat.input_prefix + " ";
@@ -201,28 +201,28 @@ void Widget::recv_datereset()
         //     stop_str += ui_DATES.extra_stop_words.at(i) + " ";
         // }
 
-        // reflash_state("路 " + stop_str + " ", USUAL_SIGNAL);
+        // reflash_state("- " + stop_str + " ", USUAL_SIGNAL);
     }
-    reflash_state("路路路路路路路路路路路" + jtr("date") + "路路路路路路路路路路路", USUAL_SIGNAL);
-    auto_save_user(); // 淇濆瓨ui閰嶇疆
+    reflash_state("-----------" + jtr("date") + "-----------", USUAL_SIGNAL);
+    auto_save_user(); // 保存 UI 配置
 
     ui->reset->click();
 }
 
 void Widget::recv_setreset()
 {
-    // 鎵撳嵃璁剧疆鍐呭
-    reflash_state("路路路路路路路路路路路" + jtr("set") + "路路路路路路路路路路路", USUAL_SIGNAL);
+    // 打印设置内容
+    reflash_state("-----------" + jtr("set") + "-----------", USUAL_SIGNAL);
 
-    reflash_state("路 " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp), USUAL_SIGNAL);
-    reflash_state("路 " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat), USUAL_SIGNAL);
+    reflash_state("- " + jtr("temperature") + " " + QString::number(ui_SETTINGS.temp), USUAL_SIGNAL);
+    reflash_state("- " + jtr("repeat") + " " + QString::number(ui_SETTINGS.repeat), USUAL_SIGNAL);
     const QString npredictText = (ui_SETTINGS.hid_npredict <= 0) ? QStringLiteral("auto")
                                                                  : QString::number(ui_SETTINGS.hid_npredict);
-    reflash_state("路 " + jtr("npredict") + " " + npredictText, USUAL_SIGNAL);
-    reflash_state("路 gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl), USUAL_SIGNAL);
-    reflash_state("路 cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread), USUAL_SIGNAL);
-    reflash_state("路 " + jtr("ctx") + jtr("length") + " " + QString::number(ui_SETTINGS.nctx), USUAL_SIGNAL);
-    reflash_state("路 " + jtr("batch size") + " " + QString::number(ui_SETTINGS.hid_batch), USUAL_SIGNAL);
+    reflash_state("- " + jtr("npredict") + " " + npredictText, USUAL_SIGNAL);
+    reflash_state("- gpu " + jtr("offload") + " " + QString::number(ui_SETTINGS.ngl), USUAL_SIGNAL);
+    reflash_state("- cpu" + jtr("thread") + " " + QString::number(ui_SETTINGS.nthread), USUAL_SIGNAL);
+    reflash_state("- " + jtr("ctx") + jtr("length") + " " + QString::number(ui_SETTINGS.nctx), USUAL_SIGNAL);
+    reflash_state("- " + jtr("batch size") + " " + QString::number(ui_SETTINGS.hid_batch), USUAL_SIGNAL);
 
     if (ui_SETTINGS.lorapath != "")
     {
@@ -234,25 +234,25 @@ void Widget::recv_setreset()
     }
     if (ui_state == CHAT_STATE)
     {
-        reflash_state("路 " + jtr("chat mode"), USUAL_SIGNAL);
+        reflash_state("- " + jtr("chat mode"), USUAL_SIGNAL);
     }
     else if (ui_state == COMPLETE_STATE)
     {
-        reflash_state("路 " + jtr("complete mode"), USUAL_SIGNAL);
+        reflash_state("- " + jtr("complete mode"), USUAL_SIGNAL);
     }
 
-    // 灞曠ず棰濆鍋滄鏍囧織
+    // 展示额外停止标记
     //  if (ui_state == CHAT_STATE) {
     //      QString stop_str;
     //      stop_str = jtr("extra stop words") + " ";
     //      for (int i = 0; i < ui_DATES.extra_stop_words.size(); ++i) {
     //          stop_str += ui_DATES.extra_stop_words.at(i) + " ";
     //      }
-    //      reflash_state("路 " + stop_str + " ", USUAL_SIGNAL);
+    //      reflash_state("- " + stop_str + " ", USUAL_SIGNAL);
     //  }
 
-    reflash_state("路路路路路路路路路路路" + jtr("set") + "路路路路路路路路路路路", USUAL_SIGNAL);
-    auto_save_user(); // 淇濆瓨ui閰嶇疆
+    reflash_state("-----------" + jtr("set") + "-----------", USUAL_SIGNAL);
+    auto_save_user(); // 保存 UI 配置
 
     ui->reset->click();
 }
@@ -300,16 +300,16 @@ void Widget::on_reset_clicked()
     }
 
     emit ui2tool_cancelActive();
-    wait_to_show_images_filepath.clear(); // 娓呯┖寰呮樉绀哄浘鍍?
-    emit ui2expend_resettts();            // 娓呯┖寰呰鍒楄〃
-    tool_result = "";                     // 娓呯┖宸ュ叿缁撴灉
-    // 濡傛灉妯″瀷姝ｅ湪鎺ㄧ悊灏辨敼鍙樻ā鍨嬬殑鍋滄鏍囩
+    wait_to_show_images_filepath.clear(); // 清空待显示图片
+    emit ui2expend_resettts();            // 清空待读队列
+    tool_result = "";                     // 清空工具结果
+    // 如果模型正在推理就改为停止流程
     if (is_run)
     {
         reflash_state("ui:" + jtr("clicked") + jtr("shut down"), SIGNAL_SIGNAL);
         finishTurnPerfSample(QStringLiteral("user_stop"), false);
         emit ui2net_stop(1);
-        // 浼犻€掓帹鐞嗗仠姝俊鍙?妯″瀷鍋滄鍚庝細鍐嶆瑙﹀彂on_reset_clicked()
+        // 发送停止信号，模型停止后会再次触发 on_reset_clicked()
         return;
     }
 
@@ -362,11 +362,11 @@ void Widget::on_reset_clicked()
     // delete it; do not manually delete the old one here.
     if (ui_state == CHAT_STATE) resetOutputDocument();
     ui_state_normal();
-    recordClear(); // 寰呮満鐣岄潰鐘舵€?
+    recordClear(); // 待机界面状态
 
-    // 璇锋眰寮忕粺涓€澶勭悊锛堟湰鍦?杩滅锛?
-    ui_messagesArray = QJsonArray(); // 娓呯┖
-    // 鏋勯€犵郴缁熸寚浠?
+    // 请求式统一处理（本地/远端）
+    ui_messagesArray = QJsonArray(); // 清空
+    // 构造系统指令
     QJsonObject systemMessage;
     systemMessage.insert("role", DEFAULT_SYSTEM_NAME);
     systemMessage.insert("content", ui_DATES.date_prompt);
@@ -398,16 +398,16 @@ void Widget::on_reset_clicked()
 
     if (ui_mode == LINK_MODE)
     {
-        // 杩滅妯″紡锛氭樉绀哄綋鍓嶇鐐?
+        // 远端模式：显示当前端点
         current_api = (ui_state == CHAT_STATE) ? (apis.api_endpoint + apis.api_chat_endpoint)
                                                : (apis.api_endpoint + apis.api_completion_endpoint);
-        setBaseWindowIcon(QIcon(":/logo/dark_logo.png"));
+        setBaseWindowIcon(QIcon(":/logo/eva.png"));
         EVA_title = jtr("current api") + " " + current_api;
         reflash_state(QString("ui:") + EVA_title, USUAL_SIGNAL);
         this->setWindowTitle(EVA_title);
         trayIcon->setToolTip(EVA_title);
     }
-    else // LOCAL_MODE锛氭樉绀哄綋鍓嶆ā鍨嬶紝淇濇寔鏈湴瑁呰浇琛ㄧ幇
+    else // LOCAL_MODE：显示当前模型，保持本地装载表现
     {
         QString modelName = ui_SETTINGS.modelpath.split("/").last();
         EVA_title = jtr("current model") + " " + modelName;
@@ -415,11 +415,11 @@ void Widget::on_reset_clicked()
         trayIcon->setToolTip(EVA_title);
         if (ui_SETTINGS.ngl == 0)
         {
-            setBaseWindowIcon(QIcon(":/logo/blue_logo.png"));
+            setBaseWindowIcon(QIcon(":/logo/eva.png"));
         }
         else
         {
-            setBaseWindowIcon(QIcon(":/logo/green_logo.png"));
+            setBaseWindowIcon(QIcon(":/logo/eva.png"));
         }
     }
     finishTurnFlow(QStringLiteral("model reply finished"), true);
@@ -431,7 +431,7 @@ void Widget::recv_net_speeds(double promptPerSec, double genPerSec)
 {
     const bool haveGen = genPerSec > 0.0;
     const bool havePrompt = promptPerSec > 0.0;
-    if (!haveGen && !havePrompt) return; // 娌℃湁灏变笉鎵撳嵃
+    if (!haveGen && !havePrompt) return; // 没有速度数据就不打印
     const QString genStr = haveGen ? (QString::number(genPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     const QString promptStr = havePrompt ? (QString::number(promptPerSec, 'f', 1) + " tokens/s") : QString::fromUtf8("--");
     reflash_state(QString::fromUtf8("ui:") + jtr("single decode") + " " + genStr + " " + jtr("batch decode") + " " + promptStr, SUCCESS_SIGNAL);
