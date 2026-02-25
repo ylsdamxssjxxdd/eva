@@ -1,0 +1,1983 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）">
+      
+      
+        <meta name="author" content="EVA Team">
+      
+      
+        <link rel="canonical" href="https://ylsdamxssjxxdd.github.io/eva/%E6%9C%BA%E4%BD%93%E8%8A%82%E7%82%B9%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A2%B3%E7%90%86/">
+      
+      
+        <link rel="prev" href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/">
+      
+      
+        <link rel="next" href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>机体节点与状态梳理 - EVA 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="EVA 文档" class="md-header__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EVA 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              机体节点与状态梳理
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="EVA 文档" class="md-nav__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    EVA 文档
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速使用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速使用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/01-%E5%AF%B9%E8%AF%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/02-%E8%A1%A5%E5%AE%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    补完
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/03-%E8%AF%AD%E9%9F%B3%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/04-%E8%A7%86%E8%A7%89%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    视觉交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/05-%E6%96%87%E7%94%9F%E5%9B%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文生图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/06-%E7%9F%A5%E8%AF%86%E5%BA%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识库
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/07-MCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/08-%E7%B3%BB%E7%BB%9F%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统工程师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/09-%E4%BD%BF%E7%94%A8%E6%B2%99%E7%9B%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用沙盒
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/10-%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/11-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/12-%E6%9C%BA%E4%BD%93%E6%8E%A7%E5%88%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体控制
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/13-%E6%A1%8C%E9%9D%A2%E6%8E%A7%E5%88%B6%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    桌面控制器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他文档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他文档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    软件技术说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 概述
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 核心模式与状态
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 核心模式与状态">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        机体/对话模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widget_statecpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        界面状态（widget_state.cpp）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widgeth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        运行标记（widget.h 关键字段）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        流程阶段枚举
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xnetcpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        网络层状态（xnet.cpp）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widget_backendcpp-xbackend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        后端生命周期节点（widget_backend.cpp / xbackend.*）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 核心流程节点
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 核心流程节点">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        装载与模式切换
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        发送/推理主链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        工具循环
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        重置流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        惰性卸载与唤醒
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        录音输入
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 按钮可用性速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 流程图
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 流程图">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        装载与模式切换
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一次发送/工具闭环
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 参考代码定位
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. 工具调用核心链路
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. 系统架构师/工程师 Docker 沙盒流程
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 异常恢复速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 锁与状态转移细化
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-kvtoken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. KV/Token 更新路径
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. 增殖窗口与技能入口
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文档解析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E5%8A%9F%E8%83%BD%E8%BF%AD%E4%BB%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能迭代
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 概述
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 核心模式与状态
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 核心模式与状态">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        机体/对话模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widget_statecpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        界面状态（widget_state.cpp）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widgeth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        运行标记（widget.h 关键字段）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        流程阶段枚举
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xnetcpp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        网络层状态（xnet.cpp）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#widget_backendcpp-xbackend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        后端生命周期节点（widget_backend.cpp / xbackend.*）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 核心流程节点
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 核心流程节点">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        装载与模式切换
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        发送/推理主链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        工具循环
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        重置流程
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        惰性卸载与唤醒
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        录音输入
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 按钮可用性速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 流程图
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 流程图">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        装载与模式切换
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        一次发送/工具闭环
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 参考代码定位
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. 工具调用核心链路
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. 系统架构师/工程师 Docker 沙盒流程
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 异常恢复速查
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 锁与状态转移细化
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-kvtoken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. KV/Token 更新路径
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. 增殖窗口与技能入口
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="_1">机体节点与状态梳理<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h2 id="1">1. 概述<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<ul>
+<li>目标：汇总机体从装载、发送、工具循环到重置的所有关键节点与状态标记，方便快速定位卡点与调试。</li>
+<li>覆盖范围：<code>src/widget</code>（主界面/会话流转）、<code>src/xbackend.*</code>（本地后端）、<code>src/xnet.*</code>（网络请求）、工具流与惰性卸载控制。</li>
+</ul>
+<h2 id="2">2. 核心模式与状态<a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<h3 id="_2">机体/对话模式<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>标识</th>
+<th>定义位置</th>
+<th>含义/触发</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOCAL_MODE</code> / <code>LINK_MODE</code></td>
+<td><code>xconfig.h::EVA_MODE</code></td>
+<td>本地模式：启动/保持 llama-server，通过 <code>ensureLocalServer()</code> 维持；链接模式：停本地后端，使用远端 endpoint/key/model。</td>
+</tr>
+<tr>
+<td><code>CHAT_STATE</code> / <code>COMPLETE_STATE</code></td>
+<td><code>xconfig.h::EVA_STATE</code></td>
+<td>对话/补完两种发送状态，约定/设置窗口切换。</td>
+</tr>
+<tr>
+<td><code>ui_state</code></td>
+<td><code>widget_state.cpp</code></td>
+<td>当前界面状态（待机/装载中/推理中/录音中）。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="widget_statecpp">界面状态（<code>widget_state.cpp</code>）<a class="headerlink" href="#widget_statecpp" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>状态函数</th>
+<th>触发</th>
+<th>按钮/界面效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ui_state_init()</code></td>
+<td>启动/配置加载前</td>
+<td>仅“装载”可用，输入区置只读。</td>
+</tr>
+<tr>
+<td><code>ui_state_loading()</code></td>
+<td><code>preLoad()</code>、重启后端</td>
+<td>全部按钮锁定，焦点在输入框，播放装载动画。</td>
+</tr>
+<tr>
+<td><code>ui_state_pushing()</code></td>
+<td>发送后</td>
+<td>仅“重置”可用，输入可写，等待流式输出。</td>
+</tr>
+<tr>
+<td><code>ui_state_normal()</code></td>
+<td>装载完成/推理结束</td>
+<td>根据 <code>ui_mode</code> 与 <code>is_load</code> 决定“发送/约定/设置”是否可用；补完模式下输入只读、输出可编辑。</td>
+</tr>
+<tr>
+<td><code>ui_state_recoding()</code></td>
+<td>F2 录音</td>
+<td>按钮全锁，输入显示录音状态占位。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="widgeth">运行标记（<code>widget.h</code> 关键字段）<a class="headerlink" href="#widgeth" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>标记</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_load</code></td>
+<td>当前模型/端点是否已就绪（本地需等 <code>onServerReady</code>）。</td>
+</tr>
+<tr>
+<td><code>is_run</code></td>
+<td>是否有在途推理/工具循环。</td>
+</tr>
+<tr>
+<td><code>toolInvocationActive_</code> / <code>tool_result</code></td>
+<td>是否正在等待工具返回/缓存的工具观测。</td>
+</tr>
+<tr>
+<td><code>backendOnline_</code> / <code>lazyUnloaded_</code> / <code>lazyWakeInFlight_</code></td>
+<td>本地后端存活、已惰性卸载、正在唤醒的三态。</td>
+</tr>
+<tr>
+<td><code>pendingSendAfterWake_</code></td>
+<td>发送被唤醒动作阻塞时的待办标记。</td>
+</tr>
+<tr>
+<td><code>turnActive_</code> / <code>activeTurnId_</code></td>
+<td>当前回合是否在途及其追踪 ID。</td>
+</tr>
+<tr>
+<td><code>engineerProxyOuterActive_</code></td>
+<td>系统架构师代理是否接管工具链。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3">流程阶段枚举<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>任务：<code>ConversationTask</code> = <code>ChatReply</code> / <code>Completion</code> / <code>ToolLoop</code>。</li>
+<li>回合阶段：<code>FlowPhase</code> = <code>Start</code> → <code>Build</code> → <code>NetRequest</code> → <code>Streaming</code> → <code>NetDone</code> → <code>ToolParsed</code> → <code>ToolStart</code> → <code>ToolResult</code> → <code>ContinueTurn</code> → <code>Finish</code> / <code>Cancel</code>，通过 <code>FlowTracer</code> 统一打点。</li>
+</ul>
+<h3 id="xnetcpp">网络层状态（<code>xnet.cpp</code>）<a class="headerlink" href="#xnetcpp" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>running_</code>：是否已有在途请求；<code>abortActiveReply()</code> 会中断 SSE 并触发 <code>net2ui_pushover</code>。</li>
+<li><code>is_stop</code>：UI 触发的停止标记。</li>
+<li><code>firstByteSeen_</code> / <code>promptTokens_</code> / <code>predictedTokens_</code>：流式首字节、提示/生成 token 统计。</li>
+<li><code>thinkFlag</code> / <code>extThinkActive_</code>：是否处于 <code>&lt;think&gt;</code> 块或外部 reasoning 流。</li>
+<li><code>sawToolStopword_</code>：已捕获 <code>&lt;/tool_call&gt;</code>，继续等待 usage/timings。</li>
+</ul>
+<h3 id="widget_backendcpp-xbackend">后端生命周期节点（<code>widget_backend.cpp</code> / <code>xbackend.*</code>）<a class="headerlink" href="#widget_backendcpp-xbackend" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>preLoad()</code>：清空界面与记录、进入 <code>ui_state_loading()</code> 并启动装载计时。</li>
+<li><code>ensureLocalServer()</code>：根据端口/设备/模型参数启动或重启 <code>LocalServerManager</code>，处理端口降级与 Win7 CPU 回退。</li>
+<li><code>onServerReady()</code>：标记 <code>backendOnline_=true</code>，绑定前端代理端口，注入系统消息，<code>unlockLoad()</code> 收尾并切回待机。</li>
+<li><code>onServerStartFailed()</code> / <code>serverStopped</code>：解锁界面、必要时触发端口降级或设备 fallback。</li>
+<li>惰性卸载：<code>scheduleLazyUnload()</code> → 倒计时 → <code>performLazyUnloadInternal()</code>（保持代理端口，释放 llama-server）；<code>lazyWakeInFlight_</code> 表示唤醒中。</li>
+</ul>
+<h2 id="3">3. 核心流程节点<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
+<h3 id="_4">装载与模式切换<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<p>1) 本地装载：<code>on_load_clicked</code> 选择本地 → <code>ui_SETTINGS.modelpath</code> 更新 → <code>preLoad()</code> → <code>ensureLocalServer()</code> → <code>onServerReady()</code> → <code>unlockLoad()</code> → <code>ui_state_normal()</code>。手动装载默认 <code>ngl=999</code>，装载完成后按 <code>max_ngl</code> 自动校准。
+2) 链接模式：<code>on_load_clicked</code> 选择链接 → <code>set_api()</code> 清理本地状态、停止 llama-server、重建系统消息/记录，UI 切换暗色图标。</p>
+<h3 id="_5">发送/推理主链<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<p>1) <code>on_send_clicked()</code>：若本地后端未醒则 <code>ensureLocalServer(true)</code> 并挂起；清空流式缓存，启动 <code>startTurnFlow()</code>。
+2) 对话模式：<code>collectUserInputs()</code> 构造文本/图像/文档/音频，多模态消息写入 <code>ui_messagesArray</code>/历史，<code>handleChatReply()</code> 发送 <code>ui2net_data</code>+<code>ui2net_push</code>。
+3) 补完模式：<code>handleCompletion()</code> 用输出区全文作为 prompt。
+4) 网络层：<code>xNet::run()</code> 构造 OpenAI 兼容请求，流式 <code>net2ui_output</code>、<code>net2ui_kv_tokens</code> 等回传。
+5) 结束：<code>recv_pushover()</code> 写入助手消息，如无工具则 <code>normal_finish_pushover()</code> 复位 UI 与 KV；<code>scheduleLazyUnload()</code> 延迟释放本地后端。</p>
+<h3 id="_6">工具循环<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>在 <code>recv_pushover()</code> 检测 <code>&lt;tool&gt;...&lt;/tool&gt;</code> JSON，触发 <code>ui2tool_exec()</code>，标记 <code>toolInvocationActive_</code>。</li>
+<li>工具回传：<code>recv_toolpushover()</code> 写入 <code>tool_result</code> 并再次调用 <code>on_send_clicked()</code> 形成闭环；<code>handleToolLoop()</code> 以 <code>tool</code> 角色回灌消息并继续推理。</li>
+</ul>
+<h3 id="_7">重置流程<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>on_reset_clicked()</code>：若工具在途则取消；若模型在跑则发送 <code>ui2net_stop(1)</code> 等待二次回调。</li>
+<li>完整重置：刷新约定（重建系统 prompt）、清空记录/KV，清除工具残留、停止解码，重置窗口标题与图标并完成 <code>finishTurnFlow("model reply finished")</code>。</li>
+</ul>
+<h3 id="_8">惰性卸载与唤醒<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>活跃事件（推理/工具/后端日志）会 <code>cancelLazyUnload()</code>；空闲后 <code>scheduleLazyUnload()</code> 启动计时。</li>
+<li>超时后 <code>performLazyUnloadInternal()</code> 停止 llama-server，保留代理端口；下次发送触发 <code>ensureLocalServer(true)</code>，<code>pendingSendAfterWake_</code> 确保唤醒后自动续发。</li>
+</ul>
+<h3 id="_9">录音输入<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<ul>
+<li>F2 录音：<code>ui_state_recoding()</code> 锁定按钮并更新占位；录音结束后 WAV 作为 <code>input_audio</code> 追加用户消息。</li>
+</ul>
+<h2 id="4">4. 按钮可用性速查<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>界面状态</th>
+<th>装载</th>
+<th>约定</th>
+<th>设置</th>
+<th>发送</th>
+<th>重置</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>init</code></td>
+<td>可用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>启动初始</td>
+</tr>
+<tr>
+<td><code>loading</code></td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>装载动画</td>
+</tr>
+<tr>
+<td><code>pushing</code></td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>可用</td>
+<td>推理/工具在途</td>
+</tr>
+<tr>
+<td><code>normal + chat</code></td>
+<td>可用</td>
+<td>载入/链接后可用</td>
+<td>同左</td>
+<td>载入/链接后可用</td>
+<td>载入/链接后可用</td>
+<td>默认待机</td>
+</tr>
+<tr>
+<td><code>normal + complete</code></td>
+<td>可用</td>
+<td>可用</td>
+<td>可用</td>
+<td>载入/链接后可用</td>
+<td>载入/链接后可用</td>
+<td>输入只读，输出可编辑</td>
+</tr>
+<tr>
+<td><code>recording</code></td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>禁用</td>
+<td>录音中</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5">5. 流程图<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<h3 id="_10">装载与模式切换<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><code><span class="n">flowchart</span><span class="w"> </span><span class="n">TD</span>
+<span class="w">    </span><span class="n">A</span><span class="p">[</span><span class="err">启动</span><span class="o">/</span><span class="err">待机</span><span class="p">]</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">B</span><span class="p">{</span><span class="err">点击装载</span><span class="p">}</span>
+<span class="w">    </span><span class="n">B</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">本地模式</span><span class="o">|</span><span class="w"> </span><span class="n">C</span><span class="p">[</span><span class="nf">preLoad</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">ensureLocalServer</span><span class="p">]</span>
+<span class="w">    </span><span class="n">C</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">D</span><span class="p">{</span><span class="n">llama</span><span class="o">-</span><span class="n">server</span><span class="w"> </span><span class="n">Ready</span><span class="o">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">D</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">成功</span><span class="o">|</span><span class="w"> </span><span class="n">E</span><span class="p">[</span><span class="n">onServerReady</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">unlockLoad</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">ui_state_normal</span><span class="p">]</span>
+<span class="w">    </span><span class="n">D</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">失败</span><span class="o">|</span><span class="w"> </span><span class="n">F</span><span class="p">[</span><span class="n">onServerStartFailed</span><span class="o">/</span><span class="n">unlockButtonsAfterError</span><span class="p">]</span>
+<span class="w">    </span><span class="n">B</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">链接模式</span><span class="o">|</span><span class="w"> </span><span class="n">G</span><span class="p">[</span><span class="n">set_api</span><span class="o">:</span><span class="w"> </span><span class="err">停本地后端</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="err">重建系统消息</span><span class="o">/</span><span class="err">记录</span><span class="p">]</span>
+<span class="w">    </span><span class="n">G</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">E</span>
+</code></pre></div>
+
+<h3 id="_11">一次发送/工具闭环<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><code><span class="n">flowchart</span><span class="w"> </span><span class="n">TD</span>
+<span class="w">    </span><span class="n">S</span><span class="p">[</span><span class="err">点击发送</span><span class="p">]</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">H</span><span class="p">{</span><span class="err">本地后端就绪?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">H</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">否</span><span class="o">|</span><span class="w"> </span><span class="n">W</span><span class="p">[</span><span class="s2">&quot;ensureLocalServer(true)</span><span class="se">\n</span><span class="s2">挂起 pendingSendAfterWake&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">H</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">是</span><span class="o">|</span><span class="w"> </span><span class="n">J</span><span class="p">[</span><span class="s2">&quot;startTurnFlow</span><span class="se">\n</span><span class="s2">收集输入/构建消息&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">J</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">K</span><span class="p">[</span><span class="s2">&quot;xNet::run</span><span class="se">\n</span><span class="s2">SSE 流式输出&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">K</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">L</span><span class="p">{</span><span class="err">模型输出工具</span><span class="w"> </span><span class="n">JSON</span><span class="err">?</span><span class="p">}</span>
+<span class="w">    </span><span class="n">L</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">否</span><span class="o">|</span><span class="w"> </span><span class="n">M</span><span class="p">[</span><span class="s2">&quot;recv_pushover</span><span class="se">\n</span><span class="s2">normal_finish_pushover&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">L</span><span class="w"> </span><span class="o">--&gt;|</span><span class="err">是</span><span class="o">|</span><span class="w"> </span><span class="n">N</span><span class="p">[</span><span class="s2">&quot;ui2tool_exec 调工具&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">N</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">O</span><span class="p">[</span><span class="s2">&quot;recv_toolpushover</span><span class="se">\n</span><span class="s2">写 tool 角色消息&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="n">O</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">J</span>
+</code></pre></div>
+
+<h2 id="6">6. 参考代码定位<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<ul>
+<li>主界面状态与流程：<code>src/widget/widget_state.cpp</code>, <code>src/widget/widget_session.cpp</code>, <code>src/widget/widget_toolflow.cpp</code>, <code>src/widget/widget_backend.cpp</code>, <code>src/widget/widget_link.cpp</code>.</li>
+<li>后端管理：<code>src/xbackend.*</code>, <code>src/widget/widget_backend.cpp</code>.</li>
+<li>网络流式请求：<code>src/xnet.*</code>, <code>src/widget/widget_output.cpp</code>（输出渲染）。</li>
+<li>录音：<code>src/widget/widget_media.cpp</code>, <code>src/widget/widget_state.cpp</code>.</li>
+</ul>
+<h2 id="11">11. 工具调用核心链路<a class="headerlink" href="#11" title="Permanent link">&para;</a></h2>
+<p>1) <strong>约定注入</strong>：在约定窗口勾选工具（计算器/文生图/知识库/MCP/系统工程师等）后，<code>get_date()</code> 将工具调用说明与系统提示词合并到 <code>ui_DATES.date_prompt</code>，并持久化当前工具开关。
+2) <strong>构建消息</strong>：<code>on_send_clicked()</code> → <code>collectUserInputs()</code> 收集文本/图像/文档/音频，<code>handleChatReply()</code> 将用户消息入 <code>ui_messagesArray</code>，随后 <code>prepareEndpointData()</code> 带上系统指令与 stopwords 推送给 <code>xNet::run()</code>（OpenAI 兼容格式）。
+3) <strong>模型发起工具</strong>：<code>recv_pushover()</code> 获取助手输出，利用 <code>XMLparser</code> 解析 <code>&lt;tool&gt;...&lt;/tool&gt;</code> JSON（包含 <code>name/arguments</code>）。未命中工具即视为直接回答。
+4) <strong>工具执行</strong>：命中工具则 <code>toolInvocationActive_=true</code>，<code>emit ui2tool_exec(tools_call)</code> 交由 <code>xtool</code> 路由（计算器、stablediffusion、知识库、MCP、系统工程师代理等），<code>FlowPhase::ToolStart</code> 打点。
+5) <strong>结果回灌</strong>：工具结果通过 <code>recv_toolpushover()</code> 写入 <code>tool_result</code> 并以 <code>tool</code> 角色添加到 <code>ui_messagesArray</code>；<code>handleToolLoop()</code> 再次触发 <code>on_send_clicked()</code> 形成模型-工具闭环。
+6) <strong>结束判定</strong>：当模型输出 <code>answer/response/system_engineer_proxy</code> 或无工具 JSON 时，<code>normal_finish_pushover()</code> 结束回合；补完模式会自动重置。
+7) <strong>提示词关注点</strong>：工具启用会让系统提示词包含工具描述与调用格式（含 <code>&lt;tool&gt;</code> 包裹的 JSON）；工具链中 reasoning token 在 LINK 模式下会被扣除，避免 KV 记忆膨胀。</p>
+<h2 id="12-docker">12. 系统架构师/工程师 Docker 沙盒流程<a class="headerlink" href="#12-docker" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>模式选择</strong>：约定窗口的“docker target”下拉决定沙盒模式：<code>None</code>（不启用）、<code>Image</code>（基于镜像新容器）、<code>Container</code>（复用已有容器）。选择后写入 <code>dockerTargetMode_</code> 并持久化。</li>
+<li><strong>启用条件</strong>：勾选系统工程师且目标模式 ≠ <code>None</code> 时，<code>ui_dockerSandboxEnabled=true</code>，主界面进入工程师锁（<code>engineerUiLockActive_</code> / <code>wakeUiLocked_</code>）直至沙盒就绪。</li>
+<li><strong>工作目录与挂载</strong>：默认宿主工作目录 <code>{applicationDir}/EVA_WORK</code>；容器内统一 <code>/eva_workspace</code>，技能目录 <code>/eva_skills</code> 自动映射。缺失挂载时会提示修复并调用 <code>ui2tool_fixDockerContainerMount</code>。</li>
+<li><strong>就绪判定</strong>：<code>recv_docker_status</code> 返回 <code>ready=true</code> 后解锁；容器模式若缺少绑定会弹窗提示并在确认后重建容器。状态会刷新系统提示块，提示当前镜像/容器、挂载路径。</li>
+<li><strong>操作路径</strong>：
+  1) 打开约定/设置 → 选择 docker 模式与镜像/容器 → 确认后写入配置。
+  2) 若需要，切换工程师工作目录（影响挂载源），再刷新约定以更新系统提示词。
+  3) 触发发送时，如沙盒未就绪会延迟并保持 UI 锁，待就绪后自动继续。</li>
+<li><strong>异常处理</strong>：沙盒错误会保持锁定并输出错误信息；用户可重开约定/设置调整镜像/容器或关闭沙盒（选择 None）后解锁。</li>
+</ul>
+<h2 id="7">7. 异常恢复速查<a class="headerlink" href="#7" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>触发节点</th>
+<th>UI/状态处理</th>
+<th>操作建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本地后端启动失败</td>
+<td><code>onServerStartFailed</code></td>
+<td>解锁按钮、停止动画，必要时端口降级或 Win7 CPU 回退</td>
+<td>检查端口占用/后端可执行文件，重新装载或改端口</td>
+</tr>
+<tr>
+<td>端口冲突</td>
+<td><code>onServerOutput</code> 检测 bind 失败</td>
+<td>触发 <code>initiatePortFallback</code>，降级到随机/可用端口</td>
+<td>记录提示后自动重试，必要时手动指定新端口</td>
+</tr>
+<tr>
+<td>推理中止（手动停）</td>
+<td><code>on_reset_clicked</code> -&gt; <code>ui2net_stop(1)</code></td>
+<td>停止 SSE，<code>recv_stopover</code> 后自动重置</td>
+<td>如需保留上下文，可改用补完模式手动编辑</td>
+</tr>
+<tr>
+<td>工具异常/取消</td>
+<td><code>toolInvocationActive_</code> + <code>ui2tool_cancelActive</code></td>
+<td>立即解锁，输出“tool cancelled”</td>
+<td>重新触发发送或检查工具参数</td>
+</tr>
+<tr>
+<td>后端异常日志</td>
+<td><code>onServerOutput</code> 检测 fatal/segfault</td>
+<td>停动画，<code>unlockButtonsAfterError</code>，<code>is_run=false</code></td>
+<td>查看终端日志，重启后端/更换模型</td>
+</tr>
+<tr>
+<td>惰性卸载超时</td>
+<td><code>performLazyUnloadInternal</code></td>
+<td>仅停 llama-server，保留代理端口</td>
+<td>发送时自动唤醒；如频繁唤醒可关闭惰性卸载或延长超时</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8">8. 锁与状态转移细化<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code><span class="n">stateDiagram</span><span class="o">-</span><span class="n">v2</span>
+<span class="w">    </span><span class="p">[</span><span class="o">*</span><span class="p">]</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Init</span>
+<span class="w">    </span><span class="n">Init</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Loading</span><span class="p">:</span><span class="w"> </span><span class="n">on_load</span><span class="o">/</span><span class="n">preLoad</span>
+<span class="w">    </span><span class="n">Loading</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Ready</span><span class="p">:</span><span class="w"> </span><span class="n">onServerReady</span><span class="o">/</span><span class="n">unlockLoad</span>
+<span class="w">    </span><span class="n">Ready</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Pushing</span><span class="p">:</span><span class="w"> </span><span class="n">on_send_clicked</span>
+<span class="w">    </span><span class="n">Pushing</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">ToolWait</span><span class="p">:</span><span class="w"> </span><span class="n">toolInvocationActive_</span>
+<span class="w">    </span><span class="n">ToolWait</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Pushing</span><span class="p">:</span><span class="w"> </span><span class="n">recv_toolpushover</span>
+<span class="w">    </span><span class="n">Pushing</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Ready</span><span class="p">:</span><span class="w"> </span><span class="n">normal_finish_pushover</span>
+<span class="w">    </span><span class="n">Ready</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Recording</span><span class="p">:</span><span class="w"> </span><span class="n">F2</span><span class="w"> </span><span class="n">start</span>
+<span class="w">    </span><span class="n">Recording</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Ready</span><span class="p">:</span><span class="w"> </span><span class="n">F2</span><span class="w"> </span><span class="n">stop</span>
+<span class="w">    </span><span class="n">Ready</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">LazyUnloaded</span><span class="p">:</span><span class="w"> </span><span class="n">performLazyUnloadInternal</span>
+<span class="w">    </span><span class="n">LazyUnloaded</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Loading</span><span class="p">:</span><span class="w"> </span><span class="n">ensureLocalServer</span><span class="p">(</span><span class="bp">true</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">state</span><span class="w"> </span><span class="n">Ready</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="p">[</span><span class="o">*</span><span class="p">]</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Unlocked</span>
+<span class="w">        </span><span class="n">Unlocked</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">WakeLocked</span><span class="p">:</span><span class="w"> </span><span class="n">wakeUiLocked_</span><span class="o">/</span><span class="n">engineerUiLockActive_</span>
+<span class="w">        </span><span class="n">WakeLocked</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">Unlocked</span><span class="p">:</span><span class="w"> </span><span class="n">applyWakeUiLock</span><span class="p">(</span><span class="bp">false</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+</code></pre></div>
+
+<h2 id="9-kvtoken">9. KV/Token 更新路径<a class="headerlink" href="#9-kvtoken" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>提示基线</strong>：<code>net2ui_prompt_baseline</code> / <code>recv_turn_counters</code> / llama-server <code>prompt done</code> 日志 → <code>kvPromptTokensTurn_</code>、<code>kvUsedBeforeTurn_</code> 更新。</li>
+<li><strong>流式生成</strong>：<code>net2ui_kv_tokens</code> / <code>recv_turn_counters</code> / <code>total time</code> 日志 → <code>kvStreamedTurn_</code>、<code>kvTokensTurn_</code>、<code>kvUsed_</code> 更新。</li>
+<li><strong>LINK 特例</strong>：缺少本地日志时接受网络侧增量；工具链时剔除 reasoning token 避免记忆膨胀。</li>
+<li><strong>UI 展示</strong>：<code>updateKvBarUi()</code> 统一转换百分比；<code>FlowTracer</code> 的 <code>FlowPhase::NetRequest/Streaming/NetDone</code> 帮助追踪回合耗用。</li>
+</ul>
+<h2 id="10">10. 增殖窗口与技能入口<a class="headerlink" href="#10" title="Permanent link">&para;</a></h2>
+<ul>
+<li>窗口索引（<code>xconfig.h::window_map</code>）：软件介绍、模型信息、模型评估、模型量化、MCP、知识库、文生图、声转文、文转声。</li>
+<li>触发：主界面按钮/托盘菜单调用 <code>ui2expend_show(PREV_WINDOW/指定窗口)</code>。</li>
+<li>依赖摘要：</li>
+<li>知识库：需要嵌入服务端口 <code>DEFAULT_EMBEDDING_PORT</code>，上传文本后向量入库；启用“知识库”工具时可检索。</li>
+<li>文生图：默认模型路径 <code>EVA_MODELS/text2image/sd1.5-anything-3-q8_0.gguf</code>，工具名 <code>stablediffusion</code>，图像结果通过 <code>&lt;ylsdamxssjxxdd:showdraw&gt;</code> 回填。</li>
+<li>声转文/文转声：默认路径分别绑定最小 whisper/tts.cpp 模型。</li>
+<li>模型量化/评估：依赖 <code>EVA_BACKEND</code> 下对应可执行文件，按当前模式显示。</li>
+<li>技能：<code>SkillManager</code> 异步加载技能，右键系统工程师可升级为系统架构师代理，工具调用由 <code>system_engineer_proxy</code> 统一出入口。</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.expand", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

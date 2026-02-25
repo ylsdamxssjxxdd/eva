@@ -1,0 +1,1439 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）">
+      
+      
+        <meta name="author" content="EVA Team">
+      
+      
+        <link rel="canonical" href="https://ylsdamxssjxxdd.github.io/eva/%E6%9C%BA%E4%BD%93%E6%8C%81%E4%B9%85%E5%8C%96%E6%96%B9%E6%A1%88/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>机体持久化方案（面向 24 小时长期助手） - EVA 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#24" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="EVA 文档" class="md-header__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EVA 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              机体持久化方案（面向 24 小时长期助手）
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="EVA 文档" class="md-nav__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    EVA 文档
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速使用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速使用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/01-%E5%AF%B9%E8%AF%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/02-%E8%A1%A5%E5%AE%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    补完
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/03-%E8%AF%AD%E9%9F%B3%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/04-%E8%A7%86%E8%A7%89%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    视觉交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/05-%E6%96%87%E7%94%9F%E5%9B%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文生图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/06-%E7%9F%A5%E8%AF%86%E5%BA%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识库
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/07-MCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/08-%E7%B3%BB%E7%BB%9F%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统工程师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/09-%E4%BD%BF%E7%94%A8%E6%B2%99%E7%9B%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用沙盒
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/10-%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/11-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/12-%E6%9C%BA%E4%BD%93%E6%8E%A7%E5%88%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体控制
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/13-%E6%A1%8C%E9%9D%A2%E6%8E%A7%E5%88%B6%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    桌面控制器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他文档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他文档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    软件技术说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%9C%BA%E4%BD%93%E8%8A%82%E7%82%B9%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A2%B3%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文档解析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E5%8A%9F%E8%83%BD%E8%BF%AD%E4%BB%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能迭代
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 现状分析（基于当前代码）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 现状分析（基于当前代码）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 已有持久化基础
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 工具调用链路
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 UI 记录条（适合承载“压缩记录块”）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 持久化目录与结构（新增）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-compaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 上下文压缩（Compaction）设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 上下文压缩（Compaction）设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 触发条件（自动 + 手动）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-openclaw-compaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 压缩流程（参考 openclaw compaction）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 摘要结构建议
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 UI 呈现（按你的要求）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 防爆策略（长对话）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-scheduler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 定时任务（Scheduler）设计
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 定时任务（Scheduler）设计">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 工具调用方式（按你最新设定）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 调度器实现（前端内置）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 执行模式
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 UI（增殖窗口新增“定时任务页”）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-queue-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 长链路执行优化（Queue + Workflow）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. 长链路执行优化（Queue + Workflow）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-openclaw-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 任务队列（参考 openclaw queue）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-lobster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 工作流执行器（参考 Lobster 思路）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 任务预算与降噪
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-xconfigh-eva_configini" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 配置项建议（写入 xconfig.h + eva_config.ini）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 实施阶段（落地顺序）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 结论
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="24">机体持久化方案（面向 24 小时长期助手）<a class="headerlink" href="#24" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>目标：把 EVA 从“实验型对话”升级为<strong>长时间稳定运行</strong>、<strong>可恢复</strong>、<strong>可审计</strong>的全天候助手。
+重点引入：<strong>上下文压缩</strong>、<strong>定时任务</strong>、<strong>长链路执行优化</strong>。
+参考方向：<code>参考项目/openclaw-main</code> 的 Compaction / Memory Flush / Queue / Cron+Heartbeat / Lobster 思路。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 现状分析（基于当前代码）<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11">1.1 已有持久化基础<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>历史会话</strong>：<code>src/utils/history_store.h</code> 使用 <code>meta.json + messages.jsonl</code> 持久化（JSONL 追加写）。</li>
+<li><strong>会话恢复</strong>：<code>Widget::restoreSessionById</code> 支持从 JSONL 还原并重建记录条。</li>
+<li><strong>配置落盘</strong>：<code>EVA_TEMP/eva_config.ini</code> 统一保存设置、约定等。</li>
+</ul>
+<h3 id="12">1.2 工具调用链路<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>widget_toolflow.cpp</code> 既支持 <code>tool_call</code>（文本解析）也支持 <code>function_call</code>（工具结构化），并将结果追加到历史。</li>
+<li><code>prompt.cpp</code> 统一生成工具 schema；工具启用即注入系统提示词。</li>
+</ul>
+<h3 id="13-ui">1.3 UI 记录条（适合承载“压缩记录块”）<a class="headerlink" href="#13-ui" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>RecordRole</code> + <code>recordEntries_</code> 已构成“记录条/记录块”的数据模型。</li>
+<li><code>recordBar</code> 支持显示不同角色颜色和图标；适合新增“压缩角色”。</li>
+<li>输出区为<strong>纯文本</strong>，可通过颜色区分角色（符合你要求）。</li>
+</ul>
+<p>结论：现有历史、工具、UI 能直接承接“压缩 + 调度 + 长链路”改造，只需补齐机制与持久化结构。</p>
+<hr />
+<h2 id="2">2. 持久化目录与结构（新增）<a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code>EVA_TEMP/
+  eva_config.ini
+  history/&lt;sessionId&gt;/{meta.json,messages.jsonl}
+  compaction/&lt;sessionId&gt;/summary.jsonl
+  memory/{MEMORY.md,YYYY-MM-DD.md}
+  cron/
+    jobs.json
+    runs/&lt;jobId&gt;.jsonl
+  workflows/&lt;runId&gt;.json
+  artifacts/
+</code></pre></div>
+
+<ul>
+<li><strong>compaction/</strong>：保存压缩摘要（JSONL 追加），允许多次压缩留档。</li>
+<li><strong>memory/</strong>：持久记忆（长期事实与偏好）与日记（临时记事）。</li>
+<li><strong>cron/</strong>：任务定义与运行记录。</li>
+<li><strong>workflows/</strong>：长链路执行的步骤状态与断点。</li>
+<li><strong>artifacts/</strong>：大结果（长日志/大文本/图片）落盘，只在消息中引用。</li>
+</ul>
+<hr />
+<h2 id="3-compaction">3. 上下文压缩（Compaction）设计<a class="headerlink" href="#3-compaction" title="Permanent link">&para;</a></h2>
+<h3 id="31">3.1 触发条件（自动 + 手动）<a class="headerlink" href="#31" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>自动触发</strong>：根据 <code>kvUsed_ / slotCtxMax_</code> 逼近上限时触发。</li>
+<li>例：<code>kvUsed_ &gt; slotCtxMax_ - reserveTokens</code>。</li>
+<li><strong>手动触发</strong>：提供“压缩”指令或按钮（可放在约定/设置中）。</li>
+</ul>
+<h3 id="32-openclaw-compaction">3.2 压缩流程（参考 openclaw compaction）<a class="headerlink" href="#32-openclaw-compaction" title="Permanent link">&para;</a></h3>
+<p>1) <strong>预压缩记忆刷新（Memory Flush）</strong>：
+   - 触发前，先进行一次“静默记忆写入回合”。
+   - 让模型把“长期有效内容”写入 <code>memory/</code>，避免被压缩遗漏。
+2) <strong>摘要生成</strong>：
+   - 选取“旧对话片段”生成摘要，保留最新 N 轮原文。
+   - 摘要写入 <code>compaction/&lt;sessionId&gt;/summary.jsonl</code>。
+3) <strong>摘要注入会话</strong>：
+   - 将摘要作为新消息插入历史（建议 role=<code>compact</code>）。
+   - 仅保留摘要 + 最新消息链路，达到窗口收缩。</p>
+<h3 id="33">3.3 摘要结构建议<a class="headerlink" href="#33" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;compact&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;summary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;range&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;to&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;tokens_before&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12000</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;tokens_after&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5400</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-02T22:00:00+08:00&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="34-ui">3.4 UI 呈现（按你的要求）<a class="headerlink" href="#34-ui" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>输出区</strong>：纯文本，摘要用<strong>紫色</strong>输出。</li>
+<li><strong>记录条</strong>：新增“压缩角色”记录块（紫色、标记 C）。</li>
+<li><strong>点击记录块</strong>：可编辑/查看摘要文本。</li>
+</ul>
+<blockquote>
+<p>这部分已在记录条体系中落位：新增 <code>RecordRole::Compact</code> + 紫色配色 + 记录块标记。</p>
+</blockquote>
+<h3 id="35">3.5 防爆策略（长对话）<a class="headerlink" href="#35" title="Permanent link">&para;</a></h3>
+<ul>
+<li>大工具输出：落盘到 <code>artifacts/</code>，只在消息里留下摘要和文件路径。</li>
+<li>旧消息摘要：只保留“决策/结论/待办/长期事实”。</li>
+</ul>
+<hr />
+<h2 id="4-scheduler">4. 定时任务（Scheduler）设计<a class="headerlink" href="#4-scheduler" title="Permanent link">&para;</a></h2>
+<h3 id="41">4.1 工具调用方式（按你最新设定）<a class="headerlink" href="#41" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>默认使用 <code>tool_call</code></strong>。</li>
+<li><strong>默认挂载系统工程师工具</strong>，并扩展其中的定时任务工具。</li>
+</ul>
+<p>建议工具名：<code>schedule_task</code>（系统工程师工具内置）</p>
+<p><strong>Schema 示例（与 openclaw cron 思路对齐）</strong>：</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;action&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;add|update|remove|enable|disable|get|list|run&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;job&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;optional&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;schedule&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;at|every|cron&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-02-03T09:00:00+08:00&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;every_ms&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3600000</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;cron&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0 7 * * *&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;tz&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Asia/Shanghai&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;session&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;main|isolated&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;deliver&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ui&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;summary&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;delete_after_run&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;dedupe_key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;optional&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="42">4.2 调度器实现（前端内置）<a class="headerlink" href="#42" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>SchedulerService</code>（QTimer 驱动）：只维护<strong>最近一次触发</strong>的单次定时器。</li>
+<li>任务定义落盘：<code>EVA_TEMP/cron/jobs.json</code>。</li>
+<li>运行记录落盘：<code>EVA_TEMP/cron/runs/&lt;jobId&gt;.jsonl</code>。</li>
+<li>重启时重新加载并恢复下一次执行时间。</li>
+</ul>
+<h3 id="43">4.3 执行模式<a class="headerlink" href="#43" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>main</strong>：主会话系统事件（适合提醒、轻量巡检）。</li>
+<li><strong>isolated</strong>：独立会话 <code>cron:&lt;jobId&gt;</code>，避免污染主上下文；结果摘要回写主会话。</li>
+</ul>
+<h3 id="44-ui">4.4 UI（增殖窗口新增“定时任务页”）<a class="headerlink" href="#44-ui" title="Permanent link">&para;</a></h3>
+<ul>
+<li>列表字段：名称 / 状态 / 下次执行时间 / 倒计时。</li>
+<li>点击任务显示详情（schedule/payload/最近执行记录/错误）。</li>
+<li>支持：启用/禁用/立即执行/删除。</li>
+<li>每次 <code>schedule_task</code> 调用后自动刷新列表。</li>
+</ul>
+<hr />
+<h2 id="5-queue-workflow">5. 长链路执行优化（Queue + Workflow）<a class="headerlink" href="#5-queue-workflow" title="Permanent link">&para;</a></h2>
+<h3 id="51-openclaw-queue">5.1 任务队列（参考 openclaw queue）<a class="headerlink" href="#51-openclaw-queue" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：避免多个长任务并发冲突，保证稳定性与可恢复。</li>
+<li><strong>做法</strong>：</li>
+<li>按 session 维度排队（同一会话串行）。</li>
+<li>全局并发上限（默认 1~2）。</li>
+<li>支持 <code>collect/steer/followup</code> 等消息合并策略。</li>
+</ul>
+<h3 id="52-lobster">5.2 工作流执行器（参考 Lobster 思路）<a class="headerlink" href="#52-lobster" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>WorkflowRunner</strong>：把多步工具链固化为“步骤图”。</li>
+<li>每一步都有状态：<code>pending/running/done/failed</code>，并持久化到 <code>workflows/&lt;runId&gt;.json</code>。</li>
+<li>支持断点恢复：崩溃后读取 JSON 继续。</li>
+<li>长输出写入 <code>artifacts/</code>，正文只展示摘要 + 文件路径。</li>
+</ul>
+<h3 id="53">5.3 任务预算与降噪<a class="headerlink" href="#53" title="Permanent link">&para;</a></h3>
+<ul>
+<li>每个 workflow 设定最大 token / 最大时间 / 最大工具调用次数。</li>
+<li>失败时进入退避重试，超过阈值转为“失败摘要”。</li>
+</ul>
+<hr />
+<h2 id="6-xconfigh-eva_configini">6. 配置项建议（写入 xconfig.h + eva_config.ini）<a class="headerlink" href="#6-xconfigh-eva_configini" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code><span class="c1"># tool_call 默认</span>
+<span class="na">tool_call_mode_default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">tool_call</span>
+<span class="na">engineer_tool_default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+
+<span class="c1"># compaction</span>
+<span class="na">compaction_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<span class="na">compaction_reserve_tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">2000</span>
+<span class="na">compaction_keep_last_turns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">8</span>
+<span class="na">compaction_trigger_ratio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">0.85</span>
+<span class="na">memory_flush_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+
+<span class="c1"># scheduler</span>
+<span class="na">cron_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<span class="na">cron_min_interval_ms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">60000</span>
+<span class="na">cron_page_refresh_ms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1000</span>
+
+<span class="c1"># workflow/queue</span>
+<span class="na">workflow_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+<span class="na">queue_max_concurrent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1</span>
+<span class="na">queue_debounce_ms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1000</span>
+<span class="na">queue_overflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">summarize</span>
+</code></pre></div>
+
+<hr />
+<h2 id="7">7. 实施阶段（落地顺序）<a class="headerlink" href="#7" title="Permanent link">&para;</a></h2>
+<p><strong>Phase A：默认行为调整</strong>
+- 默认 tool_call + 默认工程师工具。
+- 工程师提示词改为“长期稳定工作 / 高质量交付 / 使用定时任务”。</p>
+<p><strong>Phase B：上下文压缩</strong>
+- 压缩触发 + 记忆刷新 + 摘要持久化。
+- UI 记录条新增“压缩记录块”。</p>
+<p><strong>Phase C：定时任务</strong>
+- <code>schedule_task</code> 工具 + SchedulerService + cron 持久化。
+- 增殖窗口新增“定时任务页”。</p>
+<p><strong>Phase D：长链路优化</strong>
+- 队列系统 + WorkflowRunner + 断点恢复。</p>
+<hr />
+<h2 id="8">8. 结论<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<ul>
+<li>现有 EVA 架构已具备“持久化 + 记录条 + 工具链”基础。</li>
+<li>通过 <strong>Compaction + Scheduler + Workflow</strong> 三件套，即可完成“24 小时长期助手”转型。</li>
+<li>UI 上只需：<strong>纯文本输出 + 紫色压缩记录块</strong>，与当前交互风格一致。</li>
+</ul>
+<p>如确认方案，我将按 Phase A → D 逐步落地实现。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.expand", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

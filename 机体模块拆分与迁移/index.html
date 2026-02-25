@@ -1,0 +1,1747 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）">
+      
+      
+        <meta name="author" content="EVA Team">
+      
+      
+        <link rel="canonical" href="https://ylsdamxssjxxdd.github.io/eva/%E6%9C%BA%E4%BD%93%E6%A8%A1%E5%9D%97%E6%8B%86%E5%88%86%E4%B8%8E%E8%BF%81%E7%A7%BB/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>机体模块拆分与迁移顺序（草案） - EVA 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="EVA 文档" class="md-header__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EVA 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              机体模块拆分与迁移顺序（草案）
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="EVA 文档" class="md-nav__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    EVA 文档
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速使用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速使用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/01-%E5%AF%B9%E8%AF%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/02-%E8%A1%A5%E5%AE%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    补完
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/03-%E8%AF%AD%E9%9F%B3%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/04-%E8%A7%86%E8%A7%89%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    视觉交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/05-%E6%96%87%E7%94%9F%E5%9B%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文生图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/06-%E7%9F%A5%E8%AF%86%E5%BA%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识库
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/07-MCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/08-%E7%B3%BB%E7%BB%9F%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统工程师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/09-%E4%BD%BF%E7%94%A8%E6%B2%99%E7%9B%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用沙盒
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/10-%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/11-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/12-%E6%9C%BA%E4%BD%93%E6%8E%A7%E5%88%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体控制
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/13-%E6%A1%8C%E9%9D%A2%E6%8E%A7%E5%88%B6%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    桌面控制器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他文档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他文档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    软件技术说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%9C%BA%E4%BD%93%E8%8A%82%E7%82%B9%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A2%B3%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文档解析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E5%8A%9F%E8%83%BD%E8%BF%AD%E4%BB%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能迭代
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. 一句话结论
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 模块拆分草案
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 模块拆分草案">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 逻辑层级
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 模块清单与职责（草案）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 关键边界与数据模型（建议）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 关键边界与数据模型（建议）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 统一快照结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 统一状态机
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-mermaid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 迁移顺序图（Mermaid）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 迁移步骤说明（建议顺序）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. 迁移步骤说明（建议顺序）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-appbootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1：抽离 AppBootstrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-sessioncontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2：抽离 SessionController
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-toolflowcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3：抽离 ToolFlowController
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4netclient" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4：NetClient 快照化
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5backendcoordinator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5：BackendCoordinator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6toolexecutor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6：ToolExecutor 整理
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7widget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7：Widget 瘦身
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 迁移清单（具体类名/文件落点）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.1 迁移清单（具体类名/文件落点）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1appbootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1：AppBootstrap（启动与配置）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2sessioncontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2：SessionController（会话编排）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3toolflowcontroller" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3：ToolFlowController（工具回环）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4netclient_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4：NetClient（快照化请求）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5backendcoordinator_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5：BackendCoordinator（本地后端）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6toolexecutor_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6：ToolExecutor（工具执行）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-7widget-ui-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7：Widget 瘦身（UI-only）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 风险与回滚策略
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 补充建议
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="_1">机体模块拆分与迁移顺序（草案）<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>目标：在不改变功能体验的前提下，将“上帝类”与跨线程可变状态拆散为清晰模块，降低耦合、提升可维护性与可测性。</p>
+</blockquote>
+<hr />
+<h2 id="0">0. 一句话结论<a class="headerlink" href="#0" title="Permanent link">&para;</a></h2>
+<p>当前架构已具备清晰的“前端/编排/服务/后端”分层，但大量核心流程集中在 <code>Widget</code> 与 <code>main.cpp</code>。建议按“会话编排 / 工具链 / 网络 / 后端 / 资源”拆分，并用统一状态机与不可变快照取代多组布尔状态，降低线程与职责交叉。</p>
+<hr />
+<h2 id="1">1. 模块拆分草案<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11">1.1 逻辑层级<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>app 启动层</strong>：只负责初始化、配置加载、线程/对象装配。</li>
+<li><strong>ui 交互层</strong>：仅处理界面显示、用户交互与信号转发。</li>
+<li><strong>core 编排层</strong>：会话、工具回环、状态机、提示词构建。</li>
+<li><strong>service 服务层</strong>：网络、后端、MCP、技能、调度等能力提供者。</li>
+<li><strong>storage 资源层</strong>：持久化、向量库、缓存、历史等。</li>
+</ul>
+<h3 id="12">1.2 模块清单与职责（草案）<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>主要职责</th>
+<th>现有文件起点</th>
+<th>拟迁移目录</th>
+<th>对外接口草案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AppBootstrap</strong></td>
+<td>启动/配置迁移/线程装配/默认模型发现</td>
+<td><code>src/main.cpp</code></td>
+<td><code>src/app/</code></td>
+<td><code>AppContext build()</code></td>
+</tr>
+<tr>
+<td><strong>Widget(UI)</strong></td>
+<td>UI 渲染/交互/信号绑定</td>
+<td><code>src/widget/*</code></td>
+<td><code>src/ui/</code></td>
+<td><code>WidgetView</code>(signals/slots)</td>
+</tr>
+<tr>
+<td><strong>SessionController</strong></td>
+<td>会话状态机、历史、KV统计、compaction</td>
+<td><code>widget_session.cpp</code> + <code>history_store.*</code></td>
+<td><code>src/core/session/</code></td>
+<td><code>startTurn()/finishTurn()</code></td>
+</tr>
+<tr>
+<td><strong>ToolFlowController</strong></td>
+<td>工具解析/回环/工具结果注入</td>
+<td><code>widget_toolflow.cpp</code></td>
+<td><code>src/core/toolflow/</code></td>
+<td><code>handleToolCalls()</code></td>
+</tr>
+<tr>
+<td><strong>PromptService</strong></td>
+<td>提示词库与构建</td>
+<td><code>prompt.*</code> + <code>prompt_builder.*</code></td>
+<td><code>src/core/prompt/</code></td>
+<td><code>buildMessages()</code></td>
+</tr>
+<tr>
+<td><strong>NetClient</strong></td>
+<td>HTTP/SSE请求与流解析</td>
+<td><code>xnet.*</code></td>
+<td><code>src/service/net/</code></td>
+<td><code>send(RequestSnapshot)</code></td>
+</tr>
+<tr>
+<td><strong>BackendCoordinator</strong></td>
+<td>本地后端生命周期/端口代理</td>
+<td><code>xbackend.*</code> + <code>net/localproxy.*</code></td>
+<td><code>src/service/backend/</code></td>
+<td><code>ensureLocalServer()</code></td>
+</tr>
+<tr>
+<td><strong>McpClient</strong></td>
+<td>MCP 工具拉取/调用</td>
+<td><code>xmcp.*</code></td>
+<td><code>src/service/mcp/</code></td>
+<td><code>listTools()/callTool()</code></td>
+</tr>
+<tr>
+<td><strong>ToolExecutor</strong></td>
+<td>工具执行、Docker 沙盒、桌面控制器</td>
+<td><code>xtool.*</code> + <code>utils/docker_sandbox.*</code></td>
+<td><code>src/service/tools/</code></td>
+<td><code>execute(ToolRequest)</code></td>
+</tr>
+<tr>
+<td><strong>SchedulerService</strong></td>
+<td>定时任务调度</td>
+<td><code>utils/scheduler_service.*</code></td>
+<td><code>src/service/scheduler/</code></td>
+<td><code>schedule()/run()</code></td>
+</tr>
+<tr>
+<td><strong>SkillService</strong></td>
+<td>技能加载/注入</td>
+<td><code>skill/skill_manager.*</code></td>
+<td><code>src/service/skill/</code></td>
+<td><code>load()/apply()</code></td>
+</tr>
+<tr>
+<td><strong>Storage</strong></td>
+<td>历史/向量库/持久化</td>
+<td><code>utils/history_store.*</code> + <code>utils/vectordb.*</code></td>
+<td><code>src/storage/</code></td>
+<td><code>save/load()</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注：目录名仅为建议，可按当前工程风格调整。</p>
+</blockquote>
+<hr />
+<h2 id="2">2. 关键边界与数据模型（建议）<a class="headerlink" href="#2" title="Permanent link">&para;</a></h2>
+<h3 id="21">2.1 统一快照结构<a class="headerlink" href="#21" title="Permanent link">&para;</a></h3>
+<p>将跨线程可变字段改为“不可变快照”，避免 UI 直接写 worker 对象的成员变量。
+- <code>AppContext</code>：应用路径、资源路径、设备与后端解析结果。
+- <code>SettingsSnapshot</code>：采样参数/后端参数/工具开关（读取后只读）。
+- <code>RequestSnapshot</code>：一次请求的消息与采样参数（NetClient 仅接收快照）。
+- <code>ToolRequest/ToolResult</code>：工具调用输入/输出结构化对象。</p>
+<h3 id="22">2.2 统一状态机<a class="headerlink" href="#22" title="Permanent link">&para;</a></h3>
+<p>当前 <code>Widget</code> 内存在多组状态布尔（is_run/turnActive_/toolInvocationActive_/compaction*），建议合并为：
+- <code>SessionState</code>：Idle / Sending / ToolRunning / Compaction / Canceling
+- <code>UiState</code>：Normal / Loading / Pushing / Recording
+并显式列出状态转移表，避免互斥状态同时为 true。</p>
+<hr />
+<h2 id="3-mermaid">3. 迁移顺序图（Mermaid）<a class="headerlink" href="#3-mermaid" title="Permanent link">&para;</a></h2>
+<div class="codehilite"><pre><span></span><code><span class="n">flowchart</span><span class="w"> </span><span class="n">TD</span>
+<span class="w">  </span><span class="n">S0</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="err">现状基线</span>
+<span class="err">整理现有入口</span><span class="o">/</span><span class="err">日志</span><span class="o">/</span><span class="err">单测</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S1</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">AppBootstrap</span>
+<span class="err">抽出配置加载与默认模型发现</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S2</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="n">SessionController</span>
+<span class="err">会话</span><span class="o">+</span><span class="err">历史</span><span class="o">+</span><span class="n">compaction</span><span class="w"> </span><span class="err">迁移</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S3</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="n">ToolFlowController</span>
+<span class="err">工具解析与回环迁移</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S4</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="n">NetClient</span>
+<span class="err">不可变请求快照化</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S5</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="n">BackendCoordinator</span>
+<span class="err">本地后端与代理职责独立</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S6</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="n">ToolExecutor</span>
+<span class="err">工具执行</span><span class="o">/</span><span class="err">沙盒</span><span class="o">/</span><span class="err">控制器整理</span><span class="p">]</span>
+<span class="w">  </span><span class="n">S7</span><span class="p">[</span><span class="n">Step</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="n">Widget瘦身</span>
+<span class="err">状态机收拢</span><span class="o">+</span><span class="n">UI仅绑定</span><span class="p">]</span>
+
+<span class="w">  </span><span class="n">S0</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S1</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S2</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S3</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S4</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S5</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S6</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">S7</span>
+</code></pre></div>
+
+<hr />
+<h2 id="4">4. 迁移步骤说明（建议顺序）<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<h3 id="step-1-appbootstrap">Step 1：抽离 AppBootstrap<a class="headerlink" href="#step-1-appbootstrap" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：<code>main.cpp</code> 仅保留“装配”，复杂初始化下沉。</li>
+<li><strong>动作</strong>：封装 <code>ConfigMigrator/DefaultModelFinder</code>。</li>
+<li><strong>验收</strong>：启动行为不变，日志一致。</li>
+</ul>
+<h3 id="step-2-sessioncontroller">Step 2：抽离 SessionController<a class="headerlink" href="#step-2-sessioncontroller" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：把会话状态、历史持久化、compaction 逻辑从 <code>Widget</code> 中移除。</li>
+<li><strong>动作</strong>：SessionController 接收 UI 信号并返回渲染事件。</li>
+<li><strong>验收</strong>：聊天/重置/历史恢复无回归。</li>
+</ul>
+<h3 id="step-3-toolflowcontroller">Step 3：抽离 ToolFlowController<a class="headerlink" href="#step-3-toolflowcontroller" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：工具解析与回环专职化。</li>
+<li><strong>动作</strong>：统一 <code>tool_call/function_call</code> 解析入口。</li>
+<li><strong>验收</strong>：工具循环与记录条显示一致。</li>
+</ul>
+<h3 id="step-4netclient">Step 4：NetClient 快照化<a class="headerlink" href="#step-4netclient" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：避免 UI 线程改写 net 线程成员。</li>
+<li><strong>动作</strong>：<code>send(RequestSnapshot)</code> 替代公开字段。</li>
+<li><strong>验收</strong>：SSE 输出与 token 统计无回归。</li>
+</ul>
+<h3 id="step-5backendcoordinator">Step 5：BackendCoordinator<a class="headerlink" href="#step-5backendcoordinator" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：本地后端+代理职责集中化。</li>
+<li><strong>动作</strong>：<code>ensureLocalServer()</code> 与端口回退迁出 Widget。</li>
+<li><strong>验收</strong>：本地装载/惰性唤醒稳定。</li>
+</ul>
+<h3 id="step-6toolexecutor">Step 6：ToolExecutor 整理<a class="headerlink" href="#step-6toolexecutor" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：工具执行、Docker 沙盒、控制器整合。</li>
+<li><strong>动作</strong>：收口工具执行入口，统一输出 ToolResult。</li>
+<li><strong>验收</strong>：工程师工具/控制器/文生图表现一致。</li>
+</ul>
+<h3 id="step-7widget">Step 7：Widget 瘦身<a class="headerlink" href="#step-7widget" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>目标</strong>：UI 只做显示与交互，逻辑从属 Controller。</li>
+<li><strong>动作</strong>：合并多组状态布尔为状态机。</li>
+<li><strong>验收</strong>：UI 状态切换无抖动/锁死。</li>
+</ul>
+<hr />
+<h2 id="41">4.1 迁移清单（具体类名/文件落点）<a class="headerlink" href="#41" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>说明：以下类名/文件落点为建议命名，保持 Qt/C++17 习惯用法；先“加新不删旧”，每一步仅替换一层调用，确保可回滚。</p>
+</blockquote>
+<h3 id="step-1appbootstrap">Step 1：AppBootstrap（启动与配置）<a class="headerlink" href="#step-1appbootstrap" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/app/app_context.h</code></td>
+<td><code>struct AppContext</code></td>
+<td><code>main.cpp</code> 中路径/环境变量/端口信息</td>
+<td>应用目录、EVA_TEMP、EVA_MODELS、OS/Arch、端口等</td>
+</tr>
+<tr>
+<td><code>src/app/app_bootstrap.h/.cpp</code></td>
+<td><code>class AppBootstrap</code></td>
+<td><code>main.cpp</code> 启动序列</td>
+<td>统一启动入口：<code>AppContext prepare()</code></td>
+</tr>
+<tr>
+<td><code>src/app/config_migrator.h/.cpp</code></td>
+<td><code>class ConfigMigrator</code></td>
+<td><code>main.cpp</code> 中 QSettings 初始化/迁移</td>
+<td>统一读写 <code>eva_config.ini</code></td>
+</tr>
+<tr>
+<td><code>src/app/default_model_finder.h/.cpp</code></td>
+<td><code>class DefaultModelFinder</code></td>
+<td><code>main.cpp</code> 自动发现模型</td>
+<td>扫描 EVA_MODELS 选最小模型</td>
+</tr>
+<tr>
+<td><code>src/app/app_resources.h/.cpp</code></td>
+<td><code>class AppResources</code></td>
+<td><code>registerSarasaFontResource/createDesktopShortcut</code></td>
+<td>字体资源、快捷方式、QSS 加载</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- 从 <code>src/main.cpp</code> 迁出：默认模型发现、QSettings 迁移、字体/快捷方式注册。<br />
+- <code>main.cpp</code> 保留：<code>QApplication</code> 创建、对象装配与 <code>exec()</code>。  </p>
+<h3 id="step-2sessioncontroller">Step 2：SessionController（会话编排）<a class="headerlink" href="#step-2sessioncontroller" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/core/session/session_state.h</code></td>
+<td><code>enum class SessionState</code></td>
+<td><code>Widget</code> 内部多布尔状态</td>
+<td>Idle/Sending/ToolRunning/Compaction/Canceling</td>
+</tr>
+<tr>
+<td><code>src/core/session/session_controller.h/.cpp</code></td>
+<td><code>class SessionController</code></td>
+<td><code>widget_session.cpp</code> 主要逻辑</td>
+<td>会话入口、KV 统计、历史持久化</td>
+</tr>
+<tr>
+<td><code>src/core/session/compaction_controller.h/.cpp</code></td>
+<td><code>class CompactionController</code></td>
+<td><code>widget_session.cpp</code> compaction 逻辑</td>
+<td>触发/摘要/落盘</td>
+</tr>
+<tr>
+<td><code>src/core/session/kv_tracker.h/.cpp</code></td>
+<td><code>class KvTracker</code></td>
+<td><code>Widget</code> KV 统计字段</td>
+<td>统一 token 统计口径</td>
+</tr>
+<tr>
+<td><code>src/storage/history_store.h/.cpp</code></td>
+<td><code>class HistoryStore</code></td>
+<td><code>utils/history_store.*</code></td>
+<td>归档到 storage 模块</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- <code>Widget</code> 仅持有 <code>SessionController</code> 指针并监听事件。<br />
+- <code>HistoryStore</code> 迁移到 <code>src/storage/</code> 后更新 include。  </p>
+<h3 id="step-3toolflowcontroller">Step 3：ToolFlowController（工具回环）<a class="headerlink" href="#step-3toolflowcontroller" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/core/toolflow/tool_flow_controller.h/.cpp</code></td>
+<td><code>class ToolFlowController</code></td>
+<td><code>widget_toolflow.cpp</code></td>
+<td>解析工具与回环</td>
+</tr>
+<tr>
+<td><code>src/core/toolflow/tool_call_parser.h/.cpp</code></td>
+<td><code>class ToolCallParser</code></td>
+<td><code>XMLparser</code> + function_call 解析</td>
+<td>统一入口</td>
+</tr>
+<tr>
+<td><code>src/core/toolflow/tool_flow_events.h</code></td>
+<td><code>struct ToolFlowEvent</code></td>
+<td><code>Widget</code> 直接 UI 操作</td>
+<td>ToolParsed/ToolStart/ToolResult</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- <code>Widget</code> 只消费 ToolFlowEvent，工具解析从 UI 层剥离。  </p>
+<h3 id="step-4netclient_1">Step 4：NetClient（快照化请求）<a class="headerlink" href="#step-4netclient_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/service/net/request_snapshot.h</code></td>
+<td><code>struct RequestSnapshot</code></td>
+<td><code>xNet</code> 成员字段</td>
+<td>不可变快照</td>
+</tr>
+<tr>
+<td><code>src/service/net/net_client.h/.cpp</code></td>
+<td><code>class NetClient</code></td>
+<td><code>xnet.*</code></td>
+<td><code>send(RequestSnapshot)</code></td>
+</tr>
+<tr>
+<td><code>src/service/net/net_events.h</code></td>
+<td><code>struct NetEvent</code></td>
+<td><code>net2ui_*</code> 信号</td>
+<td>输出/状态/工具回传</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- UI 不再直接写 <code>xNet</code> 成员；统一传 <code>RequestSnapshot</code>。  </p>
+<h3 id="step-5backendcoordinator_1">Step 5：BackendCoordinator（本地后端）<a class="headerlink" href="#step-5backendcoordinator_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/service/backend/backend_coordinator.h/.cpp</code></td>
+<td><code>class BackendCoordinator</code></td>
+<td><code>Widget::ensureLocalServer</code></td>
+<td>本地后端生命周期</td>
+</tr>
+<tr>
+<td><code>src/service/backend/local_server_manager.h/.cpp</code></td>
+<td><code>class LocalServerManager</code></td>
+<td><code>xbackend.*</code></td>
+<td>保留现有类名可迁移</td>
+</tr>
+<tr>
+<td><code>src/service/backend/local_proxy_server.h/.cpp</code></td>
+<td><code>class LocalProxyServer</code></td>
+<td><code>net/localproxy.*</code></td>
+<td>端口代理与懒唤醒</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- <code>Widget</code> 只调用 <code>BackendCoordinator::ensureLocalServer()</code>。  </p>
+<h3 id="step-6toolexecutor_1">Step 6：ToolExecutor（工具执行）<a class="headerlink" href="#step-6toolexecutor_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/service/tools/tool_executor.h/.cpp</code></td>
+<td><code>class ToolExecutor</code></td>
+<td><code>xtool.*</code></td>
+<td>工具执行总入口</td>
+</tr>
+<tr>
+<td><code>src/service/tools/tool_registry.h/.cpp</code></td>
+<td><code>class ToolRegistry</code></td>
+<td><code>prompt.cpp</code>/<code>TOOLS_INFO</code></td>
+<td>工具描述集中管理</td>
+</tr>
+<tr>
+<td><code>src/service/tools/docker_sandbox.h/.cpp</code></td>
+<td><code>class DockerSandbox</code></td>
+<td><code>utils/docker_sandbox.*</code></td>
+<td>下沉到 tools</td>
+</tr>
+<tr>
+<td><code>src/service/tools/desktop_controller.h/.cpp</code></td>
+<td><code>class DesktopController</code></td>
+<td><code>xtool.h</code> 控制器逻辑</td>
+<td>平台封装独立</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- <code>ToolExecutor</code> 只接收 <code>ToolRequest</code> 并发出 <code>ToolResult</code>。  </p>
+<h3 id="step-7widget-ui-only">Step 7：Widget 瘦身（UI-only）<a class="headerlink" href="#step-7widget-ui-only" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>新文件</th>
+<th>类/结构</th>
+<th>来源迁移</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/ui/widget_view.h/.cpp</code></td>
+<td><code>class WidgetView</code></td>
+<td><code>widget.*</code></td>
+<td>仅 UI 渲染</td>
+</tr>
+<tr>
+<td><code>src/ui/widget_presenter.h/.cpp</code></td>
+<td><code>class WidgetPresenter</code></td>
+<td>现有 slots 逻辑</td>
+<td>绑定 UI 与 controllers</td>
+</tr>
+<tr>
+<td><code>src/ui/ui_state_model.h</code></td>
+<td><code>struct UiStateModel</code></td>
+<td>多组 UI 状态变量</td>
+<td>统一状态机映射</td>
+</tr>
+</tbody>
+</table>
+<p><strong>落地动作清单</strong><br />
+- <code>Widget</code> 只保留视图组件与信号绑定；逻辑移动到 presenter/controller。  </p>
+<hr />
+<h2 id="5">5. 风险与回滚策略<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>风险</strong>：线程边界调整导致竞态或 UI 卡顿。</li>
+<li><strong>策略</strong>：每一步只动一个层次，保留旧接口并在下一步删除。</li>
+<li><strong>回滚</strong>：保持每一步可编译且功能可用，必要时保留兼容层。</li>
+</ul>
+<hr />
+<h2 id="6">6. 补充建议<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>统一配置入口</strong>：所有默认值/配置项集中到 <code>xconfig.h</code>，避免多处定义。</li>
+<li><strong>工具注册表</strong>：新增 <code>ToolRegistry</code>，将 schema/描述/执行函数集中维护。</li>
+<li><strong>日志规范</strong>：保留 FlowTracer，但按模块统一 tag（Session/Tool/Net/Backend）。</li>
+</ul>
+<blockquote>
+<p>这是拆分草案，待确认后可再细化到具体类名与文件落点。</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.expand", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1490 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）">
+      
+      
+        <meta name="author" content="EVA Team">
+      
+      
+        <link rel="canonical" href="https://ylsdamxssjxxdd.github.io/eva/%E7%B3%BB%E7%BB%9F%E4%BC%98%E5%8C%96%E6%96%B9%E6%A1%88/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>EVA 系统优化方案（2026Q1） - EVA 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#eva-2026q1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="EVA 文档" class="md-header__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EVA 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EVA 系统优化方案（2026Q1）
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="EVA 文档" class="md-nav__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    EVA 文档
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速使用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速使用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/01-%E5%AF%B9%E8%AF%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/02-%E8%A1%A5%E5%AE%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    补完
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/03-%E8%AF%AD%E9%9F%B3%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/04-%E8%A7%86%E8%A7%89%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    视觉交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/05-%E6%96%87%E7%94%9F%E5%9B%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文生图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/06-%E7%9F%A5%E8%AF%86%E5%BA%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识库
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/07-MCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/08-%E7%B3%BB%E7%BB%9F%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统工程师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/09-%E4%BD%BF%E7%94%A8%E6%B2%99%E7%9B%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用沙盒
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/10-%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/11-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/12-%E6%9C%BA%E4%BD%93%E6%8E%A7%E5%88%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体控制
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/13-%E6%A1%8C%E9%9D%A2%E6%8E%A7%E5%88%B6%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    桌面控制器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他文档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他文档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    软件技术说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%9C%BA%E4%BD%93%E8%8A%82%E7%82%B9%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A2%B3%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文档解析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E5%8A%9F%E8%83%BD%E8%BF%AD%E4%BB%A3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能迭代
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 现状诊断（基于当前仓库）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 现状诊断（基于当前仓库）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 设计与可维护性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 性能
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 稳定性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 易用性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 标准性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.6 扩展性
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 优化目标（6 维）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 分阶段实施路线
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-012" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 0：基线与治理（1~2 周）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-124" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1：架构收敛（2~4 周）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-235" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2：性能与稳定专项（3~5 周）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-324" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3：易用性与标准化（2~4 周）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-436" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4：扩展能力升级（3~6 周）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 六维专项行动清单
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 系统设计
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 性能
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 稳定性
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 易用性
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#45" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 标准性
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#46" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 扩展性
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 验收指标（建议）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 风险与应对
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 近期优先级建议（先做这 10 件）
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 结论
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 已落实进展（持续更新）
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="eva-2026q1">EVA 系统优化方案（2026Q1）<a class="headerlink" href="#eva-2026q1" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>目标：围绕<strong>系统设计、性能、稳定性、易用性、标准性、扩展性</strong>六个维度，给出可执行、可验收、可迭代的优化路线。<br />
+范围：主机体 <code>Widget/Core/Service/Storage/Tool/Expend</code>，以及工程化流程（测试、文档、发布）。</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 现状诊断（基于当前仓库）<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11">1.1 设计与可维护性<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<ul>
+<li>核心模块体量偏大，职责边界仍有耦合：</li>
+<li><code>src/xtool.cpp</code> 约 <code>3404</code> 行</li>
+<li><code>src/widget/widget_link.cpp</code> 约 <code>1633</code> 行</li>
+<li><code>src/service/backend/backend_coordinator.cpp</code> 约 <code>1367</code> 行</li>
+<li><code>src/xnet.cpp</code> 约 <code>1273</code> 行</li>
+<li><code>src/widget/widget.h</code> 约 <code>1088</code> 行</li>
+<li>现有分层方向正确（<code>core/session</code>、<code>core/toolflow</code>、<code>service/backend</code> 已拆出），但 UI 状态、会话编排、后端生命周期仍存在“跨文件共享状态 + 回调驱动”复杂路径，变更成本高。</li>
+</ul>
+<h3 id="12">1.2 性能<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>src</code> 内存在较多同步阻塞调用，<code>waitForFinished(...)</code> 出现约 <code>25</code> 处，存在 UI 卡顿风险（尤其在 I/O 慢、外部进程慢、Windows 环境下）。</li>
+<li>输出区、状态区、工具回环在高频流式场景下存在重复刷新，仍有进一步“批量化更新/降频刷新”的优化空间。</li>
+</ul>
+<h3 id="13">1.3 稳定性<a class="headerlink" href="#13" title="Permanent link">&para;</a></h3>
+<ul>
+<li>本地后端重启、端口回退、懒卸载、唤醒等场景已具备能力，但路径复杂，边界行为仍依赖多个标志位协同，容易出现“状态提前解锁/动画中断/竞态”类问题。</li>
+<li>工具执行、控制器、docker、网络流是主要故障高风险面，需统一超时、取消、重试与错误码策略。</li>
+</ul>
+<h3 id="14">1.4 易用性<a class="headerlink" href="#14" title="Permanent link">&para;</a></h3>
+<ul>
+<li>功能丰富，但交互负担偏重：模式切换、工具开关、设置重启影响范围、状态反馈的一致性仍可增强。</li>
+<li>当前“状态提示 + 日志提示 + 控件可用性”是多源反馈，用户有时难以判断“现在能做什么/下一步该做什么”。</li>
+</ul>
+<h3 id="15">1.5 标准性<a class="headerlink" href="#15" title="Permanent link">&para;</a></h3>
+<ul>
+<li>仍存在历史风格混用（命名风格、模块注释风格、错误信息结构化程度不统一）。</li>
+<li>编译告警尚未完全收敛（当前构建有告警），应纳入质量门禁。</li>
+<li><code>xconfig.h</code> 集中了大量配置与工具函数，需进一步拆分为“配置常量/类型定义/通用辅助”三层。</li>
+</ul>
+<h3 id="16">1.6 扩展性<a class="headerlink" href="#16" title="Permanent link">&para;</a></h3>
+<ul>
+<li>新工具接入目前仍需跨多处修改（注册、执行、提示词拼装、UI开关/展示），应进一步降低为“声明式注册 + 自动挂载 + 可选 UI 配置”。</li>
+<li>扩展能力（工具、MCP、技能）已具备基础，但缺少统一版本契约（schema version / capability matrix / compatibility policy）。</li>
+</ul>
+<hr />
+<h2 id="2-6">2. 优化目标（6 维）<a class="headerlink" href="#2-6" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>系统设计</strong>：核心链路从“回调拼接”升级为“显式状态机 + 领域服务编排”，降低耦合。  </li>
+<li><strong>性能</strong>：减少主线程阻塞，优化流式渲染和工具执行路径，提升响应速度。  </li>
+<li><strong>稳定性</strong>：建立统一容错机制（超时、取消、重试、降级、恢复），压缩异常面。  </li>
+<li><strong>易用性</strong>：用统一交互语义表达状态，减少用户决策负担。  </li>
+<li><strong>标准性</strong>：建立统一工程规范（命名、错误码、配置、日志、测试门禁）。  </li>
+<li><strong>扩展性</strong>：形成可插拔能力模型（工具/MCP/技能），降低新能力接入成本。</li>
+</ol>
+<hr />
+<h2 id="3">3. 分阶段实施路线<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
+<h2 id="phase-012">Phase 0：基线与治理（1~2 周）<a class="headerlink" href="#phase-012" title="Permanent link">&para;</a></h2>
+<ul>
+<li>建立统一基线采样：</li>
+<li>启动耗时、装载耗时、首 token 延迟、回合完成耗时、工具耗时。</li>
+<li>后端重启成功率、端口回退成功率、工具超时率。</li>
+<li>建立质量门禁：</li>
+<li><code>cmake --build</code> 告警清零为目标（先收敛关键告警）。</li>
+<li><code>ctest</code> + smoke 作为最小门禁，新增稳定性回归清单。</li>
+<li>产出：</li>
+<li><code>docs/性能稳定性基线.md</code>（建议新增）</li>
+<li><code>docs/错误码与故障分级规范.md</code>（建议新增）</li>
+</ul>
+<h2 id="phase-124">Phase 1：架构收敛（2~4 周）<a class="headerlink" href="#phase-124" title="Permanent link">&para;</a></h2>
+<ul>
+<li>目标：把“状态与流程”从散点逻辑中抽离成可验证结构。</li>
+<li>动作：</li>
+<li>引入统一 UI 状态机（init/loading/pushing/normal/recording），由单入口驱动按钮可用性。</li>
+<li>引入后端生命周期状态机（stopped/starting/running/restarting/sleeping/waking/error）。</li>
+<li>收敛“装载/重载/唤醒/回退”路径，减少隐式标志位组合。</li>
+<li>将 <code>xconfig.h</code> 按职责拆分为：<ul>
+<li><code>config_defaults.h</code>（默认值）</li>
+<li><code>config_types.h</code>（结构体/枚举）</li>
+<li><code>config_utils.h</code>（纯工具函数）</li>
+</ul>
+</li>
+<li>验收：</li>
+<li>典型状态路径可画成单一状态图并与代码一致。</li>
+<li>重载/唤醒/失败恢复路径具备自动化回归用例。</li>
+</ul>
+<h2 id="phase-235">Phase 2：性能与稳定专项（3~5 周）<a class="headerlink" href="#phase-235" title="Permanent link">&para;</a></h2>
+<ul>
+<li>目标：减少卡顿和异常，提升高负载下体验一致性。</li>
+<li>动作：</li>
+<li>把主线程 <code>waitForFinished</code> 高风险调用迁移为异步任务 + 回调（优先工具、音频、docker、系统命令）。</li>
+<li>流式输出优化：批量 flush（例如 16~33ms 节流）+ 最终强一致刷新。</li>
+<li>工具执行统一超时策略：默认超时、可取消、超时分类错误码。</li>
+<li>网络与后端统一重试策略：指数退避 + 上限次数 + 明确降级动作。</li>
+<li>引入 watchdog 与健康探针：后端状态、代理状态、工具线程活性。</li>
+<li>验收：</li>
+<li>UI 主线程卡顿（&gt;100ms）次数显著下降。</li>
+<li>回归场景（重载、端口冲突、工具超时、网络抖动）可稳定恢复。</li>
+</ul>
+<h2 id="phase-324">Phase 3：易用性与标准化（2~4 周）<a class="headerlink" href="#phase-324" title="Permanent link">&para;</a></h2>
+<ul>
+<li>目标：让“可理解、可预期、可恢复”成为默认体验。</li>
+<li>动作：</li>
+<li>统一状态文案体系：每个状态必须回答“当前在做什么 / 用户能做什么 / 若失败怎么办”。</li>
+<li>统一设置影响说明：每个设置项标注“是否触发重启、影响范围、风险”。</li>
+<li>统一日志规范：<ul>
+<li>人类可读（状态区）</li>
+<li>机器可解析（结构化日志）</li>
+</ul>
+</li>
+<li>统一代码规范与目录规范，形成检查清单并落到 CI。</li>
+<li>验收：</li>
+<li>新用户可在 5 分钟内完成装载、对话、工具调用闭环。</li>
+<li>设置修改后的结果可预期，无“静默失败/隐式重启”。</li>
+</ul>
+<h2 id="phase-436">Phase 4：扩展能力升级（3~6 周）<a class="headerlink" href="#phase-436" title="Permanent link">&para;</a></h2>
+<ul>
+<li>目标：降低新增能力开发成本，支持更长期演进。</li>
+<li>动作：</li>
+<li>定义统一能力描述协议（Capability Schema）：<ul>
+<li><code>name/version/input/output/timeout/retry/security</code>.</li>
+</ul>
+</li>
+<li>工具接入改为声明式注册：<ul>
+<li>注册后自动生成 prompt 挂载片段与参数校验。</li>
+</ul>
+</li>
+<li>MCP/Skill/Tool 三类能力统一映射层，支持最小适配接入。</li>
+<li>增加插件兼容策略（版本范围、弃用策略、回滚策略）。</li>
+<li>验收：</li>
+<li>新增标准工具改造触点减少（目标：核心触点 &lt;= 3 处）。</li>
+<li>能力升级/回滚可控，不破坏主流程。</li>
+</ul>
+<hr />
+<h2 id="4">4. 六维专项行动清单<a class="headerlink" href="#4" title="Permanent link">&para;</a></h2>
+<h2 id="41">4.1 系统设计<a class="headerlink" href="#41" title="Permanent link">&para;</a></h2>
+<ul>
+<li>建立“双状态机”：</li>
+<li>UI 状态机（交互）</li>
+<li>后端状态机（生命周期）</li>
+<li>会话链路（Session）与后端链路（Backend）彻底解耦，通过事件总线通信。</li>
+<li>禁止多组变量控制同一要素（与中央教条一致）。</li>
+</ul>
+<h2 id="42">4.2 性能<a class="headerlink" href="#42" title="Permanent link">&para;</a></h2>
+<ul>
+<li>异步化所有外部进程等待路径（命令执行、docker、tts、whisper 等）。</li>
+<li>输出渲染批处理，减少高频 QTextEdit 刷新。</li>
+<li>对 SSE 解析、工具回环增加轻量统计，定位慢点。</li>
+</ul>
+<h2 id="43">4.3 稳定性<a class="headerlink" href="#43" title="Permanent link">&para;</a></h2>
+<ul>
+<li>统一错误码与故障级别（INFO/WARN/ERROR/FATAL）。</li>
+<li>统一超时与取消协议（网络、工具、进程、控制器）。</li>
+<li>后端异常路径必须可恢复：自动重试 -&gt; 降级 -&gt; 人工干预提示。</li>
+</ul>
+<h2 id="44">4.4 易用性<a class="headerlink" href="#44" title="Permanent link">&para;</a></h2>
+<ul>
+<li>所有关键动作给出明确可视反馈（开始/进行中/完成/失败）。</li>
+<li>装载、重载、重置、设置确认路径做一致化交互设计。</li>
+<li>增加“发生错误后推荐动作”提示模板，减少用户试错。</li>
+</ul>
+<h2 id="45">4.5 标准性<a class="headerlink" href="#45" title="Permanent link">&para;</a></h2>
+<ul>
+<li>配置项统一归档（默认值、类型、迁移策略、UI 文案）。</li>
+<li>编译告警清零治理与回归约束（新增告警必须解释）。</li>
+<li>文档标准化：每个模块至少具备“职责、输入、输出、失败恢复”四段说明。</li>
+</ul>
+<h2 id="46">4.6 扩展性<a class="headerlink" href="#46" title="Permanent link">&para;</a></h2>
+<ul>
+<li>形成统一“能力注册中心”（工具/MCP/技能）。</li>
+<li>schema version + compatibility matrix 作为升级入口。</li>
+<li>新能力默认带测试样例与文档模板，避免“仅实现无沉淀”。</li>
+</ul>
+<hr />
+<h2 id="5">5. 验收指标（建议）<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>先在 Phase 0 采集基线，再按下列目标推进。</p>
+</blockquote>
+<ul>
+<li><strong>设计</strong></li>
+<li>超大文件治理：<code>&gt;1200</code> 行核心源文件数量逐步下降（按季度下降）。</li>
+<li>关键流程状态图与代码一致率 100%（抽检）。</li>
+<li><strong>性能</strong></li>
+<li>首 token 延迟 P95 下降（目标 20%+，以基线为准）。</li>
+<li>UI 卡顿次数（&gt;100ms）下降（目标 50%+，以基线为准）。</li>
+<li><strong>稳定性</strong></li>
+<li>本地重载成功率、唤醒成功率、端口回退成功率 &gt;= 99%。</li>
+<li>异常后可恢复率 &gt;= 99%（无需重启应用）。</li>
+<li><strong>易用性</strong></li>
+<li>核心任务（装载→提问→工具→重置）新用户一次成功率 &gt;= 95%。</li>
+<li><strong>标准性</strong></li>
+<li>构建告警数 = 0（基线告警逐步清零）。</li>
+<li>关键模块文档覆盖率 100%。</li>
+<li><strong>扩展性</strong></li>
+<li>新工具接入工时下降（目标 30%+，以历史均值为基线）。</li>
+<li>新工具至少配套 1 个自动化用例。</li>
+</ul>
+<hr />
+<h2 id="6">6. 风险与应对<a class="headerlink" href="#6" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>风险 1：重构期间引入行为回归</strong></li>
+<li>应对：分阶段小步提交 + 每阶段可回滚 + 回归清单强制执行。</li>
+<li><strong>风险 2：性能优化破坏显示一致性</strong></li>
+<li>应对：批处理刷新保留“最终强一致刷新”兜底。</li>
+<li><strong>风险 3：标准化推进拖慢迭代速度</strong></li>
+<li>应对：先治理高风险模块，规范分层落地，不一次性全改。</li>
+<li><strong>风险 4：扩展协议变更影响存量工具</strong></li>
+<li>应对：协议版本化 + 兼容层 + 弃用窗口。</li>
+</ul>
+<hr />
+<h2 id="7-10">7. 近期优先级建议（先做这 10 件）<a class="headerlink" href="#7-10" title="Permanent link">&para;</a></h2>
+<ol>
+<li>建立统一 UI 状态机入口（禁止散点改按钮状态）。  </li>
+<li>建立后端生命周期状态机与事件映射。  </li>
+<li>梳理并异步化高风险 <code>waitForFinished</code> 路径（先工具与 docker）。  </li>
+<li>建立结构化错误码并接入状态区提示。  </li>
+<li>增加“装载/重载/唤醒/端口冲突”自动化回归。  </li>
+<li>流式输出做节流批处理，减少 UI 抖动。  </li>
+<li>将 <code>xconfig.h</code> 按职责拆分。  </li>
+<li>统一设置项“是否触发重启”的标识与提示。  </li>
+<li>建立工具能力描述协议（最小可用版本）。  </li>
+<li>建立文档与测试同步门禁（无文档/无测试不能合并高风险改动）。</li>
+</ol>
+<hr />
+<h2 id="8">8. 结论<a class="headerlink" href="#8" title="Permanent link">&para;</a></h2>
+<p>当前 EVA 已具备良好的模块化基础与较完整功能面，但要达到“长期稳定运行 + 高可维护 + 高扩展效率”的目标，下一阶段必须从“功能叠加”转向“结构化治理”。 
+本方案建议以<strong>状态机收敛 + 异步化改造 + 标准化治理 + 能力协议化</strong>为主线推进，在不牺牲现有体验的前提下，稳步提升设计质量与工程质量。</p>
+<hr />
+<h2 id="9">9. 已落实进展（持续更新）<a class="headerlink" href="#9" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>后端生命周期状态统一</strong>：新增 <code>BackendLifecycleState</code>，将启动/重启/唤醒/休眠/错误纳入统一状态流，修复重载时动画丢失与按钮提前解锁的竞态问题。  </li>
+<li><strong>本地后端重启异步化</strong>：<code>LocalServerManager</code> 改为非阻塞重启流程（<code>restartInFlight + pending args</code>），移除重载路径中的同步等待，降低 UI 卡顿风险。  </li>
+<li><strong>工具能力协议化落地</strong>：<code>ToolRegistry</code> 增加 <code>schema_version/timeout_ms/high_risk</code> 元信息与 <code>capabilityManifest</code> 输出，形成能力清单基线。  </li>
+<li><strong>工具执行策略接线</strong>：<code>xTool</code> 接入能力元信息，按工具策略执行超时控制与高风险提示，并统一记录超时失败码。  </li>
+<li><strong>全工具超时看门狗</strong>：新增调用级统一超时计时器（覆盖 <code>stablediffusion/MCP/execute_command</code> 等异步路径），超时后自动取消并安全收尾，避免工具链长期悬挂。  </li>
+<li><strong>超时处理收敛</strong>：工具超时告警改为统一出口（去重、幂等、结构化错误码）；<code>docker exec</code> 等阻塞路径改为继承工具超时预算，避免固定 120s 卡死。  </li>
+<li><strong>生命周期状态机约束</strong>：在 <code>xconfig.h</code> 增加后端生命周期迁移规则，<code>Widget</code> 状态设置统一校验并埋点，减少非法状态跳转带来的 UI/后端不同步问题。  </li>
+<li><strong>编译告警收敛（持续）</strong>：修复设置窗口 <code>nctx</code> 滑条上限整型溢出告警，并清理工具读文件路径中的无效临时变量，减少构建噪声。  </li>
+<li><strong>构建告警清理</strong>：清理 <code>expend_eval</code> 未使用评分变量、<code>expend_mcp</code> 过时 <code>toSet</code> 用法与 <code>skill_manager</code> 未使用函数；当前构建输出已无新增编译告警。  </li>
+<li><strong>可观测性增强</strong>：新增 <code>PerfMetrics</code>（<code>EVA_TEMP/metrics/events.jsonl</code>），已接入回合与工具关键事件；后续可直接用于 P50/P95 与失败率统计。  </li>
+<li><strong>测试补强</strong>：新增 <code>tool_registry_tests</code> 与 <code>perf_metrics_tests</code>，并完成构建与全量单测通过校验。  </li>
+<li><strong>设置变更判定收敛</strong>：新增 <code>settings_change_analyzer</code>，将“需要重启后端”和“仅需重置会话”的判定逻辑统一到一个模块，移除设置确认里的重复比较分支；设置确认时新增动作提示（重启后端/重置会话/权限变更），并补充 <code>settings_change_analyzer_tests</code> 覆盖关键边界。  </li>
+<li><strong>网络错误码标准化推进</strong>：<code>xNet</code> 的 HTTP/网络/SSL/超时/空流关键错误状态统一封装为 <code>EVA-NET-001</code>，并把空闲超时常量下沉到 <code>DEFAULT_NET_IDLE_TIMEOUT_MS</code>；新增 <code>eva_error_tests</code>，固定错误码标签与格式化输出契约。  </li>
+<li><strong>网络重试策略落地</strong>：新增 <code>net_retry_policy</code>，为“首包前失败”场景提供可控重试（指数退避、上限重试、可重试错误判定），并在 <code>xNet</code> 接入 API 变更/用户停止对重试队列的中断处理；新增 <code>net_retry_policy_tests</code> 覆盖重试规则。  </li>
+<li><strong>后端恢复动作标准化</strong>：新增 <code>recovery_guidance</code>，把后端错误码与“自动回退/改端口/改设备/检查后端包”等动作提示统一拼装；已接入 <code>backend_coordinator/xbackend</code> 的关键失败路径并新增 <code>recovery_guidance_tests</code>。  </li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.expand", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

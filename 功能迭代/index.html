@@ -1,0 +1,1488 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="EVA 机体用户与开发者文档（本地/链接双模，工具与增殖全流程）">
+      
+      
+        <meta name="author" content="EVA Team">
+      
+      
+        <link rel="canonical" href="https://ylsdamxssjxxdd.github.io/eva/%E5%8A%9F%E8%83%BD%E8%BF%AD%E4%BB%A3/">
+      
+      
+        <link rel="prev" href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>功能迭代 - EVA 文档</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="EVA 文档" class="md-header__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EVA 文档
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              功能迭代
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="EVA 文档" class="md-nav__button md-logo" aria-label="EVA 文档" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    EVA 文档
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速使用
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    快速使用
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/01-%E5%AF%B9%E8%AF%9D/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    对话
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/02-%E8%A1%A5%E5%AE%8C/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    补完
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/03-%E8%AF%AD%E9%9F%B3%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    语音交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/04-%E8%A7%86%E8%A7%89%E4%BA%A4%E4%BA%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    视觉交互
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/05-%E6%96%87%E7%94%9F%E5%9B%BE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文生图
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/06-%E7%9F%A5%E8%AF%86%E5%BA%93/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    知识库
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/07-MCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/08-%E7%B3%BB%E7%BB%9F%E5%B7%A5%E7%A8%8B%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统工程师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/09-%E4%BD%BF%E7%94%A8%E6%B2%99%E7%9B%92/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用沙盒
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/10-%E4%BD%BF%E7%94%A8%E6%8A%80%E8%83%BD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用技能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/11-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%B8%88/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    系统架构师
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/12-%E6%9C%BA%E4%BD%93%E6%8E%A7%E5%88%B6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体控制
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pages/13-%E6%A1%8C%E9%9D%A2%E6%8E%A7%E5%88%B6%E5%99%A8/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    桌面控制器
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    其他文档
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    其他文档
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    使用说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E8%BD%AF%E4%BB%B6%E6%8A%80%E6%9C%AF%E8%AF%B4%E6%98%8E%E4%B9%A6/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    软件技术说明书
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%9C%BA%E4%BD%93%E8%8A%82%E7%82%B9%E4%B8%8E%E7%8A%B6%E6%80%81%E6%A2%B3%E7%90%86/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    机体节点与状态梳理
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../%E6%96%87%E6%A1%A3%E8%A7%A3%E6%9E%90/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    文档解析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    功能迭代
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>功能迭代</h1>
+
+<ul>
+<li>2026年-02月-23日：统一应用图标为 resource/logo/eva.png 与 resource/logo/eva.ico（含 AppImage 打包图标），清理 resource/logo 冗余图标文件并修复 src/widget/widget_toolflow.cpp 中文乱码与路符号异常</li>
+<li>2026年-02月-23日：统一机体应用图标来源，窗口和托盘及打包图标统一切换为 resource/logo/User.png 与 resource/logo/User.ico</li>
+<li>2026年-02月-23日：优化 User 图标64x64超分质量，改用FSRCNN超分并更新 resource/logo/User_64.png</li>
+<li>2026年-02月-22日：继续落实方案：新增recovery_guidance统一后端错误码与恢复动作提示（自动回退/改端口/改设备/检查后端包），并接入backend_coordinator与xbackend关键失败路径；新增recovery_guidance_tests，构建并通过20项单测。</li>
+<li>2026年-02月-22日：继续落实方案：新增net_retry_policy并在xNet接入首包前失败自动重试（指数退避/重试上限/可重试错误判定），同时支持用户停止与API变更中断重试队列；新增net_retry_policy_tests，构建并通过19项单测。</li>
+<li>2026年-02月-22日：继续落实方案：xNet关键错误状态（HTTP/网络/SSL/超时/空流）统一接入EVA-NET-001，网络空闲超时收敛为DEFAULT_NET_IDLE_TIMEOUT_MS；新增eva_error_tests固定错误码契约，构建并通过18项单测。</li>
+<li>2026年-02月-22日：继续落实方案：设置确认流程新增变更动作提示（重启后端/重置会话/仅主机控制权限更新），并保持与settings_change_analyzer统一判定一致；重新构建并通过17项单测。</li>
+<li>2026年-02月-22日：继续落实方案：新增settings_change_analyzer统一设置变更判定（重启后端/重置会话），重构settings确认流程减少重复分支并接入settings.apply埋点；新增settings_change_analyzer_tests，当前构建与17项单测全部通过。</li>
+<li>2026年-02月-22日：继续落实标准化：清理expend_eval未使用变量、替换expend_mcp过时toSet写法、移除skill_manager未使用写文件函数，构建输出已无新增编译告警；16项单测全部通过。</li>
+<li>2026年-02月-22日：继续落实标准化与质量门禁：新增backend_lifecycle_tests覆盖状态迁移规则；Widget后端生命周期迁移增加统一校验与埋点；修复nctx滑条上限整型溢出及xtool无效变量告警；构建与16项单测通过。</li>
+<li>2026年-02月-22日：继续落实状态机收敛：新增后端生命周期迁移规则并在Widget统一校验+打点，增强非法跳转可观测性；新增backend_lifecycle_tests，当前构建与16项单测全部通过。</li>
+<li>2026年-02月-22日：继续落实工具稳定性方案：新增统一超时上报入口并做幂等保护，避免超时与异步回调重复收尾；docker exec 等阻塞路径改为继承工具超时预算；构建与15项单测通过。</li>
+<li>2026年-02月-22日：为xTool新增调用级统一超时看门狗，覆盖execute_command/stablediffusion/MCP等异步路径；补充调用完成幂等收尾，避免超时与回调并发导致重复结束；构建与15项单测通过。</li>
+<li>2026年-02月-22日：重构本地后端生命周期与异步重启流程，修复重载动画/按钮解锁竞态；新增工具能力清单（schema/version/timeout/risk）并接入xTool超时控制；新增tool_registry_tests与perf_metrics_tests并通过全量测试。</li>
+<li>2026年-02月-22日：新增系统六维优化方案文档，覆盖设计性能稳定易用标准扩展并给出分阶段落地与验收指标</li>
+<li>2026年-02月-22日：修复本地模式手动重载模型时未强制重启导致装载动画缺失及按钮提前解锁的问题</li>
+<li>2026年-02月-07日：同步 README_en 世界观文案对齐 README.md 最新修订（补充隔阂统一整体表述）</li>
+<li>2026年-02月-07日：同步 README_en 世界观描述 与 README 中文版本一致</li>
+<li>2026年-02月-07日：同步 README 新增世界观段落到 README_en.md 英文说明</li>
+<li>2026年-02月-07日：更新中央教条并新增朗基努斯之枪隐喻为残酷现实同时将现实校准原则写入中英系统提示词</li>
+<li>2026年-02月-03日：简化机体架构设计文档架构总览突出Core中枢并精简层级描述与图示</li>
+<li>2026年-02月-03日：补充远端上下文探测：/v1/models/{id} 详情回退 + 解析 extra_info.default_envs 字段</li>
+<li>2026年-02月-03日：重写docs/机体架构设计.md以反映最新模块拆分与数据流</li>
+<li>2026年-02月-03日：为工程师工作区树引入缓存与失效策略，重置时复用快照减少卡顿</li>
+<li>2026年-02月-03日：修复用户/工具消息不显示；工具结果按tool角色入列并补齐记录条；提示词高亮加入长度阈值减轻重置卡顿</li>
+<li>2026年-02月-03日：修复单元测试history_store_tests包含路径并验证全量构建通过</li>
+<li>2026年-02月-03日：修正测试用例包含路径 通过local_server_args_tests与vectordb_tests构建</li>
+<li>2026年-02月-03日：模块拆分落地 新增BackendCoordinator与ToolExecutor ToolRegistry 迁移xbackend localproxy与存储路径 清理Net快照信号并修正构建路径</li>
+<li>2026年-02月-03日：细化《机体模块拆分与迁移》文档，补充具体类名与文件落点迁移清单</li>
+<li>2026年-02月-03日：新增《机体模块拆分与迁移》文档，给出模块拆分草案与迁移顺序图</li>
+<li>2026年-02月-03日：补充《机体架构设计》关键子系统拆解图、组件依赖图/类关系图、信号槽对照表与运行时状态机图</li>
+<li>2026年-02月-03日：精简《机体架构设计》架构总览图，突出前端/编排/服务/后端主链路</li>
+<li>2026年-02月-03日：新增《机体架构设计》文档，整理模块分层、线程模型、关键流程与持久化结构，并补充多张架构/流程图</li>
+<li>2026年-02月-03日：系统工程师启用时，将 Wunder 系统提示词追加到默认系统提示词后面（不改变默认简洁提示词本体）</li>
+<li>2026年-02月-03日：默认系统提示词恢复为简洁版本并新增 WUNDER 模板：新增默认提示词资源文件，保留 wunder 提示词为可选模板</li>
+<li>2026年-02月-03日：定时任务右键菜单增加任务信息展示（名称/状态/下次执行/倒计时），再执行启用/禁用/立即执行/删除</li>
+<li>2026年-02月-03日：定时任务页改为右键菜单操作（启用/禁用/立即执行/删除），按钮隐藏并仅在条目右击时弹出</li>
+<li>2026年-02月-03日：调整工程师提示词注入逻辑：默认工具提示不再内置工程师信息，仅在勾选系统工程师后附加</li>
+<li>2026年-02月-03日：修复 xconfig.h 三元运算符被破坏导致编译失败，并将 SchedulerService 清空作业数组改为 QJsonArray 重新赋值以通过编译</li>
+<li>2026年-02月-03日：提示词：WUNDER系统提示词迁移到资源文件（不再内嵌在C++），并通过prompt加载。</li>
+<li>2026年-02月-03日：新增定时任务调度器与schedule_task工具，增殖窗口定时任务页支持列表/倒计时/详情/启停/立即执行，任务持久化到EVA_TEMP/cron</li>
+<li>2026年-02月-03日：提示词：对齐 WUNDER 系统提示词并新增中英双语默认约定，随界面语种刷新默认提示模板。</li>
+<li>2026年-02月-03日：恢复默认tool_call与系统工程师自动挂载，并加入默认配置迁移逻辑</li>
+<li>2026年-02月-03日：默认关闭系统工程师与tool_call模式，并注释工程师环境检测逻辑</li>
+<li>2026年-02月-02日：落地上下文压缩基础链路：自动触发压缩、生成摘要并写入 compaction/summary.jsonl，压缩输出以紫色记录块呈现并可在压缩后继续发送</li>
+<li>2026年-02月-02日：新增skill_call技能调用工具，同步WUNDER提示词结构并补充中文工程师/技能协议提示</li>
+<li>2026年-02月-02日：重写机体持久化方案，补充上下文压缩/定时任务/长链路优化设计，并新增压缩记录块角色与多语言标签</li>
+<li>2026年-02月-02日：doc2md 支持解析 Markdown 文件并在清理结果为空时保留原文</li>
+<li>2026年-02月-02日：重写《机体持久化方案》文档，明确默认tool_call与工程师工具、定时任务工具和增殖页要求</li>
+<li>2026年-02月-02日：新增《机体持久化方案》文档，规划上下文压缩、定时任务与长链路执行优化</li>
+<li>2026年-01月-30日：知识库嵌入服务上下文长度改为随分块长度自动估算并限制最小值</li>
+<li>2026年-01月-30日：知识库嵌入维度改为只读锁定并将嵌入服务上下文长度绑定到嵌入维度</li>
+<li>2026年-01月-30日：知识库嵌入服务日志同步到模型日志页面便于排障</li>
+<li>2026年-01月-29日：知识库嵌入维度可手动调整并自动重启嵌入服务，同步工具侧维度</li>
+<li>2026年-01月-19日：默认工具调用方式调整为 function_call。</li>
+<li>2026年-01月-19日：约定窗口工具调用方式下拉框改为自动撑满整行宽度。</li>
+<li>2026年-01月-19日：约定窗口工具调用方式只保留下拉框并限制宽度，恢复紧凑布局。</li>
+<li>2026年-01月-19日：function_call 工具 schema 增加兼容清理，移除 anyOf/oneOf 等不被 llama.cpp 支持的关键字，避免本地后端 400。</li>
+<li>2026年-01月-19日：新增约定窗口工具调用方式下拉框，支持 tool_call/function_call 切换；function_call 模式发送 tools/tool_choice，工具调用信息展示并回填 tool_call_id；清理设置项重复注释乱码并修正提示词模板注释。</li>
+<li>2026年-01月-19日：修复 function_call 相关注释与日文界面的乱码显示</li>
+<li>2026年-01月-19日：约定窗口新增工具调用方式切换，function_call 模式支持 tools 清单与 tool_call_id 回填，并展示 API 返回的工具调用信息</li>
+<li>2026年-01月-12日：修复链接模式端点拼接出现 //v1 的问题</li>
+<li>2026年-01月-08日：链接模式上下文探测新增MindIE支持（/v1/config 与 /v2/models/{model}/config）</li>
+<li>2026年-01月-02日：提高WindowsAMD GPU状态检测脚本首轮超时阈值</li>
+<li>2026年-01月-02日：Qt 安装元数据(.prl/.pri/.pc)中的 OpenSSL 路径修补扩展为递归扫描并统一回退到 C:/openssl-static-3.1.1</li>
+<li>2026年-01月-02日：Qt 静态构建自动修补 Qt 安装目录全部 .prl 的 OpenSSL 路径为 C:/openssl-static-3.1.1</li>
+<li>2026年-01月-02日：自动修正 Qt5Network.prl 中失效的 OpenSSL 路径，回退到 C:/openssl-static-3.1.1</li>
+<li>2026年-01月-02日：OpenSSL 未配置或路径无效时自动回退到 C:/openssl-static-3.1.1</li>
+<li>2026年-01月-01日：链接模式网络异常改为在状态区提示（超时/HTTP错误/无数据结束），便于定位30秒中断原因。</li>
+<li>2026年-01月-01日：系统工程师工具解析工作目录时自动创建 EVA_WORK，避免列表/搜索等工具因目录缺失报错。</li>
+<li>2025年-12月-29日：修复CUDA后端启动失败不回退问题，新增CUDA12运行时探测并支持自动降级到Vulkan/OpenCL/CPU</li>
+<li>2025年-12月-29日：修复 MCP streamable HTTP 类型识别，避免误用 SSE 导致 307 重定向。</li>
+<li>2025年-12月-24日：优化技能提示词指引，并将工程师工具路径白名单扩展到 EVA_SKILLS。</li>
+<li>2025年-12月-24日：文转声：tts.cpp 音色枚举失败时自动重试并合并输出解析，避免重启后偶发无音色。</li>
+<li>2025年-12月-21日：文转声：默认启用；若可用音色包含 zf_001 则默认选中它。</li>
+<li>2025年-12月-20日：后端：正常切换模型/重载时属于“主动 stop/restart”，不再误报 <code>ui:backend crashed</code>（避免 kill 被 Qt 标记为 Crashed 造成误导）。</li>
+<li>2025年-12月-20日：后端：加入 AVX 探测，x86 无 AVX 时自动优先 <code>cpu-noavx</code>；并将 llama-server 启动后“未 ready 即退出/崩溃”视为启动失败以触发回退，修复 Win7 老 CPU 装载卡死。</li>
+<li>2025年-12月-20日：文转声：tts.cpp 的 <code>--lang</code> 支持 ja，按界面语言自动注入（zh/en/ja）。</li>
+<li>2025年-12月-20日：多语言：新增日语（ja）界面语言包；“约定”窗口语言切换改为下拉框（zh/en/ja）；日语下“机体”显示为 EVA。</li>
+<li>2025年-12月-20日：文转声：tts.cpp 合成时根据界面语言自动追加 <code>--lang zh|en</code>（数字读法等）。</li>
+<li>2025年-12月-20日：桌面控制器(controller)：Windows 截图从 Qt <code>grabWindow</code> 改为 GDI/BitBlt，并加入截图超时 + reset turnId 守护，修复偶发卡死（重置无效）问题。</li>
+<li>2025年-12月-20日：设置：修复温度/重复惩罚持久化被启动迁移逻辑覆盖（temp_str/repeat_str/hid_top_p_str）；并发下 KV 记忆容量按单槽上下文显示。</li>
+<li>2025年-12月-18日：日志：移除 net_done 的 assistant_len/reasoning_len（字符长度）输出，改为仅打印 token 汇总（prompt/gen/reasoning/turn/used）。</li>
+<li>2025年-12月-18日：链接模式：修复记忆量(KV)统计，使用 OpenAI 兼容 usage 的 prompt/total/completion 校准流式计数，并把 reasoning/thinking tokens（思考部分）纳入。</li>
+<li>2025年-12月-18日：文转声：将“tts.cpp 模型选择”与“可用音色”下拉框合并到同一行，界面更紧凑。</li>
+<li>2025年-12月-18日：文转声：声源改为 tts.cpp/system；新增“可用音色”下拉框，选择 tts.cpp 模型后自动运行 <code>tts-cli --list-voices</code> 枚举音色；合成时使用 <code>--voice</code> 指定音色。</li>
+<li>2025年-12月-18日：历史对话：messages.jsonl 不再落盘 <code>data:image/...;base64,...</code> 图片内容，改为记录本地路径（local_images / image_url.url），发送前再自动重建为 base64。</li>
+<li>2025年-12月-18日：输出区：修复模型一次输出内容较多时未能正确自动置底的问题（监听滚动范围变化补置底）。</li>
+<li>2025年-12月-18日：输出区：请求附带的图片路径使用“思考”同款灰色显示，降低对正文阅读的干扰。</li>
+<li>2025年-12月-18日：文生图：输出图片/视频统一保存到 EVA_TEMP/sd 目录，避免散落到工作目录或后端目录。</li>
+<li>2025年-12月-18日：历史对话：重载会话时，记录条(tool 记录块)按工具名恢复对应图标（兼容旧历史通过解析 <code>&lt;tool_call&gt;</code> 还原）。</li>
+<li>2025年-12月-18日：桌面控制器(controller)：overlay 落盘调试图的 bbox 蓝色方框恢复显示，并对越界/过小 bbox 做最小可视化兜底。</li>
+<li>2025年-12月-18日：桌面控制器(controller)：移除自动截图时对输出区的遮挡层，避免界面闪烁。</li>
+<li>2025年-12月-18日：输出区：工具高亮蓝灰色提亮，增强可读性。</li>
+<li>2025年-12月-18日：输出区：工具高亮移除背景填充；原本带背景的“标签/参数名”改为蓝灰色文字（浅色/深色主题自动适配亮度），其余高亮配色保持不变。</li>
+<li>2025年-12月-18日：输出区：工具名高亮不再使用下划线样式，减少视觉干扰。</li>
+<li>2025年-12月-18日：输出区：系统提示词与模型 <code>&lt;tool_call&gt;</code> 工具调用块高亮显示工具名/参数名/关键字段，提升可读性。</li>
+<li>2025年-12月-18日：本地模式：修复“弹出/惰性唤醒”重新装载后耗时显示异常偏大（进入唤醒流程时重置 <code>load_timer</code>，使 <code>load_time</code> 统计更准确）。</li>
+<li>2025年-12月-18日：链接模式：/v1/models 自动探测的模型补全列表过滤“Provider: Friendly Name”这类带冒号展示名，避免冗余与误选导致连接失败。</li>
+<li>2025年-12月-18日：本地模式：修复重新装载多模态模型后 max ngl 被误识别为 999 的问题（过滤 offloaded A/999，并兼容更多 n_layer 日志前缀以回填真实上限）。</li>
+<li>2025年-12月-18日：记录区：工具记录块在“工具触发时”立即显示，工具返回时复用该记录块写入结果，不再等待执行完成才创建。</li>
+<li>2025年-12月-18日：桌面监视器(monitor)：调用 monitor 后记录区工具图标改为“眼睛”（<code>resource/logo/pepicons-pencil--eye.svg</code>），便于区分观测与操作。</li>
+<li>2025年-12月-18日：挂载工具后：通用提示词强调“先拆分任务、逐步完成（每步依赖最新工具回传结果推进）”，提高多步任务执行稳定性。</li>
+<li>2025年-12月-18日：桌面控制器(controller)：<code>type_text</code> 动作自动先点击 bbox 中心以激活输入区域，再注入 <code>text</code>，减少模型“先点再输”的两步调用。</li>
+<li>2025年-12月-17日：桌面控制器(controller)：工具层兼容 <code>bbox</code>/<code>to_bbox</code> 仅返回中心点 <code>[x,y]</code>（2 参数）的模型输出，自动退化为 1x1 bbox 执行并支持 overlay 落盘复盘。</li>
+<li>2025年-12月-17日：本地 llama-server 输出 “image input is not supported … mmproj” 时，状态区提示“模型不支持视觉”，并引导更换视觉模型或挂载 mmproj。</li>
+<li>2025年-12月-17日：文转声：按段落/换行朗读并跳过 <think>/<tool_call>；answer 工具朗读 arguments.content；重置强制终止朗读/播放；工具返回仅播报“模型调用xxx工具 / The model calls the xxx tool”。</li>
+<li>2025年-12月-17日：桌面控制器：新增 monitor 监视器工具（等待+截图），等待期间在屏幕顶部居中显示“等待中+倒计时”，并在工具回传时自动附带最新截图供模型持续监视与择机操作。</li>
+<li>2025年-12月-17日：本地 llama-server 默认追加 <code>-kvu</code> 禁用 kv_unified，避免后端自动将并发设为 4；并确保 <code>--parallel</code> 始终使用机体设置值（默认 1）。</li>
+<li>2025年-12月-17日：本地 llama-server 默认开启 <code>--metrics</code>/<code>--props</code>，启用 <code>/metrics</code> 与 <code>/props</code> 端点，便于监控与运行时参数探测。</li>
+<li>2025年-12月-17日：文转声：按段落/换行切分朗读，跳过 <think> 与 <tool_call> 内容；工具返回后仅播报“模型调用xxx工具 / The model calls the xxx tool”。</li>
+<li>2025年-12月-17日：收紧桌面控制器(controller)工具提示词与 arguments Schema，减少注入提示的 JSON 长度。</li>
+<li>2025年-12月-17日：单元测试：暂时从 CTest 中移除 <code>local_server_args_tests</code> 与 <code>doc2md_tests</code>（断言通过但进程 exit 阶段崩溃导致 SEGFAULT），避免 CI/本地 <code>ctest</code> 被阻断。</li>
+<li>2025年-12月-17日：本地模式：兼容新版 llama-server <code>load_tensors: offloaded A/B layers to GPU</code> 输出，按行缓冲解析并正确刷新 max ngl（不再固定识别为 28）。</li>
+<li>2025年-12月-16日：桌面控制器：归一化默认尺寸统一由 <code>src/xconfig.h</code> 的 <code>DEFAULT_CONTROLLER_NORM_X/Y</code> 控制，避免多处硬编码。</li>
+<li>2025年-12月-16日：链接模式：支持火山方舟 Ark <code>https://ark.cn-beijing.volces.com/api/v3</code> 端点，自动识别 <code>/api/v3</code> 并改用 <code>/chat/completions</code>、<code>/models</code> 等路径，避免被误拼为 <code>/api/v3/v1/...</code> 导致无法请求</li>
+<li>2025年-12月-16日：文档：新增“桌面控制器”章节（原理/效果/操作流程/参数与排障），并补齐 mkdocs 导航与页间跳转。</li>
+<li>2025年-12月-16日：桌面控制器：精简工具提示词（移除冗长示例与重复约束），保留原子动作/归一化坐标/确认与截图迭代等关键规则。</li>
+<li>2025年-12月-16日：桌面控制器：提示词补充“单次调用=单步原子动作、每步依赖最新返回截图再定位”的说明，降低多步交互歧义。</li>
+<li>2025年-12月-15日：链接模式：增加 reasoning tokens 上报与输出结束时 KV 修正的终端日志（修正前/后 kvUsed/kvStream/kvTurn），用于调试带思考过程模型的记忆统计。</li>
+<li>2025年-12月-16日：桌面控制器：动作执行后的绿色完成态提示滞留时间由 1 秒调整为 2 秒，避免确认时间不足。</li>
+<li>2025年-12月-16日：桌面控制器：屏幕叠加提示描述文字加大字号并移除黑色背景，改用轻微阴影提升可读性。</li>
+<li>2025年-12月-16日：桌面控制器：工具提示词按界面语言调整；中文界面强制要求 controller.arguments.description 使用中文，确保屏幕提示可读可确认。</li>
+<li>2025年-12月-15日：桌面控制器：动作执行完毕后将屏幕叠加提示由红色切换为绿色，并额外滞留 1 秒便于确认结果。</li>
+<li>2025年-12月-15日：链接模式：KV 统计默认包含 reasoning tokens（思考 token），不再做剔除修正，便于观察实际推理负载。</li>
+<li>2025年-12月-15日：链接模式：增加 reasoning tokens 上报与输出结束时 KV 汇总的终端日志（prompt/stream/reasoning/kvUsed/kvTurn），用于调试带思考过程模型的记忆统计。</li>
+<li>2025年-12月-15日：历史记录：会话标题生成兼容多模态 user.content 数组（优先取首段文本，其次取本地图片文件名/占位），修复挂载工具附带截图时标题始终为 (untitled) 的问题。</li>
+<li>2025年-12月-15日：桌面控制器：叠加提示窗口启用系统级输入透明（click-through），避免置顶提示框遮挡真实点击/拖拽等操作。</li>
+<li>2025年-12月-15日：桌面控制器：执行动作前等待叠加提示 2 秒结束（含少量抖动冗余），避免“提示出现即点击”。</li>
+<li>2025年-12月-15日：桌面控制器：屏幕叠加提示改为红色并延长至 2 秒，提升执行前可见性。</li>
+<li>2025年-12月-15日：桌面控制器：执行前叠加提示按 DPI 做物理-&gt;逻辑坐标换算，并延长显示/等待时间，解决提示一闪而过与落点偏移。</li>
+<li>2025年-12月-15日：桌面控制器：截屏前临时遮住输出区文字并强制刷新 UI，截屏后立即恢复，避免对话残留进入截图误导模型。</li>
+<li>2025年-12月-14日：移除所有附带图片请求中自动注入的“文件名/尺寸”元信息文本；改为在 controller 工具提示词中明确控制器截图归一化尺寸（由设置项动态注入），并修正 image_url 的 MIME 类型。</li>
+<li>2025年-12月-14日：桌面控制器工具调用时，将模型传入的 bbox/action/description/to_bbox 等信息绘制到“最近一次发给模型的控制器截图”上，并保存到 EVA_TEMP/overlay 便于回溯定位。</li>
+<li>2025年-12月-14日：controller 工具返回信息移除真实屏幕像素坐标；优化 controller 英文提示词，强调仅在用户明确要求桌面交互时才可调用，避免问候/问答场景误触发。</li>
+<li>2025年-12月-14日：controller 工具提示词/Schema 改为纯英文；执行叠加提示默认显示时长加长；所有附带图片的请求在内容中追加图片文件名与尺寸说明。</li>
+<li>2025年-12月-14日：重构桌面控制器工具提示词为 bbox+action+description 结构；控制器执行前增加屏幕叠加提示（中心点+80×80 目标框+动作描述），并在截图前自动隐藏避免污染模型输入。</li>
+<li>2025年-12月-14日：桌面控制器挂载时不再附带坐标叠加截图；控制器截图不再绘制鼠标标记与正交线；控制器提示词移除屏幕尺寸信息。</li>
+<li>2025年-12月-14日：修复桌面控制器归一化坐标缓存变量命名不一致导致的编译失败（controllerNormX/Y -&gt; controllerNormX_/Y_）。</li>
+<li>2025年-12月-14日：记忆（KV）进度条中心文本改为百分比显示，与 CPU/内存等进度条一致；真实 used/cap 仍保留在悬停提示中便于核对。</li>
+<li>2025年-12月-13日：本地模式记忆统计兼容 llama-server 新版日志字段（n_tokens），记忆条中心显示 used/cap，并避免流式近似覆盖 stop processing 的最终值。</li>
+<li>2025年-12月-13日：Linux 下 AMD GPU 监测新增 sysfs 通用实现（/sys/class/drm/.../mem_info_* 与 gpu_busy_percent），无需安装 rocm-smi/ROCm。</li>
+<li>2025年-12月-13日：提升 Windows AMD Get-GpuStatus.ps1 查询频率：成功得到结果后约 1s 即允许下一次执行（仍保留首次报错熔断）。</li>
+<li>2025年-12月-13日：Windows 下 AMD 显存查询由 rocm-smi 切换为内置 Get-GpuStatus.ps1（释放到 EVA_TEMP，强制使用 64 位 PowerShell/dxdiag 生成正确缓存，利用脚本缓存，并在首次报错后熔断避免拖累刷新）。</li>
+<li>2025年-12月-13日：文生图 z-image 预设默认开启 --vae-tiling（VAE 分块）以降低显存占用。</li>
+<li>2025年-12月-13日：修复勾选“允许被远程控制”后退出机体在 Win7 下可能崩溃的问题（控制通道析构不再回调 UI）。</li>
+<li>2025年-12月-13日：补完模式输出改为直接在原文末尾续写追加，不再插入“模型”角色段落。</li>
+<li>2025年-12月-13日：移除未使用的监视帧/监视帧率功能与设置项（不再自动附带屏幕帧）。</li>
+<li>2025年-12月-13日：修复外部直连 API 唤醒/访问后弹出倒计时停在“待命”的问题（代理活动改为重置倒计时，并在后端日志空闲时清理 turnActive_）。</li>
+<li>2025年-12月-13日：修复自动弹出触发后重新装载，弹出倒计时长期停在“待命”的问题（ensureLocalServer 无重启路径会取消倒计时，现会自动重新武装）。</li>
+<li>2025年-12月-13日：手动本地装载选择模型后默认 ngl=999，装载完成后按 max_ngl 自动校准为真实值。</li>
+<li>2025年-12月-11日：控制器提示词强调必须使用最新截图/网格判断坐标，目标缺失时需请求新截图，避免猜测错误点击。
+﻿- 2025年-12月-11日：桌面控制器挂载时自动截屏，用户发送或控制工具返回都会附带当前屏幕图并保存网格化标注版本，便于回溯定位。</li>
+<li>2025年-12月-10日：完善 docs/pages 03-12 与 GitHubPages 引导，补充分步操作、多模态/沙盒/技能/控制细节，便于按页跟做。</li>
+<li>2025年-12月-10日：重写 docs/pages 对话与补完指南，补充分步操作、多模态与工具链指引，并标注补完模式的单轮重置与停用词行为。</li>
+<li>2025年-12月-10日：链接模式输入端点/密钥后自动异步拉取 /v1/models，模型输入框点击即弹出候选补全，避免阻塞主线程。</li>
+<li>2025年-12月-09日：为 GitHub Pages 项目站点设置 site_url=https://ylsdamxssjxxdd.github.io/eva/，修复资源与链接缺少仓库前缀的问题。</li>
+<li>2025年-12月-09日：修正 GitHub Pages 构建命令，使用默认 mkdocs build（去掉无效的 --strict=false）。</li>
+<li>2025年-12月-09日：重写 GitHub Pages 首页，突出本地/链接模式装载与 API 配置引导，并保留 12 步小白路线。</li>
+<li>2025年-12月-09日：API 端点规范化：合并多余斜杠并去掉尾部 / 与 /v1，dashscope 兼容模式等带尾斜杠地址可直接粘贴使用。</li>
+<li>2025年-12月-09日：模型评估端点字段改用可扩展省略标签，窗口放大时可显示完整链接，默认仍保持单行省略。</li>
+<li>2025年-12月-09日：模型评估“端点”字段支持单行省略并仅在悬停时展示完整地址，避免长链接撑开布局。</li>
+<li>2025年-12月-09日：未能通过 /v1/models 或 /props 探测到上下文/模型名时统一显示“未知”，优先展示指挥员在 API 链接中填写的模型名称。</li>
+<li>2025年-12月-08日：ptc 工具记录块图标改用 resource/logo/proicons--python.svg，突出 Python 脚本链路身份。</li>
+<li>2025年-12月-08日：知识库嵌入服务启动时默认附带 -ngl 99，自动尽量使用 GPU 卸载加速构建。</li>
+<li>2025年-12月-07日：修正中文语言包中“允许被远程控制”与拒绝链接提示的编号重复，设置页勾选项不再偶尔被替换成错误提示文案。</li>
+<li>2025年-12月-06日：控制未开启远控时控制端提示拒绝，隐藏控制令牌输入；重构控制通道状态输出，控制端/被控端关键运行信息同步到增殖-模型信息。</li>
+<li>2025年-12月-06日：切换 Docker 沙盒到镜像模式会立即拉取本地镜像列表，修复下拉框只显示默认 ubuntu:latest 的问题。</li>
+<li>2025年-12月-05日：约定技能挂载卡片宽度与区域同步并自动省略过长名称，模型评估当前信息的模型名支持省略避免撑开布局。</li>
+<li>2025年-12月-05日：重构速度统计流程，区分工具中断与用户停止，统一封装上文/生成速度上报，确保工具链结束后也能打印速度提示。</li>
+<li>2025年-12月-05日：统一上下文探测逻辑：优先 /props 取实际 n_ctx/别名，缺失再回退 /v1/models，日志仅输出到终端，评估页与主界面保持同步。</li>
+<li>2025年-12月-05日：SarasaFixedCL-Regular.ttf 改用 Qt big resources 内置，单可执行分发且规避 qrc 编译内存暴涨。</li>
+<li>2025年-12月-05日：链接本地 llama-server 时增加 /props 探测，自动刷新模型名与上下文长度，避免固定 4096 与名称不符。</li>
+<li>2025年-12月-05日：检测到 </tool_call> 立即终止流式请求，提升工具调用命中率。</li>
+<li>2025年-12月-05日：增加事件循环心跳与技能/音频/终端折叠的诊断日志，辅助 Win7 startup crash 排查。</li>
+<li>2025年-12月-05日：启动阶段增加 QT_DISABLE_REGEXP_JIT 与后端探测日志，便于 Win7 illegal instruction 调试与兼容性排查。</li>
+<li>2025年-12月-05日：链接模式登录窗口的 API 链接与机体控制标签及占位符随语言切换同步双语化。</li>
+<li>2025年-12月-05日：README_en.md 补充辅助功能的系统架构师与机体控制英文说明。</li>
+<li>2025年-12月-05日：输出区中图片路径前自动补换行，[IMG] 标记不再与用户文本同一行。</li>
+<li>2025年-12月-05日：用户消息的图片路径移动到消息文本之后输出，并在打印 net:chat payload 时截断图片 data url，避免日志过长。</li>
+<li>2025年-12月-05日：修正拖拽文档/图片后上传预览先出现导致输入框高度未刷新的问题，输入区不再被状态区遮挡。</li>
+<li>2025年-12月-05日：输出区默认字体改用打包内置的 SarasaFixedCL-Regular（未配置时生效），不再强制覆盖用户自选字体。</li>
+<li>2025年-12月-05日：输出区切换为 QPlainTextEdit 以提升渲染性能，图片结果仅展示标记与路径不再内嵌显示。</li>
+<li>2025年-12月-05日：设置窗口将“允许被远程控制”选项移动到最下方，便于快速找到与操作。</li>
+<li>2025年-12月-05日：本地加载模型时如检测到同目录下含 mmproj 的 gguf 文件会自动挂载为视觉模型。</li>
+<li>2025年-12月-04日：提示词改回在 prompt.cpp 内部维护，删除 prompt.ini 及其 EVA_TEMP 自动落地流程，避免运行期编辑引发不稳定，同时在代码内继续强调工程师优先通过 ptc 处理复杂流程。</li>
+<li>2025年-12月-04日：system_engineer_proxy 提示描述不再要求工程师返回剩余记忆，只保留 200 字内工作摘要。</li>
+<li>2025年-12月-04日：文生图工具提示不再要求纯中文，改回任意语言；捕获 SD 标准输出/错误尾部并在失败时返回具体错误片段，便于排障。</li>
+<li>2025年-12月-04日：工程师提示词统一要求所有回复极简（≤3条，无日志长代码，除非明确请求），避免啰嗦输出。</li>
+<li>2025年-12月-04日：优化工程师提示词，面对架构师/system_engineer_proxy 时强制精简总结（≤3条、无日志长代码），保持快速汇报。</li>
+<li>2025年-12月-04日：精简系统提示词模板，工程师继续保留环境信息和 AGENTS.md，架构师提示不再包含环境快照，进一步压缩模型启动负担。</li>
+<li>2025年-12月-04日：精简系统提示词模板与工程师/架构师说明，按角色、工具格式、执行准则和环境快照分段，压缩冗余描述以提升小模型启动与执行效率。</li>
+<li>2025年-12月-04日：裁剪 RemiXIcon 图标库，仅保留记录条实际引用的 Business/Design/Development/Device/Document/Finance/Others/System/User &amp; Faces 子目录，大幅缩小资源包体积。</li>
+<li>2025年-12月-04日：记录条记录块改用 resource/RemixIcon_Svg_v4.7.0 提供的 SVG 图标，系统/用户/模型/思考与常见工具名称都会自动匹配专属图标，其余场景使用通用工具图标兜底，取代单纯首字母色块使调用链更易辨认。</li>
+<li>2025年-12月-04日：文生图新增 z-image 预设，默认填充 z_image_turbo 模型、ae.safetensors VAE 与 Qwen3-4B LLM 路径，分辨率 512x1024、CFG 1.0，开启 CPU 卸载与 Diffusion-FA，便于一键复现指挥员示例命令。</li>
+<li>2025年-12月-03日：系统工程师挂载时若工程师工作目录或应用所在目录存在 AGENTS.md，会自动读取并附加到系统提示作为行动指南，确保遵守本地中央教条。</li>
+<li>2025年-12月-03日：修复控制模式下输出前缀/系统提示不同步的问题，补充CPU/内存/GPU监视同步，并在解除控制后保持设置按钮仅显示图标。</li>
+<li>2025年-12月-03日：记录条记录块统一使用首字母徽标（含工具名缩写），去掉纹理与图标，保持颜色区分，方便一眼判别机体的操作与调用链。</li>
+<li>2025年-12月-03日：控制端输出同步了用户/模型角色前缀，并在控制模式下将装载/约定/设置合并为单个“解除”按钮，聚焦解除操作。</li>
+<li>2025年-12月-03日：重构 search_content 为快速 grep（支持路径/文件模式过滤与结果裁剪），read_file 支持批量多范围读取并改进错误提示，同时放宽系统提示鼓励批量文件读取、编辑工具越界错误提示引导先刷新文件。</li>
+<li>2025年-12月-03日：修复挂载系统工程师后首轮装载会在记录条写入两个 system 块的问题，若装载流程触发前已由环境刷新写入 system 记录，则装载完成时复用该记录并刷新内容；装载开始时同时清理记录条，避免工程师环境在加载过程写入的临时记录保留到最终界面，彻底杜绝重复插入。</li>
+<li>2025年-12月-03日：机体控制新增“允许被远程控制”开关，默认不监听端口，仅当设置页勾选后才初始化控制通道并开放 DEFAULT_CONTROL_PORT；关闭后立即断开现有指挥端并停止监听，避免未授权情况下仍驻留 TCP 服务器。</li>
+<li>2025年-12月-03日：修复 MCP 管理器在线程外析构 QTimer 引发 QObject::killTimer 告警的问题，将 xMcp 改为堆对象并在所属线程中 deleteLater，退出时同步排队 disconnectAll 与清理；同时在退出流程提前停止本地代理与机体控制通道并屏蔽惰性唤醒，避免收尾阶段被唤醒重新装载模型，确保窗口关闭后进程立即退出。</li>
+<li>2025年-12月-03日：链接模式新增“机体控制”页，可远程接管另一台 EVA，镜像输出/状态/进度并仅保留发送、终止、重置与解除功能。</li>
+<li>2025年-12月-02日：修复 doc2md/libxls 在 Windows 7 缺失 _create_locale 导致的启动失败，改用 WinAPI UTF-8 转换并补充调用方缓冲区长度。</li>
+<li>2025年-12月-02日：链接模式端点自动剔除末尾的 /v1，输入带/不带后缀均可正常请求。</li>
+<li>2025年-12月-02日：系统架构师代理不再对工程师结果做 200 字硬截断，仅通过提示词提醒总结长度，保留模型完整输出。</li>
+<li>2025年-12月-02日：修复系统架构师模式下工程师代理在触发工具调用时重复回显<tool_call> JSON 的问题，流式解析阶段仅补齐换行不再重放内容，输出更干净。</li>
+<li>2025年-12月-02日：梳理机体节点与状态，整理装载/发送/工具/重置全流程文档并补充流程图，便于排障与培训。</li>
+<li>2025年-12月-01日：扩充 FlowTracer 覆盖（惰性卸载/代理失败/MCP调用/命令中断/JSON解析失败等关键节点）形成更完整时序。</li>
+<li>2025年-12月-01日：新增 FlowTracer 统一终端日志通道，覆盖启动/后端/网络/工具/UI 关键节点，便于快速追踪机体动作与界面状态。</li>
+<li>2025年-12月-01日：状态区日志不再输出 turn 标签（如 [turn1]），仅保留阶段说明，阅读更简洁。</li>
+<li>2025年-12月-01日：系统工程师工具移除了 剩余记忆量提示，避免误导用户。</li>
+<li>2025年-12月-01日：系统架构师分屏在启用时自动渲染代理提示词，并同步各角色标签颜色与主输出一致，切换后立即可读。</li>
+<li>2025年-12月-01日：修复挂载系统工程师后刷新约定会让“系统提示词”缺失头部的问题，统一兼容 QTextDocument 的段落分隔符，避免系统角色被误删。</li>
+<li>2025年-11月-30日：重构对话→网络→工具闭环，加入统一回合ID与关键节点日志，工具/网络/UI 同步打印 turn 流程，便于维护与追踪。</li>
+<li>2025年-11月-30日：CI 的 xtool_tests 缺失 ProcessRunner 链接，新增 processrunner_test 静态库并在单测目标中引用，确保 runToolWorker 可解析。</li>
+<li>2025年-11月-30日：输出区默认字体在未自定义或仍保存 SimSun 配置时改为 SarasaFixedCL-Regular.ttf，自动迁移旧配置避免继续加载宋体。</li>
+<li>2025年-11月-30日：font_out 字体资源改用独立 RCC，构建期生成 font_out.rcc 并随程序复制，运行时自动注册以避免 qrc_font_out.cpp 编译内存溢出。</li>
+<li>2025年-11月-29日：在工具返回后设置“模型”标题重绘标记，并在下一次流式片段解析前重置思考/模型状态，彻底解决 system_engineer_proxy 完成后模型标题不再出现的问题。</li>
+<li>2025年-11月-29日：再次修复 system_engineer_proxy 工具返回后模型前缀不会重新出现的问题，发送下一轮请求前先冲刷残余流式输出再重置“模型/思考”标记，确保新回复一定带前缀。</li>
+<li>2025年-11月-29日：修复 system_engineer_proxy 工具返回后模型前缀不会重新出现的问题，并在点击“重置”时清空流式状态以确保系统与模型前缀都会重新打印。</li>
+<li>2025年-11月-30日：系统架构师代理下发完整工程师工具与技能提示，并在工程师窗口按角色展示系统/架构师/模型/思考/工具内容，修正记忆统计纳入思考token。</li>
+<li>2025年-11月-29日：修复系统工程师代理的签名与结构体定义不一致导致的编译错误，并兼容带 arguments 包装的 system_engineer_proxy 调用以避免“任务描述为空”误报，提升会话状态类型复用的可读性。</li>
+<li>2025年-11月-29日：右击“系统工程师”可升级为“系统架构师”，主界面新增工程师输出窗，并以 system_engineer_proxy 工具代理系统工程师，支持 engineer_id 记忆与 200 字摘要返回。</li>
+<li>2025年-11月-28日：退出进程会按顺序提示“停止本地后端/关闭 Docker 沙盒”，并在后台异步等待 xTool 完成沙盒收尾，界面不再卡死。</li>
+<li>2025年-11月-28日：系统工程师环境信息会在 Docker 沙盒就绪后一次性输出，避免先打印宿主环境再打印容器环境造成的重复日志。</li>
+<li>2025年-11月-28日：系统工程师环境摘要改为在探测任务完成后输出，确保日志展示最终的 Python/编译/Node 版本与 Docker 状态。</li>
+<li>2025年-11月-28日：系统工程师环境解锁时输出 Python/编译/Node 版本与工作目录、Docker 状态，方便一次性查看完整环境摘要。</li>
+<li>2025年-11月-28日：移除“工程师环境信息刷新完成”状态输出，改由日志调试输出环境摘要，避免状态栏冗余提示。</li>
+<li>2025年-11月-28日：刷新系统工程师提示块后新增状态日志“工程师环境信息刷新完成”，方便确认初始化完成的准确时间点。</li>
+<li>2025年-11月-28日：修复未提交 Docker 镜像/容器时误触发系统工程师环境锁的漏洞，只有真正启动沙盒或切换工作目录时才等待 Docker Ready，界面不会再卡在“环境初始化中”。</li>
+<li>2025年-11月-28日：Docker 容器/镜像下拉选择仅在点击“约定/设置”确认后才写入系统工程师沙盒，防止未提交的编辑直接切换容器。</li>
+<li>2025年-11月-28日：设置窗口在已勾选系统工程师时自动刷新 Docker 资源，并将系统工程师沙盒的启停延迟到点击“设置”确定后执行，避免打开窗口就立即调整容器。</li>
+<li>2025年-11月-28日：设置/约定在挂载系统工程师且环境未就绪时，会锁定主控并延迟重置流程；重置后会立即重新探测环境并等待 Docker 沙盒 “ready” 信号与编译/Python/Node 信息齐备后才解锁，彻底避免日志提前刷新。</li>
+<li>2025年-11月-28日：系统工程师工具在初始化环境参数期间会锁定主控按钮并提示“环境初始化中”，直至探测完成后才允许继续操作。</li>
+<li>2025年-11月-28日：状态区横向滚动条在每次刷新后自动归零，重启后再也不会卡在日志末尾。</li>
+<li>2025年-11月-28日：终端面板限制显示约1200行/120KB，并在触发裁剪时提示用户，避免长日志拖垮界面。</li>
+<li>2025年-11月-28日：系统提示补充强调复杂或多步任务时优先调用 programmatic_tool_calling（ptc），避免脆弱的命令链。</li>
+<li>2025年-11月-28日：系统工程师工具新增 programmatic_tool_calling（ptc）子工具，脚本会写入 ptc_temp 并立即运行，支持通过（filename/workdir/content）一次性描述复杂 Python 任务。</li>
+<li>2025年-11月-28日：Docker 沙盒容器模式默认值改为 none，占位文本不会再继承 ubuntu:latest，并同步在系统提示与状态日志中显示“none”以提醒用户尚未选择容器。</li>
+<li>2025年-11月-28日：旧配置里遗留的 docker_sandbox_container=ubuntu:latest 会自动视为未选择容器，避免容器模式下仍显示 ubuntu 默认值。</li>
+<li>2025年-11月-28日：约定窗口的 Docker 沙盒改为与模式下拉框同行展示 Label，并新增 None 选项，默认 None 即不启用沙盒（镜像/容器列表会保留上次填写的值）。</li>
+<li>2025年-11月-27日：xNet 单测显式设置 APIS.is_local_backend 标记，确保本地/远端请求体覆盖与 UI 模式配置保持一致，修复 xnet_body_tests 失败。</li>
+<li>2025年-11月-27日：Docker 沙盒挂载路径统一切换为 /eva_workspace，约定面板新增“镜像/容器”模式切换，可直接选择现有容器并在必要时自动重启后挂载当前工作目录。</li>
+<li>2025年-11月-27日：容器模式若发现未挂载 /eva_workspace，会弹窗提示并在用户确认后自动停止/重建容器，重新绑定当前工程师工作目录。</li>
+<li>2025年-11月-27日：Docker 沙盒同步挂载 EVA_SKILLS，容器一并提供 /eva_skills 绑定，缺失挂载时会提示自动修复。</li>
+<li>2025年-11月-27日：Docker 模式下系统提示与技能清单统一展示 /eva_workspace、/eva_skills 容器路径，去除宿主机绝对路径。</li>
+<li>2025年-11月-27日：修复 Docker 沙盒中 read_file/write_file 无法访问 EVA_SKILLS 的问题，自动将技能路径映射到 /eva_skills。</li>
+<li>2025年-11月-27日：容器沙盒内的 read/write/edit 系列工具支持直接操作任意绝对容器路径（如 /etc/hosts），默认仍限制宿主工作区。</li>
+<li>2025年-11月-27日：上传区文档缩略图接入 resource/logo/doc-icons 图标集，挂载系统工程师工具时窗口图标自动切换为 User.ico 并在取消挂载后恢复原样，同时初始化托盘指针避免首启崩溃。</li>
+<li>2025年-11月-27日：修复 CI xtool_tests 缺失 DockerSandbox 依赖导致的链接失败，测试目标显式编译 docker_sandbox.cpp。</li>
+<li>2025年-11月-26日：在 README 与《软件技术说明书》中补充 Docker 沙盒架构，从启用流程、路径映射、容器生命周期到兼容性注意事项的全链路说明。</li>
+<li>2025年-11月-26日：约定窗口在 Docker 镜像检测完成前也会读取上次保存的镜像并同步给工具层，确保重启后继续使用用户自选镜像。</li>
+<li>2025年-11月-26日：机体关闭时主动停止当前 Docker 沙盒容器，保留用户指定镜像并在下次启动沿用既有容器。</li>
+<li>2025年-11月-26日：修复 Docker 沙盒下 list_files 工具无法访问 /eva_workspace，新增容器路径解析并在沙盒内安全列出工程目录。</li>
+<li>2025年-11月-26日：恢复启动时的系统工程师 Docker 镜像检测，持久化勾选后会自动刷新镜像列表，无需手动重选工具。</li>
+<li>2025年-11月-26日：CI 改为缓存 apt 软件包环境，移除 ccache 编译缓存以满足环境缓存需求。</li>
+<li>2025年-11月-26日：为 backend 单测补充 Qt Widgets 依赖，修复 CI 缺失 QWidget 头文件导致的编译失败。</li>
+<li>2025年-11月-26日：CI 启用 ccache 缓存，加速 Qt/CMake 构建环境准备。</li>
+<li>2025年-11月-26日：CI 在 Linux 环境禁用 Qt TextToSpeech，避免缺失 qtspeech5-dev 包导致的配置失败。</li>
+<li>2025年-11月-26日：CI 增补 qtspeech5-dev 依赖以满足 Qt TextToSpeech 组件，防止配置失败。</li>
+<li>2025年-11月-26日：CI 安装 Qt5 X11Extras 依赖，修复 workflow 缺少包导致的配置失败。</li>
+<li>2025年-11月-26日：知识库测试检索按钮在新查询前自动清空结果展示区域，避免旧数据残留。</li>
+<li>2025年-11月-26日：新增 push 触发的 GitHub Actions 测试 CI，自动安装 Qt/X11 依赖并运行 cmake+ctest 单元测试。</li>
+<li>2025年-11月-24日：链接模式优化：针对 vLLM/OpenAI 端点改用 max_completion_tokens、stream_options.include_usage 与 repetition_penalty/reasoning_effort，n_predict/cache_prompt 仅在本地 llama.cpp 使用；最大上下文探测若非本地端点不再访问 /props，修复首次请求必失败的问题。</li>
+<li>2025年-11月-24日：增加 APIS.is_local_backend 标记，xNet 依据“本地/链接模式”直接判定 llama.cpp 或远端服务，去掉 IP 网段推断；链接模式发出请求一律视为远端，评估页与增殖页同步该标记。</li>
+<li>2025年-11月-24日：链接模式保留用户显式选择的 http/https 协议，仅在未填写 scheme 时按本地/远端自动补全，避免强制切换导致 SSL 握手失败。</li>
+<li>2025年-11月-24日：HTTP/2 仅对 HTTPS 端点启用，HTTP 端点固定使用 HTTP/1.1，避免 vLLM 等服务对 HTTP/2 预言报“Unsupported upgrade request/Invalid HTTP request”。</li>
+<li>2025年-11月-24日：最大输出长度改为默认 -1（自动），并持续受模型上下文限制；检测到的 n_ctx/slot_ctx 会实时刷新设置窗口的 npredict 上限并回写配置，远端模式同时发送 n_predict 与 max_completion_tokens，防止超过上下文导致 400 报错。</li>
+<li>2025年-11月-24日：模型评估“首次响应”指标若已收到回复但无法测得延迟，会自动判为成功并给出满分，避免因为缺失数值而整项无分。</li>
+<li>2025年-10月-11日：链接模式输入的 endpoint/key/模型 处理时自动去除空格；将 COMPLETION_ENDPOINT 改为 /v1/completions。</li>
+<li>2025年-10月-11日：修复从链接→本地→链接切换后丢失远端配置的问题</li>
+<li>2025年-10月-11日：更新开发者说明书，补充约定框架、智能体实现、提示词规范。</li>
+<li>2025年-10月-11日：将net中COMPLETION_ENDPOINT 即 /completions改为/v1/completions请求 。</li>
+<li>2025年-10月-11日：添加记录点功能：系统/用户/模型/思考/工具色块记录，悬停提示、单击定位、双击编辑，位于输出与输入之间，支持横向滚动无滚动条。</li>
+<li>2025年-10月-11日：记录条优化：底色随界面风格绘制；色块溢出时自动滚动至最右；恢复历史会话时重建记录条。</li>
+<li>2025年-10月-11日：修复记录条6项问题：调整窗口宽度自适应（RecordBar 自适应、滚动钳制）；点击记录块将角色名置顶并消除多余换行；双击编辑仅替换内容避免重复并保留角色名；编辑后即时持久化到历史（新增 rewriteAllMessages）；流式/工具/重置/历史还原统一在插入标题前创建记录锚点，确保定位准确。</li>
+<li>2025-10-12：移除旧装载动画代码，删除 widget_load.cpp，清理相关声明与调用；等待动画已全面替代。</li>
+<li>2025年-10月-12日：全局滚动条从16px调至12px，统一更新浅色与绿色主题的水平/垂直滚动条及按钮尺寸与边距。</li>
+<li>2025年-10月-12日：模型信息-模型日志替换为带3D神经元背景的日志控件（NeuronLogEdit），参考 CsvTableWidget 绘制逻辑；保留等宽字体与只读、禁断自动换行。</li>
+<li>2025年-10月-12日：重构 docs/软件技术说明书.md，结构精炼、分点说明，新增多处流程图（Mermaid）。</li>
+<li>2025年-10月-12日：增殖-模型信息动画懒加载；未打开增殖窗口时不启动动画；关闭窗口或切换到其他选项卡时自动暂停以节能。</li>
+<li>2025年-10月-12日：机体介绍选项卡新增蓝色EVA风格动画背景控件（IntroAnimEdit），参照 NeuronLogEdit；与模型信息页一致采用懒加载，仅在当前页且窗口可见时运行动画。</li>
+<li>2025年-10月-12日：机体介绍动画更新：改为“卡巴拉生命之树”蓝色主题，包含10个Sefirot与路径的发光连线与流光点；保持懒加载与低占用。</li>
+<li>2025年-10月-12日：增殖-机体介绍-卡巴拉生命之树连线完善：中间列纵向相连；底部中心与两侧底部相连；左右柱第二与第三球相连。2025年-10月-12日：修复一批编译警告与构建健壮性问题（winsock2/windows.h 包含顺序、QNetworkRequest 跳转策略弃用、更正 QSet 初始化、签名比较、未使用参数、C 源被传入 C++ 标准选项、tinyexpr 误报抑制），并为 mcp 在 Windows 上补充 ws2_32 链接；清理一处错误的 include 行。</li>
+<li>2025年-10月-12日：记录条增强：新增微纹理渐变背景；记录块更紧凑（宽12px、间距2px）；整体高度调小（16-24px）。</li>
+<li>2025年-10月-13日：后端目录布局修正为 &lt;架构&gt;-&lt;系统&gt;-&lt;设备&gt;-&lt;项目&gt;；实现按 OS 分层的扫描与路径解析；同步更新 README/docs 示例。</li>
+<li>2025年-10月-13日：移除后端旧布局回退，统一仅按 &lt;架构&gt;-&lt;系统&gt;-&lt;设备&gt;-&lt;项目&gt; 解析；若目录不存在则视为无后端。</li>
+<li>2025年-10月-13日：修复链接模式下记忆量获取与显示：1) 从远端 /v1/models 自动解析最大上下文，2) 解析 usage.prompt_tokens 作为本轮基线，优化 KV 进度条。</li>
+<li>2025年-10月-13日：修复链接模式更改 endpoint/key/model 后仍使用旧参数；发送前自动刷新并下发到 xNet。</li>
+<li>2025年-10月-13日：xNet::recv_apis 支持热更新，参数变更时中止当前请求并重置状态，确保下一次请求用新端点/密钥/模型。</li>
+<li>2025年-10月-13日：链接模式修改 endpoint/key/model 后立即重置 slotCtxMax_ 并重新探测 /v1/models，记忆容量及时更新。</li>
+<li>2025年-10月-13日：链接模式支持推理流：解析 SSE 中的 reasoning/reasoning_content 字段，UI 以 <think> 区域灰色流式展示，并在正式内容开始或结束时自动闭合。</li>
+<li>2025年-10月-13日：链接模式记忆累计：使用 usage.prompt_tokens 作为本轮基线，并将其叠加到已有用量；流式输出追加本轮已生成 token，跨轮按累计总量显示。</li>
+<li>2025年-10月-13日：工具调用停止符不再硬中止网络请求：检测到 </tool_call> 后保留连接，等待 SSE 尾部的 usage/timings/[DONE]，确保速度与记忆修正信息完整；仅用户主动停止才中止。</li>
+<li>2025年-10月-13日：链接模式最大上下文探测：/v1/models 未获取到时回退请求 GET /props，从 default_generation_settings.n_ctx 读取最大记忆量。</li>
+<li>2025年-10月-13日：链接模式修改 endpoint/key/model 后：立即清空记忆计数与对话消息（ui_messagesArray），重置 slot/id，并重新探测最大上下文；进度条归零。</li>
+<li>2025年-10月-13日：链接模式工具回合兼容：发送请求前将历史 role=tool 消息转换为 role=user，并在内容前加前缀“tool_response: ”，避免部分提供方（如 OpenRouter/xAI）对工具消息的 422 校验错误。</li>
+<li>2025-10-13：修复高优先隐患：SSE CRLF 分包兼容；同一事件多 data 行聚合后一次解析。</li>
+<li>2025-10-13：超时策略优化：readyRead 时刷新 120s 无活动守护；关闭 QNetworkRequest 60s 传输超时。</li>
+<li>2025-10-13：降噪：流式片段 JSON 解析失败改为调试日志，不再刷 UI 错误行。</li>
+<li>2025-10-13：兼容性：仅对本地 llama.cpp 端点发送 top_k/repeat_penalty；temperature 钳制到 [0,2]。</li>
+<li>2025年-10月-13日：SSE 解析优化：仅对新增数据标准化并加入 4MB 缓冲上限；思考区块显示健壮化：支持单个分片内多次 <think> 起止并分色输出；清理冗余：移除未使用的 JSON 抽取函数与无效变量。</li>
+<li>2025年-10月-13日：知识库上传支持多文件与多格式（txt/md/docx）；解析后自动分块填充待嵌入区；新增 docparser 模块</li>
+<li>2025年-10月-13日：修复 xNet 停止逻辑：收到 ui2net_stop 立即 abortActiveReply，确保‘重置/停止’一键即刻终止当前 SSE 请求。</li>
+<li>2025年-10月-13日：修复 Linux 后端发现逻辑：优先识别 AppImage APPDIR 下 usr/bin/EVA_BACKEND，缺省回落至与可执行同级；解决在 Linux 下路径正确却无法定位 llama-server 的问题。</li>
+<li>2025年-10月-14日：装载按钮改为弹出模式选择（本地/链接），上下结构排布，紧凑设计且无取消按钮。</li>
+<li>2025年-10月-14日：修复后端可执行发现：llama-quantize 改为通过 DeviceManager 在 EVA_BACKEND 下按 <arch>/<os>/<device> 解析；为 llama-quantize/llama-tts 扩展 project 映射；TTS 未找到时输出搜索根与设备提示。</li>
+<li>2025年-10月-14日：新增“模型评估”选项卡：展示当前模型与端点信息，支持一键评估；评估维度包含首次响应延迟、上文处理速度、生成速度、常识问答命中率、工具调用（calculator）；完成后计算综合得分并输出日志</li>
+<li>2025年-10月-14日：模型评估改版：合并“步骤进度/分项结果”为单表；进度条按细分单元对齐真实进度（QA 分题计入）；评分可视化改柱状图；“综合评分”改为“同步率”（正确项/总项%）；日志增强（步骤、模型回复、标准答案、判定、工具调用问题）。</li>
+<li>2025年-10月-14日：AppImage 后端查找增强：支持将 EVA_BACKEND 放在 .AppImage 同目录；优先顺序为 APPDIR/usr/bin/EVA_BACKEND → APPDIR/EVA_BACKEND → 程序同级 → .AppImage 同级 → 当前工作目录；新增环境变量 EVA_BACKEND_ROOT 手动指定根目录；缺失时错误信息会列出已探测路径。</li>
+<li>2025年-10月-14日：修复关闭程序时报错“QThread: Destroyed while thread is still running”：为“模型评估”专用线程添加优雅退出（stop→quit→wait，超时后终止），并在应用退出/窗口关闭时统一清理；同时在线程结束时在其线程内安全销毁 xNet。</li>
+<li>2025年-10月-14日：模型评估重构为5大步：首次响应/生成速度/常识问答/逻辑推理/工具调用</li>
+<li>2025年-10月-14日：模型评估-评估日志控件新增橙黄同步率线条动画背景（EvalLogEdit），参考 CsvTableWidget/NeuronLogEdit；与模型信息一致采用懒加载；黑底边缘+ - 号及刻度。</li>
+<li>2025年-10月-15日：评估日志动画优化——移除正弦管道线（仅保留黑底、刻度与加减号叠加层），降低视觉干扰与CPU开销。</li>
+<li>2025-10-15：后端发现逻辑优化：自动模式按系统能力过滤 cuda/vulkan；本地后端可执行缺失时按 cuda→vulkan→opencl→cpu 逐级回退；新增 Win7/8 检测，优先使用 EVA_BACKEND/<arch>/win7，无则回退 win。</li>
+<li>2025年-10月-15日：修复评估页“常识问答/逻辑推理”用时显示总为0的问题，调整计时记录顺序，避免在切换到下一阶段时被重置。</li>
+<li>2025年-10月-16日：模型评估-常识问答/逻辑推理/工具调用均新增调试日志：打印模型思考过程(<think>区块)与最终输出；常识与逻辑判定优先基于输出区文本；工具调用从输出区提取 <tool_call> JSON 进行判定，便于定位不一致问题。</li>
+<li>2025-10-16：模型评估-日志改进：常识问答/逻辑推理/工具调用在每题开始即打印题目/任务，避免只在收尾一次性输出</li>
+<li>2025-10-16：模型评估-表格： 值列取消底色填充；柱状图配色调整：同步率橙色，其它蓝色；分值低于60为灰色</li>
+<li>2025年-10月-16日：模型评估-交互：点击“评估”后禁用按钮，评估结束/点击“停止”/中途报错后自动恢复可点击，避免重复触发。</li>
+<li>2025年-10月-16日：模型评估-生成速度：评估完成后在日志打印实际速度（优先 tok/s；无则估算；同时打印用时）。</li>
+<li>2025年-10月-16日：设置-推理设备选择为 auto 时，预览与禁用逻辑改为真实自动探测：不再受上一次手动选择影响；标签显示 auto(实际后端)，并依据解析结果启用/禁用 GPU 层数滑块。</li>
+<li>2025年-10月-16日：重设模型评估界面 eval_progressBar 的蓝色质感样式（圆角、深浅渐变、光泽效果），提升可读性与一致性。</li>
+<li>2025年-10月-16日：评估日志可读性优化：各步骤开始前与关键输出后追加空行；QA/逻辑/工具的每个条目之间增加空行分隔。2025年-10月-16日：修复工具调用日志重复标题；每个用例仅在开始打印一次标题，结果部分不再重复标题。</li>
+<li>2025年-10月-16日：模型评估：全面接入 jtr 双语（中/英）；移除控件与日志中的中文硬编码；补齐评分图表与表头翻译；新增语言词条。</li>
+<li>2025年-10月-16日：补充 软件技术说明书.md：新增 模型评估 实现原理与评分细则章节</li>
+<li>2025年-10月-16日：修复 AppImage 桌面快捷方式无效：.desktop 的 Exec 改为指向 APPIMAGE 并加引号，Categories 以分号结尾；非打包版 Exec 指向 QCoreApplication::applicationFilePath()；Name 固定为 eva。</li>
+<li>2025-10-16: Persist local image file paths in history; restore images on session load; warn when files are missing. Also persist tool-generated image paths.</li>
+<li>2025年-10月-16日：生成速度阶段结束后不再被后续阶段的速度回调污染，柱状图不再在QA/逻辑/工具评估时跳动；同时在每次生成速度测试前重置计数器与计时点，避免跨轮干扰。</li>
+<li>2025年-10月-16日：模型评估-柱状图质感优化：添加蓝系渐变与顶部高光、细栅格背景，保持与主体一致的EVA风格。</li>
+<li>2025年-10月-16日：模型评估：工具调用题量翻倍（6→12）；出题改为场景化不点名工具，评分仅在正确工具被调用时计分；更新双语文案。</li>
+<li>2025年-10月-16日：修复文转声系统声源无发声。连接 net→Expend 流式输出；过滤<think>区不朗读；回合结束冲刷尾段，确保无标点结尾也能播报。</li>
+<li>2025年-10月-16日：文生图重构：新增“SD 高级设置”弹窗（QWidget），集中配置所有模型路径与后端参数；预置模板收敛为 flux1-dev / qwen-image / sd1.5-anything-3 + 自定义2套；支持 Qwen-Image（--llm、--diffusion-fa、--flow-shift 3）与 Flux（--diffusion-model）等；统一参数落盘与恢复。</li>
+<li>2025年-10月-16日：UI 精简：增殖-文生图页面隐藏旧“路径设置/参数设置”面板，仅保留“高级设置...”弹窗入口，避免重复与冗长配置。</li>
+<li>2025年-10月-16日：文生图预设完全隔离；移除高级设置的 Apply/取消 按钮；所有参数与路径改为即时保存（按预设独立存盘）。</li>
+<li>2025年-10月-16日：新增文生图预设：wan2.2（视频生成），默认 480x832、CFG 6.0、euler、Flow-Shift 3.0、Diffusion-FA/CPU offload 开启、video-frames 33；支持 I2V（选择底图即可）。</li>
+<li>2025年-10月-16日：移除文生图旧面板（路径/参数组）：删除相关槽函数和变量，统一在‘高级设置…’中配置；主界面仅保留提示词/结果/日志与图生图入口。</li>
+<li>2025年-10月-16日：文生图/图生图合并为单一“生成”按钮：存在底图即 I2V，否则 T2I；按钮状态沿用 stop 切换。</li>
+<li>2025-10-16：文生图：新增图片上传控件（替换 sd_img2img_lineEdit），支持点击/拖拽上传并在区域内预览显示；同时对 img2img 参数传递做了适配。</li>
+<li>2025年-10月-16日：文生图结果区重构为 QWidget，并支持视频播放（avi/mp4）。在生成视频时自动以 .avi 输出并内嵌播放器展示；兼容 sd_output-*.avi 自动发现。</li>
+<li>2025年-10月-16日：上传图像区域复用结果项的关闭按钮设计：顶部标题栏显示文件名，提供关闭按钮以清除已选图片。</li>
+<li>2025年-10月-17日：修复文转声声源列表为空；默认提供 outetts 并枚举系统语音；首次启动自动套用 EVA_MODELS 下的 OuteTTS/WavTokenizer 路径。</li>
+<li>2025年-10月-17日：文生图高级设置新增 --llm_vision 路径项，位于 --llm 下方；保存/预设/命令行已接入。</li>
+<li>2025年-10月-17日：修复 Linux 下 main.cpp 创建 .desktop 文本的转义与占位符错误；改用 QStringLiteral 与 %1/%2/%3 + .arg 生成，避免 stray '\' 与 operator% 报错。</li>
+<li>2025年-10月-17日：MinGW + BODY_PACK 默认跳过 windeployqt（新增 CMake 选项 BODY_SKIP_WINDEPLOYQT，MinGW 下默认 ON；MSVC 下默认 OFF）。</li>
+<li>2025年-10月-17日：MinGW 默认静态编译时不再复制 libgcc/libstdc++/winpthread；新增选项 BODY_COPY_MINGW_RUNTIME 控制是否复制。2025年-10月-17日：Linux 下可执行文件名固定为 eva；AppImage 输出名改为 .appimage\（如 eva-b6746-x86.appimage）。</li>
+<li>2025年-10月-17日：修复重置误删目录：TTS 重置时未初始化 outettsDir 导致 removeDir(") 递归删除当前工作目录（Windows 会删同级 .appimage，Linux AppImage 可能删整个运行目录）。现已将 outettsDir 固定到 EVA_TEMP/tts 并增加路径保护（仅允许删除 EVA_TEMP 下目录）。</li>
+<li>2025年-10月-17日：单实例化：同一路径只允许运行一个 eva 进程；再次启动时仅激活已打开窗口（基于 QLocalServer/QLocalSocket）。</li>
+<li>2025年-10月-17日：优化文生图参数设置中 VAE tiling 控件布局：复选框单独一行，下方合并 Tile X/Y 与 Overlap，并跟随开关启用/禁用。</li>
+<li>2025年-10月-17日：新增后端管理窗口：可枚举 EVA_BACKEND 中的主模型/嵌入/Whisper/TTS/文生图后端并独立钉选可执行文件；右击推理设备标签或下拉框即可以打开；当存在手动覆盖时，推理设备显示 custom 且配置会自动落盘。</li>
+<li>2025年-10月-17日：优化工具调用解析，移除<think>片段，仅保留最后有效<tool_call> JSON，并增强空白与代码块清理。</li>
+<li>2025年-10月-17日：新增终端区与状态区并列，支持拖动分隔；工具命令流式落地到终端视图，用户可实时观察并Ctrl+C中断。</li>
+<li>2025年-10月-17日：execute_command 工具改为流式执行与终端同步输出，保留最后一份 JSON 给模型回传并兜底空输出提示。</li>
+<li>2025年-10月-17日：终端区切换为黑底绿字主题，默认折叠并在命令行工具调用时自动弹出显示运行细节。</li>
+<li>2025年-10月-17日：终端区手动命令同步工程师工作目录，命令提示与执行路径统一。</li>
+<li>2025年-10月-17日：工具输出增加统一截断，超过256KB仅保留首尾内容并附提示说明。</li>
+<li>2025年-10月-17日：edit_file 工具新增空白容错匹配和多次替换自适应，弱模型调用成功率提升。</li>
+<li>2025年-10月-17日：终端面板输出改为定时批量刷新并增加内容裁剪，避免长日志拖慢界面表现。</li>
+<li>2025年-10月-18日：终端面板支持向运行中进程发送输入，date 等交互式命令可继续操作。</li>
+<li>2025年-10月-18日：主界面分割器悬停时显示蓝色高亮，保持其余样式一致。</li>
+<li>2025年-10月-18日：重构工具执行为异步流程，重置时立即中断并忽略未完成输出。</li>
+<li>2025年-10月-18日：系统工程师 search_content 工具支持上下文分组输出与逐行展示，并对结果数量与输出体积进行限制提示。</li>
+<li>2025年-10月-19日：优化系统工程师提示词，补充项目上下文与目录总览，约束最终回复仅归纳修改思路不贴详细代码。</li>
+<li>2025年-10月-19日：精简系统工程师 search_content 工具输出，保留搜索摘要并按文件集中列出匹配行号与内容，省去上下文分隔与高亮。</li>
+<li>2025年-10月-19日：search_content 仅扫描常见文本扩展名及少量配置文件，自动跳过 obj 等二进制文件，减少无效遍历。</li>
+<li>2025年-10月-19日：调整工具执行阶段的等待动画，将转轮固定在 tool:execute_command 状态行并在工具返回后收尾。</li>
+<li>2025年-10月-19日：为工具调用链补充单元与功能测试，覆盖计算、知识、图像、文件、MCP等流程</li>
+<li>2025年-10月-19日：清理xtool.cpp冗余空行，统一函数内行距。</li>
+<li>2025年-10月-19日：重构软件技术说明书结构，按逻辑章节梳理架构、工作流、安全与部署，并补充终端面板、工程师工作目录、历史管理与自动嵌入服务说明。</li>
+<li>2025年-10月-19日：增殖-MCP服务器页支持逐项开关并仅注入已启用工具定义，移除 mcp_tools_list 内置调用，重置后自动同步最新配置。</li>
+<li>2025年-10月-19日：增殖-MCP服务器页新增“刷新”“断开”按钮，可手动同步工具列表并一键断开所有服务。</li>
+<li>2025年-10月-19日：MCP服务器连接按钮加入等待进度条，链接期间提示用户正在处理。</li>
+<li>2025年-10月-19日：MCP工具提示词剔除多余字段（additionalProperties、$schema 等），保持 schema 精简。</li>
+<li>2025年-10月-19日：MCP服务面板支持按服务展开，服务/工具开关联动管理提示词注入。</li>
+<li>2025年-10月-19日：MCP 服务配置支持新版 type/baseUrl/headers 结构，并同步更新增殖示例。</li>
+<li>2025年-10月-20日：捕获 MCP SSE 初始化异常，避免链接失败时未处理异常导致程序退出。</li>
+<li>2025年-10月-20日：恢复知识库嵌入服务日志监听并修复待嵌入表格右键菜单，确保模型日志与段落操作正常。</li>
+<li>2025年-10月-20日：压缩 prompt.h 中所有工具 JSON-Schema 的格式，移除多余换行与缩进。</li>
+<li>2025年-10月-20日：桌面控制器工具JSON Schema改为原始字符串字面量，移除多余转义符。</li>
+<li>2025年-10月-20日：修复约定窗口挂载多个工具时仅首个被持久化的问题，统一保存与恢复多选状态并同步附加提示词。</li>
+<li>2025年-10月-21日：约定窗口新增技能挂载区，支持拖拽导入技能包并自动注入技能提示。</li>
+<li>2025年-10月-21日：整合miniz用于技能包解压并改为异步导入，避免拖拽上传时界面卡顿。</li>
+<li>2025年-10月-21日：技能卡片悬停显示元数据描述，并在提示词注入中附带技能元数据。</li>
+<li>2025年-10月-21日：内置工程师技能包随工具启用时自动部署至EVA_SKILLS，默认保持禁用状态，并修复技能开关初始位置。</li>
+<li>2025年-10月-21日：技能面板增加滚动区域并压缩卡片布局，便于浏览内置技能列表。</li>
+<li>2025年-10月-21日：精简技能提示内容，避免重复描述并统一放置于提示末尾。</li>
+<li>2025年-10月-21日：修复增删技能后其他已启用技能被重置为关闭的缺陷。</li>
+<li>2025年-10月-21日：完善软件技术说明书，补充技能规范、导入流程与提示块注入机制。</li>
+<li>2025年-10月-22日：工具调用解析在缺失或损坏<tool_call>标签时回退扫描JSON，提升模型兼容性。</li>
+<li>2025年-10月-22日：在工具协议模板中明确JSON转义规则，防止模型输出非法工具调用。</li>
+<li>2025年-10月-22日：重置时刷新系统工程师工作区快照，确保系统提示反映当前文件结构。</li>
+<li>2025年-10月-22日：模型评估界面焕新：加入指标概览卡片、统一蓝橙配色、优化表格与日志观感并实时高亮核心指标。</li>
+<li>2025年-10月-22日：模型评估页评估按钮合并为单键，运行中自动改为"停止"以便快速中止。</li>
+<li>2025年-10月-22日：修复链接模式token记忆统计重复累加，改为按模型回复增量更新记忆用量。</li>
+<li>2025年-10月-22日：重写eva.qss为像素艺术浅色主题，统一控件边框与表格风格</li>
+<li>2025年-10月-22日：恢复机体介绍、模型信息、模型评估日志的浅色文本，其中模型信息回归霓虹绿文字，确保黑底显示清晰</li>
+<li>2025年-10月-22日：优化输入焦点底色为浅白，保留橙色描边并为主输入区单独保持纯白背景避免整块橙色炫目</li>
+<li>2025年-10月-22日：重绘按钮像素风样式，移除伪立体阴影并调大有效高度，缓解增殖窗口按钮遮挡</li>
+<li>2025年-10月-22日：移除前端控件字体族覆写，统一使用应用 zpix 字体</li>
+<li>2025-10-23：修复设置窗口中 GPU 负载层数显示仍为 999 的问题，改为展示真实层数。</li>
+<li>2025年-10月-23日：修复设置面板滑块无法滑至两端的问题</li>
+<li>2025年-10月-23日：统一提升 QTextEdit/QPlainTextEdit 行距（含软件介绍、日志等），新增 TextSpacing 工具便于复用。</li>
+<li>2025年-10月-23日：设置窗口新增全局设置侧栏，支持字体与多款EVA配色即时生效。</li>
+<li>2025年-10月-23日：全局设置字体/主题即时刷新，修复隐藏侧栏触发的负尺寸告警，确保样式与本体同步。</li>
+<li>2025年-10月-23日：将零号机/二号机/三号机主题迁移至独立QSS文件，统一控件尺寸与间距表现。</li>
+<li>2025年-10月-23日：统一零号机/初号机/二号机/三号机主题</li>
+<li>2025年-10月-23日：为全局设置按钮与窗口接入中英词表映射，确保界面可随语种切换。</li>
+<li>2025年-10月-23日：修复历史会话还原后助手颜色失真</li>
+<li>2025年-10月-23日：机体介绍窗口保持卡巴拉生命之树背景尺寸固定</li>
+<li>2025年-10月-23日：记录条编辑窗口标题改为“编辑历史记录”，并标注当前记录角色，assistant 标签改为 model，同时为 system/user/think/tool/model 引入 jtr 双语显示。</li>
+<li>2025年-10月-23日：链接模式流式输出合并刷新，解决输出版阻塞并在模式切换前强制冲刷。</li>
+<li>2025年-10月-23日：启动及重置时异步刷新 Python/编译/Node.js 环境快照，新增 Node.js 与 npm 检测并精简为版本信息。</li>
+<li>2025年-10月-24日：新增 edit_in_file 工具并完善提示体系，原 edit_file 更名为 replace_in_file。</li>
+<li>2025年-10月-24日：重置对话后强制输出区滚动条停留在底部，避免先跳到底部再回到顶部。</li>
+<li>2025年-10月-24日：重置对话改为延迟刷新工程师环境快照并自动恢复滚动条，输出区不再出现先落底再跳顶的抖动感。</li>
+<li>2025年-10月-24日：首次启动时同步检测编译、Python、Node.js环境，工程师提示词无需手动重置即可展示准确信息。</li>
+<li>2025年-10月-24日：完善 Linux 静态编译流程：跳过 AppImage 打包，并内置 fcitx 输入法插件及环境变量设置。</li>
+<li>2025-10-24：Linux 静态构建默认禁用 Qt TextToSpeech 模块，移除系统语音依赖以避免链接失败。</li>
+<li>2025年-10月-24日：Linux 静态打包时跳过 linuxdeploy-plugin-qt 步骤，避免重复部署 Qt 组件。</li>
+<li>2025年-10月-25日：EVA_LINUX_STATIC 未提供 EVA_FCITX_PLUGIN_PATH 时自动检测 Qt lib 目录中的 libfcitxplatforminputcontextplugin.a。</li>
+<li>2025年-10月-26日：静态构建自动识别OPENSSL_PREFIX并默认以静态方式链接OpenSSL。</li>
+<li>2025-10-26：设置窗口新增最大输出长度控制，使用自适应步进的数值框限定 1-99999。</li>
+<li>2025年-10月-27日：xnet增加请求体日志输出，发送时打印payload便于排查参数。</li>
+<li>2025年-10月-27日：重构助手消息存储，将思考内容写入 reasoning_content 字段，历史会话和请求序列化同步支持。</li>
+<li>2025年-10月-27日：统一只存储 reasoning_content 字段并为本地 llama-server 启用 deepseek reasoning_format。</li>
+<li>2025年-10月-27日：修复记录块编辑后角色标题与上一条内容粘连的问题，确保换行分隔保持一致。</li>
+<li>2025年-10月-28日：新增 StartupLogger 启动计时器，记录 QApplication、主要窗口/工具构造及 ensureLocalServer 调用的耗时，为后续首启优化提供基线数据。</li>
+<li>2025年-10月-28日：GPU 探测改为按需加载，延后 CPU/GPU 监控定时器，知识库嵌入数据改为延迟初始化并支持配置化自动预热，减少首启阻塞。</li>
+<li>2025年-10月-28日：AppImage 运行时自动探测 APPIMAGE 同级的 EVA_BACKEND，移除 BODY_LINUX_PACK 编译依赖。</li>
+<li>2025年-10月-28日：本地模式仅在后端绑定失败后才自动切换备用端口，并新增双语警告、设置页占位提示，以保留用户偏好端口并提示当前临时端口。</li>
+<li>2025年-10月-28日：ARM 版本机体 auto 模式优先寻找 CPU 后端</li>
+<li>2025年-10月-28日：文转声替换为 tts.cpp CLI，移除 OuteTTS/WavTokenizer 配置并更新默认模型自动发现。</li>
+<li>2025年-10月-29日：在 README 与 README_en 中添加致谢名单</li>
+<li>2025年-10月-29日：Win7/8 自动设备选择改为优先 CPU 后端，保持与 ARM 一致的安全默认。</li>
+<li>2025年-10月-29日：后端启动失败状态提示与自动模式真实后端同步</li>
+<li>2025年-10月-29日：Widget 构造阶段异步化技能加载并新增启动耗时日志</li>
+<li>
+<p>2025年-10月-29日：引入本地代理保持端口常驻，将惰性卸载改为弹出倒计时，可配置弹出时间、查看弹出倒计时并可右键倒计时立即弹出。</p>
+</li>
+<li>
+<p>2025年-10月-29日：模型评估端点信息显示代理端口，保持与指挥端一致</p>
+</li>
+<li>2025年-10月-29日：惰性卸载后保留状态区信息，并在后端恢复后自动重新开始倒计时。</li>
+<li>2025年-10月-30日：主界面发送消息恢复服务后倒计时自动重启。</li>
+<li>2025年-10月-30日：优化模型弹出后的状态区处理，保留既有提示记录以便快速回溯。</li>
+<li>2025年-10月-30日：启动本地后端时将上下文长度调整为记忆容量与并发数的乘积，防止多并发占用同一缓存。</li>
+<li>2025年-10月-30日：在软件技术说明书补充机体自动弹出（惰性卸载）的原理、倒计时交互与唤醒流程。</li>
+<li>2025年-10月-30日：在软件技术说明书补充本地代理 LocalProxyServer 的监听、唤醒与转发细节。</li>
+<li>2025年-10月-30日：优化自动弹出后唤醒流程，保留对话输出并继续当前会话。唤醒模型时临时禁用主界面的发送与装载等按钮。</li>
+<li>2025年-10月-30日：修复切换英文后设置窗口弹出倒计时相关文本仍显示中文，并同步更新倒计时提示。</li>
+<li>2025年-10月-30日：弹出倒计时设置标签合并展示倒计时并支持右键立即弹出，KV 缓存进度条文本与提示语同步双语化。</li>
+<li>2025年-10月-30日：MCP 工具页“刷新”“断开”按钮加入多语言映射，支持中英界面统一。</li>
+<li>2025年-10月-30日：约定窗口取消按钮不再应用新的工具挂载与配置，确认后才写入生效。</li>
+<li>2025年-11月-04日：自动弹出默认倒计时调整为5分钟。</li>
+<li>2025年-11月-08日：移除cpp-mcp客户端，集成qt-mcp联通SSE/stdio通道并重写MCP管理器。</li>
+<li>2025年-11月-08日：MCP通知改为标准处理，notifications/message 会写入日志且退出前自动断开 stdio 服务并注册 QProcess::ProcessError，避免残留与警告。</li>
+<li>2025年-11月-08日：重构增殖-MCP 服务器列表：卡片化服务行、独立展开箭头、状态摘要与禁用提示，工具项统一高度并保持高亮可见。</li>
+<li>2025年-11月-10日：MCP 服务器配置保持原始 baseUrl，不再自动拼接 /sse。</li>
+<li>2025年-11月-10日：qt-mcp 新增 Streamable HTTP 客户端，实现 streamableHttp/type=http 配置解析、HTTP POST+SSE 流处理，并支持机体直接连接 MCP Streamable HTTP 服务器。</li>
+<li>2025年-11月-10日：在《软件技术说明书》补充 MCP 集成章节，梳理配置字段、三种传输协议、路由流程与通知策略，方便指挥员理解接入方式。</li>
+<li>2025年-11月-10日：xMcp 增加自动空闲刷新机制，后台定期检测空闲状态并低频调用 <code>refreshTools</code>，确保 MCP 工具列表与服务端变更保持同步。</li>
+<li>2025年-11月-11日：修复 xNet::run 中 readyRead 回调捕获失效栈变量导致 Linux 段错误的问题，首包计时改为使用成员状态确保只启动一次。</li>
+<li>2025年-11月-12日：增殖-MCP 服务列表的工具项新增展开按钮，可查看 inputSchema 参数结构与格式示例。</li>
+<li>2025年-11月-12日：统一 MCP 自动刷新间隔控制，新增 kAutoRefreshIntervalMs 常量，空闲 10 秒刷新一次工具列表。</li>
+<li>2025年-11月-12日：MCP SSE/Streamable HTTP 工具调用默认超时提升至 60 秒，解决复杂任务易超时的问题。</li>
+<li>2025年-11月-12日：全局字体大小控制（含全局设置面板）默认值改为 11pt，保持界面初始字体更紧凑。</li>
+<li>2025年-11月-12日：新增F3工具调用测试窗口，支持输入指令解析工具名与参数结构</li>
+<li>2025年-11月-12日：F3工具调用测试窗口接入jtr翻译日志，解析提示支持双语</li>
+<li>2025-11-13: 更新 prompt 模板的工具调用规范，明确 JSON 格式与多次调用写法。</li>
+<li>2025年-11月-13日：list_files 工具默认列出工程师工作目录，path 参数可选并同步完善提示词描述。</li>
+<li>2025年-11月-13日：增殖-MCP 配置文本自动写入 EVA_TEMP/mcp_servers.json，刷新与退出时强制落盘并在启动时恢复，确保服务器列表持久化。</li>
+<li>2025年-11月-13日：MCP 自动刷新仅针对启用的服务器运行，被关闭的服务既不刷新也不会再写入工具提示，彻底避免“关闭后仍注入工具”问题。</li>
+<li>2025年-11月-24日：移除请求体中的 max_tokens 字段，仅通过 n_predict 传递最大预测长度，统一兼容本地与链接模式。</li>
+<li>2025年-11月-13日：采样设置新增 reasoning_effort 控件，可选择关/极简/低/中/高/自动，并在 LINK 模式推理模型请求体中注入 reasoning 参数。</li>
+<li>2025年-11月-13日：采样设置隐藏 top_k / top_p 控件并移除 reasoning 提示文本，避免用户误改内部推理参数。</li>
+<li>2025年-11月-13日：思考等级默认改为自动，仅对识别为推理模型的请求自动附加 reasoning 参数，避免兼容性报错。</li>
+<li>2025年-11月-13日：输出区默认使用 resource/simsun.ttc，并可在全局设置中独立调整输出区与其余界面的字体及字号。</li>
+<li>2025年-11月-13日：将字体资源拆分为 font_base/font_out 两个 QRC，解决大文件编译限制，并将输出区默认字号调至 13pt。</li>
+<li>2025年-11月-13日：重构 widget 相关逻辑，拆分会话流、终端工具、技能/历史/媒体等子模块，让单个文件保持在 1000 行以内并同步更新构建配置。</li>
+<li>2025年-11月-13日：调研单元/功能测试体系方案，确定以Qt Test与doctest组合覆盖模块逻辑，并用QProcess驱动的功能测试流水线。</li>
+<li>2025年-11月-13日：重构测试目录，引入doctest/TestHarness，并新增QProcess场景驱动的功能测试骨架。</li>
+<li>2025年-11月-14日：新增覆盖率构建开关、gcovr报告目标，并补充prompt/pathutil单元测试拓展覆盖。</li>
+<li>2025年-11月-14日：补充DocParser/PathUtil/Prompt Builder单测并完善think角色等边界覆盖，推进测试覆盖率目标。</li>
+<li>2025年-11月-14日：新增VectorDB SQLite CRUD 单元测试，验证模型切换、向量填充与删除流程。</li>
+<li>2025年-11月-14日：补充 Prompt Builder 多模态、thinking 以及系统提示去重等单测覆盖。</li>
+<li>2025年-11月-14日：拓展 VectorDB 元数据持久化与清空流程单测覆盖。</li>
+<li>2025年-11月-14日：完善 DocParser UTF-8+BOM 与 DOCX 提取单测。</li>
+<li>2025年-11月-14日：扩展 xTool 工作目录与输出截断单测，验证信号与日志行为。</li>
+<li>2025年-11月-14日：新增 HistoryStore 单元测试验证会话持久化、重写、列表与清理流程，并扩充 xTool 文件工具（replace_in_file、search_content）的异常路径用例，覆盖更多守卫逻辑。</li>
+<li>2025年-11月-14日：新增测试脚本 scripts/run_tests.ps1，支持一键构建与运行（含标签/正则筛选、ctest 不可用时自动回退逐可执行运行、可选覆盖率生成）。</li>
+<li>2025年-11月-14日：将 scripts/run_tests.ps1 默认启用 -Build 与 -Coverage，提升一键体验；可用 -Build:$false -Coverage:$false 覆盖。</li>
+<li>2025年-11月-15日：抽离 xmcp 内部工具同步逻辑，新增 ProcessRunner/Zip 提取/MCP 工具集单元测试，覆盖核心路径以提升主要功能代码覆盖率。</li>
+<li>2025年-11月-15日：新增 xNet 请求体构建单元测试，覆盖本地/远端/补完模式采样参数与 reasoning 参数注入逻辑，提升网络核心模块覆盖率。</li>
+<li>2025年-11月-15日：覆盖率报告集中保存至 build/reports/coverage，并过滤 qrc/autogen 生成文件避免产生日志污染。</li>
+<li>2025年-11月-15日：重构本地后端参数生成流程，并补充DeviceManager与xNet流解析核心单元测试，提升覆盖率以验证主要功能。</li>
+<li>2025年-11月-15日：xMcp 支持可插拔工具控制器并新增核心流/刷新单元测试，补齐MCP主流程覆盖率。</li>
+<li>2025年-11月-17日：UI多语言与提示词切换改为resource/language下的INI方案，支持独立prompt.ini，移除旧ui_language.json并接入统一加载。</li>
+<li>2025年-11月-17日：AppImage 打包新增自动依赖填充：EVA_APPIMAGE_BUNDLE_COMMON_LIBS 默认启用，构建时自动探测并随包携带常见的 X11/图形/音频/压缩库；仍可用 EVA_APPIMAGE_EXTRA_LIBS/EVA_APPIMAGE_EXTRA_BINS 指定额外库或可执行文件，并在打包阶段注入 AppDir。</li>
+<li>2025年-11月-18日：AppImage 自动依赖复制会解析 INPUT/GROUP 链接脚本，定位真实 .so 并拷贝带版本号的文件，同时生成 SONAME 与原始名称软链接，防止运行时回落到系统 /lib。</li>
+<li>2025年-11月-19日：修复 Win7 首次通过状态区右击打开增殖窗口导致的崩溃，补充增殖页签记忆以保证模式兼容。</li>
+<li>2025年-11月-19日：首次展示增殖窗口时输出诊断日志（请求窗口、回退逻辑、页签计数）便于定位问题。</li>
+<li>2025年-11月-19日：Widget 启动阶段为 setApi/set_Date/set_Set 对话框添加细粒度日志，并在设置对话框初始化外层加异常捕获，便于 Win7 崩溃定位。</li>
+<li>2025年-11月-19日：语言包加载改为仅依赖资源目录，避免 Win7 枚举本地路径导致初始化中断。</li>
+<li>2025年-11月-19日：Win7 介绍页 README 解析改为轻量文本拼接，避免 readme_content 操作触发闪退。</li>
+<li>2025-11-21：简化 showReadme，直接以纯文本展示 README 内容并保留编译信息。</li>
+<li>2025年-11月-21日：后端管理器增加删除按钮，选中当前自定义可执行文件即可一键移除；推理设备自定义状态支持在下拉框中直接切换回其它设备，自动清理对应覆盖避免频繁返回管理器复位。</li>
+<li>2025年-11月-21日：后端管理器实时显示当前覆盖路径，移除关闭与恢复自动按钮，改由删除按钮完成覆盖回退。</li>
+<li>2025年-11月-21日：后端管理器在未覆盖时也显示真实解析到的可执行路径，方便快速检查当前设备使用情况。</li>
+<li>2025年-11月-21日：后端管理界面改用推理设备/可执行文件路径列，实时高亮当前运行的条目并以‘当前选择’展示设备名称。</li>
+<li>2025年-11月-21日：推理设备列追加操作系统信息，避免多个同名后端时难以区分。</li>
+<li>2025年-11月-21日：后端管理高亮当前正在使用的可执行行，改用橙色底色提示。</li>
+<li>2025年-11月-21日：设置对话取消/关闭将恢复设备下拉框至上次确认的推理设备，避免未确认的临时操作被记忆。</li>
+<li>2025年-11月-22日：工具调用解析与 LINK 参数清洗改为手写字符串扫描，彻底移除 QRegularExpression 依赖以兼容旧 CPU。</li>
+<li>2025年-11月-22日：禁用状态下的滑动条统一变灰以匹配主题提示。</li>
+<li>2025年-11月-22日：常识/逻辑问答题目与选项合并到同一行，确保请求携带完整选项。</li>
+<li>2025年-11月-22日：界面默认字号调为11pt，输出区默认字号调为12pt，并统一字体回退与全局设置逻辑，避免多处默认值不一致。</li>
+<li>2025年-11月-22日：知识库 docx 解析改用内置 miniz 直接解压读取 word/document.xml，powershell 以外的平台也能处理 docx，并新增跨平台单测生成/验证。</li>
+<li>2025年-11月-22日：增加 .wps 文档 UTF-16 片段提取，解析时过滤 Root Entry 等元数据并支持知识库导入/单测。</li>
+<li>2025年-11月-22日：Win7 本地 CPU 装载失败时自动切换到 cpu-noavx 后端；Win7 后端加载 q4_0 模型时自动附加 --no-repack。</li>
+<li>2025年-11月-23日：新增《文档解析》说明，覆盖各格式解析方法，并将单测样例替换为 README 内容，验证长文与表格合并场景。</li>
+<li>2025年-11月-23日：readWpsText 单测新增 .doc 样例，知识库上传入口支持选择导入 .doc 文档。</li>
+<li>2025年-11月-23日：新增 readXlsxText/readPptxText 解析流程，允许知识库上传 .xlsx/.pptx 并提取表格与幻灯片文本。</li>
+<li>2025年-11月-23日：文档解析输出统一转换为 Markdown（Heading、列表、表格），表格内容用 <code>| col |</code> 语法展示，定位更直观。</li>
+<li>2025年-11月-23日：知识库上传对话框开放 .html/.py/.cpp/.h 等常见文本文件，便于直接导入网页与源代码。</li>
+<li>2025年-11月-23日：新增 WPS <code>.et</code>/<code>.dps</code> 解析，通过 Compound File UTF-16 扫描提取文本，知识库可直接导入 WPS 表格与演示。</li>
+<li>2025年-11月-22日：WPS 解析升级为直接读取 WordDocument/0Table 复合流，支持恢复表格内容并保留数字段落。</li>
+<li>2025年-11月-23日：修复 .et/.dps 知识库解析乱码，新增代码页探测与 GB18030/Big5/Shift-JIS 等多编码回退，并补充相关单元测试；同步放宽文本过滤与评分策略，确保纯英文/符号段落（如 “qt creator”“qml-&gt;python-&gt;qml”）也能进入知识库；接入 libxls 对 .et 按 sheet 输出 Markdown 表格，保证与 .xlsx 解析结果一致；.dps 则新增 PPT 二进制记录解析（TextChars/TextBytes/CString），输出与 PPTX 一致的 Markdown 列表。</li>
+<li>2025年-11月-24日：知识库解析全面切换到 thirdparty/doc2md，统一输出 Markdown 并移除 DocParser 模块；Expend 上传流程直接调用 doc2md::convertFile 解析所有支持格式，日志同步输出 doc2md 警告；单元测试与《文档解析》说明更新为 doc2md 方案，新增 doc2md_tests 覆盖 doc/wps/xlsx/pptx/et/dps 等样例。</li>
+<li>2025年-11月-24日：输入区支持拖拽上传 doc2md 支持的文档，自动用 doc2md 转成 Markdown 并附加到发送内容，同时以类型图标展示并可删除。</li>
+<li>2025年-11月-24日：上传区文档缩略图改用系统标准文件图标并展示文件名，提升辨识度。</li>
+<li>2025年-11月-24日：收紧上传区缩略图与文字高度，避免拖入文件时占据过多界面空间；统一自定义字体大小确保不受全局样式影响。</li>
+<li>2025年-11月-26日：系统工程师工具支持 Docker 沙盒，约定面板可选容器镜像并自动在提示词中描述容器环境。</li>
+<li>2025年-11月-28日：退出对话框会根据当前操作显示“停止本地后端/关闭 Docker 沙盒”，并等待 Docker 收尾后再退出，避免提示一闪而过。</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.top", "navigation.expand", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
